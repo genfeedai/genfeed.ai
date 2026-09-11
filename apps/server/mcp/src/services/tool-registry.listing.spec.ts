@@ -1,4 +1,4 @@
-import type { McpToolOutput } from '@genfeedai/actions';
+import type { McpToolOutput, ToolsetName } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -69,7 +69,10 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
   };
 });
 
-function build(role: 'user' | 'admin' | 'superadmin', toolsets: string[] = []) {
+function build(
+  role: 'user' | 'admin' | 'superadmin',
+  toolsets: ToolsetName[] = [],
+) {
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -80,7 +83,7 @@ function build(role: 'user' | 'admin' | 'superadmin', toolsets: string[] = []) {
     {} as unknown as ClientService,
     logger as unknown as LoggerService,
     role,
-    toolsets as never,
+    toolsets,
   );
 }
 

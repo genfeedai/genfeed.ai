@@ -1,5 +1,5 @@
 import {
-  getToolsets,
+  getToolsetNames,
   parseToolsetSelection,
   type ToolsetSelection,
 } from '@genfeedai/actions';
@@ -7,24 +7,39 @@ import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import { readToolsetsQueryParam } from '@mcp/shared/utils/toolsets-query.util';
 import type { NextFunction, Request, Response } from 'express';
 
+/** Cap on the unknown toolset names echoed back in the 400 message body. */
+const MAX_ECHOED_UNKNOWN_TOOLSETS = 5;
+
 /**
- * Parse `req.query.toolsets` into a validated selection. Exported standalone
- * (not just embedded in the middleware) so both the raw `/mcp` transport
+ * Parse `req.query.toolsets` into a validated selection scoped to the `mcp`
+ * surface, so an agent-only toolset name (e.g. `onboarding`) is rejected the
+ * same way as a name that does not exist at all. Exported standalone (not
+ * just embedded in the middleware) so both the raw `/mcp` transport
  * (`main.ts`) and the REST mirror (`GET /v1/tools`) resolve the same
  * selection from the same query shape.
  */
 export function resolveRequestToolsets(
   query: Request['query'],
 ): ToolsetSelection {
-  return parseToolsetSelection(readToolsetsQueryParam(query));
+  return parseToolsetSelection(readToolsetsQueryParam(query), 'mcp');
 }
 
-/** Human-readable reason an unknown toolset name was rejected. */
+/**
+ * Human-readable reason an unknown toolset name was rejected. The echoed
+ * unknown names are capped so a client that sends a long garbage list (or an
+ * attacker probing the endpoint) cannot inflate the error body.
+ */
 export function buildUnknownToolsetsMessage(
   unknown: readonly string[],
 ): string {
-  const validNames = getToolsets('mcp').map((toolset) => toolset.name);
-  return `Unknown toolset(s): ${unknown.join(', ')}. Valid toolsets: ${validNames.join(', ')}.`;
+  const shown = unknown.slice(0, MAX_ECHOED_UNKNOWN_TOOLSETS);
+  const remaining = unknown.length - shown.length;
+  const shownList =
+    remaining > 0
+      ? `${shown.join(', ')} (+${remaining} more)`
+      : shown.join(', ');
+  const validNames = getToolsetNames('mcp');
+  return `Unknown toolset(s): ${shownList}. Valid toolsets: ${validNames.join(', ')}.`;
 }
 
 /**

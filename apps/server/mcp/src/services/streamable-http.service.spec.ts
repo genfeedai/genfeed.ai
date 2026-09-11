@@ -93,6 +93,19 @@ function makeReq(overrides: Partial<Request> = {}): Request {
   } as unknown as Request;
 }
 
+/**
+ * `ToolRegistryService`'s constructor args are captured positionally (the
+ * mock has no parameter names to key off of), but asserting a fixed index is
+ * fragile against constructor reordering. The toolset selection is the only
+ * array-shaped argument (client service and logger are objects, role is a
+ * string), so finding it by shape is a cleaner, reorder-safe assertion.
+ */
+function getConstructedToolsets(callIndex = 0): unknown {
+  return toolRegistryConstructorCalls[callIndex]?.find((arg) =>
+    Array.isArray(arg),
+  );
+}
+
 function makeRes(): Response & {
   status: ReturnType<typeof vi.fn>;
   json: ReturnType<typeof vi.fn>;
@@ -235,13 +248,13 @@ describe('StreamableHttpService', () => {
 
       await service.handlePost(req, makeRes());
 
-      expect(toolRegistryConstructorCalls[0]?.[3]).toEqual(['content']);
+      expect(getConstructedToolsets()).toEqual(['content']);
     });
 
     it('defaults to an empty toolset selection ("every tool") when unset', async () => {
       await service.handlePost(makeReq({ headers: {} }), makeRes());
 
-      expect(toolRegistryConstructorCalls[0]?.[3]).toEqual([]);
+      expect(getConstructedToolsets()).toEqual([]);
     });
 
     it('instruments the request server with the authenticated identity', async () => {

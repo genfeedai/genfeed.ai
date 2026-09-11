@@ -44,6 +44,18 @@ describe('resolveRequestToolsets', () => {
   it('treats an absent param as "every toolset"', () => {
     expect(resolveRequestToolsets({})).toEqual({ toolsets: [], unknown: [] });
   });
+
+  it('rejects an agent-only toolset name on the mcp surface', () => {
+    // `onboarding` is a real declared toolset name (isToolsetName is true),
+    // but it has no tools on the `mcp` surface — resolveRequestToolsets must
+    // scope validity to `mcp` (parseToolsetSelection(raw, 'mcp')) so this is
+    // rejected the same way a made-up name would be, instead of silently
+    // resolving to "core only".
+    const selection = resolveRequestToolsets({ toolsets: 'onboarding' });
+
+    expect(selection.toolsets).toEqual([]);
+    expect(selection.unknown).toEqual(['onboarding']);
+  });
 });
 
 describe('buildUnknownToolsetsMessage', () => {
@@ -59,6 +71,26 @@ describe('buildUnknownToolsetsMessage', () => {
     const message = buildUnknownToolsetsMessage(['bogus-one', 'bogus-two']);
 
     expect(message).toContain('Unknown toolset(s): bogus-one, bogus-two');
+  });
+
+  it('caps the echoed unknown names at 5 and summarizes the rest', () => {
+    const unknown = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
+
+    const message = buildUnknownToolsetsMessage(unknown);
+    // Only the "Unknown toolset(s): ..." clause is under test here — the
+    // "Valid toolsets: ..." clause is a real (unmocked) catalog listing and
+    // may itself contain single letters like "g" (e.g. "generation"), so
+    // asserting against the whole message would be a false negative.
+    const unknownClause = message.split('. Valid toolsets:')[0];
+
+    expect(unknownClause).toBe('Unknown toolset(s): a, b, c, d, e (+2 more)');
+  });
+
+  it('does not append a "more" suffix when the unknown list is within the cap', () => {
+    const message = buildUnknownToolsetsMessage(['a', 'b']);
+
+    expect(message).toContain('Unknown toolset(s): a, b.');
+    expect(message).not.toContain('more');
   });
 });
 

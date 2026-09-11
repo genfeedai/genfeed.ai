@@ -4,26 +4,6 @@ import {
   type ToolDiscoverySource,
 } from '@mcp/tools/tool-discovery.tool';
 
-const mockState = vi.hoisted(() => ({
-  toolsets: [] as Array<{
-    name: string;
-    description: string;
-    isAlwaysOn: boolean;
-    toolCount: number;
-    toolNames: string[];
-  }>,
-}));
-
-vi.mock('@genfeedai/actions', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@genfeedai/actions')>();
-  return {
-    ...actual,
-    getToolsets: vi.fn((surface: 'agent' | 'mcp') =>
-      surface === 'mcp' ? mockState.toolsets : actual.getToolsets(surface),
-    ),
-  };
-});
-
 function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
   return {
     _meta: {
@@ -38,37 +18,89 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
   };
 }
 
-describe('handleToolDiscoveryTool', () => {
-  beforeEach(() => {
-    mockState.toolsets = [
-      {
-        description: 'Always-on discovery tools',
-        isAlwaysOn: true,
-        name: 'core',
-        toolCount: 3,
-        toolNames: ['list_toolsets', 'search_tools', 'describe_tool'],
-      },
-      {
-        description: 'Posts, articles, calendar',
-        isAlwaysOn: false,
-        name: 'content',
-        toolCount: 5,
-        toolNames: ['create_post'],
-      },
-    ];
-  });
+/** The nine `core` tools a plain `user` can see (everything but `resolve_approval`). */
+const USER_VISIBLE_CORE_TOOL_NAMES = [
+  'list_toolsets',
+  'search_tools',
+  'describe_tool',
+  'get_account_info',
+  'list_brands',
+  'get_brand',
+  'get_credits_balance',
+  'get_usage_stats',
+  'get_job_status',
+];
 
+function coreTool(name: string): McpToolOutput {
+  return tool({
+    _meta: { 'genfeed.ai/toolset': 'core' },
+    description: `${name} description`,
+    name,
+  });
+}
+
+describe('handleToolDiscoveryTool', () => {
   describe('list_toolsets', () => {
-    it('summarizes every mcp-surfaced toolset with counts', () => {
-      const registry: ToolDiscoverySource = { getDiscoverableTools: () => [] };
+    it('summarizes every toolset visible to the caller with counts, ordered and described by the static catalog', () => {
+      const registry: ToolDiscoverySource = {
+        getDiscoverableTools: () => [
+          ...USER_VISIBLE_CORE_TOOL_NAMES.map(coreTool),
+          tool({ name: 'create_post' }),
+        ],
+      };
 
       const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
 
-      expect(result.content[0].text).toContain('core (always on): 3 tool(s)');
-      expect(result.content[0].text).toContain('content: 5 tool(s)');
-      expect(result.structuredContent).toEqual({
-        toolsets: mockState.toolsets,
-      });
+      expect(result.content[0].text).toContain(
+        `core (always on): ${USER_VISIBLE_CORE_TOOL_NAMES.length} tool(s)`,
+      );
+      expect(result.content[0].text).toContain('content: 1 tool(s)');
+
+      const toolsets = result.structuredContent?.toolsets as Array<{
+        name: string;
+        toolCount: number;
+        toolNames: string[];
+      }>;
+      // TOOLSETS lists `content` before `core` alphabetically — `list_toolsets`
+      // must follow the static catalog's order, not discovery order.
+      expect(toolsets.map((toolset) => toolset.name)).toEqual([
+        'content',
+        'core',
+      ]);
+    });
+
+    it('omits a toolset the caller cannot see any tool from', () => {
+      const registry: ToolDiscoverySource = {
+        getDiscoverableTools: () => [tool({ name: 'create_post' })],
+      };
+
+      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+
+      const toolsets = result.structuredContent?.toolsets as Array<{
+        name: string;
+      }>;
+      expect(toolsets.map((toolset) => toolset.name)).toEqual(['content']);
+    });
+
+    it('is role-aware: a plain user sees core with 9 tools and never sees resolve_approval', () => {
+      // `getDiscoverableTools` is the registry's job to pre-filter by role —
+      // this fixture simulates what a `user`-scoped registry returns: every
+      // core tool except the superadmin-gated `resolve_approval`.
+      const registry: ToolDiscoverySource = {
+        getDiscoverableTools: () => USER_VISIBLE_CORE_TOOL_NAMES.map(coreTool),
+      };
+
+      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+
+      const toolsets = result.structuredContent?.toolsets as Array<{
+        name: string;
+        toolCount: number;
+        toolNames: string[];
+      }>;
+      const core = toolsets.find((toolset) => toolset.name === 'core');
+
+      expect(core?.toolCount).toBe(9);
+      expect(core?.toolNames).not.toContain('resolve_approval');
     });
   });
 
@@ -123,6 +155,30 @@ describe('handleToolDiscoveryTool', () => {
           toolset: 'generation',
         }),
       ]);
+    });
+
+    it('lowercases and trims the toolset filter before matching', () => {
+      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+        toolset: '  Generation  ',
+      });
+
+      expect(result.isError).toBeUndefined();
+      expect(result.structuredContent?.tools).toEqual([
+        expect.objectContaining({ name: 'generate_image' }),
+      ]);
+    });
+
+    it('returns an isError result naming the valid MCP toolsets for an unknown toolset filter', () => {
+      const result = handleToolDiscoveryTool(registry, 'search_tools', {
+        toolset: 'not-a-real-toolset',
+      });
+
+      expect(result.isError).toBe(true);
+      expect(result.content[0].text).toContain(
+        'Unknown toolset "not-a-real-toolset"',
+      );
+      expect(result.content[0].text).toContain('Valid toolsets:');
+      expect(result.content[0].text).toContain('content');
     });
 
     it('reports mutationPolicy, creditCost, and requiredRole per hit', () => {

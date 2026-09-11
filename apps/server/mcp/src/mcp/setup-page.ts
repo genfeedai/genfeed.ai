@@ -1,11 +1,12 @@
 import process from 'node:process';
-import { getToolsets } from '@genfeedai/actions';
+import { getToolsets, getToolsForSurface, TOOLSETS } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   staticSurfaceClassNames,
   staticSurfaceCss,
 } from '@genfeedai/ui/static/surface';
+import { AuthService } from '@mcp/services/auth.service';
 
 import { SATOSHI_VARIABLE_WOFF2_BASE64 } from './satoshi-font';
 
@@ -38,9 +39,17 @@ function trimTrailingSlash(value: string): string {
  * `GENFEED_MCP_RESOURCE_URL` override, which is rendered raw (see
  * `readPublicUrl`) — would otherwise close the surrounding script element
  * early. Escaping every `<` neutralizes that regardless of what follows it.
+ * U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) are also escaped:
+ * `JSON.stringify` leaves them as literal characters, but they terminate a
+ * JS string/statement outside a string literal per the ECMAScript grammar,
+ * so an unescaped one in the source text would break the surrounding script
+ * (or, depending on where it lands, silently truncate the string value).
  */
 function toInlineScriptStringLiteral(value: string): string {
-  return JSON.stringify(value).replace(/</g, '\\u003C');
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003C')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 function readEnv(name: string): string | undefined {
@@ -171,6 +180,39 @@ export function getMcpProtectedResourceMetadata() {
   };
 }
 
+/**
+ * `getMcpServerCard()` is unauthenticated and publicly fetchable, so its
+ * `toolCount` per toolset must reflect what an anonymous/plain `user` caller
+ * would actually see from `tools/list` — not the unfiltered catalog count,
+ * which would advertise admin- and superadmin-gated tools (e.g.
+ * `resolve_approval`) the caller cannot invoke.
+ */
+function getUserVisibleToolsetCards(): Array<{
+  description: string;
+  name: string;
+  toolCount: number;
+}> {
+  const userVisibleTools = getToolsForSurface('mcp').filter((tool) =>
+    AuthService.hasRequiredRole('user', tool.requiredRole),
+  );
+
+  const toolCountByToolset = new Map<string, number>();
+  for (const tool of userVisibleTools) {
+    toolCountByToolset.set(
+      tool.toolset,
+      (toolCountByToolset.get(tool.toolset) ?? 0) + 1,
+    );
+  }
+
+  return TOOLSETS.filter((definition) =>
+    toolCountByToolset.has(definition.name),
+  ).map((definition) => ({
+    description: definition.description,
+    name: definition.name,
+    toolCount: toolCountByToolset.get(definition.name) ?? 0,
+  }));
+}
+
 export function getMcpServerCard() {
   return {
     $schema:
@@ -194,11 +236,7 @@ export function getMcpServerCard() {
       title: 'Genfeed MCP Server',
       version: '1.0.0',
     },
-    toolsets: getToolsets('mcp').map(({ name, description, toolCount }) => ({
-      description,
-      name,
-      toolCount,
-    })),
+    toolsets: getUserVisibleToolsetCards(),
     transport: {
       endpoint: getPublicMcpUrl(),
       type: 'streamable-http',
@@ -1065,6 +1103,16 @@ ${postHogSnippet}
         : "'" + url.replace(/'/g, "'\\\\''") + "'";
     }
 
+    // Pure URL builder: a base that already carries a query string (e.g. a
+    // GENFEED_MCP_RESOURCE_URL override like ".../mcp?x=1") must gain
+    // "&toolsets=", not a second "?" that would silently drop everything
+    // before it.
+    function joinToolsetsUrl(baseUrl, selected) {
+      if (selected.length === 0) return baseUrl;
+      var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
+      return baseUrl + separator + 'toolsets=' + selected.join(',');
+    }
+
     var currentUrl = baseMcpUrl;
     var currentShellUrl = shellQuote(baseMcpUrl);
 
@@ -1073,22 +1121,54 @@ ${postHogSnippet}
         .call(document.querySelectorAll('[data-toolset-checkbox]:checked'))
         .map(function (el) { return el.getAttribute('data-toolset'); })
         .filter(function (name) { return name && name !== 'core'; });
-      if (selected.length === 0) return baseMcpUrl;
-      return baseMcpUrl + '?toolsets=' + selected.join(',');
+      return joinToolsetsUrl(baseMcpUrl, selected);
     }
 
     function replaceAll(text, needle, replacement) {
       return needle ? text.split(needle).join(replacement) : text;
     }
 
+    // The AI setup prompt embeds the endpoint twice: plainly (the "Endpoint:"
+    // line, and inside JSON/TOML config blocks, where quoting is unaffected
+    // by shell rules) and inside the Claude Code / Codex shell commands it
+    // quotes for. Rewriting it must match: the shell-command occurrences need
+    // the shell-quoted URL, exactly like the dedicated command snippets get,
+    // while every other occurrence stays plain. The anchored replacements run
+    // first so they consume the whole quoted-or-not segment before the
+    // trailing plain replacement touches what is left.
+    function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl) {
+      var next = replaceAll(
+        text,
+        '--scope user ' + currentShellUrl,
+        '--scope user ' + nextShellUrl,
+      );
+      next = replaceAll(next, '--url ' + currentShellUrl, '--url ' + nextShellUrl);
+      next = replaceAll(next, currentUrl, nextUrl);
+      return next;
+    }
+
     function applyUrl(nextUrl) {
       var nextShellUrl = shellQuote(nextUrl);
 
-      ['mcp-url', 'agent-setup-prompt'].forEach(function (id) {
-        var el = document.getElementById(id);
-        if (!el) return;
-        el.textContent = replaceAll(el.textContent || '', currentUrl, nextUrl);
-      });
+      var mcpUrlEl = document.getElementById('mcp-url');
+      if (mcpUrlEl) {
+        mcpUrlEl.textContent = replaceAll(
+          mcpUrlEl.textContent || '',
+          currentUrl,
+          nextUrl,
+        );
+      }
+
+      var promptEl = document.getElementById('agent-setup-prompt');
+      if (promptEl) {
+        promptEl.textContent = rewriteAgentPrompt(
+          promptEl.textContent || '',
+          currentUrl,
+          currentShellUrl,
+          nextUrl,
+          nextShellUrl,
+        );
+      }
 
       ['claude-code-command', 'codex-command'].forEach(function (id) {
         var el = document.getElementById(id);

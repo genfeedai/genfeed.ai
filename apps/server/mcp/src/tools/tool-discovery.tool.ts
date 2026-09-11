@@ -1,10 +1,15 @@
 import {
-  getToolsets,
+  getToolsetNames,
   MCP_CREDIT_COST_META_KEY,
   MCP_MUTATION_POLICY_META_KEY,
   MCP_TOOLSET_META_KEY,
   type McpToolOutput,
+  TOOLSETS,
 } from '@genfeedai/actions';
+import type {
+  ToolDiscoveryEntry,
+  ToolDiscoverySource,
+} from '@mcp/shared/interfaces/tool-discovery.interface';
 
 /** MCP-surfaced meta tools handled entirely in-process — no API call. */
 export const TOOL_DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
@@ -16,27 +21,6 @@ export const TOOL_DISCOVERY_TOOL_NAMES: ReadonlySet<string> = new Set([
 const DEFAULT_SEARCH_LIMIT = 20;
 const MAX_SEARCH_LIMIT = 50;
 const CLOSEST_MATCH_LIMIT = 5;
-
-/**
- * Whatever exposes the role-filtered full catalog to the discovery handlers.
- * `search_tools`/`describe_tool` must be able to find a tool outside the
- * caller's currently-loaded toolset selection — the whole point is helping a
- * client discover what else exists so it can reconnect with a different
- * `?toolsets=`. Declared standalone (not importing `ToolRegistryService`) so
- * this module has no dependency back on the registry.
- */
-export interface ToolDiscoverySource {
-  getDiscoverableTools(): McpToolOutput[];
-}
-
-interface ToolDiscoveryEntry {
-  name: string;
-  toolset: string;
-  description: string;
-  mutationPolicy: string;
-  creditCost: number;
-  requiredRole: McpToolOutput['requiredRole'];
-}
 
 function toDiscoveryEntry(tool: McpToolOutput): ToolDiscoveryEntry {
   return {
@@ -62,8 +46,36 @@ function errorResult(text: string) {
   return { content: [{ text, type: 'text' as const }], isError: true };
 }
 
-function handleListToolsets() {
-  const toolsets = getToolsets('mcp');
+/**
+ * `list_toolsets` must be role-aware: it summarizes exactly what the caller
+ * can currently see, derived from `registry.getDiscoverableTools()` (already
+ * role-filtered) grouped by each tool's `genfeed.ai/toolset` `_meta` key. A
+ * plain `user`, for example, must see `core` short by `resolve_approval` (a
+ * superadmin-only tool) rather than the toolset's full unfiltered count.
+ * `TOOLSETS` (the static catalog) supplies only the description and display
+ * order — never the counts.
+ */
+function handleListToolsets(registry: ToolDiscoverySource) {
+  const toolNamesByToolset = new Map<string, string[]>();
+  for (const tool of registry.getDiscoverableTools()) {
+    const toolsetName = String(tool._meta[MCP_TOOLSET_META_KEY] ?? '');
+    const names = toolNamesByToolset.get(toolsetName);
+    if (names) {
+      names.push(tool.name);
+    } else {
+      toolNamesByToolset.set(toolsetName, [tool.name]);
+    }
+  }
+
+  const toolsets = TOOLSETS.filter((definition) =>
+    toolNamesByToolset.has(definition.name),
+  ).map((definition) => {
+    const toolNames = [...(toolNamesByToolset.get(definition.name) ?? [])].sort(
+      (a, b) => a.localeCompare(b),
+    );
+    return { ...definition, toolCount: toolNames.length, toolNames };
+  });
+
   const lines = toolsets.map(
     (toolset) =>
       `- ${toolset.name}${toolset.isAlwaysOn ? ' (always on)' : ''}: ${toolset.toolCount} tool(s) — ${toolset.description}`,
@@ -80,12 +92,21 @@ function handleSearchTools(
 ) {
   const query = typeof args.query === 'string' ? args.query.trim() : '';
   const toolsetFilter =
-    typeof args.toolset === 'string' ? args.toolset.trim() : '';
+    typeof args.toolset === 'string' ? args.toolset.trim().toLowerCase() : '';
 
   if (!query && !toolsetFilter) {
     return errorResult(
       'search_tools requires at least one of "query" or "toolset".',
     );
+  }
+
+  if (toolsetFilter) {
+    const validToolsets = getToolsetNames('mcp');
+    if (!(validToolsets as readonly string[]).includes(toolsetFilter)) {
+      return errorResult(
+        `Unknown toolset "${toolsetFilter}". Valid toolsets: ${validToolsets.join(', ')}.`,
+      );
+    }
   }
 
   const rawLimit =
@@ -188,7 +209,7 @@ export function handleToolDiscoveryTool(
 ) {
   switch (name) {
     case 'list_toolsets':
-      return handleListToolsets();
+      return handleListToolsets(registry);
     case 'search_tools':
       return handleSearchTools(registry, args);
     case 'describe_tool':
