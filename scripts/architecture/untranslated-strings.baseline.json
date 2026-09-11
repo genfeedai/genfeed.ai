@@ -834,7 +834,6 @@
     "packages/ui/src/primitives/tags-editable.tsx": 7,
     "packages/ui/src/sidebar/SidebarNavItem.tsx": 1,
     "packages/workflows/src/ui/canvas/ConnectionDropMenu.tsx": 6,
-    "packages/workflows/src/ui/canvas/EdgeToolbar.tsx": 1,
     "packages/workflows/src/ui/canvas/GroupOverlay.tsx": 4,
     "packages/workflows/src/ui/canvas/HelperLines.tsx": 10,
     "packages/workflows/src/ui/canvas/NodeSearch.tsx": 9,

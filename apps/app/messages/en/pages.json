@@ -1755,6 +1755,11 @@
       "loudnessTarget": "Loudness target (LUFS)",
       "pass": "Pass",
       "resolutionFallback": "Resolution: \u2014"
+    },
+    "edgeToolbar": {
+      "deleteEdge": "Delete edge",
+      "pauseEdge": "Pause edge",
+      "resumeEdge": "Resume edge"
     }
   },
   "models": {

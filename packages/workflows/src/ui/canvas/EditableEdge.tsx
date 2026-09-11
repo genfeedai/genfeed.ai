@@ -6,6 +6,7 @@ import { Button } from '@genfeedai/ui/primitives/button';
 import type { EdgeProps } from '@xyflow/react';
 import { BaseEdge, EdgeLabelRenderer, getBezierPath } from '@xyflow/react';
 import { Pause, Play, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { memo, useCallback } from 'react';
 import { useUIStore } from '../stores/uiStore';
 import { useWorkflowStore } from '../stores/workflow';
@@ -39,6 +40,7 @@ function EdgeMidpointToolbar({
   labelX,
   labelY,
 }: EdgeMidpointToolbarProps) {
+  const translate = useTranslations('pages.workflows.edgeToolbar');
   const selectEdge = useUIStore((state) => state.selectEdge);
   const toggleEdgePause = useWorkflowStore((state) => state.toggleEdgePause);
   const removeEdge = useWorkflowStore((state) => state.removeEdge);
@@ -75,7 +77,7 @@ function EdgeMidpointToolbar({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
           onClick={handleTogglePause}
-          title={hasPause ? 'Resume edge' : 'Pause edge'}
+          title={hasPause ? translate('resumeEdge') : translate('pauseEdge')}
         >
           {hasPause ? (
             <Play className="size-3.5" />
@@ -89,7 +91,7 @@ function EdgeMidpointToolbar({
           variant={ButtonVariant.GHOST}
           size={ButtonSize.ICON}
           onClick={handleDelete}
-          title="Delete edge"
+          title={translate('deleteEdge')}
           className="hover:bg-destructive/10 hover:text-destructive"
         >
           <Trash2 className="size-3.5" />
