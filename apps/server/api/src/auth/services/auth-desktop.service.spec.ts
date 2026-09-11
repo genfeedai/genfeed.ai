@@ -145,6 +145,16 @@ function buildService(options: BuildServiceOptions = {}) {
         return record;
       }),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
+      findFirst: vi.fn(
+        async ({ where }: { where: { stateHash: string; userId: string } }) =>
+          Array.from(records.values())
+            .reverse()
+            .find(
+              (candidate) =>
+                candidate.stateHash === where.stateHash &&
+                candidate.userId === where.userId,
+            ) ?? null,
+      ),
       findUnique: vi.fn(
         async ({ where }: { where: { codeHash: string } }) =>
           records.get(where.codeHash) ?? null,
@@ -178,6 +188,7 @@ function buildService(options: BuildServiceOptions = {}) {
     betterAuthService,
     issuedSessionTokens,
     logger,
+    prisma,
     service: new AuthDesktopService(
       apiKeysService,
       betterAuthService,
@@ -236,6 +247,62 @@ describe('AuthDesktopService', () => {
         userId,
       }),
       'ui',
+    );
+  });
+
+  it('reports the code as pending until the desktop app exchanges it', async () => {
+    const { service } = buildService();
+    const authorization = await createAuthorization(service);
+
+    await expect(service.getCodeStatus(makeUser(), { state })).resolves.toEqual(
+      { status: 'pending' },
+    );
+
+    await service.exchangeCode({
+      code: authorization.code,
+      codeVerifier,
+      state,
+    });
+
+    await expect(service.getCodeStatus(makeUser(), { state })).resolves.toEqual(
+      { status: 'exchanged' },
+    );
+  });
+
+  it('reports expired for an unknown state or another user', async () => {
+    const { service } = buildService();
+    await createAuthorization(service);
+    const otherUser = {
+      ...makeUser(),
+      userId: testId('other-user'),
+    } as unknown as User;
+
+    await expect(
+      service.getCodeStatus(makeUser(), { state: 'unknown-state-value-1' }),
+    ).resolves.toEqual({ status: 'expired' });
+    await expect(service.getCodeStatus(otherUser, { state })).resolves.toEqual({
+      status: 'expired',
+    });
+  });
+
+  it('keeps recently exchanged codes readable during cleanup', async () => {
+    const { prisma, service } = buildService();
+
+    await createAuthorization(service);
+
+    expect(prisma.desktopAuthCode.deleteMany).toHaveBeenCalledWith({
+      where: {
+        OR: [
+          { expiresAt: { lte: expect.any(Date) } },
+          { usedAt: { lte: expect.any(Date) } },
+        ],
+      },
+    });
+    const [call] = vi.mocked(prisma.desktopAuthCode.deleteMany).mock
+      .calls[0] as [{ where: { OR: [unknown, { usedAt: { lte: Date } }] } }];
+    const usedCutoff = call.where.OR[1].usedAt.lte;
+    expect(Date.now() - usedCutoff.getTime()).toBeGreaterThanOrEqual(
+      5 * 60 * 1000 - 1000,
     );
   });
 

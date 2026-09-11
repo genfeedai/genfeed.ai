@@ -1,10 +1,14 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import {
+  type AuthTokenGetter,
+  resolveAuthToken,
+} from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import type {
+  DesktopAuthCodeStatus,
   DesktopAuthorizeResponse,
   DesktopIdentity,
   FlowState,
@@ -15,6 +19,7 @@ import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
+  AppWindow,
   CircleCheck,
   CircleX,
   Clipboard,
@@ -32,8 +37,103 @@ const MIN_PORT = 1024;
 const MAX_PORT = 65535;
 const DESKTOP_CALLBACK_TARGET = 'genfeedai-desktop://auth';
 const DESKTOP_CALLBACK_PROTOCOL = 'genfeedai-desktop:';
-const DESKTOP_CALLBACK_TIMEOUT_MS = 1500;
+const DESKTOP_REDIRECT_DELAY_MS = 500;
+const DESKTOP_HANDOFF_SETTLE_MS = 1500;
+const DESKTOP_STATUS_POLL_INTERVAL_MS = 2000;
+// Matches the server-side desktop auth code TTL; polling past it is pointless.
+const DESKTOP_STATUS_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 const AUTH_CODE_PREVIEW_LENGTH = 8;
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+
+    function onAbort() {
+      window.clearTimeout(timer);
+      resolve();
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function parseDesktopCodeStatus(value: unknown): DesktopAuthCodeStatus | null {
+  const status = (value as { status?: unknown } | null)?.status;
+
+  return status === 'exchanged' || status === 'expired' || status === 'pending'
+    ? status
+    : null;
+}
+
+/**
+ * Polls the API until the desktop app has exchanged the code, the code has
+ * expired, or the TTL passes. Network hiccups keep polling; a 401 refreshes the
+ * bearer token once per attempt.
+ */
+async function waitForDesktopExchange({
+  getToken,
+  initialToken,
+  signal,
+  state,
+}: {
+  getToken: AuthTokenGetter;
+  initialToken: string;
+  signal: AbortSignal;
+  state: string;
+}): Promise<DesktopAuthCodeStatus> {
+  const deadline = Date.now() + DESKTOP_STATUS_POLL_TIMEOUT_MS;
+  let token = initialToken;
+
+  while (!signal.aborted && Date.now() < deadline) {
+    await sleep(DESKTOP_STATUS_POLL_INTERVAL_MS, signal);
+
+    if (signal.aborted) {
+      break;
+    }
+
+    try {
+      const response = await fetch(
+        `${EnvironmentService.apiEndpoint}/auth/desktop/status`,
+        {
+          body: JSON.stringify({ state }),
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          signal,
+        },
+      );
+
+      if (response.status === 401) {
+        token = (await resolveAuthToken(getToken)) ?? token;
+        continue;
+      }
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const status = parseDesktopCodeStatus(await response.json());
+
+      if (status && status !== 'pending') {
+        return status;
+      }
+    } catch {
+      // Transient network failure: keep polling until the deadline.
+    }
+  }
+
+  return 'pending';
+}
 
 function previewAuthCode(value: string): string {
   if (value.length <= AUTH_CODE_PREVIEW_LENGTH) {
@@ -163,6 +263,7 @@ function CliAuthPageContent() {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const tokenRequestedRef = useRef(false);
+  const flowControllerRef = useRef<AbortController | null>(null);
 
   const portParam = searchParams.get('port');
   const isDesktopMode = searchParams.get('desktop') === '1';
@@ -262,54 +363,15 @@ function CliAuthPageContent() {
             desktopState,
           );
 
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await sleep(DESKTOP_REDIRECT_DELAY_MS, signal);
 
           if (signal.aborted) {
             return;
           }
 
-          let fallbackTimer: number | null = null;
-          let handoffCompleted = false;
-
-          const cleanup = () => {
-            document.removeEventListener(
-              'visibilitychange',
-              handleVisibilityChange,
-            );
-            window.removeEventListener('pagehide', handlePageHide);
-
-            if (fallbackTimer !== null) {
-              window.clearTimeout(fallbackTimer);
-            }
-          };
-
-          const completeHandoff = () => {
-            if (signal.aborted || handoffCompleted) {
-              return;
-            }
-
-            handoffCompleted = true;
-            cleanup();
-            setFlowState({ apiKey: data.code, error: null, step: 'success' });
-          };
-
-          const handlePageHide = () => {
-            completeHandoff();
-          };
-
-          const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') {
-              completeHandoff();
-            }
-          };
-
-          document.addEventListener('visibilitychange', handleVisibilityChange);
-          window.addEventListener('pagehide', handlePageHide);
-
           try {
             redirectToCallback(callbackUrl);
           } catch (error) {
-            cleanup();
             setFlowState({
               apiKey: data.code,
               error:
@@ -321,19 +383,47 @@ function CliAuthPageContent() {
             return;
           }
 
-          fallbackTimer = window.setTimeout(() => {
-            if (signal.aborted || handoffCompleted) {
+          // The browser cannot observe whether the custom-scheme launch reached
+          // the desktop app, so after a short settle window the page stops
+          // claiming anything and shows the manual code path while it keeps
+          // asking the API whether the app has exchanged the code.
+          const settleTimer = window.setTimeout(() => {
+            if (signal.aborted) {
               return;
             }
 
-            cleanup();
+            setFlowState((current) =>
+              current.step === 'redirecting'
+                ? { apiKey: data.code, error: null, step: 'awaiting-desktop' }
+                : current,
+            );
+          }, DESKTOP_HANDOFF_SETTLE_MS);
+
+          const status = await waitForDesktopExchange({
+            getToken,
+            initialToken: token,
+            signal,
+            state: desktopState,
+          });
+          window.clearTimeout(settleTimer);
+
+          if (signal.aborted) {
+            return;
+          }
+
+          if (status === 'exchanged') {
+            setFlowState({ apiKey: data.code, error: null, step: 'success' });
+            return;
+          }
+
+          if (status === 'expired') {
             setFlowState({
               apiKey: data.code,
               error:
-                'The desktop app did not open automatically. Source checkouts and unpackaged builds cannot. Copy the code and paste it in the desktop app.',
+                'The sign-in code expired before the desktop app used it. Try again to get a new code.',
               step: 'error',
             });
-          }, DESKTOP_CALLBACK_TIMEOUT_MS);
+          }
 
           return;
         }
@@ -454,6 +544,7 @@ function CliAuthPageContent() {
     if (!tokenRequestedRef.current) {
       tokenRequestedRef.current = true;
       const controller = new AbortController();
+      flowControllerRef.current = controller;
       requestTokenAndRedirect(controller.signal);
 
       return () => {
@@ -472,11 +563,14 @@ function CliAuthPageContent() {
 
   const handleRetry = () => {
     setCopyError(null);
+    // Stop any status polling from the previous attempt before starting over.
+    flowControllerRef.current?.abort();
     tokenRequestedRef.current = false;
     setFlowState({ error: null, step: 'validating' });
 
     if (isDesktopMode || port !== null) {
       const controller = new AbortController();
+      flowControllerRef.current = controller;
       tokenRequestedRef.current = true;
       requestTokenAndRedirect(controller.signal);
     }
@@ -595,6 +689,34 @@ function CliAuthPageContent() {
                     onCopy={handleCopyKey}
                   />
                 )}
+              </div>
+            )}
+
+            {flowState.step === 'awaiting-desktop' && (
+              <div className="space-y-6">
+                <StepDisplay
+                  icon={<AppWindow className="size-8 text-muted-foreground" />}
+                  title="Check the desktop app"
+                  description="Genfeed Desktop should be open and finishing sign-in. If it did not open, copy the code below and paste it in the app."
+                />
+                {flowState.apiKey && (
+                  <CopyKeyFallback
+                    apiKey={flowState.apiKey}
+                    copied={copied}
+                    copyError={copyError}
+                    isDesktopMode={isDesktopMode}
+                    onCopy={handleCopyKey}
+                  />
+                )}
+                <div className="flex justify-center">
+                  <Button
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.DEFAULT}
+                    onClick={handleRetry}
+                  >
+                    Try again
+                  </Button>
+                </div>
               </div>
             )}
 
