@@ -201,7 +201,11 @@ describe('SubscriptionsController', () => {
         preview,
       );
 
-      const result = await controller.previewChange(mockUser, dto);
+      const request = {
+        context: { organizationId: mockUser.organizationId },
+      } as unknown as RequestWithContext;
+
+      const result = await controller.previewChange(request, mockUser, dto);
 
       expect(
         subscriptionsService.previewSubscriptionChange,

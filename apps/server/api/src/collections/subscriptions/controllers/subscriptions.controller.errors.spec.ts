@@ -8,7 +8,7 @@ import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -177,7 +177,7 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       );
 
       const error = await controller
-        .previewChange(mockUser, { price: 'price_new' })
+        .previewChange(contextRequest(), mockUser, { price: 'price_new' })
         .catch((caught: unknown) => caught);
 
       expect(payloadOf(error)).toEqual({
@@ -185,6 +185,33 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         message: 'Failed to generate preview',
         success: false,
       });
+    });
+
+    it('keeps a client-state preview failure as its 4xx', async () => {
+      const clientError = new BadRequestException(
+        'No active Stripe subscription found',
+      );
+      subscriptionsService.previewSubscriptionChange.mockRejectedValue(
+        clientError,
+      );
+
+      const error = await controller
+        .previewChange(contextRequest(), mockUser, { price: 'price_new' })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBe(clientError);
+    });
+
+    it('previews the routed organization instead of stale token metadata', async () => {
+      subscriptionsService.previewSubscriptionChange.mockResolvedValue({});
+
+      await controller.previewChange(contextRequest('org_routed'), mockUser, {
+        price: 'price_new',
+      });
+
+      expect(
+        subscriptionsService.previewSubscriptionChange,
+      ).toHaveBeenCalledWith('org_routed', 'price_new');
     });
 
     it('wraps a credits-breakdown failure in a 500 envelope', async () => {
