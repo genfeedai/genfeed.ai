@@ -1,12 +1,11 @@
 import process from 'node:process';
-import { getToolsForSurface, TOOLSETS } from '@genfeedai/actions';
+import { getToolsForRole, TOOLSETS } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
   staticSurfaceClassNames,
   staticSurfaceCss,
 } from '@genfeedai/ui/static/surface';
-import { AuthService } from '@mcp/services/auth.service';
 
 import { SATOSHI_VARIABLE_WOFF2_BASE64 } from './satoshi-font';
 
@@ -193,9 +192,7 @@ function getUserVisibleToolsetSummaries(): Array<{
   name: string;
   toolCount: number;
 }> {
-  const userVisibleTools = getToolsForSurface('mcp').filter((tool) =>
-    AuthService.hasRequiredRole('user', tool.requiredRole),
-  );
+  const userVisibleTools = getToolsForRole('mcp', 'user');
 
   const toolCountByToolset = new Map<string, number>();
   for (const tool of userVisibleTools) {
