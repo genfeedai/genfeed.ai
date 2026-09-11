@@ -9,6 +9,7 @@ import {
   formatEnumLabel,
   IngredientCategory,
   type IngredientFormat,
+  IngredientStatus,
   ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
@@ -64,6 +65,20 @@ const LibraryCanvas = dynamic(
 function isAudioIngredient(ingredient: IIngredient): boolean {
   const assetTypeId = getLibraryAssetType(ingredient.category)?.id;
   return assetTypeId === 'audio' || assetTypeId === 'voice';
+}
+
+/**
+ * `ingredient.ingredientUrl` always resolves to *something* — for a
+ * PROCESSING or FAILED row it falls back to a placeholder image URL rather
+ * than an empty string. Handing that straight to the audio player would
+ * render an enabled control that "plays" a JPEG, so readiness is judged from
+ * the row's own status instead of the URL's presence.
+ */
+function isAudioReadyToPlay(ingredient: IIngredient): boolean {
+  return (
+    !isFailedIngredient(ingredient) &&
+    ingredient.status !== IngredientStatus.PROCESSING
+  );
 }
 
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
@@ -162,7 +177,11 @@ function IngredientLedgerAssetCell({
       </div>
       {isAudio ? (
         <AudioPreviewPlayer
-          audioUrl={ingredient.ingredientUrl}
+          audioUrl={
+            isAudioReadyToPlay(ingredient)
+              ? ingredient.ingredientUrl
+              : undefined
+          }
           label={label || 'Untitled asset'}
           stopOnUnmount
         />
@@ -210,16 +229,18 @@ export default function IngredientsListContent({
 }: IngredientsListContentProps) {
   const translate = useTranslations('pages.library');
   const translateRetry = useTranslations('common.libraryRetry');
-  // Audio rendering is decided from the filtered assets themselves — a
-  // unified Library view can carry music/voice alongside every other
-  // category, so "this page is an audio page" is never a safe signal. An
-  // empty result set has no data to inspect, so it falls back to the route's
-  // singular type only to pick the right empty-state noun.
+  // This full-card layout is reserved for a route whose *type* is dedicated
+  // to audio (the legacy per-category admin pages) — every Library route's
+  // singular type is the unified `IngredientCategory.INGREDIENT` token, so
+  // this stays false there regardless of what the filtered assets are. That
+  // is deliberate: a Library view (list or the grid's "other assets" table)
+  // keeps its selection checkboxes, status, and retry action for audio rows
+  // too, via the per-row audio control in `columns` below — it does not fall
+  // back to this selection-less card layout just because every visible row
+  // happens to be audio.
   const isAudioCategory =
-    filteredIngredients.length > 0
-      ? filteredIngredients.every(isAudioIngredient)
-      : singularType === IngredientCategory.MUSIC ||
-        singularType === IngredientCategory.VOICE;
+    singularType === IngredientCategory.MUSIC ||
+    singularType === IngredientCategory.VOICE;
 
   const isMediaCategory =
     singularType === IngredientCategory.IMAGE ||

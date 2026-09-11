@@ -5,11 +5,18 @@ import {
   PageScope,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import IngredientsListContent from '@ui/ingredients/list/content/IngredientsListContent';
 import { format } from 'date-fns';
 import type { ComponentProps } from 'react';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { setSelectedAsset } = vi.hoisted(() => ({
   setSelectedAsset: vi.fn(),
@@ -156,6 +163,16 @@ const musicIngredient = {
   id: 'music-1',
   ingredientUrl: 'https://cdn.genfeed.ai/mock/theme.mp3',
   metadataLabel: 'Opening Theme',
+  status: 'GENERATED',
+  updatedAt: new Date().toISOString(),
+} as unknown as IIngredient;
+
+const voiceIngredient = {
+  category: IngredientCategory.VOICE,
+  createdAt: new Date().toISOString(),
+  id: 'voice-1',
+  ingredientUrl: 'https://cdn.genfeed.ai/mock/narration.mp3',
+  metadataLabel: 'Narration Take',
   status: 'GENERATED',
   updatedAt: new Date().toISOString(),
 } as unknown as IIngredient;
@@ -352,8 +369,13 @@ describe('IngredientsListContent', () => {
   });
 
   it('disables the music row control while the asset is still processing', () => {
+    // A real PROCESSING row still carries `ingredientUrl` — the model falls
+    // back to a placeholder image rather than an empty string — so readiness
+    // has to come from status, not from whether a URL string is present.
     renderContent({
-      filteredIngredients: [{ ...musicIngredient, ingredientUrl: undefined }],
+      filteredIngredients: [
+        { ...musicIngredient, status: IngredientStatus.PROCESSING },
+      ],
       singularType: IngredientCategory.MUSIC,
       type: 'ingredients',
       viewMode: 'list',
@@ -362,6 +384,137 @@ describe('IngredientsListContent', () => {
     expect(
       screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
     ).toBeDisabled();
+  });
+
+  it('disables the music row control for a FAILED asset', () => {
+    renderContent({
+      filteredIngredients: [
+        { ...musicIngredient, status: IngredientStatus.FAILED },
+      ],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeDisabled();
+  });
+
+  it('plays a voice row, not just music', () => {
+    renderContent({
+      filteredIngredients: [voiceIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Narration Take' }),
+    ).toBeEnabled();
+  });
+});
+
+describe('IngredientsListContent audio playback', () => {
+  class PreviewAudio extends EventTarget {
+    src = '';
+    preload = '';
+    currentTime = 0;
+    duration = 30;
+    volume = 1;
+    paused = true;
+    ended = false;
+    play = vi.fn(async () => {
+      this.paused = false;
+      this.dispatchEvent(new Event('playing'));
+    });
+    pause = vi.fn(() => {
+      this.paused = true;
+      this.dispatchEvent(new Event('pause'));
+    });
+  }
+
+  let audio = new PreviewAudio();
+
+  beforeEach(() => {
+    vi.stubGlobal(
+      'Audio',
+      class extends PreviewAudio {
+        constructor() {
+          super();
+          audio = this;
+        }
+      },
+    );
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('plays a single track at a time across rows', async () => {
+    const secondMusic = {
+      ...musicIngredient,
+      id: 'music-2',
+      ingredientUrl: 'https://cdn.genfeed.ai/mock/theme-2.mp3',
+      metadataLabel: 'Closing Theme',
+    } as unknown as IIngredient;
+
+    renderContent({
+      filteredIngredients: [musicIngredient, secondMusic],
+      singularType: IngredientCategory.MUSIC,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Opening Theme' }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Closing Theme' }),
+    ).toBeInTheDocument();
+
+    // Starting the second track hands the one shared <audio> element to it,
+    // so the first row falls back to "Play" without anyone pausing it by hand.
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play preview for Closing Theme' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Closing Theme' }),
+      ).toBeInTheDocument(),
+    );
+    expect(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    ).toBeInTheDocument();
+  });
+
+  it('shows a playback error on one row without disturbing the rest of the list', async () => {
+    renderContent({
+      filteredIngredients: [videoIngredient, musicIngredient],
+      singularType: IngredientCategory.INGREDIENT,
+      type: 'ingredients',
+      viewMode: 'list',
+    });
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Play preview for Opening Theme' }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: 'Pause preview for Opening Theme' }),
+      ).toBeInTheDocument(),
+    );
+
+    act(() => audio.dispatchEvent(new Event('error')));
+
+    expect(screen.getByText('Preview failed')).toBeInTheDocument();
+    expect(screen.getByText('A red apple on a table')).toBeInTheDocument();
   });
 });
 
