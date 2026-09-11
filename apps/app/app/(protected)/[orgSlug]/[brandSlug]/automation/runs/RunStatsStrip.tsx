@@ -25,27 +25,27 @@ export default function RunStatsStrip({
         {
           icon: ListChecks,
           label: translate('statsTotal'),
-          value: stats.total.toLocaleString(),
+          value: stats.total.toLocaleString('en-US'),
         },
         {
           icon: Activity,
           label: translate('statsActive'),
-          value: stats.active.toLocaleString(),
+          value: stats.active.toLocaleString('en-US'),
         },
         {
           icon: CheckCircle2,
           label: translate('statsCompleted'),
-          value: stats.completed.toLocaleString(),
+          value: stats.completed.toLocaleString('en-US'),
         },
         {
           icon: CircleAlert,
           label: translate('statsFailed'),
-          value: stats.failed.toLocaleString(),
+          value: stats.failed.toLocaleString('en-US'),
         },
         {
           icon: Coins,
           label: translate('statsCredits'),
-          value: stats.totalCredits.toLocaleString(),
+          value: stats.totalCredits.toLocaleString('en-US'),
         },
       ]}
     />

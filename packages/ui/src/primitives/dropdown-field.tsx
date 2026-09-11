@@ -12,35 +12,16 @@ import {
   useState,
 } from 'react';
 import { getBadgeVariant } from './dropdown-field.helpers';
+import type {
+  DropdownFieldOption,
+  DropdownFieldTab,
+} from './dropdown-field.types';
 import DropdownOptionItem from './dropdown-field-option-item';
 import DropdownSearchBar from './dropdown-field-search-bar';
 import DropdownTabBar from './dropdown-field-tab-bar';
 import DropdownTrigger from './dropdown-field-trigger';
 
 const EMPTY_ARRAY: never[] = [];
-
-export interface DropdownFieldOption {
-  key: string | number;
-  label: string;
-  description?: string;
-  thumbnailUrl?: string;
-  badge?: string;
-  badgeVariant?:
-    | 'primary'
-    | 'secondary'
-    | 'accent'
-    | 'info'
-    | 'success'
-    | 'warning'
-    | 'error';
-  icon?: ReactNode;
-  group?: string;
-}
-
-export interface DropdownFieldTab {
-  id: string;
-  label: string;
-}
 
 export interface DropdownFieldProps {
   name: string;

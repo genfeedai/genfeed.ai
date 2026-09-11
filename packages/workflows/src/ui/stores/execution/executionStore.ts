@@ -31,7 +31,6 @@ export const useExecutionStore = create<ExecutionStore>()((...args) => {
     },
     currentNodeId: null,
     debugPayloads: [],
-    estimatedCost: 0,
     eventSource: null,
     executingNodeIds: [],
     executionId: null,
@@ -47,6 +46,3 @@ export const useExecutionStore = create<ExecutionStore>()((...args) => {
     ...createExecutionSlice(...args),
   };
 });
-
-// Re-export types for convenience
-export type { ExecutionStore, Job } from './types';

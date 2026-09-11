@@ -1,8 +1,17 @@
 import type { EdgeStyle, ProviderType } from '@genfeedai/contracts/types';
 import { ProviderTypeEnum } from '@genfeedai/contracts/types';
 import { create } from 'zustand';
-import type { SettingsSyncService } from '../provider/types';
-import { getEdgeStyleMirror, setEdgeStylePreference } from './edgeStyleMirror';
+import type {
+  DefaultModelSettings,
+  RecentModel,
+  SettingsSyncService,
+} from '../provider/types';
+import {
+  getEdgeStyleMirror,
+  normalizeEdgeStyle,
+  SETTINGS_STORAGE_KEY,
+  setEdgeStylePreference,
+} from './edgeStyleMirror';
 import { getWorkflowLogger } from './executionLogger';
 
 // =============================================================================
@@ -42,20 +51,6 @@ export interface ProviderSettings {
   fal: ProviderConfig;
   openrouter: ProviderConfig;
   'genfeed-ai': ProviderConfig;
-}
-
-export interface DefaultModelSettings {
-  imageModel: string;
-  imageProvider: ProviderType;
-  videoModel: string;
-  videoProvider: ProviderType;
-}
-
-export interface RecentModel {
-  id: string;
-  displayName: string;
-  provider: ProviderType;
-  timestamp: number;
 }
 
 interface SettingsStore {
@@ -110,7 +105,6 @@ interface SettingsStore {
 // CONSTANTS
 // =============================================================================
 
-const STORAGE_KEY = 'genfeed-settings';
 const MAX_RECENT_MODELS = 8;
 
 const DEFAULT_SETTINGS = {
@@ -196,17 +190,14 @@ function loadFromStorage(): Partial<typeof DEFAULT_SETTINGS> {
   if (typeof window === 'undefined') return {};
 
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
     if (stored) {
       const parsed = JSON.parse(stored);
       return {
         autoSaveEnabled: parsed.autoSaveEnabled ?? true,
         debugMode: parsed.debugMode ?? false,
         defaults: { ...DEFAULT_SETTINGS.defaults, ...parsed.defaults },
-        edgeStyle:
-          parsed.edgeStyle === 'bezier'
-            ? 'default'
-            : (parsed.edgeStyle ?? DEFAULT_SETTINGS.edgeStyle),
+        edgeStyle: normalizeEdgeStyle(parsed.edgeStyle),
         hasSeenWelcome: parsed.hasSeenWelcome ?? false,
         providers: loadProviderSettings(parsed.providers),
         recentModels: parsed.recentModels ?? [],
@@ -236,7 +227,7 @@ function saveToStorage(state: {
     // ownership of the shared settings key. Hosts migrate those fields on
     // their own schedule; dropping them here can destroy data before the host
     // module responsible for the migration has even loaded.
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
     const parsed: unknown = stored ? JSON.parse(stored) : null;
     const hostExtensions =
       parsed !== null && typeof parsed === 'object' && !Array.isArray(parsed)
@@ -268,7 +259,7 @@ function saveToStorage(state: {
       recentModels: state.recentModels.slice(0, MAX_RECENT_MODELS),
       showMinimap: state.showMinimap,
     };
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave));
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(toSave));
   } catch {
     // Storage error (quota exceeded, etc.)
   }

@@ -38,7 +38,7 @@ function formatInstant(value: string | null | undefined): string {
     return 'Never polled';
   }
   const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? value : date.toLocaleString();
+  return Number.isNaN(date.getTime()) ? value : date.toLocaleString('en-US');
 }
 
 function parseImportPolicy(value: string): RssImportPolicy {

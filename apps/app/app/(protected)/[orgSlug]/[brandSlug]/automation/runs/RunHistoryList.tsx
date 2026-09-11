@@ -79,7 +79,7 @@ export default function RunHistoryList({
         render: (execution) => {
           const credits = getExecutionCredits(execution);
           if (credits.value <= 0) return '—';
-          const formatted = credits.value.toLocaleString();
+          const formatted = credits.value.toLocaleString('en-US');
           return credits.isEstimate ? (
             <span title={translate('creditsEstimated')}>~{formatted}</span>
           ) : (

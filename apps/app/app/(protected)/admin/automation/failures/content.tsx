@@ -135,9 +135,9 @@ export default function AgentFailuresPage() {
                   </TableCell>
                   <TableCell>{run.workflow?.label ?? run.workflowId}</TableCell>
                   <TableCell>
-                    {new Date(
-                      run.completedAt ?? run.createdAt,
-                    ).toLocaleString()}
+                    {new Date(run.completedAt ?? run.createdAt).toLocaleString(
+                      'en-US',
+                    )}
                   </TableCell>
                   <TableCell>
                     {translate(

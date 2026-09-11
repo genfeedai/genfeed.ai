@@ -157,13 +157,13 @@ function ContractSnapshot({
           <span className="text-foreground/80">
             {translate('discoveredAtLabel')}
           </span>{' '}
-          {new Date(snapshot.discoveredAt).toLocaleString()}
+          {new Date(snapshot.discoveredAt).toLocaleString('en-US')}
         </p>
         <p>
           <span className="text-foreground/80">
             {translate('lastSeenLabel')}
           </span>{' '}
-          {new Date(snapshot.lastSeenAt).toLocaleString()}
+          {new Date(snapshot.lastSeenAt).toLocaleString('en-US')}
         </p>
         {snapshot.unsupportedReason && (
           <p className="text-destructive">{snapshot.unsupportedReason}</p>

@@ -1,4 +1,4 @@
-import type { useWorkflowStore } from '../../workflow/workflowStore';
+import type { WorkflowStore } from '../../workflow/types';
 
 /**
  * Extract the actual URL/value from various Replicate output formats
@@ -77,7 +77,7 @@ function extractAllOutputValues(output: unknown): string[] {
 export function getOutputUpdate(
   nodeId: string,
   output: unknown,
-  workflowStore: ReturnType<typeof useWorkflowStore.getState>,
+  workflowStore: WorkflowStore,
 ): Record<string, unknown> {
   const node = workflowStore.getNodeById(nodeId);
   if (!node) return {};

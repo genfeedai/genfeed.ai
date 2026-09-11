@@ -96,7 +96,7 @@ function AdvertiserRow({
             </span>
           ) : null}
           {lastRun ? (
-            <span>{new Date(lastRun).toLocaleDateString()}</span>
+            <span>{new Date(lastRun).toLocaleDateString('en-US')}</span>
           ) : null}
           {advertiser.lastIngestionErrorCode ? (
             <span className="text-destructive">

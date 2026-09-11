@@ -26,11 +26,9 @@ import {
   RefreshCw,
 } from 'lucide-react';
 import { memo, useCallback, useEffect, useState } from 'react';
+import type { ReferencableWorkflow } from '../../provider/types';
 import { useWorkflowStore } from '../../stores/workflow';
-import {
-  type ReferencableWorkflow,
-  workflowRefApi,
-} from './workflow-ref-node.helpers';
+import { workflowRefApi } from './workflow-ref-node.helpers';
 
 // Handle color CSS variables (used inline for guaranteed override)
 const HANDLE_COLORS: Record<string, string> = {

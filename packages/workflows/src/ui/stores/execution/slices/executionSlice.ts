@@ -71,7 +71,6 @@ export interface ExecutionSlice {
   clearValidationErrors: () => void;
   resetExecution: () => void;
   canResumeFromFailed: () => boolean;
-  setEstimatedCost: (cost: number) => void;
 }
 
 export const createExecutionSlice: StateCreator<
@@ -430,10 +429,6 @@ export const createExecutionSlice: StateCreator<
         },
       });
     }
-  },
-
-  setEstimatedCost: (cost: number) => {
-    set({ estimatedCost: cost });
   },
 
   stopExecution: () => {

@@ -132,7 +132,7 @@ function formatModelCreditCost(model: IModel): string {
     return 'Free';
   }
 
-  return `${model.cost.toLocaleString()} ${model.cost === 1 ? 'credit' : 'credits'}`;
+  return `${model.cost.toLocaleString('en-US')} ${model.cost === 1 ? 'credit' : 'credits'}`;
 }
 
 function formatModelQuality(qualityTier: QualityTier): string {

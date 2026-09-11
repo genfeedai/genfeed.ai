@@ -8,24 +8,50 @@ import type { EdgeStyle } from '@genfeedai/contracts/types';
  * Pushes an edge-style preference into the live graph.
  *
  * The workflow store keeps its own `edgeStyle` so open edges restyle when the
- * preference changes, so a settings change has to reach it. Neither store can
- * import the other: the workflow store pulls in the execution store, which
- * reads the settings store back for `debugMode`, and closing that loop in
- * either direction creates a cycle. This registry sits outside both of them,
- * the same way `applyEditOperations` and `workflowPersistence` do.
+ * preference changes, so a settings change has to reach it. The two stores stay
+ * independent of each other, so this registry sits outside both of them, the
+ * same way `applyEditOperations` and `workflowPersistence` do.
  *
- * The preference slot is the hydration path: settings writes the persisted
- * value on load, the workflow store reads it for its initial `edgeStyle`, and
- * `loadWorkflow` / `loadWorkflowById` fall back to it when a saved graph has
- * no style of its own. Live toggles still go through the mirror callback.
+ * The preference slot is the hydration path: it reads the persisted settings
+ * value when this module loads, so the workflow store's initial `edgeStyle`
+ * does not depend on the settings store having loaded first. Settings keeps it
+ * current, and `loadWorkflow` / `loadWorkflowById` fall back to it when a
+ * saved graph has no style of its own. Live toggles still go through the
+ * mirror callback.
  */
 type EdgeStyleMirror = (style: EdgeStyle) => void;
 
 const DEFAULT_EDGE_STYLE: EdgeStyle = 'default';
 const NOOP_EDGE_STYLE_MIRROR: EdgeStyleMirror = () => {};
 
+/** localStorage key the settings store persists to. */
+export const SETTINGS_STORAGE_KEY = 'genfeed-settings';
+
+/** Resolve a stored edge style, migrating the legacy `'bezier'` value. */
+export function normalizeEdgeStyle(
+  style: EdgeStyle | 'bezier' | null | undefined,
+): EdgeStyle {
+  return style === 'bezier' || style === null || style === undefined
+    ? DEFAULT_EDGE_STYLE
+    : style;
+}
+
+function readPersistedEdgeStyle(): EdgeStyle {
+  if (typeof window === 'undefined') return DEFAULT_EDGE_STYLE;
+
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    return stored
+      ? normalizeEdgeStyle(JSON.parse(stored)?.edgeStyle)
+      : DEFAULT_EDGE_STYLE;
+  } catch {
+    // Invalid JSON or storage error
+    return DEFAULT_EDGE_STYLE;
+  }
+}
+
 let _mirror: EdgeStyleMirror = NOOP_EDGE_STYLE_MIRROR;
-let _preference: EdgeStyle = DEFAULT_EDGE_STYLE;
+let _preference: EdgeStyle = readPersistedEdgeStyle();
 
 /**
  * Register the canvas-side mirror. The workflow store calls this as it loads;

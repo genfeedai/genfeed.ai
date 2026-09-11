@@ -1,6 +1,6 @@
 'use client';
 
-import type { DropdownFieldTab } from './dropdown-field';
+import type { DropdownFieldTab } from './dropdown-field.types';
 import { Tabs, TabsList, TabsTrigger } from './tabs';
 
 type DropdownTabBarProps = {

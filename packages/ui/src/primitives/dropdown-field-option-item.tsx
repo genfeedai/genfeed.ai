@@ -4,7 +4,7 @@ import { cn } from '@genfeedai/helpers';
 import Image from 'next/image';
 import type { KeyboardEvent } from 'react';
 import { Badge } from './badge';
-import type { DropdownFieldOption } from './dropdown-field';
+import type { DropdownFieldOption } from './dropdown-field.types';
 
 type BadgeVariant =
   | 'default'

@@ -37,8 +37,6 @@ import {
 import GlobalModalsRenderer from './GlobalModalsRenderer';
 import { useGlobalModalsState } from './useGlobalModalsState';
 
-export type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
-
 export interface GlobalModalsContextValue {
   publishIngredient: IIngredient | null;
   openPostBatchModal: (ingredient: IIngredient | IIngredient[]) => void;

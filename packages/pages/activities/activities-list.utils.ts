@@ -286,7 +286,7 @@ export function getActivityDescription(
 
   if (isCreditActivity(key)) {
     const amount = parseCreditAmount(activity.value);
-    const amountLabel = amount !== null ? amount.toLocaleString() : null;
+    const amountLabel = amount !== null ? amount.toLocaleString('en-US') : null;
     const sourceLabel = activity.source
       ? getActivitySourceLabel(activity.source)
       : undefined;

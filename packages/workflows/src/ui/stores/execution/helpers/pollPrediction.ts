@@ -1,6 +1,6 @@
 import { NodeStatusEnum } from '@genfeedai/contracts/types';
-import type { useWorkflowStore } from '../../workflow/workflowStore';
-import type { Job, useExecutionStore } from '../executionStore';
+import type { WorkflowStore } from '../../workflow/types';
+import type { ExecutionStore, Job } from '../types';
 import { getOutputUpdate } from './outputHelpers';
 
 /**
@@ -14,8 +14,8 @@ import { getOutputUpdate } from './outputHelpers';
 export async function pollPrediction(
   predictionId: string,
   nodeId: string,
-  workflowStore: ReturnType<typeof useWorkflowStore.getState>,
-  executionStore: ReturnType<typeof useExecutionStore.getState>,
+  workflowStore: WorkflowStore,
+  executionStore: ExecutionStore,
   apiClient: { get: <T>(url: string) => Promise<T> },
   signal?: AbortSignal,
 ): Promise<void> {

@@ -10,6 +10,11 @@
  * which are re-exported here for consumers that need them.
  */
 
+// Settings types
+export type {
+  DefaultModelSettings,
+  RecentModel,
+} from '../provider/types';
 export type {
   AnnotationShape,
   AnnotationTool,
@@ -44,14 +49,7 @@ export {
   configurePromptLibrary,
   usePromptLibraryStore,
 } from './promptLibraryStore';
-
-// Settings types
-export type {
-  DefaultModelSettings,
-  ProviderConfig,
-  ProviderSettings,
-  RecentModel,
-} from './settingsStore';
+export type { ProviderConfig, ProviderSettings } from './settingsStore';
 export {
   configureSettingsSync,
   PROVIDER_INFO,

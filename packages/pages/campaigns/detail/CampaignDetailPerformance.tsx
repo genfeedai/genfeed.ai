@@ -13,7 +13,7 @@ function formatMetric(metric: ICampaignMetricAvailability): string {
   if (metric.value === null) {
     return '—';
   }
-  return metric.value.toLocaleString();
+  return metric.value.toLocaleString('en-US');
 }
 
 function metricDescription(

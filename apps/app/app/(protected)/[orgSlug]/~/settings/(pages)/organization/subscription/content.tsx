@@ -60,7 +60,7 @@ function SectionCard({
 }
 
 function formatPlanLimit(limit: number | null): string {
-  return limit === null ? 'Unlimited' : limit.toLocaleString();
+  return limit === null ? 'Unlimited' : limit.toLocaleString('en-US');
 }
 
 function getApiAccessLabel(
@@ -125,7 +125,7 @@ function ByokUsageSection({
               Credits Used This Period
             </Text>
             <Text as="p" size="xl" weight="bold">
-              {byokUsage.totalUsage.toLocaleString()}
+              {byokUsage.totalUsage.toLocaleString('en-US')}
             </Text>
           </div>
           <div className="p-4 bg-muted/50 rounded">
@@ -133,10 +133,10 @@ function ByokUsageSection({
               Free Allowance Remaining
             </Text>
             <Text as="p" size="xl" weight="bold">
-              {byokUsage.freeRemaining.toLocaleString()}
+              {byokUsage.freeRemaining.toLocaleString('en-US')}
               <Text as="span" size="sm" color="muted">
                 {' '}
-                / {BYOK_FREE_THRESHOLD_CREDITS.toLocaleString()}
+                / {BYOK_FREE_THRESHOLD_CREDITS.toLocaleString('en-US')}
               </Text>
             </Text>
           </div>
@@ -150,7 +150,8 @@ function ByokUsageSection({
               </Text>
               <Text size="xs" color="muted">
                 {BYOK_FEE_PERCENTAGE}% platform fee on{' '}
-                {byokUsage.billableUsage.toLocaleString()} billable credits
+                {byokUsage.billableUsage.toLocaleString('en-US')} billable
+                credits
               </Text>
             </div>
             <Text size="lg" weight="bold">
@@ -160,9 +161,9 @@ function ByokUsageSection({
         )}
 
         <Text size="xs" color="muted">
-          First {BYOK_FREE_THRESHOLD_CREDITS.toLocaleString()} credits/month are
-          free. A {BYOK_FEE_PERCENTAGE}% platform fee applies after the free
-          tier. Invoiced on the 1st of each month.
+          First {BYOK_FREE_THRESHOLD_CREDITS.toLocaleString('en-US')}{' '}
+          credits/month are free. A {BYOK_FEE_PERCENTAGE}% platform fee applies
+          after the free tier. Invoiced on the 1st of each month.
         </Text>
       </div>
     </SectionCard>
@@ -306,7 +307,7 @@ export default function SettingsSubscriptionPage() {
                   Available
                 </Text>
                 <Text as="p" size="lg" weight="bold">
-                  {billingAccount.wallet.available.toLocaleString()}
+                  {billingAccount.wallet.available.toLocaleString('en-US')}
                 </Text>
               </div>
               <div className="p-3 bg-muted/50 rounded">
@@ -314,7 +315,7 @@ export default function SettingsSubscriptionPage() {
                   Held
                 </Text>
                 <Text as="p" size="lg" weight="bold">
-                  {billingAccount.wallet.held.toLocaleString()}
+                  {billingAccount.wallet.held.toLocaleString('en-US')}
                 </Text>
               </div>
               <div className="p-3 bg-muted/50 rounded">
@@ -322,7 +323,7 @@ export default function SettingsSubscriptionPage() {
                   Settled
                 </Text>
                 <Text as="p" size="lg" weight="bold">
-                  {billingAccount.wallet.settled.toLocaleString()}
+                  {billingAccount.wallet.settled.toLocaleString('en-US')}
                 </Text>
               </div>
             </div>
@@ -337,7 +338,7 @@ export default function SettingsSubscriptionPage() {
                 >
                   <Text weight="medium">{link.label}</Text>
                   <Text size="sm" color="muted">
-                    {link.usage.toLocaleString()} used
+                    {link.usage.toLocaleString('en-US')} used
                   </Text>
                 </div>
               ))}

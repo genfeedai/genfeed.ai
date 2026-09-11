@@ -26,12 +26,12 @@ import type {
   ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
+import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
 import { useRouter } from 'next/navigation';
 import { type ReactNode, useCallback, useState } from 'react';
-import type { GallerySelectItem } from './global-modals.provider';
 
 export function useGlobalModalsState() {
   const { credentials, refreshBrands, settings } = useBrand();

@@ -139,7 +139,7 @@ export default function SystemEmailPerformance() {
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground">
               {translate('queuedRange', {
-                asOf: new Date(report.asOf).toLocaleString(),
+                asOf: new Date(report.asOf).toLocaleString('en-US'),
                 from: report.from.slice(0, 10),
                 to: dateInputValue(new Date(new Date(report.to).getTime() - 1)),
               })}
@@ -173,21 +173,31 @@ export default function SystemEmailPerformance() {
                           </p>
                         )}
                       </TableCell>
-                      <TableCell>{row.queued.toLocaleString()}</TableCell>
-                      <TableCell>{row.accepted.toLocaleString()}</TableCell>
                       <TableCell>
-                        {row.delivered.toLocaleString()}
+                        {row.queued.toLocaleString('en-US')}
+                      </TableCell>
+                      <TableCell>
+                        {row.accepted.toLocaleString('en-US')}
+                      </TableCell>
+                      <TableCell>
+                        {row.delivered.toLocaleString('en-US')}
                         <p className="text-xs text-muted-foreground">
                           {translate('ofAccepted', {
                             rate: rate(row.delivered, row.accepted),
                           })}
                         </p>
                       </TableCell>
-                      <TableCell>{row.bounced.toLocaleString()}</TableCell>
-                      <TableCell>{row.complained.toLocaleString()}</TableCell>
-                      <TableCell>{row.opened.toLocaleString()}</TableCell>
                       <TableCell>
-                        {row.clicked.toLocaleString()}
+                        {row.bounced.toLocaleString('en-US')}
+                      </TableCell>
+                      <TableCell>
+                        {row.complained.toLocaleString('en-US')}
+                      </TableCell>
+                      <TableCell>
+                        {row.opened.toLocaleString('en-US')}
+                      </TableCell>
+                      <TableCell>
+                        {row.clicked.toLocaleString('en-US')}
                         <p className="text-xs text-muted-foreground">
                           {translate('ofAccepted', {
                             rate: rate(row.clicked, row.accepted),
@@ -195,7 +205,7 @@ export default function SystemEmailPerformance() {
                         </p>
                       </TableCell>
                       <TableCell>
-                        {row.converted.toLocaleString()}
+                        {row.converted.toLocaleString('en-US')}
                         <p className="text-xs text-muted-foreground">
                           {translate('ofAccepted', {
                             rate: rate(row.converted, row.accepted),

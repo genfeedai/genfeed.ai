@@ -74,7 +74,7 @@ interface CostUsagePageProps {
 }
 
 function formatCredits(value: number): string {
-  return new Intl.NumberFormat(undefined, { maximumFractionDigits: 2 }).format(
+  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(
     value,
   );
 }
@@ -333,7 +333,9 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
               />
               <MetricCard
                 label={translate('metrics.generations.label')}
-                value={summary?.total.generationCount.toLocaleString() ?? '—'}
+                value={
+                  summary?.total.generationCount.toLocaleString('en-US') ?? '—'
+                }
                 description={
                   summary
                     ? translate('metrics.generations.description', {
