@@ -484,7 +484,11 @@ export function AppSwitcher({
   const [isPreviewVisible, setIsPreviewVisible] = useState(false);
 
   function getRouteBrandSlug(app: AppSwitcherItemConfig) {
-    if (app.id === 'agent') {
+    // Agent and Studio both resolve to the session-selected brand when the
+    // current route is org-scoped, so an operator with a brand selected but
+    // no brand in the URL still lands on that brand's surface (#4671)
+    // instead of the org fallback.
+    if (app.id === 'agent' || app.id === 'studio') {
       return brandSlug ?? brandAwareSlug;
     }
 
