@@ -1,6 +1,5 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
 import { CreateMetadataDto } from '@api/collections/metadata/dto/create-metadata.dto';
-import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IngredientCategory,
@@ -204,12 +203,15 @@ export class ZoomConfigDto {
 
 export class CreateVideoDto extends CreateIngredientDto {
   // Video generation only generates the video: background music is an
-  // editing action that belongs in the Studio editor's audio tracks, not a
-  // generation-time option. Whitelisting is strict here so a caller still
-  // sending `backgroundMusic`/`musicVolume`/`muteVideoAudio` gets a 400
-  // naming the field instead of having it silently stripped.
-  static readonly [FORBID_NON_WHITELISTED] = true;
-
+  // editing action that belongs in the Studio editor's audio tracks now, not
+  // a generation-time option. Removing the fields is enough — the pipe's
+  // default `whitelist: true` already strips any undeclared property
+  // (`backgroundMusic`/`musicVolume`/`muteVideoAudio` included) before this
+  // class ever sees it. This DTO does NOT opt into `FORBID_NON_WHITELISTED`:
+  // real callers (Studio's generation payload, the MCP `createVideo` tool)
+  // routinely send other undeclared fields the server has always tolerated
+  // by dropping them, and forbidding non-whitelisted properties would turn
+  // every one of those into a hard 400 instead of a no-op.
   @IsString()
   @IsOptional()
   @ApiProperty({ description: 'Video generation prompt', required: false })
