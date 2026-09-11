@@ -1,18 +1,25 @@
-import { useAuth } from '@genfeedai/auth-client/react';
-import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import InstagramAccountSelector from '@ui/modals/brands/instagram/InstagramAccountSelector';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@genfeedai/auth-client/react');
-vi.mock('@genfeedai/services/organization/credentials.service');
+const mockCredentialsService: {
+  findCredentialInstagramPages: ReturnType<typeof vi.fn>;
+  patch: ReturnType<typeof vi.fn>;
+} = {
+  findCredentialInstagramPages: vi.fn(),
+  patch: vi.fn(),
+};
+
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => mockCredentialsService,
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
 });
 
 describe('InstagramAccountSelector', () => {
-  const mockGetToken = vi.fn();
   const credentialId = 'credential-pending-123';
 
   const candidateAccounts = [
@@ -31,21 +38,13 @@ describe('InstagramAccountSelector', () => {
   ];
 
   beforeEach(() => {
-    vi.clearAllMocks();
-    vi.mocked(useAuth).mockReturnValue({
-      getToken: mockGetToken,
-    } as ReturnType<typeof useAuth>);
-    mockGetToken.mockResolvedValue('mock-token');
+    mockCredentialsService.findCredentialInstagramPages = vi.fn();
+    mockCredentialsService.patch = vi.fn();
   });
 
   it('lists every candidate account returned for this credential', async () => {
-    const mockCredentialsService = {
-      findCredentialInstagramPages: vi
-        .fn()
-        .mockResolvedValue(candidateAccounts),
-    };
-    vi.mocked(CredentialsService.getInstance).mockReturnValue(
-      mockCredentialsService as unknown as CredentialsService,
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
     );
 
     render(
@@ -65,12 +64,7 @@ describe('InstagramAccountSelector', () => {
   });
 
   it('shows the empty state when no eligible account is returned', async () => {
-    const mockCredentialsService = {
-      findCredentialInstagramPages: vi.fn().mockResolvedValue([]),
-    };
-    vi.mocked(CredentialsService.getInstance).mockReturnValue(
-      mockCredentialsService as unknown as CredentialsService,
-    );
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue([]);
 
     render(
       <InstagramAccountSelector
@@ -88,13 +82,8 @@ describe('InstagramAccountSelector', () => {
 
   it('reports a load failure through onError', async () => {
     const onError = vi.fn();
-    const mockCredentialsService = {
-      findCredentialInstagramPages: vi
-        .fn()
-        .mockRejectedValue(new Error('network down')),
-    };
-    vi.mocked(CredentialsService.getInstance).mockReturnValue(
-      mockCredentialsService as unknown as CredentialsService,
+    mockCredentialsService.findCredentialInstagramPages.mockRejectedValue(
+      new Error('network down'),
     );
 
     render(
@@ -113,13 +102,8 @@ describe('InstagramAccountSelector', () => {
   });
 
   it('disables the confirm action until an account is selected', async () => {
-    const mockCredentialsService = {
-      findCredentialInstagramPages: vi
-        .fn()
-        .mockResolvedValue(candidateAccounts),
-    };
-    vi.mocked(CredentialsService.getInstance).mockReturnValue(
-      mockCredentialsService as unknown as CredentialsService,
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
     );
 
     render(
@@ -135,16 +119,10 @@ describe('InstagramAccountSelector', () => {
 
   it('persists the selected account through the credential update path and reports success', async () => {
     const onConnected = vi.fn();
-    const patchMock = vi.fn().mockResolvedValue({});
-    const mockCredentialsService = {
-      findCredentialInstagramPages: vi
-        .fn()
-        .mockResolvedValue(candidateAccounts),
-      patch: patchMock,
-    };
-    vi.mocked(CredentialsService.getInstance).mockReturnValue(
-      mockCredentialsService as unknown as CredentialsService,
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
     );
+    mockCredentialsService.patch.mockResolvedValue({});
 
     render(
       <InstagramAccountSelector
@@ -166,7 +144,7 @@ describe('InstagramAccountSelector', () => {
     fireEvent.click(confirmButton);
 
     await waitFor(() => {
-      expect(patchMock).toHaveBeenCalledWith(credentialId, {
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith(credentialId, {
         externalAvatar: 'https://cdn.example.com/two.jpg',
         externalHandle: 'genfeedstudio',
         externalId: 'ig-account-2',
@@ -178,16 +156,10 @@ describe('InstagramAccountSelector', () => {
 
   it('reports a persist failure through onError and keeps the selection', async () => {
     const onError = vi.fn();
-    const patchMock = vi.fn().mockRejectedValue(new Error('persist failed'));
-    const mockCredentialsService = {
-      findCredentialInstagramPages: vi
-        .fn()
-        .mockResolvedValue(candidateAccounts),
-      patch: patchMock,
-    };
-    vi.mocked(CredentialsService.getInstance).mockReturnValue(
-      mockCredentialsService as unknown as CredentialsService,
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
     );
+    mockCredentialsService.patch.mockRejectedValue(new Error('persist failed'));
 
     render(
       <InstagramAccountSelector
