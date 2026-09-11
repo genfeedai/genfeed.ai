@@ -1389,7 +1389,13 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      // #4672: schedule_post is outbound, so it's gated in every mode —
+      // confirmationOrigin simulates the confirmed "Generate"-style click
+      // that authorizes this exact call, the same way the UI does.
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1431,7 +1437,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'legacy-post-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1470,7 +1479,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1684,7 +1696,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1718,7 +1733,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1751,7 +1769,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1789,7 +1810,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1813,7 +1837,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1832,7 +1859,10 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       'schedule_post',
       { postId: 'target-1', scheduledAt: 'not-a-date' },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1851,7 +1881,10 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       'schedule_post',
       { postId: 'target-1', scheduledAt: '2099-07-18T09:00:00' },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
