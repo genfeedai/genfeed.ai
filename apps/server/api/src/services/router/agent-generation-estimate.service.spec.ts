@@ -93,6 +93,34 @@ describe('AgentGenerationEstimateService', () => {
     });
   });
 
+  it('reports the estimate unavailable when the resolved model has no base cost', async () => {
+    routerService.selectModel.mockResolvedValue({
+      modelDetails: {
+        cost: undefined,
+        key: 'no-cost/model',
+        category: 'image',
+      },
+    });
+    modelsService.findOne.mockResolvedValue({
+      key: 'no-cost/model',
+      costPerUnit: null,
+      minCost: null,
+      pricingType: null,
+    });
+
+    const result = await service.estimate({
+      category: ModelCategory.IMAGE,
+      organizationId: 'org-1',
+      prompt: 'a red car',
+    });
+
+    expect(result).toEqual({
+      credits: null,
+      isAvailable: false,
+      modelKey: 'no-cost/model',
+    });
+  });
+
   it('reports the estimate unavailable when the resolved model has no pricing row', async () => {
     routerService.selectModel.mockResolvedValue({
       modelDetails: { cost: 50, key: 'orphaned/model', category: 'image' },

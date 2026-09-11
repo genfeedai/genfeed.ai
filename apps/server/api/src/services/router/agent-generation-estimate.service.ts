@@ -64,9 +64,10 @@ export class AgentGenerationEstimateService {
         prompt: input.prompt,
       });
       modelKey = recommendation.modelDetails.key;
+      const baseCost = recommendation.modelDetails.cost;
 
       const model = await this.findEnabledModel(modelKey, input.organizationId);
-      if (!model) {
+      if (!model || baseCost === undefined) {
         return { credits: null, isAvailable: false, modelKey };
       }
 
@@ -74,7 +75,7 @@ export class AgentGenerationEstimateService {
       const credits =
         input.category === ModelCategory.VIDEO
           ? quoteVideoGenerationCredits({
-              cost: recommendation.modelDetails.cost,
+              cost: baseCost,
               costPerUnit: model.costPerUnit,
               duration: input.duration,
               minCost: model.minCost,
@@ -84,7 +85,7 @@ export class AgentGenerationEstimateService {
               resolution: input.resolution,
             })
           : quoteImageGenerationQualityCredits(
-              recommendation.modelDetails.cost,
+              baseCost,
               modelKey,
               input.quality,
             ) * outputs;
