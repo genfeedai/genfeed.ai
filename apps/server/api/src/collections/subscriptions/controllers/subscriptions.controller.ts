@@ -159,12 +159,17 @@ export class SubscriptionsController {
   @Post('current/preview')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async previewChange(
+    @Req() request: RequestWithContext,
     @CurrentUser() user: User,
     @Body() subscriptionPreviewDto: CreateSubscriptionPreviewDto,
   ): Promise<SubscriptionMutationResponse<SubscriptionChangePreview>> {
+    // Preview must price the same tenant that changePlan will bill.
+    const organizationId =
+      request.context?.organizationId ?? user.organizationId;
+
     try {
       const result = await this.subscriptionsService.previewSubscriptionChange(
-        user.organizationId,
+        organizationId,
         subscriptionPreviewDto.price,
       );
 
@@ -174,6 +179,11 @@ export class SubscriptionsController {
         success: true,
       };
     } catch (error: unknown) {
+      // A missing subscription or an invalid price is a client state, not a
+      // server failure; keep its 4xx so it does not page Sentry.
+      if (error instanceof HttpException && error.getStatus() < 500) {
+        throw error;
+      }
       throw new HttpException(
         {
           error: (error as Error)?.message,

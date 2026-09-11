@@ -2,8 +2,8 @@
 
 import { BrandProvider } from '@contexts/user/brand-context/brand-context';
 import { UserProvider } from '@contexts/user/user-context/user-context';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@props/layout/layout.props';
 import ApiStatusProvider from '@providers/api-status/api-status.provider';
 import { ProtectedAuthGate } from '@providers/protected-providers/protected-providers';
@@ -16,8 +16,9 @@ import OnboardingFunnelAnalytics from './onboarding-funnel-analytics';
 
 export default function OnboardingSetupLayout({ children }: LayoutProps) {
   const pathname = usePathname();
+  const isDesktop = useIsDesktopClient();
   const isDesktopLocalOnboarding =
-    isDesktopClient() &&
+    isDesktop &&
     (pathname === APP_ROUTES.ONBOARDING.BRAND ||
       pathname.startsWith(`${APP_ROUTES.ONBOARDING.BRAND}/`) ||
       pathname === APP_ROUTES.ONBOARDING.PROVIDERS ||

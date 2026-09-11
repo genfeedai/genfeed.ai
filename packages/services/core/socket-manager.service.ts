@@ -494,8 +494,10 @@ export function createMediaHandler<T = unknown>(
           // Provider failures are a handled domain state. Logging them as a
           // console error makes the Next.js development overlay cover the
           // Studio retry UI even though onFailed already renders the failure.
+          // The API already reports the provider failure server-side.
           logger.warn('Media handler received failure', {
             error: errorMessage,
+            reportToSentry: false,
           });
 
           if (onFailed) {

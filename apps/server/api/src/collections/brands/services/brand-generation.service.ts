@@ -182,7 +182,9 @@ export class BrandGenerationService {
 
     const completion = await this.llmDispatcherService.chatCompletion(
       {
-        max_tokens: 1200,
+        // The profile contract (12 fields + 6 prompt seeds) truncates at 1200,
+        // leaving unparseable JSON.
+        max_tokens: 2400,
         messages: [{ content: prompt, role: 'user' }],
         model: LLM_DEFAULTS.planning,
         temperature: 0.7,

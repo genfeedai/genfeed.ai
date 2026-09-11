@@ -78,7 +78,8 @@ export class MasterPromptGeneratorService {
       // Construct prompt for Replicate text model
       const fullPrompt = buildBrandProfileAnalysisPrompt(brandContext);
       const input = {
-        max_tokens: 1200,
+        // The profile contract (12 fields + 6 prompt seeds) truncates at 1200.
+        max_tokens: 2400,
         prompt: fullPrompt,
         temperature: 0.7,
       };

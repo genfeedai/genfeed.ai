@@ -333,6 +333,7 @@ describe('createMediaHandler', () => {
       'Media handler received failure',
       expect.objectContaining({
         error: 'Director: unexpected error handling prediction (E9828)',
+        reportToSentry: false,
       }),
     );
     expect(logger.error).not.toHaveBeenCalled();
