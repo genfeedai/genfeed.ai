@@ -9,7 +9,7 @@ import type {
   MusicGenerationProviderResult,
 } from '@api/collections/musics/services/music-generation.types';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
-import { ModelProvider } from '@genfeedai/contracts';
+import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
@@ -71,7 +71,11 @@ export class FalMusicGenerationProviderAdapter
    * Eleven Music's 10s minimum) is the only case that needs adjusting.
    */
   private clampDuration(model: string, requested: number): number {
-    const durations = MODEL_OUTPUT_CAPABILITIES[model]?.durations;
+    const capability = MODEL_OUTPUT_CAPABILITIES[model];
+    const durations =
+      capability?.category === ModelCategory.MUSIC
+        ? capability.durations
+        : undefined;
     if (!durations?.length) {
       return requested;
     }
