@@ -48,6 +48,10 @@ export function buildAgentGenerationSetupScope(
   return `agent:${thread}:${generationType}`;
 }
 
+function isNewAgentThreadScope(scope: string): boolean {
+  return scope.startsWith(`agent:${NEW_AGENT_THREAD_SCOPE}:`);
+}
+
 function createEmptyGenerationSetup(
   defaults: GenerationSetupValues,
 ): GenerationSetup {
@@ -105,7 +109,7 @@ export interface GenerationSetupState {
 }
 
 export const GENERATION_SETUP_STORAGE_KEY = 'genfeed-generation-setup';
-export const GENERATION_SETUP_STORE_VERSION = 1;
+export const GENERATION_SETUP_STORE_VERSION = 2;
 
 export const useGenerationSetupStore = create<GenerationSetupState>()(
   persist(
@@ -255,6 +259,20 @@ export const useGenerationSetupStore = create<GenerationSetupState>()(
       },
     }),
     {
+      // v1 copied `__new__` setups onto created threads without consuming
+      // them, so persisted placeholders can hold a stale media lock.
+      migrate: (persisted) => {
+        const setupByScope =
+          (persisted as Partial<GenerationSetupState> | undefined)
+            ?.setupByScope ?? {};
+        return {
+          setupByScope: Object.fromEntries(
+            Object.entries(setupByScope).filter(
+              ([scope]) => !isNewAgentThreadScope(scope),
+            ),
+          ),
+        };
+      },
       name: GENERATION_SETUP_STORAGE_KEY,
       partialize: (state) => ({ setupByScope: state.setupByScope }),
       version: GENERATION_SETUP_STORE_VERSION,
@@ -336,9 +354,10 @@ export function clearGenerationSetupPreset(scope: string): void {
 
 /**
  * `/agent/new` writes its setup under the `__new__` scope for every
- * generation type. Once the URL catches up to the created thread, copy those
- * setups once so the operator's in-flight picks survive — mirrors
- * `adoptNewThreadGenerationPrefs` in agent-preferred-model.store.ts.
+ * generation type. Once the URL catches up to the created thread, move those
+ * setups onto the thread so the operator's in-flight picks survive. The
+ * placeholder is consumed: a lock left behind would silently put every later
+ * new conversation into direct media generation.
  */
 export function adoptNewScopeSetup(fromScope: string, toScope: string): void {
   if (!fromScope || !toScope || fromScope === toScope) {
@@ -347,11 +366,14 @@ export function adoptNewScopeSetup(fromScope: string, toScope: string): void {
 
   const setupByScope = useGenerationSetupStore.getState().setupByScope;
   const source = setupByScope[fromScope];
-  if (!source || setupByScope[toScope]) {
+  if (!source) {
     return;
   }
 
+  const { [fromScope]: _consumed, ...remaining } = setupByScope;
   useGenerationSetupStore.setState({
-    setupByScope: { ...setupByScope, [toScope]: { ...source } },
+    setupByScope: setupByScope[toScope]
+      ? remaining
+      : { ...remaining, [toScope]: { ...source } },
   });
 }

@@ -103,6 +103,7 @@ vi.mock('@ui/dropdowns/generation-setup/generation-setup.store', () => ({
 
 vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
   default: function MockGenerationSetupPopover(props: {
+    isTypeCommitted?: boolean;
     models: GenerationModel[];
     onTypeChange: (nextType: string) => void;
     typeOptions: Array<{ label: string; value: string }>;
@@ -111,6 +112,7 @@ vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
       <div
         data-model-count={props.models.length}
         data-testid="generation-setup-popover"
+        data-type-committed={String(Boolean(props.isTypeCommitted))}
       >
         {props.typeOptions.map((option) => (
           <button
@@ -260,6 +262,20 @@ describe('AgentChatInputToolbar', () => {
     await waitFor(() => {
       expect(onGenerationModeChange).toHaveBeenLastCalledWith('image');
     });
+    // The chip must name the committed type instead of claiming "Agent".
+    expect(screen.getByTestId('generation-setup-popover')).toHaveAttribute(
+      'data-type-committed',
+      'true',
+    );
+  });
+
+  it('leaves the chip agent-owned while nothing is committed', () => {
+    render(<AgentChatInputToolbar {...buildDefaultProps()} />);
+
+    expect(screen.getByTestId('generation-setup-popover')).toHaveAttribute(
+      'data-type-committed',
+      'false',
+    );
   });
 
   it('promotes Auto to image when the prompt is a generate request', async () => {

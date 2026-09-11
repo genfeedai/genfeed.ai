@@ -1,4 +1,5 @@
 import type {
+  GenerationSetup,
   GenerationSetupRecommendation,
   GenerationSetupValues,
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
@@ -369,7 +370,7 @@ describe('generation-setup.store', () => {
     const FROM_SCOPE = 'agent:__new__:image';
     const TO_SCOPE = 'agent:thread-1:image';
 
-    it('copies the source scope into the destination exactly once', () => {
+    it('moves the source scope onto the destination and consumes the placeholder', () => {
       setGenerationSetupField(FROM_SCOPE, 'aspectRatio', '16:9', DEFAULTS);
 
       adoptNewScopeSetup(FROM_SCOPE, TO_SCOPE);
@@ -377,6 +378,10 @@ describe('generation-setup.store', () => {
       expect(getGenerationSetup(TO_SCOPE, DEFAULTS).values.aspectRatio).toBe(
         '16:9',
       );
+      // A lock left on the placeholder would leak into the next new chat.
+      expect(
+        useGenerationSetupStore.getState().setupByScope[FROM_SCOPE],
+      ).toBeUndefined();
     });
 
     it('never overwrites a destination scope that already has an entry', () => {
@@ -388,6 +393,9 @@ describe('generation-setup.store', () => {
       expect(getGenerationSetup(TO_SCOPE, DEFAULTS).values.aspectRatio).toBe(
         '1:1',
       );
+      expect(
+        useGenerationSetupStore.getState().setupByScope[FROM_SCOPE],
+      ).toBeUndefined();
     });
 
     it('is a no-op when the source scope has never been written', () => {
@@ -412,6 +420,29 @@ describe('generation-setup.store', () => {
   });
 
   describe('persistence', () => {
+    it('drops persisted __new__ placeholders when migrating older state', async () => {
+      const setup: GenerationSetup = {
+        sources: { modelKey: 'user' },
+        values: DEFAULTS,
+      };
+      const migrate = useGenerationSetupStore.persist.getOptions().migrate;
+
+      expect(
+        await migrate?.(
+          {
+            setupByScope: {
+              'agent:__new__:image': setup,
+              'agent:thread-1:image': setup,
+              [SCOPE]: setup,
+            },
+          },
+          1,
+        ),
+      ).toEqual({
+        setupByScope: { 'agent:thread-1:image': setup, [SCOPE]: setup },
+      });
+    });
+
     it('persists setupByScope only, never the runtime-only reasons', () => {
       applyGenerationSetupRecommendation(
         SCOPE,

@@ -503,6 +503,7 @@ function AgentChatInputToolbarInner({
           favoriteModelKeys={favoriteModelKeys}
           isDisabled={disabled || showStop}
           isPresetsLoading={isPresetsLoading}
+          isTypeCommitted={isTypeLocked}
           lookOptions={EMPTY_LOOK_OPTIONS}
           models={filteredModels}
           onApplyPreset={handleApplyPreset}

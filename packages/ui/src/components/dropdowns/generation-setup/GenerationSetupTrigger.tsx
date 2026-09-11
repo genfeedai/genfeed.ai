@@ -24,6 +24,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
   hasAspectRatio = true,
   isDisabled,
   isOpen: _isOpen,
+  isTypeCommitted = false,
   models,
   ref,
   setup,
@@ -32,6 +33,7 @@ const GenerationSetupTrigger = memo(function GenerationSetupTrigger({
 }: GenerationSetupTriggerProps &
   ButtonHTMLAttributes<HTMLButtonElement> & { ref?: Ref<HTMLButtonElement> }) {
   const isTypeAgentOwned =
+    !isTypeCommitted &&
     !setup.presetId &&
     setup.sources.type !== 'user' &&
     setup.sources.type !== 'preset';

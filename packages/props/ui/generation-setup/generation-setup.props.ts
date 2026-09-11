@@ -57,6 +57,8 @@ export interface GenerationSetupPopoverProps {
   lookOptions: GenerationSetupLookOptions;
   presets: readonly IStudioLook[];
   isPresetsLoading?: boolean;
+  /** Forwarded to the trigger — see `GenerationSetupTriggerProps.isTypeCommitted`. */
+  isTypeCommitted?: boolean;
   onSetField: GenerationSetupFieldSetter;
   onApplyPreset: (preset: IStudioLook) => void;
   onSavePreset: (label: string) => void;
@@ -83,6 +85,12 @@ export interface GenerationSetupTriggerProps {
   className?: string;
   /** When false, the chip omits aspect ratio (music / voice / avatar). */
   hasAspectRatio?: boolean;
+  /**
+   * The surface has committed to `setup.values.type` even though the type
+   * field itself is agent-owned (the agent composer locks direct media once a
+   * model or ratio is picked). The chip then names that type, never "Agent".
+   */
+  isTypeCommitted?: boolean;
 }
 
 export interface GenerationSetupFieldIconProps {
