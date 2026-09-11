@@ -466,6 +466,13 @@ export class InstagramController {
           (account) => account.id === reconnectTarget.externalId,
         );
         hadUnmatchedReconnectIntent = !chosen;
+      } else {
+        // The named credential is gone (deleted, or no longer this
+        // brand/platform's) or was never identified. The connect attempt
+        // still named a specific account to reconnect, so this is not "no
+        // intent" — treat it the same as any other unmatched intent rather
+        // than silently falling back to a different account.
+        hadUnmatchedReconnectIntent = true;
       }
     }
 

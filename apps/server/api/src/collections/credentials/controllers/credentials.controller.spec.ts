@@ -155,7 +155,9 @@ describe('CredentialsController', () => {
       await expect(
         controller.findAllInstagramPages(mockRequest, mockUser, credId),
       ).rejects.toThrow(HttpException);
-      expect(instagramService.getInstagramPages).not.toHaveBeenCalled();
+      expect(
+        instagramService.listAuthorizedInstagramAccounts,
+      ).not.toHaveBeenCalled();
     });
   });
 
