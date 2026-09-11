@@ -23,6 +23,7 @@ import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
@@ -104,9 +105,9 @@ export default function ModalWatchlist({
       id={ModalEnum.WATCHLIST}
       title={item ? 'Edit Creator' : 'Track Creator'}
     >
-      <form ref={formRef} onSubmit={onSubmit}>
+      <Form ref={formRef} onSubmit={onSubmit}>
         {hasFormErrors(form.formState.errors) && (
-          <Alert type={AlertCategory.ERROR} className="mb-4">
+          <Alert type={AlertCategory.ERROR}>
             <div className="space-y-1">
               {parseFormErrors(form.formState.errors).map((error) => (
                 <div key={error}>{error}</div>
@@ -221,7 +222,7 @@ export default function ModalWatchlist({
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

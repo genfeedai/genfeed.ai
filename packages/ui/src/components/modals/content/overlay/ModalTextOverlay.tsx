@@ -8,6 +8,7 @@ import type { ModalTextOverlayProps } from '@genfeedai/props/modals/modal.props'
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import { VideosService } from '@genfeedai/services/ingredients/videos.service';
+import ModalActions from '@ui/modals/actions/ModalActions';
 import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import FormControl from '@ui/primitives/field';
@@ -92,7 +93,7 @@ export default function ModalTextOverlay({
       error={error}
       onClose={() => setError(null)}
     >
-      <div className="space-y-2">
+      <div className="space-y-4">
         <FormControl label="Text" error={errors.text} isRequired>
           <Input
             name="text"
@@ -143,7 +144,7 @@ export default function ModalTextOverlay({
         </FormControl>
       </div>
 
-      <div className="flex justify-end gap-2 mt-4">
+      <ModalActions>
         <Button
           label="Cancel"
           variant={ButtonVariant.GHOST}
@@ -158,7 +159,7 @@ export default function ModalTextOverlay({
           isLoading={isSubmitting}
           isDisabled={!text.trim()}
         />
-      </div>
+      </ModalActions>
     </Modal>
   );
 }

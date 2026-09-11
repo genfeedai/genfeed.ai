@@ -196,8 +196,8 @@ export default function ModalBrandInstagram({
       error={error}
       onClose={() => setError(null)}
     >
-      <div className="w-full max-w-2xl">
-        <div className="flex items-center gap-2 mb-6">
+      <div className="flex w-full max-w-2xl flex-col gap-6">
+        <div className="flex items-center gap-2">
           <div className="flex size-10 items-center justify-center rounded-full bg-platform-instagram">
             <InstagramIcon
               className={
@@ -226,7 +226,7 @@ export default function ModalBrandInstagram({
         )}
 
         {!isLoading && availableHandles.length > 0 && (
-          <Alert type={AlertCategory.INFO} className="mb-4">
+          <Alert type={AlertCategory.INFO}>
             <div className="flex items-start gap-2">
               <div>
                 <p className="font-medium text-sm">

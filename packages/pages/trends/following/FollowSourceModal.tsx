@@ -31,6 +31,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Form } from '@ui/primitives/form';
 import FormSearchbar from '@ui/primitives/searchbar';
 import { Download, Loader2, Plus, Search, UserPlus } from 'lucide-react';
 import Image from 'next/image';
@@ -404,7 +405,7 @@ export default function FollowSourceModal({
           <DialogDescription>{translate('description')}</DialogDescription>
         </DialogHeader>
 
-        <form className="space-y-3" onSubmit={handleSubmitSearch}>
+        <Form onSubmit={handleSubmitSearch}>
           <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
             <div className="min-w-0 flex-1">
               <FormSearchbar
@@ -437,7 +438,7 @@ export default function FollowSourceModal({
               />
             ) : null}
           </div>
-        </form>
+        </Form>
 
         <div className="min-h-40 space-y-3">
           {postReference ? (

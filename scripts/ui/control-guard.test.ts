@@ -430,3 +430,50 @@ describe('shared media boundary', () => {
     ).toHaveLength(0);
   });
 });
+
+describe('control-guard form spacing', () => {
+  it('bans a raw form element', () => {
+    const file = write(
+      'packages/pages/RawForm.tsx',
+      'export function RawForm(){return <form onSubmit={() => undefined}><span /></form>;}',
+    );
+    expect(categoriesFor(file)).toContain('raw-html');
+  });
+
+  it('flags stack classes that re-own the rhythm on Form', () => {
+    const file = write(
+      'packages/pages/StackedForm.tsx',
+      'export function StackedForm(){return <Form className="max-w-xl space-y-6"><span /></Form>;}',
+    );
+    expect(categoriesFor(file)).toEqual(['form-spacing']);
+  });
+
+  it('allows layout classes on a spacing="none" form', () => {
+    const file = write(
+      'packages/pages/LayoutForm.tsx',
+      'export function LayoutForm(){return <Form spacing="none" className="flex items-center gap-1"><span /></Form>;}',
+    );
+    expect(categoriesFor(file)).toEqual([]);
+  });
+
+  it.each([
+    ['ModalActions', 'mt-6'],
+    ['FormControl', 'mb-4'],
+    ['Field', 'my-2'],
+    ['Label', 'sm:mb-2'],
+  ])('flags a vertical margin on %s', (tag, marginClass) => {
+    const file = write(
+      `packages/pages/Margin${tag}.tsx`,
+      `export function Margin(){return <${tag} className={cn('flex', '${marginClass}')} />;}`,
+    );
+    expect(categoriesFor(file)).toEqual(['form-spacing']);
+  });
+
+  it('allows padding and alignment on ModalActions', () => {
+    const file = write(
+      'packages/pages/PaddedActions.tsx',
+      'export function PaddedActions(){return <ModalActions className="border-t pt-6 justify-between" />;}',
+    );
+    expect(categoriesFor(file)).toEqual([]);
+  });
+});

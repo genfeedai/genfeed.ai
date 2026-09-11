@@ -1,6 +1,7 @@
 import type { AnnouncementComposeFormProps as Props } from '@props/admin/announcements.props';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Globe } from 'lucide-react';
@@ -16,7 +17,7 @@ export default function AnnouncementComposeForm({
   onSubmit,
 }: Props) {
   return (
-    <form onSubmit={onSubmit} className="max-w-2xl space-y-6">
+    <Form spacing="section" className="max-w-2xl" onSubmit={onSubmit}>
       {/* Body */}
       <div className="flex flex-col gap-2">
         <label
@@ -128,6 +129,6 @@ export default function AnnouncementComposeForm({
         <Globe className="size-4" />
         {isSubmitting ? 'Publishing…' : 'Publish'}
       </Button>
-    </form>
+    </Form>
   );
 }

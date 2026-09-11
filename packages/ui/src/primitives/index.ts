@@ -122,6 +122,7 @@ export {
   fieldControlTriggerClassName,
   overlayMenuSurfaceClassName,
 } from './field-control';
+export { Form, type FormProps } from './form';
 export { Input, type InputProps } from './input';
 export { Kbd, type KbdProps } from './kbd';
 export { kbdVariants } from './kbd.variants';

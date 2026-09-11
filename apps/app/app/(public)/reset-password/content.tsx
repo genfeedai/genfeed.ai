@@ -5,6 +5,7 @@ import { ButtonVariant } from '@genfeedai/contracts';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { CircleCheck, RotateCcw } from 'lucide-react';
 import Link from 'next/link';
@@ -142,7 +143,7 @@ export default function ResetPasswordContent() {
       title="Choose a new password"
     >
       <div className="w-full space-y-6">
-        <form onSubmit={handlePasswordReset} className="space-y-4">
+        <Form onSubmit={handlePasswordReset}>
           <Field label="New password" isRequired>
             <Input
               type="password"
@@ -194,7 +195,7 @@ export default function ResetPasswordContent() {
           >
             Reset password
           </Button>
-        </form>
+        </Form>
       </div>
     </AuthFormLayout>
   );

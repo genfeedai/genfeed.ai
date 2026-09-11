@@ -57,11 +57,15 @@ bun run test --filter=@genfeedai/[name]              # Test one package
 
 ### Frontend
 - **Never raw HTML controls.** `<button>`, `<input>`, `<textarea>`, `<select>`, `<dialog>`,
-  `<table>`, `<hr>` etc. are blocked by `scripts/ui/control-guard.ts` (pre-commit via
+  `<table>`, `<hr>`, `<form>` etc. are blocked by `scripts/ui/control-guard.ts` (pre-commit via
   `lint-staged.config.mjs`, repo-wide in CI via `bun run check:ui-guards` →
   `scripts/ui/check-ui-guards.ts`). Use `@ui/primitives/*`; for unstyled cases use
   `Button` with `variant={ButtonVariant.UNSTYLED}` + `withWrapper={false}`. Never nest `Button`
   inside `Button` — restructure as siblings.
+- **Form spacing has one owner per level.** `Field` spaces label → control → error; `Form`
+  (`@ui/primitives/form`, `spacing="default" | "section" | "none"`) spaces the fields; the modal
+  body spaces content and `ModalActions`. Never put a vertical margin on `ModalActions`,
+  `FormControl`, `Field`, or `Label` — `control-guard.ts` fails on it.
 - AbortController in every `useEffect` with async calls
 - Soft delete is `isDeleted: boolean` — there is no `deletedAt` field
 - Components use `function` declarations (not arrow), default export

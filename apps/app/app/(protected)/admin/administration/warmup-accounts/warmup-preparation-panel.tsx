@@ -11,6 +11,7 @@ import { AdminWarmupAccountsService } from '@services/admin/warmup-accounts.serv
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { RadioGroup, RadioGroupItem } from '@ui/primitives/radio-group';
 import Link from 'next/link';
@@ -120,8 +121,7 @@ export default function WarmupPreparationPanel({
             onClick={() => void run({ action: 'repair' })}
           />
           {!preparation?.grant && (
-            <form
-              className="space-y-3"
+            <Form
               onSubmit={(event) => {
                 event.preventDefault();
                 void run({
@@ -158,10 +158,9 @@ export default function WarmupPreparationPanel({
                 label={translate('grant')}
                 isDisabled={disabled}
               />
-            </form>
+            </Form>
           )}
-          <form
-            className="space-y-3"
+          <Form
             onSubmit={(event) => {
               event.preventDefault();
               setAccepted([]);
@@ -198,7 +197,7 @@ export default function WarmupPreparationPanel({
               variant={ButtonVariant.SECONDARY}
               isDisabled={disabled}
             />
-          </form>
+          </Form>
           {preparation?.context && (
             <fieldset className="space-y-3">
               <legend className="text-sm font-semibold">

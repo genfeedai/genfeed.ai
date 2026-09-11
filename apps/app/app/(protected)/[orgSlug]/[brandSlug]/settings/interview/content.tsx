@@ -16,6 +16,7 @@ import { BrandInterviewService } from '@services/social/brand-interview.service'
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import {
   Select,
   SelectContent,
@@ -729,7 +730,7 @@ export default function BrandSettingsInterviewPage() {
           </div>
 
           {activeQuestion ? (
-            <form className="flex flex-col gap-5" onSubmit={handleFormSubmit}>
+            <Form spacing="section" onSubmit={handleFormSubmit}>
               <div className="space-y-2">
                 <p className="text-2xs font-medium uppercase tracking-[0.14em] text-muted-foreground">
                   {GROUP_LABELS[activeQuestion.group] ?? activeQuestion.group}
@@ -799,7 +800,7 @@ export default function BrandSettingsInterviewPage() {
                   </Button>
                 )}
               </div>
-            </form>
+            </Form>
           ) : (
             <Loading isFullSize={false} />
           )}

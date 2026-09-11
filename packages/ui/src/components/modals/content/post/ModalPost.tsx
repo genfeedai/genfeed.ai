@@ -18,6 +18,7 @@ import { PostsService } from '@genfeedai/services/content/posts.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { NotificationsService } from '@genfeedai/services/core/notifications.service';
 import Modal from '@ui/modals/modal/Modal';
+import { Form } from '@ui/primitives/form';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import ModalPostSimpleActions from './ModalPostSimpleActions';
@@ -295,7 +296,7 @@ export default function ModalPost({
       modalBoxClassName="max-w-2xl"
       onClose={handleModalClosed}
     >
-      <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
+      <Form spacing="section" ref={formRef} onSubmit={onSubmit}>
         <ModalPostSimpleHeader
           title={modalTitle}
           description={modalDescription}
@@ -329,7 +330,7 @@ export default function ModalPost({
           onViewDetailsClick={handleViewDetails}
           onCancel={handleCancel}
         />
-      </form>
+      </Form>
     </Modal>
   );
 }

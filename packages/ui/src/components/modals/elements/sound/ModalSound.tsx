@@ -15,6 +15,7 @@ import Modal from '@ui/modals/modal/Modal';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormControl from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
 import { Trash2 } from 'lucide-react';
@@ -65,7 +66,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
 
   return (
     <Modal id={ModalEnum.SOUND} title={sound ? 'Update Sound' : 'Create Sound'}>
-      <form ref={formRef} onSubmit={onSubmit} className="flex flex-col gap-4">
+      <Form ref={formRef} onSubmit={onSubmit}>
         <FormControl label="Label">
           <Input
             type="text"
@@ -164,7 +165,7 @@ export default function ModalSound({ sound, onConfirm }: ModalSoundProps) {
             isDisabled={isSubmitting || !form.formState.isValid}
           />
         </ModalActions>
-      </form>
+      </Form>
     </Modal>
   );
 }

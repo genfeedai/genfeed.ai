@@ -39,6 +39,7 @@ const logger = {
 export type ControlGuardCategory =
   | 'raw-media'
   | 'raw-html'
+  | 'form-spacing'
   | 'banned-import'
   | 'legacy-import'
   | 'raw-input'
@@ -237,7 +238,7 @@ const LEGACY_IMPORT_PATTERNS = [/@ui\/inputs\//g];
 const RAW_INPUT_PATTERN = /<input\b[\s\S]*?>/g;
 const RAW_SELECT_PATTERN = /<select\b[\s\S]*?>/g;
 const RAW_HTML_ELEMENT_PATTERN =
-  /<(input|button|textarea|select|dialog|table|details|summary|progress|hr)\b/g;
+  /<(input|button|textarea|select|dialog|table|details|summary|progress|hr|form)\b/g;
 const BANNED_IMPORT_PATTERNS = [
   /@\/components\/ui\/input/g,
   /@\/components\/ui\/textarea/g,
@@ -299,6 +300,90 @@ function isCommentedMatch(content: string, index: number): boolean {
     token = scanner.scan();
   }
   return false;
+}
+
+// ─── Form spacing ────────────────────────────────────────────────────────────
+// One owner per level: Field spaces label → control → error, Form spaces the
+// fields, and the modal body spaces content and ModalActions. A stack class on
+// Form or a vertical margin on a field-level element re-owns that space.
+
+const FORM_SPACING_TAGS = new Set([
+  'Form',
+  'ModalActions',
+  'FormControl',
+  'Field',
+  'Label',
+]);
+const FORM_SPACING_TAG_PATTERN =
+  /<(Form|ModalActions|FormControl|Field|Label)\b/;
+const STACK_CLASS_PATTERN =
+  /(?:^|\s)(?:[\w-]+:)*(?:space-y|gap-y|gap(?!-x))-\S+/;
+const VERTICAL_MARGIN_PATTERN = /(?:^|\s)(?:[\w-]+:)*-?(?:m|mt|mb|my)-\S+/;
+
+/** Every string a className initializer can produce, joined for matching. */
+function classNameText(initializer: ts.Node): string {
+  const parts: string[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) {
+      parts.push(node.text);
+      return;
+    }
+    if (ts.isTemplateExpression(node)) {
+      parts.push(node.head.text);
+      for (const span of node.templateSpans) {
+        visit(span.expression);
+        parts.push(span.literal.text);
+      }
+      return;
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(initializer);
+  return parts.join(' ');
+}
+
+function detectFormSpacing(rel: string, content: string): number[] {
+  if (!FORM_SPACING_TAG_PATTERN.test(content)) {
+    return [];
+  }
+  const source = parseSourceFile(rel, content, true, scriptKindFor(rel));
+  const lines: number[] = [];
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxOpeningElement(node) || ts.isJsxSelfClosingElement(node)) {
+      const tag = node.tagName.getText(source);
+      if (FORM_SPACING_TAGS.has(tag)) {
+        let className = '';
+        let spacing: string | undefined;
+        for (const property of node.attributes.properties) {
+          if (!ts.isJsxAttribute(property) || !property.initializer) {
+            continue;
+          }
+          const name = property.name.getText(source);
+          if (name === 'className') {
+            className = classNameText(property.initializer);
+          } else if (
+            name === 'spacing' &&
+            ts.isStringLiteral(property.initializer)
+          ) {
+            spacing = property.initializer.text;
+          }
+        }
+        const isViolation =
+          tag === 'Form'
+            ? spacing !== 'none' && STACK_CLASS_PATTERN.test(className)
+            : VERTICAL_MARGIN_PATTERN.test(className);
+        if (isViolation) {
+          lines.push(
+            source.getLineAndCharacterOfPosition(node.getStart(source)).line +
+              1,
+          );
+        }
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(source);
+  return lines;
 }
 
 function isButtonAllowed(rel: string): boolean {
@@ -437,6 +522,16 @@ const RULES: readonly Rule[] = [
     },
   },
   {
+    category: 'form-spacing',
+    severity: 'required',
+    scope: {
+      prefixes: [''],
+      exts: ['.tsx'],
+      excludeSegments: ALLOWLIST.primitiveWrapperSegments,
+    },
+    detect: detectFormSpacing,
+  },
+  {
     category: 'tabs-bypass',
     severity: 'required',
     scope: { prefixes: PRODUCT_UI_PREFIXES, exts: JSX_EXTS },
@@ -543,7 +638,8 @@ const BOUNDED_GLOB_IGNORE = [
 // regexes re-narrow. Over-inclusion only adds candidates the detector clears.
 function repoWideGitGrepFilter(): string {
   const elements =
-    'input|button|textarea|select|dialog|table|details|summary|progress|hr';
+    'input|button|textarea|select|dialog|table|details|summary|progress|hr|form';
+  const formSpacingTags = 'Form|ModalActions|FormControl|Field|Label';
   const imports = [
     '@/components/ui/input',
     '@/components/ui/textarea',
@@ -556,7 +652,7 @@ function repoWideGitGrepFilter(): string {
     '@radix-ui/react-tabs',
     'role=',
   ].join('|');
-  return `<(${elements})|${imports}`;
+  return `<(${elements})|<(${formSpacingTags})|${imports}`;
 }
 
 function tryGitGrepCandidates(rootDir: string): string[] | null {
@@ -613,6 +709,7 @@ export function runControlGuard(options: RunOptions = {}): {
 const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
   'raw-media',
   'raw-html',
+  'form-spacing',
   'banned-import',
   'legacy-import',
   'raw-input',
@@ -625,6 +722,8 @@ const CATEGORY_ORDER: readonly ControlGuardCategory[] = [
 const CATEGORY_HINTS: Record<ControlGuardCategory, string> = {
   'raw-media': 'Use shared media components instead of raw media elements.',
   'raw-html': 'Use @ui/primitives/* instead of raw HTML elements.',
+  'form-spacing':
+    'Form owns the rhythm between fields (spacing="default" | "section"); ModalActions, FormControl, Field, and Label carry no vertical margin.',
   'banned-import':
     'Import primitives from @ui/primitives/*, not dead wrappers.',
   'legacy-import': 'Replace @ui/inputs/* legacy imports with @ui/primitives/*.',

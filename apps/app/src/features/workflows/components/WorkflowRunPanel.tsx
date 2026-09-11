@@ -3,6 +3,7 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -209,7 +210,11 @@ export function WorkflowRunPanel({
         />
       </div>
 
-      <form className="flex min-h-0 flex-1 flex-col" onSubmit={handleSubmit}>
+      <Form
+        spacing="none"
+        className="flex min-h-0 flex-1 flex-col"
+        onSubmit={handleSubmit}
+      >
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto p-4">
           {inputVariables.map((variable) => {
             const value = values[variable.key];
@@ -325,7 +330,7 @@ export function WorkflowRunPanel({
             Run
           </Button>
         </div>
-      </form>
+      </Form>
     </aside>
   );
 }

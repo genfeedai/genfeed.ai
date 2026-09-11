@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -257,7 +258,7 @@ export default function AgentWorkflowRunDialog({
           </DialogDescription>
         </DialogHeader>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit}>
           <div className="rounded bg-foreground/5 px-3 py-2 text-xs text-foreground/70">
             {isLoadingBinding ? (
               <span>{translate('loading')}</span>
@@ -450,7 +451,7 @@ export default function AgentWorkflowRunDialog({
               disabled={!canSubmit}
             />
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

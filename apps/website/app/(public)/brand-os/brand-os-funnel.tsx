@@ -5,6 +5,7 @@ import type { IBrandOsPreview } from '@genfeedai/contracts/interfaces';
 import { PublicService } from '@services/external/public.service';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Text } from '@ui/typography/text';
@@ -148,9 +149,9 @@ export function BrandOsFunnel(): React.ReactElement {
 
   return (
     <div className="grid gap-6">
-      <form
+      <Form
+        className="bg-background p-5 shadow-border sm:p-6"
         aria-label="Brand OS preview intake"
-        className="grid gap-4 bg-background p-5 shadow-border sm:p-6"
         onSubmit={(event) => void handleSubmit(event)}
       >
         <Field
@@ -215,7 +216,7 @@ export function BrandOsFunnel(): React.ReactElement {
           type="submit"
           withWrapper={false}
         />
-      </form>
+      </Form>
 
       <BrandOSPreviewState
         announce

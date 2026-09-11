@@ -271,7 +271,7 @@ export default function ModalErrorDebug() {
             ) : null}
           </div>
 
-          <ModalActions className="mt-4">
+          <ModalActions>
             <Button
               label="Reload"
               variant={ButtonVariant.GHOST}

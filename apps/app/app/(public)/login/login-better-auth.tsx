@@ -14,6 +14,7 @@ import AuthActionSurface from '@ui/layouts/auth/AuthActionSurface';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { KeyRound, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -427,8 +428,7 @@ export default function LoginBetterAuth({
         <AuthActionSurface
           actions={
             isWaitingForDesktopSession ? (
-              <form
-                className="space-y-3"
+              <Form
                 onSubmit={(event) => void handleDesktopCompleteWithCode(event)}
               >
                 <Field label="Sign-in code">
@@ -469,7 +469,7 @@ export default function LoginBetterAuth({
                 >
                   Back
                 </Button>
-              </form>
+              </Form>
             ) : (
               <>
                 <Button
@@ -553,7 +553,7 @@ export default function LoginBetterAuth({
         title="Sign in with a magic link"
       >
         <div className="w-full space-y-6">
-          <form onSubmit={handleMagicLink} className="space-y-4">
+          <Form onSubmit={handleMagicLink}>
             <Field label="Email" isRequired>
               <Input
                 type="email"
@@ -585,7 +585,7 @@ export default function LoginBetterAuth({
                 Send link
               </Button>
             </AuthFormActions>
-          </form>
+          </Form>
         </div>
       </AuthFormLayout>
     );
@@ -599,7 +599,7 @@ export default function LoginBetterAuth({
         title="Sign in with password"
       >
         <div className="w-full space-y-6">
-          <form onSubmit={handleEmailPassword} className="space-y-4">
+          <Form onSubmit={handleEmailPassword}>
             <Field label="Email" isRequired>
               <Input
                 type="email"
@@ -655,7 +655,7 @@ export default function LoginBetterAuth({
                 Sign in
               </Button>
             </AuthFormActions>
-          </form>
+          </Form>
         </div>
       </AuthFormLayout>
     );

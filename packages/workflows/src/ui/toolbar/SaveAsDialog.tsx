@@ -11,6 +11,8 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@genfeedai/ui/primitives/dialog';
+import Field from '@genfeedai/ui/primitives/field';
+import { Form } from '@genfeedai/ui/primitives/form';
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 interface SaveAsDialogProps {
@@ -70,17 +72,10 @@ export function SaveAsDialog({
         <DialogHeader>
           <DialogTitle>Save As</DialogTitle>
         </DialogHeader>
-        <form onSubmit={handleSubmit}>
-          <div className="mb-4">
-            <label
-              htmlFor="workflow-name"
-              className="mb-2 block text-sm font-medium text-foreground"
-            >
-              Workflow Name
-            </label>
+        <Form onSubmit={handleSubmit}>
+          <Field htmlFor="workflow-name" label="Workflow Name">
             <Input
               ref={inputRef}
-              id="workflow-name"
               type="text"
               value={name}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -89,7 +84,7 @@ export function SaveAsDialog({
               placeholder="Enter workflow name"
               className="w-full"
             />
-          </div>
+          </Field>
 
           <DialogFooter>
             <Button
@@ -109,7 +104,7 @@ export function SaveAsDialog({
               Save
             </Button>
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

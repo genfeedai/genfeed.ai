@@ -132,9 +132,9 @@ function CastPromptNodeComponent(props: NodeProps) {
           ))}
         </div>
 
-        <div>
+        <div className="flex flex-col gap-1">
           <Label
-            className="text-xs text-muted-foreground mb-1"
+            className="text-xs text-muted-foreground"
             htmlFor={`cast-preset-${id}`}
           >
             {translate('preset')}
@@ -175,9 +175,9 @@ function CastPromptNodeComponent(props: NodeProps) {
             </div>
           </div>
         ) : (
-          <div>
+          <div className="flex flex-col gap-1">
             <Label
-              className="text-xs text-muted-foreground mb-1"
+              className="text-xs text-muted-foreground"
               htmlFor={`cast-camera-move-${id}`}
             >
               {translate('cameraMovement')}
@@ -222,9 +222,9 @@ function CastPromptNodeComponent(props: NodeProps) {
           </Label>
         </div>
 
-        <div>
+        <div className="flex flex-col gap-1">
           <Label
-            className="text-xs text-muted-foreground mb-1"
+            className="text-xs text-muted-foreground"
             htmlFor={`cast-action-${id}`}
           >
             {translate('action')}
@@ -240,9 +240,9 @@ function CastPromptNodeComponent(props: NodeProps) {
           />
         </div>
 
-        <div>
+        <div className="flex flex-col gap-1">
           <Label
-            className="text-xs text-muted-foreground mb-1"
+            className="text-xs text-muted-foreground"
             htmlFor={`cast-subject-${id}`}
           >
             {translate('subject')}

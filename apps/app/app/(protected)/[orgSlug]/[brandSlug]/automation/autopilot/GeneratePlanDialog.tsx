@@ -28,6 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import { Switch } from '@ui/primitives/switch';
 import Link from 'next/link';
@@ -102,7 +103,7 @@ export default function GeneratePlanDialog({
           </Card>
         ) : null}
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        <Form onSubmit={handleSubmit}>
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label
@@ -312,7 +313,7 @@ export default function GeneratePlanDialog({
               isDisabled={isSubmitting}
             />
           </DialogFooter>
-        </form>
+        </Form>
       </DialogContent>
     </Dialog>
   );

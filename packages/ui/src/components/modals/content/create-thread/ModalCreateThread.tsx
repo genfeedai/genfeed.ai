@@ -38,6 +38,7 @@ import ModalCreateThreadSettings from '@ui/modals/content/create-thread/ModalCre
 import Modal from '@ui/modals/modal/Modal';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
 import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
@@ -207,7 +208,7 @@ export default function ModalCreateThread({
 
   return (
     <Modal id={ModalEnum.THREAD_CREATE}>
-      <form ref={formRef} onSubmit={onSubmit} className="space-y-6">
+      <Form spacing="section" ref={formRef} onSubmit={onSubmit}>
         <div className="space-y-4">
           <h2 className="text-2xl font-semibold">{translate('title')}</h2>
           <p className="text-foreground/70 text-sm">
@@ -287,7 +288,7 @@ export default function ModalCreateThread({
             isDisabled={isSubmitting}
           />
         </ModalActions>
-      </form>
+      </Form>
 
       {mediaPickerIndex !== null && (
         <LazyModalGallery
