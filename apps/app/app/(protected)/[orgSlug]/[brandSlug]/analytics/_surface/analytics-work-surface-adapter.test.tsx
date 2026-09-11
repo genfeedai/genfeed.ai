@@ -16,38 +16,49 @@ vi.mock('next/navigation', () => ({
     new URLSearchParams('startDate=2024-06-01&endDate=2024-06-30'),
 }));
 
-const brands = vi.hoisted(() => [
-  { id: 'brand-2', label: 'Moonrise', organization: { id: 'org-1' } },
-]);
+// Every mocked hook below returns a stable, hoisted reference rather than a
+// fresh object per call — matching how the real (memoized) hooks behave.
+// Returning new objects/functions on every render would make the adapter's
+// own `useMemo` recompute every render, which re-registers the adapter and
+// loops forever (registerAdapter -> setState -> re-render -> recompute).
+const brandContextValue = vi.hoisted(() => ({
+  brands: [{ id: 'brand-2', label: 'Moonrise', organization: { id: 'org-1' } }],
+  organizationId: 'org-1',
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    brands,
-    organizationId: 'org-1',
-  }),
+  useBrand: () => brandContextValue,
+}));
+
+const analyticsContextValue = vi.hoisted(() => ({
+  dateRange: {
+    endDate: new Date('2024-06-30T00:00:00.000Z'),
+    startDate: new Date('2024-06-01T00:00:00.000Z'),
+  },
+  filters: {},
 }));
 
 vi.mock('@contexts/analytics/analytics-context', () => ({
   AnalyticsProvider: ({ children }: { children: ReactNode }) => children,
-  useAnalyticsContext: () => ({
-    dateRange: {
-      endDate: new Date('2024-06-30T00:00:00.000Z'),
-      startDate: new Date('2024-06-01T00:00:00.000Z'),
-    },
-    filters: {},
-  }),
+  useAnalyticsContext: () => analyticsContextValue,
 }));
+
+const orgUrlValue = vi.hoisted(() => ({ brandSlug: '', orgSlug: 'acme' }));
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
-  useOrgUrl: () => ({ brandSlug: '', orgSlug: 'acme' }),
+  useOrgUrl: () => orgUrlValue,
 }));
+
+const authedServiceStub = vi.hoisted(() => vi.fn());
 
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: () => vi.fn(),
+  useAuthedService: () => authedServiceStub,
 }));
 
+const exportModalValue = vi.hoisted(() => ({ openExport: vi.fn() }));
+
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
-  useExportModal: () => ({ openExport: vi.fn() }),
+  useExportModal: () => exportModalValue,
 }));
 
 const agentStore = vi.hoisted(() => ({
