@@ -1,13 +1,11 @@
 'use client';
 
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
-import {
-  isDesktopClient,
-  isSelfHostedDeployment,
-} from '@genfeedai/config/deployment';
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { Button } from '@ui/primitives/button';
 import {
   Popover,
@@ -26,7 +24,7 @@ export default function CloudSyncIndicator() {
   const selfHosted = isSelfHostedDeployment();
   const hybrid = selfHosted && isBetterAuthEnabled();
   const local = selfHosted && !isBetterAuthEnabled();
-  const desktop = isDesktopClient();
+  const desktop = useIsDesktopClient();
 
   if (!selfHosted) {
     return null;

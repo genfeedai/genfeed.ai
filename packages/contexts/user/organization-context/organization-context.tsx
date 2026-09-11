@@ -1,7 +1,6 @@
 'use client';
 
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import {
   getOrgSwitchHref,
   parseScopedAppPath,
@@ -9,6 +8,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   cancelAndClearAllServiceInstances,
@@ -111,7 +111,8 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
   const effectiveSessionId = sessionId ?? 'no-session';
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? 'no-user';
-  const bypassReconciliation = !isBetterAuthEnabled() || isDesktopClient();
+  const isDesktop = useIsDesktopClient();
+  const bypassReconciliation = !isBetterAuthEnabled() || isDesktop;
   const getOrganizationsService = useContextAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );

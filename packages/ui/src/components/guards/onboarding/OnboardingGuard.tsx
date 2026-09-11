@@ -1,9 +1,6 @@
 'use client';
 
-import {
-  hasAgentFirstOnboarding,
-  isDesktopClient,
-} from '@genfeedai/config/deployment';
+import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
@@ -15,6 +12,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { OnboardingGuardProps } from '@genfeedai/props/guards/onboarding-guard.props';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo } from 'react';
@@ -166,8 +164,10 @@ function OnboardingGuardInner({ children }: OnboardingGuardProps) {
  * DB-backed access state loaded by protected providers.
  */
 export default function OnboardingGuard({ children }: OnboardingGuardProps) {
+  const isDesktop = useIsDesktopClient();
+
   // Desktop shell without a cloud session → offline mode, skip onboarding gate.
-  if (isDesktopClient()) {
+  if (isDesktop) {
     return <>{children}</>;
   }
 

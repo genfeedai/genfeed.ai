@@ -1,7 +1,11 @@
 import * as Sentry from '@sentry/nextjs';
 import { initWebsiteAnalytics } from './packages/analytics/posthog-client';
+import { dropNonBrowserRuntimeEvent } from './packages/sentry/drop-non-browser-runtime-event';
 
 Sentry.init({
+  beforeSend(event) {
+    return dropNonBrowserRuntimeEvent(event);
+  },
   debug: false,
   dsn: process.env.NEXT_PUBLIC_SENTRY_DSN,
   enabled: process.env.NODE_ENV !== 'development',
