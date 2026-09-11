@@ -1075,6 +1075,15 @@ describe('AgentToolExecutorService', () => {
       findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
       claimExecution: vi.fn().mockResolvedValue(true),
       attachResult: vi.fn(),
+      // #4672: schedule_post (outbound) is now gated, so a
+      // confirmationOrigin: 'thread-ui-action' call claims an approval
+      // on the fly the same way an already-gated tool's confirmed click does.
+      createPending: vi.fn().mockResolvedValue({
+        id: 'schedule-post-approval-1',
+        status: 'PENDING',
+        toolName: 'schedule_post',
+      }),
+      resolve: vi.fn().mockResolvedValue(undefined),
     };
     const service = new AgentToolExecutorService(
       loggerService,
