@@ -90,7 +90,6 @@ export interface ExecutionState {
   lastFailedNodeId: string | null;
   pausedAtNodeId: string | null;
   jobs: Map<string, Job>;
-  estimatedCost: number;
   actualCost: number;
   debugPayloads: DebugPayload[];
   /** Independent per-node executions (Generate button clicks) */
@@ -117,7 +116,6 @@ export interface JobActions {
 export interface HelperActions {
   resetExecution: () => void;
   canResumeFromFailed: () => boolean;
-  setEstimatedCost: (cost: number) => void;
   addDebugPayload: (payload: DebugPayload) => void;
   clearDebugPayloads: () => void;
 }

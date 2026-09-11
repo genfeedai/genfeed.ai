@@ -48,11 +48,11 @@ function formatMetric(
 
   const value = metrics[metric];
   return metric === 'engagementRate'
-    ? new Intl.NumberFormat(undefined, {
+    ? new Intl.NumberFormat('en-US', {
         maximumFractionDigits: 2,
         style: 'percent',
       }).format(value)
-    : new Intl.NumberFormat().format(value);
+    : new Intl.NumberFormat('en-US').format(value);
 }
 
 /**

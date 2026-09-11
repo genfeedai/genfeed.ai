@@ -10,16 +10,11 @@ import type {
 } from '@genfeedai/contracts/types';
 import { NODE_DEFINITIONS } from '@genfeedai/contracts/types';
 import type { StateCreator } from 'zustand';
-import {
-  calculateWorkflowCost,
-  getConnectedInputsForNode,
-  getUpstreamNodeIds,
-} from '../../../lib';
+import { getConnectedInputsForNode, getUpstreamNodeIds } from '../../../lib';
 import {
   hasRecordEdgeStyle,
   resolveGraphEdgeStyle,
 } from '../../edgeStyleMirror';
-import { useExecutionStore } from '../../execution/executionStore';
 import { propagateExistingOutputs } from '../helpers/propagation';
 import type { WorkflowData, WorkflowStore, WorkflowSummary } from '../types';
 import { getWorkflowPersistence } from '../workflowPersistence';
@@ -216,9 +211,6 @@ export const createPersistenceSlice: StateCreator<
       workflowId: null,
       workflowName: workflow.name,
     });
-
-    const estimatedCost = calculateWorkflowCost(hydratedNodes);
-    useExecutionStore.getState().setEstimatedCost(estimatedCost.total);
 
     // Propagate existing outputs to downstream nodes after load
     propagateExistingOutputs(hydratedNodes, get().propagateOutputsDownstream);

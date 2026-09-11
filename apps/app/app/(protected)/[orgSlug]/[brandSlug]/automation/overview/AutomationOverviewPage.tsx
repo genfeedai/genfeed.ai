@@ -103,13 +103,13 @@ export default function AutomationOverviewPage() {
               {
                 icon: Users,
                 label: 'Agents',
-                value: strategies.length.toLocaleString(),
-                description: `${activeAgents.toLocaleString()} active`,
+                value: strategies.length.toLocaleString('en-US'),
+                description: `${activeAgents.toLocaleString('en-US')} active`,
               },
               {
                 icon: Workflow,
                 label: 'Workflows',
-                value: workflowTotal.toLocaleString(),
+                value: workflowTotal.toLocaleString('en-US'),
                 description: 'In this workspace',
               },
             ]}

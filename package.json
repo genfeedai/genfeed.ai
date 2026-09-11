@@ -206,6 +206,7 @@
     "fork-ts-checker-webpack-plugin": "9.1.0",
     "glob": "13.0.6",
     "lint-staged": "17.5.0",
+    "madge": "8.0.0",
     "monocart-coverage-reports": "2.13.0",
     "monocart-reporter": "2.13.0",
     "next": "16.3.4",

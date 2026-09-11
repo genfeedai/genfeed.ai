@@ -1,5 +1,4 @@
 import type { IBrand } from '@genfeedai/contracts/interfaces';
-import type { BrandContextType } from './brand-context';
 
 export const BRAND_CONTEXT_CACHE_TTL_MS = 60_000;
 
@@ -53,31 +52,3 @@ export function getBrandOrganizationSlug(
 
   return '';
 }
-
-export const DEFAULT_BRAND_CONTEXT: BrandContextType = {
-  brandId: '',
-  brands: [],
-  credentials: [],
-  credentialsError: null,
-  credentialsLoading: false,
-  fleetCapabilities: null,
-  fleetCapabilitiesLoading: false,
-  isBrandScopeResolved: false,
-  isReady: false,
-  organizationId: '',
-  refreshBrands: async () => {
-    /* noop */
-  },
-  refreshSettings: async () => {
-    /* noop */
-  },
-  selectedBrand: undefined,
-  setBrandId: () => {
-    /* noop */
-  },
-  setOrganizationId: () => {
-    /* noop */
-  },
-  settings: null,
-  settingsLoading: false,
-};

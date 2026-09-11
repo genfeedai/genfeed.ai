@@ -5,13 +5,10 @@ import type {
   IQueryPrompts,
   ModelCapability,
   ProviderModel,
+  ProviderType,
+  WorkflowInterface,
 } from '@genfeedai/contracts/types';
 import type { ComponentType } from 'react';
-import type { WorkflowRefApi } from '../nodes/composition/workflow-ref-node.helpers';
-import type {
-  DefaultModelSettings,
-  RecentModel,
-} from '../stores/settingsStore';
 import type { ApplyEditOperations } from '../stores/workflow/slices/types';
 import type { WorkflowPersistenceService } from '../stores/workflow/types';
 
@@ -86,6 +83,33 @@ export interface WorkflowsApiService {
 }
 
 // =============================================================================
+// Workflow References
+// =============================================================================
+
+export interface ReferencableWorkflow {
+  id: string;
+  label: string;
+  description?: string;
+  interface: WorkflowInterface;
+}
+
+/**
+ * API adapter for WorkflowRefNode.
+ * Host apps inject this through `WorkflowUIConfig.workflowReferences`.
+ */
+export interface WorkflowRefApi {
+  fetchReferencableWorkflows: (
+    excludeId?: string | null,
+    signal?: AbortSignal,
+  ) => Promise<ReferencableWorkflow[]>;
+  validateReference: (
+    parentWorkflowId: string,
+    childWorkflowId: string,
+  ) => Promise<void>;
+  fetchWorkflowInterface: (workflowId: string) => Promise<WorkflowInterface>;
+}
+
+// =============================================================================
 // Logger
 // =============================================================================
 
@@ -129,6 +153,20 @@ export type ExecutionHeaderProvider = () => Record<string, string>;
 // =============================================================================
 // Settings Sync
 // =============================================================================
+
+export interface DefaultModelSettings {
+  imageModel: string;
+  imageProvider: ProviderType;
+  videoModel: string;
+  videoProvider: ProviderType;
+}
+
+export interface RecentModel {
+  id: string;
+  displayName: string;
+  provider: ProviderType;
+  timestamp: number;
+}
 
 /**
  * The subset of settings-store fields that round-trips to a server. BYOK

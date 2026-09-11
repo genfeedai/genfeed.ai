@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { WorkflowRefApi } from './workflow-ref-node.helpers';
+import type { WorkflowRefApi } from '../../provider/types';
 import {
   configureWorkflowRefApi,
   workflowRefApi,

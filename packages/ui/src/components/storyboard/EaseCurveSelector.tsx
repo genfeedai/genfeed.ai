@@ -2,7 +2,7 @@
 
 import { VideoEaseCurve } from '@genfeedai/contracts';
 import type { EaseCurveSelectorProps } from '@genfeedai/props/studio/storyboard.props';
-import type { DropdownFieldOption } from '@ui/primitives/dropdown-field';
+import type { DropdownFieldOption } from '@genfeedai/props/ui/forms/dropdown-field.props';
 import FormDropdown from '@ui/primitives/dropdown-field';
 import { ChartColumn } from 'lucide-react';
 import type { ChangeEvent } from 'react';

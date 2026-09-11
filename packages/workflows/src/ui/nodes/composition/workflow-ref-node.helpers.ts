@@ -1,28 +1,6 @@
 import type { WorkflowInterface } from '@genfeedai/contracts/types';
+import type { WorkflowRefApi } from '../../provider/types';
 import { getWorkflowLogger } from '../../stores/executionLogger';
-
-export interface ReferencableWorkflow {
-  id: string;
-  label: string;
-  description?: string;
-  interface: WorkflowInterface;
-}
-
-/**
- * API adapter for WorkflowRefNode.
- * Host apps inject this through `WorkflowUIConfig.workflowReferences`.
- */
-export interface WorkflowRefApi {
-  fetchReferencableWorkflows: (
-    excludeId?: string | null,
-    signal?: AbortSignal,
-  ) => Promise<ReferencableWorkflow[]>;
-  validateReference: (
-    parentWorkflowId: string,
-    childWorkflowId: string,
-  ) => Promise<void>;
-  fetchWorkflowInterface: (workflowId: string) => Promise<WorkflowInterface>;
-}
 
 const noopApi: WorkflowRefApi = {
   fetchReferencableWorkflows: async () => {

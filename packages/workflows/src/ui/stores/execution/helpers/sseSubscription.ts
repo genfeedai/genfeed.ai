@@ -3,6 +3,7 @@ import { NodeStatusEnum } from '@genfeedai/contracts/types';
 import type { StoreApi } from 'zustand';
 import { getWorkflowLogger } from '../../executionLogger';
 import { useUIStore } from '../../uiStore';
+import type { WorkflowStore } from '../../workflow/types';
 import { useWorkflowStore } from '../../workflow/workflowStore';
 import { getExecutionApiBaseUrl } from '../executionApi';
 import type {
@@ -28,7 +29,7 @@ const statusMap: Record<string, NodeStatus> = {
 
 function applyJobUpdates(
   jobs: ExecutionData['jobs'] | undefined,
-  workflowStore: ReturnType<typeof useWorkflowStore.getState>,
+  workflowStore: WorkflowStore,
   debugMode: boolean | undefined,
   set: StoreApi<ExecutionStore>['setState'],
   filterNodeId?: string,

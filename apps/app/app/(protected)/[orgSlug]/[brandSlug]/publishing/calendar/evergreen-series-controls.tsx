@@ -284,7 +284,7 @@ export default function EvergreenSeriesControls({
                 <ol className="mt-1 list-decimal pl-5 text-sm text-muted-foreground">
                   {preview.occurrences.map((occurrence) => (
                     <li key={occurrence}>
-                      {new Date(occurrence).toLocaleString()}
+                      {new Date(occurrence).toLocaleString('en-US')}
                     </li>
                   ))}
                 </ol>

@@ -75,7 +75,7 @@ export function AgentTransferProvenanceCard({
   const [isRetrying, setIsRetrying] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const createdAt = transfer?.createdAt
-    ? new Date(transfer.createdAt).toLocaleString()
+    ? new Date(transfer.createdAt).toLocaleString('en-US')
     : null;
 
   const statusLabel = useMemo(() => {

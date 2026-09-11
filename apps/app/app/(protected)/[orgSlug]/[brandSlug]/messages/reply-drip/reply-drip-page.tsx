@@ -57,7 +57,7 @@ const MESSAGE_TYPE_OPTIONS: Array<{
   { label: 'Direct message', value: 'dm' },
 ];
 
-const MESSAGE_TIME = new Intl.DateTimeFormat(undefined, {
+const MESSAGE_TIME = new Intl.DateTimeFormat('en-US', {
   dateStyle: 'medium',
   timeStyle: 'short',
 });

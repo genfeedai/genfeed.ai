@@ -7,7 +7,6 @@ import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
 import { createContext, type PropsWithChildren, use, useMemo } from 'react';
-import { DEFAULT_BRAND_CONTEXT } from './brand-context.helpers';
 import { useBrandProviderState } from './useBrandProviderState';
 
 export interface BrandContextType {
@@ -40,6 +39,34 @@ export interface BrandContextType {
   fleetCapabilities: IFleetCapabilities | null;
   fleetCapabilitiesLoading: boolean;
 }
+
+const DEFAULT_BRAND_CONTEXT: BrandContextType = {
+  brandId: '',
+  brands: [],
+  credentials: [],
+  credentialsError: null,
+  credentialsLoading: false,
+  fleetCapabilities: null,
+  fleetCapabilitiesLoading: false,
+  isBrandScopeResolved: false,
+  isReady: false,
+  organizationId: '',
+  refreshBrands: async () => {
+    /* noop */
+  },
+  refreshSettings: async () => {
+    /* noop */
+  },
+  selectedBrand: undefined,
+  setBrandId: () => {
+    /* noop */
+  },
+  setOrganizationId: () => {
+    /* noop */
+  },
+  settings: null,
+  settingsLoading: false,
+};
 
 const BrandContext = createContext<BrandContextType | undefined>(undefined);
 

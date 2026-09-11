@@ -35,9 +35,14 @@ const REPOSITORY_CONTRACTS = [
     name: 'untranslated string ratchet',
   },
   {
+    command: ['bun', 'run', 'check:deterministic-locale'],
+    name: 'deterministic locale ratchet',
+  },
+  {
     command: ['bun', 'run', 'check:inline-types'],
     name: 'inline type ratchet',
   },
+  { command: ['bun', 'run', 'check:import-cycles'], name: 'import cycles' },
   {
     command: ['bun', 'run', 'check:type-assertions'],
     name: 'type assertions',

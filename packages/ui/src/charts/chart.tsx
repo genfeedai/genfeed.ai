@@ -120,7 +120,7 @@ function resolvePayloadKey(item: ChartPayloadItem) {
 
 function formatFallbackValue(value: ChartPayloadItem['value']) {
   if (typeof value === 'number') {
-    return value.toLocaleString();
+    return value.toLocaleString('en-US');
   }
 
   if (typeof value === 'string') {

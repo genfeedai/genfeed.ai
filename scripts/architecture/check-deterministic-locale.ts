@@ -28,7 +28,6 @@ const DEFAULT_INCLUDE_GLOBS = [
   'packages/pages/**/*.{ts,tsx}',
   'packages/pricing/src/**/*.{ts,tsx}',
   'packages/ui/src/**/*.{ts,tsx}',
-  'packages/workflow-ui/src/**/*.{ts,tsx}',
   'packages/workflows/src/ui/**/*.{ts,tsx}',
 ];
 
@@ -128,11 +127,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/runs/RunStatsStrip.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
     'apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.tsx',
     'to-locale-string',
     1,
@@ -141,11 +135,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/content.tsx',
     'to-locale-string',
     1,
-  ),
-  legacyUiAllowance(
-    'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/billing/content.tsx',
-    'to-locale-string',
-    6,
   ),
   legacyUiAllowance(
     'apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/credit-top-up-panel.tsx',
@@ -165,11 +154,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   legacyUiAllowance(
     'apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx',
     'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'apps/app/app/(protected)/admin/administration/users/users-list.tsx',
-    'to-locale-string',
     1,
   ),
   legacyUiAllowance(
@@ -204,11 +188,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'Build-time documentation output follows the environment locale and is never hydrated.',
   ),
   legacyUiAllowance(
-    'packages/agent/src/components/AgentActivityFeed.tsx',
-    'to-locale-date-string',
-    1,
-  ),
-  legacyUiAllowance(
     'packages/agent/src/components/AgentStrategyStatus.tsx',
     'to-locale-date-string',
     2,
@@ -220,11 +199,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   ),
   legacyUiAllowance(
     'packages/agent/src/components/CreditsBalanceCard.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'packages/agent/src/components/WorkflowCreatedCard.tsx',
     'to-locale-string',
     1,
   ),
@@ -248,7 +222,7 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   legacyUiAllowance(
     'packages/models/analytics/activity.model.ts',
     'to-locale-string',
-    2,
+    1,
   ),
   legacyUiAllowance(
     'packages/pages/agents/campaigns/AgentCampaignDetailHeader.tsx',
@@ -307,11 +281,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
   ),
   legacyUiAllowance(
     'packages/ui/src/components/articles/x-article/XArticleAssetsBar.tsx',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
-    'packages/ui/src/components/articles/x-article/XArticleGenerateForm.tsx',
     'to-locale-string',
     1,
   ),

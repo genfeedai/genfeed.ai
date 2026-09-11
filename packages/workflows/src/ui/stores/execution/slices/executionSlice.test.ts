@@ -94,7 +94,6 @@ beforeEach(() => {
     actualCost: 0,
     currentNodeId: null,
     debugPayloads: [],
-    estimatedCost: 0,
     eventSource: null,
     executingNodeIds: [],
     executionId: null,
@@ -381,11 +380,6 @@ describe('executionSlice — resumeFromFailed', () => {
 });
 
 describe('executionSlice — misc', () => {
-  it('setEstimatedCost stores the estimate', () => {
-    useExecutionStore.getState().setEstimatedCost(1.25);
-    expect(useExecutionStore.getState().estimatedCost).toBe(1.25);
-  });
-
   it('clearValidationErrors resets errors', () => {
     useExecutionStore.setState({
       validationErrors: { errors: [], isValid: false, warnings: [] },

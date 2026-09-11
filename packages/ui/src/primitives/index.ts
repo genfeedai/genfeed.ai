@@ -100,9 +100,7 @@ export {
 } from './drawer';
 export { Dropdown, type DropdownProps } from './dropdown';
 export {
-  type DropdownFieldOption,
   type DropdownFieldProps,
-  type DropdownFieldTab,
   default as DropdownField,
 } from './dropdown-field';
 export {

@@ -209,7 +209,7 @@ function formatScheduleDayLabel(date: Date, index: number): string {
     return 'today';
   }
 
-  return date.toLocaleDateString(undefined, { weekday: 'short' });
+  return date.toLocaleDateString('en-US', { weekday: 'short' });
 }
 
 function NeedsYouSurface({

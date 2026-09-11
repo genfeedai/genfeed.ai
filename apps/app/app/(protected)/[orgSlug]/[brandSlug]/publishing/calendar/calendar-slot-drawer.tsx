@@ -44,7 +44,7 @@ export default function CalendarSlotDrawer({
           <SheetTitle>{translate('missingSlot')}</SheetTitle>
           <SheetDescription>
             {slot
-              ? `${slot.format} · ${new Date(slot.instant).toLocaleString()}`
+              ? `${slot.format} · ${new Date(slot.instant).toLocaleString('en-US')}`
               : translate('bookedHole')}
           </SheetDescription>
         </SheetHeader>

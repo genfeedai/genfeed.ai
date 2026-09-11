@@ -1,4 +1,3 @@
-import { spawnSync } from 'node:child_process';
 import {
   existsSync,
   readdirSync,
@@ -6,21 +5,23 @@ import {
   statSync,
   writeFileSync,
 } from 'node:fs';
+import { availableParallelism } from 'node:os';
 import path from 'node:path';
 
 const ROOT_DIR = process.cwd();
 const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
 const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
-const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next|packages/generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
+// Generated clients (Prisma, OpenAPI types) have intentional internal cycles.
+const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next|generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
 const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
-const EXCLUDED_WORKSPACES = new Set([
-  // Generated Prisma client output has intentional internal cycles.
-  'packages/generated',
-  // Type-only interface barrels produce noisy Madge cycles with no runtime edge.
-  'packages/contracts/src/interfaces',
-]);
+// Type-only interface barrels produce noisy Madge cycles with no runtime edge.
+// The tree sits inside the scanned contracts workspace, so it is matched per
+// cycle rather than per workspace.
+const EXCLUDED_CYCLE_PATH_PREFIXES = ['packages/contracts/src/interfaces/'];
 const CODE_DIR_HINTS = ['src', 'app', 'packages', 'components', 'lib'];
 const DEFAULT_MADGE_TIMEOUT_MS = 60_000;
+// Workspaces scan in parallel so the full check fits the CI contract timeout.
+const MAX_MADGE_CONCURRENCY = 4;
 const SOURCE_FILE_PATTERN = '*.{ts,tsx,mts,cts,js,jsx,mjs,cjs}';
 
 type CliArgs = {
@@ -183,10 +184,6 @@ function expandWorkspacePattern(pattern: string): string[] {
 
 function discoverWorkspaceRoots(): string[] {
   return WORKSPACE_GLOBS.flatMap((pattern) => expandWorkspacePattern(pattern))
-    .filter(
-      (workspaceRoot) =>
-        !EXCLUDED_WORKSPACES.has(toRepoRelative(workspaceRoot)),
-    )
     .filter((workspaceRoot) => hasCodeTree(workspaceRoot))
     .sort((left, right) => left.localeCompare(right));
 }
@@ -235,71 +232,93 @@ function resolveTsconfig(workspaceRoot: string): string {
   return ROOT_TSCONFIG;
 }
 
-function runMadge(
+async function runMadge(
   workspaceRoot: string,
   tsconfigPath: string,
   scanTargets: string[],
   timeoutMs: number,
-): string[][] {
+): Promise<string[][]> {
   if (scanTargets.length === 0) {
     return [];
   }
 
-  const commandArgs = [
-    '--yes',
-    'madge@8',
-    '--json',
-    '--circular',
-    '--extensions',
-    'ts,tsx',
-    '--ts-config',
-    tsconfigPath,
-    '--exclude',
-    EXCLUDE_REGEX,
-    ...scanTargets,
-  ];
+  const workspace = toRepoRelative(workspaceRoot);
+  const child = Bun.spawn(
+    [
+      'bunx',
+      'madge',
+      '--json',
+      '--circular',
+      '--extensions',
+      'ts,tsx',
+      '--ts-config',
+      tsconfigPath,
+      '--exclude',
+      EXCLUDE_REGEX,
+      ...scanTargets,
+    ],
+    { cwd: ROOT_DIR, stderr: 'pipe', stdin: 'ignore', stdout: 'pipe' },
+  );
+  let isTimedOut = false;
+  const timer = setTimeout(() => {
+    isTimedOut = true;
+    child.kill();
+  }, timeoutMs);
 
-  const result = spawnSync('npx', commandArgs, {
-    cwd: ROOT_DIR,
-    encoding: 'utf8',
-    stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: timeoutMs,
-  });
+  const [stdout, stderr, exitStatus] = await Promise.all([
+    new Response(child.stdout).text(),
+    new Response(child.stderr).text(),
+    child.exited,
+  ]).finally(() => clearTimeout(timer));
 
-  if (result.error) {
-    const workspace = toRepoRelative(workspaceRoot);
-    if (result.error.message.includes('ETIMEDOUT')) {
-      throw new Error(
-        `madge timed out after ${timeoutMs}ms while scanning ${workspace}`,
-      );
-    }
-    throw new Error(`${workspace}: ${result.error.message}`);
+  if (isTimedOut) {
+    throw new Error(
+      `madge timed out after ${timeoutMs}ms while scanning ${workspace}`,
+    );
   }
 
-  const exitStatus = result.status ?? 1;
   if (exitStatus !== 0 && exitStatus !== 1) {
-    const stderr = result.stderr.trim();
-    throw new Error(stderr.length > 0 ? stderr : 'madge execution failed');
+    const trimmedStderr = stderr.trim();
+    throw new Error(
+      `${workspace}: ${trimmedStderr.length > 0 ? trimmedStderr : 'madge execution failed'}`,
+    );
   }
 
-  const rawOutput = result.stdout.trim();
+  const rawOutput = stdout.trim();
   if (rawOutput.length === 0) {
     return [];
   }
 
   const parsed = JSON.parse(rawOutput) as unknown;
   if (!Array.isArray(parsed)) {
-    throw new Error('madge returned an unexpected JSON payload');
+    throw new Error(`${workspace}: madge returned an unexpected JSON payload`);
   }
 
   return parsed.filter((entry): entry is string[] => Array.isArray(entry));
 }
 
-function normalizeCycleFiles(
-  rawFiles: string[],
-  workspaceRoot: string,
-): string[] {
-  const workspaceRelativePath = toRepoRelative(workspaceRoot);
+/**
+ * Madge prints cycle files relative to the common directory of its scan
+ * targets, so a workspace scanned through `src` reports `ui/x.ts`, not
+ * `src/ui/x.ts`.
+ */
+function resolveMadgeBaseDir(scanTargets: string[]): string {
+  const [firstTarget, ...otherTargets] = scanTargets.map((target) =>
+    statSync(target).isDirectory() ? target : path.dirname(target),
+  );
+  let baseDir = firstTarget;
+
+  for (const target of otherTargets) {
+    while (target !== baseDir && !target.startsWith(`${baseDir}${path.sep}`)) {
+      baseDir = path.dirname(baseDir);
+    }
+  }
+
+  return baseDir;
+}
+
+function normalizeCycleFiles(rawFiles: string[], baseDir: string): string[] {
+  const baseRelativePath = toRepoRelative(baseDir);
 
   return rawFiles.map((file) => {
     if (path.isAbsolute(file)) {
@@ -307,15 +326,8 @@ function normalizeCycleFiles(
     }
 
     const normalizedFile = toPosixPath(file);
-    if (
-      normalizedFile.startsWith(`${workspaceRelativePath}/`) ||
-      normalizedFile === workspaceRelativePath
-    ) {
-      return normalizedFile;
-    }
-
     return path.posix.normalize(
-      path.posix.join(workspaceRelativePath, normalizedFile),
+      path.posix.join(baseRelativePath, normalizedFile),
     );
   });
 }
@@ -364,8 +376,12 @@ function canonicalizeCycle(files: string[]): string[] {
   return candidates[0];
 }
 
-function toCycleRecord(files: string[], workspaceRoot: string): CycleRecord {
-  const normalizedFiles = normalizeCycleFiles(files, workspaceRoot);
+function toCycleRecord(
+  files: string[],
+  workspaceRoot: string,
+  baseDir: string,
+): CycleRecord {
+  const normalizedFiles = normalizeCycleFiles(files, baseDir);
   const canonicalFiles = canonicalizeCycle(normalizedFiles);
   const resolvedWorkspace =
     resolveWorkspaceFromFile(canonicalFiles[0]) ??
@@ -376,6 +392,34 @@ function toCycleRecord(files: string[], workspaceRoot: string): CycleRecord {
     key: canonicalFiles.join(' -> '),
     workspace: resolvedWorkspace,
   };
+}
+
+function isExcludedCycle(cycle: CycleRecord): boolean {
+  return cycle.files.every((file) =>
+    EXCLUDED_CYCLE_PATH_PREFIXES.some((prefix) => file.startsWith(prefix)),
+  );
+}
+
+async function mapWithConcurrency<T, R>(
+  items: readonly T[],
+  limit: number,
+  worker: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const results = new Array<R>(items.length);
+  let nextIndex = 0;
+
+  async function drain(): Promise<void> {
+    while (nextIndex < items.length) {
+      const index = nextIndex;
+      nextIndex += 1;
+      results[index] = await worker(items[index]);
+    }
+  }
+
+  await Promise.all(
+    Array.from({ length: Math.min(limit, items.length) }, () => drain()),
+  );
+  return results;
 }
 
 function readBaseline(): BaselineData {
@@ -455,10 +499,16 @@ async function main(): Promise<void> {
     process.exit(0);
   }
 
-  const detectedCycles = workspaceRoots
-    .flatMap((workspaceRoot) => {
+  const concurrency = Math.min(MAX_MADGE_CONCURRENCY, availableParallelism());
+  const cyclesByWorkspace = await mapWithConcurrency(
+    workspaceRoots,
+    concurrency,
+    async (workspaceRoot) => {
       const tsconfigPath = resolveTsconfig(workspaceRoot);
       const scanTargets = discoverScanTargets(workspaceRoot);
+      if (scanTargets.length === 0) {
+        return [];
+      }
       if (!args.json) {
         process.stdout.write(
           `Scanning ${toRepoRelative(workspaceRoot)} (${scanTargets
@@ -466,17 +516,21 @@ async function main(): Promise<void> {
             .join(', ')})...\n`,
         );
       }
-      const cycles = runMadge(
+      const baseDir = resolveMadgeBaseDir(scanTargets);
+      const cycles = await runMadge(
         workspaceRoot,
         tsconfigPath,
         scanTargets,
         args.timeoutMs,
       );
       return cycles.map((cycleFiles) =>
-        toCycleRecord(cycleFiles, workspaceRoot),
+        toCycleRecord(cycleFiles, workspaceRoot, baseDir),
       );
-    })
-    .filter((cycle) => !EXCLUDED_WORKSPACES.has(cycle.workspace));
+    },
+  );
+  const detectedCycles = cyclesByWorkspace
+    .flat()
+    .filter((cycle) => !isExcludedCycle(cycle));
 
   const dedupedCycles = [
     ...new Map(detectedCycles.map((cycle) => [cycle.key, cycle])).values(),

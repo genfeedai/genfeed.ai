@@ -71,7 +71,7 @@ export default function Pagination({
     <div className="flex w-full flex-wrap items-center justify-between gap-4">
       {totalItems !== undefined ? (
         <p className="text-sm tabular-nums text-muted-foreground">
-          {totalItems.toLocaleString()} {totalLabel}
+          {totalItems.toLocaleString('en-US')} {totalLabel}
         </p>
       ) : null}
       {totalPages > 1 ? (

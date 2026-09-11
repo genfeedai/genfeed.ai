@@ -165,6 +165,8 @@ test('enforces executable contracts through the aggregate suite', () => {
     'check:relation-alias-reads',
     'check:relation-alias-writes',
     'check:runtime-complexity',
+    'check:deterministic-locale',
+    'check:import-cycles',
   ]) {
     assert.match(
       contracts,

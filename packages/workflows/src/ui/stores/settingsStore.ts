@@ -1,7 +1,11 @@
 import type { EdgeStyle, ProviderType } from '@genfeedai/contracts/types';
 import { ProviderTypeEnum } from '@genfeedai/contracts/types';
 import { create } from 'zustand';
-import type { SettingsSyncService } from '../provider/types';
+import type {
+  DefaultModelSettings,
+  RecentModel,
+  SettingsSyncService,
+} from '../provider/types';
 import { getEdgeStyleMirror, setEdgeStylePreference } from './edgeStyleMirror';
 import { getWorkflowLogger } from './executionLogger';
 
@@ -42,20 +46,6 @@ export interface ProviderSettings {
   fal: ProviderConfig;
   openrouter: ProviderConfig;
   'genfeed-ai': ProviderConfig;
-}
-
-export interface DefaultModelSettings {
-  imageModel: string;
-  imageProvider: ProviderType;
-  videoModel: string;
-  videoProvider: ProviderType;
-}
-
-export interface RecentModel {
-  id: string;
-  displayName: string;
-  provider: ProviderType;
-  timestamp: number;
 }
 
 interface SettingsStore {
