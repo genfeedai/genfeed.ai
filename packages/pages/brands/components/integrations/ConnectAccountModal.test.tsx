@@ -148,6 +148,34 @@ describe('ConnectAccountModal', () => {
     expect(screen.getByText('Not available yet')).toBeInTheDocument();
   });
 
+  it('selects an enabled platform through a real keyboard selection path', () => {
+    // The positive counterpart of the disabled-item test below: narrow the
+    // list to just Twitter (enabled) via search — cmdk auto-highlights the
+    // sole remaining item — then confirm Enter actually fires `onConnect`,
+    // proving Enter drives real selection rather than being a no-op for
+    // every item regardless of `disabled`.
+    const onConnect = vi.fn();
+    render(
+      <ConnectAccountModal
+        connectingPlatform={null}
+        onConnect={onConnect}
+        onOpenChange={vi.fn()}
+        open
+        platformConnectedCounts={{}}
+        platformGroups={platformGroups}
+      />,
+    );
+
+    const searchInput = screen.getByPlaceholderText('Search platforms…');
+    fireEvent.change(searchInput, { target: { value: 'Twitter' } });
+    expect(screen.getByText('Twitter')).toBeInTheDocument();
+    expect(screen.queryByText('Threads')).not.toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+
+    expect(onConnect).toHaveBeenCalledWith(twitter);
+  });
+
   it('does not select a disabled platform through a real keyboard selection path', () => {
     // cmdk marks `disabled` items unselectable and skips them during arrow
     // navigation, so Enter never fires their `onSelect` — narrow the list to
@@ -213,7 +241,7 @@ describe('ConnectAccountModal', () => {
     expect(screen.getByText('No platforms found.')).toBeInTheDocument();
   });
 
-  it('gives the search field an accessible name beyond its placeholder', () => {
+  it('associates the search field with a real <label>, not just a placeholder fallback', () => {
     render(
       <ConnectAccountModal
         connectingPlatform={null}
@@ -225,11 +253,21 @@ describe('ConnectAccountModal', () => {
       />,
     );
 
-    // The accessible name has to come from something other than the
-    // placeholder alone (jsdom still exposes it there, so this matcher is
-    // the only reliable way to prove an explicit label was set).
-    expect(
-      screen.getByPlaceholderText('Search platforms…'),
-    ).toHaveAccessibleName('Search platforms…');
+    // `toHaveAccessibleName('Search platforms…')` alone is tautological here:
+    // the placeholder carries the exact same catalog string, so it would
+    // pass even with the `label` prop deleted entirely (jsdom falls back to
+    // the placeholder once no accessible name is found). Assert the actual
+    // DOM wiring instead — cmdk's `Command` root renders a real
+    // `<label htmlFor>` pointed at the input's own id — which only exists
+    // because `label` was passed to `Command`.
+    const searchInput = screen.getByPlaceholderText('Search platforms…');
+    const inputId = searchInput.getAttribute('id');
+    expect(inputId).toBeTruthy();
+
+    // No query-by-role/text form proves a native `for`/`id` association,
+    // so reach into the DOM directly for this one assertion.
+    const labelElement = document.querySelector(`label[for="${inputId}"]`);
+    expect(labelElement).not.toBeNull();
+    expect(labelElement).toHaveTextContent('Search platforms…');
   });
 });

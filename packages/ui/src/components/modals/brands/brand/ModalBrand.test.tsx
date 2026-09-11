@@ -64,16 +64,19 @@ vi.mock('@genfeedai/helpers/ui/modal/modal.helper', async (importOriginal) => {
 vi.mock('@ui/overlays/entity/EntityOverlayShell', () => ({
   __esModule: true,
   default: ({
+    badges,
     children,
     title,
     onOpenDetail,
   }: {
+    badges?: ReactNode;
     children: ReactNode;
     title?: string;
     onOpenDetail?: () => void;
   }) => (
     <div data-testid="entity-overlay" role="dialog">
       {title ? <h2>{title}</h2> : null}
+      {badges}
       {onOpenDetail ? (
         <button type="button" onClick={onOpenDetail}>
           Open page
@@ -450,6 +453,44 @@ describe('ModalBrand', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Open page' }));
 
     expect(pushMock).toHaveBeenCalledWith('/acme-org/brand-one/settings');
+  });
+
+  it('counts only genuinely connected credentials in the header badge, not a raw isConnected tally', () => {
+    // Regression for the connected-count fix: a credential can have
+    // `isConnected: true` yet still need reconnecting (no `externalId`, or
+    // an expired token) — `getAccountConnectionStatus` is the only correct
+    // source of truth. A raw `isConnected === true` tally would read "2
+    // connected" here; the corrected count reads "1".
+    const brandWithMixedCredentials = {
+      ...overviewBrand,
+      credentials: [
+        {
+          externalHandle: 'genfeed',
+          externalId: 'ext-1',
+          id: 'cred-1',
+          isConnected: true,
+          platform: 'twitter',
+        },
+        {
+          // Connected but never captured an identity — Needs reconnect,
+          // not Connected.
+          id: 'cred-2',
+          isConnected: true,
+          platform: 'tiktok',
+        },
+      ],
+    } as unknown as BrandOverlayProps['brand'];
+
+    render(
+      <ModalBrand
+        {...defaultProps}
+        brand={brandWithMixedCredentials}
+        initialView="overview"
+      />,
+    );
+
+    expect(screen.getByText('1 connected')).toBeInTheDocument();
+    expect(screen.queryByText('2 connected')).not.toBeInTheDocument();
   });
 
   // Regression: the overview panel used to hold its own inline link editor.

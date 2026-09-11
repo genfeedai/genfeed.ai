@@ -1,6 +1,12 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -218,6 +224,18 @@ class MockResizeObserver {
 }
 
 describe('BrandDetailSocialMediaCard', () => {
+  // Matches AccountsTable.test.tsx's convention: the page variant renders a
+  // desktop `<table>` and a mobile stacked list simultaneously in jsdom (no
+  // real CSS media queries), so an unscoped query matches every status
+  // badge or name twice. Scope to one layout to make an assertion real.
+  function desktop() {
+    return within(screen.getByTestId('accounts-table-desktop'));
+  }
+
+  function mobile() {
+    return within(screen.getByTestId('accounts-table-mobile'));
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     useOAuthConnectPlatforms.mockReturnValue(
@@ -334,6 +352,39 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.getByText('No accounts connected yet')).toBeInTheDocument();
   });
 
+  it('gates the compact card Manage/Connect label and empty state on connected count, not visible rows', () => {
+    // Regression for `hasConnectedAccounts` vs `hasVisibleConnections`: a
+    // lapsed-but-identified credential is a visible row (so the Manage
+    // dialog can still show it for reconnect/disconnect) but is not a
+    // connected account — the at-a-glance button and empty-state copy must
+    // read "Connect" / "No social accounts connected yet." exactly as if
+    // nothing were connected, not "Manage" with an empty grid.
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            isConnected: false,
+            name: 'Lapsed Account',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={0}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Manage' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('No social accounts connected yet.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Lapsed Account')).not.toBeInTheDocument();
+  });
+
   it('derives account status on the page variant: Needs reconnect vs Connected', () => {
     render(
       <BrandDetailSocialMediaCard
@@ -359,8 +410,10 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(screen.getAllByText('Connected').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Needs reconnect').length).toBeGreaterThan(0);
+    expect(desktop().getByText('Connected')).toBeInTheDocument();
+    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(mobile().getByText('Connected')).toBeInTheDocument();
+    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('passes fetched account health down to the accounts table on the page variant', async () => {

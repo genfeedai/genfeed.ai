@@ -620,6 +620,41 @@ describe('useBrandDetail', () => {
     expect(result.current.socialConnections).toHaveLength(0);
   });
 
+  it('excludes a connected-but-unidentified credential from connectedPlatformsCount', async () => {
+    // Regression: `connectedPlatformsCount` used to be a raw
+    // `isConnected === true` tally, which counted this credential even
+    // though it has no `externalId` — `getAccountConnectionStatus` reads it
+    // as Needs reconnect, and the count must agree.
+    mockFindOne.mockResolvedValue({
+      credentials: [
+        {
+          externalHandle: 'acme',
+          externalId: 'ext-1',
+          id: 'cred-1',
+          isConnected: true,
+          platform: 'instagram',
+        },
+        {
+          id: 'cred-2',
+          isConnected: true,
+          platform: 'tiktok',
+        },
+      ],
+      id: 'brand-1',
+      links: [],
+      scope: AssetScope.BRAND,
+    } as unknown as IBrand);
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    expect(result.current.connectedPlatformsCount).toBe(1);
+    expect(result.current.socialConnections).toHaveLength(2);
+  });
+
   it('keeps other media when one public feed fails', async () => {
     mockFindPublicVideos.mockRejectedValue(new Error('videos down'));
     mockFindPublicImages.mockResolvedValue([{ id: 'image-1' }]);
