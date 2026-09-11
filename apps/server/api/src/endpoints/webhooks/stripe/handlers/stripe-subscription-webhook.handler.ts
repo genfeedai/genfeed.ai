@@ -1,4 +1,3 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
@@ -29,7 +28,6 @@ export class StripeSubscriptionWebhookHandler {
 
     @Inject(SUBSCRIPTIONS_SERVICE)
     private readonly subscriptionsService: ISubscriptionsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
     private readonly usersService: UsersService,
     private readonly supportService: StripeWebhookSupportService,
     private readonly lifecycleEmailService: LifecycleEmailService,
@@ -315,16 +313,9 @@ export class StripeSubscriptionWebhookHandler {
         },
       );
 
-      // If subscription was canceled immediately (not at period end), remove all credits.
-      // Skipped without a resolvable organization id: wiping credits is destructive
-      // and must never run against a bogus tenant id.
-      if (!subscription.cancel_at_period_end && organizationId) {
-        await this.removeCreditsOnImmediateCancellation(
-          organizationId,
-          subscription.id,
-          url,
-        );
-      }
+      // The credit balance is left untouched on cancellation, immediate or at
+      // period end. Purchased packs and already-granted monthly credits belong
+      // to the organization; cancelling only stops future subscription grants.
 
       const user = await this.findSubscriptionUser(existingSubscription, url);
       if (!user) {
@@ -434,25 +425,5 @@ export class StripeSubscriptionWebhookHandler {
     }
 
     return user;
-  }
-
-  private async removeCreditsOnImmediateCancellation(
-    organizationId: string,
-    stripeSubscriptionId: string,
-    url: string,
-  ): Promise<void> {
-    await this.creditsUtilsService.removeAllOrganizationCredits(
-      organizationId,
-      'subscription_canceled',
-      'All credits removed due to immediate subscription cancellation',
-    );
-
-    this.loggerService.log(
-      `${url} credits removed due to immediate cancellation`,
-      {
-        organizationId,
-        stripeSubscriptionId,
-      },
-    );
   }
 }

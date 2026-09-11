@@ -160,17 +160,6 @@ export interface ICreditsUtilsService {
   ): Promise<void>;
 
   /**
-   * Zero out all credits on an organization, typically on cancellation
-   * or admin reset. Records the reason.
-   * OSS no-op is a no-op.
-   */
-  removeAllOrganizationCredits(
-    organizationId: string,
-    source: string,
-    description: string,
-  ): Promise<void>;
-
-  /**
    * Structured snapshot of current credits and ledger-level expiration data.
    * Called from signup-gift / credits-breakdown flows and the agent tool
    * executor (`apps/server/api/src/services/agent-orchestrator/tools/
