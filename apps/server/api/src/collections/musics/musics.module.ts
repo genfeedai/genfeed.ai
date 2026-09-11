@@ -16,6 +16,8 @@ import { MusicGenerationService } from '@api/collections/musics/services/music-g
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { FalMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/fal-music-generation-provider.adapter';
+import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
 import { ReplicateMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/replicate-music-generation-provider.adapter';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
@@ -24,6 +26,8 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { FalModule } from '@api/services/integrations/fal/fal.module';
+import { MurekaModule } from '@api/services/integrations/mureka/mureka.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
@@ -44,10 +48,12 @@ import { Module } from '@nestjs/common';
     ByokModule,
     CreditsModule,
     FailedGenerationModule,
+    FalModule,
     FilesClientModule,
     IngredientsModule,
     MetadataModule,
     ModelsModule,
+    MurekaModule,
     OrganizationSettingsModule,
     PromptBuilderModule,
     PromptsModule,
@@ -59,6 +65,8 @@ import { Module } from '@nestjs/common';
     MusicsService,
     MusicGenerationCreditsService,
     MusicGenerationProviderRegistryService,
+    FalMusicGenerationProviderAdapter,
+    MurekaMusicGenerationProviderAdapter,
     ReplicateMusicGenerationProviderAdapter,
     MusicGenerationService,
     CreditsGuard,

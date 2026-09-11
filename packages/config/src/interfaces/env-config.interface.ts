@@ -110,6 +110,11 @@ export interface IEnvConfig {
   // === fal.ai ===
   FAL_API_KEY?: string;
 
+  // === Mureka (direct integration, not fal/Replicate) ===
+  MUREKA_API_KEY?: string;
+  MUREKA_API_BASE_URL?: string;
+  MUREKA_MODEL?: string;
+
   // === Replicate ===
   REPLICATE_KEY?: string;
   REPLICATE_WEBHOOK_SIGNING_SECRET?: string;

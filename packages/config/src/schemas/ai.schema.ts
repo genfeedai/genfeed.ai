@@ -176,6 +176,19 @@ export const falSchema = {
   FAL_API_KEY: Joi.string().optional().allow(''),
 };
 
+/**
+ * Mureka V9 — direct API integration (not fal/Replicate). Optional: the
+ * catalog row seeds inactive until an operator configures and activates it.
+ */
+export const murekaSchema = {
+  MUREKA_API_BASE_URL: Joi.string()
+    .uri()
+    .optional()
+    .default('https://platform.mureka.ai'),
+  MUREKA_API_KEY: Joi.string().optional().allow(''),
+  MUREKA_MODEL: Joi.string().optional().default('V9'),
+};
+
 export const trainingPricingSchema = {
   TRAINING_CUSTOM_MODEL_CREDITS_COST: Joi.number().default(5),
   TRAINING_TRAINING_CREDITS_COST: Joi.number().default(500),

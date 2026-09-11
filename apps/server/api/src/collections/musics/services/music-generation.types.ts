@@ -24,6 +24,14 @@ export interface MusicGenerationProviderRequest {
 
 export interface MusicGenerationProviderResult {
   externalId: string;
+  /**
+   * Present only for providers that complete synchronously (fal, Mureka —
+   * both poll to completion inside their own adapter). Replicate stays
+   * async: no `outputUrl`, and the Replicate webhook finalizes the
+   * ingredient later. When set, the caller finalizes the ingredient
+   * immediately instead of waiting for a webhook that will never arrive.
+   */
+  outputUrl?: string;
 }
 
 export interface MusicGenerationProviderAdapter {

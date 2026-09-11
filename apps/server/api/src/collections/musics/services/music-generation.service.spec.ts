@@ -72,6 +72,14 @@ describe('MusicGenerationService', () => {
     const failedGenerationService = {
       handleFailedMusicGeneration: vi.fn().mockResolvedValue(undefined),
     };
+    const filesClientService = {
+      uploadToS3: vi.fn().mockResolvedValue({
+        duration: 10,
+        publicUrl: 'https://cdn.example.com/music-1.mp3',
+        s3Key: 'musics/music-1.mp3',
+        size: 12345,
+      }),
+    };
     const ingredientCompletionService = {
       waitForMultipleIngredientsCompletion: vi.fn(),
     };
@@ -145,6 +153,7 @@ describe('MusicGenerationService', () => {
       brandsService as never,
       creditsService,
       failedGenerationService as never,
+      filesClientService as never,
       loggerService as never,
       ingredientCompletionService as never,
       metadataService as never,
@@ -163,6 +172,7 @@ describe('MusicGenerationService', () => {
       brandsService,
       creditsUtilsService,
       failedGenerationService,
+      filesClientService,
       ingredientCompletionService,
       loggerService,
       metadataService,
@@ -247,6 +257,41 @@ describe('MusicGenerationService', () => {
         pendingIngredientIds: ['music-1'],
       }),
     });
+  });
+
+  it('finalizes immediately when the provider returns a completed output URL (fal/Mureka)', async () => {
+    const created = createService();
+    created.musicProviderRegistry.generate.mockResolvedValue({
+      externalId: 'task-1',
+      outputUrl: 'https://cdn.example.com/finished-track.mp3',
+    });
+
+    await created.service.generateMusic(user, buildDto(), request);
+
+    expect(created.filesClientService.uploadToS3).toHaveBeenCalledWith(
+      'music-1',
+      'musics',
+      { type: 'url', url: 'https://cdn.example.com/finished-track.mp3' },
+    );
+    expect(created.musicsService.patch).toHaveBeenCalledWith('music-1', {
+      cdnUrl: 'https://cdn.example.com/music-1.mp3',
+      promptId: 'prompt-1',
+      s3Key: 'musics/music-1.mp3',
+      status: IngredientStatus.GENERATED,
+    });
+    expect(created.metadataService.patch).toHaveBeenCalledWith('metadata-1', {
+      duration: 10,
+      result: 'https://cdn.example.com/finished-track.mp3',
+      size: 12345,
+    });
+  });
+
+  it('does not finalize when the provider stays async (Replicate — webhook finalizes later)', async () => {
+    const created = createService();
+
+    await created.service.generateMusic(user, buildDto(), request);
+
+    expect(created.filesClientService.uploadToS3).not.toHaveBeenCalled();
   });
 
   it('rejects a missing prompt with the existing 400 response', async () => {

@@ -9,6 +9,7 @@ import {
   heygenSchema,
   klingaiSchema,
   leonardoSchema,
+  murekaSchema,
   newsApiSchema,
   replicateSchema,
   trainingPricingSchema,
@@ -469,6 +470,27 @@ describe('Config Schemas', () => {
       if (error) {
         expect(error.message).toContain('required');
       }
+    });
+  });
+
+  describe('murekaSchema', () => {
+    it('should be a non-empty object of Joi schemas', () => {
+      expect(typeof murekaSchema).toBe('object');
+      const keys = Object.keys(murekaSchema);
+      expect(keys.length).toBeGreaterThan(0);
+      for (const key of keys) {
+        expect(
+          Joi.isSchema((murekaSchema as Record<string, unknown>)[key]),
+        ).toBe(true);
+      }
+    });
+
+    it('should validate with defaults when optional', () => {
+      const schema = Joi.object(murekaSchema);
+      const { error, value } = schema.validate({}, { allowUnknown: true });
+      expect(error).toBeUndefined();
+      expect(value.MUREKA_API_BASE_URL).toBe('https://platform.mureka.ai');
+      expect(value.MUREKA_MODEL).toBe('V9');
     });
   });
 

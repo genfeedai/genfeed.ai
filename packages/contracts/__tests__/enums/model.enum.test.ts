@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 121 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(121);
+    it('should have 124 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(124);
     });
 
     it('should have correct values', () => {
@@ -198,6 +198,9 @@ describe('model.enum', () => {
         'google/veo-3.1-lite',
       );
       expect(MODEL_KEYS.REPLICATE_META_MUSICGEN).toBe('meta/musicgen');
+      expect(MODEL_KEYS.FAL_ELEVENLABS_MUSIC).toBe('fal-ai/elevenlabs/music');
+      expect(MODEL_KEYS.FAL_LYRIA3_PRO).toBe('fal-ai/lyria3/pro');
+      expect(MODEL_KEYS.MUREKA_V9).toBe('mureka/v9');
       expect(MODEL_KEYS.HEYGEN_AVATAR).toBe('heygen/avatar');
       expect(MODEL_KEYS.ARGIL_ATOM).toBe('argil/atom');
       expect(MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1).toBe(
@@ -276,8 +279,8 @@ describe('model.enum', () => {
   });
 
   describe('ModelProvider', () => {
-    it('should have 4 members', () => {
-      expect(Object.values(ModelProvider)).toHaveLength(4);
+    it('should have 5 members', () => {
+      expect(Object.values(ModelProvider)).toHaveLength(5);
     });
 
     it('should have correct values', () => {
@@ -285,6 +288,7 @@ describe('model.enum', () => {
       expect(ModelProvider.FAL).toBe('fal');
       expect(ModelProvider.OPENROUTER).toBe('openrouter');
       expect(ModelProvider.GENFEED_AI).toBe('genfeed-ai');
+      expect(ModelProvider.MUREKA).toBe('mureka');
     });
   });
 

@@ -316,10 +316,11 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.05,
   },
   /**
-   * Only music model until #4680 adds Eleven Music, Lyria 3 Pro, and Mureka
-   * V9. Curated (cost > 0, isActive/isDefault) so the MUSIC category always
-   * has a usable registry row — an uncurated row seeds inactive and free,
-   * which left the router with nothing to select (#4679).
+   * The only curated, active default until Eleven Music, Lyria 3 Pro, and
+   * Mureka V9 (below) are verified and switched on by an operator. Curated
+   * (cost > 0, isActive/isDefault) so the MUSIC category always has a usable
+   * registry row — an uncurated row seeds inactive and free, which left the
+   * router with nothing to select (#4679).
    *
    * `endpoint` MUST carry the pinned version hash. `meta/musicgen` alone
    * resolves to `resolvePredictionTarget`'s `{ model }` form
@@ -345,5 +346,73 @@ export const SELF_HOSTED_MODELS = [
     provider: ModelProvider.REPLICATE,
     providerConfig: { name: 'musicgen', owner: 'meta' },
     providerCostUsd: 0.05,
+  },
+  /**
+   * fal.ai — https://fal.ai/learn/devs/elevenlabs-music-user-guide ,
+   * https://fal.ai/learn/tools/best-text-to-music-apis-2026 ($0.80/output
+   * minute). Seeded inactive: an operator verifies pricing/quality against a
+   * live fal account before flipping `isActive` (Settings → Models). Runs
+   * through the existing fal integration (`FalService`), not a new provider.
+   */
+  {
+    category: ModelCategory.MUSIC,
+    cost: 120,
+    costPerUnit: 4,
+    costTier: CostTier.MEDIUM,
+    description:
+      'ElevenLabs Music via fal — full compositions with vocals and lyrics, 10s-90s.',
+    endpoint: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+    isActive: false,
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+    label: 'Eleven Music',
+    minCost: 40,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.FAL,
+    providerCostUsd: 0.0133,
+  },
+  /**
+   * fal.ai — https://fal.ai/learn/tools/best-text-to-music-apis-2026
+   * ($0.08/song via fal; Google's own Gemini API lists the same $0.08/song
+   * for Lyria 3 Pro). Seeded inactive pending operator verification.
+   */
+  {
+    category: ModelCategory.MUSIC,
+    cost: 27,
+    costTier: CostTier.LOW,
+    description:
+      'Google Lyria 3 Pro via fal — full songs with vocals, lyrics, and multi-language support, up to 90s.',
+    endpoint: MODEL_KEYS.FAL_LYRIA3_PRO,
+    isActive: false,
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_LYRIA3_PRO,
+    label: 'Lyria 3 Pro',
+    provider: ModelProvider.FAL,
+    providerCostUsd: 0.08,
+  },
+  /**
+   * Mureka platform API — https://platform.mureka.ai/docs/api/operations/post-v1-song-generate.html
+   * (official direct API, ~$0.045/song per published prepaid-credit tiers).
+   * Direct integration (`MurekaService`, not fal/Replicate) configured via
+   * `MUREKA_API_KEY` / `MUREKA_API_BASE_URL` / `MUREKA_MODEL`. Seeded
+   * inactive: the field-level contract (request/response shape) should be
+   * confirmed against a live Mureka account before activation.
+   */
+  {
+    category: ModelCategory.MUSIC,
+    cost: 15,
+    costTier: CostTier.LOW,
+    description:
+      'Mureka V9 — lyrics-first song generation via a direct API integration, up to 90s.',
+    isActive: false,
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.MUREKA_V9,
+    label: 'Mureka V9',
+    provider: ModelProvider.MUREKA,
+    providerConfig: { name: 'v9', owner: 'mureka' },
+    providerCostUsd: 0.045,
   },
 ] as const;

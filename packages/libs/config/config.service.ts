@@ -23,6 +23,7 @@ import {
   klingaiSchema,
   leonardoSchema,
   microservicesSchema,
+  murekaSchema,
   // Infrastructure
   newsApiSchema,
   opusProSchema,
@@ -149,6 +150,7 @@ const apiSchema = Joi.object({
   ...generalAiSchema,
   ...replicateSchema,
   ...falSchema,
+  ...murekaSchema,
   ...klingaiSchema,
   ...elevenlabsSchema,
   ...leonardoSchema,

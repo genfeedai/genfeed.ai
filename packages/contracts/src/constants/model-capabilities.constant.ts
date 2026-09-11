@@ -90,6 +90,14 @@ export interface MusicModelCapability extends BaseModelCapability {
   hasDurationEditing?: boolean;
   durations?: readonly number[];
   defaultDuration?: number;
+  /** Provider can render a purely instrumental track with no vocals. */
+  supportsInstrumental?: boolean;
+  /** Provider can render sung/spoken vocals over the track. */
+  supportsVocals?: boolean;
+  /** Provider accepts explicit lyrics/composition structure (verses, chorus). */
+  supportsLyrics?: boolean;
+  /** Languages the vocal model supports (empty/omitted for instrumental-only). */
+  languages?: readonly string[];
 }
 
 export interface VoiceModelCapability extends BaseModelCapability {
@@ -899,6 +907,58 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       isBatchSupported: false,
       maxOutputs: 4,
       maxReferences: 1,
+      supportsInstrumental: true,
+      supportsLyrics: false,
+      supportsVocals: false,
+    },
+
+    // fal.ai: https://fal.ai/learn/devs/elevenlabs-music-user-guide — 3s-10min
+    // range; our own CreateMusicDto caps duration at 90s so the offered steps
+    // stay inside both bounds.
+    [MODEL_KEYS.FAL_ELEVENLABS_MUSIC]: {
+      category: ModelCategory.MUSIC,
+      defaultDuration: 30,
+      durations: [10, 15, 20, 30, 45, 60, 90],
+      hasDurationEditing: true,
+      isBatchSupported: false,
+      languages: ['en'],
+      maxOutputs: 4,
+      maxReferences: 0,
+      supportsInstrumental: true,
+      supportsLyrics: true,
+      supportsVocals: true,
+    },
+
+    // fal.ai: https://fal.ai/learn/tools/best-text-to-music-apis-2026 — up to
+    // 3-minute full songs with vocals/lyrics and multi-language support.
+    [MODEL_KEYS.FAL_LYRIA3_PRO]: {
+      category: ModelCategory.MUSIC,
+      defaultDuration: 30,
+      durations: [10, 15, 20, 30, 45, 60, 90],
+      hasDurationEditing: true,
+      isBatchSupported: false,
+      languages: ['en', 'es', 'fr', 'de', 'ja', 'ko', 'pt'],
+      maxOutputs: 4,
+      maxReferences: 0,
+      supportsInstrumental: true,
+      supportsLyrics: true,
+      supportsVocals: true,
+    },
+
+    // Mureka platform docs: https://platform.mureka.ai/docs/api/operations/post-v1-song-generate.html
+    // Direct integration (not fal/Replicate) — lyrics-first song generation.
+    [MODEL_KEYS.MUREKA_V9]: {
+      category: ModelCategory.MUSIC,
+      defaultDuration: 30,
+      durations: [10, 15, 20, 30, 45, 60, 90],
+      hasDurationEditing: true,
+      isBatchSupported: false,
+      languages: ['en', 'zh'],
+      maxOutputs: 4,
+      maxReferences: 0,
+      supportsInstrumental: true,
+      supportsLyrics: true,
+      supportsVocals: true,
     },
 
     [MODEL_KEYS.ARGIL_ATOM]: {

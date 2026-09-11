@@ -147,4 +147,14 @@ export class CreateMusicDto extends CreateIngredientDto {
     required: false,
   })
   readonly waitForCompletion?: boolean;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    default: false,
+    description:
+      'Request a purely instrumental track with no vocals. Only honored by providers that support vocals/lyrics (Eleven Music, Lyria 3 Pro, Mureka V9); ignored by instrumental-only providers (MusicGen).',
+    required: false,
+  })
+  readonly instrumental?: boolean;
 }

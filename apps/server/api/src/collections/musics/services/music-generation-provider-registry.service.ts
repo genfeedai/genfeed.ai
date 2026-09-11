@@ -4,6 +4,8 @@ import type {
   MusicGenerationProviderRequest,
   MusicGenerationProviderResult,
 } from '@api/collections/musics/services/music-generation.types';
+import { FalMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/fal-music-generation-provider.adapter';
+import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
 import { ReplicateMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/replicate-music-generation-provider.adapter';
 import type { ModelProvider } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
@@ -17,8 +19,12 @@ import { Injectable } from '@nestjs/common';
 export class MusicGenerationProviderRegistryService {
   private readonly adapters: readonly MusicGenerationProviderAdapter[];
 
-  constructor(replicateAdapter: ReplicateMusicGenerationProviderAdapter) {
-    this.adapters = [replicateAdapter];
+  constructor(
+    falAdapter: FalMusicGenerationProviderAdapter,
+    murekaAdapter: MurekaMusicGenerationProviderAdapter,
+    replicateAdapter: ReplicateMusicGenerationProviderAdapter,
+  ) {
+    this.adapters = [falAdapter, murekaAdapter, replicateAdapter];
   }
 
   supports(model: string, provider?: ModelProvider | string): boolean {

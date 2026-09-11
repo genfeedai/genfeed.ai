@@ -15,6 +15,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -26,6 +27,7 @@ import {
   ActivityEntityModel,
   ActivityKey,
   ActivitySource,
+  FileInputType,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -76,6 +78,7 @@ export class MusicGenerationService {
     private readonly brandsService: BrandsService,
     private readonly creditsService: MusicGenerationCreditsService,
     private readonly failedGenerationService: FailedGenerationService,
+    private readonly filesClientService: FilesClientService,
     private readonly loggerService: LoggerService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly metadataService: MetadataService,
@@ -397,7 +400,7 @@ export class MusicGenerationService {
           }
         ).selectedModel?.category as ModelCategory) || ModelCategory.MUSIC;
 
-      const { externalId: generationId } =
+      const { externalId: generationId, outputUrl } =
         await this.musicProviderRegistry.generate({
           createMusicDto: params.createMusicDto,
           duration: params.createMusicDto.duration || 10,
@@ -427,6 +430,13 @@ export class MusicGenerationService {
             params.modelDocument.provider,
           ) ?? undefined,
       });
+      // Replicate stays async — its webhook finalizes the ingredient later.
+      // fal and Mureka poll to completion inside their own adapter and hand
+      // back the finished audio URL, so there is no webhook coming: finalize
+      // right here instead of leaving the ingredient stuck PROCESSING.
+      if (outputUrl) {
+        await this.finalizeSynchronousOutput(params, outputUrl);
+      }
       return generationId;
     } catch (error: unknown) {
       this.loggerService.error(
@@ -442,6 +452,50 @@ export class MusicGenerationService {
       );
       return null;
     }
+  }
+
+  /**
+   * Uploads the finished audio and marks the ingredient GENERATED — the same
+   * side effects the Replicate webhook performs asynchronously, run inline
+   * for providers (fal, Mureka) that already returned the final URL.
+   */
+  private async finalizeSynchronousOutput(
+    params: MusicDispatchParams & { ingredientId: string; metadataId: string },
+    outputUrl: string,
+  ): Promise<void> {
+    const uploadMeta = await this.filesClientService.uploadToS3(
+      params.ingredientId,
+      'musics',
+      { type: FileInputType.URL, url: outputUrl },
+    );
+
+    await Promise.all([
+      this.metadataService.patch(params.metadataId, {
+        duration: uploadMeta.duration,
+        result: outputUrl,
+        size: uploadMeta.size,
+      }),
+      this.musicsService.patch(params.ingredientId, {
+        cdnUrl:
+          typeof uploadMeta.publicUrl === 'string'
+            ? uploadMeta.publicUrl
+            : undefined,
+        promptId: params.promptData.id,
+        s3Key:
+          typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
+        status: IngredientStatus.GENERATED,
+      }),
+      this.websocketService.publishVideoComplete(
+        WebSocketPaths.music(params.ingredientId),
+        {
+          id: params.ingredientId,
+          ingredientId: params.ingredientId,
+          status: 'completed',
+        },
+        params.user.id,
+        getUserRoomName(params.user.id),
+      ),
+    ]);
   }
 
   private async serializeResult(params: {
