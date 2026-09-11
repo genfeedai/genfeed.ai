@@ -32,8 +32,6 @@ import {
   createGenerationCommands,
   createNavigationCommands,
   createOrgHelpCommands,
-  createOrgSettingsCommands,
-  createPersonalSettingsCommands,
   quickActionCommands,
   registerDefaultCommands,
 } from '@services/core/commands.registry';
@@ -399,117 +397,6 @@ describe('commands.registry', () => {
     });
   });
 
-  describe('createPersonalSettingsCommands', () => {
-    it('should have exactly the personal settings command', () => {
-      const settingsCommands = createPersonalSettingsCommands();
-
-      expect(settingsCommands.length).toBe(1);
-    });
-
-    it('should have personal settings command', () => {
-      const settingsCommands = createPersonalSettingsCommands();
-      const personalCmd = settingsCommands.find(
-        (c) => c.id === 'settings-personal',
-      );
-
-      expect(personalCmd).toBeDefined();
-      expect(personalCmd?.label).toBe('Personal Settings');
-      expect(personalCmd?.category).toBe('settings');
-    });
-
-    it('personal action should navigate to personal settings URL', () => {
-      const settingsCommands = createPersonalSettingsCommands();
-      const personalCmd = settingsCommands.find(
-        (c) => c.id === 'settings-personal',
-      );
-
-      personalCmd?.action();
-
-      expect(window.location.href).toBe('https://app.genfeed.ai/settings');
-    });
-  });
-
-  describe('createOrgSettingsCommands', () => {
-    it('should have correct number of org settings commands', () => {
-      const settingsCommands = createOrgSettingsCommands(TEST_ORG);
-
-      expect(settingsCommands.length).toBe(3);
-    });
-
-    it('should have organization settings command', () => {
-      const settingsCommands = createOrgSettingsCommands(TEST_ORG);
-      const orgCmd = settingsCommands.find((c) => c.id === 'settings-org');
-
-      expect(orgCmd).toBeDefined();
-      expect(orgCmd?.label).toBe('Organization Settings');
-    });
-
-    it('should have brands command', () => {
-      const settingsCommands = createOrgSettingsCommands(TEST_ORG);
-      const brandsCmd = settingsCommands.find(
-        (c) => c.id === 'settings-brands',
-      );
-
-      expect(brandsCmd).toBeDefined();
-      expect(brandsCmd?.label).toBe('Brand Management');
-      expect(brandsCmd?.keywords).toContain('brands');
-    });
-
-    it('should have billing command', () => {
-      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-key';
-      const settingsCommands = createOrgSettingsCommands(TEST_ORG);
-      const billingCmd = settingsCommands.find(
-        (c) => c.id === 'settings-billing',
-      );
-
-      expect(billingCmd).toBeDefined();
-      expect(billingCmd?.label).toBe('Subscription');
-      expect(billingCmd?.keywords).toContain('billing');
-      delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
-    });
-
-    it('brands action should navigate to org-scoped brands URL', () => {
-      const settingsCommands = createOrgSettingsCommands(TEST_ORG);
-      const brandsCmd = settingsCommands.find(
-        (c) => c.id === 'settings-brands',
-      );
-
-      brandsCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/brands`,
-      );
-    });
-
-    it('billing action should navigate to subscription when EE is enabled', () => {
-      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
-      const settingsCommands = createOrgSettingsCommands(TEST_ORG);
-      const billingCmd = settingsCommands.find(
-        (c) => c.id === 'settings-billing',
-      );
-
-      billingCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/subscription`,
-      );
-    });
-
-    it('billing action should navigate to Credits in OSS mode', () => {
-      delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
-      const settingsCommands = createOrgSettingsCommands(TEST_ORG);
-      const billingCmd = settingsCommands.find(
-        (c) => c.id === 'settings-billing',
-      );
-
-      billingCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/credits`,
-      );
-    });
-  });
-
   describe('createGeneralHelpCommands', () => {
     it('should have correct number of general help commands', () => {
       const helpCommands = createGeneralHelpCommands();
@@ -652,8 +539,6 @@ describe('commands.registry', () => {
         createNavigationCommands(TEST_ORG, TEST_BRAND).length +
         createGenerationCommands(TEST_ORG, TEST_BRAND).length +
         createContentCommands(TEST_ORG, TEST_BRAND).length +
-        createOrgSettingsCommands(TEST_ORG).length +
-        createPersonalSettingsCommands().length +
         createOrgHelpCommands(TEST_ORG).length +
         createGeneralHelpCommands().length +
         quickActionCommands.length;
@@ -671,7 +556,6 @@ describe('commands.registry', () => {
       expect(categories).toContain('navigation');
       expect(categories).toContain('generation');
       expect(categories).toContain('content');
-      expect(categories).toContain('settings');
       expect(categories).toContain('help');
       expect(categories).toContain('actions');
     });
@@ -682,12 +566,10 @@ describe('commands.registry', () => {
         orgSlug: '',
       });
       const expectedLength =
-        createPersonalSettingsCommands().length +
-        createGeneralHelpCommands().length +
-        quickActionCommands.length;
+        createGeneralHelpCommands().length + quickActionCommands.length;
 
       expect(defaultCommands.length).toBe(expectedLength);
-      expect(defaultCommands.map((c) => c.id)).not.toContain('settings-org');
+      expect(defaultCommands.map((c) => c.id)).not.toContain('help-shortcuts');
       expect(defaultCommands.map((c) => c.id)).not.toContain('nav-overview');
     });
 
@@ -698,11 +580,23 @@ describe('commands.registry', () => {
       });
       const ids = defaultCommands.map((c) => c.id);
 
-      expect(ids).toContain('settings-org');
       expect(ids).toContain('help-shortcuts');
       expect(ids).not.toContain('nav-overview');
       expect(ids).not.toContain('gen-video');
       expect(ids).not.toContain('content-search');
+    });
+
+    it('does not register Personal/Organization/Brand settings destinations — the client-side settings catalog covers those (#4660 review)', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
+      const ids = defaultCommands.map((c) => c.id);
+
+      expect(ids).not.toContain('settings-personal');
+      expect(ids).not.toContain('settings-org');
+      expect(ids).not.toContain('settings-brands');
+      expect(ids).not.toContain('settings-billing');
     });
 
     it('all commands should have required properties', () => {

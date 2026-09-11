@@ -15,6 +15,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
+import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -118,8 +119,8 @@ function AgentThreadCommandsBridge({
   return null;
 }
 
-function SettingsCommandsBridge() {
-  useSettingsCommandsRegistration();
+function SettingsCommandsBridge({ currentApp }: { currentApp?: AppContext }) {
+  useSettingsCommandsRegistration(currentApp);
 
   return null;
 }
@@ -567,7 +568,7 @@ function AppLayoutWithDynamicMenu({
         )}
         <CommandPaletteInitializer />
         {isFocusedOnboardingRoute || isAdminRoute ? null : (
-          <SettingsCommandsBridge />
+          <SettingsCommandsBridge currentApp={currentApp} />
         )}
         {guardedMainLayout}
         <LazyCommandPalette />

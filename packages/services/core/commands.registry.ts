@@ -8,22 +8,18 @@
  * - Personal settings: /settings
  */
 
-import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
 import { CommandPaletteService } from '@services/core/command-palette.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   BookOpen,
-  Building2,
   ChartColumn,
   CircleUser,
-  CreditCard,
   FolderOpen,
   FolderPlus,
   House as Home,
   Image,
-  Key,
   LayoutGrid,
   LogOut,
   MessageSquare,
@@ -314,88 +310,6 @@ export function createContentCommands(
 }
 
 /**
- * Personal Settings Command
- *
- * Needs no org/brand context — always registered (see `createDefaultCommands`).
- */
-export function createPersonalSettingsCommands(): ICommand[] {
-  const appBase = EnvironmentService.apps.app;
-
-  return [
-    {
-      action: () => {
-        navigate(`${appBase}/settings`);
-      },
-      category: 'settings',
-      description: 'Manage your account preferences',
-      icon: CircleUser,
-      id: 'settings-personal',
-      keywords: ['account', 'settings', 'profile', 'user', 'personal'],
-      label: 'Personal Settings',
-      priority: 6,
-    },
-  ];
-}
-
-/**
- * Organization Settings Commands (consolidated in app.genfeed.ai)
- *
- * Only needs an org slug — registered whenever one is known, brand or not.
- */
-export function createOrgSettingsCommands(orgSlug: string): ICommand[] {
-  const appBase = EnvironmentService.apps.app;
-  const orgPath = `${appBase}/${orgSlug}/~`;
-  const isBillingEnabled = hasOrganizationBillingHint();
-
-  return [
-    {
-      action: () => {
-        navigate(`${orgPath}/settings`);
-      },
-      category: 'settings',
-      description: 'Manage organization settings, billing, and integrations',
-      icon: Building2,
-      id: 'settings-org',
-      keywords: ['organization', 'settings', 'team', 'billing', 'integrations'],
-      label: 'Organization Settings',
-      priority: 6,
-    },
-    {
-      action: () => {
-        navigate(`${orgPath}/settings/brands`);
-      },
-      category: 'settings',
-      description: 'Manage brands and social accounts',
-      icon: Key,
-      id: 'settings-brands',
-      keywords: ['brands', 'social', 'accounts', 'credentials'],
-      label: 'Brand Management',
-      priority: 6,
-    },
-    {
-      action: () => {
-        navigate(
-          `${orgPath}${
-            isBillingEnabled ? '/settings/subscription' : '/settings/credits'
-          }`,
-        );
-      },
-      category: 'settings',
-      description: isBillingEnabled
-        ? 'Manage subscription and plan'
-        : 'Buy and manage credits',
-      icon: CreditCard,
-      id: 'settings-billing',
-      keywords: isBillingEnabled
-        ? ['billing', 'subscription', 'plan', 'payment']
-        : ['credits', 'billing', 'top up', 'payment'],
-      label: isBillingEnabled ? 'Subscription' : 'Credits',
-      priority: 6,
-    },
-  ];
-}
-
-/**
  * General Help Commands
  *
  * Needs no org/brand context — always registered (see `createDefaultCommands`).
@@ -496,9 +410,17 @@ export const quickActionCommands: ICommand[] = [
  * context is actually known — never gated on both an org AND a brand slug
  * being present simultaneously (that hid every command, including the
  * context-free ones, on any route missing a brand segment — #4660):
- * - always: quick actions, general help, personal settings
- * - org known: organization settings, org-scoped help
+ * - always: quick actions, general help
+ * - org known: org-scoped help
  * - org + brand known: navigation, generation, content
+ *
+ * Personal/Organization/Brand settings destinations (Personal Settings,
+ * Organization Settings, Brand Management, Billing) are NOT registered here.
+ * They used to be coarse commands that navigated with a full page reload
+ * (`window.location.href`); `useSettingsCommandsRegistration` now covers the
+ * same destinations — and every other real settings page — via the shared
+ * catalog with client-side navigation, so keeping a reloading duplicate here
+ * would silently undo that (#4660 review).
  *
  * `orgSlug`/`brandSlug` are '' when not yet known — both tiers below simply
  * don't register rather than requiring the caller to omit them.
@@ -510,13 +432,7 @@ export function createDefaultCommands({
   return [
     ...quickActionCommands,
     ...createGeneralHelpCommands(),
-    ...createPersonalSettingsCommands(),
-    ...(orgSlug
-      ? [
-          ...createOrgSettingsCommands(orgSlug),
-          ...createOrgHelpCommands(orgSlug),
-        ]
-      : []),
+    ...(orgSlug ? createOrgHelpCommands(orgSlug) : []),
     ...(orgSlug && brandSlug
       ? [
           ...createNavigationCommands(orgSlug, brandSlug),

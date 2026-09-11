@@ -9,62 +9,13 @@ import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { SettingsSurface } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
 import type { SettingsSearchItem } from '@genfeedai/props/ui/settings-search/settings-search.props';
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
 import { Settings } from 'lucide-react';
-import { useParams, useRouter } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
-
-/**
- * Destinations the coarse commands in `commands.registry.ts` already cover
- * (Personal Settings, Organization Settings, Brand Management, Billing) —
- * excluded per scope below so the palette doesn't list the same page twice.
- * Keyed per scope because the same relative path constant (e.g. `SETTINGS.ROOT`)
- * resolves to a different absolute URL depending on scope (brand's "Profile"
- * reuses `SETTINGS.ROOT` too, but resolves through the brand route, not
- * personal settings — it must stay listed).
- */
-const COARSE_HREFS_BY_SCOPE: Record<SettingsSurface, ReadonlySet<string>> = {
-  [SettingsSurface.PERSONAL]: new Set([
-    APP_ROUTES.SETTINGS.ROOT,
-    APP_ROUTES.SETTINGS.PERSONAL,
-  ]),
-  [SettingsSurface.ORGANIZATION]: new Set([
-    APP_ROUTES.SETTINGS.GENERAL,
-    APP_ROUTES.SETTINGS.BRANDS,
-    APP_ROUTES.SETTINGS.CREDITS,
-    APP_ROUTES.SETTINGS.SUBSCRIPTION,
-  ]),
-  [SettingsSurface.BRAND]: new Set(),
-};
-
-/**
- * Route params drive the settings page the operator is currently viewing —
- * never the session-backfilled `useOrgUrl` slugs, which would make every
- * flat `/settings/*` page look brand-scoped whenever a brand is selected.
- */
-function resolveCurrentSettingsScope(routeParams: {
-  brandSlug?: string;
-  orgSlug?: string;
-}): SettingsSurface {
-  if (routeParams.brandSlug) {
-    return SettingsSurface.BRAND;
-  }
-  if (routeParams.orgSlug) {
-    return SettingsSurface.ORGANIZATION;
-  }
-  return SettingsSurface.PERSONAL;
-}
-
-/** A bare page link (no `#section`) that duplicates a coarse command's target. */
-function isCoarseDuplicate(scope: SettingsSurface, href: string): boolean {
-  if (href.includes('#')) {
-    return false;
-  }
-  return COARSE_HREFS_BY_SCOPE[scope].has(href);
-}
 
 /** Anchored settings results (e.g. `/settings/personal#appearance`) scroll to
  * their section instead of relying on the browser's default hash jump, which
@@ -88,28 +39,27 @@ function scrollToSettingsHash(href: string): void {
 
 interface BuildScopeCommandsOptions {
   brandSlug: string;
-  currentScope: SettingsSurface;
   isEnterprise: boolean;
   navigate: (href: string) => void;
   orgSlug: string;
+  /** Boosted priority for a result matching the operator's current module. */
+  priority: number;
 }
 
 function toCommand(
   item: SettingsSearchItem,
   href: string,
-  { currentScope, navigate }: BuildScopeCommandsOptions,
+  options: BuildScopeCommandsOptions,
 ): ICommand {
   return {
-    action: () => navigate(href),
+    action: () => options.navigate(href),
     category: 'settings',
     description: item.description,
     icon: Settings,
     id: `settings-catalog:${item.id}`,
     keywords: item.keywords,
     label: item.label,
-    // Boost the settings page currently on screen so it ranks first in
-    // search without hiding the other scopes' results.
-    priority: item.scope === currentScope ? 7 : 5,
+    priority: options.priority,
   };
 }
 
@@ -120,40 +70,51 @@ function buildCommandsForScope(
   return buildSettingsSearchCatalog({
     isEnterprise: options.isEnterprise,
     scope,
-  })
-    .filter((item) => !isCoarseDuplicate(scope, item.href))
-    .flatMap((item) => {
-      const href = resolveSettingsSearchHref(item, {
-        brandSlug: options.brandSlug,
-        orgSlug: options.orgSlug,
-      });
-
-      return href ? [toCommand(item, href, options)] : [];
+  }).flatMap((item) => {
+    const href = resolveSettingsSearchHref(item, {
+      brandSlug: options.brandSlug,
+      orgSlug: options.orgSlug,
     });
+
+    return href ? [toCommand(item, href, options)] : [];
+  });
+}
+
+/**
+ * `currentApp` has no distinct value for Settings — it falls back to
+ * 'workspace' there, same as the bare Workspace dashboard. Boosting on that
+ * value ranks settings destinations first when the operator isn't deep in a
+ * specialized creative module (Studio/Library/Publishing/Automation/
+ * Analytics/Discovery/Messages/Agent), where a module-specific command
+ * matching the same query should usually win instead (#4660 review: rank by
+ * the current module, not by which settings sub-scope a result belongs to).
+ */
+function resolvePriority(currentApp: AppContext | undefined): number {
+  return currentApp === 'workspace' || currentApp === undefined ? 7 : 5;
 }
 
 /**
  * Registers the real settings destinations (personal, organization, brand)
  * as command-palette commands, sourced from the same catalog the old
  * settings-only `Search settings…` dropdown used — so the shared ⌘K palette
- * can reach every settings page, not just the four coarse shortcuts in
- * `commands.registry.ts`.
+ * can reach every settings page, including Personal/Organization
+ * Settings/Brand Management/Billing (`commands.registry.ts` no longer
+ * registers those separately — see its `createDefaultCommands` doc comment).
  *
  * Tiered by session availability: personal items always register;
  * organization items once an org is known; brand items only once a session
  * brand exists — never gated on the URL alone, so results follow the
  * operator across routes instead of a second URL-driven settings finder.
  */
-export function useSettingsCommandsRegistration(): void {
+export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
   const router = useRouter();
-  const routeParams = useParams<{ brandSlug?: string; orgSlug?: string }>();
-  const currentScope = resolveCurrentSettingsScope(routeParams);
   const { selectedBrand } = useBrand();
   const { confirmedOrganizationSlug } = useRoutedOrganization();
   const orgSlug =
     confirmedOrganizationSlug || getBrandOrganizationSlug(selectedBrand);
   const brandSlug = selectedBrand?.slug ?? '';
   const isEnterprise = hasOrganizationBillingHint();
+  const priority = resolvePriority(currentApp);
 
   useEffect(() => {
     const navigate = (href: string) => {
@@ -163,10 +124,10 @@ export function useSettingsCommandsRegistration(): void {
 
     const options: BuildScopeCommandsOptions = {
       brandSlug,
-      currentScope,
       isEnterprise,
       navigate,
       orgSlug,
+      priority,
     };
 
     const commands: ICommand[] = [
@@ -189,5 +150,5 @@ export function useSettingsCommandsRegistration(): void {
         CommandPaletteService.unregisterCommands(registeredIds);
       }
     };
-  }, [brandSlug, currentScope, isEnterprise, orgSlug, router]);
+  }, [brandSlug, isEnterprise, orgSlug, priority, router]);
 }

@@ -2,13 +2,8 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockPush = vi.hoisted(() => vi.fn());
-const mockRouteParams = vi.hoisted(() => ({
-  brandSlug: undefined as string | undefined,
-  orgSlug: undefined as string | undefined,
-}));
 
 vi.mock('next/navigation', () => ({
-  useParams: () => mockRouteParams,
   useRouter: () => ({ push: mockPush }),
 }));
 
@@ -60,8 +55,6 @@ describe('useSettingsCommandsRegistration', () => {
     mockRegisterCommands.mockImplementation((commands: { id: string }[]) =>
       commands.map((command) => command.id),
     );
-    mockRouteParams.brandSlug = undefined;
-    mockRouteParams.orgSlug = undefined;
     mockUseBrand.mockReturnValue({ selectedBrand: null });
     mockUseRoutedOrganization.mockReturnValue({
       confirmedOrganizationSlug: null,
@@ -82,12 +75,15 @@ describe('useSettingsCommandsRegistration', () => {
     ).toBe(true);
   });
 
-  it('excludes the personal "Personal" hub item as a duplicate of the coarse settings-personal command', () => {
+  it('registers Personal/Notifications/Progress/Help/About — no coarse duplicate to exclude anymore (#4660 review)', () => {
+    // commands.registry.ts no longer registers a reloading "Personal
+    // Settings" command, so nothing here needs to be excluded as a
+    // duplicate — every personal page, including the "Personal" hub itself,
+    // is reachable through this client-side catalog command.
     renderHook(() => useSettingsCommandsRegistration());
 
     const ids = getRegisteredIds();
-    expect(ids).not.toContain('settings-catalog:personal:/settings/personal');
-    // Its sibling account pages stay — they are the whole point of the catalog.
+    expect(ids).toContain('settings-catalog:personal:/settings/personal');
     expect(ids).toContain('settings-catalog:personal:/settings/notifications');
     expect(ids).toContain('settings-catalog:personal:/settings/help');
   });
@@ -104,7 +100,7 @@ describe('useSettingsCommandsRegistration', () => {
     );
   });
 
-  it('registers organization-scope commands once an org is confirmed', () => {
+  it('registers organization-scope commands once an org is confirmed, including General/Brands/Credits (#4660 review)', () => {
     mockUseRoutedOrganization.mockReturnValue({
       confirmedOrganizationSlug: 'acme',
     });
@@ -113,14 +109,11 @@ describe('useSettingsCommandsRegistration', () => {
 
     const ids = getRegisteredIds();
     expect(ids).toContain('settings-catalog:organization:/settings/members');
-    // Duplicates of the coarse settings-org/settings-brands/settings-billing.
-    expect(ids).not.toContain(
-      'settings-catalog:organization:/settings/general',
-    );
-    expect(ids).not.toContain('settings-catalog:organization:/settings/brands');
-    expect(ids).not.toContain(
-      'settings-catalog:organization:/settings/credits',
-    );
+    // No longer excluded — commands.registry.ts no longer registers
+    // reloading duplicates of these destinations.
+    expect(ids).toContain('settings-catalog:organization:/settings/general');
+    expect(ids).toContain('settings-catalog:organization:/settings/brands');
+    expect(ids).toContain('settings-catalog:organization:/settings/credits');
   });
 
   it('still does not register brand commands with only an org known', () => {
@@ -179,28 +172,62 @@ describe('useSettingsCommandsRegistration', () => {
     );
   });
 
-  it('boosts the priority of results matching the settings page currently on screen', () => {
-    mockRouteParams.orgSlug = 'acme';
+  it('boosts every result to priority 7 when the operator is not in a specialized module (currentApp is "workspace" or unset)', () => {
     mockUseRoutedOrganization.mockReturnValue({
       confirmedOrganizationSlug: 'acme',
     });
 
-    renderHook(() => useSettingsCommandsRegistration());
+    renderHook(() => useSettingsCommandsRegistration('workspace'));
 
     const commands = mockRegisterCommands.mock.calls.at(-1)?.[0] as {
       id: string;
       priority?: number;
     }[];
-    const orgItem = commands.find(
-      (command) =>
-        command.id === 'settings-catalog:organization:/settings/members',
-    );
-    const personalItem = commands.find((command) =>
-      command.id.startsWith('settings-catalog:personal:'),
+
+    expect(commands.length).toBeGreaterThan(0);
+    expect(commands.every((command) => command.priority === 7)).toBe(true);
+  });
+
+  it('leaves results at the baseline priority when the operator is in a specialized module (#4660 review: rank by currentApp, not settings scope)', () => {
+    mockUseRoutedOrganization.mockReturnValue({
+      confirmedOrganizationSlug: 'acme',
+    });
+
+    renderHook(() => useSettingsCommandsRegistration('studio'));
+
+    const commands = mockRegisterCommands.mock.calls.at(-1)?.[0] as {
+      id: string;
+      priority?: number;
+    }[];
+
+    expect(commands.length).toBeGreaterThan(0);
+    expect(commands.every((command) => command.priority === 5)).toBe(true);
+  });
+
+  it('re-registers with the boosted priority when currentApp changes', () => {
+    function lastRegisteredPriorities(): (number | undefined)[] {
+      const commands =
+        (mockRegisterCommands.mock.calls.at(-1)?.[0] as
+          | { priority?: number }[]
+          | undefined) ?? [];
+      return commands.map((command) => command.priority);
+    }
+
+    const { rerender } = renderHook(
+      (currentApp?: 'workspace' | 'studio') =>
+        useSettingsCommandsRegistration(currentApp),
+      { initialProps: 'studio' },
     );
 
-    expect(orgItem?.priority).toBe(7);
-    expect(personalItem?.priority).toBe(5);
+    expect(lastRegisteredPriorities().every((priority) => priority === 5)).toBe(
+      true,
+    );
+
+    rerender('workspace');
+
+    expect(lastRegisteredPriorities().every((priority) => priority === 7)).toBe(
+      true,
+    );
   });
 
   it('navigates client-side and scrolls to the anchor instead of reloading the page', () => {
