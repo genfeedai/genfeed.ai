@@ -10,21 +10,25 @@ import type { Request, Response } from 'express';
 // transport constructed — this is how we assert per-request creation and
 // teardown in the stateless transport. handleRequest is shared so the error
 // path can be driven with mockRejectedValueOnce.
-const { serverInstances, transportInstances, mockHandleRequest } = vi.hoisted(
-  () => ({
-    serverInstances: [] as Array<{
-      connect: ReturnType<typeof vi.fn>;
-      close: ReturnType<typeof vi.fn>;
-      setRequestHandler: ReturnType<typeof vi.fn>;
-    }>,
-    transportInstances: [] as Array<{
-      handleRequest: ReturnType<typeof vi.fn>;
-      close: ReturnType<typeof vi.fn>;
-      options: unknown;
-    }>,
-    mockHandleRequest: vi.fn(),
-  }),
-);
+const {
+  serverInstances,
+  transportInstances,
+  mockHandleRequest,
+  toolRegistryConstructorCalls,
+} = vi.hoisted(() => ({
+  serverInstances: [] as Array<{
+    connect: ReturnType<typeof vi.fn>;
+    close: ReturnType<typeof vi.fn>;
+    setRequestHandler: ReturnType<typeof vi.fn>;
+  }>,
+  toolRegistryConstructorCalls: [] as unknown[][],
+  transportInstances: [] as Array<{
+    handleRequest: ReturnType<typeof vi.fn>;
+    close: ReturnType<typeof vi.fn>;
+    options: unknown;
+  }>,
+  mockHandleRequest: vi.fn(),
+}));
 
 vi.mock('@modelcontextprotocol/sdk/server', () => ({
   Server: class MockServer {
@@ -76,6 +80,9 @@ vi.mock('@mcp/services/tool-registry.service', () => ({
     getTools = vi.fn().mockReturnValue([]);
     handleResourceRead = vi.fn();
     handleToolCall = vi.fn();
+    constructor(...args: unknown[]) {
+      toolRegistryConstructorCalls.push(args);
+    }
   },
 }));
 
@@ -111,6 +118,7 @@ describe('StreamableHttpService', () => {
     vi.clearAllMocks();
     serverInstances.length = 0;
     transportInstances.length = 0;
+    toolRegistryConstructorCalls.length = 0;
     mockHandleRequest.mockReset();
     mockHandleRequest.mockResolvedValue(undefined);
 
@@ -218,6 +226,22 @@ describe('StreamableHttpService', () => {
       await service.handlePost(req, makeRes());
 
       expect(mockSetBearerToken).toHaveBeenCalledWith('bearer-xyz');
+    });
+
+    it('threads the request-scoped toolset selection into the registry', async () => {
+      const req = makeReq({
+        toolsets: ['content'],
+      } as unknown as Partial<Request>);
+
+      await service.handlePost(req, makeRes());
+
+      expect(toolRegistryConstructorCalls[0]?.[3]).toEqual(['content']);
+    });
+
+    it('defaults to an empty toolset selection ("every tool") when unset', async () => {
+      await service.handlePost(makeReq({ headers: {} }), makeRes());
+
+      expect(toolRegistryConstructorCalls[0]?.[3]).toEqual([]);
     });
 
     it('instruments the request server with the authenticated identity', async () => {

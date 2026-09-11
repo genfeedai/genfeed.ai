@@ -7,12 +7,20 @@ import { getPublicMcpUrl, renderSetupPage } from '@mcp/mcp/setup-page';
 import { type McpRole } from '@mcp/services/auth.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
-import { Controller, Get, Param, Req, Res } from '@nestjs/common';
-import type { Request, Response } from 'express';
-
-interface AuthenticatedRequest extends Request {
-  authContext?: { token?: string; role?: McpRole };
-}
+import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
+import {
+  buildUnknownToolsetsMessage,
+  resolveRequestToolsets,
+} from '@mcp/shared/middleware/toolsets-query.middleware';
+import {
+  BadRequestException,
+  Controller,
+  Get,
+  Param,
+  Req,
+  Res,
+} from '@nestjs/common';
+import type { Response } from 'express';
 
 @Controller()
 export class McpController {
@@ -90,10 +98,21 @@ export class McpController {
   }
 
   @Get('tools')
-  getTools(@Req() request: AuthenticatedRequest) {
+  getTools(@Req() request: McpRequest) {
     const role: McpRole = request?.authContext?.role ?? 'user';
+    const selection = resolveRequestToolsets(request?.query ?? {});
+
+    if (selection.unknown.length > 0) {
+      throw new BadRequestException(
+        buildUnknownToolsetsMessage(selection.unknown),
+      );
+    }
+
     return {
-      tools: this.toolRegistry.getToolsForRole(role),
+      tools: this.toolRegistry.getToolsForRoleAndToolsets(
+        role,
+        selection.toolsets,
+      ),
     };
   }
 
@@ -112,7 +131,7 @@ export class McpController {
   @Get('resources/:resourceUri')
   async readResource(
     @Param('resourceUri') resourceUri: string,
-    @Req() request: AuthenticatedRequest,
+    @Req() request: McpRequest,
   ) {
     this.logger.log(`Reading resource: ${resourceUri}`);
 

@@ -33,6 +33,25 @@ describe('MCP setup page', () => {
     });
   });
 
+  it('lists the mcp-surfaced toolsets on the server card, core included', () => {
+    const card = getMcpServerCard();
+
+    expect(Array.isArray(card.toolsets)).toBe(true);
+    expect(card.toolsets.length).toBeGreaterThan(0);
+    expect(card.toolsets).toContainEqual(
+      expect.objectContaining({ name: 'core' }),
+    );
+    for (const toolset of card.toolsets) {
+      expect(toolset).toEqual(
+        expect.objectContaining({
+          description: expect.any(String),
+          name: expect.any(String),
+          toolCount: expect.any(Number),
+        }),
+      );
+    }
+  });
+
   it('uses the production MCP endpoint by default', () => {
     vi.stubEnv('GENFEED_MCP_RESOURCE_URL', '');
 
@@ -195,5 +214,47 @@ describe('MCP setup page', () => {
     vi.stubEnv('GENFEED_MCP_RESOURCE_URL', 'not a url %%');
 
     expect(getPublicMcpUrl()).toBe('https://mcp.genfeed.ai/mcp');
+  });
+
+  describe('toolset picker', () => {
+    it('renders a checkbox per mcp-surfaced toolset, core checked and disabled', () => {
+      const html = renderSetupPage();
+
+      expect(html).toContain(
+        'data-toolset-checkbox data-toolset="core" checked disabled',
+      );
+      expect(html).toContain('toolset-picker');
+      // A second, non-core toolset must be selectable (not disabled).
+      expect(html).toMatch(
+        /data-toolset-checkbox data-toolset="(?!core")[a-z-]+"(?! checked disabled)/,
+      );
+    });
+
+    it('gives the endpoint display, copy button, and command snippets stable ids for the picker script', () => {
+      const html = renderSetupPage();
+
+      expect(html).toContain('id="mcp-url"');
+      expect(html).toContain('id="mcp-url-copy"');
+      expect(html).toContain('id="claude-code-command"');
+      expect(html).toContain('id="codex-command"');
+      expect(html).toContain('id="agent-setup-prompt"');
+    });
+
+    it('keeps a malicious endpoint override from breaking out of the inline toolset script', () => {
+      vi.stubEnv(
+        'GENFEED_MCP_RESOURCE_URL',
+        'https://preview-mcp.genfeed.ai/mcp?x=</script><script>alert(1)</script>',
+      );
+
+      const html = renderSetupPage();
+
+      // The dangerous literal sequence must never appear verbatim...
+      expect(html).not.toContain('</script><script>alert(1)</script>');
+      // ...but the escaped form still carries the same string content, so a
+      // real browser reconstructs the original URL for the picker's own use.
+      expect(html).toContain(
+        '\\u003C/script\\u003E\\u003Cscript\\u003Ealert(1)\\u003C/script\\u003E',
+      );
+    });
   });
 });
