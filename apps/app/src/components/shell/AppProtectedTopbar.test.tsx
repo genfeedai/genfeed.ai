@@ -37,6 +37,11 @@ const originalLocation = window.location;
 vi.mock('@genfeedai/contracts', () => ({
   ButtonSize: { ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
+  SettingsSurface: {
+    BRAND: 'brand',
+    ORGANIZATION: 'organization',
+    PERSONAL: 'personal',
+  },
 }));
 
 vi.mock('@genfeedai/contracts/constants', () => ({
