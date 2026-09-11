@@ -76,6 +76,13 @@ interface UseConversationScopeControlsParams {
   readonly apiService: AgentApiService;
   readonly currentDraftScopeKey: string;
   readonly pathname: string;
+  /**
+   * The brand an explicit route scope names (e.g. an analytics surface
+   * adapter's `/analytics/brands/:id`). Takes precedence over the thread's
+   * own brand and the session's globally-selected brand; an unauthorized
+   * value falls back to Organization-wide rather than the thread or session.
+   */
+  readonly routeBrandId?: string | null;
   readonly searchParams: URLSearchParams;
 }
 
@@ -197,6 +204,7 @@ export function useConversationScopeControls({
   apiService,
   currentDraftScopeKey,
   pathname,
+  routeBrandId = null,
   searchParams,
 }: UseConversationScopeControlsParams): ConversationScopeControlsState {
   const { push, replace } = useRouter();
@@ -242,9 +250,15 @@ export function useConversationScopeControls({
     getBrandOrganizationSlug(organizationBrand) ||
     pathname.split('/').filter(Boolean)[0] ||
     '';
-  const effectiveBrandId = activeThread
-    ? (activeThread.brandId ?? null)
-    : globalBrandId || null;
+  // Precedence: route → thread → session. A route brand (e.g. navigating to
+  // /analytics/brands/:id) wins outright — including over an authorized
+  // thread's own brand — so the inspector always reflects what the URL
+  // names. `authorizedBrands.find` below already falls back to
+  // Organization-wide when the resolved id isn't authorized, so an
+  // unauthorized route brand never leaks the thread's or session's brand.
+  const effectiveBrandId =
+    routeBrandId ??
+    (activeThread ? (activeThread.brandId ?? null) : globalBrandId || null);
   const authorizedBrands = useMemo(
     () =>
       brands.filter(

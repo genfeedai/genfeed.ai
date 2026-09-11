@@ -3,6 +3,10 @@ import {
   useAnalyticsContext,
 } from '@contexts/analytics/analytics-context';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+} from '@contexts/user/brand-context/brand-context.helpers';
 import { useAgentChatStore } from '@genfeedai/agent';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
@@ -257,7 +261,7 @@ function AnalyticsWorkSurfaceBridge({
   readonly restoredState: RestoredAnalyticsSurfaceState;
 }) {
   const { brandId, dateRange, filters } = useAnalyticsContext();
-  const { organizationId } = useBrand();
+  const { brands, organizationId } = useBrand();
   const { brandSlug, orgSlug } = useOrgUrl();
   const { openExport } = useExportModal();
   const getAnalyticsService = useAuthedService((token: string) =>
@@ -299,14 +303,27 @@ function AnalyticsWorkSurfaceBridge({
       ),
     [pathname, restoredState.canonicalSearchParams],
   );
-  // `brandSlug` is empty on the org-wide `/~/` routes, but `/analytics/brands/:id`
-  // (and its `/platforms/:platform` child) narrows the query to exactly one
-  // brand. Reading the URL segment alone made those pages claim "all brands"
-  // directly above a Selected resource naming the single brand they show.
-  const isSingleBrandRoute =
-    restoredState.normalizedRoute.startsWith('/analytics/brands/');
+  // `brandSlug` is empty on the org-wide `/~/` routes, and even on brand-shell
+  // routes it names the top-nav brand, not necessarily the one `/analytics/
+  // brands/:id` (or its `/platforms/:platform` child) actually scopes to.
+  // Resolve the route's own brand id to its real name so the chrome never
+  // claims "all brands" — or names the wrong brand — directly above a
+  // Selected resource naming a different, single brand.
+  const routeBrandId = restoredState.routeBrandId;
+  const routeBrand = useMemo(
+    () =>
+      routeBrandId
+        ? brands.find(
+            (brand) =>
+              getBrandEntityId(brand) === routeBrandId &&
+              getBrandOrganizationId(brand) === organizationId,
+          )
+        : undefined,
+    [brands, organizationId, routeBrandId],
+  );
   const brandScopeLabel =
-    brandSlug || (isSingleBrandRoute ? 'selected brand' : 'all brands');
+    routeBrand?.label ??
+    (routeBrandId ? 'selected brand' : brandSlug || 'all brands');
   const scopeLabel = `${orgSlug || 'organization'} / ${brandScopeLabel}`;
 
   useEffect(() => {
@@ -360,6 +377,7 @@ function AnalyticsWorkSurfaceBridge({
   }, [handleExport, openExport]);
   const adapter = useMemo<AnalyticsWorkspaceSurfaceAdapterState>(
     () => ({
+      ...(routeBrandId ? { brandId: routeBrandId } : {}),
       composerContext: queryReference ? (
         <AnalyticsComposerQueryChip reference={queryReference} />
       ) : null,
@@ -381,6 +399,7 @@ function AnalyticsWorkSurfaceBridge({
       handleOpenExport,
       queryReference,
       restoredState,
+      routeBrandId,
       scopeLabel,
     ],
   );

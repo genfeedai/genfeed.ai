@@ -231,6 +231,21 @@ function normalizeFilterValue(
     : undefined;
 }
 
+/**
+ * The brand id named by the route itself. `/analytics/brands/:id` and its
+ * `/platforms/:platform` child both scope to exactly one brand, but
+ * `resolveSelectedResource` narrows the child route's selected resource to
+ * the platform — losing the enclosing brand id. Callers that need "which
+ * brand does this route name" (chrome scope label, thread brand rebinding)
+ * read this instead of `selectedResource`.
+ */
+function resolveRouteBrandId(route: string): string | undefined {
+  const brandMatch = route.match(
+    /^\/analytics\/brands\/([^/]+)(?:\/platforms\/[^/]+)?$/,
+  );
+  return brandMatch ? brandMatch[1] : undefined;
+}
+
 function resolveSelectedResource(
   route: string,
   filters: AnalyticsQueryFilters,
@@ -330,6 +345,7 @@ export function restoreAnalyticsSurfaceState({
     startDate: parseDateKey(startDateKey),
   };
   const selectedResource = resolveSelectedResource(normalizedRoute, filters);
+  const routeBrandId = resolveRouteBrandId(normalizedRoute);
 
   return {
     canonicalSearchParams,
@@ -339,6 +355,7 @@ export function restoreAnalyticsSurfaceState({
     filters,
     isCanonical: canonicalSearchParams.toString() === searchParams.toString(),
     normalizedRoute,
+    ...(routeBrandId ? { routeBrandId } : {}),
     ...(selectedResource ? { selectedResource } : {}),
   };
 }
