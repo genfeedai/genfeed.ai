@@ -23,7 +23,6 @@ import {
 } from '@genfeedai/agent';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
-import { SettingsSurface } from '@genfeedai/contracts';
 import { APP_ROUTE_PREFIXES, APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
@@ -50,6 +49,8 @@ import {
 } from '@/lib/navigation/operator-shell';
 import { dispatchOpenTaskComposer } from '@/lib/workspace/task-composer-events';
 import { resolveWorkspaceShellRoute } from '@/lib/workspace-shell/workspace-shell-registry';
+
+import { resolveSettingsScope } from './app-protected-layout.settings-scope';
 
 const AUTOMATION_WORKFLOW_RESERVED = new Set([
   'executions',
@@ -376,11 +377,7 @@ export function useAppProtectedLayout(
   // The settings sidebar is scope-specific: brand route → brand pages, org
   // route → org pages, otherwise personal pages. Scope is derived from the route
   // params (brandSlug/orgSlug), not selected-brand context.
-  const settingsScope: SettingsScope = routeParams.brandSlug
-    ? SettingsSurface.BRAND
-    : routeParams.orgSlug
-      ? SettingsSurface.ORGANIZATION
-      : SettingsSurface.PERSONAL;
+  const settingsScope: SettingsScope = resolveSettingsScope(routeParams);
 
   const settingsMenuItems = useMemo(
     () =>

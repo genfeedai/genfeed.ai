@@ -61,8 +61,8 @@ const mockBrandState = vi.hoisted(() => ({
 }));
 
 const mockRouteParams = vi.hoisted(() => ({
-  brandSlug: 'brand-123',
-  orgSlug: 'org-123',
+  brandSlug: 'brand-123' as string | undefined,
+  orgSlug: 'org-123' as string | undefined,
 }));
 const originalLocation = window.location;
 
@@ -641,6 +641,42 @@ describe('AppProtectedLayout', () => {
 
   it('keeps the org switcher visible in SaaS mode', () => {
     process.env.NEXT_PUBLIC_GENFEED_CLOUD = 'true';
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(screen.getByTestId('organization-switcher')).toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ orgSwitcherSlot: expect.anything() }),
+    );
+  });
+
+  it('hides the org switcher on the flat personal settings route (#4659)', () => {
+    mockPathname.value = '/settings/personal';
+    mockRouteParams.brandSlug = undefined;
+    mockRouteParams.orgSlug = undefined;
+
+    render(
+      <AppProtectedLayout>
+        <div>Protected content</div>
+      </AppProtectedLayout>,
+    );
+
+    expect(
+      screen.queryByTestId('organization-switcher'),
+    ).not.toBeInTheDocument();
+    expect(appSidebarSpy).toHaveBeenCalledWith(
+      expect.objectContaining({ orgSwitcherSlot: undefined }),
+    );
+  });
+
+  it('keeps the org switcher on the org-scoped personal settings route (#4659)', () => {
+    mockPathname.value = '/acme/~/settings/personal';
+    mockRouteParams.brandSlug = undefined;
+    mockRouteParams.orgSlug = 'acme';
 
     render(
       <AppProtectedLayout>

@@ -119,6 +119,11 @@ export default function AppProtectedLayoutSidebar({
   // canCreateOrganization (active subscription + tier org limit); non-SaaS just
   // shows the current org with no create action. The brand switcher is
   // similarly always visible.
+  //
+  // Documented exception (#4659): personal-scope settings routes have no org
+  // context to switch from, so the settings surface below hides both
+  // switchers (`showOrgSwitcher`) when `settingsScope === PERSONAL`; the
+  // brand switcher's matching hide condition lives in AppProtectedTopbar.
   const orgSwitcherSlot = (
     <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
   );
@@ -251,7 +256,8 @@ export default function AppProtectedLayoutSidebar({
         // No top-level "Settings" shell header — org/brand switcher + group
         // labels (Organization / Access, Brand / Automation) are enough.
         sectionLabel: undefined,
-        showOrgSwitcher: true,
+        // Personal-scope settings have no org context to switch from (#4659).
+        showOrgSwitcher: settingsScope !== SettingsSurface.PERSONAL,
       },
     ] satisfies AppSidebarSurface[]
   ).find(({ active }) => active);
