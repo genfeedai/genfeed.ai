@@ -62,4 +62,40 @@ describe('InstagramAuthorizedSignalsProvider', () => {
       rawMediaCount: 1,
     });
   });
+
+  it('fails clearly instead of guessing an account when the credential has no externalId', async () => {
+    // Regression: this provider used to fall back to Graph's `me/accounts`
+    // and silently pick the first Facebook Page's IG account. A brand can
+    // manage several, so that guess could attribute signals to the wrong
+    // account. Resolution now happens once at connect time and is persisted
+    // as `credential.externalId` — this must fail loudly when that is
+    // missing rather than re-guess.
+    const httpGet = vi.fn();
+    const httpService = { get: httpGet } as unknown as HttpService;
+    const provider = new InstagramAuthorizedSignalsProvider(
+      httpService,
+      'https://graph.facebook.com',
+      'v24.0',
+    );
+
+    const result = await provider.fetch(
+      'token',
+      undefined,
+      ['instagram_basic'],
+      'instagram_basic',
+      'instagram_manage_insights',
+    );
+
+    expect(httpGet).not.toHaveBeenCalled();
+    expect(result.profileResult.error).toEqual(
+      expect.objectContaining({
+        response: expect.objectContaining({
+          data: expect.objectContaining({
+            error: expect.objectContaining({ code: 10 }),
+          }),
+        }),
+      }),
+    );
+    expect(result.mediaResult.error).toBeDefined();
+  });
 });

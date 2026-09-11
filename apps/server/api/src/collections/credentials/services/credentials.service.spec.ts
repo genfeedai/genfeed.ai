@@ -10,7 +10,11 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import process from 'node:process';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  CredentialsService,
+  extractReconnectCredentialIdFromState,
+} from '@api/collections/credentials/services/credentials.service';
+
 import { CredentialPlatform, SubscriptionTier } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 
@@ -806,6 +810,35 @@ describe('CredentialsService', () => {
       expect(data.oauthState).toBe(result.state);
       expect(result.state).not.toContain(brandId);
       expect(result.state).not.toContain(orgId);
+    });
+
+    it('embeds a reconnect credential id in the opaque state without a new column', async () => {
+      const result = await service.beginOAuthForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        'instagram' as never,
+        { isConnected: false },
+        'reconnect-credential-1',
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        unknown
+      >;
+
+      expect(result.state).toMatch(
+        /^[A-Za-z0-9_-]{43}\.reconnect-credential-1$/,
+      );
+      expect(data.oauthState).toBe(result.state);
+      expect(extractReconnectCredentialIdFromState(result.state)).toBe(
+        'reconnect-credential-1',
+      );
+    });
+
+    it('recovers no reconnect intent from a plain nonce', () => {
+      expect(
+        extractReconnectCredentialIdFromState('plain-nonce-without-a-dot'),
+      ).toBeUndefined();
     });
 
     it('resolves pending OAuth state inside the caller tenant scope', async () => {

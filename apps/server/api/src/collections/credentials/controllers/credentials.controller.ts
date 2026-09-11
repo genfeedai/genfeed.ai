@@ -275,10 +275,13 @@ export class CredentialsController {
         return returnNotFound('Brand', brandId);
       }
 
-      // Get all available handles from the Instagram service
+      // Get all available handles from the Instagram service, scoped to this
+      // credential's own token — not the brand's default account, which may
+      // be a different Instagram account than the one being set up.
       const pages = await this.instagramService.getInstagramPages(
         user.organizationId,
         brand.id.toString(),
+        credentialId,
       );
 
       return serializeCollection(request, CredentialInstagramPagesSerializer, {

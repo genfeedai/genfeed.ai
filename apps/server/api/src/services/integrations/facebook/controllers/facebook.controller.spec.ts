@@ -147,12 +147,14 @@ describe('FacebookController', () => {
           grantedScopesCapturedAt: expect.any(Date),
         }),
       );
+      // A personal Facebook profile has no public @handle through Graph —
+      // only a name and a (private) email. Neither may be persisted as one.
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
         'cred-1',
         'test-object-id',
         {
           avatarUrl: 'https://facebook.example/avatar.jpg',
-          handle: 'person@example.com',
+          handle: undefined,
           id: 'fb-user-1',
           name: 'Person',
         },

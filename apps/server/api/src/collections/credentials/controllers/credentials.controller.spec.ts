@@ -123,6 +123,45 @@ describe('CredentialsController', () => {
     });
   });
 
+  describe('findAllInstagramPages', () => {
+    it("looks up pages with this credential's own token, not the brand's default account", async () => {
+      credentialsService.findOne.mockResolvedValue({
+        accessToken: 'encrypted-token',
+        brandId: brandEntityId,
+        id: credId,
+      });
+      brandsService.findOne.mockResolvedValue({
+        id: brandEntityId,
+        organizationId: orgId,
+      });
+      instagramService.getInstagramPages.mockResolvedValue([
+        {
+          id: 'ig-1',
+          image: 'https://cdn.example.com/1.jpg',
+          label: 'One',
+          username: 'one',
+        },
+      ]);
+
+      await controller.findAllInstagramPages(mockRequest, mockUser, credId);
+
+      expect(instagramService.getInstagramPages).toHaveBeenCalledWith(
+        orgId,
+        brandEntityId,
+        credId,
+      );
+    });
+
+    it('rejects when the credential has no access token', async () => {
+      credentialsService.findOne.mockResolvedValue({ id: credId });
+
+      await expect(
+        controller.findAllInstagramPages(mockRequest, mockUser, credId),
+      ).rejects.toThrow(HttpException);
+      expect(instagramService.getInstagramPages).not.toHaveBeenCalled();
+    });
+  });
+
   describe('refreshCredentialToken', () => {
     it('should refresh token for supported platform', async () => {
       credentialsService.findOne

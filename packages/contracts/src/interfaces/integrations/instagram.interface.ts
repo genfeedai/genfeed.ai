@@ -3,18 +3,9 @@
  */
 
 /**
- * Instagram account details from Graph API
- */
-export interface InstagramAccountDetails {
-  id: string;
-  username?: string;
-  account_type?: string;
-  media_count?: number;
-}
-
-/**
  * Instagram Business Account page information
  */
+
 export interface InstagramPageResponse {
   id: string;
   image?: string;

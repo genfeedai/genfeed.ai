@@ -10,7 +10,9 @@ import type {
 } from '@props/auth/oauth-platform-form.props';
 import { logger } from '@services/core/logger.service';
 import { ServicesService } from '@services/external/services.service';
+import InstagramAccountSelector from '@ui/modals/brands/instagram/InstagramAccountSelector';
 import { Button } from '@ui/primitives/button';
+
 import { CircleCheck, CircleX } from 'lucide-react';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -70,6 +72,15 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
     }
   }, []);
 
+  const completeSuccess = useCallback(() => {
+    setResult({ status: 'success' });
+    clearStoredReturnTo();
+
+    setTimeout(() => {
+      push(resolveReturnTo());
+    }, REDIRECT_DELAY_MS);
+  }, [clearStoredReturnTo, push, resolveReturnTo]);
+
   const verify = useCallback(
     async (forceRefresh = false) => {
       if (hasVerified.current) {
@@ -78,7 +89,6 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       hasVerified.current = true;
 
       const url = `POST /services/${platform}/verify`;
-      const returnTo = resolveReturnTo();
       let callbackSubmitted = false;
 
       try {
@@ -99,15 +109,21 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
             };
 
         callbackSubmitted = true;
-        await service.postVerify(body);
+        const credential = await service.postVerify(body);
+
+        // Instagram may resolve the token exchange to more than one eligible
+        // professional account with no automatic pick. The credential row is
+        // saved but deliberately left unconnected — see
+        // `InstagramController.resolveAuthorizedAccount` — so the operator
+        // must choose before this connection can be treated as complete.
+        if (platform === 'instagram' && !credential.isConnected) {
+          logger.info(`${url} success (account selection required)`);
+          setResult({ credentialId: credential.id, status: 'selecting' });
+          return;
+        }
 
         logger.info(`${url} success`);
-        setResult({ status: 'success' });
-        clearStoredReturnTo();
-
-        setTimeout(() => {
-          push(returnTo);
-        }, REDIRECT_DELAY_MS);
+        completeSuccess();
       } catch (error) {
         logger.error(`${url} failed`, error);
         setResult({
@@ -118,14 +134,12 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       }
     },
     [
-      clearStoredReturnTo,
       code,
+      completeSuccess,
       getServicesService,
       oauthToken,
       oauthVerifier,
       platform,
-      push,
-      resolveReturnTo,
       state,
       translate,
     ],
@@ -150,6 +164,19 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   return (
     <div className="flex min-h-screen items-center justify-center">
       <div className="w-full max-w-md text-center">
+        {isSignedIn && result.status === 'selecting' && (
+          <InstagramAccountSelector
+            credentialId={result.credentialId}
+            onConnected={completeSuccess}
+            onError={(errorMessage) =>
+              logger.error(
+                `POST /services/${platform}/verify account selection failed`,
+                errorMessage,
+              )
+            }
+          />
+        )}
+
         {(!isLoaded || (isSignedIn && result.status === 'loading')) && (
           <div className="space-y-4">
             <div className="mx-auto size-16">

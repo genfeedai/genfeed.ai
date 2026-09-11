@@ -23,7 +23,6 @@ const INSTAGRAM_SIGNAL_RETRY_MAX_MS = 5_000;
 const INSTAGRAM_SIGNAL_REQUEST_TIMEOUT_MS = 10_000;
 const INSTAGRAM_MEDIA_LIMIT = 20;
 
-const PAGES_SCOPE = 'pages_show_list';
 const PROFILE_PROVIDER_FIELDS =
   'id,username,name,biography,website,profile_picture_url,followers_count,follows_count,media_count,account_type';
 const MEDIA_PROVIDER_FIELDS =
@@ -61,12 +60,6 @@ interface InstagramMediaNode {
 interface InstagramMediaListResponse {
   data?: InstagramMediaNode[];
   paging?: { next?: unknown };
-}
-
-interface InstagramPagesResponse {
-  data?: Array<{
-    instagram_business_account?: InstagramUserResponse;
-  }>;
 }
 
 export interface InstagramMediaFetch {
@@ -196,14 +189,20 @@ export class InstagramAuthorizedSignalsProvider {
       );
   }
 
+  /**
+   * The connected account's id, resolved once and for all at connect/reconnect
+   * time (see `InstagramController.resolveAuthorizedAccount`) and persisted as
+   * `credential.externalId` — the single source of truth for which account a
+   * credential acts as. Signal collection must never re-derive it by guessing
+   * the first Facebook Page's IG account: a brand can manage several, and a
+   * silent guess would attribute signals to the wrong one.
+   */
   private async fetchProfile(
     accessToken: string,
     igUserId: string | undefined,
-    grantedScopes: string[],
+    _grantedScopes: string[],
   ): Promise<InstagramUserResponse> {
-    const resolvedId = igUserId
-      ? igUserId
-      : await this.resolveIgUserId(accessToken, grantedScopes);
+    const resolvedId = this.requireIgUserId(igUserId);
     const response = await firstValueFrom(
       this.httpService.get<InstagramUserResponse>(
         `${this.graphUrl}/${this.apiVersion}/${resolvedId}`,
@@ -220,39 +219,7 @@ export class InstagramAuthorizedSignalsProvider {
     return response.data ?? {};
   }
 
-  private async resolveIgUserId(
-    accessToken: string,
-    grantedScopes: string[],
-  ): Promise<string> {
-    if (!grantedScopes.includes(PAGES_SCOPE)) {
-      throw {
-        response: {
-          data: {
-            error: { code: 10, message: 'Missing pages_show_list permission' },
-          },
-          status: 403,
-        },
-      };
-    }
-
-    const response = await firstValueFrom(
-      this.httpService.get<InstagramPagesResponse>(
-        `${this.graphUrl}/${this.apiVersion}/me/accounts`,
-        {
-          params: {
-            access_token: accessToken,
-            fields:
-              'id,instagram_business_account{id,username,name,account_type}',
-          },
-          timeout: INSTAGRAM_SIGNAL_REQUEST_TIMEOUT_MS,
-        },
-      ),
-    );
-    const pages = Array.isArray(response.data?.data) ? response.data.data : [];
-    const igUserId = pages
-      .map((page) => readString(page.instagram_business_account?.id))
-      .find((id): id is string => Boolean(id));
-
+  private requireIgUserId(igUserId: string | undefined): string {
     if (!igUserId) {
       throw {
         response: {
@@ -260,7 +227,7 @@ export class InstagramAuthorizedSignalsProvider {
             error: {
               code: 10,
               message:
-                'The Instagram account must be a professional account linked to a Facebook Page',
+                'Instagram credential is missing its authorized account id. Reconnect the Instagram account.',
             },
           },
           status: 400,
@@ -276,23 +243,12 @@ export class InstagramAuthorizedSignalsProvider {
     igUserId: string | undefined,
     includeInsights: boolean,
   ): Promise<InstagramMediaFetch> {
-    if (!igUserId) {
-      throw {
-        response: {
-          data: {
-            error: {
-              code: 10,
-              message: 'Missing Instagram professional account id',
-            },
-          },
-          status: 400,
-        },
-      };
-    }
+    const resolvedId = this.requireIgUserId(igUserId);
 
     const response = await firstValueFrom(
       this.httpService.get<InstagramMediaListResponse>(
-        `${this.graphUrl}/${this.apiVersion}/${igUserId}/media`,
+        `${this.graphUrl}/${this.apiVersion}/${resolvedId}/media`,
+
         {
           params: {
             access_token: accessToken,

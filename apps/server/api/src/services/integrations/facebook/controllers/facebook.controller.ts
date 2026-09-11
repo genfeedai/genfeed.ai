@@ -172,7 +172,9 @@ export class FacebookController {
         organizationId,
         {
           avatarUrl: profile.picture?.data?.url,
-          handle: profile.email || profile.name,
+          // A personal Facebook profile has no public @handle through Graph —
+          // only a name and (private) email. Never persist either as a handle.
+          handle: undefined,
           id: credential.externalId || profile.id,
           name: profile.name,
         },

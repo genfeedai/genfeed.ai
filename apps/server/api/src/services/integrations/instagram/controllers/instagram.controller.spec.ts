@@ -54,19 +54,36 @@ async function captureHttpException(
   throw new Error('Expected an HttpException');
 }
 
+/** A Graph `me/accounts` candidate carrying an IG professional account. */
+function igAccount(overrides: {
+  id: string;
+  label?: string;
+  username?: string;
+  image?: string;
+}) {
+  return {
+    id: overrides.id,
+    image: overrides.image ?? `https://cdn.example.com/${overrides.id}.jpg`,
+    label: overrides.label ?? `Account ${overrides.id}`,
+    platform: 'instagram',
+    username: overrides.username ?? overrides.id,
+  };
+}
+
 describe('InstagramController', () => {
   let controller: InstagramController;
   let brandsFindOneMock: ReturnType<typeof vi.fn>;
   let credentialsBeginOAuthForBrandMock: ReturnType<typeof vi.fn>;
   let credentialsFindPendingOAuthCredentialMock: ReturnType<typeof vi.fn>;
   let credentialsPatchMock: ReturnType<typeof vi.fn>;
+  let credentialsResolveBrandAccountMock: ReturnType<typeof vi.fn>;
+  let credentialsFindConnectedAccountsMock: ReturnType<typeof vi.fn>;
   let httpGetMock: ReturnType<typeof vi.fn>;
   let httpPostMock: ReturnType<typeof vi.fn>;
   let credentialsFindOneMock: ReturnType<typeof vi.fn>;
   let credentialsUpdateExternalProfileMock: ReturnType<typeof vi.fn>;
   let instagramServiceMock: {
-    getAccountDetails: ReturnType<typeof vi.fn>;
-    getAvailableHandles: ReturnType<typeof vi.fn>;
+    listAuthorizedInstagramAccounts: ReturnType<typeof vi.fn>;
     getInstagramPages: ReturnType<typeof vi.fn>;
     getTrends: ReturnType<typeof vi.fn>;
   };
@@ -115,17 +132,16 @@ describe('InstagramController', () => {
     credentialsFindOneMock = vi.fn();
     credentialsPatchMock = vi.fn();
     credentialsUpdateExternalProfileMock = vi.fn();
+    credentialsResolveBrandAccountMock = vi.fn().mockResolvedValue(null);
+    credentialsFindConnectedAccountsMock = vi.fn().mockResolvedValue([]);
     httpGetMock = vi.fn();
     httpPostMock = vi.fn();
     instagramServiceMock = {
-      getAccountDetails: vi.fn().mockResolvedValue({
-        account_type: 'BUSINESS',
-        id: 'ig-account-id',
-        username: 'ig_handle',
-      }),
-      getAvailableHandles: vi.fn(),
       getInstagramPages: vi.fn().mockResolvedValue([]),
       getTrends: vi.fn(),
+      listAuthorizedInstagramAccounts: vi
+        .fn()
+        .mockResolvedValue([igAccount({ id: 'ig-account-id' })]),
     };
     instagramAuthorizedSignalsServiceMock = {
       refresh: vi.fn().mockResolvedValue({ state: 'full' }),
@@ -142,9 +158,11 @@ describe('InstagramController', () => {
 
     const credentialsMock = {
       beginOAuthForBrand: credentialsBeginOAuthForBrandMock,
+      findConnectedAccounts: credentialsFindConnectedAccountsMock,
       findOne: credentialsFindOneMock,
       findPendingOAuthCredential: credentialsFindPendingOAuthCredentialMock,
       patch: credentialsPatchMock,
+      resolveBrandAccount: credentialsResolveBrandAccountMock,
       updateExternalProfile: credentialsUpdateExternalProfileMock,
     } as unknown as CredentialsService;
 
@@ -198,6 +216,7 @@ describe('InstagramController', () => {
         instagramUserId,
         'instagram',
         expect.objectContaining({ isConnected: false }),
+        undefined,
       );
       expect(result).toHaveProperty('data');
       const data = result.data as unknown as { url: string };
@@ -272,6 +291,56 @@ describe('InstagramController', () => {
       expect(url).not.toContain(brandOid);
       expect(url).not.toContain(instagramOrganizationId);
     });
+
+    it('validates a reconnect credentialId belongs to this brand and forwards it', async () => {
+      const mockBrand = {
+        id: brandOid,
+        organizationId: instagramOrganizationId,
+        userId: instagramUserId,
+      };
+      brandsFindOneMock.mockResolvedValue(mockBrand);
+      credentialsResolveBrandAccountMock.mockResolvedValue({
+        externalId: 'ig-account-id',
+        id: 'existing-credential-id',
+      });
+
+      await controller.connect(mockRequest, mockUser, {
+        brandId: brandOid,
+        credentialId: 'existing-credential-id',
+      });
+
+      expect(credentialsResolveBrandAccountMock).toHaveBeenCalledWith({
+        brandId: brandOid,
+        credentialId: 'existing-credential-id',
+        isDisconnectedIncluded: true,
+        organizationId: instagramOrganizationId,
+        platform: 'instagram',
+      });
+      expect(credentialsBeginOAuthForBrandMock).toHaveBeenCalledWith(
+        mockBrand,
+        instagramUserId,
+        'instagram',
+        expect.objectContaining({ isConnected: false }),
+        'existing-credential-id',
+      );
+    });
+
+    it('rejects a reconnect credentialId from another brand', async () => {
+      brandsFindOneMock.mockResolvedValue({
+        id: brandOid,
+        organizationId: instagramOrganizationId,
+        userId: instagramUserId,
+      });
+      credentialsResolveBrandAccountMock.mockResolvedValue(null);
+
+      const result = await controller.connect(mockRequest, mockUser, {
+        brandId: brandOid,
+        credentialId: 'someone-elses-credential-id',
+      });
+
+      expect(result).toHaveProperty('errors');
+      expect(credentialsBeginOAuthForBrandMock).not.toHaveBeenCalled();
+    });
   });
 
   describe('verify', () => {
@@ -280,8 +349,7 @@ describe('InstagramController', () => {
     const state = 'opaque-oauth-state';
     const mockRequest = {} as unknown as Request;
 
-    it('should exchange code for long-lived token and update credential', async () => {
-      const credId = 'test-object-id';
+    function mockSuccessfulTokenExchange() {
       httpPostMock.mockReturnValue(
         of({ data: { access_token: 'short-lived-token' } }),
       );
@@ -290,14 +358,36 @@ describe('InstagramController', () => {
           data: { access_token: 'long-lived-token', expires_in: 5184000 },
         }),
       );
+    }
+
+    beforeEach(() => {
       credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
         brandId,
-        id: credId,
+        id: 'test-object-id',
         organizationId: orgId,
         userId: instagramUserId,
       });
       credentialsPatchMock.mockResolvedValue({
-        id: credId,
+        brandId,
+        id: 'test-object-id',
+        isConnected: false,
+      });
+    });
+
+    it('saves the token unconnected, then persists the single eligible account', async () => {
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        igAccount({
+          id: 'ig-account-id',
+          image: 'https://cdn.example.com/avatar.jpg',
+          label: 'Genfeed AI',
+          username: 'genfeedai',
+        }),
+      ]);
+      credentialsUpdateExternalProfileMock.mockResolvedValue({
+        brandId,
+        externalId: 'ig-account-id',
+        id: 'test-object-id',
         isConnected: true,
       });
 
@@ -306,66 +396,111 @@ describe('InstagramController', () => {
         state,
       });
 
-      expect(result.data).toEqual({ id: credId, isConnected: true });
       expect(credentialsPatchMock).toHaveBeenCalledWith(
-        credId,
+        'test-object-id',
         expect.objectContaining({
           accessToken: 'long-lived-token',
-          isConnected: true,
+          isConnected: false,
           isDeleted: false,
           oauthState: null,
         }),
       );
       expect(
+        instagramServiceMock.listAuthorizedInstagramAccounts,
+      ).toHaveBeenCalledWith('long-lived-token');
+      expect(credentialsUpdateExternalProfileMock).toHaveBeenCalledWith(
+        'test-object-id',
+        orgId,
+        {
+          avatarUrl: 'https://cdn.example.com/avatar.jpg',
+          handle: 'genfeedai',
+          id: 'ig-account-id',
+          name: 'Genfeed AI',
+        },
+      );
+      expect(
         instagramAuthorizedSignalsServiceMock.refresh,
       ).toHaveBeenCalledWith({
         accessToken: 'long-lived-token',
-        credentialId: credId,
+        credentialId: 'test-object-id',
         force: true,
         grantedScopes: undefined,
         organizationId: orgId,
       });
-    });
-
-    it('persists the connected account avatar and handle after token exchange', async () => {
-      const credId = 'test-object-id';
-      httpPostMock.mockReturnValue(
-        of({ data: { access_token: 'short-lived-token' } }),
-      );
-      httpGetMock.mockReturnValue(
-        of({
-          data: { access_token: 'long-lived-token', expires_in: 5184000 },
-        }),
-      );
-      credentialsFindPendingOAuthCredentialMock.mockResolvedValue({
+      expect(result.data).toEqual({
         brandId,
-        id: credId,
-        organizationId: orgId,
-        userId: instagramUserId,
-      });
-      credentialsPatchMock.mockResolvedValue({
-        brandId,
-        id: credId,
+        externalId: 'ig-account-id',
+        id: 'test-object-id',
         isConnected: true,
       });
-      instagramServiceMock.getAccountDetails.mockResolvedValue({
-        account_type: 'BUSINESS',
-        id: 'ig-account-id',
-        username: 'ig_handle',
+    });
+
+    it('fails the connection outright when the token reaches zero eligible accounts', async () => {
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue(
+        [],
+      );
+
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, { code: 'auth-code', state }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect(failure.getResponse()).toEqual(
+        expect.objectContaining({ title: 'Instagram account not eligible' }),
+      );
+      expect(credentialsUpdateExternalProfileMock).not.toHaveBeenCalled();
+    });
+
+    it('resolves a matching reconnect intent even among several accounts', async () => {
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        igAccount({ id: 'ig-account-a' }),
+        igAccount({ id: 'ig-account-b' }),
+      ]);
+      credentialsResolveBrandAccountMock.mockResolvedValue({
+        externalId: 'ig-account-b',
+        id: 'reconnect-target-id',
       });
-      instagramServiceMock.getInstagramPages.mockResolvedValue([
-        {
-          id: 'ig-account-id',
-          image: 'https://cdn.example.com/avatar.jpg',
-          label: 'Genfeed AI',
-          username: 'genfeedai',
-        },
+      credentialsUpdateExternalProfileMock.mockResolvedValue({
+        brandId,
+        externalId: 'ig-account-b',
+        id: 'test-object-id',
+        isConnected: true,
+      });
+
+      await controller.verify(mockRequest, {
+        code: 'auth-code',
+        state: `${state}.reconnect-target-id`,
+      });
+
+      expect(credentialsResolveBrandAccountMock).toHaveBeenCalledWith({
+        brandId,
+        credentialId: 'reconnect-target-id',
+        isDisconnectedIncluded: true,
+        organizationId: orgId,
+        platform: 'instagram',
+      });
+      expect(credentialsUpdateExternalProfileMock).toHaveBeenCalledWith(
+        'test-object-id',
+        orgId,
+        expect.objectContaining({ id: 'ig-account-b' }),
+      );
+    });
+
+    it('excludes accounts already held by another live credential of this brand, then resolves the remaining one', async () => {
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        igAccount({ id: 'ig-account-held' }),
+        igAccount({ id: 'ig-account-free' }),
+      ]);
+      credentialsFindConnectedAccountsMock.mockResolvedValue([
+        { externalId: 'ig-account-held', id: 'other-live-credential-id' },
       ]);
       credentialsUpdateExternalProfileMock.mockResolvedValue({
-        avatarUrl: 'https://cdn.example.com/avatar.jpg',
         brandId,
-        handle: 'genfeedai',
-        id: credId,
+        externalId: 'ig-account-free',
+        id: 'test-object-id',
         isConnected: true,
       });
 
@@ -374,23 +509,40 @@ describe('InstagramController', () => {
         state,
       });
 
-      expect(instagramServiceMock.getAccountDetails).toHaveBeenCalledWith(
-        'long-lived-token',
-      );
-      expect(instagramServiceMock.getInstagramPages).toHaveBeenCalledWith(
+      expect(credentialsFindConnectedAccountsMock).toHaveBeenCalledWith(
         orgId,
         brandId,
-        credId,
+        'instagram',
       );
       expect(credentialsUpdateExternalProfileMock).toHaveBeenCalledWith(
-        credId,
+        'test-object-id',
         orgId,
-        expect.objectContaining({
-          avatarUrl: 'https://cdn.example.com/avatar.jpg',
-          handle: 'genfeedai',
-          id: 'ig-account-id',
-        }),
+        expect.objectContaining({ id: 'ig-account-free' }),
       );
+    });
+
+    it('leaves the connection unresolved and unconnected when several accounts remain ambiguous', async () => {
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        igAccount({ id: 'ig-account-a' }),
+        igAccount({ id: 'ig-account-b' }),
+      ]);
+
+      const result = await controller.verify(mockRequest, {
+        code: 'auth-code',
+        state,
+      });
+
+      expect(credentialsUpdateExternalProfileMock).not.toHaveBeenCalled();
+      expect(result.data).toEqual(
+        expect.objectContaining({ id: 'test-object-id', isConnected: false }),
+      );
+      expect(
+        instagramAuthorizedSignalsServiceMock.refresh,
+      ).not.toHaveBeenCalled();
+      expect(
+        historyImportServiceMock.scheduleForCredential,
+      ).not.toHaveBeenCalled();
     });
 
     it('should return bad request when code or state is missing', async () => {

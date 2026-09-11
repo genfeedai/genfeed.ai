@@ -276,15 +276,18 @@ describe('LinkedInController', () => {
           grantedScopesCapturedAt: expect.any(Date),
         }),
       );
+      // LinkedIn's member profile has no public vanity handle — only a
+      // display name. It must never be persisted as a handle.
       expect(mockCredentialsService.updateExternalProfile).toHaveBeenCalledWith(
         credId,
         orgId,
         expect.objectContaining({
-          handle: 'John Doe',
+          handle: undefined,
           id: 'li-user-123',
           name: 'John Doe',
         }),
       );
+
       expect(mockLinkedInAuthorizedSignalsService.refresh).toHaveBeenCalledWith(
         {
           accessToken: 'linkedin-token',

@@ -438,8 +438,161 @@ describe('InstagramService', () => {
     });
   });
 
+  describe('listAuthorizedInstagramAccounts', () => {
+    it('paginates through every professional account the token can reach', async () => {
+      (httpServiceMock.get as Mock)
+        .mockReturnValueOnce(
+          of({
+            data: {
+              data: [
+                {
+                  id: 'page-1',
+                  instagram_business_account: {
+                    id: 'ig-1',
+                    name: 'Brand One',
+                    profile_picture_url: 'https://cdn.example.com/one.jpg',
+                    username: 'brandone',
+                  },
+                },
+                { id: 'page-2' },
+              ],
+              paging: {
+                next: 'https://graph.facebook.com/v24.0/me/accounts?after=cursor',
+              },
+            },
+          }),
+        )
+        .mockReturnValueOnce(
+          of({
+            data: {
+              data: [
+                {
+                  id: 'page-3',
+                  instagram_business_account: {
+                    id: 'ig-2',
+                    name: 'Brand Two',
+                    profile_picture_url: 'https://cdn.example.com/two.jpg',
+                    username: 'brandtwo',
+                  },
+                },
+              ],
+            },
+          }),
+        );
+
+      const result = await service.listAuthorizedInstagramAccounts('token');
+
+      expect(result).toEqual([
+        {
+          id: 'ig-1',
+          image: 'https://cdn.example.com/one.jpg',
+          label: 'Brand One',
+          platform: 'instagram',
+          username: 'brandone',
+        },
+        {
+          id: 'ig-2',
+          image: 'https://cdn.example.com/two.jpg',
+          label: 'Brand Two',
+          platform: 'instagram',
+          username: 'brandtwo',
+        },
+      ]);
+      expect(httpServiceMock.get).toHaveBeenNthCalledWith(
+        1,
+        'https://graph.facebook.com/v24.0/me/accounts',
+        {
+          params: {
+            access_token: 'token',
+            fields:
+              'id,name,instagram_business_account{id,username,name,profile_picture_url}',
+          },
+        },
+      );
+      expect(httpServiceMock.get).toHaveBeenNthCalledWith(
+        2,
+        'https://graph.facebook.com/v24.0/me/accounts?after=cursor',
+        undefined,
+      );
+    });
+
+    it('returns an empty list when the token manages no professional account', async () => {
+      (httpServiceMock.get as Mock).mockReturnValue(of({ data: { data: [] } }));
+
+      const result = await service.listAuthorizedInstagramAccounts('token');
+
+      expect(result).toEqual([]);
+    });
+  });
+
+  describe('getInstagramPages', () => {
+    it('keeps only accounts that pass the publish-capability probe', async () => {
+      vi.spyOn(service, 'getValidCredential').mockResolvedValue({
+        accessToken: 'token',
+        id: 'credential-id',
+        isConnected: true,
+      });
+      (httpServiceMock.get as Mock).mockReturnValue(
+        of({
+          data: {
+            data: [
+              {
+                id: 'page-1',
+                instagram_business_account: {
+                  id: 'ig-business',
+                  name: 'Business Brand',
+                  profile_picture_url: 'https://cdn.example.com/business.jpg',
+                  username: 'businessbrand',
+                },
+              },
+              {
+                id: 'page-2',
+                instagram_business_account: {
+                  id: 'ig-creator',
+                  name: 'Creator Brand',
+                  profile_picture_url: 'https://cdn.example.com/creator.jpg',
+                  username: 'creatorbrand',
+                },
+              },
+            ],
+          },
+        }),
+      );
+      (httpServiceMock.post as Mock)
+        .mockReturnValueOnce(of({ data: {} }))
+        .mockImplementationOnce(() =>
+          throwError(() => ({
+            response: { data: { error: { code: 10 } } },
+          })),
+        );
+
+      const result = await service.getInstagramPages(
+        'org',
+        'brand',
+        'credential-id',
+      );
+
+      expect(result).toEqual([
+        {
+          id: 'ig-business',
+          image: 'https://cdn.example.com/business.jpg',
+          isBusinessAccount: true,
+          label: 'Business Brand',
+          platform: 'instagram',
+          username: 'businessbrand',
+        },
+      ]);
+      expect(service.getValidCredential).toHaveBeenCalledWith(
+        'org',
+        'brand',
+        'credential-id',
+      );
+    });
+  });
+
   /*
   describe('getAvailableHandles', () => {
+
     it('should return available Instagram Business handles', async () => {
       const mockAxiosGet = axios.get;
 

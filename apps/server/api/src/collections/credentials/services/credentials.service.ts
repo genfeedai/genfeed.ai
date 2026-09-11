@@ -36,6 +36,37 @@ function hashOAuthRequestToken(token: string): string {
 }
 
 /**
+ * Opaque OAuth state doubles as the carrier for reconnect intent: appending
+ * `.{credentialId}` to the random nonce needs no new column and no separate
+ * lookup, and the provider echoes the whole string back verbatim. The nonce
+ * alphabet (base64url) and every entity id format are dot-free, so the first
+ * dot unambiguously starts the credential id.
+ */
+const OAUTH_STATE_RECONNECT_SEPARATOR = '.';
+
+function encodeOAuthState(
+  nonce: string,
+  reconnectCredentialId?: string,
+): string {
+  return reconnectCredentialId
+    ? `${nonce}${OAUTH_STATE_RECONNECT_SEPARATOR}${reconnectCredentialId}`
+    : nonce;
+}
+
+/** Recover the reconnect-intent credential id embedded in an opaque OAuth state, if any. */
+export function extractReconnectCredentialIdFromState(
+  state: string,
+): string | undefined {
+  const separatorIndex = state.indexOf(OAUTH_STATE_RECONNECT_SEPARATOR);
+  if (separatorIndex === -1) {
+    return undefined;
+  }
+
+  const candidate = state.slice(separatorIndex + 1).trim();
+  return candidate.length > 0 ? candidate : undefined;
+}
+
+/**
  * Columns that describe *this connection* rather than *this account*. When a
  * reconnect resolves to an account the brand already holds, these move onto the
  * incumbent row; everything else it owns — label, description, posting times,
@@ -571,8 +602,10 @@ export class CredentialsService
     userId: string,
     platform: CredentialPlatform,
     fields: CredentialUpsertFields = {},
+    reconnectCredentialId?: string,
   ): Promise<{ credential: CredentialDocument; state: string }> {
-    const state = randomBytes(32).toString('base64url');
+    const nonce = randomBytes(32).toString('base64url');
+    const state = encodeOAuthState(nonce, reconnectCredentialId);
     const credential = await this.createPendingForBrand(
       brand,
       userId,

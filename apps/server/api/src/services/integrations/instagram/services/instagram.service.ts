@@ -9,7 +9,6 @@ import {
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import type {
-  InstagramAccountDetails,
   InstagramConversationThread,
   InstagramCredentialResponse,
   InstagramGraphCommentNode,
@@ -261,26 +260,71 @@ export class InstagramService {
     return toInstagramCredentialResponse(credential);
   }
 
-  public async getAccountDetails(
+  /**
+   * Every Instagram professional (Business or Creator) account this token can
+   * reach, via the Facebook Pages the token's user manages. Paginates through
+   * `paging.next` so a user managing many Pages is not silently truncated.
+   * Shared by verify-time account resolution and `getInstagramPages` — the
+   * only difference is that the latter further filters to accounts that can
+   * actually publish (see the per-page probe below).
+   */
+  public async listAuthorizedInstagramAccounts(
     accessToken: string,
-  ): Promise<InstagramAccountDetails> {
+  ): Promise<InstagramPageResponse[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    const accounts: InstagramPageResponse[] = [];
+    let nextUrl: string | undefined =
+      `${this.graphUrl}/${this.apiVersion}/me/accounts`;
+    let params: Record<string, unknown> | undefined = {
+      access_token: accessToken,
+      fields:
+        'id,name,instagram_business_account{id,username,name,profile_picture_url}',
+    };
 
     try {
-      const response = await firstValueFrom(
-        this.httpService.get<InstagramAccountDetails>(`${this.graphUrl}/me`, {
-          params: {
-            access_token: accessToken,
-            fields: 'id,username,account_type,media_count',
-          },
-        }),
-      );
+      while (nextUrl) {
+        const response = await firstValueFrom(
+          this.httpService.get(nextUrl, params ? { params } : undefined),
+        );
 
-      this.loggerService.log(`${url} succeeded`, {
-        accountId: response.data.id,
-      });
+        const userPages: Array<{
+          instagram_business_account?: {
+            id: string;
+            name?: string;
+            username?: string;
+            profile_picture_url?: string;
+          };
+        }> = response.data?.data ?? [];
 
-      return response.data;
+        accounts.push(
+          ...userPages.flatMap((page) => {
+            const account = page.instagram_business_account;
+            if (!account?.id) {
+              return [];
+            }
+
+            return [
+              {
+                id: account.id,
+                image: account.profile_picture_url,
+                label: account.name,
+                platform: CredentialPlatform.INSTAGRAM,
+                username: account.username,
+              },
+            ];
+          }),
+        );
+
+        const next: unknown = response.data?.paging?.next;
+        nextUrl = typeof next === 'string' ? next : undefined;
+        // Graph's `paging.next` is a fully-qualified URL that already carries
+        // every query param (including access_token) — passing params again
+        // would duplicate and could conflict with them.
+        params = undefined;
+      }
+
+      this.loggerService.log(`${url} succeeded`, { count: accounts.length });
+      return accounts;
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);
       throw error;
@@ -304,44 +348,10 @@ export class InstagramService {
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
 
       const pages: InstagramPageResponse[] = [];
+      const businessPages =
+        await this.listAuthorizedInstagramAccounts(accessToken);
 
-      // 2. Get list of Facebook Pages the user manages
-      const response = await firstValueFrom(
-        this.httpService.get(
-          `${this.graphUrl}/${this.apiVersion}/me/accounts`,
-          {
-            params: {
-              access_token: accessToken,
-              fields:
-                'id,instagram_business_account{id,name,username,profile_picture_url}',
-            },
-          },
-        ),
-      );
-
-      const userPages = response.data.data || [];
-      const businessPages = userPages
-        .filter(
-          (page: { instagram_business_account?: Record<string, unknown> }) =>
-            page.instagram_business_account,
-        )
-        .map(
-          (page: {
-            instagram_business_account: {
-              id: string;
-              name: string;
-              username: string;
-              profile_picture_url: string;
-            };
-          }) => ({
-            id: page.instagram_business_account.id,
-            image: page.instagram_business_account.profile_picture_url,
-            label: page.instagram_business_account.name,
-            username: page.instagram_business_account.username,
-          }),
-        );
-
-      // 3. For each page, check if it has an Instagram Business Account
+      // For each candidate account, check if it has an Instagram Business Account
       for (const page of businessPages) {
         try {
           // Check if this is a Business brand (can publish) or Creator brand (read-only)
