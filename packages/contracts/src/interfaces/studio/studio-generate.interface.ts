@@ -116,7 +116,11 @@ export interface StudioGenerateCapabilities {
   hasBrandEnrichment: boolean;
   hasDuration: boolean;
   hasIdentity: boolean;
+  /** Whether the resolved model accepts an instrumental/vocals toggle (music only). */
+  hasInstrumentalToggle: boolean;
   hasLook: boolean;
+  /** Whether the resolved model accepts explicit lyrics/composition text (music only). */
+  hasLyrics: boolean;
   hasModelSelection: boolean;
   hasOutputs: boolean;
   hasReferences: boolean;
@@ -150,9 +154,11 @@ export interface StudioGenerateSettings {
   cameraMovement?: string;
   duration?: number;
   folder?: string;
+  instrumental?: boolean;
   isAudioEnabled: boolean;
   lens?: string;
   lighting?: string;
+  lyrics?: string;
   modelKey: string;
   mood?: string;
   outputs: number;

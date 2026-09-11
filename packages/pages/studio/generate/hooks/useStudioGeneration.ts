@@ -618,8 +618,13 @@ export function useStudioGeneration({
 
           case 'music': {
             const service = await getMusicsService();
+            const musicPromptData = {
+              ...promptData,
+              instrumental: settings.instrumental,
+              lyrics: settings.lyrics,
+            };
             const payload = buildMusicPayload(
-              promptData,
+              musicPromptData,
               modelKey,
               settings.duration ?? DEFAULT_MUSIC_DURATION,
             );

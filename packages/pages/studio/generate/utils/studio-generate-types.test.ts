@@ -29,6 +29,17 @@ describe('STUDIO_GENERATE_TYPES', () => {
   });
 });
 
+describe('lyrics/instrumental capabilities', () => {
+  it('are only offered for music', () => {
+    for (const type of STUDIO_GENERATE_TYPES) {
+      const { hasInstrumentalToggle, hasLyrics } =
+        getStudioGenerateTypeConfig(type).capabilities;
+      expect(hasInstrumentalToggle).toBe(type === 'music');
+      expect(hasLyrics).toBe(type === 'music');
+    }
+  });
+});
+
 describe('getStudioGenerateTypeConfig', () => {
   it('maps image to the image ingredient + model catalog', () => {
     const config = getStudioGenerateTypeConfig('image');
@@ -70,7 +81,9 @@ describe('getStudioGenerateTypeConfig', () => {
       hasAspectRatio: false,
       hasBrandEnrichment: false,
       hasDuration: true,
+      hasInstrumentalToggle: true,
       hasLook: false,
+      hasLyrics: true,
       hasReferences: false,
     });
   });

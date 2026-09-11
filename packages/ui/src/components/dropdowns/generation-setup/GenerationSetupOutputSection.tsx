@@ -7,6 +7,7 @@ import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSe
 import {
   GENERATION_SETUP_ASPECT_RATIO_OPTIONS,
   GENERATION_SETUP_DURATION_OPTIONS_SECONDS,
+  GENERATION_SETUP_MUSIC_DURATION_OPTIONS_SECONDS,
   GENERATION_SETUP_OUTPUTS_OPTIONS,
 } from '@ui/dropdowns/generation-setup/generation-setup.constants';
 import {
@@ -16,9 +17,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { Switch } from '@ui/primitives/switch';
+import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 
-/** Output tab: aspect ratio, duration (video only), and output count. */
+/** Output tab: aspect ratio, duration, output count, and (music only) instrumental/lyrics. */
 export default function GenerationSetupOutputSection({
   capabilities,
   onResetField,
@@ -27,6 +30,10 @@ export default function GenerationSetupOutputSection({
   setup,
 }: GenerationSetupOutputSectionProps) {
   const translate = useTranslations('agent.generationSetup');
+  const durationOptions =
+    setup.values.type === 'music'
+      ? GENERATION_SETUP_MUSIC_DURATION_OPTIONS_SECONDS
+      : GENERATION_SETUP_DURATION_OPTIONS_SECONDS;
 
   return (
     <div className="flex flex-col gap-3">
@@ -78,13 +85,49 @@ export default function GenerationSetupOutputSection({
               <SelectValue placeholder="Duration" />
             </SelectTrigger>
             <SelectContent>
-              {GENERATION_SETUP_DURATION_OPTIONS_SECONDS.map((seconds) => (
+              {durationOptions.map((seconds) => (
                 <SelectItem key={seconds} value={String(seconds)}>
                   {translate('durationSeconds', { seconds })}
                 </SelectItem>
               ))}
             </SelectContent>
           </Select>
+        </GenerationSetupFieldRow>
+      ) : null}
+
+      {capabilities.hasInstrumentalToggle ? (
+        <GenerationSetupFieldRow
+          fieldKey="instrumental"
+          label="Instrumental"
+          onReset={onResetField}
+          reason={reasons.instrumental}
+          source={setup.sources.instrumental ?? 'agent'}
+        >
+          <div className="flex w-full justify-end">
+            <Switch
+              isChecked={setup.values.instrumental ?? false}
+              onCheckedChange={(checked) => onSetField('instrumental', checked)}
+            />
+          </div>
+        </GenerationSetupFieldRow>
+      ) : null}
+
+      {capabilities.hasLyrics ? (
+        <GenerationSetupFieldRow
+          fieldKey="lyrics"
+          label="Lyrics"
+          onReset={onResetField}
+          reason={reasons.lyrics}
+          source={setup.sources.lyrics ?? 'agent'}
+        >
+          <Textarea
+            aria-label="Lyrics"
+            isDisabled={setup.values.instrumental === true}
+            onChange={(event) => onSetField('lyrics', event.target.value)}
+            placeholder="Optional — verses, chorus, structure"
+            rows={3}
+            value={setup.values.lyrics ?? ''}
+          />
         </GenerationSetupFieldRow>
       ) : null}
 

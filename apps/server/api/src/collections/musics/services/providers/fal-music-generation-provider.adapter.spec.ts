@@ -98,6 +98,59 @@ describe('FalMusicGenerationProviderAdapter', () => {
         expect.objectContaining({ force_instrumental: true }),
       );
     });
+
+    it('folds explicit lyrics into the prompt (no dedicated fal field)', async () => {
+      const falService = {
+        run: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
+      };
+      const adapter = new FalMusicGenerationProviderAdapter(
+        falService as never,
+      );
+
+      await adapter.generate(
+        buildRequest({
+          createMusicDto: Object.assign(new CreateMusicDto(), {
+            lyrics: 'Verse one\nChorus',
+            text: 'music',
+          }),
+        }),
+      );
+
+      expect(falService.run).toHaveBeenCalledWith(
+        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        expect.objectContaining({
+          prompt: expect.stringContaining('Verse one\nChorus'),
+        }),
+      );
+    });
+
+    it('drops lyrics when instrumental is requested', async () => {
+      const falService = {
+        run: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
+      };
+      const adapter = new FalMusicGenerationProviderAdapter(
+        falService as never,
+      );
+
+      await adapter.generate(
+        buildRequest({
+          createMusicDto: Object.assign(new CreateMusicDto(), {
+            instrumental: true,
+            lyrics: 'Verse one',
+            text: 'music',
+          }),
+        }),
+      );
+
+      expect(falService.run).toHaveBeenCalledWith(
+        MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        expect.objectContaining({ prompt: 'upbeat electronic music' }),
+      );
+    });
   });
 
   describe('generate — Lyria 3 Pro', () => {

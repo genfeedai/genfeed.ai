@@ -108,18 +108,27 @@ export function buildImagePayload(
 }
 
 export function buildMusicPayload(
-  promptData: PromptTextareaSchema & { isValid: boolean },
+  promptData: PromptTextareaSchema & {
+    instrumental?: boolean;
+    isValid: boolean;
+    lyrics?: string;
+  },
   modelKey: string,
   duration: number = 10,
 ): MusicGenerationPayload {
   const effectiveText = promptData.text?.trim() || '';
   const isAutoSelectModel = promptData.autoSelectModel === true;
+  const instrumental = promptData.instrumental === true;
 
   return {
     autoSelectModel: isAutoSelectModel,
     duration,
     folder: promptData.folder || undefined,
+    // An instrumental request has no lyrics to send, even if the field still
+    // holds stale text from before the toggle was flipped.
+    instrumental,
     label: `music-${Date.now()}`,
+    lyrics: instrumental ? undefined : promptData.lyrics?.trim() || undefined,
     model: isAutoSelectModel ? undefined : modelKey,
     outputs: promptData.outputs || 1,
     prioritize: promptData.prioritize ?? RouterPriority.BALANCED,

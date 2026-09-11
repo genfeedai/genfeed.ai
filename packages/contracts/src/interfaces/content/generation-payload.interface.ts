@@ -51,6 +51,8 @@ export interface MusicGenerationPayload {
   autoSelectModel?: boolean;
   prioritize?: RouterPriority;
   duration: number;
+  instrumental?: boolean;
+  lyrics?: string;
   label: string;
   folder?: string;
 }

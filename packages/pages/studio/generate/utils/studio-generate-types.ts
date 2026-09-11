@@ -27,7 +27,9 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: false,
       hasDuration: false,
       hasIdentity: true,
+      hasInstrumentalToggle: false,
       hasLook: false,
+      hasLyrics: false,
       // Avatar clips go to HeyGen directly — there is no router model catalog.
       hasModelSelection: false,
       hasOutputs: false,
@@ -50,7 +52,9 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: true,
       hasDuration: false,
       hasIdentity: false,
+      hasInstrumentalToggle: false,
       hasLook: true,
+      hasLyrics: false,
       hasModelSelection: true,
       hasOutputs: true,
       hasReferences: true,
@@ -66,11 +70,13 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
   music: {
     capabilities: {
       hasAspectRatio: false,
-      // The music payload carries model + duration only.
+      // The music payload carries model, duration, instrumental, and lyrics.
       hasBrandEnrichment: false,
       hasDuration: true,
       hasIdentity: false,
+      hasInstrumentalToggle: true,
       hasLook: false,
+      hasLyrics: true,
       hasModelSelection: true,
       hasOutputs: true,
       hasReferences: false,
@@ -89,7 +95,9 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: true,
       hasDuration: true,
       hasIdentity: false,
+      hasInstrumentalToggle: false,
       hasLook: true,
+      hasLyrics: false,
       hasModelSelection: true,
       // Video providers bill per clip — one clip per generate, no multiplier.
       hasOutputs: false,
@@ -112,7 +120,9 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: false,
       hasDuration: false,
       hasIdentity: true,
+      hasInstrumentalToggle: false,
       hasLook: false,
+      hasLyrics: false,
       // The chosen catalog voice *is* the model — `/voices/generate` takes a
       // `voiceId`, never a router model key.
       hasModelSelection: false,
