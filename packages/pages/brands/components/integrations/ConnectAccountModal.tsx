@@ -54,12 +54,13 @@ export default function ConnectAccountModal({
           </DialogDescription>
         </DialogHeader>
 
-        {/* cmdk reads its own root's `aria-label` to fill in the hidden
-            <label htmlFor> it renders for the input — passing aria-label
-            straight to CommandInput does nothing, since cmdk generates its
-            own id/aria-labelledby on the input after props are spread. */}
+        {/* cmdk's own hidden <label htmlFor> (rendered by the Command
+            root and linked to the input via auto-generated ids) is filled
+            from the root's `label` prop specifically — not `aria-label`,
+            and not anything passed to CommandInput itself, which ignores
+            both (confirmed by dumping the rendered DOM). */}
         <Command
-          aria-label={translate('searchPlatforms')}
+          label={translate('searchPlatforms')}
           className="bg-transparent"
         >
           <CommandInput placeholder={translate('searchPlatforms')} />
