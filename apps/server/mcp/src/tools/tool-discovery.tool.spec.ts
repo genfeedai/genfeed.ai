@@ -37,6 +37,36 @@ function coreTool(name: string): McpToolOutput {
   });
 }
 
+/**
+ * `handleToolDiscoveryTool` returns a union of a success shape
+ * (`content`, optional `structuredContent`) and an error shape (`content`,
+ * `isError`). Neither member is a subtype of the other, so plain property
+ * access on the union does not typecheck — these assertion helpers narrow it
+ * the same way the caller eventually would, using presence-of-`isError` as
+ * the discriminant.
+ */
+type ToolDiscoveryResult = ReturnType<typeof handleToolDiscoveryTool>;
+type ToolDiscoveryErrorResult = Extract<
+  ToolDiscoveryResult,
+  { isError: boolean }
+>;
+type ToolDiscoverySuccessResult = Exclude<
+  ToolDiscoveryResult,
+  { isError: boolean }
+>;
+
+function expectSuccess(
+  result: ToolDiscoveryResult,
+): asserts result is ToolDiscoverySuccessResult {
+  expect('isError' in result).toBe(false);
+}
+
+function expectError(
+  result: ToolDiscoveryResult,
+): asserts result is ToolDiscoveryErrorResult {
+  expect('isError' in result).toBe(true);
+}
+
 describe('handleToolDiscoveryTool', () => {
   describe('list_toolsets', () => {
     it('summarizes every toolset visible to the caller with counts, ordered and described by the static catalog', () => {
@@ -48,6 +78,7 @@ describe('handleToolDiscoveryTool', () => {
       };
 
       const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      expectSuccess(result);
 
       expect(result.content[0].text).toContain(
         `core (always on): ${USER_VISIBLE_CORE_TOOL_NAMES.length} tool(s)`,
@@ -73,6 +104,7 @@ describe('handleToolDiscoveryTool', () => {
       };
 
       const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      expectSuccess(result);
 
       const toolsets = result.structuredContent?.toolsets as Array<{
         name: string;
@@ -89,6 +121,7 @@ describe('handleToolDiscoveryTool', () => {
       };
 
       const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      expectSuccess(result);
 
       const toolsets = result.structuredContent?.toolsets as Array<{
         name: string;
@@ -125,6 +158,7 @@ describe('handleToolDiscoveryTool', () => {
 
     it('rejects a search with neither query nor toolset', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {});
+      expectError(result);
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain(
@@ -136,6 +170,7 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         query: 'IMAGE',
       });
+      expectSuccess(result);
 
       expect(result.structuredContent?.tools).toEqual([
         expect.objectContaining({ name: 'generate_image' }),
@@ -146,6 +181,7 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         toolset: 'generation',
       });
+      expectSuccess(result);
 
       expect(result.structuredContent?.tools).toEqual([
         expect.objectContaining({
@@ -159,8 +195,8 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         toolset: '  Generation  ',
       });
+      expectSuccess(result);
 
-      expect(result.isError).toBeUndefined();
       expect(result.structuredContent?.tools).toEqual([
         expect.objectContaining({ name: 'generate_image' }),
       ]);
@@ -170,6 +206,7 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         toolset: 'not-a-real-toolset',
       });
+      expectError(result);
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain(
@@ -183,6 +220,7 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         query: 'generate_image',
       });
+      expectSuccess(result);
 
       expect(result.structuredContent?.tools).toEqual([
         {
@@ -201,6 +239,7 @@ describe('handleToolDiscoveryTool', () => {
         limit: 1,
         query: 'tool',
       });
+      expectSuccess(result);
 
       expect(result.structuredContent?.tools).toHaveLength(1);
     });
@@ -209,8 +248,8 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         query: 'nothing-matches-this',
       });
+      expectSuccess(result);
 
-      expect(result.isError).toBeUndefined();
       expect(result.content[0].text).toBe('No matching tools found.');
     });
 
@@ -218,6 +257,7 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'search_tools', {
         query: 'admin',
       });
+      expectSuccess(result);
 
       // The fixture registry still returns the admin tool (role filtering is
       // the registry's job via getDiscoverableTools), so the handler surfaces
@@ -241,6 +281,7 @@ describe('handleToolDiscoveryTool', () => {
 
     it('requires a name', () => {
       const result = handleToolDiscoveryTool(registry, 'describe_tool', {});
+      expectError(result);
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain('requires "name"');
@@ -250,8 +291,8 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'describe_tool', {
         name: 'create_post',
       });
+      expectSuccess(result);
 
-      expect(result.isError).toBeUndefined();
       expect(result.structuredContent?.tool).toMatchObject({
         name: 'create_post',
         inputSchema: { properties: {}, type: 'object' },
@@ -262,6 +303,7 @@ describe('handleToolDiscoveryTool', () => {
       const result = handleToolDiscoveryTool(registry, 'describe_tool', {
         name: 'create_post_typo',
       });
+      expectError(result);
 
       expect(result.isError).toBe(true);
       expect(result.content[0].text).toContain(

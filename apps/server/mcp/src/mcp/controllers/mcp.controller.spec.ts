@@ -1,4 +1,4 @@
-import type { McpToolOutput } from '@genfeedai/actions';
+import type { McpToolOutput, ToolsetName } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
@@ -110,7 +110,8 @@ describe('McpController', () => {
   };
 
   const getToolsForRoleAndToolsetsMock = vi.fn(
-    (role: McpRole, _toolsets: string[]): McpToolOutput[] => roleTools[role],
+    (role: McpRole, _toolsets: readonly ToolsetName[]): McpToolOutput[] =>
+      roleTools[role],
   );
 
   const mockMcpService = {
