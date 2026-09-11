@@ -55,6 +55,29 @@ export function getToolsetNames(surface: 'agent' | 'mcp'): ToolsetName[] {
   return getToolsets(surface).map((toolset) => toolset.name);
 }
 
+/**
+ * Lazily-filled per-surface cache of `getToolsetNames`. `ALL_TOOLS` is a
+ * static module-level constant, so the name set for a surface never changes
+ * within a process — computing it once avoids re-filtering and re-sorting
+ * the whole catalog on every `parseToolsetSelection` call, including the
+ * unauthenticated `tools/list` requests that carry no `?toolsets=` at all.
+ */
+const toolsetNamesBySurface = new Map<
+  'agent' | 'mcp',
+  ReadonlySet<ToolsetName>
+>();
+
+function getToolsetNameSet(surface: 'agent' | 'mcp'): ReadonlySet<ToolsetName> {
+  const cached = toolsetNamesBySurface.get(surface);
+  if (cached) {
+    return cached;
+  }
+
+  const names = new Set<ToolsetName>(getToolsetNames(surface));
+  toolsetNamesBySurface.set(surface, names);
+  return names;
+}
+
 export interface ToolsetSelection {
   toolsets: ToolsetName[];
   unknown: string[];
@@ -84,9 +107,11 @@ export function parseToolsetSelection(
     .map((value) => value.trim().toLowerCase())
     .filter((value) => value.length > 0);
 
-  const namesOnSurface: ReadonlySet<string> | undefined = surface
-    ? new Set(getToolsetNames(surface))
-    : undefined;
+  if (segments.length === 0) {
+    return { toolsets: [], unknown: [] };
+  }
+
+  const namesOnSurface = surface ? getToolsetNameSet(surface) : undefined;
 
   const toolsets: ToolsetName[] = [];
   const unknown: string[] = [];
@@ -98,12 +123,11 @@ export function parseToolsetSelection(
     }
     seen.add(segment);
 
-    const isKnown = namesOnSurface
-      ? isToolsetName(segment) && namesOnSurface.has(segment)
-      : isToolsetName(segment);
-
-    if (isKnown) {
-      toolsets.push(segment as ToolsetName);
+    if (
+      isToolsetName(segment) &&
+      (!namesOnSurface || namesOnSurface.has(segment))
+    ) {
+      toolsets.push(segment);
     } else {
       unknown.push(segment);
     }

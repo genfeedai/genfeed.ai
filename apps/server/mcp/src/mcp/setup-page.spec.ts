@@ -51,9 +51,8 @@ function loadPickerFunction<T extends (...args: never[]) => unknown>(
 ): T {
   const sources = names.map((name) => extractFunctionSource(html, name));
   const targetName = names[names.length - 1];
-  // eslint-disable-next-line no-new-func -- extracting real client-side
-  // source for a direct behavioral test; no jsdom is configured for this
-  // package's vitest environment.
+  // Extracting real client-side source for a direct behavioral test; no
+  // jsdom is configured for this package's vitest environment.
   return new Function(`${sources.join('\n')}\nreturn ${targetName};`)() as T;
 }
 
@@ -318,6 +317,32 @@ describe('MCP setup page', () => {
       expect(html).toMatch(
         /data-toolset-checkbox data-toolset="(?!core")[a-z-]+"(?! checked disabled)/,
       );
+    });
+
+    it('shows the same user-visible core tool count as the JSON server card, not the unfiltered catalog count', () => {
+      // The picker and the server card must agree: both are public/unauthenticated
+      // surfaces, so `core`'s displayed count excludes role-gated tools like
+      // `resolve_approval` on both, rather than the picker showing the raw
+      // catalog count while the card shows the role-filtered one.
+      const html = renderSetupPage();
+      const unfilteredCoreCount = getToolsets('mcp').find(
+        (toolset) => toolset.name === 'core',
+      )?.toolCount;
+      const cardCoreCount = getMcpServerCard().toolsets.find(
+        (toolset) => toolset.name === 'core',
+      )?.toolCount;
+
+      const coreOptionMatch = html.match(
+        /data-toolset-checkbox data-toolset="core" checked disabled[\s\S]*?toolset-count">(\d+) tools?</,
+      );
+
+      expect(unfilteredCoreCount).toBeDefined();
+      expect(cardCoreCount).toBeDefined();
+      expect(coreOptionMatch).not.toBeNull();
+
+      const pickerCoreCount = Number(coreOptionMatch?.[1]);
+      expect(pickerCoreCount).toBe(cardCoreCount);
+      expect(pickerCoreCount).toBeLessThan(unfilteredCoreCount as number);
     });
 
     it('gives the endpoint display, copy button, and command snippets stable ids for the picker script', () => {

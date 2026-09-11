@@ -1,8 +1,6 @@
 import type { McpToolOutput } from '@genfeedai/actions';
-import {
-  handleToolDiscoveryTool,
-  type ToolDiscoverySource,
-} from '@mcp/tools/tool-discovery.tool';
+import type { ToolDiscoverySource } from '@mcp/shared/interfaces/tool-discovery.interface';
+import { handleToolDiscoveryTool } from '@mcp/tools/tool-discovery.tool';
 
 function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
   return {

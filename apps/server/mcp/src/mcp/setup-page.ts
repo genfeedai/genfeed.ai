@@ -1,5 +1,5 @@
 import process from 'node:process';
-import { getToolsets, getToolsForSurface, TOOLSETS } from '@genfeedai/actions';
+import { getToolsForSurface, TOOLSETS } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
@@ -187,8 +187,9 @@ export function getMcpProtectedResourceMetadata() {
  * which would advertise admin- and superadmin-gated tools (e.g.
  * `resolve_approval`) the caller cannot invoke.
  */
-function getUserVisibleToolsetCards(): Array<{
+function getUserVisibleToolsetSummaries(): Array<{
   description: string;
+  isAlwaysOn: boolean;
   name: string;
   toolCount: number;
 }> {
@@ -208,9 +209,24 @@ function getUserVisibleToolsetCards(): Array<{
     toolCountByToolset.has(definition.name),
   ).map((definition) => ({
     description: definition.description,
+    isAlwaysOn: definition.isAlwaysOn,
     name: definition.name,
     toolCount: toolCountByToolset.get(definition.name) ?? 0,
   }));
+}
+
+/**
+ * Same user-visible counts as `getUserVisibleToolsetSummaries`, trimmed to
+ * the server-card schema's `toolsets` shape (no `isAlwaysOn`).
+ */
+function getUserVisibleToolsetCards(): Array<{
+  description: string;
+  name: string;
+  toolCount: number;
+}> {
+  return getUserVisibleToolsetSummaries().map(
+    ({ description, name, toolCount }) => ({ description, name, toolCount }),
+  );
 }
 
 export function getMcpServerCard() {
@@ -277,7 +293,7 @@ export function renderSetupPage(): string {
   );
   const mcpUrlInlineScriptLiteral = toInlineScriptStringLiteral(mcpUrl);
 
-  const toolsetOptions = getToolsets('mcp')
+  const toolsetOptions = getUserVisibleToolsetSummaries()
     .map((toolset) => {
       const nameSafe = escapeHtml(toolset.name);
       const descriptionSafe = escapeHtml(toolset.description);
