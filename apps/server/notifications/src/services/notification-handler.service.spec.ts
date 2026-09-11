@@ -39,7 +39,6 @@ describe('NotificationHandlerService', () => {
 
   const mockDiscordService = {
     sendArticleNotification: vi.fn(),
-    sendChromaticNotification: vi.fn(),
     sendIngredientNotification: vi.fn(),
     sendLowCreditsAlert: vi.fn(),
     sendModelDiscoveryNotification: vi.fn(),
@@ -339,14 +338,6 @@ describe('NotificationHandlerService', () => {
       expect(mockDiscordService.sendVercelNotification).toHaveBeenCalledWith({
         title: 'Deploy',
       });
-    });
-
-    it('dispatches chromatic notifications', async () => {
-      await emit('chromatic_notification', { embed: { title: 'Chromatic' } });
-
-      expect(mockDiscordService.sendChromaticNotification).toHaveBeenCalledWith(
-        { title: 'Chromatic' },
-      );
     });
 
     it('dispatches user created notifications', async () => {
