@@ -1,10 +1,10 @@
 'use client';
 
 import { cn } from '@genfeedai/helpers';
-import type { DropdownFieldOption } from '@genfeedai/props/ui/forms/dropdown-field.props';
 import Image from 'next/image';
 import type { KeyboardEvent } from 'react';
 import { Badge } from './badge';
+import type { DropdownFieldOption } from './dropdown-field.types';
 
 type BadgeVariant =
   | 'default'

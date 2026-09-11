@@ -1,6 +1,6 @@
 'use client';
 
-import type { DropdownFieldTab } from '@genfeedai/props/ui/forms/dropdown-field.props';
+import type { DropdownFieldTab } from './dropdown-field.types';
 import { Tabs, TabsList, TabsTrigger } from './tabs';
 
 type DropdownTabBarProps = {

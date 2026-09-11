@@ -2,10 +2,6 @@
 
 import { type ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
-import type {
-  DropdownFieldOption,
-  DropdownFieldTab,
-} from '@genfeedai/props/ui/forms/dropdown-field.props';
 import {
   type ChangeEvent,
   type KeyboardEvent,
@@ -16,6 +12,10 @@ import {
   useState,
 } from 'react';
 import { getBadgeVariant } from './dropdown-field.helpers';
+import type {
+  DropdownFieldOption,
+  DropdownFieldTab,
+} from './dropdown-field.types';
 import DropdownOptionItem from './dropdown-field-option-item';
 import DropdownSearchBar from './dropdown-field-search-bar';
 import DropdownTabBar from './dropdown-field-tab-bar';
