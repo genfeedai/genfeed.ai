@@ -28,10 +28,6 @@ export const videoAttributes = createEntityAttributes([
   'sounds',
   'speech',
   'endFrame',
-  // Background music options
-  'backgroundMusic',
-  'musicVolume',
-  'muteVideoAudio',
 ]);
 
 export const videoEditAttributes = createEntityAttributes([

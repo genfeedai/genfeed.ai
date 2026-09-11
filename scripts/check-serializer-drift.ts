@@ -623,7 +623,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'social-message:SocialMessage': [],
   'video:Ingredient': [
     'agentWorkObject',
-    'backgroundMusic',
     'bitrate',
     'blacklist',
     'blacklists',
@@ -649,8 +648,6 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'lighting',
     'model',
     'mood',
-    'musicVolume',
-    'muteVideoAudio',
     'outputFormat',
     'outputs',
     'pendingIngredientIds',

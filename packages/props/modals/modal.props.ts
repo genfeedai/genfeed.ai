@@ -32,7 +32,6 @@ import type {
   IMetadata,
   IModel,
   IMonitoredAccount,
-  IMusic,
   IOrganizationSetting,
   IPost,
   IPostPlatformConfig,
@@ -132,12 +131,6 @@ export interface ModalTypeBadgeProps {
   className?: string;
   showLabel?: boolean;
   size?: ComponentSize.SM | ComponentSize.MD | ComponentSize.LG;
-}
-
-export interface ModalMusicProps {
-  brandId: string;
-  selectedMusicId: string;
-  onConfirm: (music: IMusic | null) => void;
 }
 
 export interface ModalMemberProps {

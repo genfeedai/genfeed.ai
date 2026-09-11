@@ -4,9 +4,6 @@ import { z } from 'zod';
 export const promptTextareaSchema = z.object({
   autoSelectModel: z.boolean().optional(),
   avatarId: z.string().optional(),
-  backgroundMusicId: z.string().optional(), // For selecting existing music ingredient
-  backgroundMusicMode: z.enum(['existing', 'generate']).optional(),
-  backgroundMusicPrompt: z.string().optional(), // For auto-generating music
   blacklist: z.array(z.string()),
   brand: z.string(),
   brandingMode: z.enum(['off', 'brand']).optional(),
@@ -20,16 +17,12 @@ export const promptTextareaSchema = z.object({
   format: z.string(),
   height: z.number(),
   isAudioEnabled: z.boolean().optional(),
-  // Background music options
-  isBackgroundMusicEnabled: z.boolean().optional(),
   isBrandingEnabled: z.boolean().optional(),
   lens: z.string().optional(),
   lighting: z.string().optional(),
   // Models field remains for explicit overrides.
   models: z.array(z.string()),
   mood: z.string().optional(),
-  musicVolume: z.number().min(0).max(100).optional(),
-  muteVideoAudio: z.boolean().optional(),
   outputs: z.number().optional(),
   prioritize: z.nativeEnum(RouterPriority).optional(),
   prompt_template: z.string().optional(),

@@ -13,6 +13,7 @@ import {
   threadPostSchema,
 } from '@genfeedai/client/schemas/content/post.schema';
 import {
+  type PromptTextareaSchema,
   promptAvatarSchema,
   promptTextareaSchema,
 } from '@genfeedai/client/schemas/content/prompt.schema';
@@ -309,10 +310,15 @@ describe('content schemas', () => {
       ).toBe(false);
     });
 
-    it('rejects musicVolume over 100', () => {
-      expect(
-        promptTextareaSchema.safeParse({ ...valid, musicVolume: 150 }).success,
-      ).toBe(false);
+    // Background music moved to the Studio editor (#4683) — the video
+    // generation prompt bar no longer carries these fields at all.
+    it('no longer types background-music fields on the parsed prompt', () => {
+      const parsed: PromptTextareaSchema = promptTextareaSchema.parse(valid);
+
+      expect(parsed).not.toHaveProperty('musicVolume');
+      expect(parsed).not.toHaveProperty('backgroundMusicMode');
+      expect(parsed).not.toHaveProperty('isBackgroundMusicEnabled');
+      expect(parsed).not.toHaveProperty('muteVideoAudio');
     });
   });
 

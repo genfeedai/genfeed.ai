@@ -53,11 +53,6 @@ describe('LazyModal', () => {
       expect(typeof LazyModals.LazyIngredientOverlay).toBe('function');
     });
 
-    it('should export LazyModalMusic', () => {
-      expect(LazyModals.LazyModalMusic).toBeDefined();
-      expect(typeof LazyModals.LazyModalMusic).toBe('function');
-    });
-
     it('should export LazyModalVideo', () => {
       expect(LazyModals.LazyModalVideo).toBeDefined();
       expect(typeof LazyModals.LazyModalVideo).toBe('function');
