@@ -103,7 +103,7 @@ describe('CallerUtil', () => {
     it('ignores dots in the location of a frame without a class', () => {
       expect(
         withStack(
-          'Error\n    at getCallerName (util)\n    at handleVercel (/home/runner/work/genfeed.ai/genfeed.ai/webhooks.vercel.controller.ts:30:52)',
+          'Error\n    at getCallerName (util)\n    at handleVercel (/app/src/webhooks.vercel.controller.ts:30:52)',
         ),
       ).toBe('handleVercel');
     });
@@ -127,7 +127,7 @@ describe('CallerUtil', () => {
     it('returns unknown for anonymous frames with a dotted location', () => {
       expect(
         withStack(
-          'Error\n    at getCallerName (util)\n    at /home/runner/work/genfeed.ai/genfeed.ai/app.spec.ts:8:45',
+          'Error\n    at getCallerName (util)\n    at /app/src/app.spec.ts:8:45',
         ),
       ).toBe('unknown');
     });
