@@ -19,7 +19,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import { Label } from '@ui/primitives/label';
 import { useTranslations } from 'next-intl';
 
 /** Unavailable platforms stay visible (disabled) rather than disappearing, so
@@ -55,14 +54,15 @@ export default function ConnectAccountModal({
           </DialogDescription>
         </DialogHeader>
 
-        <Command className="bg-transparent">
-          <Label htmlFor="connect-account-search" className="sr-only">
-            {translate('searchPlatforms')}
-          </Label>
-          <CommandInput
-            id="connect-account-search"
-            placeholder={translate('searchPlatforms')}
-          />
+        {/* cmdk reads its own root's `aria-label` to fill in the hidden
+            <label htmlFor> it renders for the input — passing aria-label
+            straight to CommandInput does nothing, since cmdk generates its
+            own id/aria-labelledby on the input after props are spread. */}
+        <Command
+          aria-label={translate('searchPlatforms')}
+          className="bg-transparent"
+        >
+          <CommandInput placeholder={translate('searchPlatforms')} />
           <CommandList className="max-h-[22rem] px-1 pb-2">
             <CommandEmpty>{translate('noPlatformsFound')}</CommandEmpty>
             {platformGroups.map((group) => (
