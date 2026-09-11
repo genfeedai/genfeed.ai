@@ -72,13 +72,8 @@ describe('MusicGenerationService', () => {
     const failedGenerationService = {
       handleFailedMusicGeneration: vi.fn().mockResolvedValue(undefined),
     };
-    const filesClientService = {
-      uploadToS3: vi.fn().mockResolvedValue({
-        duration: 10,
-        publicUrl: 'https://cdn.example.com/music-1.mp3',
-        s3Key: 'musics/music-1.mp3',
-        size: 12345,
-      }),
+    const webhooksService = {
+      processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
     };
     const ingredientCompletionService = {
       waitForMultipleIngredientsCompletion: vi.fn(),
@@ -153,7 +148,6 @@ describe('MusicGenerationService', () => {
       brandsService as never,
       creditsService,
       failedGenerationService as never,
-      filesClientService as never,
       loggerService as never,
       ingredientCompletionService as never,
       metadataService as never,
@@ -164,6 +158,7 @@ describe('MusicGenerationService', () => {
       promptsService as never,
       routerService as never,
       sharedService as never,
+      webhooksService as never,
       websocketService as never,
     );
 
@@ -172,7 +167,6 @@ describe('MusicGenerationService', () => {
       brandsService,
       creditsUtilsService,
       failedGenerationService,
-      filesClientService,
       ingredientCompletionService,
       loggerService,
       metadataService,
@@ -184,6 +178,7 @@ describe('MusicGenerationService', () => {
       routerService,
       service,
       sharedService,
+      webhooksService,
       websocketService,
     };
   };
@@ -268,22 +263,19 @@ describe('MusicGenerationService', () => {
 
     await created.service.generateMusic(user, buildDto(), request);
 
-    expect(created.filesClientService.uploadToS3).toHaveBeenCalledWith(
+    // Finalization runs through the same shared WebhooksService path the
+    // Replicate webhook and worker poll processors use — it owns the
+    // upload/activity/cost/dimension/notification side effects and the
+    // still-PROCESSING guard, so this service only needs to hand off the id,
+    // category, URL, and provider generation id.
+    expect(
+      created.webhooksService.processMediaForIngredient,
+    ).toHaveBeenCalledWith(
       'music-1',
-      'musics',
-      { type: 'url', url: 'https://cdn.example.com/finished-track.mp3' },
+      'MUSIC',
+      'https://cdn.example.com/finished-track.mp3',
+      'task-1',
     );
-    expect(created.musicsService.patch).toHaveBeenCalledWith('music-1', {
-      cdnUrl: 'https://cdn.example.com/music-1.mp3',
-      promptId: 'prompt-1',
-      s3Key: 'musics/music-1.mp3',
-      status: IngredientStatus.GENERATED,
-    });
-    expect(created.metadataService.patch).toHaveBeenCalledWith('metadata-1', {
-      duration: 10,
-      result: 'https://cdn.example.com/finished-track.mp3',
-      size: 12345,
-    });
   });
 
   it('does not finalize when the provider stays async (Replicate — webhook finalizes later)', async () => {
@@ -291,7 +283,9 @@ describe('MusicGenerationService', () => {
 
     await created.service.generateMusic(user, buildDto(), request);
 
-    expect(created.filesClientService.uploadToS3).not.toHaveBeenCalled();
+    expect(
+      created.webhooksService.processMediaForIngredient,
+    ).not.toHaveBeenCalled();
   });
 
   it('rejects a missing prompt with the existing 400 response', async () => {

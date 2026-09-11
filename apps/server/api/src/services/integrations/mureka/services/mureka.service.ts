@@ -35,10 +35,12 @@ const MUREKA_POLL_TIMEOUT_MS = 180_000;
 /**
  * Mureka V9 direct API integration — not fal/Replicate. Contract per
  * https://platform.mureka.ai/docs/api/operations/post-v1-song-generate.html
- * (POST /v1/song/generate, Bearer auth, GET /v1/song/query/{task_id} to
- * poll). Field names beyond `prompt`/`lyrics`/`instrumental`/`model` should
- * be reconfirmed against a live account before this model is activated in
- * the registry (it seeds `isActive: false`).
+ * (POST /v1/song/generate for lyrics-driven songs, POST
+ * /v1/instrumental/generate for instrumental-only requests, Bearer auth, GET
+ * /v1/song/query/{task_id} to poll). Field names beyond
+ * `prompt`/`lyrics`/`instrumental`/`model` should be reconfirmed against a
+ * live account before this model is activated in the registry (it seeds
+ * `isActive: false`).
  */
 @Injectable()
 export class MurekaService {
@@ -91,18 +93,34 @@ export class MurekaService {
     });
 
     try {
-      const submitRes = await firstValueFrom(
-        this.httpService.post<MurekaGenerateResponse>(
-          `${this.baseUrl()}/v1/song/generate`,
-          {
-            instrumental: input.instrumental ?? false,
-            lyrics: input.lyrics,
-            model,
-            prompt: input.prompt,
-          },
-          { headers: this.headers() },
-        ),
-      );
+      // Mureka publishes a dedicated instrumental endpoint rather than a
+      // flag on /v1/song/generate for instrumental-only output — routing an
+      // instrumental request there instead avoids paying for lyrics-aware
+      // generation the request doesn't want.
+      // @see https://platform.mureka.ai/docs/api/operations/post-v1-instrumental-generate.html
+      const submitRes = input.instrumental
+        ? await firstValueFrom(
+            this.httpService.post<MurekaGenerateResponse>(
+              `${this.baseUrl()}/v1/instrumental/generate`,
+              {
+                model,
+                prompt: input.prompt,
+              },
+              { headers: this.headers() },
+            ),
+          )
+        : await firstValueFrom(
+            this.httpService.post<MurekaGenerateResponse>(
+              `${this.baseUrl()}/v1/song/generate`,
+              {
+                instrumental: false,
+                lyrics: input.lyrics,
+                model,
+                prompt: input.prompt,
+              },
+              { headers: this.headers() },
+            ),
+          );
 
       const taskId = submitRes.data?.task_id ?? submitRes.data?.id;
       if (!taskId) {
@@ -136,9 +154,18 @@ export class MurekaService {
           ).then((res) => res.data),
         (data) => {
           const status = data?.status?.toLowerCase();
-          if (status === 'failed' || status === 'error') {
+          // Mureka's terminal-but-unsuccessful states must be treated as
+          // failures rather than left to fall through to "not yet done" —
+          // otherwise a real cancelled/timed-out task spins for the full
+          // poll timeout instead of failing fast.
+          if (
+            status === 'failed' ||
+            status === 'error' ||
+            status === 'timeouted' ||
+            status === 'cancelled'
+          ) {
             throw new Error(
-              `Mureka generation failed: ${data?.error || 'Unknown error'}`,
+              `Mureka generation ${status}: ${data?.error || 'Unknown error'}`,
             );
           }
           return status === 'succeeded' || status === 'completed';

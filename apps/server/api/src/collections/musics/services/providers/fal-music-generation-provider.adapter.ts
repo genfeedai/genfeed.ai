@@ -85,11 +85,13 @@ export class FalMusicGenerationProviderAdapter
   }
 
   /**
-   * fal publishes a distinct schema per music model — Eleven Music accepts
-   * `music_length_ms` + `instrumental`, Lyria 3 Pro accepts `duration`
-   * (seconds). Both take a plain `prompt`.
-   * @see https://fal.ai/learn/devs/elevenlabs-music-user-guide
-   * @see https://fal.ai/learn/tools/best-text-to-music-apis-2026
+   * fal publishes a distinct schema per music model. Eleven Music accepts
+   * `music_length_ms` + `force_instrumental` alongside `prompt`. Lyria 3 Pro's
+   * schema is only `{ prompt, image_url }` — it has no duration, seed, or
+   * instrumental field, so those hints are folded into the prompt text
+   * instead of sent as (silently-dropped) parameters.
+   * @see https://fal.ai/models/fal-ai/elevenlabs/music/api
+   * @see https://fal.ai/models/fal-ai/lyria3/pro/api
    */
   private buildInput(
     endpoint: string,
@@ -98,16 +100,24 @@ export class FalMusicGenerationProviderAdapter
   ): Record<string, unknown> {
     if (endpoint.includes('elevenlabs')) {
       return {
-        instrumental: request.createMusicDto.instrumental ?? false,
+        force_instrumental: request.createMusicDto.instrumental ?? false,
         music_length_ms: duration * 1000,
         prompt: request.prompt,
       };
     }
 
     return {
-      duration,
-      prompt: request.prompt,
-      seed: request.seed >= 0 ? request.seed : undefined,
+      prompt: this.withLyriaHints(request),
     };
+  }
+
+  /**
+   * Lyria 3 Pro has no dedicated instrumental toggle, so an instrumental
+   * request is expressed as a prompt directive instead of a parameter.
+   */
+  private withLyriaHints(request: MusicGenerationProviderRequest): string {
+    return request.createMusicDto.instrumental
+      ? `${request.prompt} (instrumental, no vocals or lyrics)`
+      : request.prompt;
   }
 }

@@ -125,6 +125,55 @@ describe('MurekaService', () => {
       expect(isDone({ status: 'completed' })).toBe(true);
     });
 
+    it('treats timeouted and cancelled as terminal failures instead of spinning to the poll timeout', async () => {
+      const { post, poll, service } = createHarness();
+      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      poll.mockResolvedValue({
+        attempts: 1,
+        elapsedMs: 1,
+        value: {
+          choices: [{ url: 'https://cdn.example.com/x.mp3' }],
+          status: 'succeeded',
+        },
+      });
+
+      await service.generateSong({ prompt: 'a song' });
+
+      const isDone = poll.mock.calls[0][1] as (data: unknown) => boolean;
+      expect(() => isDone({ status: 'timeouted' })).toThrow(
+        'Mureka generation timeouted',
+      );
+      expect(() => isDone({ status: 'cancelled' })).toThrow(
+        'Mureka generation cancelled',
+      );
+    });
+
+    it('routes an instrumental request to the dedicated instrumental endpoint', async () => {
+      const { post, poll, service } = createHarness();
+      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      poll.mockResolvedValue({
+        attempts: 1,
+        elapsedMs: 1,
+        value: {
+          choices: [{ url: 'https://cdn.example.com/instrumental.mp3' }],
+          status: 'succeeded',
+        },
+      });
+
+      await service.generateSong({ instrumental: true, prompt: 'a beat' });
+
+      expect(post).toHaveBeenCalledWith(
+        'https://platform.mureka.ai/v1/instrumental/generate',
+        { model: 'V9', prompt: 'a beat' },
+        {
+          headers: {
+            Authorization: 'Bearer env-key',
+            'Content-Type': 'application/json',
+          },
+        },
+      );
+    });
+
     it('throws when the generate response has no task id', async () => {
       const { post, service } = createHarness();
       post.mockReturnValue(of({ data: {} }));

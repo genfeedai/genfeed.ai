@@ -929,19 +929,21 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       supportsVocals: true,
     },
 
-    // fal.ai: https://fal.ai/learn/tools/best-text-to-music-apis-2026 — up to
-    // 3-minute full songs with vocals/lyrics and multi-language support.
+    // fal.ai: https://fal.ai/models/fal-ai/lyria3/pro/api — input schema is
+    // only `{ prompt, image_url }`. There is no duration, seed, instrumental,
+    // or lyrics parameter; lyrics appear solely in the model's output. We
+    // fold an instrumental hint into the prompt text (see
+    // FalMusicGenerationProviderAdapter.withLyriaHints) rather than declaring
+    // controls the provider doesn't actually accept.
     [MODEL_KEYS.FAL_LYRIA3_PRO]: {
       category: ModelCategory.MUSIC,
-      defaultDuration: 30,
-      durations: [10, 15, 20, 30, 45, 60, 90],
-      hasDurationEditing: true,
+      hasDurationEditing: false,
       isBatchSupported: false,
       languages: ['en', 'es', 'fr', 'de', 'ja', 'ko', 'pt'],
       maxOutputs: 4,
       maxReferences: 0,
       supportsInstrumental: true,
-      supportsLyrics: true,
+      supportsLyrics: false,
       supportsVocals: true,
     },
 

@@ -47,7 +47,7 @@ describe('FalMusicGenerationProviderAdapter', () => {
       expect(falService.run).toHaveBeenCalledWith(
         MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
         expect.objectContaining({
-          instrumental: false,
+          force_instrumental: false,
           music_length_ms: 30_000,
           prompt: 'upbeat electronic music',
         }),
@@ -95,13 +95,13 @@ describe('FalMusicGenerationProviderAdapter', () => {
 
       expect(falService.run).toHaveBeenCalledWith(
         MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
-        expect.objectContaining({ instrumental: true }),
+        expect.objectContaining({ force_instrumental: true }),
       );
     });
   });
 
   describe('generate — Lyria 3 Pro', () => {
-    it('sends duration in seconds and the seed', async () => {
+    it('sends only prompt — Lyria has no duration/seed/instrumental input fields', async () => {
       const falService = {
         run: vi.fn().mockResolvedValue({
           audio_file: { url: 'https://fal.example.com/lyria.mp3' },
@@ -120,11 +120,37 @@ describe('FalMusicGenerationProviderAdapter', () => {
         }),
       );
 
-      expect(falService.run).toHaveBeenCalledWith(
-        MODEL_KEYS.FAL_LYRIA3_PRO,
-        expect.objectContaining({ duration: 45, seed: 7 }),
-      );
+      expect(falService.run).toHaveBeenCalledWith(MODEL_KEYS.FAL_LYRIA3_PRO, {
+        prompt: 'upbeat electronic music',
+      });
       expect(result.outputUrl).toBe('https://fal.example.com/lyria.mp3');
+    });
+
+    it('folds an instrumental hint into the prompt text instead of sending an unsupported field', async () => {
+      const falService = {
+        run: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://fal.example.com/lyria.mp3' }),
+      };
+      const adapter = new FalMusicGenerationProviderAdapter(
+        falService as never,
+      );
+
+      await adapter.generate(
+        buildRequest({
+          createMusicDto: Object.assign(new CreateMusicDto(), {
+            instrumental: true,
+            text: 'ambient soundscape',
+          }),
+          model: MODEL_KEYS.FAL_LYRIA3_PRO,
+          modelEndpoint: MODEL_KEYS.FAL_LYRIA3_PRO,
+          prompt: 'ambient soundscape',
+        }),
+      );
+
+      expect(falService.run).toHaveBeenCalledWith(MODEL_KEYS.FAL_LYRIA3_PRO, {
+        prompt: 'ambient soundscape (instrumental, no vocals or lyrics)',
+      });
     });
   });
 
