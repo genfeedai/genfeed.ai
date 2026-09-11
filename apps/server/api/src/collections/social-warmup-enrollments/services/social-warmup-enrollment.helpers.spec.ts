@@ -268,8 +268,8 @@ describe('social-warmup-enrollment helpers', () => {
         youtubeAuthorized: {
           evidence: [{ status: 'available' }],
           grantedScopes: [
-            'https://www.googleapis.com/auth/youtube',
-            'https://www.googleapis.com/auth/youtube.upload',
+            'https://www.googleapis.com/auth/youtube.force-ssl',
+            'https://www.googleapis.com/auth/yt-analytics.readonly',
           ],
           state: 'full',
         },

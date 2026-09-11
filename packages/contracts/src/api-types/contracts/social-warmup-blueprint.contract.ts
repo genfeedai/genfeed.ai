@@ -1685,7 +1685,7 @@ export const YOUTUBE_SOCIAL_WARMUP_BLUEPRINT =
               type: 'signal',
             },
             description:
-              'Confirm the connected channel can upload when youtube.upload or youtube is granted.',
+              'Confirm the connected channel can upload when youtube.force-ssl, youtube.upload, or youtube is granted.',
             days: [5, 6, 7],
             evidenceIds: ['yt-upload', 'yt-channels'],
             id: 'snapshot-publishing-capability',

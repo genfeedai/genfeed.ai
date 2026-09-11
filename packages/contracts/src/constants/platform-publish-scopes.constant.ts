@@ -14,7 +14,7 @@ export const PLATFORM_REQUIRED_PUBLISH_SCOPES = {
   [CredentialPlatform.TIKTOK]: ['video.publish'],
   [CredentialPlatform.TWITTER]: ['tweet.write'],
   [CredentialPlatform.YOUTUBE]: [
-    'https://www.googleapis.com/auth/youtube.upload',
+    'https://www.googleapis.com/auth/youtube.force-ssl',
   ],
 } as const satisfies Partial<Record<CredentialPlatform, readonly string[]>>;
 

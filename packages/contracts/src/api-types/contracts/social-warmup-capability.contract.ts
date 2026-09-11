@@ -400,10 +400,7 @@ export const SOCIAL_WARMUP_CAPABILITY_MATRIX = {
   [CredentialPlatform.YOUTUBE]: capability({
     accountType: 'YouTube channel via Google OAuth.',
     connectionScopes: [
-      'https://www.googleapis.com/auth/youtube',
-      'https://www.googleapis.com/auth/youtube.readonly',
       'https://www.googleapis.com/auth/youtube.force-ssl',
-      'https://www.googleapis.com/auth/youtube.upload',
       'https://www.googleapis.com/auth/yt-analytics.readonly',
     ],
     evidenceFreshness: `Reviewed ${SOCIAL_WARMUP_CAPABILITY_REVIEWED_ON} against the published catalog blueprint, YouTube OAuth scopes, and authorized-signals adapter.`,

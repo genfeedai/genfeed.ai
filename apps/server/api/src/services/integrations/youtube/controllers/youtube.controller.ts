@@ -97,11 +97,10 @@ export class YoutubeController {
         accessType: 'offline',
         includeGrantedScopes: false,
         prompt: 'consent',
+        // youtube.force-ssl covers every Data and Live API call Genfeed makes
+        // (upload, playlists, comments, live chat); request nothing broader.
         scope: [
-          'https://www.googleapis.com/auth/youtube',
-          'https://www.googleapis.com/auth/youtube.readonly',
           'https://www.googleapis.com/auth/youtube.force-ssl',
-          'https://www.googleapis.com/auth/youtube.upload',
           'https://www.googleapis.com/auth/yt-analytics.readonly',
         ],
         state,
