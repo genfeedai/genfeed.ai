@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import type { AccountsTableProps } from '@props/pages/brand-integrations.props';
 import Card from '@ui/card/Card';
@@ -21,7 +22,10 @@ import { useMemo } from 'react';
 import AccountCell from './AccountCell';
 import AccountRowActionsMenu from './AccountRowActionsMenu';
 import AccountStatusBadge from './AccountStatusBadge';
-import { getConnectionLabel } from './account-connection-status.util';
+import {
+  getAccountConnectionStatus,
+  getConnectionLabel,
+} from './account-connection-status.util';
 
 function sortConnections(
   connections: BrandDetailSocialConnection[],
@@ -35,6 +39,14 @@ function sortConnections(
   });
 }
 
+function buildHealthByCredentialId(
+  accountHealth: AccountHealthSummary[],
+): Map<string, AccountHealthSummary> {
+  return new Map(
+    accountHealth.map((summary) => [summary.credentialId, summary]),
+  );
+}
+
 /**
  * One row per account, all platforms — replaces the old per-platform card
  * grid. Desktop renders `@ui/primitives/table`; below `md` the same row
@@ -42,7 +54,7 @@ function sortConnections(
  * on a phone.
  */
 export default function AccountsTable({
-  connectedPlatformsCount,
+  accountHealth,
   connectingPlatform,
   connections,
   onConnectAccount,
@@ -55,6 +67,20 @@ export default function AccountsTable({
   const sortedConnections = useMemo(
     () => sortConnections(connections),
     [connections],
+  );
+  // The header count and each row's status must agree — both derive from
+  // the same `getAccountConnectionStatus` call, not a separately computed
+  // "isConnected" tally that a lapsed or identity-less row would inflate.
+  const connectedCount = useMemo(
+    () =>
+      sortedConnections.filter(
+        (connection) => getAccountConnectionStatus(connection) === 'connected',
+      ).length,
+    [sortedConnections],
+  );
+  const healthByCredentialId = useMemo(
+    () => buildHealthByCredentialId(accountHealth),
+    [accountHealth],
   );
 
   const connectButton = (
@@ -71,7 +97,7 @@ export default function AccountsTable({
     <Card
       label={translate('connectedAccounts')}
       description={translate('accountsCount', {
-        count: connectedPlatformsCount,
+        count: connectedCount,
       })}
       headerAction={connectButton}
     >
@@ -88,7 +114,7 @@ export default function AccountsTable({
         />
       ) : (
         <>
-          <div className="hidden md:block">
+          <div className="hidden md:block" data-testid="accounts-table-desktop">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -100,9 +126,12 @@ export default function AccountsTable({
               </TableHeader>
               <TableBody>
                 {sortedConnections.map((connection) => {
+                  // Only the row being reconnected is disabled — a connect
+                  // in flight for one platform must not freeze every other
+                  // account's Reconnect action.
                   const isReconnectDisabled =
                     unavailablePlatforms.has(connection.platform) ||
-                    connectingPlatform !== null;
+                    connectingPlatform === connection.platform;
 
                   return (
                     <TableRow key={connection.credentialId}>
@@ -113,12 +142,16 @@ export default function AccountsTable({
                         <PlatformBadge platform={connection.platform} />
                       </TableCell>
                       <TableCell>
-                        <AccountStatusBadge connection={connection} />
+                        <AccountStatusBadge
+                          connection={connection}
+                          health={healthByCredentialId.get(
+                            connection.credentialId,
+                          )}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <AccountRowActionsMenu
                           connection={connection}
-                          isPostingTimesDisabled={false}
                           isReconnectDisabled={isReconnectDisabled}
                           onDisconnect={onDisconnect}
                           onPostingTimes={onPostingTimes}
@@ -132,11 +165,14 @@ export default function AccountsTable({
             </Table>
           </div>
 
-          <div className="flex flex-col gap-2 md:hidden">
+          <div
+            className="flex flex-col gap-2 md:hidden"
+            data-testid="accounts-table-mobile"
+          >
             {sortedConnections.map((connection) => {
               const isReconnectDisabled =
                 unavailablePlatforms.has(connection.platform) ||
-                connectingPlatform !== null;
+                connectingPlatform === connection.platform;
 
               return (
                 <div
@@ -147,7 +183,6 @@ export default function AccountsTable({
                     <AccountCell connection={connection} />
                     <AccountRowActionsMenu
                       connection={connection}
-                      isPostingTimesDisabled={false}
                       isReconnectDisabled={isReconnectDisabled}
                       onDisconnect={onDisconnect}
                       onPostingTimes={onPostingTimes}
@@ -156,7 +191,10 @@ export default function AccountsTable({
                   </div>
                   <div className="flex items-center gap-2">
                     <PlatformBadge platform={connection.platform} />
-                    <AccountStatusBadge connection={connection} />
+                    <AccountStatusBadge
+                      connection={connection}
+                      health={healthByCredentialId.get(connection.credentialId)}
+                    />
                   </div>
                 </div>
               );

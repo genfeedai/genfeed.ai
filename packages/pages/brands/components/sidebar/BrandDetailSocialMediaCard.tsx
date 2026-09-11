@@ -10,10 +10,10 @@ import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import AccountAvatar from '@pages/brands/components/integrations/AccountAvatar';
 import AccountsTable from '@pages/brands/components/integrations/AccountsTable';
 import {
   getAccountConnectionStatus,
-  getConnectionInitials,
   getConnectionLabel,
   hasWarmupBlueprint,
   STATE_MESSAGE_KEYS,
@@ -36,8 +36,6 @@ import {
   type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -52,6 +50,18 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 
+/**
+ * The fields `handleConnectPlatform` actually reads. Kept narrow (rather
+ * than the full `ResolvedOAuthConnectPlatform`) so the same handler accepts
+ * both a real catalog entry and `ConnectAccountModal`'s structurally
+ * equivalent (but independently declared, to avoid a props->ui package
+ * cycle — see `ConnectPlatformReadiness`) platform type.
+ */
+type ConnectablePlatform = Pick<
+  ResolvedOAuthConnectPlatform,
+  'isConnectAvailable' | 'label' | 'platform' | 'servicePath'
+>;
+
 function ConnectedAccount({
   connection,
   isSelected = false,
@@ -63,27 +73,7 @@ function ConnectedAccount({
     getAccountConnectionStatus(connection) === 'needsReconnect';
   const content = (
     <>
-      <span className="relative shrink-0">
-        <Avatar className="size-10 bg-background shadow-border">
-          {connection.avatarUrl ? (
-            <AvatarImage
-              src={connection.avatarUrl}
-              alt={translate('profilePictureAlt', { account: label })}
-              className="object-cover"
-            />
-          ) : null}
-          <AvatarFallback className="text-xs font-semibold text-foreground/70">
-            {getConnectionInitials(connection)}
-          </AvatarFallback>
-        </Avatar>
-        <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5 shadow-border-strong">
-          <PlatformBadge
-            platform={connection.platform}
-            showLabel={false}
-            className="size-4 justify-center rounded-full p-0"
-          />
-        </span>
-      </span>
+      <AccountAvatar connection={connection} size="md" />
 
       <span className="min-w-0 text-left">
         <span className="flex min-w-0 items-center gap-1.5">
@@ -213,6 +203,7 @@ export default function BrandDetailSocialMediaCard({
     useState<SocialConnection | null>(null);
 
   const connectedConnections = connections;
+  const hasVisibleConnections = connectedConnections.length > 0;
   // Every channel stays on the connect list even once it holds an account: a
   // brand runs as many accounts per platform as it wants, so filtering the
   // connected ones out would hide the way to add the second one.
@@ -232,13 +223,23 @@ export default function BrandDetailSocialMediaCard({
   const platformConnectedCounts = useMemo(() => {
     const counts: Partial<Record<CredentialPlatform, number>> = {};
     for (const connection of connectedConnections) {
-      if (connection.isConnected === false) {
+      if (getAccountConnectionStatus(connection) !== 'connected') {
         continue;
       }
       counts[connection.platform] = (counts[connection.platform] ?? 0) + 1;
     }
     return counts;
   }, [connectedConnections]);
+  // The header count and the compact card's own description must agree with
+  // what each row actually shows — a lapsed or identity-less credential
+  // does not count as connected just because `isConnected` is still true.
+  const compactConnectedCount = useMemo(
+    () =>
+      connectedConnections.filter(
+        (connection) => getAccountConnectionStatus(connection) === 'connected',
+      ).length,
+    [connectedConnections],
+  );
   const connectionHealth = useMemo(
     () =>
       connections
@@ -361,7 +362,7 @@ export default function BrandDetailSocialMediaCard({
   }, [loadAccountHealth]);
 
   const handleConnectPlatform = async (
-    item: ResolvedOAuthConnectPlatform,
+    item: ConnectablePlatform,
     credentialId?: string,
   ) => {
     if (!item.isConnectAvailable) {
@@ -576,13 +577,12 @@ export default function BrandDetailSocialMediaCard({
       </div>
     ) : null;
 
-  const socialDescription =
-    connectedPlatformsCount > 0
-      ? translate('channelAvailability', {
-          channelCount: oauthConnectPlatforms.length,
-          connectedCount: connectedPlatformsCount,
-        })
-      : translate('connectAccountsDescription');
+  const socialDescription = hasVisibleConnections
+    ? translate('channelAvailability', {
+        channelCount: oauthConnectPlatforms.length,
+        connectedCount: compactConnectedCount,
+      })
+    : translate('connectAccountsDescription');
 
   const disconnectDialog = (
     <Dialog
@@ -726,7 +726,7 @@ export default function BrandDetailSocialMediaCard({
     return (
       <>
         <AccountsTable
-          connectedPlatformsCount={connectedPlatformsCount}
+          accountHealth={healthRows}
           connectingPlatform={connectingPlatform}
           connections={connectedConnections}
           onConnectAccount={() => setIsConnectAccountModalOpen(true)}
@@ -763,13 +763,11 @@ export default function BrandDetailSocialMediaCard({
             className="h-8 shrink-0 px-2.5 text-xs"
             onClick={() => setIsDialogOpen(true)}
           >
-            {connectedPlatformsCount > 0
-              ? translate('manage')
-              : translate('connect')}
+            {hasVisibleConnections ? translate('manage') : translate('connect')}
           </Button>
         }
       >
-        {connectedConnections.length > 0 ? (
+        {hasVisibleConnections ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {connectedConnections.map((connection) => (
               <ConnectedAccount
@@ -808,7 +806,7 @@ export default function BrandDetailSocialMediaCard({
             </DialogDescription>
           </DialogHeader>
 
-          {connectedPlatformsCount > 0 ? (
+          {hasVisibleConnections ? (
             <div className="space-y-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 {connectedConnections.map((connection) => (

@@ -168,7 +168,9 @@ function connectedInstagram(): BrandDetailSocialConnection {
       },
     },
     credentialId: 'cred-ig-1',
+    externalId: 'ext-ig-1',
     handle: '@moonrise',
+    isConnected: true,
     label: 'Moonrise IG',
     name: 'Moonrise',
     platform: Platform.INSTAGRAM,
@@ -253,6 +255,47 @@ describe('PlatformHomePage', () => {
     expect(
       screen.queryByRole('link', { name: 'Open Replies' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows Needs reconnect instead of a live Connected state for a lapsed credential', () => {
+    mocks.socialConnections = [
+      {
+        ...connectedInstagram(),
+        externalId: undefined,
+        isConnected: false,
+      },
+    ];
+
+    render(<PlatformHomePage platform={Platform.INSTAGRAM} />);
+
+    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
+    expect(screen.queryByText('Healthy')).not.toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+  });
+
+  it('prefers a genuinely connected credential as primary when a lapsed one also exists', () => {
+    mocks.socialConnections = [
+      {
+        ...connectedInstagram(),
+        credentialId: 'cred-ig-lapsed',
+        externalId: undefined,
+        handle: '@brokenaccount',
+        isConnected: false,
+        name: 'Broken Account',
+      },
+      connectedInstagram(),
+    ];
+
+    render(<PlatformHomePage platform={Platform.INSTAGRAM} />);
+
+    // The primary card must read from the genuinely connected credential
+    // (Moonrise) even though the lapsed one ("Broken Account") is listed
+    // first in the array.
+    expect(
+      screen.getByText(
+        'Moonrise is healthy. Reconnect from Social settings if publishing stalls.',
+      ),
+    ).toBeInTheDocument();
   });
 
   it('adds live and replies shortcuts for YouTube', () => {

@@ -53,6 +53,17 @@ describe('getAccountConnectionStatus', () => {
     ).toBe(false);
   });
 
+  it('treats a malformed accessTokenExpiry as expired, not valid', () => {
+    // `new Date('not-a-real-date').getTime()` is NaN — that must read as
+    // needing reconnect, not as a token with no known expiry.
+    expect(isAccessTokenExpired('not-a-real-date')).toBe(true);
+    expect(
+      getAccountConnectionStatus(
+        buildConnection({ accessTokenExpiry: 'not-a-real-date' }),
+      ),
+    ).toBe('needsReconnect');
+  });
+
   it('defaults isConnected to true for legacy callers that never set it', () => {
     expect(
       getAccountConnectionStatus(buildConnection({ isConnected: undefined })),

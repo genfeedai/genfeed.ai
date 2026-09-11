@@ -18,6 +18,7 @@ import type {
   PlatformHomeDestinations,
 } from '@genfeedai/props/pages/platform-home.props';
 import { buildAgentPromptHref } from '@genfeedai/utils/url/desktop-loop-url.util';
+import { getAccountConnectionStatus } from '@pages/brands/components/integrations/account-connection-status.util';
 
 export function isSamePlatform(value: unknown, platform: Platform): boolean {
   return parsePlatform(value) === platform;
@@ -32,9 +33,30 @@ export function filterConnectionsForPlatform(
   );
 }
 
+/**
+ * Prefer an actually-connected credential when the platform has more than
+ * one for this brand — a lapsed or identity-less row further down the list
+ * must not shadow a genuinely connected account.
+ */
+export function pickPrimaryConnection(
+  connections: readonly PlatformHomeConnection[],
+): PlatformHomeConnection | undefined {
+  const connected = connections.find(
+    (connection) => getAccountConnectionStatus(connection) === 'connected',
+  );
+  return connected ?? connections[0];
+}
+
 export function getPlatformConnectionHealth(
-  connection: Pick<PlatformHomeConnection, 'accountHealth'>,
+  connection: Pick<
+    PlatformHomeConnection,
+    'accessTokenExpiry' | 'accountHealth' | 'externalId' | 'isConnected'
+  >,
 ): PlatformConnectionHealth {
+  if (getAccountConnectionStatus(connection) === 'needsReconnect') {
+    return 'needsReconnect';
+  }
+
   const health = connection.accountHealth;
 
   if (health?.holdPublishing || health?.riskLevel === 'high') {

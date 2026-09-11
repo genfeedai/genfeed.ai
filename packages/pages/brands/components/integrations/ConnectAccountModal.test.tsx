@@ -76,6 +76,28 @@ const platformGroups: OAuthConnectPlatformGroup<ResolvedOAuthConnectPlatform>[] 
   ];
 
 describe('ConnectAccountModal', () => {
+  it('renders the modal title and description from the real catalog, not a raw key path', () => {
+    render(
+      <ConnectAccountModal
+        connectingPlatform={null}
+        onConnect={vi.fn()}
+        onOpenChange={vi.fn()}
+        open
+        platformConnectedCounts={{}}
+        platformGroups={platformGroups}
+      />,
+    );
+
+    // A key/catalog mismatch makes the stub return the dotted key path
+    // itself (e.g. "brandSocialMedia.connectAccountDescription") instead of
+    // copy — asserting the real sentence catches that regression.
+    expect(
+      screen.getByText(
+        'Choose a platform to connect. Search or browse by category.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('starts oauth for an available platform', () => {
     const onConnect = vi.fn();
     render(
@@ -111,7 +133,26 @@ describe('ConnectAccountModal', () => {
     expect(screen.getByText('0 connected')).toBeInTheDocument();
   });
 
-  it('disables an unavailable platform with a reason and blocks the connect call', () => {
+  it('shows a reason instead of a count for an unavailable platform', () => {
+    render(
+      <ConnectAccountModal
+        connectingPlatform={null}
+        onConnect={vi.fn()}
+        onOpenChange={vi.fn()}
+        open
+        platformConnectedCounts={{}}
+        platformGroups={platformGroups}
+      />,
+    );
+
+    expect(screen.getByText('Not available yet')).toBeInTheDocument();
+  });
+
+  it('does not select a disabled platform through a real keyboard selection path', () => {
+    // cmdk marks `disabled` items unselectable and skips them during arrow
+    // navigation, so Enter never fires their `onSelect` — narrow the list to
+    // just the disabled platform via search so nothing else could be
+    // selected by accident, then confirm Enter is a no-op.
     const onConnect = vi.fn();
     render(
       <ConnectAccountModal
@@ -124,8 +165,12 @@ describe('ConnectAccountModal', () => {
       />,
     );
 
-    expect(screen.getByText('Not available yet')).toBeInTheDocument();
-    fireEvent.click(screen.getByText('Threads'));
+    const searchInput = screen.getByPlaceholderText('Search platforms…');
+    fireEvent.change(searchInput, { target: { value: 'Threads' } });
+    expect(screen.getByText('Threads')).toBeInTheDocument();
+
+    fireEvent.keyDown(searchInput, { key: 'Enter' });
+
     expect(onConnect).not.toHaveBeenCalled();
   });
 
@@ -166,5 +211,25 @@ describe('ConnectAccountModal', () => {
     });
 
     expect(screen.getByText('No platforms found.')).toBeInTheDocument();
+  });
+
+  it('gives the search field an accessible name beyond its placeholder', () => {
+    render(
+      <ConnectAccountModal
+        connectingPlatform={null}
+        onConnect={vi.fn()}
+        onOpenChange={vi.fn()}
+        open
+        platformConnectedCounts={{}}
+        platformGroups={platformGroups}
+      />,
+    );
+
+    // The accessible name has to come from something other than the
+    // placeholder alone (jsdom still exposes it there, so this matcher is
+    // the only reliable way to prove an explicit label was set).
+    expect(
+      screen.getByPlaceholderText('Search platforms…'),
+    ).toHaveAccessibleName('Search platforms…');
   });
 });

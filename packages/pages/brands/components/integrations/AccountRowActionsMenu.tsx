@@ -15,7 +15,6 @@ import { getConnectionLabel } from './account-connection-status.util';
 
 export default function AccountRowActionsMenu({
   connection,
-  isPostingTimesDisabled,
   isReconnectDisabled,
   onDisconnect,
   onPostingTimes,
@@ -43,10 +42,7 @@ export default function AccountRowActionsMenu({
         >
           {translate('reconnect')}
         </DropdownMenuItem>
-        <DropdownMenuItem
-          disabled={isPostingTimesDisabled}
-          onSelect={() => onPostingTimes(connection)}
-        >
+        <DropdownMenuItem onSelect={() => onPostingTimes(connection)}>
           {translate('postingTimes')}
         </DropdownMenuItem>
         <DropdownMenuItem

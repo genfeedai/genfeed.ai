@@ -363,6 +363,30 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(screen.getAllByText('Needs reconnect').length).toBeGreaterThan(0);
   });
 
+  it('passes fetched account health down to the accounts table on the page variant', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            isConnected: true,
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={1}
+        variant="page"
+      />,
+    );
+
+    // `listBrandAccountHealth` (mocked above) returns a "warming" summary
+    // for credential-1 — the accounts table must show that live health
+    // instead of falling back to a bare "Connected" badge.
+    expect(await screen.findByText('Warming')).toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
+  });
+
   it('sends the credentialId in the connect body when reconnecting an account', async () => {
     render(
       <BrandDetailSocialMediaCard

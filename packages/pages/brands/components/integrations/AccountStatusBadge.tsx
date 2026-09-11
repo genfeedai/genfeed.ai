@@ -32,6 +32,7 @@ function getHealthBadgeVariant(
  */
 export default function AccountStatusBadge({
   connection,
+  health: healthOverride,
 }: AccountStatusBadgeProps) {
   const translate = useTranslations('pages.brandSocialMedia');
   const status = getAccountConnectionStatus(connection);
@@ -40,7 +41,10 @@ export default function AccountStatusBadge({
     return <Badge variant="warning">{translate('needsReconnect')}</Badge>;
   }
 
-  const health = connection.accountHealth;
+  // `healthOverride` is the live-fetched health for the brand (see
+  // AccountsTableProps.accountHealth); `connection.accountHealth` is
+  // whatever the brand payload itself carried. Prefer the fresher source.
+  const health = healthOverride ?? connection.accountHealth;
   if (health && hasWarmupBlueprint(connection.platform)) {
     return (
       <Badge variant={getHealthBadgeVariant(health)}>

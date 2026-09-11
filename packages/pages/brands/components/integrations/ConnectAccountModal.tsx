@@ -1,7 +1,9 @@
 'use client';
 
-import type { ConnectAccountModalProps } from '@props/pages/brand-integrations.props';
-import type { ResolvedOAuthConnectPlatform } from '@ui/constants/oauth-connect-platforms';
+import type {
+  ConnectAccountModalProps,
+  ConnectAccountPlatform,
+} from '@props/pages/brand-integrations.props';
 import {
   Command,
   CommandEmpty,
@@ -22,7 +24,7 @@ import { useTranslations } from 'next-intl';
 /** Unavailable platforms stay visible (disabled) rather than disappearing, so
  * a brand owner sees Threads exists before its readiness check clears. */
 function getConnectReasonKey(
-  item: ResolvedOAuthConnectPlatform,
+  item: ConnectAccountPlatform,
 ): 'notReadyReason' | 'checkingReadyReason' | null {
   if (item.isConnectAvailable) {
     return null;
@@ -44,19 +46,19 @@ export default function ConnectAccountModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent
-        aria-describedby={undefined}
-        className="overflow-hidden p-0 sm:max-w-lg"
-      >
+      <DialogContent className="overflow-hidden p-0 sm:max-w-lg">
         <DialogHeader className="px-4 pt-4">
           <DialogTitle>{translate('connectAccount')}</DialogTitle>
           <DialogDescription>
-            {translate('connectAccountDescription')}
+            {translate('connectAccountModalDescription')}
           </DialogDescription>
         </DialogHeader>
 
         <Command className="bg-transparent">
-          <CommandInput placeholder={translate('searchPlatforms')} />
+          <CommandInput
+            aria-label={translate('searchPlatforms')}
+            placeholder={translate('searchPlatforms')}
+          />
           <CommandList className="max-h-[22rem] px-1 pb-2">
             <CommandEmpty>{translate('noPlatformsFound')}</CommandEmpty>
             {platformGroups.map((group) => (

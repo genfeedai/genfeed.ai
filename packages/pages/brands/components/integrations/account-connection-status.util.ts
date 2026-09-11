@@ -42,7 +42,11 @@ export function getConnectionInitials(
   return initials || connection.platform.slice(0, 2).toUpperCase();
 }
 
-/** `accessTokenExpiry` is unset for platforms that never rotate a token. */
+/**
+ * `accessTokenExpiry` is unset for platforms that never rotate a token.
+ * An unparseable value (`NaN` from `Date`) is treated as expired rather
+ * than valid — a malformed timestamp is not proof of a good token.
+ */
 export function isAccessTokenExpired(
   accessTokenExpiry?: string | null,
 ): boolean {
@@ -51,8 +55,24 @@ export function isAccessTokenExpired(
   }
 
   const expiry = new Date(accessTokenExpiry).getTime();
-  return Number.isFinite(expiry) && expiry <= Date.now();
+  if (!Number.isFinite(expiry)) {
+    return true;
+  }
+
+  return expiry <= Date.now();
 }
+
+/**
+ * The subset of a connection `getAccountConnectionStatus` actually reads.
+ * Keeping this narrow (rather than the full `BrandDetailSocialConnection`)
+ * lets callers that only have a partial record — e.g. the platform-home
+ * page's own connection shape — call it without first assembling a whole
+ * connection object.
+ */
+export type AccountConnectionStatusInput = Pick<
+  BrandDetailSocialConnection,
+  'accessTokenExpiry' | 'externalId' | 'isConnected'
+>;
 
 /**
  * A row needs reconnecting when it never captured a platform identity
@@ -69,7 +89,7 @@ export function isAccessTokenExpired(
  * status is ever derived. See `isVisibleCredentialRow`.
  */
 export function getAccountConnectionStatus(
-  connection: BrandDetailSocialConnection,
+  connection: AccountConnectionStatusInput,
 ): AccountConnectionStatus {
   if (!connection.externalId) {
     return 'needsReconnect';

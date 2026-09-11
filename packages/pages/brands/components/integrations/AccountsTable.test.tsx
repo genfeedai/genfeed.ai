@@ -1,7 +1,8 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
+import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
 import AccountsTable from '@pages/brands/components/integrations/AccountsTable';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', async () => {
@@ -22,15 +23,51 @@ function buildConnection(
   };
 }
 
+function buildHealth(
+  overrides: Partial<AccountHealthSummary> = {},
+): AccountHealthSummary {
+  return {
+    credentialId: 'cred-1',
+    holdPublishing: false,
+    label: 'Account',
+    override: { isActive: false },
+    platform: CredentialPlatform.TWITTER,
+    riskLevel: 'low',
+    score: 80,
+    signals: {
+      connectedDays: 10,
+      profileSignals: 2,
+      publishedPosts: 3,
+      recentFailures: 0,
+    },
+    state: 'healthy',
+    thresholds: {
+      maxRecentFailures: 3,
+      minConnectedDays: 1,
+      minProfileSignals: 1,
+      minPublishedPosts: 1,
+    },
+    ...overrides,
+  };
+}
+
 const noop = () => {
   // intentionally empty — unused handlers for tests that don't assert calls
 };
 
+function desktop() {
+  return within(screen.getByTestId('accounts-table-desktop'));
+}
+
+function mobile() {
+  return within(screen.getByTestId('accounts-table-mobile'));
+}
+
 describe('AccountsTable', () => {
-  it('shows the handle only when set, stripping a leading @, and never substitutes the name', () => {
+  it('shows the handle only when set, stripping a leading @, and never substitutes the name — in both layouts', () => {
     render(
       <AccountsTable
-        connectedPlatformsCount={2}
+        accountHealth={[]}
         connectingPlatform={null}
         connections={[
           buildConnection({
@@ -48,16 +85,19 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getAllByText('@genfeed').length).toBeGreaterThan(0);
-    // "No Handle" has no `handle`, so no `@…` line renders for it — the
-    // fallback never substitutes the display name.
-    expect(screen.queryByText('@No Handle')).not.toBeInTheDocument();
+    for (const layout of [desktop(), mobile()]) {
+      expect(layout.getByText('@genfeed')).toBeInTheDocument();
+      // "No Handle" has no `handle`, so no `@…` line renders for it — the
+      // fallback never substitutes the display name.
+      expect(layout.queryByText('@No Handle')).not.toBeInTheDocument();
+      expect(layout.getByText('No Handle')).toBeInTheDocument();
+    }
   });
 
-  it('derives Needs reconnect from a disconnected (not deleted) credential', () => {
+  it('derives Needs reconnect from a disconnected (not deleted) credential — in both layouts', () => {
     render(
       <AccountsTable
-        connectedPlatformsCount={0}
+        accountHealth={[]}
         connectingPlatform={null}
         connections={[buildConnection({ isConnected: false })]}
         onConnectAccount={noop}
@@ -68,13 +108,14 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getAllByText('Needs reconnect').length).toBeGreaterThan(0);
+    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('derives Needs reconnect from a connected credential missing its externalId identity', () => {
     render(
       <AccountsTable
-        connectedPlatformsCount={1}
+        accountHealth={[]}
         connectingPlatform={null}
         connections={[buildConnection({ externalId: undefined })]}
         onConnectAccount={noop}
@@ -85,13 +126,14 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getAllByText('Needs reconnect').length).toBeGreaterThan(0);
+    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('derives Needs reconnect from an expired access token', () => {
     render(
       <AccountsTable
-        connectedPlatformsCount={1}
+        accountHealth={[]}
         connectingPlatform={null}
         connections={[
           buildConnection({ accessTokenExpiry: '2020-01-01T00:00:00.000Z' }),
@@ -104,13 +146,14 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getAllByText('Needs reconnect').length).toBeGreaterThan(0);
+    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('shows Connected for a fully linked account with no health data', () => {
     render(
       <AccountsTable
-        connectedPlatformsCount={1}
+        accountHealth={[]}
         connectingPlatform={null}
         connections={[buildConnection()]}
         onConnectAccount={noop}
@@ -121,13 +164,41 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getAllByText('Connected').length).toBeGreaterThan(0);
+    expect(desktop().getByText('Connected')).toBeInTheDocument();
+    expect(mobile().getByText('Connected')).toBeInTheDocument();
+  });
+
+  it('renders the live-fetched accountHealth passed down, not just connection.accountHealth', () => {
+    render(
+      <AccountsTable
+        accountHealth={[
+          buildHealth({ credentialId: 'cred-1', state: 'warming' }),
+        ]}
+        connectingPlatform={null}
+        connections={[
+          buildConnection({
+            credentialId: 'cred-1',
+            platform: CredentialPlatform.TWITTER,
+          }),
+        ]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onPostingTimes={noop}
+        onReconnect={noop}
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    // Twitter runs the warmup blueprint, so the live health's "warming"
+    // state — not "Connected" — must win once it's wired through.
+    expect(desktop().getByText('Warming')).toBeInTheDocument();
+    expect(desktop().queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('sorts rows by platform then name', () => {
     render(
       <AccountsTable
-        connectedPlatformsCount={3}
+        accountHealth={[]}
         connectingPlatform={null}
         connections={[
           buildConnection({
@@ -164,12 +235,20 @@ describe('AccountsTable', () => {
     expect(dataRows[2]?.textContent).toContain('Zed');
   });
 
-  it('shows the connected count in the header', () => {
+  it('derives the header count from status, excluding lapsed and identity-less rows', () => {
     render(
       <AccountsTable
-        connectedPlatformsCount={3}
+        accountHealth={[]}
         connectingPlatform={null}
-        connections={[buildConnection()]}
+        connections={[
+          buildConnection({ credentialId: 'live-1' }),
+          buildConnection({
+            credentialId: 'live-2',
+            platform: CredentialPlatform.TIKTOK,
+          }),
+          buildConnection({ credentialId: 'lapsed-1', isConnected: false }),
+          buildConnection({ credentialId: 'no-id-1', externalId: undefined }),
+        ]}
         onConnectAccount={noop}
         onDisconnect={noop}
         onPostingTimes={noop}
@@ -178,14 +257,16 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(screen.getByText('3 connected accounts')).toBeInTheDocument();
+    // 4 rows total, but only 2 are actually connected — the header must
+    // say 2, matching what the Status column shows for each row.
+    expect(screen.getByText('2 connected accounts')).toBeInTheDocument();
   });
 
-  it('shows an empty state with a Connect account action when there are no accounts', () => {
+  it('shows an empty state with a Connect account action and no table when there are no accounts', () => {
     const onConnectAccount = vi.fn();
     render(
       <AccountsTable
-        connectedPlatformsCount={0}
+        accountHealth={[]}
         connectingPlatform={null}
         connections={[]}
         onConnectAccount={onConnectAccount}
@@ -197,11 +278,78 @@ describe('AccountsTable', () => {
     );
 
     expect(screen.getByText('No accounts connected yet')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByRole('row')).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('accounts-table-desktop'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByTestId('accounts-table-mobile'),
+    ).not.toBeInTheDocument();
+
     const connectButtons = screen.getAllByRole('button', {
       name: 'Connect account',
     });
     expect(connectButtons.length).toBeGreaterThan(0);
     fireEvent.click(connectButtons[connectButtons.length - 1]);
     expect(onConnectAccount).toHaveBeenCalledTimes(1);
+  });
+
+  it('disables Reconnect for the row whose platform is currently connecting', () => {
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connectingPlatform={CredentialPlatform.TWITTER}
+        connections={[
+          buildConnection({
+            credentialId: 'c-twitter',
+            platform: CredentialPlatform.TWITTER,
+          }),
+        ]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onPostingTimes={noop}
+        onReconnect={noop}
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    const menuTrigger = desktop().getByRole('button', {
+      name: /More actions/,
+    });
+    fireEvent.pointerDown(menuTrigger);
+    fireEvent.click(menuTrigger);
+    expect(
+      desktop().getByRole('menuitem', { name: 'Reconnect' }),
+    ).toHaveAttribute('data-disabled');
+  });
+
+  it('leaves Reconnect enabled for a different platform while one connect is in flight', () => {
+    render(
+      <AccountsTable
+        accountHealth={[]}
+        connectingPlatform={CredentialPlatform.TWITTER}
+        connections={[
+          buildConnection({
+            credentialId: 'c-tiktok',
+            platform: CredentialPlatform.TIKTOK,
+          }),
+        ]}
+        onConnectAccount={noop}
+        onDisconnect={noop}
+        onPostingTimes={noop}
+        onReconnect={noop}
+        unavailablePlatforms={new Set()}
+      />,
+    );
+
+    const menuTrigger = desktop().getByRole('button', {
+      name: /More actions/,
+    });
+    fireEvent.pointerDown(menuTrigger);
+    fireEvent.click(menuTrigger);
+    expect(
+      desktop().getByRole('menuitem', { name: 'Reconnect' }),
+    ).not.toHaveAttribute('data-disabled');
   });
 });
