@@ -11,6 +11,13 @@ import type { CanonicalToolDefinition } from '../interfaces/tool-definition.inte
 export const MCP_CREDIT_COST_META_KEY = 'genfeed.ai/creditCost';
 export const MCP_MUTATION_POLICY_META_KEY = 'genfeed.ai/mutationPolicy';
 
+/**
+ * `_meta` key carrying the tool's toolset name, so a client that fetched an
+ * unfiltered `tools/list` (or `describe_tool`) can still see which
+ * `?toolsets=` selection would have included a given tool.
+ */
+export const MCP_TOOLSET_META_KEY = 'genfeed.ai/toolset';
+
 export interface McpToolOutput {
   name: string;
   description: string;
@@ -29,6 +36,7 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
     .map((tool) => ({
       _meta: {
         [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
+        [MCP_TOOLSET_META_KEY]: tool.toolset,
         ...(tool.mutationPolicy
           ? { [MCP_MUTATION_POLICY_META_KEY]: tool.mutationPolicy }
           : {}),

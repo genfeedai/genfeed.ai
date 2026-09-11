@@ -25,6 +25,7 @@ export type MutationPolicyDecision =
 const READ_ONLY_PREFIXES = [
   'check_',
   'compare_',
+  'describe_',
   'discover_',
   'fetch_',
   'get_',

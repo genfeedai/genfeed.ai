@@ -4,6 +4,7 @@ export type { McpToolOutput } from './adapters/to-mcp-tool';
 export {
   MCP_CREDIT_COST_META_KEY,
   MCP_MUTATION_POLICY_META_KEY,
+  MCP_TOOLSET_META_KEY,
   toMcpTools,
 } from './adapters/to-mcp-tool';
 export type {
@@ -73,3 +74,18 @@ export {
   getToolsForRole,
   getToolsForSurface,
 } from './registry/tool-registry';
+export type {
+  ToolsetDefinition,
+  ToolsetName,
+  ToolsetSelection,
+  ToolsetSummary,
+} from './registry/toolsets';
+export {
+  CORE_TOOLSET_NAME,
+  getToolsets,
+  getToolsForToolsets,
+  isToolsetName,
+  parseToolsetSelection,
+  TOOLSET_NAMES,
+  TOOLSETS,
+} from './registry/toolsets';

@@ -1,4 +1,5 @@
 import type { CuratedActionName } from '../registry/curated-action-catalog';
+import type { ToolsetName } from '../registry/toolsets';
 
 export type ToolUiActionType =
   | 'ai_text_action_card'
@@ -69,6 +70,7 @@ export interface CanonicalToolDefinition {
   requiredRole: ToolRequiredRole;
   surfaces: ToolSurfaceConfig;
   category: ToolCategory;
+  toolset: ToolsetName;
   mutationPolicy?: ToolMutationPolicy;
   uiActionType?: ToolUiActionType;
   tags?: string[];

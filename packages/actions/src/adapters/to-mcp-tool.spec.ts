@@ -1,7 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 import { getToolsForSurface } from '../registry/tool-registry';
-import { MCP_CREDIT_COST_META_KEY, toMcpTools } from './to-mcp-tool';
+import {
+  MCP_CREDIT_COST_META_KEY,
+  MCP_TOOLSET_META_KEY,
+  toMcpTools,
+} from './to-mcp-tool';
 
 function buildTool(
   overrides: Partial<CanonicalToolDefinition> = {},
@@ -18,6 +22,7 @@ function buildTool(
     },
     requiredRole: 'user',
     surfaces: { agent: true, cliAgentVisible: true, mcp: true },
+    toolset: 'generation',
     ...overrides,
   };
 }
@@ -47,6 +52,20 @@ describe('toMcpTools', () => {
       expect(tool._meta[MCP_CREDIT_COST_META_KEY], tool.name).toBeTypeOf(
         'number',
       );
+    }
+  });
+
+  it('advertises the toolset under the namespaced _meta key', () => {
+    const [tool] = toMcpTools([buildTool({ toolset: 'generation' })]);
+
+    expect(MCP_TOOLSET_META_KEY).toBe('genfeed.ai/toolset');
+    expect(tool?._meta[MCP_TOOLSET_META_KEY]).toBe('generation');
+  });
+
+  it('advertises a toolset for every MCP-surfaced action', () => {
+    for (const tool of toMcpTools(getToolsForSurface('mcp'))) {
+      expect(tool._meta[MCP_TOOLSET_META_KEY], tool.name).toBeTypeOf('string');
+      expect(tool._meta[MCP_TOOLSET_META_KEY], tool.name).not.toBe('');
     }
   });
 });
