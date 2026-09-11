@@ -230,7 +230,7 @@ export class ReplicateGenerationWebhookHandler {
   }
 
   private async resolveIngredientCategoryFromModelRegistry(
-    modelKey: string,
+    modelKey: unknown,
   ): Promise<IngredientCategory> {
     const model = await this.modelsService.findOne({
       key: modelKey,
