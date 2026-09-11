@@ -248,12 +248,16 @@ describe('MCP setup page', () => {
 
       const html = renderSetupPage();
 
-      // The dangerous literal sequence must never appear verbatim...
+      // The dangerous literal sequence must never appear verbatim (the page
+      // has other legitimate `</script>` closing tags, so only the exact
+      // injected sequence is asserted, not every occurrence of the tag)...
       expect(html).not.toContain('</script><script>alert(1)</script>');
-      // ...but the escaped form still carries the same string content, so a
-      // real browser reconstructs the original URL for the picker's own use.
+      // ...but the escaped form still carries the same string content (only
+      // `<` needs escaping to break up the `</script` sequence — a lone `>`
+      // is never special to the HTML tokenizer), so a real browser
+      // reconstructs the original URL for the picker's own use.
       expect(html).toContain(
-        '\\u003C/script\\u003E\\u003Cscript\\u003Ealert(1)\\u003C/script\\u003E',
+        '\\u003C/script>\\u003Cscript>alert(1)\\u003C/script>',
       );
     });
   });
