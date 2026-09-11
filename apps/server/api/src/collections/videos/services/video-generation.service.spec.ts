@@ -173,9 +173,6 @@ describe('VideoGenerationService', () => {
       selectModel: vi.fn(),
     };
     const bookmarksService = { addGeneratedIngredient: vi.fn() };
-    const videoMusicOrchestrationService = {
-      orchestrateVideoWithMusic: vi.fn(),
-    };
     const pollingService = {
       waitForMultipleIngredientsCompletion: vi.fn(),
     };
@@ -254,7 +251,6 @@ describe('VideoGenerationService', () => {
       cacheService as never,
       pollingService as never,
       loggerService,
-      videoMusicOrchestrationService as never,
       videosService as never,
       {
         bindCancelOnAbort: vi.fn(),

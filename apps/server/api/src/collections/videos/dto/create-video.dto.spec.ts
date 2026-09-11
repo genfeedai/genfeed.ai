@@ -87,12 +87,10 @@ describe('CreateVideoDto', () => {
     });
 
     it('no longer types backgroundMusic, musicVolume, or muteVideoAudio on the DTO', () => {
+      // @ts-expect-error backgroundMusic/musicVolume/muteVideoAudio were removed from CreateVideoDto (#4683) — excess-property checking reports this object literal as a single diagnostic, not one per key.
       const dto: Partial<CreateVideoDto> = {
-        // @ts-expect-error backgroundMusic was removed from CreateVideoDto (#4683)
         backgroundMusic: { ingredientId: entityId(1) },
-        // @ts-expect-error musicVolume was removed from CreateVideoDto (#4683)
         musicVolume: 50,
-        // @ts-expect-error muteVideoAudio was removed from CreateVideoDto (#4683)
         muteVideoAudio: true,
       };
 
