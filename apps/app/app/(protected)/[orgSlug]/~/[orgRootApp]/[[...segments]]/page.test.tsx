@@ -10,17 +10,25 @@ import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const { notFoundMock, redirectMock, renderPostsListPageMock } = vi.hoisted(
-  () => ({
-    notFoundMock: vi.fn(() => {
-      throw new Error('NEXT_NOT_FOUND');
-    }),
-    redirectMock: vi.fn((destination: string) => {
-      throw new Error(`NEXT_REDIRECT:${destination}`);
-    }),
-    renderPostsListPageMock: vi.fn(),
+const {
+  loadProtectedBootstrapMock,
+  notFoundMock,
+  redirectMock,
+  renderPostsListPageMock,
+} = vi.hoisted(() => ({
+  loadProtectedBootstrapMock: vi.fn(),
+  notFoundMock: vi.fn(() => {
+    throw new Error('NEXT_NOT_FOUND');
   }),
-);
+  redirectMock: vi.fn((destination: string) => {
+    throw new Error(`NEXT_REDIRECT:${destination}`);
+  }),
+  renderPostsListPageMock: vi.fn(),
+}));
+
+vi.mock('@app-server/protected-bootstrap.server', () => ({
+  loadProtectedBootstrap: loadProtectedBootstrapMock,
+}));
 
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
@@ -260,6 +268,7 @@ const { default: OrgRootAppPage } = await import('./page');
 describe('OrgRootAppPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    loadProtectedBootstrapMock.mockResolvedValue(null);
   });
 
   it('renders org shelves through the same Library browser as brand shelves', async () => {
@@ -402,6 +411,81 @@ describe('OrgRootAppPage', () => {
     ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
     expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
     expect(screen.queryByTestId('ingredients-list')).not.toBeInTheDocument();
+    expect(loadProtectedBootstrapMock).not.toHaveBeenCalled();
+  });
+
+  it('resolves the bare app-switcher Studio destination to the persisted last-used brand (#4671)', async () => {
+    loadProtectedBootstrapMock.mockResolvedValue({
+      brandId: 'brand-1',
+      brands: [
+        {
+          id: 'brand-1',
+          organization: { slug: 'acme' },
+          slug: 'moonrise',
+        },
+      ],
+    });
+
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/moonrise/studio/generate');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/moonrise/studio/generate');
+  });
+
+  it('falls back to Agent for the bare Studio destination when there is no persisted brand (#4671)', async () => {
+    loadProtectedBootstrapMock.mockResolvedValue({
+      brandId: '',
+      brands: [],
+    });
+
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
+  });
+
+  it('falls back to Agent for the bare Studio destination when the persisted brand is stale or deleted (#4671)', async () => {
+    loadProtectedBootstrapMock.mockResolvedValue({
+      brandId: 'deleted-brand',
+      brands: [
+        {
+          id: 'brand-1',
+          organization: { slug: 'acme' },
+          slug: 'moonrise',
+        },
+      ],
+    });
+
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
+  });
+
+  it('falls back to Agent for the bare Studio destination when the persisted brand belongs to another organization', async () => {
+    loadProtectedBootstrapMock.mockResolvedValue({
+      brandId: 'brand-1',
+      brands: [
+        {
+          id: 'brand-1',
+          organization: { slug: 'other-org' },
+          slug: 'moonrise',
+        },
+      ],
+    });
+
+    await expect(
+      OrgRootAppPage({
+        params: Promise.resolve({ orgRootApp: 'studio', orgSlug: 'acme' }),
+      }),
+    ).rejects.toThrow('NEXT_REDIRECT:/acme/~/agent/new');
+    expect(redirectMock).toHaveBeenCalledWith('/acme/~/agent/new');
   });
 
   it('redirects bare org Publishing to its canonical overview', async () => {
