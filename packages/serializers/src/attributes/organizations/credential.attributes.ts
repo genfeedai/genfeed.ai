@@ -21,6 +21,32 @@ export function mapSerializedCredentialPlatform(record: {
   return mapped;
 }
 
+/**
+ * True when a provider grant was persisted (a token exists) but never
+ * resolved to a specific account (no `externalId`) and so was never marked
+ * connected — the shape `InstagramController.resolveAuthorizedAccount`
+ * leaves behind when several eligible accounts are equally plausible. It is
+ * computed here, from persisted columns, rather than left for a caller to
+ * infer from `isConnected` alone: `isConnected` can also be `false` for
+ * other reasons (a lapsed token, a never-completed OAuth attempt), none of
+ * which have an operator selection waiting to be made. `externalId` already
+ * being absent is what makes this reliable even if a later step (e.g. a
+ * signal refresh) flips `isConnected` back to false on an otherwise-resolved
+ * row — that row keeps its `externalId` and this stays `false`.
+ *
+ * Runs after the `platform` transform, so `record.platform` here is already
+ * the lowercase domain value.
+ */
+export function computeNeedsAccountSelection(
+  record: Record<string, unknown>,
+): boolean {
+  return (
+    record.isConnected === false &&
+    Boolean(record.accessToken) &&
+    !record.externalId
+  );
+}
+
 const publicFields = [
   'organizationId',
   'brandId',
@@ -30,6 +56,7 @@ const publicFields = [
   'externalHandle',
   'externalName',
   'externalAvatar',
+  'needsAccountSelection',
   'accessTokenExpiry',
   'label',
   'description',

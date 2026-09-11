@@ -15,7 +15,6 @@ describe('modal.enum', () => {
       expect(ModalEnum.BOT).toBe('modal-bot');
       expect(ModalEnum.BRAND).toBe('modal-brand');
       expect(ModalEnum.BRAND_GENERATE).toBe('modal-brand-generate');
-      expect(ModalEnum.BRAND_INSTAGRAM).toBe('modal-brand-instagram');
       expect(ModalEnum.BRAND_LINK).toBe('modal-brand-link');
       expect(ModalEnum.CAMERA).toBe('modal-camera');
       expect(ModalEnum.CAMERA_MOVEMENT).toBe('modal-camera-movement');

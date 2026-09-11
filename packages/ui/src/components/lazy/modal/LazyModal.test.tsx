@@ -31,11 +31,6 @@ describe('LazyModal', () => {
       expect(typeof LazyModals.LazyModalBrandGenerate).toBe('function');
     });
 
-    it('should export LazyModalBrandInstagram', () => {
-      expect(LazyModals.LazyModalBrandInstagram).toBeDefined();
-      expect(typeof LazyModals.LazyModalBrandInstagram).toBe('function');
-    });
-
     it('should export LazyModalBrandLink', () => {
       expect(LazyModals.LazyModalBrandLink).toBeDefined();
       expect(typeof LazyModals.LazyModalBrandLink).toBe('function');

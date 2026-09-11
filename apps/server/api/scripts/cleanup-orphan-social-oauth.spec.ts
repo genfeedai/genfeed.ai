@@ -1,12 +1,17 @@
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
 import { describe, expect, it } from 'vitest';
 import {
+  type AbandonedSelectionCleanupClient,
+  type AbandonedSelectionCredentialRow,
+  type AbandonedSelectionFindManyArgs,
+  type AbandonedSelectionUpdateManyArgs,
   assertOrphanSocialOAuthCleanupCompleted,
   type OrphanSocialOAuthCleanupClient,
   type OrphanSocialOAuthCredentialRow,
   type OrphanSocialOAuthFindManyArgs,
   type OrphanSocialOAuthUpdateManyArgs,
   parseOrphanSocialOAuthCleanupArgs,
+  runAbandonedInstagramSelectionCleanup,
   runOrphanSocialOAuthCleanup,
 } from './cleanup-orphan-social-oauth';
 
@@ -253,5 +258,154 @@ describe('cleanup-orphan-social-oauth', () => {
         wouldUpdate: 1,
       }),
     ).toThrow('Cleanup skipped 1 concurrently changed credential');
+  });
+});
+
+interface FullAbandonedSelectionRow extends AbandonedSelectionCredentialRow {
+  accessToken: string | null;
+  externalId: string | null;
+  isConnected: boolean;
+  isDeleted: boolean;
+  oauthState: string | null;
+  organizationId: string;
+  platform: PrismaCredentialPlatform;
+}
+
+function abandonedSelectionRow(
+  overrides: Partial<FullAbandonedSelectionRow> = {},
+): FullAbandonedSelectionRow {
+  return {
+    accessToken: 'encrypted-token',
+    externalId: null,
+    id: 'credential-1',
+    isConnected: false,
+    isDeleted: false,
+    oauthState: null,
+    organizationId: ORGANIZATION_ID,
+    platform: PrismaCredentialPlatform.INSTAGRAM,
+    updatedAt: STALE_AT,
+    ...overrides,
+  };
+}
+
+class FakeAbandonedSelectionClient implements AbandonedSelectionCleanupClient {
+  readonly updateCalls: AbandonedSelectionUpdateManyArgs[] = [];
+  readonly credential = {
+    findMany: async (args: AbandonedSelectionFindManyArgs) =>
+      this.rows
+        .filter(
+          (row) =>
+            row.organizationId === args.where.organizationId &&
+            row.isDeleted === false &&
+            row.isConnected === false &&
+            row.externalId === null &&
+            row.accessToken !== null &&
+            row.oauthState === null &&
+            args.where.platform.in.includes(row.platform) &&
+            row.updatedAt.getTime() < args.where.updatedAt.lt.getTime() &&
+            (!args.where.id || row.id > args.where.id.gt),
+        )
+        .sort((left, right) => left.id.localeCompare(right.id))
+        .map((row) => ({ id: row.id, updatedAt: row.updatedAt })),
+    updateMany: async (args: AbandonedSelectionUpdateManyArgs) => {
+      this.updateCalls.push(args);
+      let count = 0;
+      for (const row of this.rows) {
+        if (
+          args.where.id.in.includes(row.id) &&
+          row.organizationId === args.where.organizationId &&
+          row.isDeleted === false &&
+          row.isConnected === false &&
+          row.externalId === null &&
+          row.accessToken !== null &&
+          row.oauthState === null
+        ) {
+          row.isDeleted = true;
+          row.accessToken = null;
+          count += 1;
+        }
+      }
+      return { count };
+    },
+  };
+
+  constructor(private readonly rows: FullAbandonedSelectionRow[]) {}
+}
+
+describe('runAbandonedInstagramSelectionCleanup', () => {
+  it('retires a tokened Instagram row with no externalId past the TTL', async () => {
+    const rows = [abandonedSelectionRow()];
+    const client = new FakeAbandonedSelectionClient(rows);
+
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report).toEqual({
+      concurrentChangesSkipped: 0,
+      dryRun: false,
+      scanned: 1,
+      updated: 1,
+      wouldUpdate: 1,
+    });
+    expect(rows[0].isDeleted).toBe(true);
+    expect(rows[0].accessToken).toBeNull();
+  });
+
+  it('never touches a row that already resolved an account', async () => {
+    const rows = [abandonedSelectionRow({ externalId: 'ig-resolved' })];
+    const client = new FakeAbandonedSelectionClient(rows);
+
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report.scanned).toBe(0);
+    expect(rows[0].isDeleted).toBe(false);
+  });
+
+  it('never touches a connected row', async () => {
+    const rows = [abandonedSelectionRow({ isConnected: true })];
+    const client = new FakeAbandonedSelectionClient(rows);
+
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report.scanned).toBe(0);
+  });
+
+  it('leaves a row that has not yet passed the OAuth state TTL', async () => {
+    const rows = [abandonedSelectionRow({ updatedAt: NOW })];
+    const client = new FakeAbandonedSelectionClient(rows);
+
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report.scanned).toBe(0);
+  });
+
+  it('dry-run reports without mutating anything', async () => {
+    const rows = [abandonedSelectionRow()];
+    const client = new FakeAbandonedSelectionClient(rows);
+
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: true, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+
+    expect(report.wouldUpdate).toBe(1);
+    expect(rows[0].isDeleted).toBe(false);
+    expect(client.updateCalls).toHaveLength(0);
   });
 });

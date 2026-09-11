@@ -36,34 +36,36 @@ function hashOAuthRequestToken(token: string): string {
 }
 
 /**
- * Opaque OAuth state doubles as the carrier for reconnect intent: appending
- * `.{credentialId}` to the random nonce needs no new column and no separate
- * lookup, and the provider echoes the whole string back verbatim. The nonce
- * alphabet (base64url) and every entity id format are dot-free, so the first
- * dot unambiguously starts the credential id.
+ * Reconnect intent (the existing credential a fresh OAuth attempt should
+ * settle back into) is carried on the pending credential's own
+ * `warmupSignals` JSON column under this key, never in the OAuth `state`
+ * parameter. `state` round-trips through the provider's authorization URL,
+ * browser history, and referrer headers — embedding a credential id in it
+ * would leak that internal identifier to the provider and to anything that
+ * can read those. `warmupSignals` is already a free-form per-credential JSON
+ * bag with several independent top-level keys (see `mergeWarmupSignals`), so
+ * this reuses an existing column instead of adding one.
  */
-const OAUTH_STATE_RECONNECT_SEPARATOR = '.';
+const OAUTH_CONNECT_INTENT_STORAGE_KEY = 'oauthConnectIntent';
 
-function encodeOAuthState(
-  nonce: string,
-  reconnectCredentialId?: string,
-): string {
-  return reconnectCredentialId
-    ? `${nonce}${OAUTH_STATE_RECONNECT_SEPARATOR}${reconnectCredentialId}`
-    : nonce;
+function readPlainRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
-/** Recover the reconnect-intent credential id embedded in an opaque OAuth state, if any. */
-export function extractReconnectCredentialIdFromState(
-  state: string,
+/** Recover the reconnect-intent credential id stored on a pending credential, if any. */
+export function extractReconnectCredentialIdFromWarmupSignals(
+  warmupSignals: unknown,
 ): string | undefined {
-  const separatorIndex = state.indexOf(OAUTH_STATE_RECONNECT_SEPARATOR);
-  if (separatorIndex === -1) {
-    return undefined;
-  }
+  const intent = readPlainRecord(
+    readPlainRecord(warmupSignals)[OAUTH_CONNECT_INTENT_STORAGE_KEY],
+  );
+  const candidate = intent.reconnectCredentialId;
 
-  const candidate = state.slice(separatorIndex + 1).trim();
-  return candidate.length > 0 ? candidate : undefined;
+  return typeof candidate === 'string' && candidate.trim().length > 0
+    ? candidate
+    : undefined;
 }
 
 /**
@@ -552,10 +554,16 @@ export class CredentialsService
       return named;
     }
 
-    const accounts = isDisconnectedIncluded
+    const allAccounts = isDisconnectedIncluded
       ? await this.findBrandAccounts(organizationId, brandId, platform)
       : await this.findConnectedAccounts(organizationId, brandId, platform);
-
+    // A row with no externalId was never resolved to a specific account (an
+    // abandoned multi-account selection, or a pending row mid-OAuth) — it has
+    // nothing this call could correctly act "as", so it can never be the
+    // implicit default even if it is otherwise the oldest row.
+    const accounts = allAccounts.filter((candidate) =>
+      Boolean(candidate.externalId),
+    );
     const account = accounts[0] ?? null;
 
     if (accounts.length > 1 && account) {
@@ -604,13 +612,22 @@ export class CredentialsService
     fields: CredentialUpsertFields = {},
     reconnectCredentialId?: string,
   ): Promise<{ credential: CredentialDocument; state: string }> {
-    const nonce = randomBytes(32).toString('base64url');
-    const state = encodeOAuthState(nonce, reconnectCredentialId);
+    const state = randomBytes(32).toString('base64url');
     const credential = await this.createPendingForBrand(
       brand,
       userId,
       platform,
-      { ...fields, oauthState: state },
+      {
+        ...fields,
+        oauthState: state,
+        ...(reconnectCredentialId
+          ? {
+              warmupSignals: {
+                [OAUTH_CONNECT_INTENT_STORAGE_KEY]: { reconnectCredentialId },
+              },
+            }
+          : {}),
+      } as unknown as CredentialUpsertFields,
     );
 
     return { credential, state };
@@ -841,9 +858,14 @@ export class CredentialsService
       throw new Error(`Credential ${credentialId} not found`);
     }
 
-    const update: Record<string, string> = {};
+    const update: Record<string, string | null> = {};
 
-    if (profile.handle) {
+    // `undefined` means "the provider didn't tell us, leave the column as
+    // is"; an explicit `null` means "this provider has no handle for this
+    // account" and clears a previously-persisted value, so a reconnect heals
+    // a row a past bug wrote wrong (see #4695 handle audit) instead of
+    // leaving the stale value in place forever.
+    if (profile.handle !== undefined) {
       update.externalHandle = profile.handle;
     }
     if (profile.id) {
@@ -907,7 +929,7 @@ export class CredentialsService
   private async reconcileConnectedAccount(
     credential: CredentialDocument,
     externalId: string,
-    profileUpdate: Record<string, string>,
+    profileUpdate: Record<string, string | null>,
   ): Promise<CredentialDocument> {
     const brandId = credential.brandId as string | null | undefined;
     const prismaPlatform = toPrismaCredentialPlatform(

@@ -266,6 +266,7 @@ describe('OAuthPlatformForm', () => {
     mocks.postVerify.mockResolvedValue({
       id: 'credential-ambiguous',
       isConnected: false,
+      needsAccountSelection: true,
     });
 
     render(<OAuthPlatformForm platform="instagram" />);
@@ -284,6 +285,7 @@ describe('OAuthPlatformForm', () => {
     mocks.postVerify.mockResolvedValue({
       id: 'credential-ambiguous',
       isConnected: false,
+      needsAccountSelection: true,
     });
 
     render(<OAuthPlatformForm platform="instagram" />);
@@ -297,10 +299,14 @@ describe('OAuthPlatformForm', () => {
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
   });
 
-  it('does not treat a non-Instagram unconnected credential as needing selection', async () => {
+  it('does not show the picker for an unconnected credential the server has not flagged for selection', async () => {
+    // isConnected: false alone is not the signal — a lapsed token or a
+    // never-completed OAuth attempt looks the same and has no selection
+    // waiting. Only the explicit needsAccountSelection field triggers it.
     mocks.postVerify.mockResolvedValue({
       id: 'credential-1',
       isConnected: false,
+      needsAccountSelection: false,
     });
 
     render(<OAuthPlatformForm platform="youtube" />);

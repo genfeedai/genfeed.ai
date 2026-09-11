@@ -6,7 +6,7 @@ import {
 } from '@api/collections/credentials/dto/create-credential.dto';
 import {
   CredentialsService,
-  extractReconnectCredentialIdFromState,
+  extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 
@@ -22,10 +22,12 @@ import { InstagramService } from '@api/services/integrations/instagram/services/
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import {
   getSafeInstagramOAuthErrorLog,
+  parseInstagramGrantedScopes,
   throwMappedInstagramOAuthError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import type { InstagramPageResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
@@ -34,6 +36,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
 import {
   Body,
@@ -62,6 +65,9 @@ interface InstagramLongLivedTokenResponse {
   expires_in?: number;
   scope?: string;
 }
+
+/** Required to list the Facebook Pages (and their linked IG accounts) an authorization can see. */
+const INSTAGRAM_PAGES_SCOPE = 'pages_show_list';
 
 @AutoSwagger()
 @Controller('services/instagram')
@@ -306,10 +312,47 @@ export class InstagramController {
         });
       }
 
-      // Persist the exchanged token. Identity is not yet known — a brand may
-      // hold several Instagram accounts, and which one was just authorized is
-      // decided below — so the row stays unconnected until it is resolved.
-      // Reactivate a previously soft-deleted row when reconnecting.
+      // A grant without permission to list Facebook Pages can never resolve
+      // an account — surface that specifically, rather than the generic
+      // "not eligible" error the empty-list case below throws.
+      failureStage = 'permission_check';
+      const grantedScopesList = parseInstagramGrantedScopes(scope);
+      if (!grantedScopesList.includes(INSTAGRAM_PAGES_SCOPE)) {
+        throw new HttpException(
+          {
+            detail:
+              'Instagram needs permission to see the Facebook Pages you manage. Please reconnect and approve that permission.',
+            title: 'Missing permission',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Discover eligible accounts BEFORE persisting anything. A grant that
+      // resolves to zero accounts must never leave a tokened, unidentified
+      // row behind — there would be nothing left to reconnect or clean up
+      // toward, only an account the operator has to notice and delete.
+      failureStage = 'account_discovery';
+      const accounts =
+        await this.instagramService.listAuthorizedInstagramAccounts(
+          access_token,
+        );
+
+      if (accounts.length === 0) {
+        throw new HttpException(
+          {
+            detail:
+              'The Instagram account must be a professional account (Business or Creator) linked to a Facebook Page you manage. Please connect an eligible account and try again.',
+            title: 'Instagram account not eligible',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      // Persist the exchanged token now that at least one eligible account
+      // is known to exist. Identity may still be ambiguous — decided below
+      // — so the row stays unconnected until it is resolved. Reactivate a
+      // previously soft-deleted row when reconnecting.
       failureStage = 'credential_persist';
       let credential = await this.credentialsService.patch(
         existingCredential.id,
@@ -329,18 +372,23 @@ export class InstagramController {
 
       failureStage = 'account_resolution';
       const resolution = await this.resolveAuthorizedAccount({
-        accessToken: access_token,
+        accounts,
         credential,
         organizationId: existingCredential.organizationId,
-        reconnectCredentialId: extractReconnectCredentialIdFromState(state),
+        reconnectCredentialId: extractReconnectCredentialIdFromWarmupSignals(
+          existingCredential.warmupSignals,
+        ),
         url,
       });
       credential = resolution.credential;
 
       if (resolution.needsSelection) {
-        // Token saved, identity ambiguous. The callback page fetches this
-        // credential's Instagram pages and lets the operator pick — see
-        // `CredentialsController.findAllInstagramPages`.
+        // Token saved, identity ambiguous. `needsAccountSelection` on the
+        // serialized credential (computed in the serializer, not inferred
+        // by the caller) tells the callback page to fetch this credential's
+        // Instagram pages and let the operator pick — see
+        // `CredentialsController.findAllInstagramPages` and
+        // `InstagramController.selectAccount`.
         return serializeSingle(request, CredentialSerializer, credential);
       }
 
@@ -368,21 +416,25 @@ export class InstagramController {
 
   /**
    * Resolve which Instagram professional account this OAuth grant authorized,
-   * and persist it. Unlike avatar/name enrichment this step is never
+   * from a list already fetched by the caller (`verify` fetches it before
+   * persisting anything). Unlike avatar/name enrichment this step is never
    * best-effort: an unresolved account is exactly the ambiguity this whole
-   * flow exists to remove, so failures and open questions propagate instead
-   * of leaving a connected-but-unidentified row.
+   * flow exists to remove, so an open question returns `needsSelection`
+   * rather than guessing.
    *
-   * - Zero eligible accounts fails the connection outright.
-   * - One eligible account is chosen automatically.
-   * - A matching reconnect intent (see `connect`) wins next.
+   * - A matching reconnect intent (see `connect`) wins outright. An intent
+   *   that names an account NOT in this grant is left ambiguous rather than
+   *   silently substituting a different account — even when exactly one
+   *   candidate remains, that candidate is not the one the operator asked
+   *   to reconnect.
+   * - Otherwise, one eligible account is chosen automatically.
    * - Otherwise, accounts already held by another live credential of this
    *   brand are excluded; if exactly one remains, it is chosen.
    * - Anything still ambiguous is left unresolved for the operator to pick
-   *   from `GET /credentials/:id/instagram/pages` (`needsSelection: true`).
+   *   via `POST :credentialId/select-account`.
    */
   private async resolveAuthorizedAccount(params: {
-    accessToken: string;
+    accounts: InstagramPageResponse[];
     credential: Awaited<ReturnType<CredentialsService['patch']>>;
     organizationId: string;
     reconnectCredentialId: string | undefined;
@@ -391,32 +443,14 @@ export class InstagramController {
     credential: Awaited<ReturnType<CredentialsService['patch']>>;
     needsSelection: boolean;
   }> {
-    const {
-      accessToken,
-      credential,
-      organizationId,
-      reconnectCredentialId,
-      url,
-    } = params;
+    const { accounts, credential, organizationId, reconnectCredentialId, url } =
+      params;
     const brandId = credential.brandId ?? undefined;
 
-    const accounts =
-      await this.instagramService.listAuthorizedInstagramAccounts(accessToken);
+    let chosen: InstagramPageResponse | undefined;
+    let hadUnmatchedReconnectIntent = false;
 
-    if (accounts.length === 0) {
-      throw new HttpException(
-        {
-          detail:
-            'The Instagram account must be a professional account (Business or Creator) linked to a Facebook Page you manage. Please connect an eligible account and try again.',
-          title: 'Instagram account not eligible',
-        },
-        HttpStatus.BAD_REQUEST,
-      );
-    }
-
-    let chosen = accounts.length === 1 ? accounts[0] : undefined;
-
-    if (!chosen && reconnectCredentialId && brandId) {
+    if (reconnectCredentialId && brandId) {
       const reconnectTarget = await this.credentialsService.resolveBrandAccount(
         {
           brandId,
@@ -431,27 +465,33 @@ export class InstagramController {
         chosen = accounts.find(
           (account) => account.id === reconnectTarget.externalId,
         );
+        hadUnmatchedReconnectIntent = !chosen;
       }
     }
 
-    if (!chosen && accounts.length > 1 && brandId) {
-      const heldAccounts = await this.credentialsService.findConnectedAccounts(
-        organizationId,
-        brandId,
-        CredentialPlatform.INSTAGRAM,
-      );
-      const heldExternalIds = new Set(
-        heldAccounts
-          .filter((account) => account.id !== credential.id)
-          .map((account) => account.externalId)
-          .filter((externalId): externalId is string => Boolean(externalId)),
-      );
-      const remaining = accounts.filter(
-        (account) => !heldExternalIds.has(account.id),
-      );
+    if (!chosen && !hadUnmatchedReconnectIntent) {
+      if (accounts.length === 1) {
+        chosen = accounts[0];
+      } else if (accounts.length > 1 && brandId) {
+        const heldAccounts =
+          await this.credentialsService.findConnectedAccounts(
+            organizationId,
+            brandId,
+            CredentialPlatform.INSTAGRAM,
+          );
+        const heldExternalIds = new Set(
+          heldAccounts
+            .filter((account) => account.id !== credential.id)
+            .map((account) => account.externalId)
+            .filter((externalId): externalId is string => Boolean(externalId)),
+        );
+        const remaining = accounts.filter(
+          (account) => !heldExternalIds.has(account.id),
+        );
 
-      if (remaining.length === 1) {
-        chosen = remaining[0];
+        if (remaining.length === 1) {
+          chosen = remaining[0];
+        }
       }
     }
 
@@ -459,6 +499,7 @@ export class InstagramController {
       this.loggerService.log(`${url} - Instagram account selection required`, {
         candidateCount: accounts.length,
         credentialId: credential.id,
+        hadUnmatchedReconnectIntent,
       });
       return { credential, needsSelection: true };
     }
@@ -468,7 +509,7 @@ export class InstagramController {
       organizationId,
       {
         avatarUrl: chosen.image,
-        handle: chosen.username,
+        handle: chosen.username ?? null,
         id: chosen.id,
         name: chosen.label || chosen.username,
       },
@@ -523,6 +564,99 @@ export class InstagramController {
       );
     }
     return credential;
+  }
+
+  /**
+   * Step 3 (only when verify reported `needsAccountSelection`): the operator
+   * has picked one of the candidates from `GET
+   * /credentials/:credentialId/instagram/pages`. Handle/name/avatar are read
+   * from this endpoint's own re-fetch of the credential's authorized
+   * accounts — never trusted from the request body — so a client cannot
+   * claim an externalId the token does not actually authorize, and cannot
+   * repoint this credential onto an account it was never granted.
+   */
+  @Post(':credentialId/select-account')
+  async selectAccount(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+    @Body() body: { externalId?: string },
+  ) {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    if (!body?.externalId) {
+      return returnBadRequest({
+        detail: 'externalId is required',
+        title: 'Invalid payload',
+      });
+    }
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.INSTAGRAM,
+    });
+
+    if (!credential || credential.isDeleted) {
+      return returnNotFound('Instagram credential', credentialId);
+    }
+
+    if (!credential.accessToken) {
+      return returnBadRequest({
+        detail: 'Instagram account is not connected',
+        title: 'Not Connected',
+      });
+    }
+
+    try {
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+      const accounts =
+        await this.instagramService.listAuthorizedInstagramAccounts(
+          accessToken,
+        );
+      const chosen = accounts.find((account) => account.id === body.externalId);
+
+      if (!chosen) {
+        return returnBadRequest({
+          detail:
+            'That account is not authorized by this connection. Reconnect Instagram and try again.',
+          title: 'Account not available',
+        });
+      }
+
+      let updated = await this.credentialsService.updateExternalProfile(
+        credential.id.toString(),
+        user.organizationId,
+        {
+          avatarUrl: chosen.image,
+          handle: chosen.username ?? null,
+          id: chosen.id,
+          name: chosen.label || chosen.username,
+        },
+      );
+
+      updated = await this.finalizeConnection({
+        accessToken,
+        credential: updated,
+        // Undefined so `finalizeConnection`'s signal refresh falls back to
+        // this credential's already-persisted grantedScopes, the same as
+        // any other post-connection refresh.
+        grantedScopes: undefined,
+        organizationId: user.organizationId,
+        url,
+      });
+
+      return serializeSingle(request, CredentialSerializer, updated);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeInstagramOAuthErrorLog(error),
+      );
+      return throwMappedInstagramOAuthError(
+        error,
+        'Failed to connect the selected Instagram account',
+      );
+    }
   }
 
   @Post(':credentialId/authorized-signals/refresh')

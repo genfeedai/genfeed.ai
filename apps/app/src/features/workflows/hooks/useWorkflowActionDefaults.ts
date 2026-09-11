@@ -64,6 +64,7 @@ export function useWorkflowActionScope(): WorkflowActionScope {
         id: credential.id,
         label:
           credential.externalHandle ||
+          credential.externalName ||
           credential.label ||
           String(credential.platform),
         platform: String(credential.platform),

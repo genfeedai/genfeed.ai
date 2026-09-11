@@ -465,12 +465,6 @@ export interface BrandOverlayProps extends ModalVisibilityProps {
   initialView?: 'edit' | 'overview';
 }
 
-export interface ModalBrandInstagramProps {
-  brand: IBrand | null;
-  credential: ICredential | null;
-  onConfirm: () => void;
-}
-
 export interface ModalBrandLinkProps {
   brandId: string | null;
   link: ILink | null;

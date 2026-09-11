@@ -70,4 +70,26 @@ export class ServicesService extends BaseService<CredentialOAuth | Credential> {
           new Credential(this.extractResource<Partial<ICredential>>(res)),
       );
   }
+
+  /**
+   * Instagram only: settle an ambiguous connection (see
+   * `needsAccountSelection`) onto one of the accounts the credential's own
+   * token authorizes. The server re-derives handle/name/avatar from its own
+   * list of authorized accounts and validates `externalId` against it —
+   * nothing here is trusted from the request beyond which id was picked.
+   */
+  public async postSelectAccount(
+    credentialId: string,
+    externalId: string,
+  ): Promise<ICredential> {
+    return await this.instance
+      .post<JsonApiResponseDocument>(`${credentialId}/select-account`, {
+        externalId,
+      })
+      .then((res) => res.data)
+      .then(
+        (res) =>
+          new Credential(this.extractResource<Partial<ICredential>>(res)),
+      );
+  }
 }

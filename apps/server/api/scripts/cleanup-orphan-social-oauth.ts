@@ -1,6 +1,14 @@
 /**
- * Audit and retire stale pending Threads/Fanvue OAuth credentials created by
- * the former fail-open connect ordering.
+ * Audit and retire two kinds of abandoned connection attempt:
+ *
+ *   1. Stale pending Threads/Fanvue OAuth credentials created by the former
+ *      fail-open connect ordering (no token, no identity at all).
+ *   2. Abandoned Instagram account-selection rows: the token exchange
+ *      succeeded and was persisted, but the operator never returned to pick
+ *      one of the accounts it authorized (see
+ *      `InstagramController.resolveAuthorizedAccount` /
+ *      `computeNeedsAccountSelection`) — tokened, unconnected, no
+ *      externalId, past the OAuth state TTL.
  *
  * Dry-run is the default. A tenant id is always required, including for the
  * audit, so neither reads nor writes can cross organization boundaries.
@@ -10,8 +18,9 @@
  *   bun run scripts/cleanup-orphan-social-oauth.ts --organization-id=<id> --live
  *
  * Requires DATABASE_URL in the environment. Live mode performs an idempotent
- * soft delete and clears pending OAuth state/PKCE material. It never removes a
- * connected, token-bearing, identity-bearing, current, or ambiguous row.
+ * soft delete and clears pending OAuth state/PKCE material (category 1) or
+ * the saved token (category 2). Neither pass ever removes a connected,
+ * identity-bearing, current, or otherwise ambiguous row.
  */
 
 import process from 'node:process';
@@ -32,6 +41,11 @@ const BATCH_SIZE = 100;
 const AFFECTED_PLATFORMS: PrismaCredentialPlatform[] = [
   PrismaCredentialPlatform.FANVUE,
   PrismaCredentialPlatform.THREADS,
+];
+/** Platforms whose connect flow can leave a tokened row with no externalId
+ * pending an operator's account pick — currently only Instagram. */
+const ACCOUNT_SELECTION_PLATFORMS: PrismaCredentialPlatform[] = [
+  PrismaCredentialPlatform.INSTAGRAM,
 ];
 
 export interface OrphanSocialOAuthCleanupArgs {
@@ -137,7 +151,7 @@ export interface OrphanSocialOAuthCleanupReport {
 }
 
 export function assertOrphanSocialOAuthCleanupCompleted(
-  report: OrphanSocialOAuthCleanupReport,
+  report: OrphanSocialOAuthCleanupReport | AbandonedSelectionCleanupReport,
 ): void {
   if (!report.dryRun && report.concurrentChangesSkipped > 0) {
     throw new Error(
@@ -352,13 +366,165 @@ export async function runOrphanSocialOAuthCleanup(
   };
 }
 
+export interface AbandonedSelectionCredentialRow {
+  id: string;
+  updatedAt: Date;
+}
+
+export interface AbandonedSelectionFindManyArgs {
+  orderBy: { id: 'asc' };
+  select: { id: true; updatedAt: true };
+  take: number;
+  where: {
+    accessToken: { not: null };
+    externalId: null;
+    id?: { gt: string };
+    isConnected: false;
+    isDeleted: false;
+    oauthState: null;
+    organizationId: string;
+    platform: { in: PrismaCredentialPlatform[] };
+    updatedAt: { lt: Date };
+  };
+}
+
+export interface AbandonedSelectionUpdateManyArgs {
+  data: {
+    accessToken: null;
+    accessTokenExpiry: null;
+    accessTokenSecret: null;
+    grantedScopes: never[];
+    grantedScopesCapturedAt: null;
+    isDeleted: true;
+    refreshToken: null;
+    refreshTokenExpiry: null;
+  };
+  where: {
+    accessToken: { not: null };
+    externalId: null;
+    id: { in: string[] };
+    isConnected: false;
+    isDeleted: false;
+    oauthState: null;
+    organizationId: string;
+    platform: { in: PrismaCredentialPlatform[] };
+    updatedAt: { lt: Date };
+  };
+}
+
+export interface AbandonedSelectionCleanupClient {
+  credential: {
+    findMany(
+      args: AbandonedSelectionFindManyArgs,
+    ): Promise<readonly AbandonedSelectionCredentialRow[]>;
+    updateMany(args: AbandonedSelectionUpdateManyArgs): Promise<{
+      count: number;
+    }>;
+  };
+}
+
+export interface AbandonedSelectionCleanupReport {
+  concurrentChangesSkipped: number;
+  dryRun: boolean;
+  scanned: number;
+  updated: number;
+  wouldUpdate: number;
+}
+
+/**
+ * Category 2 (see module docstring): the token is real and still readable —
+ * clearing it (not just soft-deleting the row) matches
+ * `purgeProviderAccount`'s treatment of provider material once a connection
+ * is being retired, and stops a stale token from ever being decrypted again.
+ */
+export async function runAbandonedInstagramSelectionCleanup(
+  client: AbandonedSelectionCleanupClient,
+  args: OrphanSocialOAuthCleanupArgs,
+  now = new Date(),
+): Promise<AbandonedSelectionCleanupReport> {
+  const cutoff = new Date(now.getTime() - OAUTH_STATE_TTL_MS);
+  let afterId: string | undefined;
+  let concurrentChangesSkipped = 0;
+  let scanned = 0;
+  let updated = 0;
+  let wouldUpdate = 0;
+
+  for (;;) {
+    const rows = await client.credential.findMany({
+      orderBy: { id: 'asc' },
+      select: { id: true, updatedAt: true },
+      take: BATCH_SIZE,
+      where: {
+        accessToken: { not: null },
+        externalId: null,
+        ...(afterId ? { id: { gt: afterId } } : {}),
+        isConnected: false,
+        isDeleted: false,
+        oauthState: null,
+        organizationId: args.organizationId,
+        platform: { in: [...ACCOUNT_SELECTION_PLATFORMS] },
+        updatedAt: { lt: cutoff },
+      },
+    });
+
+    if (rows.length === 0) {
+      break;
+    }
+
+    scanned += rows.length;
+    const eligibleIds = rows.map((row) => row.id);
+    wouldUpdate += eligibleIds.length;
+
+    if (!args.dryRun && eligibleIds.length > 0) {
+      const result = await client.credential.updateMany({
+        data: {
+          accessToken: null,
+          accessTokenExpiry: null,
+          accessTokenSecret: null,
+          grantedScopes: [],
+          grantedScopesCapturedAt: null,
+          isDeleted: true,
+          refreshToken: null,
+          refreshTokenExpiry: null,
+        },
+        where: {
+          accessToken: { not: null },
+          externalId: null,
+          id: { in: eligibleIds },
+          isConnected: false,
+          isDeleted: false,
+          oauthState: null,
+          organizationId: args.organizationId,
+          platform: { in: [...ACCOUNT_SELECTION_PLATFORMS] },
+          updatedAt: { lt: cutoff },
+        },
+      });
+      updated += result.count;
+      concurrentChangesSkipped += eligibleIds.length - result.count;
+    }
+
+    afterId = rows.at(-1)?.id;
+    if (rows.length < BATCH_SIZE) {
+      break;
+    }
+  }
+
+  return {
+    concurrentChangesSkipped,
+    dryRun: args.dryRun,
+    scanned,
+    updated,
+    wouldUpdate,
+  };
+}
+
 function createCleanupClient(
   prisma: PrismaClient,
-): OrphanSocialOAuthCleanupClient {
+): OrphanSocialOAuthCleanupClient & AbandonedSelectionCleanupClient {
   return {
     credential: {
-      findMany: (args) => prisma.credential.findMany(args),
-      updateMany: (args) => prisma.credential.updateMany(args),
+      findMany: (args) => prisma.credential.findMany(args as never),
+      updateMany: (args) => prisma.credential.updateMany(args as never),
     },
   };
 }
@@ -380,17 +546,29 @@ async function main(): Promise<void> {
   });
 
   try {
-    const report = await runOrphanSocialOAuthCleanup(
-      createCleanupClient(prisma),
-      args,
-    );
+    const client = createCleanupClient(prisma);
+
+    const report = await runOrphanSocialOAuthCleanup(client, args);
     logger.log(
       `OAuth cleanup report (${args.dryRun ? 'DRY-RUN' : 'LIVE'}): ${JSON.stringify(report)}`,
     );
     if (args.dryRun && report.wouldUpdate > 0) {
       logger.log('Review the report, then rerun with --live to apply.');
     }
+
+    const selectionReport = await runAbandonedInstagramSelectionCleanup(
+      client,
+      args,
+    );
+    logger.log(
+      `Abandoned Instagram selection cleanup report (${args.dryRun ? 'DRY-RUN' : 'LIVE'}): ${JSON.stringify(selectionReport)}`,
+    );
+    if (args.dryRun && selectionReport.wouldUpdate > 0) {
+      logger.log('Review the report, then rerun with --live to apply.');
+    }
+
     assertOrphanSocialOAuthCleanupCompleted(report);
+    assertOrphanSocialOAuthCleanupCompleted(selectionReport);
   } finally {
     await prisma.$disconnect();
   }

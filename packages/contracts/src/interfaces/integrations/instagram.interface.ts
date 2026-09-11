@@ -5,13 +5,11 @@
 /**
  * Instagram Business Account page information
  */
-
 export interface InstagramPageResponse {
   id: string;
   image?: string;
   label?: string;
   username?: string;
-  isBusinessAccount?: boolean;
   platform?: string;
 }
 

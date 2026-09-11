@@ -38,7 +38,11 @@ export function useMenuItems({
           group: 'Posts',
           href: `/publishing?platform=${cred.platform}`,
           isDynamic: true,
-          label: cred.externalHandle || cred.label || cred.platform,
+          label:
+            cred.externalHandle ||
+            cred.externalName ||
+            cred.label ||
+            cred.platform,
           outline: iconComponent,
           solid: iconComponent,
         };

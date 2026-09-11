@@ -6,7 +6,6 @@ export enum ModalEnum {
   BOT = 'modal-bot',
   BRAND = 'modal-brand',
   BRAND_GENERATE = 'modal-brand-generate',
-  BRAND_INSTAGRAM = 'modal-brand-instagram',
   BRAND_LINK = 'modal-brand-link',
   CAMERA = 'modal-camera',
   CAMERA_MOVEMENT = 'modal-camera-movement',

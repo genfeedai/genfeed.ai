@@ -34,6 +34,14 @@ export interface ICredential extends IBaseEntity {
   externalUrl?: string;
 
   platform: CredentialPlatform;
+  /**
+   * True when a provider token was saved but never resolved to a specific
+   * account (see `computeNeedsAccountSelection`). The caller should let the
+   * operator choose an account (Instagram: `POST
+   * /services/instagram/:credentialId/select-account`) instead of treating
+   * this connection as complete.
+   */
+  needsAccountSelection?: boolean;
   accessTokenExpiry?: string | null;
 
   label?: string | null;

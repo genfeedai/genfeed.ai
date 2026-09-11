@@ -1,9 +1,12 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { InstagramIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { CredentialInstagram } from '@genfeedai/models/auth/credential.model';
+import type { InstagramAccountSelectorProps } from '@genfeedai/props/auth/instagram-account-selector.props';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck } from 'lucide-react';
@@ -11,23 +14,22 @@ import Image from 'next/image';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 
-export interface InstagramAccountSelectorProps {
-  /** The unconnected, unidentified credential row this selection settles. */
-  credentialId: string;
-  /** Called once the chosen account has been persisted. */
-  onConnected: () => void;
-  onError?: (message: string) => void;
-}
+export type { InstagramAccountSelectorProps } from '@genfeedai/props/auth/instagram-account-selector.props';
 
 /**
  * Lets the operator resolve an ambiguous Instagram connection — several
  * eligible professional accounts and no automatic pick — by choosing one of
  * the candidates returned for this credential's own token. Reused by the
- * OAuth callback page; `ModalBrandInstagram` covers the equivalent settings
- * surface with its own list rendering.
+ * OAuth callback page.
+ *
+ * The pick is validated server-side: `handleConfirm` posts only the chosen
+ * `externalId` to `POST /services/instagram/:credentialId/select-account`,
+ * which re-derives handle/name/avatar from its own authorized-accounts list
+ * and rejects an id that token does not actually grant.
  */
 export default function InstagramAccountSelector({
   credentialId,
+  onBack,
   onConnected,
   onError,
 }: InstagramAccountSelectorProps) {
@@ -36,6 +38,9 @@ export default function InstagramAccountSelector({
   );
   const getCredentialsService = useAuthedService((token: string) =>
     CredentialsService.getInstance(token),
+  );
+  const getServicesService = useAuthedService(
+    (token: string) => new ServicesService('instagram', token),
   );
 
   const [availableAccounts, setAvailableAccounts] = useState<
@@ -46,6 +51,7 @@ export default function InstagramAccountSelector({
   const [isLoading, setIsLoading] = useState(true);
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [retryToken, setRetryToken] = useState(0);
 
   // `translate` and `onError` churn identity every render (a fresh
   // `next-intl` translator, and callers rarely memoize an inline handler).
@@ -57,6 +63,7 @@ export default function InstagramAccountSelector({
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryToken is a deliberate re-run trigger, not read inside the effect
   useEffect(() => {
     const controller = new AbortController();
     const url = `GET /credentials/${credentialId}/instagram/pages`;
@@ -97,7 +104,12 @@ export default function InstagramAccountSelector({
     return () => {
       controller.abort();
     };
-  }, [credentialId, getCredentialsService]);
+  }, [credentialId, getCredentialsService, retryToken]);
+
+  const retry = () => {
+    setSelectedAccount(null);
+    setRetryToken((token) => token + 1);
+  };
 
   const handleConfirm = async () => {
     if (!selectedAccount) {
@@ -106,16 +118,11 @@ export default function InstagramAccountSelector({
 
     setIsConnecting(true);
     setError(null);
-    const url = `PATCH /credentials/${credentialId}`;
+    const url = `POST /services/instagram/${credentialId}/select-account`;
 
     try {
-      const service = await getCredentialsService();
-      await service.patch(credentialId, {
-        externalAvatar: selectedAccount.image,
-        externalHandle: selectedAccount.username,
-        externalId: selectedAccount.id,
-        externalName: selectedAccount.label,
-      });
+      const service = await getServicesService();
+      await service.postSelectAccount(credentialId, selectedAccount.id);
 
       logger.info(`${url} success`);
       onConnected();
@@ -143,11 +150,45 @@ export default function InstagramAccountSelector({
       )}
 
       {!isLoading && error && (
-        <p className="text-sm text-destructive">{error}</p>
+        <div className="space-y-3">
+          <p className="text-sm text-destructive">{error}</p>
+          <div className="flex gap-2">
+            <Button
+              label={translate('retry')}
+              onClick={retry}
+              variant={ButtonVariant.SECONDARY}
+            />
+            {onBack && (
+              <Button
+                label={translate('back')}
+                onClick={onBack}
+                variant={ButtonVariant.LINK}
+                withWrapper={false}
+              />
+            )}
+          </div>
+        </div>
       )}
 
       {!isLoading && !error && availableAccounts.length === 0 && (
-        <p className="text-sm text-muted-foreground">{translate('empty')}</p>
+        <div className="space-y-3">
+          <p className="text-sm text-muted-foreground">{translate('empty')}</p>
+          <div className="flex gap-2">
+            <Button
+              label={translate('retry')}
+              onClick={retry}
+              variant={ButtonVariant.SECONDARY}
+            />
+            {onBack && (
+              <Button
+                label={translate('back')}
+                onClick={onBack}
+                variant={ButtonVariant.LINK}
+                withWrapper={false}
+              />
+            )}
+          </div>
+        </div>
       )}
 
       {!isLoading && availableAccounts.length > 0 && (
@@ -166,14 +207,24 @@ export default function InstagramAccountSelector({
               withWrapper={false}
             >
               <div className="flex items-center gap-2">
-                <Image
-                  src={account.image}
-                  alt={account.label}
-                  className="size-10 flex-shrink-0 rounded-full object-cover outline-media"
-                  width={40}
-                  height={40}
-                  sizes="40px"
-                />
+                {account.image ? (
+                  <Image
+                    src={account.image}
+                    alt={account.label}
+                    className="size-10 flex-shrink-0 rounded-full object-cover outline-media"
+                    width={40}
+                    height={40}
+                    sizes="40px"
+                  />
+                ) : (
+                  <div className="flex size-10 flex-shrink-0 items-center justify-center rounded-full bg-platform-instagram">
+                    <InstagramIcon
+                      className={
+                        'text-lg text-white' /* design-system-allow-content-color -- platform mark */
+                      }
+                    />
+                  </div>
+                )}
                 <div className="flex-1 text-left">
                   <p className="font-medium">{account.label}</p>
                   <p className="text-sm text-muted-foreground">
@@ -189,12 +240,14 @@ export default function InstagramAccountSelector({
         </div>
       )}
 
-      <Button
-        label={isConnecting ? translate('confirming') : translate('confirm')}
-        onClick={handleConfirm}
-        isLoading={isConnecting}
-        isDisabled={isConnecting || isLoading || !selectedAccount}
-      />
+      {!isLoading && availableAccounts.length > 0 && (
+        <Button
+          label={isConnecting ? translate('confirming') : translate('confirm')}
+          onClick={handleConfirm}
+          isLoading={isConnecting}
+          isDisabled={isConnecting || !selectedAccount}
+        />
+      )}
     </div>
   );
 }

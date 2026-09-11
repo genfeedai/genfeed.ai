@@ -112,11 +112,11 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         const credential = await service.postVerify(body);
 
         // Instagram may resolve the token exchange to more than one eligible
-        // professional account with no automatic pick. The credential row is
-        // saved but deliberately left unconnected — see
-        // `InstagramController.resolveAuthorizedAccount` — so the operator
-        // must choose before this connection can be treated as complete.
-        if (platform === 'instagram' && credential && !credential.isConnected) {
+        // professional account with no automatic pick. `needsAccountSelection`
+        // is computed server-side (see `computeNeedsAccountSelection`) rather
+        // than inferred here from `isConnected` — that column can be false
+        // for other reasons that have no operator selection waiting.
+        if (credential?.needsAccountSelection) {
           logger.info(`${url} success (account selection required)`);
           setResult({ credentialId: credential.id, status: 'selecting' });
           return;
@@ -167,6 +167,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         {isSignedIn && result.status === 'selecting' && (
           <InstagramAccountSelector
             credentialId={result.credentialId}
+            onBack={() => push(resolveReturnTo())}
             onConnected={completeSuccess}
             onError={(errorMessage) =>
               logger.error(

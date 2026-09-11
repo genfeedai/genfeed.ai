@@ -5,6 +5,7 @@ import {
 } from '@api/server.dependencies';
 import {
   getInstagramErrorCode,
+  getSafeInstagramOAuthErrorLog,
   isInstagramAuthorizationError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
@@ -48,6 +49,10 @@ function requireString(
 }
 
 const INSTAGRAM_TOKEN_REFRESH_BUFFER_MS = 7 * 24 * 60 * 60 * 1000;
+/** Defensive cap on `me/accounts` pagination batches — an operator managing
+ * an unreasonable number of Facebook Pages should not be able to make this
+ * request loop indefinitely. */
+const INSTAGRAM_ACCOUNT_LIST_MAX_PAGES = 25;
 
 const INSTAGRAM_COMMENT_NODE_FIELDS =
   'id,text,timestamp,username,from{id,username}';
@@ -262,29 +267,45 @@ export class InstagramService {
 
   /**
    * Every Instagram professional (Business or Creator) account this token can
-   * reach, via the Facebook Pages the token's user manages. Paginates through
-   * `paging.next` so a user managing many Pages is not silently truncated.
-   * Shared by verify-time account resolution and `getInstagramPages` — the
-   * only difference is that the latter further filters to accounts that can
-   * actually publish (see the per-page probe below).
+   * reach, via the Facebook Pages the token's user manages. Paginates with
+   * the `after` cursor (never the raw `paging.next` URL, which embeds
+   * `access_token` in a string that ends up in request logs and history) and
+   * stops after `INSTAGRAM_ACCOUNT_LIST_MAX_PAGES` batches so a
+   * pathologically large or looping result set cannot hang the request.
+   * This is the single source of truth for "which accounts can this token
+   * act as" — both verify-time resolution and the reconnect picker
+   * (`CredentialsController.findAllInstagramPages`) read it directly.
    */
   public async listAuthorizedInstagramAccounts(
     accessToken: string,
   ): Promise<InstagramPageResponse[]> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const accounts: InstagramPageResponse[] = [];
-    let nextUrl: string | undefined =
-      `${this.graphUrl}/${this.apiVersion}/me/accounts`;
-    let params: Record<string, unknown> | undefined = {
-      access_token: accessToken,
-      fields:
-        'id,name,instagram_business_account{id,username,name,profile_picture_url}',
-    };
+    let afterCursor: string | undefined;
+    let pageCount = 0;
 
     try {
-      while (nextUrl) {
+      for (;;) {
+        pageCount += 1;
+        if (pageCount > INSTAGRAM_ACCOUNT_LIST_MAX_PAGES) {
+          this.loggerService.warn(`${url} stopped at the pagination cap`, {
+            maxPages: INSTAGRAM_ACCOUNT_LIST_MAX_PAGES,
+          });
+          break;
+        }
+
         const response = await firstValueFrom(
-          this.httpService.get(nextUrl, params ? { params } : undefined),
+          this.httpService.get(
+            `${this.graphUrl}/${this.apiVersion}/me/accounts`,
+            {
+              params: {
+                access_token: accessToken,
+                ...(afterCursor ? { after: afterCursor } : {}),
+                fields:
+                  'id,name,instagram_business_account{id,username,name,profile_picture_url}',
+              },
+            },
+          ),
         );
 
         const userPages: Array<{
@@ -315,92 +336,24 @@ export class InstagramService {
           }),
         );
 
-        const next: unknown = response.data?.paging?.next;
-        nextUrl = typeof next === 'string' ? next : undefined;
-        // Graph's `paging.next` is a fully-qualified URL that already carries
-        // every query param (including access_token) — passing params again
-        // would duplicate and could conflict with them.
-        params = undefined;
-      }
-
-      this.loggerService.log(`${url} succeeded`, { count: accounts.length });
-      return accounts;
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      throw error;
-    }
-  }
-
-  public async getInstagramPages(
-    organizationId: string,
-    brandId: string,
-    credentialId?: string,
-  ): Promise<InstagramPageResponse[]> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    try {
-      const credential = await this.getValidCredential(
-        organizationId,
-        brandId,
-        credentialId,
-      );
-
-      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
-
-      const pages: InstagramPageResponse[] = [];
-      const businessPages =
-        await this.listAuthorizedInstagramAccounts(accessToken);
-
-      // For each candidate account, check if it has an Instagram Business Account
-      for (const page of businessPages) {
-        try {
-          // Check if this is a Business brand (can publish) or Creator brand (read-only)
-          let isBusinessAccount = false;
-          try {
-            // Empty POST to media endpoint to test publishing capability
-            await firstValueFrom(
-              this.httpService.post(
-                `${this.graphUrl}/${this.apiVersion}/${page.id}/media`,
-                null,
-                {
-                  params: { access_token: accessToken },
-                  validateStatus: (status) => status < 500, // Don't throw on 4xx errors
-                },
-              ),
-            );
-            isBusinessAccount = true;
-          } catch (error: unknown) {
-            // Error code 10 indicates Creator Account (can't publish)
-            const response = (
-              error as { response?: { data?: { error?: { code?: number } } } }
-            )?.response;
-            isBusinessAccount = !(response?.data?.error?.code === 10);
-          }
-
-          // Only include Business accounts that can publish content
-          if (isBusinessAccount) {
-            pages.push({
-              ...page,
-              isBusinessAccount,
-              platform: CredentialPlatform.INSTAGRAM,
-            });
-          }
-        } catch (error: unknown) {
-          // Skip accounts we can't access or verify
-          this.loggerService.warn(
-            `${url} - Could not verify Instagram account ${page.id}`,
-            error,
-          );
+        const hasNext = typeof response.data?.paging?.next === 'string';
+        const nextAfter = response.data?.paging?.cursors?.after;
+        if (!hasNext || typeof nextAfter !== 'string') {
+          break;
         }
+        afterCursor = nextAfter;
       }
 
       this.loggerService.log(`${url} succeeded`, {
-        pagesCount: pages.length,
+        count: accounts.length,
+        pageCount,
       });
-
-      return pages;
+      return accounts;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeInstagramOAuthErrorLog(error),
+      );
       throw error;
     }
   }

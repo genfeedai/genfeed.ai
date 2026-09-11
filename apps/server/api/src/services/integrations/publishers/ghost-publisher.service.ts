@@ -58,7 +58,10 @@ export class GhostPublisherService extends BasePublisherService {
       // post to a sibling account the moment the brand connects a second one.
       const ghostCredential = credential;
 
-      if (!ghostCredential?.accessToken || !ghostCredential?.externalHandle) {
+      // The site URL is `externalId` (see GhostController.connect) — Ghost
+      // has no public handle concept, so `externalHandle` is never populated
+      // for it and must not be read as the site URL.
+      if (!ghostCredential?.accessToken || !ghostCredential?.externalId) {
         this.logger.error(`${url} Ghost credential or site URL not found`, {
           postId: context.postId,
         });
@@ -71,7 +74,7 @@ export class GhostPublisherService extends BasePublisherService {
       const decryptedApiKey = EncryptionUtil.decrypt(
         ghostCredential.accessToken,
       );
-      const ghostUrl = ghostCredential.externalHandle;
+      const ghostUrl = ghostCredential.externalId;
 
       // Ghost supports HTML content natively
       const htmlContent = post.description || '<p></p>';
@@ -121,7 +124,10 @@ export class GhostPublisherService extends BasePublisherService {
     credential: CredentialDocument,
     _externalShortcode?: string,
   ): string {
-    const ghostUrl = credential.externalHandle || '';
+    // The site URL is `externalId` (the Ghost account's identity — see
+    // GhostController.connect), not `externalHandle`: Ghost has no public
+    // handle concept, and `externalHandle` is never populated for it.
+    const ghostUrl = credential.externalId || '';
     return `${ghostUrl}/p/${externalId}`;
   }
 }

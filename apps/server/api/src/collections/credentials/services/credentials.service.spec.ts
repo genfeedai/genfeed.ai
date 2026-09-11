@@ -12,7 +12,7 @@ import process from 'node:process';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import {
   CredentialsService,
-  extractReconnectCredentialIdFromState,
+  extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
 
 import { CredentialPlatform, SubscriptionTier } from '@genfeedai/contracts';
@@ -562,6 +562,7 @@ describe('CredentialsService', () => {
       prisma.credential.findMany.mockResolvedValue([
         {
           createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: 'ext-a',
           id: 'cred-a',
           platform: 'TWITTER',
         },
@@ -581,11 +582,13 @@ describe('CredentialsService', () => {
       prisma.credential.findMany.mockResolvedValue([
         {
           createdAt: '2026-02-01T00:00:00.000Z',
+          externalId: 'ext-b',
           id: 'cred-b',
           platform: 'TWITTER',
         },
         {
           createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: 'ext-a',
           id: 'cred-a',
           platform: 'TWITTER',
         },
@@ -616,6 +619,55 @@ describe('CredentialsService', () => {
           platform: 'twitter' as never,
         }),
       ).resolves.toBeNull();
+    });
+
+    it('never falls back to a row with no externalId, even as the sole candidate', async () => {
+      // A row with no externalId was never resolved to a specific account —
+      // an abandoned multi-account selection, or a pending row mid-OAuth. It
+      // has nothing this call could correctly act "as".
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: null,
+          id: 'cred-unidentified',
+          platform: 'INSTAGRAM',
+        },
+      ]);
+
+      await expect(
+        service.resolveBrandAccount({
+          brandId,
+          organizationId: orgId,
+          platform: 'instagram' as never,
+        }),
+      ).resolves.toBeNull();
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('skips unidentified rows and falls back to the one identified account', async () => {
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: null,
+          id: 'cred-unidentified',
+          platform: 'INSTAGRAM',
+        },
+        {
+          createdAt: '2026-02-01T00:00:00.000Z',
+          externalId: 'ext-a',
+          id: 'cred-identified',
+          platform: 'INSTAGRAM',
+        },
+      ]);
+
+      const account = await service.resolveBrandAccount({
+        brandId,
+        organizationId: orgId,
+        platform: 'instagram' as never,
+      });
+
+      expect(account?.id).toBe('cred-identified');
+      expect(logger.warn).not.toHaveBeenCalled();
     });
   });
 
@@ -812,11 +864,11 @@ describe('CredentialsService', () => {
       expect(result.state).not.toContain(orgId);
     });
 
-    it('embeds a reconnect credential id in the opaque state without a new column', async () => {
+    it('stores a reconnect intent on the pending credential, never in the OAuth state', async () => {
       const result = await service.beginOAuthForBrand(
         { id: brandId, organizationId: orgId },
         'u1',
-        'instagram' as never,
+        CredentialPlatform.INSTAGRAM,
         { isConnected: false },
         'reconnect-credential-1',
       );
@@ -826,18 +878,53 @@ describe('CredentialsService', () => {
         unknown
       >;
 
-      expect(result.state).toMatch(
-        /^[A-Za-z0-9_-]{43}\.reconnect-credential-1$/,
-      );
+      // The state stays a plain, unstructured nonce: it round-trips through
+      // the provider's authorization URL, browser history, and referrer
+      // headers, so embedding a credential id in it would leak that
+      // internal identifier outside Genfeed.
+      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(result.state).not.toContain('reconnect-credential-1');
       expect(data.oauthState).toBe(result.state);
-      expect(extractReconnectCredentialIdFromState(result.state)).toBe(
-        'reconnect-credential-1',
-      );
+      expect(data.warmupSignals).toEqual({
+        oauthConnectIntent: { reconnectCredentialId: 'reconnect-credential-1' },
+      });
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals(data.warmupSignals),
+      ).toBe('reconnect-credential-1');
     });
 
-    it('recovers no reconnect intent from a plain nonce', () => {
+    it('omits the intent entirely when no reconnect credential is given', async () => {
+      await service.beginOAuthForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        CredentialPlatform.INSTAGRAM,
+        { isConnected: false },
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        unknown
+      >;
+
+      expect(data.warmupSignals).toBeUndefined();
       expect(
-        extractReconnectCredentialIdFromState('plain-nonce-without-a-dot'),
+        extractReconnectCredentialIdFromWarmupSignals(data.warmupSignals),
+      ).toBeUndefined();
+    });
+
+    it('recovers no reconnect intent from warmupSignals that carry none', () => {
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals({
+          instagramAuthorized: {},
+        }),
+      ).toBeUndefined();
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals(undefined),
+      ).toBeUndefined();
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals({
+          oauthConnectIntent: { reconnectCredentialId: '   ' },
+        }),
       ).toBeUndefined();
     });
 
@@ -1048,6 +1135,34 @@ describe('CredentialsService', () => {
           }),
         }),
       );
+    });
+
+    it('clears a stale handle when a provider explicitly reports none', async () => {
+      // `null` means "this provider has no handle for this account" and
+      // must clear a previously-persisted bad value (see #4695); `undefined`
+      // means "leave the column as is" and must not touch it.
+      await service.updateExternalProfile('existing-id', orgId, {
+        handle: null,
+        id: 'provider-1',
+        name: 'Acme Studio',
+      });
+
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ externalHandle: null }),
+        }),
+      );
+    });
+
+    it('leaves externalHandle untouched when the provider omits it', async () => {
+      await service.updateExternalProfile('existing-id', orgId, {
+        id: 'provider-1',
+        name: 'Acme Studio',
+      });
+
+      const call = (prisma.credential.update as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as { data: Record<string, unknown> };
+      expect(call.data).not.toHaveProperty('externalHandle');
     });
 
     it('rejects private avatar URLs before the files service fetches them', async () => {

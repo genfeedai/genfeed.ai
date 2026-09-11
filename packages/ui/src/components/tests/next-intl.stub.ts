@@ -89,6 +89,7 @@ const UI_TEST_MESSAGES = {
     oauth: {
       platformCallback: {
         selectAccount: {
+          back: 'Go back',
           confirm: 'Use this account',
           confirmError: 'Failed to connect this account. Please try again.',
           confirming: 'Connecting…',
@@ -97,6 +98,7 @@ const UI_TEST_MESSAGES = {
           empty: 'No eligible accounts were found.',
           error: 'Failed to load accounts. Please try again.',
           loading: 'Loading accounts…',
+          retry: 'Try again',
           title: 'Choose an account',
         },
       },
