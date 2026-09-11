@@ -258,6 +258,8 @@ describe('AgentWorkspaceLayoutClient', () => {
 
   it('restores the most recent active thread authorized for the route organization', async () => {
     navigationState.pathname = '/agent';
+    // Org-scoped `/:org/~/agent` entry: no brand segment in the route params.
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
     storeState.activeThreadId = null;
     getThreads.mockResolvedValue([
       {
@@ -307,8 +309,76 @@ describe('AgentWorkspaceLayoutClient', () => {
     );
   });
 
+  it('resumes only the URL brand thread when a newer thread exists on another brand (#4674)', async () => {
+    navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: 'second-brand' };
+    storeState.activeThreadId = null;
+    brandState.brandId = 'brand-2';
+    getThreads.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'newer-other-brand-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-10T12:00:00.000Z',
+      },
+      {
+        brandId: 'brand-2',
+        id: 'older-route-brand-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-05T12:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/second-brand/agent/older-route-brand-thread',
+      );
+    });
+    expect(getThreads).toHaveBeenCalledWith(
+      { brandId: 'brand-2', status: 'active' },
+      expect.any(AbortSignal),
+    );
+  });
+
+  it("falls back to the URL brand's own new conversation when that brand has no active thread (#4674)", async () => {
+    navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: 'second-brand' };
+    storeState.activeThreadId = null;
+    brandState.brandId = 'brand-2';
+    getThreads.mockResolvedValue([
+      {
+        brandId: 'brand-1',
+        id: 'other-brand-thread',
+        organizationId: 'org-1',
+        status: 'active',
+        updatedAt: '2026-08-10T12:00:00.000Z',
+      },
+    ]);
+
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+
+    await waitFor(() => {
+      expect(routerReplace).toHaveBeenCalledWith(
+        '/acme-org/second-brand/agent/new',
+      );
+    });
+  });
+
   it('falls back by replacement to a new org conversation when none is authorized', async () => {
     navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
     storeState.activeThreadId = null;
     getThreads.mockResolvedValue([
       {
@@ -333,6 +403,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
   it('defers the returning bootstrap decision until brand scope resolves', async () => {
     navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
     storeState.activeThreadId = null;
     brandState.brands = [];
     brandState.isBrandScopeResolved = false;
@@ -377,6 +448,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
   it('still falls back to a new conversation when resolved brands exclude the thread brand', async () => {
     navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
     storeState.activeThreadId = null;
     brandState.brands = AUTHORIZED_BRANDS.filter(
       (brand) => brand.id === 'brand-2',
@@ -404,6 +476,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
   it('releases the one-shot bootstrap guard when brand scope becomes unresolved (#2702)', async () => {
     navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
     storeState.activeThreadId = null;
     brandState.brands = AUTHORIZED_BRANDS;
     brandState.isBrandScopeResolved = true;
@@ -457,6 +530,7 @@ describe('AgentWorkspaceLayoutClient', () => {
 
   it('looks the returning thread up once while brand scope stays resolved', async () => {
     navigationState.pathname = '/agent';
+    navigationState.params = { orgSlug: 'acme-org', brandSlug: undefined };
     storeState.activeThreadId = null;
     getThreads.mockResolvedValue([
       {

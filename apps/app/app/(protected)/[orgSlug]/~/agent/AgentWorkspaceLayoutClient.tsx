@@ -77,6 +77,28 @@ function mostRecentAuthorizedThread(
   );
 }
 
+// Brand-scoped `/:org/:brand/agent` resume: narrow to threads owned by that
+// brand only, independent of what else the operator has open org-wide (#4674).
+function mostRecentBrandThread(
+  threads: AgentThread[],
+  organizationId: string,
+  brandId: string,
+): AgentThread | null {
+  return (
+    threads
+      .filter(
+        (thread) =>
+          thread.organizationId === organizationId &&
+          thread.status === AgentThreadStatus.ACTIVE &&
+          thread.brandId === brandId &&
+          isRenderableThreadId(thread.id),
+      )
+      .sort((left, right) =>
+        right.updatedAt.localeCompare(left.updatedAt),
+      )[0] ?? null
+  );
+}
+
 function AgentWorkspaceLayoutClientContent({
   agentApiService: providedAgentApiService,
   children,
@@ -88,7 +110,7 @@ function AgentWorkspaceLayoutClientContent({
   );
   const { replace } = useRouter();
   const { brandId, brands, isBrandScopeResolved, organizationId } = useBrand();
-  const { activeHref, orgSlug } = useOrgUrl();
+  const { activeHref, brandSlug: routeBrandSlug, orgSlug } = useOrgUrl();
   const searchParams = useSearchParams();
   const { getToken, isLoaded } = useAuthIdentity();
   const playwrightAuth = getPlaywrightAuthState();
@@ -284,16 +306,27 @@ function AgentWorkspaceLayoutClientContent({
     }
   }, [isOnboardingEntryRoute]);
 
-  // Bare /agent is the root/login bootstrap sentinel. Restore only a thread
-  // returned for the active organization and independently re-check its org,
-  // status, id, and brand before placing it in the URL. /agent/new and explicit
-  // /agent/:id deep links never enter this lookup.
+  // Bare /agent is the root/login bootstrap sentinel, reached either org-scoped
+  // (/:org/~/agent) or brand-scoped (/:org/:brand/agent). Restore only a
+  // thread returned for the active organization and independently re-check
+  // its org, status, id, and brand before placing it in the URL. /agent/new
+  // and explicit /agent/:id deep links never enter this lookup.
+  //
+  // A brand-scoped URL narrows the lookup to that brand only — pass brandId
+  // into getThreads and re-check it client-side — and falls back to that
+  // brand's own /agent/new, never the organization-wide newest thread (#4674).
+  // The org-scoped route keeps resuming the organization's overall newest
+  // authorized thread.
   //
   // The brand check authorizes against `brands`, so the one-shot guard stays
   // unconsumed until brand scope resolves (#2702). Deciding early would read a
   // still-loading empty list, treat an authorized branded thread as
   // unavailable, redirect to /agent/new, and never retry once brands arrive.
+  // For a brand-scoped URL, also wait for `brandId` to resolve to the route's
+  // brand before running so the lookup never fires against a stale brand.
   useEffect(() => {
+    const isBrandScopedRoute = Boolean(routeBrandSlug);
+
     if (
       !effectiveIsLoaded ||
       !isBrandScopeResolved ||
@@ -302,6 +335,7 @@ function AgentWorkspaceLayoutClientContent({
       activeThreadId ||
       !organizationId ||
       !orgSlug ||
+      (isBrandScopedRoute && !brandId) ||
       hasAttemptedReturningBootstrapRef.current
     ) {
       return;
@@ -309,12 +343,38 @@ function AgentWorkspaceLayoutClientContent({
 
     hasAttemptedReturningBootstrapRef.current = true;
     const controller = new AbortController();
-    const fallbackHref = buildOrganizationNewThreadHref(orgSlug);
+    const fallbackHref = isBrandScopedRoute
+      ? activeHref(APP_ROUTES.AGENT.NEW)
+      : buildOrganizationNewThreadHref(orgSlug);
 
     void agentApiService
-      .getThreads({ status: AgentThreadStatus.ACTIVE }, controller.signal)
+      .getThreads(
+        {
+          status: AgentThreadStatus.ACTIVE,
+          ...(isBrandScopedRoute ? { brandId } : {}),
+        },
+        controller.signal,
+      )
       .then((threads) => {
         if (controller.signal.aborted) {
+          return;
+        }
+
+        if (isBrandScopedRoute) {
+          const recentBrandThread = mostRecentBrandThread(
+            threads,
+            organizationId,
+            brandId,
+          );
+          replace(
+            recentBrandThread
+              ? buildScopedThreadHref(
+                  orgSlug,
+                  routeBrandSlug,
+                  recentBrandThread.id,
+                )
+              : fallbackHref,
+          );
           return;
         }
 
@@ -351,8 +411,10 @@ function AgentWorkspaceLayoutClientContent({
 
     return () => controller.abort();
   }, [
+    activeHref,
     activeThreadId,
     agentApiService,
+    brandId,
     brands,
     effectiveIsLoaded,
     isBrandScopeResolved,
@@ -361,6 +423,7 @@ function AgentWorkspaceLayoutClientContent({
     orgSlug,
     prefillPrompt,
     replace,
+    routeBrandSlug,
   ]);
 
   // Release the one-shot guard when the route stops qualifying, and whenever
