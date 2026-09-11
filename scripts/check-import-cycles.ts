@@ -11,7 +11,7 @@ import path from 'node:path';
 const ROOT_DIR = process.cwd();
 const ROOT_TSCONFIG = path.join(ROOT_DIR, 'tsconfig.json');
 const BASELINE_FILE = path.join(ROOT_DIR, 'scripts/import-cycle-baseline.json');
-const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|storybook-static|public|docs|e2e|__tests__|__mocks__|\.next|packages/generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
+const EXCLUDE_REGEX = String.raw`(^|/)(node_modules|dist|coverage|public|docs|e2e|__tests__|__mocks__|\.next|packages/generated)(/|$)|\.(spec|test)\.[jt]sx?$|\.d\.ts$`;
 const WORKSPACE_GLOBS = ['packages/*', 'apps/server/*', 'apps/app/*'];
 const EXCLUDED_WORKSPACES = new Set([
   // Generated Prisma client output has intentional internal cycles.

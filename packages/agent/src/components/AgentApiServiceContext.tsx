@@ -21,7 +21,7 @@ export function AgentApiServiceProvider({
   );
 }
 
-/** Optional so shared pages remain independently renderable in tests/Storybook. */
+/** Optional so shared pages remain independently renderable in tests. */
 export function useAgentApiService(): AgentApiService | null {
   return useContext(AgentApiServiceContext);
 }

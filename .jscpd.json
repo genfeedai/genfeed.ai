@@ -14,8 +14,6 @@
     "**/.turbo/**",
     "coverage",
     "**/coverage/**",
-    "storybook-static",
-    "**/storybook-static/**",
     ".agents",
     "**/.agents/**",
     ".claude",

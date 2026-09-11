@@ -24,7 +24,6 @@ const INCLUDE_GLOB = 'apps/app/app/(protected)/[orgSlug]/**/*.{ts,tsx}';
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
-  '**/*.stories.*',
   '**/*.mdx',
   '**/*.md',
   '**/node_modules/**',

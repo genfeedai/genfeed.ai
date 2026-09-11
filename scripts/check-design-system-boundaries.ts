@@ -22,7 +22,6 @@ const GUARDED_IMPORT_GLOBS = [
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
-  '**/*.stories.*',
   '**/*.md',
   '**/*.mdx',
   '**/dist/**',

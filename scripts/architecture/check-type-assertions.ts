@@ -59,8 +59,6 @@ const IGNORE_GLOBS = [
   '**/*.spec.tsx',
   '**/*.test.ts',
   '**/*.test.tsx',
-  '**/*.stories.ts',
-  '**/*.stories.tsx',
   '**/__tests__/**',
   '**/tests/**',
   '**/__fixtures__/**',

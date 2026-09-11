@@ -33,7 +33,6 @@ const INCLUDE_GLOBS = ['apps/app/**/*.{tsx,jsx}', 'packages/**/*.{tsx,jsx}'];
 const EXCLUDE_GLOBS = [
   '**/*.test.*',
   '**/*.spec.*',
-  '**/*.stories.*',
   '**/dist/**',
   '**/node_modules/**',
   // The shell owns the surface; it is the one place these classes belong.

@@ -291,17 +291,12 @@ describe('control-guard detection', () => {
     expect(categoriesFor(file)).toHaveLength(0);
   });
 
-  it('skips test, spec, and story files', () => {
+  it('skips test and spec files', () => {
     const testFile = write(
       'apps/app/thing.test.tsx',
       'export default function T(){return <button>x</button>;}',
     );
-    const storyFile = write(
-      'apps/app/thing.stories.tsx',
-      'export default function S(){return <input />;}',
-    );
     expect(categoriesFor(testFile)).toHaveLength(0);
-    expect(categoriesFor(storyFile)).toHaveLength(0);
   });
 
   it('does not scan files outside any rule scope', () => {

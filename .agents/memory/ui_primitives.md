@@ -24,7 +24,7 @@ In this repo, **never write raw `<button>`, `<input>`, `<textarea>`, `<select>`,
 
 **Why:** Enforces design system consistency and a11y. User has called out raw HTML violations multiple times.
 
-**How to apply:** Before adding any `<button>`, `<input>`, `<dialog>`, etc., check `packages/ui/src/primitives/` for the corresponding component. If a div with `role="button"` would be the natural choice, use `Button` with `variant={ButtonVariant.UNSTYLED}` instead. Exclusions (primitives, editors, tests, mocks, storybook) live in the single `ALLOWLIST` in `scripts/ui/control-guard.ts`.
+**How to apply:** Before adding any `<button>`, `<input>`, `<dialog>`, etc., check `packages/ui/src/primitives/` for the corresponding component. If a div with `role="button"` would be the natural choice, use `Button` with `variant={ButtonVariant.UNSTYLED}` instead. Exclusions (primitives, editors, tests, mocks) live in the single `ALLOWLIST` in `scripts/ui/control-guard.ts`.
 
 ## Shared page UX (verified 2026-09-05)
 
