@@ -56,7 +56,6 @@ export const UNTRANSLATED_STRING_IGNORE_GLOBS = [
   '**/coverage/**',
   '**/*.spec.{jsx,tsx}',
   '**/*.test.{jsx,tsx}',
-  '**/*.stories.{jsx,tsx}',
   '**/__tests__/**',
   '**/tests/**',
   '**/__fixtures__/**',

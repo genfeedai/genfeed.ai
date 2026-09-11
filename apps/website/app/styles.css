@@ -16,8 +16,6 @@
 @source not "../../../**/*.test.tsx";
 @source not "../../../**/*.spec.ts";
 @source not "../../../**/*.spec.tsx";
-@source not "../../../**/*.stories.ts";
-@source not "../../../**/*.stories.tsx";
 @source not "../../../**/.next/**";
 @source not "../../../**/dist/**";
 @source not "../../../**/coverage/**";

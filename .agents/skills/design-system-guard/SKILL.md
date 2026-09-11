@@ -37,7 +37,7 @@ Always run:
 bun run design:check
 ```
 
-Also run the narrowest relevant UI verification for the touched package, such as tests, type-check, Storybook/build, or Playwright screenshots when visual behavior changed.
+Also run the narrowest relevant UI verification for the touched package, such as tests, type-check, build, or Playwright screenshots when visual behavior changed.
 
 ## Update Rules
 

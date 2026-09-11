@@ -59,8 +59,6 @@
     "dist",
     "**/*.spec.ts",
     "**/*.spec.tsx",
-    "**/*.stories.ts",
-    "**/*.stories.tsx",
     "**/*.test.ts",
     "**/*.test.tsx",
     "tests"

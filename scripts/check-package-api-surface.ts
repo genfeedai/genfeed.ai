@@ -23,14 +23,11 @@ const IGNORED_PATH_SEGMENTS = new Set([
   'artifacts',
   'playwright-report',
   'playwright-results',
-  'storybook-static',
   'test-results',
 ]);
 
 const FALLBACK_IGNORED_FILE_PATTERNS = [
   /\.config\.[cm]?[jt]sx?$/u,
-  /\.stories\.[jt]sx?$/u,
-  /\.story\.[jt]sx?$/u,
   /\.spec\.[jt]sx?$/u,
   /\.test\.[jt]sx?$/u,
   /^package\.json$/u,

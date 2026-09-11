@@ -7,7 +7,6 @@
     ],
     "types": []
   },
-  "exclude": ["**/*.stories.ts", "**/*.stories.tsx"],
   "extends": "./base.json",
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"]
 }

@@ -116,10 +116,9 @@ violations=0
 declare -a offending_lines=()
 
 for rel in "${FILES[@]}"; do
-  # Skip test/spec/story files.
+  # Skip test/spec files.
   [[ "$rel" == *.test.* ]] && continue
   [[ "$rel" == *.spec.* ]] && continue
-  [[ "$rel" == *.stories.* ]] && continue
   in_scope "$rel" || continue
   is_allowlisted "$rel" && continue
 
