@@ -190,7 +190,7 @@ describe('ReplicateGenerationWebhookHandler', () => {
 
     it('falls back to the base externalId when the indexed one has no metadata', async () => {
       const indexedPayload = {
-        id: 'pred_123_0',
+        id: 'pred123_0',
         model: 'owner/some-model',
         output: ALLOWED_URL,
         status: 'succeeded',
@@ -198,7 +198,7 @@ describe('ReplicateGenerationWebhookHandler', () => {
       metadataService.findOne.mockImplementation(
         ({ externalId }: { externalId: string }) =>
           Promise.resolve(
-            externalId === 'pred_123' ? { id: 'metadata-1' } : null,
+            externalId === 'pred123' ? { id: 'metadata-1' } : null,
           ),
       );
       ingredientsService.findOne.mockResolvedValue({
@@ -209,10 +209,10 @@ describe('ReplicateGenerationWebhookHandler', () => {
       await handler.handleCompleted(indexedPayload);
 
       expect(metadataService.findOne).toHaveBeenCalledWith({
-        externalId: 'pred_123_0',
+        externalId: 'pred123_0',
       });
       expect(metadataService.findOne).toHaveBeenCalledWith({
-        externalId: 'pred_123',
+        externalId: 'pred123',
       });
       expect(webhooksService.processMediaFromWebhook).toHaveBeenCalledWith(
         'replicate',
