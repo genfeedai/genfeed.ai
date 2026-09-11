@@ -168,20 +168,21 @@ export class AuthDesktopService {
       throw new UnauthorizedException('User identity is incomplete');
     }
 
-    const record = await this.prisma.desktopAuthCode.findFirst({
+    // "Try again" re-authorizes with the same PKCE state, so several codes can
+    // share it. The desktop app only ever exchanges one of them; if any was
+    // used, sign-in succeeded, whichever code the browser issued last.
+    const records = await this.prisma.desktopAuthCode.findMany({
       orderBy: { createdAt: 'desc' },
       where: { stateHash: hashToken(dto.state), userId },
     });
 
-    if (!record) {
-      return { status: 'expired' };
-    }
-
-    if (record.usedAt) {
+    if (records.some((record) => record.usedAt)) {
       return { status: 'exchanged' };
     }
 
-    if (record.expiresAt <= new Date()) {
+    const newest = records[0];
+
+    if (!newest || newest.expiresAt <= new Date()) {
       return { status: 'expired' };
     }
 

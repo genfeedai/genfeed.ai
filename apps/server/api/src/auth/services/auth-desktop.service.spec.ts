@@ -138,22 +138,22 @@ function buildService(options: BuildServiceOptions = {}) {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         const record = {
           ...data,
-          id: 'desktop-auth-code-1',
+          id: `desktop-auth-code-${records.size + 1}`,
           usedAt: null,
         };
         records.set(String(data.codeHash), record);
         return record;
       }),
       deleteMany: vi.fn().mockResolvedValue({ count: 0 }),
-      findFirst: vi.fn(
+      findMany: vi.fn(
         async ({ where }: { where: { stateHash: string; userId: string } }) =>
           Array.from(records.values())
             .reverse()
-            .find(
+            .filter(
               (candidate) =>
                 candidate.stateHash === where.stateHash &&
                 candidate.userId === where.userId,
-            ) ?? null,
+            ),
       ),
       findUnique: vi.fn(
         async ({ where }: { where: { codeHash: string } }) =>
@@ -260,6 +260,26 @@ describe('AuthDesktopService', () => {
 
     await service.exchangeCode({
       code: authorization.code,
+      codeVerifier,
+      state,
+    });
+
+    await expect(service.getCodeStatus(makeUser(), { state })).resolves.toEqual(
+      { status: 'exchanged' },
+    );
+  });
+
+  it('reports exchanged when an earlier code for the same state was used after a retry', async () => {
+    const { service } = buildService();
+    const firstAuthorization = await createAuthorization(service);
+    await createAuthorization(service);
+
+    await expect(service.getCodeStatus(makeUser(), { state })).resolves.toEqual(
+      { status: 'pending' },
+    );
+
+    await service.exchangeCode({
+      code: firstAuthorization.code,
       codeVerifier,
       state,
     });
