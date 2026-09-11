@@ -104,13 +104,18 @@ export default function StudioGenerateWorkspace(): ReactElement {
   } = useStudioGenerateSettings();
 
   const [prompt, setPrompt] = useState('');
-  const { enhancePrompt, isEnhancing: isEnhancingPrompt } =
-    useStudioPromptEnhancement({
-      brandId,
-      modelKey: settings.modelKey,
-      onPromptChange: setPrompt,
-      prompt,
-    });
+  const {
+    cancelEnhance,
+    enhancePrompt,
+    isEnhancing: isEnhancingPrompt,
+    previousPrompt: previousEnhancedPrompt,
+    undoEnhance,
+  } = useStudioPromptEnhancement({
+    brandId,
+    modelKey: settings.modelKey,
+    onPromptChange: setPrompt,
+    prompt,
+  });
   const [search, setSearch] = useState('');
   const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
     ViewType.GRID,
@@ -880,6 +885,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   isUploading={isUploading}
                   models={models}
                   onAddFiles={handleAddFiles}
+                  onCancelEnhancePrompt={cancelEnhance}
                   onEnhancePrompt={enhancePrompt}
                   onOpenLibrary={handleOpenLibrary}
                   onPromptChange={setPrompt}
@@ -893,7 +899,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   onStopListening={stopListening}
                   onSubmit={handleSubmit}
                   onTypeChange={setType}
+                  onUndoEnhancePrompt={undoEnhance}
                   prompt={prompt}
+                  previousPrompt={previousEnhancedPrompt}
                   settings={settings}
                   shouldShowVoiceInput={shouldShowVoiceInput}
                   type={type}

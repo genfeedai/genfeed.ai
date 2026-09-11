@@ -1,4 +1,5 @@
 import {
+  fitBrandContextToPromptBudget,
   joinGenerationBriefPromptParts,
   recordOmittedGenerationBriefSignal,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
@@ -138,10 +139,6 @@ function buildPrompt(
   if (brief.intent.audioDirection) {
     parts.push(`Audio: ${brief.intent.audioDirection}`);
   }
-  // Independent of fidelity policy — brand voice follows Brand voice only.
-  if (brief.intent.brandContext) {
-    parts.push(brief.intent.brandContext);
-  }
   if (brief.intent.requestedText.length > 0) {
     parts.push(`Visible text: ${brief.intent.requestedText.join(', ')}`);
   }
@@ -167,6 +164,19 @@ function buildPrompt(
         'MiniMax H3',
       );
     }
+  }
+
+  // Independent of fidelity policy — brand voice follows Brand voice only.
+  // Fit into whatever budget is left after everything else (#4676).
+  const fittedBrandContext = fitBrandContextToPromptBudget({
+    brandContext: brief.intent.brandContext,
+    maxCharacters: MINIMAX_H3_CAPABILITY_PROFILE.prompt.maxCharacters,
+    modelLabel: 'MiniMax H3',
+    omitted,
+    otherPartsLength: joinGenerationBriefPromptParts(parts).length,
+  });
+  if (fittedBrandContext) {
+    parts.push(fittedBrandContext);
   }
 
   const prompt = joinGenerationBriefPromptParts(parts);

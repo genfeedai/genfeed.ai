@@ -101,19 +101,38 @@ export function isStudioGenerateJobPending(status: IngredientStatus): boolean {
 /**
  * Brand voice cannot apply to music, avatar, or voice — record `'off'`
  * regardless of what the source data says, so a recipe never claims brand
- * enrichment for an output type it can't reach (#4676 FR8). For types that
- * do support it, the recipe records the state actually applied, not a raw
- * `brandingMode` field that may be absent (and therefore falsy-truthy) on
- * payloads that never carry one.
+ * enrichment for an output type it can't reach (#4676 FR8).
+ *
+ * For types that do support it, `isBrandingApplied` must be the real,
+ * capability-gated flag the payload actually carried — `undefined` means the
+ * source genuinely does not know (a reprompt built from `buildRepromptData`,
+ * or ingredient metadata with no stored brand state), not "off". Guessing
+ * `'off'` here silently disables brand voice on the next Vary/reprompt and
+ * misreports it in the inspector — the caller must record "unknown" and
+ * leave any existing setting alone instead.
  */
 function resolveRecipeBrandingMode(
   type: StudioGenerateType,
   isBrandingApplied: boolean | undefined,
-): 'brand' | 'off' {
+): 'brand' | 'off' | undefined {
   if (!getStudioGenerateTypeConfig(type).capabilities.hasBrandEnrichment) {
     return 'off';
   }
+  if (isBrandingApplied === undefined) {
+    return undefined;
+  }
   return isBrandingApplied ? 'brand' : 'off';
+}
+
+/** Tri-state read of a persisted `metadata.brandingMode` — absent/unrecognized is unknown, not "off". */
+function metadataIsBrandingApplied(value: unknown): boolean | undefined {
+  if (value === 'brand') {
+    return true;
+  }
+  if (value === 'off') {
+    return false;
+  }
+  return undefined;
 }
 
 function stringList(value: unknown): string[] {
@@ -215,7 +234,7 @@ export function recipeFromIngredient(
     blacklist: stringList(metadata.blacklist),
     brandingMode: resolveRecipeBrandingMode(
       type,
-      metadata.brandingMode === 'brand',
+      metadataIsBrandingApplied(metadata.brandingMode),
     ),
     camera: optional('camera'),
     cameraMovement: optional('cameraMovement'),
@@ -304,9 +323,13 @@ export function formatStudioRecipePrompt(recipe: StudioGenerateRecipe): string {
     const value = recipe[key];
 
     if (key === 'brandingMode') {
-      details.push(
-        `${label}: ${recipe.brandingMode === 'brand' ? 'on' : 'off'}`,
-      );
+      // Unknown brand state (no source recorded what was actually applied)
+      // is left off the inspector entirely rather than guessed (#4676).
+      if (recipe.brandingMode !== undefined) {
+        details.push(
+          `${label}: ${recipe.brandingMode === 'brand' ? 'on' : 'off'}`,
+        );
+      }
       continue;
     }
 
@@ -359,7 +382,12 @@ export function settingsPatchFromRecipe(
   return {
     ...(recipe.aspectRatio ? { aspectRatio: recipe.aspectRatio } : {}),
     blacklist: recipe.blacklist,
-    brandingMode: recipe.brandingMode,
+    // Unknown (undefined) means the source never recorded the applied brand
+    // state — leave the composer's current Brand voice setting alone rather
+    // than silently forcing it off (#4676).
+    ...(recipe.brandingMode !== undefined
+      ? { brandingMode: recipe.brandingMode }
+      : {}),
     camera: recipe.camera,
     cameraMovement: recipe.cameraMovement,
     duration: recipe.duration,

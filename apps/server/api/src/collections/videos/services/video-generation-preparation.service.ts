@@ -13,6 +13,7 @@ import type {
   PromptInput,
   ResolvedVideoGenerationRequest,
   VideoGenerationContext,
+  VideoGenerationResolvedBrand,
 } from '@api/collections/videos/services/video-generation.types';
 import {
   brandPromptLabel,
@@ -228,25 +229,11 @@ export class VideoGenerationPreparationService {
     const { endFrameUrl, referenceImageUrls } =
       await this.resolveReferenceUrls(resolved);
     const promptText = await this.resolvePromptText(resolved);
-
-    // Brand voice must reach every model, including brief-compiled ones — see
-    // `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
-    // setting, never on the fidelity mode `avoid` terms can also force.
-    const briefBrandContext = resolveIsGenerationBriefBrandVoiceOn({
-      brandingMode: createVideoDto.brandingMode,
-      isBrandingEnabled: createVideoDto.isBrandingEnabled,
-    })
-      ? await resolveGenerationBriefBrandContext({
-          brand: {
-            description: optionalBrandString(brand.description),
-            label: brandPromptLabel(brand.label),
-            text: optionalBrandString(brand.text),
-          },
-          branding: buildPromptBrandingFromBrand(brand),
-          organizationId: user.organizationId,
-          templatesService: this.templatesService,
-        })
-      : undefined;
+    const briefBrandContext = await this.resolveBriefBrandContext(
+      brand,
+      createVideoDto,
+      user.organizationId,
+    );
 
     const {
       brief: generationBrief,
@@ -439,6 +426,47 @@ export class VideoGenerationPreparationService {
       templateUsed: built.templateUsed,
       templateVersion: built.templateVersion,
     };
+  }
+
+  /**
+   * Brand voice must reach every model, including brief-compiled ones — see
+   * `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
+   * setting, never on the fidelity mode `avoid` terms can also force. A
+   * template-lookup failure (e.g. a database error) must never fail the
+   * whole generation (#4676) — proceed without brand context instead.
+   */
+  private async resolveBriefBrandContext(
+    brand: VideoGenerationResolvedBrand,
+    createVideoDto: CreateVideoDto,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    if (
+      !resolveIsGenerationBriefBrandVoiceOn({
+        brandingMode: createVideoDto.brandingMode,
+        isBrandingEnabled: createVideoDto.isBrandingEnabled,
+      })
+    ) {
+      return undefined;
+    }
+
+    try {
+      return await resolveGenerationBriefBrandContext({
+        brand: {
+          description: optionalBrandString(brand.description),
+          label: brandPromptLabel(brand.label),
+          text: optionalBrandString(brand.text),
+        },
+        branding: buildPromptBrandingFromBrand(brand),
+        organizationId,
+        templatesService: this.templatesService,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Failed to resolve brand context for the generation brief; proceeding without it',
+        { error, organizationId },
+      );
+      return undefined;
+    }
   }
 
   private compileVideoGenerationBrief(params: {

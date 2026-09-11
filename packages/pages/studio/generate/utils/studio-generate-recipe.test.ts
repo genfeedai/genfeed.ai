@@ -6,6 +6,7 @@ import { buildRepromptData } from './generation-payloads';
 import {
   formatStudioRecipePrompt,
   groupStudioGenerateJobsByRun,
+  recipeFromIngredient,
   recipeFromPromptData,
   recipeFromRepromptData,
   resolveAspectRatioFromDimensions,
@@ -132,6 +133,21 @@ describe('formatStudioRecipePrompt', () => {
     expect(formatted).toContain('Mood: confident');
     expect(formatted).not.toBe(raw);
   });
+
+  it('omits the Brand enrichment line rather than guessing when the brand state is unknown (#4676)', () => {
+    const formatted = formatStudioRecipePrompt({
+      blacklist: [],
+      isAudioEnabled: false,
+      outputs: 1,
+      references: [],
+      style: '',
+      tags: [],
+      text: 'Original prompt',
+      type: 'image',
+    });
+
+    expect(formatted).not.toContain('Brand enrichment');
+  });
 });
 
 describe('recipeFromRepromptData', () => {
@@ -165,6 +181,91 @@ describe('recipeFromRepromptData', () => {
     expect(recipe.aspectRatio).toBe('4:5');
     expect(recipe.modelKey).toBe('flux-dev');
     expect(recipe.outputs).toBe(1);
+  });
+
+  it('records brand voice as unknown rather than off, for a type that supports it (#4676)', () => {
+    // buildRepromptData never carries isBrandingEnabled/brandingMode — the
+    // recipe must not guess "off" and silently disable brand voice on Vary.
+    const ingredient = {
+      height: 1024,
+      metadata: {},
+      metadataHeight: 1024,
+      metadataWidth: 816,
+      promptText: 'Original prompt',
+      width: 816,
+    } as unknown as IIngredient;
+    const data = buildRepromptData(
+      ingredient,
+      IngredientCategory.IMAGE,
+      'brand-1',
+      [],
+    );
+    expect(data.isBrandingEnabled).toBeUndefined();
+
+    expect(recipeFromRepromptData(data, 'image').brandingMode).toBeUndefined();
+  });
+
+  it('still records a decisive off for types brand voice can never reach', () => {
+    const ingredient = {
+      metadata: {},
+      promptText: 'A jingle',
+    } as unknown as IIngredient;
+    const data = buildRepromptData(
+      ingredient,
+      IngredientCategory.MUSIC,
+      'brand-1',
+      [],
+    );
+
+    expect(recipeFromRepromptData(data, 'music').brandingMode).toBe('off');
+  });
+});
+
+describe('recipeFromIngredient', () => {
+  const baseIngredient = {
+    metadataHeight: 1024,
+    metadataWidth: 1024,
+    promptText: 'A founder at a desk',
+  } as unknown as IIngredient;
+
+  it('reads a stored "brand" brandingMode', () => {
+    const ingredient = {
+      ...baseIngredient,
+      metadata: { brandingMode: 'brand' },
+    } as unknown as IIngredient;
+
+    expect(recipeFromIngredient(ingredient, 'image').brandingMode).toBe(
+      'brand',
+    );
+  });
+
+  it('reads a stored "off" brandingMode', () => {
+    const ingredient = {
+      ...baseIngredient,
+      metadata: { brandingMode: 'off' },
+    } as unknown as IIngredient;
+
+    expect(recipeFromIngredient(ingredient, 'image').brandingMode).toBe('off');
+  });
+
+  it('records unknown rather than off when metadata never stored a brand state (#4676)', () => {
+    const ingredient = {
+      ...baseIngredient,
+      metadata: {},
+    } as unknown as IIngredient;
+
+    expect(
+      recipeFromIngredient(ingredient, 'image').brandingMode,
+    ).toBeUndefined();
+  });
+
+  it('still records a decisive off for types brand voice can never reach', () => {
+    const ingredient = {
+      ...baseIngredient,
+      metadata: { brandingMode: 'brand' },
+    } as unknown as IIngredient;
+
+    expect(recipeFromIngredient(ingredient, 'voice').brandingMode).toBe('off');
   });
 });
 
@@ -201,6 +302,21 @@ describe('settingsPatchFromRecipe', () => {
       resolution: '2K',
       style: 'cinematic',
     });
+  });
+
+  it('omits brandingMode from the patch when the recipe does not know it, so Vary never silently disables brand voice (#4676)', () => {
+    const patch = settingsPatchFromRecipe({
+      blacklist: [],
+      isAudioEnabled: false,
+      outputs: 1,
+      references: [],
+      style: '',
+      tags: [],
+      text: 'Original prompt',
+      type: 'image',
+    });
+
+    expect(patch).not.toHaveProperty('brandingMode');
   });
 });
 

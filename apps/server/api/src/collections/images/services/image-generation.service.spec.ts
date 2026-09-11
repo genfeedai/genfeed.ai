@@ -1088,6 +1088,23 @@ describe('ImageGenerationService', () => {
           .calls[0]?.[1] as { prompt: string };
         expect(dispatch.prompt).not.toContain('Brand voice');
       });
+
+      it('proceeds without brand context, without failing generation, when the template lookup fails', async () => {
+        const { service, replicateService, templatesService } = createService();
+        templatesService.getPromptByKey.mockRejectedValue(
+          new Error('database unavailable'),
+        );
+
+        await service.generateImage(
+          buildUser(),
+          baseDto({ brandingMode: 'brand', model: fluxSchnellModel }),
+          buildRequest(),
+        );
+
+        const dispatch = replicateService.generateTextToImage.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).not.toContain('Brand voice');
+      });
     });
   });
 

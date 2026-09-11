@@ -1,4 +1,5 @@
 import {
+  fitBrandContextToPromptBudget,
   joinGenerationBriefPromptParts,
   recordOmittedGenerationBriefSignal,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
@@ -218,10 +219,6 @@ export function compileRemainingVideoGenerationBrief(
   if (brief.intent.audioDirection) {
     parts.push(`Audio: ${brief.intent.audioDirection}`);
   }
-  // Independent of fidelity policy — brand voice follows Brand voice only.
-  if (brief.intent.brandContext) {
-    parts.push(brief.intent.brandContext);
-  }
 
   const negativeParts: string[] = [];
   if (policy.applyConstraints) {
@@ -246,6 +243,19 @@ export function compileRemainingVideoGenerationBrief(
         spec.modelLabel,
       );
     }
+  }
+
+  // Independent of fidelity policy — brand voice follows Brand voice only.
+  // Fit into whatever budget is left after everything else (#4676).
+  const fittedBrandContext = fitBrandContextToPromptBudget({
+    brandContext: brief.intent.brandContext,
+    maxCharacters: profile.prompt.maxCharacters,
+    modelLabel: spec.modelLabel,
+    omitted,
+    otherPartsLength: joinGenerationBriefPromptParts(parts).length,
+  });
+  if (fittedBrandContext) {
+    parts.push(fittedBrandContext);
   }
 
   const prompt = joinGenerationBriefPromptParts(parts);

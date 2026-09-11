@@ -175,7 +175,14 @@ export interface StudioGenerateSettings {
 export interface StudioGenerateRecipe {
   aspectRatio?: string;
   blacklist: string[];
-  brandingMode: 'brand' | 'off';
+  /**
+   * Undefined means the source this recipe was built from does not know the
+   * brand state actually applied (e.g. a reprompt/legacy ingredient with no
+   * stored brand data) — distinct from a known `'off'`. Callers must not
+   * treat "unknown" as "off" (#4676): patching settings from an unknown
+   * recipe must leave the current `brandingMode` alone.
+   */
+  brandingMode?: 'brand' | 'off';
   camera?: string;
   cameraMovement?: string;
   duration?: number;

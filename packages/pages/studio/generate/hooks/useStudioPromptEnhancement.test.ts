@@ -26,6 +26,7 @@ vi.mock('@genfeedai/models/content/prompt.model', () => ({
 }));
 
 const mockSubscribe = vi.fn();
+const mockUnsubscribe = vi.fn();
 vi.mock('@hooks/utils/use-socket-manager/use-socket-manager', () => ({
   useSocketManager: () => ({ subscribe: mockSubscribe }),
 }));
@@ -45,9 +46,13 @@ vi.mock('@services/core/logger.service', () => ({
 }));
 
 const mockNotificationsError = vi.fn();
+const mockNotificationsInfo = vi.fn();
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({ error: mockNotificationsError }),
+    getInstance: () => ({
+      error: mockNotificationsError,
+      info: mockNotificationsInfo,
+    }),
   },
 }));
 
@@ -69,10 +74,17 @@ vi.mock('@utils/network/websocket.util', () => ({
 
 import { useStudioPromptEnhancement } from '@pages/studio/generate/hooks/useStudioPromptEnhancement';
 
+function getSubscribedHandler() {
+  return mockSubscribe.mock.calls[0]?.[1] as {
+    onCompleted: (result: string) => void;
+    onFailed?: (error: string) => void;
+  };
+}
+
 describe('useStudioPromptEnhancement', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockSubscribe.mockReturnValue(vi.fn());
+    mockSubscribe.mockReturnValue(mockUnsubscribe);
     mockPromptsPost.mockResolvedValue({ id: 'prompt-123' });
   });
 
@@ -87,6 +99,7 @@ describe('useStudioPromptEnhancement', () => {
     );
 
     expect(result.current.isEnhancing).toBe(false);
+    expect(result.current.previousPrompt).toBeNull();
   });
 
   it('does nothing for an empty prompt — never blocks or starts a generation', async () => {
@@ -133,6 +146,7 @@ describe('useStudioPromptEnhancement', () => {
       'prompt:prompt-123',
       expect.any(Object),
     );
+    expect(result.current.isEnhancing).toBe(true);
   });
 
   it('replaces the prompt in place when enhancement completes, without generating', async () => {
@@ -150,16 +164,121 @@ describe('useStudioPromptEnhancement', () => {
       await result.current.enhancePrompt();
     });
 
-    const handler = mockSubscribe.mock.calls[0]?.[1] as {
-      onCompleted: (result: string) => void;
-    };
     act(() => {
-      handler.onCompleted('An enhanced, brand-aware prompt');
+      getSubscribedHandler().onCompleted('An enhanced, brand-aware prompt');
     });
 
     expect(onPromptChange).toHaveBeenCalledWith(
       'An enhanced, brand-aware prompt',
     );
+    expect(result.current.isEnhancing).toBe(false);
+    expect(result.current.previousPrompt).toBe('a founder at a desk');
+  });
+
+  it('does not overwrite an edit made while enhancement was in flight (#4676)', async () => {
+    const onPromptChange = vi.fn();
+    const { rerender, result } = renderHook(
+      (props: { prompt: string }) =>
+        useStudioPromptEnhancement({
+          brandId: 'brand-1',
+          modelKey: 'openai/dall-e-3',
+          onPromptChange,
+          prompt: props.prompt,
+        }),
+      { initialProps: { prompt: 'a founder at a desk' } },
+    );
+
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+
+    // The operator edits the prompt while the request is still in flight.
+    rerender({ prompt: 'a founder at a standing desk' });
+
+    act(() => {
+      getSubscribedHandler().onCompleted('An enhanced, brand-aware prompt');
+    });
+
+    expect(onPromptChange).not.toHaveBeenCalled();
+    expect(result.current.previousPrompt).toBeNull();
+    expect(mockNotificationsInfo).toHaveBeenCalledWith(
+      expect.stringContaining('discarded'),
+    );
+    expect(result.current.isEnhancing).toBe(false);
+  });
+
+  it('restores the previous prompt on undo', async () => {
+    const onPromptChange = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioPromptEnhancement({
+        brandId: 'brand-1',
+        modelKey: 'openai/dall-e-3',
+        onPromptChange,
+        prompt: 'a founder at a desk',
+      }),
+    );
+
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+    act(() => {
+      getSubscribedHandler().onCompleted('An enhanced, brand-aware prompt');
+    });
+
+    act(() => {
+      result.current.undoEnhance();
+    });
+
+    expect(onPromptChange).toHaveBeenLastCalledWith('a founder at a desk');
+    expect(result.current.previousPrompt).toBeNull();
+    expect(mockNotificationsInfo).toHaveBeenCalledWith('Prompt restored');
+  });
+
+  it('cancelEnhance stops a pending request and ignores its eventual result', async () => {
+    const onPromptChange = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioPromptEnhancement({
+        brandId: 'brand-1',
+        modelKey: 'openai/dall-e-3',
+        onPromptChange,
+        prompt: 'a founder at a desk',
+      }),
+    );
+
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+    expect(result.current.isEnhancing).toBe(true);
+
+    act(() => {
+      result.current.cancelEnhance();
+    });
+    expect(result.current.isEnhancing).toBe(false);
+    expect(mockUnsubscribe).toHaveBeenCalled();
+
+    // Even if a result arrives after cancellation, it must never apply.
+    act(() => {
+      getSubscribedHandler().onCompleted('too late');
+    });
+
+    expect(onPromptChange).not.toHaveBeenCalled();
+  });
+
+  it('cancelEnhance is a harmless no-op when idle', () => {
+    const { result } = renderHook(() =>
+      useStudioPromptEnhancement({
+        brandId: 'brand-1',
+        modelKey: 'openai/dall-e-3',
+        onPromptChange: vi.fn(),
+        prompt: 'a founder at a desk',
+      }),
+    );
+
+    expect(() => {
+      act(() => {
+        result.current.cancelEnhance();
+      });
+    }).not.toThrow();
     expect(result.current.isEnhancing).toBe(false);
   });
 
@@ -178,11 +297,8 @@ describe('useStudioPromptEnhancement', () => {
       await result.current.enhancePrompt();
     });
 
-    const handler = mockSubscribe.mock.calls[0]?.[1] as {
-      onFailed?: (error: string) => void;
-    };
     act(() => {
-      handler.onFailed?.('boom');
+      getSubscribedHandler().onFailed?.('boom');
     });
 
     expect(onPromptChange).not.toHaveBeenCalled();
@@ -211,5 +327,32 @@ describe('useStudioPromptEnhancement', () => {
       'Failed to enhance prompt',
     );
     expect(result.current.isEnhancing).toBe(false);
+  });
+
+  it('never notifies or applies a result after the component unmounts (#4676)', async () => {
+    const onPromptChange = vi.fn();
+    const { result, unmount } = renderHook(() =>
+      useStudioPromptEnhancement({
+        brandId: 'brand-1',
+        modelKey: 'openai/dall-e-3',
+        onPromptChange,
+        prompt: 'a founder at a desk',
+      }),
+    );
+
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+    const handler = getSubscribedHandler();
+
+    unmount();
+    expect(mockUnsubscribe).toHaveBeenCalled();
+
+    act(() => {
+      handler.onCompleted('too late');
+    });
+
+    expect(onPromptChange).not.toHaveBeenCalled();
+    expect(mockNotificationsError).not.toHaveBeenCalled();
   });
 });

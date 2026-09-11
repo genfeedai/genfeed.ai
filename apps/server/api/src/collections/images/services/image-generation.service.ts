@@ -165,20 +165,12 @@ export class ImageGenerationService {
 
     const referenceImageUrl: string | null = referenceImageUrls[0] || null;
 
-    // Brand voice must reach every model, including brief-compiled ones — see
-    // `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
-    // setting, never on the fidelity mode `avoid` terms can also force.
-    const briefBrandContext = resolveIsGenerationBriefBrandVoiceOn({
-      brandingMode: createImageDto.brandingMode,
-      isBrandingEnabled: createImageDto.isBrandingEnabled,
-    })
-      ? await resolveGenerationBriefBrandContext({
-          brand: promptBuilderBrand,
-          branding: brandPromptBranding,
-          organizationId: user.organizationId,
-          templatesService: this.templatesService,
-        })
-      : undefined;
+    const briefBrandContext = await this.resolveBriefBrandContext({
+      brandPromptBranding,
+      createImageDto,
+      organizationId: user.organizationId,
+      promptBuilderBrand,
+    });
 
     const compiledBrief = this.compileImageGenerationBrief({
       briefBrandContext,
@@ -395,6 +387,51 @@ export class ImageGenerationService {
       modelSchemaFamily,
       promptOriginalText,
     };
+  }
+
+  /**
+   * Brand voice must reach every model, including brief-compiled ones — see
+   * `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
+   * setting, never on the fidelity mode `avoid` terms can also force. A
+   * template-lookup failure (e.g. a database error) must never fail the
+   * whole generation (#4676) — proceed without brand context instead.
+   */
+  private async resolveBriefBrandContext(params: {
+    brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
+    createImageDto: CreateImageDto;
+    organizationId: string;
+    promptBuilderBrand: ImageGenerationContext['promptBuilderBrand'];
+  }): Promise<string | undefined> {
+    const {
+      brandPromptBranding,
+      createImageDto,
+      organizationId,
+      promptBuilderBrand,
+    } = params;
+
+    if (
+      !resolveIsGenerationBriefBrandVoiceOn({
+        brandingMode: createImageDto.brandingMode,
+        isBrandingEnabled: createImageDto.isBrandingEnabled,
+      })
+    ) {
+      return undefined;
+    }
+
+    try {
+      return await resolveGenerationBriefBrandContext({
+        brand: promptBuilderBrand,
+        branding: brandPromptBranding,
+        organizationId,
+        templatesService: this.templatesService,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Failed to resolve brand context for the generation brief; proceeding without it',
+        { error, organizationId },
+      );
+      return undefined;
+    }
   }
 
   /**

@@ -59,7 +59,7 @@ import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarCompose
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp, WandSparkles } from 'lucide-react';
+import { ArrowUp, Loader2, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect } from 'react';
@@ -88,6 +88,7 @@ export default function StudioGenerateComposer({
   isUploading,
   models,
   onAddFiles,
+  onCancelEnhancePrompt,
   onEnhancePrompt,
   onOpenLibrary,
   onPromptChange,
@@ -99,7 +100,9 @@ export default function StudioGenerateComposer({
   onStopListening,
   onSubmit,
   onTypeChange,
+  onUndoEnhancePrompt,
   prompt,
+  previousPrompt = null,
   settings,
   shouldShowVoiceInput,
   type,
@@ -469,14 +472,37 @@ export default function StudioGenerateComposer({
               {translate('estimatedCredits', { credits: estimatedCredits })}
             </span>
           ) : null}
+          {!isEnhancingPrompt && previousPrompt !== null ? (
+            <Button
+              ariaLabel="Undo prompt enhancement"
+              className="h-7 shrink-0 px-2 text-2xs"
+              isDisabled={isGenerating}
+              label="Undo"
+              onClick={onUndoEnhancePrompt}
+              size={ButtonSize.XS}
+              textTransform="none"
+              variant={ButtonVariant.GHOST}
+            />
+          ) : null}
           {onEnhancePrompt ? (
             <Button
-              ariaLabel="Enhance prompt"
+              ariaLabel={
+                isEnhancingPrompt ? 'Cancel enhancing prompt' : 'Enhance prompt'
+              }
               className="size-9 shrink-0 min-h-0 min-w-0 p-0"
-              icon={<WandSparkles className="size-4" />}
-              isDisabled={isGenerating || isEnhancingPrompt || isPromptEmpty}
-              isLoading={isEnhancingPrompt}
-              onClick={onEnhancePrompt}
+              icon={
+                isEnhancingPrompt ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <WandSparkles className="size-4" />
+                )
+              }
+              // The composer stays usable during enhancement: while pending,
+              // the button switches to Cancel instead of disabling (#4676).
+              isDisabled={isGenerating || (!isEnhancingPrompt && isPromptEmpty)}
+              onClick={
+                isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
+              }
               size={ButtonSize.ICON}
               variant={ButtonVariant.GHOST}
               withWrapper={false}
