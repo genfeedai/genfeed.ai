@@ -370,6 +370,7 @@ export const SELF_HOSTED_MODELS = [
     minCost: 40,
     pricingType: PricingType.PER_SECOND,
     provider: ModelProvider.FAL,
+    providerConfig: { name: 'music', owner: 'elevenlabs' },
     providerCostUsd: 0.0133,
   },
   /**
@@ -390,6 +391,7 @@ export const SELF_HOSTED_MODELS = [
     key: MODEL_KEYS.FAL_LYRIA3_PRO,
     label: 'Lyria 3 Pro',
     provider: ModelProvider.FAL,
+    providerConfig: { name: 'pro', owner: 'lyria3' },
     providerCostUsd: 0.08,
   },
   /**
