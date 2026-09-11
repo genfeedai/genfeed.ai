@@ -116,7 +116,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         // saved but deliberately left unconnected — see
         // `InstagramController.resolveAuthorizedAccount` — so the operator
         // must choose before this connection can be treated as complete.
-        if (platform === 'instagram' && !credential.isConnected) {
+        if (platform === 'instagram' && credential && !credential.isConnected) {
           logger.info(`${url} success (account selection required)`);
           setResult({ credentialId: credential.id, status: 'selecting' });
           return;
