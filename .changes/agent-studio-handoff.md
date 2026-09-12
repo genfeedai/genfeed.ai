@@ -1,4 +1,4 @@
-packages: @genfeedai/contracts @genfeedai/agent @genfeedai/pages
+packages: @genfeedai/contracts @genfeedai/agent @genfeedai/pages @genfeedai/services
 
 Add `AgentStudioHandoffPayload` and `AgentStudioHandoffScope` to
 `@genfeedai/contracts` (#4670) — the short-lived, organization-scoped payload
@@ -14,6 +14,13 @@ and wires an `onOpenInStudio?: (studioUrl: string) => void` slot through
 `GenerationActionCardStatusPanel` — rendered on both the pre-generation
 review card and the completed-result card, inert until a host wires actual
 navigation.
+
+`@genfeedai/services` gains a Studio-native `AgentStudioHandoffService`
+(`./content/agent-studio-handoff.service`) — `HTTPBaseService` +
+`useAuthedService`, independent of Agent's `useAgentApiService()` context
+(that provider is only mounted on `/agent`). `consume(id)` is single-use
+and returns `null` for a missing, expired, already-consumed, or foreign
+handoff so Studio can fall back to defaults with a notice.
 
 `@genfeedai/pages` gains the Studio side: `useStudioGenerateHandoff` reads
 the `handoff` URL query param once, consumes it (single-use — the server
