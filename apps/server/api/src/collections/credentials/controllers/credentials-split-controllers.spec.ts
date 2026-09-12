@@ -127,10 +127,16 @@ describe('Credentials split controllers', () => {
     ).toEqual([CredentialPublishingOperationsService]);
   });
 
-  it('reduces the legacy controller from 18 to 12 constructor dependencies', () => {
+  it('reduces the legacy controller from 18 to 11 constructor dependencies', () => {
+    // 12 -> 11: `findAllInstagramPages` no longer looks up the credential's
+    // brand at all — it reads accounts straight from the credential's own
+    // token via `listAuthorizedInstagramAccounts`, the same source of truth
+    // `InstagramController.resolveAuthorizedAccount`/`selectAccount` use, so
+    // BrandsService's only remaining caller here disappeared (see #4695,
+    // commit 2550287b4).
     expect(
       Reflect.getMetadata('design:paramtypes', CredentialsController),
-    ).toHaveLength(12);
+    ).toHaveLength(11);
   });
 
   it.each([
