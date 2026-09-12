@@ -276,11 +276,14 @@ const capabilities: StudioGenerateCapabilities = {
   hasBrandEnrichment: true,
   hasDuration: false,
   hasIdentity: false,
+  hasInstrumentalToggle: false,
   hasLook: true,
+  hasLyrics: false,
   hasModelSelection: true,
   hasOutputs: true,
   hasReferences: false,
   hasSpeech: false,
+  hasStyle: false,
 };
 
 const typeOptions: GenerationSetupTypeOption[] = [

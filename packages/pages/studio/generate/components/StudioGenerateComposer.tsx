@@ -34,6 +34,7 @@ import {
   getStudioGenerateTypeConfig,
   isStudioGenerateType,
   listStudioGenerateTypeConfigs,
+  resolveStudioGenerateCapabilities,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
@@ -108,7 +109,13 @@ export default function StudioGenerateComposer({
   type,
 }: StudioGenerateComposerProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
-  const { capabilities } = getStudioGenerateTypeConfig(type);
+  // Narrowed against the selected model's own registry capability — the
+  // static per-type config is only the widest case across every music
+  // model (see `resolveStudioGenerateCapabilities`).
+  const capabilities = resolveStudioGenerateCapabilities(
+    type,
+    settings.modelKey,
+  );
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
   const isPromptEmpty = prompt.trim().length === 0;
@@ -200,7 +207,7 @@ export default function StudioGenerateComposer({
 
   const debouncedPrompt = useDebounce(prompt, RECOMMENDATION_DEBOUNCE_MS);
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: capabilities and defaults are pure functions of `type`, which is already a dep — including their fresh-per-render object identities would re-run this on every render and defeat the debounce.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `recommendGenerationSetup` only reads the type-level capability flags (aspect ratio, duration, model selection, outputs, brand) that stay constant for a given `type`, which is already a dep. `capabilities.hasInstrumentalToggle`/`hasLyrics` do vary with `settings.modelKey`, but nothing this effect reads depends on them, so omitting `settings.modelKey` here doesn't skip a real update — and including capabilities'/defaults' fresh-per-render object identities would re-run this on every render and defeat the debounce.
   useEffect(() => {
     const recommendation = recommendGenerationSetup({
       capabilities,

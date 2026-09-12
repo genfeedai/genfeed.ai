@@ -28,9 +28,13 @@ export interface GenerationSetupValues {
   camera?: string;
   cameraMovement?: string;
   duration?: number;
+  /** Request a purely instrumental track — only meaningful for music models that support vocals/lyrics. */
+  instrumental?: boolean;
   isPromptEnhanceEnabled: boolean;
   lens?: string;
   lighting?: string;
+  /** Explicit lyrics/composition text — only meaningful for music models that support lyrics. */
+  lyrics?: string;
   /** Empty string = Auto; the server RouterService resolves the model. */
   modelKey: string;
   mood?: string;

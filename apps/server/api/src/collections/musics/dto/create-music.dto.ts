@@ -9,6 +9,7 @@ import {
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
 
@@ -157,4 +158,24 @@ export class CreateMusicDto extends CreateIngredientDto {
     required: false,
   })
   readonly instrumental?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  @ApiProperty({
+    description:
+      'Explicit lyrics/composition text (verses, chorus, structure). Only honored by providers that support lyrics (Eleven Music, Lyria 3 Pro, Mureka V9); ignored — and should not be sent — when `instrumental` is true or the resolved model has no vocal/lyrics support.',
+    required: false,
+  })
+  readonly lyrics?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  @ApiProperty({
+    description:
+      'Genre/style descriptors (e.g. "synthwave, upbeat, 80s retro"). Folded into the generation prompt — every music provider responds to genre language in plain text, unlike lyrics/instrumental which need a provider-aware field.',
+    required: false,
+  })
+  readonly style?: string;
 }

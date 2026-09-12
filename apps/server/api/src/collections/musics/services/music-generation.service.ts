@@ -118,6 +118,15 @@ export class MusicGenerationService {
       );
     }
 
+    // Genre/style has no dedicated field on any of the four providers'
+    // schemas — every text-to-music model responds to genre language in
+    // plain prompt text, so it is folded in once here instead of each
+    // provider adapter needing its own (inconsistent) handling.
+    const effectiveText = this.applyStyle(
+      createMusicDto.text,
+      createMusicDto.style,
+    );
+
     const brandId = createMusicDto.brandId || user.brandId;
     const brand = await this.brandsService.findOne({
       id: brandId,
@@ -138,13 +147,13 @@ export class MusicGenerationService {
         organizationId: user.organizationId,
         outputs: createMusicDto.outputs,
         prioritize: createMusicDto.prioritize || 'balanced',
-        prompt: createMusicDto.text,
+        prompt: effectiveText,
       });
       model = recommendation.selectedModel as string;
       routerReason = recommendation.reason;
 
       this.loggerService.log('Auto model routing selected', {
-        promptPreview: createMusicDto.text.substring(0, 100),
+        promptPreview: effectiveText.substring(0, 100),
         reason: routerReason,
         selectedModel: model,
         service: this.orchestrationSource,
@@ -177,7 +186,7 @@ export class MusicGenerationService {
         category: PromptCategory.MODELS_PROMPT_MUSIC,
         model,
         organizationId: user.organizationId,
-        original: createMusicDto.text,
+        original: effectiveText,
         userId: user.userId ?? user.id,
       }),
     );
@@ -188,7 +197,7 @@ export class MusicGenerationService {
         category: IngredientCategory.MUSIC,
         duration: createMusicDto.duration,
         extension: MetadataExtension.MP3,
-        generationPrompt: createMusicDto.text,
+        generationPrompt: effectiveText,
         generationSeed: createMusicDto.seed,
         isDefault: createMusicDto.isDefault,
         model,
@@ -229,6 +238,18 @@ export class MusicGenerationService {
       pendingIngredientIds,
       request,
     });
+  }
+
+  /**
+   * Genre/style has no dedicated input field on any of the four music
+   * providers' schemas (Replicate MusicGen, fal Eleven Music/Lyria, direct
+   * Mureka) — every one of them responds to genre language in plain prompt
+   * text instead. Folding it in once, here, means every provider adapter
+   * gets it for free without each needing its own prompt-composition logic.
+   */
+  private applyStyle(text: string, style: string | undefined): string {
+    const trimmedStyle = style?.trim();
+    return trimmedStyle ? `${text} (style: ${trimmedStyle})` : text;
   }
 
   /**
@@ -313,7 +334,10 @@ export class MusicGenerationService {
           category: IngredientCategory.MUSIC,
           duration: params.createMusicDto.duration,
           extension: MetadataExtension.MP3,
-          generationPrompt: params.createMusicDto.text,
+          // The persisted prompt already has any style/genre folded in
+          // (see `applyStyle`) — reuse it instead of re-deriving from the
+          // raw DTO text so every output stays consistent.
+          generationPrompt: params.promptData.original,
           generationSeed: params.createMusicDto.seed,
           model: params.model,
           organizationId: params.user.organizationId,

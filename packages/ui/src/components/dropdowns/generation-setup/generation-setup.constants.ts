@@ -22,6 +22,15 @@ export const GENERATION_SETUP_DURATION_OPTIONS_SECONDS: readonly number[] = [
   4, 5, 8, 10,
 ];
 
+/**
+ * Covers MusicGen's 5-30s range plus the wider 10-90s range Eleven Music,
+ * Lyria 3 Pro, and Mureka V9 support (#4680, #4681). Kept separate from the
+ * video list above — the two types' providers have unrelated duration
+ * grids.
+ */
+export const GENERATION_SETUP_MUSIC_DURATION_OPTIONS_SECONDS: readonly number[] =
+  [5, 10, 15, 20, 30, 45, 60, 90];
+
 /** Shared between the Look tab and the search index so labels never drift. */
 export const GENERATION_SETUP_LOOK_FIELD_LABELS: Record<
   GenerationSetupLookFieldKey,

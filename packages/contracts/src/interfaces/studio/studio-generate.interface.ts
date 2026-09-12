@@ -116,11 +116,21 @@ export interface StudioGenerateCapabilities {
   hasBrandEnrichment: boolean;
   hasDuration: boolean;
   hasIdentity: boolean;
+  /** Whether the resolved model accepts an instrumental/vocals toggle (music only). */
+  hasInstrumentalToggle: boolean;
   hasLook: boolean;
+  /** Whether the resolved model accepts explicit lyrics/composition text (music only). */
+  hasLyrics: boolean;
   hasModelSelection: boolean;
   hasOutputs: boolean;
   hasReferences: boolean;
   hasSpeech: boolean;
+  /**
+   * Genre/style descriptor text (music only). Unlike lyrics/instrumental,
+   * every music provider honors it the same way — folded into the prompt
+   * text server-side — so it needs no per-model narrowing.
+   */
+  hasStyle: boolean;
 }
 
 export interface StudioGenerateTypeConfig {
@@ -150,9 +160,11 @@ export interface StudioGenerateSettings {
   cameraMovement?: string;
   duration?: number;
   folder?: string;
+  instrumental?: boolean;
   isAudioEnabled: boolean;
   lens?: string;
   lighting?: string;
+  lyrics?: string;
   modelKey: string;
   mood?: string;
   outputs: number;

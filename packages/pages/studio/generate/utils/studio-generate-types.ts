@@ -1,5 +1,10 @@
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
-import type { StudioGenerateType, StudioGenerateTypeConfig } from '../types';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import type {
+  StudioGenerateCapabilities,
+  StudioGenerateType,
+  StudioGenerateTypeConfig,
+} from '../types';
 
 /**
  * Registry order is the order the composer's type dropdown renders.
@@ -27,12 +32,15 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: false,
       hasDuration: false,
       hasIdentity: true,
+      hasInstrumentalToggle: false,
       hasLook: false,
+      hasLyrics: false,
       // Avatar clips go to HeyGen directly — there is no router model catalog.
       hasModelSelection: false,
       hasOutputs: false,
       hasReferences: false,
       hasSpeech: true,
+      hasStyle: false,
     },
     elementsType: 'all',
     ingredientCategory: IngredientCategory.AVATAR,
@@ -50,11 +58,14 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: true,
       hasDuration: false,
       hasIdentity: false,
+      hasInstrumentalToggle: false,
       hasLook: true,
+      hasLyrics: false,
       hasModelSelection: true,
       hasOutputs: true,
       hasReferences: true,
       hasSpeech: false,
+      hasStyle: false,
     },
     elementsType: 'image',
     ingredientCategory: IngredientCategory.IMAGE,
@@ -66,15 +77,21 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
   music: {
     capabilities: {
       hasAspectRatio: false,
-      // The music payload carries model + duration only.
+      // The music payload carries model, duration, instrumental, and lyrics.
       hasBrandEnrichment: false,
       hasDuration: true,
       hasIdentity: false,
+      hasInstrumentalToggle: true,
       hasLook: false,
+      hasLyrics: true,
       hasModelSelection: true,
       hasOutputs: true,
       hasReferences: false,
       hasSpeech: false,
+      // Genre/style is folded into the prompt server-side, identically for
+      // every music provider — no per-model narrowing needed (unlike
+      // instrumental/lyrics).
+      hasStyle: true,
     },
     elementsType: 'music',
     ingredientCategory: IngredientCategory.MUSIC,
@@ -89,7 +106,9 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: true,
       hasDuration: true,
       hasIdentity: false,
+      hasInstrumentalToggle: false,
       hasLook: true,
+      hasLyrics: false,
       hasModelSelection: true,
       // Video providers bill per clip — one clip per generate, no multiplier.
       hasOutputs: false,
@@ -97,6 +116,7 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       // A video prompt describes a scene. Spoken-script clips are the Avatar
       // type — nothing in the video payload carries a script.
       hasSpeech: false,
+      hasStyle: false,
     },
     elementsType: 'video',
     ingredientCategory: IngredientCategory.VIDEO,
@@ -112,13 +132,16 @@ const STUDIO_GENERATE_TYPE_CONFIGS: Record<
       hasBrandEnrichment: false,
       hasDuration: false,
       hasIdentity: true,
+      hasInstrumentalToggle: false,
       hasLook: false,
+      hasLyrics: false,
       // The chosen catalog voice *is* the model — `/voices/generate` takes a
       // `voiceId`, never a router model key.
       hasModelSelection: false,
       hasOutputs: false,
       hasReferences: false,
       hasSpeech: true,
+      hasStyle: false,
     },
     elementsType: 'voice',
     ingredientCategory: IngredientCategory.VOICE,
@@ -133,6 +156,41 @@ export function getStudioGenerateTypeConfig(
   type: StudioGenerateType,
 ): StudioGenerateTypeConfig {
   return STUDIO_GENERATE_TYPE_CONFIGS[type];
+}
+
+/**
+ * The per-type config's `hasInstrumentalToggle`/`hasLyrics` are the widest
+ * case across every music model — real per-model support varies (MusicGen
+ * has no vocals at all, so nothing to toggle or write lyrics for). Narrow
+ * them against the *selected* model's own registry capability so switching
+ * to a model with less support hides the controls instead of silently
+ * sending fields it ignores. Auto-select mode and non-music types keep the
+ * static per-type capabilities, since there is no single resolved model to
+ * narrow against.
+ */
+export function resolveStudioGenerateCapabilities(
+  type: StudioGenerateType,
+  modelKey: string | undefined,
+): StudioGenerateCapabilities {
+  const { capabilities } = getStudioGenerateTypeConfig(type);
+  if (type !== 'music' || !modelKey) {
+    return capabilities;
+  }
+
+  const capability = MODEL_OUTPUT_CAPABILITIES[modelKey];
+  if (capability?.category !== ModelCategory.MUSIC) {
+    return capabilities;
+  }
+
+  return {
+    ...capabilities,
+    // A toggle only means something for a model that can produce vocals —
+    // an instrumental-only provider like MusicGen has nothing to switch
+    // away from, so hide the control rather than show a toggle it ignores.
+    hasInstrumentalToggle:
+      capability.supportsVocals ?? capabilities.hasInstrumentalToggle,
+    hasLyrics: capability.supportsLyrics ?? capabilities.hasLyrics,
+  };
 }
 
 export function listStudioGenerateTypeConfigs(): readonly StudioGenerateTypeConfig[] {

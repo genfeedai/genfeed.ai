@@ -47,7 +47,7 @@ export function describeRemixOutputSettings(
 ): string {
   return [
     settings.aspectRatio,
-    type === 'video' || type === 'avatar'
+    type === 'video' || type === 'avatar' || type === 'music'
       ? settings.duration
         ? `${settings.duration}s`
         : null
@@ -127,7 +127,7 @@ export default function StudioGenerateSettingsPopover({
   type,
 }: StudioGenerateSettingsPopoverProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
-  const hasDuration = type === 'video' || type === 'avatar';
+  const hasDuration = type === 'video' || type === 'avatar' || type === 'music';
   const summary = describeRemixOutputSettings(settings, type);
 
   return (

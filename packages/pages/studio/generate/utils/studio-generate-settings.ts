@@ -28,7 +28,9 @@ export const STUDIO_ASPECT_RATIOS = [
 
 export const STUDIO_IMAGE_RESOLUTIONS = ['1K', '2K'] as const;
 export const STUDIO_VIDEO_DURATIONS = [5, 8, 10] as const;
-export const STUDIO_MUSIC_DURATIONS = [10, 15, 30] as const;
+// Covers MusicGen's 5-30s range and the wider 10-90s range Eleven
+// Music/Lyria 3 Pro/Mureka V9 support (#4680, #4681).
+export const STUDIO_MUSIC_DURATIONS = [5, 10, 15, 20, 30, 45, 60, 90] as const;
 
 export const STUDIO_MAX_OUTPUTS = 8;
 
@@ -198,7 +200,9 @@ export function getStudioDurations(
 }
 
 const DEFAULT_DURATION_BY_TYPE: Partial<Record<StudioGenerateType, number>> = {
-  music: STUDIO_MUSIC_DURATIONS[0],
+  // Kept at 10s (not the shorter 5s floor) to match the existing
+  // DEFAULT_MUSIC_DURATION fallback in useStudioGeneration.ts.
+  music: 10,
   video: STUDIO_VIDEO_DURATIONS[0],
 };
 
@@ -214,6 +218,7 @@ export function getDefaultStudioGenerateSettings(
     blacklist: [],
     brandingMode: 'brand',
     duration: DEFAULT_DURATION_BY_TYPE[type],
+    instrumental: type === 'music' ? false : undefined,
     isAudioEnabled: false,
     modelKey: AUTO_MODEL_OPTION_VALUE,
     outputs: 1,

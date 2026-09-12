@@ -5,6 +5,7 @@ import {
   IngredientFormat,
   RouterPriority,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IIngredient, IModel } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
@@ -176,6 +177,68 @@ describe('buildMusicPayload', () => {
 
     expect(payload.duration).toBe(10);
     expect(payload.model).toBeUndefined();
+  });
+
+  it('drops lyrics when instrumental is requested', () => {
+    const payload = buildMusicPayload(
+      makePromptData({
+        instrumental: true,
+        lyrics: 'Verse one\nChorus',
+      }),
+      MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+      30,
+    );
+
+    expect(payload.instrumental).toBe(true);
+    expect(payload.lyrics).toBeUndefined();
+  });
+
+  it('carries lyrics through for a model that supports them', () => {
+    const payload = buildMusicPayload(
+      makePromptData({ lyrics: 'Verse one\nChorus' }),
+      MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+      30,
+    );
+
+    expect(payload.lyrics).toBe('Verse one\nChorus');
+  });
+
+  it('drops lyrics and forces instrumental false for a model with no vocal support (MusicGen)', () => {
+    const payload = buildMusicPayload(
+      makePromptData({
+        instrumental: true,
+        lyrics: 'stale text from a previous model selection',
+      }),
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      10,
+    );
+
+    expect(payload.instrumental).toBe(false);
+    expect(payload.lyrics).toBeUndefined();
+  });
+
+  it('drops stale lyrics text for MusicGen even without the instrumental flag', () => {
+    const payload = buildMusicPayload(
+      makePromptData({ lyrics: 'stale text' }),
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      10,
+    );
+
+    expect(payload.lyrics).toBeUndefined();
+  });
+
+  it('keeps whatever the operator set in auto-select mode (no single model to check)', () => {
+    const payload = buildMusicPayload(
+      makePromptData({
+        autoSelectModel: true,
+        instrumental: true,
+        lyrics: 'Verse one',
+      }),
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      10,
+    );
+
+    expect(payload.instrumental).toBe(true);
   });
 });
 

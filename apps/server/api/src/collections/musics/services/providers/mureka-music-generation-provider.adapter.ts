@@ -28,8 +28,14 @@ export class MurekaMusicGenerationProviderAdapter
   async generate(
     request: MusicGenerationProviderRequest,
   ): Promise<MusicGenerationProviderResult> {
+    const instrumental = request.createMusicDto.instrumental ?? false;
     const result = await this.murekaService.generateSong({
-      instrumental: request.createMusicDto.instrumental ?? false,
+      instrumental,
+      // An instrumental request carries no lyrics, even if the field still
+      // holds stale text from before the toggle was flipped.
+      lyrics: instrumental
+        ? undefined
+        : request.createMusicDto.lyrics || undefined,
       prompt: request.prompt,
     });
 

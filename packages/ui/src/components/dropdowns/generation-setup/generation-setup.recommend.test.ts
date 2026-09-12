@@ -12,11 +12,14 @@ const FULL_CAPABILITIES: StudioGenerateCapabilities = {
   hasBrandEnrichment: true,
   hasDuration: true,
   hasIdentity: true,
+  hasInstrumentalToggle: true,
   hasLook: true,
+  hasLyrics: true,
   hasModelSelection: true,
   hasOutputs: true,
   hasReferences: true,
   hasSpeech: true,
+  hasStyle: true,
 };
 
 function buildInput(

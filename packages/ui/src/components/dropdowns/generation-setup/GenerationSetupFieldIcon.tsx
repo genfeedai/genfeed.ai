@@ -4,6 +4,7 @@ import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/st
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupFieldIconProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SimpleTooltip } from '@ui/primitives/tooltip';
+import { useTranslations } from 'next-intl';
 import {
   Aperture,
   Camera,
@@ -15,6 +16,8 @@ import {
   Lightbulb,
   type LucideIcon,
   Megaphone,
+  Mic,
+  MicOff,
   Move3d,
   Palette,
   Ratio,
@@ -37,9 +40,11 @@ const FIELD_ICON: Record<GenerationSetupFieldKey, LucideIcon> = {
   camera: Camera,
   cameraMovement: Move3d,
   duration: Clock3,
+  instrumental: MicOff,
   isPromptEnhanceEnabled: WandSparkles,
   lens: Aperture,
   lighting: Lightbulb,
+  lyrics: Mic,
   modelKey: Sparkles,
   mood: Smile,
   outputs: Copy,
@@ -57,9 +62,11 @@ const FIELD_LABEL: Record<GenerationSetupFieldKey, string> = {
   camera: 'Camera',
   cameraMovement: 'Camera movement',
   duration: 'Duration',
+  instrumental: 'Instrumental',
   isPromptEnhanceEnabled: 'Prompt enhance',
   lens: 'Lens',
   lighting: 'Lighting',
+  lyrics: 'Lyrics',
   modelKey: 'Model',
   mood: 'Mood',
   outputs: 'Outputs',
@@ -76,9 +83,14 @@ export default function GenerationSetupFieldIcon({
   reason,
   source,
 }: GenerationSetupFieldIconProps) {
+  const translate = useTranslations('agent.generationSetup');
   const Icon = FIELD_ICON[fieldKey];
   const sourceLabel = reason ?? SOURCE_LABEL[source];
-  const label = `${FIELD_LABEL[fieldKey]}: ${sourceLabel}`;
+  const fieldLabel =
+    fieldKey === 'instrumental' || fieldKey === 'lyrics' || fieldKey === 'style'
+      ? translate(fieldKey)
+      : FIELD_LABEL[fieldKey];
+  const label = `${fieldLabel}: ${sourceLabel}`;
 
   return (
     <SimpleTooltip label={label} position="top">

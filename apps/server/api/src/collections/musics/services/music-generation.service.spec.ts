@@ -273,6 +273,45 @@ describe('MusicGenerationService', () => {
     });
   });
 
+  it('folds style into the prompt text sent to the provider, router, and persisted prompt', async () => {
+    const created = createService();
+
+    await created.service.generateMusic(
+      user,
+      buildDto({ style: 'synthwave, upbeat, 80s retro' }),
+      request,
+    );
+
+    const expectedPrompt =
+      'Generate happy background music (style: synthwave, upbeat, 80s retro)';
+    expect(created.promptsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ original: expectedPrompt }),
+    );
+    expect(created.sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      user,
+      expect.objectContaining({ generationPrompt: expectedPrompt }),
+    );
+    expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ prompt: expectedPrompt }),
+    );
+  });
+
+  it('leaves the prompt untouched when style is blank', async () => {
+    const created = createService();
+
+    await created.service.generateMusic(
+      user,
+      buildDto({ style: '   ' }),
+      request,
+    );
+
+    expect(created.promptsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        original: 'Generate happy background music',
+      }),
+    );
+  });
+
   it('finalizes immediately when the provider returns a completed output URL (fal/Mureka)', async () => {
     const created = createService();
     created.musicProviderRegistry.generate.mockResolvedValue({

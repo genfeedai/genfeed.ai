@@ -930,11 +930,13 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
     },
 
     // fal.ai: https://fal.ai/models/fal-ai/lyria3/pro/api — input schema is
-    // only `{ prompt, image_url }`. There is no duration, seed, instrumental,
-    // or lyrics parameter; lyrics appear solely in the model's output. We
-    // fold an instrumental hint into the prompt text (see
-    // FalMusicGenerationProviderAdapter.withLyriaHints) rather than declaring
-    // controls the provider doesn't actually accept.
+    // only `{ prompt, image_url }`. There is no duration, seed,
+    // instrumental, or lyrics parameter, so both an instrumental hint and
+    // explicit lyrics are folded into the prompt text (see
+    // FalMusicGenerationProviderAdapter) instead of sent as dedicated
+    // fields — best-effort, but real enough to keep the controls enabled.
+    // Duration genuinely has no such fallback (fal silently drops it), so
+    // that control alone stays off.
     [MODEL_KEYS.FAL_LYRIA3_PRO]: {
       category: ModelCategory.MUSIC,
       hasDurationEditing: false,
@@ -943,7 +945,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 0,
       supportsInstrumental: true,
-      supportsLyrics: false,
+      supportsLyrics: true,
       supportsVocals: true,
     },
 

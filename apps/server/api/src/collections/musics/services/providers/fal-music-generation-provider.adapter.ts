@@ -86,10 +86,10 @@ export class FalMusicGenerationProviderAdapter
 
   /**
    * fal publishes a distinct schema per music model. Eleven Music accepts
-   * `music_length_ms` + `force_instrumental` alongside `prompt`. Lyria 3 Pro's
-   * schema is only `{ prompt, image_url }` — it has no duration, seed, or
-   * instrumental field, so those hints are folded into the prompt text
-   * instead of sent as (silently-dropped) parameters.
+   * `music_length_ms` + `force_instrumental` alongside `prompt`. Lyria 3
+   * Pro's schema is only `{ prompt, image_url }` — it has no duration,
+   * seed, instrumental, or lyrics parameter, so all of those are folded
+   * into the prompt text instead of sent as (silently-dropped) fields.
    * @see https://fal.ai/models/fal-ai/elevenlabs/music/api
    * @see https://fal.ai/models/fal-ai/lyria3/pro/api
    */
@@ -98,16 +98,22 @@ export class FalMusicGenerationProviderAdapter
     request: MusicGenerationProviderRequest,
     duration: number,
   ): Record<string, unknown> {
+    const instrumental = request.createMusicDto.instrumental ?? false;
+    const prompt = this.buildPromptWithLyrics(
+      request.prompt,
+      instrumental ? undefined : request.createMusicDto.lyrics,
+    );
+
     if (endpoint.includes('elevenlabs')) {
       return {
-        force_instrumental: request.createMusicDto.instrumental ?? false,
+        force_instrumental: instrumental,
         music_length_ms: duration * 1000,
-        prompt: request.prompt,
+        prompt,
       };
     }
 
     return {
-      prompt: this.withLyriaHints(request),
+      prompt: this.withLyriaInstrumentalHint(prompt, instrumental),
     };
   }
 
@@ -115,9 +121,17 @@ export class FalMusicGenerationProviderAdapter
    * Lyria 3 Pro has no dedicated instrumental toggle, so an instrumental
    * request is expressed as a prompt directive instead of a parameter.
    */
-  private withLyriaHints(request: MusicGenerationProviderRequest): string {
-    return request.createMusicDto.instrumental
-      ? `${request.prompt} (instrumental, no vocals or lyrics)`
-      : request.prompt;
+  private withLyriaInstrumentalHint(
+    prompt: string,
+    instrumental: boolean,
+  ): string {
+    return instrumental
+      ? `${prompt} (instrumental, no vocals or lyrics)`
+      : prompt;
+  }
+
+  private buildPromptWithLyrics(prompt: string, lyrics?: string): string {
+    const trimmedLyrics = lyrics?.trim();
+    return trimmedLyrics ? `${prompt}\n\nLyrics:\n${trimmedLyrics}` : prompt;
   }
 }

@@ -618,8 +618,20 @@ export function useStudioGeneration({
 
           case 'music': {
             const service = await getMusicsService();
+            const musicPromptData = {
+              ...promptData,
+              instrumental: settings.instrumental,
+              lyrics: settings.lyrics,
+              // `buildStudioPromptData` only fills `style` for `hasLook`
+              // types (image/video) — music carries its own genre/style
+              // control (`hasStyle`), so read it straight off settings the
+              // same way instrumental/lyrics do. `PromptTextareaSchema.style`
+              // is a required string, so default the unset case the same
+              // way `buildStudioPromptData` itself does.
+              style: settings.style ?? '',
+            };
             const payload = buildMusicPayload(
-              promptData,
+              musicPromptData,
               modelKey,
               settings.duration ?? DEFAULT_MUSIC_DURATION,
             );

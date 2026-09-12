@@ -51,8 +51,12 @@ export interface MusicGenerationPayload {
   autoSelectModel?: boolean;
   prioritize?: RouterPriority;
   duration: number;
+  instrumental?: boolean;
+  lyrics?: string;
   label: string;
   folder?: string;
+  /** Genre/style descriptors folded into the prompt server-side. */
+  style?: string;
 }
 
 export interface AvatarGenerationPayload {
