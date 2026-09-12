@@ -1893,11 +1893,6 @@ describe('GenerationActionCard', () => {
       id: 'image-completed-1',
       url: 'https://cdn.test/image-completed.png',
     });
-    const estimateGenerationCredits = vi.fn().mockResolvedValue({
-      credits: 3,
-      isAvailable: true,
-      modelKey: 'provider/nano-banana',
-    });
 
     renderGenerationActionCard(
       <GenerationActionCard
@@ -1913,7 +1908,6 @@ describe('GenerationActionCard', () => {
         }}
         apiService={createApiServiceMock({
           createStudioHandoff,
-          estimateGenerationCredits,
           generateIngredient,
           models: [
             createModel({
@@ -1938,10 +1932,13 @@ describe('GenerationActionCard', () => {
       await screen.findByRole('button', { name: 'Open in Studio' }),
     );
 
+    // The action pins an explicit model, so the handoff carries that pin
+    // directly — the credit-estimate's resolved model only matters in Auto
+    // mode (see the review-card test above).
     await waitFor(() => {
       expect(createStudioHandoff).toHaveBeenCalledWith(
         expect.objectContaining({
-          modelKey: 'provider/nano-banana',
+          modelKey: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
           prompt: 'A neon skyline at dusk.',
           type: 'image',
         }),
