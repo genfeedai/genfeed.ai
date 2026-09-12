@@ -348,6 +348,7 @@ function createModel(
 
 function createApiServiceMock(options?: {
   createPrompt?: ReturnType<typeof vi.fn>;
+  createStudioHandoff?: ReturnType<typeof vi.fn>;
   estimateGenerationCredits?: ReturnType<typeof vi.fn>;
   generateIngredient?: ReturnType<typeof vi.fn>;
   models?: IModel[];
@@ -365,11 +366,17 @@ function createApiServiceMock(options?: {
     vi
       .fn()
       .mockResolvedValue({ credits: null, isAvailable: true, modelKey: null });
+  const createStudioHandoff =
+    options?.createStudioHandoff ??
+    vi.fn().mockResolvedValue({ id: 'handoff-1' });
   const models = options?.models ?? [];
 
   return {
     baseUrl: 'http://genfeed.localhost:3010',
     createPrompt: vi.fn((...args: unknown[]) => createPrompt(...args)),
+    createStudioHandoff: vi.fn((...args: unknown[]) =>
+      createStudioHandoff(...args),
+    ),
     estimateGenerationCredits: vi.fn((...args: unknown[]) =>
       estimateGenerationCredits(...args),
     ),
@@ -1783,6 +1790,12 @@ describe('GenerationActionCard', () => {
 
   it('renders Open in Studio only when the #4670 extension slot is wired', async () => {
     const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi.fn().mockResolvedValue({ id: 'handoff-1' });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
 
     renderGenerationActionCard(
       <GenerationActionCard
@@ -1793,7 +1806,10 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
         onOpenInStudio={onOpenInStudio}
       />,
     );
@@ -1803,6 +1819,173 @@ describe('GenerationActionCard', () => {
         name: 'Open this generation in Studio',
       }),
     );
+
+    await waitFor(() => {
+      expect(createStudioHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelKey: 'provider/nano-banana',
+          prompt: 'A portrait at golden hour.',
+          type: 'image',
+        }),
+      );
+    });
     expect(onOpenInStudio).toHaveBeenCalledTimes(1);
+    expect(onOpenInStudio).toHaveBeenCalledWith(
+      expect.stringContaining('handoff=handoff-1'),
+    );
+  });
+
+  it('surfaces a composer error instead of navigating when the handoff cannot be created', async () => {
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockRejectedValue(new Error('Handoff storage unavailable'));
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-studio-slot-failure',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+
+    expect(
+      await screen.findByText(/failed to open in studio/i),
+    ).toBeInTheDocument();
+    expect(onOpenInStudio).not.toHaveBeenCalled();
+  });
+
+  it('renders Open in Studio on the completed result once generation finishes', async () => {
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockResolvedValue({ id: 'handoff-completed-1' });
+    const generateIngredient = vi.fn().mockResolvedValue({
+      id: 'image-completed-1',
+      url: 'https://cdn.test/image-completed.png',
+    });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+            prompt: 'A neon skyline at dusk.',
+          },
+          generationType: 'image',
+          id: 'action-studio-slot-done',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+              label: 'Z-Image Turbo',
+            }),
+          ],
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Open in Studio' }),
+    );
+
+    await waitFor(() => {
+      expect(createStudioHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelKey: 'provider/nano-banana',
+          prompt: 'A neon skyline at dusk.',
+          type: 'image',
+        }),
+      );
+    });
+    expect(onOpenInStudio).toHaveBeenCalledTimes(1);
+    expect(onOpenInStudio).toHaveBeenCalledWith(
+      expect.stringContaining('handoff=handoff-completed-1'),
+    );
+  });
+
+  it('does not render Open in Studio on the completed result without a handler', async () => {
+    const generateIngredient = vi.fn().mockResolvedValue({
+      id: 'image-completed-2',
+      url: 'https://cdn.test/image-completed-2.png',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+            prompt: 'A neon skyline at dusk.',
+          },
+          generationType: 'image',
+          id: 'action-studio-slot-done-no-handler',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+              label: 'Z-Image Turbo',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      await screen.findAllByRole('link', { name: 'Library' }),
+    ).not.toHaveLength(0);
+    expect(
+      screen.queryByRole('button', { name: 'Open in Studio' }),
+    ).not.toBeInTheDocument();
   });
 });
