@@ -95,6 +95,7 @@ import { AgentSpawnToolHandler } from '@api/services/agent-orchestrator/tools/ag
 import { AgentToolCatalogHandler } from '@api/services/agent-orchestrator/tools/agent-tool-catalog-handler.service';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { AgentTransferToolHandler } from '@api/services/agent-orchestrator/tools/agent-transfer-tool-handler.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
@@ -236,6 +237,7 @@ import { Module } from '@nestjs/common';
     AgentThreadEventRecorderService,
     AgentTurnAcceptanceService,
     AgentToolExecutorService,
+    AgentToolMutationAuthorizationService,
     AgentWorkObjectService,
     {
       inject: [LoggerService, CacheService],

@@ -4,6 +4,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -114,6 +115,12 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
     agentThreadsService = { findOne: vi.fn() };
     const workflowRunner = createWorkflowRunner();
     const unused = {} as never;
+    const mutationAuthorizationService =
+      new AgentToolMutationAuthorizationService(
+        logger as unknown as LoggerService,
+        mcpApprovals as never,
+        agentThreadsService as never,
+      );
     service = new AgentToolExecutorService(
       logger as unknown as LoggerService,
       { scopeToolResultHrefs: vi.fn(async (result) => result) } as never,
@@ -141,11 +148,10 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
       prepareHandler as never,
       unused,
       unused,
+      mutationAuthorizationService,
       { assertConsequentialBoundary: vi.fn() } as never,
       undefined,
       workflowRunner as never,
-      mcpApprovals as never,
-      agentThreadsService as never,
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },

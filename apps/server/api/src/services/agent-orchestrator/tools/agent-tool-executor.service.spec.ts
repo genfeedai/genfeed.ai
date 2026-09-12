@@ -40,6 +40,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
@@ -1085,6 +1086,11 @@ describe('AgentToolExecutorService', () => {
       }),
       resolve: vi.fn().mockResolvedValue(undefined),
     };
+    const mutationAuthorizationService =
+      new AgentToolMutationAuthorizationService(
+        loggerService,
+        approvals as never,
+      );
     const service = new AgentToolExecutorService(
       loggerService,
       routeRewriteService,
@@ -1112,10 +1118,10 @@ describe('AgentToolExecutorService', () => {
       prepareHandler,
       spawnHandler,
       {} as never,
+      mutationAuthorizationService,
       agentScopeContextService as never,
       undefined,
       systemWorkflowRunner as never,
-      approvals as never,
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
@@ -5591,6 +5597,7 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentSpawnToolHandler(loggerService, undefined),
       {} as never, // knowledgeHandler
+      new AgentToolMutationAuthorizationService(loggerService),
       undefined as never, // agentScopeContextService
       undefined,
       systemWorkflowRunner as never,

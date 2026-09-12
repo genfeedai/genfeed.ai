@@ -4,6 +4,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import {
   buildLogicalWriteKey,
   UNSUPPORTED_APPROVAL_ERROR,
@@ -111,6 +112,11 @@ describe('AgentToolExecutorService mutation policy', () => {
     };
     const workflowRunner = createWorkflowRunner();
     const unused = {} as never;
+    const mutationAuthorizationService =
+      new AgentToolMutationAuthorizationService(
+        logger as unknown as LoggerService,
+        mcpApprovals as never,
+      );
     service = new AgentToolExecutorService(
       logger as unknown as LoggerService,
       { scopeToolResultHrefs: vi.fn(async (result) => result) } as never,
@@ -138,10 +144,10 @@ describe('AgentToolExecutorService mutation policy', () => {
       unused,
       unused,
       unused,
+      mutationAuthorizationService,
       { assertConsequentialBoundary: vi.fn() } as never,
       undefined,
       workflowRunner as never,
-      mcpApprovals as never,
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
