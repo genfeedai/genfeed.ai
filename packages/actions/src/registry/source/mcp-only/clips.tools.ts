@@ -16,7 +16,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Analyze a source video (YouTube URL) for viral highlights: downloads audio, transcribes, and LLM-detects highlight segments. Cheap step (1 credit). Returns a projectId to poll with get_clip_project and get_clip_highlights.',
+      'Analyze a YouTube video for viral highlights: downloads audio, transcribes, and LLM-detects segments (1 credit). Poll with get_clip_project or get_clip_highlights.',
     name: 'analyze_clip_project',
     parameters: {
       properties: {
@@ -56,7 +56,7 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Create a clip project from a YouTube URL and run the full AI clip factory asynchronously. Expensive (one credit per clip). HeyGen and Argil require avatarId and voiceId; GenfeedAI requires a brand character reference. Returns a projectId to poll with get_clip_project.',
+      'Create a clip project from a YouTube URL and run the AI clip factory async (1 credit/clip). HeyGen/Argil need avatarId+voiceId; GenfeedAI needs a brand character reference. Poll get_clip_project.',
     name: 'create_clip_project_from_youtube',
     parameters: {
       properties: {
@@ -149,32 +149,31 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Generate video clips for selected highlights of an analyzed clip project. Expensive (one credit per clip). The project must be in "analyzed" status. In avatar mode, HeyGen and Argil require avatarId and voiceId; GenfeedAI requires a selected reference frame or brand character reference. Raw-cut mode produces deterministic source-footage cuts with burned captions and needs no avatar or voice.',
+      'Generate clips from selected highlights (1 credit/clip). Avatar: avatarId+voiceId (HeyGen/Argil) or character ref (GenfeedAI); raw-cut: neither.',
     name: 'generate_clips',
     parameters: {
       properties: {
         avatarId: {
-          description: 'Avatar ID (required for avatar mode)',
+          description: 'Avatar ID (avatar mode)',
           type: 'string',
         },
         avatarProvider: {
           default: 'heygen',
-          description: 'Avatar video provider to use (avatar mode)',
+          description: 'Avatar provider',
           enum: ['heygen', 'argil', 'genfeedai'],
           type: 'string',
         },
         editedHighlights: {
-          description:
-            'Highlight payloads to persist before generation. One entry per selected highlight, each with its id, title, and summary (script).',
+          description: 'Per-highlight id/title/summary.',
           items: {
             properties: {
-              id: { description: 'Highlight ID', type: 'string' },
+              id: { type: 'string' },
               summary: {
-                description: 'Highlight script/summary to use for generation',
+                description: 'Script for generation',
                 type: 'string',
               },
               title: {
-                description: 'Highlight title to use for generation',
+                description: 'Generation title',
                 type: 'string',
               },
             },
@@ -186,21 +185,21 @@ export const MCP_CLIP_TOOLS: SourceTool[] = [
         mode: {
           default: 'avatar',
           description:
-            'Generation mode. "avatar" uses the selected provider requirements. "raw-cut" cuts the original footage with burned captions and needs no avatar or voice.',
+            'avatar uses the provider; raw-cut burns captions, no avatar/voice',
           enum: ['avatar', 'raw-cut'],
           type: 'string',
         },
         projectId: {
-          description: 'The analyzed clip project ID',
+          description: 'Analyzed clip project ID',
           type: 'string',
         },
         selectedHighlightIds: {
-          description: 'IDs of the highlights to generate clips from',
+          description: 'Highlight IDs',
           items: { type: 'string' },
           type: 'array',
         },
         voiceId: {
-          description: 'Voice ID (required for avatar mode)',
+          description: 'Voice ID (avatar mode)',
           type: 'string',
         },
       },

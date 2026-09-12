@@ -24,26 +24,19 @@ import {
   getPublicMcpUrl,
   renderSetupPage,
 } from '@mcp/mcp/setup-page';
-import { AuthService, type McpRole } from '@mcp/services/auth.service';
+import { AuthService } from '@mcp/services/auth.service';
 import {
   applyRateLimitHeaders,
   RateLimitService,
 } from '@mcp/services/rate-limit.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
+import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
+import { toolsetsQueryMiddleware } from '@mcp/shared/middleware/toolsets-query.middleware';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
 import type { NextFunction, Request, Response } from 'express';
 import express from 'express';
-
-interface AuthenticatedRequest extends Request {
-  authContext?: {
-    token?: string;
-    userId?: string;
-    organizationId?: string;
-    role?: McpRole;
-  };
-}
 
 const MCP_CORS_ALLOWED_HEADERS = [
   'Authorization',
@@ -96,7 +89,7 @@ async function main(): Promise<void> {
   const expressApp = app.getHttpAdapter().getInstance();
 
   const mcpAuthMiddleware = async (
-    req: AuthenticatedRequest,
+    req: McpRequest,
     res: Response,
     next: NextFunction,
   ) => {
@@ -194,9 +187,13 @@ async function main(): Promise<void> {
     });
   }
 
+  // `toolsetsQueryMiddleware` runs BEFORE authentication so an unknown
+  // `?toolsets=` name is rejected the same way for an authenticated caller
+  // and an unauthenticated public discovery request (`tools/list`).
   expressApp.post(
     '/mcp',
     express.json({ limit: '1mb' }),
+    toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {
       streamableHttpService.handlePost(req, res).catch((err) => {
@@ -208,17 +205,23 @@ async function main(): Promise<void> {
     },
   );
 
-  expressApp.get('/mcp', mcpAuthMiddleware, (req: Request, res: Response) => {
-    streamableHttpService.handleGet(req, res).catch((err) => {
-      logger.error('Failed to handle MCP GET request', err);
-      if (!res.headersSent) {
-        res.status(500).json({ error: 'Internal server error' });
-      }
-    });
-  });
+  expressApp.get(
+    '/mcp',
+    toolsetsQueryMiddleware,
+    mcpAuthMiddleware,
+    (req: Request, res: Response) => {
+      streamableHttpService.handleGet(req, res).catch((err) => {
+        logger.error('Failed to handle MCP GET request', err);
+        if (!res.headersSent) {
+          res.status(500).json({ error: 'Internal server error' });
+        }
+      });
+    },
+  );
 
   expressApp.delete(
     '/mcp',
+    toolsetsQueryMiddleware,
     mcpAuthMiddleware,
     (req: Request, res: Response) => {
       streamableHttpService.handleDelete(req, res).catch((err) => {

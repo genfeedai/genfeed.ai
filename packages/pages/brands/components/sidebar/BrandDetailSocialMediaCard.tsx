@@ -1,17 +1,28 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { getCurrentSocialWarmupBlueprint } from '@genfeedai/contracts/api-types/contracts/social-warmup-blueprint.contract';
+import {
+  ButtonSize,
+  ButtonVariant,
+  type CredentialPlatform,
+} from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useOAuthConnectPlatforms } from '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms';
 import { OAUTH_RETURN_TO_STORAGE_KEY } from '@hooks/auth/use-platform-oauth-connect/use-platform-oauth-connect';
+import AccountAvatar from '@pages/brands/components/integrations/AccountAvatar';
+import AccountsTable from '@pages/brands/components/integrations/AccountsTable';
+import {
+  getAccountConnectionStatus,
+  getConnectionLabel,
+  hasWarmupBlueprint,
+  STATE_MESSAGE_KEYS,
+} from '@pages/brands/components/integrations/account-connection-status.util';
+import ConnectAccountModal from '@pages/brands/components/integrations/ConnectAccountModal';
 import CredentialPostingTimesEditor from '@pages/brands/components/sidebar/CredentialPostingTimesEditor';
 import SocialWarmupProgram from '@pages/brands/components/sidebar/social-warmup/SocialWarmupProgram';
 import type {
   BrandDetailConnectedAccountProps,
-  BrandDetailIntegrationAccountRowProps,
   BrandDetailSocialMediaCardProps,
 } from '@props/pages/brand-detail.props';
 import type { SocialWarmupOverrideRequest } from '@props/social/social-warmup-program.props';
@@ -25,9 +36,6 @@ import {
   type ResolvedOAuthConnectPlatform,
   resolveOAuthServicePath,
 } from '@ui/constants/oauth-connect-platforms';
-import Badge from '@ui/display/badge/Badge';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Avatar, AvatarFallback, AvatarImage } from '@ui/primitives/avatar';
 import { Button } from '@ui/primitives/button';
 import {
   Dialog,
@@ -36,49 +44,23 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@ui/primitives/dialog';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
-import { MoreVertical } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
-const STATE_MESSAGE_KEYS = {
-  healthy: 'state.healthy',
-  not_started: 'state.notStarted',
-  risky: 'state.risky',
-  warming: 'state.warming',
-} as const satisfies Record<AccountHealthSummary['state'], string>;
-
 type SocialConnection = BrandDetailSocialMediaCardProps['connections'][number];
 
-function getConnectionLabel(connection: SocialConnection): string {
-  return (
-    connection.name ||
-    connection.label ||
-    connection.handle ||
-    connection.platform
-  );
-}
-
-function getConnectionInitials(connection: SocialConnection): string {
-  const label = getConnectionLabel(connection).trim();
-  const initials = label
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('');
-
-  return initials || connection.platform.slice(0, 2).toUpperCase();
-}
-
-function hasWarmupBlueprint(platform: SocialConnection['platform']): boolean {
-  return Boolean(getCurrentSocialWarmupBlueprint(platform));
-}
+/**
+ * The fields `handleConnectPlatform` actually reads. Kept narrow (rather
+ * than the full `ResolvedOAuthConnectPlatform`) so the same handler accepts
+ * both a real catalog entry and `ConnectAccountModal`'s structurally
+ * equivalent (but independently declared, to avoid a props->ui package
+ * cycle — see `ConnectPlatformReadiness`) platform type.
+ */
+type ConnectablePlatform = Pick<
+  ResolvedOAuthConnectPlatform,
+  'isConnectAvailable' | 'label' | 'platform' | 'servicePath'
+>;
 
 function ConnectedAccount({
   connection,
@@ -87,32 +69,24 @@ function ConnectedAccount({
 }: BrandDetailConnectedAccountProps) {
   const translate = useTranslations('pages.brandSocialMedia');
   const label = getConnectionLabel(connection);
+  const needsReconnect =
+    getAccountConnectionStatus(connection) === 'needsReconnect';
   const content = (
     <>
-      <span className="relative shrink-0">
-        <Avatar className="size-10 bg-background shadow-border">
-          {connection.avatarUrl ? (
-            <AvatarImage
-              src={connection.avatarUrl}
-              alt={translate('profilePictureAlt', { account: label })}
-              className="object-cover"
-            />
-          ) : null}
-          <AvatarFallback className="text-xs font-semibold text-foreground/70">
-            {getConnectionInitials(connection)}
-          </AvatarFallback>
-        </Avatar>
-        <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5 shadow-border-strong">
-          <PlatformBadge
-            platform={connection.platform}
-            showLabel={false}
-            className="size-4 justify-center rounded-full p-0"
-          />
-        </span>
-      </span>
+      <AccountAvatar connection={connection} size="md" />
 
       <span className="min-w-0 text-left">
-        <span className="block truncate text-sm font-medium">{label}</span>
+        <span className="flex min-w-0 items-center gap-1.5">
+          <span className="block truncate text-sm font-medium">{label}</span>
+          {needsReconnect ? (
+            <span
+              aria-label={translate('needsReconnect')}
+              className="gen-dot gen-dot-warning shrink-0"
+              role="img"
+              title={translate('needsReconnect')}
+            />
+          ) : null}
+        </span>
         {connection.handle ? (
           <span className="block truncate text-xs text-muted-foreground">
             @{connection.handle.replace(/^@/, '')}
@@ -179,88 +153,6 @@ function ConnectedAccount({
   );
 }
 
-function IntegrationAccountRow({
-  connection,
-  isPostingTimesDisabled,
-  isReconnectDisabled,
-  onDisconnect,
-  onPostingTimes,
-  onReconnect,
-}: BrandDetailIntegrationAccountRowProps) {
-  const translate = useTranslations('pages.brandSocialMedia');
-  const label = getConnectionLabel(connection);
-
-  return (
-    <div className="flex items-center justify-between gap-3 rounded-md bg-background px-3 py-2 shadow-border">
-      <span className="flex min-w-0 items-center gap-3">
-        <span className="relative shrink-0">
-          <Avatar className="size-8 bg-background-secondary shadow-border">
-            {connection.avatarUrl ? (
-              <AvatarImage
-                src={connection.avatarUrl}
-                alt={translate('profilePictureAlt', { account: label })}
-                className="object-cover"
-              />
-            ) : null}
-            <AvatarFallback className="text-2xs font-semibold text-foreground/70">
-              {getConnectionInitials(connection)}
-            </AvatarFallback>
-          </Avatar>
-          <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5 shadow-border-strong">
-            <PlatformBadge
-              platform={connection.platform}
-              showLabel={false}
-              className="size-3.5 justify-center rounded-full p-0"
-            />
-          </span>
-        </span>
-
-        <span className="min-w-0 text-left">
-          <span className="block truncate text-sm font-medium">{label}</span>
-          {connection.handle ? (
-            <span className="block truncate text-xs text-muted-foreground">
-              @{connection.handle.replace(/^@/, '')}
-            </span>
-          ) : null}
-        </span>
-      </span>
-
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            aria-label={translate('moreActionsAria', { account: label })}
-            className="size-7 shrink-0"
-            size={ButtonSize.ICON}
-            variant={ButtonVariant.GHOST}
-          >
-            <MoreVertical className="size-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            disabled={isReconnectDisabled}
-            onSelect={() => onReconnect(connection)}
-          >
-            {translate('reconnect')}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={isPostingTimesDisabled}
-            onSelect={() => onPostingTimes(connection)}
-          >
-            {translate('postingTimes')}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            className="text-destructive focus:text-destructive"
-            onSelect={() => onDisconnect(connection)}
-          >
-            {translate('disconnect')}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
-  );
-}
-
 function getHealthToneClass(summary: AccountHealthSummary): string {
   if (summary.override.isActive) {
     return 'border-info/30 bg-info/10 text-info';
@@ -276,7 +168,6 @@ function getHealthToneClass(summary: AccountHealthSummary): string {
 export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
-  connectedPlatformsCount,
   onRefresh,
   variant = 'compact',
 }: BrandDetailSocialMediaCardProps) {
@@ -285,9 +176,20 @@ export default function BrandDetailSocialMediaCard({
   const { getToken } = useAuthIdentity();
   const oauthConnectPlatforms = useOAuthConnectPlatforms();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
+    useState(false);
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
     null,
   );
+  // Distinct from `connectingPlatform`: that one drives the header/modal's
+  // *new-account* connect controls (no credential exists yet, so platform
+  // is the only key available). Reconnect always targets one existing
+  // credential, so its disablement must key off credentialId — otherwise
+  // reconnecting one account disables Reconnect for every other account on
+  // the same platform.
+  const [reconnectingCredentialId, setReconnectingCredentialId] = useState<
+    string | null
+  >(null);
   const [accountHealth, setAccountHealth] = useState<AccountHealthSummary[]>(
     [],
   );
@@ -309,6 +211,7 @@ export default function BrandDetailSocialMediaCard({
     useState<SocialConnection | null>(null);
 
   const connectedConnections = connections;
+  const hasVisibleConnections = connectedConnections.length > 0;
   // Every channel stays on the connect list even once it holds an account: a
   // brand runs as many accounts per platform as it wants, so filtering the
   // connected ones out would hide the way to add the second one.
@@ -316,6 +219,42 @@ export default function BrandDetailSocialMediaCard({
     () => groupOAuthConnectPlatforms(oauthConnectPlatforms),
     [oauthConnectPlatforms],
   );
+  const unavailablePlatforms = useMemo(
+    () =>
+      new Set<CredentialPlatform>(
+        oauthConnectPlatforms
+          .filter((item) => !item.isConnectAvailable)
+          .map((item) => item.platform),
+      ),
+    [oauthConnectPlatforms],
+  );
+  const platformConnectedCounts = useMemo(() => {
+    const counts: Partial<Record<CredentialPlatform, number>> = {};
+    for (const connection of connectedConnections) {
+      if (getAccountConnectionStatus(connection) !== 'connected') {
+        continue;
+      }
+      counts[connection.platform] = (counts[connection.platform] ?? 0) + 1;
+    }
+    return counts;
+  }, [connectedConnections]);
+  // The header count and the compact card's own description must agree with
+  // what each row actually shows — a lapsed or identity-less credential
+  // does not count as connected just because `isConnected` is still true.
+  const compactConnectedCount = useMemo(
+    () =>
+      connectedConnections.filter(
+        (connection) => getAccountConnectionStatus(connection) === 'connected',
+      ).length,
+    [connectedConnections],
+  );
+  // Distinct from `hasVisibleConnections`: a lapsed-only brand has a
+  // visible row (so the "Manage" dialog can still show and let the user
+  // disconnect or reconnect it) but zero connected accounts — the
+  // at-a-glance button label and the card's own empty state must agree
+  // with the "N connected accounts" description below, not with whether
+  // any row happens to be visible.
+  const hasConnectedAccounts = compactConnectedCount > 0;
   const connectionHealth = useMemo(
     () =>
       connections
@@ -399,7 +338,11 @@ export default function BrandDetailSocialMediaCard({
 
   const loadAccountHealth = useCallback(
     async (signal?: AbortSignal) => {
-      if (!brandId || connectedPlatformsCount === 0) {
+      // Gate on any visible row, not the connected count: a connected
+      // credential with an expired token or a legacy identity-less row is
+      // exactly the case where fetched health would explain the breakage,
+      // and both read as 0 connected while still being a visible account.
+      if (!brandId || connections.length === 0) {
         setAccountHealth([]);
         return;
       }
@@ -425,7 +368,7 @@ export default function BrandDetailSocialMediaCard({
         }
       }
     },
-    [brandId, connectedPlatformsCount, getToken],
+    [brandId, connections.length, getToken],
   );
 
   useEffect(() => {
@@ -437,7 +380,10 @@ export default function BrandDetailSocialMediaCard({
     };
   }, [loadAccountHealth]);
 
-  const handleConnectPlatform = async (item: ResolvedOAuthConnectPlatform) => {
+  const handleConnectPlatform = async (
+    item: ConnectablePlatform,
+    credentialId?: string,
+  ) => {
     if (!item.isConnectAvailable) {
       return;
     }
@@ -445,6 +391,9 @@ export default function BrandDetailSocialMediaCard({
     const platform = item.platform;
     try {
       setConnectingPlatform(platform);
+      if (credentialId) {
+        setReconnectingCredentialId(credentialId);
+      }
       const token = (await resolveAuthToken(getToken)) ?? '';
       // Mirror usePlatformOAuthConnect: provider redirects drop query params, so
       // /oauth/[platform] reads return_to from sessionStorage after verify.
@@ -462,7 +411,11 @@ export default function BrandDetailSocialMediaCard({
         resolveOAuthServicePath(platform, item.servicePath),
         token,
       );
-      const credentialOAuth = await service.postConnect({ brandId });
+      // A reconnect carries the existing credentialId so the server re-links
+      // the same row instead of minting a duplicate connected account.
+      const credentialOAuth = await service.postConnect(
+        credentialId ? { brandId, credentialId } : { brandId },
+      );
       window.open(credentialOAuth.url, '_self');
     } catch (error) {
       logger.error(`Failed to initiate ${platform} OAuth:`, error);
@@ -470,6 +423,16 @@ export default function BrandDetailSocialMediaCard({
         translate('connectPlatform', { platform: item.label }),
       );
       setConnectingPlatform(null);
+      setReconnectingCredentialId(null);
+    }
+  };
+
+  const handleReconnect = (connection: SocialConnection) => {
+    const item = oauthConnectPlatforms.find(
+      (entry) => entry.platform === connection.platform,
+    );
+    if (item) {
+      void handleConnectPlatform(item, connection.credentialId);
     }
   };
 
@@ -555,76 +518,6 @@ export default function BrandDetailSocialMediaCard({
     );
   };
 
-  const connectionsByPlatform = useMemo(() => {
-    const map = new Map<string, SocialConnection[]>();
-    for (const connection of connectedConnections) {
-      const key = connection.platform;
-      const existing = map.get(key) ?? [];
-      existing.push(connection);
-      map.set(key, existing);
-    }
-    return map;
-  }, [connectedConnections]);
-
-  const renderIntegrationCard = (item: ResolvedOAuthConnectPlatform) => {
-    const platformConnections = connectionsByPlatform.get(item.platform) ?? [];
-    const isConnected = platformConnections.length > 0;
-    const { Icon } = item;
-    const isReconnectDisabled =
-      !item.isConnectAvailable || connectingPlatform !== null;
-
-    return (
-      <Card
-        key={item.connectId ?? item.platform}
-        className="flex h-full flex-col"
-        bodyClassName="flex h-full flex-col gap-3"
-        description={translate('connectedStatus', {
-          count: platformConnections.length,
-        })}
-        headerAction={
-          isConnected ? (
-            <Badge variant="success">{translate('linked')}</Badge>
-          ) : null
-        }
-        icon={<Icon className={`size-5 ${item.iconClassName}`} />}
-        iconWrapperClassName="flex size-10 shrink-0 items-center justify-center rounded-md bg-muted"
-        label={item.label}
-        actions={
-          <Button
-            variant={
-              isConnected ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
-            }
-            size={ButtonSize.SM}
-            className="h-8 w-full text-xs"
-            onClick={() => handleConnectPlatform(item)}
-            isLoading={connectingPlatform === item.platform}
-            isDisabled={!item.isConnectAvailable || connectingPlatform !== null}
-          >
-            {isConnected
-              ? translate('addAnotherAccount', { platform: item.label })
-              : translate('connectPlatform', { platform: item.label })}
-          </Button>
-        }
-      >
-        {isConnected ? (
-          <div className="flex-1 space-y-2">
-            {platformConnections.map((connection) => (
-              <IntegrationAccountRow
-                key={connection.credentialId}
-                connection={connection}
-                isPostingTimesDisabled={false}
-                isReconnectDisabled={isReconnectDisabled}
-                onDisconnect={setDisconnectTarget}
-                onPostingTimes={setPostingTimesTarget}
-                onReconnect={() => handleConnectPlatform(item)}
-              />
-            ))}
-          </div>
-        ) : null}
-      </Card>
-    );
-  };
-
   const compactUnsupportedHealth = healthRows.filter(
     (summary) =>
       !hasWarmupBlueprint(summary.platform) ||
@@ -707,13 +600,12 @@ export default function BrandDetailSocialMediaCard({
       </div>
     ) : null;
 
-  const socialDescription =
-    connectedPlatformsCount > 0
-      ? translate('channelAvailability', {
-          channelCount: oauthConnectPlatforms.length,
-          connectedCount: connectedPlatformsCount,
-        })
-      : translate('connectAccountsDescription');
+  const socialDescription = hasVisibleConnections
+    ? translate('channelAvailability', {
+        channelCount: oauthConnectPlatforms.length,
+        connectedCount: compactConnectedCount,
+      })
+    : translate('connectAccountsDescription');
 
   const disconnectDialog = (
     <Dialog
@@ -856,23 +748,26 @@ export default function BrandDetailSocialMediaCard({
   if (isPageVariant) {
     return (
       <>
-        <div className="space-y-6">
-          {allPlatformGroups.map((group) => (
-            <section key={group.id} className="space-y-3">
-              <h2 className="text-sm font-semibold text-foreground">
-                {group.label}
-              </h2>
-              {group.description ? (
-                <p className="text-xs text-foreground/55">
-                  {group.description}
-                </p>
-              ) : null}
-              <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                {group.platforms.map(renderIntegrationCard)}
-              </div>
-            </section>
-          ))}
-        </div>
+        <AccountsTable
+          accountHealth={healthRows}
+          connections={connectedConnections}
+          onConnectAccount={() => setIsConnectAccountModalOpen(true)}
+          onDisconnect={setDisconnectTarget}
+          onPostingTimes={setPostingTimesTarget}
+          onReconnect={handleReconnect}
+          reconnectingCredentialId={reconnectingCredentialId}
+          unavailablePlatforms={unavailablePlatforms}
+        />
+
+        <ConnectAccountModal
+          connectingPlatform={connectingPlatform}
+          onConnect={(item) => void handleConnectPlatform(item)}
+          onOpenChange={setIsConnectAccountModalOpen}
+          open={isConnectAccountModalOpen}
+          platformConnectedCounts={platformConnectedCounts}
+          platformGroups={allPlatformGroups}
+        />
+
         {disconnectDialog}
         {postingTimesDialog}
       </>
@@ -891,13 +786,11 @@ export default function BrandDetailSocialMediaCard({
             className="h-8 shrink-0 px-2.5 text-xs"
             onClick={() => setIsDialogOpen(true)}
           >
-            {connectedPlatformsCount > 0
-              ? translate('manage')
-              : translate('connect')}
+            {hasConnectedAccounts ? translate('manage') : translate('connect')}
           </Button>
         }
       >
-        {connectedConnections.length > 0 ? (
+        {hasConnectedAccounts ? (
           <div className="grid gap-2 sm:grid-cols-2">
             {connectedConnections.map((connection) => (
               <ConnectedAccount
@@ -936,7 +829,7 @@ export default function BrandDetailSocialMediaCard({
             </DialogDescription>
           </DialogHeader>
 
-          {connectedPlatformsCount > 0 ? (
+          {hasVisibleConnections ? (
             <div className="space-y-4">
               <div className="grid gap-2 sm:grid-cols-2">
                 {connectedConnections.map((connection) => (

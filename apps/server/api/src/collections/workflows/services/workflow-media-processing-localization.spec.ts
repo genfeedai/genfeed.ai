@@ -15,10 +15,6 @@ vi.mock(
   () => ({ AvatarVideoGenerationService: class {} }),
 );
 vi.mock(
-  '@api/collections/videos/services/video-music-orchestration.service',
-  () => ({ VideoMusicOrchestrationService: class {} }),
-);
-vi.mock(
   '@api/collections/workflows/services/video-qa-continuity-resolver.service',
   () => ({ VideoQaContinuityResolverService: class {} }),
 );

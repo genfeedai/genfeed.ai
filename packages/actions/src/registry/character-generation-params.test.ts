@@ -39,6 +39,10 @@ describe('character generation tool params (#3441)', () => {
     expect(listCharacters?.creditCost).toBe(0);
     expect(
       CURATED_ACTION_CATALOG.find((entry) => entry.name === 'list_characters'),
-    ).toEqual({ name: 'list_characters', surfaces: ['agent', 'mcp'] });
+    ).toEqual({
+      name: 'list_characters',
+      surfaces: ['agent', 'mcp'],
+      toolset: 'generation',
+    });
   });
 });

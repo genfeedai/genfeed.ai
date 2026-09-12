@@ -1,7 +1,9 @@
 import {
   getToolByName,
   getToolsForSurface,
+  getToolsForToolsets,
   type McpToolOutput,
+  type ToolsetName,
   toMcpTools,
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
@@ -39,6 +41,10 @@ import {
   SOCIAL_MESSAGES_TOOL_NAMES,
 } from '@mcp/tools/social-messages.tool';
 import { handleTikTokAdsTool } from '@mcp/tools/tiktok-ads.tool';
+import {
+  handleToolDiscoveryTool,
+  TOOL_DISCOVERY_TOOL_NAMES,
+} from '@mcp/tools/tool-discovery.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
@@ -133,10 +139,13 @@ const isAdsGatewayTool = (name: string): boolean => name.startsWith('get_ads_');
  * — the drift guard rejects any MCP-surfaced tool that classifies as unknown so
  * a registry/handler mismatch fails the boot health check instead of surfacing
  * as a runtime "Unknown tool" error. Order mirrors the historical dispatch
- * precedence exactly (agent-chat → workflow-control → agent-executor → legacy →
- * external), so classification never changes which handler runs.
+ * precedence exactly (tool-discovery → agent-chat → workflow-control →
+ * agent-executor → legacy → external), so classification never changes which
+ * handler runs. `tool-discovery` is checked first since its names (e.g.
+ * `describe_tool`) are meta tools with no other executor to shadow.
  */
 type ExecutorKind =
+  | 'tool-discovery'
   | 'agent-chat'
   | 'workflow-control'
   | 'agent-executor'
@@ -197,6 +206,12 @@ export class ToolRegistryService implements OnModuleInit {
     // per-request role, so it falls back to `'user'` — deny-by-default for
     // admin tools.
     @Optional() private readonly requestRole: McpRole = 'user',
+    // The caller's `?toolsets=` selection (parsed by `toolsetsQueryMiddleware`
+    // before this is constructed). Empty means "every toolset" — the DI
+    // singleton path (`McpController`) never threads a per-request selection
+    // here, so it also defaults to empty and resolves toolsets per-call via
+    // {@link getToolsForRoleAndToolsets} instead.
+    @Optional() private readonly requestToolsets: readonly ToolsetName[] = [],
   ) {}
 
   /**
@@ -229,7 +244,38 @@ export class ToolRegistryService implements OnModuleInit {
     return ToolRegistryService.filterToolsByRole(this.getAllTools(), role);
   }
 
+  /**
+   * Tools a role may invoke, narrowed to the requested toolsets (union'd with
+   * the always-on `core` toolset — `getToolsForToolsets` owns that union) or
+   * every tool when `toolsets` is empty. This is what `tools/list` and the
+   * REST mirror actually advertise; `handleToolCall` never filters by
+   * toolset, so a client can still call a tool outside its current
+   * `tools/list` view.
+   */
+  getToolsForRoleAndToolsets(
+    role: McpRole,
+    toolsets: readonly ToolsetName[],
+  ): McpToolOutput[] {
+    return ToolRegistryService.filterToolsByRole(
+      toMcpTools(getToolsForToolsets('mcp', toolsets)),
+      role,
+    );
+  }
+
   getTools(): McpToolOutput[] {
+    return this.getToolsForRoleAndToolsets(
+      this.requestRole,
+      this.requestToolsets,
+    );
+  }
+
+  /**
+   * The role-filtered full catalog, ignoring the caller's `?toolsets=`
+   * selection. Backs `list_toolsets`/`search_tools`/`describe_tool` — a
+   * client should be able to discover a tool outside its currently-loaded
+   * toolset so it can reconnect with a broader selection.
+   */
+  getDiscoverableTools(): McpToolOutput[] {
     return this.getToolsForRole(this.requestRole);
   }
 
@@ -303,6 +349,7 @@ export class ToolRegistryService implements OnModuleInit {
    * chain, so routing is behaviour-preserving.
    */
   static classify(name: string): ExecutorKind {
+    if (TOOL_DISCOVERY_TOOL_NAMES.has(name)) return 'tool-discovery';
     if (AGENT_CHAT_TOOL_NAMES.has(name)) return 'agent-chat';
     if (WORKFLOW_CONTROL_TOOL_NAMES.has(name)) return 'workflow-control';
     if (AGENT_EXECUTOR_TOOL_NAMES.has(name)) return 'agent-executor';
@@ -329,6 +376,8 @@ export class ToolRegistryService implements OnModuleInit {
     approvedApprovalId?: string,
   ) {
     switch (ToolRegistryService.classify(name)) {
+      case 'tool-discovery':
+        return handleToolDiscoveryTool(this, name, args);
       case 'agent-chat':
         return handleAgentChatTool(this.clientService, name, args);
       case 'workflow-control':

@@ -12,6 +12,7 @@ import {
   getPlatformLiveHref,
   getPlatformRepliesHref,
   isSamePlatform,
+  pickPrimaryConnection,
 } from './platform-home.helpers';
 
 describe('platform-home helpers', () => {
@@ -33,8 +34,15 @@ describe('platform-home helpers', () => {
     ).toEqual([connections[0]]);
   });
 
-  it('maps account health onto connected / healthy / attention', () => {
-    expect(getPlatformConnectionHealth({})).toBe('connected');
+  it('maps a genuinely connected account onto connected / healthy / attention', () => {
+    // These fixtures represent live, identified connections — the point of
+    // this block is the health tier, not the identity/connection check.
+    expect(
+      getPlatformConnectionHealth({
+        externalId: 'ext-1',
+        isConnected: true,
+      }),
+    ).toBe('connected');
     expect(
       getPlatformConnectionHealth({
         accountHealth: {
@@ -59,6 +67,8 @@ describe('platform-home helpers', () => {
             minPublishedPosts: 1,
           },
         },
+        externalId: 'ext-1',
+        isConnected: true,
       }),
     ).toBe('healthy');
     expect(
@@ -85,8 +95,71 @@ describe('platform-home helpers', () => {
             minPublishedPosts: 1,
           },
         },
+        externalId: 'ext-1',
+        isConnected: true,
       }),
     ).toBe('attention');
+  });
+
+  it('reads needsReconnect before any health tier — a broken credential is never "connected"', () => {
+    // Disconnected but still identified: a lapsed connection.
+    expect(
+      getPlatformConnectionHealth({ externalId: 'ext-1', isConnected: false }),
+    ).toBe('needsReconnect');
+    // Still connected but never captured an identity: a legacy broken row.
+    expect(
+      getPlatformConnectionHealth({ externalId: undefined, isConnected: true }),
+    ).toBe('needsReconnect');
+    // needsReconnect wins even when health data looks fine.
+    expect(
+      getPlatformConnectionHealth({
+        accountHealth: {
+          credentialId: '1',
+          holdPublishing: false,
+          label: 'ok',
+          override: { isActive: false },
+          platform: Platform.INSTAGRAM,
+          riskLevel: 'low',
+          score: 80,
+          signals: {
+            connectedDays: 10,
+            profileSignals: 1,
+            publishedPosts: 2,
+            recentFailures: 0,
+          },
+          state: 'healthy',
+          thresholds: {
+            maxRecentFailures: 3,
+            minConnectedDays: 1,
+            minProfileSignals: 1,
+            minPublishedPosts: 1,
+          },
+        },
+        externalId: 'ext-1',
+        isConnected: false,
+      }),
+    ).toBe('needsReconnect');
+  });
+
+  it('prefers a genuinely connected credential when picking the primary connection', () => {
+    const lapsed = {
+      credentialId: 'lapsed',
+      externalId: 'ext-1',
+      isConnected: false,
+      platform: Platform.INSTAGRAM,
+    };
+    const connected = {
+      credentialId: 'connected',
+      externalId: 'ext-2',
+      isConnected: true,
+      platform: Platform.INSTAGRAM,
+    };
+
+    expect(pickPrimaryConnection([lapsed, connected])).toBe(connected);
+    // No genuinely connected credential exists — fall back to the first one
+    // so the page can still show it as Needs reconnect rather than empty.
+    expect(pickPrimaryConnection([lapsed])).toBe(lapsed);
+    expect(pickPrimaryConnection([])).toBeUndefined();
   });
 
   it('only exposes live and replies when those routes exist', () => {

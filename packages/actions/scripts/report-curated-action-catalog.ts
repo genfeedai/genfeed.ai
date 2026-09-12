@@ -1,12 +1,20 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
+import type { ToolsetName } from '../src/registry/toolset-names';
 
 const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
+
+/**
+ * Matches one catalog entry after its source lines have been collapsed to a
+ * single whitespace-normalized string (see `readEntry`). This lets the same
+ * pattern accept every shape Biome produces for an entry — a short one-liner,
+ * a reflowed multi-line object once a longer field (like `toolset`) pushes it
+ * past the print width, and the always-multi-line publishing-approval shape —
+ * without caring where the line breaks or trailing commas land.
+ */
 const ENTRY_PATTERN =
-  /^\s*\{ name: '([a-z][a-z0-9_]*)', (?:isPublishingApprovalRequired: true, )?surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\] \},\s*$/u;
-const PUBLISHING_APPROVAL_ENTRY_PATTERN =
-  /^\{ isPublishingApprovalRequired: true, name: '([a-z][a-z0-9_]*)', surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\], \},$/u;
+  /^\{ (?:isPublishingApprovalRequired: true, )?name: '([a-z][a-z0-9_]*)', surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\](?:, toolset: '([a-z][a-z0-9-]*)')?,? \},?$/u;
 
 export type CatalogSurface = 'agent' | 'mcp';
 
@@ -14,19 +22,54 @@ export interface ParsedCatalogAction {
   line: number;
   name: string;
   surfaces: CatalogSurface[];
+  toolset: ToolsetName | undefined;
 }
 
 export type CatalogChangeKind =
   | 'action-added'
   | 'action-removed'
   | 'surface-added'
-  | 'surface-removed';
+  | 'surface-removed'
+  | 'toolset-changed';
 
 export interface CatalogChange {
   action: string;
   kind: CatalogChangeKind;
   line: number;
+  previousToolset?: ToolsetName;
   surfaces: CatalogSurface[];
+  toolset?: ToolsetName;
+}
+
+/**
+ * Reads one catalog entry starting at `lines[startIndex]` (which must be the
+ * line holding the entry's opening `{`), walking forward brace-balanced so a
+ * multi-line object is collected in full. Returns the raw source lines that
+ * make up the entry and the index of the line after it.
+ */
+function readEntry(
+  lines: readonly string[],
+  startIndex: number,
+  end: number,
+): { nextIndex: number; raw: string[] } {
+  let depth = 0;
+  const raw: string[] = [];
+  let index = startIndex;
+  for (; index < end; index += 1) {
+    const current = lines[index] ?? '';
+    raw.push(current);
+    for (const character of current) {
+      if (character === '{') {
+        depth += 1;
+      } else if (character === '}') {
+        depth -= 1;
+      }
+    }
+    if (depth === 0) {
+      break;
+    }
+  }
+  return { nextIndex: index + 1, raw };
 }
 
 export function parseCatalogSource(
@@ -52,29 +95,34 @@ export function parseCatalogSource(
 
   const actions: ParsedCatalogAction[] = [];
   const names = new Set<string>();
-  for (let index = start + 1; index < end; index += 1) {
+  let index = start + 1;
+  while (index < end) {
     const line = lines[index] ?? '';
-    if (line.trim().length === 0 || line.trimStart().startsWith('//')) {
+    const trimmed = line.trim();
+    if (trimmed.length === 0 || trimmed.startsWith('//')) {
+      index += 1;
       continue;
     }
-    const isPublishingApprovalEntry = line.trim() === '{';
+
     const entryLine = index + 1;
-    const match = isPublishingApprovalEntry
-      ? lines
-          .slice(index, index + 5)
-          .map((candidate) => candidate.trim())
-          .join(' ')
-          .match(PUBLISHING_APPROVAL_ENTRY_PATTERN)
-      : line.match(ENTRY_PATTERN);
+    if (!trimmed.startsWith('{')) {
+      throw new Error(
+        `${fileName}:${entryLine} is not a canonical catalog entry`,
+      );
+    }
+
+    const { nextIndex, raw } = readEntry(lines, index, end);
+    index = nextIndex;
+
+    const normalized = raw.join(' ').replace(/\s+/gu, ' ').trim();
+    const match = normalized.match(ENTRY_PATTERN);
     if (!match) {
       throw new Error(
         `${fileName}:${entryLine} is not a canonical catalog entry`,
       );
     }
-    if (isPublishingApprovalEntry) {
-      index += 4;
-    }
-    const [, name, surfaceText] = match;
+
+    const [, name, surfaceText, toolset] = match;
     if (!name || surfaceText === undefined) {
       throw new Error(`${fileName}:${entryLine} has an invalid catalog entry`);
     }
@@ -90,7 +138,12 @@ export function parseCatalogSource(
       throw new Error(`${fileName} duplicates action ${name}`);
     }
     names.add(name);
-    actions.push({ line: entryLine, name, surfaces });
+    actions.push({
+      line: entryLine,
+      name,
+      surfaces,
+      toolset: toolset as ToolsetName | undefined,
+    });
   }
 
   return actions.sort((a, b) => a.name.localeCompare(b.name));
@@ -124,6 +177,7 @@ export function diffCatalogs(
         kind: 'action-added',
         line: current.line,
         surfaces: current.surfaces,
+        toolset: current.toolset,
       });
       continue;
     }
@@ -133,6 +187,7 @@ export function diffCatalogs(
         kind: 'action-removed',
         line: previous.line,
         surfaces: previous.surfaces,
+        toolset: previous.toolset,
       });
       continue;
     }
@@ -148,6 +203,7 @@ export function diffCatalogs(
         kind: 'surface-removed',
         line: current.line,
         surfaces: removed,
+        toolset: current.toolset,
       });
     }
     if (added.length > 0) {
@@ -156,11 +212,26 @@ export function diffCatalogs(
         kind: 'surface-added',
         line: current.line,
         surfaces: added,
+        toolset: current.toolset,
+      });
+    }
+    if (previous.toolset !== current.toolset) {
+      changes.push({
+        action: name,
+        kind: 'toolset-changed',
+        line: current.line,
+        previousToolset: previous.toolset,
+        surfaces: current.surfaces,
+        toolset: current.toolset,
       });
     }
   }
 
   return changes;
+}
+
+function formatToolsetValue(toolset: ToolsetName | undefined): string {
+  return toolset ?? '(none)';
 }
 
 function describeChange(change: CatalogChange): string {
@@ -174,6 +245,10 @@ function describeChange(change: CatalogChange): string {
       return `Curated action surface added: ${change.action} (${surfaces})`;
     case 'surface-removed':
       return `Curated action surface removed: ${change.action} (${surfaces})`;
+    case 'toolset-changed':
+      return `Curated action toolset changed: ${change.action} (${formatToolsetValue(
+        change.previousToolset,
+      )} -> ${formatToolsetValue(change.toolset)})`;
   }
 }
 
@@ -202,10 +277,20 @@ export function formatStepSummary(changes: readonly CatalogChange[]): string {
     return `${lines.join('\n')}\n`;
   }
 
-  lines.push('', '| Change | Action | Surface(s) |', '| --- | --- | --- |');
+  lines.push(
+    '',
+    '| Change | Action | Surface(s) | Toolset |',
+    '| --- | --- | --- | --- |',
+  );
   for (const change of changes) {
+    const toolsetColumn =
+      change.kind === 'toolset-changed'
+        ? `${formatToolsetValue(change.previousToolset)} -> ${formatToolsetValue(
+            change.toolset,
+          )}`
+        : formatToolsetValue(change.toolset);
     lines.push(
-      `| ${change.kind} | \`${change.action}\` | ${change.surfaces.join(', ')} |`,
+      `| ${change.kind} | \`${change.action}\` | ${change.surfaces.join(', ')} | ${toolsetColumn} |`,
     );
   }
   return `${lines.join('\n')}\n`;

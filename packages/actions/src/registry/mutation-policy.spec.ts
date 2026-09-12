@@ -6,6 +6,7 @@ import {
   evaluateMutationPolicy,
   getDeclaredMutationPolicy,
   isApprovalRequiredToolName,
+  isReadOnlyToolName,
   MUTATION_POLICY_BY_NAME,
   POLICY_REVOKED_ERROR,
   toolRequiresMutationPolicy,
@@ -90,6 +91,22 @@ describe('mutation policy map', () => {
       expect(getToolByName(name)?.mutationPolicy, name).toBe(
         'approval-required',
       );
+    }
+  });
+});
+
+describe('discovery meta tools', () => {
+  it('treats every describe_-prefixed tool as read-only', () => {
+    expect(isReadOnlyToolName('describe_tool')).toBe(true);
+    expect(toolRequiresMutationPolicy('describe_tool')).toBe(false);
+  });
+
+  it('treats the full discovery tool set as read-only with no declared policy', () => {
+    for (const name of ['list_toolsets', 'search_tools', 'describe_tool']) {
+      expect(isReadOnlyToolName(name), name).toBe(true);
+      expect(toolRequiresMutationPolicy(name), name).toBe(false);
+      expect(getDeclaredMutationPolicy(name), name).toBeUndefined();
+      expect(getToolByName(name)?.mutationPolicy, name).toBeUndefined();
     }
   });
 });

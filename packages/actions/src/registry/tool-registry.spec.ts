@@ -115,6 +115,8 @@ describe('tool registry catalog validation', () => {
   afterEach(() => {
     vi.doUnmock('./curated-action-catalog');
     vi.doUnmock('./source/index');
+    vi.doUnmock('./toolsets');
+    vi.doUnmock('./tool-assembly');
     vi.resetModules();
   });
 
@@ -129,9 +131,9 @@ describe('tool registry catalog validation', () => {
       };
     }
     const catalog: CuratedActionCatalogEntry[] = [
-      { name: 'duplicated_action', surfaces: ['agent'] },
-      { name: 'duplicated_action', surfaces: ['mcp'] },
-      { name: 'missing_action', surfaces: ['mcp'] },
+      { name: 'duplicated_action', surfaces: ['agent'], toolset: 'core' },
+      { name: 'duplicated_action', surfaces: ['mcp'], toolset: 'core' },
+      { name: 'missing_action', surfaces: ['mcp'], toolset: 'core' },
     ];
 
     vi.doMock('./curated-action-catalog', () => ({
@@ -152,6 +154,47 @@ describe('tool registry catalog validation', () => {
 
     await expect(import('./tool-registry')).rejects.toThrow(
       /Invalid curated action catalog: duplicate definitions: duplicated_action; duplicate catalog entries: duplicated_action; missing definitions: missing_action; definitions absent from the curated catalog: unreviewed_action/,
+    );
+  });
+
+  it('rejects a declared toolset with zero cataloged tools at load time', async () => {
+    vi.doMock('./toolsets', () => ({
+      CORE_TOOLSET_NAME: 'core',
+      isToolsetName: () => true,
+      TOOLSETS: [
+        { description: 'core', isAlwaysOn: true, name: 'core' },
+        { description: 'never used', isAlwaysOn: false, name: 'ghost-toolset' },
+      ],
+    }));
+    vi.resetModules();
+
+    await expect(import('./tool-registry')).rejects.toThrow(
+      /toolsets with no tools: ghost-toolset/,
+    );
+  });
+
+  it('rejects the core toolset exceeding the MCP tool limit at load time', async () => {
+    vi.doMock('./toolsets', () => ({
+      CORE_TOOLSET_NAME: 'core',
+      isToolsetName: () => true,
+      TOOLSETS: [{ description: 'core', isAlwaysOn: true, name: 'core' }],
+    }));
+    vi.doMock('./tool-assembly', () => ({
+      ALL_TOOLS: Array.from({ length: 13 }, (_, index) => ({
+        category: 'other',
+        creditCost: 0,
+        description: `tool ${index}`,
+        name: `core_tool_${index}`,
+        parameters: { properties: {}, type: 'object' },
+        requiredRole: 'user',
+        surfaces: { agent: false, cliAgentVisible: false, mcp: true },
+        toolset: 'core',
+      })),
+    }));
+    vi.resetModules();
+
+    await expect(import('./tool-registry')).rejects.toThrow(
+      /core toolset exceeds the 12-tool MCP limit: has 13/,
     );
   });
 });

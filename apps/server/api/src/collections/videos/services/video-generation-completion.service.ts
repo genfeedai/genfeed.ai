@@ -1,12 +1,6 @@
 import { BookmarksService } from '@api/collections/bookmarks/services/bookmarks.service';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
 import type { VideoGenerationContext } from '@api/collections/videos/services/video-generation.types';
-import {
-  resolveBackgroundMusicDuration,
-  resolveBackgroundMusicVolume,
-  shouldStartBackgroundMusic,
-} from '@api/collections/videos/services/video-generation-music.util';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -32,7 +26,6 @@ export class VideoGenerationCompletionService {
     private readonly cacheService: CacheService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly loggerService: LoggerService,
-    private readonly videoMusicOrchestrationService: VideoMusicOrchestrationService,
     private readonly videosService: VideosService,
     private readonly cancellationService: IngredientGenerationCancellationService,
   ) {}
@@ -42,7 +35,6 @@ export class VideoGenerationCompletionService {
   ): Promise<JsonApiSingleResponse> {
     await this.linkBookmark(context);
     await this.cacheService.invalidateByTags(['videos']);
-    this.startBackgroundMusic(context);
 
     if (context.createVideoDto.waitForCompletion === true) {
       return this.waitForCompletion(context);
@@ -72,39 +64,6 @@ export class VideoGenerationCompletionService {
         error as Error,
       );
     }
-  }
-
-  private startBackgroundMusic(context: VideoGenerationContext): void {
-    const backgroundMusic = context.createVideoDto.backgroundMusic;
-    if (!backgroundMusic || !shouldStartBackgroundMusic(backgroundMusic)) {
-      return;
-    }
-    const ingredientId = context.ingredientData.id.toString();
-    this.videoMusicOrchestrationService
-      .orchestrateVideoWithMusic(
-        ingredientId,
-        backgroundMusic,
-        resolveBackgroundMusicDuration(context.createVideoDto.duration),
-        resolveBackgroundMusicVolume(context.createVideoDto.musicVolume),
-        context.createVideoDto.muteVideoAudio ?? false,
-        {
-          brandId: context.brand.id.toString(),
-          organizationId: context.user.organizationId,
-          userId: context.user.userId,
-        },
-      )
-      .then((mergedVideoId) => {
-        this.loggerService.log('Video+music orchestration completed', {
-          mergedVideoId,
-          originalVideoId: ingredientId,
-        });
-      })
-      .catch((error: unknown) => {
-        this.loggerService.error('Video+music orchestration failed', {
-          error: (error as Error)?.message || 'Unknown error',
-          originalVideoId: ingredientId,
-        });
-      });
   }
 
   private async waitForCompletion(

@@ -1,4 +1,5 @@
 import process from 'node:process';
+import { getToolsForRole, TOOLSETS } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
 import {
@@ -27,6 +28,27 @@ function escapeHtml(value: string): string {
 
 function trimTrailingSlash(value: string): string {
   return value.replace(/\/$/, '');
+}
+
+/**
+ * Safe JS string-literal encoding for a value embedded directly in an inline
+ * `<script>` block (the toolset picker below needs the endpoint as data the
+ * client can recompute from). `JSON.stringify` does not escape `/`, so a
+ * value containing a literal `</script>` — reachable via the
+ * `GENFEED_MCP_RESOURCE_URL` override, which is rendered raw (see
+ * `readPublicUrl`) — would otherwise close the surrounding script element
+ * early. Escaping every `<` neutralizes that regardless of what follows it.
+ * U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) are also escaped:
+ * `JSON.stringify` leaves them as literal characters, but they terminate a
+ * JS string/statement outside a string literal per the ECMAScript grammar,
+ * so an unescaped one in the source text would break the surrounding script
+ * (or, depending on where it lands, silently truncate the string value).
+ */
+function toInlineScriptStringLiteral(value: string): string {
+  return JSON.stringify(value)
+    .replace(/</g, '\\u003C')
+    .replace(/\u2028/g, '\\u2028')
+    .replace(/\u2029/g, '\\u2029');
 }
 
 function readEnv(name: string): string | undefined {
@@ -157,6 +179,53 @@ export function getMcpProtectedResourceMetadata() {
   };
 }
 
+/**
+ * `getMcpServerCard()` is unauthenticated and publicly fetchable, so its
+ * `toolCount` per toolset must reflect what an anonymous/plain `user` caller
+ * would actually see from `tools/list` — not the unfiltered catalog count,
+ * which would advertise admin- and superadmin-gated tools (e.g.
+ * `resolve_approval`) the caller cannot invoke.
+ */
+function getUserVisibleToolsetSummaries(): Array<{
+  description: string;
+  isAlwaysOn: boolean;
+  name: string;
+  toolCount: number;
+}> {
+  const userVisibleTools = getToolsForRole('mcp', 'user');
+
+  const toolCountByToolset = new Map<string, number>();
+  for (const tool of userVisibleTools) {
+    toolCountByToolset.set(
+      tool.toolset,
+      (toolCountByToolset.get(tool.toolset) ?? 0) + 1,
+    );
+  }
+
+  return TOOLSETS.filter((definition) =>
+    toolCountByToolset.has(definition.name),
+  ).map((definition) => ({
+    description: definition.description,
+    isAlwaysOn: definition.isAlwaysOn,
+    name: definition.name,
+    toolCount: toolCountByToolset.get(definition.name) ?? 0,
+  }));
+}
+
+/**
+ * Same user-visible counts as `getUserVisibleToolsetSummaries`, trimmed to
+ * the server-card schema's `toolsets` shape (no `isAlwaysOn`).
+ */
+function getUserVisibleToolsetCards(): Array<{
+  description: string;
+  name: string;
+  toolCount: number;
+}> {
+  return getUserVisibleToolsetSummaries().map(
+    ({ description, name, toolCount }) => ({ description, name, toolCount }),
+  );
+}
+
 export function getMcpServerCard() {
   return {
     $schema:
@@ -180,6 +249,7 @@ export function getMcpServerCard() {
       title: 'Genfeed MCP Server',
       version: '1.0.0',
     },
+    toolsets: getUserVisibleToolsetCards(),
     transport: {
       endpoint: getPublicMcpUrl(),
       type: 'streamable-http',
@@ -218,6 +288,21 @@ export function renderSetupPage(): string {
   const agentSetupPromptSafe = escapeHtml(
     buildAgentSetupPrompt({ apiKeysUrl: connectUrl, mcpUrl }),
   );
+  const mcpUrlInlineScriptLiteral = toInlineScriptStringLiteral(mcpUrl);
+
+  const toolsetOptions = getUserVisibleToolsetSummaries()
+    .map((toolset) => {
+      const nameSafe = escapeHtml(toolset.name);
+      const descriptionSafe = escapeHtml(toolset.description);
+      const toolCountLabel = `${toolset.toolCount} tool${toolset.toolCount === 1 ? '' : 's'}`;
+      return `<label class="toolset-option">
+          <input type="checkbox" data-toolset-checkbox data-toolset="${nameSafe}" ${toolset.isAlwaysOn ? 'checked disabled' : ''} />
+          <span class="toolset-name">${nameSafe}${toolset.isAlwaysOn ? ' <span class="toolset-always-on">(always on)</span>' : ''}</span>
+          <span class="toolset-count">${toolCountLabel}</span>
+          <span class="toolset-desc">${descriptionSafe}</span>
+        </label>`;
+    })
+    .join('\n');
 
   return `<!doctype html>
 <html lang="en" class="${ui.root}">
@@ -617,6 +702,46 @@ pre.command {
 .mcp-warning-note {
   margin-top: 14px;
 }
+.toolset-picker {
+  display: grid;
+  gap: 4px;
+}
+.toolset-option {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  column-gap: 12px;
+  row-gap: 4px;
+  align-items: baseline;
+  border-bottom: 1px solid var(--gf-divider-subtle);
+  padding: 10px 0;
+  cursor: pointer;
+}
+.toolset-option:last-child { border-bottom: 0; }
+.toolset-option input[type="checkbox"] {
+  align-self: center;
+}
+.toolset-name {
+  color: var(--gf-text-primary);
+  font-size: 12px;
+  font-weight: 750;
+}
+.toolset-always-on {
+  color: var(--gf-text-faint);
+  font-weight: 600;
+}
+.toolset-count {
+  color: var(--gf-text-faint);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.toolset-desc {
+  grid-column: 2 / -1;
+  margin: 0;
+  color: var(--gf-text-muted);
+  font-size: 12px;
+}
 .warning-mark {
   color: var(--gf-warning);
   font-weight: 900;
@@ -761,7 +886,23 @@ ${postHogSnippet}
     <div>
       <div class="${ui.codeBlock} endpoint-code" id="mcp-url">${mcpUrlSafe}</div>
     </div>
-    <button class="${ui.buttonSecondary} copy" type="button" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
+    <button class="${ui.buttonSecondary} copy" type="button" id="mcp-url-copy" data-copy="${mcpUrlSafe}" aria-label="Copy MCP endpoint">Copy</button>
+  </section>
+
+  <section class="section" aria-labelledby="toolsets-title">
+    <div class="section-head">
+      <div>
+        <p class="section-kicker">Toolsets</p>
+        <h2 class="section-title" id="toolsets-title">Pick what <em>loads.</em></h2>
+      </div>
+      <p class="section-copy">Narrow <code class="${ui.inlineCode}">tools/list</code> to only the toolsets your agent needs. Leave everything unchecked to connect with the full catalog.</p>
+    </div>
+
+    <div class="${ui.card}">
+      <div class="toolset-picker" role="group" aria-label="Toolsets to include">
+        ${toolsetOptions}
+      </div>
+    </div>
   </section>
 
   <section class="section" aria-labelledby="setup-title">
@@ -815,7 +956,7 @@ ${postHogSnippet}
             <div>
               <p class="step-title">Add MCP server</p>
               <p class="step-copy">Register the hosted endpoint in user scope.</p>
-              <pre class="${ui.codeBlock} command"><code>${claudeCommandSafe}</code></pre>
+              <pre class="${ui.codeBlock} command"><code id="claude-code-command">${claudeCommandSafe}</code></pre>
             </div>
           </li>
           <li class="step">
@@ -846,7 +987,7 @@ ${postHogSnippet}
             <div>
               <p class="step-title">Add MCP server</p>
               <p class="step-copy">The CLI and IDE share <code class="${ui.inlineCode}">~/.codex/config.toml</code>.</p>
-              <pre class="${ui.codeBlock} command"><code>${codexCommandSafe}</code></pre>
+              <pre class="${ui.codeBlock} command"><code id="codex-command">${codexCommandSafe}</code></pre>
             </div>
           </li>
           <li class="step">
@@ -961,6 +1102,119 @@ ${postHogSnippet}
       });
     });
   });
+
+  // Toolset picker: rewrites every rendered snippet that embeds the MCP
+  // endpoint when the caller narrows (or widens) the selected toolsets.
+  // Nothing selected (besides the always-on, disabled "core" box) means the
+  // plain URL — "every tool" — exactly like an absent toolsets query param.
+  (function () {
+    var baseMcpUrl = ${mcpUrlInlineScriptLiteral};
+
+    function shellQuote(url) {
+      return /^[A-Za-z0-9:/._-]+$/.test(url)
+        ? url
+        : "'" + url.replace(/'/g, "'\\\\''") + "'";
+    }
+
+    // Pure URL builder: a base that already carries a query string (e.g. a
+    // GENFEED_MCP_RESOURCE_URL override like ".../mcp?x=1") must gain
+    // "&toolsets=", not a second "?" that would silently drop everything
+    // before it.
+    function joinToolsetsUrl(baseUrl, selected) {
+      if (selected.length === 0) return baseUrl;
+      var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
+      return baseUrl + separator + 'toolsets=' + selected.join(',');
+    }
+
+    var currentUrl = baseMcpUrl;
+    var currentShellUrl = shellQuote(baseMcpUrl);
+
+    function computeUrl() {
+      var selected = Array.prototype.slice
+        .call(document.querySelectorAll('[data-toolset-checkbox]:checked'))
+        .map(function (el) { return el.getAttribute('data-toolset'); })
+        .filter(function (name) { return name && name !== 'core'; });
+      return joinToolsetsUrl(baseMcpUrl, selected);
+    }
+
+    function replaceAll(text, needle, replacement) {
+      return needle ? text.split(needle).join(replacement) : text;
+    }
+
+    // The AI setup prompt embeds the endpoint twice: plainly (the "Endpoint:"
+    // line, and inside JSON/TOML config blocks, where quoting is unaffected
+    // by shell rules) and inside the Claude Code / Codex shell commands it
+    // quotes for. Rewriting it must match: the shell-command occurrences need
+    // the shell-quoted URL, exactly like the dedicated command snippets get,
+    // while every other occurrence stays plain. nextUrl is always baseMcpUrl
+    // plus an appended query string, so it has currentUrl as a literal
+    // prefix — swapping the shell-quoted occurrences in first and THEN doing
+    // the plain replace would let the plain pass re-match (and re-append to)
+    // the currentUrl prefix it just inserted. A placeholder shields the
+    // already-rewritten shell occurrences from that second pass; it is
+    // substituted back for the real shell-quoted URL last.
+    function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl) {
+      var placeholder = '__GENFEED_TOOLSET_URL_PLACEHOLDER__';
+      var next = replaceAll(
+        text,
+        '--scope user ' + currentShellUrl,
+        '--scope user ' + placeholder,
+      );
+      next = replaceAll(next, '--url ' + currentShellUrl, '--url ' + placeholder);
+      next = replaceAll(next, currentUrl, nextUrl);
+      next = replaceAll(next, placeholder, nextShellUrl);
+      return next;
+    }
+
+    function applyUrl(nextUrl) {
+      var nextShellUrl = shellQuote(nextUrl);
+
+      var mcpUrlEl = document.getElementById('mcp-url');
+      if (mcpUrlEl) {
+        mcpUrlEl.textContent = replaceAll(
+          mcpUrlEl.textContent || '',
+          currentUrl,
+          nextUrl,
+        );
+      }
+
+      var promptEl = document.getElementById('agent-setup-prompt');
+      if (promptEl) {
+        promptEl.textContent = rewriteAgentPrompt(
+          promptEl.textContent || '',
+          currentUrl,
+          currentShellUrl,
+          nextUrl,
+          nextShellUrl,
+        );
+      }
+
+      ['claude-code-command', 'codex-command'].forEach(function (id) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = replaceAll(
+          el.textContent || '',
+          currentShellUrl,
+          nextShellUrl,
+        );
+      });
+
+      var copyButton = document.getElementById('mcp-url-copy');
+      if (copyButton) {
+        var current = copyButton.getAttribute('data-copy') || '';
+        copyButton.setAttribute('data-copy', replaceAll(current, currentUrl, nextUrl));
+      }
+
+      currentUrl = nextUrl;
+      currentShellUrl = nextShellUrl;
+    }
+
+    document.querySelectorAll('[data-toolset-checkbox]').forEach(function (checkbox) {
+      checkbox.addEventListener('change', function () {
+        applyUrl(computeUrl());
+      });
+    });
+  })();
 </script>
 </body>
 </html>`;

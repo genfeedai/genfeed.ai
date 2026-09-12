@@ -5,7 +5,16 @@ export interface PlatformHomeContentProps {
   platform: Platform;
 }
 
-export type PlatformConnectionHealth = 'attention' | 'connected' | 'healthy';
+/**
+ * `needsReconnect` takes priority over the health-derived tiers — a
+ * disconnected or identity-less credential is not "connected" just because
+ * it has no health data yet. See `getPlatformConnectionHealth`.
+ */
+export type PlatformConnectionHealth =
+  | 'attention'
+  | 'connected'
+  | 'healthy'
+  | 'needsReconnect';
 
 export interface PlatformHomeDestinations {
   analytics: string;

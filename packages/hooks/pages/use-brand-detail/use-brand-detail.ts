@@ -16,12 +16,10 @@ import { createBrandAppRoute } from '@genfeedai/contracts/constants';
 import type {
   IArticle,
   IBrand,
-  ICredential,
   IImage,
   ILink,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
-import { SocialUrlHelper } from '@genfeedai/helpers';
 import type { UseBrandDetailReturn } from '@genfeedai/props/pages/brand-detail.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { ClipboardService } from '@genfeedai/services/core/clipboard.service';
@@ -35,6 +33,10 @@ import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useSaveQueue } from '@hooks/utils/use-save-queue/use-save-queue';
 import { useSocketManager } from '@hooks/utils/use-socket-manager/use-socket-manager';
+import {
+  buildSocialConnections,
+  getAccountConnectionStatus,
+} from '@ui/modals/brands/brand/ModalBrand.types';
 import { useParams, usePathname, useRouter } from 'next/navigation';
 import {
   useCallback,
@@ -518,37 +520,28 @@ export function useBrandDetail(): UseBrandDetailReturn {
     };
   }, [brandId, findOneBrand, notificationsService, pendingAssetId, subscribe]);
 
-  const socialConnections = useMemo(() => {
-    const connectedCredentials =
-      state.brand?.credentials?.filter(
-        (cred: ICredential) => cred.isConnected === true,
-      ) ?? [];
+  // Delegates to the same helper the settings/integrations accounts table
+  // and ModalBrand use, so a disconnected-but-not-deleted or identity-less
+  // credential shows "Needs reconnect" consistently everywhere instead of
+  // silently disappearing from just this hook's consumers. Depends on the
+  // credentials array specifically (not the whole brand object) so this
+  // doesn't get a new identity on every brand refresh that leaves
+  // credentials untouched.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: buildSocialConnections only reads state.brand.credentials — depending on the whole brand object would give this a new identity on every refresh that leaves credentials untouched.
+  const socialConnections = useMemo(
+    () => buildSocialConnections(state.brand),
+    [state.brand?.credentials],
+  );
 
-    return connectedCredentials.map((credential) => {
-      return {
-        accountHealth: credential.accountHealth,
-        avatarUrl: credential.externalAvatar,
-        credentialId: credential.id,
-        handle: credential.externalHandle,
-        label: credential.label,
-        name: credential.externalName,
-        platform: credential.platform,
-        postingTimes: credential.postingTimes,
-        url: SocialUrlHelper.buildProfileUrl(
-          credential.platform,
-          credential.externalHandle,
-          credential.externalId,
-        ),
-      };
-    });
-  }, [state.brand?.credentials]);
-
+  // Counts rows that are actually connected — not a raw `isConnected`
+  // tally, which still counts an identity-less or expired credential as
+  // connected even though its own row reads "Needs reconnect".
   const connectedPlatformsCount = useMemo(
     () =>
-      state.brand?.credentials?.filter(
-        (cred: ICredential) => cred.isConnected === true,
-      ).length || 0,
-    [state.brand?.credentials],
+      socialConnections.filter(
+        (connection) => getAccountConnectionStatus(connection) === 'connected',
+      ).length,
+    [socialConnections],
   );
 
   return {

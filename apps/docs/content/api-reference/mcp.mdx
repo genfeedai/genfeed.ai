@@ -113,6 +113,80 @@ Each call uses the permissions on the authorized token or manual key.
 - **Analytics and ads:** analytics, campaigns, Google Ads, Meta Ads.
 - **Agents and admin:** threads, approvals, role-gated admin tools.
 
+## Toolsets
+
+The full `tools/list` response is close to 120 tools — tens of thousands of
+tokens, more than most MCP clients need to load per connection. A narrow
+`?toolsets=` selection is a few thousand tokens instead.
+
+Add a comma-separated, kebab-case `toolsets` query parameter to the `/mcp`
+endpoint:
+
+```text
+https://mcp.genfeed.ai/mcp?toolsets=content,generation
+```
+
+- **`core` is always included** and cannot be excluded — it holds the
+  discovery meta tools below plus a handful of always-needed account/status
+  tools.
+- **Omitting the parameter (or passing an empty value) returns every tool** —
+  this is the default, unchanged behavior for existing clients.
+- **An unknown toolset name returns an HTTP 400** naming the valid toolsets,
+  before authentication runs — so this also applies to the unauthenticated
+  public `tools/list` discovery path.
+- **`tools/call` is unaffected** — a tool outside the current `tools/list`
+  selection can still be invoked directly by name. Toolsets only shape
+  discovery, not authorization; role-based access control is unchanged.
+
+### Available toolsets
+
+| Toolset | Description |
+| --- | --- |
+| `core` | Account basics and tool discovery. Always included on every connection regardless of the requested toolsets. |
+| `content` | Posts, articles, the content calendar, repurposing, X post activity, and LinkedIn content generation. |
+| `scheduler` | Scheduled release lifecycle and channel scheduling capability discovery. |
+| `generation` | Image, video, music, voice, and avatar generation, plus listing generated media. |
+| `workflows` | Workflow creation, execution, scheduling, and template management. |
+| `analytics` | Performance, content, video, and LinkedIn analytics plus trend discovery. |
+| `social-inbox` | Social conversation triage: replies, approvals, direct messages, and account activity. |
+| `brand` | Brand identity, completeness, publishing readiness, and the brand interview flow. |
+| `ads` | Meta, Google, and TikTok ad account, campaign, and insight tools. |
+| `inspiration` | Instagram and TikTok inspiration and top-performer discovery. |
+| `clips` | Clip project creation, analysis, and highlight extraction from source video. |
+| `knowledge` | Capture, search, and manage brand knowledge sources. |
+| `agent-chat` | Chat with the account and coordinate work across agents: send messages, list and transfer conversations, and request assets from another agent. |
+| `skills-pro` | Verify and install entitled Skills Pro packs. |
+
+### Discover tools outside your selection
+
+Three read-only meta tools, always in `core`, let an agent find a tool that
+isn't in its current selection:
+
+- **`list_toolsets`** — every toolset available on this server, with tool
+  counts.
+- **`search_tools`** — case-insensitive substring search over tool name,
+  description, and toolset (`{ query?, toolset?, limit? }`, at least one of
+  `query`/`toolset` required).
+- **`describe_tool`** — the full tool definition for one name (`{ name }`),
+  including the closest name matches when the name isn't found.
+
+These search the full, role-filtered catalog regardless of the caller's
+current toolset selection. Once an agent has a tool's name and schema from
+`describe_tool`, it can call that tool directly with `tools/call` — narrowing
+`tools/list` only narrows discovery, not what can be invoked — or reconnect
+with a broader `?toolsets=` selection so the tool appears in future
+`tools/list` responses.
+
+### Connect with a toolset selection
+
+```bash
+claude mcp add --transport http genfeed --scope user 'https://mcp.genfeed.ai/mcp?toolsets=content,generation'
+```
+
+```bash
+codex mcp add genfeed --url 'https://mcp.genfeed.ai/mcp?toolsets=content,generation'
+```
+
 ## Skills
 
 MCP gives an agent Genfeed's tools; [Agent Skills](/skills) give it the content

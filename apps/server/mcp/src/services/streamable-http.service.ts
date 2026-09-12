@@ -1,9 +1,13 @@
+import type { ToolsetName } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
-import { type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import { PostHogAnalyticsService } from '@mcp/services/posthog-analytics.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import type {
+  McpAuthContext,
+  McpRequest,
+} from '@mcp/shared/interfaces/mcp-request.interface';
 import { Server } from '@modelcontextprotocol/sdk/server';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import {
@@ -16,15 +20,12 @@ import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
-interface AuthContext {
-  token?: string;
-  userId?: string;
-  organizationId?: string;
-  role?: McpRole;
-}
-
-interface AuthenticatedRequest extends Request {
-  authContext?: AuthContext;
+/**
+ * The `/mcp` POST route uses a route-scoped JSON parser (see `main.ts`), so
+ * `body` is `unknown` rather than express's default `any`; GET/DELETE never
+ * populate it.
+ */
+interface StatelessMcpRequest extends McpRequest {
   body: unknown;
 }
 
@@ -93,8 +94,12 @@ export class StreamableHttpService {
    * 405 for GET/DELETE in stateless mode), so all HTTP verbs route here.
    */
   private async processRequest(req: Request, res: Response): Promise<void> {
-    const authContext = (req as AuthenticatedRequest).authContext;
-    const server = this.buildServer(authContext);
+    const request = req as StatelessMcpRequest;
+    const authContext = request.authContext;
+    // Parsed by `toolsetsQueryMiddleware` before authentication runs, so this
+    // is populated for unauthenticated public `tools/list` requests too.
+    const toolsets = request.toolsets ?? [];
+    const server = this.buildServer(authContext, toolsets);
     const transport = new StreamableHTTPServerTransport({
       enableJsonResponse: true,
       sessionIdGenerator: undefined,
@@ -105,11 +110,7 @@ export class StreamableHttpService {
       // POST requests use a route-scoped JSON parser so the authentication
       // boundary can classify public discovery methods. GET/DELETE have no
       // body, and the SDK accepts `undefined` for those verbs.
-      await transport.handleRequest(
-        req,
-        res,
-        (req as AuthenticatedRequest).body ?? undefined,
-      );
+      await transport.handleRequest(req, res, request.body ?? undefined);
     } catch (error: unknown) {
       this.logger.error('Failed to handle MCP request', error);
       if (!res.headersSent) {
@@ -125,12 +126,16 @@ export class StreamableHttpService {
     }
   }
 
-  private buildServer(authContext?: AuthContext): Server {
+  private buildServer(
+    authContext?: McpAuthContext,
+    toolsets: readonly ToolsetName[] = [],
+  ): Server {
     const clientService = this.createClientService(authContext?.token);
     const toolRegistry = new ToolRegistryService(
       clientService,
       this.logger,
       authContext?.role ?? 'user',
+      toolsets,
     );
 
     const server = new Server(

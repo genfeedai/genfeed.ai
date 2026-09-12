@@ -82,13 +82,35 @@ describe('REST ↔ MCP ↔ CLI scheduler lifecycle parity', () => {
     expect(source.mcpDefinitions).toContain(
       "name: 'list_brand_publishing_readiness'",
     );
-    expect(source.mcpCatalog).toContain(
-      "{ name: 'list_brand_publishing_readiness', surfaces: ['mcp'] },",
+
+    // Read the specific catalog entry's own object literal rather than
+    // pinning one exact single-line formatting — each entry now also
+    // declares a `toolset` (#4686), so the object always spans multiple
+    // lines. Slicing by name keeps this assertion about "mcp-only, not
+    // agent" rather than about catalog-entry line layout.
+    const entry = catalogEntrySource(
+      source.mcpCatalog,
+      'list_brand_publishing_readiness',
     );
+    expect(entry).toContain("surfaces: ['mcp']");
+    expect(entry).not.toContain("'agent'");
     expect(source.cliCommand).not.toContain(".command('publishing-readiness')");
   });
 });
 
 function read(relativePath: string): string {
   return readFileSync(path.join(repoRoot, relativePath), 'utf8');
+}
+
+/** Slices the `{ name: '<name>', ... }` object literal out of a catalog source string. */
+function catalogEntrySource(catalogSource: string, name: string): string {
+  const marker = `name: '${name}'`;
+  const markerIndex = catalogSource.indexOf(marker);
+  if (markerIndex === -1) {
+    throw new Error(`Catalog entry not found for "${name}"`);
+  }
+
+  const objectStart = catalogSource.lastIndexOf('{', markerIndex);
+  const objectEnd = catalogSource.indexOf('}', markerIndex);
+  return catalogSource.slice(objectStart, objectEnd + 1);
 }

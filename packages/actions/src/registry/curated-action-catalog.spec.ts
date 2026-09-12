@@ -6,6 +6,7 @@ import {
 } from './curated-action-catalog';
 import { SOURCE_TOOLS } from './source/index';
 import { ALL_TOOLS, getToolByName, getToolsForSurface } from './tool-registry';
+import { CORE_TOOLSET_NAME, isToolsetName } from './toolsets';
 
 describe('curated action catalog', () => {
   it('is deterministically sorted with unique action names', () => {
@@ -267,6 +268,66 @@ describe('curated action catalog', () => {
         agent: true,
         mcp: true,
       });
+    }
+  });
+
+  it('assigns exactly one known toolset to every entry', () => {
+    for (const entry of CURATED_ACTION_CATALOG) {
+      expect(isToolsetName(entry.toolset), entry.name).toBe(true);
+    }
+  });
+
+  it('places the always-on discovery meta tools in the core toolset, MCP-only', () => {
+    for (const name of ['list_toolsets', 'search_tools', 'describe_tool']) {
+      const entry = CURATED_ACTION_CATALOG.find(
+        (candidate) => candidate.name === name,
+      );
+      expect(entry, name).toBeDefined();
+      expect(entry?.toolset, name).toBe(CORE_TOOLSET_NAME);
+      expect(entry?.surfaces, name).toEqual(['mcp']);
+
+      const tool = getToolByName(name);
+      expect(tool?.creditCost, name).toBe(0);
+      expect(tool?.requiredRole, name).toBe('user');
+    }
+  });
+
+  it('groups representative actions into the expected toolsets', () => {
+    const expected: ReadonlyArray<readonly [string, string]> = [
+      ['get_account_info', 'core'],
+      ['get_credits_balance', 'core'],
+      ['resolve_approval', 'core'],
+      ['create_post', 'content'],
+      ['repurpose_post', 'content'],
+      ['generate_content_batch', 'content'],
+      ['generate_image', 'generation'],
+      ['generate_video', 'generation'],
+      ['create_workflow', 'workflows'],
+      ['create_ad_remix_workflow', 'workflows'],
+      ['analyze_performance', 'analytics'],
+      ['get_linkedin_connection_status', 'analytics'],
+      ['list_social_conversations', 'social-inbox'],
+      ['send_social_dm', 'social-inbox'],
+      ['list_x_account_activity', 'social-inbox'],
+      ['get_brand_completeness', 'brand'],
+      ['list_brand_publishing_readiness', 'brand'],
+      ['start_brand_interview', 'brand'],
+      ['list_meta_ad_accounts', 'ads'],
+      ['list_ads_research', 'ads'],
+      ['list_instagram_inspiration', 'inspiration'],
+      ['get_tiktok_top_performers', 'inspiration'],
+      ['analyze_clip_project', 'clips'],
+      ['search_knowledge', 'knowledge'],
+      ['create_chat', 'agent-chat'],
+      ['send_chat_message', 'agent-chat'],
+      ['verify_skills_pro_entitlement', 'skills-pro'],
+      ['install_skills_pro_skill', 'skills-pro'],
+      ['create_scheduled_release', 'scheduler'],
+      ['validate_scheduler_target', 'scheduler'],
+    ];
+
+    for (const [name, toolset] of expected) {
+      expect(getToolByName(name)?.toolset, name).toBe(toolset);
     }
   });
 });
