@@ -2,9 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { RedisCacheInterceptor } from '@api/cache/redis/redis-cache.interceptor';
 import { AccountAnalyticsService } from '@api/endpoints/analytics/account-analytics.service';
 import {
-  buildAnalyticsCacheKey,
-  resolveAnalyticsTenantScope,
-  throwAnalyticsTenantForbidden,
+  buildOwnedAnalyticsCacheKey,
+  resolveOwnedAnalyticsTenantScope,
 } from '@api/endpoints/analytics/analytics-tenant-scope';
 import {
   AccountAnalyticsQueryDto,
@@ -52,21 +51,19 @@ export class AccountAnalyticsController {
     private readonly cacheTagsService: CacheTagsService,
   ) {}
 
+  /**
+   * Every route here returns provider account identity (handles, avatars,
+   * external ids) or per-post rows, so all of them are owned-organization only,
+   * superadmins included. See `resolveOwnedAnalyticsTenantScope`.
+   */
   private organizationId(user: User, request: ExpressRequest): string {
-    const organizationId = resolveAnalyticsTenantScope(
-      user,
-      request,
-    ).organizationId;
-    if (!organizationId) {
-      throwAnalyticsTenantForbidden();
-    }
-    return organizationId;
+    return resolveOwnedAnalyticsTenantScope(user, request);
   }
 
   @Get('accounts')
   @Cache({
     keyGenerator: (req) =>
-      buildAnalyticsCacheKey('accounts', req, [
+      buildOwnedAnalyticsCacheKey('accounts', req, [
         req.query?.startDate,
         req.query?.endDate,
         req.query?.brandId,
@@ -104,7 +101,7 @@ export class AccountAnalyticsController {
   @Get('accounts/top')
   @Cache({
     keyGenerator: (req) =>
-      buildAnalyticsCacheKey('accounts-top', req, [
+      buildOwnedAnalyticsCacheKey('accounts-top', req, [
         req.query?.startDate,
         req.query?.endDate,
         req.query?.brandId,
@@ -137,7 +134,7 @@ export class AccountAnalyticsController {
   @Get('accounts/:credentialId')
   @Cache({
     keyGenerator: (req) =>
-      buildAnalyticsCacheKey('account-detail', req, [
+      buildOwnedAnalyticsCacheKey('account-detail', req, [
         req.params?.credentialId,
         req.query?.startDate,
         req.query?.endDate,

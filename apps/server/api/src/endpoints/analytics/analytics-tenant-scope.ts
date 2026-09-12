@@ -72,6 +72,59 @@ export function resolveAnalyticsTenantScope(
   };
 }
 
+/**
+ * Identifiable analytics stay inside the caller's own organization.
+ *
+ * Post titles, provider external ids, per-post metric rows, account handles,
+ * and any read that refreshes from a provider with a stored credential are
+ * Google user data under the Limited Use policy, which lets staff read it only
+ * with the user's agreement, for security, for legal compliance, or when it is
+ * aggregated and anonymized. Superadmins keep cross-organization aggregates
+ * through `resolveAnalyticsTenantScope`; this resolver gives them no tenant
+ * they are not themselves part of.
+ */
+export function resolveOwnedAnalyticsTenantScope(
+  user: AuthenticatedUser,
+  request?: Pick<AnalyticsCacheRequest, 'query'>,
+): string {
+  const requestedOrganizationId = readRequestedOrganizationId(request);
+
+  if (!user.organizationId) {
+    throw new ForbiddenException(ANALYTICS_MISSING_ORGANIZATION_MESSAGE);
+  }
+
+  if (
+    requestedOrganizationId &&
+    requestedOrganizationId !== user.organizationId
+  ) {
+    throwAnalyticsTenantForbidden();
+  }
+
+  return user.organizationId;
+}
+
+/**
+ * Cache key for a route resolved by `resolveOwnedAnalyticsTenantScope`.
+ *
+ * `buildAnalyticsCacheKey` keys superadmins by the organization they asked for,
+ * which collapses to `superadmin:all` when they ask for none — one key two
+ * superadmins in different organizations would share. Owned routes always key
+ * by the caller's own organization instead.
+ */
+export function buildOwnedAnalyticsCacheKey(
+  route: string,
+  request: AnalyticsCacheRequest,
+  parts: ReadonlyArray<unknown> = [],
+): string {
+  return [
+    'analytics',
+    route,
+    'owned',
+    request.user?.organizationId ?? 'anonymous',
+    ...parts.map((part) => (part == null ? '' : String(part))),
+  ].join(':');
+}
+
 export function buildAnalyticsCacheKey(
   route: string,
   request: AnalyticsCacheRequest,

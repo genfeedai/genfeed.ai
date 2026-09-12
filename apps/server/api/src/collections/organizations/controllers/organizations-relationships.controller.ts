@@ -121,6 +121,39 @@ export class OrganizationsRelationshipsController {
     );
   }
 
+  /**
+   * Post titles, provider ids and per-post rows are Google user data under the
+   * Limited Use policy, so superadmin privilege alone does not open another
+   * organization's. The caller must belong to the organization they are
+   * reading. Aggregate routes keep `assertAnalyticsOrganizationAccess`.
+   */
+  private async assertIdentifiableAnalyticsAccess(
+    organizationId: string,
+    user: User,
+    brandId?: string,
+  ): Promise<void> {
+    const [member, isOwner] = await Promise.all([
+      this.membersService.findOne({
+        isActive: true,
+        organizationId: organizationId,
+        userId: user.userId ?? user.id,
+      }),
+      this.organizationsService.findOne({
+        id: organizationId,
+        userId: user.userId ?? user.id,
+      }),
+    ]);
+
+    if (!(isOwner || member)) {
+      throwAnalyticsTenantForbidden();
+    }
+
+    await this.analyticsAggregationService.assertBrandInScope(
+      brandId,
+      organizationId,
+    );
+  }
+
   private async hasOrganizationAccess(
     request: Request,
     organizationId: string,
@@ -334,12 +367,7 @@ export class OrganizationsRelationshipsController {
     const startDate = query.startDate;
     const endDate = query.endDate;
     const brandId = query.brandId;
-    await this.assertAnalyticsOrganizationAccess(
-      request,
-      organizationId,
-      user,
-      brandId,
-    );
+    await this.assertIdentifiableAnalyticsAccess(organizationId, user, brandId);
 
     const topContent =
       await this.analyticsAggregationService.getTopPerformingContent(

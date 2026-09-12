@@ -253,6 +253,42 @@ describe('OrganizationsRelationshipsController', () => {
       },
     );
 
+    it('refuses top content to a superadmin outside the organization', async () => {
+      const superadmin = { ...mockUser, isSuperAdmin: true } as unknown as User;
+      mockServices.membersService.findOne.mockResolvedValueOnce(null);
+      mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.findAnalyticsTopContent(
+          request,
+          'clorganizationforeign00000001',
+          {},
+          superadmin,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(
+        mockServices.analyticsAggregationService.getTopPerformingContent,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('still lets a superadmin read another organization aggregate overview', async () => {
+      const superadmin = { ...mockUser, isSuperAdmin: true } as unknown as User;
+      mockServices.membersService.findOne.mockResolvedValueOnce(null);
+      mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
+
+      await expect(
+        controller.findAnalytics(
+          request,
+          'clorganizationforeign00000001',
+          {},
+          superadmin,
+        ),
+      ).resolves.toBeDefined();
+      expect(
+        mockServices.analyticsAggregationService.getOverviewMetrics,
+      ).toHaveBeenCalled();
+    });
+
     it('authorizes platform analytics before reading', async () => {
       mockServices.membersService.findOne.mockResolvedValueOnce(null);
       mockServices.organizationsService.findOne.mockResolvedValueOnce(null);
