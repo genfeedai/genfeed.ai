@@ -80,13 +80,26 @@ export class StripeInvoiceWebhookHandler {
         if (!customerId) {
           throw new Error('Invoice billing identity unavailable');
         }
-        const organizationId =
-          await this.billingAccountService.resolveWebhookOrganization(
-            customerId,
-            extractInvoiceSubscriptionMetadata(invoice),
-          );
+
+        // The persisted customer link comes first: a Stripe customer created
+        // before the billing-account metadata convention carries no markers, so
+        // resolveWebhookOrganization rejects it and the webhook 500s into a
+        // Stripe retry loop (API-GENFEED-AI-7S). Same order as the subscription
+        // handler.
         subscription =
-          await this.subscriptionsService.findByOrganizationId(organizationId);
+          await this.subscriptionsService.findByStripeCustomerId(customerId);
+
+        if (!subscription) {
+          const organizationId =
+            await this.billingAccountService.resolveWebhookOrganization(
+              customerId,
+              extractInvoiceSubscriptionMetadata(invoice),
+            );
+          subscription =
+            await this.subscriptionsService.findByOrganizationId(
+              organizationId,
+            );
+        }
       }
 
       if (!subscription) {

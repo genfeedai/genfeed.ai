@@ -99,8 +99,13 @@ export class CreditsUtilsService implements ICreditsUtilsService {
   private async markOrganizationAsHavingCredits(
     organizationId: string,
   ): Promise<void> {
+    // `OrganizationSetting` has no `isDeleted` column, so `scopedWhere` built a
+    // filter Prisma rejects outright — every credit grant that reached this
+    // point threw PrismaClientValidationError (API-GENFEED-AI-7T).
     const organizationSettings = await this.organizationSettingsService.findOne(
-      scopedWhere(organizationId, {}),
+      {
+        organizationId,
+      },
     );
 
     if (organizationSettings && !organizationSettings.hasEverHadCredits) {
