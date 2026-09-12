@@ -1,5 +1,6 @@
 'use client';
 
+import { isPersonalSettingsPage } from '@app-components/app-protected-layout.settings-scope';
 import { useAccessState } from '@genfeedai/contexts/providers/access-state/access-state.provider';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
@@ -118,6 +119,12 @@ function AppProtectedTopbarContent({
   // brand slug named "settings" cannot trigger the settings breadcrumb.
   const isSettingsRoute =
     pathname?.split('/').filter(Boolean)[2] === 'settings';
+  // The page itself (never the session-backfilled useOrgUrl slugs below)
+  // decides whether this is a personal-account settings page, flat or as an
+  // org-scoped copy, so the brand switcher stays hidden there even when a
+  // brand is selected in session (#4659) — matches the sidebar's
+  // org-switcher gating.
+  const isOnPersonalSettingsPage = isPersonalSettingsPage(pathname);
   const { push } = useRouter();
   const { brandId, brands, selectedBrand, setBrandId, setOrganizationId } =
     useBrand();
@@ -259,7 +266,8 @@ function AppProtectedTopbarContent({
 
           {!isAdminChrome &&
           brands.length > 0 &&
-          !isOrganizationSettingsRoute ? (
+          !isOrganizationSettingsRoute &&
+          !isOnPersonalSettingsPage ? (
             <div className="w-40 min-w-0 sm:w-44 md:w-48">
               <MenuBrandSwitcher
                 variant="labeled"

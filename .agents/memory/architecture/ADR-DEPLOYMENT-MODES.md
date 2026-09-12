@@ -56,6 +56,8 @@ The **brand** is the unit of content context (a brand owns one or more social ac
 
 **Switcher rule (canonical):** the **brand switcher is always shown and populated** in every mode; the **org switcher only renders in SaaS**. This corrects the prior bug where self-hosted hid the brand switcher and showed an org switcher that couldn't switch anything (#743).
 
+**Documented exception (#4659):** on personal-scope settings routes (flat `/settings/*` and their org-scoped `/:org/~/settings/personal|notifications|progress|help|about` copies) neither switcher renders — there is no org/brand context to switch from on an account-scope page. Scope is derived from route params (`SettingsSurface`), never from a session-backfilled slug, so a selected brand in session cannot leak a switcher onto a personal route. The app switcher (top nav) remains the operator's way back into org/brand context from personal settings.
+
 ### 3. Auth — own it with Better Auth
 
 **One self-hostable auth system across all three modes: [Better Auth](https://better-auth.com)** (MIT, free). It runs **in-process** against our existing Postgres — no separate instance, no SaaS vendor, no call-home.

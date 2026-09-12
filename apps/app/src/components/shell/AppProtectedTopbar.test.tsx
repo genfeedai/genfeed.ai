@@ -31,6 +31,11 @@ const originalLocation = window.location;
 vi.mock('@genfeedai/contracts', () => ({
   ButtonSize: { ICON: 'icon' },
   ButtonVariant: { GHOST: 'ghost', UNSTYLED: 'unstyled' },
+  SettingsSurface: {
+    BRAND: 'brand',
+    ORGANIZATION: 'organization',
+    PERSONAL: 'personal',
+  },
 }));
 
 vi.mock('@genfeedai/contracts/constants', () => ({
@@ -334,6 +339,60 @@ describe('AppProtectedTopbar', () => {
         orgSlug: 'acme',
       }),
     );
+  });
+
+  it('hides the brand switcher on every flat personal settings page even with a brand selected in session', () => {
+    // Flat /settings/* pages carry no orgSlug/brandSlug route param — the
+    // mocked useOrgUrl above still backfills brandSlug: 'brand' from the
+    // session's last-selected brand, which is exactly the bug (#4659): the
+    // switcher must key off the page itself, not that backfill.
+    for (const pathname of [
+      '/settings',
+      '/settings/personal',
+      '/settings/notifications',
+      '/settings/progress',
+      '/settings/help',
+      '/settings/about',
+    ]) {
+      mockPathname.value = pathname;
+
+      const { unmount } = render(<AppProtectedTopbar currentApp="workspace" />);
+
+      expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('hides the brand switcher on every org-scoped copy of a personal settings page', () => {
+    for (const pathname of [
+      '/acme/~/settings/personal',
+      '/acme/~/settings/notifications',
+      '/acme/~/settings/progress',
+      '/acme/~/settings/help',
+    ]) {
+      mockPathname.value = pathname;
+
+      const { unmount } = render(
+        <AppProtectedTopbar orgSlug="acme" currentApp="workspace" />,
+      );
+
+      expect(screen.queryByTestId('brand-switcher')).not.toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('does not hide the brand switcher on non-settings routes with no org/brand route param (#4659 review)', () => {
+    // Before the fix, a route-param-derived "settings scope" evaluated
+    // PERSONAL for ANY route with no orgSlug/brandSlug param — including `/`
+    // and `/connect` — and wrongly hid the brand switcher there too.
+    for (const pathname of ['/', '/connect']) {
+      mockPathname.value = pathname;
+
+      const { unmount } = render(<AppProtectedTopbar currentApp="workspace" />);
+
+      expect(screen.getByTestId('brand-switcher')).toBeInTheDocument();
+      unmount();
+    }
   });
 
   it('passes an explicit brand route through to the app switcher', () => {
