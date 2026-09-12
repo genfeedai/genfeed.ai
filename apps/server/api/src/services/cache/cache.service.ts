@@ -85,6 +85,27 @@ export class CacheService {
     }
   }
 
+  /**
+   * Atomically read and delete `key` in a single round trip (Redis `GETDEL`).
+   * Prefer this over a separate `get` + `del` pair for single-use records —
+   * two callers racing a get-then-del can both read the value before either
+   * delete lands, breaking "consumed exactly once" semantics. `GETDEL` is
+   * server-side atomic, so only one caller ever gets the value back.
+   */
+  async getdel<T = unknown>(key: string): Promise<T | null> {
+    if (!this.isAvailable) {
+      return null;
+    }
+
+    try {
+      const value = await this.client.getdel(key);
+      return value === null ? null : (JSON.parse(value) as T);
+    } catch (error: unknown) {
+      this.logOperationError('getdel', { error, key });
+      return null;
+    }
+  }
+
   async del(key: string): Promise<boolean> {
     if (!this.isAvailable) {
       return false;

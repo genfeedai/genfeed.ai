@@ -91,13 +91,6 @@ export interface CreateAgentStudioHandoffResult {
   id: string;
 }
 
-/**
- * `GET /agent/studio-handoff/:id` response (#4670 Open in Studio, consumer
- * side). Single-use — the server deletes the handoff on this call whether or
- * not it resolves, so a retry always sees it as gone.
- */
-export type ConsumeAgentStudioHandoffResult = AgentStudioHandoffPayload;
-
 export interface AgentGeneratedAsset {
   category?: string;
   cdnUrl?: string;

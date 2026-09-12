@@ -36,6 +36,8 @@ interface AgentFullPageProps {
     name: string;
     description: string;
   }) => void | Promise<void>;
+  /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
+  onOpenInStudio?: (studioUrl: string) => void;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -57,6 +59,7 @@ export function AgentFullPage({
   onCreateFollowUpTasks,
   onOAuthConnect,
   onBrandCreate,
+  onOpenInStudio,
   onSelectCreditPack,
   userRole,
 }: AgentFullPageProps): ReactElement {
@@ -203,6 +206,7 @@ export function AgentFullPage({
               onOnboardingCompleted={onOnboardingCompleted}
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}
+              onOpenInStudio={onOpenInStudio}
               onSelectCreditPack={onSelectCreditPack}
               onUnarchive={handleUnarchiveActiveThread}
               onboardingMode={onboardingMode}

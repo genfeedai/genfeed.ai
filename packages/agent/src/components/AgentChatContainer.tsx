@@ -40,6 +40,7 @@ export function AgentChatContainer({
   onRegenerate,
   onOAuthConnect,
   onBrandCreate,
+  onOpenInStudio,
   onCreateFollowUpTasks,
   onSelectCreditPack,
   onSelectIngredient,
@@ -288,6 +289,7 @@ export function AgentChatContainer({
             onCreateFollowUpTasks={container.handleCreateFollowUpTasks}
             onIngredientSelect={container.handleIngredientSelect}
             onOAuthConnect={onOAuthConnect}
+            onOpenInStudio={onOpenInStudio}
             onRegenerate={onRegenerate}
             onRequestPlanChanges={container.handleRequestPlanChanges}
             onRetry={container.handleRetry}

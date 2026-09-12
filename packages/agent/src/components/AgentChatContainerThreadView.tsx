@@ -52,6 +52,8 @@ export type AgentChatContainerThreadViewProps = {
   onCreateFollowUpTasks: () => Promise<void>;
   onIngredientSelect: (ingredient: { id: string; title?: string }) => void;
   onOAuthConnect?: (platform: string) => void;
+  /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
+  onOpenInStudio?: (studioUrl: string) => void;
   onRegenerate?: (message: AgentChatMessageType) => void | Promise<void>;
   onRequestPlanChanges: (revisionNote: string) => Promise<void>;
   onRetry: (message: AgentChatMessageType) => Promise<void>;
@@ -101,6 +103,7 @@ export function AgentChatContainerThreadView({
   onCreateFollowUpTasks,
   onIngredientSelect,
   onOAuthConnect,
+  onOpenInStudio,
   onRegenerate,
   onRequestPlanChanges,
   onRetry,
@@ -189,6 +192,7 @@ export function AgentChatContainerThreadView({
             onRetryLastFailedRun={onRetryLastFailedRun}
             onOAuthConnect={onOAuthConnect}
             onBrandCreate={onBrandCreate}
+            onOpenInStudio={onOpenInStudio}
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onIngredientSelect}
             onUiAction={onUiAction}

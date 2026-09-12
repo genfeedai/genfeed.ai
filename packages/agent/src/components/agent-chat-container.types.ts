@@ -30,6 +30,8 @@ export interface AgentChatContainerProps {
     name: string;
     description: string;
   }) => void | Promise<void>;
+  /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
+  onOpenInStudio?: (studioUrl: string) => void;
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
   onSelectCreditPack?: (pack: {
     label: string;

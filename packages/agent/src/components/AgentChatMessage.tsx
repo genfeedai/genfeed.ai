@@ -50,6 +50,8 @@ interface AgentChatMessageProps {
     name: string;
     description: string;
   }) => void | Promise<void>;
+  /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
+  onOpenInStudio?: (studioUrl: string) => void;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -103,6 +105,7 @@ function AgentChatMessageInner({
   onRegenerate,
   onOAuthConnect,
   onBrandCreate,
+  onOpenInStudio,
   onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
@@ -388,6 +391,7 @@ function AgentChatMessageInner({
                 onCopy={onCopy}
                 onOAuthConnect={onOAuthConnect}
                 onBrandCreate={onBrandCreate}
+                onOpenInStudio={onOpenInStudio}
                 onRetry={
                   !isReadOnly && onRetry ? () => onRetry(message) : undefined
                 }
@@ -408,6 +412,7 @@ function AgentChatMessageInner({
                   onCopy={onCopy}
                   onOAuthConnect={onOAuthConnect}
                   onBrandCreate={onBrandCreate}
+                  onOpenInStudio={onOpenInStudio}
                   onRetry={
                     !isReadOnly && onRetry ? () => onRetry(message) : undefined
                   }

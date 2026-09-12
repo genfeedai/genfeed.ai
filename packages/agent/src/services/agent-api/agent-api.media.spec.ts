@@ -7,7 +7,6 @@ import {
 } from '@agent-tests/json-api-fetch.mock';
 import {
   cloneVoice,
-  consumeStudioHandoff,
   createPrompt,
   createStudioHandoff,
   estimateGenerationCredits,
@@ -280,43 +279,6 @@ describe('agent-api.media', () => {
       prompt: 'A futuristic city at sunset',
       type: 'image',
     });
-  });
-
-  it('consumeStudioHandoff GETs the handoff by id', async () => {
-    mockOk({
-      brandId: 'brand-1',
-      modelKey: 'provider/model-x',
-      prompt: 'A futuristic city at sunset',
-      type: 'image',
-    });
-
-    const result = await consumeStudioHandoff(makeApi(), 'handoff-1');
-
-    expect(result).toEqual({
-      brandId: 'brand-1',
-      modelKey: 'provider/model-x',
-      prompt: 'A futuristic city at sunset',
-      type: 'image',
-    });
-    expect(lastRequest().url).toBe(
-      'http://api.test/agent/studio-handoff/handoff-1',
-    );
-  });
-
-  it('consumeStudioHandoff resolves null for a missing, expired, or foreign handoff', async () => {
-    mockError(404);
-
-    const result = await consumeStudioHandoff(makeApi(), 'handoff-1');
-
-    expect(result).toBeNull();
-  });
-
-  it('consumeStudioHandoff still throws for a non-404 failure', async () => {
-    mockError(500);
-
-    await expect(consumeStudioHandoff(makeApi(), 'handoff-1')).rejects.toThrow(
-      'Failed to load the Studio handoff',
-    );
   });
 });
 

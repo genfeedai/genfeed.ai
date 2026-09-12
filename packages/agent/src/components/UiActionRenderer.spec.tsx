@@ -324,6 +324,7 @@ const rendererHandlers = {
   onBrandCreate: vi.fn(),
   onCopy: vi.fn(),
   onOAuthConnect: vi.fn(),
+  onOpenInStudio: vi.fn(),
   onRetry: vi.fn(),
   onSelectCreditPack: vi.fn(),
   onSelectIngredient: vi.fn(),
@@ -442,6 +443,44 @@ describe('UiActionRenderer', () => {
 
     expect(
       cardPropsSpies.generationAction.mock.calls.at(-1)?.[0].onUiAction,
+    ).toBeUndefined();
+  });
+
+  it('threads onOpenInStudio into the real generation_action_card render site (#4670)', () => {
+    const apiService = { marker: 'generation' };
+    const onOpenInStudio = vi.fn();
+    const action = {
+      id: 'generation-studio-1',
+      type: 'generation_action_card',
+    } as AgentUiAction;
+    cardPropsSpies.generationAction.mockClear();
+
+    const { rerender } = render(
+      <UiActionRenderer
+        action={action}
+        apiService={apiService as never}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    expect(
+      cardPropsSpies.generationAction.mock.calls.at(-1)?.[0].onOpenInStudio,
+    ).toBe(onOpenInStudio);
+
+    // Archived/busy: the completed-result and review-card Open in Studio
+    // controls must not stay live once the card itself goes inert.
+    cardPropsSpies.generationAction.mockClear();
+    rerender(
+      <UiActionRenderer
+        action={action}
+        apiService={apiService as never}
+        isDisabled
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    expect(
+      cardPropsSpies.generationAction.mock.calls.at(-1)?.[0].onOpenInStudio,
     ).toBeUndefined();
   });
 

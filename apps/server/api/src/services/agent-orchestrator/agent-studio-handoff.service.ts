@@ -48,20 +48,24 @@ export class AgentStudioHandoffService {
    * deletes the record. Returns `null` for a missing, expired, already-
    * consumed, or foreign (wrong org/user) handoff — the caller (Studio
    * generate) treats all four the same way: open with defaults and a notice.
+   *
+   * Reads and deletes atomically (`GETDEL`) rather than a separate get-then-
+   * del pair — two concurrent consumes of the same id would otherwise both
+   * observe the record before either delete lands, defeating single-use.
    */
   async consume(
     id: string,
     scope: AgentStudioHandoffScope,
   ): Promise<AgentStudioHandoffPayload | null> {
     const key = this.buildKey(id);
-    const record = await this.cacheService.get<StoredAgentStudioHandoff>(key);
-    if (!record) {
-      return null;
-    }
     // Consume on first read regardless of scope match — a foreign read must
     // burn the handoff too, or an attacker could keep probing organizationId/
     // userId guesses against the same still-live id.
-    await this.cacheService.del(key);
+    const record =
+      await this.cacheService.getdel<StoredAgentStudioHandoff>(key);
+    if (!record) {
+      return null;
+    }
 
     if (
       record.organizationId !== scope.organizationId ||
