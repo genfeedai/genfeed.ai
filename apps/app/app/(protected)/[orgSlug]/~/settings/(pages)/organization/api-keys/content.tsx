@@ -23,10 +23,18 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import { Input } from '@ui/primitives/input';
-import { Clipboard, Lock, Plus, RefreshCw, Trash2 } from 'lucide-react';
+import {
+  Clipboard,
+  Lock,
+  Plus,
+  RefreshCw,
+  Trash2,
+  TriangleAlert,
+} from 'lucide-react';
 import Link from 'next/link';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
@@ -49,11 +57,14 @@ function scopesExactlyMatch(
   return preset.every((scope) => selectedSet.has(scope));
 }
 
+const DEFAULT_PRODUCT_API_KEY_LABEL = 'MCP Server';
+const PRODUCT_KEYS_LOAD_ERROR = 'Failed to load API keys';
+
 const initialProductApiKeyForm: ProductApiKeyForm = {
   allowedIps: '',
   description: '',
   expiresAt: '',
-  label: '',
+  label: DEFAULT_PRODUCT_API_KEY_LABEL,
   rateLimit: '',
   selectedScopes: [...API_KEY_SCOPE_PRESETS.mcp],
 };
@@ -104,6 +115,9 @@ export default function SettingsApiKeysPage() {
   const [productPlainKey, setProductPlainKey] =
     useState<ProductPlainKey | null>(null);
   const [isProductLoading, setIsProductLoading] = useState(true);
+  const [productKeysLoadError, setProductKeysLoadError] = useState<
+    string | null
+  >(null);
   const [isCreatingProductKey, setIsCreatingProductKey] = useState(false);
   const [mutatingProductKeyId, setMutatingProductKeyId] = useState<
     string | null
@@ -119,18 +133,27 @@ export default function SettingsApiKeysPage() {
 
   const fetchProductApiKeys = useCallback(
     async (signal?: AbortSignal) => {
+      if (!signal?.aborted) {
+        setIsProductLoading(true);
+        setProductKeysLoadError(null);
+      }
       try {
         const service = await getApiKeysService();
         const apiKeys = await service.findAll({ limit: 100 });
 
         if (!signal?.aborted) {
-          setProductApiKeys(apiKeys);
-          setIsProductLoading(false);
+          setProductApiKeys(Array.isArray(apiKeys) ? apiKeys : []);
+          setProductKeysLoadError(null);
         }
       } catch (error) {
         if (!signal?.aborted) {
           logger.error('Failed to fetch Genfeed API keys', error);
-          NotificationsService.getInstance().error('Failed to load API keys');
+          NotificationsService.getInstance().error(PRODUCT_KEYS_LOAD_ERROR);
+          setProductApiKeys([]);
+          setProductKeysLoadError(PRODUCT_KEYS_LOAD_ERROR);
+        }
+      } finally {
+        if (!signal?.aborted) {
           setIsProductLoading(false);
         }
       }
@@ -142,6 +165,7 @@ export default function SettingsApiKeysPage() {
     if (!organizationId || !isReady) {
       setProductApiKeys([]);
       setProductPlainKey(null);
+      setProductKeysLoadError(null);
       setIsProductLoading(false);
       return;
     }
@@ -149,6 +173,7 @@ export default function SettingsApiKeysPage() {
 
     setProductApiKeys([]);
     setProductPlainKey(null);
+    setProductKeysLoadError(null);
     setIsProductLoading(true);
     fetchProductApiKeys(controller.signal);
     return () => controller.abort();
@@ -203,8 +228,8 @@ export default function SettingsApiKeysPage() {
       return;
     }
 
-    const label = productForm.label.trim();
-    if (!label || productForm.selectedScopes.length === 0) {
+    const label = productForm.label.trim() || DEFAULT_PRODUCT_API_KEY_LABEL;
+    if (productForm.selectedScopes.length === 0) {
       return;
     }
 
@@ -496,7 +521,6 @@ export default function SettingsApiKeysPage() {
               isDisabled={
                 isCreatingProductKey ||
                 !hasProductApiAccess ||
-                !productForm.label.trim() ||
                 productForm.selectedScopes.length === 0
               }
             >
@@ -508,6 +532,15 @@ export default function SettingsApiKeysPage() {
           <div className="mt-5 border-t border-border pt-4">
             {isProductLoading ? (
               <p className="text-sm text-muted-foreground">Loading keys...</p>
+            ) : productKeysLoadError ? (
+              <Alert variant="destructive">
+                <TriangleAlert className="size-4" aria-hidden="true" />
+                <AlertTitle>Couldn't load API keys</AlertTitle>
+                <AlertDescription>
+                  {productKeysLoadError}. You can still create a new key, or
+                  refresh the list.
+                </AlertDescription>
+              </Alert>
             ) : productApiKeys.length === 0 ? (
               <p className="text-sm text-muted-foreground">
                 No active Genfeed API keys.

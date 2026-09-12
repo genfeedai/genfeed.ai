@@ -118,6 +118,7 @@ vi.mock('lucide-react', () => ({
   Plus: () => <span data-testid="hi-plus" />,
   RefreshCw: () => <span data-testid="hi-arrow-path" />,
   Trash2: () => <span data-testid="hi-trash" />,
+  TriangleAlert: () => <span data-testid="hi-triangle-alert" />,
 }));
 
 vi.mock('@ui/card/Card', () => ({
@@ -349,6 +350,26 @@ describe('SettingsApiKeysPage', () => {
     expect(read).toHaveAttribute('aria-pressed', 'false');
   });
 
+  it('creates a key from an empty list using the default name', async () => {
+    mocks.findAllApiKeys.mockResolvedValue([]);
+    render(<SettingsApiKeysPage />);
+
+    expect(
+      await screen.findByText('No active Genfeed API keys.'),
+    ).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalledWith(
+        expect.objectContaining({
+          label: 'MCP Server',
+          scopes: expect.arrayContaining(['videos:read', 'analytics:read']),
+        }),
+      );
+    });
+    expect(screen.getByText('gf_test_created')).toBeInTheDocument();
+  });
+
   it('creates a Genfeed API key and shows the plain key once', async () => {
     render(<SettingsApiKeysPage />);
 
@@ -375,6 +396,48 @@ describe('SettingsApiKeysPage', () => {
     });
 
     expect(screen.getByText('gf_test_created')).toBeInTheDocument();
+  });
+
+  it('keeps Create Key enabled while the key list is loading', async () => {
+    mocks.findAllApiKeys.mockImplementation(() => new Promise(() => undefined));
+    render(<SettingsApiKeysPage />);
+
+    expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+  });
+
+  it('enables Create Key when the Pro org has no keys', async () => {
+    mocks.findAllApiKeys.mockResolvedValue([]);
+    render(<SettingsApiKeysPage />);
+
+    expect(
+      await screen.findByText('No active Genfeed API keys.'),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+    ).toBeEnabled();
+  });
+
+  it('shows list-load error UI without disabling Create Key', async () => {
+    mocks.findAllApiKeys.mockRejectedValue(new Error('keys unavailable'));
+    render(<SettingsApiKeysPage />);
+
+    expect(
+      await screen.findByText("Couldn't load API keys"),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Failed to load API keys. You can still create a new key, or refresh the list.',
+      ),
+    ).toBeInTheDocument();
+    expect(mocks.notificationsError).toHaveBeenCalledWith(
+      'Failed to load API keys',
+    );
+    expect(screen.getByRole('button', { name: 'Create Key' })).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+    ).toBeEnabled();
   });
 
   it('locks the API keys page for free-tier organizations', async () => {
