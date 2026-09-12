@@ -71,6 +71,15 @@ export interface ICredentialInstagram extends ICredential {
   username: string;
   image: string;
   platform: CredentialPlatform;
+  /**
+   * True when this candidate's externalId is already held by another live
+   * (connected) credential of this brand — choosing it merges this
+   * connection into that incumbent rather than creating a new account.
+   * Computed server-side in `findAllInstagramPages`, the same exclusion
+   * `InstagramController.resolveAuthorizedAccount` already applies when
+   * auto-resolving.
+   */
+  isAlreadyConnected?: boolean;
 }
 
 export interface ICredentialOAuth extends ICredential {

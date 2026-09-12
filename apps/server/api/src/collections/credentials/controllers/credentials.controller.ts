@@ -265,8 +265,32 @@ export class CredentialsController {
           accessToken,
         );
 
+      // Flag candidates already held by another live credential of this
+      // brand, the same sibling exclusion
+      // `InstagramConnectionResolverService.resolveAuthorizedAccount` applies
+      // when auto-resolving — the picker still lists them (choosing one is a
+      // legitimate deliberate reconnect, merging into that incumbent), but
+      // the UI can now tell the operator which candidates that applies to.
+      const heldAccounts = credential.brandId
+        ? await this.credentialsService.findConnectedAccounts(
+            user.organizationId,
+            credential.brandId,
+            CredentialPlatform.INSTAGRAM,
+          )
+        : [];
+      const heldExternalIds = new Set(
+        heldAccounts
+          .filter((account) => account.id !== credential.id)
+          .map((account) => account.externalId)
+          .filter((externalId): externalId is string => Boolean(externalId)),
+      );
+      const pagesWithHeldFlag = pages.map((page) => ({
+        ...page,
+        isAlreadyConnected: heldExternalIds.has(page.id),
+      }));
+
       return serializeCollection(request, CredentialInstagramPagesSerializer, {
-        docs: pages,
+        docs: pagesWithHeldFlag,
       });
     } catch (error: unknown) {
       // Handle expired/invalid token errors from Facebook Graph API

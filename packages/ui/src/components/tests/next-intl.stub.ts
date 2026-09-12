@@ -89,6 +89,7 @@ const UI_TEST_MESSAGES = {
     oauth: {
       platformCallback: {
         selectAccount: {
+          alreadyConnected: 'Already connected',
           back: 'Go back',
           confirm: 'Use this account',
           confirmError: 'Failed to connect this account. Please try again.',

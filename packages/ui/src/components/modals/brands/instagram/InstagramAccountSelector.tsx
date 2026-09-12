@@ -8,6 +8,7 @@ import type { InstagramAccountSelectorProps } from '@genfeedai/props/auth/instag
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ServicesService } from '@genfeedai/services/external/services.service';
 import { CredentialsService } from '@genfeedai/services/organization/credentials.service';
+import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { CircleCheck } from 'lucide-react';
 import Image from 'next/image';
@@ -231,7 +232,14 @@ export default function InstagramAccountSelector({
                   </div>
                 )}
                 <div className="flex-1 text-left">
-                  <p className="font-medium">{account.label}</p>
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">{account.label}</p>
+                    {account.isAlreadyConnected && (
+                      <Badge variant="info">
+                        {translate('alreadyConnected')}
+                      </Badge>
+                    )}
+                  </div>
                   <p className="text-sm text-muted-foreground">
                     @{account.username}
                   </p>

@@ -107,6 +107,33 @@ describe('InstagramAccountSelector', () => {
     expect(screen.queryByRole('img')).not.toBeInTheDocument();
   });
 
+  it('flags a candidate already held by a sibling credential', async () => {
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue([
+      { ...candidateAccounts[0], isAlreadyConnected: true },
+      candidateAccounts[1],
+    ]);
+
+    render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('Genfeed AI')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Already connected')).toBeInTheDocument();
+    // The flag is informational only — a held account stays pickable, since
+    // choosing it is a legitimate deliberate reconnect that merges into the
+    // incumbent (see InstagramConnectionResolverService.resolveAuthorizedAccount).
+    const heldAccountButton = screen
+      .getByText('Genfeed AI')
+      .closest('button') as HTMLElement;
+    expect(heldAccountButton).not.toBeDisabled();
+  });
+
   it('shows the empty state with retry and back actions', async () => {
     const onBack = vi.fn();
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue([]);

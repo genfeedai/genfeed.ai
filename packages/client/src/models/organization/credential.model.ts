@@ -44,6 +44,7 @@ export class BaseCredentialInstagram
   declare public username: string;
   declare public image: string;
   declare public category: boolean;
+  declare public isAlreadyConnected?: boolean;
 
   constructor(data: Partial<ICredentialInstagram> = {}) {
     super(data);

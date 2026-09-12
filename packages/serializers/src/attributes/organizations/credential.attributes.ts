@@ -85,6 +85,7 @@ export const credentialInstagramAttributes = createEntityAttributes([
   'username',
   'image',
   'platform',
+  'isAlreadyConnected',
 ]);
 
 export const credentialOAuthAttributes = createEntityAttributes(['url']);
