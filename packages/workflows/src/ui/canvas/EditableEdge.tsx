@@ -1,10 +1,15 @@
 'use client';
 
+import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { HandleType } from '@genfeedai/contracts/types';
+import { Button } from '@genfeedai/ui/primitives/button';
 import type { EdgeProps } from '@xyflow/react';
-import { BaseEdge, getBezierPath } from '@xyflow/react';
-import { Pause } from 'lucide-react';
-import { memo } from 'react';
+import { BaseEdge, EdgeToolbar, getBezierPath } from '@xyflow/react';
+import { Pause, Play, Trash2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
+import { memo, useCallback } from 'react';
+import { useUIStore } from '../stores/uiStore';
+import { useWorkflowStore } from '../stores/workflow';
 
 const DATA_TYPE_COLORS: Record<HandleType, [string, string]> = {
   audio: ['#f97316', '#fb923c'], // orange
@@ -16,6 +21,91 @@ const DATA_TYPE_COLORS: Record<HandleType, [string, string]> = {
 
 const DEFAULT_COLORS: [string, string] = ['#6b7280', '#9ca3af'];
 const EMPTY_EDGE_STYLE: NonNullable<EdgeProps['style']> = {};
+
+/** Hit-test width (px) around the visible edge path, handled by BaseEdge itself. */
+const EDGE_INTERACTION_WIDTH = 20;
+/** Gap (px, in flow coordinates) between the edge midpoint and the toolbar above it. */
+const TOOLBAR_GAP = 12;
+
+interface EdgeMidpointToolbarProps {
+  edgeId: string;
+  hasPause: boolean;
+  labelX: number;
+  labelY: number;
+}
+
+function EdgeMidpointToolbar({
+  edgeId,
+  hasPause,
+  labelX,
+  labelY,
+}: EdgeMidpointToolbarProps) {
+  const translate = useTranslations('pages.workflows.edgeToolbar');
+  // A box-selection can mark many edges `selected` at once (xyflow's own
+  // per-edge flag); only the edge the user explicitly clicked shows a
+  // toolbar, so selecting a cluster of nodes doesn't scatter toolbars
+  // across the canvas.
+  const isSingleSelected = useUIStore(
+    (state) => state.selectedEdgeId === edgeId,
+  );
+  const selectEdge = useUIStore((state) => state.selectEdge);
+  const toggleEdgePause = useWorkflowStore((state) => state.toggleEdgePause);
+  const removeEdge = useWorkflowStore((state) => state.removeEdge);
+
+  const handleTogglePause = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      toggleEdgePause(edgeId);
+    },
+    [edgeId, toggleEdgePause],
+  );
+
+  const handleDelete = useCallback(
+    (e: React.MouseEvent) => {
+      e.stopPropagation();
+      removeEdge(edgeId);
+      selectEdge(null);
+    },
+    [edgeId, removeEdge, selectEdge],
+  );
+
+  return (
+    <EdgeToolbar
+      edgeId={edgeId}
+      x={labelX}
+      y={labelY - TOOLBAR_GAP}
+      isVisible={isSingleSelected}
+      alignY="bottom"
+      className="nodrag nopan z-30 flex items-center gap-1 bg-background shadow-dropdown px-1.5 py-1"
+      onClick={(e: React.MouseEvent) => e.stopPropagation()}
+    >
+      <Button
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
+        onClick={handleTogglePause}
+        title={hasPause ? translate('resumeEdge') : translate('pauseEdge')}
+      >
+        {hasPause ? (
+          <Play className="size-3.5" />
+        ) : (
+          <Pause className="size-3.5" />
+        )}
+      </Button>
+      <div className="h-4 w-px bg-border" />
+      <Button
+        withWrapper={false}
+        variant={ButtonVariant.GHOST}
+        size={ButtonSize.ICON}
+        onClick={handleDelete}
+        title={translate('deleteEdge')}
+        className="hover:bg-destructive/10 hover:text-destructive"
+      >
+        <Trash2 className="size-3.5" />
+      </Button>
+    </EdgeToolbar>
+  );
+}
 
 function EditableEdgeComponent({
   id,
@@ -57,19 +147,12 @@ function EditableEdgeComponent({
         </linearGradient>
       </defs>
 
-      {/* Transparent hit area for easier clicking */}
-      <path
-        d={edgePath}
-        fill="none"
-        stroke="transparent"
-        strokeWidth={20}
-        className="react-flow__edge-interaction"
-      />
-
-      {/* Visible edge */}
+      {/* Visible edge; BaseEdge renders its own transparent interaction path
+          at `interactionWidth`, so mid-edge clicks reliably hit this edge. */}
       <BaseEdge
         path={edgePath}
         markerEnd={markerEnd}
+        interactionWidth={EDGE_INTERACTION_WIDTH}
         style={{
           ...style,
           stroke: `url(#${gradientId})`,
@@ -109,6 +192,21 @@ function EditableEdgeComponent({
             style={{ backgroundColor: colorStart }}
           />
         </foreignObject>
+      )}
+
+      {/* Delete/disconnect toolbar. Mounted whenever xyflow marks this edge
+          `selected` (including box-selection), but EdgeMidpointToolbar only
+          actually shows it for the single edge the user explicitly clicked
+          (see isSingleSelected). Uses xyflow's own EdgeToolbar, which tracks
+          the edge's midpoint under pan/zoom and counter-scales its content
+          so it stays a fixed size regardless of zoom level. */}
+      {selected && (
+        <EdgeMidpointToolbar
+          edgeId={id}
+          hasPause={hasPause}
+          labelX={labelX}
+          labelY={labelY}
+        />
       )}
     </>
   );

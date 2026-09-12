@@ -1,5 +1,4 @@
 export { ConnectionDropMenu } from './ConnectionDropMenu';
-export { EdgeToolbar } from './EdgeToolbar';
 export { EditableEdge } from './EditableEdge';
 export { GroupOverlay } from './GroupOverlay';
 export { HelperLines } from './HelperLines';

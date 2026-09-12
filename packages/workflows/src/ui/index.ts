@@ -1,7 +1,6 @@
 // Canvas
 export {
   ConnectionDropMenu,
-  EdgeToolbar,
   EditableEdge,
   GroupOverlay,
   HelperLines,
