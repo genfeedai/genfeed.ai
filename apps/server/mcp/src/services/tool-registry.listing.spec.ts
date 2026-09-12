@@ -1,4 +1,4 @@
-import type { McpToolOutput } from '@genfeedai/actions';
+import type { McpToolOutput, ToolsetName } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ClientService } from '@mcp/services/client.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
@@ -43,6 +43,10 @@ const SUPERADMIN_TOOL = {
 
 const ALL_TOOLS = [USER_TOOL, ADMIN_TOOL, SUPERADMIN_TOOL];
 
+const mockState = vi.hoisted(() => ({
+  toolsForToolsets: [] as { name: string }[],
+}));
+
 vi.mock('@genfeedai/actions', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/actions')>();
   return {
@@ -52,11 +56,23 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
       (surface: Parameters<typeof actual.getToolsForSurface>[0]) =>
         surface === 'mcp' ? ALL_TOOLS : actual.getToolsForSurface(surface),
     ),
+    getToolsForToolsets: vi.fn(
+      (
+        surface: Parameters<typeof actual.getToolsForToolsets>[0],
+        toolsets: Parameters<typeof actual.getToolsForToolsets>[1],
+      ) =>
+        surface === 'mcp'
+          ? mockState.toolsForToolsets
+          : actual.getToolsForToolsets(surface, toolsets),
+    ),
     toMcpTools: vi.fn((tools) => tools),
   };
 });
 
-function build(role: 'user' | 'admin' | 'superadmin') {
+function build(
+  role: 'user' | 'admin' | 'superadmin',
+  toolsets: ToolsetName[] = [],
+) {
   const logger = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -67,11 +83,18 @@ function build(role: 'user' | 'admin' | 'superadmin') {
     {} as unknown as ClientService,
     logger as unknown as LoggerService,
     role,
+    toolsets,
   );
 }
 
 const names = (tools: McpToolOutput[]): string[] =>
   tools.map((tool) => tool.name).sort();
+
+beforeEach(() => {
+  // Default: `getToolsForToolsets` behaves like the unfiltered surface, so
+  // existing role-only assertions do not need to know about toolsets.
+  mockState.toolsForToolsets = ALL_TOOLS;
+});
 
 describe('ToolRegistryService.filterToolsByRole', () => {
   it('gives a user only user-tier tools', () => {
@@ -116,5 +139,88 @@ describe('ToolRegistryService listing filters by the caller role', () => {
       'list_posts',
       'resolve_approval',
     ]);
+  });
+});
+
+describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleAndToolsets)', () => {
+  const CORE_TOOL = {
+    _meta: {},
+    description: 'core discovery tool',
+    inputSchema: { properties: {}, type: 'object' },
+    name: 'list_toolsets',
+    requiredRole: 'user',
+  } as McpToolOutput;
+
+  const CONTENT_TOOL = {
+    _meta: {},
+    description: 'content tool',
+    inputSchema: { properties: {}, type: 'object' },
+    name: 'create_post',
+    requiredRole: 'user',
+  } as McpToolOutput;
+
+  const ADMIN_GENERATION_TOOL = {
+    _meta: {},
+    description: 'admin-gated generation tool',
+    inputSchema: { properties: {}, type: 'object' },
+    name: 'admin_only_generation_tool',
+    requiredRole: 'admin',
+  } as McpToolOutput;
+
+  const TOOLSET_FIXTURE = [CORE_TOOL, CONTENT_TOOL, ADMIN_GENERATION_TOOL];
+
+  beforeEach(() => {
+    mockState.toolsForToolsets = TOOLSET_FIXTURE;
+  });
+
+  it('passes the caller-selected toolsets through to the shared catalog filter', async () => {
+    const { getToolsForToolsets } = await import('@genfeedai/actions');
+
+    build('user', ['content']).getTools();
+
+    expect(getToolsForToolsets).toHaveBeenCalledWith('mcp', ['content']);
+  });
+
+  it('still applies the role filter on top of whatever the toolset selection returns', () => {
+    expect(names(build('user', ['content']).getTools())).toEqual([
+      'create_post',
+      'list_toolsets',
+    ]);
+    expect(names(build('admin', ['content']).getTools())).toEqual([
+      'admin_only_generation_tool',
+      'create_post',
+      'list_toolsets',
+    ]);
+  });
+
+  it('an empty selection defers to the shared catalog for "every tool"', () => {
+    expect(names(build('user', []).getTools())).toEqual([
+      'create_post',
+      'list_toolsets',
+    ]);
+  });
+
+  it('getToolsForRoleAndToolsets is the primitive both getTools and the REST mirror share', () => {
+    const registry = build('superadmin');
+
+    expect(
+      names(registry.getToolsForRoleAndToolsets('user', ['content'])),
+    ).toEqual(['create_post', 'list_toolsets']);
+  });
+});
+
+describe('ToolRegistryService.getDiscoverableTools', () => {
+  it('ignores the requested toolset selection and returns the role-filtered full catalog', () => {
+    // ALL_TOOLS (via getToolsForSurface) has an admin and a superadmin tool
+    // that are NOT in the requested toolset fixture below — proving discovery
+    // is not scoped to `?toolsets=`.
+    mockState.toolsForToolsets = [];
+
+    expect(names(build('user', ['content']).getDiscoverableTools())).toEqual([
+      'list_posts',
+    ]);
+    expect(
+      names(build('superadmin', ['content']).getDiscoverableTools()),
+    ).toEqual(['admin_scoped_tool', 'list_posts', 'resolve_approval']);
   });
 });

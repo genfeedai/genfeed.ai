@@ -32,6 +32,11 @@ vi.mock('@genfeedai/actions', async (importOriginal) => {
 
 describe('ToolRegistryService.classify', () => {
   it.each([
+    // Tool discovery meta tools are handled entirely in-process (no API
+    // call); they classify first so nothing else can shadow them.
+    ['list_toolsets', 'tool-discovery'],
+    ['search_tools', 'tool-discovery'],
+    ['describe_tool', 'tool-discovery'],
     ['send_chat_message', 'agent-chat'],
     // inspect_workflow is BOTH an CuratedActionName and a workflow-control tool;
     // precedence must keep it on workflow-control (checked first).
@@ -99,6 +104,7 @@ describe('ToolRegistryService.validateDispatchCoverage', () => {
       { name: 'list_meta_campaigns' },
       { name: 'resolve_approval' },
       { name: 'create_post' },
+      { name: 'list_toolsets' },
     ];
     expect(() => ToolRegistryService.validateDispatchCoverage()).not.toThrow();
   });

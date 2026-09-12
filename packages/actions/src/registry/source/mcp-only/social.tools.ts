@@ -40,11 +40,11 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
     parameters: {
       properties: {
         assignedOwnerId: {
-          description: 'Filter to conversations assigned to this user id',
+          description: 'Assigned owner user id.',
           type: 'string',
         },
         automationState: {
-          description: 'Filter by automation lifecycle state',
+          description: 'Automation lifecycle state.',
           enum: [
             'manual',
             'drafted',
@@ -56,12 +56,11 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
           type: 'string',
         },
         conversationType: {
-          description: 'Filter by conversation type',
           enum: ['comment', 'dm', 'mention', 'reply'],
           type: 'string',
         },
         credentialId: {
-          description: 'Filter to one connected social credential',
+          description: 'Connected social credential id.',
           type: 'string',
         },
         limit: {
@@ -72,18 +71,15 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
           type: 'number',
         },
         needsReview: {
-          description:
-            'Return only conversations that do or do not need review',
+          description: 'Only conversations needing (or not needing) review.',
           type: 'boolean',
         },
         page: {
           default: 1,
-          description: 'Page number',
           minimum: 1,
           type: 'number',
         },
         platform: {
-          description: 'Filter by social platform',
           enum: ['youtube', 'instagram', 'twitter', 'linkedin', 'unipile'],
           type: 'string',
         },
@@ -92,16 +88,16 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
           type: 'string',
         },
         status: {
-          description: 'Filter by inbox status',
+          description: 'Inbox status.',
           enum: ['open', 'needs_review', 'resolved', 'archived'],
           type: 'string',
         },
         tag: {
-          description: 'Filter to conversations with this tag',
+          description: 'Conversations with this tag.',
           type: 'string',
         },
         unread: {
-          description: 'Return only unread conversations',
+          description: 'Only unread conversations.',
           type: 'boolean',
         },
       },

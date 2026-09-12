@@ -4297,14 +4297,6 @@
       "workspace": "mcp"
     },
     {
-      "code": 2352,
-      "count": 1,
-      "file": "apps/server/mcp/src/mcp/controllers/mcp.controller.spec.ts",
-      "fingerprint": "5012e64ea3afc53658fe",
-      "message": "Conversion of type '{ authContext: { organizationId: string; token: string; userId: string; }; }' to type 'AuthenticatedRequest' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.   Type '{ authContext: { organizationId: string; token: string; userId: string; }; }' is missing the following properties from type 'AuthenticatedRequest': get, header, accepts, acceptsCharsets, and 97 more.",
-      "workspace": "mcp"
-    },
-    {
       "code": 2322,
       "count": 1,
       "file": "apps/server/mcp/src/services/client.service.spec.ts",

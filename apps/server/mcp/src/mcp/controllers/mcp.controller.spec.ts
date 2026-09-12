@@ -1,4 +1,4 @@
-import type { McpToolOutput } from '@genfeedai/actions';
+import type { McpToolOutput, ToolsetName } from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
@@ -6,6 +6,7 @@ import { MCPService } from '@mcp/mcp/services/mcp.service';
 import type { McpRole } from '@mcp/services/auth.service';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
+import { BadRequestException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 
 type AuthenticatedControllerRequest = Parameters<
@@ -108,8 +109,9 @@ describe('McpController', () => {
     ],
   };
 
-  const getToolsForRoleMock = vi.fn(
-    (role: McpRole): McpToolOutput[] => roleTools[role],
+  const getToolsForRoleAndToolsetsMock = vi.fn(
+    (role: McpRole, _toolsets: readonly ToolsetName[]): McpToolOutput[] =>
+      roleTools[role],
   );
 
   const mockMcpService = {
@@ -134,12 +136,12 @@ describe('McpController', () => {
   };
 
   const mockToolRegistryService = {
-    getToolsForRole: getToolsForRoleMock,
+    getToolsForRoleAndToolsets: getToolsForRoleAndToolsetsMock,
     handleResourceRead: vi.fn(),
     setBearerToken: vi.fn(),
   } satisfies Pick<
     ToolRegistryService,
-    'getToolsForRole' | 'handleResourceRead' | 'setBearerToken'
+    'getToolsForRoleAndToolsets' | 'handleResourceRead' | 'setBearerToken'
   >;
 
   const mockLoggerService = {
@@ -267,31 +269,73 @@ describe('McpController', () => {
     it('delegates to the registry role-aware listing path', () => {
       const request = {
         authContext: { role: 'superadmin' },
+        query: {},
       } as unknown as Parameters<typeof controller.getTools>[0];
 
       const result = controller.getTools(request);
 
-      expect(getToolsForRoleMock).toHaveBeenCalledWith('superadmin');
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
+        'superadmin',
+        [],
+      );
       expect(result).toEqual({ tools: roleTools.superadmin });
       expect(rawToolSourceMocks.getToolsForSurface).not.toHaveBeenCalled();
       expect(rawToolSourceMocks.toMcpTools).not.toHaveBeenCalled();
     });
 
     it('defaults to the user role when auth context is absent', () => {
+      const result = controller.getTools({ query: {} } as unknown as Parameters<
+        typeof controller.getTools
+      >[0]);
+
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', []);
+      expect(result).toEqual({ tools: roleTools.user });
+    });
+
+    it('tolerates a request with no query object at all', () => {
       const result = controller.getTools(
         {} as unknown as Parameters<typeof controller.getTools>[0],
       );
 
-      expect(getToolsForRoleMock).toHaveBeenCalledWith('user');
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', []);
       expect(result).toEqual({ tools: roleTools.user });
+    });
+
+    it('parses the ?toolsets= query param and forwards the selection', () => {
+      const request = {
+        authContext: { role: 'user' },
+        query: { toolsets: 'content,generation' },
+      } as unknown as Parameters<typeof controller.getTools>[0];
+
+      controller.getTools(request);
+
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
+        'content',
+        'generation',
+      ]);
+    });
+
+    it('rejects an unknown toolset name with a 400', () => {
+      const request = {
+        authContext: { role: 'user' },
+        query: { toolsets: 'not-a-real-toolset' },
+      } as unknown as Parameters<typeof controller.getTools>[0];
+
+      expect(() => controller.getTools(request)).toThrow(BadRequestException);
+      expect(() => controller.getTools(request)).toThrow(
+        /Unknown toolset\(s\): not-a-real-toolset/,
+      );
+      expect(getToolsForRoleAndToolsetsMock).not.toHaveBeenCalled();
     });
 
     it('applies role filtering so a user never sees more than a superadmin', () => {
       const userRequest = {
         authContext: { role: 'user' },
+        query: {},
       } as unknown as Parameters<typeof controller.getTools>[0];
       const superRequest = {
         authContext: { role: 'superadmin' },
+        query: {},
       } as unknown as Parameters<typeof controller.getTools>[0];
 
       const userTools = controller

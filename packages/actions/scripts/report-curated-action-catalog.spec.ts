@@ -84,6 +84,123 @@ describe('curated action catalog change reporter', () => {
     ]);
   });
 
+  it('parses a one-line entry with a toolset', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{ name: 'one_liner', surfaces: ['agent'], toolset: 'content' }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'one_liner',
+        surfaces: ['agent'],
+        toolset: 'content',
+      }),
+    ]);
+  });
+
+  it('parses a multi-line entry reflowed by Biome once the toolset field is added', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            name: 'reflowed_action',
+            surfaces: ['agent', 'mcp'],
+            toolset: 'knowledge',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'reflowed_action',
+        surfaces: ['agent', 'mcp'],
+        toolset: 'knowledge',
+      }),
+    ]);
+  });
+
+  it('parses a multi-line publishing approval entry with a toolset', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            isPublishingApprovalRequired: true,
+            name: 'publish_action_with_toolset',
+            surfaces: ['mcp'],
+            toolset: 'social-inbox',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'publish_action_with_toolset',
+        surfaces: ['mcp'],
+        toolset: 'social-inbox',
+      }),
+    ]);
+  });
+
+  it('parses a legacy entry with no toolset field as undefined', () => {
+    expect(
+      parseCatalogSource(
+        catalog(`{ name: 'legacy_action', surfaces: ['agent'] }`),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'legacy_action',
+        surfaces: ['agent'],
+        toolset: undefined,
+      }),
+    ]);
+  });
+
+  it('reports a toolset change between base and head, including when the base has no toolset field', () => {
+    const before = parseCatalogSource(
+      catalog(`{ name: 'moved_toolset_action', surfaces: ['agent', 'mcp'] }`),
+    );
+    const after = parseCatalogSource(
+      catalog(
+        `{ name: 'moved_toolset_action', surfaces: ['agent', 'mcp'], toolset: 'content' }`,
+      ),
+    );
+
+    const changes = diffCatalogs(before, after);
+    expect(changes).toEqual([
+      expect.objectContaining({
+        action: 'moved_toolset_action',
+        kind: 'toolset-changed',
+        previousToolset: undefined,
+        toolset: 'content',
+      }),
+    ]);
+    const [change] = changes;
+    if (!change) {
+      throw new Error('Expected a toolset-change fixture');
+    }
+    expect(formatWarningAnnotation(change)).toContain(
+      'Curated action toolset changed: moved_toolset_action ((none) -> content)',
+    );
+    expect(formatStepSummary(changes)).toContain(
+      '| toolset-changed | `moved_toolset_action` | agent, mcp | (none) -> content |',
+    );
+
+    const reassigned = parseCatalogSource(
+      catalog(
+        `{ name: 'moved_toolset_action', surfaces: ['agent', 'mcp'], toolset: 'generation' }`,
+      ),
+    );
+    const reassignedChanges = diffCatalogs(after, reassigned);
+    expect(reassignedChanges).toEqual([
+      expect.objectContaining({
+        action: 'moved_toolset_action',
+        kind: 'toolset-changed',
+        previousToolset: 'content',
+        toolset: 'generation',
+      }),
+    ]);
+  });
+
   it('formats warning annotations and a complete step summary', () => {
     const [change] = diffCatalogs(
       [],

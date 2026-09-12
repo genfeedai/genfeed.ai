@@ -1,0 +1,81 @@
+import {
+  getToolsetNames,
+  parseToolsetSelection,
+  type ToolsetSelection,
+} from '@genfeedai/actions';
+import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
+import { readToolsetsQueryParam } from '@mcp/shared/utils/toolsets-query.util';
+import type { NextFunction, Request, Response } from 'express';
+
+/** Cap on the unknown toolset names echoed back in the 400 message body. */
+const MAX_ECHOED_UNKNOWN_TOOLSETS = 5;
+
+/**
+ * Parse `req.query.toolsets` into a validated selection scoped to the `mcp`
+ * surface, so an agent-only toolset name (e.g. `onboarding`) is rejected the
+ * same way as a name that does not exist at all. Exported standalone (not
+ * just embedded in the middleware) so both the raw `/mcp` transport
+ * (`main.ts`) and the REST mirror (`GET /v1/tools`) resolve the same
+ * selection from the same query shape.
+ */
+export function resolveRequestToolsets(
+  query: Request['query'],
+): ToolsetSelection {
+  return parseToolsetSelection(readToolsetsQueryParam(query), 'mcp');
+}
+
+/**
+ * Human-readable reason an unknown toolset name was rejected. The echoed
+ * unknown names are capped so a client that sends a long garbage list (or an
+ * attacker probing the endpoint) cannot inflate the error body.
+ */
+export function buildUnknownToolsetsMessage(
+  unknown: readonly string[],
+): string {
+  const shown = unknown.slice(0, MAX_ECHOED_UNKNOWN_TOOLSETS);
+  const remaining = unknown.length - shown.length;
+  const shownList =
+    remaining > 0
+      ? `${shown.join(', ')} (+${remaining} more)`
+      : shown.join(', ');
+  const validNames = getToolsetNames('mcp');
+  return `Unknown toolset(s): ${shownList}. Valid toolsets: ${validNames.join(', ')}.`;
+}
+
+/**
+ * JSON-RPC shaped error body for the raw `/mcp` transport, which speaks
+ * JSON-RPC even for a request rejected before it reaches the SDK server.
+ */
+export function buildUnknownToolsetsJsonRpcError(unknown: readonly string[]) {
+  return {
+    error: {
+      code: -32602,
+      message: buildUnknownToolsetsMessage(unknown),
+    },
+    id: null,
+    jsonrpc: '2.0' as const,
+  };
+}
+
+/**
+ * Reads `?toolsets=` before authentication so an unknown toolset name is
+ * rejected the same way for an authenticated caller and an unauthenticated
+ * public discovery request (`tools/list`). On success it stores the parsed
+ * selection on `req.toolsets` for `StreamableHttpService.buildServer` to
+ * thread into `ToolRegistryService`.
+ */
+export function toolsetsQueryMiddleware(
+  req: McpRequest,
+  res: Response,
+  next: NextFunction,
+): void {
+  const selection = resolveRequestToolsets(req.query);
+
+  if (selection.unknown.length > 0) {
+    res.status(400).json(buildUnknownToolsetsJsonRpcError(selection.unknown));
+    return;
+  }
+
+  req.toolsets = selection.toolsets;
+  next();
+}

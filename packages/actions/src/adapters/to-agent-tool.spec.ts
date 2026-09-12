@@ -18,6 +18,7 @@ function buildTool(
     },
     requiredRole: 'user',
     surfaces: { agent: true, cliAgentVisible: true, mcp: true },
+    toolset: 'generation',
     ...overrides,
   };
 }

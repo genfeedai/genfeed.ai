@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getToolsForSurface } from '@genfeedai/actions';
+import { TOOL_DISCOVERY_TOOL_NAMES } from '@mcp/tools/tool-discovery.tool';
 
 /**
  * Route-contract test (PR 5/6). The MCP server is a thin HTTP proxy: every tool
@@ -696,7 +697,12 @@ describe('MCP → API route contract', () => {
       (name) =>
         !agentExecutorNames.has(name) &&
         !contractTools.has(name) &&
-        name !== 'resolve_approval',
+        name !== 'resolve_approval' &&
+        // Tool discovery meta tools (`list_toolsets`, `search_tools`,
+        // `describe_tool`) are handled entirely in-process against the
+        // registry's own catalog — they never call out to the API, so they
+        // have no mounted route to cover.
+        !TOOL_DISCOVERY_TOOL_NAMES.has(name),
     );
     expect(uncovered).toEqual([]);
   });
