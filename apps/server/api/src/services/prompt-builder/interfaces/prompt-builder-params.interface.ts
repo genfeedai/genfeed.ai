@@ -106,6 +106,11 @@ export interface PromptBuilderParams {
   presencePenalty?: number;
   frequencyPenalty?: number;
   thinkingLevel?: 'low' | 'high';
+
+  // Music generation parameters (MusicGen and compatible providers)
+  /** Provider model variant, e.g. MusicGen's 'melody' | 'large' | 'stereo-large'. */
+  modelVersion?: string;
+  classifierFreeGuidance?: number;
 }
 
 /**

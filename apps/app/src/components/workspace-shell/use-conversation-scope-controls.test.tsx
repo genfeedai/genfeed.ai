@@ -143,12 +143,19 @@ const activeThread = {
   updatedAt: '2026-07-13T00:00:00.000Z',
 } as const;
 
-function Harness() {
+function Harness({
+  activeThreadOverride = activeThread,
+  routeBrandId = null,
+}: {
+  readonly activeThreadOverride?: typeof activeThread | null;
+  readonly routeBrandId?: string | null;
+} = {}) {
   const state = useConversationScopeControls({
-    activeThread: activeThread as never,
+    activeThread: activeThreadOverride as never,
     apiService: api as never,
     currentDraftScopeKey: 'acme:thread-1:3',
     pathname: '/acme/brand-a/library/images',
+    routeBrandId,
     searchParams: new URLSearchParams('thread=thread-1'),
   });
 
@@ -251,5 +258,29 @@ describe('useConversationScopeControls', () => {
       screen.getByRole('button', { name: 'Start clean thread' }),
     ).toBeDisabled();
     expect(routedOrganization.switchOrganization).not.toHaveBeenCalled();
+  });
+
+  it("prefers an authorized route brand over the thread's own brand", async () => {
+    render(<Harness routeBrandId="brand-b" />);
+
+    expect(await screen.findByText('Acme · Brand B')).toBeInTheDocument();
+  });
+
+  it('falls back to Organization-wide when the route brand is not authorized', async () => {
+    render(<Harness routeBrandId="brand-unauthorized" />);
+
+    expect(
+      await screen.findByText('Acme · Organization-wide'),
+    ).toBeInTheDocument();
+  });
+
+  it('leaves an Organization-wide thread unchanged when the route names no brand', async () => {
+    render(
+      <Harness activeThreadOverride={{ ...activeThread, brandId: null }} />,
+    );
+
+    expect(
+      await screen.findByText('Acme · Organization-wide'),
+    ).toBeInTheDocument();
   });
 });

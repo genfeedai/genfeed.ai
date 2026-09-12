@@ -1,5 +1,7 @@
 import type { AssetDocument } from '@api/collections/assets/schemas/asset.schema';
 import { AssetsService } from '@api/collections/assets/services/assets.service';
+import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { WorkflowNodeContinuationService } from '@api/collections/workflows/services/workflow-node-continuation.service';
 import { WorkflowNodeContinuationCoordinatorService } from '@api/collections/workflows/services/workflow-node-continuation-coordinator.service';
@@ -21,6 +23,8 @@ import { Injectable } from '@nestjs/common';
 export class ReplicateGenerationWebhookHandler {
   constructor(
     private readonly loggerService: LoggerService,
+    private readonly ingredientsService: IngredientsService,
+    private readonly metadataService: MetadataService,
     private readonly modelsService: ModelsService,
     private readonly assetsService: AssetsService,
     private readonly webhooksService: WebhooksService,
@@ -154,21 +158,89 @@ export class ReplicateGenerationWebhookHandler {
   }
 
   /**
-   * Resolves the model's category into the matching ingredient category,
-   * defaulting to IMAGE when the model can't be found.
+   * The job's own persisted category — read from the ingredient row created
+   * at dispatch time — is the source of truth for classification. Guessing
+   * from the model registry is only a fallback for the rare case where no
+   * ingredient can be found yet (e.g. the registry row was deleted after the
+   * job started): a missing/stale registry row must never silently
+   * reclassify an existing music (or video) job as IMAGE (#4679).
    */
   private async resolveIngredientCategory(
     payload: ReplicateWebhookPayload,
   ): Promise<IngredientCategory> {
+    const byIngredient = await this.resolveIngredientCategoryFromRecord(
+      payload.id,
+    );
+    if (byIngredient) {
+      return byIngredient;
+    }
+
+    return this.resolveIngredientCategoryFromModelRegistry(payload.model);
+  }
+
+  /**
+   * Reads the category straight off the ingredient tied to this prediction's
+   * metadata, following the same indexed-then-base-id fallback the rest of
+   * the webhook pipeline uses for a multi-output externalId.
+   */
+  private async resolveIngredientCategoryFromRecord(
+    externalId: string,
+  ): Promise<IngredientCategory | null> {
+    const metadata =
+      (await this.metadataService.findOne({ externalId })) ??
+      (externalId.includes('_')
+        ? await this.metadataService.findOne({
+            externalId: externalId.split('_')[0],
+          })
+        : null);
+
+    if (!metadata) {
+      return null;
+    }
+
+    const ingredient = await this.ingredientsService.findOne({
+      metadataId: metadata.id,
+    });
+
+    return ingredient?.category
+      ? (ingredient.category as IngredientCategory)
+      : null;
+  }
+
+  /**
+   * Resolves a category directly from an ingredient id, used on the workflow
+   * continuation path where the ingredient is already known.
+   */
+  private async resolveIngredientCategoryForIngredient(
+    ingredientId: string,
+  ): Promise<IngredientCategory> {
+    const ingredient = await this.ingredientsService.findOne({
+      id: ingredientId,
+    });
+
+    if (ingredient?.category) {
+      return ingredient.category as IngredientCategory;
+    }
+
+    this.loggerService.warn(
+      'Replicate webhook: ingredient not found for workflow continuation, defaulting to IMAGE category',
+      { ingredientId },
+    );
+    return IngredientCategory.IMAGE;
+  }
+
+  private async resolveIngredientCategoryFromModelRegistry(
+    modelKey: unknown,
+  ): Promise<IngredientCategory> {
     const model = await this.modelsService.findOne({
-      key: payload.model,
+      key: modelKey,
     });
 
     if (!model?.category) {
       // Fallback: if model not found in DB, default to IMAGE
       this.loggerService.warn(
         `Model not found in database, defaulting to IMAGE category`,
-        { modelKey: payload.model },
+        { modelKey },
       );
       return IngredientCategory.IMAGE;
     }
@@ -191,7 +263,6 @@ export class ReplicateGenerationWebhookHandler {
     payload: ReplicateWebhookPayload,
     workflowContinuationId?: string,
   ): Promise<void> {
-    const ingredientCategory = await this.resolveIngredientCategory(payload);
     const output = payload.output;
 
     if (workflowContinuationId) {
@@ -221,6 +292,8 @@ export class ReplicateGenerationWebhookHandler {
         );
         return;
       }
+      const ingredientCategory =
+        await this.resolveIngredientCategoryForIngredient(target.ingredientId);
       await this.webhooksService.processMediaForIngredient(
         target.ingredientId,
         ingredientCategory,
@@ -237,6 +310,8 @@ export class ReplicateGenerationWebhookHandler {
       });
       return;
     }
+
+    const ingredientCategory = await this.resolveIngredientCategory(payload);
 
     // Check if the model supports multiple outputs
     // Extract model key from payload (format: "owner/model-name" or ModelKey)

@@ -209,14 +209,14 @@ describe('YoutubeController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('should include YouTube scopes in auth URL request', async () => {
+    it('should request only the minimum YouTube scopes in the auth URL', async () => {
       await controller.connect(mockRequest, mockUser, dto);
       expect(youtubeService.generateAuthUrl).toHaveBeenCalledWith(
         expect.objectContaining({
-          scope: expect.arrayContaining([
-            'https://www.googleapis.com/auth/youtube',
-            'https://www.googleapis.com/auth/youtube.upload',
-          ]),
+          scope: [
+            'https://www.googleapis.com/auth/youtube.force-ssl',
+            'https://www.googleapis.com/auth/yt-analytics.readonly',
+          ],
         }),
       );
     });

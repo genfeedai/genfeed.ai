@@ -140,9 +140,19 @@ export function getDeployment(): Deployment {
   return isHostedGenfeedFromBrowser() ? 'cloud' : 'self-hosted';
 }
 
+/**
+ * True only for the bundled desktop build, where the server renders the
+ * desktop surface too. The hosted studio opened inside the desktop shell learns
+ * it is desktop from the runtime config script, which the server render never
+ * sees — so this is the value hydration must start from.
+ */
+export function isDesktopShellBuild(): boolean {
+  return envFlag(process.env.NEXT_PUBLIC_DESKTOP_SHELL);
+}
+
 /** Resolve the client-surface axis independently from the deployment. */
 export function getClientSurface(): ClientSurface {
-  if (envFlag(process.env.NEXT_PUBLIC_DESKTOP_SHELL)) {
+  if (isDesktopShellBuild()) {
     return 'desktop';
   }
 

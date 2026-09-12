@@ -315,4 +315,35 @@ export const SELF_HOSTED_MODELS = [
     providerConfig: { name: 'video-upscaler', owner: 'bytedance' },
     providerCostUsd: 0.05,
   },
+  /**
+   * Only music model until #4680 adds Eleven Music, Lyria 3 Pro, and Mureka
+   * V9. Curated (cost > 0, isActive/isDefault) so the MUSIC category always
+   * has a usable registry row — an uncurated row seeds inactive and free,
+   * which left the router with nothing to select (#4679).
+   *
+   * `endpoint` MUST carry the pinned version hash. `meta/musicgen` alone
+   * resolves to `resolvePredictionTarget`'s `{ model }` form
+   * (replicate.service.ts), which Replicate's predictions API only serves
+   * for its own verified "official model" catalog — not every public
+   * owner/name slug. Dropping the hash 404s every generation. Pin here
+   * (not the pinned-constant-in-application-code pattern this replaced —
+   * see #4679) so an operator can re-pin to a newer version by editing the
+   * registry row, without a code change.
+   */
+  {
+    category: ModelCategory.MUSIC,
+    cost: 17,
+    costTier: CostTier.LOW,
+    description:
+      'Meta MusicGen — text-to-music generation, 5-30 second instrumental clips.',
+    endpoint:
+      'meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb',
+    isDefault: true,
+    isHighlighted: false,
+    key: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+    label: 'MusicGen',
+    provider: ModelProvider.REPLICATE,
+    providerConfig: { name: 'musicgen', owner: 'meta' },
+    providerCostUsd: 0.05,
+  },
 ] as const;

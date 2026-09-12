@@ -1,7 +1,6 @@
 'use client';
 
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { AssetSelectionProvider } from '@genfeedai/contexts/ui/asset-selection-context';
 import { BackgroundTaskProvider } from '@genfeedai/contexts/ui/background-task-context';
 import { BrandProvider } from '@genfeedai/contexts/user/brand-context/brand-context';
@@ -12,6 +11,7 @@ import {
   resolveAuthToken,
 } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import type { ProtectedBootstrapData } from '@genfeedai/props/layout/protected-bootstrap.props';
 import { AccessStateProvider } from '@providers/access-state/access-state.provider';
@@ -129,6 +129,7 @@ export default function ProtectedProviders({
   initialBootstrap,
   additionalProviders,
 }: ProtectedProvidersProps): ReactNode {
+  const isDesktop = useIsDesktopClient();
   let content: ReactNode = children;
   const hasInitialBootstrap = initialBootstrap != null;
 
@@ -205,7 +206,7 @@ export default function ProtectedProviders({
 
   // DESKTOP mode: bypass token gate — auth is handled by the desktop session bridge.
   // In offline mode getToken() returns '' which never satisfies hasJwtToken, causing a black screen.
-  if (isDesktopClient()) {
+  if (isDesktop) {
     return content;
   }
 

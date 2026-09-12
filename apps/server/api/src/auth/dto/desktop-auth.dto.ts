@@ -38,3 +38,9 @@ export class ExchangeDesktopAuthCodeDto {
   @MinLength(16)
   state!: string;
 }
+
+export class DesktopAuthCodeStatusDto {
+  @IsString()
+  @MinLength(16)
+  state!: string;
+}

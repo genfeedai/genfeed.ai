@@ -56,9 +56,6 @@ describe('OssCreditsUtilsService', () => {
     await expect(
       service.resetOrganizationCredits('org-1', 100, 'reset', 'test reset'),
     ).resolves.toBeUndefined();
-    await expect(
-      service.removeAllOrganizationCredits('org-1', 'reset', 'test remove'),
-    ).resolves.toBeUndefined();
   });
 
   it('returns stable dashboard cycle metrics', async () => {

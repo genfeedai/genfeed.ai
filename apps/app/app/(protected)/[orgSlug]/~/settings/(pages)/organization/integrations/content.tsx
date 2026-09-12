@@ -1,8 +1,8 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type {
   IntegrationsAction,
   IntegrationsState,
@@ -83,7 +83,7 @@ function integrationsReducer(
 /** Provider BYOK keys — OpenAI, Replicate, etc. (not Genfeed product API keys). */
 export default function SettingsIntegrationsPage() {
   const { organizationId, isReady } = useBrand();
-  const desktop = isDesktopClient();
+  const desktop = useIsDesktopClient();
   const [state, dispatch] = useReducer(integrationsReducer, initialState);
   const {
     providerStatuses,

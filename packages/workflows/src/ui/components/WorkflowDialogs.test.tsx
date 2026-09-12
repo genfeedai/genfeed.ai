@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { NodeSearch } from '../canvas/NodeSearch';
 import { ShortcutHelpModal } from '../canvas/ShortcutHelpModal';
-import { SaveAsDialog } from '../toolbar/SaveAsDialog';
 import { CostModal } from './CostModal';
 
 const state = vi.hoisted(() => ({
@@ -68,28 +67,5 @@ describe('shared workflow dialogs', () => {
         screen.getByRole('textbox', { name: 'Search nodes' }),
       ).toHaveFocus(),
     );
-  });
-
-  it('preserves Save As focus, validation, and trimmed submission', async () => {
-    const onSave = vi.fn();
-    const onClose = vi.fn();
-    render(
-      <SaveAsDialog
-        isOpen
-        currentName="My Flow"
-        onSave={onSave}
-        onClose={onClose}
-      />,
-    );
-    const name = screen.getByRole('textbox', { name: 'Workflow Name' });
-    await waitFor(() => expect(name).toHaveFocus());
-    fireEvent.change(name, { target: { value: '  ' } });
-    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
-    fireEvent.change(name, { target: { value: '  Copy  ' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Save' }));
-    expect(onSave).toHaveBeenCalledWith('Copy');
-    expect(onClose).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(onClose).toHaveBeenCalledTimes(1);
   });
 });

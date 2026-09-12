@@ -1,6 +1,5 @@
 'use client';
 
-import SettingsSearch from '@app-components/settings-search/SettingsSearch';
 import type { SettingsScope } from '@app-config/settings-menu-items.config';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { SettingsSurface } from '@genfeedai/contracts';
@@ -55,6 +54,13 @@ type Props = {
   isAutomationRoute: boolean;
   /** Settings sidebar scope — brand routes omit the redundant "Settings" header. */
   settingsScope?: SettingsScope;
+  /**
+   * Personal-account settings PAGE (Personal/Notifications/Progress/Help/
+   * About), flat or as an org-scoped copy. Distinct from `settingsScope`,
+   * which stays ORGANIZATION for the org-scoped copy on purpose (it drives
+   * which menu renders below) — this drives switcher visibility instead.
+   */
+  isPersonalSettingsPage?: boolean;
   adminMenuItems: MenuItemConfig[];
   analyticsMenuItems: MenuItemConfig[];
   libraryMenuItems: MenuItemConfig[];
@@ -93,6 +99,7 @@ export default function AppProtectedLayoutSidebar({
   isStudioRoute,
   isAutomationRoute,
   settingsScope = SettingsSurface.PERSONAL,
+  isPersonalSettingsPage = false,
   adminMenuItems,
   analyticsMenuItems,
   libraryMenuItems,
@@ -119,6 +126,12 @@ export default function AppProtectedLayoutSidebar({
   // canCreateOrganization (active subscription + tier org limit); non-SaaS just
   // shows the current org with no create action. The brand switcher is
   // similarly always visible.
+  //
+  // Documented exception (#4659): personal-account settings PAGES (flat or
+  // org-scoped copy) have no org context to switch from, so the settings
+  // surface below hides both switchers (`showOrgSwitcher`) when
+  // `isPersonalSettingsPage` is true; the brand switcher's matching hide
+  // condition lives in AppProtectedTopbar.
   const orgSwitcherSlot = (
     <OrganizationSwitcher subscriptionTier={settings?.subscriptionTier} />
   );
@@ -251,7 +264,10 @@ export default function AppProtectedLayoutSidebar({
         // No top-level "Settings" shell header — org/brand switcher + group
         // labels (Organization / Access, Brand / Automation) are enough.
         sectionLabel: undefined,
-        showOrgSwitcher: true,
+        // Personal-account settings pages have no org context to switch
+        // from (#4659) — including the org-scoped copy, which still has
+        // `settingsScope === ORGANIZATION` for menu purposes.
+        showOrgSwitcher: !isPersonalSettingsPage,
       },
     ] satisfies AppSidebarSurface[]
   ).find(({ active }) => active);
@@ -268,11 +284,9 @@ export default function AppProtectedLayoutSidebar({
         sidebarWidth={sidebarWidth}
         {...navPanelProps}
         renderTopSlot={
-          isSettingsRoute
-            ? () => <SettingsSearch scope={settingsScope} />
-            : isConversationRoute
-              ? renderConversationQuickActions
-              : renderQuickActions
+          isConversationRoute
+            ? renderConversationQuickActions
+            : renderQuickActions
         }
       />
     );

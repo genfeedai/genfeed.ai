@@ -3,6 +3,7 @@ import { BetterAuthService } from '@api/auth/better-auth/better-auth.service';
 import type { IDesktopSessionCookie } from '@api/auth/better-auth/better-auth.types';
 import type {
   CreateDesktopAuthCodeDto,
+  DesktopAuthCodeStatusDto,
   ExchangeDesktopAuthCodeDto,
 } from '@api/auth/dto/desktop-auth.dto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
@@ -30,6 +31,10 @@ import {
 import type { Request } from 'express';
 
 const DESKTOP_AUTH_CODE_TTL_MS = 5 * 60 * 1000;
+// Exchanged codes stay readable for the browser handoff page, which polls
+// `getCodeStatus` until the desktop app has used the code. Cleanup only
+// removes them once nobody can still be waiting on that answer.
+const DESKTOP_AUTH_CODE_USED_RETENTION_MS = DESKTOP_AUTH_CODE_TTL_MS;
 const DESKTOP_SESSION_TTL_MS = 90 * 24 * 60 * 60 * 1000;
 
 const DESKTOP_STANDARD_SCOPES: string[] = [
@@ -66,6 +71,12 @@ type DesktopAuthRecord = {
   userId: string;
   userName?: string;
 };
+
+export type DesktopAuthCodeStatus = 'exchanged' | 'expired' | 'pending';
+
+interface DesktopAuthCodeStatusResult {
+  status: DesktopAuthCodeStatus;
+}
 
 interface DesktopAuthExchangeResult {
   issuedAt: string;
@@ -110,7 +121,14 @@ export class AuthDesktopService {
     // sql-risk-audit: ignore bulk-write-tenant-review -- Global TTL cleanup uses expiresAt/usedAt predicates on short-lived auth codes, not tenant content.
     await this.prisma.desktopAuthCode.deleteMany({
       where: {
-        OR: [{ expiresAt: { lte: new Date() } }, { usedAt: { not: null } }],
+        OR: [
+          { expiresAt: { lte: new Date() } },
+          {
+            usedAt: {
+              lte: new Date(now - DESKTOP_AUTH_CODE_USED_RETENTION_MS),
+            },
+          },
+        ],
       },
     });
 
@@ -133,6 +151,42 @@ export class AuthDesktopService {
       expiresAt: new Date(expiresAt).toISOString(),
       state: dto.state,
     };
+  }
+
+  /**
+   * Tells the browser handoff page whether the desktop app has exchanged the
+   * code it was sent. The page cannot observe the custom-scheme launch itself,
+   * so this is the only truthful "signed in" signal it has.
+   */
+  async getCodeStatus(
+    user: User,
+    dto: DesktopAuthCodeStatusDto,
+  ): Promise<DesktopAuthCodeStatusResult> {
+    const userId = user.userId ?? user.id;
+
+    if (!userId) {
+      throw new UnauthorizedException('User identity is incomplete');
+    }
+
+    // "Try again" re-authorizes with the same PKCE state, so several codes can
+    // share it. The desktop app only ever exchanges one of them; if any was
+    // used, sign-in succeeded, whichever code the browser issued last.
+    const records = await this.prisma.desktopAuthCode.findMany({
+      orderBy: { createdAt: 'desc' },
+      where: { stateHash: hashToken(dto.state), userId },
+    });
+
+    if (records.some((record) => record.usedAt)) {
+      return { status: 'exchanged' };
+    }
+
+    const newest = records[0];
+
+    if (!newest || newest.expiresAt <= new Date()) {
+      return { status: 'expired' };
+    }
+
+    return { status: 'pending' };
   }
 
   private toDesktopAuthRecord(record: {

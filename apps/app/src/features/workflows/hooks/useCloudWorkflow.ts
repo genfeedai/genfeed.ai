@@ -10,6 +10,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useCollectionScope } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
+import { NotificationsService } from '@services/core/notifications.service';
 import { useCallback, useEffect, useRef } from 'react';
 import type {
   WorkflowApiService,
@@ -97,6 +98,7 @@ export function useCloudWorkflow({
     EnvironmentService.JWT_LABEL,
   );
   const { brandId } = useCollectionScope();
+  const notificationsService = NotificationsService.getInstance();
 
   const bindSharedWorkflowApi = useCallback((service: WorkflowApiService) => {
     useWorkflowStore.setState({
@@ -278,8 +280,11 @@ export function useCloudWorkflow({
       await useCloudWorkflowStore.getState().saveToCloud(service);
     } catch (error) {
       logger.error('Manual save failed', { error });
+      notificationsService.error(
+        error instanceof Error ? error.message : 'Could not save workflow',
+      );
     }
-  }, [brandId, getService]);
+  }, [brandId, getService, notificationsService]);
 
   const publish = useCallback(async () => {
     try {

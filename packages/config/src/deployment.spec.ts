@@ -9,6 +9,7 @@ import {
   isCloudDeployment,
   isCommunity,
   isDesktopClient,
+  isDesktopShellBuild,
   isHostedGenfeedCloud,
   isHostedGenfeedFromBrowser,
   isHostedGenfeedFromEnv,
@@ -192,6 +193,8 @@ describe('deployment axes', () => {
 
     expect(getClientSurface()).toBe('desktop');
     expect(isDesktopClient()).toBe(true);
+    // The server render never sees request-injected runtime config.
+    expect(isDesktopShellBuild()).toBe(false);
   });
 
   it.each([

@@ -1,7 +1,6 @@
 // Canvas
 export {
   ConnectionDropMenu,
-  EdgeToolbar,
   EditableEdge,
   GroupOverlay,
   HelperLines,
@@ -121,7 +120,6 @@ export {
   BottomBar,
   CostIndicator,
   OverflowMenu,
-  SaveAsDialog,
   SaveIndicator,
   Toolbar,
   ToolbarDropdown,

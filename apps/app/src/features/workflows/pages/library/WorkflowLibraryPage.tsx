@@ -1,8 +1,8 @@
 'use client';
 
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
@@ -58,7 +58,7 @@ export default function WorkflowLibraryPage() {
     pagination,
     setPage,
   } = useWorkflowLibraryPage();
-  const isDesktopShell = isDesktopClient();
+  const isDesktopShell = useIsDesktopClient();
   const [schedulingWorkflowId, setSchedulingWorkflowId] = useState<
     string | null
   >(null);

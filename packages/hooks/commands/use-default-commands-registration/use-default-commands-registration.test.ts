@@ -27,19 +27,36 @@ vi.mock('@genfeedai/services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@hooks/navigation/use-org-url/use-org-url', () => ({
-  useOrgUrl: vi.fn(() => ({
-    brandSlug: 'test-brand',
-    href: (path: string) => `/test-org/test-brand${path}`,
-    orgHref: (path: string) => `/test-org/~${path}`,
-    orgSlug: 'test-org',
+const mockUseBrand = vi.hoisted(() =>
+  vi.fn(() => ({
+    selectedBrand: {
+      id: 'brand-id',
+      organization: { id: 'org-id', slug: 'test-org' },
+      slug: 'test-brand',
+    },
   })),
+);
+
+const mockUseRoutedOrganization = vi.hoisted(() =>
+  vi.fn(() => ({
+    confirmedOrganizationSlug: 'test-org',
+  })),
+);
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: mockUseBrand,
 }));
+
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: mockUseRoutedOrganization,
+  }),
+);
 
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
 import { registerDefaultCommands } from '@genfeedai/services/core/commands.registry';
 import { logger } from '@genfeedai/services/core/logger.service';
-import { useOrgUrl } from '@hooks/navigation/use-org-url/use-org-url';
 
 describe('useDefaultCommandsRegistration', () => {
   beforeEach(() => {
@@ -47,23 +64,27 @@ describe('useDefaultCommandsRegistration', () => {
     (registerDefaultCommands as ReturnType<typeof vi.fn>).mockReturnValue(
       DEFAULT_COMMAND_IDS,
     );
-    (useOrgUrl as ReturnType<typeof vi.fn>).mockReturnValue({
-      brandSlug: 'test-brand',
-      href: (path: string) => `/test-org/test-brand${path}`,
-      orgHref: (path: string) => `/test-org/~${path}`,
-      orgSlug: 'test-org',
+    mockUseRoutedOrganization.mockReturnValue({
+      confirmedOrganizationSlug: 'test-org',
+    });
+    mockUseBrand.mockReturnValue({
+      selectedBrand: {
+        id: 'brand-id',
+        organization: { id: 'org-id', slug: 'test-org' },
+        slug: 'test-brand',
+      },
     });
   });
 
-  it('registers default commands on mount with org context', async () => {
+  it('registers default commands on mount with the confirmed org and selected brand', async () => {
     renderHook(() => useDefaultCommandsRegistration());
 
     await waitFor(() => {
       expect(registerDefaultCommands).toHaveBeenCalledTimes(1);
-      expect(registerDefaultCommands).toHaveBeenCalledWith(
-        'test-org',
-        'test-brand',
-      );
+      expect(registerDefaultCommands).toHaveBeenCalledWith({
+        brandSlug: 'test-brand',
+        orgSlug: 'test-org',
+      });
     });
 
     expect(logger.debug).toHaveBeenCalledWith(
@@ -71,33 +92,34 @@ describe('useDefaultCommandsRegistration', () => {
     );
   });
 
-  it('does not register commands when orgSlug is empty', async () => {
-    (useOrgUrl as ReturnType<typeof vi.fn>).mockReturnValue({
-      brandSlug: 'test-brand',
-      href: (path: string) => `/test-brand${path}`,
-      orgHref: (path: string) => `/~${path}`,
-      orgSlug: '',
+  it('still registers with an empty org when the route is unscoped and no brand is selected', async () => {
+    mockUseRoutedOrganization.mockReturnValue({
+      confirmedOrganizationSlug: null,
     });
+    mockUseBrand.mockReturnValue({ selectedBrand: null });
 
     renderHook(() => useDefaultCommandsRegistration());
 
     await waitFor(() => {
-      expect(registerDefaultCommands).not.toHaveBeenCalled();
+      expect(registerDefaultCommands).toHaveBeenCalledWith({
+        brandSlug: '',
+        orgSlug: '',
+      });
     });
   });
 
-  it('does not register commands when brandSlug is empty', async () => {
-    (useOrgUrl as ReturnType<typeof vi.fn>).mockReturnValue({
-      brandSlug: '',
-      href: (path: string) => `/test-org${path}`,
-      orgHref: (path: string) => `/test-org/~${path}`,
-      orgSlug: 'test-org',
+  it('falls back to the selected brand organization when the route has no confirmed org (e.g. /settings/personal)', async () => {
+    mockUseRoutedOrganization.mockReturnValue({
+      confirmedOrganizationSlug: null,
     });
 
     renderHook(() => useDefaultCommandsRegistration());
 
     await waitFor(() => {
-      expect(registerDefaultCommands).not.toHaveBeenCalled();
+      expect(registerDefaultCommands).toHaveBeenCalledWith({
+        brandSlug: 'test-brand',
+        orgSlug: 'test-org',
+      });
     });
   });
 
@@ -143,29 +165,29 @@ describe('useDefaultCommandsRegistration', () => {
   });
 
   it('unregisters old and registers new commands when the brand changes', async () => {
-    const orgUrlMock = useOrgUrl as ReturnType<typeof vi.fn>;
     const { rerender } = renderHook(() => useDefaultCommandsRegistration());
 
     await waitFor(() => {
-      expect(registerDefaultCommands).toHaveBeenCalledWith(
-        'test-org',
-        'test-brand',
-      );
+      expect(registerDefaultCommands).toHaveBeenCalledWith({
+        brandSlug: 'test-brand',
+        orgSlug: 'test-org',
+      });
     });
 
-    orgUrlMock.mockReturnValue({
-      brandSlug: 'other-brand',
-      href: (path: string) => `/test-org/other-brand${path}`,
-      orgHref: (path: string) => `/test-org/~${path}`,
-      orgSlug: 'test-org',
+    mockUseBrand.mockReturnValue({
+      selectedBrand: {
+        id: 'other-brand-id',
+        organization: { id: 'org-id', slug: 'test-org' },
+        slug: 'other-brand',
+      },
     });
     rerender();
 
     await waitFor(() => {
-      expect(registerDefaultCommands).toHaveBeenCalledWith(
-        'test-org',
-        'other-brand',
-      );
+      expect(registerDefaultCommands).toHaveBeenCalledWith({
+        brandSlug: 'other-brand',
+        orgSlug: 'test-org',
+      });
     });
 
     expect(CommandPaletteService.unregisterCommands).toHaveBeenCalledWith(

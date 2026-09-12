@@ -1,6 +1,5 @@
 'use client';
 
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
@@ -15,6 +14,7 @@ import {
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import CreditsBarTrigger from './CreditsBarTrigger';
@@ -166,5 +166,7 @@ function TopbarCreditsBarContent() {
 }
 
 export default function TopbarCreditsBar() {
-  return isDesktopClient() ? null : <TopbarCreditsBarContent />;
+  const isDesktop = useIsDesktopClient();
+
+  return isDesktop ? null : <TopbarCreditsBarContent />;
 }

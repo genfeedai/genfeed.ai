@@ -1,7 +1,6 @@
 'use client';
 
 import { isBetterAuthEnabled } from '@genfeedai/auth-client';
-import { isDesktopClient } from '@genfeedai/config/deployment';
 import {
   getOrgSwitchHref,
   parseScopedAppPath,
@@ -111,7 +110,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
   const effectiveSessionId = sessionId ?? 'no-session';
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? 'no-user';
-  const bypassReconciliation = !isBetterAuthEnabled() || isDesktopClient();
+  // Only a keyless self-hosted deployment has no organizations to reconcile.
+  // The desktop shell reaches these routes solely through a cloud sign-in, so
+  // it must load and confirm the routed organization exactly like the web app;
+  // skipping it left the organization switcher empty on desktop.
+  const bypassReconciliation = !isBetterAuthEnabled();
   const getOrganizationsService = useContextAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );

@@ -71,14 +71,6 @@ export class OssCreditsUtilsService implements ICreditsUtilsService {
     return undefined;
   }
 
-  async removeAllOrganizationCredits(
-    _organizationId: string,
-    _source: string,
-    _description: string,
-  ): Promise<void> {
-    return undefined;
-  }
-
   async getOrganizationCreditsWithExpiration(
     _organizationId: string,
   ): Promise<IOrganizationCreditsWithExpiration> {

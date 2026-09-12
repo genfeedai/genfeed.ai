@@ -1,6 +1,6 @@
 'use client';
 
-import { isDesktopClient } from '@genfeedai/config/deployment';
+import { useIsDesktopClient } from '@hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import { usePathname } from 'next/navigation';
 import { useSyncExternalStore } from 'react';
 
@@ -43,12 +43,9 @@ export function isDesktopAuthFullBleedPath(pathname: string): boolean {
 function DesktopDragStripContent() {
   const pathname = usePathname();
   const isMac = useSyncExternalStore(subscribe, detectMac, () => false);
+  const isDesktop = useIsDesktopClient();
 
-  if (
-    !isDesktopClient() ||
-    !isMac ||
-    isDesktopAuthFullBleedPath(pathname ?? '')
-  ) {
+  if (!isDesktop || !isMac || isDesktopAuthFullBleedPath(pathname ?? '')) {
     return null;
   }
 

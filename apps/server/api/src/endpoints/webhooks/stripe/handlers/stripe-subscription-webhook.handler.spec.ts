@@ -1,4 +1,3 @@
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
@@ -30,7 +29,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
     patch: vi.fn(),
     syncSubscriptionState: vi.fn(),
   };
-  const creditsUtilsService = { removeAllOrganizationCredits: vi.fn() };
   const usersService = { findOne: vi.fn() };
   const supportService = {
     invalidateUserCaches: vi.fn(),
@@ -90,7 +88,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
         StripeSubscriptionWebhookHandler,
         { provide: LoggerService, useValue: loggerService },
         { provide: SUBSCRIPTIONS_SERVICE, useValue: subscriptionsService },
-        { provide: CreditsUtilsService, useValue: creditsUtilsService },
         { provide: UsersService, useValue: usersService },
         { provide: StripeWebhookSupportService, useValue: supportService },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
@@ -270,7 +267,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
   });
 
   describe('handleSubscriptionDeleted', () => {
-    it('soft-deletes, removes credits on immediate cancellation, and resets the tier to BYOK', async () => {
+    it('soft-deletes, keeps the credit balance, and resets the tier to BYOK', async () => {
       subscriptionsService.findOne.mockResolvedValue(dbSubscription);
       subscriptionsService.patch.mockResolvedValue(dbSubscription);
       usersService.findOne.mockResolvedValue({ id: 'user_1' });
@@ -285,13 +282,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
         isDeleted: true,
         status: SubscriptionStatus.CANCELLED,
       });
-      expect(
-        creditsUtilsService.removeAllOrganizationCredits,
-      ).toHaveBeenCalledWith(
-        'org_1',
-        'subscription_canceled',
-        expect.any(String),
-      );
       expect(
         supportService.updateOrganizationTierAndModels,
       ).toHaveBeenCalledWith('org_1', SubscriptionTier.BYOK, 'test');
@@ -314,21 +304,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
       ).toBeLessThan(
         supportService.invalidateUserCaches.mock.invocationCallOrder[0],
       );
-    });
-
-    it('keeps credits when the subscription cancels at period end', async () => {
-      subscriptionsService.findOne.mockResolvedValue(dbSubscription);
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
-      usersService.findOne.mockResolvedValue({ id: 'user_1' });
-
-      await handler.handleSubscriptionDeleted(
-        stripeSubscription({ cancel_at_period_end: true }),
-        'test',
-      );
-
-      expect(
-        creditsUtilsService.removeAllOrganizationCredits,
-      ).not.toHaveBeenCalled();
     });
 
     it('keeps deletion successful when lifecycle recording fails', async () => {

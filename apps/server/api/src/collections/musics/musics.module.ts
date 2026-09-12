@@ -14,7 +14,9 @@ import { MusicsOperationsController } from '@api/collections/musics/controllers/
 import { MusicsUploadController } from '@api/collections/musics/controllers/musics-upload.controller';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
+import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
+import { ReplicateMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/replicate-music-generation-provider.adapter';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -56,6 +58,8 @@ import { Module } from '@nestjs/common';
   providers: [
     MusicsService,
     MusicGenerationCreditsService,
+    MusicGenerationProviderRegistryService,
+    ReplicateMusicGenerationProviderAdapter,
     MusicGenerationService,
     CreditsGuard,
     ModelsGuard,

@@ -235,6 +235,35 @@ jobs:
           files: |
             release/*
 
+      # electron-updater's GitHub provider resolves `/releases/latest`, which
+      # this repository points at the web app release (`v*`), never at a
+      # `desktop-v*` release. The desktop app therefore reads a generic feed at
+      # a fixed URL: the assets of the rolling `desktop-latest` release, which
+      # this step replaces on every desktop tag. `latest-mac.yml` in that
+      # release is what installed builds compare their version against.
+      - name: Refresh the desktop-latest update feed
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          if ! gh release view desktop-latest >/dev/null 2>&1; then
+            gh release create desktop-latest \
+              --title "GenFeed Desktop update feed" \
+              --notes "Rolling electron-updater feed. Install from the newest desktop-v* release; this release only serves auto-updates." \
+              --latest=false
+          fi
+
+          for asset in $(gh release view desktop-latest --json assets --jq '.assets[].name'); do
+            gh release delete-asset desktop-latest "$asset" --yes
+          done
+
+          gh release upload desktop-latest release/* --clobber
+          gh release edit desktop-latest \
+            --notes "Rolling electron-updater feed, currently serving ${RELEASE_TAG}. Install from the newest desktop-v* release; this release only serves auto-updates."
+
   # Homebrew's autobump only tracks casks inside Homebrew/homebrew-cask, and
   # that repository has a notability bar this project does not clear yet. Until
   # it does, `brew install --cask genfeedai/tap/genfeed` is served from our own

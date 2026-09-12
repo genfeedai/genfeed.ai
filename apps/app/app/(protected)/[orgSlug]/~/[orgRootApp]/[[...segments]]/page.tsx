@@ -1,3 +1,8 @@
+import { loadProtectedBootstrap } from '@app-server/protected-bootstrap.server';
+import {
+  getBrandEntityId,
+  getBrandOrganizationSlug,
+} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import {
   LibraryPlace,
   PageScope,
@@ -5,6 +10,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
+  createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
 import {
@@ -100,6 +106,30 @@ function OrgLibraryBrowserPage({ segments }: { segments: string[] }) {
       </Suspense>
     </LibraryBrowser>
   );
+}
+
+// A bare `/:org/~/studio` hit (the app-switcher's brandless destination,
+// #4671) still has a persisted last-used brand server-side even though the
+// client brand context clears its own brandId on org-scoped routes. Resolve
+// it here so Studio itself is reachable instead of always bouncing to Agent.
+// Validated against the operator's own brand list and this route's own org —
+// a stale or deleted selection (or one from another organization) falls
+// through to the existing Agent redirect below, unchanged.
+async function resolveLastUsedStudioBrandSlug(
+  orgSlug: string,
+): Promise<string | null> {
+  const bootstrap = await loadProtectedBootstrap();
+  if (!bootstrap?.brandId) {
+    return null;
+  }
+
+  const lastUsedBrand = bootstrap.brands.find(
+    (brand) =>
+      getBrandEntityId(brand) === bootstrap.brandId &&
+      getBrandOrganizationSlug(brand) === orgSlug,
+  );
+
+  return lastUsedBrand?.slug ?? null;
 }
 
 // Async because the detail surface is an async server component: it has to be
@@ -280,6 +310,21 @@ export default async function OrgRootAppPage({
           <ErrorBoundary>{editSurface}</ErrorBoundary>
         </FeatureGate>
       );
+    }
+
+    // The bare app-switcher destination (no type segment): try the operator's
+    // own persisted last-used brand before falling through to Agent (#4671).
+    if (!segments?.length) {
+      const lastUsedBrandSlug = await resolveLastUsedStudioBrandSlug(orgSlug);
+      if (lastUsedBrandSlug) {
+        redirect(
+          createBrandAppRoute(
+            orgSlug,
+            lastUsedBrandSlug,
+            APP_ROUTES.STUDIO.GENERATE,
+          ),
+        );
+      }
     }
 
     // Studio's org-scoped one-off generation surface was retired. Studio

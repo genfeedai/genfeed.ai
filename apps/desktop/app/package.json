@@ -45,10 +45,9 @@
     ],
     "publish": [
       {
-        "owner": "genfeedai",
-        "provider": "github",
-        "releaseType": "release",
-        "repo": "genfeed.ai"
+        "channel": "latest",
+        "provider": "generic",
+        "url": "https://github.com/genfeedai/genfeed.ai/releases/download/desktop-latest"
       }
     ]
   },

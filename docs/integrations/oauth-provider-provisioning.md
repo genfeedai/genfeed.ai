@@ -146,14 +146,13 @@ Reference: [Threads API getting started](https://developers.facebook.com/docs/th
    and enable YouTube Data API v3 and YouTube Analytics API.
 2. Configure the OAuth consent screen, then create a Web application OAuth
    client with `{APP_ORIGIN}/oauth/youtube` as an authorized redirect URI.
-3. Genfeed requests
-   `https://www.googleapis.com/auth/youtube`,
-   `https://www.googleapis.com/auth/youtube.readonly`,
-   `https://www.googleapis.com/auth/youtube.force-ssl`,
-   `https://www.googleapis.com/auth/youtube.upload`, and
-   `https://www.googleapis.com/auth/yt-analytics.readonly`. Add test users
-   while the consent screen is in Testing and complete Google OAuth
-   verification before production use of sensitive scopes.
+3. Genfeed requests only
+   `https://www.googleapis.com/auth/youtube.force-ssl` (uploads, playlists,
+   comments, and live chat) and
+   `https://www.googleapis.com/auth/yt-analytics.readonly`. Both are sensitive
+   scopes: declare them under Google Auth Platform → Data access and complete
+   Google OAuth verification before production use. Until then Google shows the
+   unverified-app screen and caps the project at 100 lifetime users.
 4. Set the shared `GOOGLE_OAUTH_CLIENT_ID` and
    `GOOGLE_OAUTH_CLIENT_SECRET`, plus `YOUTUBE_REDIRECT_URI`.
    `YOUTUBE_API_KEY` is optional for public reads. If the same client also

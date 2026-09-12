@@ -63,7 +63,7 @@ function ConnectedAccountChip({
             {getConnectionInitials(connection)}
           </AvatarFallback>
         </Avatar>
-        <span className="absolute -bottom-1 -right-1 rounded-full bg-background p-0.5 shadow-border-strong">
+        <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5 shadow-border-strong">
           <PlatformBadge
             platform={connection.platform}
             showLabel={false}

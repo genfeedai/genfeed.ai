@@ -11,6 +11,8 @@ import {
 } from 'react';
 
 export interface AnalyticsWorkspaceSurfaceAdapterState {
+  /** The brand the current analytics route names (`/analytics/brands/:id` and its `/platforms/:platform` child), so the shell can rebind the open thread to it. Absent on brand-agnostic and org-overview routes. */
+  readonly brandId?: string;
   readonly composerContext?: ReactNode;
   readonly contextLabel: string;
   readonly inspectorContent: ReactNode;

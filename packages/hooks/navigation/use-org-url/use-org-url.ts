@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { IBrand } from '@genfeedai/contracts/interfaces';
 import { useParams, usePathname } from 'next/navigation';
+import { useCallback } from 'react';
 
 export interface OrgUrlContext {
   orgSlug: string;
@@ -71,16 +72,33 @@ export function useOrgUrl(): OrgUrlContext {
   // has no brand (org `~` routes and unscoped leftovers like /agent/new).
   const activeBrandSlug = routeBrandSlug || selectedBrand?.slug;
 
-  const orgHref = (path: string) => createOrganizationAppRoute(orgSlug, path);
+  // Memoized on the resolved slugs, not recreated every render, so consumers
+  // that depend on these callbacks in a useEffect deps array (e.g. resume/
+  // bootstrap effects) don't see a new identity — and an aborted in-flight
+  // request — on every unrelated re-render.
+  const orgHref = useCallback(
+    (path: string) => createOrganizationAppRoute(orgSlug, path),
+    [orgSlug],
+  );
 
-  return {
-    activeHref: (path: string) =>
+  const href = useCallback(
+    (path: string) =>
+      brandSlug ? createBrandAppRoute(orgSlug, brandSlug, path) : orgHref(path),
+    [brandSlug, orgHref, orgSlug],
+  );
+
+  const activeHref = useCallback(
+    (path: string) =>
       activeBrandSlug
         ? createBrandAppRoute(orgSlug, activeBrandSlug, path)
         : orgHref(path),
+    [activeBrandSlug, orgHref, orgSlug],
+  );
+
+  return {
+    activeHref,
     brandSlug: brandSlug ?? '',
-    href: (path: string) =>
-      brandSlug ? createBrandAppRoute(orgSlug, brandSlug, path) : orgHref(path),
+    href,
     orgHref,
     orgSlug,
   };
