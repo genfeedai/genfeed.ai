@@ -207,7 +207,7 @@ export function GenerationActionCardStatusPanel({
               className="flex-1"
             >
               <ExternalLink className="size-3" />
-              Open in Studio
+              {translate('openInStudio')}
             </Button>
           ) : null}
           <a
