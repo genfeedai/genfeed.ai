@@ -1,7 +1,9 @@
 import type { AgentStudioHandoffPayload } from '@genfeedai/contracts/interfaces';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 import { describe, expect, it } from 'vitest';
 import {
   buildStudioSettingsPatchFromHandoff,
+  resolveHandoffModelKey,
   studioHandoffReferenceRole,
 } from './studio-generate-handoff';
 
@@ -98,6 +100,38 @@ describe('buildStudioSettingsPatchFromHandoff', () => {
       handoff({ resolution: '4k' }),
     );
     expect(patch.resolution).toBe('4k');
+  });
+});
+
+describe('resolveHandoffModelKey', () => {
+  const models = [{ key: 'provider/model-x' }, { key: 'provider/model-y' }];
+
+  it('keeps a model key present in the org allowlist', () => {
+    expect(resolveHandoffModelKey('provider/model-x', models)).toEqual({
+      isFallback: false,
+      modelKey: 'provider/model-x',
+    });
+  });
+
+  it('falls back to Auto when the resolved model is no longer allowed', () => {
+    expect(resolveHandoffModelKey('provider/model-z', models)).toEqual({
+      isFallback: true,
+      modelKey: AUTO_MODEL_OPTION_VALUE,
+    });
+  });
+
+  it('never blanks an empty model key', () => {
+    expect(resolveHandoffModelKey('', models)).toEqual({
+      isFallback: false,
+      modelKey: '',
+    });
+  });
+
+  it('skips validation when there is no catalog to check against (avatar/voice, or a pending/failed fetch)', () => {
+    expect(resolveHandoffModelKey('provider/model-z', [])).toEqual({
+      isFallback: false,
+      modelKey: 'provider/model-z',
+    });
   });
 });
 

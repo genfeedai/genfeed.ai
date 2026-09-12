@@ -5,9 +5,13 @@
  * Setup store) because a handoff carries composer-only fields
  * (`prompt`, `references`) that never lived in either settings shape.
  */
-import type { AgentStudioHandoffPayload } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentStudioHandoffPayload,
+  IModel,
+} from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateReferenceRole } from '@genfeedai/props/studio/studio-generate.props';
 import type { StudioGenerateSettings } from '@pages/studio/generate/types';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 
 /**
  * Every field the handoff carries maps 1:1 onto a `StudioGenerateSettings`
@@ -47,6 +51,38 @@ export function buildStudioSettingsPatchFromHandoff(
   }
 
   return patch;
+}
+
+export interface ResolvedHandoffModelKey {
+  /** `true` when the requested key was rejected and Auto was substituted. */
+  isFallback: boolean;
+  modelKey: string;
+}
+
+/**
+ * Validates the handoff's resolved model against the org's currently allowed
+ * catalog for the type (#4716 review P1). The Agent resolves a concrete
+ * model at handoff time, but the org's enabled-model allowlist can change (or
+ * differ from what the Agent's own catalog fetch saw) by the time Studio
+ * opens — landing a disallowed key in settings would otherwise repeat the
+ * silent `models[0]` substitution `resolveModelKey` already does at submit
+ * time (`useStudioGeneration.ts`), just one step earlier and with no notice
+ * either. An empty `models` list never counts as "nothing is allowed" — it
+ * means either a type with no router catalog (avatar/voice) or an
+ * in-flight/failed catalog fetch, neither of which should blank a
+ * possibly-valid key.
+ */
+export function resolveHandoffModelKey(
+  modelKey: string,
+  models: readonly Pick<IModel, 'key'>[],
+): ResolvedHandoffModelKey {
+  if (!modelKey || models.length === 0) {
+    return { isFallback: false, modelKey };
+  }
+  if (models.some((model) => model.key === modelKey)) {
+    return { isFallback: false, modelKey };
+  }
+  return { isFallback: true, modelKey: AUTO_MODEL_OPTION_VALUE };
 }
 
 /**

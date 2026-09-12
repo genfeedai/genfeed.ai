@@ -44,6 +44,7 @@ import {
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import {
   buildStudioSettingsPatchFromHandoff,
+  resolveHandoffModelKey,
   studioHandoffReferenceRole,
 } from '@pages/studio/generate/utils/studio-generate-handoff';
 import {
@@ -359,6 +360,49 @@ export default function StudioGenerateWorkspace(): ReactElement {
     })();
     return () => controller.abort();
   }, [agentApiService, applyTypeSettings, handoffPayload, isHydrated]);
+
+  // #4716 review P1: the Agent resolves a concrete model at handoff time, but
+  // the org's enabled-model allowlist can differ from what the Agent saw (or
+  // change before Studio opens). Validate once the catalog for the handoff's
+  // own type has finished loading and fall back to Studio's own Auto default
+  // with a notice, rather than repeating `resolveModelKey`'s silent
+  // `models[0]` substitution one step earlier and just as silently.
+  const handoffModelValidatedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !handoffPayload ||
+      !appliedHandoffRef.current ||
+      handoffModelValidatedRef.current ||
+      type !== handoffPayload.type ||
+      isLoadingModels
+    ) {
+      return;
+    }
+    handoffModelValidatedRef.current = true;
+
+    if (!getStudioGenerateTypeConfig(type).capabilities.hasModelSelection) {
+      return;
+    }
+
+    const { isFallback, modelKey } = resolveHandoffModelKey(
+      handoffPayload.modelKey,
+      models,
+    );
+    if (!isFallback) {
+      return;
+    }
+    updateSettings({ modelKey });
+    notificationsService.info(
+      "The Agent's model pick for this generation isn't available for your organization — using Studio's default instead.",
+    );
+  }, [
+    handoffPayload,
+    isLoadingModels,
+    models,
+    notificationsService,
+    type,
+    updateSettings,
+  ]);
 
   const handleResetSettings = useCallback(() => {
     if (!remixRun) {
