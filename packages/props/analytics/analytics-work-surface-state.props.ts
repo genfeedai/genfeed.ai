@@ -28,5 +28,12 @@ export interface RestoredAnalyticsSurfaceState {
   readonly filters: AnalyticsQueryFilters;
   readonly isCanonical: boolean;
   readonly normalizedRoute: string;
+  /**
+   * The brand id named by the route itself (`/analytics/brands/:id` and its
+   * `/platforms/:platform` child), independent of `selectedResource` — which
+   * narrows to the platform on the child route and would otherwise drop the
+   * enclosing brand id.
+   */
+  readonly routeBrandId?: string;
   readonly selectedResource?: AnalyticsQuerySelectedResource;
 }

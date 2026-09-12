@@ -281,6 +281,14 @@ vi.mock('@hooks/navigation/use-org-url', () => ({
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     brandId: 'brand-1',
+    brands: [
+      { id: 'brand-1', label: 'Brand One', organization: { id: 'org-1' } },
+      {
+        id: 'brand-analytics-route',
+        label: 'Analytics Brand',
+        organization: { id: 'org-1' },
+      },
+    ],
     organizationId: 'org-1',
   }),
 }));
@@ -544,6 +552,27 @@ function AnalyticsAdapterFixture() {
   );
   useAnalyticsWorkspaceSurfaceAdapter(adapter);
   return <div>Post analytics canvas</div>;
+}
+
+/** Stands in for `/analytics/brands/:id`, which resolves a route-scoped brand. */
+function AnalyticsBrandRouteAdapterFixture({
+  brandId,
+}: {
+  readonly brandId: string;
+}) {
+  const adapter = useMemo<AnalyticsWorkspaceSurfaceAdapterState>(
+    () => ({
+      brandId,
+      composerContext: null,
+      contextLabel: 'Canvas · Brand analytics',
+      inspectorContent: <div>Brand analytics inspector</div>,
+      key: `analytics:/analytics/brands/${brandId}`,
+      surfaceKey: 'analytics',
+    }),
+    [brandId],
+  );
+  useAnalyticsWorkspaceSurfaceAdapter(adapter);
+  return <div>Brand analytics canvas</div>;
 }
 
 function InspectorToggleFixture() {
@@ -1274,6 +1303,48 @@ describe('UniversalWorkspaceShell', () => {
     // no raw `route:/…` breadcrumb and no `Registered … adapter slot` fallback.
     expect(screen.queryByText(/adapter slot/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/^route:\//)).not.toBeInTheDocument();
+  });
+
+  it('rebinds the open thread when navigating to a brand analytics route', async () => {
+    navigation.pathname = '/acme/~/analytics/brands/brand-analytics-route';
+    navigation.searchParams = new URLSearchParams();
+    agentState.threads[0].brandId = 'brand-previous';
+    agentState.threads[0].contextVersion = 3;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <AnalyticsBrandRouteAdapterFixture brandId="brand-analytics-route" />
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByText('Brand analytics canvas')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(updateThreadContext).toHaveBeenCalledWith(
+        'thread-1',
+        {
+          brandId: 'brand-analytics-route',
+          expectedContextVersion: 3,
+        },
+        expect.any(AbortSignal),
+      ),
+    );
+  });
+
+  it('never binds or syncs an analytics route brand that is not authorized', async () => {
+    navigation.pathname = '/acme/~/analytics/brands/brand-unauthorized';
+    navigation.searchParams = new URLSearchParams();
+    agentState.threads[0].brandId = 'brand-previous';
+    agentState.threads[0].contextVersion = 3;
+
+    render(
+      <UniversalWorkspaceShell agentApiService={agentApiService}>
+        <AnalyticsBrandRouteAdapterFixture brandId="brand-unauthorized" />
+      </UniversalWorkspaceShell>,
+    );
+
+    expect(screen.getByText('Brand analytics canvas')).toBeInTheDocument();
+    expect(updateThreadContext).not.toHaveBeenCalled();
+    expect(agentState.threads[0].brandId).toBe('brand-previous');
   });
 
   it('mounts the brand overview registration in the harness inspector', async () => {

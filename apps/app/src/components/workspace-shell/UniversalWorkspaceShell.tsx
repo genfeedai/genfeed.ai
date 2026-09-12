@@ -3,6 +3,10 @@
 import { AgentWorkspaceLayoutClient } from '@app/(protected)/[orgSlug]/~/agent/AgentWorkspaceLayoutClient';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
+  getBrandEntityId,
+  getBrandOrganizationId,
+} from '@contexts/user/brand-context/brand-context.helpers';
+import {
   type AgentApiService,
   type ConversationComposerActionInvocation,
   type ConversationComposerDispatchResult,
@@ -181,7 +185,7 @@ function UniversalWorkspaceShellContent({
   const searchParams = useSearchParams();
   const searchParamsString = searchParams.toString();
   const { back, push, replace } = useRouter();
-  const { brandId, organizationId, selectedBrand } = useBrand();
+  const { brandId, brands, organizationId, selectedBrand } = useBrand();
   const { activeHref, brandSlug, href, orgHref, orgSlug } = useOrgUrl();
   const activeThreadId = useAgentChatStore((state) => state.activeThreadId);
   const activeSurfaceAdapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
@@ -293,6 +297,10 @@ function UniversalWorkspaceShellContent({
     activeSurfacePresentationAdapter?.surfaceKey === surfaceKey
       ? activeSurfacePresentationAdapter
       : null;
+  const effectiveSurfaceAdapter =
+    activeSurfaceAdapter?.surfaceKey === surfaceKey
+      ? activeSurfaceAdapter
+      : null;
   const canonicalSearchParamsString = canonicalSearchParams.toString();
   // The conversation is a surface, not a shell state. `/agent/*` renders it as
   // its own canvas; every other surface reaches it through the inspector.
@@ -403,13 +411,34 @@ function UniversalWorkspaceShellContent({
   // Brand binding priority for inspector conversations on product routes:
   // 1) product surface adapter (studio/review scoped brand)
   // 2) workspace surface adapter
-  // 3) topbar-selected brand — so Publishing/Overview threads get a brand without
+  // 3) analytics surface adapter's route-derived brand (e.g. /analytics/
+  //    brands/:id and its /platforms/:platform child) — an explicit route
+  //    scope, so it rebinds the thread the same way (1) and (2) do
+  // 4) topbar-selected brand — so Publishing/Overview threads get a brand without
   //    an adapter. Without this, chat runs brandless and the model asks "which
   //    brand?" even though the brand switcher already has a selection.
   const surfaceBrandId = productSurfaceAdapter?.scope.brandId;
+  const rawAnalyticsRouteBrandId = effectiveSurfaceAdapter?.brandId ?? null;
+  // Unlike (1) and (2), which come from already-authorized product state, the
+  // analytics adapter's brand is parsed straight from the URL — a stale link,
+  // a deleted brand, or another org's id must never bind or sync. Falling
+  // through (rather than blocking the chain) lets the topbar brand still
+  // apply when the route names one we can't authorize.
+  const analyticsRouteBrandId =
+    rawAnalyticsRouteBrandId &&
+    brands.some(
+      (brand) =>
+        getBrandEntityId(brand) === rawAnalyticsRouteBrandId &&
+        getBrandOrganizationId(brand) === organizationId,
+    )
+      ? rawAnalyticsRouteBrandId
+      : null;
   const topbarBrandId = brandId || null;
   const bindingBrandId =
-    surfaceBrandId ?? resolvedWorkspaceSurfaceAdapter?.brandId ?? topbarBrandId;
+    surfaceBrandId ??
+    resolvedWorkspaceSurfaceAdapter?.brandId ??
+    analyticsRouteBrandId ??
+    topbarBrandId;
   const isSurfaceScopeAligned = Boolean(
     !activeThread ||
       !bindingBrandId ||
@@ -421,6 +450,7 @@ function UniversalWorkspaceShellContent({
   const targetSyncBrandId =
     surfaceBrandId ??
     resolvedWorkspaceSurfaceAdapter?.brandId ??
+    analyticsRouteBrandId ??
     (!activeThread?.brandId ? topbarBrandId : null);
   const surfaceScopeKey =
     activeThread &&
@@ -488,12 +518,9 @@ function UniversalWorkspaceShellContent({
     apiService: agentApiService,
     currentDraftScopeKey: draftScopeKey,
     pathname: rawPathname,
+    routeBrandId: analyticsRouteBrandId,
     searchParams: new URLSearchParams(searchParamsString),
   });
-  const effectiveSurfaceAdapter =
-    activeSurfaceAdapter?.surfaceKey === surfaceKey
-      ? activeSurfaceAdapter
-      : null;
   const effectiveShellContextLabel =
     productSurfaceAdapter?.contextLabel ??
     effectiveSurfaceAdapter?.contextLabel ??
