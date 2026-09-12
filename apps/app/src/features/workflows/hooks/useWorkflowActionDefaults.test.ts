@@ -1,7 +1,10 @@
 import { Platform } from '@genfeedai/contracts';
 import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { useWorkflowActionDefaults } from './useWorkflowActionDefaults';
+import {
+  useWorkflowActionDefaults,
+  useWorkflowActionScope,
+} from './useWorkflowActionDefaults';
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
@@ -19,6 +22,15 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
         isConnected: true,
         label: 'ig-account',
         platform: Platform.INSTAGRAM,
+      },
+      // LinkedIn's member profile has no public handle (see the #4695
+      // handle audit) — only externalName, which must still surface a real
+      // label instead of falling straight to the platform name.
+      {
+        externalName: 'Vincent Ships It',
+        id: 'cred-li',
+        isConnected: true,
+        platform: Platform.LINKEDIN,
       },
     ],
     selectedBrand: {
@@ -41,8 +53,27 @@ describe('useWorkflowActionDefaults', () => {
 
     expect(defaults).toEqual({
       brandId: 'brand-shipshit',
-      credentialIds: ['cred-x'],
+      credentialIds: ['cred-x', 'cred-li'],
       timezone: 'America/New_York',
     });
+  });
+});
+
+describe('useWorkflowActionScope', () => {
+  it('falls back through externalHandle, externalName, then label for connected accounts', () => {
+    const { result } = renderHook(() => useWorkflowActionScope());
+
+    expect(result.current.credentials).toEqual([
+      {
+        id: 'cred-x',
+        label: 'VincentShipsIt',
+        platform: Platform.TWITTER,
+      },
+      {
+        id: 'cred-li',
+        label: 'Vincent Ships It',
+        platform: Platform.LINKEDIN,
+      },
+    ]);
   });
 });

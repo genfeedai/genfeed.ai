@@ -214,13 +214,17 @@ export class GhostService {
         platform: CredentialPlatform.GHOST,
       });
 
-      if (!credential?.accessToken || !credential?.externalHandle) {
+      // The site URL is `externalId` (see GhostController.connect) — Ghost
+      // has no public handle concept, so `externalHandle` is never
+      // populated for it, and the handle-cleanup migration nulls any
+      // legacy row that had it set to the same URL as `externalId`.
+      if (!credential?.accessToken || !credential?.externalId) {
         return null;
       }
 
       return {
         apiKey: EncryptionUtil.decrypt(credential.accessToken),
-        ghostUrl: credential.externalHandle,
+        ghostUrl: credential.externalId,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

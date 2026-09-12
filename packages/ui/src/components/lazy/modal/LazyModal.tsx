@@ -21,7 +21,6 @@ import type {
   ModalBlacklistProps,
   ModalBotProps,
   ModalBrandGenerateProps,
-  ModalBrandInstagramProps,
   ModalBrandLinkProps,
   ModalConfirmProps,
   ModalCreateThreadProps,
@@ -71,11 +70,6 @@ export const LazyModalBrandGenerate = dynamic(
   () => import('@ui/modals/brands/generate/ModalBrandGenerate'),
   { ssr: false },
 ) as ComponentType<ModalBrandGenerateProps>;
-
-export const LazyModalBrandInstagram = dynamic(
-  () => import('@ui/modals/brands/instagram/ModalBrandInstagram'),
-  { ssr: false },
-) as ComponentType<ModalBrandInstagramProps>;
 
 export const LazyModalBrandLink = dynamic(
   () => import('@ui/modals/brands/link/ModalBrandLink'),

@@ -28,6 +28,7 @@ export class BaseCredential extends BaseEntity implements ICredential {
   declare public description?: string | null;
   declare public postingTimes?: IClockTime[];
   declare public accessTokenExpiry?: string | null;
+  declare public needsAccountSelection?: boolean;
   declare public isConnected: boolean;
 
   constructor(data: Partial<ICredential> = {}) {
@@ -43,6 +44,7 @@ export class BaseCredentialInstagram
   declare public username: string;
   declare public image: string;
   declare public category: boolean;
+  declare public isAlreadyConnected?: boolean;
 
   constructor(data: Partial<ICredentialInstagram> = {}) {
     super(data);

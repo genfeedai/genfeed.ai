@@ -257,6 +257,28 @@ describe('YoutubeController', () => {
       );
     });
 
+    it('never falls back to the channel title as a handle', async () => {
+      // A channel without a custom URL (an "@handle") has no public handle
+      // at all -- the title is a display name, not a handle, and must never
+      // stand in for it.
+      youtubeService.getChannelDetails.mockResolvedValue({
+        id: 'UCxxxxxx',
+        thumbnails: { high: { url: 'https://youtube.example/avatar.jpg' } },
+        title: 'My Channel',
+      });
+
+      await controller.verify(mockRequest, dto);
+
+      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+        credentialId,
+        orgId,
+        expect.objectContaining({
+          handle: undefined,
+          name: 'My Channel',
+        }),
+      );
+    });
+
     it('should throw BAD_REQUEST when code is missing', async () => {
       await expect(controller.verify(mockRequest, { state })).rejects.toThrow(
         HttpException,

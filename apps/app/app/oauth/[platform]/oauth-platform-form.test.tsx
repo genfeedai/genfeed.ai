@@ -3,6 +3,8 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import OAuthPlatformForm from './oauth-platform-form';
 
+const mockInstagramAccountSelector = vi.fn();
+
 const mocks = vi.hoisted(() => ({
   authIdentity: {
     isLoaded: true,
@@ -50,6 +52,19 @@ vi.mock('@/components/analytics/AnalyticsPublicRouteSync', () => ({
   default: () => <div data-testid="analytics-public-route-sync" />,
 }));
 
+vi.mock('@ui/modals/brands/instagram/InstagramAccountSelector', () => ({
+  default: (props: { credentialId: string; onConnected: () => void }) => {
+    mockInstagramAccountSelector(props);
+    return (
+      <div data-testid="instagram-account-selector">
+        <button onClick={props.onConnected} type="button">
+          confirm-selection
+        </button>
+      </div>
+    );
+  },
+}));
+
 vi.mock('next/navigation', () => ({
   usePathname: () => '/',
   useRouter: () => ({
@@ -81,7 +96,10 @@ describe('OAuthPlatformForm', () => {
       return_to: '/settings/publishing',
       state: 'state-1',
     });
-    mocks.postVerify.mockResolvedValue(undefined);
+    mocks.postVerify.mockResolvedValue({
+      id: 'credential-1',
+      isConnected: true,
+    });
     mocks.getServicesService.mockResolvedValue({
       postVerify: mocks.postVerify,
     });
@@ -242,5 +260,62 @@ describe('OAuthPlatformForm', () => {
       screen.queryByRole('button', { name: 'Try again' }),
     ).not.toBeInTheDocument();
     expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('shows the Instagram account picker instead of redirecting when the connection needs selection', async () => {
+    mocks.postVerify.mockResolvedValue({
+      id: 'credential-ambiguous',
+      isConnected: false,
+      needsAccountSelection: true,
+    });
+
+    render(<OAuthPlatformForm platform="instagram" />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('instagram-account-selector')).toBeVisible();
+    });
+    expect(mockInstagramAccountSelector).toHaveBeenCalledWith(
+      expect.objectContaining({ credentialId: 'credential-ambiguous' }),
+    );
+    expect(screen.queryByText('Instagram Connected')).not.toBeInTheDocument();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
+  it('completes the redirect once the operator confirms a selected Instagram account', async () => {
+    mocks.postVerify.mockResolvedValue({
+      id: 'credential-ambiguous',
+      isConnected: false,
+      needsAccountSelection: true,
+    });
+
+    render(<OAuthPlatformForm platform="instagram" />);
+
+    const confirmButton = await screen.findByText('confirm-selection');
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => {
+      expect(screen.getByText('Instagram Connected')).toBeVisible();
+    });
+    expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
+  });
+
+  it('does not show the picker for an unconnected credential the server has not flagged for selection', async () => {
+    // isConnected: false alone is not the signal — a lapsed token or a
+    // never-completed OAuth attempt looks the same and has no selection
+    // waiting. Only the explicit needsAccountSelection field triggers it.
+    mocks.postVerify.mockResolvedValue({
+      id: 'credential-1',
+      isConnected: false,
+      needsAccountSelection: false,
+    });
+
+    render(<OAuthPlatformForm platform="youtube" />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Youtube Connected')).toBeVisible();
+    });
+    expect(
+      screen.queryByTestId('instagram-account-selector'),
+    ).not.toBeInTheDocument();
   });
 });

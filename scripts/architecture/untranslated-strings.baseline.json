@@ -668,7 +668,6 @@
     "packages/ui/src/components/modals/automation/ModalReplyBotRateLimits.tsx": 6,
     "packages/ui/src/components/modals/brands/brand/BrandEditorForm.tsx": 21,
     "packages/ui/src/components/modals/brands/brand/ModalBrand.tsx": 18,
-    "packages/ui/src/components/modals/brands/instagram/ModalBrandInstagram.tsx": 11,
     "packages/ui/src/components/modals/brands/link/ModalBrandLink.tsx": 10,
     "packages/ui/src/components/modals/content/article/ModalArticle.tsx": 17,
     "packages/ui/src/components/modals/content/batch/ModalPostBatchEmptyState.tsx": 4,

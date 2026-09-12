@@ -4,8 +4,11 @@ import {
   ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import {
+  CredentialsService,
+  extractReconnectCredentialIdFromWarmupSignals,
+} from '@api/collections/credentials/services/credentials.service';
+
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import {
@@ -16,12 +19,13 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
 import {
   getSafeInstagramOAuthErrorLog,
   throwMappedInstagramOAuthError,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
-import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
+import { CredentialPlatform } from '@genfeedai/contracts';
 import { buildGrantedScopesCredentialPatch } from '@genfeedai/helpers';
 import {
   CredentialOAuthSerializer,
@@ -30,7 +34,7 @@ import {
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { HttpService } from '@nestjs/axios';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,
@@ -40,21 +44,8 @@ import {
   Req,
   ServiceUnavailableException,
 } from '@nestjs/common';
-import type { AxiosResponse } from 'axios';
+
 import type { Request } from 'express';
-import { firstValueFrom } from 'rxjs';
-
-interface InstagramShortLivedTokenResponse {
-  access_token: string;
-  expires_in?: number;
-  scope?: string;
-}
-
-interface InstagramLongLivedTokenResponse {
-  access_token: string;
-  expires_in?: number;
-  scope?: string;
-}
 
 @AutoSwagger()
 @Controller('services/instagram')
@@ -63,7 +54,6 @@ export class InstagramController {
 
   private readonly redirectUri: string;
 
-  private readonly graphUrl: string = 'https://graph.facebook.com';
   private readonly apiVersion: string;
   private readonly scope = [
     'business_management',
@@ -82,10 +72,9 @@ export class InstagramController {
 
     private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
-    private readonly httpService: HttpService,
     private readonly instagramService: InstagramService,
     private readonly instagramAuthorizedSignalsService: InstagramAuthorizedSignalsService,
-    private readonly historyImportService: SocialSourceHistoryImportService,
+    private readonly connectionResolver: InstagramConnectionResolverService,
     private readonly loggerService: LoggerService,
   ) {
     this.redirectUri = this.configService.get('INSTAGRAM_REDIRECT_URI') ?? '';
@@ -119,7 +108,30 @@ export class InstagramController {
       });
     }
 
+    let reconnectCredentialId: string | undefined;
+    if (createCredentialDto.credentialId) {
+      const reconnectTarget = await this.credentialsService.resolveBrandAccount(
+        {
+          brandId: brand.id.toString(),
+          credentialId: createCredentialDto.credentialId,
+          isDisconnectedIncluded: true,
+          organizationId: user.organizationId,
+          platform: CredentialPlatform.INSTAGRAM,
+        },
+      );
+
+      if (!reconnectTarget) {
+        return returnBadRequest({
+          detail: 'The credential to reconnect does not belong to this brand',
+          title: 'Invalid payload',
+        });
+      }
+
+      reconnectCredentialId = reconnectTarget.id.toString();
+    }
+
     const appId = this.configService.get('INSTAGRAM_APP_ID');
+
     const redirectUri =
       this.configService.get('INSTAGRAM_REDIRECT_URI') ?? this.redirectUri;
     if (
@@ -143,6 +155,7 @@ export class InstagramController {
         oauthToken: undefined,
         oauthTokenSecret: undefined,
       },
+      reconnectCredentialId,
     );
 
     this.loggerService.log(`${url} - Generating OAuth URL`, {
@@ -165,6 +178,11 @@ export class InstagramController {
   /**
    * Step 2: Handle the OAuth callback, exchange code for a long-lived access token,
    * and save it to the database. The user will select their Instagram brand later.
+   *
+   * The Facebook API exchange, account discovery, account-resolution decision
+   * tree, and post-connection persistence steps live on
+   * `InstagramConnectionResolverService` — this method is the request/response
+   * shell plus the failure-stage bookkeeping for observability.
    */
   @Post('verify')
   async verify(
@@ -217,66 +235,24 @@ export class InstagramController {
         );
       }
 
-      failureStage = 'short_lived_token';
-      const tokenRes: AxiosResponse<InstagramShortLivedTokenResponse> =
-        await firstValueFrom(
-          this.httpService.post(
-            `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
-            null,
-            {
-              params: {
-                client_id: appId,
-                client_secret: appSecret,
-                code,
-                redirect_uri: this.redirectUri,
-              },
-            },
-          ),
-        );
-
-      const shortLivedToken = tokenRes.data.access_token;
-
-      this.loggerService.log(`${url} - Short-lived token obtained`, {
-        expiresIn: tokenRes.data.expires_in,
-        hasToken: !!shortLivedToken,
+      const {
+        accessToken: access_token,
+        accounts,
+        expiresIn: expires_in,
+        scope,
+      } = await this.connectionResolver.exchangeAndDiscoverAccounts({
+        appId,
+        appSecret,
+        code,
+        markStage: (stage) => {
+          failureStage = stage;
+        },
       });
 
-      if (!shortLivedToken) {
-        return returnBadRequest({
-          detail: 'Missing short-lived access token from Facebook',
-          title: 'Invalid payload',
-        });
-      }
-
-      // 2. Exchange short-lived token for long-lived token
-      failureStage = 'long_lived_token';
-      const longTokenRes: AxiosResponse<InstagramLongLivedTokenResponse> =
-        await firstValueFrom(
-          this.httpService.get(
-            `${this.graphUrl}/${this.apiVersion}/oauth/access_token`,
-            {
-              params: {
-                client_id: appId,
-                client_secret: appSecret,
-                fb_exchange_token: shortLivedToken,
-                grant_type: OAuthGrantType.FB_EXCHANGE_TOKEN,
-              },
-            },
-          ),
-        );
-
-      const { access_token, expires_in } = longTokenRes.data || {};
-      const scope = tokenRes.data.scope ?? longTokenRes.data?.scope;
-
-      if (!access_token) {
-        return returnBadRequest({
-          detail: 'Failed to get long-lived access token',
-          title: 'Invalid payload',
-        });
-      }
-
-      // Update the credential with the access token
-      // If reconnecting the same account, reactivate previously deleted credential
+      // Persist the exchanged token now that at least one eligible account
+      // is known to exist. Identity may still be ambiguous — decided below
+      // — so the row stays unconnected until it is resolved. Reactivate a
+      // previously soft-deleted row when reconnecting.
       failureStage = 'credential_persist';
       let credential = await this.credentialsService.patch(
         existingCredential.id,
@@ -285,8 +261,8 @@ export class InstagramController {
           accessTokenExpiry: expires_in
             ? new Date(Date.now() + expires_in * 1000)
             : undefined,
-          isConnected: true,
-          isDeleted: false, // Reactivate if previously disconnected
+          isConnected: false,
+          isDeleted: false,
           oauthState: null,
           refreshToken: undefined,
           refreshTokenExpiry: undefined,
@@ -294,14 +270,32 @@ export class InstagramController {
         },
       );
 
-      credential = await this.updateProfileAfterConnection({
-        accessToken: access_token,
-        credential,
-        organizationId: existingCredential.organizationId,
-        url,
-      });
+      failureStage = 'account_resolution';
+      const resolution = await this.connectionResolver.resolveAuthorizedAccount(
+        {
+          accounts,
+          credential,
+          organizationId: existingCredential.organizationId,
+          reconnectCredentialId: extractReconnectCredentialIdFromWarmupSignals(
+            existingCredential.warmupSignals,
+          ),
+          url,
+        },
+      );
+      credential = resolution.credential;
 
-      credential = await this.finalizeConnection({
+      if (resolution.needsSelection) {
+        // Token saved, identity ambiguous. `needsAccountSelection` on the
+        // serialized credential (computed in the serializer, not inferred
+        // by the caller) tells the callback page to fetch this credential's
+        // Instagram pages and let the operator pick — see
+        // `CredentialsController.findAllInstagramPages` and
+        // `InstagramController.selectAccount`.
+        return serializeSingle(request, CredentialSerializer, credential);
+      }
+
+      failureStage = 'post_connection';
+      credential = await this.connectionResolver.finalizeConnection({
         accessToken: access_token,
         credential,
         grantedScopes: scope,
@@ -323,115 +317,117 @@ export class InstagramController {
   }
 
   /**
-   * Fetch and persist the connected account's public identity (avatar,
-   * handle, name) so the settings page can show the real account instead of
-   * a platform-initial placeholder. OAuth remains successful when this
-   * fails: the previous/placeholder profile is preserved.
+   * Step 3 (only when verify reported `needsAccountSelection`): the operator
+   * has picked one of the candidates from `GET
+   * /credentials/:credentialId/instagram/pages`. Handle/name/avatar are read
+   * from this endpoint's own re-fetch of the credential's authorized
+   * accounts — never trusted from the request body — so a client cannot
+   * claim an externalId the token does not actually authorize, and cannot
+   * repoint this credential onto an account it was never granted.
    */
-  private async updateProfileAfterConnection(params: {
-    accessToken: string;
-    credential: Awaited<ReturnType<CredentialsService['patch']>>;
-    organizationId: string;
-    url: string;
-  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
-    const { accessToken, credential, organizationId, url } = params;
+  @Post(':credentialId/select-account')
+  async selectAccount(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Param('credentialId') credentialId: string,
+    @Body() body: { externalId?: string },
+  ) {
+    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+
+    if (!body?.externalId) {
+      return returnBadRequest({
+        detail: 'externalId is required',
+        title: 'Invalid payload',
+      });
+    }
+
+    const credential = await this.credentialsService.findOne({
+      id: credentialId,
+      organizationId: user.organizationId,
+      platform: CredentialPlatform.INSTAGRAM,
+    });
+
+    if (!credential || credential.isDeleted) {
+      return returnNotFound('Instagram credential', credentialId);
+    }
+
+    if (!credential.accessToken) {
+      return returnBadRequest({
+        detail: 'Instagram account is not connected',
+        title: 'Not Connected',
+      });
+    }
+
+    // This endpoint exists to settle exactly one ambiguity: a token was
+    // exchanged but never resolved to a specific account (see
+    // `computeNeedsAccountSelection`). A credential that is already
+    // connected, or already carries an externalId, is not in that state —
+    // without this check, any caller who knows a live credential's id could
+    // silently repoint it onto a different account the same token happens
+    // to authorize, entirely outside the disconnect/reconnect flow an
+    // operator would actually use to change which account a credential
+    // represents.
+    if (credential.isConnected || credential.externalId) {
+      return returnBadRequest({
+        detail:
+          'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
+        title: 'Already Connected',
+      });
+    }
 
     try {
-      const accountDetails =
-        await this.instagramService.getAccountDetails(accessToken);
-
-      let avatarUrl: string | null | undefined;
-      let handle: string | null | undefined = accountDetails.username;
-
-      try {
-        if (!credential.brandId) {
-          throw new Error('Credential has no brand for the pages lookup');
-        }
-        const pages = await this.instagramService.getInstagramPages(
-          organizationId,
-          credential.brandId,
-          credential.id.toString(),
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+      const accounts =
+        await this.instagramService.listAuthorizedInstagramAccounts(
+          accessToken,
         );
-        const matchingPage =
-          pages.find((page) => page.id === accountDetails.id) ?? pages[0];
+      const chosen = accounts.find((account) => account.id === body.externalId);
 
-        if (matchingPage) {
-          avatarUrl = matchingPage.image;
-          handle = matchingPage.username || handle;
-        }
-      } catch (pagesError: unknown) {
-        this.loggerService.warn(
-          `${url} instagram pages lookup failed after connection`,
-          getSafeInstagramOAuthErrorLog(pagesError),
-        );
+      if (!chosen) {
+        return returnBadRequest({
+          detail:
+            'That account is not authorized by this connection. Reconnect Instagram and try again.',
+          title: 'Account not available',
+        });
       }
 
-      const updated = await this.credentialsService.updateExternalProfile(
+      let updated = await this.credentialsService.updateExternalProfile(
         credential.id.toString(),
-        organizationId,
+        user.organizationId,
         {
-          avatarUrl,
-          handle,
-          id: accountDetails.id,
-          name: handle,
+          avatarUrl: chosen.image,
+          // `username` is optional on InstagramPageResponse — Graph can omit
+          // it on a reconnect. `undefined` means "leave the column as is";
+          // an explicit `null` here would wipe an existing good handle, the
+          // opposite of every other updateExternalProfile caller.
+          handle: chosen.username ?? undefined,
+          id: chosen.id,
+          name: chosen.label || chosen.username,
         },
       );
-      return updated ?? credential;
-    } catch (profileError: unknown) {
-      this.loggerService.warn(
-        `${url} instagram profile lookup failed after connection`,
-        getSafeInstagramOAuthErrorLog(profileError),
-      );
-      return credential;
-    }
-  }
 
-  /**
-   * Post-connection work that must never fail the connection itself: refresh
-   * the authorized signals snapshot, then queue the import of the account's
-   * existing posts. Both are best-effort and logged on failure.
-   */
-  private async finalizeConnection(params: {
-    accessToken: string;
-    credential: Awaited<ReturnType<CredentialsService['patch']>>;
-    grantedScopes: string | undefined;
-    organizationId: string;
-    url: string;
-  }): Promise<Awaited<ReturnType<CredentialsService['patch']>>> {
-    const { accessToken, grantedScopes, organizationId, url } = params;
-    let credential = params.credential;
-    try {
-      await this.instagramAuthorizedSignalsService.refresh({
+      updated = await this.connectionResolver.finalizeConnection({
         accessToken,
-        credentialId: credential.id.toString(),
-        force: true,
-        grantedScopes,
-        organizationId,
+        credential: updated,
+        // Undefined so `finalizeConnection`'s signal refresh falls back to
+        // this credential's already-persisted grantedScopes, the same as
+        // any other post-connection refresh.
+        grantedScopes: undefined,
+        organizationId: user.organizationId,
+        url,
       });
-      credential =
-        (await this.credentialsService.findOne({
-          id: credential.id.toString(),
-          organizationId,
-          platform: CredentialPlatform.INSTAGRAM,
-        })) ?? credential;
-    } catch (signalError: unknown) {
-      this.loggerService.warn(
-        `${url} authorized signal refresh failed after connection`,
-        getSafeInstagramOAuthErrorLog(signalError),
+
+      return serializeSingle(request, CredentialSerializer, updated);
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${url} failed`,
+        getSafeInstagramOAuthErrorLog(error),
+      );
+      return throwMappedInstagramOAuthError(
+        error,
+        'Failed to connect the selected Instagram account',
       );
     }
-    try {
-      await this.historyImportService.scheduleForCredential({
-        credentialId: credential.id.toString(),
-        organizationId,
-      });
-    } catch (scheduleError: unknown) {
-      this.loggerService.warn(
-        `${url} history import scheduling failed after connection`,
-        getSafeInstagramOAuthErrorLog(scheduleError),
-      );
-    }
-    return credential;
   }
 
   @Post(':credentialId/authorized-signals/refresh')

@@ -32,7 +32,7 @@ describe('GhostPublisherService', () => {
   const mockCredential = {
     id: 'test-object-id',
     accessToken: 'encrypted-token',
-    externalHandle: 'https://myblog.ghost.io',
+    externalId: 'https://myblog.ghost.io',
     platform: CredentialPlatform.GHOST,
   };
 
@@ -129,7 +129,7 @@ describe('GhostPublisherService', () => {
       const secondAccount = {
         id: 'second-account-id',
         accessToken: 'encrypted-token-2',
-        externalHandle: 'https://second.ghost.io',
+        externalId: 'https://second.ghost.io',
         platform: CredentialPlatform.GHOST,
       };
 
@@ -205,14 +205,14 @@ describe('GhostPublisherService', () => {
   });
 
   describe('buildPostUrl', () => {
-    it('should build URL from credential externalHandle', () => {
+    it('should build URL from credential externalId', () => {
       const url = service.buildPostUrl('post-123', mockCredential as never);
       expect(url).toBe('https://myblog.ghost.io/p/post-123');
     });
 
-    it('should handle missing externalHandle gracefully', () => {
+    it('should handle missing externalId gracefully', () => {
       const url = service.buildPostUrl('post-abc', {
-        externalHandle: '',
+        externalId: '',
       } as never);
       expect(url).toBe('/p/post-abc');
     });

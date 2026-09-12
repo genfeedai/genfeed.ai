@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { type CredentialDocument } from '@api/collections/credentials/schemas/credential.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
@@ -40,6 +39,7 @@ import {
   CredentialInstagramPagesSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
+import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {
   Body,
   Controller,
@@ -72,7 +72,6 @@ export class CredentialsController {
   >;
 
   constructor(
-    private readonly brandsService: BrandsService,
     private readonly credentialsService: CredentialsService,
     private readonly facebookService: FacebookService,
     private readonly googleAdsService: GoogleAdsService,
@@ -238,7 +237,12 @@ export class CredentialsController {
     @Param('credentialId') credentialId: string,
   ): Promise<JsonApiCollectionResponse> {
     try {
-      // Get the Instagram credential for this brand
+      // Scoped to this credential's own token — not the brand's default
+      // account, which may be a different Instagram account than the one
+      // being set up. `listAuthorizedInstagramAccounts` is the same source
+      // of truth `InstagramController.resolveAuthorizedAccount` and
+      // `selectAccount` use, so the picker's candidates never drift from
+      // what a selection will actually be validated against.
       const credential = await this.credentialsService.findOne({
         id: credentialId,
         organizationId: user.organizationId,
@@ -255,34 +259,38 @@ export class CredentialsController {
         );
       }
 
-      const brandId = credential.brandId ?? undefined;
-      if (!brandId) {
-        throw new HttpException(
-          {
-            detail: 'Credential is missing a connected brand',
-            title: 'Invalid Credential',
-          },
-          HttpStatus.BAD_REQUEST,
+      const accessToken = EncryptionUtil.decrypt(credential.accessToken);
+      const pages =
+        await this.instagramService.listAuthorizedInstagramAccounts(
+          accessToken,
         );
-      }
 
-      const brand = await this.brandsService.findOne({
-        id: brandId,
-        organizationId: user.organizationId,
-      });
-
-      if (!brand) {
-        return returnNotFound('Brand', brandId);
-      }
-
-      // Get all available handles from the Instagram service
-      const pages = await this.instagramService.getInstagramPages(
-        user.organizationId,
-        brand.id.toString(),
+      // Flag candidates already held by another live credential of this
+      // brand, the same sibling exclusion
+      // `InstagramConnectionResolverService.resolveAuthorizedAccount` applies
+      // when auto-resolving — the picker still lists them (choosing one is a
+      // legitimate deliberate reconnect, merging into that incumbent), but
+      // the UI can now tell the operator which candidates that applies to.
+      const heldAccounts = credential.brandId
+        ? await this.credentialsService.findConnectedAccounts(
+            user.organizationId,
+            credential.brandId,
+            CredentialPlatform.INSTAGRAM,
+          )
+        : [];
+      const heldExternalIds = new Set(
+        heldAccounts
+          .filter((account) => account.id !== credential.id)
+          .map((account) => account.externalId)
+          .filter((externalId): externalId is string => Boolean(externalId)),
       );
+      const pagesWithHeldFlag = pages.map((page) => ({
+        ...page,
+        isAlreadyConnected: heldExternalIds.has(page.id),
+      }));
 
       return serializeCollection(request, CredentialInstagramPagesSerializer, {
-        docs: pages,
+        docs: pagesWithHeldFlag,
       });
     } catch (error: unknown) {
       // Handle expired/invalid token errors from Facebook Graph API
@@ -353,15 +361,22 @@ export class CredentialsController {
       return returnNotFound(this.constructorName, credentialId);
     }
 
+    // Provider identity (externalId/externalHandle/externalName/
+    // externalAvatar) is never client-writable through this generic
+    // endpoint: `updateExternalProfile`'s reconciliation can move a
+    // credential's token onto a *different* existing row when the claimed
+    // externalId matches one, so accepting an operator-supplied externalId
+    // here would let any same-org caller repoint another account's
+    // connection. Every platform resolves and persists that identity itself
+    // (OAuth verify, or — for Instagram's multi-account case — the
+    // dedicated `POST /services/instagram/:credentialId/select-account`,
+    // which validates the chosen id against the credential's own token
+    // before calling `updateExternalProfile`).
     const allowedFields: (keyof UpdateCredentialDto)[] = [
       'accessToken',
       'accessTokenExpiry',
       'accessTokenSecret',
       'description',
-      'externalAvatar',
-      'externalHandle',
-      'externalId',
-      'externalName',
       'isConnected',
       'isDeleted',
       'label',
@@ -386,36 +401,12 @@ export class CredentialsController {
       }
     });
 
-    const {
-      externalAvatar,
-      externalHandle,
-      externalId,
-      externalName,
-      ...credentialUpdate
-    } = sanitizedUpdate;
-
     let data: CredentialDocument = credential;
 
-    if (Object.keys(credentialUpdate).length > 0) {
+    if (Object.keys(sanitizedUpdate).length > 0) {
       data = await this.credentialsService.patch(
         credential.id,
-        credentialUpdate as Partial<UpdateCredentialDto>,
-      );
-    }
-
-    const externalProfile = {
-      avatarUrl:
-        typeof externalAvatar === 'string' ? externalAvatar : undefined,
-      handle: typeof externalHandle === 'string' ? externalHandle : undefined,
-      id: typeof externalId === 'string' ? externalId : undefined,
-      name: typeof externalName === 'string' ? externalName : undefined,
-    };
-
-    if (Object.values(externalProfile).some(Boolean)) {
-      data = await this.credentialsService.updateExternalProfile(
-        credential.id,
-        user.organizationId,
-        externalProfile,
+        sanitizedUpdate as Partial<UpdateCredentialDto>,
       );
     }
 

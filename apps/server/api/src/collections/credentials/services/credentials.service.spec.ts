@@ -10,7 +10,12 @@ vi.mock('@genfeedai/prisma', async () => {
 
 import process from 'node:process';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import {
+  CredentialsService,
+  extractReconnectCredentialIdFromWarmupSignals,
+} from '@api/collections/credentials/services/credentials.service';
+import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
+
 import { CredentialPlatform, SubscriptionTier } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 
@@ -88,6 +93,7 @@ describe('CredentialsService', () => {
       logger as never,
       crypto,
       filesClient as never,
+      new ProviderAccountPurgeService(prisma as never),
     );
   });
 
@@ -558,6 +564,7 @@ describe('CredentialsService', () => {
       prisma.credential.findMany.mockResolvedValue([
         {
           createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: 'ext-a',
           id: 'cred-a',
           platform: 'TWITTER',
         },
@@ -577,11 +584,13 @@ describe('CredentialsService', () => {
       prisma.credential.findMany.mockResolvedValue([
         {
           createdAt: '2026-02-01T00:00:00.000Z',
+          externalId: 'ext-b',
           id: 'cred-b',
           platform: 'TWITTER',
         },
         {
           createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: 'ext-a',
           id: 'cred-a',
           platform: 'TWITTER',
         },
@@ -612,6 +621,55 @@ describe('CredentialsService', () => {
           platform: 'twitter' as never,
         }),
       ).resolves.toBeNull();
+    });
+
+    it('never falls back to a row with no externalId, even as the sole candidate', async () => {
+      // A row with no externalId was never resolved to a specific account —
+      // an abandoned multi-account selection, or a pending row mid-OAuth. It
+      // has nothing this call could correctly act "as".
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: null,
+          id: 'cred-unidentified',
+          platform: 'INSTAGRAM',
+        },
+      ]);
+
+      await expect(
+        service.resolveBrandAccount({
+          brandId,
+          organizationId: orgId,
+          platform: 'instagram' as never,
+        }),
+      ).resolves.toBeNull();
+      expect(logger.warn).not.toHaveBeenCalled();
+    });
+
+    it('skips unidentified rows and falls back to the one identified account', async () => {
+      prisma.credential.findMany.mockResolvedValue([
+        {
+          createdAt: '2026-01-01T00:00:00.000Z',
+          externalId: null,
+          id: 'cred-unidentified',
+          platform: 'INSTAGRAM',
+        },
+        {
+          createdAt: '2026-02-01T00:00:00.000Z',
+          externalId: 'ext-a',
+          id: 'cred-identified',
+          platform: 'INSTAGRAM',
+        },
+      ]);
+
+      const account = await service.resolveBrandAccount({
+        brandId,
+        organizationId: orgId,
+        platform: 'instagram' as never,
+      });
+
+      expect(account?.id).toBe('cred-identified');
+      expect(logger.warn).not.toHaveBeenCalled();
     });
   });
 
@@ -655,12 +713,22 @@ describe('CredentialsService', () => {
         id: 'account-2',
       });
 
-      const patched = prisma.credential.update.mock.calls.at(-1)?.[0] as {
+      // The claim is conditional on the row's own pre-claim state (see the
+      // "losing writer" test below) rather than a blind patch by id, so it
+      // goes through updateMany, not update.
+      const patched = prisma.credential.updateMany.mock.calls.at(-1)?.[0] as {
         data: Record<string, unknown>;
         where: Record<string, unknown>;
       };
 
-      expect(patched.where).toEqual({ id: 'pending-1' });
+      expect(patched.where).toEqual(
+        expect.objectContaining({
+          externalId: null,
+          id: 'pending-1',
+          isConnected: false,
+          organizationId: orgId,
+        }),
+      );
       expect(patched.data).toEqual(
         expect.objectContaining({
           externalId: 'account-2',
@@ -669,6 +737,31 @@ describe('CredentialsService', () => {
           oauthState: null,
         }),
       );
+    });
+
+    it('rejects the losing writer of a concurrent claim on the same pending row', async () => {
+      // Two concurrent select-account requests choosing *different*
+      // accounts never collide on the externalId unique constraint (only
+      // the P2002 path above covers that), so the only thing that can stop
+      // the second writer from silently overwriting the first's claim is
+      // this row-state precondition. Simulate the second writer losing the
+      // race: updateMany matches zero rows because the first writer already
+      // flipped isConnected/externalId.
+      loadPendingCredential();
+      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
+      prisma.credential.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.updateExternalProfile('pending-1', orgId, {
+          handle: 'second_account',
+          id: 'account-2',
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          title: 'Already Connected',
+        },
+        status: 400,
+      });
     });
 
     it('merges into the incumbent and retires the pending row on reconnect', async () => {
@@ -715,7 +808,7 @@ describe('CredentialsService', () => {
     it('folds into the winner when a concurrent verify claimed the identity first', async () => {
       loadPendingCredential();
       prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent yet
-      prisma.credential.update.mockRejectedValueOnce(
+      prisma.credential.updateMany.mockRejectedValueOnce(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
       prisma.credential.findFirst.mockResolvedValueOnce({ id: 'winner-1' }); // retry finds it
@@ -738,7 +831,7 @@ describe('CredentialsService', () => {
     it('rethrows a unique violation when no winner can be found', async () => {
       loadPendingCredential();
       prisma.credential.findFirst.mockResolvedValueOnce(null);
-      prisma.credential.update.mockRejectedValueOnce(
+      prisma.credential.updateMany.mockRejectedValueOnce(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
       prisma.credential.findFirst.mockResolvedValueOnce(null);
@@ -806,6 +899,70 @@ describe('CredentialsService', () => {
       expect(data.oauthState).toBe(result.state);
       expect(result.state).not.toContain(brandId);
       expect(result.state).not.toContain(orgId);
+    });
+
+    it('stores a reconnect intent on the pending credential, never in the OAuth state', async () => {
+      const result = await service.beginOAuthForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        CredentialPlatform.INSTAGRAM,
+        { isConnected: false },
+        'reconnect-credential-1',
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        unknown
+      >;
+
+      // The state stays a plain, unstructured nonce: it round-trips through
+      // the provider's authorization URL, browser history, and referrer
+      // headers, so embedding a credential id in it would leak that
+      // internal identifier outside Genfeed.
+      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
+      expect(result.state).not.toContain('reconnect-credential-1');
+      expect(data.oauthState).toBe(result.state);
+      expect(data.warmupSignals).toEqual({
+        oauthConnectIntent: { reconnectCredentialId: 'reconnect-credential-1' },
+      });
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals(data.warmupSignals),
+      ).toBe('reconnect-credential-1');
+    });
+
+    it('omits the intent entirely when no reconnect credential is given', async () => {
+      await service.beginOAuthForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        CredentialPlatform.INSTAGRAM,
+        { isConnected: false },
+      );
+
+      const data = prisma.credential.create.mock.calls[0][0].data as Record<
+        string,
+        unknown
+      >;
+
+      expect(data.warmupSignals).toBeUndefined();
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals(data.warmupSignals),
+      ).toBeUndefined();
+    });
+
+    it('recovers no reconnect intent from warmupSignals that carry none', () => {
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals({
+          instagramAuthorized: {},
+        }),
+      ).toBeUndefined();
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals(undefined),
+      ).toBeUndefined();
+      expect(
+        extractReconnectCredentialIdFromWarmupSignals({
+          oauthConnectIntent: { reconnectCredentialId: '   ' },
+        }),
+      ).toBeUndefined();
     });
 
     it('resolves pending OAuth state inside the caller tenant scope', async () => {
@@ -1015,6 +1172,34 @@ describe('CredentialsService', () => {
           }),
         }),
       );
+    });
+
+    it('clears a stale handle when a provider explicitly reports none', async () => {
+      // `null` means "this provider has no handle for this account" and
+      // must clear a previously-persisted bad value (see #4695); `undefined`
+      // means "leave the column as is" and must not touch it.
+      await service.updateExternalProfile('existing-id', orgId, {
+        handle: null,
+        id: 'provider-1',
+        name: 'Acme Studio',
+      });
+
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({ externalHandle: null }),
+        }),
+      );
+    });
+
+    it('leaves externalHandle untouched when the provider omits it', async () => {
+      await service.updateExternalProfile('existing-id', orgId, {
+        id: 'provider-1',
+        name: 'Acme Studio',
+      });
+
+      const call = (prisma.credential.update as ReturnType<typeof vi.fn>).mock
+        .calls[0][0] as { data: Record<string, unknown> };
+      expect(call.data).not.toHaveProperty('externalHandle');
     });
 
     it('rejects private avatar URLs before the files service fetches them', async () => {

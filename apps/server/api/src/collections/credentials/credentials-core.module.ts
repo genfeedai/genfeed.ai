@@ -4,6 +4,7 @@ import { CredentialCryptoService } from '@api/collections/credentials/services/c
 import { CredentialPostingTimesService } from '@api/collections/credentials/services/credential-posting-times.service';
 import { CredentialPublishingReadinessService } from '@api/collections/credentials/services/credential-publishing-readiness.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
 import { SERVER_TOKENS } from '@api/index';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
@@ -38,6 +39,7 @@ const SERVER_CREDENTIAL_STORE_PROVIDER = {
     CredentialPostingTimesService,
     CredentialPublishingReadinessService,
     CredentialsService,
+    ProviderAccountPurgeService,
     SERVER_CREDENTIAL_STORE_PROVIDER,
   ],
 })

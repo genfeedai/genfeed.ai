@@ -1,4 +1,5 @@
 import {
+  computeNeedsAccountSelection,
   credentialAttributes,
   credentialInstagramAttributes,
   credentialOAuthAttributes,
@@ -20,6 +21,9 @@ const baseRelationships = {
 };
 
 export const credentialSerializerConfig = {
+  attributeDerivations: {
+    needsAccountSelection: computeNeedsAccountSelection,
+  },
   attributeTransforms: { platform: mapSerializedCredentialPlatform },
   attributes: credentialAttributes,
   type: 'credential',

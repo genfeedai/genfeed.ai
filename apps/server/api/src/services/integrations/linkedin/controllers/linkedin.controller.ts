@@ -176,7 +176,9 @@ export class LinkedInController {
         organizationId,
         {
           avatarUrl: profile.picture,
-          handle: profileName,
+          // LinkedIn's member OpenID Connect profile has no public vanity
+          // handle — only a display name. Never persist the name as a handle.
+          handle: undefined,
           id: profile.id,
           name: profileName,
         },

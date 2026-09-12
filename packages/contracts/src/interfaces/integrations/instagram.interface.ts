@@ -3,16 +3,6 @@
  */
 
 /**
- * Instagram account details from Graph API
- */
-export interface InstagramAccountDetails {
-  id: string;
-  username?: string;
-  account_type?: string;
-  media_count?: number;
-}
-
-/**
  * Instagram Business Account page information
  */
 export interface InstagramPageResponse {
@@ -20,8 +10,15 @@ export interface InstagramPageResponse {
   image?: string;
   label?: string;
   username?: string;
-  isBusinessAccount?: boolean;
   platform?: string;
+  /**
+   * True when this account's id is already held by another live (connected)
+   * credential of the brand the picker is scoped to. Only set by
+   * `CredentialsController.findAllInstagramPages` for the picker's own
+   * candidate list; `InstagramService.listAuthorizedInstagramAccounts`
+   * itself has no brand context and never sets it.
+   */
+  isAlreadyConnected?: boolean;
 }
 
 /**

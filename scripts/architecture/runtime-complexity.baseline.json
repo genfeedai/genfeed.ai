@@ -282,12 +282,6 @@
     "symbol": "apps/server/api/src/services/content-optimization/content-optimization.service.ts"
   },
   {
-    "actual": 155,
-    "file": "apps/server/api/src/services/integrations/instagram/controllers/instagram.controller.ts",
-    "metric": "method-lines",
-    "symbol": "InstagramController.verify"
-  },
-  {
     "actual": 1049,
     "file": "apps/server/api/src/services/integrations/meta-ads/services/meta-ads.service.ts",
     "metric": "file-lines",

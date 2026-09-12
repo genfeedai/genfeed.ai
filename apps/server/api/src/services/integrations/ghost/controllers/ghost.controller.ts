@@ -90,7 +90,8 @@ export class GhostController {
         pending.id,
         brand.organizationId,
         {
-          handle: body.ghostUrl,
+          // A Ghost site URL is an address, not a public @handle.
+          handle: undefined,
           id: body.ghostUrl,
           name: siteInfo.title,
         },

@@ -178,7 +178,7 @@ export default function ModalCreateThread({
       : 1;
 
   const credentialOptions = credentials.map((cred) => ({
-    label: `${cred.platform} - ${cred.label || cred.externalHandle || 'Untitled'}`,
+    label: `${cred.platform} - ${cred.label || cred.externalHandle || cred.externalName || 'Untitled'}`,
     value: cred.id,
   }));
 

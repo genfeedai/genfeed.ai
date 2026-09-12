@@ -8,6 +8,7 @@ import type { ServerCredentialStore } from '@api/collections/credentials/credent
 import { CreateCredentialDto } from '@api/collections/credentials/dto/create-credential.dto';
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
+import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -25,14 +26,47 @@ import {
   fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import { Prisma, TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
+import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export type { ResolveBrandAccountOptions } from '@api/collections/credentials/credential.types';
 
 function hashOAuthRequestToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
+}
+
+/**
+ * Reconnect intent (the existing credential a fresh OAuth attempt should
+ * settle back into) is carried on the pending credential's own
+ * `warmupSignals` JSON column under this key, never in the OAuth `state`
+ * parameter. `state` round-trips through the provider's authorization URL,
+ * browser history, and referrer headers — embedding a credential id in it
+ * would leak that internal identifier to the provider and to anything that
+ * can read those. `warmupSignals` is already a free-form per-credential JSON
+ * bag with several independent top-level keys (see `mergeWarmupSignals`), so
+ * this reuses an existing column instead of adding one.
+ */
+const OAUTH_CONNECT_INTENT_STORAGE_KEY = 'oauthConnectIntent';
+
+function readPlainRecord(value: unknown): Record<string, unknown> {
+  return value && typeof value === 'object' && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
+}
+
+/** Recover the reconnect-intent credential id stored on a pending credential, if any. */
+export function extractReconnectCredentialIdFromWarmupSignals(
+  warmupSignals: unknown,
+): string | undefined {
+  const intent = readPlainRecord(
+    readPlainRecord(warmupSignals)[OAUTH_CONNECT_INTENT_STORAGE_KEY],
+  );
+  const candidate = intent.reconnectCredentialId;
+
+  return typeof candidate === 'string' && candidate.trim().length > 0
+    ? candidate
+    : undefined;
 }
 
 /**
@@ -112,6 +146,7 @@ export class CredentialsService
     public readonly logger: LoggerService,
     private readonly cryptoService: CredentialCryptoService,
     private readonly filesClientService: FilesClientService,
+    private readonly providerAccountPurgeService: ProviderAccountPurgeService,
   ) {
     super(prisma, 'credential', logger);
   }
@@ -258,103 +293,19 @@ export class CredentialsService
    * Irreversibly remove provider-derived identity and connection material after
    * an authenticated provider deauthorization or data-deletion callback.
    *
-   * This is intentionally the only cross-tenant credential mutation in this
-   * service. The provider's app-scoped user id carries no organization id, so
-   * callers must authenticate the provider-signed request before invoking it.
-   * The `(platform, externalId)` pair is the narrow global identity boundary.
-   * User-authored schedules and content remain attached to a sanitized,
-   * soft-deleted credential so existing foreign keys are preserved.
+   * Delegates to `ProviderAccountPurgeService` (a self-contained transaction
+   * that only needs `prisma`); kept as a `CredentialsService` method since
+   * every existing caller already reaches this cross-tenant purge through
+   * the credentials store. See that service for the full contract.
    */
-  async purgeProviderAccount(
+  purgeProviderAccount(
     platform: CredentialPlatform,
     externalId: string,
   ): Promise<number> {
-    const prismaPlatform = toPrismaCredentialPlatform(platform);
-    if (!prismaPlatform || !externalId.trim()) {
-      throw new TypeError('A persisted platform and external id are required');
-    }
-
-    return this.prisma.$transaction(async (tx) => {
-      // tenant-scope-ignore: Meta's verified app-scoped user id is the global identity boundary; the signed callback contains no organization id
-      const credentials = await tx.credential.findMany({
-        select: { id: true },
-        where: {
-          externalId: externalId.trim(),
-          platform: prismaPlatform,
-        },
-      });
-      const credentialIds = credentials.map(({ id }) => id);
-
-      if (credentialIds.length === 0) {
-        return 0;
-      }
-
-      // Analytics and provider publication identifiers were obtained from the
-      // provider. Preserve the user's authored post, but remove those fields.
-      // sql-risk-audit: ignore bulk-write-tenant-review -- credentialIds come only from the verified global provider identity lookup and cover live and deleted rows across organizations.
-      // tenant-scope-ignore: credentialIds come only from the verified global provider identity lookup and cover live and deleted rows across organizations
-      await tx.postAnalytics.deleteMany({
-        where: {
-          platform: prismaPlatform,
-          post: { credentialId: { in: credentialIds } },
-        },
-      });
-      // sql-risk-audit: ignore bulk-write-tenant-review -- same credentialIds bound the write; provider identity is global, not org-scoped.
-      // tenant-scope-ignore: credentialIds come only from the verified global provider identity lookup and intentionally cover live and deleted rows across organizations
-      await tx.post.updateMany({
-        data: {
-          analyticsCollectedAt: null,
-          analyticsCollectionAttemptKey: null,
-          analyticsCollectionError: Prisma.DbNull,
-          analyticsCollectionRequestedAt: null,
-          analyticsCollectionState: 'unavailable',
-          externalId: null,
-          externalShortcode: null,
-          url: null,
-        },
-        where: {
-          credentialId: { in: credentialIds },
-          platform,
-        },
-      });
-
-      // sql-risk-audit: ignore bulk-write-tenant-review -- same credentialIds bound the write; provider identity is global, not org-scoped.
-      // tenant-scope-ignore: credentialIds come only from the verified global provider identity lookup and intentionally sanitize live and deleted credentials across organizations
-      const result = await tx.credential.updateMany({
-        data: {
-          accessToken: null,
-          accessTokenExpiry: null,
-          accessTokenSecret: null,
-          externalAvatar: null,
-          externalHandle: null,
-          externalId: null,
-          externalName: null,
-          grantedScopes: [],
-          grantedScopesCapturedAt: null,
-          isConnected: false,
-          isDeleted: true,
-          oauthState: null,
-          oauthToken: null,
-          oauthTokenHash: null,
-          oauthTokenSecret: null,
-          refreshToken: null,
-          refreshTokenExpiry: null,
-          username: null,
-          warmupAssessedAt: null,
-          warmupHoldReason: null,
-          warmupRiskLevel: 'unknown',
-          warmupScore: 0,
-          warmupSignals: {},
-          warmupState: 'not_started',
-        },
-        where: {
-          id: { in: credentialIds },
-          platform: prismaPlatform,
-        },
-      });
-
-      return result.count;
-    });
+    return this.providerAccountPurgeService.purgeProviderAccount(
+      platform,
+      externalId,
+    );
   }
 
   /**
@@ -521,10 +472,16 @@ export class CredentialsService
       return named;
     }
 
-    const accounts = isDisconnectedIncluded
+    const allAccounts = isDisconnectedIncluded
       ? await this.findBrandAccounts(organizationId, brandId, platform)
       : await this.findConnectedAccounts(organizationId, brandId, platform);
-
+    // A row with no externalId was never resolved to a specific account (an
+    // abandoned multi-account selection, or a pending row mid-OAuth) — it has
+    // nothing this call could correctly act "as", so it can never be the
+    // implicit default even if it is otherwise the oldest row.
+    const accounts = allAccounts.filter((candidate) =>
+      Boolean(candidate.externalId),
+    );
     const account = accounts[0] ?? null;
 
     if (accounts.length > 1 && account) {
@@ -571,13 +528,24 @@ export class CredentialsService
     userId: string,
     platform: CredentialPlatform,
     fields: CredentialUpsertFields = {},
+    reconnectCredentialId?: string,
   ): Promise<{ credential: CredentialDocument; state: string }> {
     const state = randomBytes(32).toString('base64url');
     const credential = await this.createPendingForBrand(
       brand,
       userId,
       platform,
-      { ...fields, oauthState: state },
+      {
+        ...fields,
+        oauthState: state,
+        ...(reconnectCredentialId
+          ? {
+              warmupSignals: {
+                [OAUTH_CONNECT_INTENT_STORAGE_KEY]: { reconnectCredentialId },
+              },
+            }
+          : {}),
+      } as unknown as CredentialUpsertFields,
     );
 
     return { credential, state };
@@ -808,9 +776,14 @@ export class CredentialsService
       throw new Error(`Credential ${credentialId} not found`);
     }
 
-    const update: Record<string, string> = {};
+    const update: Record<string, string | null> = {};
 
-    if (profile.handle) {
+    // `undefined` means "the provider didn't tell us, leave the column as
+    // is"; an explicit `null` means "this provider has no handle for this
+    // account" and clears a previously-persisted value, so a reconnect heals
+    // a row a past bug wrote wrong (see #4695 handle audit) instead of
+    // leaving the stale value in place forever.
+    if (profile.handle !== undefined) {
       update.externalHandle = profile.handle;
     }
     if (profile.id) {
@@ -874,21 +847,57 @@ export class CredentialsService
   private async reconcileConnectedAccount(
     credential: CredentialDocument,
     externalId: string,
-    profileUpdate: Record<string, string>,
+    profileUpdate: Record<string, string | null>,
   ): Promise<CredentialDocument> {
     const brandId = credential.brandId as string | null | undefined;
     const prismaPlatform = toPrismaCredentialPlatform(
       credential.platform as CredentialPlatform,
     );
 
-    const claimIdentity = (): Promise<CredentialDocument> =>
-      this.patch(credential.id, {
+    // Conditional on the row's own pre-claim state (unconnected, no
+    // externalId yet) rather than a blind patch by id. Two callers racing
+    // to settle *different* identities onto the same pending row (e.g. two
+    // concurrent select-account requests) never collide on a unique
+    // constraint — nothing else would stop the second write from silently
+    // overwriting the first's claim. `isDeleted` is left out of the filter
+    // (not defaulted to false) so a soft-deleted row can still be reclaimed
+    // on reconnect, matching the un-scoped `patch` this replaces. The
+    // returned document is built from the known prior state plus the exact
+    // fields just written, rather than a follow-up read, since `updateMany`
+    // does not return the row.
+    const claimIdentity = async (): Promise<CredentialDocument> => {
+      const claim = {
         ...profileUpdate,
         externalId,
         isConnected: true,
         isDeleted: false,
         oauthState: null,
-      });
+      };
+
+      const { modifiedCount } = await this.patchAll(
+        {
+          externalId: null,
+          id: credential.id,
+          isConnected: false,
+          isDeleted: undefined,
+          organizationId: credential.organizationId,
+        },
+        claim,
+      );
+
+      if (modifiedCount === 0) {
+        throw new HttpException(
+          {
+            detail:
+              'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
+            title: 'Already Connected',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return { ...credential, ...claim } as CredentialDocument;
+    };
 
     if (!brandId || !prismaPlatform) {
       // No brand or no persisted platform means no sibling set to reconcile

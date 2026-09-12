@@ -1,4 +1,10 @@
-import { BrandsService } from '@api/collections/brands/services/brands.service';
+vi.mock('@libs/utils/encryption/encryption.util', () => ({
+  EncryptionUtil: {
+    decrypt: vi.fn((value: string) => value),
+    encrypt: vi.fn((value: string) => value),
+  },
+}));
+
 import { CredentialsController } from '@api/collections/credentials/controllers/credentials.controller';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { FacebookService } from '@api/services/integrations/facebook/services/facebook.service';
@@ -18,7 +24,6 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 describe('CredentialsController', () => {
   let controller: CredentialsController;
   let credentialsService: Record<string, ReturnType<typeof vi.fn>>;
-  let brandsService: Record<string, ReturnType<typeof vi.fn>>;
   let instagramService: Record<string, ReturnType<typeof vi.fn>>;
 
   const userId = testId('user');
@@ -48,20 +53,19 @@ describe('CredentialsController', () => {
       create: vi.fn(),
       find: vi.fn().mockResolvedValue([]),
       findAll: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+      findConnectedAccounts: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
       patch: vi.fn(),
       remove: vi.fn(),
       createAndAttachTag: vi.fn(),
       updateExternalProfile: vi.fn(),
     };
-    brandsService = { findOne: vi.fn() };
     instagramService = {
       ...createMockPlatformService(),
-      getInstagramPages: vi.fn().mockResolvedValue([]),
+      listAuthorizedInstagramAccounts: vi.fn().mockResolvedValue([]),
     };
 
     controller = new CredentialsController(
-      brandsService as unknown as BrandsService,
       credentialsService as unknown as CredentialsService,
       createMockPlatformService() as unknown as FacebookService,
       createMockPlatformService() as unknown as GoogleAdsService,
@@ -120,6 +124,41 @@ describe('CredentialsController', () => {
       await expect(controller.findOne(mockRequest, missingId)).rejects.toThrow(
         HttpException,
       );
+    });
+  });
+
+  describe('findAllInstagramPages', () => {
+    it("lists accounts with this credential's own token, not the brand's default account", async () => {
+      credentialsService.findOne.mockResolvedValue({
+        accessToken: 'encrypted-token',
+        brandId: brandEntityId,
+        id: credId,
+      });
+      instagramService.listAuthorizedInstagramAccounts.mockResolvedValue([
+        {
+          id: 'ig-1',
+          image: 'https://cdn.example.com/1.jpg',
+          label: 'One',
+          username: 'one',
+        },
+      ]);
+
+      await controller.findAllInstagramPages(mockRequest, mockUser, credId);
+
+      expect(
+        instagramService.listAuthorizedInstagramAccounts,
+      ).toHaveBeenCalledWith('encrypted-token');
+    });
+
+    it('rejects when the credential has no access token', async () => {
+      credentialsService.findOne.mockResolvedValue({ id: credId });
+
+      await expect(
+        controller.findAllInstagramPages(mockRequest, mockUser, credId),
+      ).rejects.toThrow(HttpException);
+      expect(
+        instagramService.listAuthorizedInstagramAccounts,
+      ).not.toHaveBeenCalled();
     });
   });
 
@@ -197,7 +236,6 @@ describe('CredentialsController', () => {
         refreshToken: vi.fn().mockRejectedValue(new Error('Token expired')),
       };
       const failController = new CredentialsController(
-        brandsService as unknown as BrandsService,
         credentialsService as unknown as CredentialsService,
         createMockPlatformService() as unknown as FacebookService,
         createMockPlatformService() as unknown as GoogleAdsService,
@@ -263,13 +301,14 @@ describe('CredentialsController', () => {
       ).rejects.toThrow(HttpException);
     });
 
-    it('imports submitted provider avatars instead of persisting hotlinks', async () => {
+    it('never lets a client repoint provider identity through the generic PATCH', async () => {
+      // externalId/externalHandle/externalName/externalAvatar are never
+      // client-writable here: updateExternalProfile's reconciliation can
+      // move a credential's token onto a *different* existing row when a
+      // claimed externalId matches one, so a same-org caller could
+      // otherwise repoint another account's connection. Every platform
+      // resolves and persists that identity itself.
       credentialsService.findOne.mockResolvedValue({ id: credId });
-      credentialsService.updateExternalProfile.mockResolvedValue({
-        externalAvatar:
-          'https://cdn.genfeed.ai/ingredients/social-avatars/credential-1',
-        id: credId,
-      });
 
       await controller.update(
         mockRequest,
@@ -277,22 +316,34 @@ describe('CredentialsController', () => {
         {
           externalAvatar: 'https://instagram.example/avatar.jpg',
           externalHandle: 'genfeed',
+          externalId: 'someone-elses-account-id',
           externalName: 'Genfeed',
         } as never,
         mockUser,
       );
 
+      expect(credentialsService.updateExternalProfile).not.toHaveBeenCalled();
       expect(credentialsService.patch).not.toHaveBeenCalled();
-      expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
+    });
+
+    it('still applies other allowed fields alongside an ignored identity field', async () => {
+      credentialsService.findOne.mockResolvedValue({ id: credId });
+      credentialsService.patch.mockResolvedValue({
+        id: credId,
+        label: 'Updated',
+      });
+
+      await controller.update(
+        mockRequest,
         credId,
-        orgId,
-        {
-          avatarUrl: 'https://instagram.example/avatar.jpg',
-          handle: 'genfeed',
-          id: undefined,
-          name: 'Genfeed',
-        },
+        { externalId: 'ignored', label: 'Updated' } as never,
+        mockUser,
       );
+
+      expect(credentialsService.patch).toHaveBeenCalledWith(credId, {
+        label: 'Updated',
+      });
+      expect(credentialsService.updateExternalProfile).not.toHaveBeenCalled();
     });
   });
 

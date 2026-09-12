@@ -131,11 +131,12 @@ describe('BeehiivController', () => {
         CredentialPlatform.BEEHIIV,
         { accessToken: 'test-api-key' },
       );
+      // Beehiiv publications have a display name, not a public @handle.
       expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
         'pending-credential-id',
         mockBrand.organizationId,
         {
-          handle: mockPublication.name,
+          handle: undefined,
           id: mockPublication.id,
           name: mockPublication.name,
         },
@@ -159,7 +160,7 @@ describe('BeehiivController', () => {
         'pending-credential-id',
         mockBrand.organizationId,
         {
-          handle: alternatePublication.name,
+          handle: undefined,
           id: alternatePublication.id,
           name: alternatePublication.name,
         },

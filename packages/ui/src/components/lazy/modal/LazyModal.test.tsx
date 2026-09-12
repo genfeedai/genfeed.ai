@@ -31,11 +31,6 @@ describe('LazyModal', () => {
       expect(typeof LazyModals.LazyModalBrandGenerate).toBe('function');
     });
 
-    it('should export LazyModalBrandInstagram', () => {
-      expect(LazyModals.LazyModalBrandInstagram).toBeDefined();
-      expect(typeof LazyModals.LazyModalBrandInstagram).toBe('function');
-    });
-
     it('should export LazyModalBrandLink', () => {
       expect(LazyModals.LazyModalBrandLink).toBeDefined();
       expect(typeof LazyModals.LazyModalBrandLink).toBe('function');
@@ -184,6 +179,8 @@ describe('LazyModal', () => {
 
   it('should have correct number of exported modals', () => {
     const exports = Object.keys(LazyModals);
-    expect(exports.length).toBe(47); // Count of all exported modals
+    // 47 -> 46: LazyModalMusic was removed along with ModalMusic when
+    // background music moved from generation to the Studio editor (#4702).
+    expect(exports.length).toBe(46); // Count of all exported modals
   });
 });

@@ -136,11 +136,12 @@ describe('GhostController', () => {
         CredentialPlatform.GHOST,
         { accessToken: validBody.apiKey },
       );
+      // A Ghost site URL is an address, not a public @handle.
       expect(credentialsService.updateExternalProfile).toHaveBeenCalledWith(
         'pending-credential-id',
         mockOrgId,
         {
-          handle: validBody.ghostUrl,
+          handle: undefined,
           id: validBody.ghostUrl,
           name: 'My Ghost Blog',
         },

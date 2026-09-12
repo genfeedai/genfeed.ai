@@ -86,6 +86,24 @@ export function createTranslateFromCatalog(catalog: MessageCatalog) {
 
 const UI_TEST_MESSAGES = {
   common: {
+    oauth: {
+      platformCallback: {
+        selectAccount: {
+          alreadyConnected: 'Already connected',
+          back: 'Go back',
+          confirm: 'Use this account',
+          confirmError: 'Failed to connect this account. Please try again.',
+          confirming: 'Connecting…',
+          description:
+            'Your account manages more than one eligible account. Choose which one this connection should use.',
+          empty: 'No eligible accounts were found.',
+          error: 'Failed to load accounts. Please try again.',
+          loading: 'Loading accounts…',
+          retry: 'Try again',
+          title: 'Choose an account',
+        },
+      },
+    },
     libraryCanvas: {
       fit: 'Fit',
       fitBoard: 'Fit board',

@@ -327,8 +327,10 @@ export class YoutubeController {
             channelDetails.thumbnails?.high?.url ??
             channelDetails.thumbnails?.medium?.url ??
             channelDetails.thumbnails?.default?.url,
-          handle:
-            channelDetails.customUrl?.replace(/^@/, '') ?? channelDetails.title,
+          // A channel's `customUrl` (its "@handle") is the only real public
+          // handle YouTube exposes; a channel without one has no handle, and
+          // the title must never stand in for it.
+          handle: channelDetails.customUrl?.replace(/^@/, ''),
           id: channelDetails.id,
           name: channelDetails.title,
         },

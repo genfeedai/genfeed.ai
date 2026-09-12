@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface MockCredential {
   externalHandle?: string;
+  externalName?: string;
   id: string;
   isConnected: boolean;
   label?: string;
@@ -96,6 +97,27 @@ describe('useMenuItems', () => {
     expect(dynamic.credentialId).toBe('cred-1');
     expect(dynamic.href).toBe('/publishing?platform=instagram');
     expect(dynamic.isDynamic).toBe(true);
+  });
+
+  it('falls back to externalName when there is no handle or label', () => {
+    setBrand([
+      {
+        externalName: 'Genfeed Studio',
+        id: 'cred-1',
+        isConnected: true,
+        platform: 'instagram',
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useMenuItems({ insertAfterLabel: 'All posts', items: STATIC_ITEMS }),
+    );
+
+    expect(result.current.map((item) => item.label)).toEqual([
+      'All posts',
+      'Genfeed Studio',
+      'Settings',
+    ]);
   });
 
   it('falls back to appending after the last Posts item', () => {

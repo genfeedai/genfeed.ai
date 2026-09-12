@@ -69,6 +69,7 @@ type CredentialOption = {
   id: string;
   externalHandle?: string;
   externalId?: string;
+  externalName?: string;
   platform?: string;
 };
 

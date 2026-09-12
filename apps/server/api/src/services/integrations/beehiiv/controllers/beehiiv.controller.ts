@@ -110,7 +110,8 @@ export class BeehiivController {
         pending.id,
         brand.organizationId,
         {
-          handle: publication.name,
+          // Beehiiv publications have a display name, not a public @handle.
+          handle: undefined,
           id: publication.id,
           name: publication.name,
         },

@@ -37,6 +37,16 @@ export class ConnectCredentialDto {
   @IsEntityId()
   @ApiProperty({ required: true })
   readonly brandId!: string;
+
+  /**
+   * Reconnect intent: the existing credential this new OAuth attempt should
+   * settle back into when the provider resolves more than one eligible
+   * account. Validated against the caller's org/brand/platform before use.
+   */
+  @IsEntityId()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly credentialId?: string;
 }
 
 export class CreateCredentialDto {
