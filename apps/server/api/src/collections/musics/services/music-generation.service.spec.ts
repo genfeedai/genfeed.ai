@@ -6,6 +6,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
+import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import {
@@ -143,23 +144,32 @@ describe('MusicGenerationService', () => {
       loggerService as never,
       creditsModelsService as never,
     );
+    // Real facade wired onto the same mocks — MusicGenerationService no
+    // longer injects activitiesService/failedGenerationService/musicsService/
+    // websocketService directly (folded here to stay under the
+    // runtime-complexity ratchet's constructor-dependency limit), but every
+    // assertion below still reads those same mock instances.
+    const musicGenerationNotificationsService =
+      new MusicGenerationNotificationsService(
+        activitiesService as never,
+        failedGenerationService as never,
+        musicsService as never,
+        websocketService as never,
+      );
     const service = new MusicGenerationService(
-      activitiesService as never,
       brandsService as never,
       creditsService,
-      failedGenerationService as never,
       loggerService as never,
       ingredientCompletionService as never,
       metadataService as never,
       modelsService as never,
+      musicGenerationNotificationsService,
       musicProviderRegistry as never,
       organizationSettingsService as never,
-      musicsService as never,
       promptsService as never,
       routerService as never,
       sharedService as never,
       webhooksService as never,
-      websocketService as never,
     );
 
     return {

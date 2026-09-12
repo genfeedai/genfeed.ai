@@ -1,14 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { ActivityEntity } from '@api/collections/activities/entities/activity.entity';
-import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
+import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
 import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
-import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -16,17 +14,12 @@ import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { RouterService } from '@api/services/router/router.service';
-import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
-  ActivityEntityModel,
-  ActivityKey,
-  ActivitySource,
   IngredientCategory,
   IngredientStatus,
   MetadataExtension,
@@ -36,7 +29,6 @@ import {
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
-import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -73,22 +65,19 @@ export class MusicGenerationService {
   private readonly orchestrationSource = 'MusicsOperationsController';
 
   constructor(
-    private readonly activitiesService: ActivitiesService,
     private readonly brandsService: BrandsService,
     private readonly creditsService: MusicGenerationCreditsService,
-    private readonly failedGenerationService: FailedGenerationService,
     private readonly loggerService: LoggerService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly metadataService: MetadataService,
     private readonly modelsService: ModelsService,
+    private readonly musicGenerationNotificationsService: MusicGenerationNotificationsService,
     private readonly musicProviderRegistry: MusicGenerationProviderRegistryService,
     private readonly organizationSettingsService: OrganizationSettingsService,
-    private readonly musicsService: MusicsService,
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly webhooksService: WebhooksService,
-    private readonly websocketService: NotificationsPublisherService,
   ) {}
 
   async generateMusic(
@@ -189,31 +178,11 @@ export class MusicGenerationService {
         tagIds: createMusicDto.tags,
       });
 
-    const activity = await this.activitiesService.create(
-      new ActivityEntity({
-        brandId,
-        entityId: ingredientData.id,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.MUSIC_PROCESSING,
-        organizationId: user.organizationId,
-        source: ActivitySource.MUSIC_GENERATION,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          ingredientId: ingredientData.id.toString(),
-          model,
-          type: 'generation',
-        }),
-      }),
-    );
-
-    await this.websocketService.publishBackgroundTaskUpdate({
-      activityId: activity.id.toString(),
-      label: 'Music Generation',
-      progress: 0,
-      room: getUserRoomName(user.id),
-      status: 'processing',
-      taskId: ingredientData.id.toString(),
-      userId: user.id,
+    await this.musicGenerationNotificationsService.notifyGenerationStarted({
+      brandId,
+      ingredientId: ingredientData.id.toString(),
+      model,
+      user,
     });
 
     const outputs = Math.max(
@@ -335,28 +304,15 @@ export class MusicGenerationService {
       );
       metadataId = created.metadataData.id.toString();
       ingredientId = created.ingredientData.id.toString();
-      const activity = await this.activitiesService.create({
-        brandId: params.brandId,
-        entityId: ingredientId,
-        entityModel: ActivityEntityModel.INGREDIENT,
-        key: ActivityKey.MUSIC_PROCESSING,
-        organizationId: params.user.organizationId,
-        source: ActivitySource.MUSIC_GENERATION,
-        userId: params.user.userId ?? params.user.id,
-        value: JSON.stringify({ ingredientId, type: 'generation' }),
-      });
-      await this.websocketService.publishBackgroundTaskUpdate({
-        activityId: String(activity.id),
-        taskId: ingredientId,
-        resultId: ingredientId,
-        label: 'Music generation',
-        status: 'processing',
-        userId: params.user.userId ?? params.user.id,
-      });
+      await this.musicGenerationNotificationsService.notifyAdditionalOutputStarted(
+        {
+          brandId: params.brandId,
+          ingredientId,
+          promptId: params.promptData.id,
+          user: params.user,
+        },
+      );
       pendingIds.push(ingredientId);
-      await this.musicsService.patch(created.ingredientData.id, {
-        promptId: params.promptData.id,
-      });
       await this.startGeneration({
         ...params,
         ingredientId,
@@ -505,23 +461,12 @@ export class MusicGenerationService {
     websocketPath: string,
     error: string,
   ): Promise<void> {
-    return this.failedGenerationService.handleFailedMusicGeneration(
-      this.musicsService,
-      ingredientId.toString(),
+    return this.musicGenerationNotificationsService.handleFailedGeneration(
+      user,
+      brandId,
+      ingredientId,
       websocketPath,
-      user.id,
-      getUserRoomName(user.id),
-      {
-        brandId,
-        key: ActivityKey.MUSIC_FAILED,
-        organizationId: user.organizationId,
-        source: ActivitySource.MUSIC_GENERATION,
-        userId: user.userId ?? user.id,
-        value: JSON.stringify({
-          error,
-          ingredientId: ingredientId.toString(),
-        }),
-      },
+      error,
     );
   }
 }
