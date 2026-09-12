@@ -240,6 +240,9 @@ export function GenerationActionCard({
               onRetry={handleRetryVoid}
               onRegenerateProp={onRegenerateProp}
               onUseAsReference={handleUseAsReference}
+              onOpenInStudio={
+                canOpenInStudio ? handleOpenInStudioVoid : undefined
+              }
               onAcceptPilot={handleAcceptPilotVoid}
               onRejectPilot={handleRejectPilot}
               pilotDurationSeconds={pilotDurationSeconds}
@@ -429,6 +432,9 @@ export function GenerationActionCard({
               onRetry={handleRetryVoid}
               onRegenerateProp={onRegenerateProp}
               onUseAsReference={handleUseAsReference}
+              onOpenInStudio={
+                canOpenInStudio ? handleOpenInStudioVoid : undefined
+              }
               onAcceptPilot={handleAcceptPilotVoid}
               onRejectPilot={handleRejectPilot}
               pilotDurationSeconds={pilotDurationSeconds}

@@ -1872,9 +1872,15 @@ describe('GenerationActionCard', () => {
       }),
     );
 
-    expect(
-      await screen.findByText(/failed to open in studio/i),
-    ).toBeInTheDocument();
+    // The composer error is the shared thread-level store (`storeState.setError`
+    // here, `useAgentChatStore` for real) — this file's mock doesn't feed that
+    // back into a rendered banner, so assert the call the real store would
+    // render from, same as the other composer-error tests in this file.
+    await waitFor(() => {
+      expect(storeState.setError).toHaveBeenCalledWith(
+        'Failed to open in Studio. Try again.',
+      );
+    });
     expect(onOpenInStudio).not.toHaveBeenCalled();
   });
 
