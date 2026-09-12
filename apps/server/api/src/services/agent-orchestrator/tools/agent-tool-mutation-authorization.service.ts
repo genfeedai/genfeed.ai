@@ -123,49 +123,96 @@ export class AgentToolMutationAuthorizationService {
     }
 
     if (isAvailableOnSurface && !context.approvedApprovalId) {
-      const isVisualGenerationReview =
-        VISUAL_GENERATION_REVIEW_TOOL_NAMES.has(toolName);
-      const specialized =
-        isVisualGenerationReview ||
-        specializedConfirmationTool(toolName, parameters);
-      if (specialized && context.confirmationOrigin === 'thread-ui-action') {
-        return { kind: 'execute' };
-      }
-      if (specialized) {
-        const previewContext = {
-          ...context,
-          confirmationOrigin: undefined,
-          approvedApprovalId: undefined,
-        };
-        const result = isVisualGenerationReview
-          ? await collaborators.prepareHandler.prepareGeneration(
-              {
-                ...parameters,
-                generationType:
-                  toolName === 'generate_image' ? 'image' : 'video',
-              },
-              previewContext,
-            )
-          : toolName === 'create_post'
-            ? await collaborators.publishHandler.preparePost(
-                parameters,
-                previewContext,
-              )
-            : await collaborators.dispatchPreview(
-                toolName,
-                { ...parameters, confirmed: false },
-                previewContext,
-              );
-        return {
-          kind: 'return',
-          result: await collaborators.routeRewriteService.scopeToolResultHrefs(
-            result,
-            context,
-          ),
-        };
+      const preview = await this.resolveSpecializedPreview(
+        toolName,
+        parameters,
+        context,
+        collaborators,
+      );
+      if (preview) {
+        return preview;
       }
     }
 
+    return this.resolveApprovalDecision(
+      toolName,
+      parameters,
+      context,
+      effectivePolicy,
+      isAvailableOnSurface,
+    );
+  }
+
+  /**
+   * The "Generate"/"Post" review-card preview path: a specialized confirmation
+   * tool renders its own preview card instead of the generic pending-approval
+   * card, and a confirmed click (`confirmationOrigin: 'thread-ui-action'`)
+   * bypasses the gate it itself triggered. Returns `null` when `toolName`
+   * isn't a specialized confirmation tool, so the caller falls through to the
+   * generic approval-record decision.
+   */
+  private async resolveSpecializedPreview(
+    toolName: CuratedActionName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+    collaborators: AgentMutationPolicyCollaborators,
+  ): Promise<AgentMutationAuthorization | null> {
+    const isVisualGenerationReview =
+      VISUAL_GENERATION_REVIEW_TOOL_NAMES.has(toolName);
+    const specialized =
+      isVisualGenerationReview ||
+      specializedConfirmationTool(toolName, parameters);
+    if (!specialized) {
+      return null;
+    }
+    if (context.confirmationOrigin === 'thread-ui-action') {
+      return { kind: 'execute' };
+    }
+
+    const previewContext = {
+      ...context,
+      confirmationOrigin: undefined,
+      approvedApprovalId: undefined,
+    };
+    const result = isVisualGenerationReview
+      ? await collaborators.prepareHandler.prepareGeneration(
+          {
+            ...parameters,
+            generationType: toolName === 'generate_image' ? 'image' : 'video',
+          },
+          previewContext,
+        )
+      : toolName === 'create_post'
+        ? await collaborators.publishHandler.preparePost(
+            parameters,
+            previewContext,
+          )
+        : await collaborators.dispatchPreview(
+            toolName,
+            { ...parameters, confirmed: false },
+            previewContext,
+          );
+    return {
+      kind: 'return',
+      result: await collaborators.routeRewriteService.scopeToolResultHrefs(
+        result,
+        context,
+      ),
+    };
+  }
+
+  /**
+   * The generic approval-record path: looks up (or reconciles) an existing
+   * MCP approval for this exact logical write and turns it into an execute /
+   * replay / reject / create-pending outcome.
+   */
+  private async resolveApprovalDecision(
+    toolName: CuratedActionName,
+    parameters: Record<string, unknown>,
+    context: ToolExecutionContext,
+    effectivePolicy: ReturnType<typeof resolveEffectiveMutationPolicy>,
+    isAvailableOnSurface: boolean,
+  ): Promise<AgentMutationAuthorization> {
     const idempotencyKey = buildLogicalWriteKey({
       arguments: parameters,
       organizationId: context.organizationId,
