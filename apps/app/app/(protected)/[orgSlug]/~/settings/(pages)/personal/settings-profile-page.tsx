@@ -262,8 +262,8 @@ export default function SettingsProfilePage() {
       </Card>
 
       <Card
-        description="The default mode a new Agent thread starts in. Change it for one thread from the mode dropdown in the prompt bar."
-        label="Agent Mode"
+        description={translate('settings.profile.agentMode.description')}
+        label={translate('settings.profile.agentMode.label')}
         bodyClassName="gap-3 p-4"
       >
         <Select
@@ -276,12 +276,14 @@ export default function SettingsProfilePage() {
           value={agentMode}
         >
           <SelectTrigger
-            aria-label="Default agent mode"
+            aria-label={translate('settings.profile.agentMode.fieldAriaLabel')}
             id="personal-agent-mode"
             className="w-full"
             data-testid="personal-agent-mode-trigger"
           >
-            <SelectValue placeholder="Select a default agent mode" />
+            <SelectValue
+              placeholder={translate('settings.profile.agentMode.placeholder')}
+            />
           </SelectTrigger>
           <SelectContent>
             {Object.values(AgentThreadMode).map((mode) => (

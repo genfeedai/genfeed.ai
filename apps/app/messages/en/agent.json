@@ -62,6 +62,23 @@
     "referenceLibrary": "Reference library content",
     "selected": "Selected"
   },
+  "modeDropdown": {
+    "auto": {
+      "description": "Generates, writes brand context, and runs gated actions without asking. Sending to people or publishing still confirms.",
+      "label": "Auto"
+    },
+    "manual": {
+      "description": "Asks before spending credits, writing brand context, or running a gated action.",
+      "label": "Manual"
+    },
+    "plan": {
+      "description": "Drafts a plan with a credit estimate and runs it only after you approve.",
+      "label": "Plan"
+    },
+    "subtitle": "Controls what the Agent asks before doing.",
+    "title": "Agent mode",
+    "triggerAria": "Agent mode: {mode}"
+  },
   "generationActionCard": {
     "acceptFullRun": "Accept full run",
     "acceptFullRunAria": "Accept the pilot and generate the full-length video",
