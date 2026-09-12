@@ -2,6 +2,7 @@
 
 import { ButtonSize, ButtonVariant, LinkCategory } from '@genfeedai/contracts';
 import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper';
+import { getAccountConnectionStatus } from '@pages/brands/components/integrations/account-connection-status.util';
 import type { BrandDetailExternalLinksCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import { Button } from '@ui/primitives/button';
@@ -49,7 +50,19 @@ export default function BrandDetailExternalLinksCard({
     [links],
   );
   const hasManualLinks = manualLinks.length > 0;
-  const hasSocialConnections = socialConnections.length > 0;
+  // `socialConnections` can now include a disconnected-but-not-deleted or
+  // identity-less credential (it stays visible so the accounts table can
+  // offer "Needs reconnect") — this read-only profile list only ever means
+  // genuinely connected accounts, so it filters on the same status helper
+  // the table uses rather than a raw `isConnected` check.
+  const connectedSocialConnections = useMemo(
+    () =>
+      socialConnections.filter(
+        (connection) => getAccountConnectionStatus(connection) === 'connected',
+      ),
+    [socialConnections],
+  );
+  const hasSocialConnections = connectedSocialConnections.length > 0;
 
   return (
     <Card
@@ -63,11 +76,23 @@ export default function BrandDetailExternalLinksCard({
               Connected social
             </p>
             <div className="flex flex-col gap-1.5">
-              {socialConnections.map((connection) => {
+              {connectedSocialConnections.map((connection) => {
                 const label = connectionLabel(connection);
                 const icon = getPlatformIcon(connection.platform, 'size-3.5');
                 const rowClassName =
                   'flex min-w-0 items-center gap-2 rounded-md bg-background-secondary px-3 py-2 text-xs shadow-border';
+
+                const rowContent = (
+                  <>
+                    {icon}
+                    <span className="min-w-0 flex-1 truncate font-medium">
+                      {label}
+                    </span>
+                    <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
+                      {connection.platform}
+                    </span>
+                  </>
+                );
 
                 if (connection.url) {
                   return (
@@ -78,28 +103,28 @@ export default function BrandDetailExternalLinksCard({
                       rel="noopener noreferrer"
                       className={`${rowClassName} transition-colors hover:bg-background`}
                     >
-                      {icon}
-                      <span className="min-w-0 flex-1 truncate font-medium">
-                        {label}
-                      </span>
-                      <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
-                        {connection.platform}
-                      </span>
+                      {rowContent}
                     </Link>
                   );
                 }
 
-                return (
-                  <div key={connection.credentialId} className={rowClassName}>
-                    {icon}
-                    <span className="min-w-0 flex-1 truncate font-medium">
-                      {label}
-                    </span>
-                    <span className="shrink-0 text-2xs uppercase tracking-wide text-muted-foreground">
-                      {connection.platform}
-                    </span>
-                  </div>
-                );
+                // A connected account without a derivable profile URL (e.g. no
+                // handle captured) is still worth surfacing, but a bare `<div>`
+                // here was a dead end — route it to Social settings instead of
+                // rendering a non-interactive row.
+                if (manageSocialHref) {
+                  return (
+                    <Link
+                      key={connection.credentialId}
+                      href={manageSocialHref}
+                      className={`${rowClassName} transition-colors hover:bg-background`}
+                    >
+                      {rowContent}
+                    </Link>
+                  );
+                }
+
+                return null;
               })}
             </div>
           </div>

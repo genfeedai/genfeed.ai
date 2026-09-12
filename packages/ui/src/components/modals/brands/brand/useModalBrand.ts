@@ -71,6 +71,7 @@ import {
   type BrandOverlayRecord,
   type BrandOverlayView,
   buildSocialConnections,
+  getAccountConnectionStatus,
 } from './ModalBrand.types';
 
 const DEFAULT_BRAND_FORM_VALUES: BrandFormValues = {
@@ -926,17 +927,22 @@ export function useModalBrand(
     submitModalBrand(),
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: buildSocialConnections only reads activeBrand.credentials — depending on the whole activeBrand object would give this a new identity on every refresh that leaves credentials untouched, matching the same fix in use-brand-detail.ts.
   const socialConnections = useMemo(
     () => buildSocialConnections(activeBrand),
-    [activeBrand],
+    [activeBrand?.credentials],
   );
 
+  // Counts rows that are actually connected — not a raw `isConnected`
+  // tally, which still counts an identity-less or expired credential as
+  // connected even though its own row in socialConnections reads "Needs
+  // reconnect".
   const connectedPlatformsCount = useMemo(
     () =>
-      activeBrand?.credentials?.filter(
-        (credential) => credential.isConnected === true,
-      ).length || 0,
-    [activeBrand?.credentials],
+      socialConnections.filter(
+        (connection) => getAccountConnectionStatus(connection) === 'connected',
+      ).length,
+    [socialConnections],
   );
 
   const generateCost = useMemo(() => {

@@ -1,6 +1,12 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react';
 import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -209,12 +215,35 @@ Object.defineProperty(window, 'open', {
   writable: true,
 });
 
+// The page variant's Connect account modal is a cmdk Command, which measures
+// its list with ResizeObserver — unimplemented in jsdom.
+class MockResizeObserver {
+  disconnect = vi.fn();
+  observe = vi.fn();
+  unobserve = vi.fn();
+}
+
 describe('BrandDetailSocialMediaCard', () => {
+  // Matches AccountsTable.test.tsx's convention: the page variant renders a
+  // desktop `<table>` and a mobile stacked list simultaneously in jsdom (no
+  // real CSS media queries), so an unscoped query matches every status
+  // badge or name twice. Scope to one layout to make an assertion real.
+  function desktop() {
+    return within(screen.getByTestId('accounts-table-desktop'));
+  }
+
+  function mobile() {
+    return within(screen.getByTestId('accounts-table-mobile'));
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     useOAuthConnectPlatforms.mockReturnValue(
       resolveOAuthConnectPlatformCatalog({ threads: 'available' }),
     );
+    globalThis.ResizeObserver =
+      MockResizeObserver as unknown as typeof ResizeObserver;
+    Element.prototype.scrollIntoView = vi.fn();
   });
 
   it.each(['unknown', 'unavailable'] as const)(
@@ -301,7 +330,7 @@ describe('BrandDetailSocialMediaCard', () => {
     ).toBeGreaterThan(0);
   });
 
-  it('renders full integration cards on the page variant without a modal gate', () => {
+  it('renders the accounts table on the page variant with a Connect account action', () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -317,24 +346,179 @@ describe('BrandDetailSocialMediaCard', () => {
     expect(
       screen.queryByRole('button', { name: 'Manage' }),
     ).not.toBeInTheDocument();
-    expect(screen.getByText('Social networks')).toBeInTheDocument();
-    expect(screen.getByText('Video')).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: 'Connect Twitter' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Connect YouTube' }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('button', { name: 'Connect account' }).length,
+    ).toBeGreaterThan(0);
+    expect(screen.getByText('No accounts connected yet')).toBeInTheDocument();
   });
 
-  it('marks a platform as linked on the page variant when it has a connection', () => {
+  it('gates the compact card Manage/Connect label and empty state on connected count, not visible rows', () => {
+    // Regression for `hasConnectedAccounts` vs `hasVisibleConnections`: a
+    // lapsed-but-identified credential is a visible row (so the Manage
+    // dialog can still show it for reconnect/disconnect) but is not a
+    // connected account — the at-a-glance button and empty-state copy must
+    // read "Connect" / "No social accounts connected yet." exactly as if
+    // nothing were connected, not "Manage" with an empty grid.
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            // THREADS has no warm-up blueprint, so this connection can't
+            // become the card's default `selectedConnection` and pull its
+            // name into the (unrelated) warm-up program panel — that panel
+            // is independent of hasConnectedAccounts and would otherwise
+            // make the "not rendered" assertion below a false negative.
+            credentialId: 'credential-lapsed',
+            externalId: 'ext-1',
+            isConnected: false,
+            name: 'Lapsed Account',
+            platform: CredentialPlatform.THREADS,
+          },
+        ]}
+        connectedPlatformsCount={0}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Connect' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Manage' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('No social accounts connected yet.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Lapsed Account')).not.toBeInTheDocument();
+  });
+
+  it('derives account status on the page variant: Needs reconnect vs Connected', () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
+            isConnected: true,
+            name: 'Genfeed',
+            platform: CredentialPlatform.INSTAGRAM,
+          },
+          {
+            credentialId: 'credential-2',
+            isConnected: false,
+            name: 'Broken TikTok',
+            platform: CredentialPlatform.TIKTOK,
+          },
+        ]}
+        connectedPlatformsCount={1}
+        variant="page"
+      />,
+    );
+
+    expect(desktop().getByText('Connected')).toBeInTheDocument();
+    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(mobile().getByText('Connected')).toBeInTheDocument();
+    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
+  });
+
+  it('passes fetched account health down to the accounts table on the page variant', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            isConnected: true,
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={1}
+        variant="page"
+      />,
+    );
+
+    // `listBrandAccountHealth` (mocked above) returns a "warming" summary
+    // for credential-1 — the accounts table must show that live health
+    // instead of falling back to a bare "Connected" badge. Both the
+    // desktop and mobile layouts render at once in jsdom, so each query
+    // matches twice.
+    expect((await screen.findAllByText('Warming')).length).toBeGreaterThan(0);
+    expect(screen.queryAllByText('Connected')).toHaveLength(0);
+  });
+
+  it('still fetches account health when the only connection is connected but needs reconnecting', async () => {
+    // Regression: the health fetch used to gate on `connectedPlatformsCount
+    // === 0`, and that count is status-derived — so a connected credential
+    // with an expired token (or an identity-less legacy row) reads 0
+    // connected even though it is a visible row. That is exactly the case
+    // where fetched health would explain the breakage, so the fetch must
+    // key off there being any visible connection, not the connected count.
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            accessTokenExpiry: '2020-01-01T00:00:00.000Z',
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            isConnected: true,
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(listBrandAccountHealth).toHaveBeenCalledWith('brand-1');
+    });
+  });
+
+  it('sends the credentialId in the connect body when reconnecting an account', async () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            isConnected: false,
+            name: 'Genfeed',
+            platform: CredentialPlatform.TWITTER,
+          },
+        ]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    const moreActionsTrigger = screen.getAllByRole('button', {
+      name: 'More actions for Genfeed',
+    })[0];
+    fireEvent.pointerDown(moreActionsTrigger);
+    fireEvent.click(moreActionsTrigger);
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Reconnect' }));
+
+    await waitFor(() => {
+      expect(servicesPlatform).toHaveBeenCalledWith('twitter');
+      expect(postConnect).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+      });
+    });
+  });
+
+  it('opens the posting times editor for an account from the accounts table', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[
+          {
+            credentialId: 'credential-1',
+            externalId: 'ext-1',
+            handle: 'genfeed',
+            isConnected: true,
             name: 'Genfeed',
             platform: CredentialPlatform.INSTAGRAM,
           },
@@ -344,37 +528,19 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    // Connections arrive with the lowercase domain platform id; tiles key off
-    // the same vocabulary, so a linked account must not read "Not connected".
-    expect(screen.getByText('Linked')).toBeInTheDocument();
-    expect(screen.getByText('1 connected')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Add another Instagram account' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByText(/one instagram account per brand/i),
-    ).not.toBeInTheDocument();
-
-    // Reconnect, posting times, and disconnect sit behind the row's actions menu.
-    const moreActionsTrigger = screen.getByRole('button', {
+    const moreActionsTrigger = screen.getAllByRole('button', {
       name: 'More actions for Genfeed',
-    });
+    })[0];
     fireEvent.pointerDown(moreActionsTrigger);
     fireEvent.click(moreActionsTrigger);
-    expect(
-      screen.getByRole('menuitem', { name: 'Reconnect' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.getByRole('menuitem', { name: 'Disconnect' }),
-    ).toBeInTheDocument();
-
     fireEvent.click(screen.getByRole('menuitem', { name: 'Posting times' }));
+
     expect(screen.getByTestId('posting-times-editor')).toHaveTextContent(
       'credential-1',
     );
   });
 
-  it('offers Fanvue under Creator and omits unavailable X Ads', () => {
+  it('opens the Connect account modal and starts oauth for a chosen platform', async () => {
     render(
       <BrandDetailSocialMediaCard
         brandId="brand-1"
@@ -384,13 +550,33 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Connect account' })[0],
+    );
+    fireEvent.click(screen.getByText('Instagram'));
+
+    await waitFor(() => {
+      expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
+    });
+  });
+
+  it('offers Fanvue under Creator in the connect modal and omits unavailable X Ads', () => {
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+        variant="page"
+      />,
+    );
+
+    fireEvent.click(
+      screen.getAllByRole('button', { name: 'Connect account' })[0],
+    );
+
     expect(screen.getByText('Creator')).toBeInTheDocument();
-    expect(
-      screen.getByRole('button', { name: 'Connect Fanvue' }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole('button', { name: 'Connect X Ads' }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText('Fanvue')).toBeInTheDocument();
+    expect(screen.queryByText('X Ads')).not.toBeInTheDocument();
   });
 
   it('renders connected social links', () => {
@@ -401,6 +587,7 @@ describe('BrandDetailSocialMediaCard', () => {
           {
             avatarUrl: 'https://cdn.example.com/genfeed.jpg',
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
             name: 'Genfeed',
             platform: CredentialPlatform.TWITTER,
@@ -431,6 +618,7 @@ describe('BrandDetailSocialMediaCard', () => {
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             name: 'Acme Studio',
             platform: CredentialPlatform.THREADS,
           },
@@ -451,6 +639,7 @@ describe('BrandDetailSocialMediaCard', () => {
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
             name: 'Genfeed',
             platform: CredentialPlatform.TWITTER,
@@ -458,6 +647,7 @@ describe('BrandDetailSocialMediaCard', () => {
           },
           {
             credentialId: 'credential-2',
+            externalId: 'ext-2',
             handle: 'genfeedlabs',
             name: 'Genfeed Labs',
             platform: CredentialPlatform.TWITTER,
@@ -544,6 +734,7 @@ describe('BrandDetailSocialMediaCard', () => {
         connections={[
           {
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
             platform: CredentialPlatform.TWITTER,
             url: 'https://x.com/genfeed',
@@ -624,9 +815,9 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    const moreActionsTrigger = screen.getByRole('button', {
+    const moreActionsTrigger = screen.getAllByRole('button', {
       name: 'More actions for Genfeed Labs',
-    });
+    })[0];
     fireEvent.pointerDown(moreActionsTrigger);
     fireEvent.click(moreActionsTrigger);
     fireEvent.click(screen.getByRole('menuitem', { name: 'Disconnect' }));

@@ -22,9 +22,16 @@ function makeLink(overrides: Partial<ExternalLink> = {}): ExternalLink {
 function makeConnection(
   overrides: Partial<BrandDetailSocialConnection> = {},
 ): BrandDetailSocialConnection {
+  // Genuinely connected by default (externalId + a profile url) — tests
+  // that care about the disconnected/no-identity/no-url edge cases
+  // override those fields explicitly rather than relying on an implicit
+  // "missing field means disconnected" default.
   return {
     credentialId: 'cred-1',
+    externalId: 'ext-1',
+    isConnected: true,
     platform: CredentialPlatform.INSTAGRAM,
+    url: 'https://instagram.com/acme',
     ...overrides,
   };
 }
@@ -106,7 +113,7 @@ describe('BrandDetailExternalLinksCard', () => {
     expect(onOpenLinkModal).toHaveBeenCalledWith(link);
   });
 
-  it('renders connected socials, linking out only when a url exists', () => {
+  it('links a connected account out to its profile when a url exists', () => {
     render(
       <BrandDetailExternalLinksCard
         links={[]}
@@ -117,11 +124,6 @@ describe('BrandDetailExternalLinksCard', () => {
             name: 'Acme HQ',
             url: 'https://instagram.com/acme',
           }),
-          makeConnection({
-            credentialId: 'cred-2',
-            handle: '@acme_x',
-            platform: CredentialPlatform.TWITTER,
-          }),
         ]}
       />,
     );
@@ -130,8 +132,50 @@ describe('BrandDetailExternalLinksCard', () => {
       'href',
       'https://instagram.com/acme',
     );
-    expect(screen.getByText('@acme_x')).toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /@acme_x/ })).toBeNull();
+  });
+
+  it('drops a connected account with no profile url and no manage-social href', () => {
+    render(
+      <BrandDetailExternalLinksCard
+        links={[]}
+        onOpenLinkModal={vi.fn()}
+        socialConnections={[
+          makeConnection({
+            credentialId: 'cred-2',
+            handle: '@acme_x',
+            platform: CredentialPlatform.TWITTER,
+            url: undefined,
+          }),
+        ]}
+      />,
+    );
+
+    // No derivable profile url and nowhere else to send the click — a bare
+    // non-interactive row is worse than not showing it at all.
+    expect(screen.queryByText('@acme_x')).not.toBeInTheDocument();
+  });
+
+  it('routes a connected account with no profile url to Social settings when a manage href is available', () => {
+    render(
+      <BrandDetailExternalLinksCard
+        links={[]}
+        manageSocialHref="/settings/social"
+        onOpenLinkModal={vi.fn()}
+        socialConnections={[
+          makeConnection({
+            credentialId: 'cred-2',
+            handle: '@acme_x',
+            platform: CredentialPlatform.TWITTER,
+            url: undefined,
+          }),
+        ]}
+      />,
+    );
+
+    expect(screen.getByText('@acme_x').closest('a')).toHaveAttribute(
+      'href',
+      '/settings/social',
+    );
   });
 
   it.each([

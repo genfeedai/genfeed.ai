@@ -558,6 +558,103 @@ describe('useBrandDetail', () => {
     );
   });
 
+  it('keeps a disconnected credential visible as Needs reconnect when it has an identity', async () => {
+    mockFindOne.mockResolvedValue({
+      credentials: [
+        {
+          externalHandle: 'lapsed',
+          externalId: 'ext-2',
+          id: 'cred-2',
+          isConnected: false,
+          platform: 'twitter',
+        },
+      ],
+      id: 'brand-1',
+      links: [],
+      scope: AssetScope.BRAND,
+    } as unknown as IBrand);
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    // A lapsed connection is not deleted, so it stays visible — the accounts
+    // table (and this hook's own compact-variant consumers) derive Needs
+    // reconnect from `isConnected: false` here.
+    expect(result.current.connectedPlatformsCount).toBe(0);
+    expect(result.current.socialConnections).toHaveLength(1);
+    expect(result.current.socialConnections[0]).toEqual(
+      expect.objectContaining({
+        credentialId: 'cred-2',
+        externalId: 'ext-2',
+        isConnected: false,
+      }),
+    );
+  });
+
+  it('hides a pending or abandoned OAuth credential with no identity and no connection', async () => {
+    mockFindOne.mockResolvedValue({
+      credentials: [
+        {
+          id: 'cred-3',
+          isConnected: false,
+          platform: 'instagram',
+        },
+      ],
+      id: 'brand-1',
+      links: [],
+      scope: AssetScope.BRAND,
+    } as unknown as IBrand);
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    // Never connected and never assigned an identity — an orphaned OAuth
+    // attempt, not an account. It stays out of the list entirely rather
+    // than rendering as a broken row.
+    expect(result.current.socialConnections).toHaveLength(0);
+  });
+
+  it('excludes a connected-but-unidentified credential from connectedPlatformsCount', async () => {
+    // Regression: `connectedPlatformsCount` used to be a raw
+    // `isConnected === true` tally, which counted this credential even
+    // though it has no `externalId` — `getAccountConnectionStatus` reads it
+    // as Needs reconnect, and the count must agree.
+    mockFindOne.mockResolvedValue({
+      credentials: [
+        {
+          externalHandle: 'acme',
+          externalId: 'ext-1',
+          id: 'cred-1',
+          isConnected: true,
+          platform: 'instagram',
+        },
+        {
+          id: 'cred-2',
+          isConnected: true,
+          platform: 'tiktok',
+        },
+      ],
+      id: 'brand-1',
+      links: [],
+      scope: AssetScope.BRAND,
+    } as unknown as IBrand);
+
+    const { result } = renderHook(() => useBrandDetail());
+
+    await waitFor(() => {
+      expect(result.current.brand).not.toBeNull();
+    });
+
+    expect(result.current.connectedPlatformsCount).toBe(1);
+    expect(result.current.socialConnections).toHaveLength(2);
+  });
+
   it('keeps other media when one public feed fails', async () => {
     mockFindPublicVideos.mockRejectedValue(new Error('videos down'));
     mockFindPublicImages.mockResolvedValue([{ id: 'image-1' }]);

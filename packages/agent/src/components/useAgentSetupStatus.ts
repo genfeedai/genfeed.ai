@@ -5,6 +5,7 @@ import type { CredentialPlatform } from '@genfeedai/contracts';
 import type { ICredential } from '@genfeedai/contracts/interfaces';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
+import { getAccountConnectionStatus } from '@ui/modals/brands/brand/ModalBrand.types';
 import { useMemo } from 'react';
 
 /**
@@ -68,7 +69,11 @@ export function useAgentSetupStatus(): AgentSetupStatus {
   const connectedConnections = useMemo<AgentSetupConnection[]>(() => {
     const next: AgentSetupConnection[] = [];
     for (const credential of credentials as ICredential[]) {
-      if (credential.isConnected !== true) {
+      // Match the same status derivation every other surface uses
+      // (ModalBrand, the sidebar card) — a raw `isConnected` tally counts an
+      // identity-less or lapsed credential as connected here while those
+      // surfaces already read it as Needs reconnect.
+      if (getAccountConnectionStatus(credential) !== 'connected') {
         continue;
       }
       next.push({

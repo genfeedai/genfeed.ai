@@ -39,6 +39,7 @@ import {
   buildPlatformHomeDestinations,
   filterConnectionsForPlatform,
   getPlatformConnectionHealth,
+  pickPrimaryConnection,
 } from './platform-home.helpers';
 
 const HEALTH_BADGE_VARIANT: Record<
@@ -48,6 +49,7 @@ const HEALTH_BADGE_VARIANT: Record<
   attention: 'warning',
   connected: 'info',
   healthy: 'success',
+  needsReconnect: 'warning',
 };
 
 export default function PlatformHomePage({
@@ -100,7 +102,9 @@ export default function PlatformHomePage({
     );
   }
 
-  const [primaryConnection] = connections;
+  // A lapsed or identity-less credential further down the list must not
+  // shadow a genuinely connected one — see `pickPrimaryConnection`.
+  const primaryConnection = pickPrimaryConnection(connections);
   if (!primaryConnection) {
     return (
       <Container
@@ -143,22 +147,35 @@ export default function PlatformHomePage({
     primaryConnection.label ||
     translate('connection.unnamedAccount');
   const connectionDescription =
-    primaryHealth === 'attention'
-      ? translate('connection.descriptionAttention', {
+    primaryHealth === 'needsReconnect'
+      ? translate('connection.descriptionNeedsReconnect', {
           account: primaryAccount,
         })
-      : primaryHealth === 'healthy'
-        ? translate('connection.descriptionHealthy', {
+      : primaryHealth === 'attention'
+        ? translate('connection.descriptionAttention', {
             account: primaryAccount,
           })
-        : translate('connection.descriptionConnected', {
-            account: primaryAccount,
-          });
+        : primaryHealth === 'healthy'
+          ? translate('connection.descriptionHealthy', {
+              account: primaryAccount,
+            })
+          : translate('connection.descriptionConnected', {
+              account: primaryAccount,
+            });
+
+  // A lapsed-but-identified credential still routes to Settings > Social
+  // (where Reconnect actually lives, keyed by credentialId) rather than
+  // dead-ending — but the CTA itself should say so, not the generic
+  // "Manage connection" that a healthy card shows.
+  const connectionCta =
+    primaryHealth === 'needsReconnect'
+      ? translate('connection.ctaReconnect')
+      : translate('connection.cta');
 
   const cards: OverviewCard[] = [
     {
       color: 'bg-emerald-500/12 text-emerald-300',
-      cta: translate('connection.cta'),
+      cta: connectionCta,
       description: connectionDescription,
       href: href(destinations.settingsSocial),
       icon: Plug,
@@ -269,11 +286,13 @@ export default function PlatformHomePage({
                 >
                   <span className="text-sm text-foreground">{account}</span>
                   <Badge variant={HEALTH_BADGE_VARIANT[health]}>
-                    {health === 'attention'
-                      ? translate('connection.healthAttention')
-                      : health === 'healthy'
-                        ? translate('connection.healthHealthy')
-                        : translate('connection.healthConnected')}
+                    {health === 'needsReconnect'
+                      ? translate('connection.healthNeedsReconnect')
+                      : health === 'attention'
+                        ? translate('connection.healthAttention')
+                        : health === 'healthy'
+                          ? translate('connection.healthHealthy')
+                          : translate('connection.healthConnected')}
                   </Badge>
                 </div>
               );

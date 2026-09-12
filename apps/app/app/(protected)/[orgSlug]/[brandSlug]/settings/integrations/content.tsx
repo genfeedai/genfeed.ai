@@ -6,8 +6,9 @@ import BrandSocialHistoryImportCard from '@pages/brands/components/sidebar/Brand
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
 import Loading from '@ui/loading/default/Loading';
+import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 
 /**
  * Brand Integrations settings — connected accounts and their history imports.
@@ -23,9 +24,12 @@ export default function BrandSettingsIntegrationsPage() {
     handleRefreshBrand,
     hasBrandId,
     isLoading,
-    socialConnections,
     connectedPlatformsCount,
   } = useBrandDetail();
+  // The accounts table also surfaces disconnected-but-not-deleted
+  // credentials as "Needs reconnect", so it reads straight off the brand
+  // instead of the connected-only list `useBrandDetail` exposes elsewhere.
+  const connections = useMemo(() => buildSocialConnections(brand), [brand]);
 
   if (!hasBrandId || isLoading) {
     return <Loading isFullSize={false} />;
@@ -67,7 +71,7 @@ export default function BrandSettingsIntegrationsPage() {
         ) : (
           <BrandDetailSocialMediaCard
             brandId={brandId}
-            connections={socialConnections}
+            connections={connections}
             connectedPlatformsCount={connectedPlatformsCount}
             onRefresh={() => handleRefreshBrand(true)}
             variant="page"

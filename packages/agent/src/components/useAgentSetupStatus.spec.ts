@@ -18,8 +18,10 @@ vi.mock('@genfeedai/helpers', () => ({
 import { useAgentSetupStatus } from '@genfeedai/agent/components/useAgentSetupStatus';
 
 interface FakeCredential {
+  accessTokenExpiry?: string | null;
   externalAvatar?: string;
   externalHandle?: string;
+  externalId?: string | null;
   externalName?: string;
   id: string;
   isConnected: boolean;
@@ -77,7 +79,12 @@ describe('useAgentSetupStatus', () => {
   it('hides the panel once brand is complete and a channel is connected', () => {
     computeBrandCompletenessMock.mockReturnValue({ overallScore: 100 });
     setBrandContext({ id: 'brand-1' }, [
-      { id: 'cred-1', isConnected: true, platform: 'twitter' },
+      {
+        externalId: 'ext-1',
+        id: 'cred-1',
+        isConnected: true,
+        platform: 'twitter',
+      },
     ]);
 
     const { result } = renderHook(() => useAgentSetupStatus());
@@ -92,6 +99,7 @@ describe('useAgentSetupStatus', () => {
       {
         externalAvatar: 'https://cdn/avatar.png',
         externalHandle: 'creator',
+        externalId: 'ext-1',
         externalName: 'Creator',
         id: 'cred-1',
         isConnected: true,
@@ -114,5 +122,32 @@ describe('useAgentSetupStatus', () => {
         platform: 'instagram',
       },
     ]);
+  });
+
+  it('does not count an identity-less or lapsed credential as connected, matching ModalBrand and the sidebar', () => {
+    // Regression: this hook used to tally raw `isConnected === true`, so a
+    // credential whose OAuth flow finished without an `externalId` (or one
+    // holding an expired token) read "connected" here while ModalBrand's own
+    // badge and the sidebar card's compact count already read it as Needs
+    // reconnect for the same credential.
+    computeBrandCompletenessMock.mockReturnValue({ overallScore: 60 });
+    setBrandContext({ id: 'brand-1' }, [
+      // Connected but never captured a platform identity.
+      { id: 'cred-1', isConnected: true, platform: 'instagram' },
+      // Identified but its token has lapsed.
+      {
+        accessTokenExpiry: '2020-01-01T00:00:00.000Z',
+        externalId: 'ext-2',
+        id: 'cred-2',
+        isConnected: true,
+        platform: 'tiktok',
+      },
+    ]);
+
+    const { result } = renderHook(() => useAgentSetupStatus());
+
+    expect(result.current.connectedPlatformsCount).toBe(0);
+    expect(result.current.connectedConnections).toEqual([]);
+    expect(result.current.hasConnectedChannels).toBe(false);
   });
 });
