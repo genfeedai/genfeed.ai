@@ -149,9 +149,7 @@ export class InstagramAuthorizedSignalsProvider {
     insightsScope: string,
   ): Promise<InstagramProviderFetchResult> {
     const profilePromise = grantedScopes.includes(basicScope)
-      ? this.requestWithRetry(() =>
-          this.fetchProfile(accessToken, igUserId, grantedScopes),
-        )
+      ? this.requestWithRetry(() => this.fetchProfile(accessToken, igUserId))
       : undefined;
     const mediaPromise = grantedScopes.includes(basicScope)
       ? this.requestWithRetry(() =>
@@ -200,7 +198,6 @@ export class InstagramAuthorizedSignalsProvider {
   private async fetchProfile(
     accessToken: string,
     igUserId: string | undefined,
-    _grantedScopes: string[],
   ): Promise<InstagramUserResponse> {
     const resolvedId = this.requireIgUserId(igUserId);
     const response = await firstValueFrom(
@@ -248,7 +245,6 @@ export class InstagramAuthorizedSignalsProvider {
     const response = await firstValueFrom(
       this.httpService.get<InstagramMediaListResponse>(
         `${this.graphUrl}/${this.apiVersion}/${resolvedId}/media`,
-
         {
           params: {
             access_token: accessToken,

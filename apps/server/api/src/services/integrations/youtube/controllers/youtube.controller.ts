@@ -332,7 +332,6 @@ export class YoutubeController {
           // the title must never stand in for it.
           handle: channelDetails.customUrl?.replace(/^@/, ''),
           id: channelDetails.id,
-
           name: channelDetails.title,
         },
       );

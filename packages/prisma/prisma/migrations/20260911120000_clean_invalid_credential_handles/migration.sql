@@ -12,10 +12,13 @@
 --     edge cases — contains whitespace, which no real YouTube @handle does)
 --
 -- Scoped narrowly and safe to replay:
---   1. Any platform, only when `externalHandle` is shaped like an email
---      address — the exact Facebook defect, and not a shape any platform's
---      real handle legitimately takes for the account that authorized its
---      own connection.
+--   1. Any platform except MASTODON, only when `externalHandle` is shaped
+--      like an email address — the exact Facebook defect, and not a shape
+--      any other platform's real handle legitimately takes for the account
+--      that authorized its own connection. Mastodon handles are
+--      legitimately `user@instance.tld`, so it is excluded even though no
+--      current writer stores one that way (the controller stores a bare
+--      local `acct`).
 --   2. Only FACEBOOK / LINKEDIN / BEEHIIV, only when `externalHandle` is
 --      exactly equal to `externalName`.
 --   3. Only GHOST, only when `externalHandle` is exactly equal to
@@ -29,6 +32,7 @@
 UPDATE "credentials"
 SET "externalHandle" = NULL, "updatedAt" = now()
 WHERE "externalHandle" IS NOT NULL
+  AND "platform" <> 'MASTODON'
   AND "externalHandle" ~* '^[^@[:space:]]+@[^@[:space:]]+\.[^@[:space:]]+$';
 
 UPDATE "credentials"
