@@ -27,6 +27,35 @@ const privacyPolicySections = [
     shortLabel: 'Usage',
     title: 'How We Use Your Information',
   },
+  {
+    content: [
+      'When you sign in with Google or connect a Google service, Genfeed receives only the data the features you use need: your name, email address, and profile photo for Google sign-in; your YouTube channel details, videos, comments, live chat, and channel analytics for YouTube; the Google Ads accounts and campaign data you authorize for Google Ads; and search performance data for the properties you authorize in Google Search Console.',
+      'We use this data to show your content and analytics in Genfeed and to upload videos and post the comment and live chat replies you create or configure. OAuth tokens are encrypted at rest. We do not sell Google user data, use it for advertising, or use it to develop, improve, or train generalized AI or machine learning models. We call Google’s APIs only to run the features you use, and we never use your connection to collect or refresh data for our own purposes. Genfeed staff may access Google data already stored in our systems when you ask us for support, to operate and troubleshoot the service, to investigate a security issue or abuse, or when the law requires it.',
+      "Genfeed's use and transfer of information received from Google APIs adheres to the Google API Services User Data Policy, including the Limited Use requirements.",
+      'YouTube features use YouTube API Services. By connecting YouTube you agree to the YouTube Terms of Service, and Google processes your data under the Google Privacy Policy.',
+      'You can disconnect a Google service in Genfeed at any time or revoke Genfeed’s access from your Google Account permissions page. To delete data Genfeed stored from Google, contact privacy@genfeed.ai.',
+    ],
+    links: [
+      {
+        href: 'https://developers.google.com/terms/api-services-user-data-policy',
+        label: 'Google API Services User Data Policy',
+      },
+      {
+        href: 'https://www.youtube.com/t/terms',
+        label: 'YouTube Terms of Service',
+      },
+      {
+        href: 'https://policies.google.com/privacy',
+        label: 'Google Privacy Policy',
+      },
+      {
+        href: 'https://security.google.com/settings/security/permissions',
+        label: 'Google Account permissions',
+      },
+    ],
+    shortLabel: 'Google',
+    title: 'Google and YouTube Data',
+  },
 ];
 
 const privacyRights = [
@@ -102,6 +131,23 @@ export default function PrivacyContent() {
                             <span className="text-surface/60 text-sm">
                               {item}
                             </span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : null}
+
+                    {section.links ? (
+                      <ul className="mt-6 space-y-2">
+                        {section.links.map((link) => (
+                          <li key={link.href}>
+                            <Link
+                              href={link.href}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-surface/80 text-sm underline underline-offset-4 hover:text-surface transition-colors"
+                            >
+                              {link.label}
+                            </Link>
                           </li>
                         ))}
                       </ul>

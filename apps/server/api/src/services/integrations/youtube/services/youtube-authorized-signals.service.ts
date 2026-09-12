@@ -38,24 +38,25 @@ import { HttpService } from '@nestjs/axios';
 import { HttpException, Injectable } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 import {
+  dataRequiredScopes,
   hasExactGrantedScope,
   hasYoutubeDataScope,
   type PlatformEvidenceKey,
   parseIsoDurationSeconds,
+  publishRequiredScopes,
   readIsoTimestamp,
   readIsoToUnixSeconds,
   readNonNegativeInteger,
   readNonNegativeNumber,
   readRecord,
   readString,
-  YOUTUBE_READONLY_SCOPE,
-  YOUTUBE_UPLOAD_SCOPE,
   YoutubeAuthorizedSignalsEvidenceMapper,
   type YoutubeChannelNode,
   YT_ANALYTICS_READONLY_SCOPE,
 } from './youtube-authorized-signals-evidence.mapper';
 
 export {
+  YOUTUBE_FORCE_SSL_SCOPE,
   YOUTUBE_READONLY_SCOPE,
   YOUTUBE_SCOPE,
   YOUTUBE_UPLOAD_SCOPE,
@@ -836,7 +837,7 @@ export class YoutubeAuthorizedSignalsService {
           ...previous,
           reason: 'authorization_revoked' as const,
           scope: this.evidenceMapper.buildScope(
-            this.requiredScopesForKey(key),
+            this.requiredScopesForKey(key, grantedScopes),
             grantedScopes,
           ),
           staleAt: refreshAttemptedAt,
@@ -847,7 +848,7 @@ export class YoutubeAuthorizedSignalsService {
       return {
         ...this.evidenceMapper.buildUnavailableEvidence(
           key,
-          this.requiredScopesForKey(key),
+          this.requiredScopesForKey(key, grantedScopes),
           grantedScopes,
           undefined,
           undefined,
@@ -869,14 +870,17 @@ export class YoutubeAuthorizedSignalsService {
     });
   }
 
-  private requiredScopesForKey(key: PlatformEvidenceKey): string[] {
+  private requiredScopesForKey(
+    key: PlatformEvidenceKey,
+    grantedScopes: string[],
+  ): string[] {
     if (key === 'publishing-capability-snapshot') {
-      return [YOUTUBE_UPLOAD_SCOPE];
+      return publishRequiredScopes(grantedScopes);
     }
     if (key === 'owned-video-analytics-snapshot') {
       return [YT_ANALYTICS_READONLY_SCOPE];
     }
-    return [YOUTUBE_READONLY_SCOPE];
+    return dataRequiredScopes(grantedScopes);
   }
 
   private resolveSnapshotState(

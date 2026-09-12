@@ -40,8 +40,7 @@ const TIKTOK_REQUIRED_WARMUP_SCOPES = [
 const INSTAGRAM_REQUIRED_WARMUP_SCOPES = ['instagram_basic'] as const;
 const TWITTER_REQUIRED_WARMUP_SCOPES = ['users.read', 'tweet.read'] as const;
 const YOUTUBE_REQUIRED_WARMUP_SCOPES = [
-  'https://www.googleapis.com/auth/youtube',
-  'https://www.googleapis.com/auth/youtube.upload',
+  'https://www.googleapis.com/auth/youtube.force-ssl',
 ] as const;
 const LINKEDIN_REQUIRED_WARMUP_SCOPES = [
   'openid',

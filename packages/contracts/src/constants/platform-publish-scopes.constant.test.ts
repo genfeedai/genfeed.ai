@@ -15,7 +15,7 @@ describe('PLATFORM_REQUIRED_PUBLISH_SCOPES', () => {
     );
     expect(
       PLATFORM_REQUIRED_PUBLISH_SCOPES[CredentialPlatform.YOUTUBE],
-    ).toEqual(['https://www.googleapis.com/auth/youtube.upload']);
+    ).toEqual(['https://www.googleapis.com/auth/youtube.force-ssl']);
     expect(
       PLATFORM_REQUIRED_PUBLISH_SCOPES[CredentialPlatform.LINKEDIN],
     ).toEqual(['w_member_social']);

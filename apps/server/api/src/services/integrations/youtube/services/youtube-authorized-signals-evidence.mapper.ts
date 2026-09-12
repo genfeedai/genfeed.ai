@@ -13,6 +13,8 @@ import {
 } from '@genfeedai/contracts/api-types/contracts/youtube-authorized-signals.contract';
 
 export const YOUTUBE_SCOPE = 'https://www.googleapis.com/auth/youtube';
+export const YOUTUBE_FORCE_SSL_SCOPE =
+  'https://www.googleapis.com/auth/youtube.force-ssl';
 export const YOUTUBE_READONLY_SCOPE =
   'https://www.googleapis.com/auth/youtube.readonly';
 export const YOUTUBE_UPLOAD_SCOPE =
@@ -203,38 +205,48 @@ export function hasExactGrantedScope(
   return false;
 }
 
-export function hasYoutubeDataScope(grantedScopes: string[]): boolean {
-  return (
-    hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE) ||
-    hasExactGrantedScope(grantedScopes, YOUTUBE_READONLY_SCOPE)
+// Connect requests youtube.force-ssl. Credentials connected before the scope
+// reduction may still hold youtube, youtube.readonly, or youtube.upload.
+const YOUTUBE_DATA_SCOPES = [
+  YOUTUBE_FORCE_SSL_SCOPE,
+  YOUTUBE_SCOPE,
+  YOUTUBE_READONLY_SCOPE,
+] as const;
+const YOUTUBE_PUBLISH_SCOPES = [
+  YOUTUBE_FORCE_SSL_SCOPE,
+  YOUTUBE_SCOPE,
+  YOUTUBE_UPLOAD_SCOPE,
+] as const;
+
+function findGrantedScope(
+  grantedScopes: readonly string[],
+  acceptedScopes: readonly string[],
+): string | undefined {
+  return acceptedScopes.find((scope) =>
+    hasExactGrantedScope(grantedScopes, scope),
   );
+}
+
+export function hasYoutubeDataScope(grantedScopes: string[]): boolean {
+  return findGrantedScope(grantedScopes, YOUTUBE_DATA_SCOPES) !== undefined;
 }
 
 export function hasYoutubePublishScope(grantedScopes: string[]): boolean {
-  return (
-    hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE) ||
-    hasExactGrantedScope(grantedScopes, YOUTUBE_UPLOAD_SCOPE)
-  );
+  return findGrantedScope(grantedScopes, YOUTUBE_PUBLISH_SCOPES) !== undefined;
 }
 
 export function dataRequiredScopes(grantedScopes: string[]): string[] {
-  if (hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE)) {
-    return [YOUTUBE_SCOPE];
-  }
-  if (hasExactGrantedScope(grantedScopes, YOUTUBE_READONLY_SCOPE)) {
-    return [YOUTUBE_READONLY_SCOPE];
-  }
-  return [YOUTUBE_READONLY_SCOPE];
+  return [
+    findGrantedScope(grantedScopes, YOUTUBE_DATA_SCOPES) ??
+      YOUTUBE_FORCE_SSL_SCOPE,
+  ];
 }
 
 export function publishRequiredScopes(grantedScopes: string[]): string[] {
-  if (hasExactGrantedScope(grantedScopes, YOUTUBE_SCOPE)) {
-    return [YOUTUBE_SCOPE];
-  }
-  if (hasExactGrantedScope(grantedScopes, YOUTUBE_UPLOAD_SCOPE)) {
-    return [YOUTUBE_UPLOAD_SCOPE];
-  }
-  return [YOUTUBE_UPLOAD_SCOPE];
+  return [
+    findGrantedScope(grantedScopes, YOUTUBE_PUBLISH_SCOPES) ??
+      YOUTUBE_FORCE_SSL_SCOPE,
+  ];
 }
 
 export class YoutubeAuthorizedSignalsEvidenceMapper {
