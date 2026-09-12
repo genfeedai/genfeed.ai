@@ -22,7 +22,6 @@ import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/se
 import { ReplicateMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/replicate-music-generation-provider.adapter';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
-import { WebhooksCoreModule } from '@api/endpoints/webhooks/webhooks-core.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
@@ -62,7 +61,6 @@ import { Module } from '@nestjs/common';
     ReplicateModule,
     RouterModule,
     IngredientCompletionModule,
-    WebhooksCoreModule,
   ],
   providers: [
     MusicsService,

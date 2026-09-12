@@ -7,6 +7,7 @@ import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationService } from '@api/collections/musics/services/music-generation.service';
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
+import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import {
@@ -75,6 +76,13 @@ describe('MusicGenerationService', () => {
     };
     const webhooksService = {
       processMediaForIngredient: vi.fn().mockResolvedValue(undefined),
+    };
+    // WebhooksService is resolved lazily via ModuleRef (see
+    // music-generation.service.ts) rather than injected directly, to avoid
+    // MusicsModule importing WebhooksCoreModule and closing a module-graph
+    // cycle — `.get(WebhooksService, ...)` stands in for that lookup here.
+    const moduleRef = {
+      get: vi.fn().mockReturnValue(webhooksService),
     };
     const ingredientCompletionService = {
       waitForMultipleIngredientsCompletion: vi.fn(),
@@ -169,7 +177,7 @@ describe('MusicGenerationService', () => {
       promptsService as never,
       routerService as never,
       sharedService as never,
-      webhooksService as never,
+      moduleRef as never,
     );
 
     return {
@@ -181,6 +189,7 @@ describe('MusicGenerationService', () => {
       loggerService,
       metadataService,
       modelsService,
+      moduleRef,
       musicProviderRegistry,
       musicsService,
       organizationSettingsService,
@@ -286,6 +295,56 @@ describe('MusicGenerationService', () => {
       'https://cdn.example.com/finished-track.mp3',
       'task-1',
     );
+    // Resolved via ModuleRef rather than a direct constructor injection —
+    // see music-generation.service.ts for why (avoids MusicsModule importing
+    // WebhooksCoreModule and closing a module-graph cycle).
+    expect(created.moduleRef.get).toHaveBeenCalledWith(WebhooksService, {
+      strict: false,
+    });
+  });
+
+  it('surfaces a clear error if WebhooksService cannot be resolved (no ModuleRef)', async () => {
+    const created = createService();
+    created.musicProviderRegistry.generate.mockResolvedValue({
+      externalId: 'task-1',
+      outputUrl: 'https://cdn.example.com/finished-track.mp3',
+    });
+    const serviceWithoutModuleRef = new MusicGenerationService(
+      created.brandsService as never,
+      new MusicGenerationCreditsService(
+        { deductCreditsFromOrganization: vi.fn() } as never,
+        created.loggerService as never,
+        { findOne: vi.fn().mockResolvedValue({ cost: 0 }) } as never,
+      ),
+      created.loggerService as never,
+      created.ingredientCompletionService as never,
+      created.metadataService as never,
+      created.modelsService as never,
+      new MusicGenerationNotificationsService(
+        created.activitiesService as never,
+        created.failedGenerationService as never,
+        created.musicsService as never,
+        created.websocketService as never,
+      ),
+      created.musicProviderRegistry as never,
+      created.organizationSettingsService as never,
+      created.promptsService as never,
+      created.routerService as never,
+      created.sharedService as never,
+      undefined,
+    );
+
+    await serviceWithoutModuleRef.generateMusic(user, buildDto(), request);
+
+    expect(created.loggerService.error).toHaveBeenCalledWith(
+      expect.stringContaining('failed'),
+      expect.objectContaining({
+        message: 'WebhooksService is unavailable',
+      }),
+    );
+    expect(
+      created.failedGenerationService.handleFailedMusicGeneration,
+    ).toHaveBeenCalledOnce();
   });
 
   it('does not finalize when the provider stays async (Replicate — webhook finalizes later)', async () => {
