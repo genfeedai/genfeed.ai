@@ -358,6 +358,23 @@ export class InstagramController {
       });
     }
 
+    // This endpoint exists to settle exactly one ambiguity: a token was
+    // exchanged but never resolved to a specific account (see
+    // `computeNeedsAccountSelection`). A credential that is already
+    // connected, or already carries an externalId, is not in that state —
+    // without this check, any caller who knows a live credential's id could
+    // silently repoint it onto a different account the same token happens
+    // to authorize, entirely outside the disconnect/reconnect flow an
+    // operator would actually use to change which account a credential
+    // represents.
+    if (credential.isConnected || credential.externalId) {
+      return returnBadRequest({
+        detail:
+          'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
+        title: 'Already Connected',
+      });
+    }
+
     try {
       const accessToken = EncryptionUtil.decrypt(credential.accessToken);
       const accounts =

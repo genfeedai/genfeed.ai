@@ -1112,6 +1112,35 @@ describe('InstagramController', () => {
       expect(credentialsUpdateExternalProfileMock).not.toHaveBeenCalled();
     });
 
+    it.each([
+      ['already connected', { isConnected: true }],
+      ['already carrying an externalId', { externalId: 'ig-account-a' }],
+    ] as const)(
+      'refuses to repoint a credential that is %s, without calling the provider',
+      async (_description, alreadyResolved) => {
+        credentialsFindOneMock.mockResolvedValue({
+          accessToken: 'encrypted-token',
+          id: credentialId,
+          isConnected: false,
+          isDeleted: false,
+          ...alreadyResolved,
+        });
+
+        const result = await controller.selectAccount(
+          mockRequest,
+          mockUser,
+          credentialId,
+          { externalId: 'ig-account-b' },
+        );
+
+        expect(result).toHaveProperty('errors');
+        expect(
+          instagramServiceMock.listAuthorizedInstagramAccounts,
+        ).not.toHaveBeenCalled();
+        expect(credentialsUpdateExternalProfileMock).not.toHaveBeenCalled();
+      },
+    );
+
     it('returns not found for a cross-org credential id', async () => {
       credentialsFindOneMock.mockResolvedValue(null);
 
