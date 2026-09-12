@@ -464,6 +464,34 @@ describe('InstagramController', () => {
       });
     });
 
+    it('never sends a null handle when the resolved account has no username', async () => {
+      // `username` is optional on InstagramPageResponse (Graph can omit it);
+      // an explicit `null` here would wipe an existing good handle on
+      // reconnect, since `updateExternalProfile` treats `null` as "clear it"
+      // and `undefined` as "leave it as is".
+      mockSuccessfulTokenExchange();
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        {
+          id: 'ig-account-id',
+          image: 'https://cdn.example.com/avatar.jpg',
+          label: 'Genfeed AI',
+          platform: 'instagram',
+        },
+      ]);
+      credentialsUpdateExternalProfileMock.mockResolvedValue({
+        brandId,
+        externalId: 'ig-account-id',
+        id: 'test-object-id',
+        isConnected: true,
+      });
+
+      await controller.verify(mockRequest, { code: 'auth-code', state });
+
+      const profileUpdate = credentialsUpdateExternalProfileMock.mock
+        .calls[0][2] as { handle?: string | null };
+      expect(profileUpdate.handle).toBeUndefined();
+    });
+
     it('rejects a grant missing pages_show_list with a permission-specific error, writing nothing', async () => {
       mockSuccessfulTokenExchange('instagram_basic,instagram_content_publish');
 
@@ -1089,6 +1117,35 @@ describe('InstagramController', () => {
       expect(result.data).toEqual(
         expect.objectContaining({ id: credentialId }),
       );
+    });
+
+    it('never sends a null handle when the chosen account has no username', async () => {
+      credentialsFindOneMock.mockResolvedValue({
+        accessToken: 'encrypted-token',
+        id: credentialId,
+        isDeleted: false,
+      });
+      instagramServiceMock.listAuthorizedInstagramAccounts.mockResolvedValue([
+        {
+          id: 'ig-account-b',
+          image: 'https://cdn.example.com/ig-account-b.jpg',
+          label: 'Account ig-account-b',
+          platform: 'instagram',
+        },
+      ]);
+      credentialsUpdateExternalProfileMock.mockResolvedValue({
+        externalId: 'ig-account-b',
+        id: credentialId,
+        isConnected: true,
+      });
+
+      await controller.selectAccount(mockRequest, mockUser, credentialId, {
+        externalId: 'ig-account-b',
+      });
+
+      const profileUpdate = credentialsUpdateExternalProfileMock.mock
+        .calls[0][2] as { handle?: string | null };
+      expect(profileUpdate.handle).toBeUndefined();
     });
 
     it('rejects an externalId the token does not authorize', async () => {

@@ -287,7 +287,11 @@ export class InstagramConnectionResolverService {
       organizationId,
       {
         avatarUrl: chosen.image,
-        handle: chosen.username ?? null,
+        // `username` is optional on InstagramPageResponse — Graph can omit
+        // it on a reconnect. `undefined` means "leave the column as is";
+        // an explicit `null` here would wipe an existing good handle, the
+        // opposite of every other updateExternalProfile caller.
+        handle: chosen.username ?? undefined,
         id: chosen.id,
         name: chosen.label || chosen.username,
       },
