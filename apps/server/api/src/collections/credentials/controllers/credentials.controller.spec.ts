@@ -53,6 +53,7 @@ describe('CredentialsController', () => {
       create: vi.fn(),
       find: vi.fn().mockResolvedValue([]),
       findAll: vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 }),
+      findConnectedAccounts: vi.fn().mockResolvedValue([]),
       findOne: vi.fn(),
       patch: vi.fn(),
       remove: vi.fn(),
