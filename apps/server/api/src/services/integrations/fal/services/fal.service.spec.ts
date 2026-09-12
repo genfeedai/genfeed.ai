@@ -223,6 +223,27 @@ describe('FalService', () => {
         'fal.ai is not configured',
       );
     });
+
+    it('bounds a stuck non-BYOK subscribe instead of hanging forever', async () => {
+      vi.useFakeTimers();
+      try {
+        const { service } = createHarness();
+        // fal's own `subscribe({ timeout })` option is documented as not
+        // enforced by the SDK, so a never-resolving promise must be bounded
+        // by our own race instead.
+        falSubscribe.mockReturnValue(new Promise(() => {}));
+
+        const runPromise = service.run('fal-ai/stuck', {});
+        const assertion = expect(runPromise).rejects.toThrowError(
+          /timed out after 240000ms for model fal-ai\/stuck/,
+        );
+
+        await vi.advanceTimersByTimeAsync(240_000);
+        await assertion;
+      } finally {
+        vi.useRealTimers();
+      }
+    });
   });
 
   describe('BYOK queue path', () => {

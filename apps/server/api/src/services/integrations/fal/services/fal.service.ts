@@ -46,6 +46,10 @@ interface FalResponseData extends Record<string, unknown> {
 export class FalService {
   private readonly logContext = 'FalService';
   private configured = false;
+  // fal's own `subscribe()` `timeout` option is documented as not enforced by
+  // the SDK, so a stuck non-BYOK subscription would otherwise block forever.
+  // Matches the BYOK poll path's 240s bound (see `runWithOverride`).
+  private static readonly SUBSCRIBE_TIMEOUT_MS = 240_000;
 
   constructor(
     private readonly configService: ConfigService,
@@ -91,10 +95,13 @@ export class FalService {
         data = await this.runWithOverride(modelId, input, apiKeyOverride);
       } else {
         this.ensureConfigured();
-        const result = await fal.subscribe(modelId, {
-          input,
-          logs: false,
-        });
+        const result = await this.withSubscribeTimeout(
+          modelId,
+          fal.subscribe(modelId, {
+            input,
+            logs: false,
+          }),
+        );
         data = result.data as FalResponseData;
       }
 
@@ -151,10 +158,13 @@ export class FalService {
         data = await this.runWithOverride(modelId, input, apiKeyOverride);
       } else {
         this.ensureConfigured();
-        const result = await fal.subscribe(modelId, {
-          input,
-          logs: false,
-        });
+        const result = await this.withSubscribeTimeout(
+          modelId,
+          fal.subscribe(modelId, {
+            input,
+            logs: false,
+          }),
+        );
         data = result.data as FalResponseData;
       }
 
@@ -198,10 +208,13 @@ export class FalService {
 
     this.ensureConfigured();
 
-    const result = await fal.subscribe(modelId, {
-      input,
-      logs: false,
-    });
+    const result = await this.withSubscribeTimeout(
+      modelId,
+      fal.subscribe(modelId, {
+        input,
+        logs: false,
+      }),
+    );
 
     return result.data as Record<string, unknown>;
   }
@@ -267,6 +280,31 @@ export class FalService {
       ),
     );
     return resultRes.data;
+  }
+
+  private async withSubscribeTimeout<T>(
+    modelId: string,
+    operation: Promise<T>,
+  ): Promise<T> {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<never>((_resolve, reject) => {
+          timeoutId = setTimeout(() => {
+            reject(
+              new Error(
+                `fal.ai subscribe timed out after ${FalService.SUBSCRIBE_TIMEOUT_MS}ms for model ${modelId}`,
+              ),
+            );
+          }, FalService.SUBSCRIBE_TIMEOUT_MS);
+        }),
+      ]);
+    } finally {
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    }
   }
 
   private ensureConfigured(): void {
