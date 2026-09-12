@@ -24,6 +24,13 @@ import { ServiceUnavailableException } from '@nestjs/common';
 export interface RunImageGenerationBriefInput {
   avoid?: string[];
   brandingMode?: 'off' | 'brand';
+  /**
+   * Resolved brand-voice text. Callers gate this solely on Brand voice
+   * (`resolveIsGenerationBriefBrandVoiceOn`) — it must never depend on
+   * `fidelityMode`, which `avoid` terms can force to `guided` independently
+   * of branding.
+   */
+  brandContext?: string;
   composition?: string;
   fidelityMode?: GenerationFidelityMode;
   height: number;
@@ -107,6 +114,7 @@ export function runImageGenerationBrief(
         }));
   const brief = assembleImageGenerationBrief({
     avoid: input.avoid,
+    brandContext: input.brandContext,
     composition: input.composition,
     fidelityMode,
     height: input.height,

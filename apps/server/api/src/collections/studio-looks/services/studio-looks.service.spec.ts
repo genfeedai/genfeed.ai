@@ -36,7 +36,6 @@ const setupFieldsDto = {
   aspectRatio: '16:9',
   brandingMode: 'brand' as const,
   duration: 5,
-  isPromptEnhanceEnabled: true,
   modelKey: 'replicate/model-key',
   outputs: 4,
   prioritize: RouterPriority.QUALITY,
@@ -141,7 +140,6 @@ describe('StudioLooksService', () => {
   it('persists the widened Generation Setup fields on update', async () => {
     const patch = {
       aspectRatio: '9:16',
-      isPromptEnhanceEnabled: false,
       modelKey: '',
       outputs: 1,
       prioritize: RouterPriority.SPEED,

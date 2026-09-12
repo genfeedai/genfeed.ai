@@ -123,4 +123,41 @@ describe('runImageGenerationBrief', () => {
     expect((failure as Error).message).toContain(FLUX_SCHNELL_MODEL_KEY);
     expect(compile).not.toHaveBeenCalled();
   });
+
+  describe('brandContext (#4676)', () => {
+    it('reaches the compiled prompt when passed, independent of avoid-forced fidelity', () => {
+      const result = runImageGenerationBrief({
+        avoid: ['neon signage'],
+        brandContext: 'Warm, confident, editorial voice.',
+        // No explicit brandingMode/fidelityMode — only `avoid` forces
+        // fidelityMode to 'guided'. brandContext must still surface: it is
+        // gated by the caller solely on Brand voice, never on fidelity mode.
+        height: 1080,
+        model: FLUX_SCHNELL_MODEL_KEY,
+        objective: 'a sunset over the ocean',
+        surface: 'studio',
+        width: 1920,
+      });
+
+      expect(result.brief?.intent.brandContext).toBe(
+        'Warm, confident, editorial voice.',
+      );
+      const dispatch = result.dispatch as { prompt: string };
+      expect(dispatch.prompt).toContain('Warm, confident, editorial voice');
+    });
+
+    it('never appears when the caller omits it, matching Brand voice off', () => {
+      const result = runImageGenerationBrief({
+        height: 1080,
+        model: FLUX_SCHNELL_MODEL_KEY,
+        objective: 'a sunset over the ocean',
+        surface: 'studio',
+        width: 1920,
+      });
+
+      expect(result.brief?.intent.brandContext).toBeUndefined();
+      const dispatch = result.dispatch as { prompt: string };
+      expect(dispatch.prompt).not.toContain('Warm, confident');
+    });
+  });
 });

@@ -443,6 +443,53 @@ describe('generation-setup.store', () => {
       });
     });
 
+    it('backfills brandingMode to off for a scope that relied on enhance-off to suppress branding (#4676)', async () => {
+      const staleBrandOn: GenerationSetup = {
+        sources: {},
+        values: {
+          ...DEFAULTS,
+          brandingMode: 'brand',
+          isPromptEnhanceEnabled: false,
+        },
+      };
+      const alreadyOff: GenerationSetup = {
+        sources: {},
+        values: {
+          ...DEFAULTS,
+          brandingMode: 'off',
+          isPromptEnhanceEnabled: false,
+        },
+      };
+      const enabledAndOn: GenerationSetup = {
+        sources: {},
+        values: {
+          ...DEFAULTS,
+          brandingMode: 'brand',
+          isPromptEnhanceEnabled: true,
+        },
+      };
+      const migrate = useGenerationSetupStore.persist.getOptions().migrate;
+
+      const migrated = await migrate?.(
+        {
+          setupByScope: {
+            'studio:image': staleBrandOn,
+            'studio:music': alreadyOff,
+            'studio:video': enabledAndOn,
+          },
+        },
+        2,
+      );
+
+      const setupByScope = (
+        migrated as { setupByScope: Record<string, GenerationSetup> }
+      ).setupByScope;
+      expect(setupByScope['studio:image']?.values.brandingMode).toBe('off');
+      expect(setupByScope['studio:music']?.values.brandingMode).toBe('off');
+      // Enhance was on, so brandingMode reflects a real user choice — untouched.
+      expect(setupByScope['studio:video']?.values.brandingMode).toBe('brand');
+    });
+
     it('persists setupByScope only, never the runtime-only reasons', () => {
       applyGenerationSetupRecommendation(
         SCOPE,

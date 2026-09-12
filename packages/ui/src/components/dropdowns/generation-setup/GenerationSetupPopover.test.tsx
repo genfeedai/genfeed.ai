@@ -410,6 +410,31 @@ describe('GenerationSetupPopover', () => {
     expect(onResetAll).toHaveBeenCalledOnce();
   });
 
+  // #4676: Brand voice cannot affect music, avatar, or voice generations —
+  // it must not appear anywhere in the popover for those output types.
+  it('hides Brand voice everywhere when the type has no brand enrichment', async () => {
+    const user = userEvent.setup();
+    renderPopover({
+      capabilities: { ...capabilities, hasBrandEnrichment: false },
+    });
+
+    await openPopover(user);
+
+    expect(screen.queryByText('Brand voice')).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Customize setup' }));
+    expect(
+      screen.queryByRole('tab', { name: 'Brand' }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Back to setup' }));
+    await user.click(
+      screen.getByRole('button', { name: 'Search setup fields' }),
+    );
+    expect(screen.queryByText('Brand voice')).not.toBeInTheDocument();
+    expect(screen.queryByText('Brand voice on')).not.toBeInTheDocument();
+  });
+
   it('opens the nested section directly from a summary value', async () => {
     const user = userEvent.setup();
     // Media rows only appear once the type is the user's own pick; an

@@ -32,6 +32,7 @@ import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudio
 import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioGenerateModels';
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
+import { useStudioPromptEnhancement } from '@pages/studio/generate/hooks/useStudioPromptEnhancement';
 import { useStudioRemixRun } from '@pages/studio/generate/hooks/useStudioRemixRun';
 import { StudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import { buildRepromptData } from '@pages/studio/generate/utils/generation-payloads';
@@ -103,6 +104,18 @@ export default function StudioGenerateWorkspace(): ReactElement {
   } = useStudioGenerateSettings();
 
   const [prompt, setPrompt] = useState('');
+  const {
+    cancelEnhance,
+    enhancePrompt,
+    isEnhancing: isEnhancingPrompt,
+    previousPrompt: previousEnhancedPrompt,
+    undoEnhance,
+  } = useStudioPromptEnhancement({
+    brandId,
+    modelKey: settings.modelKey,
+    onPromptChange: setPrompt,
+    prompt,
+  });
   const [search, setSearch] = useState('');
   const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
     ViewType.GRID,
@@ -864,6 +877,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   isDragActive={
                     capabilities.hasReferences && dragState.isActive
                   }
+                  isEnhancingPrompt={isEnhancingPrompt}
                   isGenerating={isGenerating || remixStatus === 'working'}
                   isListening={isListening}
                   isLoadingModels={isLoadingModels}
@@ -871,6 +885,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   isUploading={isUploading}
                   models={models}
                   onAddFiles={handleAddFiles}
+                  onCancelEnhancePrompt={cancelEnhance}
+                  onEnhancePrompt={enhancePrompt}
                   onOpenLibrary={handleOpenLibrary}
                   onPromptChange={setPrompt}
                   onPromptDocumentChange={(document) => {
@@ -883,7 +899,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   onStopListening={stopListening}
                   onSubmit={handleSubmit}
                   onTypeChange={setType}
+                  onUndoEnhancePrompt={undoEnhance}
                   prompt={prompt}
+                  previousPrompt={previousEnhancedPrompt}
                   settings={settings}
                   shouldShowVoiceInput={shouldShowVoiceInput}
                   type={type}

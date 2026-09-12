@@ -51,6 +51,49 @@ export function recordOmittedGenerationBriefSignal(
   omitted.push({ field, reason });
 }
 
+/**
+ * Fits brand-voice text into whatever character budget is left once the rest
+ * of the prompt is accounted for — trimming or dropping it (and recording
+ * that in `omitted`) rather than letting a near-limit prompt fail the whole
+ * compile (#4676). Independent of fidelity policy: unlike
+ * `recordOmittedGenerationBriefSignal`, this always records the omission
+ * when it happens, since brand voice is never gated by fidelity mode.
+ */
+export function fitBrandContextToPromptBudget(input: {
+  brandContext?: string;
+  maxCharacters: number;
+  modelLabel: string;
+  omitted: GenerationBriefOmittedSignal[];
+  otherPartsLength: number;
+}): string | undefined {
+  const { brandContext, maxCharacters, modelLabel, omitted, otherPartsLength } =
+    input;
+  if (!brandContext) {
+    return undefined;
+  }
+
+  const separatorCost = otherPartsLength > 0 ? 2 : 0;
+  const available = maxCharacters - otherPartsLength - separatorCost;
+
+  if (available <= 1) {
+    omitted.push({
+      field: 'intent.brandContext',
+      reason: `${modelLabel} had no room left in the character budget for brand voice text.`,
+    });
+    return undefined;
+  }
+
+  if (brandContext.length <= available) {
+    return brandContext;
+  }
+
+  omitted.push({
+    field: 'intent.brandContext',
+    reason: `${modelLabel} truncated brand voice text to fit the character budget.`,
+  });
+  return `${brandContext.slice(0, available - 1).trimEnd()}…`;
+}
+
 export function resolveImageGenerationBriefAspectRatio(
   modelKey: string,
   brief: ImageGenerationBrief,
@@ -143,6 +186,22 @@ export function buildImageGenerationBriefPrompt(
         modelLabel,
       );
     }
+  }
+
+  // Independent of `policy.applyConstraints` — brand voice is decided solely
+  // by the Brand voice setting, never by fidelity mode (which `avoid` terms
+  // can force to `guided` on their own). Fit into whatever budget is left
+  // after everything else rather than letting it push the prompt over the
+  // limit (#4676).
+  const fittedBrandContext = fitBrandContextToPromptBudget({
+    brandContext: brief.intent.brandContext,
+    maxCharacters,
+    modelLabel,
+    omitted,
+    otherPartsLength: joinGenerationBriefPromptParts(parts).length,
+  });
+  if (fittedBrandContext) {
+    parts.push(fittedBrandContext);
   }
 
   const prompt = joinGenerationBriefPromptParts(parts);
@@ -260,6 +319,7 @@ export function buildImageGenerationBriefAppliedFields(input: {
     ...(brief.intent.composition ? ['intent.composition'] : []),
     ...(brief.intent.lighting ? ['intent.lighting'] : []),
     ...(brief.intent.visualDirection ? ['intent.visualDirection'] : []),
+    ...(brief.intent.brandContext ? ['intent.brandContext'] : []),
     ...(brief.intent.requestedText.length > 0 ? ['intent.requestedText'] : []),
     ...appliedConstraintFields,
     ...(hasSeed ? ['seed'] : []),

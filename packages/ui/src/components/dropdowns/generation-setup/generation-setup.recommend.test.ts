@@ -303,15 +303,11 @@ describe('recommendGenerationSetup', () => {
   });
 
   describe('isPromptEnhanceEnabled', () => {
-    it('always recommends enabling prompt enhancement', () => {
-      const { reasons, values } = recommendGenerationSetup(
-        buildInput({
-          capabilities: { ...FULL_CAPABILITIES, hasBrandEnrichment: false },
-        }),
-      );
+    it('never recommends a value — the switch was removed (#4676)', () => {
+      const { reasons, values } = recommendGenerationSetup(buildInput());
 
-      expect(values.isPromptEnhanceEnabled).toBe(true);
-      expect(reasons.isPromptEnhanceEnabled).toBeTruthy();
+      expect(values.isPromptEnhanceEnabled).toBeUndefined();
+      expect(reasons.isPromptEnhanceEnabled).toBeUndefined();
     });
   });
 });

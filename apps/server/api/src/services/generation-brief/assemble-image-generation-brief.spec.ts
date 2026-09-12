@@ -63,4 +63,31 @@ describe('assembleImageGenerationBrief', () => {
       source: 'brand',
     });
   });
+
+  it('carries brandContext into the intent with brand provenance when present (#4676)', () => {
+    const brief = assembleImageGenerationBrief({
+      brandContext: 'Warm, confident, editorial voice.',
+      fidelityMode: 'off',
+      objective: 'a sunset over the ocean',
+    });
+
+    expect(brief.intent.brandContext).toBe('Warm, confident, editorial voice.');
+    expect(brief.provenance).toContainEqual({
+      field: 'intent.brandContext',
+      source: 'brand',
+    });
+  });
+
+  it('omits brandContext entirely when not passed, regardless of fidelity mode', () => {
+    const brief = assembleImageGenerationBrief({
+      avoid: ['neon signage'],
+      fidelityMode: 'guided',
+      objective: 'a sunset over the ocean',
+    });
+
+    expect(brief.intent.brandContext).toBeUndefined();
+    expect(brief.provenance).not.toContainEqual(
+      expect.objectContaining({ field: 'intent.brandContext' }),
+    );
+  });
 });

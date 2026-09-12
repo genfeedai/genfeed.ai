@@ -1,4 +1,5 @@
 import {
+  fitBrandContextToPromptBudget,
   joinGenerationBriefPromptParts,
   recordOmittedGenerationBriefSignal,
 } from '@api/services/generation-brief/compile-image-generation-brief.util';
@@ -165,6 +166,19 @@ function buildPrompt(
     }
   }
 
+  // Independent of fidelity policy — brand voice follows Brand voice only.
+  // Fit into whatever budget is left after everything else (#4676).
+  const fittedBrandContext = fitBrandContextToPromptBudget({
+    brandContext: brief.intent.brandContext,
+    maxCharacters: MINIMAX_H3_CAPABILITY_PROFILE.prompt.maxCharacters,
+    modelLabel: 'MiniMax H3',
+    omitted,
+    otherPartsLength: joinGenerationBriefPromptParts(parts).length,
+  });
+  if (fittedBrandContext) {
+    parts.push(fittedBrandContext);
+  }
+
   const prompt = joinGenerationBriefPromptParts(parts);
   if (!prompt) {
     throw new GenerationBriefCompileError(
@@ -276,6 +290,7 @@ export function compileMinimaxH3GenerationBrief(
     ...(input.brief.intent.motion ? ['intent.motion'] : []),
     ...(input.brief.intent.visualDirection ? ['intent.visualDirection'] : []),
     ...(input.brief.intent.audioDirection ? ['intent.audioDirection'] : []),
+    ...(input.brief.intent.brandContext ? ['intent.brandContext'] : []),
     ...(input.brief.intent.requestedText.length > 0
       ? ['intent.requestedText']
       : []),

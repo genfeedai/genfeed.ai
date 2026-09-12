@@ -13,7 +13,6 @@ export class StudioLook extends BaseEntity implements IStudioLook {
   declare public camera: string;
   declare public cameraMovement?: string | null;
   declare public duration?: number | null;
-  declare public isPromptEnhanceEnabled?: boolean;
   declare public label: string;
   declare public lens: string;
   declare public lighting: string;

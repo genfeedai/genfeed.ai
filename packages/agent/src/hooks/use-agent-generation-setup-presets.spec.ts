@@ -47,7 +47,6 @@ function studioLook(overrides: Partial<IStudioLook> = {}): IStudioLook {
     duration: null,
     id: 'preset-1',
     isDeleted: false,
-    isPromptEnhanceEnabled: true,
     label: 'Preset one',
     lens: '',
     lighting: '',
@@ -281,7 +280,6 @@ describe('agentPresetToGenerationSetupValues', () => {
       aspectRatio: '4:5',
       brandingMode: 'off',
       camera: 'wide',
-      isPromptEnhanceEnabled: false,
       modelKey: 'flux-schnell',
       outputs: 3,
       prioritize: RouterPriority.QUALITY,
@@ -289,15 +287,17 @@ describe('agentPresetToGenerationSetupValues', () => {
 
     const patch = agentPresetToGenerationSetupValues(preset);
 
+    // #4676 dropped isPromptEnhanceEnabled from the persisted Studio Look —
+    // it never had any effect. The projection no longer sets it.
     expect(patch).toMatchObject({
       aspectRatio: '4:5',
       brandingMode: 'off',
       camera: 'wide',
-      isPromptEnhanceEnabled: false,
       modelKey: 'flux-schnell',
       outputs: 3,
       prioritize: RouterPriority.QUALITY,
     });
+    expect(patch).not.toHaveProperty('isPromptEnhanceEnabled');
   });
 
   it('omits video-only fields for an image preset', () => {

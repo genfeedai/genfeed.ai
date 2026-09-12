@@ -69,7 +69,6 @@ const look: IStudioLook = {
   duration: 12,
   id: 'look-a',
   isDeleted: false,
-  isPromptEnhanceEnabled: false,
   label: 'Saved',
   lens: 'saved-lens',
   lighting: 'saved-lighting',
@@ -95,7 +94,6 @@ describe('Studio Look preset contract', () => {
       camera: 'camera-1',
       cameraMovement: 'move-1',
       duration: 8,
-      isPromptEnhanceEnabled: true,
       label: 'Saved',
       lens: 'lens-1',
       lighting: 'lighting-1',
@@ -131,7 +129,6 @@ describe('Studio Look preset contract', () => {
       camera: 'saved-camera',
       cameraMovement: 'saved-move',
       duration: 12,
-      isPromptEnhanceEnabled: false,
       lens: 'saved-lens',
       lighting: 'saved-lighting',
       modelKey: 'saved-model',
@@ -189,9 +186,13 @@ describe('useStudioLooks', () => {
     expect(mocks.service.post).toHaveBeenCalledWith(
       expect.objectContaining({
         aspectRatio: values.aspectRatio,
-        isPromptEnhanceEnabled: values.isPromptEnhanceEnabled,
         label: 'New Preset',
         modelKey: values.modelKey,
+      }),
+    );
+    expect(mocks.service.post).toHaveBeenCalledWith(
+      expect.not.objectContaining({
+        isPromptEnhanceEnabled: expect.anything(),
       }),
     );
   });

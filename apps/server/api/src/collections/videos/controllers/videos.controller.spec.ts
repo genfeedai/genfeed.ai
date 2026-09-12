@@ -26,6 +26,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
 import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type { VideosQueryDto } from '@api/collections/videos/dto/videos-query.dto';
@@ -417,6 +418,13 @@ describe('VideosController', () => {
             waitForCompletion: vi
               .fn()
               .mockResolvedValue({ videoUrl: 'https://cdn.test/video.mp4' }),
+          },
+        },
+        {
+          provide: TemplatesService,
+          useValue: {
+            getPromptByKey: vi.fn().mockResolvedValue(null),
+            renderPrompt: vi.fn(),
           },
         },
         // VideoGenerationService is provided as a real class so NestJS DI

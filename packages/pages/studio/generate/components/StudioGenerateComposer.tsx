@@ -59,7 +59,7 @@ import PromptBarComposer from '@ui/prompt-bars/components/shell/PromptBarCompose
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
 import PromptEditor from '@ui/prompt-editor/PromptEditor';
-import { ArrowUp } from 'lucide-react';
+import { ArrowUp, Loader2, WandSparkles } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 import { useCallback, useEffect } from 'react';
@@ -80,6 +80,7 @@ export default function StudioGenerateComposer({
   attachedAssets,
   extraExtensions,
   isDragActive = false,
+  isEnhancingPrompt = false,
   isGenerating,
   isListening,
   isLoadingModels,
@@ -87,6 +88,8 @@ export default function StudioGenerateComposer({
   isUploading,
   models,
   onAddFiles,
+  onCancelEnhancePrompt,
+  onEnhancePrompt,
   onOpenLibrary,
   onPromptChange,
   onPromptDocumentChange,
@@ -97,7 +100,9 @@ export default function StudioGenerateComposer({
   onStopListening,
   onSubmit,
   onTypeChange,
+  onUndoEnhancePrompt,
   prompt,
+  previousPrompt = null,
   settings,
   shouldShowVoiceInput,
   type,
@@ -285,7 +290,7 @@ export default function StudioGenerateComposer({
       data-testid="studio-generate-composer-shell"
     >
       <PromptEditor
-        ariaLabel="Prompt"
+        ariaLabel={translate('prompt')}
         className="min-h-9 w-full"
         extraExtensions={extraExtensions}
         isDisabled={isGenerating}
@@ -467,6 +472,44 @@ export default function StudioGenerateComposer({
               {translate('estimatedCredits', { credits: estimatedCredits })}
             </span>
           ) : null}
+          {!isEnhancingPrompt && previousPrompt !== null ? (
+            <Button
+              ariaLabel={translate('undoPromptEnhancement')}
+              className="h-7 shrink-0 px-2 text-2xs"
+              isDisabled={isGenerating}
+              label={translate('undo')}
+              onClick={onUndoEnhancePrompt}
+              size={ButtonSize.XS}
+              textTransform="none"
+              variant={ButtonVariant.GHOST}
+            />
+          ) : null}
+          {onEnhancePrompt ? (
+            <Button
+              ariaLabel={
+                isEnhancingPrompt
+                  ? translate('cancelEnhancingPrompt')
+                  : translate('enhancePrompt')
+              }
+              className="size-9 shrink-0 min-h-0 min-w-0 p-0"
+              icon={
+                isEnhancingPrompt ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <WandSparkles className="size-4" />
+                )
+              }
+              // The composer stays usable during enhancement: while pending,
+              // the button switches to Cancel instead of disabling (#4676).
+              isDisabled={isGenerating || (!isEnhancingPrompt && isPromptEmpty)}
+              onClick={
+                isEnhancingPrompt ? onCancelEnhancePrompt : onEnhancePrompt
+              }
+              size={ButtonSize.ICON}
+              variant={ButtonVariant.GHOST}
+              withWrapper={false}
+            />
+          ) : null}
           {isListening || isTranscribing || shouldShowVoiceInput ? (
             <PromptBarVoiceControl
               isDisabled={isGenerating}
@@ -477,7 +520,7 @@ export default function StudioGenerateComposer({
             />
           ) : (
             <Button
-              ariaLabel="Generate"
+              ariaLabel={translate('generate')}
               className="size-9 shrink-0 min-h-0 min-w-0 p-0"
               icon={<ArrowUp className="size-4" />}
               isDisabled={isSubmitBlocked}

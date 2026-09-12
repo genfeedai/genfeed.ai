@@ -1210,8 +1210,11 @@ model StudioLook {
   lighting               String       @default("")
   cameraMovement         String?
   // Preset widening (Generation Setup): router model selection, output
-  // count, and brand/enhancement toggles saved alongside the Look. All
-  // optional so pre-widening rows stay valid.
+  // count, and brand toggle saved alongside the Look. All optional so
+  // pre-widening rows stay valid. `isPromptEnhanceEnabled` was dropped in
+  // #4676 — it never enhanced a prompt and collapsing it onto `brandingMode`
+  // silently suppressed branding for looks that had it off; Brand voice
+  // (`brandingMode`) is now the single, truthful branding flag.
   modelKey               String?
   prioritize             String?
   outputs                Int?
@@ -1219,7 +1222,6 @@ model StudioLook {
   duration               Int?
   resolution             String?
   brandingMode           String?
-  isPromptEnhanceEnabled Boolean      @default(true)
   isDeleted              Boolean      @default(false)
   createdAt              DateTime     @default(now())
   updatedAt              DateTime     @updatedAt

@@ -37,6 +37,7 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
+import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { TrainingsModule } from '@api/collections/trainings/trainings.module';
 import { VotesModule } from '@api/collections/votes/votes.module';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
@@ -112,6 +113,7 @@ import { Module } from '@nestjs/common';
     RouterModule,
     SolanaModule,
     TagsModule,
+    TemplatesModule,
     TrainingsModule,
     UploadsModule,
     VotesModule,

@@ -32,6 +32,14 @@ export {
   toRedactedGenerationBriefProviderData,
   toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief/redact-generation-brief-evidence';
+export type {
+  GenerationBriefBrandContextBrand,
+  GenerationBriefBrandContextBranding,
+} from '@api/services/generation-brief/resolve-generation-brief-brand-context';
+export {
+  resolveGenerationBriefBrandContext,
+  resolveIsGenerationBriefBrandVoiceOn,
+} from '@api/services/generation-brief/resolve-generation-brief-brand-context';
 export { resolveImageGenerationBriefSupport } from '@api/services/generation-brief/resolve-image-generation-brief-support';
 export { resolveImageGenerationFidelityMode } from '@api/services/generation-brief/resolve-image-generation-fidelity-mode';
 export { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';

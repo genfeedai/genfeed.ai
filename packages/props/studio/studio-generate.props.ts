@@ -36,6 +36,7 @@ export interface StudioGenerateComposerProps {
   attachedAssets: PromptBarAttachedAsset[];
   extraExtensions?: readonly AnyExtension[];
   isDragActive?: boolean;
+  isEnhancingPrompt?: boolean;
   isGenerating: boolean;
   isListening: boolean;
   isLoadingModels: boolean;
@@ -43,6 +44,8 @@ export interface StudioGenerateComposerProps {
   isUploading: boolean;
   models: readonly IModel[];
   onAddFiles: (files: File[], role?: StudioGenerateReferenceRole) => void;
+  onCancelEnhancePrompt?: () => void;
+  onEnhancePrompt?: () => void;
   onOpenLibrary: (role?: StudioGenerateReferenceRole) => void;
   onPromptChange: (value: string) => void;
   onPromptDocumentChange?: (document: JSONContent) => void;
@@ -53,7 +56,10 @@ export interface StudioGenerateComposerProps {
   onStopListening: () => void;
   onSubmit: () => void;
   onTypeChange: (type: StudioGenerateType) => void;
+  onUndoEnhancePrompt?: () => void;
   prompt: string;
+  /** Set only once an enhancement has actually replaced the prompt. */
+  previousPrompt?: string | null;
   settings: StudioGenerateSettings;
   shouldShowVoiceInput: boolean;
   type: StudioGenerateType;

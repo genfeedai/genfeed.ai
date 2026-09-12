@@ -109,7 +109,35 @@ export interface GenerationSetupState {
 }
 
 export const GENERATION_SETUP_STORAGE_KEY = 'genfeed-generation-setup';
-export const GENERATION_SETUP_STORE_VERSION = 2;
+export const GENERATION_SETUP_STORE_VERSION = 3;
+
+/**
+ * #4676: before the Studio bridge decoupled `brandingMode` from
+ * `isPromptEnhanceEnabled`, a scope with enhance off ran with branding
+ * effectively off regardless of its stored `brandingMode`. Without this,
+ * a persisted `{ brandingMode: 'brand', isPromptEnhanceEnabled: false }`
+ * scope would silently start applying branding once the collapse is gone.
+ * One-time correction on the v2 → v3 transition, not an ongoing rule — a
+ * later explicit "Brand voice on" is never overridden by this again.
+ */
+function backfillBrandingModeForDisabledEnhancement(
+  setupByScope: Record<string, GenerationSetup>,
+): Record<string, GenerationSetup> {
+  return Object.fromEntries(
+    Object.entries(setupByScope).map(([scope, setup]) => {
+      if (
+        setup.values.isPromptEnhanceEnabled !== false ||
+        setup.values.brandingMode !== 'brand'
+      ) {
+        return [scope, setup];
+      }
+      return [
+        scope,
+        { ...setup, values: { ...setup.values, brandingMode: 'off' } },
+      ];
+    }),
+  );
+}
 
 export const useGenerationSetupStore = create<GenerationSetupState>()(
   persist(
@@ -260,16 +288,21 @@ export const useGenerationSetupStore = create<GenerationSetupState>()(
     }),
     {
       // v1 copied `__new__` setups onto created threads without consuming
-      // them, so persisted placeholders can hold a stale media lock.
+      // them, so persisted placeholders can hold a stale media lock. v2 → v3
+      // backfills `brandingMode` for scopes that relied on enhance-off to
+      // suppress branding (`backfillBrandingModeForDisabledEnhancement`).
       migrate: (persisted) => {
         const setupByScope =
           (persisted as Partial<GenerationSetupState> | undefined)
             ?.setupByScope ?? {};
+        const withoutStalePlaceholders = Object.fromEntries(
+          Object.entries(setupByScope).filter(
+            ([scope]) => !isNewAgentThreadScope(scope),
+          ),
+        );
         return {
-          setupByScope: Object.fromEntries(
-            Object.entries(setupByScope).filter(
-              ([scope]) => !isNewAgentThreadScope(scope),
-            ),
+          setupByScope: backfillBrandingModeForDisabledEnhancement(
+            withoutStalePlaceholders,
           ),
         };
       },

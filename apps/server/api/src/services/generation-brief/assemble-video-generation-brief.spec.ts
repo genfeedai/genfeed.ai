@@ -98,4 +98,31 @@ describe('assembleVideoGenerationBrief', () => {
       { assetId: 'reference-video', role: 'reference_video' },
     ]);
   });
+
+  it('carries brandContext into the intent with brand provenance when present (#4676)', () => {
+    const brief = assembleVideoGenerationBrief({
+      brandContext: 'Warm, confident, editorial voice.',
+      fidelityMode: 'off',
+      objective: 'Continue the scene',
+    });
+
+    expect(brief.intent.brandContext).toBe('Warm, confident, editorial voice.');
+    expect(brief.provenance).toContainEqual({
+      field: 'intent.brandContext',
+      source: 'brand',
+    });
+  });
+
+  it('omits brandContext entirely when not passed, regardless of fidelity mode', () => {
+    const brief = assembleVideoGenerationBrief({
+      avoid: ['logo overlay'],
+      fidelityMode: 'guided',
+      objective: 'Continue the scene',
+    });
+
+    expect(brief.intent.brandContext).toBeUndefined();
+    expect(brief.provenance).not.toContainEqual(
+      expect.objectContaining({ field: 'intent.brandContext' }),
+    );
+  });
 });

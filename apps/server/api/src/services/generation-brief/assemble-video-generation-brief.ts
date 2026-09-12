@@ -11,6 +11,8 @@ import { calculateAspectRatio } from '@genfeedai/helpers';
 export interface AssembleVideoGenerationBriefInput {
   audioDirection?: string;
   avoid?: string[];
+  /** Resolved brand-voice text; only ever passed when Brand voice is on. */
+  brandContext?: string;
   cinematography?: string;
   composition?: string;
   durationSeconds?: number;
@@ -53,6 +55,7 @@ export function assembleVideoGenerationBrief(
   const provenance: GenerationBriefProvenance[] = [
     { field: 'intent.objective', source: 'user' },
   ];
+  const brandContext = optionalText(input.brandContext);
   const scene = optionalText(input.scene);
   const lighting = optionalText(input.lighting);
   const composition = optionalText(input.composition);
@@ -70,6 +73,9 @@ export function assembleVideoGenerationBrief(
     }),
   );
 
+  if (brandContext) {
+    provenance.push({ field: 'intent.brandContext', source: 'brand' });
+  }
   if (scene) {
     provenance.push({ field: 'intent.scene', source: 'user' });
   }
@@ -137,6 +143,7 @@ export function assembleVideoGenerationBrief(
     fidelityMode: input.fidelityMode,
     intent: {
       ...(audioDirection ? { audioDirection } : {}),
+      ...(brandContext ? { brandContext } : {}),
       ...(cinematography ? { cinematography } : {}),
       ...(composition ? { composition } : {}),
       ...(lighting ? { lighting } : {}),

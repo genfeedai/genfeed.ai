@@ -21,5 +21,4 @@ export const studioLookAttributes = createEntityAttributes([
   'duration',
   'resolution',
   'brandingMode',
-  'isPromptEnhanceEnabled',
 ]);

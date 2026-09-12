@@ -7,11 +7,13 @@ import { ModelRegistrationService } from '@api/collections/models/services/model
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { CreateVideoDto } from '@api/collections/videos/dto/create-video.dto';
 import type {
   PromptInput,
   ResolvedVideoGenerationRequest,
   VideoGenerationContext,
+  VideoGenerationResolvedBrand,
 } from '@api/collections/videos/services/video-generation.types';
 import {
   brandPromptLabel,
@@ -41,6 +43,8 @@ import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abo
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
   GenerationBriefCompileError,
+  resolveGenerationBriefBrandContext,
+  resolveIsGenerationBriefBrandVoiceOn,
   runVideoGenerationBrief,
   toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief';
@@ -114,6 +118,7 @@ export class VideoGenerationPreparationService {
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
+    private readonly templatesService: TemplatesService,
   ) {}
 
   async resolve(
@@ -224,6 +229,11 @@ export class VideoGenerationPreparationService {
     const { endFrameUrl, referenceImageUrls } =
       await this.resolveReferenceUrls(resolved);
     const promptText = await this.resolvePromptText(resolved);
+    const briefBrandContext = await this.resolveBriefBrandContext(
+      brand,
+      createVideoDto,
+      user.organizationId,
+    );
 
     const {
       brief: generationBrief,
@@ -231,6 +241,7 @@ export class VideoGenerationPreparationService {
       evidence: briefEvidence,
       generationSource,
     } = this.compileVideoGenerationBrief({
+      briefBrandContext,
       createVideoDto,
       height,
       model,
@@ -417,7 +428,49 @@ export class VideoGenerationPreparationService {
     };
   }
 
+  /**
+   * Brand voice must reach every model, including brief-compiled ones — see
+   * `resolveGenerationBriefBrandContext`. Gated solely on the Brand voice
+   * setting, never on the fidelity mode `avoid` terms can also force. A
+   * template-lookup failure (e.g. a database error) must never fail the
+   * whole generation (#4676) — proceed without brand context instead.
+   */
+  private async resolveBriefBrandContext(
+    brand: VideoGenerationResolvedBrand,
+    createVideoDto: CreateVideoDto,
+    organizationId: string,
+  ): Promise<string | undefined> {
+    if (
+      !resolveIsGenerationBriefBrandVoiceOn({
+        brandingMode: createVideoDto.brandingMode,
+        isBrandingEnabled: createVideoDto.isBrandingEnabled,
+      })
+    ) {
+      return undefined;
+    }
+
+    try {
+      return await resolveGenerationBriefBrandContext({
+        brand: {
+          description: optionalBrandString(brand.description),
+          label: brandPromptLabel(brand.label),
+          text: optionalBrandString(brand.text),
+        },
+        branding: buildPromptBrandingFromBrand(brand),
+        organizationId,
+        templatesService: this.templatesService,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        'Failed to resolve brand context for the generation brief; proceeding without it',
+        { error, organizationId },
+      );
+      return undefined;
+    }
+  }
+
   private compileVideoGenerationBrief(params: {
+    briefBrandContext?: string;
     createVideoDto: CreateVideoDto;
     height: number;
     model: string;
@@ -448,6 +501,7 @@ export class VideoGenerationPreparationService {
       return runVideoGenerationBrief({
         audioDirection: params.createVideoDto.speech,
         avoid,
+        brandContext: params.briefBrandContext,
         brandingMode: params.createVideoDto.brandingMode,
         composition,
         durationSeconds: params.createVideoDto.duration,

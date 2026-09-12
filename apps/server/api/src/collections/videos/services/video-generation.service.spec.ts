@@ -212,6 +212,21 @@ describe('VideoGenerationService', () => {
       log: vi.fn(),
       warn: vi.fn(),
     } as unknown as LoggerService;
+    // Defaults to no brand-context template so brief-path brand injection is
+    // opt-in per test (`templatesService.getPromptByKey.mockResolvedValue`).
+    // `renderPrompt` does simplified `{{key}}` substitution — a real
+    // Handlebars stand-in good enough to prove variables actually reach it.
+    const templatesService = {
+      getPromptByKey: vi.fn().mockResolvedValue(null),
+      renderPrompt: vi
+        .fn()
+        .mockImplementation(
+          (content: string, variables: Record<string, unknown>) =>
+            content.replace(/\{\{(\w+)\}\}/g, (_match: string, key: string) =>
+              String(variables[key] ?? ''),
+            ),
+        ),
+    };
 
     const preparationService = new VideoGenerationPreparationService(
       assetsService as never,
@@ -226,6 +241,7 @@ describe('VideoGenerationService', () => {
       promptsService as never,
       routerService as never,
       sharedService as never,
+      templatesService as never,
     );
     const creditsService = new VideoGenerationCreditsService(
       creditsUtilsService as never,
@@ -282,6 +298,7 @@ describe('VideoGenerationService', () => {
       replicatePollQueueService,
       service,
       sharedService,
+      templatesService,
       videosService,
     };
   };
@@ -932,6 +949,73 @@ describe('VideoGenerationService', () => {
           },
         ]),
       );
+    });
+
+    // #4676: Brand voice must reach brief-compiled video models too,
+    // independent of the fidelity mode `avoid` terms can otherwise force,
+    // and a template lookup failure must never fail the whole generation.
+    describe('brand voice injection (#4676)', () => {
+      it('injects rendered brand-voice text into the compiled dispatch when Brand voice is on', async () => {
+        const { replicateService, service, templatesService } = createService();
+        templatesService.getPromptByKey.mockResolvedValue({
+          content: 'Brand voice: {{brandName}}',
+          isActive: true,
+        });
+
+        await service.generateVideo(
+          buildUser(),
+          baseDto({ brandingMode: 'brand', model: COMPILED_MODEL_MINIMAX }),
+          buildRequest(),
+        );
+
+        expect(templatesService.getPromptByKey).toHaveBeenCalledWith(
+          'system.brand-context',
+          ORG,
+        );
+        const dispatch = replicateService.generateTextToVideo.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).toContain('Brand voice: Brand');
+      });
+
+      it('excludes brand-voice text when Brand voice is off, even when avoid terms force a guided fidelity mode', async () => {
+        const { replicateService, service, templatesService } = createService();
+        templatesService.getPromptByKey.mockResolvedValue({
+          content: 'Brand voice: {{brandName}}',
+          isActive: true,
+        });
+
+        await service.generateVideo(
+          buildUser(),
+          baseDto({
+            blacklist: ['no watermark'],
+            brandingMode: 'off',
+            model: COMPILED_MODEL_MINIMAX,
+          }),
+          buildRequest(),
+        );
+
+        expect(templatesService.getPromptByKey).not.toHaveBeenCalled();
+        const dispatch = replicateService.generateTextToVideo.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).not.toContain('Brand voice');
+      });
+
+      it('proceeds without brand context, without failing generation, when the template lookup fails', async () => {
+        const { replicateService, service, templatesService } = createService();
+        templatesService.getPromptByKey.mockRejectedValue(
+          new Error('database unavailable'),
+        );
+
+        await service.generateVideo(
+          buildUser(),
+          baseDto({ brandingMode: 'brand', model: COMPILED_MODEL_MINIMAX }),
+          buildRequest(),
+        );
+
+        const dispatch = replicateService.generateTextToVideo.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).not.toContain('Brand voice');
+      });
     });
 
     // A Strict-fidelity brief can only be constructed today by calling the

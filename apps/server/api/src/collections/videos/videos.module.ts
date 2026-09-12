@@ -17,6 +17,7 @@ import { MusicsModule } from '@api/collections/musics/musics.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
+import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
@@ -106,6 +107,7 @@ import { Module } from '@nestjs/common';
     QueuesModule,
     ReplicateModule,
     RouterModule,
+    TemplatesModule,
     VotesModule,
     WebhookClientModule,
     WhisperModule,

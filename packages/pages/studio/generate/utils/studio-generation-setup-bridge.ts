@@ -112,10 +112,13 @@ export function studioSettingsFieldsToGenerationSetupPatch(
 
 /**
  * Projects the shared store's values back onto `StudioGenerateSettings`.
- * `brandingMode` is the *effective* value — enhancement toggled off collapses
- * it to `'off'` at this boundary without mutating the stored raw preference,
- * so `generation-payloads.ts` (which hardcodes `useTemplate: true`) keeps
- * seeing exactly the flag it already knows how to interpret.
+ * `brandingMode` maps straight through: Brand voice is the only thing that
+ * decides brand context (#4676 FR3) — it is never collapsed by any
+ * enhancement choice, so `generation-payloads.ts` (which hardcodes
+ * `useTemplate: true`) keeps seeing exactly the flag it already knows how to
+ * interpret. Studio no longer surfaces `isPromptEnhanceEnabled` at all; the
+ * shared store still carries the field only because the agent composer's
+ * setup popover has not migrated off it yet.
  */
 export function generationSetupValuesToStudioSettingsPatch(
   values: GenerationSetupValues,
@@ -123,9 +126,6 @@ export function generationSetupValuesToStudioSettingsPatch(
   const patch: Partial<StudioGenerateSettings> = {};
 
   for (const key of STUDIO_BRIDGED_SETTINGS_KEYS) {
-    if (key === 'brandingMode') {
-      continue;
-    }
     const value = values[key];
     if (value === undefined) {
       continue;
@@ -136,10 +136,6 @@ export function generationSetupValuesToStudioSettingsPatch(
     }
     (patch as Record<string, unknown>)[key] = value;
   }
-
-  patch.brandingMode = values.isPromptEnhanceEnabled
-    ? values.brandingMode
-    : 'off';
 
   return patch;
 }

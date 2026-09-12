@@ -232,6 +232,21 @@ const createService = () => {
     log: vi.fn(),
     warn: vi.fn(),
   } as unknown as LoggerService;
+  // Defaults to no brand-context template so brief-path brand injection is
+  // opt-in per test (`templatesService.getPromptByKey.mockResolvedValueOnce`).
+  // `renderPrompt` does simplified `{{key}}` substitution — a real
+  // Handlebars stand-in good enough to prove variables actually reach it.
+  const templatesService = {
+    getPromptByKey: vi.fn().mockResolvedValue(null),
+    renderPrompt: vi
+      .fn()
+      .mockImplementation(
+        (content: string, variables: Record<string, unknown>) =>
+          content.replace(/\{\{(\w+)\}\}/g, (_match, key: string) =>
+            String(variables[key] ?? ''),
+          ),
+      ),
+  };
 
   const providerRegistry = new ImageGenerationProviderRegistryService(
     new GenfeedAiImageGenerationProviderAdapter(comfyUIService as never),
@@ -300,9 +315,11 @@ const createService = () => {
       bindCancelOnAbort: vi.fn(),
       cancelProcessingIngredient: vi.fn(),
     } as never,
+    templatesService as never,
   );
 
   return {
+    brandsService,
     creditsUtilsService,
     failedGenerationService,
     falService,
@@ -317,6 +334,7 @@ const createService = () => {
     routerService,
     service,
     sharedService,
+    templatesService,
   };
 };
 
@@ -997,6 +1015,96 @@ describe('ImageGenerationService', () => {
       expect(
         creditsUtilsService.checkOrganizationCreditsAvailable,
       ).toHaveBeenCalledWith(ORG, 20);
+    });
+
+    // #4676: Brand voice must reach brief-compiled models too, independent
+    // of the fidelity mode `avoid` terms can otherwise force.
+    describe('brand voice injection (#4676)', () => {
+      const fluxSchnellModel =
+        MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL;
+
+      it('injects rendered brand-voice text into the compiled dispatch when Brand voice is on', async () => {
+        const { service, replicateService, templatesService } = createService();
+        templatesService.getPromptByKey.mockResolvedValue({
+          content: 'Brand voice: {{brandName}}',
+          isActive: true,
+        });
+
+        await service.generateImage(
+          buildUser(),
+          baseDto({
+            brandingMode: 'brand',
+            model: fluxSchnellModel,
+            text: 'a sunset over the ocean',
+          }),
+          buildRequest(),
+        );
+
+        expect(templatesService.getPromptByKey).toHaveBeenCalledWith(
+          'system.brand-context',
+          ORG,
+        );
+        const dispatch = replicateService.generateTextToImage.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).toContain('a sunset over the ocean');
+        expect(dispatch.prompt).toContain('Brand voice: Brand');
+      });
+
+      it('excludes brand-voice text when Brand voice is off, even when avoid terms force a guided fidelity mode', async () => {
+        const { service, replicateService, templatesService } = createService();
+        templatesService.getPromptByKey.mockResolvedValue({
+          content: 'Brand voice: {{brandName}}',
+          isActive: true,
+        });
+
+        await service.generateImage(
+          buildUser(),
+          baseDto({
+            blacklist: ['neon signage'],
+            brandingMode: 'off',
+            model: fluxSchnellModel,
+            text: 'a sunset over the ocean',
+          }),
+          buildRequest(),
+        );
+
+        expect(templatesService.getPromptByKey).not.toHaveBeenCalled();
+        const dispatch = replicateService.generateTextToImage.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).not.toContain('Brand voice');
+      });
+
+      it('degrades to no brand context when the template is missing or inactive, without failing generation', async () => {
+        const { service, replicateService, templatesService } = createService();
+        templatesService.getPromptByKey.mockResolvedValue(null);
+
+        await service.generateImage(
+          buildUser(),
+          baseDto({ brandingMode: 'brand', model: fluxSchnellModel }),
+          buildRequest(),
+        );
+
+        const dispatch = replicateService.generateTextToImage.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).not.toContain('Brand voice');
+      });
+
+      it('proceeds without brand context, without failing generation, when the template lookup fails', async () => {
+        const { service, replicateService, templatesService } = createService();
+        templatesService.getPromptByKey.mockRejectedValue(
+          new Error('database unavailable'),
+        );
+
+        await service.generateImage(
+          buildUser(),
+          baseDto({ brandingMode: 'brand', model: fluxSchnellModel }),
+          buildRequest(),
+        );
+
+        const dispatch = replicateService.generateTextToImage.mock
+          .calls[0]?.[1] as { prompt: string };
+        expect(dispatch.prompt).not.toContain('Brand voice');
+      });
     });
   });
 
