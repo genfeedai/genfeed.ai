@@ -26,6 +26,11 @@ vi.mock('@hooks/auth/use-auth-user/use-auth-user', () => ({
   useAuthUser: () => useUserMock(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@helpers/auth/auth.helper', () => ({
   resolveAuthToken: (...args: unknown[]) => resolveAuthTokenMock(...args),
 }));
@@ -355,8 +360,15 @@ describe('CliAuthPage', () => {
     expect(redirectToCallbackMock).not.toHaveBeenCalled();
   });
 
-  it('falls back to manual recovery when the desktop app does not open', async () => {
-    globalThis.fetch = vi.fn(async () => {
+  it('shows the manual code path while the desktop exchange is still pending', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/desktop/status')) {
+        return new Response(JSON.stringify({ status: 'pending' }), {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        });
+      }
+
       return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
         headers: {
           'content-type': 'application/json',
@@ -378,11 +390,12 @@ describe('CliAuthPage', () => {
     });
 
     await waitFor(() => {
-      expect(screen.getByText('Authentication failed')).toBeInTheDocument();
+      expect(screen.getByText('Check the desktop app')).toBeInTheDocument();
     });
+    expect(screen.queryByText('Authentication failed')).not.toBeInTheDocument();
     expect(
       screen.getByText(
-        'The desktop app did not open automatically. Source checkouts and unpackaged builds cannot. Copy the code and paste it in the desktop app.',
+        'Genfeed Desktop should be open and finishing sign-in. If it did not open, copy the code below and paste it in the app.',
       ),
     ).toBeInTheDocument();
     const codeInput = screen.getByLabelText('Sign-in code');
@@ -398,20 +411,87 @@ describe('CliAuthPage', () => {
       screen.getByRole('button', { name: 'Try again' }),
     ).toBeInTheDocument();
 
-    vi.mocked(navigator.clipboard.writeText).mockRejectedValueOnce(
-      new Error('clipboard permission denied'),
-    );
-    fireEvent.click(screen.getByRole('button', { name: 'Copy' }));
     await waitFor(() => {
-      expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
-        'gf_desktop_code',
-      );
-      expect(screen.getByLabelText('Sign-in code')).toHaveValue(
-        'gf_desktop_code',
-      );
-      expect(screen.getByRole('alert')).toHaveTextContent(
-        'Select the full code below and copy it manually',
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'https://api.genfeed.ai/v1/auth/desktop/status',
+        expect.objectContaining({
+          body: JSON.stringify({ state: 'desktop-state' }),
+          method: 'POST',
+        }),
       );
     });
+  });
+
+  it('completes once the desktop app has exchanged the code', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/desktop/status')) {
+        return new Response(JSON.stringify({ status: 'exchanged' }), {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(redirectToCallbackMock).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_600);
+    });
+
+    expect(
+      await screen.findByText('Authentication complete'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'You can close this browser tab and return to the desktop app.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('fails only when the code expires before the desktop app uses it', async () => {
+    globalThis.fetch = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/desktop/status')) {
+        return new Response(JSON.stringify({ status: 'expired' }), {
+          headers: { 'content-type': 'application/json' },
+          status: 200,
+        });
+      }
+
+      return new Response(JSON.stringify({ code: 'gf_desktop_code' }), {
+        headers: { 'content-type': 'application/json' },
+        status: 200,
+      });
+    }) as typeof fetch;
+
+    render(<CliAuthPage />);
+
+    await waitFor(() => {
+      expect(redirectToCallbackMock).toHaveBeenCalled();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2_600);
+    });
+
+    expect(
+      await screen.findByText('Authentication failed'),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'The sign-in code expired before the desktop app used it. Try again to get a new code.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Try again' }),
+    ).toBeInTheDocument();
   });
 });

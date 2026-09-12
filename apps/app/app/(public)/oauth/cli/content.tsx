@@ -1,10 +1,14 @@
 'use client';
 
 import { ButtonSize, ButtonVariant, ComponentSize } from '@genfeedai/contracts';
-import { resolveAuthToken } from '@helpers/auth/auth.helper';
+import {
+  type AuthTokenGetter,
+  resolveAuthToken,
+} from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import type {
+  DesktopAuthCodeStatus,
   DesktopAuthorizeResponse,
   DesktopIdentity,
   FlowState,
@@ -15,6 +19,7 @@ import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import {
+  AppWindow,
   CircleCheck,
   CircleX,
   Clipboard,
@@ -23,6 +28,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -32,8 +38,103 @@ const MIN_PORT = 1024;
 const MAX_PORT = 65535;
 const DESKTOP_CALLBACK_TARGET = 'genfeedai-desktop://auth';
 const DESKTOP_CALLBACK_PROTOCOL = 'genfeedai-desktop:';
-const DESKTOP_CALLBACK_TIMEOUT_MS = 1500;
+const DESKTOP_REDIRECT_DELAY_MS = 500;
+const DESKTOP_HANDOFF_SETTLE_MS = 1500;
+const DESKTOP_STATUS_POLL_INTERVAL_MS = 2000;
+// Matches the server-side desktop auth code TTL; polling past it is pointless.
+const DESKTOP_STATUS_POLL_TIMEOUT_MS = 5 * 60 * 1000;
 const AUTH_CODE_PREVIEW_LENGTH = 8;
+
+function sleep(ms: number, signal: AbortSignal): Promise<void> {
+  return new Promise((resolve) => {
+    if (signal.aborted) {
+      resolve();
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      signal.removeEventListener('abort', onAbort);
+      resolve();
+    }, ms);
+
+    function onAbort() {
+      window.clearTimeout(timer);
+      resolve();
+    }
+
+    signal.addEventListener('abort', onAbort, { once: true });
+  });
+}
+
+function parseDesktopCodeStatus(value: unknown): DesktopAuthCodeStatus | null {
+  const status = (value as { status?: unknown } | null)?.status;
+
+  return status === 'exchanged' || status === 'expired' || status === 'pending'
+    ? status
+    : null;
+}
+
+/**
+ * Polls the API until the desktop app has exchanged the code, the code has
+ * expired, or the TTL passes. Network hiccups keep polling; a 401 refreshes the
+ * bearer token once per attempt.
+ */
+async function waitForDesktopExchange({
+  getToken,
+  initialToken,
+  signal,
+  state,
+}: {
+  getToken: AuthTokenGetter;
+  initialToken: string;
+  signal: AbortSignal;
+  state: string;
+}): Promise<DesktopAuthCodeStatus> {
+  const deadline = Date.now() + DESKTOP_STATUS_POLL_TIMEOUT_MS;
+  let token = initialToken;
+
+  while (!signal.aborted && Date.now() < deadline) {
+    await sleep(DESKTOP_STATUS_POLL_INTERVAL_MS, signal);
+
+    if (signal.aborted) {
+      break;
+    }
+
+    try {
+      const response = await fetch(
+        `${EnvironmentService.apiEndpoint}/auth/desktop/status`,
+        {
+          body: JSON.stringify({ state }),
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          method: 'POST',
+          signal,
+        },
+      );
+
+      if (response.status === 401) {
+        token = (await resolveAuthToken(getToken)) ?? token;
+        continue;
+      }
+
+      if (!response.ok) {
+        continue;
+      }
+
+      const status = parseDesktopCodeStatus(await response.json());
+
+      if (status && status !== 'pending') {
+        return status;
+      }
+    } catch {
+      // Transient network failure: keep polling until the deadline.
+    }
+  }
+
+  return 'pending';
+}
 
 function previewAuthCode(value: string): string {
   if (value.length <= AUTH_CODE_PREVIEW_LENGTH) {
@@ -154,6 +255,7 @@ function isDesktopCallbackTargetValid(value: string | null): boolean {
 
 function CliAuthPageContent() {
   const searchParams = useSearchParams();
+  const translate = useTranslations('common.oauth.cli');
   const { isSignedIn, isLoaded, getToken } = useAuthIdentity();
   const { user } = useAuthUser();
   const [flowState, setFlowState] = useState<FlowState>({
@@ -163,6 +265,7 @@ function CliAuthPageContent() {
   const [copied, setCopied] = useState(false);
   const [copyError, setCopyError] = useState<string | null>(null);
   const tokenRequestedRef = useRef(false);
+  const flowControllerRef = useRef<AbortController | null>(null);
 
   const portParam = searchParams.get('port');
   const isDesktopMode = searchParams.get('desktop') === '1';
@@ -262,54 +365,15 @@ function CliAuthPageContent() {
             desktopState,
           );
 
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await sleep(DESKTOP_REDIRECT_DELAY_MS, signal);
 
           if (signal.aborted) {
             return;
           }
 
-          let fallbackTimer: number | null = null;
-          let handoffCompleted = false;
-
-          const cleanup = () => {
-            document.removeEventListener(
-              'visibilitychange',
-              handleVisibilityChange,
-            );
-            window.removeEventListener('pagehide', handlePageHide);
-
-            if (fallbackTimer !== null) {
-              window.clearTimeout(fallbackTimer);
-            }
-          };
-
-          const completeHandoff = () => {
-            if (signal.aborted || handoffCompleted) {
-              return;
-            }
-
-            handoffCompleted = true;
-            cleanup();
-            setFlowState({ apiKey: data.code, error: null, step: 'success' });
-          };
-
-          const handlePageHide = () => {
-            completeHandoff();
-          };
-
-          const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') {
-              completeHandoff();
-            }
-          };
-
-          document.addEventListener('visibilitychange', handleVisibilityChange);
-          window.addEventListener('pagehide', handlePageHide);
-
           try {
             redirectToCallback(callbackUrl);
           } catch (error) {
-            cleanup();
             setFlowState({
               apiKey: data.code,
               error:
@@ -321,19 +385,47 @@ function CliAuthPageContent() {
             return;
           }
 
-          fallbackTimer = window.setTimeout(() => {
-            if (signal.aborted || handoffCompleted) {
+          // The browser cannot observe whether the custom-scheme launch reached
+          // the desktop app, so after a short settle window the page stops
+          // claiming anything and shows the manual code path while it keeps
+          // asking the API whether the app has exchanged the code.
+          const settleTimer = window.setTimeout(() => {
+            if (signal.aborted) {
               return;
             }
 
-            cleanup();
+            setFlowState((current) =>
+              current.step === 'redirecting'
+                ? { apiKey: data.code, error: null, step: 'awaiting-desktop' }
+                : current,
+            );
+          }, DESKTOP_HANDOFF_SETTLE_MS);
+
+          const status = await waitForDesktopExchange({
+            getToken,
+            initialToken: token,
+            signal,
+            state: desktopState,
+          });
+          window.clearTimeout(settleTimer);
+
+          if (signal.aborted) {
+            return;
+          }
+
+          if (status === 'exchanged') {
+            setFlowState({ apiKey: data.code, error: null, step: 'success' });
+            return;
+          }
+
+          if (status === 'expired') {
             setFlowState({
               apiKey: data.code,
               error:
-                'The desktop app did not open automatically. Source checkouts and unpackaged builds cannot. Copy the code and paste it in the desktop app.',
+                'The sign-in code expired before the desktop app used it. Try again to get a new code.',
               step: 'error',
             });
-          }, DESKTOP_CALLBACK_TIMEOUT_MS);
+          }
 
           return;
         }
@@ -454,6 +546,7 @@ function CliAuthPageContent() {
     if (!tokenRequestedRef.current) {
       tokenRequestedRef.current = true;
       const controller = new AbortController();
+      flowControllerRef.current = controller;
       requestTokenAndRedirect(controller.signal);
 
       return () => {
@@ -472,11 +565,14 @@ function CliAuthPageContent() {
 
   const handleRetry = () => {
     setCopyError(null);
+    // Stop any status polling from the previous attempt before starting over.
+    flowControllerRef.current?.abort();
     tokenRequestedRef.current = false;
     setFlowState({ error: null, step: 'validating' });
 
     if (isDesktopMode || port !== null) {
       const controller = new AbortController();
+      flowControllerRef.current = controller;
       tokenRequestedRef.current = true;
       requestTokenAndRedirect(controller.signal);
     }
@@ -506,12 +602,10 @@ function CliAuthPageContent() {
             <Terminal className="size-5 text-muted-foreground" />
           </div>
           <h1 className="text-xl font-semibold tracking-tight mb-1.5 text-balance">
-            {isDesktopMode ? 'Desktop Authentication' : 'CLI Authentication'}
+            {translate(isDesktopMode ? 'title.desktop' : 'title.cli')}
           </h1>
           <p className="text-sm text-muted-foreground">
-            {isDesktopMode
-              ? 'Authorize the Genfeed desktop app to access your account'
-              : 'Authorize the Genfeed CLI to access your account'}
+            {translate(isDesktopMode ? 'subtitle.desktop' : 'subtitle.cli')}
           </p>
         </div>
 
@@ -520,8 +614,8 @@ function CliAuthPageContent() {
             {(!isLoaded || flowState.step === 'validating') && (
               <StepDisplay
                 icon={<Spinner size={ComponentSize.LG} />}
-                title="Initializing"
-                description="Setting up authentication..."
+                title={translate('initializing.title')}
+                description={translate('initializing.description')}
               />
             )}
 
@@ -529,22 +623,12 @@ function CliAuthPageContent() {
               <div className="space-y-4">
                 <StepDisplay
                   icon={<Terminal className="size-8 text-muted-foreground" />}
-                  title={
-                    authIntent === 'signup'
-                      ? 'Create an account'
-                      : 'Sign in required'
-                  }
-                  description={
-                    authIntent === 'signup'
-                      ? 'Create an account to authorize this device.'
-                      : 'Sign in to authorize this device.'
-                  }
+                  title={translate(`signIn.title.${authIntent}`)}
+                  description={translate(`signIn.description.${authIntent}`)}
                 />
                 <Button asChild className="w-full" withWrapper={false}>
                   <Link href={authHref}>
-                    {authIntent === 'signup'
-                      ? 'Create account to continue'
-                      : 'Sign in to continue'}
+                    {translate(`signIn.action.${authIntent}`)}
                   </Link>
                 </Button>
               </div>
@@ -554,17 +638,19 @@ function CliAuthPageContent() {
               <div className="space-y-4">
                 <StepDisplay
                   icon={<Spinner size={ComponentSize.LG} />}
-                  title="Generating API key"
-                  description={
+                  title={translate('requesting.title')}
+                  description={translate(
                     isDesktopMode
-                      ? 'Creating a secure API key for the desktop app...'
-                      : 'Creating a secure API key for the CLI...'
-                  }
+                      ? 'requesting.description.desktop'
+                      : 'requesting.description.cli',
+                  )}
                 />
                 {user?.primaryEmailAddress?.emailAddress && (
                   <div className="text-center">
                     <span className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-background-tertiary border border-border text-xs text-muted-foreground">
-                      Signed in as {user.primaryEmailAddress.emailAddress}
+                      {translate('requesting.signedInAs', {
+                        email: user.primaryEmailAddress.emailAddress,
+                      })}
                     </span>
                   </div>
                 )}
@@ -575,16 +661,16 @@ function CliAuthPageContent() {
               <div className="space-y-6">
                 <StepDisplay
                   icon={<Spinner size={ComponentSize.LG} />}
-                  title={
+                  title={translate(
                     isDesktopMode
-                      ? 'Redirecting to Desktop'
-                      : 'Redirecting to CLI'
-                  }
-                  description={
+                      ? 'redirecting.title.desktop'
+                      : 'redirecting.title.cli',
+                  )}
+                  description={translate(
                     isDesktopMode
-                      ? 'Sending credentials back to the desktop app. You can close this tab shortly.'
-                      : 'Sending credentials back to the CLI. You can close this tab shortly.'
-                  }
+                      ? 'redirecting.description.desktop'
+                      : 'redirecting.description.cli',
+                  )}
                 />
                 {flowState.apiKey && (
                   <CopyKeyFallback
@@ -598,16 +684,44 @@ function CliAuthPageContent() {
               </div>
             )}
 
+            {flowState.step === 'awaiting-desktop' && (
+              <div className="space-y-6">
+                <StepDisplay
+                  icon={<AppWindow className="size-8 text-muted-foreground" />}
+                  title={translate('awaiting.title')}
+                  description={translate('awaiting.description')}
+                />
+                {flowState.apiKey && (
+                  <CopyKeyFallback
+                    apiKey={flowState.apiKey}
+                    copied={copied}
+                    copyError={copyError}
+                    isDesktopMode={isDesktopMode}
+                    onCopy={handleCopyKey}
+                  />
+                )}
+                <div className="flex justify-center">
+                  <Button
+                    variant={ButtonVariant.SECONDARY}
+                    size={ButtonSize.DEFAULT}
+                    onClick={handleRetry}
+                  >
+                    {translate('actions.tryAgain')}
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {flowState.step === 'success' && (
               <div className="space-y-6">
                 <StepDisplay
                   icon={<CircleCheck className="size-8 text-success" />}
-                  title="Authentication complete"
-                  description={
+                  title={translate('success.title')}
+                  description={translate(
                     isDesktopMode
-                      ? 'You can close this browser tab and return to the desktop app.'
-                      : 'You can close this browser tab and return to the CLI.'
-                  }
+                      ? 'success.description.desktop'
+                      : 'success.description.cli',
+                  )}
                 />
                 {flowState.apiKey && (
                   <CopyKeyFallback
@@ -625,8 +739,8 @@ function CliAuthPageContent() {
               <div className="space-y-6">
                 <StepDisplay
                   icon={<CircleX className="size-8 text-destructive" />}
-                  title="Authentication failed"
-                  description={flowState.error || 'An unknown error occurred.'}
+                  title={translate('error.title')}
+                  description={flowState.error || translate('error.unknown')}
                 />
                 {flowState.apiKey && (
                   <CopyKeyFallback
@@ -644,7 +758,7 @@ function CliAuthPageContent() {
                       size={ButtonSize.DEFAULT}
                       onClick={handleRetry}
                     >
-                      Try again
+                      {translate('actions.tryAgain')}
                     </Button>
                   </div>
                 )}
@@ -654,13 +768,11 @@ function CliAuthPageContent() {
         </Card>
 
         <p className="mt-5 text-center text-2xs text-muted-foreground/50 leading-relaxed">
-          {isDesktopMode
-            ? 'Installed desktop builds open automatically. Source checkouts cannot — copy the code and paste it in the app.'
-            : 'This page redirects credentials to 127.0.0.1 (localhost) only.'}
+          {translate(isDesktopMode ? 'footer.desktop' : 'footer.cli')}
           {!isDesktopMode && (
             <>
               <br />
-              No data is sent to external servers.
+              {translate('footer.noExternal')}
             </>
           )}
         </p>
@@ -682,16 +794,18 @@ function CopyKeyFallback({
   isDesktopMode: boolean;
   onCopy: () => void;
 }) {
+  const translate = useTranslations('common.oauth.cli');
+
   return (
     <div className="border-t border-border pt-5 mt-2">
       <p className="text-xs text-muted-foreground text-center mb-3">
-        {isDesktopMode
-          ? 'Copy this code and paste it in the desktop app:'
-          : 'If the CLI does not receive it automatically, copy and paste the code:'}
+        {translate(
+          isDesktopMode ? 'fallback.hint.desktop' : 'fallback.hint.cli',
+        )}
       </p>
       <div className="flex items-center gap-2">
         <Input
-          aria-label="Sign-in code"
+          aria-label={translate('fallback.codeLabel')}
           className="flex-1 font-mono text-muted-foreground"
           isReadOnly
           value={copyError ? apiKey : previewAuthCode(apiKey)}
@@ -707,7 +821,7 @@ function CopyKeyFallback({
           ) : (
             <Clipboard className="size-4" />
           )}
-          {copied ? 'Copied' : 'Copy'}
+          {translate(copied ? 'actions.copied' : 'actions.copy')}
         </Button>
       </div>
       {copyError && (

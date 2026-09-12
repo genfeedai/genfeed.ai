@@ -1,6 +1,7 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import {
   CreateDesktopAuthCodeDto,
+  DesktopAuthCodeStatusDto,
   ExchangeDesktopAuthCodeDto,
 } from '@api/auth/dto/desktop-auth.dto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
@@ -48,6 +49,23 @@ export class AuthDesktopController {
     @Body() dto: CreateDesktopAuthCodeDto,
   ) {
     return this.authDesktopService.createCode(user, request, dto);
+  }
+
+  @Post('status')
+  @ApiBearerAuth()
+  @UseGuards(BetterAuthGuard)
+  @RateLimit({ limit: 90, scope: 'ip', windowMs: 60000 })
+  @ApiOperation({
+    summary:
+      'Report whether the desktop app has exchanged an authorization code',
+  })
+  @ApiResponse({
+    description: 'Desktop authorization code status',
+    status: HttpStatus.CREATED,
+  })
+  @LogMethod({ logEnd: false, logError: true, logStart: false })
+  status(@CurrentUser() user: User, @Body() dto: DesktopAuthCodeStatusDto) {
+    return this.authDesktopService.getCodeStatus(user, dto);
   }
 
   @Post('exchange')

@@ -4,11 +4,14 @@ export interface DesktopAuthorizeResponse {
   state: string;
 }
 
+export type DesktopAuthCodeStatus = 'exchanged' | 'expired' | 'pending';
+
 export type FlowStep =
   | 'validating'
   | 'signing-in'
   | 'requesting-token'
   | 'redirecting'
+  | 'awaiting-desktop'
   | 'success'
   | 'error';
 

@@ -13,6 +13,14 @@ and its dependent services start only after the user selects a local workspace.
 No system PostgreSQL, Redis, Homebrew package, or separately managed backend is
 installed or started.
 
+Installed builds auto-update through `electron-updater`. The feed is the
+generic provider configured in `package.json` `build.publish`: the assets of
+the rolling `desktop-latest` GitHub release, which `desktop-release.yml`
+replaces on every `desktop-v*` tag. Dev and smoke runs never check for updates.
+Builds shipped before the generic feed existed (`0.1.1` and older) pointed at
+`/releases/latest`, which resolves to the web app release and never to a
+desktop release, so they cannot update themselves and must be reinstalled once.
+
 Installed builds load the HTTPS app origin derived from
 `GENFEED_DESKTOP_AUTH_URL` first, then start the bundled app shell on
 `http://127.0.0.1:3230` when the hosted app is unavailable. A fresh source

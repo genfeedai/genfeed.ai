@@ -8,7 +8,6 @@ import {
 } from '@genfeedai/contracts/constants';
 import { getPlaywrightAuthState } from '@genfeedai/helpers/auth/auth.helper';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
-import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { LayoutProps } from '@genfeedai/props/layout/layout.props';
 import {
   cancelAndClearAllServiceInstances,
@@ -111,8 +110,11 @@ export function RoutedOrganizationProvider({ children }: LayoutProps) {
   const effectiveIsSignedIn = isSignedIn || playwrightAuth?.isSignedIn === true;
   const effectiveSessionId = sessionId ?? 'no-session';
   const effectiveUserId = userId ?? playwrightAuth?.userId ?? 'no-user';
-  const isDesktop = useIsDesktopClient();
-  const bypassReconciliation = !isBetterAuthEnabled() || isDesktop;
+  // Only a keyless self-hosted deployment has no organizations to reconcile.
+  // The desktop shell reaches these routes solely through a cloud sign-in, so
+  // it must load and confirm the routed organization exactly like the web app;
+  // skipping it left the organization switcher empty on desktop.
+  const bypassReconciliation = !isBetterAuthEnabled();
   const getOrganizationsService = useContextAuthedService((token: string) =>
     OrganizationsService.getInstance(token),
   );

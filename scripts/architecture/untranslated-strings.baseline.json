@@ -242,7 +242,6 @@
     "apps/app/app/(public)/logout/page.tsx": 1,
     "apps/app/app/(public)/managed-credits/success/page.tsx": 1,
     "apps/app/app/(public)/managed-credits/success/success-content.tsx": 10,
-    "apps/app/app/(public)/oauth/cli/content.tsx": 9,
     "apps/app/app/(public)/oauth/consent/content.tsx": 12,
     "apps/app/app/(public)/reset-password/content.tsx": 13,
     "apps/app/app/(public)/reset-password/page.tsx": 1,
