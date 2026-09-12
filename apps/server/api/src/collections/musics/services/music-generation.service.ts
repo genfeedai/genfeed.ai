@@ -3,8 +3,11 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
+import { ModelsService } from '@api/collections/models/services/models.service';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
+import { MusicGenerationProviderRegistryService } from '@api/collections/musics/services/music-generation-provider-registry.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
@@ -12,9 +15,7 @@ import { PromptsService } from '@api/collections/prompts/services/prompts.servic
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
@@ -38,8 +39,6 @@ import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { Request } from 'express';
 
-const MUSICGEN_VERSION =
-  'meta/musicgen:671ac645ce5e552cc63a54a2bbff63fcf798043055d2dac5fc9e36a837eedcfb';
 const MUSIC_COMPLETION_TIMEOUT_MS = 180_000;
 const MUSIC_COMPLETION_POLL_INTERVAL_MS = 3_000;
 const MUSIC_COMPLETION_POPULATE = [
@@ -55,6 +54,7 @@ type MusicDispatchParams = {
   ingredientId: string;
   metadataId: string;
   model: string;
+  modelDocument: ModelDocument;
   outputs: number;
   promptData: Awaited<ReturnType<PromptsService['create']>>;
   request: Request;
@@ -79,11 +79,11 @@ export class MusicGenerationService {
     private readonly loggerService: LoggerService,
     private readonly ingredientCompletionService: IngredientCompletionService,
     private readonly metadataService: MetadataService,
+    private readonly modelsService: ModelsService,
+    private readonly musicProviderRegistry: MusicGenerationProviderRegistryService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly musicsService: MusicsService,
     private readonly promptsService: PromptsService,
-    private readonly promptBuilderService: PromptBuilderService,
-    private readonly replicateService: ReplicateService,
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly websocketService: NotificationsPublisherService,
@@ -150,6 +150,15 @@ export class MusicGenerationService {
       });
     }
 
+    // Reject before any job/document is created when the resolved model has
+    // no eligible, executable music provider — an unseeded, inactive, or
+    // wrong-category registry row must never fall through to Replicate's
+    // pinned MusicGen default (#4679).
+    const modelDocument = await this.resolveExecutableMusicModel(
+      model,
+      user.organizationId,
+    );
+
     const promptData = await this.promptsService.create(
       new PromptEntity({
         brandId,
@@ -215,6 +224,7 @@ export class MusicGenerationService {
       ingredientId: ingredientData.id.toString(),
       metadataId: metadataData.id.toString(),
       model,
+      modelDocument,
       outputs,
       promptData,
       request,
@@ -227,6 +237,40 @@ export class MusicGenerationService {
       pendingIngredientIds,
       request,
     });
+  }
+
+  /**
+   * The resolved model key is only a promise until it is confirmed to be an
+   * active MUSIC registry row with a supported execution provider. Without
+   * this gate, an unseeded, retired, or wrong-category key would otherwise
+   * fall through at dispatch time.
+   */
+  private async resolveExecutableMusicModel(
+    model: string,
+    organizationId: string,
+  ): Promise<ModelDocument> {
+    const modelDocument = await this.modelsService.findOne({
+      key: model,
+      organizationId,
+    });
+
+    const isEligible =
+      !!modelDocument &&
+      modelDocument.isActive &&
+      modelDocument.category === ModelCategory.MUSIC &&
+      this.musicProviderRegistry.supports(model, modelDocument.provider);
+
+    if (!isEligible) {
+      throw new HttpException(
+        {
+          detail: `No active music model is available for "${model}"`,
+          title: 'Music model unavailable',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return modelDocument as ModelDocument;
   }
 
   private async dispatchOutputs(
@@ -346,24 +390,25 @@ export class MusicGenerationService {
     },
   ): Promise<string | null> {
     try {
-      const { input } = await this.promptBuilderService.buildPrompt(
-        params.model,
-        {
+      const modelCategory =
+        ((
+          params.request as unknown as {
+            selectedModel?: { category?: string };
+          }
+        ).selectedModel?.category as ModelCategory) || ModelCategory.MUSIC;
+
+      const { externalId: generationId } =
+        await this.musicProviderRegistry.generate({
+          createMusicDto: params.createMusicDto,
           duration: params.createMusicDto.duration || 10,
-          modelCategory:
-            ((
-              params.request as unknown as {
-                selectedModel?: { category?: string };
-              }
-            ).selectedModel?.category as ModelCategory) || ModelCategory.MUSIC,
+          model: params.model,
+          modelCategory,
+          modelEndpoint: params.modelDocument.endpoint,
+          modelProvider: params.modelDocument.provider,
+          outputs: params.outputs,
           prompt: params.promptData.original,
           seed: params.seed,
-        },
-      );
-      const generationId = await this.replicateService.runModel(
-        MUSICGEN_VERSION,
-        input,
-      );
+        });
       if (!generationId) {
         await this.handleFailedGeneration(
           params.user,
@@ -376,6 +421,11 @@ export class MusicGenerationService {
       }
       await this.metadataService.patch(params.metadataId, {
         externalId: generationId,
+        externalProvider:
+          this.musicProviderRegistry.providerFor(
+            params.model,
+            params.modelDocument.provider,
+          ) ?? undefined,
       });
       return generationId;
     } catch (error: unknown) {
