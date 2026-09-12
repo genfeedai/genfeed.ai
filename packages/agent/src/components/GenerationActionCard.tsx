@@ -27,11 +27,12 @@ interface GenerationActionCardProps {
   onRegenerate?: () => void;
   onUiAction?: AgentUiActionHandler;
   /**
-   * Extension slot for #4670 — inert until that issue wires a handler.
-   * Renders an "Open in Studio" control beside Generate/Decline only when
-   * provided.
+   * #4670 Open in Studio: called with a ready-to-navigate Studio generate
+   * URL once the handoff is created. Renders the control beside Generate/
+   * Decline (and on the completed result) only when provided — inert until
+   * a host (e.g. the Agent page) wires actual navigation.
    */
-  onOpenInStudio?: () => void;
+  onOpenInStudio?: (studioUrl: string) => void;
   className?: string;
 }
 
@@ -110,6 +111,8 @@ export function GenerationActionCard({
     handleAcceptPilotVoid,
     handleRejectPilot,
     handleDecline,
+    canOpenInStudio,
+    handleOpenInStudioVoid,
     handleStop,
     isPilotCeilingReached,
     paidRejectedCount,
@@ -138,6 +141,7 @@ export function GenerationActionCard({
     apiService,
     onRegenerate,
     onUiAction,
+    onOpenInStudio,
   });
 
   // Docked generation starts as a compact inferred-mode strip; settings open
@@ -288,7 +292,9 @@ export function GenerationActionCard({
             showStop={status === 'generating'}
             onGenerate={handleGenerateVoid}
             onDecline={handleDecline}
-            onOpenInStudio={onOpenInStudio}
+            onOpenInStudio={
+              canOpenInStudio ? handleOpenInStudioVoid : undefined
+            }
             onStop={handleStop}
           />
 
