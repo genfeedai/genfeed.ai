@@ -179,6 +179,8 @@ describe('LazyModal', () => {
 
   it('should have correct number of exported modals', () => {
     const exports = Object.keys(LazyModals);
-    expect(exports.length).toBe(47); // Count of all exported modals
+    // 47 -> 46: LazyModalMusic was removed along with ModalMusic when
+    // background music moved from generation to the Studio editor (#4702).
+    expect(exports.length).toBe(46); // Count of all exported modals
   });
 });
