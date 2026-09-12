@@ -170,16 +170,16 @@ export default function GenerationSetupOutputSection({
       {capabilities.hasStyle ? (
         <GenerationSetupFieldRow
           fieldKey="style"
-          label="Style"
+          label={translate('style')}
           onReset={onResetField}
           reason={reasons.style}
           source={setup.sources.style ?? 'agent'}
         >
           <Input
-            aria-label="Style"
+            aria-label={translate('style')}
             className={SHELL_CONTROL_HEIGHT_CLASS}
             onChange={(event) => onSetField('style', event.target.value)}
-            placeholder="e.g. synthwave, upbeat, 80s retro"
+            placeholder={translate('stylePlaceholder')}
             value={setup.values.style ?? ''}
           />
         </GenerationSetupFieldRow>
@@ -188,14 +188,14 @@ export default function GenerationSetupOutputSection({
       {capabilities.hasInstrumentalToggle ? (
         <GenerationSetupFieldRow
           fieldKey="instrumental"
-          label="Instrumental"
+          label={translate('instrumental')}
           onReset={onResetField}
           reason={reasons.instrumental}
           source={setup.sources.instrumental ?? 'agent'}
         >
           <div className="flex w-full justify-end">
             <Switch
-              aria-label="Instrumental"
+              aria-label={translate('instrumental')}
               isChecked={setup.values.instrumental ?? false}
               onCheckedChange={(checked) => onSetField('instrumental', checked)}
             />
@@ -206,16 +206,16 @@ export default function GenerationSetupOutputSection({
       {capabilities.hasLyrics ? (
         <GenerationSetupFieldRow
           fieldKey="lyrics"
-          label="Lyrics"
+          label={translate('lyrics')}
           onReset={onResetField}
           reason={reasons.lyrics}
           source={setup.sources.lyrics ?? 'agent'}
         >
           <Textarea
-            aria-label="Lyrics"
+            aria-label={translate('lyrics')}
             isDisabled={setup.values.instrumental === true}
             onChange={(event) => onSetField('lyrics', event.target.value)}
-            placeholder="Optional — verses, chorus, structure"
+            placeholder={translate('lyricsPlaceholder')}
             rows={3}
             value={setup.values.lyrics ?? ''}
           />
