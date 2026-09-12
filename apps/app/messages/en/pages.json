@@ -423,7 +423,10 @@
     "endFrame": "End Frame",
     "emptyDescription": "Write a prompt below and everything you generate lands here.",
     "emptyTitle": "Nothing here yet",
+    "cancelEnhancingPrompt": "Cancel enhancing prompt",
+    "enhancePrompt": "Enhance prompt",
     "estimatedCredits": "~{credits} credits",
+    "generate": "Generate",
     "generationFailed": "Generation failed",
     "inspectPrompt": "View prompt",
     "inspector": {
@@ -454,6 +457,7 @@
     "movedToTrash": "Moved to Trash",
     "previewUnavailable": "Preview unavailable",
     "previewUnavailableDescription": "The asset is saved, but this preview could not be loaded.",
+    "prompt": "Prompt",
     "remove": "Remove",
     "removeDialogTitle": "Remove Generation",
     "removeFailed": "Failed to remove generation",
@@ -473,6 +477,8 @@
     "selectGenerationAria": "Inspect {type} generation: {prompt}",
     "startFrame": "Start Frame",
     "startFrameRequired": "Start Frame required",
+    "undo": "Undo",
+    "undoPromptEnhancement": "Undo prompt enhancement",
     "videoReference": "Video Reference",
     "remixOutput": {
       "description": "These settings are saved to this remix run before generation.",

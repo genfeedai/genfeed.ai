@@ -290,7 +290,7 @@ export default function StudioGenerateComposer({
       data-testid="studio-generate-composer-shell"
     >
       <PromptEditor
-        ariaLabel="Prompt"
+        ariaLabel={translate('prompt')}
         className="min-h-9 w-full"
         extraExtensions={extraExtensions}
         isDisabled={isGenerating}
@@ -474,10 +474,10 @@ export default function StudioGenerateComposer({
           ) : null}
           {!isEnhancingPrompt && previousPrompt !== null ? (
             <Button
-              ariaLabel="Undo prompt enhancement"
+              ariaLabel={translate('undoPromptEnhancement')}
               className="h-7 shrink-0 px-2 text-2xs"
               isDisabled={isGenerating}
-              label="Undo"
+              label={translate('undo')}
               onClick={onUndoEnhancePrompt}
               size={ButtonSize.XS}
               textTransform="none"
@@ -487,7 +487,9 @@ export default function StudioGenerateComposer({
           {onEnhancePrompt ? (
             <Button
               ariaLabel={
-                isEnhancingPrompt ? 'Cancel enhancing prompt' : 'Enhance prompt'
+                isEnhancingPrompt
+                  ? translate('cancelEnhancingPrompt')
+                  : translate('enhancePrompt')
               }
               className="size-9 shrink-0 min-h-0 min-w-0 p-0"
               icon={
@@ -518,7 +520,7 @@ export default function StudioGenerateComposer({
             />
           ) : (
             <Button
-              ariaLabel="Generate"
+              ariaLabel={translate('generate')}
               className="size-9 shrink-0 min-h-0 min-w-0 p-0"
               icon={<ArrowUp className="size-4" />}
               isDisabled={isSubmitBlocked}
