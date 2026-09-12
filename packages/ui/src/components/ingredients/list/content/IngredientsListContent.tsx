@@ -9,6 +9,7 @@ import {
   formatEnumLabel,
   IngredientCategory,
   type IngredientFormat,
+  IngredientStatus,
   ModalEnum,
   PageScope,
 } from '@genfeedai/contracts';
@@ -28,6 +29,7 @@ import {
   isVideoIngredient,
 } from '@genfeedai/utils/media/ingredient-type.util';
 import { getLibraryAssetType } from '@genfeedai/utils/media/library-asset-type.util';
+import AudioPreviewPlayer from '@ui/audio/preview-player/AudioPreviewPlayer';
 import { CardEmptyContent } from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
 import { SkeletonList } from '@ui/display/skeleton/skeleton';
@@ -39,7 +41,7 @@ import IngredientSound from '@ui/ingredients/sound/IngredientSound';
 import LazyLoadingFallback from '@ui/loading/fallback/LazyLoadingFallback';
 import { Button } from '@ui/primitives/button';
 import { format } from 'date-fns';
-import { Eye, Film, ImageIcon, RefreshCw } from 'lucide-react';
+import { Eye, Film, ImageIcon, Music, RefreshCw } from 'lucide-react';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { useTranslations } from 'next-intl';
@@ -54,11 +56,37 @@ const LibraryCanvas = dynamic(
   },
 );
 
+/**
+ * Audio rendering is a property of the asset itself, not of the page it
+ * happens to be listed on — a mixed "all assets" view carries music and voice
+ * rows alongside images and video, and each row still has to know how to
+ * play itself.
+ */
+function isAudioIngredient(ingredient: IIngredient): boolean {
+  const assetTypeId = getLibraryAssetType(ingredient.category)?.id;
+  return assetTypeId === 'audio' || assetTypeId === 'voice';
+}
+
+/**
+ * `ingredient.ingredientUrl` always resolves to *something* — for a
+ * PROCESSING or FAILED row it falls back to a placeholder image URL rather
+ * than an empty string. Handing that straight to the audio player would
+ * render an enabled control that "plays" a JPEG, so readiness is judged from
+ * the row's own status instead of the URL's presence.
+ */
+function isAudioReadyToPlay(ingredient: IIngredient): boolean {
+  return (
+    !isFailedIngredient(ingredient) &&
+    ingredient.status !== IngredientStatus.PROCESSING
+  );
+}
+
 function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
   const previewUrl = getIngredientPreviewUrl(ingredient);
   const label = getIngredientDisplayLabel(ingredient) || 'Asset preview';
   const isVideo = isVideoIngredient(ingredient);
   const assetType = getLibraryAssetType(ingredient.category);
+  const isAudio = isAudioIngredient(ingredient);
 
   if (!previewUrl) {
     return (
@@ -70,6 +98,8 @@ function IngredientTablePreview({ ingredient }: { ingredient: IIngredient }) {
       >
         {isVideo || assetType?.id === 'video' ? (
           <Film className="size-4" />
+        ) : isAudio ? (
+          <Music className="size-4" />
         ) : (
           <ImageIcon className="size-4" />
         )}
@@ -117,27 +147,44 @@ function IngredientLedgerAssetCell({
   const label = getIngredientDisplayLabel(ingredient);
   const failureReason = getIngredientFailureReason(ingredient);
   const promptText = ingredient.promptText?.trim();
+  const isAudio = isAudioIngredient(ingredient);
 
   return (
-    <div className="flex min-w-0 flex-col gap-0.5">
-      <span className="truncate text-sm font-medium" title={label || undefined}>
-        {label || 'Untitled asset'}
-      </span>
-      {failureReason ? (
+    <div className="flex min-w-0 items-center gap-3">
+      <div className="flex min-w-0 flex-1 flex-col gap-0.5">
         <span
-          className="truncate text-xs text-destructive"
-          data-testid={`ingredient-failure-reason-${ingredient.id}`}
-          title={failureReason}
+          className="truncate text-sm font-medium"
+          title={label || undefined}
         >
-          {failureReason}
+          {label || 'Untitled asset'}
         </span>
-      ) : promptText ? (
-        <span
-          className="truncate text-xs text-foreground/45"
-          title={promptText}
-        >
-          {promptText}
-        </span>
+        {failureReason ? (
+          <span
+            className="truncate text-xs text-destructive"
+            data-testid={`ingredient-failure-reason-${ingredient.id}`}
+            title={failureReason}
+          >
+            {failureReason}
+          </span>
+        ) : promptText ? (
+          <span
+            className="truncate text-xs text-foreground/45"
+            title={promptText}
+          >
+            {promptText}
+          </span>
+        ) : null}
+      </div>
+      {isAudio ? (
+        <AudioPreviewPlayer
+          audioUrl={
+            isAudioReadyToPlay(ingredient)
+              ? ingredient.ingredientUrl
+              : undefined
+          }
+          label={label || 'Untitled asset'}
+          stopOnUnmount
+        />
       ) : null}
     </div>
   );
@@ -182,6 +229,15 @@ export default function IngredientsListContent({
 }: IngredientsListContentProps) {
   const translate = useTranslations('pages.library');
   const translateRetry = useTranslations('common.libraryRetry');
+  // This full-card layout is reserved for a route whose *type* is dedicated
+  // to audio (the legacy per-category admin pages) — every Library route's
+  // singular type is the unified `IngredientCategory.INGREDIENT` token, so
+  // this stays false there regardless of what the filtered assets are. That
+  // is deliberate: a Library view (list or the grid's "other assets" table)
+  // keeps its selection checkboxes, status, and retry action for audio rows
+  // too, via the per-row audio control in `columns` below — it does not fall
+  // back to this selection-less card layout just because every visible row
+  // happens to be audio.
   const isAudioCategory =
     singularType === IngredientCategory.MUSIC ||
     singularType === IngredientCategory.VOICE;
