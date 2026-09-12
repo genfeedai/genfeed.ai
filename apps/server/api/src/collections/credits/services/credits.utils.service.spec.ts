@@ -468,6 +468,29 @@ describe('CreditsUtilsService', () => {
       ).toHaveBeenCalledWith('org_fallback');
       expect(websocketService.emit).not.toHaveBeenCalled();
     });
+
+    // API-GENFEED-AI-7T: `OrganizationSetting` has no `isDeleted` column, so a
+    // `scopedWhere` filter made Prisma reject the lookup and every grant that
+    // reached this point threw PrismaClientValidationError.
+    it('looks up organization settings without a soft-delete filter the model lacks', async () => {
+      const service = buildService();
+      organizationSettingsService.findOne.mockResolvedValue({
+        hasEverHadCredits: false,
+        id: 'settings_1',
+      });
+
+      await service.addOrganizationCreditsWithExpiration(
+        'org_1',
+        50,
+        'credits-subscription',
+        'monthly grant',
+        new Date('2027-01-01T00:00:00Z'),
+      );
+
+      expect(organizationSettingsService.findOne).toHaveBeenCalledWith({
+        organizationId: 'org_1',
+      });
+    });
   });
 
   describe('refundOrganizationCredits', () => {

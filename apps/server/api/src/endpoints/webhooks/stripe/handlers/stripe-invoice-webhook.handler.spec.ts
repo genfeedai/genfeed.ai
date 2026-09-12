@@ -28,6 +28,7 @@ describe('StripeInvoiceWebhookHandler', () => {
   const loggerService = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const subscriptionsService = {
     findByOrganizationId: vi.fn(),
+    findByStripeCustomerId: vi.fn(),
     findOne: vi.fn(),
     patch: vi.fn(),
     syncSubscriptionState: vi.fn(),
@@ -97,6 +98,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     subscriptionsService.findOne.mockResolvedValue(monthlySubscription);
     subscriptionsService.patch.mockResolvedValue(monthlySubscription);
     subscriptionsService.findByOrganizationId.mockResolvedValue(null);
+    subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
     billingAccountService.resolveWebhookOrganization.mockResolvedValue('org_1');
     supportService.resolveTierFromPriceId.mockReturnValue(null);
     creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
@@ -345,6 +347,39 @@ describe('StripeInvoiceWebhookHandler', () => {
       expect(
         billingAccountService.resolveWebhookOrganization,
       ).toHaveBeenCalled();
+      expect(subscriptionsService.patch).toHaveBeenCalledWith(
+        'sub_db_1',
+        expect.objectContaining({ stripeSubscriptionId: 'sub_new' }),
+      );
+    });
+
+    // API-GENFEED-AI-7S: a Stripe customer created before the billing-account
+    // metadata convention carries no markers, so resolveWebhookOrganization
+    // rejected it and the webhook 500d into a Stripe retry loop. The persisted
+    // customer link resolves the subscription without trusting metadata.
+    it('reconciles through the persisted customer link when the Stripe customer carries no billing metadata', async () => {
+      subscriptionsService.findOne.mockResolvedValue(null);
+      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
+        ...monthlySubscription,
+        stripeSubscriptionId: null,
+      });
+
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          customer: 'cus_legacy',
+          parent: {
+            subscription_details: { metadata: {}, subscription: 'sub_new' },
+          },
+        }),
+        'test',
+      );
+
+      expect(subscriptionsService.findByStripeCustomerId).toHaveBeenCalledWith(
+        'cus_legacy',
+      );
+      expect(
+        billingAccountService.resolveWebhookOrganization,
+      ).not.toHaveBeenCalled();
       expect(subscriptionsService.patch).toHaveBeenCalledWith(
         'sub_db_1',
         expect.objectContaining({ stripeSubscriptionId: 'sub_new' }),
