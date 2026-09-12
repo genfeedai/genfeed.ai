@@ -25,8 +25,3 @@ export interface SettingsSearchHrefContext {
   brandSlug: string;
   orgSlug: string;
 }
-
-export interface SettingsSearchProps {
-  className?: string;
-  scope: SettingsSurface;
-}

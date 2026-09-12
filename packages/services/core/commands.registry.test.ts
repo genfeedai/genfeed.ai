@@ -28,10 +28,10 @@ vi.mock('@services/core/command-palette.service', () => ({
 import {
   createContentCommands,
   createDefaultCommands,
+  createGeneralHelpCommands,
   createGenerationCommands,
-  createHelpCommands,
   createNavigationCommands,
-  createSettingsCommands,
+  createOrgHelpCommands,
   quickActionCommands,
   registerDefaultCommands,
 } from '@services/core/commands.registry';
@@ -397,118 +397,15 @@ describe('commands.registry', () => {
     });
   });
 
-  describe('createSettingsCommands', () => {
-    it('should have correct number of settings commands', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
+  describe('createGeneralHelpCommands', () => {
+    it('should have correct number of general help commands', () => {
+      const helpCommands = createGeneralHelpCommands();
 
-      expect(settingsCommands.length).toBe(4);
-    });
-
-    it('should have personal settings command', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const personalCmd = settingsCommands.find(
-        (c) => c.id === 'settings-personal',
-      );
-
-      expect(personalCmd).toBeDefined();
-      expect(personalCmd?.label).toBe('Personal Settings');
-      expect(personalCmd?.category).toBe('settings');
-    });
-
-    it('should have organization settings command', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const orgCmd = settingsCommands.find((c) => c.id === 'settings-org');
-
-      expect(orgCmd).toBeDefined();
-      expect(orgCmd?.label).toBe('Organization Settings');
-    });
-
-    it('should have brands command', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const brandsCmd = settingsCommands.find(
-        (c) => c.id === 'settings-brands',
-      );
-
-      expect(brandsCmd).toBeDefined();
-      expect(brandsCmd?.label).toBe('Brand Management');
-      expect(brandsCmd?.keywords).toContain('brands');
-    });
-
-    it('should have billing command', () => {
-      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-key';
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const billingCmd = settingsCommands.find(
-        (c) => c.id === 'settings-billing',
-      );
-
-      expect(billingCmd).toBeDefined();
-      expect(billingCmd?.label).toBe('Subscription');
-      expect(billingCmd?.keywords).toContain('billing');
-      delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
-    });
-
-    it('personal action should navigate to personal settings URL', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const personalCmd = settingsCommands.find(
-        (c) => c.id === 'settings-personal',
-      );
-
-      personalCmd?.action();
-
-      expect(window.location.href).toBe('https://app.genfeed.ai/settings');
-    });
-
-    it('brands action should navigate to org-scoped brands URL', () => {
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const brandsCmd = settingsCommands.find(
-        (c) => c.id === 'settings-brands',
-      );
-
-      brandsCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/brands`,
-      );
-    });
-
-    it('billing action should navigate to subscription when EE is enabled', () => {
-      process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY = 'test-license';
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const billingCmd = settingsCommands.find(
-        (c) => c.id === 'settings-billing',
-      );
-
-      billingCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/subscription`,
-      );
-    });
-
-    it('billing action should navigate to Credits in OSS mode', () => {
-      delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
-      const settingsCommands = createSettingsCommands(TEST_ORG);
-      const billingCmd = settingsCommands.find(
-        (c) => c.id === 'settings-billing',
-      );
-
-      billingCmd?.action();
-
-      expect(window.location.href).toBe(
-        `https://app.genfeed.ai/${TEST_ORG}/~/settings/credits`,
-      );
-    });
-  });
-
-  describe('createHelpCommands', () => {
-    it('should have correct number of help commands', () => {
-      const helpCommands = createHelpCommands(TEST_ORG);
-
-      expect(helpCommands.length).toBe(3);
+      expect(helpCommands.length).toBe(2);
     });
 
     it('should have documentation command', () => {
-      const helpCommands = createHelpCommands(TEST_ORG);
+      const helpCommands = createGeneralHelpCommands();
       const docsCmd = helpCommands.find((c) => c.id === 'help-docs');
 
       expect(docsCmd).toBeDefined();
@@ -518,7 +415,7 @@ describe('commands.registry', () => {
     });
 
     it('should have support command', () => {
-      const helpCommands = createHelpCommands(TEST_ORG);
+      const helpCommands = createGeneralHelpCommands();
       const supportCmd = helpCommands.find((c) => c.id === 'help-support');
 
       expect(supportCmd).toBeDefined();
@@ -526,18 +423,10 @@ describe('commands.registry', () => {
       expect(supportCmd?.keywords).toContain('support');
     });
 
-    it('should have shortcuts command', () => {
-      const helpCommands = createHelpCommands(TEST_ORG);
-      const shortcutsCmd = helpCommands.find((c) => c.id === 'help-shortcuts');
-
-      expect(shortcutsCmd).toBeDefined();
-      expect(shortcutsCmd?.label).toBe('Keyboard Shortcuts');
-    });
-
     it('docs action should open documentation in new tab', () => {
       const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null);
 
-      const helpCommands = createHelpCommands(TEST_ORG);
+      const helpCommands = createGeneralHelpCommands();
       const docsCmd = helpCommands.find((c) => c.id === 'help-docs');
       docsCmd?.action();
 
@@ -549,7 +438,7 @@ describe('commands.registry', () => {
       (window as unknown as { Intercom: typeof mockIntercom }).Intercom =
         mockIntercom;
 
-      const helpCommands = createHelpCommands(TEST_ORG);
+      const helpCommands = createGeneralHelpCommands();
       const supportCmd = helpCommands.find((c) => c.id === 'help-support');
       supportCmd?.action();
 
@@ -559,15 +448,31 @@ describe('commands.registry', () => {
     });
 
     it('support action should handle missing Intercom gracefully', () => {
-      const helpCommands = createHelpCommands(TEST_ORG);
+      const helpCommands = createGeneralHelpCommands();
       const supportCmd = helpCommands.find((c) => c.id === 'help-support');
 
       // Should not throw when Intercom is not available
       expect(() => supportCmd?.action()).not.toThrow();
     });
+  });
+
+  describe('createOrgHelpCommands', () => {
+    it('should have correct number of org help commands', () => {
+      const helpCommands = createOrgHelpCommands(TEST_ORG);
+
+      expect(helpCommands.length).toBe(1);
+    });
+
+    it('should have shortcuts command', () => {
+      const helpCommands = createOrgHelpCommands(TEST_ORG);
+      const shortcutsCmd = helpCommands.find((c) => c.id === 'help-shortcuts');
+
+      expect(shortcutsCmd).toBeDefined();
+      expect(shortcutsCmd?.label).toBe('Keyboard Shortcuts');
+    });
 
     it('shortcuts action should navigate to org-scoped help URL', () => {
-      const helpCommands = createHelpCommands(TEST_ORG);
+      const helpCommands = createOrgHelpCommands(TEST_ORG);
       const shortcutsCmd = helpCommands.find((c) => c.id === 'help-shortcuts');
       shortcutsCmd?.action();
 
@@ -625,33 +530,80 @@ describe('commands.registry', () => {
   });
 
   describe('createDefaultCommands', () => {
-    it('should combine all command groups', () => {
-      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+    it('should combine all command groups when org and brand are both known', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
       const expectedLength =
         createNavigationCommands(TEST_ORG, TEST_BRAND).length +
         createGenerationCommands(TEST_ORG, TEST_BRAND).length +
         createContentCommands(TEST_ORG, TEST_BRAND).length +
-        createSettingsCommands(TEST_ORG).length +
-        createHelpCommands(TEST_ORG).length +
+        createOrgHelpCommands(TEST_ORG).length +
+        createGeneralHelpCommands().length +
         quickActionCommands.length;
 
       expect(defaultCommands.length).toBe(expectedLength);
     });
 
-    it('should include commands from all categories', () => {
-      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+    it('should include commands from all categories when org and brand are both known', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
       const categories = [...new Set(defaultCommands.map((c) => c.category))];
 
       expect(categories).toContain('navigation');
       expect(categories).toContain('generation');
       expect(categories).toContain('content');
-      expect(categories).toContain('settings');
       expect(categories).toContain('help');
       expect(categories).toContain('actions');
     });
 
+    it('registers only the context-free tier when neither org nor brand is known', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: '',
+        orgSlug: '',
+      });
+      const expectedLength =
+        createGeneralHelpCommands().length + quickActionCommands.length;
+
+      expect(defaultCommands.length).toBe(expectedLength);
+      expect(defaultCommands.map((c) => c.id)).not.toContain('help-shortcuts');
+      expect(defaultCommands.map((c) => c.id)).not.toContain('nav-overview');
+    });
+
+    it('registers the org tier without navigation/generation/content when only an org is known', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: '',
+        orgSlug: TEST_ORG,
+      });
+      const ids = defaultCommands.map((c) => c.id);
+
+      expect(ids).toContain('help-shortcuts');
+      expect(ids).not.toContain('nav-overview');
+      expect(ids).not.toContain('gen-video');
+      expect(ids).not.toContain('content-search');
+    });
+
+    it('does not register Personal/Organization/Brand settings destinations — the client-side settings catalog covers those (#4660 review)', () => {
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
+      const ids = defaultCommands.map((c) => c.id);
+
+      expect(ids).not.toContain('settings-personal');
+      expect(ids).not.toContain('settings-org');
+      expect(ids).not.toContain('settings-brands');
+      expect(ids).not.toContain('settings-billing');
+    });
+
     it('all commands should have required properties', () => {
-      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
 
       defaultCommands.forEach((cmd) => {
         expect(cmd.id).toBeDefined();
@@ -664,7 +616,10 @@ describe('commands.registry', () => {
     });
 
     it('all commands should have unique IDs', () => {
-      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
       const ids = defaultCommands.map((c) => c.id);
       const uniqueIds = [...new Set(ids)];
 
@@ -674,10 +629,13 @@ describe('commands.registry', () => {
 
   describe('registerDefaultCommands', () => {
     it('should register all default commands', () => {
-      registerDefaultCommands(TEST_ORG, TEST_BRAND);
+      registerDefaultCommands({ brandSlug: TEST_BRAND, orgSlug: TEST_ORG });
 
       const registeredCommands = mockRegisterCommands.mock.calls[0]?.[0];
-      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
 
       expect(registeredCommands).toHaveLength(defaultCommands.length);
       expect(registeredCommands.map((command) => command.id)).toEqual(
@@ -689,14 +647,20 @@ describe('commands.registry', () => {
     });
 
     it('should call CommandPaletteService.registerCommands', () => {
-      registerDefaultCommands(TEST_ORG, TEST_BRAND);
+      registerDefaultCommands({ brandSlug: TEST_BRAND, orgSlug: TEST_ORG });
 
       expect(mockRegisterCommands).toHaveBeenCalledTimes(1);
     });
 
     it('should return the registered command ids for cleanup', () => {
-      const registeredIds = registerDefaultCommands(TEST_ORG, TEST_BRAND);
-      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+      const registeredIds = registerDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
 
       expect(registeredIds).toEqual(
         defaultCommands.map((command) => command.id),
@@ -724,7 +688,10 @@ describe('commands.registry', () => {
     });
 
     it('commands with shortcuts should have valid shortcut format', () => {
-      const defaultCommands = createDefaultCommands(TEST_ORG, TEST_BRAND);
+      const defaultCommands = createDefaultCommands({
+        brandSlug: TEST_BRAND,
+        orgSlug: TEST_ORG,
+      });
 
       defaultCommands
         .filter((cmd) => cmd.shortcut)

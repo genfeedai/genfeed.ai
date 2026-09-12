@@ -102,6 +102,14 @@ vi.mock(
   }),
 );
 
+// Isolated the same way as CommandPaletteInitializer above: this suite has no
+// RoutedOrganizationProvider ancestor (that lives above AppProtectedLayout in
+// ProtectedLayoutClient), and the settings-commands hook is exercised on its
+// own in use-settings-commands-registration.test.ts.
+vi.mock('./settings-search/use-settings-commands-registration', () => ({
+  useSettingsCommandsRegistration: () => {},
+}));
+
 vi.mock(
   '@app/(protected)/[orgSlug]/[brandSlug]/library/library-sidebar-nav',
   () => ({
@@ -182,10 +190,6 @@ vi.mock('@app-components/streaks/StreakNotificationsBridge', () => ({
 
 vi.mock('@ui/topbars/shared/TopbarShared', () => ({
   default: () => <div data-testid="topbar-shared" />,
-}));
-
-vi.mock('@app-components/settings-search/SettingsSearch', () => ({
-  default: () => <div data-testid="settings-search" />,
 }));
 
 vi.mock('@ui/menus/sidebar-search-trigger/SidebarSearchTrigger', () => ({
@@ -1409,7 +1413,7 @@ describe('AppProtectedLayout', () => {
     );
   });
 
-  it('mounts settings search on the settings sidebar', () => {
+  it('mounts the same New Task + shared command palette search trigger on the settings sidebar as everywhere else', () => {
     render(
       <AppProtectedLayoutSidebar
         currentApp="workspace"
@@ -1439,7 +1443,13 @@ describe('AppProtectedLayout', () => {
       />,
     );
 
-    expect(screen.getByTestId('settings-search')).toBeInTheDocument();
+    // No settings-only search dropdown (#4660) — settings gets the same
+    // primary action + shared ⌘K palette trigger as every other surface.
+    expect(screen.queryByTestId('settings-search')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'New Task' }),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('sidebar-search-trigger')).toBeInTheDocument();
     expect(appSidebarSpy).toHaveBeenCalledWith(
       expect.objectContaining({
         renderTopSlot: expect.any(Function),

@@ -15,6 +15,7 @@ import {
   createBrandAppRoute,
   createOrganizationAppRoute,
 } from '@genfeedai/contracts/constants';
+import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { SidebarNavPanel } from '@genfeedai/props/navigation/menu.props';
 import { useAgentThreadCommands } from '@hooks/commands/use-agent-thread-commands/use-agent-thread-commands';
 import type { LayoutProps } from '@props/layout/layout.props';
@@ -54,6 +55,7 @@ import {
 } from './app-protected-layout.breadcrumb';
 import AssetGateGuard from './asset-gate-guard';
 import ImpersonationBanner from './impersonation-banner';
+import { useSettingsCommandsRegistration } from './settings-search/use-settings-commands-registration';
 import { usePageHelp } from './use-page-help';
 import {
   isProtectedEditorCanvasRoute,
@@ -113,6 +115,12 @@ function AgentThreadCommandsBridge({
     onNavigate,
     threads,
   });
+
+  return null;
+}
+
+function SettingsCommandsBridge({ currentApp }: { currentApp?: AppContext }) {
+  useSettingsCommandsRegistration(currentApp);
 
   return null;
 }
@@ -562,6 +570,9 @@ function AppLayoutWithDynamicMenu({
           />
         )}
         <CommandPaletteInitializer />
+        {isFocusedOnboardingRoute || isAdminRoute ? null : (
+          <SettingsCommandsBridge currentApp={currentApp} />
+        )}
         {guardedMainLayout}
         <LazyCommandPalette />
       </CommandPaletteProvider>
