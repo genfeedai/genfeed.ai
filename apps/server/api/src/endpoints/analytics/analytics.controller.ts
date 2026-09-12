@@ -4,8 +4,9 @@ import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
 import { AnalyticsExportService } from '@api/endpoints/analytics/analytics-export.service';
 import {
   buildAnalyticsCacheKey,
+  buildOwnedAnalyticsCacheKey,
   resolveAnalyticsTenantScope,
-  throwAnalyticsTenantForbidden,
+  resolveOwnedAnalyticsTenantScope,
 } from '@api/endpoints/analytics/analytics-tenant-scope';
 import { BusinessAnalyticsService } from '@api/endpoints/analytics/business-analytics.service';
 import {
@@ -43,7 +44,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
   Controller,
-  ForbiddenException,
   Get,
   Query,
   Req,
@@ -68,6 +68,14 @@ export class AnalyticsController {
     request?: ExpressRequest,
   ): string | undefined {
     return resolveAnalyticsTenantScope(user, request).organizationId;
+  }
+
+  /**
+   * For routes that return post titles, provider ids, or per-post rows. See
+   * `resolveOwnedAnalyticsTenantScope`.
+   */
+  private getOwnedOrganizationId(user: User, request?: ExpressRequest): string {
+    return resolveOwnedAnalyticsTenantScope(user, request);
   }
 
   constructor(
@@ -121,25 +129,12 @@ export class AnalyticsController {
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
-    // Determine which organization to export data for
-    let targetOrganizationId: string | undefined;
-
-    if (getIsSuperAdmin(user)) {
-      targetOrganizationId = query.organizationId || undefined;
-    } else {
-      if (!user.organizationId) {
-        throw new ForbiddenException(
-          'You must be part of an organization to export data',
-        );
-      }
-      if (
-        query.organizationId &&
-        query.organizationId !== user.organizationId
-      ) {
-        throwAnalyticsTenantForbidden();
-      }
-      targetOrganizationId = user.organizationId;
-    }
+    // The export carries per-post titles and refreshes metrics from the
+    // provider with the exporting organization's own stored credentials, so it
+    // is owned-organization only for every caller, superadmins included.
+    const targetOrganizationId = resolveOwnedAnalyticsTenantScope(user, {
+      query: { organizationId: query.organizationId },
+    });
 
     // Default to CSV if no format specified
     const exportFormat = query.format === 'xlsx' ? 'xlsx' : 'csv';
@@ -345,7 +340,7 @@ export class AnalyticsController {
   @Get('top')
   @Cache({
     keyGenerator: (req) =>
-      buildAnalyticsCacheKey('top', req, [
+      buildOwnedAnalyticsCacheKey('top', req, [
         req.query?.startDate || 'default',
         req.query?.endDate || 'default',
         req.query?.metric || 'views',
@@ -362,7 +357,7 @@ export class AnalyticsController {
     @Query() query: TopContentQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user, req);
+    const organizationId = this.getOwnedOrganizationId(user, req);
     this.loggerService.log(url, { query });
     await this.analyticsService.assertBrandInScope(
       query.brandId,
@@ -487,7 +482,7 @@ export class AnalyticsController {
   @Get('hooks')
   @Cache({
     keyGenerator: (req) =>
-      buildAnalyticsCacheKey('hooks', req, [
+      buildOwnedAnalyticsCacheKey('hooks', req, [
         req.query?.startDate || 'default',
         req.query?.endDate || 'default',
         req.query?.brandId || '',
@@ -501,7 +496,7 @@ export class AnalyticsController {
     @Query() query: ViralHooksQueryDto,
   ): Promise<unknown> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-    const organizationId = this.getScopedOrganizationId(user, req);
+    const organizationId = this.getOwnedOrganizationId(user, req);
     this.loggerService.log(url, { query });
     await this.analyticsService.assertBrandInScope(
       query.brandId,

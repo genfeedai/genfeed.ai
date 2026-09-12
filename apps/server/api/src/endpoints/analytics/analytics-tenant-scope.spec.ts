@@ -6,7 +6,9 @@ import {
   ANALYTICS_TENANT_FORBIDDEN,
   assertAnalyticsBrandInScope,
   buildAnalyticsCacheKey,
+  buildOwnedAnalyticsCacheKey,
   resolveAnalyticsTenantScope,
+  resolveOwnedAnalyticsTenantScope,
 } from './analytics-tenant-scope';
 
 describe('analytics tenant scope', () => {
@@ -166,6 +168,88 @@ describe('analytics tenant scope', () => {
           ['default', 'default', ''],
         ),
       ).toBe('analytics:overview:superadmin:all:default:default:');
+    });
+  });
+
+  describe('resolveOwnedAnalyticsTenantScope', () => {
+    const superadmin: AuthenticatedUser = {
+      brandId: 'brand-1',
+      id: 'user-2',
+      isSuperAdmin: true,
+      organizationId: 'org-1',
+      userId: 'user-2',
+    } as AuthenticatedUser;
+
+    it('binds a customer to the session organization', () => {
+      expect(resolveOwnedAnalyticsTenantScope(member)).toBe('org-1');
+    });
+
+    it('binds a superadmin to their own organization, not every tenant', () => {
+      expect(resolveOwnedAnalyticsTenantScope(superadmin)).toBe('org-1');
+    });
+
+    it('lets a superadmin name their own organization', () => {
+      expect(
+        resolveOwnedAnalyticsTenantScope(superadmin, {
+          query: { organizationId: 'org-1' },
+        }),
+      ).toBe('org-1');
+    });
+
+    it('rejects a superadmin naming another organization', () => {
+      expect(() =>
+        resolveOwnedAnalyticsTenantScope(superadmin, {
+          query: { organizationId: 'org-2' },
+        }),
+      ).toThrow(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+    });
+
+    it('rejects a customer naming another organization', () => {
+      expect(() =>
+        resolveOwnedAnalyticsTenantScope(member, {
+          query: { organizationId: 'org-2' },
+        }),
+      ).toThrow(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+    });
+
+    it('rejects a caller without an organization before any read', () => {
+      expect(() =>
+        resolveOwnedAnalyticsTenantScope({
+          id: 'user-3',
+          isSuperAdmin: true,
+          userId: 'user-3',
+        } as AuthenticatedUser),
+      ).toThrow(new ForbiddenException(ANALYTICS_MISSING_ORGANIZATION_MESSAGE));
+    });
+  });
+
+  describe('buildOwnedAnalyticsCacheKey', () => {
+    it('keys by the caller organization so two superadmins never share an entry', () => {
+      const parts = ['2025-01-01', '2025-01-31', 'brand-1'] as const;
+
+      expect(
+        buildOwnedAnalyticsCacheKey(
+          'top',
+          { user: { isSuperAdmin: true, organizationId: 'org-a' } },
+          parts,
+        ),
+      ).toBe('analytics:top:owned:org-a:2025-01-01:2025-01-31:brand-1');
+      expect(
+        buildOwnedAnalyticsCacheKey(
+          'top',
+          { user: { isSuperAdmin: true, organizationId: 'org-b' } },
+          parts,
+        ),
+      ).toBe('analytics:top:owned:org-b:2025-01-01:2025-01-31:brand-1');
+    });
+
+    it('ignores a requested organization that the owned resolver would reject', () => {
+      expect(
+        buildOwnedAnalyticsCacheKey('hooks', {
+          query: { organizationId: 'org-2' },
+          user: { isSuperAdmin: true, organizationId: 'org-1' },
+        }),
+      ).toBe('analytics:hooks:owned:org-1');
     });
   });
 

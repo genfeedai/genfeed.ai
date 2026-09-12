@@ -154,7 +154,7 @@ describe('AnalyticsController', () => {
         {
           brandId: undefined,
           endDate: undefined,
-          organizationId: undefined,
+          organizationId: 'org-1',
           platform: undefined,
           postId: undefined,
           startDate: undefined,
@@ -188,7 +188,7 @@ describe('AnalyticsController', () => {
         {
           brandId: undefined,
           endDate: undefined,
-          organizationId: undefined,
+          organizationId: 'org-1',
           platform: undefined,
           postId: undefined,
           startDate: undefined,
@@ -383,7 +383,7 @@ describe('AnalyticsController', () => {
       expect(result).toBeDefined();
     });
 
-    it('should return viral hooks for a superadmin without scoping by the requested org', async () => {
+    it('binds superadmin viral hooks to their own organization', async () => {
       analyticsService.getViralHooks.mockResolvedValueOnce({
         analysis: {
           hookEffectiveness: [],
@@ -397,7 +397,6 @@ describe('AnalyticsController', () => {
       const query = {
         brandId: 'brand_1',
         endDate: '2025-01-31',
-        organizationId: 'org_1',
         startDate: '2025-01-01',
       } as unknown as ViralHooksQueryDto;
 
@@ -411,9 +410,52 @@ describe('AnalyticsController', () => {
         '2025-01-01',
         '2025-01-31',
         'brand_1',
-        undefined,
+        'org_123',
       );
       expect(result).toBeDefined();
+    });
+
+    it('refuses a superadmin reading another organization viral hooks', async () => {
+      const foreignRequest = {
+        ...mockRequest,
+        query: { organizationId: 'org_foreign' },
+      } as unknown as typeof mockRequest;
+
+      await expect(
+        controller.getViralHooks(
+          mockRequest.user as never,
+          foreignRequest,
+          {} as unknown as ViralHooksQueryDto,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(analyticsService.getViralHooks).not.toHaveBeenCalled();
+    });
+
+    it('refuses a superadmin reading another organization top content', async () => {
+      const foreignRequest = {
+        ...mockRequest,
+        query: { organizationId: 'org_foreign' },
+      } as unknown as typeof mockRequest;
+
+      await expect(
+        controller.getTopContent(
+          mockRequest.user as never,
+          foreignRequest,
+          {} as unknown as TopContentQueryDto,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(analyticsService.getTopContent).not.toHaveBeenCalled();
+    });
+
+    it('refuses a superadmin exporting another organization', async () => {
+      await expect(
+        controller.exportData(
+          { isSuperAdmin: true, organizationId: 'org-1' } as never,
+          { organizationId: 'org-foreign' } as never,
+          mockResponse,
+        ),
+      ).rejects.toEqual(new ForbiddenException(ANALYTICS_TENANT_FORBIDDEN));
+      expect(analyticsExportService.exportData).not.toHaveBeenCalled();
     });
 
     it('ignores a foreign organizationId in the query for non-superadmin users', async () => {
