@@ -326,7 +326,10 @@ describe('SettingsApiKeysPage', () => {
       screen.queryByRole('tab', { name: 'Provider keys' }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('OpenAI')).not.toBeInTheDocument();
-    expect(mocks.findAllApiKeys).toHaveBeenCalledWith({ limit: 100 });
+    expect(mocks.findAllApiKeys).toHaveBeenCalledWith(
+      { limit: 100 },
+      expect.any(AbortSignal),
+    );
   });
 
   it('switches scope presets and reflects the active preset', async () => {
@@ -348,6 +351,45 @@ describe('SettingsApiKeysPage', () => {
     fireEvent.click(content);
     expect(content).toHaveAttribute('aria-pressed', 'true');
     expect(read).toHaveAttribute('aria-pressed', 'false');
+  });
+
+  it('does not let a stale list overwrite a key created during the initial load', async () => {
+    let resolveInitialLoad: (value: unknown[]) => void = () => undefined;
+    mocks.findAllApiKeys
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveInitialLoad = resolve;
+          }),
+      )
+      .mockResolvedValueOnce([
+        {
+          id: 'key-2',
+          label: 'Created During Load',
+          lastUsedAt: null,
+          scopes: ['videos:read'],
+        },
+      ]);
+
+    render(<SettingsApiKeysPage />);
+
+    expect(await screen.findByText('Loading keys...')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+
+    await waitFor(() => {
+      expect(mocks.createApiKey).toHaveBeenCalled();
+    });
+    expect(await screen.findByText('gf_test_created')).toBeInTheDocument();
+    expect(await screen.findByText('Created During Load')).toBeInTheDocument();
+
+    resolveInitialLoad([]);
+
+    await waitFor(() => {
+      expect(screen.getByText('Created During Load')).toBeInTheDocument();
+    });
+    expect(
+      screen.queryByText('No active Genfeed API keys.'),
+    ).not.toBeInTheDocument();
   });
 
   it('creates a key from an empty list using the default name', async () => {

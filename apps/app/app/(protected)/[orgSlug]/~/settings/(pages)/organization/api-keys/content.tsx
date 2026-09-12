@@ -36,7 +36,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import Link from 'next/link';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const PRODUCT_API_KEY_PRESETS = [
   { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },
@@ -125,6 +125,7 @@ export default function SettingsApiKeysPage() {
   const getApiKeysService = useAuthedService(
     useCallback((token: string) => ApiKeysService.getInstance(token), []),
   );
+  const productKeysFetchIdRef = useRef(0);
 
   const selectedScopeSet = useMemo(
     () => new Set(productForm.selectedScopes),
@@ -133,27 +134,32 @@ export default function SettingsApiKeysPage() {
 
   const fetchProductApiKeys = useCallback(
     async (signal?: AbortSignal) => {
-      if (!signal?.aborted) {
+      const fetchId = productKeysFetchIdRef.current + 1;
+      productKeysFetchIdRef.current = fetchId;
+      const isCurrentFetch = () =>
+        productKeysFetchIdRef.current === fetchId && !signal?.aborted;
+
+      if (isCurrentFetch()) {
         setIsProductLoading(true);
         setProductKeysLoadError(null);
       }
       try {
         const service = await getApiKeysService();
-        const apiKeys = await service.findAll({ limit: 100 });
+        const apiKeys = await service.findAll({ limit: 100 }, signal);
 
-        if (!signal?.aborted) {
+        if (isCurrentFetch()) {
           setProductApiKeys(Array.isArray(apiKeys) ? apiKeys : []);
           setProductKeysLoadError(null);
         }
       } catch (error) {
-        if (!signal?.aborted) {
+        if (isCurrentFetch()) {
           logger.error('Failed to fetch Genfeed API keys', error);
           NotificationsService.getInstance().error(PRODUCT_KEYS_LOAD_ERROR);
           setProductApiKeys([]);
           setProductKeysLoadError(PRODUCT_KEYS_LOAD_ERROR);
         }
       } finally {
-        if (!signal?.aborted) {
+        if (isCurrentFetch()) {
           setIsProductLoading(false);
         }
       }
