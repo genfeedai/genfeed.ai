@@ -1,5 +1,8 @@
 import type { ModelCategory, RouterPriority } from '@genfeedai/contracts';
-import type { IModel } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentStudioHandoffPayload,
+  IModel,
+} from '@genfeedai/contracts/interfaces';
 
 export interface CredentialMentionItem {
   id: string;
@@ -73,6 +76,19 @@ export interface EstimateGenerationCreditsResult {
   credits: number | null;
   isAvailable: boolean;
   modelKey: string | null;
+}
+
+/**
+ * `POST /agent/studio-handoff` request (#4670 Open in Studio). The Agent
+ * supplies exactly what it already resolved — prompt, concrete model,
+ * applicable parameters — never `organizationId`/`userId`; the server
+ * derives those from the authenticated request.
+ */
+export type CreateAgentStudioHandoffParams = AgentStudioHandoffPayload;
+
+export interface CreateAgentStudioHandoffResult {
+  /** Opaque handoff id — the only thing that belongs in the Studio generate URL. */
+  id: string;
 }
 
 export interface AgentGeneratedAsset {

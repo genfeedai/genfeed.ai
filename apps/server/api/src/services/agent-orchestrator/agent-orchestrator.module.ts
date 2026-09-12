@@ -64,6 +64,8 @@ import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-or
 import { AgentOrchestratorUiActionPlanService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-plan.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
+import { AgentStudioHandoffController } from '@api/services/agent-orchestrator/agent-studio-handoff.controller';
+import { AgentStudioHandoffService } from '@api/services/agent-orchestrator/agent-studio-handoff.service';
 import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrator/agent-thread-event-recorder.service';
 import { AgentToolsController } from '@api/services/agent-orchestrator/agent-tools.controller';
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
@@ -122,7 +124,11 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [AgentOrchestratorController, AgentToolsController],
+  controllers: [
+    AgentOrchestratorController,
+    AgentStudioHandoffController,
+    AgentToolsController,
+  ],
   exports: [
     AgentOrchestratorService,
     AgentTurnAcceptanceService,
@@ -234,6 +240,7 @@ import { Module } from '@nestjs/common';
     AgentOrchestratorUiActionService,
     AgentRouteRewriteService,
     AgentStreamEffectsService,
+    AgentStudioHandoffService,
     AgentThreadEventRecorderService,
     AgentTurnAcceptanceService,
     AgentToolExecutorService,

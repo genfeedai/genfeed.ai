@@ -240,12 +240,22 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-const { brandState, storeState } = vi.hoisted(() => ({
+const { brandState, orgUrlParams, storeState } = vi.hoisted(() => ({
   brandState: {
+    // #4670 Open in Studio requires a brand to hand off to — every fixture
+    // in this file is scoped to one brand, so this is never blank.
+    brandId: 'brand-1',
     organizationId: '',
+    // Fallback brand for `useOrgUrl().activeHref` when the route itself
+    // carries no brand segment (#4716 P0 — the org-level Agent workspace).
+    selectedBrand: { slug: 'test-brand' },
     settings: null as { enabledModelIds?: string[] } | null,
     settingsLoading: false,
   },
+  // Mutable so a single test can simulate the org-level Agent workspace
+  // route (`/:orgSlug/~/agent`, no brand segment) without affecting the rest
+  // of this file's fixtures, which stay on the default brand-scoped route.
+  orgUrlParams: { brandSlug: 'test-brand', orgSlug: 'test-org' },
   storeState: {
     activeThreadId: 'thread-1',
     error: null as string | null,
@@ -256,6 +266,21 @@ const { brandState, storeState } = vi.hoisted(() => ({
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => brandState,
+}));
+
+// Overrides the package-wide `next/navigation` mock (tests/setup.ts) with a
+// mutable `useParams` so the #4716 P0 regression test below can simulate a
+// route with no brand segment.
+vi.mock('next/navigation', () => ({
+  useParams: () => orgUrlParams,
+  usePathname: () => '/',
+  useRouter: () => ({
+    back: vi.fn(),
+    prefetch: vi.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
@@ -348,6 +373,7 @@ function createModel(
 
 function createApiServiceMock(options?: {
   createPrompt?: ReturnType<typeof vi.fn>;
+  createStudioHandoff?: ReturnType<typeof vi.fn>;
   estimateGenerationCredits?: ReturnType<typeof vi.fn>;
   generateIngredient?: ReturnType<typeof vi.fn>;
   models?: IModel[];
@@ -365,11 +391,17 @@ function createApiServiceMock(options?: {
     vi
       .fn()
       .mockResolvedValue({ credits: null, isAvailable: true, modelKey: null });
+  const createStudioHandoff =
+    options?.createStudioHandoff ??
+    vi.fn().mockResolvedValue({ id: 'handoff-1' });
   const models = options?.models ?? [];
 
   return {
     baseUrl: 'http://genfeed.localhost:3010',
     createPrompt: vi.fn((...args: unknown[]) => createPrompt(...args)),
+    createStudioHandoff: vi.fn((...args: unknown[]) =>
+      createStudioHandoff(...args),
+    ),
     estimateGenerationCredits: vi.fn((...args: unknown[]) =>
       estimateGenerationCredits(...args),
     ),
@@ -491,8 +523,11 @@ describe('GenerationActionCard', () => {
 
   beforeEach(() => {
     brandState.organizationId = '';
+    brandState.selectedBrand = { slug: 'test-brand' };
     brandState.settings = null;
     brandState.settingsLoading = false;
+    orgUrlParams.brandSlug = 'test-brand';
+    orgUrlParams.orgSlug = 'test-org';
     storeState.activeThreadId = 'thread-1';
     useAgentWorkObjectGateStore.setState({ threads: {} });
     useAgentWorkObjectGateStore.getState().setObjects('thread-1', []);
@@ -1783,6 +1818,12 @@ describe('GenerationActionCard', () => {
 
   it('renders Open in Studio only when the #4670 extension slot is wired', async () => {
     const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi.fn().mockResolvedValue({ id: 'handoff-1' });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
 
     renderGenerationActionCard(
       <GenerationActionCard
@@ -1793,7 +1834,10 @@ describe('GenerationActionCard', () => {
           title: 'Generate Image',
           type: 'generation_action_card',
         }}
-        apiService={createApiServiceMock()}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
         onOpenInStudio={onOpenInStudio}
       />,
     );
@@ -1803,6 +1847,225 @@ describe('GenerationActionCard', () => {
         name: 'Open this generation in Studio',
       }),
     );
+
+    await waitFor(() => {
+      expect(createStudioHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelKey: 'provider/nano-banana',
+          prompt: 'A portrait at golden hour.',
+          type: 'image',
+        }),
+      );
+    });
     expect(onOpenInStudio).toHaveBeenCalledTimes(1);
+    expect(onOpenInStudio).toHaveBeenCalledWith(
+      expect.stringContaining('handoff=handoff-1'),
+    );
+  });
+
+  it('opens Studio at the brand-scoped path from a route with no brand segment (#4716 P0 — the org-level Agent workspace 404ed)', async () => {
+    // `/:orgSlug/~/agent` (the canonical Agent workspace route) carries no
+    // brand segment — `useOrgUrl().href` falls through to the org scope
+    // there and would build `/org-1/~/studio/generate?...`, a route that
+    // does not exist (Studio generate only lives under a brand slug).
+    // `activeHref` falls back to the context-selected brand instead.
+    orgUrlParams.brandSlug = '';
+    brandState.selectedBrand = { slug: 'brand-1' };
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockResolvedValue({ id: 'handoff-no-brand-route' });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-studio-slot-no-brand-route',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+
+    await waitFor(() => expect(onOpenInStudio).toHaveBeenCalledTimes(1));
+    const [studioUrl] = onOpenInStudio.mock.calls[0] as [string];
+    expect(studioUrl).toBe(
+      '/test-org/brand-1/studio/generate?handoff=handoff-no-brand-route',
+    );
+    expect(studioUrl).not.toContain('/~/');
+  });
+
+  it('surfaces a composer error instead of navigating when the handoff cannot be created', async () => {
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockRejectedValue(new Error('Handoff storage unavailable'));
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-studio-slot-failure',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+
+    // The composer error is the shared thread-level store (`storeState.setError`
+    // here, `useAgentChatStore` for real) — this file's mock doesn't feed that
+    // back into a rendered banner, so assert the call the real store would
+    // render from, same as the other composer-error tests in this file.
+    await waitFor(() => {
+      expect(storeState.setError).toHaveBeenCalledWith(
+        'Failed to open in Studio. Try again.',
+      );
+    });
+    expect(onOpenInStudio).not.toHaveBeenCalled();
+  });
+
+  it('renders Open in Studio on the completed result once generation finishes', async () => {
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockResolvedValue({ id: 'handoff-completed-1' });
+    const generateIngredient = vi.fn().mockResolvedValue({
+      id: 'image-completed-1',
+      url: 'https://cdn.test/image-completed.png',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+            prompt: 'A neon skyline at dusk.',
+          },
+          generationType: 'image',
+          id: 'action-studio-slot-done',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+              label: 'Z-Image Turbo',
+            }),
+          ],
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(1);
+    });
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Open in Studio' }),
+    );
+
+    // The action pins an explicit model, so the handoff carries that pin
+    // directly — the credit-estimate's resolved model only matters in Auto
+    // mode (see the review-card test above).
+    await waitFor(() => {
+      expect(createStudioHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          modelKey: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+          prompt: 'A neon skyline at dusk.',
+          type: 'image',
+        }),
+      );
+    });
+    expect(onOpenInStudio).toHaveBeenCalledTimes(1);
+    expect(onOpenInStudio).toHaveBeenCalledWith(
+      expect.stringContaining('handoff=handoff-completed-1'),
+    );
+  });
+
+  it('does not render Open in Studio on the completed result without a handler', async () => {
+    const generateIngredient = vi.fn().mockResolvedValue({
+      id: 'image-completed-2',
+      url: 'https://cdn.test/image-completed-2.png',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+            prompt: 'A neon skyline at dusk.',
+          },
+          generationType: 'image',
+          id: 'action-studio-slot-done-no-handler',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
+              label: 'Z-Image Turbo',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(1);
+    });
+    expect(
+      await screen.findAllByRole('link', { name: 'Library' }),
+    ).not.toHaveLength(0);
+    expect(
+      screen.queryByRole('button', { name: 'Open in Studio' }),
+    ).not.toBeInTheDocument();
   });
 });

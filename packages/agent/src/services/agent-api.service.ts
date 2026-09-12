@@ -10,6 +10,8 @@ export type {
   AgentClonedVoice,
   AgentGeneratedAsset,
   AgentInstallReadiness,
+  CreateAgentStudioHandoffParams,
+  CreateAgentStudioHandoffResult,
   CredentialMentionItem,
   EstimateGenerationCreditsParams,
   EstimateGenerationCreditsResult,
@@ -90,6 +92,7 @@ export class AgentApiService extends AgentBaseApiService {
     null,
     this,
   );
+  createStudioHandoff = mediaApi.createStudioHandoff.bind(null, this);
   getGeneratedAsset = mediaApi.getGeneratedAsset.bind(null, this);
   mergeVideos = mediaApi.mergeVideos.bind(null, this);
   reframeVideo = mediaApi.reframeVideo.bind(null, this);

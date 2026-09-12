@@ -30,6 +30,7 @@ import {
   toRouterPriority,
 } from '@genfeedai/contracts';
 import {
+  APP_ROUTES,
   getModelMaxVideoReferences,
   hasEndFrame,
   hasInterpolation,
@@ -47,6 +48,7 @@ import {
   resolveOrgAllowlistedModels,
   shouldOfferAutoModel,
 } from '@helpers/model-allowlist.helper';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import {
   buildAgentGenerationSetupScope,
@@ -136,6 +138,9 @@ interface UseGenerationActionCardParams {
   apiService: AgentApiService;
   onRegenerate?: () => void;
   onUiAction?: AgentUiActionHandler;
+  /** #4670 — called with a ready-to-navigate Studio generate URL once the
+   * handoff is created. */
+  onOpenInStudio?: (studioUrl: string) => void;
 }
 
 export function useGenerationActionCard({
@@ -143,8 +148,10 @@ export function useGenerationActionCard({
   apiService,
   onRegenerate: onRegenerateProp,
   onUiAction,
+  onOpenInStudio,
 }: UseGenerationActionCardParams) {
   const { brandId, organizationId, settings, settingsLoading } = useBrand();
+  const { activeHref } = useOrgUrl();
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
@@ -831,6 +838,74 @@ export function useGenerationActionCard({
     setStatus('declined');
   }, [status]);
 
+  // #4670 Open in Studio: a concrete model is required — the resolved
+  // org-scoped estimate model when the operator left Auto, or their explicit
+  // pick. Neither being available (estimate still unavailable, no pick)
+  // means there is nothing honest to hand off yet.
+  const concreteModelKeyForHandoff = isAutoMode
+    ? resolvedModelKey
+    : modelKey || resolvedModelKey;
+  const canOpenInStudio = Boolean(
+    onOpenInStudio && prompt.trim() && concreteModelKeyForHandoff && brandId,
+  );
+
+  const handleOpenInStudio = useCallback(async () => {
+    if (
+      !onOpenInStudio ||
+      !concreteModelKeyForHandoff ||
+      !prompt.trim() ||
+      !brandId
+    ) {
+      return;
+    }
+    try {
+      const { id } = await apiService.createStudioHandoff({
+        aspectRatio,
+        brandId,
+        duration: generationType === 'video' ? duration : undefined,
+        modelKey: concreteModelKeyForHandoff,
+        outputs: generationType === 'image' ? outputs : undefined,
+        prompt,
+        references:
+          generationType === 'image'
+            ? referenceIds.length > 0
+              ? referenceIds
+              : undefined
+            : startFrameId
+              ? [startFrameId]
+              : undefined,
+        resolution: resolution || undefined,
+        type: generationType,
+      });
+      onOpenInStudio(
+        activeHref(
+          `${APP_ROUTES.STUDIO.GENERATE}?handoff=${encodeURIComponent(id)}`,
+        ),
+      );
+    } catch {
+      setComposerError('Failed to open in Studio. Try again.');
+    }
+  }, [
+    activeHref,
+    apiService,
+    aspectRatio,
+    brandId,
+    concreteModelKeyForHandoff,
+    duration,
+    generationType,
+    onOpenInStudio,
+    outputs,
+    prompt,
+    referenceIds,
+    resolution,
+    setComposerError,
+    startFrameId,
+  ]);
+
+  const handleOpenInStudioVoid = useCallback(() => {
+    void handleOpenInStudio();
+  }, [handleOpenInStudio]);
+
   const handleRetryVoid = useCallback(() => {
     void handleRetry();
   }, [handleRetry]);
@@ -1034,6 +1109,8 @@ export function useGenerationActionCard({
     handleAcceptPilotVoid,
     handleRejectPilot,
     handleDecline,
+    canOpenInStudio,
+    handleOpenInStudioVoid,
     handleStop,
     isPilotCeilingReached,
     paidRejectedCount,

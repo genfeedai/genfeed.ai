@@ -1,6 +1,8 @@
 import type {
   AgentClonedVoice,
   AgentGeneratedAsset,
+  CreateAgentStudioHandoffParams,
+  CreateAgentStudioHandoffResult,
   EstimateGenerationCreditsParams,
   EstimateGenerationCreditsResult,
   GenerateIngredientResult,
@@ -56,6 +58,23 @@ export async function estimateGenerationCredits(
     `${api.config.baseUrl}/router/estimate-generation-credits`,
     { body: JSON.stringify(params), method: 'POST', signal },
     'Failed to estimate generation credits',
+  );
+}
+
+/**
+ * #4670 Open in Studio: stores the prompt/model/parameters the Agent already
+ * resolved as a short-lived, organization-scoped handoff and returns its
+ * opaque id — the only thing that belongs in the Studio generate URL.
+ */
+export async function createStudioHandoff(
+  api: AgentBaseApiService,
+  params: CreateAgentStudioHandoffParams,
+  signal?: AbortSignal,
+): Promise<CreateAgentStudioHandoffResult> {
+  return api.fetchJson<CreateAgentStudioHandoffResult>(
+    `${api.config.baseUrl}/agent/studio-handoff`,
+    { body: JSON.stringify(params), method: 'POST', signal },
+    'Failed to create the Studio handoff',
   );
 }
 

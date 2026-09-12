@@ -12,7 +12,14 @@ import {
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import GenerationStatus from '@ui/feedback/generation-status/GenerationStatus';
 import { Button } from '@ui/primitives/button';
-import { Check, ImagePlus, Paintbrush, RefreshCw, X } from 'lucide-react';
+import {
+  Check,
+  ExternalLink,
+  ImagePlus,
+  Paintbrush,
+  RefreshCw,
+  X,
+} from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -32,6 +39,9 @@ type GenerationActionCardStatusPanelProps = {
   onRetry: () => void;
   onRegenerateProp: (() => void) | undefined;
   onUseAsReference?: () => void;
+  /** #4670 — creates a Studio handoff for this result and opens it. Renders
+   * the control only when provided. */
+  onOpenInStudio?: () => void;
   onAcceptPilot?: () => void;
   onRejectPilot?: () => void;
   pilotDurationSeconds?: number | null;
@@ -52,6 +62,7 @@ export function GenerationActionCardStatusPanel({
   onRetry,
   onRegenerateProp,
   onUseAsReference,
+  onOpenInStudio,
   onAcceptPilot,
   onRejectPilot,
   pilotDurationSeconds,
@@ -188,6 +199,17 @@ export function GenerationActionCardStatusPanel({
             <Paintbrush className="size-3" />
             Edit in Studio
           </a>
+          {onOpenInStudio ? (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              size={ButtonSize.SM}
+              onClick={onOpenInStudio}
+              className="flex-1"
+            >
+              <ExternalLink className="size-3" />
+              {translate('openInStudio')}
+            </Button>
+          ) : null}
           <a
             href={libraryHref}
             className="flex flex-1 items-center justify-center border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"

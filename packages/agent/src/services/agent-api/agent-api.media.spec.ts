@@ -8,6 +8,7 @@ import {
 import {
   cloneVoice,
   createPrompt,
+  createStudioHandoff,
   estimateGenerationCredits,
   generateIngredient,
   getClonedVoices,
@@ -255,6 +256,29 @@ describe('agent-api.media', () => {
     await expect(resizeVideo(makeApi(), 'video-1', 10, 10)).rejects.toThrow(
       'Failed to resize video',
     );
+  });
+
+  it('createStudioHandoff posts the resolved payload and returns its id', async () => {
+    mockOk({ id: 'handoff-1' });
+
+    const result = await createStudioHandoff(makeApi(), {
+      brandId: 'brand-1',
+      modelKey: 'provider/model-x',
+      outputs: 2,
+      prompt: 'A futuristic city at sunset',
+      type: 'image',
+    });
+
+    expect(result).toEqual({ id: 'handoff-1' });
+    const { body, url } = lastRequest();
+    expect(url).toBe('http://api.test/agent/studio-handoff');
+    expect(JSON.parse(body ?? '{}')).toEqual({
+      brandId: 'brand-1',
+      modelKey: 'provider/model-x',
+      outputs: 2,
+      prompt: 'A futuristic city at sunset',
+      type: 'image',
+    });
   });
 });
 

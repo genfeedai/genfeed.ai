@@ -55,6 +55,13 @@ export default function AgentPageContent({
     [orgHref],
   );
 
+  // #4670 Open in Studio: the card already built the full, org-scoped Studio
+  // generate URL (including the handoff id) via its own useOrgUrl() — this
+  // just navigates, same as the other Agent -> elsewhere jumps in this file.
+  const handleOpenInStudio = useCallback((studioUrl: string) => {
+    window.open(studioUrl, '_self');
+  }, []);
+
   return (
     // Fill the locked conversation shell (see AppLayout lockViewportHeight).
     // Do not use min-h-[100vh-…] — with the credits banner that overflows the
@@ -75,6 +82,7 @@ export default function AgentPageContent({
         onOnboardingCompleted={onOnboardingCompleted}
         onOAuthConnect={onOAuthConnect}
         onBrandCreate={handleBrandCreate}
+        onOpenInStudio={handleOpenInStudio}
         onSelectCreditPack={handleSelectCreditPack}
         onNavigateToBilling={handleNavigateToBilling}
         threadId={threadId}

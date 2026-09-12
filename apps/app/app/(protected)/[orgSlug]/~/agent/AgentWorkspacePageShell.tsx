@@ -57,6 +57,16 @@ export function AgentWorkspacePageShell({
     [push, orgHref],
   );
 
+  // #4670 Open in Studio: the card already built the full, org-scoped Studio
+  // generate URL (including the handoff id) via its own useOrgUrl() — this
+  // just navigates, same as the billing callbacks above.
+  const handleOpenInStudio = useCallback(
+    (studioUrl: string) => {
+      push(studioUrl);
+    },
+    [push],
+  );
+
   return (
     <div className="flex h-full min-h-0 w-full flex-1 flex-col overflow-hidden">
       <AgentFullPage
@@ -70,6 +80,7 @@ export function AgentWorkspacePageShell({
         onOAuthConnect={handleOAuthConnect}
         onBrandCreate={handleBrandCreate}
         onOnboardingCompleted={completeOnboardingFlow}
+        onOpenInStudio={handleOpenInStudio}
         onSelectCreditPack={handleSelectCreditPack}
       />
     </div>

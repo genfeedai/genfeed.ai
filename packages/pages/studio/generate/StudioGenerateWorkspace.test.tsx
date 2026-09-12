@@ -6,6 +6,8 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
+import { useCallback, useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateWorkspace from './StudioGenerateWorkspace';
 
@@ -30,7 +32,22 @@ const mocks = vi.hoisted(() => ({
   attachments: vi.fn(),
   applyTypeSettings: vi.fn(),
   composer: vi.fn(),
+  findByIds: vi.fn().mockResolvedValue([]),
   gallery: vi.fn(),
+  // #4716 review — the Agent -> Studio handoff pipeline (apply, model
+  // validation/fallback, param validation, reference attachment, brand
+  // guard) has no other workspace-level coverage; only pure utils and the
+  // mocked hook were tested, which is exactly why the wiring gaps survived.
+  handoff: {
+    value: { isLoading: false, payload: null } as {
+      isLoading: boolean;
+      payload: Record<string, unknown> | null;
+    },
+  },
+  models: {
+    value: { isLoadingModels: false, models: [] as { key: string }[] },
+  },
+  notify: vi.fn(),
   results: vi.fn(),
   rehydratePending: vi.fn(),
   removeJob: vi.fn(),
@@ -185,7 +202,45 @@ vi.mock('@pages/studio/generate/hooks/useStudioGenerateGallery', () => ({
 }));
 
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateModels', () => ({
-  useStudioGenerateModels: () => ({ isLoadingModels: false, models: [] }),
+  useStudioGenerateModels: () => mocks.models.value,
+}));
+
+vi.mock('@pages/studio/generate/hooks/useStudioGenerateHandoff', () => ({
+  useStudioGenerateHandoff: () => mocks.handoff.value,
+}));
+
+// Bypasses the real auth-identity chain so the handoff reference-resolution
+// effect's `getIngredientsService()` resolves deterministically in this
+// unit test environment (mirrors the same mock in useStudioGenerateHandoff.test.ts).
+// Bypasses the real auth-identity chain so the handoff reference-resolution
+// effect's `getIngredientsService()` resolves deterministically in this unit
+// test environment. Mirrors the real hook's stability contract (a
+// `useCallback`-stable resolver independent of the caller's inline factory
+// identity) — an unstable mock resolver re-fires the consuming effect on
+// every render and cancels itself before the async call ever resolves.
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: (factory: (token: string) => unknown) => {
+    const factoryRef = useRef(factory);
+    factoryRef.current = factory;
+    return useCallback(async () => factoryRef.current('test-token'), []);
+  },
+}));
+
+vi.mock('@services/content/ingredients.service', () => ({
+  IngredientsService: {
+    getInstance: () => ({ findByIds: mocks.findByIds }),
+  },
+}));
+
+vi.mock('@services/core/notifications.service', () => ({
+  NotificationsService: {
+    getInstance: () => ({
+      error: vi.fn(),
+      info: mocks.notify,
+      success: vi.fn(),
+      warning: vi.fn(),
+    }),
+  },
 }));
 
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateSettings', () => ({
@@ -261,6 +316,9 @@ describe('StudioGenerateWorkspace', () => {
     mocks.isHydrated.value = true;
     mocks.remixRun.value = null;
     mocks.type.value = 'image';
+    mocks.handoff.value = { isLoading: false, payload: null };
+    mocks.models.value = { isLoadingModels: false, models: [] };
+    mocks.findByIds.mockResolvedValue([]);
     mocks.attachments.mockReturnValue({
       addFiles: vi.fn(),
       attachments: [],
@@ -662,5 +720,104 @@ describe('StudioGenerateWorkspace', () => {
     act(() => resultsProps.onSelect(recipeJob));
     fireEvent.click(screen.getByRole('button', { name: 'Vary' }));
     expect(mocks.applyTypeSettings).toHaveBeenCalledTimes(2);
+  });
+
+  it('applies an Agent handoff end-to-end: switches type, prefills the prompt, falls back an unavailable model and unsupported params with a notice, and attaches the resolved reference (#4716 review)', async () => {
+    // The type has already "switched" by the time the model-catalog effect
+    // reads it — `applyTypeSettings` is mocked, so this simulates the render
+    // that follows the real hook's own state update.
+    mocks.type.value = 'video';
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key: 'provider/model-allowed' }],
+    };
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        aspectRatio: '2.39:1', // not in the type's aspect-ratio ladder
+        brandId: 'brand-1',
+        duration: 999, // not one of the type's duration options
+        modelKey: 'provider/model-unavailable', // not in the org's catalog
+        outputs: 99, // over the type/model's output cap
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'video',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'video',
+        cdnUrl: 'https://cdn.example/neon.mp4',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    render(<StudioGenerateWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'video',
+        expect.objectContaining({ modelKey: 'provider/model-unavailable' }),
+      );
+    });
+    expect(screen.getByText('A neon skyline at dusk')).toBeVisible();
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(mocks.updateSettings).toHaveBeenCalledWith({
+        modelKey: AUTO_MODEL_OPTION_VALUE,
+      });
+    });
+    await waitFor(() => {
+      expect(mocks.updateSettings).toHaveBeenCalledWith(
+        expect.objectContaining({
+          aspectRatio: expect.any(String),
+          duration: expect.any(Number),
+          outputs: expect.any(Number),
+        }),
+      );
+    });
+    await waitFor(() => {
+      expect(mocks.notify).toHaveBeenCalledWith(
+        expect.stringContaining('model pick'),
+      );
+    });
+    expect(mocks.notify).toHaveBeenCalledWith(
+      expect.stringContaining('aspect ratio, duration, output count'),
+    );
+  });
+
+  it('skips a handoff created under a different brand and shows the fallback notice instead of prefilling (#4716 review P2)', async () => {
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-other',
+        modelKey: 'provider/model-x',
+        prompt: 'Should never appear',
+        type: 'image',
+      },
+    };
+
+    render(<StudioGenerateWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.notify).toHaveBeenCalledWith(
+        'That Studio handoff has expired or was already used. Continuing with your usual defaults.',
+      );
+    });
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+    expect(screen.queryByText('Should never appear')).not.toBeInTheDocument();
   });
 });

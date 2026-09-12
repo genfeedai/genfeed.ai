@@ -273,6 +273,7 @@ export * from './social/listening-topic.interface';
 export * from './social/social-inbox.interface';
 export * from './social/social-warmup-enrollment.interface';
 export * from './social/source-collector.interface';
+export * from './studio/agent-studio-handoff.interface';
 export * from './studio/camera-movement.interface';
 export * from './studio/conversation-canvas.interface';
 export * from './studio/conversation-sidebar.interface';

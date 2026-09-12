@@ -37,6 +37,8 @@ type AgentChatTimelineProps = {
     name: string;
     description: string;
   }) => void | Promise<void>;
+  /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
+  onOpenInStudio?: (studioUrl: string) => void;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -72,6 +74,7 @@ export function AgentChatTimeline({
   onRetryLastFailedRun,
   onOAuthConnect,
   onBrandCreate,
+  onOpenInStudio,
   onSelectCreditPack,
   onSelectIngredient,
   onUiAction,
@@ -148,6 +151,7 @@ export function AgentChatTimeline({
             onRegenerate={onRegenerate}
             onOAuthConnect={onOAuthConnect}
             onBrandCreate={onBrandCreate}
+            onOpenInStudio={onOpenInStudio}
             onSelectCreditPack={onSelectCreditPack}
             onSelectIngredient={onSelectIngredient}
             onUiAction={onUiAction}
@@ -231,6 +235,7 @@ export function AgentChatTimeline({
               onCopy={onCopy}
               onOAuthConnect={onOAuthConnect}
               onBrandCreate={onBrandCreate}
+              onOpenInStudio={onOpenInStudio}
               onSelectCreditPack={onSelectCreditPack}
               onSelectIngredient={onSelectIngredient}
               onUiAction={onUiAction}

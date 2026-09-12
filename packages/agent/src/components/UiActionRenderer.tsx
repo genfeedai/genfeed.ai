@@ -61,6 +61,7 @@ export function UiActionRenderer({
   onCopy,
   onOAuthConnect,
   onBrandCreate,
+  onOpenInStudio,
   onSelectCreditPack,
   onSelectIngredient,
   onRetry,
@@ -81,6 +82,8 @@ export function UiActionRenderer({
     name: string;
     description: string;
   }) => void | Promise<void>;
+  /** #4670 Open in Studio: navigates to the ready-to-use Studio generate URL. */
+  onOpenInStudio?: (studioUrl: string) => void;
   onSelectCreditPack?: (pack: {
     label: string;
     price: string;
@@ -99,6 +102,7 @@ export function UiActionRenderer({
   const liveOnOAuthConnect = isInert ? undefined : onOAuthConnect;
   const liveOnBrandCreate = isInert ? undefined : onBrandCreate;
   const liveOnSelectCreditPack = isInert ? undefined : onSelectCreditPack;
+  const liveOnOpenInStudio = isInert ? undefined : onOpenInStudio;
   const liveOnSelectIngredient = isInert ? undefined : onSelectIngredient;
   const liveOnRetry = isInert ? undefined : onRetry;
   const liveOnUiAction = isInert ? undefined : onUiAction;
@@ -153,6 +157,7 @@ export function UiActionRenderer({
         <GenerationActionCard
           action={action}
           apiService={liveApiService}
+          onOpenInStudio={liveOnOpenInStudio}
           onUiAction={liveOnUiAction}
         />
       ) : null;
