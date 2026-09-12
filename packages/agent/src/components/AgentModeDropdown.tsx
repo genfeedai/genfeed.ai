@@ -1,7 +1,7 @@
 'use client';
 
 import {
-  type AgentThreadMode,
+  AgentThreadMode,
   ButtonSize,
   ButtonVariant,
   normalizeAgentThreadMode,
