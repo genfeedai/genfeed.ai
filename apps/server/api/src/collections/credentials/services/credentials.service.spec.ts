@@ -713,12 +713,22 @@ describe('CredentialsService', () => {
         id: 'account-2',
       });
 
-      const patched = prisma.credential.update.mock.calls.at(-1)?.[0] as {
+      // The claim is conditional on the row's own pre-claim state (see the
+      // "losing writer" test below) rather than a blind patch by id, so it
+      // goes through updateMany, not update.
+      const patched = prisma.credential.updateMany.mock.calls.at(-1)?.[0] as {
         data: Record<string, unknown>;
         where: Record<string, unknown>;
       };
 
-      expect(patched.where).toEqual({ id: 'pending-1' });
+      expect(patched.where).toEqual(
+        expect.objectContaining({
+          externalId: null,
+          id: 'pending-1',
+          isConnected: false,
+          organizationId: orgId,
+        }),
+      );
       expect(patched.data).toEqual(
         expect.objectContaining({
           externalId: 'account-2',
@@ -727,6 +737,31 @@ describe('CredentialsService', () => {
           oauthState: null,
         }),
       );
+    });
+
+    it('rejects the losing writer of a concurrent claim on the same pending row', async () => {
+      // Two concurrent select-account requests choosing *different*
+      // accounts never collide on the externalId unique constraint (only
+      // the P2002 path above covers that), so the only thing that can stop
+      // the second writer from silently overwriting the first's claim is
+      // this row-state precondition. Simulate the second writer losing the
+      // race: updateMany matches zero rows because the first writer already
+      // flipped isConnected/externalId.
+      loadPendingCredential();
+      prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
+      prisma.credential.updateMany.mockResolvedValueOnce({ count: 0 });
+
+      await expect(
+        service.updateExternalProfile('pending-1', orgId, {
+          handle: 'second_account',
+          id: 'account-2',
+        }),
+      ).rejects.toMatchObject({
+        response: {
+          title: 'Already Connected',
+        },
+        status: 400,
+      });
     });
 
     it('merges into the incumbent and retires the pending row on reconnect', async () => {
@@ -773,7 +808,7 @@ describe('CredentialsService', () => {
     it('folds into the winner when a concurrent verify claimed the identity first', async () => {
       loadPendingCredential();
       prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent yet
-      prisma.credential.update.mockRejectedValueOnce(
+      prisma.credential.updateMany.mockRejectedValueOnce(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
       prisma.credential.findFirst.mockResolvedValueOnce({ id: 'winner-1' }); // retry finds it
@@ -796,7 +831,7 @@ describe('CredentialsService', () => {
     it('rethrows a unique violation when no winner can be found', async () => {
       loadPendingCredential();
       prisma.credential.findFirst.mockResolvedValueOnce(null);
-      prisma.credential.update.mockRejectedValueOnce(
+      prisma.credential.updateMany.mockRejectedValueOnce(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
       prisma.credential.findFirst.mockResolvedValueOnce(null);

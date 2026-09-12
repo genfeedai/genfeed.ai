@@ -28,7 +28,7 @@ import {
 } from '@genfeedai/contracts';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
 export type { ResolveBrandAccountOptions } from '@api/collections/credentials/credential.types';
 
@@ -854,14 +854,50 @@ export class CredentialsService
       credential.platform as CredentialPlatform,
     );
 
-    const claimIdentity = (): Promise<CredentialDocument> =>
-      this.patch(credential.id, {
+    // Conditional on the row's own pre-claim state (unconnected, no
+    // externalId yet) rather than a blind patch by id. Two callers racing
+    // to settle *different* identities onto the same pending row (e.g. two
+    // concurrent select-account requests) never collide on a unique
+    // constraint — nothing else would stop the second write from silently
+    // overwriting the first's claim. `isDeleted` is left out of the filter
+    // (not defaulted to false) so a soft-deleted row can still be reclaimed
+    // on reconnect, matching the un-scoped `patch` this replaces. The
+    // returned document is built from the known prior state plus the exact
+    // fields just written, rather than a follow-up read, since `updateMany`
+    // does not return the row.
+    const claimIdentity = async (): Promise<CredentialDocument> => {
+      const claim = {
         ...profileUpdate,
         externalId,
         isConnected: true,
         isDeleted: false,
         oauthState: null,
-      });
+      };
+
+      const { modifiedCount } = await this.patchAll(
+        {
+          externalId: null,
+          id: credential.id,
+          isConnected: false,
+          isDeleted: undefined,
+          organizationId: credential.organizationId,
+        },
+        claim,
+      );
+
+      if (modifiedCount === 0) {
+        throw new HttpException(
+          {
+            detail:
+              'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
+            title: 'Already Connected',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+
+      return { ...credential, ...claim } as CredentialDocument;
+    };
 
     if (!brandId || !prismaPlatform) {
       // No brand or no persisted platform means no sibling set to reconcile
