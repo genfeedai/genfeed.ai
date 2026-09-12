@@ -1,11 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import type { BrandsService } from '@api/collections/brands/services/brands.service';
-import type {
+import { BrandsService } from '@api/collections/brands/services/brands.service';
+import {
   ConnectCredentialDto,
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import {
-  type CredentialsService,
+  CredentialsService,
   extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
 
@@ -17,9 +17,9 @@ import {
   returnNotFound,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import type { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
-import type { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
 import {
   getSafeInstagramOAuthErrorLog,
   throwMappedInstagramOAuthError,
@@ -31,8 +31,8 @@ import {
   CredentialOAuthSerializer,
   CredentialSerializer,
 } from '@genfeedai/serializers';
-import type { ConfigService } from '@libs/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import {

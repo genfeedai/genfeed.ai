@@ -1,17 +1,17 @@
-import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import type { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { returnBadRequest } from '@api/helpers/utils/response/response.util';
-import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import type { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import {
   getSafeInstagramOAuthErrorLog,
   parseInstagramGrantedScopes,
 } from '@api/services/integrations/instagram/utils/instagram-error.util';
 import { CredentialPlatform, OAuthGrantType } from '@genfeedai/contracts';
 import type { InstagramPageResponse } from '@genfeedai/contracts/interfaces/integrations/instagram.interface';
-import type { ConfigService } from '@libs/config/config.service';
-import type { LoggerService } from '@libs/logger/logger.service';
-import type { HttpService } from '@nestjs/axios';
+import { ConfigService } from '@libs/config/config.service';
+import { LoggerService } from '@libs/logger/logger.service';
+import { HttpService } from '@nestjs/axios';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 import type { AxiosResponse } from 'axios';
 import { firstValueFrom } from 'rxjs';

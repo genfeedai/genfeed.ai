@@ -341,7 +341,7 @@ describe('GhostService', () => {
     it('should return decrypted API key and ghostUrl from credential', async () => {
       credentialsService.findOne.mockResolvedValue({
         accessToken: 'encrypted-token',
-        externalHandle: 'https://myblog.ghost.io',
+        externalId: 'https://myblog.ghost.io',
       });
 
       const result = await service.getCredentialApiKey(orgId, brandId);
@@ -378,7 +378,7 @@ describe('GhostService', () => {
     it('should return null when credential has no accessToken', async () => {
       credentialsService.findOne.mockResolvedValue({
         accessToken: '',
-        externalHandle: 'https://myblog.ghost.io',
+        externalId: 'https://myblog.ghost.io',
       });
 
       const result = await service.getCredentialApiKey(orgId, brandId);
@@ -386,10 +386,10 @@ describe('GhostService', () => {
       expect(result).toBeNull();
     });
 
-    it('should return null when credential has no externalHandle', async () => {
+    it('should return null when credential has no externalId', async () => {
       credentialsService.findOne.mockResolvedValue({
         accessToken: 'encrypted-token',
-        externalHandle: '',
+        externalId: '',
       });
 
       const result = await service.getCredentialApiKey(orgId, brandId);
