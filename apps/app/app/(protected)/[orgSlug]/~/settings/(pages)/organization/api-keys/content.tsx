@@ -36,12 +36,13 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const PRODUCT_API_KEY_PRESETS = [
-  { label: 'MCP', scopes: API_KEY_SCOPE_PRESETS.mcp },
-  { label: 'Read', scopes: API_KEY_SCOPE_PRESETS.read },
-  { label: 'Content', scopes: API_KEY_SCOPE_PRESETS.content },
+  { labelKey: 'presets.mcp', scopes: API_KEY_SCOPE_PRESETS.mcp },
+  { labelKey: 'presets.read', scopes: API_KEY_SCOPE_PRESETS.read },
+  { labelKey: 'presets.content', scopes: API_KEY_SCOPE_PRESETS.content },
 ] as const;
 
 const SECONDARY_BUTTON_VARIANT = ButtonVariant.SECONDARY;
@@ -57,17 +58,16 @@ function scopesExactlyMatch(
   return preset.every((scope) => selectedSet.has(scope));
 }
 
-const DEFAULT_PRODUCT_API_KEY_LABEL = 'MCP Server';
-const PRODUCT_KEYS_LOAD_ERROR = 'Failed to load API keys';
-
-const initialProductApiKeyForm: ProductApiKeyForm = {
-  allowedIps: '',
-  description: '',
-  expiresAt: '',
-  label: DEFAULT_PRODUCT_API_KEY_LABEL,
-  rateLimit: '',
-  selectedScopes: [...API_KEY_SCOPE_PRESETS.mcp],
-};
+function createInitialProductApiKeyForm(label: string): ProductApiKeyForm {
+  return {
+    allowedIps: '',
+    description: '',
+    expiresAt: '',
+    label,
+    rateLimit: '',
+    selectedScopes: [...API_KEY_SCOPE_PRESETS.mcp],
+  };
+}
 
 function parseCommaSeparated(value: string): string[] | undefined {
   const items = value
@@ -91,8 +91,11 @@ function parseExpiresAt(value: string): string | undefined {
   return date.toISOString();
 }
 
-function formatLastUsed(value?: string | null): string {
-  return value ? new Date(value).toLocaleString() : 'Never';
+function formatLastUsed(
+  value: string | null | undefined,
+  neverLabel: string,
+): string {
+  return value ? new Date(value).toLocaleString() : neverLabel;
 }
 
 function getVisibleKey(apiKey: ApiKey): string | undefined {
@@ -102,22 +105,23 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
 const API_ACCESS_UPGRADE_TIER_LABEL = 'Pro';
 
 export default function SettingsApiKeysPage() {
+  const translate = useTranslations('common.settings.apiKeys');
   const { organizationId, isReady, settings } = useBrand();
   const { orgHref } = useOrgUrl();
   const selfHostedDeployment = isSelfHostedDeployment();
   const hasProductApiAccess =
     selfHostedDeployment || hasApiAccess(settings?.subscriptionTier);
+  const defaultKeyName = translate('fields.keyNamePlaceholder');
+  const loadErrorMessage = translate('errors.load');
 
-  const [productApiKeys, setProductApiKeys] = useState<ApiKey[]>([]);
-  const [productForm, setProductForm] = useState<ProductApiKeyForm>(
-    initialProductApiKeyForm,
+  const [productApiKeys, setProductApiKeys] = useState<ApiKey[]>(() => []);
+  const [productForm, setProductForm] = useState<ProductApiKeyForm>(() =>
+    createInitialProductApiKeyForm(defaultKeyName),
   );
   const [productPlainKey, setProductPlainKey] =
     useState<ProductPlainKey | null>(null);
   const [isProductLoading, setIsProductLoading] = useState(true);
-  const [productKeysLoadError, setProductKeysLoadError] = useState<
-    string | null
-  >(null);
+  const [hasProductKeysLoadError, setHasProductKeysLoadError] = useState(false);
   const [isCreatingProductKey, setIsCreatingProductKey] = useState(false);
   const [mutatingProductKeyId, setMutatingProductKeyId] = useState<
     string | null
@@ -141,7 +145,7 @@ export default function SettingsApiKeysPage() {
 
       if (isCurrentFetch()) {
         setIsProductLoading(true);
-        setProductKeysLoadError(null);
+        setHasProductKeysLoadError(false);
       }
       try {
         const service = await getApiKeysService();
@@ -149,14 +153,14 @@ export default function SettingsApiKeysPage() {
 
         if (isCurrentFetch()) {
           setProductApiKeys(Array.isArray(apiKeys) ? apiKeys : []);
-          setProductKeysLoadError(null);
+          setHasProductKeysLoadError(false);
         }
       } catch (error) {
         if (isCurrentFetch()) {
           logger.error('Failed to fetch Genfeed API keys', error);
-          NotificationsService.getInstance().error(PRODUCT_KEYS_LOAD_ERROR);
+          NotificationsService.getInstance().error(loadErrorMessage);
           setProductApiKeys([]);
-          setProductKeysLoadError(PRODUCT_KEYS_LOAD_ERROR);
+          setHasProductKeysLoadError(true);
         }
       } finally {
         if (isCurrentFetch()) {
@@ -164,14 +168,14 @@ export default function SettingsApiKeysPage() {
         }
       }
     },
-    [getApiKeysService],
+    [getApiKeysService, loadErrorMessage],
   );
 
   useEffect(() => {
     if (!organizationId || !isReady) {
       setProductApiKeys([]);
       setProductPlainKey(null);
-      setProductKeysLoadError(null);
+      setHasProductKeysLoadError(false);
       setIsProductLoading(false);
       return;
     }
@@ -179,7 +183,7 @@ export default function SettingsApiKeysPage() {
 
     setProductApiKeys([]);
     setProductPlainKey(null);
-    setProductKeysLoadError(null);
+    setHasProductKeysLoadError(false);
     setIsProductLoading(true);
     fetchProductApiKeys(controller.signal);
     return () => controller.abort();
@@ -229,12 +233,12 @@ export default function SettingsApiKeysPage() {
   const handleCreateProductKey = async () => {
     if (!hasProductApiAccess) {
       NotificationsService.getInstance().error(
-        'API access is available on paid plans.',
+        translate('errors.paidPlanRequired'),
       );
       return;
     }
 
-    const label = productForm.label.trim() || DEFAULT_PRODUCT_API_KEY_LABEL;
+    const label = productForm.label.trim() || defaultKeyName;
     if (productForm.selectedScopes.length === 0) {
       return;
     }
@@ -258,12 +262,12 @@ export default function SettingsApiKeysPage() {
         setProductPlainKey({ key, label: apiKey.label ?? label });
       }
 
-      setProductForm(initialProductApiKeyForm);
+      setProductForm(createInitialProductApiKeyForm(defaultKeyName));
       await fetchProductApiKeys();
-      NotificationsService.getInstance().success('API key created');
+      NotificationsService.getInstance().success(translate('success.created'));
     } catch (error) {
       logger.error('Failed to create Genfeed API key', error);
-      NotificationsService.getInstance().error('Failed to create API key');
+      NotificationsService.getInstance().error(translate('errors.create'));
     } finally {
       setIsCreatingProductKey(false);
     }
@@ -272,10 +276,10 @@ export default function SettingsApiKeysPage() {
   const handleCopyProductKey = async (key: string) => {
     try {
       await navigator.clipboard.writeText(key);
-      NotificationsService.getInstance().success('API key copied');
+      NotificationsService.getInstance().success(translate('success.copied'));
     } catch (error) {
       logger.error('Failed to copy Genfeed API key', error);
-      NotificationsService.getInstance().error('Failed to copy API key');
+      NotificationsService.getInstance().error(translate('errors.copy'));
     }
   };
 
@@ -289,15 +293,16 @@ export default function SettingsApiKeysPage() {
       if (key) {
         setProductPlainKey({
           key,
-          label: rotatedKey.label ?? apiKey.label ?? 'Rotated key',
+          label:
+            rotatedKey.label ?? apiKey.label ?? translate('plainKey.rotated'),
         });
       }
 
       await fetchProductApiKeys();
-      NotificationsService.getInstance().success('API key rotated');
+      NotificationsService.getInstance().success(translate('success.rotated'));
     } catch (error) {
       logger.error('Failed to rotate Genfeed API key', error);
-      NotificationsService.getInstance().error('Failed to rotate API key');
+      NotificationsService.getInstance().error(translate('errors.rotate'));
     } finally {
       setMutatingProductKeyId(null);
     }
@@ -309,10 +314,10 @@ export default function SettingsApiKeysPage() {
       const service = await getApiKeysService();
       await service.revokeApiKey(apiKey.id);
       await fetchProductApiKeys();
-      NotificationsService.getInstance().success('API key revoked');
+      NotificationsService.getInstance().success(translate('success.revoked'));
     } catch (error) {
       logger.error('Failed to revoke Genfeed API key', error);
-      NotificationsService.getInstance().error('Failed to revoke API key');
+      NotificationsService.getInstance().error(translate('errors.revoke'));
     } finally {
       setMutatingProductKeyId(null);
     }
@@ -321,18 +326,24 @@ export default function SettingsApiKeysPage() {
   if (isReady && !hasProductApiAccess) {
     return (
       <div className="space-y-4 pb-10">
-        <h1 className="sr-only">API Keys</h1>
+        <h1 className="sr-only">{translate('title')}</h1>
         <CardEmpty
           actions={
             <Button asChild variant={ButtonVariant.DEFAULT} withWrapper={false}>
               <Link href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}>
-                Upgrade to {API_ACCESS_UPGRADE_TIER_LABEL}
+                {translate('actions.upgrade', {
+                  tier: API_ACCESS_UPGRADE_TIER_LABEL,
+                })}
               </Link>
             </Button>
           }
-          description={`API access is included on paid plans. Upgrade to ${API_ACCESS_UPGRADE_TIER_LABEL} to create Genfeed API keys for CLI, MCP, and unattended workflows.`}
+          description={translate('upgrade.description', {
+            tier: API_ACCESS_UPGRADE_TIER_LABEL,
+          })}
           icon={Lock}
-          label={`Unlock API keys with ${API_ACCESS_UPGRADE_TIER_LABEL}`}
+          label={translate('upgrade.label', {
+            tier: API_ACCESS_UPGRADE_TIER_LABEL,
+          })}
         />
       </div>
     );
@@ -340,19 +351,19 @@ export default function SettingsApiKeysPage() {
 
   return (
     <div className="space-y-4 pb-10">
-      <h1 className="sr-only">API Keys</h1>
+      <h1 className="sr-only">{translate('title')}</h1>
 
       {isReady ? (
         <Card
-          label="API keys"
-          description="Use these keys for CLI profiles, MCP servers, and unattended workflows."
+          label={translate('card.title')}
+          description={translate('card.description')}
           bodyClassName="gap-3 p-4"
           headerAction={
             <Button
               variant={SECONDARY_BUTTON_VARIANT}
               onClick={() => fetchProductApiKeys()}
               isDisabled={isProductLoading}
-              aria-label="Refresh Genfeed API keys"
+              aria-label={translate('actions.refreshAria')}
             >
               <RefreshCw className="size-4" />
             </Button>
@@ -372,11 +383,11 @@ export default function SettingsApiKeysPage() {
                   onClick={() => handleCopyProductKey(productPlainKey.key)}
                 >
                   <Clipboard className="size-4" />
-                  Copy
+                  {translate('actions.copy')}
                 </Button>
               </div>
               <p className="text-xs text-muted-foreground mt-2">
-                Store this key now. It will not be shown again.
+                {translate('plainKey.notice')}
               </p>
             </div>
           ) : null}
@@ -384,19 +395,19 @@ export default function SettingsApiKeysPage() {
           <div className="mt-5 grid gap-3 md:grid-cols-2">
             <div>
               <span className="text-xs text-muted-foreground mb-1 block">
-                Key name
+                {translate('fields.keyName')}
               </span>
               <Input
                 value={productForm.label}
                 onChange={(event) =>
                   handleProductFormChange('label', event.target.value)
                 }
-                placeholder="MCP Server"
+                placeholder={translate('fields.keyNamePlaceholder')}
               />
             </div>
             <div>
               <span className="text-xs text-muted-foreground mb-1 block">
-                Expires
+                {translate('fields.expires')}
               </span>
               <Input
                 type="date"
@@ -408,7 +419,7 @@ export default function SettingsApiKeysPage() {
             </div>
             <div>
               <span className="text-xs text-muted-foreground mb-1 block">
-                Rate limit
+                {translate('fields.rateLimit')}
               </span>
               <Input
                 type="number"
@@ -417,31 +428,31 @@ export default function SettingsApiKeysPage() {
                 onChange={(event) =>
                   handleProductFormChange('rateLimit', event.target.value)
                 }
-                placeholder="60"
+                placeholder={translate('fields.rateLimitPlaceholder')}
               />
             </div>
             <div>
               <span className="text-xs text-muted-foreground mb-1 block">
-                Allowed IPs
+                {translate('fields.allowedIps')}
               </span>
               <Input
                 value={productForm.allowedIps}
                 onChange={(event) =>
                   handleProductFormChange('allowedIps', event.target.value)
                 }
-                placeholder="203.0.113.10, 203.0.113.11"
+                placeholder={translate('fields.allowedIpsPlaceholder')}
               />
             </div>
             <div className="md:col-span-2">
               <span className="text-xs text-muted-foreground mb-1 block">
-                Description
+                {translate('fields.description')}
               </span>
               <Input
                 value={productForm.description}
                 onChange={(event) =>
                   handleProductFormChange('description', event.target.value)
                 }
-                placeholder="Used by local MCP server"
+                placeholder={translate('fields.descriptionPlaceholder')}
               />
             </div>
           </div>
@@ -449,7 +460,7 @@ export default function SettingsApiKeysPage() {
           <div className="mt-4 space-y-3">
             <div>
               <span className="mb-1.5 block text-xs text-muted-foreground">
-                Scope preset
+                {translate('fields.scopePreset')}
               </span>
               <div className="flex flex-wrap gap-2">
                 {PRODUCT_API_KEY_PRESETS.map((preset) => {
@@ -460,7 +471,7 @@ export default function SettingsApiKeysPage() {
 
                   return (
                     <Button
-                      key={preset.label}
+                      key={preset.labelKey}
                       type="button"
                       size={ButtonSize.SM}
                       withWrapper={false}
@@ -477,7 +488,7 @@ export default function SettingsApiKeysPage() {
                       )}
                       onClick={() => handlePresetSelect(preset.scopes)}
                     >
-                      {preset.label}
+                      {translate(preset.labelKey)}
                     </Button>
                   );
                 })}
@@ -531,25 +542,28 @@ export default function SettingsApiKeysPage() {
               }
             >
               <Plus className="size-4" />
-              {isCreatingProductKey ? 'Creating...' : 'Create Key'}
+              {isCreatingProductKey
+                ? translate('actions.creating')
+                : translate('actions.create')}
             </Button>
           </div>
 
           <div className="mt-5 border-t border-border pt-4">
             {isProductLoading ? (
-              <p className="text-sm text-muted-foreground">Loading keys...</p>
-            ) : productKeysLoadError ? (
+              <p className="text-sm text-muted-foreground">
+                {translate('list.loading')}
+              </p>
+            ) : hasProductKeysLoadError ? (
               <Alert variant="destructive">
                 <TriangleAlert className="size-4" aria-hidden="true" />
-                <AlertTitle>Couldn't load API keys</AlertTitle>
+                <AlertTitle>{translate('errors.loadTitle')}</AlertTitle>
                 <AlertDescription>
-                  {productKeysLoadError}. You can still create a new key, or
-                  refresh the list.
+                  {translate('errors.loadDescription')}
                 </AlertDescription>
               </Alert>
             ) : productApiKeys.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                No active Genfeed API keys.
+                {translate('empty')}
               </p>
             ) : (
               <div className="space-y-3">
@@ -560,13 +574,19 @@ export default function SettingsApiKeysPage() {
                   >
                     <div className="min-w-0">
                       <p className="text-sm font-medium">
-                        {apiKey.label ?? 'Untitled key'}
+                        {apiKey.label ?? translate('list.untitled')}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Last used: {formatLastUsed(apiKey.lastUsedAt)}
+                        {translate('list.lastUsed', {
+                          value: formatLastUsed(
+                            apiKey.lastUsedAt,
+                            translate('list.never'),
+                          ),
+                        })}
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        {(apiKey.scopes ?? []).join(', ') || 'No scopes'}
+                        {(apiKey.scopes ?? []).join(', ') ||
+                          translate('list.noScopes')}
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
@@ -576,7 +596,7 @@ export default function SettingsApiKeysPage() {
                         isDisabled={mutatingProductKeyId === apiKey.id}
                       >
                         <RefreshCw className="size-4" />
-                        Rotate
+                        {translate('actions.rotate')}
                       </Button>
                       <Button
                         variant={SECONDARY_BUTTON_VARIANT}
@@ -584,7 +604,7 @@ export default function SettingsApiKeysPage() {
                         isDisabled={mutatingProductKeyId === apiKey.id}
                       >
                         <Trash2 className="size-4" />
-                        Revoke
+                        {translate('actions.revoke')}
                       </Button>
                     </div>
                   </div>

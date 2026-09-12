@@ -205,6 +205,15 @@ describe('loadMessages', () => {
     );
     expect(english.pages.posts.list.toolbar.notPosted).toBe('Not posted');
     expect(english.pages.posts.list.views.posted.title).toBe('Posted');
+    expect(english.common.settings.apiKeys.empty).toBe(
+      'No active Genfeed API keys.',
+    );
+    expect(english.common.settings.apiKeys.errors.loadTitle).toBe(
+      "Couldn't load API keys",
+    );
+    expect(english.common.settings.apiKeys.fields.keyNamePlaceholder).toBe(
+      'MCP Server',
+    );
   });
 
   it('serves the source-post variation copy used by the remix surface', () => {

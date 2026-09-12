@@ -4,6 +4,11 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsApiKeysPage from './content';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({
     orgHref: (path: string) =>
