@@ -24,7 +24,9 @@ vi.mock('next-intl', () => ({
       publish: 'Publish',
       publishAlreadyPublished: 'This workflow is already published.',
       publishArchived: 'Archived workflows cannot be published.',
+      publishRequiresNodes: 'Add at least one node before publishing.',
       run: 'Run',
+      runRequiresNodes: 'Add at least one node before running.',
       running: 'Running…',
       schedule: 'Schedule',
       scheduleTooltip: 'Set a recurring schedule',
@@ -161,5 +163,33 @@ describe('WorkflowEditorSectionTopbar', () => {
     expect(
       screen.queryByRole('button', { name: 'Schedule' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('disables Run and Publish with an explanation while unsaved and empty', () => {
+    const props = renderTopbar({ isUnsavedEmpty: true });
+
+    const run = screen.getByRole('button', { name: 'Run' });
+    const publish = screen.getByRole('button', { name: 'Publish' });
+
+    expect(run).toBeDisabled();
+    expect(run).toHaveAccessibleDescription(
+      'Add at least one node before running.',
+    );
+    expect(publish).toBeDisabled();
+    expect(publish).toHaveAccessibleDescription(
+      'Add at least one node before publishing.',
+    );
+
+    fireEvent.click(run);
+    fireEvent.click(publish);
+    expect(props.onRun).not.toHaveBeenCalled();
+    expect(props.onPublish).not.toHaveBeenCalled();
+  });
+
+  it('leaves Run and Publish enabled when not unsaved-empty', () => {
+    renderTopbar({ isUnsavedEmpty: false });
+
+    expect(screen.getByRole('button', { name: 'Run' })).not.toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Publish' })).not.toBeDisabled();
   });
 });

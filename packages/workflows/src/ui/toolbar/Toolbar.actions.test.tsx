@@ -162,8 +162,7 @@ describe('Toolbar actions', () => {
     }
   });
 
-  it('renders additional menus and opens the Save As dialog', () => {
-    const onSaveAs = vi.fn();
+  it('renders additional menus', () => {
     const menuAction = vi.fn();
     render(
       <Toolbar
@@ -180,19 +179,18 @@ describe('Toolbar actions', () => {
             label: 'Extras',
           },
         ]}
-        onSaveAs={onSaveAs}
       />,
     );
 
     fireEvent.click(screen.getByText('Extras'));
     fireEvent.click(screen.getByText('Custom Action'));
     expect(menuAction).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not offer Save As in the File menu', () => {
+    render(<Toolbar />);
 
     fireEvent.click(screen.getByText('File'));
-    fireEvent.click(screen.getByText('Save As...'));
-    expect(screen.getByRole('dialog')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByText('Save'));
-    expect(onSaveAs).toHaveBeenCalledWith('My Flow (copy)');
+    expect(screen.queryByText('Save As...')).not.toBeInTheDocument();
   });
 });

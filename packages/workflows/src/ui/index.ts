@@ -120,7 +120,6 @@ export {
   BottomBar,
   CostIndicator,
   OverflowMenu,
-  SaveAsDialog,
   SaveIndicator,
   Toolbar,
   ToolbarDropdown,

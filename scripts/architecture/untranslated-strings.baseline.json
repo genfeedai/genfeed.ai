@@ -889,9 +889,8 @@
     "packages/workflows/src/ui/panels/NodePalette.tsx": 6,
     "packages/workflows/src/ui/toolbar/BottomBar.tsx": 7,
     "packages/workflows/src/ui/toolbar/OverflowMenu.tsx": 1,
-    "packages/workflows/src/ui/toolbar/SaveAsDialog.tsx": 5,
     "packages/workflows/src/ui/toolbar/SaveIndicator.tsx": 6,
-    "packages/workflows/src/ui/toolbar/Toolbar.tsx": 16,
+    "packages/workflows/src/ui/toolbar/Toolbar.tsx": 15,
     "packages/workflows/src/ui/ui/comparison-slider.tsx": 1,
     "packages/workflows/src/ui/ui/grid-position-selector.tsx": 2
   }

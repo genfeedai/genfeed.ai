@@ -109,7 +109,7 @@ function buildMessagesAutomationSeed(
  */
 export default function WorkflowNewPageClient() {
   const searchParams = useSearchParams();
-  const { push, replace } = useRouter();
+  const { replace } = useRouter();
   const { href } = useOrgUrl();
   const hasSeededMessagesAutomationRef = useRef(false);
   const [isRunning, setIsRunning] = useState(false);
@@ -183,6 +183,9 @@ export default function WorkflowNewPageClient() {
   const edges = useWorkflowStore(selectEdges);
   const safeNodes = coerceWorkflowItems<WorkflowGraphNodeLike>(nodes);
   const safeEdges = coerceWorkflowItems<WorkflowGraphEdgeLike>(edges);
+  // A brand-new workflow with no nodes yet has never been saved — autosave,
+  // Run, and Publish must not create it (#4664).
+  const isUnsavedEmpty = !currentWorkflowId && nodes.length === 0;
 
   const workflowEstimate = useMemo(() => {
     return buildWorkflowEtaSnapshot({
@@ -266,21 +269,6 @@ export default function WorkflowNewPageClient() {
     await save();
   }, [save]);
 
-  const handleSaveAsCopy = useCallback(
-    async (newName: string) => {
-      await save();
-      const service = await getWorkflowService();
-      const duplicated = await useCloudWorkflowStore
-        .getState()
-        .duplicateWorkflow(service);
-      await service.update(duplicated.id, {
-        label: newName.trim() || duplicated.label,
-      });
-      push(href(`${APP_ROUTES.AUTOMATION.WORKFLOWS}/${duplicated.id}`));
-    },
-    [getWorkflowService, href, push, save],
-  );
-
   const handleTerminalExecution = useCallback(
     (execution: { id: string; status: WorkflowExecutionStatus }) => {
       workflowRunTracker.trackTerminalExecution(execution);
@@ -361,10 +349,10 @@ export default function WorkflowNewPageClient() {
                 isSaving={isSaving}
                 middleContent={<CloudCreditsIndicator />}
                 onRename={handleRename}
-                onSaveAsCopy={handleSaveAsCopy}
               />
             }
             isRunning={isRunning}
+            isUnsavedEmpty={isUnsavedEmpty}
             lifecycle={lifecycle}
             onArchive={handleArchive}
             onPublish={handlePublish}

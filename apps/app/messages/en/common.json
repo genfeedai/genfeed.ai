@@ -837,8 +837,10 @@
         "publish": "Publish",
         "publishAlreadyPublished": "This workflow is already published.",
         "publishArchived": "Archived workflows cannot be published.",
+        "publishRequiresNodes": "Add at least one node before publishing.",
         "retry": "Retry",
         "run": "Run",
+        "runRequiresNodes": "Add at least one node before running.",
         "running": "Running\u2026",
         "schedule": "Schedule",
         "scheduleTooltip": "Set a recurring schedule"
