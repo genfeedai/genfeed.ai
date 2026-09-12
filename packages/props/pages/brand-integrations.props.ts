@@ -38,12 +38,13 @@ export interface AccountRowActionsMenuProps {
 export interface AccountsTableProps {
   /** Live health fetched for the brand, keyed by `credentialId` in each entry. */
   accountHealth: AccountHealthSummary[];
-  connectingPlatform: string | null;
   connections: BrandDetailSocialConnection[];
   onConnectAccount: () => void;
   onDisconnect: (connection: BrandDetailSocialConnection) => void;
   onPostingTimes: (connection: BrandDetailSocialConnection) => void;
   onReconnect: (connection: BrandDetailSocialConnection) => void;
+  /** Which specific credential's Reconnect flow is in flight — disables only that row, not every account on the same platform. */
+  reconnectingCredentialId: string | null;
   /** Platforms whose OAuth connect route is not currently available (e.g. Threads readiness). */
   unavailablePlatforms: ReadonlySet<CredentialPlatform>;
 }

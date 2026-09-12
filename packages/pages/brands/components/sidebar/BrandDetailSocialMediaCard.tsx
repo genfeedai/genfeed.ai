@@ -181,6 +181,15 @@ export default function BrandDetailSocialMediaCard({
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
     null,
   );
+  // Distinct from `connectingPlatform`: that one drives the header/modal's
+  // *new-account* connect controls (no credential exists yet, so platform
+  // is the only key available). Reconnect always targets one existing
+  // credential, so its disablement must key off credentialId — otherwise
+  // reconnecting one account disables Reconnect for every other account on
+  // the same platform.
+  const [reconnectingCredentialId, setReconnectingCredentialId] = useState<
+    string | null
+  >(null);
   const [accountHealth, setAccountHealth] = useState<AccountHealthSummary[]>(
     [],
   );
@@ -382,6 +391,9 @@ export default function BrandDetailSocialMediaCard({
     const platform = item.platform;
     try {
       setConnectingPlatform(platform);
+      if (credentialId) {
+        setReconnectingCredentialId(credentialId);
+      }
       const token = (await resolveAuthToken(getToken)) ?? '';
       // Mirror usePlatformOAuthConnect: provider redirects drop query params, so
       // /oauth/[platform] reads return_to from sessionStorage after verify.
@@ -411,6 +423,7 @@ export default function BrandDetailSocialMediaCard({
         translate('connectPlatform', { platform: item.label }),
       );
       setConnectingPlatform(null);
+      setReconnectingCredentialId(null);
     }
   };
 
@@ -737,12 +750,12 @@ export default function BrandDetailSocialMediaCard({
       <>
         <AccountsTable
           accountHealth={healthRows}
-          connectingPlatform={connectingPlatform}
           connections={connectedConnections}
           onConnectAccount={() => setIsConnectAccountModalOpen(true)}
           onDisconnect={setDisconnectTarget}
           onPostingTimes={setPostingTimesTarget}
           onReconnect={handleReconnect}
+          reconnectingCredentialId={reconnectingCredentialId}
           unavailablePlatforms={unavailablePlatforms}
         />
 

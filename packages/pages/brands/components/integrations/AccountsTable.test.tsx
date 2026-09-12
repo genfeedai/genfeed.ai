@@ -68,7 +68,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[
           buildConnection({
             credentialId: 'c1',
@@ -98,7 +97,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[buildConnection({ isConnected: false })]}
         onConnectAccount={noop}
         onDisconnect={noop}
@@ -116,7 +114,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[buildConnection({ externalId: undefined })]}
         onConnectAccount={noop}
         onDisconnect={noop}
@@ -134,7 +131,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[
           buildConnection({ accessTokenExpiry: '2020-01-01T00:00:00.000Z' }),
         ]}
@@ -154,7 +150,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[buildConnection()]}
         onConnectAccount={noop}
         onDisconnect={noop}
@@ -174,7 +169,6 @@ describe('AccountsTable', () => {
         accountHealth={[
           buildHealth({ credentialId: 'cred-1', state: 'warming' }),
         ]}
-        connectingPlatform={null}
         connections={[
           buildConnection({
             credentialId: 'cred-1',
@@ -199,7 +193,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[
           buildConnection({
             credentialId: 'c-twitter',
@@ -239,7 +232,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[
           buildConnection({ credentialId: 'live-1' }),
           buildConnection({
@@ -267,7 +259,6 @@ describe('AccountsTable', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={null}
         connections={[]}
         onConnectAccount={onConnectAccount}
         onDisconnect={noop}
@@ -295,11 +286,10 @@ describe('AccountsTable', () => {
     expect(onConnectAccount).toHaveBeenCalledTimes(1);
   });
 
-  it('disables Reconnect for the row whose platform is currently connecting', () => {
+  it('disables Reconnect only for the credential currently reconnecting', () => {
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={CredentialPlatform.TWITTER}
         connections={[
           buildConnection({
             credentialId: 'c-twitter',
@@ -310,6 +300,7 @@ describe('AccountsTable', () => {
         onDisconnect={noop}
         onPostingTimes={noop}
         onReconnect={noop}
+        reconnectingCredentialId="c-twitter"
         unavailablePlatforms={new Set()}
       />,
     );
@@ -326,30 +317,69 @@ describe('AccountsTable', () => {
     );
   });
 
-  it('leaves Reconnect enabled for a different platform while one connect is in flight', () => {
+  it('leaves a sibling account on the same platform reconnectable while one account reconnects', () => {
+    // Regression: disablement used to key off `connectingPlatform ===
+    // connection.platform`, so reconnecting one Twitter account disabled
+    // Reconnect for every other Twitter account too. It must key off the
+    // specific credentialId instead.
     render(
       <AccountsTable
         accountHealth={[]}
-        connectingPlatform={CredentialPlatform.TWITTER}
         connections={[
           buildConnection({
-            credentialId: 'c-tiktok',
-            platform: CredentialPlatform.TIKTOK,
+            credentialId: 'c-twitter-1',
+            name: 'Reconnecting Account',
+            platform: CredentialPlatform.TWITTER,
+          }),
+          buildConnection({
+            credentialId: 'c-twitter-2',
+            name: 'Other Account',
+            platform: CredentialPlatform.TWITTER,
           }),
         ]}
         onConnectAccount={noop}
         onDisconnect={noop}
         onPostingTimes={noop}
         onReconnect={noop}
+        reconnectingCredentialId="c-twitter-1"
         unavailablePlatforms={new Set()}
       />,
     );
 
-    const menuTrigger = desktop().getByRole('button', {
+    // Sorted alphabetically by name within the same platform ("Other
+    // Account" < "Reconnecting Account"), so find each row by its own
+    // content rather than assuming an index.
+    const dataRows = desktop().getAllByRole('row').slice(1);
+    const reconnectingRow = dataRows.find((row) =>
+      row.textContent?.includes('Reconnecting Account'),
+    );
+    const otherRow = dataRows.find((row) =>
+      row.textContent?.includes('Other Account'),
+    );
+    if (!reconnectingRow || !otherRow) {
+      throw new Error('expected two account rows');
+    }
+
+    // Query the trigger once and reuse the same handle for both events —
+    // opening the menu marks the rest of the page `aria-hidden` (Radix
+    // hides everything outside the open portal from assistive tech), so a
+    // second by-role query for the same trigger after it opens finds
+    // nothing.
+    const reconnectingTrigger = within(reconnectingRow).getByRole('button', {
       name: /More actions/,
     });
-    fireEvent.pointerDown(menuTrigger);
-    fireEvent.click(menuTrigger);
+    fireEvent.pointerDown(reconnectingTrigger);
+    fireEvent.click(reconnectingTrigger);
+    expect(screen.getByRole('menuitem', { name: 'Reconnect' })).toHaveAttribute(
+      'data-disabled',
+    );
+    fireEvent.keyDown(document.body, { key: 'Escape' });
+
+    const otherTrigger = within(otherRow).getByRole('button', {
+      name: /More actions/,
+    });
+    fireEvent.pointerDown(otherTrigger);
+    fireEvent.click(otherTrigger);
     expect(
       screen.getByRole('menuitem', { name: 'Reconnect' }),
     ).not.toHaveAttribute('data-disabled');

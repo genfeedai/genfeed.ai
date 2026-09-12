@@ -55,12 +55,12 @@ function buildHealthByCredentialId(
  */
 export default function AccountsTable({
   accountHealth,
-  connectingPlatform,
   connections,
   onConnectAccount,
   onDisconnect,
   onPostingTimes,
   onReconnect,
+  reconnectingCredentialId,
   unavailablePlatforms,
 }: AccountsTableProps) {
   const translate = useTranslations('pages.brandSocialMedia');
@@ -126,12 +126,15 @@ export default function AccountsTable({
               </TableHeader>
               <TableBody>
                 {sortedConnections.map((connection) => {
-                  // Only the row being reconnected is disabled — a connect
-                  // in flight for one platform must not freeze every other
-                  // account's Reconnect action.
+                  // Only the row being reconnected is disabled — keyed by
+                  // credentialId, not platform, so reconnecting one account
+                  // doesn't freeze Reconnect for a sibling account on the
+                  // same platform. A brand-new connect (no credential yet)
+                  // is tracked separately, by ConnectAccountModal's own
+                  // connectingPlatform.
                   const isReconnectDisabled =
                     unavailablePlatforms.has(connection.platform) ||
-                    connectingPlatform === connection.platform;
+                    reconnectingCredentialId === connection.credentialId;
 
                   return (
                     <TableRow key={connection.credentialId}>
@@ -172,7 +175,7 @@ export default function AccountsTable({
             {sortedConnections.map((connection) => {
               const isReconnectDisabled =
                 unavailablePlatforms.has(connection.platform) ||
-                connectingPlatform === connection.platform;
+                reconnectingCredentialId === connection.credentialId;
 
               return (
                 <div
