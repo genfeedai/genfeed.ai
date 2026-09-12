@@ -25,18 +25,19 @@ vi.mock('@libs/utils/encryption/encryption.util', () => ({
 }));
 
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
-import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
+import type { BrandsService } from '@api/collections/brands/services/brands.service';
+import type { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import type { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { returnBadRequest } from '@api/helpers/utils/response/response.util';
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
-import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
-import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import type { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
+import type { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
 import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
 import { testId } from '@helpers/testing/test-id.helper';
-import { ConfigService } from '@libs/config/config.service';
-import { LoggerService } from '@libs/logger/logger.service';
-import { HttpService } from '@nestjs/axios';
+import type { ConfigService } from '@libs/config/config.service';
+import type { LoggerService } from '@libs/logger/logger.service';
+import type { HttpService } from '@nestjs/axios';
 import {
   HttpException,
   HttpStatus,
@@ -1009,13 +1010,33 @@ describe('InstagramController', () => {
 
     it('should return bad request when short-lived token is missing', async () => {
       httpPostMock.mockReturnValue(of({ data: { access_token: null } }));
-
-      const result = await controller.verify(mockRequest, {
-        code: 'code',
-        state,
+      // This check now lives inside InstagramConnectionResolverService, not
+      // directly in `verify`. The suite-wide `returnBadRequest` mock returns
+      // a value instead of throwing (so `connect`/`selectAccount` tests can
+      // assert on a plain resolved `{ errors }` shape) — that convenience
+      // only reaches the caller for a *direct* early return, which this call
+      // site no longer is now that it is one level down. `verify`'s own
+      // catch/throwMappedInstagramOAuthError contract only ever sees a real
+      // throw (returnBadRequest genuinely throws in production), so make
+      // this one call throw to exercise that real contract end to end.
+      vi.mocked(returnBadRequest).mockImplementationOnce(() => {
+        throw new HttpException(
+          {
+            detail: 'Missing short-lived access token from Facebook',
+            title: 'Invalid payload',
+          },
+          HttpStatus.BAD_REQUEST,
+        );
       });
 
-      expect(result).toHaveProperty('errors');
+      const failure = await captureHttpException(
+        controller.verify(mockRequest, { code: 'code', state }),
+      );
+
+      expect(failure.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect(failure.getResponse()).toEqual(
+        expect.objectContaining({ title: 'Invalid payload' }),
+      );
     });
   });
 
