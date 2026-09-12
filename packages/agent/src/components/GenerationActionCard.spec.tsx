@@ -240,15 +240,22 @@ vi.mock('@ui/primitives/select', () => ({
   ),
 }));
 
-const { brandState, storeState } = vi.hoisted(() => ({
+const { brandState, orgUrlParams, storeState } = vi.hoisted(() => ({
   brandState: {
     // #4670 Open in Studio requires a brand to hand off to — every fixture
     // in this file is scoped to one brand, so this is never blank.
     brandId: 'brand-1',
     organizationId: '',
+    // Fallback brand for `useOrgUrl().activeHref` when the route itself
+    // carries no brand segment (#4716 P0 — the org-level Agent workspace).
+    selectedBrand: { slug: 'test-brand' },
     settings: null as { enabledModelIds?: string[] } | null,
     settingsLoading: false,
   },
+  // Mutable so a single test can simulate the org-level Agent workspace
+  // route (`/:orgSlug/~/agent`, no brand segment) without affecting the rest
+  // of this file's fixtures, which stay on the default brand-scoped route.
+  orgUrlParams: { brandSlug: 'test-brand', orgSlug: 'test-org' },
   storeState: {
     activeThreadId: 'thread-1',
     error: null as string | null,
@@ -259,6 +266,21 @@ const { brandState, storeState } = vi.hoisted(() => ({
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => brandState,
+}));
+
+// Overrides the package-wide `next/navigation` mock (tests/setup.ts) with a
+// mutable `useParams` so the #4716 P0 regression test below can simulate a
+// route with no brand segment.
+vi.mock('next/navigation', () => ({
+  useParams: () => orgUrlParams,
+  usePathname: () => '/',
+  useRouter: () => ({
+    back: vi.fn(),
+    prefetch: vi.fn(),
+    push: vi.fn(),
+    replace: vi.fn(),
+  }),
+  useSearchParams: () => new URLSearchParams(),
 }));
 
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
@@ -501,8 +523,11 @@ describe('GenerationActionCard', () => {
 
   beforeEach(() => {
     brandState.organizationId = '';
+    brandState.selectedBrand = { slug: 'test-brand' };
     brandState.settings = null;
     brandState.settingsLoading = false;
+    orgUrlParams.brandSlug = 'test-brand';
+    orgUrlParams.orgSlug = 'test-org';
     storeState.activeThreadId = 'thread-1';
     useAgentWorkObjectGateStore.setState({ threads: {} });
     useAgentWorkObjectGateStore.getState().setObjects('thread-1', []);
@@ -1836,6 +1861,55 @@ describe('GenerationActionCard', () => {
     expect(onOpenInStudio).toHaveBeenCalledWith(
       expect.stringContaining('handoff=handoff-1'),
     );
+  });
+
+  it('opens Studio at the brand-scoped path from a route with no brand segment (#4716 P0 — the org-level Agent workspace 404ed)', async () => {
+    // `/:orgSlug/~/agent` (the canonical Agent workspace route) carries no
+    // brand segment — `useOrgUrl().href` falls through to the org scope
+    // there and would build `/org-1/~/studio/generate?...`, a route that
+    // does not exist (Studio generate only lives under a brand slug).
+    // `activeHref` falls back to the context-selected brand instead.
+    orgUrlParams.brandSlug = '';
+    brandState.selectedBrand = { slug: 'brand-1' };
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockResolvedValue({ id: 'handoff-no-brand-route' });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-studio-slot-no-brand-route',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+
+    await waitFor(() => expect(onOpenInStudio).toHaveBeenCalledTimes(1));
+    const [studioUrl] = onOpenInStudio.mock.calls[0] as [string];
+    expect(studioUrl).toBe(
+      '/test-org/brand-1/studio/generate?handoff=handoff-no-brand-route',
+    );
+    expect(studioUrl).not.toContain('/~/');
   });
 
   it('surfaces a composer error instead of navigating when the handoff cannot be created', async () => {

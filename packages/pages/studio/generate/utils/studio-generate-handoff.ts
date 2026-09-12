@@ -11,6 +11,13 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { StudioGenerateReferenceRole } from '@genfeedai/props/studio/studio-generate.props';
 import type { StudioGenerateSettings } from '@pages/studio/generate/types';
+import {
+  getDefaultStudioGenerateSettings,
+  getStudioAspectRatios,
+  getStudioDurations,
+  getStudioResolutions,
+  STUDIO_MAX_OUTPUTS,
+} from '@pages/studio/generate/utils/studio-generate-settings';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
 
 /**
@@ -83,6 +90,82 @@ export function resolveHandoffModelKey(
     return { isFallback: false, modelKey };
   }
   return { isFallback: true, modelKey: AUTO_MODEL_OPTION_VALUE };
+}
+
+export interface ResolvedHandoffSettingsOverrides {
+  /** Human-readable labels of every field that was dropped, for one combined notice. Empty when nothing was dropped. */
+  droppedFields: readonly string[];
+  /** Patch correcting each dropped field back to Studio's own type default — apply on top of the handoff patch already applied. */
+  patch: Partial<StudioGenerateSettings>;
+}
+
+/**
+ * Validates the handoff's aspectRatio/duration/outputs/resolution against
+ * what the type and resolved model actually support (#4716 review FR9).
+ * `buildStudioSettingsPatchFromHandoff` copies these fields verbatim — the
+ * Agent's own catalog can drift from Studio's by the time the handoff is
+ * consumed, or the model itself may have been replaced by
+ * `resolveHandoffModelKey`. Run this once the model is settled, using the
+ * concrete resolved model (not the handoff's original, possibly-invalidated
+ * pick) so resolution options — the only genuinely model-specific field
+ * here — are checked against what the operator will actually see.
+ */
+export function resolveHandoffSettingsOverrides(
+  payload: AgentStudioHandoffPayload,
+  resolvedModelKey: string,
+  models: readonly IModel[],
+): ResolvedHandoffSettingsOverrides {
+  const defaults = getDefaultStudioGenerateSettings(payload.type);
+  const patch: Partial<StudioGenerateSettings> = {};
+  const droppedFields: string[] = [];
+
+  if (payload.aspectRatio) {
+    const allowed = getStudioAspectRatios(payload.type);
+    if (!allowed.includes(payload.aspectRatio)) {
+      patch.aspectRatio = defaults.aspectRatio;
+      droppedFields.push('aspect ratio');
+    }
+  }
+
+  if (payload.duration !== undefined) {
+    const allowed = getStudioDurations(payload.type);
+    if (allowed.length > 0 && !allowed.includes(payload.duration)) {
+      patch.duration = defaults.duration;
+      droppedFields.push('duration');
+    }
+  }
+
+  if (payload.resolution) {
+    const allowed = getStudioResolutions(
+      payload.type,
+      resolvedModelKey || undefined,
+    );
+    if (
+      allowed.length > 0 &&
+      !allowed.some((option) => option.value === payload.resolution)
+    ) {
+      patch.resolution = defaults.resolution;
+      droppedFields.push('resolution');
+    }
+  }
+
+  if (payload.outputs !== undefined) {
+    const selectedModel = models.find(
+      (model) => model.key === resolvedModelKey,
+    );
+    const maxOutputs =
+      typeof selectedModel?.maxOutputs === 'number' &&
+      Number.isFinite(selectedModel.maxOutputs) &&
+      selectedModel.maxOutputs >= 1
+        ? Math.min(STUDIO_MAX_OUTPUTS, Math.round(selectedModel.maxOutputs))
+        : STUDIO_MAX_OUTPUTS;
+    if (payload.outputs > maxOutputs) {
+      patch.outputs = maxOutputs;
+      droppedFields.push('output count');
+    }
+  }
+
+  return { droppedFields, patch };
 }
 
 /**

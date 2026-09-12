@@ -22,6 +22,7 @@ import type {
   StudioGenerateComposerProps,
   StudioGenerateReferenceRole,
 } from '@genfeedai/props/studio/studio-generate.props';
+import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
 import StudioGenerateComposer from '@pages/studio/generate/components/StudioGenerateComposer';
 import StudioGenerateInspector from '@pages/studio/generate/components/StudioGenerateInspector';
@@ -45,6 +46,7 @@ import {
 import {
   buildStudioSettingsPatchFromHandoff,
   resolveHandoffModelKey,
+  resolveHandoffSettingsOverrides,
   studioHandoffReferenceRole,
 } from '@pages/studio/generate/utils/studio-generate-handoff';
 import {
@@ -58,6 +60,7 @@ import {
   getRemixDraftComposerState,
   resolvePairedRemixIdentity,
 } from '@pages/studio/generate/utils/studio-remix-run';
+import { IngredientsService } from '@services/content/ingredients.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import type { JSONContent } from '@tiptap/core';
 import Alert from '@ui/feedback/alert/Alert';
@@ -98,6 +101,13 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const agentApiService = useAgentApiService();
   const { extraExtensions, resolveSubmit: resolveCharacterMentions } =
     useStudioCharacterMentions(agentApiService);
+  // #4716 review P1: the Agent context service (`agentApiService`) is only
+  // mounted on the `/agent` route tree — the same wiring gap the P0 handoff
+  // fix already worked around. Reference resolution needs a Studio-native
+  // client, same pattern as every other Studio ingredient fetch in this file.
+  const getIngredientsService = useAuthedService((token: string) =>
+    IngredientsService.getInstance(token),
+  );
   const promptDocumentRef = useRef<JSONContent | null>(null);
   const {
     applyTypeSettings,
@@ -299,10 +309,29 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const appliedHandoffRef = useRef(false);
 
   useEffect(() => {
-    if (!isHydrated || !handoffPayload || appliedHandoffRef.current) {
+    // Wait for the active brand to resolve before deciding anything — an
+    // empty `brandId` on the first render is a hydration race, never a real
+    // mismatch, and must not permanently reject a valid handoff.
+    if (
+      !isHydrated ||
+      !handoffPayload ||
+      !brandId ||
+      appliedHandoffRef.current
+    ) {
       return;
     }
     appliedHandoffRef.current = true;
+
+    // #4716 review P2: the handoff's server-side scope is org/user only —
+    // it carries no brand check. A handoff created under a different brand
+    // must never silently prefill this brand's composer with another
+    // brand's prompt, settings, or references.
+    if (handoffPayload.brandId !== brandId) {
+      notificationsService.info(
+        'That Studio handoff has expired or was already used. Continuing with your usual defaults.',
+      );
+      return;
+    }
 
     setPrompt(handoffPayload.prompt);
     applyTypeSettings(
@@ -311,55 +340,61 @@ export default function StudioGenerateWorkspace(): ReactElement {
     );
 
     const referenceIds = handoffPayload.references ?? [];
-    if (referenceIds.length === 0 || !agentApiService) {
+    if (referenceIds.length === 0) {
       return;
     }
     const role = studioHandoffReferenceRole(handoffPayload.type);
-    const controller = new AbortController();
+    let isCancelled = false;
     void (async () => {
-      const resolved = await Promise.all(
-        referenceIds.map(
-          async (assetId): Promise<StudioContentReference | null> => {
-            try {
-              const asset = await agentApiService.getGeneratedAsset(
-                assetId,
-                controller.signal,
-              );
-              const thumbnailUrl = asset.url ?? asset.cdnUrl;
-              if (!thumbnailUrl) {
-                return null;
-              }
-              return {
-                item: {
-                  contentTitle: 'Generated reference',
-                  contentType: asset.category ?? handoffPayload.type,
-                  id: asset.id,
-                  thumbnailUrl,
-                },
-                role,
-              };
-            } catch {
-              // Best-effort: a reference the Agent could resolve moments ago
-              // may already be gone. Skip it rather than blocking the rest of
-              // the prefill on one missing asset.
-              return null;
+      try {
+        const service = await getIngredientsService();
+        const assets = await service.findByIds(referenceIds);
+        if (isCancelled) {
+          return;
+        }
+        const newReferences = assets.reduce<StudioContentReference[]>(
+          (accumulator, asset) => {
+            const thumbnailUrl = resolveStudioAssetUrl(asset);
+            if (!thumbnailUrl) {
+              return accumulator;
             }
+            accumulator.push({
+              item: {
+                contentTitle:
+                  asset.metadataLabel ||
+                  asset.promptText ||
+                  'Generated reference',
+                contentType: String(asset.category),
+                id: asset.id,
+                thumbnailUrl,
+              },
+              role,
+            });
+            return accumulator;
           },
-        ),
-      );
-      if (controller.signal.aborted) {
-        return;
+          [],
+        );
+        if (newReferences.length === 0) {
+          return;
+        }
+        setContentReferences((current) => [...current, ...newReferences]);
+      } catch {
+        // Best-effort: references the Agent resolved moments ago may already
+        // be gone by the time Studio opens. Skip them rather than blocking
+        // the rest of the prefill.
       }
-      const newReferences = resolved.filter(
-        (reference): reference is StudioContentReference => reference !== null,
-      );
-      if (newReferences.length === 0) {
-        return;
-      }
-      setContentReferences((current) => [...current, ...newReferences]);
     })();
-    return () => controller.abort();
-  }, [agentApiService, applyTypeSettings, handoffPayload, isHydrated]);
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    applyTypeSettings,
+    brandId,
+    getIngredientsService,
+    handoffPayload,
+    isHydrated,
+    notificationsService,
+  ]);
 
   // #4716 review P1: the Agent resolves a concrete model at handoff time, but
   // the org's enabled-model allowlist can differ from what the Agent saw (or
@@ -388,13 +423,38 @@ export default function StudioGenerateWorkspace(): ReactElement {
       handoffPayload.modelKey,
       models,
     );
-    if (!isFallback) {
-      return;
+    if (isFallback) {
+      updateSettings({ modelKey });
     }
-    updateSettings({ modelKey });
-    notificationsService.info(
-      "The Agent's model pick for this generation isn't available for your organization — using Studio's default instead.",
+
+    // #4716 review FR9: validate the handoff's other params (aspectRatio,
+    // duration, outputs, resolution) against what the *resolved* model
+    // supports — using the just-corrected model when the pick itself fell
+    // back, so resolution options are checked against the model settings
+    // will actually carry, not a since-rejected one.
+    const { droppedFields, patch } = resolveHandoffSettingsOverrides(
+      handoffPayload,
+      modelKey,
+      models,
     );
+    if (Object.keys(patch).length > 0) {
+      updateSettings(patch);
+    }
+
+    const notices: string[] = [];
+    if (isFallback) {
+      notices.push(
+        "The Agent's model pick for this generation isn't available for your organization — using Studio's default instead.",
+      );
+    }
+    if (droppedFields.length > 0) {
+      notices.push(
+        `Some settings from the Agent (${droppedFields.join(', ')}) aren't supported here — Studio's defaults were used instead.`,
+      );
+    }
+    if (notices.length > 0) {
+      notificationsService.info(notices.join(' '));
+    }
   }, [
     handoffPayload,
     isLoadingModels,

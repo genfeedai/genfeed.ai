@@ -151,7 +151,7 @@ export function useGenerationActionCard({
   onOpenInStudio,
 }: UseGenerationActionCardParams) {
   const { brandId, organizationId, settings, settingsLoading } = useBrand();
-  const { href } = useOrgUrl();
+  const { activeHref } = useOrgUrl();
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
@@ -878,19 +878,21 @@ export function useGenerationActionCard({
         type: generationType,
       });
       onOpenInStudio(
-        href(`${APP_ROUTES.STUDIO.GENERATE}?handoff=${encodeURIComponent(id)}`),
+        activeHref(
+          `${APP_ROUTES.STUDIO.GENERATE}?handoff=${encodeURIComponent(id)}`,
+        ),
       );
     } catch {
       setComposerError('Failed to open in Studio. Try again.');
     }
   }, [
+    activeHref,
     apiService,
     aspectRatio,
     brandId,
     concreteModelKeyForHandoff,
     duration,
     generationType,
-    href,
     onOpenInStudio,
     outputs,
     prompt,
