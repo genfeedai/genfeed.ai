@@ -242,6 +242,9 @@ vi.mock('@ui/primitives/select', () => ({
 
 const { brandState, storeState } = vi.hoisted(() => ({
   brandState: {
+    // #4670 Open in Studio requires a brand to hand off to — every fixture
+    // in this file is scoped to one brand, so this is never blank.
+    brandId: 'brand-1',
     organizationId: '',
     settings: null as { enabledModelIds?: string[] } | null,
     settingsLoading: false,
