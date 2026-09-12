@@ -518,13 +518,29 @@ export async function runAbandonedInstagramSelectionCleanup(
   };
 }
 
-function createCleanupClient(
+// Two narrow client interfaces, not one merged one: OrphanSocialOAuthFindManyArgs.where.oauthState
+// ({ not: null }) and AbandonedSelectionFindManyArgs.where.oauthState (null) are structurally
+// incompatible for the same key, so intersecting the two interfaces makes that property type
+// never and forces an unchecked cast at the call site. Each report gets its own client instead,
+// so every argument stays a real, checked Prisma args type.
+function createOrphanSocialOAuthClient(
   prisma: PrismaClient,
-): OrphanSocialOAuthCleanupClient & AbandonedSelectionCleanupClient {
+): OrphanSocialOAuthCleanupClient {
   return {
     credential: {
-      findMany: (args) => prisma.credential.findMany(args as never),
-      updateMany: (args) => prisma.credential.updateMany(args as never),
+      findMany: (args) => prisma.credential.findMany(args),
+      updateMany: (args) => prisma.credential.updateMany(args),
+    },
+  };
+}
+
+function createAbandonedSelectionClient(
+  prisma: PrismaClient,
+): AbandonedSelectionCleanupClient {
+  return {
+    credential: {
+      findMany: (args) => prisma.credential.findMany(args),
+      updateMany: (args) => prisma.credential.updateMany(args),
     },
   };
 }
@@ -546,9 +562,10 @@ async function main(): Promise<void> {
   });
 
   try {
-    const client = createCleanupClient(prisma);
-
-    const report = await runOrphanSocialOAuthCleanup(client, args);
+    const report = await runOrphanSocialOAuthCleanup(
+      createOrphanSocialOAuthClient(prisma),
+      args,
+    );
     logger.log(
       `OAuth cleanup report (${args.dryRun ? 'DRY-RUN' : 'LIVE'}): ${JSON.stringify(report)}`,
     );
@@ -557,7 +574,7 @@ async function main(): Promise<void> {
     }
 
     const selectionReport = await runAbandonedInstagramSelectionCleanup(
-      client,
+      createAbandonedSelectionClient(prisma),
       args,
     );
     logger.log(

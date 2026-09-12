@@ -14,6 +14,7 @@ import {
   CredentialsService,
   extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
+import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 
 import { CredentialPlatform, SubscriptionTier } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -92,6 +93,7 @@ describe('CredentialsService', () => {
       logger as never,
       crypto,
       filesClient as never,
+      new ProviderAccountPurgeService(prisma as never),
     );
   });
 

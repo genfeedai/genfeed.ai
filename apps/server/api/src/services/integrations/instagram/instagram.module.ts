@@ -5,12 +5,14 @@ import { SocialWarmupEnrollmentsModule } from '@api/collections/social-warmup-en
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 const BaseModule = createServiceModule(InstagramService, {
   additionalImports: [HttpModule, BrandsCoreModule, CredentialsCoreModule],
+  additionalProviders: [InstagramConnectionResolverService],
 });
 
 @Module({

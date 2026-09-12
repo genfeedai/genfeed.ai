@@ -32,6 +32,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { InstagramController } from '@api/services/integrations/instagram/controllers/instagram.controller';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { InstagramAuthorizedSignalsService } from '@api/services/integrations/instagram/services/instagram-authorized-signals.service';
+import { InstagramConnectionResolverService } from '@api/services/integrations/instagram/services/instagram-connection-resolver.service';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -179,14 +180,23 @@ describe('InstagramController', () => {
       post: httpPostMock,
     } as unknown as HttpService;
 
-    controller = new InstagramController(
+    const connectionResolver = new InstagramConnectionResolverService(
       configMock,
-      accountsMock,
       credentialsMock,
       httpServiceMock,
       instagramServiceMock as unknown as InstagramService,
       instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
       historyImportServiceMock as unknown as SocialSourceHistoryImportService,
+      loggerMock,
+    );
+
+    controller = new InstagramController(
+      configMock,
+      accountsMock,
+      credentialsMock,
+      instagramServiceMock as unknown as InstagramService,
+      instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
+      connectionResolver,
       loggerMock,
     );
   });
@@ -713,23 +723,32 @@ describe('InstagramController', () => {
       const emptyConfigMock = {
         get: vi.fn(() => undefined),
       } as unknown as ConfigService;
-      const ctrl = new InstagramController(
+      const emptyCredentialsMock = {
+        findPendingOAuthCredential: vi.fn().mockResolvedValue({
+          brandId,
+          id: 'credential-id',
+          organizationId: orgId,
+          userId: 'user-id',
+        }),
+        findOne: vi.fn(),
+        patch: vi.fn(),
+      } as unknown as CredentialsService;
+      const emptyConnectionResolver = new InstagramConnectionResolverService(
         emptyConfigMock,
-        { findOne: vi.fn() } as unknown as BrandsService,
-        {
-          findPendingOAuthCredential: vi.fn().mockResolvedValue({
-            brandId,
-            id: 'credential-id',
-            organizationId: orgId,
-            userId: 'user-id',
-          }),
-          findOne: vi.fn(),
-          patch: vi.fn(),
-        } as unknown as CredentialsService,
+        emptyCredentialsMock,
         { get: vi.fn(), post: vi.fn() } as unknown as HttpService,
         instagramServiceMock as unknown as InstagramService,
         instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
         historyImportServiceMock as unknown as SocialSourceHistoryImportService,
+        loggerMock,
+      );
+      const ctrl = new InstagramController(
+        emptyConfigMock,
+        { findOne: vi.fn() } as unknown as BrandsService,
+        emptyCredentialsMock,
+        instagramServiceMock as unknown as InstagramService,
+        instagramAuthorizedSignalsServiceMock as unknown as InstagramAuthorizedSignalsService,
+        emptyConnectionResolver,
         loggerMock,
       );
 
