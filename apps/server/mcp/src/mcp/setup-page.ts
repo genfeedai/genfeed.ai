@@ -1154,7 +1154,7 @@ ${postHogSnippet}
     // already-rewritten shell occurrences from that second pass; it is
     // substituted back for the real shell-quoted URL last.
     function rewriteAgentPrompt(text, currentUrl, currentShellUrl, nextUrl, nextShellUrl) {
-      var placeholder = '__GENFEED_TOOLSET_URL__';
+      var placeholder = '__GENFEED_TOOLSET_URL_PLACEHOLDER__';
       var next = replaceAll(
         text,
         '--scope user ' + currentShellUrl,
