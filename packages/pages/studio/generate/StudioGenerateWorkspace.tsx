@@ -317,32 +317,34 @@ export default function StudioGenerateWorkspace(): ReactElement {
     const controller = new AbortController();
     void (async () => {
       const resolved = await Promise.all(
-        referenceIds.map(async (assetId) => {
-          try {
-            const asset = await agentApiService.getGeneratedAsset(
-              assetId,
-              controller.signal,
-            );
-            const thumbnailUrl = asset.url ?? asset.cdnUrl;
-            if (!thumbnailUrl) {
+        referenceIds.map(
+          async (assetId): Promise<StudioContentReference | null> => {
+            try {
+              const asset = await agentApiService.getGeneratedAsset(
+                assetId,
+                controller.signal,
+              );
+              const thumbnailUrl = asset.url ?? asset.cdnUrl;
+              if (!thumbnailUrl) {
+                return null;
+              }
+              return {
+                item: {
+                  contentTitle: 'Generated reference',
+                  contentType: asset.category ?? handoffPayload.type,
+                  id: asset.id,
+                  thumbnailUrl,
+                },
+                role,
+              };
+            } catch {
+              // Best-effort: a reference the Agent could resolve moments ago
+              // may already be gone. Skip it rather than blocking the rest of
+              // the prefill on one missing asset.
               return null;
             }
-            return {
-              item: {
-                contentTitle: 'Generated reference',
-                contentType: asset.category ?? handoffPayload.type,
-                id: asset.id,
-                thumbnailUrl,
-              },
-              role,
-            };
-          } catch {
-            // Best-effort: a reference the Agent could resolve moments ago
-            // may already be gone. Skip it rather than blocking the rest of
-            // the prefill on one missing asset.
-            return null;
-          }
-        }),
+          },
+        ),
       );
       if (controller.signal.aborted) {
         return;
