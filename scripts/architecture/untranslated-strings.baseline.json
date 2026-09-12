@@ -140,7 +140,6 @@
     "apps/app/app/(protected)/[orgSlug]/~/connect/connect-genfeed-flow.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/~/discovery/discovery-org-brand-gate.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/byok-provider-card.tsx": 9,
-    "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/api-keys/content.tsx": 24,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/content.tsx": 14,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/content.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/credits/credit-top-up-panel.tsx": 10,

@@ -250,6 +250,71 @@
     "workspace": "Workspace"
   },
   "settings": {
+    "apiKeys": {
+      "actions": {
+        "copy": "Copy",
+        "create": "Create Key",
+        "creating": "Creating...",
+        "refreshAria": "Refresh Genfeed API keys",
+        "revoke": "Revoke",
+        "rotate": "Rotate",
+        "upgrade": "Upgrade to {tier}"
+      },
+      "card": {
+        "description": "Use these keys for CLI profiles, MCP servers, and unattended workflows.",
+        "title": "API keys"
+      },
+      "empty": "No active Genfeed API keys.",
+      "errors": {
+        "copy": "Failed to copy API key",
+        "create": "Failed to create API key",
+        "load": "Failed to load API keys",
+        "loadDescription": "Failed to load API keys. You can still create a new key, or refresh the list.",
+        "loadTitle": "Couldn't load API keys",
+        "paidPlanRequired": "API access is available on paid plans.",
+        "revoke": "Failed to revoke API key",
+        "rotate": "Failed to rotate API key"
+      },
+      "fields": {
+        "allowedIps": "Allowed IPs",
+        "allowedIpsPlaceholder": "203.0.113.10, 203.0.113.11",
+        "description": "Description",
+        "descriptionPlaceholder": "Used by local MCP server",
+        "expires": "Expires",
+        "keyName": "Key name",
+        "keyNamePlaceholder": "MCP Server",
+        "rateLimit": "Rate limit",
+        "rateLimitPlaceholder": "60",
+        "scopePreset": "Scope preset"
+      },
+      "list": {
+        "lastUsed": "Last used: {value}",
+        "loading": "Loading keys...",
+        "never": "Never",
+        "noScopes": "No scopes",
+        "untitled": "Untitled key"
+      },
+      "plainKey": {
+        "notice": "Store this key now. It will not be shown again.",
+        "rotated": "Rotated key"
+      },
+      "presets": {
+        "content": "Content",
+        "mcp": "MCP",
+        "read": "Read"
+      },
+      "success": {
+        "copied": "API key copied",
+        "created": "API key created",
+        "revoked": "API key revoked",
+        "rotated": "API key rotated"
+      },
+      "title": "API Keys",
+      "upgrade": {
+        "description": "API access is included on paid plans. Upgrade to {tier} to create Genfeed API keys for CLI, MCP, and unattended workflows.",
+        "label": "Unlock API keys with {tier}"
+      }
+    },
     "characters": {
       "actions": {
         "approve": "Approve",
