@@ -121,9 +121,7 @@ const PromptBarExpandedView = memo(function PromptBarExpandedView() {
   );
   const shouldShowQuickOptions = !isCollapsible
     ? shouldShowSpeech || isQuickOptionsOpen
-    : isQuickOptionsOpen ||
-      (ctx.categoryType === IngredientCategory.VIDEO &&
-        Boolean(ctx.form.getValues('isBackgroundMusicEnabled')));
+    : isQuickOptionsOpen;
 
   const secondaryContent = useMemo(() => {
     if (!shouldShowSpeech && !shouldShowQuickOptions) {

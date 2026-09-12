@@ -4,7 +4,6 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { MusicsService } from '@api/collections/musics/services/musics.service';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideoQaContinuityResolverService } from '@api/collections/workflows/services/video-qa-continuity-resolver.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
@@ -44,8 +43,6 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
     @Optional() private readonly metadataService?: MetadataService,
     @Optional() private readonly musicsService?: MusicsService,
     @Optional() private readonly sharedService?: SharedService,
-    @Optional()
-    readonly _videoMusicOrchestrationService?: VideoMusicOrchestrationService,
     @Optional() private readonly whisperService?: WhisperService,
     @Optional()
     private readonly continuityResolver?: VideoQaContinuityResolverService,

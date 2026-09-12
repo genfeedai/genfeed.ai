@@ -145,50 +145,6 @@ export class CreateMergedVideoDto {
   readonly zoomConfigs?: ZoomConfigDto[];
 }
 
-export class AutoGenerateMusicDto {
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Prompt describing the music to generate',
-    required: false,
-  })
-  readonly prompt?: string;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(4)
-  @Max(90)
-  @ApiProperty({
-    description:
-      'Duration of the music in seconds (will match video duration if not specified)',
-    maximum: 90,
-    minimum: 4,
-    required: false,
-  })
-  readonly duration?: number;
-}
-
-export class BackgroundMusicDto {
-  @IsEntityId()
-  @IsOptional()
-  @ApiProperty({
-    description:
-      'ID of an existing music ingredient to use as background music',
-    required: false,
-  })
-  readonly ingredientId?: string;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => AutoGenerateMusicDto)
-  @ApiProperty({
-    description: 'Options for auto-generating background music',
-    required: false,
-    type: () => AutoGenerateMusicDto,
-  })
-  readonly autoGenerate?: AutoGenerateMusicDto;
-}
-
 export class ZoomConfigDto {
   @IsNumber()
   @IsOptional()
@@ -246,6 +202,16 @@ export class ZoomConfigDto {
 }
 
 export class CreateVideoDto extends CreateIngredientDto {
+  // Video generation only generates the video: background music is an
+  // editing action that belongs in the Studio editor's audio tracks now, not
+  // a generation-time option. Removing the fields is enough — the pipe's
+  // default `whitelist: true` already strips any undeclared property
+  // (`backgroundMusic`/`musicVolume`/`muteVideoAudio` included) before this
+  // class ever sees it. This DTO does NOT opt into `FORBID_NON_WHITELISTED`:
+  // real callers (Studio's generation payload, the MCP `createVideo` tool)
+  // routinely send other undeclared fields the server has always tolerated
+  // by dropping them, and forbidding non-whitelisted properties would turn
+  // every one of those into a hard 400 instead of a no-op.
   @IsString()
   @IsOptional()
   @ApiProperty({ description: 'Video generation prompt', required: false })
@@ -622,38 +588,4 @@ export class CreateVideoDto extends CreateIngredientDto {
     required: false,
   })
   readonly audioUrl?: string;
-
-  @IsOptional()
-  @ValidateNested()
-  @Type(() => BackgroundMusicDto)
-  @ApiProperty({
-    description:
-      'Background music options. Provide either an existing music ingredient ID or auto-generate settings.',
-    required: false,
-    type: () => BackgroundMusicDto,
-  })
-  readonly backgroundMusic?: BackgroundMusicDto;
-
-  @IsNumber()
-  @IsOptional()
-  @Min(0)
-  @Max(100)
-  @ApiProperty({
-    default: 30,
-    description:
-      'Background music volume (0-100). Only used when backgroundMusic is provided.',
-    maximum: 100,
-    minimum: 0,
-    required: false,
-  })
-  readonly musicVolume?: number;
-
-  @IsBoolean()
-  @IsOptional()
-  @ApiProperty({
-    default: false,
-    description: 'Mute the original video audio when adding background music',
-    required: false,
-  })
-  readonly muteVideoAudio?: boolean;
 }

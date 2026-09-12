@@ -39,7 +39,6 @@ import { VideoGenerationCreditsService } from '@api/collections/videos/services/
 import { VideoGenerationExecutionService } from '@api/collections/videos/services/video-generation-execution.service';
 import { VideoGenerationPreparationService } from '@api/collections/videos/services/video-generation-preparation.service';
 import { VideoGenerationProviderDispatchService } from '@api/collections/videos/services/video-generation-provider-dispatch.service';
-import { VideoMusicOrchestrationService } from '@api/collections/videos/services/video-music-orchestration.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import type { VoteDocument } from '@api/collections/votes/schemas/vote.schema';
 import { VotesService } from '@api/collections/votes/services/votes.service';
@@ -418,12 +417,6 @@ describe('VideosController', () => {
             waitForCompletion: vi
               .fn()
               .mockResolvedValue({ videoUrl: 'https://cdn.test/video.mp4' }),
-          },
-        },
-        {
-          provide: VideoMusicOrchestrationService,
-          useValue: {
-            addMusicToVideo: vi.fn().mockResolvedValue(undefined),
           },
         },
         // VideoGenerationService is provided as a real class so NestJS DI
@@ -1565,10 +1558,6 @@ beforeAll(async () => {
       {
         provide: FalService,
         useValue: { generateTextToVideo: vi.fn() },
-      },
-      {
-        provide: VideoMusicOrchestrationService,
-        useValue: { addMusicToVideo: vi.fn() },
       },
       {
         provide: VideoGenerationService,

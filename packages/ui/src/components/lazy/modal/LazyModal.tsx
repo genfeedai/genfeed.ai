@@ -35,7 +35,6 @@ import type {
   ModalMemberProps,
   ModalMetadataProps,
   ModalModelProps,
-  ModalMusicProps,
   ModalPostProps,
   ModalPromptProps,
   ModalSoundProps,
@@ -98,11 +97,6 @@ export const LazyModalImageToVideo = dynamic(
   () => import('@ui/modals/ingredients/image-to-video/ModalImageToVideo'),
   { ssr: false },
 ) as ComponentType<ModalImageToVideoProps>;
-
-export const LazyModalMusic = dynamic(
-  () => import('@ui/modals/ingredients/music/ModalMusic'),
-  { ssr: false },
-) as ComponentType<ModalMusicProps>;
 
 export const LazyModalVideo = dynamic(
   () => import('@ui/modals/ingredients/video/ModalVideo'),

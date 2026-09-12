@@ -11,9 +11,8 @@ import type { PromptBarQuickOptionsProps } from '@genfeedai/props/prompt-bars/pr
 import { Button } from '@ui/primitives/button';
 import { Checkbox } from '@ui/primitives/checkbox';
 import FormDropdown from '@ui/primitives/dropdown-field';
-import { Input } from '@ui/primitives/input';
 import PromptBarFrameControls from '@ui/prompt-bars/components/frame-controls/PromptBarFrameControls';
-import { ChevronDown, ChevronUp, Music, Tv } from 'lucide-react';
+import { ChevronDown, ChevronUp, Tv } from 'lucide-react';
 import { type ChangeEvent, memo, useState } from 'react';
 
 function buildResolutionOptions(
@@ -168,46 +167,6 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
                   />
                 )}
 
-              {isAdvancedControlsEnabled &&
-                categoryType === IngredientCategory.VIDEO && (
-                  <Checkbox
-                    key="isBackgroundMusicEnabled"
-                    name="isBackgroundMusicEnabled"
-                    label="Background Music"
-                    isChecked={
-                      form.getValues('isBackgroundMusicEnabled') ?? false
-                    }
-                    isDisabled={isDisabledState}
-                    onChange={(e) => {
-                      form.setValue(
-                        'isBackgroundMusicEnabled',
-                        e.target.checked,
-                        {
-                          shouldValidate: true,
-                        },
-                      );
-                      if (!e.target.checked) {
-                        form.setValue('backgroundMusicMode', undefined, {
-                          shouldValidate: true,
-                        });
-                        form.setValue('backgroundMusicId', undefined, {
-                          shouldValidate: true,
-                        });
-                        form.setValue('backgroundMusicPrompt', undefined, {
-                          shouldValidate: true,
-                        });
-                      } else {
-                        form.setValue('backgroundMusicMode', 'generate', {
-                          shouldValidate: true,
-                        });
-                      }
-                      triggerConfigChange();
-                    }}
-                    className="text-sm"
-                    data-testid="background-music-toggle"
-                  />
-                )}
-
               {currentConfig.buttons?.reference && !isOnlyImagenModelsValue && (
                 <PromptBarFrameControls
                   hasEndFrame={hasEndFrameValue}
@@ -260,94 +219,6 @@ const PromptBarQuickOptions = memo(function PromptBarQuickOptions({
           </div>
         </div>
       </div>
-
-      {/* Background Music Configuration \u2014 shown when music is enabled */}
-      {expanded &&
-        isAdvancedControlsEnabled &&
-        categoryType === IngredientCategory.VIDEO &&
-        form.getValues('isBackgroundMusicEnabled') && (
-          <div className="flex flex-wrap items-center gap-1.5 rounded-xl border border-border bg-tertiary p-2">
-            <FormDropdown
-              name="backgroundMusicMode"
-              label="Music Source"
-              value={form.getValues('backgroundMusicMode') || 'generate'}
-              isNoneEnabled={false}
-              isFullWidth={false}
-              className={controlClass}
-              dropdownDirection="up"
-              options={[
-                { key: 'generate', label: 'Auto-generate' },
-                { key: 'existing', label: 'Select existing' },
-              ]}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                form.setValue(
-                  'backgroundMusicMode',
-                  e.target.value as 'existing' | 'generate',
-                  { shouldValidate: true },
-                );
-                triggerConfigChange();
-              }}
-              isDisabled={isDisabledState}
-            />
-
-            {form.getValues('backgroundMusicMode') === 'generate' && (
-              <Input
-                name="backgroundMusicPrompt"
-                type="text"
-                placeholder="Describe the music (e.g., upbeat electronic, calm piano)"
-                value={form.getValues('backgroundMusicPrompt') || ''}
-                className="h-10 min-w-48 flex-1 border border-border bg-tertiary px-3 text-sm"
-                isDisabled={isDisabledState}
-                onChange={(e: ChangeEvent<HTMLInputElement>) => {
-                  form.setValue('backgroundMusicPrompt', e.target.value, {
-                    shouldValidate: true,
-                  });
-                  triggerConfigChange();
-                }}
-              />
-            )}
-
-            <FormDropdown
-              name="musicVolume"
-              icon={<Music className="size-4" />}
-              label="Volume"
-              value={(form.getValues('musicVolume') ?? 30).toString()}
-              isNoneEnabled={false}
-              isFullWidth={false}
-              className={controlClass}
-              dropdownDirection="up"
-              options={[
-                { key: '10', label: '10%' },
-                { key: '20', label: '20%' },
-                { key: '30', label: '30%' },
-                { key: '50', label: '50%' },
-                { key: '70', label: '70%' },
-                { key: '100', label: '100%' },
-              ]}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => {
-                form.setValue('musicVolume', parseInt(e.target.value, 10), {
-                  shouldValidate: true,
-                });
-                triggerConfigChange();
-              }}
-              isDisabled={isDisabledState}
-            />
-
-            <Checkbox
-              name="muteVideoAudio"
-              label="Mute original audio"
-              isChecked={form.getValues('muteVideoAudio') ?? false}
-              isDisabled={isDisabledState}
-              onChange={(e) => {
-                form.setValue('muteVideoAudio', e.target.checked, {
-                  shouldValidate: true,
-                });
-                triggerConfigChange();
-              }}
-              className="text-sm"
-            />
-          </div>
-        )}
     </div>
   );
 });

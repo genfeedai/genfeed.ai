@@ -53,11 +53,6 @@ describe('LazyModal', () => {
       expect(typeof LazyModals.LazyIngredientOverlay).toBe('function');
     });
 
-    it('should export LazyModalMusic', () => {
-      expect(LazyModals.LazyModalMusic).toBeDefined();
-      expect(typeof LazyModals.LazyModalMusic).toBe('function');
-    });
-
     it('should export LazyModalVideo', () => {
       expect(LazyModals.LazyModalVideo).toBeDefined();
       expect(typeof LazyModals.LazyModalVideo).toBe('function');
@@ -189,6 +184,6 @@ describe('LazyModal', () => {
 
   it('should have correct number of exported modals', () => {
     const exports = Object.keys(LazyModals);
-    expect(exports.length).toBe(48); // Count of all exported modals
+    expect(exports.length).toBe(47); // Count of all exported modals
   });
 });
