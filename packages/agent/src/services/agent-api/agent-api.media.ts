@@ -1,6 +1,7 @@
 import type {
   AgentClonedVoice,
   AgentGeneratedAsset,
+  ConsumeAgentStudioHandoffResult,
   CreateAgentStudioHandoffParams,
   CreateAgentStudioHandoffResult,
   EstimateGenerationCreditsParams,
@@ -76,6 +77,32 @@ export async function createStudioHandoff(
     { body: JSON.stringify(params), method: 'POST', signal },
     'Failed to create the Studio handoff',
   );
+}
+
+/**
+ * #4670 Open in Studio, consumer side: single-use — the server deletes the
+ * handoff on this call whether it resolves or not, so a retry always 404s.
+ * Returns `null` (never throws) for a missing, expired, already-consumed, or
+ * foreign handoff so the caller can fall back to its defaults with a notice
+ * instead of failing the whole page mount.
+ */
+export async function consumeStudioHandoff(
+  api: AgentBaseApiService,
+  id: string,
+  signal?: AbortSignal,
+): Promise<ConsumeAgentStudioHandoffResult | null> {
+  try {
+    return await api.fetchJson<ConsumeAgentStudioHandoffResult>(
+      `${api.config.baseUrl}/agent/studio-handoff/${encodeURIComponent(id)}`,
+      { method: 'GET', signal },
+      'Failed to load the Studio handoff',
+    );
+  } catch (error) {
+    if (error instanceof AgentApiRequestError && error.status === 404) {
+      return null;
+    }
+    throw error;
+  }
 }
 
 export async function getGeneratedAsset(

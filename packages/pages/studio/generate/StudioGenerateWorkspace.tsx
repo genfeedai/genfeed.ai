@@ -29,6 +29,7 @@ import StudioGenerateResults from '@pages/studio/generate/components/StudioGener
 import StudioRemixRunPanel from '@pages/studio/generate/components/StudioRemixRunPanel';
 import { useStudioGenerateAssetActions } from '@pages/studio/generate/hooks/useStudioGenerateAssetActions';
 import { useStudioGenerateGallery } from '@pages/studio/generate/hooks/useStudioGenerateGallery';
+import { useStudioGenerateHandoff } from '@pages/studio/generate/hooks/useStudioGenerateHandoff';
 import { useStudioGenerateModels } from '@pages/studio/generate/hooks/useStudioGenerateModels';
 import { useStudioGenerateSettings } from '@pages/studio/generate/hooks/useStudioGenerateSettings';
 import { useStudioGeneration } from '@pages/studio/generate/hooks/useStudioGeneration';
@@ -41,6 +42,10 @@ import {
   mergeStudioGenerateJobs,
   resolveStudioAssetUrl,
 } from '@pages/studio/generate/utils/studio-generate-asset';
+import {
+  buildStudioSettingsPatchFromHandoff,
+  studioHandoffReferenceRole,
+} from '@pages/studio/generate/utils/studio-generate-handoff';
 import {
   groupStudioGenerateJobsByRun,
   recipeFromRepromptData,
@@ -283,6 +288,75 @@ export default function StudioGenerateWorkspace(): ReactElement {
     }
     updateSettings(draft.settings);
   }, [applyTypeSettings, isHydrated, remixRun, updateSettings]);
+
+  // #4670 Open in Studio: a resolved Agent handoff pre-fills the composer.
+  // Precedence over remembered local settings comes for free from
+  // `applyTypeSettings` — it marks every patched field `'user'`-owned in the
+  // shared setup store, exactly like an operator editing the popover
+  // themselves would.
+  const { payload: handoffPayload } = useStudioGenerateHandoff();
+  const appliedHandoffRef = useRef(false);
+
+  useEffect(() => {
+    if (!isHydrated || !handoffPayload || appliedHandoffRef.current) {
+      return;
+    }
+    appliedHandoffRef.current = true;
+
+    setPrompt(handoffPayload.prompt);
+    applyTypeSettings(
+      handoffPayload.type,
+      buildStudioSettingsPatchFromHandoff(handoffPayload),
+    );
+
+    const referenceIds = handoffPayload.references ?? [];
+    if (referenceIds.length === 0 || !agentApiService) {
+      return;
+    }
+    const role = studioHandoffReferenceRole(handoffPayload.type);
+    const controller = new AbortController();
+    void (async () => {
+      const resolved = await Promise.all(
+        referenceIds.map(async (assetId) => {
+          try {
+            const asset = await agentApiService.getGeneratedAsset(
+              assetId,
+              controller.signal,
+            );
+            const thumbnailUrl = asset.url ?? asset.cdnUrl;
+            if (!thumbnailUrl) {
+              return null;
+            }
+            return {
+              item: {
+                contentTitle: 'Generated reference',
+                contentType: asset.category ?? handoffPayload.type,
+                id: asset.id,
+                thumbnailUrl,
+              },
+              role,
+            };
+          } catch {
+            // Best-effort: a reference the Agent could resolve moments ago
+            // may already be gone. Skip it rather than blocking the rest of
+            // the prefill on one missing asset.
+            return null;
+          }
+        }),
+      );
+      if (controller.signal.aborted) {
+        return;
+      }
+      const newReferences = resolved.filter(
+        (reference): reference is StudioContentReference => reference !== null,
+      );
+      if (newReferences.length === 0) {
+        return;
+      }
+      setContentReferences((current) => [...current, ...newReferences]);
+    })();
+    return () => controller.abort();
+  }, [agentApiService, applyTypeSettings, handoffPayload, isHydrated]);
 
   const handleResetSettings = useCallback(() => {
     if (!remixRun) {
