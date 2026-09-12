@@ -298,7 +298,7 @@ describe('AnalyticsController', () => {
         'views',
         'brand_1',
         'twitter',
-        undefined,
+        'org_123',
       );
       expect(result).toBeDefined();
     });

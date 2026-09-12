@@ -85,7 +85,7 @@ export function resolveAnalyticsTenantScope(
  */
 export function resolveOwnedAnalyticsTenantScope(
   user: AuthenticatedUser,
-  request?: Parameters<typeof getIsSuperAdmin>[1],
+  request?: Pick<AnalyticsCacheRequest, 'query'>,
 ): string {
   const requestedOrganizationId = readRequestedOrganizationId(request);
 
