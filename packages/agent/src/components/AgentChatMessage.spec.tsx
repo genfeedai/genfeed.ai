@@ -520,9 +520,14 @@ describe('AgentChatMessage', () => {
     expect(screen.getAllByText(tweet)).toHaveLength(1);
   });
 
-  it('keeps generation configuration out of the transcript card stack', () => {
+  it('renders a resolved generation_action_card in the transcript (#4672)', () => {
+    // GenerationActionCard is stubbed to null in this file (its own behavior
+    // is covered by GenerationActionCard.spec.tsx) — this only proves the
+    // action is no longer stripped before reaching UiActionRenderer, which
+    // it was pre-#4672 so a completed Manual-mode review stayed visible.
     render(
       <AgentChatMessage
+        apiService={{} as never}
         message={{
           ...buildMessage('assistant', 'Configure this image.'),
           metadata: {
@@ -540,9 +545,6 @@ describe('AgentChatMessage', () => {
     );
 
     expect(screen.getByText('Configure this image.')).toBeInTheDocument();
-    expect(
-      screen.queryByText('Generate image ingredient'),
-    ).not.toBeInTheDocument();
   });
 
   it('renders a completion summary card with quick actions and inline outputs', () => {

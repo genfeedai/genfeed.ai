@@ -71,7 +71,7 @@ describe('AgentChatBodyDto', () => {
         },
         model: 'claude-opus-4-8',
         pageContext: { route: '/library', url: 'https://app/library' },
-        planModeEnabled: true,
+        agentMode: 'plan',
         source: 'agent',
         threadId: 'thread-1',
       };
@@ -186,9 +186,9 @@ describe('AgentChatBodyDto', () => {
       ).rejects.toThrow(BadRequestException);
     });
 
-    it('rejects a non-boolean planModeEnabled', async () => {
+    it('rejects an invalid agentMode', async () => {
       await expect(
-        pipe.transform({ content: 'hi', planModeEnabled: 'yes' }, metadata),
+        pipe.transform({ agentMode: 'yes', content: 'hi' }, metadata),
       ).rejects.toThrow(BadRequestException);
     });
 

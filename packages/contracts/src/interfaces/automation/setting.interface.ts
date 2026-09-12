@@ -1,4 +1,8 @@
-import type { GenerationPriority, TrendNotificationFrequency } from '../..';
+import type {
+  AgentThreadMode,
+  GenerationPriority,
+  TrendNotificationFrequency,
+} from '../..';
 import type { AppLocale, ThemePreference } from '../../constants';
 import type { IBaseEntity } from '../index';
 import type { DashboardPreferences } from '../settings/dashboard-settings.interface';
@@ -28,4 +32,6 @@ export interface ISetting extends IBaseEntity {
   dashboardPreferences?: DashboardPreferences;
   isSidebarProgressCollapsed?: boolean;
   isSidebarProgressVisible?: boolean;
+  /** Saved default agent mode (#4672) applied to new agent threads. */
+  agentMode?: AgentThreadMode;
 }

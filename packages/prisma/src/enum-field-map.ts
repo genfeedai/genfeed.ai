@@ -584,10 +584,10 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'legacyBrandFallbackLastBrandId',
       'legacyBrandFallbackLastSource',
       'legacyBrandFallbackLastUsedAt',
+      'mode',
       'organization',
       'organizationId',
       'parentThreadId',
-      'planModeEnabled',
       'requestedModel',
       'runtimeKey',
       'scopeChangeProvenance',
@@ -5006,6 +5006,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   Setting: {
     allFields: [
+      'agentMode',
       'createdAt',
       'dashboardPreferences',
       'generationPriority',

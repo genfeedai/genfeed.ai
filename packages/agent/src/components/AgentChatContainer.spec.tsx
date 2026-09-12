@@ -5,6 +5,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   act,
   fireEvent,
@@ -293,7 +294,7 @@ type StoreState = {
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
   clearStaleActiveRun: ReturnType<typeof vi.fn>;
-  draftPlanModeEnabled: boolean;
+  draftAgentMode: AgentThreadMode;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
   latestProposedPlan: null | {
@@ -330,7 +331,7 @@ type StoreState = {
   setActiveRun: ReturnType<typeof vi.fn>;
   setActiveRunStatus: ReturnType<typeof vi.fn>;
   setCreditsRemaining: ReturnType<typeof vi.fn>;
-  setDraftPlanModeEnabled: ReturnType<typeof vi.fn>;
+  setDraftAgentMode: ReturnType<typeof vi.fn>;
   setError: ReturnType<typeof vi.fn>;
   setLatestProposedPlan: ReturnType<typeof vi.fn>;
   setIsLoadingOlderMessages: ReturnType<typeof vi.fn>;
@@ -360,7 +361,7 @@ const storeState: StoreState = {
   addWorkEvent: vi.fn(),
   clearPendingInputRequest: vi.fn(),
   clearStaleActiveRun: vi.fn(),
-  draftPlanModeEnabled: false,
+  draftAgentMode: AgentThreadMode.MANUAL,
   error: null,
   hasMoreMessages: false,
   isLoadingOlderMessages: false,
@@ -396,8 +397,8 @@ const storeState: StoreState = {
   setActiveRunStatus: vi.fn(),
   setActiveThread: vi.fn(),
   setCreditsRemaining: vi.fn(),
-  setDraftPlanModeEnabled: vi.fn((enabled: boolean) => {
-    storeState.draftPlanModeEnabled = enabled;
+  setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
+    storeState.draftAgentMode = mode;
   }),
   setError: vi.fn(),
   setLatestProposedPlan: vi.fn((plan) => {
@@ -481,7 +482,7 @@ describe('AgentChatContainer', () => {
     storeState.setActiveRun.mockReset();
     storeState.setActiveRunStatus.mockReset();
     storeState.setCreditsRemaining.mockReset();
-    storeState.setDraftPlanModeEnabled.mockReset();
+    storeState.setDraftAgentMode.mockReset();
     storeState.setError.mockReset();
     storeState.setLatestProposedPlan.mockReset();
     storeState.setIsLoadingOlderMessages.mockClear();
@@ -489,7 +490,7 @@ describe('AgentChatContainer', () => {
     storeState.upsertThread.mockReset();
     storeState.updateThread.mockReset();
     storeState.activeThreadId = 'thread-1';
-    storeState.draftPlanModeEnabled = false;
+    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.error = null;
     storeState.hasMoreMessages = false;
     storeState.isLoadingOlderMessages = false;
@@ -1185,7 +1186,7 @@ describe('AgentChatContainer', () => {
     expect(storeState.prependOlderMessages).not.toHaveBeenCalled();
   });
 
-  it('renders contextual suggested actions through the shared prompt bar suggestions UI without plan mode shortcuts', () => {
+  it('renders contextual suggested actions through the shared prompt bar suggestions UI, including a plan-mode shortcut (#4672 — Plan is reachable via the mode dropdown)', () => {
     const apiService = createApiService();
 
     storeState.pendingInputRequest = null;
@@ -1213,8 +1214,8 @@ describe('AgentChatContainer', () => {
       screen.getByRole('button', { name: 'Create a plan' }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Use plan mode' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Use plan mode' }),
+    ).toBeInTheDocument();
   });
 
   it('notifies the shell when a prompt is sent so a collapsed transcript can open', () => {
@@ -1269,7 +1270,7 @@ describe('AgentChatContainer', () => {
 
     expect(sendNonStreaming).toHaveBeenCalledWith('Review the current branch', {
       attachments: undefined,
-      planModeEnabled: false,
+      agentMode: AgentThreadMode.MANUAL,
     });
   });
 
@@ -1710,7 +1711,7 @@ describe('AgentChatContainer', () => {
     await waitFor(() => {
       expect(sendNonStreaming).toHaveBeenCalledWith(
         'Original prompt',
-        expect.objectContaining({ planModeEnabled: false }),
+        expect.objectContaining({ agentMode: AgentThreadMode.MANUAL }),
       );
     });
     await waitFor(() => {
@@ -1718,7 +1719,7 @@ describe('AgentChatContainer', () => {
     });
   });
 
-  it('filters the plan mode suggestion shortcut without sending a prompt', async () => {
+  it('sends the plan-mode suggestion shortcut like any other suggested prompt (#4672 — Plan is reachable via the mode dropdown, not a filtered shortcut)', () => {
     const apiService = createApiService({
       updateThread: vi.fn().mockResolvedValue({}),
     });
@@ -1740,11 +1741,15 @@ describe('AgentChatContainer', () => {
       />,
     );
 
-    expect(
-      screen.queryByRole('button', { name: 'Use plan mode' }),
-    ).not.toBeInTheDocument();
-    expect(apiService.updateThread).not.toHaveBeenCalled();
-    expect(sendNonStreaming).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Use plan mode' }));
+
+    expect(sendNonStreaming).toHaveBeenCalledWith(
+      'Use plan mode in this thread',
+      {
+        attachments: undefined,
+        agentMode: AgentThreadMode.MANUAL,
+      },
+    );
   });
 
   it('renders the composer alongside a non-empty conversation when suggested actions are provided', () => {

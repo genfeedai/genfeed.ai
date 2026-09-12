@@ -58,6 +58,12 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
         references: ['reference-1'],
       },
       expect.objectContaining({
+        // #4672: generate_image/generate_video are gated (approval-required)
+        // in Manual mode — this explicit "Generate" click on the docked
+        // review card IS the confirmation, so it must carry
+        // `confirmationOrigin` or it would re-dock another card instead of
+        // running the generation.
+        confirmationOrigin: 'thread-ui-action',
         organizationId: 'organization-1',
         sourceActionId: 'generation-action-1',
         userId: 'user-1',

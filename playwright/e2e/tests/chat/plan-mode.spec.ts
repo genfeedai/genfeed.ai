@@ -1,3 +1,4 @@
+import { AgentThreadMode } from '@genfeedai/contracts';
 import type { Page, Route } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { AgentPage } from '../../pages/agent.page';
@@ -85,7 +86,7 @@ async function mockThreadView(
           {
             createdAt: proposedPlan.createdAt,
             id: threadId,
-            planModeEnabled: true,
+            mode: AgentThreadMode.PLAN,
             status: 'active',
             title: 'Plan mode thread',
             updatedAt: proposedPlan.updatedAt,
@@ -155,7 +156,7 @@ test.describe('Agent Plan Mode', () => {
     let capturedChatRequest:
       | {
           content: string;
-          planModeEnabled?: boolean;
+          agentMode?: AgentThreadMode;
         }
       | undefined;
     let capturedUiAction:
@@ -168,7 +169,7 @@ test.describe('Agent Plan Mode', () => {
     await authenticatedPage.route('**/agent/chat', async (route: Route) => {
       capturedChatRequest = route.request().postDataJSON() as {
         content: string;
-        planModeEnabled?: boolean;
+        agentMode?: AgentThreadMode;
       };
 
       await route.fulfill({
@@ -235,7 +236,7 @@ test.describe('Agent Plan Mode', () => {
       'Pause execution after the plan is proposed',
     );
 
-    expect(capturedChatRequest?.planModeEnabled).toBe(true);
+    expect(capturedChatRequest?.agentMode).toBe(AgentThreadMode.PLAN);
     expect(capturedChatRequest?.content).toContain(
       'Add plan mode to the agent workspace',
     );

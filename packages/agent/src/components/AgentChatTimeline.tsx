@@ -196,7 +196,6 @@ export function AgentChatTimeline({
 
       {pendingUiActions.length > 0 &&
         pendingUiActions
-          .filter((action) => action.type !== 'generation_action_card')
           // Avoid a live pending analytics card stacking on the same card
           // already rendered from an assistant message in this thread.
           .filter((action) => {

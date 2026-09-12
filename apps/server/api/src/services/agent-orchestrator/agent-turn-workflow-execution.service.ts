@@ -38,6 +38,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   AgentMessageRole,
+  AgentThreadMode,
   AgentThreadStatus,
   AgentType,
   isExplicitAgentMediaGenerationMode,
@@ -219,6 +220,13 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
   if (generationMode && !['auto', 'image', 'video'].includes(generationMode)) {
     throw new Error(`Unsupported generation mode: ${generationMode}`);
   }
+  const agentMode = optionalString(request.agentMode);
+  if (
+    agentMode &&
+    !(Object.values(AgentThreadMode) as string[]).includes(agentMode)
+  ) {
+    throw new Error(`Unsupported agent mode: ${agentMode}`);
+  }
   return {
     content,
     threadId,
@@ -268,9 +276,7 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
     ...(readRecord(request.pageContext) !== request.pageContext
       ? {}
       : { pageContext: readRecord(request.pageContext) }),
-    ...(typeof request.planModeEnabled === 'boolean'
-      ? { planModeEnabled: request.planModeEnabled }
-      : {}),
+    ...(agentMode ? { agentMode: agentMode as AgentThreadMode } : {}),
     ...(source ? { source: source as AgentChatRequest['source'] } : {}),
     ...(optionalString(request.strategyId)
       ? { strategyId: optionalString(request.strategyId) }

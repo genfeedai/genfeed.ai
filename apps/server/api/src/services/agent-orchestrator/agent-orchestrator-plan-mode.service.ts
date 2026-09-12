@@ -29,7 +29,7 @@ import type {
   OpenRouterMessage,
   OpenRouterPlugin,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { AgentMessageRole } from '@genfeedai/contracts';
+import { AgentMessageRole, AgentThreadMode } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
@@ -323,7 +323,7 @@ export class AgentOrchestratorPlanModeService {
       organizationId: organizationId,
     });
 
-    return Boolean(thread?.planModeEnabled);
+    return thread?.mode === AgentThreadMode.PLAN;
   }
 
   private async buildPlanningChatCompletionParams(params: {

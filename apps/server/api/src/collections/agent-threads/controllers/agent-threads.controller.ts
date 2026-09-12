@@ -11,7 +11,11 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService, scopedWhere } from '@api/index';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
-import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/contracts';
+import {
+  AgentMessageRole,
+  AgentThreadMode,
+  AgentThreadStatus,
+} from '@genfeedai/contracts';
 import {
   AgentThreadSerializer,
   ThreadMessageSerializer,
@@ -329,7 +333,7 @@ export class AgentThreadsController {
     @Param('threadId') threadId: string,
     @Body() body: {
       isPinned?: boolean;
-      planModeEnabled?: boolean;
+      mode?: AgentThreadMode;
       requestedModel?: string;
       runtimeKey?: string;
       title?: string;

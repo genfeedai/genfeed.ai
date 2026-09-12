@@ -4,6 +4,7 @@
 import { useCallback, useState } from 'react';
 import { useTheme } from 'next-themes';
 import { useTranslations } from 'next-intl';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   type AppLocale,
   DEFAULT_LOCALE,
@@ -47,6 +48,25 @@ const THEME_LABELS: Record<ThemePreference, string> = {
   light: 'Light',
   system: 'System',
 };
+
+const AGENT_MODE_LABELS: Record<AgentThreadMode, string> = {
+  [AgentThreadMode.AUTO]: 'Auto',
+  [AgentThreadMode.MANUAL]: 'Manual',
+  [AgentThreadMode.PLAN]: 'Plan',
+};
+
+const AGENT_MODE_DESCRIPTIONS: Record<AgentThreadMode, string> = {
+  [AgentThreadMode.AUTO]:
+    'Auto — the Agent generates, writes brand context, and runs gated actions without asking. Sending to people or publishing still confirms.',
+  [AgentThreadMode.MANUAL]:
+    'Manual — the Agent asks before spending credits, writing brand context, or running a gated action.',
+  [AgentThreadMode.PLAN]:
+    'Plan — the Agent drafts a plan with a credit estimate and runs it only after you approve.',
+};
+
+function isAgentThreadMode(value: string): value is AgentThreadMode {
+  return (Object.values(AgentThreadMode) as string[]).includes(value);
+}
 
 export default function SettingsProfilePage() {
   const translate = useTranslations('common');
@@ -126,6 +146,7 @@ export default function SettingsProfilePage() {
   }
 
   const isAdvancedMode = currentUser?.settings?.isAdvancedMode ?? true;
+  const agentMode = currentUser?.settings?.agentMode ?? AgentThreadMode.MANUAL;
   // A stored locale that is not selectable here (the pseudo-locale in a
   // production build) would leave the trigger blank, so the picker shows the
   // default and offers the way back out.
@@ -238,6 +259,43 @@ export default function SettingsProfilePage() {
           isDisabled={isSaving}
           onChange={(e) => patchSettings({ isAdvancedMode: e.target.checked })}
         />
+      </Card>
+
+      <Card
+        description={translate('settings.profile.agentMode.description')}
+        label={translate('settings.profile.agentMode.label')}
+        bodyClassName="gap-3 p-4"
+      >
+        <Select
+          disabled={isSaving}
+          onValueChange={(value) => {
+            if (isAgentThreadMode(value)) {
+              patchSettings({ agentMode: value });
+            }
+          }}
+          value={agentMode}
+        >
+          <SelectTrigger
+            aria-label={translate('settings.profile.agentMode.fieldAriaLabel')}
+            id="personal-agent-mode"
+            className="w-full"
+            data-testid="personal-agent-mode-trigger"
+          >
+            <SelectValue
+              placeholder={translate('settings.profile.agentMode.placeholder')}
+            />
+          </SelectTrigger>
+          <SelectContent>
+            {Object.values(AgentThreadMode).map((mode) => (
+              <SelectItem key={mode} value={mode}>
+                {AGENT_MODE_LABELS[mode]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        <p className="text-xs text-muted-foreground">
+          {AGENT_MODE_DESCRIPTIONS[agentMode]}
+        </p>
       </Card>
     </div>
   );

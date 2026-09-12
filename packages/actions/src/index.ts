@@ -39,6 +39,16 @@ export {
   createGenfeedActionNode,
   getActionDefinition,
 } from './registry/action-registry';
+export type {
+  AgentActionClass,
+  AgentThreadModeValue,
+} from './registry/agent-action-class';
+export {
+  AGENT_ACTION_CLASS,
+  getAgentActionClass,
+  resolveEffectiveMutationPolicy,
+  VISUAL_GENERATION_REVIEW_TOOL_NAMES,
+} from './registry/agent-action-class';
 export { REMOTION_COMPOSITION_INPUT_SCHEMA } from './registry/contracts/remotion-action-contracts';
 export type {
   CuratedActionCatalogEntry,

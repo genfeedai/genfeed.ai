@@ -109,14 +109,14 @@ describe('TaskPlanningService', () => {
         'thread-1',
         'org-1',
         expect.objectContaining({
-          planModeEnabled: true,
+          mode: 'plan',
           title: 'Plan next steps: Parent task',
         }),
       );
       expect(agentOrchestratorService.chat).toHaveBeenCalledWith(
         {
           content: expect.stringContaining('what SHOULD happen next'),
-          planModeEnabled: true,
+          agentMode: 'plan',
           source: 'agent',
           threadId: 'thread-1',
         },

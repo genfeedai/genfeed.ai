@@ -176,7 +176,7 @@ export class AgentOrchestratorController {
       knowledgeSelection: body.knowledgeSelection,
       model: body.model,
       pageContext,
-      planModeEnabled: body.planModeEnabled,
+      agentMode: body.agentMode,
       source: body.source,
       threadId: routeThreadId ?? body.threadId,
     };

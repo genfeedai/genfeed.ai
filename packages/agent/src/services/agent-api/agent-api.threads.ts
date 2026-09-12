@@ -11,7 +11,7 @@ import type {
 } from '@genfeedai/agent/models/agent-chat.model';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { type AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import type {
   AgentScopePayload,
   AgentTransferPresentation,
@@ -351,7 +351,7 @@ export async function updateThread(
   threadId: string,
   payload: {
     isPinned?: boolean;
-    planModeEnabled?: boolean;
+    mode?: AgentThreadMode;
     requestedModel?: string;
     runtimeKey?: string;
     title?: string;

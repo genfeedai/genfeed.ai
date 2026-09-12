@@ -30,8 +30,8 @@ The generation story in the current repo spans a small set of stable entrypoints
   - dispatches generation tools to the internal media APIs
 - [`apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts)
   - discovers models from verified Replicate owners into an inactive review queue
-- [`packages/agent/src/hooks/use-agent-generation-setup-presets.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/hooks/use-agent-generation-setup-presets.ts)
-  - builds unified Generation Setup presets from Studio Looks and allowed generation models
+- [`packages/agent/src/utils/agent-generation-setup.util.ts`](https://github.com/genfeedai/genfeed.ai/blob/master/packages/agent/src/utils/agent-generation-setup.util.ts)
+  - seeds default Unified Generation Setup values (aspect ratio, model, duration) for the Agent's `GenerationActionCard` review — image/video only, with no Studio Look or Prompt Enhance sourcing (#4672)
 
 ## Stable Generation Surface
 

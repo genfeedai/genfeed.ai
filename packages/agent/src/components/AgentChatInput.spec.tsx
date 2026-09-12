@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   fireEvent,
   render,
@@ -18,18 +19,16 @@ const storeState = {
     nonce: number;
     threadId: string | null;
   } | null,
-  draftPlanModeEnabled: false,
-  setDraftPlanModeEnabled: vi.fn((enabled: boolean) => {
-    storeState.draftPlanModeEnabled = enabled;
+  draftAgentMode: AgentThreadMode.MANUAL,
+  setDraftAgentMode: vi.fn((mode: AgentThreadMode) => {
+    storeState.draftAgentMode = mode;
   }),
-  threads: [] as Array<{ id: string; planModeEnabled?: boolean }>,
-  updateThread: vi.fn(
-    (threadId: string, patch: { planModeEnabled?: boolean }) => {
-      storeState.threads = storeState.threads.map((thread) =>
-        thread.id === threadId ? { ...thread, ...patch } : thread,
-      );
-    },
-  ),
+  threads: [] as Array<{ id: string; mode?: AgentThreadMode }>,
+  updateThread: vi.fn((threadId: string, patch: { mode?: AgentThreadMode }) => {
+    storeState.threads = storeState.threads.map((thread) =>
+      thread.id === threadId ? { ...thread, ...patch } : thread,
+    );
+  }),
 };
 
 vi.mock('@genfeedai/agent/hooks/use-credential-mentions', () => ({
@@ -78,21 +77,6 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   }),
 }));
 
-vi.mock('@ui/dropdowns/model-selector/useModelFavorites', () => ({
-  useModelFavorites: () => ({
-    favoriteModelKeys: [],
-    onFavoriteToggle: vi.fn(),
-  }),
-}));
-
-// The generation setup popover is `packages/ui` surface with its own
-// colocated tests; this composer-body spec only needs it to render inertly.
-vi.mock('@ui/dropdowns/generation-setup/GenerationSetupPopover', () => ({
-  default: function MockGenerationSetupPopover() {
-    return <div data-testid="generation-setup-popover" />;
-  },
-}));
-
 vi.mock('@genfeedai/agent/stores/agent-chat.store', () => ({
   useAgentChatStore: (selector: (state: Record<string, unknown>) => unknown) =>
     selector(storeState),
@@ -107,7 +91,7 @@ describe('AgentChatInput', () => {
     vi.clearAllMocks();
     sessionStorage.clear();
     storeState.activeThreadId = null;
-    storeState.draftPlanModeEnabled = false;
+    storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.composerSeed = null;
     storeState.threads = [];
   });
@@ -151,10 +135,12 @@ describe('AgentChatInput', () => {
     expect(shell).not.toHaveClass('shadow-composer');
   });
 
-  it('renders the generation setup chip in the leading toolbar slot', () => {
+  it('renders the agent mode dropdown in the leading toolbar slot', () => {
     render(<AgentChatInput onSend={vi.fn()} />);
 
-    expect(screen.getByTestId('generation-setup-popover')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Agent mode: Manual' }),
+    ).toBeInTheDocument();
   });
 
   it('renders the stop action within the shell footer when a run is active', () => {
@@ -527,7 +513,6 @@ describe('AgentChatInput', () => {
           ],
           brandId: 'brand-1',
           generationMode: 'auto',
-          planModeEnabled: false,
         },
       );
     });
@@ -685,7 +670,6 @@ describe('AgentChatInput', () => {
         undefined,
         {
           generationMode: 'auto',
-          planModeEnabled: false,
         },
       );
     });
@@ -793,7 +777,6 @@ describe('AgentChatInput', () => {
         undefined,
         {
           generationMode: 'auto',
-          planModeEnabled: false,
         },
       );
     });

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentScopeContextService } from '@api/index';
 import type {
@@ -9,11 +10,16 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AgentMessageRole, AgentThreadStatus } from '@genfeedai/contracts';
+import {
+  AgentMessageRole,
+  AgentThreadStatus,
+  DEFAULT_AGENT_THREAD_MODE,
+  normalizeAgentThreadMode,
+} from '@genfeedai/contracts';
 import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const AGENT_TURN_WORKFLOW_ID = 'agent.turn.execute';
 const ARCHIVED_THREAD_WRITE_ERROR =
@@ -57,6 +63,8 @@ export class AgentTurnAcceptanceService {
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly threadEngine: AgentThreadEngineService,
+    @Optional()
+    private readonly settingsService?: SettingsService,
   ) {}
 
   async accept(
@@ -131,8 +139,8 @@ export class AgentTurnAcceptanceService {
             : {}),
           ...(request.model ? { model: request.model } : {}),
           ...(request.pageContext ? { pageContext: request.pageContext } : {}),
-          ...(request.planModeEnabled !== undefined
-            ? { planModeEnabled: request.planModeEnabled }
+          ...(request.agentMode !== undefined
+            ? { agentMode: request.agentMode }
             : {}),
           ...(request.source ? { source: request.source } : {}),
           ...(request.systemPromptOverride
@@ -208,6 +216,21 @@ export class AgentTurnAcceptanceService {
       status: 'queued',
       threadId,
     };
+  }
+
+  /**
+   * A new thread with no explicit mode on the request starts in the user's
+   * saved `Setting.agentMode` preference (#4672) — Manual when the user has
+   * never configured one, or when settings storage is unavailable.
+   */
+  private async resolveDefaultAgentMode(userId: string) {
+    if (!this.settingsService) {
+      return DEFAULT_AGENT_THREAD_MODE;
+    }
+    const settings = await this.settingsService.findOne({ userId });
+    return normalizeAgentThreadMode(
+      (settings as { agentMode?: unknown } | null)?.agentMode,
+    );
   }
 
   private newThreadId(context: AgentChatContext, clientRequestId: string) {
@@ -293,11 +316,13 @@ export class AgentTurnAcceptanceService {
       ReturnType<AgentScopeContextService['prepareForTurn']>
     >,
   ): Promise<{ brandId: string | null; contextVersion: number }> {
+    const mode =
+      request.agentMode ?? (await this.resolveDefaultAgentMode(context.userId));
     const createData = {
       ...preparedScope.initialScopeFields,
       id: threadId,
+      mode,
       organizationId: context.organizationId,
-      planModeEnabled: request.planModeEnabled ?? false,
       source: request.source ?? 'agent',
       status: AgentThreadStatus.ACTIVE,
       title: request.content.trim().slice(0, 120) || 'New thread',

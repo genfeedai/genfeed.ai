@@ -62,6 +62,23 @@
     "referenceLibrary": "Reference library content",
     "selected": "Selected"
   },
+  "modeDropdown": {
+    "auto": {
+      "description": "Generates, writes brand context, and runs gated actions without asking. Sending to people or publishing still confirms.",
+      "label": "Auto"
+    },
+    "manual": {
+      "description": "Asks before spending credits, writing brand context, or running a gated action.",
+      "label": "Manual"
+    },
+    "plan": {
+      "description": "Drafts a plan with a credit estimate and runs it only after you approve.",
+      "label": "Plan"
+    },
+    "subtitle": "Controls what the Agent asks before doing.",
+    "title": "Agent mode",
+    "triggerAria": "Agent mode: {mode}"
+  },
   "generationActionCard": {
     "acceptFullRun": "Accept full run",
     "acceptFullRunAria": "Accept the pilot and generate the full-length video",
@@ -82,8 +99,12 @@
       "title": "Canvas",
       "useReferenceAria": "Use {title} as {label}"
     },
+    "decline": "Decline",
+    "declineAria": "Decline this generation",
+    "declined": "Declined \u2014 no credits were charged.",
     "durationSeconds": "{seconds}s",
     "endFrame": "End Frame",
+    "estimateUnavailable": "Estimate unavailable",
     "estimatedCredits": "~{credits} credits",
     "generateAria": "Generate image",
     "generateTooltip": "Generate",
@@ -92,6 +113,9 @@
     "loadingModels": "Loading Genfeed models\u2026",
     "noModelsEnabled": "No models enabled",
     "noModelsEnabledTitle": "No models enabled for this workspace",
+    "openInStudio": "Open in Studio",
+    "openInStudioAria": "Open this generation in Studio",
+    "resolvedModel": "Model: {model}",
     "pilotCeilingReached": "Stopped after {count} rejected paid candidates. No further video generation will run for this clip.",
     "pilotReady": "Pilot ready",
     "pilotReviewTitle": "Review this {seconds}s pilot before the full-length run",

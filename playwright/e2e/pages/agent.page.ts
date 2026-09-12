@@ -24,7 +24,7 @@ export class AgentPage {
       )
       .first();
     this.planModeButton = page.getByRole('button', {
-      name: /Enable plan mode|Disable plan mode/i,
+      name: /^Agent mode:/,
     });
     this.planReviewCard = page.getByTestId('agent-plan-review-card');
     this.approvePlanButton = page.getByRole('button', { name: 'Approve' });
@@ -91,6 +91,7 @@ export class AgentPage {
 
   async enablePlanMode(): Promise<void> {
     await this.planModeButton.click();
+    await this.page.getByRole('menuitemradio', { name: /^Plan/ }).click();
   }
 
   platformButton(platform: string): Locator {

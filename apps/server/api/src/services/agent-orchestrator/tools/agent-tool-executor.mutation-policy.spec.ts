@@ -4,6 +4,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import {
   buildLogicalWriteKey,
   UNSUPPORTED_APPROVAL_ERROR,
@@ -94,6 +95,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     resolve: ReturnType<typeof vi.fn>;
   };
   let service: AgentToolExecutorService;
+  let mutationAuthorizationService: AgentToolMutationAuthorizationService;
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -111,6 +113,10 @@ describe('AgentToolExecutorService mutation policy', () => {
     };
     const workflowRunner = createWorkflowRunner();
     const unused = {} as never;
+    mutationAuthorizationService = new AgentToolMutationAuthorizationService(
+      logger as unknown as LoggerService,
+      mcpApprovals as never,
+    );
     service = new AgentToolExecutorService(
       logger as unknown as LoggerService,
       { scopeToolResultHrefs: vi.fn(async (result) => result) } as never,
@@ -138,10 +144,10 @@ describe('AgentToolExecutorService mutation policy', () => {
       unused,
       unused,
       unused,
+      mutationAuthorizationService,
       { assertConsequentialBoundary: vi.fn() } as never,
       undefined,
       workflowRunner as never,
-      mcpApprovals as never,
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
@@ -238,7 +244,7 @@ describe('AgentToolExecutorService mutation policy', () => {
   });
 
   it('fails clearly when an approval host has no approval storage', async () => {
-    Reflect.set(service, 'mcpApprovalsService', undefined);
+    Reflect.set(mutationAuthorizationService, 'mcpApprovalsService', undefined);
     const result = await service.executeTool(
       'create_post',
       { content: 'hello' },
@@ -600,7 +606,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     expect(claimed).toBe(true);
     expect(logger.error).toHaveBeenCalledWith(
       `Approved mutation result persistence failed for approval apr-1 in organization ${testId('org')}; outcome reconciliation required`,
-      'AgentToolExecutorService',
+      'AgentToolMutationAuthorizationService',
     );
     expect(retry.error).toContain('awaiting outcome reconciliation');
     expect(publishHandler.createPost).toHaveBeenCalledTimes(1);

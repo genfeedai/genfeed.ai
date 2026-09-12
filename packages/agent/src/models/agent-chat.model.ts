@@ -1,6 +1,7 @@
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { ClipRunCardState } from '@genfeedai/agent/models/clip-run-card.model';
 import type {
+  AgentThreadMode,
   AgentThreadStatus,
   PostVisibility,
   RouterPriority,
@@ -388,7 +389,7 @@ export interface AgentThread {
   contextVersion: number;
   organizationId?: string;
   isPinned?: boolean;
-  planModeEnabled?: boolean;
+  mode?: AgentThreadMode;
   requestedModel?: string;
   runtimeKey?: string;
   title?: string;
@@ -580,7 +581,8 @@ export interface AgentChatPayload {
   source?: 'agent' | 'proactive' | 'onboarding';
   attachments?: ChatAttachment[];
   pageContext?: AgentPageContext;
-  planModeEnabled?: boolean;
+  /** Only meaningful when this turn creates a new thread (#4672). */
+  agentMode?: AgentThreadMode;
   brandIds?: string[];
   teamMemberIds?: string[];
   credentialIds?: string[];

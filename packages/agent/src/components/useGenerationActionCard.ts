@@ -42,12 +42,12 @@ import {
   getDefaultVideoResolution,
   getVideoResolutionsByModel,
 } from '@genfeedai/helpers/media/video-resolution/video-resolution.helper';
-import { quoteVideoGenerationCredits } from '@genfeedai/pricing';
 import { resolveGenerationModelControls } from '@helpers/generation-controls.helper';
 import {
   resolveOrgAllowlistedModels,
   shouldOfferAutoModel,
 } from '@helpers/model-allowlist.helper';
+import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import {
   buildAgentGenerationSetupScope,
   getGenerationSetup,
@@ -71,7 +71,11 @@ export type GenerationActionCardStatus =
   | 'generating'
   | 'done'
   | 'error'
+  | 'declined'
   | 'pilot_review';
+
+/** Debounce window before a prompt change re-fetches the credit estimate. */
+const ESTIMATE_DEBOUNCE_MS = 400;
 
 function isKnownInvalidModelVersionError(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -391,19 +395,6 @@ export function useGenerationActionCard({
         : [],
     [generationType, isAutoMode, modelKey],
   );
-  const estimatedCredits =
-    generationType === 'video' && selectedModel
-      ? quoteVideoGenerationCredits({
-          cost: selectedModel.cost,
-          costPerUnit: selectedModel.costPerUnit,
-          duration,
-          minCost: selectedModel.minCost,
-          modelKey: selectedModel.key,
-          outputs,
-          pricingType: selectedModel.pricingType,
-          resolution,
-        })
-      : null;
   const maxOutputs =
     typeof selectedModel?.maxOutputs === 'number' &&
     Number.isFinite(selectedModel.maxOutputs) &&
@@ -500,6 +491,75 @@ export function useGenerationActionCard({
       Object.assign(el.style, { height: `${el.scrollHeight}px` });
     }
   }, []);
+
+  // Resolved concrete model + credit estimate (#4672). Org-scoped, sourced
+  // from the server for both image and video so it reflects enabled models
+  // and real pricing multipliers rather than a client-side quote. Debounced
+  // off the prompt (typed character by character); every other input below
+  // is a discrete pick, so it re-fetches immediately against the latest
+  // debounced prompt instead of waiting out its own debounce window.
+  const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
+  const [isEstimateAvailable, setIsEstimateAvailable] = useState(true);
+  const [resolvedModelKey, setResolvedModelKey] = useState<string | null>(null);
+  const debouncedEstimatePrompt = useDebounce(prompt, ESTIMATE_DEBOUNCE_MS);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: modelKey and aspectRatio intentionally re-trigger the fetch though neither is part of the request body — a changed pick means the last estimate no longer describes what Generate would run.
+  useEffect(() => {
+    const trimmedPrompt = debouncedEstimatePrompt.trim();
+    if (!trimmedPrompt) {
+      setEstimatedCredits(null);
+      setIsEstimateAvailable(true);
+      setResolvedModelKey(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    apiService
+      .estimateGenerationCredits(
+        {
+          category: generationType,
+          duration: generationType === 'video' ? duration : undefined,
+          outputs: generationType === 'image' ? outputs : undefined,
+          prioritize,
+          prompt: trimmedPrompt,
+          resolution: resolution || undefined,
+        },
+        controller.signal,
+      )
+      .then((estimate) => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        setEstimatedCredits(estimate.credits);
+        setIsEstimateAvailable(estimate.isAvailable);
+        setResolvedModelKey(estimate.modelKey);
+      })
+      .catch(() => {
+        if (controller.signal.aborted) {
+          return;
+        }
+        // Never block or hide Generate — just report the estimate as
+        // unavailable, same as the server's own isAvailable:false path.
+        setEstimatedCredits(null);
+        setIsEstimateAvailable(false);
+        setResolvedModelKey(null);
+      });
+
+    return () => controller.abort();
+  }, [
+    apiService,
+    debouncedEstimatePrompt,
+    generationType,
+    duration,
+    outputs,
+    prioritize,
+    resolution,
+    // Re-triggers on an explicit model pick and aspect ratio too, even though
+    // neither is part of the request body — a changed pick means the last
+    // estimate no longer describes what Generate would actually run.
+    modelKey,
+    aspectRatio,
+  ]);
 
   const clearGenerationOutcome = useCallback(() => {
     setResultUrl(null);
@@ -759,6 +819,18 @@ export function useGenerationActionCard({
     setStatus('idle');
   }, [clearGenerationOutcome, paidRejectedCount, status]);
 
+  // Declining a review ends it without ever calling the server (#4672): the
+  // gated `generate_image`/`generate_video` preview never created a pending
+  // approval to clean up, so this is purely a client-side state transition.
+  const handleDecline = useCallback(() => {
+    if (status === 'generating' || status === 'declined') {
+      return;
+    }
+    abortRef.current?.abort();
+    isFullRunRef.current = false;
+    setStatus('declined');
+  }, [status]);
+
   const handleRetryVoid = useCallback(() => {
     void handleRetry();
   }, [handleRetry]);
@@ -945,6 +1017,8 @@ export function useGenerationActionCard({
     showDuration,
     durationOptions,
     estimatedCredits,
+    isEstimateAvailable,
+    resolvedModelKey,
     referenceIds,
     referenceNotice,
     resolution,
@@ -959,6 +1033,7 @@ export function useGenerationActionCard({
     handleGenerateVoid,
     handleAcceptPilotVoid,
     handleRejectPilot,
+    handleDecline,
     handleStop,
     isPilotCeilingReached,
     paidRejectedCount,

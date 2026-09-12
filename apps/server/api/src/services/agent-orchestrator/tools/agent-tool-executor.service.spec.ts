@@ -40,6 +40,7 @@ import {
   AgentToolExecutorService,
   type ToolExecutionContext,
 } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { AgentToolMutationAuthorizationService } from '@api/services/agent-orchestrator/tools/agent-tool-mutation-authorization.service';
 import { AgentTrendsToolHandler } from '@api/services/agent-orchestrator/tools/agent-trends-tool-handler.service';
 import { AgentWorkflowToolCreateService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-create.service';
 import { AgentWorkflowToolExecuteService } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-execute.service';
@@ -1075,7 +1076,21 @@ describe('AgentToolExecutorService', () => {
       findActiveByIdempotencyKey: vi.fn().mockResolvedValue(null),
       claimExecution: vi.fn().mockResolvedValue(true),
       attachResult: vi.fn(),
+      // #4672: schedule_post (outbound) is now gated, so a
+      // confirmationOrigin: 'thread-ui-action' call claims an approval
+      // on the fly the same way an already-gated tool's confirmed click does.
+      createPending: vi.fn().mockResolvedValue({
+        id: 'schedule-post-approval-1',
+        status: 'PENDING',
+        toolName: 'schedule_post',
+      }),
+      resolve: vi.fn().mockResolvedValue(undefined),
     };
+    const mutationAuthorizationService =
+      new AgentToolMutationAuthorizationService(
+        loggerService,
+        approvals as never,
+      );
     const service = new AgentToolExecutorService(
       loggerService,
       routeRewriteService,
@@ -1103,10 +1118,10 @@ describe('AgentToolExecutorService', () => {
       prepareHandler,
       spawnHandler,
       {} as never,
+      mutationAuthorizationService,
       agentScopeContextService as never,
       undefined,
       systemWorkflowRunner as never,
-      approvals as never,
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
@@ -1389,7 +1404,13 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      // #4672: schedule_post is outbound, so it's gated in every mode —
+      // confirmationOrigin simulates the confirmed "Generate"-style click
+      // that authorizes this exact call, the same way the UI does.
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1431,7 +1452,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'legacy-post-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1470,7 +1494,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1684,7 +1711,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1718,7 +1748,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1751,7 +1784,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1789,7 +1825,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1813,7 +1852,10 @@ describe('AgentToolExecutorService', () => {
         postId: 'target-1',
         scheduledAt: '2099-07-18T09:00:00.000Z',
       },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1832,7 +1874,10 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       'schedule_post',
       { postId: 'target-1', scheduledAt: 'not-a-date' },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -1851,7 +1896,10 @@ describe('AgentToolExecutorService', () => {
     const result = await service.executeTool(
       'schedule_post',
       { postId: 'target-1', scheduledAt: '2099-07-18T09:00:00' },
-      scopedContext(testId('brand')),
+      {
+        ...scopedContext(testId('brand')),
+        confirmationOrigin: 'thread-ui-action',
+      },
     );
 
     expect(result).toEqual(
@@ -5549,6 +5597,7 @@ describe('AgentToolExecutorService', () => {
       ),
       new AgentSpawnToolHandler(loggerService, undefined),
       {} as never, // knowledgeHandler
+      new AgentToolMutationAuthorizationService(loggerService),
       undefined as never, // agentScopeContextService
       undefined,
       systemWorkflowRunner as never,

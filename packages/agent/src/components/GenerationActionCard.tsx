@@ -26,11 +26,23 @@ interface GenerationActionCardProps {
   qualityFeedback?: string[];
   onRegenerate?: () => void;
   onUiAction?: AgentUiActionHandler;
+  /**
+   * Extension slot for #4670 — inert until that issue wires a handler.
+   * Renders an "Open in Studio" control beside Generate/Decline only when
+   * provided.
+   */
+  onOpenInStudio?: () => void;
   className?: string;
 }
 
 function statusLabelFor(
-  status: 'idle' | 'generating' | 'done' | 'error' | 'pilot_review',
+  status:
+    | 'idle'
+    | 'generating'
+    | 'done'
+    | 'error'
+    | 'declined'
+    | 'pilot_review',
 ): string | null {
   switch (status) {
     case 'generating':
@@ -39,6 +51,8 @@ function statusLabelFor(
       return 'Done';
     case 'error':
       return 'Failed';
+    case 'declined':
+      return 'Declined';
     case 'pilot_review':
       return 'Pilot ready';
     default:
@@ -54,6 +68,7 @@ export function GenerationActionCard({
   qualityFeedback,
   onRegenerate,
   onUiAction,
+  onOpenInStudio,
   className,
 }: GenerationActionCardProps): ReactElement {
   const translate = useTranslations('agent.generationActionCard');
@@ -85,6 +100,8 @@ export function GenerationActionCard({
     showDuration,
     durationOptions,
     estimatedCredits,
+    isEstimateAvailable,
+    resolvedModelKey,
     endFrameId,
     textareaRef,
     onRegenerateProp,
@@ -92,6 +109,7 @@ export function GenerationActionCard({
     handleGenerateVoid,
     handleAcceptPilotVoid,
     handleRejectPilot,
+    handleDecline,
     handleStop,
     isPilotCeilingReached,
     paidRejectedCount,
@@ -131,7 +149,11 @@ export function GenerationActionCard({
   >('startFrame');
 
   useEffect(() => {
-    if (status === 'error' || status === 'pilot_review') {
+    if (
+      status === 'error' ||
+      status === 'pilot_review' ||
+      status === 'declined'
+    ) {
       setIsCollapsed(false);
     }
   }, [status]);
@@ -197,7 +219,9 @@ export function GenerationActionCard({
       />
 
       {isCollapsed ? (
-        status === 'done' || status === 'pilot_review' ? (
+        status === 'done' ||
+        status === 'pilot_review' ||
+        status === 'declined' ? (
           <div className="border-t border-border p-3">
             <GenerationActionCardStatusPanel
               status={status}
@@ -248,6 +272,8 @@ export function GenerationActionCard({
             duration={duration}
             durationOptions={durationOptions}
             estimatedCredits={estimatedCredits}
+            isEstimateAvailable={isEstimateAvailable}
+            resolvedModelKey={resolvedModelKey}
             onDurationChange={handleDurationChange}
             resolution={resolution}
             resolutionOptions={resolutionOptions}
@@ -258,8 +284,11 @@ export function GenerationActionCard({
               (status === 'idle' || status === 'error') &&
               !isPilotCeilingReached
             }
+            showDecline={status === 'idle' || status === 'error'}
             showStop={status === 'generating'}
             onGenerate={handleGenerateVoid}
+            onDecline={handleDecline}
+            onOpenInStudio={onOpenInStudio}
             onStop={handleStop}
           />
 

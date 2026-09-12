@@ -3,7 +3,11 @@ import type {
   AgentChatAttachment,
   AgentPageContext,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { AgentGenerationMode, RouterPriority } from '@genfeedai/contracts';
+import {
+  AgentGenerationMode,
+  AgentThreadMode,
+  RouterPriority,
+} from '@genfeedai/contracts';
 import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
@@ -165,10 +169,15 @@ export class AgentChatBodyDto {
   })
   knowledgeSelection?: KnowledgeSelectionDto;
 
-  @IsBoolean()
+  @IsEnum(AgentThreadMode)
   @IsOptional()
-  @ApiProperty({ description: 'Whether plan mode is enabled', required: false })
-  planModeEnabled?: boolean;
+  @ApiProperty({
+    description:
+      'Agent mode (#4672) for a newly created thread — an existing thread keeps its own persisted mode',
+    enum: AgentThreadMode,
+    required: false,
+  })
+  agentMode?: AgentThreadMode;
 
   @IsIn(['agent', 'proactive', 'onboarding'])
   @IsOptional()
