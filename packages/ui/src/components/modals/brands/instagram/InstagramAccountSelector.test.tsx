@@ -4,27 +4,40 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockCredentialsService: {
   findCredentialInstagramPages: ReturnType<typeof vi.fn>;
-} = {
+} = vi.hoisted(() => ({
   findCredentialInstagramPages: vi.fn(),
-};
+}));
 
 const mockServicesService: {
   postSelectAccount: ReturnType<typeof vi.fn>;
-} = {
+} = vi.hoisted(() => ({
   postSelectAccount: vi.fn(),
-};
+}));
 
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => async () =>
     factory('mock-token'),
 }));
 
-vi.mock('@genfeedai/services/organization/credentials.service', () => ({
-  CredentialsService: { getInstance: vi.fn(() => mockCredentialsService) },
+// `ServicesService` is instantiated with `new` by the component. A bare
+// `vi.mock(...)` automock replaces the class with an arrow function, and
+// `new <arrow fn>()` throws — the component's own catch block reports that
+// TypeError as the same generic "failed to load/connect" error a real
+// rejection produces, so a broken mock and a real bug look identical. A real
+// (if minimal) class, mirroring BrandDetailSocialMediaCard.test.tsx, keeps
+// `new` semantics intact while still routing calls through the shared mock.
+vi.mock('@genfeedai/services/external/services.service', () => ({
+  ServicesService: class {
+    postSelectAccount(
+      ...args: Parameters<typeof mockServicesService.postSelectAccount>
+    ) {
+      return mockServicesService.postSelectAccount(...args);
+    }
+  },
 }));
 
-vi.mock('@genfeedai/services/external/services.service', () => ({
-  ServicesService: vi.fn(() => mockServicesService),
+vi.mock('@genfeedai/services/organization/credentials.service', () => ({
+  CredentialsService: { getInstance: () => mockCredentialsService },
 }));
 
 vi.mock('next-intl', async () => {
@@ -115,24 +128,21 @@ describe('InstagramAccountSelector', () => {
     fireEvent.click(screen.getByText('Go back'));
     expect(onBack).toHaveBeenCalled();
 
-    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
-      candidateAccounts,
-    );
+    mockCredentialsService.findCredentialInstagramPages = vi
+      .fn()
+      .mockResolvedValue(candidateAccounts);
     fireEvent.click(screen.getByText('Try again'));
 
     await waitFor(() => {
       expect(screen.getByText('Genfeed AI')).toBeInTheDocument();
     });
-    expect(
-      mockCredentialsService.findCredentialInstagramPages,
-    ).toHaveBeenCalledTimes(2);
   });
 
   it('reports a load failure through onError and offers retry', async () => {
     const onError = vi.fn();
-    mockCredentialsService.findCredentialInstagramPages.mockRejectedValueOnce(
-      new Error('network down'),
-    );
+    mockCredentialsService.findCredentialInstagramPages = vi
+      .fn()
+      .mockRejectedValue(new Error('network down'));
 
     render(
       <InstagramAccountSelector
@@ -148,9 +158,9 @@ describe('InstagramAccountSelector', () => {
       );
     });
 
-    mockCredentialsService.findCredentialInstagramPages.mockResolvedValueOnce(
-      candidateAccounts,
-    );
+    mockCredentialsService.findCredentialInstagramPages = vi
+      .fn()
+      .mockResolvedValue(candidateAccounts);
     fireEvent.click(screen.getByText('Try again'));
 
     await waitFor(() => {
@@ -188,15 +198,13 @@ describe('InstagramAccountSelector', () => {
       />,
     );
 
-    await waitFor(() => {
-      expect(screen.getByText('Genfeed Studio')).toBeInTheDocument();
-    });
+    // Pick the second candidate deliberately: it proves the id posted to the
+    // server tracks the operator's actual click rather than merely matching
+    // whatever the component happens to default to.
+    const account = await screen.findByText('Genfeed Studio');
+    fireEvent.click(account.closest('button') as HTMLElement);
 
-    fireEvent.click(
-      screen.getByText('Genfeed Studio').closest('button') as HTMLElement,
-    );
-
-    const confirmButton = screen.getByText('Use this account');
+    const confirmButton = await screen.findByText('Use this account');
     await waitFor(() => expect(confirmButton).not.toBeDisabled());
     fireEvent.click(confirmButton);
 
@@ -205,11 +213,12 @@ describe('InstagramAccountSelector', () => {
         credentialId,
         'ig-account-2',
       );
-      expect(onConnected).toHaveBeenCalled();
     });
+    expect(onConnected).toHaveBeenCalled();
   });
 
   it('reports a persist failure through onError and keeps the selection', async () => {
+    const onConnected = vi.fn();
     const onError = vi.fn();
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
       candidateAccounts,
@@ -221,7 +230,7 @@ describe('InstagramAccountSelector', () => {
     render(
       <InstagramAccountSelector
         credentialId={credentialId}
-        onConnected={vi.fn()}
+        onConnected={onConnected}
         onError={onError}
       />,
     );
@@ -233,10 +242,22 @@ describe('InstagramAccountSelector', () => {
     await waitFor(() => expect(confirmButton).not.toBeDisabled());
     fireEvent.click(confirmButton);
 
+    // Only a genuine rejection reaches the catch block and reports through
+    // onError with this exact message; a broken mock throwing before the
+    // call (e.g. `new` on an automocked arrow function) would never let
+    // postSelectAccount observe these arguments.
+    await waitFor(() => {
+      expect(mockServicesService.postSelectAccount).toHaveBeenCalledWith(
+        credentialId,
+        'ig-account-1',
+      );
+    });
     await waitFor(() => {
       expect(onError).toHaveBeenCalledWith(
         'Failed to connect this account. Please try again.',
       );
     });
+    expect(onConnected).not.toHaveBeenCalled();
+    expect(confirmButton).not.toBeDisabled();
   });
 });

@@ -63,7 +63,12 @@ export default function InstagramAccountSelector({
   const onErrorRef = useRef(onError);
   onErrorRef.current = onError;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: retryToken is a deliberate re-run trigger, not read inside the effect
+  // getCredentialsService is intentionally left out of the deps below: the
+  // real useAuthedService stabilizes it across renders (a volatile factory
+  // is read through a ref), so it never meaningfully changes, and keying
+  // this effect on it would let an unrelated re-render (selecting an
+  // account, say) re-trigger the fetch and reset the loading state.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: retryToken is a deliberate re-run trigger (not read inside the effect); getCredentialsService is deliberately omitted (see comment above).
   useEffect(() => {
     const controller = new AbortController();
     const url = `GET /credentials/${credentialId}/instagram/pages`;
@@ -104,7 +109,7 @@ export default function InstagramAccountSelector({
     return () => {
       controller.abort();
     };
-  }, [credentialId, getCredentialsService, retryToken]);
+  }, [credentialId, retryToken]);
 
   const retry = () => {
     setSelectedAccount(null);
