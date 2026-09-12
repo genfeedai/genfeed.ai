@@ -527,6 +527,24 @@ describe('AppSwitcher', () => {
     );
   });
 
+  it('routes the studio tile to the selected brand when the current route is org-scoped (#4671)', () => {
+    render(<AppSwitcher orgSlug="acme" brandAwareSlug="moonrise" />);
+
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      'href',
+      '/acme/moonrise/studio/generate',
+    );
+  });
+
+  it('keeps the org studio fallback for an operator with no selected brand (#4671)', () => {
+    render(<AppSwitcher orgSlug="acme" />);
+
+    expect(screen.getByRole('link', { name: 'Studio' })).toHaveAttribute(
+      'href',
+      '/acme/~/studio',
+    );
+  });
+
   it('marks messages active when the messages shell is current', () => {
     render(
       <AppSwitcher
