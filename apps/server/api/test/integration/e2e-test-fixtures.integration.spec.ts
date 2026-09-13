@@ -9,6 +9,7 @@ import { BrandSetupService } from '@api/collections/brands/services/brand-setup.
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { LinksService } from '@api/collections/links/services/links.service';
@@ -40,6 +41,7 @@ import {
   ORGANIZATION_SETTINGS_E2E_MOCK,
   TASK_E2E_MOCK_PROVIDERS,
 } from '@api-test/e2e-test.module';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -86,6 +88,7 @@ describe('E2E fixture contracts', () => {
       BillingAccountsService,
       CreditReservationService,
       CredentialCryptoService,
+      ProviderAccountPurgeService,
       StreaksService,
       DefaultRecurringContentService,
       RolesService,
@@ -116,6 +119,26 @@ describe('E2E fixture contracts', () => {
         ...expectedCollectionTokens,
       ]),
     );
+  });
+
+  it('compiles the real CredentialsService with ProviderAccountPurgeService', async () => {
+    const moduleConfig = await E2ETestModule.forRoot({
+      providers: [CredentialsService],
+    });
+    const moduleRef = await Test.createTestingModule({
+      imports: [moduleConfig],
+    }).compile();
+
+    try {
+      expect(moduleRef.get(CredentialsService)).toBeInstanceOf(
+        CredentialsService,
+      );
+      expect(moduleRef.get(ProviderAccountPurgeService)).toBeInstanceOf(
+        ProviderAccountPurgeService,
+      );
+    } finally {
+      await moduleRef.close();
+    }
   });
 
   it('provides BrandsController and Tasks collaborators for dedicated E2E factories', () => {

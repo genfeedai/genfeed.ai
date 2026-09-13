@@ -18,6 +18,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import { CreditReservationService } from '@api/collections/credits/services/credit-reservation.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
@@ -332,6 +333,8 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
     provide: CredentialCryptoService,
     useFactory: () => createMockCryptoService(),
   },
+  // Same Prisma-only leaf CredentialsCoreModule registers for CredentialsService.
+  ProviderAccountPurgeService,
   {
     provide: StreaksService,
     useValue: {
