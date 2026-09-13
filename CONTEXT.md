@@ -84,10 +84,10 @@ acceptance criteria, labelling it, and placing it in Project #12. Promised withi
 _Avoid_: grooming, review (reserved for PRs).
 
 **Intake labels**: The public label set applied during triage: `needs:triage` (automatic on open),
-`needs:ears`, `needs:info`, `good first issue`, `help wanted`, plus the type label set by the issue
-form (`bug`, `enhancement`, `task`). Priority is a native organization Issue Field
-surfaced on Project #12, never a label.
-_Avoid_: P0/P1 labels, area labels.
+`needs:ears`, `needs:info`, `good first issue`, `help wanted`. The kind of work is the native
+organization issue type (Bug, Feature, Task) set by the issue form, never a label. Priority is a
+native organization Issue Field surfaced on Project #12, never a label.
+_Avoid_: P0/P1 labels, area labels, `bug`/`enhancement`/`task` labels.
 
 **Internal labels**: `shipcode:*` — pipeline state for the maintainer's automation. Visible but
 described "internal automation — do not apply". Contributors never set them.
