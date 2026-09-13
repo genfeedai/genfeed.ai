@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { useCallback, useRef } from 'react';
+import { StrictMode, useCallback, useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateWorkspace from './StudioGenerateWorkspace';
 
@@ -799,12 +799,73 @@ describe('StudioGenerateWorkspace', () => {
     );
   });
 
-  it('skips a handoff created under a different brand and shows the fallback notice instead of prefilling (#4716 review P2)', async () => {
+  it('attaches the resolved reference exactly once under React StrictMode double-invoke (#4716 re-review P3)', async () => {
+    // StrictMode's dev-only double-invoke (mount -> cleanup -> mount) is what
+    // exposed the bug: the old single effect latched its ref before starting
+    // the fetch, so the synthetic remount correctly skipped a second fetch,
+    // but its cleanup flagged the *first* (and only) run as cancelled,
+    // discarding the one real result. The fix's ref latches before the fetch
+    // starts and the effect never cancels, so exactly one fetch happens and
+    // its result is kept.
     mocks.handoff.value = {
       isLoading: false,
       payload: {
-        brandId: 'brand-other',
+        brandId: 'brand-1',
         modelKey: 'provider/model-x',
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'image',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/neon.png',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    render(
+      <StrictMode>
+        <StudioGenerateWorkspace />
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+    expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips a handoff created under a different brand and never runs model/param fallback on it either (#4716 re-review P2)', async () => {
+    // `type` already matches the payload's type (both default to 'image'),
+    // and the model catalog carries a real allowlist that does not include
+    // the payload's model — exactly the condition the re-review found: a
+    // foreign-brand handoff whose type happens to match the current one
+    // must not let the *second* effect (model/param fallback) run against a
+    // patch that was never applied, even though its own gate only checked
+    // "was a decision already made", not "was the handoff actually accepted".
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key: 'provider/model-allowed' }],
+    };
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        aspectRatio: '2.39:1',
+        brandId: 'brand-other',
+        duration: 999,
+        modelKey: 'provider/model-unavailable',
+        outputs: 99,
         prompt: 'Should never appear',
         type: 'image',
       },
@@ -819,5 +880,10 @@ describe('StudioGenerateWorkspace', () => {
     });
     expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
     expect(screen.queryByText('Should never appear')).not.toBeInTheDocument();
+
+    // Give the (mis-gated, pre-fix) model/param effect every chance to fire.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    expect(mocks.notify).toHaveBeenCalledTimes(1);
   });
 });

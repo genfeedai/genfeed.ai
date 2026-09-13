@@ -307,6 +307,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
   // themselves would.
   const { payload: handoffPayload } = useStudioGenerateHandoff();
   const appliedHandoffRef = useRef(false);
+  // Latched only once the handoff has actually been accepted (past the
+  // brand check) — separate from `appliedHandoffRef`, which latches on the
+  // first decision either way, so a rejected (cross-brand) handoff never
+  // lets the downstream model/param-validation effect below run against a
+  // patch that was never applied (#4716 re-review P2).
+  const isHandoffAcceptedRef = useRef(false);
 
   useEffect(() => {
     // Wait for the active brand to resolve before deciding anything — an
@@ -332,26 +338,54 @@ export default function StudioGenerateWorkspace(): ReactElement {
       );
       return;
     }
+    isHandoffAcceptedRef.current = true;
 
     setPrompt(handoffPayload.prompt);
     applyTypeSettings(
       handoffPayload.type,
       buildStudioSettingsPatchFromHandoff(handoffPayload),
     );
+  }, [
+    applyTypeSettings,
+    brandId,
+    handoffPayload,
+    isHydrated,
+    notificationsService,
+  ]);
 
+  // #4716 re-review P3: kept as its own effect, separate from the apply
+  // effect above, because React 18 Strict Mode's dev-only double-invoke
+  // (mount -> cleanup -> mount) was stranding the fetch: the old single
+  // effect latched a ref before starting the async work, so the synthetic
+  // remount correctly skipped starting a second fetch, but its cleanup
+  // still flagged the *first* run as cancelled — and since that first run
+  // was the only one that ever actually started, its result was always
+  // thrown away. `handoffReferencesRequestedRef` latches before the fetch
+  // starts (not after it resolves) and is never reset, so at most one fetch
+  // is ever kicked off for the life of the component — there is no
+  // legitimate "restart with different inputs" case to guard against, so
+  // the cleanup intentionally does not cancel it: letting the one real
+  // request finish is what the ref latch already guarantees is safe.
+  const handoffReferencesRequestedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !isHandoffAcceptedRef.current ||
+      !handoffPayload ||
+      handoffReferencesRequestedRef.current
+    ) {
+      return;
+    }
     const referenceIds = handoffPayload.references ?? [];
     if (referenceIds.length === 0) {
       return;
     }
+    handoffReferencesRequestedRef.current = true;
+
     const role = studioHandoffReferenceRole(handoffPayload.type);
-    let isCancelled = false;
     void (async () => {
       try {
         const service = await getIngredientsService();
         const assets = await service.findByIds(referenceIds);
-        if (isCancelled) {
-          return;
-        }
         const newReferences = assets.reduce<StudioContentReference[]>(
           (accumulator, asset) => {
             const thumbnailUrl = resolveStudioAssetUrl(asset);
@@ -384,17 +418,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         // the rest of the prefill.
       }
     })();
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    applyTypeSettings,
-    brandId,
-    getIngredientsService,
-    handoffPayload,
-    isHydrated,
-    notificationsService,
-  ]);
+  }, [getIngredientsService, handoffPayload]);
 
   // #4716 review P1: the Agent resolves a concrete model at handoff time, but
   // the org's enabled-model allowlist can differ from what the Agent saw (or
@@ -406,7 +430,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   useEffect(() => {
     if (
       !handoffPayload ||
-      !appliedHandoffRef.current ||
+      !isHandoffAcceptedRef.current ||
       handoffModelValidatedRef.current ||
       type !== handoffPayload.type ||
       isLoadingModels
