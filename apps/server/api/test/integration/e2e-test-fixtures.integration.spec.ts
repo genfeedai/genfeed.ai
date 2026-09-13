@@ -41,6 +41,7 @@ import {
   ORGANIZATION_SETTINGS_E2E_MOCK,
   TASK_E2E_MOCK_PROVIDERS,
 } from '@api-test/e2e-test.module';
+import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -118,6 +119,26 @@ describe('E2E fixture contracts', () => {
         ...expectedCollectionTokens,
       ]),
     );
+  });
+
+  it('compiles the real CredentialsService with ProviderAccountPurgeService', async () => {
+    const moduleConfig = await E2ETestModule.forRoot({
+      providers: [CredentialsService],
+    });
+    const moduleRef = await Test.createTestingModule({
+      imports: [moduleConfig],
+    }).compile();
+
+    try {
+      expect(moduleRef.get(CredentialsService)).toBeInstanceOf(
+        CredentialsService,
+      );
+      expect(moduleRef.get(ProviderAccountPurgeService)).toBeInstanceOf(
+        ProviderAccountPurgeService,
+      );
+    } finally {
+      await moduleRef.close();
+    }
   });
 
   it('provides BrandsController and Tasks collaborators for dedicated E2E factories', () => {
