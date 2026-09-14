@@ -674,12 +674,12 @@ export class DiscordBotManager
     sessionKey: string,
   ): Promise<void> {
     const session = this.getSession(sessionKey);
-    if (!session || session.state !== 'collecting') {
+    if (session?.state !== 'collecting') {
       return;
     }
 
     const currentInput = session.requiredInputs[session.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== 'text') {
+    if (currentInput?.inputType !== 'text') {
       return;
     }
     if (!message.channel.isSendable()) {
@@ -703,12 +703,12 @@ export class DiscordBotManager
     sessionKey: string,
   ): Promise<void> {
     const session = this.getSession(sessionKey);
-    if (!session || session.state !== 'collecting') {
+    if (session?.state !== 'collecting') {
       return;
     }
 
     const currentInput = session.requiredInputs[session.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== 'image') {
+    if (currentInput?.inputType !== 'image') {
       return;
     }
     if (!message.channel.isSendable()) {
@@ -813,7 +813,7 @@ export class DiscordBotManager
   ): Promise<void> {
     const sessionKey = this.getSessionKey(interaction);
     const session = this.getSession(sessionKey);
-    if (!session || !session.workflowId) {
+    if (!session?.workflowId) {
       await interaction.update({
         components: [],
         content: 'No workflow selected. Use /workflows to start.',
