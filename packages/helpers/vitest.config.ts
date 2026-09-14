@@ -60,12 +60,7 @@ export default defineConfig({
     },
     environment: 'jsdom',
     globals: true,
-    include: [
-      '__tests__/**/*.ts',
-      'src/**/*.spec.ts',
-      'src/**/*.test.ts',
-      'src/**/__tests__/**/*.ts',
-    ],
+    include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
     testTimeout: 10000,
   },
 });
