@@ -1,7 +1,8 @@
 packages: client, contracts, hooks, pages
 
 Article models and interfaces now declare optional `organizationId: string` for
-creation payloads. Missing active-organization context is omitted instead of sent
-as null, matching the required string relation in persisted articles. Existing
-structurally compatible brand, ingredient, article and storyboard models flow
-through their service/hook contracts directly without interface-to-model casts.
+creation payloads. When present, the scalar is a string, matching the persisted
+article relation. The creation hook forwards the existing string from `useBrand`
+without changing runtime behavior. Structurally compatible brand, ingredient,
+article and storyboard models flow through their service/hook contracts directly
+without interface-to-model casts.
