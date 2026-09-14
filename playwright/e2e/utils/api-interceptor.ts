@@ -1508,7 +1508,11 @@ export function buildUnhandledApiMockBody(url: string): unknown {
     return { mode: 'development' };
   }
 
-  if (/\/agent\/threads\/[^/?]+\/work-objects(?:\?|$)/.test(url)) {
+  if (
+    /\/agent\/threads\/[^/?]+\/work-objects(?:\/[^/?]+\/actions)?(?:\?|$)/.test(
+      url,
+    )
+  ) {
     return { workObjects: [], sessionAssets: [] };
   }
 

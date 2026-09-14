@@ -82,17 +82,32 @@ describe('Playwright API mocks', () => {
     ).toEqual([]);
   });
 
-  it('matches the conversation work collection response', () => {
+  it.each([
+    '/agent/threads/thread-1/work-objects',
+    '/agent/threads/thread-1/work-objects?sessionId=session-1',
+    '/agent/threads/thread-1/work-objects/work-1/actions',
+    '/agent/threads/thread-1/work-objects/work-1/actions?sessionId=session-1',
+    '/agent/threads/thread%2F1/work-objects/work%3F1/actions',
+  ])('matches the conversation work collection response for %s', (path) => {
     expect(
-      buildUnhandledApiMockBody(
-        'https://api.genfeed.ai/v1/agent/threads/thread-1/work-objects?sessionId=session-1',
-      ),
+      buildUnhandledApiMockBody(`https://api.genfeed.ai/v1${path}`),
     ).toEqual({ workObjects: [], sessionAssets: [] });
   });
 
-  it('keeps the JSON:API collection fallback for unknown collections', () => {
+  it.each([
+    '/batches',
+    '/agent/threads/thread-1/work-objects-summary',
+    '/agent/threads/thread-1/work-objects/work-1',
+    '/agent/threads/thread-1/work-objects/actions',
+    '/agent/threads/thread-1/work-objects//actions',
+    '/agent/threads/thread-1/work-objects/work-1/actions/extra',
+    '/agent/threads/thread-1/work-objects/work-1/nested/actions',
+    '/agent/threads/thread-1/work-objects/work-1/actions-preview',
+    '/agent/threads//work-objects/work-1/actions',
+    '/work-objects/work-1/actions',
+  ])('keeps the JSON:API collection fallback for %s', (path) => {
     expect(
-      buildUnhandledApiMockBody('https://api.genfeed.ai/v1/batches'),
+      buildUnhandledApiMockBody(`https://api.genfeed.ai/v1${path}`),
     ).toEqual({ data: [], meta: { totalCount: 0 } });
   });
 });
