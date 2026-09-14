@@ -1,3 +1,4 @@
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
@@ -61,11 +62,7 @@ export class BotActionExecutorService {
     if (this.twitterService) {
       return this.twitterService;
     }
-    try {
-      return this.moduleRef?.get(TwitterService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, TwitterService);
   }
 
   /**
@@ -418,11 +415,7 @@ export class BotActionExecutorService {
     if (this.youtubeService) {
       return this.youtubeService;
     }
-    try {
-      return this.moduleRef?.get(YoutubeService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, YoutubeService);
   }
 
   /**

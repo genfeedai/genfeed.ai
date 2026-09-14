@@ -3,6 +3,7 @@ import {
   PerformanceSummaryService,
 } from '@api/collections/content-performance/services/performance-summary.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isXPlatform, scoreXPublicMetricsPer1k } from '@genfeedai/harness';
@@ -272,11 +273,7 @@ export class HarnessWinnerPromotionService {
     if (direct) {
       return direct;
     }
-    try {
-      return this.moduleRef?.get(token, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, token);
   }
 
   /**

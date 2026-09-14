@@ -4,6 +4,7 @@ import { BotsService } from '@api/collections/bots/services/bots.service';
 import { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { BotsRestreamChatService } from '@api/collections/bots/services/bots-restream-chat.service';
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { Injectable, Optional, type Type } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -291,10 +292,6 @@ export class LivestreamBotWorkflowService {
     if (direct) {
       return direct;
     }
-    try {
-      return this.moduleRef?.get(token, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, token);
   }
 }

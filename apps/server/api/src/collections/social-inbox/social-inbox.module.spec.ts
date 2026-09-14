@@ -25,8 +25,6 @@ describe('SocialInbox workflow-queue lookup', () => {
 
   it('resolves WorkflowExecutionQueueService through ModuleRef', () => {
     expect(ingestionSource).toContain('ModuleRef');
-    expect(ingestionSource).toContain(
-      'this.moduleRef.get(WorkflowExecutionQueueService',
-    );
+    expect(ingestionSource).toContain('resolveOptionalProvider(');
   });
 });

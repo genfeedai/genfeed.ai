@@ -1,4 +1,5 @@
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { ReviewDecision } from '@genfeedai/contracts';
 import type { IHarnessAvoidFeedbackEntry } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -170,11 +171,7 @@ export class HarnessReviewFeedbackService {
     if (this.harnessProfilesService) {
       return this.harnessProfilesService;
     }
-    try {
-      return this.moduleRef?.get(HarnessProfilesService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, HarnessProfilesService);
   }
 }
 

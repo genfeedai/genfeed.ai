@@ -4,6 +4,7 @@ import type { BotDocument } from '@api/collections/bots/schemas/bot.schema';
 import { BotsService } from '@api/collections/bots/services/bots.service';
 import type { BotsLivestreamService } from '@api/collections/bots/services/bots-livestream.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
 import {
   pickAccessTokenAfterRefresh,
@@ -325,11 +326,7 @@ export class BotsRestreamChatService {
     if (this.restreamService) {
       return this.restreamService;
     }
-    try {
-      return this.moduleRef?.get(RestreamService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, RestreamService);
   }
 
   private async loadRestreamCredential(
