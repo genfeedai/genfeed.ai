@@ -151,6 +151,29 @@ describe('computeOutlierBaseline', () => {
     expect(reversed.posts).toEqual([...forward.posts].reverse());
   });
 
+  it.each([
+    [
+      ['a', 'b', 'c', 'd', '\u{10000}', '\uE000'],
+      ['a', 'b', 'c', 'd', '\uE000'],
+    ],
+    [
+      ['a', 'b', 'c', '\u{10000}a', '\u{10000}', '\uE000'],
+      ['a', 'b', 'c', '\uE000', '\u{10000}'],
+    ],
+    [
+      ['a', 'b', 'c', 'd', '\u{10000}\u{10000}', '\u{10000}\uE000'],
+      ['a', 'b', 'c', 'd', '\u{10000}\uE000'],
+    ],
+  ])('selects Unicode timestamp ties by code point for %j', (ids, expected) => {
+    const posts = ids.map((id) => post(id));
+    expect(calculate(posts, { windowSize: 5 }).contributorIds).toEqual(
+      expected,
+    );
+    expect(
+      calculate([...posts].reverse(), { windowSize: 5 }).contributorIds,
+    ).toEqual(expected);
+  });
+
   it('records each unknown provider flag without excluding the post', () => {
     const result = calculate([
       ...history(5),

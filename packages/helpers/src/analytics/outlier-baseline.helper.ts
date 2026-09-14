@@ -104,13 +104,25 @@ function exclusionReasons(
   return reasons;
 }
 
+function compareIds(left: string, right: string): number {
+  let leftIndex = 0;
+  let rightIndex = 0;
+  while (leftIndex < left.length && rightIndex < right.length) {
+    const leftPoint = left.codePointAt(leftIndex) ?? 0;
+    const rightPoint = right.codePointAt(rightIndex) ?? 0;
+    if (leftPoint !== rightPoint) return leftPoint - rightPoint;
+    leftIndex += leftPoint > 0xffff ? 2 : 1;
+    rightIndex += rightPoint > 0xffff ? 2 : 1;
+  }
+  return left.length - leftIndex - (right.length - rightIndex);
+}
+
 function comparePosts(
   left: Readonly<OutlierBaselinePostInput>,
   right: Readonly<OutlierBaselinePostInput>,
 ): number {
   return (
-    right.publishedAtMs - left.publishedAtMs ||
-    (left.id < right.id ? -1 : left.id > right.id ? 1 : 0)
+    right.publishedAtMs - left.publishedAtMs || compareIds(left.id, right.id)
   );
 }
 
