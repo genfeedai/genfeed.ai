@@ -162,7 +162,7 @@ export function usePromptBarReferences(
       const referenceObjects = limitedAssets.map((asset) => ({
         id: asset.id,
         ingredientUrl: asset.url,
-      })) as MediaReference[];
+      }));
 
       setReferenceSource('brand');
       isUserSelectingReferencesRef.current = true;
