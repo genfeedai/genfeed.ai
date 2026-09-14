@@ -5,7 +5,7 @@ import {
   AgentRuntimeState,
   resolveAgentRuntimeState,
 } from '@genfeedai/contracts';
-import type { WorkflowExecution } from '@genfeedai/prisma';
+import { Prisma, type WorkflowExecution } from '@genfeedai/prisma';
 
 type SnapshotExecution = Pick<
   WorkflowExecution,
@@ -61,32 +61,24 @@ export function reconcileThreadWorkflowSnapshot(
 }
 
 export async function readThreadWorkflowSnapshot(
-  prisma: Pick<PrismaService, 'workflowExecution'>,
+  prisma: Pick<PrismaService, '$queryRaw'>,
   snapshot: AgentThreadSnapshotDocument,
 ): Promise<AgentThreadSnapshotDocument> {
-  const execution = await prisma.workflowExecution.findFirst({
-    orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-    select: {
-      completedAt: true,
-      createdAt: true,
-      id: true,
-      startedAt: true,
-      status: true,
-    },
-    where: {
-      AND: [
-        {
-          result: { equals: snapshot.threadId, path: ['metadata', 'threadId'] },
-        },
-        {
-          OR: AGENT_CONVERSATION_WORKFLOW_IDS.map((canonicalId) => ({
-            result: { equals: canonicalId, path: ['metadata', 'canonicalId'] },
-          })),
-        },
-      ],
-      isDeleted: false,
-      organizationId: snapshot.organizationId,
-    },
-  });
-  return reconcileThreadWorkflowSnapshot(snapshot, execution);
+  const branches = AGENT_CONVERSATION_WORKFLOW_IDS.map(
+    (canonicalId) => Prisma.sql`
+    (SELECT id, status::text, "createdAt", "startedAt", "completedAt"
+     FROM workflow_executions
+     WHERE "organizationId" = ${snapshot.organizationId}
+       AND "isDeleted" = false
+       AND (result #> '{metadata,threadId}'::text[]) = ${JSON.stringify(snapshot.threadId)}::jsonb
+       AND (result #> '{metadata,canonicalId}'::text[]) = ${JSON.stringify(canonicalId)}::jsonb
+     ORDER BY "createdAt" DESC, id DESC LIMIT 1)
+  `,
+  );
+  const executions = await prisma.$queryRaw<SnapshotExecution[]>(Prisma.sql`
+    SELECT id, status, "createdAt", "startedAt", "completedAt"
+    FROM (${Prisma.join(branches, ' UNION ALL ')}) AS candidates
+    ORDER BY "createdAt" DESC, id DESC LIMIT 1
+  `);
+  return reconcileThreadWorkflowSnapshot(snapshot, executions[0] ?? null);
 }

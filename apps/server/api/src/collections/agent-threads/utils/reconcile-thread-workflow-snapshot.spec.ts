@@ -4,7 +4,7 @@ import {
 } from '@api/collections/agent-threads/utils/reconcile-thread-workflow-snapshot';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { WorkflowExecution } from '@genfeedai/prisma';
+import type { Prisma, WorkflowExecution } from '@genfeedai/prisma';
 
 const createdAt = new Date('2026-09-08T10:00:00.000Z');
 function snapshot(): AgentThreadSnapshotDocument {
@@ -116,34 +116,53 @@ describe('durable workflow snapshot recovery', () => {
     const current = snapshot();
     expect(reconcileThreadWorkflowSnapshot(current, null)).toBe(current);
   });
-  it('reads only non-deleted conversation executions in the authorized organization and thread', async () => {
-    const findFirst = vi.fn().mockResolvedValue(execution());
-    const prisma = { workflowExecution: { findFirst } } as unknown as Pick<
-      PrismaService,
-      'workflowExecution'
-    >;
-    await readThreadWorkflowSnapshot(prisma, snapshot());
-    expect(findFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          organizationId: 'org',
-          isDeleted: false,
-          AND: expect.arrayContaining([
-            { result: { equals: 'thread', path: ['metadata', 'threadId'] } },
-            {
-              OR: expect.arrayContaining([
-                {
-                  result: {
-                    equals: 'agent.turn.execute',
-                    path: ['metadata', 'canonicalId'],
-                  },
-                },
-              ]),
-            },
-          ]),
-        }),
-      }),
-    );
+  it.each(['thread', `thread'"; DROP TABLE workflow_executions; -- 雪`])(
+    'binds all identities and bounds each conversation branch for %s',
+    async (threadId) => {
+      const $queryRaw = vi.fn().mockResolvedValue([execution()]);
+      const prisma = { $queryRaw } as unknown as Pick<
+        PrismaService,
+        '$queryRaw'
+      >;
+      const current = { ...snapshot(), organizationId: `org'雪`, threadId };
+      const result = await readThreadWorkflowSnapshot(prisma, current);
+      expect(result.activeRun?.runId).toBe('current-execution');
+      expect($queryRaw).toHaveBeenCalledTimes(1);
+      const query = $queryRaw.mock.calls[0][0] as Prisma.Sql;
+      const branches = query.sql.split(' UNION ALL ');
+      expect(branches).toHaveLength(3);
+      for (const branch of branches) {
+        expect(branch).toContain('"organizationId" = ?');
+        expect(branch).toContain('"isDeleted" = false');
+        expect(branch).toContain("result #> '{metadata,threadId}'::text[]");
+        expect(branch).toContain("result #> '{metadata,canonicalId}'::text[]");
+        expect(branch).toContain('ORDER BY "createdAt" DESC, id DESC LIMIT 1');
+      }
+      expect(
+        query.sql.match(/ORDER BY "createdAt" DESC, id DESC LIMIT 1/g),
+      ).toHaveLength(4);
+      expect(query.sql).toContain('status::text');
+      expect(query.sql).not.toContain(JSON.stringify(threadId));
+      expect(query.sql).not.toContain(current.organizationId);
+      expect(query.values).toEqual([
+        current.organizationId,
+        JSON.stringify(threadId),
+        JSON.stringify('agent.turn.execute'),
+        current.organizationId,
+        JSON.stringify(threadId),
+        JSON.stringify('agent.thread.ui-action'),
+        current.organizationId,
+        JSON.stringify(threadId),
+        JSON.stringify('agent.thread.input-response'),
+      ]);
+    },
+  );
+  it('returns the original snapshot when the query has no match', async () => {
+    const $queryRaw = vi.fn().mockResolvedValue([]);
+    const prisma = { $queryRaw } as unknown as Pick<PrismaService, '$queryRaw'>;
+    const current = snapshot();
+    expect(await readThreadWorkflowSnapshot(prisma, current)).toBe(current);
+    expect($queryRaw).toHaveBeenCalledTimes(1);
   });
 });
 
