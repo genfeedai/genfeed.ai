@@ -94,9 +94,6 @@ export class DashboardLayoutsService extends BaseService<
     }
 
     const pageKey = dto.pageKey ?? DEFAULT_PAGE_KEY;
-    // Prisma's Json input type doesn't structurally match our persisted
-    // document interface — bridge through `unknown` rather than casting
-    // directly, since the two shapes aren't guaranteed assignable.
     const documentJson = toPrismaJson(document);
 
     const record = await this.prisma.dashboardLayout.upsert({
