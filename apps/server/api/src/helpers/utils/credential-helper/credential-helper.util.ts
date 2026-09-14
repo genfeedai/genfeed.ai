@@ -23,13 +23,14 @@ export interface GetCredentialOptions {
  * Helper utility for credential operations across integration services.
  * Encapsulates the common pattern of finding and decrypting credentials.
  */
-export class CredentialHelper {
+
+export const CredentialHelper = {
   /**
    * Find and decrypt a credential for the given organization, brand, and platform.
    *
    * @throws Error if credential not found or has no access token
    */
-  static async getDecryptedCredential(
+  async getDecryptedCredential(
     credentialsService: CredentialsService,
     options: GetCredentialOptions,
   ): Promise<CredentialWithToken> {
@@ -55,14 +56,14 @@ export class CredentialHelper {
     const decryptedToken = EncryptionUtil.decrypt(credential.accessToken);
 
     return { credential, decryptedToken };
-  }
+  },
 
   /**
    * Find credential without decryption (for cases where token isn't needed).
    *
    * @throws Error if credential not found
    */
-  static async getCredential(
+  async getCredential(
     credentialsService: CredentialsService,
     options: GetCredentialOptions,
   ): Promise<CredentialDocument> {
@@ -80,12 +81,12 @@ export class CredentialHelper {
     }
 
     return credential;
-  }
+  },
 
   /**
    * Build standard credential query with organization, brand, and platform.
    */
-  static buildQuery(options: GetCredentialOptions): Record<string, unknown> {
+  buildQuery(options: GetCredentialOptions): Record<string, unknown> {
     const { organizationId, brandId, credentialId, platform } = options;
 
     return {
@@ -95,5 +96,5 @@ export class CredentialHelper {
       platform,
       ...(credentialId ? { id: credentialId } : {}),
     };
-  }
-}
+  },
+};

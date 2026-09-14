@@ -4,13 +4,14 @@ import { HttpException, HttpStatus } from '@nestjs/common';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
- * Utility class for creating standardized error responses
+ * Creates standardized error responses
  */
-export class ErrorResponse {
+
+const errorResponseMethods = {
   /**
    * Create a standardized API error response
    */
-  static create(params: {
+  create(params: {
     status: HttpStatus;
     code: ErrorCode;
     title: string;
@@ -34,12 +35,12 @@ export class ErrorResponse {
         validationErrors: params.validationErrors,
       }),
     };
-  }
+  },
 
   /**
    * Create and throw a standardized HTTP exception
    */
-  static throw(params: {
+  throw(params: {
     status: HttpStatus;
     code: ErrorCode;
     title: string;
@@ -53,12 +54,12 @@ export class ErrorResponse {
   }): never {
     const error = ErrorResponse.create(params);
     throw new HttpException(error, params.status);
-  }
+  },
 
   /**
    * Common error responses
    */
-  static notFound(resource: string, id: string): never {
+  notFound(resource: string, id: string): never {
     ErrorResponse.throw({
       code: ErrorCode.NOT_FOUND,
       detail: `${resource} with ID '${id}' does not exist or you don't have permission to access it`,
@@ -66,27 +67,27 @@ export class ErrorResponse {
       status: HttpStatus.NOT_FOUND,
       title: `${resource} not found`,
     });
-  }
+  },
 
-  static unauthorized(detail: string = 'Authentication required'): never {
+  unauthorized(detail: string = 'Authentication required'): never {
     ErrorResponse.throw({
       code: ErrorCode.UNAUTHORIZED,
       detail,
       status: HttpStatus.UNAUTHORIZED,
       title: 'Unauthorized',
     });
-  }
+  },
 
-  static forbidden(detail: string = 'Insufficient permissions'): never {
+  forbidden(detail: string = 'Insufficient permissions'): never {
     ErrorResponse.throw({
       code: ErrorCode.FORBIDDEN,
       detail,
       status: HttpStatus.FORBIDDEN,
       title: 'Forbidden',
     });
-  }
+  },
 
-  static validationFailed(
+  validationFailed(
     errors: Array<{ field: string; message: string; code?: string }>,
   ): never {
     ErrorResponse.throw({
@@ -96,9 +97,9 @@ export class ErrorResponse {
       title: 'Validation failed',
       validationErrors: errors,
     });
-  }
+  },
 
-  static conflict(resource: string, detail: string): never {
+  conflict(resource: string, detail: string): never {
     ErrorResponse.throw({
       code: ErrorCode.CONFLICT,
       detail,
@@ -106,23 +107,23 @@ export class ErrorResponse {
       status: HttpStatus.CONFLICT,
       title: 'Conflict',
     });
-  }
+  },
 
-  static internalError(detail: string = 'An unexpected error occurred'): never {
+  internalError(detail: string = 'An unexpected error occurred'): never {
     ErrorResponse.throw({
       code: ErrorCode.INTERNAL_ERROR,
       detail,
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       title: 'Internal server error',
     });
-  }
+  },
 
   /**
    * Handle an error caught in a controller catch block.
    * If the error is already an HttpException, re-throw it.
    * Otherwise log the error and throw a generic internal server error.
    */
-  static handle(
+  handle(
     error: unknown,
     logger: {
       error: (
@@ -146,5 +147,8 @@ export class ErrorResponse {
       status: HttpStatus.INTERNAL_SERVER_ERROR,
       title: 'Internal server error',
     });
-  }
-}
+  },
+};
+
+// The explicit export type preserves control-flow narrowing after never-returning calls.
+export const ErrorResponse: typeof errorResponseMethods = errorResponseMethods;

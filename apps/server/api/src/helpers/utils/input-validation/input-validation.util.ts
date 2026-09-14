@@ -5,74 +5,133 @@ import { ValidationConfigService } from '@libs/config/services/validation.config
 /**
  * Comprehensive input validation utility
  */
-export class InputValidationUtil {
-  // Common dangerous patterns in user input
-  private static readonly DANGEROUS_PATTERNS = [
-    /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
-    /javascript:/gi,
-    /vbscript:/gi,
-    /onload\s*=/gi,
-    /onerror\s*=/gi,
-    /onclick\s*=/gi,
-    /onfocus\s*=/gi,
-    /onmouseover\s*=/gi,
-    /<iframe\b/gi,
-    /<object\b/gi,
-    /<embed\b/gi,
-    /<link\b/gi,
-    /<meta\b/gi,
-    /<style\b/gi,
-  ];
 
-  // SQL injection patterns
-  private static readonly SQL_INJECTION_PATTERNS = [
-    /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
-    /(UNION\s+SELECT)/gi,
-    /(\bOR\s+\d+\s*=\s*\d+)/gi,
-    /(\bOR\s+['"]?\d+['"]?\s*=\s*['"]?\d+['"]?)/gi,
-    /(\bAND\s+\d+\s*=\s*\d+)/gi,
-    /(--\s)/g,
-    /(\/\*.*\*\/)/g,
-    /(\bxp_cmdshell\b)/gi,
-    /(\bsp_executesql\b)/gi,
-  ];
+// Common dangerous patterns in user input
+const DANGEROUS_PATTERNS = [
+  /<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi,
+  /javascript:/gi,
+  /vbscript:/gi,
+  /onload\s*=/gi,
+  /onerror\s*=/gi,
+  /onclick\s*=/gi,
+  /onfocus\s*=/gi,
+  /onmouseover\s*=/gi,
+  /<iframe\b/gi,
+  /<object\b/gi,
+  /<embed\b/gi,
+  /<link\b/gi,
+  /<meta\b/gi,
+  /<style\b/gi,
+];
 
-  private static readonly NOSQL_OPERATOR_PREFIX =
-    `\\${String.fromCharCode(36)}`;
+// SQL injection patterns
+const SQL_INJECTION_PATTERNS = [
+  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
+  /(UNION\s+SELECT)/gi,
+  /(\bOR\s+\d+\s*=\s*\d+)/gi,
+  /(\bOR\s+['"]?\d+['"]?\s*=\s*['"]?\d+['"]?)/gi,
+  /(\bAND\s+\d+\s*=\s*\d+)/gi,
+  /(--\s)/g,
+  /(\/\*.*\*\/)/g,
+  /(\bxp_cmdshell\b)/gi,
+  /(\bsp_executesql\b)/gi,
+];
 
-  private static readonly NOSQL_INJECTION_PATTERNS = [
-    'where',
-    'ne',
-    'gt',
-    'gte',
-    'lt',
-    'lte',
-    'in',
-    'nin',
-    'or',
-    'and',
-    'nor',
-    'not',
-    'regex',
-    'type',
-    'expr',
-    'jsonSchema',
-    'mod',
-    'size',
-    'all',
-    'elemMatch',
-  ].map(
-    (operator) =>
-      new RegExp(
-        `${InputValidationUtil.NOSQL_OPERATOR_PREFIX}${operator}`,
-        'gi',
-      ),
-  );
+const NOSQL_OPERATOR_PREFIX = `\\${String.fromCharCode(36)}`;
 
+const NOSQL_INJECTION_PATTERNS = [
+  'where',
+  'ne',
+  'gt',
+  'gte',
+  'lt',
+  'lte',
+  'in',
+  'nin',
+  'or',
+  'and',
+  'nor',
+  'not',
+  'regex',
+  'type',
+  'expr',
+  'jsonSchema',
+  'mod',
+  'size',
+  'all',
+  'elemMatch',
+].map((operator) => new RegExp(`${NOSQL_OPERATOR_PREFIX}${operator}`, 'gi'));
+
+/**
+ * Sanitize string to prevent XSS and injection attacks
+ */
+function sanitizeString(value: string, fieldName: string): string {
+  let sanitized = value;
+
+  // Check for dangerous patterns
+  for (const pattern of DANGEROUS_PATTERNS) {
+    pattern.lastIndex = 0;
+    if (pattern.test(sanitized)) {
+      throw new ValidationException(
+        `${fieldName} contains potentially dangerous content`,
+      );
+    }
+  }
+
+  // Check for SQL injection patterns
+  for (const pattern of SQL_INJECTION_PATTERNS) {
+    pattern.lastIndex = 0;
+    if (pattern.test(sanitized)) {
+      throw new ValidationException(
+        `${fieldName} contains potentially malicious SQL patterns`,
+      );
+    }
+  }
+
+  // Check for NoSQL injection patterns (more lenient for legitimate use)
+  let noSqlPatternCount = 0;
+  for (const pattern of NOSQL_INJECTION_PATTERNS) {
+    pattern.lastIndex = 0;
+    if (pattern.test(sanitized)) {
+      noSqlPatternCount++;
+    }
+  }
+
+  // If multiple NoSQL patterns are found, it's likely an injection attempt
+  if (noSqlPatternCount >= 3) {
+    throw new ValidationException(
+      `${fieldName} contains potentially malicious NoSQL patterns`,
+    );
+  }
+
+  // Basic HTML encoding for special characters
+  sanitized = sanitized
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#x27;')
+    .replace(/\//g, '&#x2F;');
+
+  return sanitized;
+}
+
+/**
+ * Check if string is a valid URL
+ */
+function isValidUrl(str: string): boolean {
+  try {
+    const url = new URL(str);
+    return ['http:', 'https:'].includes(url.protocol);
+  } catch {
+    return false;
+  }
+}
+export const InputValidationUtil = {
   /**
    * Validate and sanitize string input
    */
-  static validateString(
+  validateString(
     value: unknown,
     fieldName: string,
     options: {
@@ -129,16 +188,16 @@ export class InputValidationUtil {
     let result = trimmed;
 
     if (sanitize) {
-      result = InputValidationUtil.sanitizeString(result, fieldName);
+      result = sanitizeString(result, fieldName);
     }
 
     return result;
-  }
+  },
 
   /**
    * Validate numeric input
    */
-  static validateNumber(
+  validateNumber(
     value: unknown,
     fieldName: string,
     options: {
@@ -176,12 +235,12 @@ export class InputValidationUtil {
     }
 
     return num;
-  }
+  },
 
   /**
    * Validate boolean input
    */
-  static validateBoolean(
+  validateBoolean(
     value: unknown,
     fieldName: string,
     options: { required?: boolean } = {},
@@ -214,12 +273,12 @@ export class InputValidationUtil {
     }
 
     throw new ValidationException(`${fieldName} must be a boolean value`);
-  }
+  },
 
   /**
    * Validate array input
    */
-  static validateArray<T>(
+  validateArray<T>(
     value: unknown,
     fieldName: string,
     itemValidator: (item: unknown, index: number) => T,
@@ -263,12 +322,12 @@ export class InputValidationUtil {
         throw new ValidationException(`${fieldName}[${index}]: ${message}`);
       }
     });
-  }
+  },
 
   /**
    * Validate email format
    */
-  static validateEmail(
+  validateEmail(
     value: unknown,
     fieldName: string,
     required: boolean = true,
@@ -280,12 +339,12 @@ export class InputValidationUtil {
     });
 
     return email.toLowerCase();
-  }
+  },
 
   /**
    * Validate URL format
    */
-  static validateUrl(
+  validateUrl(
     value: unknown,
     fieldName: string,
     required: boolean = true,
@@ -295,17 +354,17 @@ export class InputValidationUtil {
       required,
     });
 
-    if (url && !InputValidationUtil.isValidUrl(url)) {
+    if (url && !isValidUrl(url)) {
       throw new ValidationException(`${fieldName} must be a valid URL`);
     }
 
     return url;
-  }
+  },
 
   /**
    * Validate a supported entity id.
    */
-  static validateEntityId(value: unknown, fieldName: string): string {
+  validateEntityId(value: unknown, fieldName: string): string {
     if (!value || typeof value !== 'string') {
       throw new ValidationException(
         `${fieldName} is required and must be a string`,
@@ -319,78 +378,12 @@ export class InputValidationUtil {
     }
 
     return value;
-  }
-
-  /**
-   * Sanitize string to prevent XSS and injection attacks
-   */
-  private static sanitizeString(value: string, fieldName: string): string {
-    let sanitized = value;
-
-    // Check for dangerous patterns
-    for (const pattern of InputValidationUtil.DANGEROUS_PATTERNS) {
-      pattern.lastIndex = 0;
-      if (pattern.test(sanitized)) {
-        throw new ValidationException(
-          `${fieldName} contains potentially dangerous content`,
-        );
-      }
-    }
-
-    // Check for SQL injection patterns
-    for (const pattern of InputValidationUtil.SQL_INJECTION_PATTERNS) {
-      pattern.lastIndex = 0;
-      if (pattern.test(sanitized)) {
-        throw new ValidationException(
-          `${fieldName} contains potentially malicious SQL patterns`,
-        );
-      }
-    }
-
-    // Check for NoSQL injection patterns (more lenient for legitimate use)
-    let noSqlPatternCount = 0;
-    for (const pattern of InputValidationUtil.NOSQL_INJECTION_PATTERNS) {
-      pattern.lastIndex = 0;
-      if (pattern.test(sanitized)) {
-        noSqlPatternCount++;
-      }
-    }
-
-    // If multiple NoSQL patterns are found, it's likely an injection attempt
-    if (noSqlPatternCount >= 3) {
-      throw new ValidationException(
-        `${fieldName} contains potentially malicious NoSQL patterns`,
-      );
-    }
-
-    // Basic HTML encoding for special characters
-    sanitized = sanitized
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&#x27;')
-      .replace(/\//g, '&#x2F;');
-
-    return sanitized;
-  }
-
-  /**
-   * Check if string is a valid URL
-   */
-  private static isValidUrl(str: string): boolean {
-    try {
-      const url = new URL(str);
-      return ['http:', 'https:'].includes(url.protocol);
-    } catch {
-      return false;
-    }
-  }
+  },
 
   /**
    * Validate file upload parameters
    */
-  static validateFileUpload(
+  validateFileUpload(
     file: Express.Multer.File | undefined,
     fieldName: string,
     options: {
@@ -441,5 +434,5 @@ export class InputValidationUtil {
     }
 
     return file;
-  }
-}
+  },
+};

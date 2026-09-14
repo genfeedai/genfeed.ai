@@ -3,30 +3,31 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 /**
  * Utility to provide default values for query parameters based on BaseQueryDto
  */
-export class QueryDefaultsUtil {
-  private static readonly defaults = new BaseQueryDto();
-  private static readonly maxLimit = 100;
 
-  private static parsePositiveInteger(
-    value: unknown,
-    fallback: number,
-    max?: number,
-  ): number {
-    const numericValue =
-      typeof value === 'number'
-        ? value
-        : typeof value === 'string' && value.trim() !== ''
-          ? Number(value)
-          : Number.NaN;
+const defaults = new BaseQueryDto();
 
-    if (!Number.isFinite(numericValue) || numericValue < 1) {
-      return fallback;
-    }
+const maxLimit = 100;
 
-    const integerValue = Math.floor(numericValue);
-    return max ? Math.min(integerValue, max) : integerValue;
+function parsePositiveInteger(
+  value: unknown,
+  fallback: number,
+  max?: number,
+): number {
+  const numericValue =
+    typeof value === 'number'
+      ? value
+      : typeof value === 'string' && value.trim() !== ''
+        ? Number(value)
+        : Number.NaN;
+
+  if (!Number.isFinite(numericValue) || numericValue < 1) {
+    return fallback;
   }
 
+  const integerValue = Math.floor(numericValue);
+  return max ? Math.min(integerValue, max) : integerValue;
+}
+export const QueryDefaultsUtil = {
   /**
    * Get default pagination options from BaseQueryDto
    *
@@ -37,36 +38,27 @@ export class QueryDefaultsUtil {
    * `{ pagination: false }` directly to the service layer and never route
    * through this helper.
    */
-  static getPaginationDefaults(query: Partial<BaseQueryDto> = {}) {
+  getPaginationDefaults(query: Partial<BaseQueryDto> = {}) {
     return {
-      limit: QueryDefaultsUtil.parsePositiveInteger(
-        query.limit,
-        QueryDefaultsUtil.defaults.limit,
-        QueryDefaultsUtil.maxLimit,
-      ),
-      page: QueryDefaultsUtil.parsePositiveInteger(
-        query.page,
-        QueryDefaultsUtil.defaults.page,
-      ),
+      limit: parsePositiveInteger(query.limit, defaults.limit, maxLimit),
+      page: parsePositiveInteger(query.page, defaults.page),
       pagination: true,
     };
-  }
+  },
 
   /**
    * Get default isDeleted value from BaseQueryDto
    */
-  static getIsDeletedDefault(value?: boolean): boolean {
-    return value !== undefined
-      ? Boolean(value)
-      : Boolean(QueryDefaultsUtil.defaults.isDeleted);
-  }
+  getIsDeletedDefault(value?: boolean): boolean {
+    return value !== undefined ? Boolean(value) : Boolean(defaults.isDeleted);
+  },
 
   /**
    * Get default sort value from BaseQueryDto
    */
-  static getSortDefault(value?: string): string {
-    return value ?? QueryDefaultsUtil.defaults.sort;
-  }
+  getSortDefault(value?: string): string {
+    return value ?? defaults.sort;
+  },
 
   /**
    * Apply all defaults to a query object
@@ -74,25 +66,18 @@ export class QueryDefaultsUtil {
    * Like `getPaginationDefaults`, HTTP-derived queries are always paginated.
    * The HTTP DTO does not accept a `pagination` flag.
    */
-  static applyDefaults<T extends Partial<BaseQueryDto>>(
+  applyDefaults<T extends Partial<BaseQueryDto>>(
     query: T,
   ): Omit<T, 'pagination'> & BaseQueryDto & { pagination: true } {
     return {
       ...query,
-      isDeleted: query.isDeleted ?? QueryDefaultsUtil.defaults.isDeleted,
-      limit: QueryDefaultsUtil.parsePositiveInteger(
-        query.limit,
-        QueryDefaultsUtil.defaults.limit,
-        QueryDefaultsUtil.maxLimit,
-      ),
-      page: QueryDefaultsUtil.parsePositiveInteger(
-        query.page,
-        QueryDefaultsUtil.defaults.page,
-      ),
+      isDeleted: query.isDeleted ?? defaults.isDeleted,
+      limit: parsePositiveInteger(query.limit, defaults.limit, maxLimit),
+      page: parsePositiveInteger(query.page, defaults.page),
       pagination: true,
-      sort: query.sort ?? QueryDefaultsUtil.defaults.sort,
+      sort: query.sort ?? defaults.sort,
     };
-  }
+  },
 
   /**
    * Parse status filter to handle arrays and single values.
@@ -116,7 +101,7 @@ export class QueryDefaultsUtil {
    * QueryDefaultsUtil.parseStatusFilter('') // returns { in: ['draft', 'uploaded', 'completed'] }
    *
    */
-  static parseStatusFilter(status?: string | string[]): unknown {
+  parseStatusFilter(status?: string | string[]): unknown {
     // Default to showing non-validated (draft, uploaded) + generated (completed) assets
     const DEFAULT_STATUSES = { in: ['draft', 'uploaded', 'completed'] };
 
@@ -137,7 +122,7 @@ export class QueryDefaultsUtil {
     }
 
     return statusStr.trim();
-  }
+  },
 
   /**
    * Parse status filter for music ingredients, excluding failed by default.
@@ -157,7 +142,7 @@ export class QueryDefaultsUtil {
    * // Empty/undefined status - returns default: exclude failed
    * QueryDefaultsUtil.parseMusicStatusFilter(undefined) // returns { not: 'failed' }
    */
-  static parseMusicStatusFilter(status?: string | string[]): unknown {
+  parseMusicStatusFilter(status?: string | string[]): unknown {
     // Default to excluding failed items
     if (!status) {
       return { not: 'failed' };
@@ -176,7 +161,7 @@ export class QueryDefaultsUtil {
     }
 
     return statusStr.trim();
-  }
+  },
 
   /**
    * Parse boolean filter from query params, avoiding the Boolean('false') === true pitfall
@@ -198,7 +183,7 @@ export class QueryDefaultsUtil {
    * // Undefined with default
    * QueryDefaultsUtil.parseBooleanFilter(undefined, { not: null }) // returns { not: null }
    */
-  static parseBooleanFilter(
+  parseBooleanFilter(
     value?: string | boolean,
     defaultValue: Record<string, unknown> = { not: null },
   ): boolean | Record<string, unknown> {
@@ -213,5 +198,5 @@ export class QueryDefaultsUtil {
 
     // Handle boolean values
     return Boolean(value);
-  }
-}
+  },
+};
