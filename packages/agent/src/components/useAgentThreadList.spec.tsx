@@ -2,9 +2,14 @@ import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/contracts';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAgentThreadList } from './useAgentThreadList';
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: { error: vi.fn() },
+}));
 
 function makeThread(
   id: string,
@@ -75,6 +80,47 @@ describe('useAgentThreadList', () => {
     window.localStorage.clear();
     useAgentChatStore.setState(useAgentChatStore.getInitialState(), true);
   });
+
+  it.each([
+    ['archiveThread', 'handleArchiveFromMenu', 'Failed to archive thread'],
+    [
+      'unarchiveThread',
+      'handleUnarchiveFromMenu',
+      'Failed to unarchive thread',
+    ],
+    ['branchThread', 'handleForkThread', 'Failed to branch thread'],
+    ['pinThread', 'handleTogglePinned', 'Failed to update thread pin'],
+    [
+      'archiveAllThreads',
+      'handleArchiveAllThreads',
+      'Failed to archive threads',
+    ],
+    ['updateThread', 'handleSubmitRename', 'Failed to rename thread'],
+  ] as const)(
+    'reports %s failures without mutating the thread',
+    async (method, action, message) => {
+      const error = new Error('Request rejected');
+      const apiService = makeApiService({
+        [method]: vi.fn().mockRejectedValue(error),
+      });
+      const { result } = renderThreadList(apiService);
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      const before = useAgentChatStore.getState().threads;
+      if (action === 'handleSubmitRename') {
+        act(() => result.current.setRenameDraft('New title'));
+      }
+      await act(async () => {
+        if (action === 'handleArchiveAllThreads')
+          await result.current[action]();
+        else await result.current[action](makeThread('t-1'));
+      });
+      expect(logger.error).toHaveBeenCalledWith(
+        message,
+        expect.objectContaining({ error }),
+      );
+      expect(useAgentChatStore.getState().threads).toEqual(before);
+    },
+  );
 
   it('loads threads on mount and splits pinned from regular', async () => {
     const apiService = makeApiService({

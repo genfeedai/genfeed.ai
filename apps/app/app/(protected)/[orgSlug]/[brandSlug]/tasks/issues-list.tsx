@@ -9,6 +9,7 @@ import type {
   IssuesListState,
   ViewMode,
 } from '@props/tasks/issues-list.props';
+import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import {
   type Task,
@@ -229,8 +230,9 @@ export default function IssuesList() {
       if (!controller.signal.aborted) {
         dispatch({ type: 'SET_ISSUES', payload: result });
       }
-    } catch {
+    } catch (error) {
       if (!controller.signal.aborted) {
+        logger.error('Failed to load tasks', error);
         dispatch({ type: 'SET_ISSUES', payload: [] });
       }
     } finally {
@@ -253,8 +255,8 @@ export default function IssuesList() {
       });
       dispatch({ type: 'RESET_CREATE_FORM' });
       loadIssues();
-    } catch {
-      // Create failed
+    } catch (error) {
+      logger.error('Failed to create task', error);
       dispatch({ type: 'SET_CREATING', payload: false });
     }
   }, [
