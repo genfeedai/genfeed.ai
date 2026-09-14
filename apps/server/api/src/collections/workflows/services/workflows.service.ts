@@ -47,7 +47,7 @@ import {
   WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { PopulateOption } from '@genfeedai/contracts/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -260,9 +260,8 @@ export class WorkflowsService extends BaseService<
       const version = await transaction.workflowVersion.create({
         data: {
           contentHash: nextDefinition.contentHash,
-          graph: nextDefinition.graph as unknown as Prisma.InputJsonValue,
-          inputSchema:
-            nextDefinition.inputSchema as unknown as Prisma.InputJsonValue,
+          graph: toPrismaJson(nextDefinition.graph),
+          inputSchema: toPrismaJson(nextDefinition.inputSchema),
           organizationId: existing.organizationId,
           userId: existing.userId,
           version: existing.version + 1,

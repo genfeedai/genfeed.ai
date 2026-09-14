@@ -22,7 +22,7 @@ import {
   ClipReferenceFrameValidationError,
   normalizeClipReferenceFrameSet,
 } from '@genfeedai/helpers';
-import type { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -267,9 +267,11 @@ export class ClipProjectsService extends BaseService<
         error: null,
         failedClipCount: 0,
         pendingClipCount,
-        readiness: buildClipProjectReadiness({
-          status: 'generating',
-        }) as unknown as Prisma.InputJsonValue,
+        readiness: toPrismaJson(
+          buildClipProjectReadiness({
+            status: 'generating',
+          }),
+        ),
         status: 'generating',
         terminalAt: null,
       },

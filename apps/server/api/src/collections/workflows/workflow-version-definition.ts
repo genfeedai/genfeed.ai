@@ -11,7 +11,7 @@ import {
   GENFEED_ACTION_NODE_TYPE,
   getActionDefinition,
 } from '@genfeedai/actions';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   isEngineNativeNodeType,
   validateWorkflow,
@@ -165,9 +165,9 @@ export async function createVersionedWorkflow(
   await transaction.workflowVersion.create({
     data: {
       contentHash: definition.contentHash,
-      graph: definition.graph as unknown as Prisma.InputJsonValue,
+      graph: toPrismaJson(definition.graph),
       id: versionId,
-      inputSchema: definition.inputSchema as unknown as Prisma.InputJsonValue,
+      inputSchema: toPrismaJson(definition.inputSchema),
       organizationId: identity.organizationId,
       userId: identity.userId,
       version: 1,

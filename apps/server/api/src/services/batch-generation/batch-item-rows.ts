@@ -6,6 +6,7 @@ import {
   toPersistedReviewDecision,
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 
 export type BatchItemRowWriter = {
   batchItem: Pick<Prisma.TransactionClient['batchItem'], 'upsert'>;
@@ -124,7 +125,7 @@ export async function writeBatchJsonAndItemRows(
     const result = await tx.batch.updateMany({
       data: {
         ...input.extraBatchData,
-        items: input.items as unknown as Prisma.InputJsonValue,
+        items: toPrismaJson(input.items),
       },
       where: scopedWhere(input.organizationId, {
         id: input.batchId,
@@ -196,5 +197,5 @@ function toPersistedBatchItemData(item: BatchItemFull): Prisma.InputJsonValue {
   const { assignee: _assignee, ...rest } = item as BatchItemFull & {
     assignee?: unknown;
   };
-  return rest as unknown as Prisma.InputJsonValue;
+  return toPrismaJson(rest);
 }

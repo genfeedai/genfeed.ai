@@ -33,7 +33,10 @@ import {
   SocialMessageType,
 } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
-import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
+import {
+  CredentialPlatform as PrismaCredentialPlatform,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
@@ -1162,7 +1165,7 @@ export class SocialInboxIngestionService {
           accountExternalId: clamp(input.accountExternalId, 512),
           accountHandle: clamp(input.accountHandle, 280),
           accountName: clamp(input.accountName, 280),
-          availability: input.availability as unknown as Prisma.InputJsonValue,
+          availability: toPrismaJson(input.availability),
           automationState: 'manual',
           brandId: input.brandId,
           conversationType: input.conversationType,

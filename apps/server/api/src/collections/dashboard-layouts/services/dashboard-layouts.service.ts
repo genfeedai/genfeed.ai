@@ -13,7 +13,7 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { sanitizeLayoutForPersistence } from '@genfeedai/agent/server';
-import { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -97,7 +97,7 @@ export class DashboardLayoutsService extends BaseService<
     // Prisma's Json input type doesn't structurally match our persisted
     // document interface — bridge through `unknown` rather than casting
     // directly, since the two shapes aren't guaranteed assignable.
-    const documentJson = document as unknown as Prisma.InputJsonValue;
+    const documentJson = toPrismaJson(document);
 
     const record = await this.prisma.dashboardLayout.upsert({
       create: {

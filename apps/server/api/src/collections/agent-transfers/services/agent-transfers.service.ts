@@ -261,8 +261,7 @@ export class AgentTransfersService {
         }
         const created = await tx.agentTransfer.create({
           data: {
-            artifactReferences: (input.artifactReferences ??
-              []) as unknown as Prisma.InputJsonValue,
+            artifactReferences: input.artifactReferences ?? [],
             artifactVersionPinIds: input.artifactVersionPinIds ?? [],
             content: input.content.trim(),
             correlationId,
@@ -312,8 +311,7 @@ export class AgentTransfersService {
         if (destinationMessageId && !depthExceeded) {
           await tx.agentMessage.create({
             data: {
-              artifactReferences: (input.artifactReferences ??
-                []) as unknown as Prisma.InputJsonValue,
+              artifactReferences: input.artifactReferences ?? [],
               artifactVersionPinIds: input.artifactVersionPinIds ?? [],
               brandId: destination.brandId,
               content: input.content.trim(),

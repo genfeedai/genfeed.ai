@@ -29,6 +29,7 @@ import {
   OrganizationCategory,
   type Prisma,
   type Role,
+  toPrismaJson,
   type User,
   type WarmupAccount,
   WarmupAccountStatus,
@@ -364,23 +365,23 @@ export class AdminWarmupAccountsService {
 
     return tx.warmupAccount.create({
       data: {
-        auditEvents: [
+        auditEvents: toPrismaJson([
           createAuditEvent(
             operatorUserId,
             'Provisioned warm-up organization and first brand.',
           ),
-        ] as unknown as Prisma.InputJsonValue,
+        ]),
         brandId: brand.id,
         brandName: dto.brandName.trim(),
         customerUserId: customerUser.id,
-        diagnostics: {
+        diagnostics: toPrismaJson({
           steps: [
             createDiagnosticStep('done', 'Created or reused lead user.'),
             createDiagnosticStep('done', 'Created warm-up organization.'),
             createDiagnosticStep('done', 'Created first brand workspace.'),
             createDiagnosticStep('done', 'Granted operator member access.'),
           ],
-        } as unknown as Prisma.InputJsonValue,
+        }),
         guidance: trimOptional(dto.guidance),
         leadEmail,
         leadFirstName: trimOptional(dto.leadFirstName),
@@ -419,19 +420,21 @@ export class AdminWarmupAccountsService {
         isDeleted: false,
       },
       data: {
-        diagnostics: {
+        diagnostics: toPrismaJson({
           ...(account.diagnostics as Prisma.JsonObject),
           preparation: {
             ...(account.diagnostics as unknown as IWarmupAccountDiagnostics)
               .preparation,
             invitationReadiness: readiness,
           },
-        } as unknown as Prisma.InputJsonValue,
-        auditEvents: this.appendAuditEvent(
-          account,
-          actorUserId,
-          'Verified readiness before explicit invitation dispatch.',
-        ) as unknown as Prisma.InputJsonValue,
+        }),
+        auditEvents: toPrismaJson(
+          this.appendAuditEvent(
+            account,
+            actorUserId,
+            'Verified readiness before explicit invitation dispatch.',
+          ),
+        ),
       },
     });
   }
@@ -571,17 +574,17 @@ export class AdminWarmupAccountsService {
     assertWarmupMutable(current);
     return this.prisma.warmupAccount.update({
       data: {
-        auditEvents: this.appendAuditEvent(
-          current,
-          input.actorUserId,
-          input.auditMessage,
-        ) as unknown as Prisma.InputJsonValue,
-        diagnostics: this.appendDiagnosticStep(
-          current,
-          input.diagnosticStatus,
-          input.diagnosticMessage,
-          input.error,
-        ) as unknown as Prisma.InputJsonValue,
+        auditEvents: toPrismaJson(
+          this.appendAuditEvent(current, input.actorUserId, input.auditMessage),
+        ),
+        diagnostics: toPrismaJson(
+          this.appendDiagnosticStep(
+            current,
+            input.diagnosticStatus,
+            input.diagnosticMessage,
+            input.error,
+          ),
+        ),
         ...(input.invitationId ? { invitationId: input.invitationId } : {}),
         ...(input.status ? { status: input.status } : {}),
       },
