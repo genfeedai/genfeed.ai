@@ -1,8 +1,5 @@
-import type {
-  IAsset,
-  IImage,
-  IIngredient,
-} from '@genfeedai/contracts/interfaces';
+import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { PromptBarAttachedAsset } from '@genfeedai/props/studio/prompt-bar.props';
 import type { DragEvent } from 'react';
 
@@ -41,12 +38,12 @@ export function isFileDrag(event: DragEvent<HTMLDivElement>): boolean {
 }
 
 export function toAttachedPromptAsset(
-  asset: IAsset | IImage,
+  asset: MediaReference,
   role: 'reference' | 'startFrame' | 'endFrame',
   source: 'upload' | 'library',
 ): PromptBarAttachedAsset {
   return {
-    id: asset.id as string,
+    id: asset.id,
     kind: 'image',
     name:
       ('title' in asset && typeof asset.title === 'string' && asset.title) ||
@@ -63,30 +60,33 @@ export function toAttachedPromptAsset(
 
 export function normalizeUploadedReference(
   uploaded: IIngredient | IAsset,
-): IAsset | IImage | null {
+): MediaReference | null {
   if (!uploaded?.id) {
     return null;
   }
 
-  const maybeUploaded = uploaded as unknown as Record<string, unknown>;
-
   return {
     id: uploaded.id,
     ingredientUrl:
-      typeof maybeUploaded.ingredientUrl === 'string'
-        ? maybeUploaded.ingredientUrl
+      'ingredientUrl' in uploaded && typeof uploaded.ingredientUrl === 'string'
+        ? uploaded.ingredientUrl
         : undefined,
     metadataHeight:
-      typeof maybeUploaded.metadataHeight === 'number'
-        ? maybeUploaded.metadataHeight
+      'metadataHeight' in uploaded &&
+      typeof uploaded.metadataHeight === 'number'
+        ? uploaded.metadataHeight
         : undefined,
     metadataWidth:
-      typeof maybeUploaded.metadataWidth === 'number'
-        ? maybeUploaded.metadataWidth
+      'metadataWidth' in uploaded && typeof uploaded.metadataWidth === 'number'
+        ? uploaded.metadataWidth
         : undefined,
     name:
-      typeof maybeUploaded.name === 'string' ? maybeUploaded.name : undefined,
+      'name' in uploaded && typeof uploaded.name === 'string'
+        ? uploaded.name
+        : undefined,
     title:
-      typeof maybeUploaded.title === 'string' ? maybeUploaded.title : undefined,
-  } as unknown as IAsset | IImage;
+      'title' in uploaded && typeof uploaded.title === 'string'
+        ? uploaded.title
+        : undefined,
+  };
 }

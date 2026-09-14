@@ -5,7 +5,6 @@ import {
   ButtonVariant,
   IngredientCategory,
 } from '@genfeedai/contracts';
-import type { IAsset } from '@genfeedai/contracts/interfaces';
 import type { ModalGalleryFooterProps } from '@genfeedai/props/modals/modal-gallery.props';
 import { PagesService } from '@genfeedai/services/content/pages.service';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -63,7 +62,7 @@ export default function ModalGalleryFooter({
                     const referencesData = selectedItems.map((id) => ({
                       id,
                       url: `${EnvironmentService.cdnUrl}/references/${id}`,
-                    })) as unknown as IAsset[];
+                    }));
 
                     if (onSelectAccountReference && referencesData.length > 0) {
                       onSelectAccountReference(referencesData);

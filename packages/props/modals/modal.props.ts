@@ -42,6 +42,7 @@ import type {
   ITag,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
+import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { Training } from '@genfeedai/models/ai/training.model';
 import type { ElementBlacklist } from '@genfeedai/models/elements/blacklist.model';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
@@ -120,7 +121,7 @@ export interface ModalGalleryProps {
 
   // Optional brand-level reference for image selection flows
   accountReference?: IAsset | null;
-  onSelectAccountReference?: (assets: IAsset[]) => void;
+  onSelectAccountReference?: (assets: AccountMediaReference[]) => void;
 
   // For pre-selecting references when reopening modal
   selectedReferences?: string[];

@@ -379,9 +379,7 @@ export function useModalIngredient({
           return [];
         }
 
-        return (await service.findChildren(
-          ingredient.id,
-        )) as unknown as IIngredient[];
+        return await service.findChildren(ingredient.id);
       },
       enabled: !!isSignedIn && !!ingredient?.id,
     });

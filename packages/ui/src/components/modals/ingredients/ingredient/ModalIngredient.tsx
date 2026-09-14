@@ -1,7 +1,6 @@
 'use client';
 
 import { ModalEnum } from '@genfeedai/contracts';
-import type { IVideo } from '@genfeedai/contracts/interfaces';
 import type { IngredientOverlayProps } from '@genfeedai/props/modals/modal.props';
 import TextOverlayPanel from '@ui/ingredients/text-overlay-panel/TextOverlayPanel';
 import Loading from '@ui/loading/default/Loading';
@@ -92,17 +91,17 @@ export default function IngredientOverlay({
               isAddingTextOverlay={loadingStates.isAddingTextOverlay}
               isUpdating={isUpdating}
               onReload={handleReload}
-              onShareVideo={() => handlers.handleShare(localIngredient!)}
+              onShareVideo={() => handlers.handleShare(localIngredient)}
               onPublishVideo={handlers.handlePublish}
               onDownloadVideo={async (video) => {
                 await handlers.handleDownload(video);
                 return undefined;
               }}
               onUpdateMetadata={(field: string, value: string) =>
-                handlers.handleUpdateMetadata(localIngredient!, field, value)
+                handlers.handleUpdateMetadata(localIngredient, field, value)
               }
               onUpdateSharing={(field: string, value: boolean | string) =>
-                handlers.handleUpdateSharing(localIngredient!, field, value)
+                handlers.handleUpdateSharing(localIngredient, field, value)
               }
               onUsePrompt={handleUsePrompt}
               onCreateVariation={handleCreateVariation}
@@ -111,7 +110,7 @@ export default function IngredientOverlay({
                 return undefined;
               }}
               onPublishImage={handlers.handlePublish}
-              onShareImage={() => handlers.handleShare(localIngredient!)}
+              onShareImage={() => handlers.handleShare(localIngredient)}
               onScopeChange={handleScopeChange}
             />
           </div>
@@ -120,7 +119,7 @@ export default function IngredientOverlay({
 
       {localIngredient && isVideo && (
         <TextOverlayPanel
-          video={localIngredient as unknown as IVideo}
+          video={localIngredient}
           isOpen={showTextOverlayPanel}
           onClose={() => setShowTextOverlayPanel(false)}
           onSuccess={handleTextOverlaySuccess}

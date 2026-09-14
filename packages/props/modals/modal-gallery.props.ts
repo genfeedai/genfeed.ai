@@ -8,6 +8,7 @@ import type {
   IMusic,
   IVideo,
 } from '@genfeedai/contracts/interfaces';
+import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { Dispatch, SetStateAction } from 'react';
 
@@ -64,7 +65,7 @@ export interface ModalGalleryFooterProps {
   isNoneAllowed: boolean;
   onClear: () => void;
   onSelect: (items: GallerySelectItem[]) => void;
-  onSelectAccountReference?: (assets: IAsset[]) => void;
+  onSelectAccountReference?: (assets: AccountMediaReference[]) => void;
   onClose: () => void;
   onConfirm: () => void;
   onPageChange: (page: number) => void;

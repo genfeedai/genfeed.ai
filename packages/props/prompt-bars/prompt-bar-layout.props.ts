@@ -4,7 +4,7 @@ import type {
   IngredientFormat,
   ModelCategory,
 } from '@genfeedai/contracts';
-import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { StudioGenerationMeter } from '@props/prompt-bars/prompt-bar-generation-meter.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
 import type { FormEvent, MutableRefObject, ReactNode, RefObject } from 'react';
@@ -30,13 +30,13 @@ export interface PromptBarCollapsedViewProps {
   onTextChange?: () => void;
   watchedModel?: string;
   formatIcon?: ReactNode;
-  references?: (IAsset | IImage)[];
+  references?: MediaReference[];
   referenceSource?: 'brand' | 'ingredient' | '';
   outputs?: number;
   onOutputsChange?: (count: number) => void;
   categoryType?: IngredientCategory;
   currentModelCategory?: ModelCategory | null;
-  onCreateVariation?: (reference: IAsset | IImage) => void;
+  onCreateVariation?: (reference: MediaReference) => void;
   onFormatChange?: (format: IngredientFormat) => void;
   onClearReferences?: () => void;
   watchedFormat?: IngredientFormat;
