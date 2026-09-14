@@ -3,7 +3,7 @@ import { describe, expect, it, vi } from 'vitest';
 /**
  * This test validates that the video-duration helpers are exported
  * from the main helpers barrel. Comprehensive unit tests are in
- * packages/helpers/__tests__/video-duration.helper.test.ts
+ * packages/helpers/src/video-duration.helper.test.ts
  */
 
 vi.mock('@genfeedai/contracts/constants', async () => {

@@ -47,7 +47,6 @@ export default defineConfig({
     coverage: {
       exclude: [
         'src/**/*.d.ts',
-        'src/**/__tests__/**',
         '**/*.test.ts',
         '**/*.test.tsx',
         '**/*.spec.ts',
@@ -60,12 +59,7 @@ export default defineConfig({
     },
     environment: 'jsdom',
     globals: true,
-    include: [
-      '__tests__/**/*.ts',
-      'src/**/*.spec.ts',
-      'src/**/*.test.ts',
-      'src/**/__tests__/**/*.ts',
-    ],
+    include: ['src/**/*.spec.ts', 'src/**/*.test.ts'],
     testTimeout: 10000,
   },
 });
