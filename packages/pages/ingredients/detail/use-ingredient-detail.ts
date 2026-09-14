@@ -20,7 +20,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import { buildAgentPromptHref } from '@utils/url/desktop-loop-url.util';
 import { format } from 'date-fns';
 import { usePathname, useRouter } from 'next/navigation';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
 const INGREDIENT_CACHE_TTL_MS = 15 * 60 * 1000;
 
@@ -66,6 +66,8 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     });
   }, []);
 
+  const requestController = useRef<AbortController | null>(null);
+
   const [isLoading, setIsLoading] = useState(true);
   const [ingredient, setIngredient] = useState<IIngredient | null>(null);
   const [childIngredients, setChildIngredients] = useState<IIngredient[]>([]);
@@ -89,10 +91,12 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     },
     onRefresh: async () => {
       if (id) {
+        const signal = requestController.current?.signal;
         const service = await getIngredientsService();
         const data = await service.findOne(id);
+        if (signal?.aborted) return;
         setIngredient(data);
-        await findChildIngredients(id);
+        await findChildIngredients(id, signal);
       }
     },
     onSeeDetails: (detailIngredient: IIngredient) => {
@@ -110,14 +114,14 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
   });
 
   const findChildIngredients = useCallback(
-    async (parentId: string) => {
+    async (parentId: string, signal?: AbortSignal) => {
       try {
         const service = await getIngredientsService();
         const data = await service.findAll({
           parent: parentId,
         });
 
-        setChildIngredients(data);
+        if (!signal?.aborted) setChildIngredients(data);
       } catch (error) {
         logger.error('Failed to load child ingredients', error);
         // Don't show error to user as child ingredients are optional
@@ -192,12 +196,13 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
 
   const findIngredient = useCallback(async () => {
     setIsLoading(true);
-    await loadIngredient();
+    await loadIngredient(requestController.current?.signal);
   }, [loadIngredient]);
 
   useEffect(() => {
     if (!brandId || !id) return;
     const controller = new AbortController();
+    requestController.current = controller;
     void loadIngredient(controller.signal);
     return () => controller.abort();
   }, [brandId, id, loadIngredient]);
