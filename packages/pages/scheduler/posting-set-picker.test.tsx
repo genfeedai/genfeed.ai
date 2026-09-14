@@ -16,6 +16,11 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const service = factory('test-token');
@@ -196,6 +201,7 @@ describe('PostingSetPicker', () => {
     );
 
     expect(await screen.findByText('Short-form trio')).toBeVisible();
+    expect(screen.getByText('2 targets')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Use set' }));
 
     await waitFor(() => {
