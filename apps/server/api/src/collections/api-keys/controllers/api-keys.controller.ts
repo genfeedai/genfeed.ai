@@ -139,6 +139,7 @@ export class ApiKeysController {
       {
         where: {
           isRevoked: false,
+          organizationId: user.organizationId,
           userId: user.userId ?? user.id,
         },
       },
@@ -190,6 +191,7 @@ export class ApiKeysController {
       orderBy: { createdAt: -1 },
       where: {
         isRevoked: false,
+        organizationId: user.organizationId,
         userId: user.userId ?? user.id,
         ...(query.label && {
           label: { mode: 'insensitive', contains: query.label },
@@ -228,6 +230,7 @@ export class ApiKeysController {
   ) {
     const apiKey = await this.apiKeysService.findOne({
       id: apiKeyId,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 
@@ -256,6 +259,7 @@ export class ApiKeysController {
     // Verify ownership before updating
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 
@@ -387,6 +391,7 @@ export class ApiKeysController {
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
       isRevoked: false,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 

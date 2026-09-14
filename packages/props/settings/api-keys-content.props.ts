@@ -16,3 +16,8 @@ export type ProductPlainKey = {
 
 export type ProductApiKeyScope =
   (typeof API_KEY_SCOPE_PRESETS)[keyof typeof API_KEY_SCOPE_PRESETS][number];
+
+export type AuthorizedApiKeysContentProps = {
+  organizationId: string;
+  isKeylessSelfHosted: boolean;
+};
