@@ -218,7 +218,7 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     );
     expect(source).toContain('this.creditsUtilsService.reserveCredits');
     expect(source).toContain(
-      'idempotencyKey: `batch-generation:${params.batchId}`',
+      `idempotencyKey: \`batch-generation:\${params.batchId}\``,
     );
   });
 

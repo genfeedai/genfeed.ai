@@ -7,7 +7,8 @@ import * as crypto from 'node:crypto';
  * according to official Telegram documentation:
  * https://core.telegram.org/widgets/login#checking-authorization
  */
-export class TelegramAuthUtil {
+
+export const TelegramAuthUtil = {
   /**
    * Verify Telegram auth data using HMAC-SHA256
    *
@@ -15,10 +16,7 @@ export class TelegramAuthUtil {
    * @param botToken - Telegram bot token
    * @returns true if valid, false otherwise
    */
-  static verifyAuthData(
-    authData: Record<string, unknown>,
-    botToken: string,
-  ): boolean {
+  verifyAuthData(authData: Record<string, unknown>, botToken: string): boolean {
     const { hash, ...dataToCheck } = authData;
     const receivedHash = typeof hash === 'string' ? hash : null;
 
@@ -54,7 +52,7 @@ export class TelegramAuthUtil {
     }
 
     return crypto.timingSafeEqual(hmacBuffer, hashBuffer);
-  }
+  },
 
   /**
    * Validate auth data freshness
@@ -64,14 +62,11 @@ export class TelegramAuthUtil {
    * @param maxAgeSeconds - Maximum age in seconds (default: 86400 = 24 hours)
    * @returns true if fresh, false if expired
    */
-  static isAuthDateValid(
-    authDate: number,
-    maxAgeSeconds: number = 86400,
-  ): boolean {
+  isAuthDateValid(authDate: number, maxAgeSeconds: number = 86400): boolean {
     const now = Math.floor(Date.now() / 1000);
     const age = now - authDate;
     return age >= 0 && age <= maxAgeSeconds;
-  }
+  },
 
   /**
    * Validate required fields are present
@@ -79,10 +74,10 @@ export class TelegramAuthUtil {
    * @param authData - Auth data object
    * @returns true if all required fields present
    */
-  static hasRequiredFields(authData: Record<string, unknown>): boolean {
+  hasRequiredFields(authData: Record<string, unknown>): boolean {
     const required = ['id', 'first_name', 'auth_date', 'hash'];
     return required.every(
       (field) => authData[field] !== undefined && authData[field] !== null,
     );
-  }
-}
+  },
+};

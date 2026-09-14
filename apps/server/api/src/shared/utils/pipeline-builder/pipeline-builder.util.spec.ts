@@ -9,6 +9,23 @@ function hasLookup(
 }
 
 describe('PipelineBuilder', () => {
+  it('merges own keys without mutating inputs or changing the result prototype', () => {
+    const tag = Symbol('tag');
+    const first = {
+      ['__proto__']: { visibility: 'public' },
+      status: 'draft',
+      [tag]: 'first',
+    };
+    const second = { status: 'published', [tag]: 'second' };
+    const merged = PipelineBuilder.mergeMatches([first, second]);
+
+    expect(merged).toEqual({ ...first, ...second });
+    expect(Object.getPrototypeOf(merged)).toBe(Object.prototype);
+    expect(Object.hasOwn(merged, '__proto__')).toBe(true);
+    expect(first.status).toBe('draft');
+    expect(first[tag]).toBe('first');
+  });
+
   describe('static create()', () => {
     it('creates a new PipelineBuilder instance', () => {
       const builder = PipelineBuilder.create();

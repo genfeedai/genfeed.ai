@@ -37,7 +37,10 @@ export const BLOCKED_WEBHOOK_HEADERS: ReadonlySet<string> = new Set([
  */
 function isBlockedIpv4(addr: string): boolean {
   const parts = addr.split('.').map(Number);
-  if (parts.length !== 4 || parts.some((p) => isNaN(p) || p < 0 || p > 255)) {
+  if (
+    parts.length !== 4 ||
+    parts.some((p) => Number.isNaN(p) || p < 0 || p > 255)
+  ) {
     // Not a parseable dotted-decimal — treat as blocked to be safe.
     return true;
   }
