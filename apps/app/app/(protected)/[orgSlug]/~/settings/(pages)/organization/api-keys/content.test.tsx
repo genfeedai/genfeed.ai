@@ -416,6 +416,26 @@ describe('SettingsApiKeysPage', () => {
     expect(mocks.boundFactory).not.toHaveBeenCalled();
   });
 
+  it.each(['loaded', 'deferred'])(
+    'does not cancel shared keyless services after %s acquisition and unmount',
+    async (phase) => {
+      mocks.isSelfHosted = true;
+      mocks.authEnabled = false;
+      mocks.confirmed = false;
+      const token = deferred<void>();
+      if (phase === 'deferred') mocks.tokenWait = token.promise;
+      const view = render(<SettingsApiKeysPage />);
+      if (phase === 'loaded') await screen.findByText('MCP Key');
+      view.unmount();
+      if (phase === 'deferred') await act(async () => token.resolve());
+      expect(mocks.cancelPendingRequests).not.toHaveBeenCalled();
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+      expect(mocks.findAllApiKeys).toHaveBeenCalledTimes(
+        phase === 'loaded' ? 1 : 0,
+      );
+    },
+  );
+
   it('does not dispatch after deferred token acquisition outlives the scope', async () => {
     const token = deferred<void>();
     mocks.tokenWait = token.promise;

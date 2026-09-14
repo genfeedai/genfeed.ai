@@ -15,6 +15,7 @@ import {
   ApiKeyCategory,
 } from '@genfeedai/contracts';
 import { CONNECT_GENFEED_VERIFICATION_METADATA_KEY } from '@genfeedai/contracts/constants';
+import { PRISMA_MODEL_METADATA } from '@genfeedai/prisma/testing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { HttpException } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -477,7 +478,6 @@ describe('ApiKeysController', () => {
 
       expect(service.findOne).toHaveBeenCalledWith({
         id,
-        isDeleted: false,
         isRevoked: false,
         organizationId,
         userId,
@@ -545,23 +545,33 @@ describe('ApiKeysController', () => {
       id: apiKeyId,
       organizationId,
       userId,
-      isDeleted: false,
     };
     const foreignKey = {
       ...activeKey,
       id: rotatedApiKeyId,
       organizationId: otherOrganizationId,
     };
-    const deletedKey = {
+    const revokedKey = {
       ...activeKey,
       id: testId('apikey', 3),
-      isDeleted: true,
+      isRevoked: true,
     };
-    const rows = [activeKey, foreignKey, deletedKey];
-    const matches = (row: typeof activeKey, where: Record<string, unknown>) =>
-      Object.entries(where).every(
+    const rows = [activeKey, foreignKey, revokedKey];
+    const apiKeyFields = new Set([
+      ...PRISMA_MODEL_METADATA.ApiKey.allFields,
+      ...PRISMA_MODEL_METADATA.ApiKey.listFields,
+    ]);
+    const matches = (row: typeof activeKey, where: Record<string, unknown>) => {
+      for (const field of Object.keys(where)) {
+        expect(
+          apiKeyFields.has(field),
+          `Prisma.ApiKey has no ${field} field`,
+        ).toBe(true);
+      }
+      return Object.entries(where).every(
         ([field, value]) => row[field as keyof typeof row] === value,
       );
+    };
 
     beforeEach(() => {
       mockApiKeysService.findOne.mockImplementation(
@@ -593,7 +603,6 @@ describe('ApiKeysController', () => {
         {
           orderBy: { createdAt: -1 },
           where: {
-            isDeleted: false,
             isRevoked: false,
             organizationId,
             userId,
@@ -634,7 +643,6 @@ describe('ApiKeysController', () => {
       expect(service.findAll).toHaveBeenCalledWith(
         {
           where: {
-            isDeleted: false,
             isRevoked: false,
             organizationId,
             userId,
@@ -648,9 +656,9 @@ describe('ApiKeysController', () => {
     });
 
     it.each(['findOne', 'update', 'revoke', 'rotate'] as const)(
-      'rejects foreign and deleted keys before %s can expose or mutate them',
+      'rejects foreign keys before %s can expose or mutate them',
       async (operation) => {
-        for (const key of [foreignKey, deletedKey]) {
+        for (const key of [foreignKey]) {
           const result =
             operation === 'update'
               ? controller.update(mockRequest, mockUser, key.id, {
@@ -661,7 +669,6 @@ describe('ApiKeysController', () => {
           await expect(result).rejects.toThrow(HttpException);
           expect(service.findOne).toHaveBeenLastCalledWith({
             id: key.id,
-            isDeleted: false,
             organizationId,
             userId,
             ...(['revoke', 'rotate'].includes(operation)
@@ -670,6 +677,22 @@ describe('ApiKeysController', () => {
           });
         }
         expect(service.patch).not.toHaveBeenCalled();
+        expect(service.revoke).not.toHaveBeenCalled();
+        expect(service.rotateWithKey).not.toHaveBeenCalled();
+      },
+    );
+    it.each(['revoke', 'rotate'] as const)(
+      'rejects revoked keys before %s',
+      async (operation) => {
+        await expect(
+          controller[operation](mockRequest, mockUser, revokedKey.id),
+        ).rejects.toThrow(HttpException);
+        expect(service.findOne).toHaveBeenCalledWith({
+          id: revokedKey.id,
+          isRevoked: false,
+          organizationId,
+          userId,
+        });
         expect(service.revoke).not.toHaveBeenCalled();
         expect(service.rotateWithKey).not.toHaveBeenCalled();
       },

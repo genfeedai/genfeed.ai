@@ -195,11 +195,13 @@ function AuthorizedApiKeysContent({
       lifecycleRef.current.active = false;
       lifecycleRef.current.generation += 1;
       pageControllerRef.current?.abort();
-      for (const service of scopedServicesRef.current)
-        service.cancelPendingRequests();
+      if (!isKeylessSelfHosted) {
+        for (const service of scopedServicesRef.current)
+          service.cancelPendingRequests();
+      }
       scopedServicesRef.current.clear();
     };
-  }, []);
+  }, [isKeylessSelfHosted]);
 
   const currentOperation = useCallback(() => {
     const generation = lifecycleRef.current.generation;
@@ -213,13 +215,13 @@ function AuthorizedApiKeysContent({
       if (!isCurrent()) return null;
       const service = await getApiKeysService();
       if (!isCurrent()) {
-        service.cancelPendingRequests();
+        if (!isKeylessSelfHosted) service.cancelPendingRequests();
         return null;
       }
-      scopedServicesRef.current.add(service);
+      if (!isKeylessSelfHosted) scopedServicesRef.current.add(service);
       return service;
     },
-    [getApiKeysService],
+    [getApiKeysService, isKeylessSelfHosted],
   );
 
   const selectedScopeSet = useMemo(
