@@ -18,6 +18,9 @@ const MOCK_TOOLS = [
   },
   { name: 'list_videos', requiredRole: undefined, surfaces: { mcp: true } },
   { name: 'list_images', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'search_articles', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'list_avatars', requiredRole: undefined, surfaces: { mcp: true } },
+  { name: 'list_music', requiredRole: undefined, surfaces: { mcp: true } },
   {
     name: 'get_credits_balance',
     requiredRole: undefined,
@@ -173,6 +176,9 @@ describe('ToolRegistryService', () => {
     listVideos: ReturnType<typeof vi.fn>;
     getVideoAnalytics: ReturnType<typeof vi.fn>;
     listImages: ReturnType<typeof vi.fn>;
+    listAvatars: ReturnType<typeof vi.fn>;
+    listMusic: ReturnType<typeof vi.fn>;
+    searchArticles: ReturnType<typeof vi.fn>;
     createArticle: ReturnType<typeof vi.fn>;
     createApproval: ReturnType<typeof vi.fn>;
     approveSocialDraft: ReturnType<typeof vi.fn>;
@@ -206,6 +212,9 @@ describe('ToolRegistryService', () => {
         {
           provide: ClientService,
           useValue: {
+            listAvatars: vi.fn(),
+            listMusic: vi.fn(),
+            searchArticles: vi.fn(),
             approveSocialDraft: vi
               .fn()
               .mockResolvedValue({ id: 'msg-approved', status: 'sent' }),
@@ -483,6 +492,35 @@ describe('ToolRegistryService', () => {
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('vid-1');
   });
+
+  it.each([
+    ['list_videos', 'listVideos', 'videos', ''],
+    ['list_images', 'listImages', 'images', ''],
+    ['list_avatars', 'listAvatars', 'avatars', ''],
+    ['list_music', 'listMusic', 'music tracks', ''],
+    ['search_articles', 'searchArticles', 'articles', ' matching "AI"'],
+  ] as const)(
+    '%s preserves list and empty result text',
+    async (name, method, noun, qualifier) => {
+      clientService[method].mockResolvedValueOnce([{ id: 'result-1' }]);
+      expect(
+        await service.handleToolCall({ name, arguments: { query: 'AI' } }),
+      ).toMatchObject({
+        content: [
+          {
+            type: 'text',
+            text: `Found 1 ${noun}${qualifier}:\n\n[\n  {\n    "id": "result-1"\n  }\n]`,
+          },
+        ],
+      });
+      clientService[method].mockResolvedValueOnce([]);
+      expect(
+        await service.handleToolCall({ name, arguments: { query: 'AI' } }),
+      ).toMatchObject({
+        content: [{ type: 'text', text: `No ${noun} found${qualifier}.` }],
+      });
+    },
+  );
 
   it('handleToolCall inspect_workflow uses bounded workflow client inspect', async () => {
     const result = await service.handleToolCall({
