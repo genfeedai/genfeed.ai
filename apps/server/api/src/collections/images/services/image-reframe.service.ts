@@ -238,8 +238,7 @@ export class ImageReframeService {
               : undefined,
           height: targetHeight,
           modelCategory:
-            ((request as unknown as { selectedModel?: { category?: string } })
-              .selectedModel?.category as ModelCategory) ||
+            (request.selectedModel?.category as ModelCategory) ||
             ModelCategory.IMAGE_EDIT,
           prompt: promptData.original,
           references: [parentImageUrl],

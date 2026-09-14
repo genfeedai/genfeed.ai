@@ -142,8 +142,7 @@ export class ImageUpscaleService {
         MODEL_KEYS.REPLICATE_TOPAZ_IMAGE_UPSCALE,
         {
           modelCategory:
-            ((request as unknown as { selectedModel?: { category?: string } })
-              .selectedModel?.category as ModelCategory) ||
+            (request.selectedModel?.category as ModelCategory) ||
             ModelCategory.IMAGE_UPSCALE,
           prompt: '',
           references: [imageUrl],

@@ -18,7 +18,6 @@ export interface AgentEndpointRequest extends RequestWithContext {
     modelKey?: string;
   };
   creditsOutputCount?: number;
-  selectedModel?: unknown;
 }
 
 /**
