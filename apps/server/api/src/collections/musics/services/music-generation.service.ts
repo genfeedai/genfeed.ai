@@ -11,6 +11,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -36,7 +37,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
-import type { Request } from 'express';
 
 const MUSIC_COMPLETION_TIMEOUT_MS = 180_000;
 const MUSIC_COMPLETION_POLL_INTERVAL_MS = 3_000;
@@ -56,7 +56,7 @@ type MusicDispatchParams = {
   modelDocument: ModelDocument;
   outputs: number;
   promptData: Awaited<ReturnType<PromptsService['create']>>;
-  request: Request;
+  request: RequestWithSelectedModel;
   url: string;
   user: User;
 };
@@ -104,7 +104,7 @@ export class MusicGenerationService {
   async generateMusic(
     user: User,
     createMusicDto: CreateMusicDto,
-    request: Request,
+    request: RequestWithSelectedModel,
   ): Promise<JsonApiSingleResponse> {
     const url = `${this.orchestrationSource} create`;
 
@@ -395,11 +395,8 @@ export class MusicGenerationService {
   ): Promise<string | null> {
     try {
       const modelCategory =
-        ((
-          params.request as unknown as {
-            selectedModel?: { category?: string };
-          }
-        ).selectedModel?.category as ModelCategory) || ModelCategory.MUSIC;
+        (params.request.selectedModel?.category as ModelCategory) ||
+        ModelCategory.MUSIC;
 
       const { externalId: generationId, outputUrl } =
         await this.musicProviderRegistry.generate({
@@ -468,7 +465,7 @@ export class MusicGenerationService {
       ReturnType<SharedService['createMediaDocuments']>
     >['ingredientData'];
     pendingIngredientIds: string[];
-    request: Request;
+    request: RequestWithSelectedModel;
   }): Promise<JsonApiSingleResponse> {
     if (params.createMusicDto.waitForCompletion !== true) {
       return serializeSingle(params.request, MusicSerializer, {

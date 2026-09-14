@@ -15,6 +15,7 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import {
@@ -58,7 +59,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
@@ -93,7 +93,7 @@ export class VideosUpscaleController {
   @ValidateModel({ category: ModelCategory.VIDEO_UPSCALE })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async upscaleVideo(
-    @Req() request: Request,
+    @Req() request: RequestWithSelectedModel,
     @CurrentUser() user: User,
     @Param('videoId') videoId: string,
     @Body() videoEditDto: VideoEditDto,
@@ -147,7 +147,7 @@ export class VideosUpscaleController {
 
   private async executeUpscale(params: {
     model: string;
-    request: Request;
+    request: RequestWithSelectedModel;
     targetFps: number;
     targetResolution: string;
     url: string;
@@ -285,7 +285,7 @@ export class VideosUpscaleController {
     ingredientId: string;
     metadataId: string;
     model: string;
-    request: Request;
+    request: RequestWithSelectedModel;
     targetFps: number;
     targetResolution: string;
     user: User;
@@ -305,8 +305,7 @@ export class VideosUpscaleController {
       model,
       {
         modelCategory:
-          ((request as unknown as { selectedModel?: { category?: string } })
-            .selectedModel?.category as ModelCategory) ||
+          (request.selectedModel?.category as ModelCategory) ||
           ModelCategory.VIDEO_UPSCALE,
         prompt: 'Video upscaling',
         target_fps: targetFps,
