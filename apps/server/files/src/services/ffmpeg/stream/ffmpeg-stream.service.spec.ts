@@ -8,7 +8,14 @@ const childProcessMock = vi.hoisted(() => ({ spawn: vi.fn() }));
 vi.mock('node:child_process', () => childProcessMock);
 vi.mock('child_process', () => childProcessMock);
 
-vi.mock('ffmpeg-static', () => ({ default: '/usr/local/bin/ffmpeg' }));
+const binaryMock = vi.hoisted(() => ({
+  path: '/usr/local/bin/ffmpeg' as string | null,
+}));
+vi.mock('ffmpeg-static', () => ({
+  get default() {
+    return binaryMock.path;
+  },
+}));
 
 const fsPromisesMock = vi.hoisted(() => ({
   unlink: vi.fn().mockResolvedValue(undefined),
@@ -74,6 +81,7 @@ describe('FFmpegStreamService', () => {
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    binaryMock.path = '/usr/local/bin/ffmpeg';
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -90,6 +98,22 @@ describe('FFmpegStreamService', () => {
 
   it('should be defined', () => {
     expect(service).toBeDefined();
+  });
+
+  it('rejects a missing binary before starting file processing', async () => {
+    binaryMock.path = null;
+    await expect(
+      service.processVideoStream('/in.mp4', '/out.mp4'),
+    ).rejects.toThrow('FFmpeg binary not found');
+    expect(spawn).not.toHaveBeenCalled();
+  });
+
+  it('rejects a missing binary before creating a stream', () => {
+    binaryMock.path = null;
+    expect(() => service.createVideoProcessingStream(new Readable())).toThrow(
+      'FFmpeg binary not found',
+    );
+    expect(spawn).not.toHaveBeenCalled();
   });
 
   describe('processVideoStream', () => {
