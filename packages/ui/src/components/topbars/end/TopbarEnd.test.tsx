@@ -9,13 +9,6 @@ vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => ({
     isSignedIn: true,
   }),
-  useUser: () => ({
-    user: {
-      fullName: 'Test User',
-      id: 'user_test',
-      primaryEmailAddress: { emailAddress: 'test@example.com' },
-    },
-  }),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({

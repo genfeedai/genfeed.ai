@@ -29,13 +29,7 @@ vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', () => ({
   }),
 }));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: () => ({
-    user: {
-      publicMetadata: {},
-    },
-  }),
-}));
+vi.mock('@genfeedai/auth-client/react', () => ({}));
 
 vi.mock('@genfeedai/helpers/auth/auth.helper', () => ({
   getAuthPublicData: () => ({ isSuperAdmin: false }),
