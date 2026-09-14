@@ -139,8 +139,7 @@ export interface IErrorBoundaryProps {
 
 export interface IErrorBoundaryState {
   hasError: boolean;
-  errorMessage?: string;
-  errorStack?: string;
+  error: Error | null;
   retryCount: number;
 }
 
