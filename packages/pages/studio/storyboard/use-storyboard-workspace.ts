@@ -192,7 +192,7 @@ export function useStoryboardWorkspace() {
         if (isCancelled || !image?.id) {
           return;
         }
-        addSceneImages([image as unknown as IImage]);
+        addSceneImages([image]);
         notificationsService.success('Image added to storyboard scenes');
       } catch (error) {
         logger.error('Failed to seed storyboard image', error);

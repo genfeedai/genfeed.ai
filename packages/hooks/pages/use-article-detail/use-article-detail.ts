@@ -178,7 +178,7 @@ export function useArticleDetail({
         const created = await service.post({
           ...payload,
           organizationId: organizationId,
-        } as unknown as Partial<Article>);
+        });
         setArticle(created);
         initialFormRef.current = { ...form };
         notificationsService.success('Article created');
