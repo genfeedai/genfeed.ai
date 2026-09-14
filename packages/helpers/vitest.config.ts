@@ -47,7 +47,6 @@ export default defineConfig({
     coverage: {
       exclude: [
         'src/**/*.d.ts',
-        'src/**/__tests__/**',
         '**/*.test.ts',
         '**/*.test.tsx',
         '**/*.spec.ts',
