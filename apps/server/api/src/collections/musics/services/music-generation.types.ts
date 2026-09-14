@@ -11,7 +11,7 @@ export type MusicGenerationProvider = 'replicate' | 'fal' | 'mureka';
 export interface MusicGenerationProviderRequest {
   /** Full DTO so adapters can read provider-specific optional params. */
   createMusicDto: CreateMusicDto;
-  duration: number;
+  duration?: number;
   model: string;
   modelCategory: ModelCategory;
   /** The registry row's execution identifier — never a hardcoded constant. */

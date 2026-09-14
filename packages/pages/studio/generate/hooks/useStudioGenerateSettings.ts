@@ -19,6 +19,7 @@ import {
 } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
 import {
   buildStudioGenerationSetupScope,
+  normalizeGenerationSetupValues,
   resetGenerationSetupAll,
   setGenerationSetupField,
   useGenerationSetupStore,
@@ -43,6 +44,10 @@ function applyBridgedPatch(
   patch: Partial<GenerationSetupValues>,
   defaults: GenerationSetupValues,
 ): void {
+  if (defaults.type === 'music') {
+    useGenerationSetupStore.getState().patchMusicFields(scope, patch, defaults);
+    return;
+  }
   for (const key of Object.keys(patch) as (keyof GenerationSetupValues)[]) {
     const value = patch[key];
     if (value !== undefined) {
@@ -77,7 +82,7 @@ export function useStudioGenerateSettings(): UseStudioGenerateSettingsReturn {
   const defaults = useMemo(() => getDefaultGenerationSetupValues(type), [type]);
 
   const setup = useGenerationSetupStore((state) => state.setupByScope[scope]);
-  const values = setup?.values ?? defaults;
+  const values = normalizeGenerationSetupValues(setup?.values ?? defaults);
 
   // Runs once on mount only: rehydrates the residual local settings and
   // migrates legacy values into the shared store. The migration is

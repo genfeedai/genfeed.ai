@@ -182,7 +182,7 @@ describe('GenerationSetupOutputSection — music controls', () => {
     expect(screen.queryByLabelText('Duration')).not.toBeInTheDocument();
   });
 
-  it('snaps an out-of-range duration to the nearest legal value instead of silently sending it', () => {
+  it('does not reconcile store state from an Output-only effect', () => {
     const onSetField = vi.fn();
     renderSection({
       onSetField,
@@ -193,7 +193,7 @@ describe('GenerationSetupOutputSection — music controls', () => {
     });
 
     // MusicGen's grid tops out at 30 — 90 is nearer to 30 than to any other option.
-    expect(onSetField).toHaveBeenCalledWith('duration', 30);
+    expect(onSetField).not.toHaveBeenCalled();
   });
 
   it('does not touch duration when it is already inside the resolved grid', () => {

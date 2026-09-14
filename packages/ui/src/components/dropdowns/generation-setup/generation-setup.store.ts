@@ -1,3 +1,4 @@
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 /**
  * Shared Unified Generation Setup store. One scope-keyed map backs both the
  * Studio composer and the agent composer so a single `GenerationSetupPopover`
@@ -52,12 +53,42 @@ function isNewAgentThreadScope(scope: string): boolean {
   return scope.startsWith(`agent:${NEW_AGENT_THREAD_SCOPE}:`);
 }
 
+export function normalizeGenerationSetupValues(
+  values: GenerationSetupValues,
+): GenerationSetupValues {
+  if (values.type !== 'music') return values;
+  const normalized = normalizeMusicSettings(values.modelKey, values);
+  if (
+    normalized.duration === values.duration &&
+    normalized.instrumental === values.instrumental &&
+    normalized.lyrics === values.lyrics
+  )
+    return values;
+  return { ...values, ...normalized };
+}
+
+function normalizeSetup(setup: GenerationSetup): GenerationSetup {
+  const values = normalizeGenerationSetupValues(setup.values);
+  return values === setup.values ? setup : { ...setup, values };
+}
+
+function normalizeSetupMap(
+  setups: Record<string, GenerationSetup>,
+): Record<string, GenerationSetup> {
+  return Object.fromEntries(
+    Object.entries(setups).map(([scope, setup]) => [
+      scope,
+      normalizeSetup(setup),
+    ]),
+  );
+}
+
 function createEmptyGenerationSetup(
   defaults: GenerationSetupValues,
 ): GenerationSetup {
   return {
     sources: {},
-    values: { ...defaults },
+    values: normalizeGenerationSetupValues({ ...defaults }),
   };
 }
 
@@ -66,7 +97,9 @@ function getOrCreateSetup(
   scope: string,
   defaults: GenerationSetupValues,
 ): GenerationSetup {
-  return setupByScope[scope] ?? createEmptyGenerationSetup(defaults);
+  return normalizeSetup(
+    setupByScope[scope] ?? createEmptyGenerationSetup(defaults),
+  );
 }
 
 export interface GenerationSetupState {
@@ -82,6 +115,11 @@ export interface GenerationSetupState {
     Partial<Record<GenerationSetupFieldKey, string>>
   >;
 
+  patchMusicFields: (
+    scope: string,
+    patch: Partial<GenerationSetupValues>,
+    defaults: GenerationSetupValues,
+  ) => void;
   setField: <K extends GenerationSetupFieldKey>(
     scope: string,
     key: K,
@@ -141,152 +179,185 @@ function backfillBrandingModeForDisabledEnhancement(
 
 export const useGenerationSetupStore = create<GenerationSetupState>()(
   persist(
-    (set, get) => ({
-      reasonsByScope: {},
-      setupByScope: {},
-
-      setField: (scope, key, value, defaults) => {
-        const current = getOrCreateSetup(get().setupByScope, scope, defaults);
-        const hadPreset = Boolean(current.presetId);
-        // A field the operator hand-picks is sticky and, if a preset is
-        // pinned, diverges the setup from that preset — the pin is released
-        // so subsequent edits are plain user edits, not a half-applied preset.
-        const next: GenerationSetup = {
-          presetId: hadPreset ? undefined : current.presetId,
-          sources: { ...current.sources, [key]: 'user' },
-          values: { ...current.values, [key]: value },
-        };
-
-        set({
-          setupByScope: { ...get().setupByScope, [scope]: next },
+    (setState, get) => {
+      const set = (patch: Partial<GenerationSetupState>) =>
+        setState({
+          ...patch,
+          ...(patch.setupByScope
+            ? { setupByScope: normalizeSetupMap(patch.setupByScope) }
+            : {}),
         });
-      },
+      return {
+        reasonsByScope: {},
+        setupByScope: {},
 
-      applyRecommendation: (scope, recommendation, defaults) => {
-        const current = getOrCreateSetup(get().setupByScope, scope, defaults);
+        patchMusicFields: (scope, patch, defaults) => {
+          const current = getOrCreateSetup(get().setupByScope, scope, defaults);
+          const sources = { ...current.sources };
+          for (const key of Object.keys(patch) as GenerationSetupFieldKey[])
+            sources[key] = 'user';
+          set({
+            setupByScope: {
+              ...get().setupByScope,
+              [scope]: {
+                presetId: undefined,
+                sources,
+                values: { ...current.values, ...patch },
+              },
+            },
+          });
+        },
+        setField: (scope, key, value, defaults) => {
+          const current = getOrCreateSetup(get().setupByScope, scope, defaults);
+          const hadPreset = Boolean(current.presetId);
+          // A field the operator hand-picks is sticky and, if a preset is
+          // pinned, diverges the setup from that preset — the pin is released
+          // so subsequent edits are plain user edits, not a half-applied preset.
+          const next: GenerationSetup = {
+            presetId: hadPreset ? undefined : current.presetId,
+            sources: { ...current.sources, [key]: 'user' },
+            values: { ...current.values, [key]: value },
+          };
 
-        // A pinned preset freezes recomposition entirely — the agent does not
-        // get to partially rewrite a setup the operator explicitly saved.
-        if (current.presetId) {
-          return;
-        }
+          set({
+            setupByScope: { ...get().setupByScope, [scope]: next },
+          });
+        },
 
-        const nextValues = { ...current.values };
-        const nextSources = { ...current.sources };
-        const nextReasons: Partial<Record<GenerationSetupFieldKey, string>> =
-          {};
-        let didChange = false;
+        applyRecommendation: (scope, recommendation, defaults) => {
+          const current = getOrCreateSetup(get().setupByScope, scope, defaults);
 
-        for (const key of Object.keys(
-          recommendation.values,
-        ) as GenerationSetupFieldKey[]) {
-          const source = current.sources[key];
-          if (source === 'user' || source === 'preset') {
-            continue;
+          // A pinned preset freezes recomposition entirely — the agent does not
+          // get to partially rewrite a setup the operator explicitly saved.
+          if (current.presetId) {
+            return;
           }
 
-          const value = recommendation.values[key];
-          if (value === undefined) {
-            continue;
+          const nextValues = { ...current.values };
+          const nextSources = { ...current.sources };
+          const nextReasons: Partial<Record<GenerationSetupFieldKey, string>> =
+            {};
+          let didChange = false;
+
+          for (const key of Object.keys(
+            recommendation.values,
+          ) as GenerationSetupFieldKey[]) {
+            const source = current.sources[key];
+            if (source === 'user' || source === 'preset') {
+              continue;
+            }
+
+            const value = recommendation.values[key];
+            if (value === undefined) {
+              continue;
+            }
+
+            (nextValues as Record<GenerationSetupFieldKey, unknown>)[key] =
+              value;
+            nextSources[key] = 'agent';
+            const reason = recommendation.reasons[key];
+            if (reason) {
+              nextReasons[key] = reason;
+            }
+            didChange = true;
           }
 
-          (nextValues as Record<GenerationSetupFieldKey, unknown>)[key] = value;
-          nextSources[key] = 'agent';
-          const reason = recommendation.reasons[key];
-          if (reason) {
-            nextReasons[key] = reason;
+          if (!didChange) {
+            return;
           }
-          didChange = true;
-        }
 
-        if (!didChange) {
-          return;
-        }
-
-        set({
-          reasonsByScope: { ...get().reasonsByScope, [scope]: nextReasons },
-          setupByScope: {
-            ...get().setupByScope,
-            [scope]: { ...current, sources: nextSources, values: nextValues },
-          },
-        });
-      },
-
-      applyPreset: (scope, presetId, values, defaults) => {
-        const current = getOrCreateSetup(get().setupByScope, scope, defaults);
-        const nextValues = { ...current.values, ...values };
-        const nextSources = { ...current.sources };
-
-        for (const key of Object.keys(values) as GenerationSetupFieldKey[]) {
-          nextSources[key] = 'preset';
-        }
-
-        set({
-          setupByScope: {
-            ...get().setupByScope,
-            [scope]: {
-              presetId,
-              sources: nextSources,
-              values: nextValues,
+          set({
+            reasonsByScope: { ...get().reasonsByScope, [scope]: nextReasons },
+            setupByScope: {
+              ...get().setupByScope,
+              [scope]: { ...current, sources: nextSources, values: nextValues },
             },
-          },
-        });
-      },
+          });
+        },
 
-      resetField: (scope, key, defaults) => {
-        const current = getOrCreateSetup(get().setupByScope, scope, defaults);
-        if (!(key in current.sources) && !current.presetId) {
-          return;
-        }
+        applyPreset: (scope, presetId, values, defaults) => {
+          const current = getOrCreateSetup(get().setupByScope, scope, defaults);
+          const nextValues = { ...current.values, ...values };
+          const nextSources = { ...current.sources };
 
-        const nextSources = { ...current.sources };
-        delete nextSources[key];
+          for (const key of Object.keys(values) as GenerationSetupFieldKey[]) {
+            nextSources[key] = 'preset';
+          }
 
-        set({
-          setupByScope: {
-            ...get().setupByScope,
-            // Resetting one field breaks a pinned preset's "every field
-            // matches" invariant, so the pin is released too.
-            [scope]: {
-              presetId: undefined,
-              sources: nextSources,
-              values: current.values,
+          set({
+            setupByScope: {
+              ...get().setupByScope,
+              [scope]: {
+                presetId,
+                sources: nextSources,
+                values: nextValues,
+              },
             },
-          },
-        });
-      },
+          });
+        },
 
-      resetAll: (scope, defaults) => {
-        const current = getOrCreateSetup(get().setupByScope, scope, defaults);
+        resetField: (scope, key, defaults) => {
+          const current = getOrCreateSetup(get().setupByScope, scope, defaults);
+          if (!(key in current.sources) && !current.presetId) {
+            return;
+          }
 
-        set({
-          reasonsByScope: { ...get().reasonsByScope, [scope]: {} },
-          setupByScope: {
-            ...get().setupByScope,
-            [scope]: {
-              presetId: undefined,
-              sources: {},
-              values: current.values,
+          const nextSources = { ...current.sources };
+          delete nextSources[key];
+
+          set({
+            setupByScope: {
+              ...get().setupByScope,
+              // Resetting one field breaks a pinned preset's "every field
+              // matches" invariant, so the pin is released too.
+              [scope]: {
+                presetId: undefined,
+                sources: nextSources,
+                values: current.values,
+              },
             },
-          },
-        });
-      },
+          });
+        },
 
-      clearPreset: (scope) => {
-        const current = get().setupByScope[scope];
-        if (!current?.presetId) {
-          return;
-        }
+        resetAll: (scope, defaults) => {
+          const current = getOrCreateSetup(get().setupByScope, scope, defaults);
 
-        set({
-          setupByScope: {
-            ...get().setupByScope,
-            [scope]: { ...current, presetId: undefined },
-          },
-        });
-      },
-    }),
+          set({
+            reasonsByScope: { ...get().reasonsByScope, [scope]: {} },
+            setupByScope: {
+              ...get().setupByScope,
+              [scope]: {
+                presetId: undefined,
+                sources: {},
+                values: current.values,
+              },
+            },
+          });
+        },
+
+        clearPreset: (scope) => {
+          const current = get().setupByScope[scope];
+          if (!current?.presetId) {
+            return;
+          }
+
+          set({
+            setupByScope: {
+              ...get().setupByScope,
+              [scope]: { ...current, presetId: undefined },
+            },
+          });
+        },
+      };
+    },
     {
+      merge: (persisted, current) => ({
+        ...current,
+        setupByScope: normalizeSetupMap(
+          (persisted as Partial<GenerationSetupState> | undefined)
+            ?.setupByScope ?? current.setupByScope,
+        ),
+      }),
       // v1 copied `__new__` setups onto created threads without consuming
       // them, so persisted placeholders can hold a stale media lock. v2 → v3
       // backfills `brandingMode` for scopes that relied on enhance-off to
@@ -407,6 +478,6 @@ export function adoptNewScopeSetup(fromScope: string, toScope: string): void {
   useGenerationSetupStore.setState({
     setupByScope: setupByScope[toScope]
       ? remaining
-      : { ...remaining, [toScope]: { ...source } },
+      : { ...remaining, [toScope]: normalizeSetup(source) },
   });
 }

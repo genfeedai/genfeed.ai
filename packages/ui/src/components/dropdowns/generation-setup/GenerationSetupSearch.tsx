@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { resolveMusicSettings } from '@genfeedai/contracts/constants';
 import type {
   GenerationSetupSearchOption,
   GenerationSetupSearchProps,
@@ -93,7 +94,9 @@ export default function GenerationSetupSearch({
     }
 
     if (capabilities.hasDuration) {
-      for (const seconds of GENERATION_SETUP_DURATION_OPTIONS_SECONDS) {
+      for (const seconds of setup.values.type === 'music'
+        ? resolveMusicSettings(setup.values.modelKey).durations
+        : GENERATION_SETUP_DURATION_OPTIONS_SECONDS) {
         index.push({
           fieldKey: 'duration',
           group: 'Duration',
@@ -147,7 +150,14 @@ export default function GenerationSetupSearch({
     }
 
     return index;
-  }, [capabilities, lookOptions, models, typeOptions]);
+  }, [
+    capabilities,
+    lookOptions,
+    models,
+    typeOptions,
+    setup.values.type,
+    setup.values.modelKey,
+  ]);
 
   const groups = useMemo(() => {
     const byGroup = new Map<string, GenerationSetupSearchOption[]>();

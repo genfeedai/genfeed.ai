@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import type { GenerationSetupFieldKey } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
@@ -68,6 +69,10 @@ export default function GenerationSetupFrontDoor({
     },
   ];
 
+  const duration =
+    setup.values.type === 'music'
+      ? normalizeMusicSettings(setup.values.modelKey, setup.values).duration
+      : setup.values.duration;
   const showMediaFields = !isTypeAgentOwned && !isTextType;
 
   if (showMediaFields) {
@@ -85,12 +90,12 @@ export default function GenerationSetupFrontDoor({
         value: setup.values.aspectRatio,
       });
     }
-    if (capabilities.hasDuration && setup.values.duration) {
+    if (capabilities.hasDuration && duration) {
       summaryRows.push({
         key: 'duration',
         label: translate('duration'),
         section: 'output',
-        value: `${setup.values.duration}s`,
+        value: `${duration}s`,
       });
     }
     if (capabilities.hasOutputs) {

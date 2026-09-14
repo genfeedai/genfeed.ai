@@ -1,5 +1,5 @@
 import { IngredientCategory, ModelCategory } from '@genfeedai/contracts';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import { resolveMusicSettings } from '@genfeedai/contracts/constants';
 import type {
   StudioGenerateCapabilities,
   StudioGenerateType,
@@ -158,38 +158,19 @@ export function getStudioGenerateTypeConfig(
   return STUDIO_GENERATE_TYPE_CONFIGS[type];
 }
 
-/**
- * The per-type config's `hasInstrumentalToggle`/`hasLyrics` are the widest
- * case across every music model — real per-model support varies (MusicGen
- * has no vocals at all, so nothing to toggle or write lyrics for). Narrow
- * them against the *selected* model's own registry capability so switching
- * to a model with less support hides the controls instead of silently
- * sending fields it ignores. Auto-select mode and non-music types keep the
- * static per-type capabilities, since there is no single resolved model to
- * narrow against.
- */
+/** Music controls require an explicit supported model; unresolved Auto stays closed. */
 export function resolveStudioGenerateCapabilities(
   type: StudioGenerateType,
   modelKey: string | undefined,
 ): StudioGenerateCapabilities {
   const { capabilities } = getStudioGenerateTypeConfig(type);
-  if (type !== 'music' || !modelKey) {
-    return capabilities;
-  }
-
-  const capability = MODEL_OUTPUT_CAPABILITIES[modelKey];
-  if (capability?.category !== ModelCategory.MUSIC) {
-    return capabilities;
-  }
-
+  if (type !== 'music') return capabilities;
+  const music = resolveMusicSettings(modelKey);
   return {
     ...capabilities,
-    // A toggle only means something for a model that can produce vocals —
-    // an instrumental-only provider like MusicGen has nothing to switch
-    // away from, so hide the control rather than show a toggle it ignores.
-    hasInstrumentalToggle:
-      capability.supportsVocals ?? capabilities.hasInstrumentalToggle,
-    hasLyrics: capability.supportsLyrics ?? capabilities.hasLyrics,
+    hasDuration: music.hasDurationEditing,
+    hasInstrumentalToggle: music.hasInstrumentalToggle,
+    hasLyrics: music.hasLyrics,
   };
 }
 

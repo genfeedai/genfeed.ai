@@ -1,3 +1,5 @@
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_request, _serializer, data) => ({ data })),
 }));
@@ -202,6 +204,49 @@ describe('MusicGenerationService', () => {
     };
   };
 
+  it.each([
+    [MODEL_KEYS.REPLICATE_META_MUSICGEN, 30, true],
+    [MODEL_KEYS.FAL_ELEVENLABS_MUSIC, 90, false],
+    [MODEL_KEYS.FAL_LYRIA3_PRO, undefined, false],
+    [MODEL_KEYS.MUREKA_V9, undefined, false],
+  ])(
+    'normalizes resolved Auto %s before metadata and dispatch without mutating the DTO',
+    async (model, duration, instrumental) => {
+      const created = createService();
+      created.routerService.selectModel.mockResolvedValue({
+        reason: 'test',
+        selectedModel: model,
+      });
+      const dto = buildDto({
+        autoSelectModel: true,
+        duration: 90,
+        instrumental: false,
+        lyrics: ' verse ',
+      });
+      await created.service.generateMusic(user, dto, request);
+      expect(created.sharedService.createMediaDocuments).toHaveBeenCalledWith(
+        user,
+        expect.objectContaining({ duration }),
+      );
+      expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          duration,
+          model,
+          createMusicDto: expect.objectContaining({
+            duration,
+            instrumental,
+            lyrics: instrumental ? undefined : 'verse',
+          }),
+        }),
+      );
+      expect(dto).toMatchObject({
+        duration: 90,
+        instrumental: false,
+        lyrics: ' verse ',
+      });
+    },
+  );
+
   it('persists and dispatches a music generation successfully', async () => {
     const created = createService();
 
@@ -244,7 +289,7 @@ describe('MusicGenerationService', () => {
     );
     expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
       expect.objectContaining({
-        duration: 10,
+        duration: undefined,
         model: 'explicit-model',
         modelCategory: ModelCategory.MUSIC,
         modelEndpoint: 'meta/musicgen',

@@ -66,10 +66,25 @@ export class MurekaService {
   }
 
   private baseUrl(): string {
-    return (
-      (this.configService.get('MUREKA_API_BASE_URL') as string | undefined) ||
-      'https://platform.mureka.ai'
-    );
+    const configured =
+      this.configService.get('MUREKA_API_BASE_URL') ??
+      'https://platform.mureka.ai';
+    try {
+      const url = new URL(String(configured));
+      if (
+        url.protocol !== 'https:' ||
+        url.username ||
+        url.password ||
+        url.search ||
+        url.hash
+      )
+        throw new Error();
+      return url.toString().replace(/\/+$/, '');
+    } catch {
+      throw new Error(
+        'Mureka base URL must be an absolute HTTPS URL without credentials, query or fragment.',
+      );
+    }
   }
 
   private headers(): Record<string, string> {
@@ -82,6 +97,7 @@ export class MurekaService {
   async generateSong(
     input: MurekaGenerateSongInput,
   ): Promise<MurekaSongResult> {
+    const baseUrl = this.baseUrl();
     this.ensureConfigured();
     const model =
       input.model || (this.configService.get('MUREKA_MODEL') as string) || 'V9';
@@ -101,24 +117,24 @@ export class MurekaService {
       const submitRes = input.instrumental
         ? await firstValueFrom(
             this.httpService.post<MurekaGenerateResponse>(
-              `${this.baseUrl()}/v1/instrumental/generate`,
+              `${baseUrl}/v1/instrumental/generate`,
               {
                 model,
                 prompt: input.prompt,
               },
-              { headers: this.headers() },
+              { headers: this.headers(), maxRedirects: 0 },
             ),
           )
         : await firstValueFrom(
             this.httpService.post<MurekaGenerateResponse>(
-              `${this.baseUrl()}/v1/song/generate`,
+              `${baseUrl}/v1/song/generate`,
               {
                 instrumental: false,
                 lyrics: input.lyrics,
                 model,
                 prompt: input.prompt,
               },
-              { headers: this.headers() },
+              { headers: this.headers(), maxRedirects: 0 },
             ),
           );
 
@@ -129,7 +145,7 @@ export class MurekaService {
         );
       }
 
-      const audioUrl = await this.pollForCompletion(taskId);
+      const audioUrl = await this.pollForCompletion(taskId, baseUrl);
 
       this.loggerService.log(`${this.logContext} generateSong completed`, {
         taskId,
@@ -142,14 +158,17 @@ export class MurekaService {
     }
   }
 
-  private async pollForCompletion(taskId: string): Promise<string> {
+  private async pollForCompletion(
+    taskId: string,
+    baseUrl: string,
+  ): Promise<string> {
     try {
       const { value } = await this.pollUntilService.poll(
         () =>
           firstValueFrom(
             this.httpService.get<MurekaQueryResponse>(
-              `${this.baseUrl()}/v1/song/query/${taskId}`,
-              { headers: this.headers() },
+              `${baseUrl}/v1/song/query/${taskId}`,
+              { headers: this.headers(), maxRedirects: 0 },
             ),
           ).then((res) => res.data),
         (data) => {

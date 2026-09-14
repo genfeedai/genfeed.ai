@@ -1,6 +1,10 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientFormat, RouterPriority } from '@genfeedai/contracts';
 import {
+  normalizeMusicSettings,
+  resolveMusicSettings,
+} from '@genfeedai/contracts/constants';
+import {
   getDefaultImageQuality,
   getImageQualityOptionsByModel,
 } from '@genfeedai/helpers/media/image-quality/image-quality.helper';
@@ -28,9 +32,6 @@ export const STUDIO_ASPECT_RATIOS = [
 
 export const STUDIO_IMAGE_RESOLUTIONS = ['1K', '2K'] as const;
 export const STUDIO_VIDEO_DURATIONS = [5, 8, 10] as const;
-// Covers MusicGen's 5-30s range and the wider 10-90s range Eleven
-// Music/Lyria 3 Pro/Mureka V9 support (#4680, #4681).
-export const STUDIO_MUSIC_DURATIONS = [5, 10, 15, 20, 30, 45, 60, 90] as const;
 
 export const STUDIO_MAX_OUTPUTS = 8;
 
@@ -187,22 +188,20 @@ export function getDefaultStudioResolution(
 
 export function getStudioDurations(
   type: StudioGenerateType,
+  modelKey?: string,
 ): readonly number[] {
   if (type === 'video') {
     return STUDIO_VIDEO_DURATIONS;
   }
 
   if (type === 'music') {
-    return STUDIO_MUSIC_DURATIONS;
+    return resolveMusicSettings(modelKey).durations;
   }
 
   return [];
 }
 
 const DEFAULT_DURATION_BY_TYPE: Partial<Record<StudioGenerateType, number>> = {
-  // Kept at 10s (not the shorter 5s floor) to match the existing
-  // DEFAULT_MUSIC_DURATION fallback in useStudioGeneration.ts.
-  music: 10,
   video: STUDIO_VIDEO_DURATIONS[0],
 };
 
@@ -218,7 +217,7 @@ export function getDefaultStudioGenerateSettings(
     blacklist: [],
     brandingMode: 'brand',
     duration: DEFAULT_DURATION_BY_TYPE[type],
-    instrumental: type === 'music' ? false : undefined,
+    instrumental: undefined,
     isAudioEnabled: false,
     modelKey: AUTO_MODEL_OPTION_VALUE,
     outputs: 1,
@@ -296,7 +295,12 @@ export function buildStudioPromptData({
       ? optionalText(settings.cameraMovement)
       : undefined,
     category: config.ingredientCategory,
-    duration: capabilities.hasDuration ? settings.duration : undefined,
+    duration:
+      type === 'music'
+        ? normalizeMusicSettings(settings.modelKey, settings).duration
+        : capabilities.hasDuration
+          ? settings.duration
+          : undefined,
     folder: optionalText(settings.folder),
     fontFamily: '',
     format: resolveIngredientFormat(settings.aspectRatio),

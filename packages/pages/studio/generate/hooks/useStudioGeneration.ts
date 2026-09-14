@@ -49,8 +49,6 @@ import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-sele
 import { resolvePendingIds } from '@utils/network/generation.util';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
-const DEFAULT_MUSIC_DURATION = 10;
-
 export interface UseStudioGenerationParams {
   brandId: string;
   models: readonly IModel[];
@@ -633,7 +631,7 @@ export function useStudioGeneration({
             const payload = buildMusicPayload(
               musicPromptData,
               modelKey,
-              settings.duration ?? DEFAULT_MUSIC_DURATION,
+              settings.duration,
             );
             const data = (await service.post(
               payload as Parameters<MusicsService['post']>[0],

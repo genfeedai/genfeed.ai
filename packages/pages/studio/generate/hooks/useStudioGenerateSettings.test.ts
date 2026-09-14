@@ -1,3 +1,4 @@
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { STUDIO_GENERATE_STORAGE_KEY } from '@pages/studio/generate/utils/studio-generate-storage';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { useGenerationSetupStore } from '@ui/dropdowns/generation-setup/generation-setup.store';
@@ -43,6 +44,61 @@ describe('useStudioGenerateSettings', () => {
       aspectRatio: '9:16',
       duration: 8,
       outputs: 3,
+    });
+  });
+  it('atomically restores music and clears stale fields while Output is unmounted', async () => {
+    window.localStorage.setItem(
+      STUDIO_GENERATE_STORAGE_KEY,
+      JSON.stringify({
+        type: 'music',
+        settingsByType: {
+          music: {
+            modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+            duration: 90,
+            lyrics: 'legacy verse',
+            instrumental: false,
+          },
+        },
+      }),
+    );
+    const { result } = renderHook(() => useStudioGenerateSettings());
+    await waitFor(() => expect(result.current.isHydrated).toBe(true));
+    expect(result.current.settings.lyrics).toBe('legacy verse');
+    act(() =>
+      result.current.updateSettings({
+        modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      }),
+    );
+    expect(result.current.settings).toMatchObject({
+      duration: 30,
+      instrumental: true,
+      lyrics: undefined,
+    });
+    act(() =>
+      result.current.applyTypeSettings('music', {
+        lyrics: 'restored verse',
+        instrumental: false,
+        modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        duration: 90,
+      }),
+    );
+    expect(result.current.settings).toMatchObject({
+      duration: 90,
+      instrumental: false,
+      lyrics: 'restored verse',
+    });
+    act(() =>
+      result.current.updateSettings({
+        modelKey: 'auto',
+        duration: undefined,
+        lyrics: undefined,
+        instrumental: undefined,
+      }),
+    );
+    expect(result.current.settings).toMatchObject({
+      duration: undefined,
+      instrumental: undefined,
+      lyrics: undefined,
     });
   });
 });

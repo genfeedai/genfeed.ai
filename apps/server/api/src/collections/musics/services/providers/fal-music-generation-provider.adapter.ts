@@ -9,8 +9,8 @@ import type {
   MusicGenerationProviderResult,
 } from '@api/collections/musics/services/music-generation.types';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import { ModelProvider } from '@genfeedai/contracts';
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 interface FalMusicResponseData extends Record<string, unknown> {
@@ -43,8 +43,18 @@ export class FalMusicGenerationProviderAdapter
     request: MusicGenerationProviderRequest,
   ): Promise<MusicGenerationProviderResult> {
     const endpoint = getFalEndpointFromModelKey(request.modelEndpoint);
-    const duration = this.clampDuration(request.model, request.duration);
-    const input = this.buildInput(endpoint, request, duration);
+    const normalized = normalizeMusicSettings(request.model, {
+      ...request.createMusicDto,
+      duration: request.duration,
+    });
+    const input = this.buildInput(
+      endpoint,
+      {
+        ...request,
+        createMusicDto: { ...request.createMusicDto, ...normalized },
+      },
+      normalized.duration,
+    );
 
     const data = (await this.falService.run(endpoint, input)) as
       | FalMusicResponseData
@@ -65,26 +75,6 @@ export class FalMusicGenerationProviderAdapter
   }
 
   /**
-   * Clamps the requested duration to the model's own advertised range
-   * (`MODEL_OUTPUT_CAPABILITIES.durations`) instead of rejecting — our own
-   * DTO already bounds duration to 4-90s, so a provider-specific floor (e.g.
-   * Eleven Music's 10s minimum) is the only case that needs adjusting.
-   */
-  private clampDuration(model: string, requested: number): number {
-    const capability = MODEL_OUTPUT_CAPABILITIES[model];
-    const durations =
-      capability?.category === ModelCategory.MUSIC
-        ? capability.durations
-        : undefined;
-    if (!durations?.length) {
-      return requested;
-    }
-    const min = Math.min(...durations);
-    const max = Math.max(...durations);
-    return Math.min(Math.max(requested, min), max);
-  }
-
-  /**
    * fal publishes a distinct schema per music model. Eleven Music accepts
    * `music_length_ms` + `force_instrumental` alongside `prompt`. Lyria 3
    * Pro's schema is only `{ prompt, image_url }` — it has no duration,
@@ -96,9 +86,9 @@ export class FalMusicGenerationProviderAdapter
   private buildInput(
     endpoint: string,
     request: MusicGenerationProviderRequest,
-    duration: number,
+    duration: number | undefined,
   ): Record<string, unknown> {
-    const instrumental = request.createMusicDto.instrumental ?? false;
+    const instrumental = request.createMusicDto.instrumental;
     const prompt = this.buildPromptWithLyrics(
       request.prompt,
       instrumental ? undefined : request.createMusicDto.lyrics,
@@ -107,13 +97,13 @@ export class FalMusicGenerationProviderAdapter
     if (endpoint.includes('elevenlabs')) {
       return {
         force_instrumental: instrumental,
-        music_length_ms: duration * 1000,
+        music_length_ms: duration === undefined ? undefined : duration * 1000,
         prompt,
       };
     }
 
     return {
-      prompt: this.withLyriaInstrumentalHint(prompt, instrumental),
+      prompt: this.withLyriaInstrumentalHint(prompt, instrumental === true),
     };
   }
 

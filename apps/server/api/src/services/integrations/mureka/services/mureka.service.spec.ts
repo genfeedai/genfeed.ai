@@ -6,9 +6,12 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { HttpService } from '@nestjs/axios';
 import { of } from 'rxjs';
 
-function createHarness(apiKey: string | null = 'env-key') {
+function createHarness(
+  apiKey: string | null = 'env-key',
+  baseUrl = 'https://platform.mureka.ai',
+) {
   const configValues: Record<string, string | undefined> = {
-    MUREKA_API_BASE_URL: 'https://platform.mureka.ai',
+    MUREKA_API_BASE_URL: baseUrl,
     MUREKA_API_KEY: apiKey ?? undefined,
     MUREKA_MODEL: 'V9',
   };
@@ -27,6 +30,8 @@ function createHarness(apiKey: string | null = 'env-key') {
   const pollUntilService = { poll } as unknown as PollUntilService;
 
   return {
+    configService,
+    configValues,
     get,
     poll,
     post,
@@ -90,6 +95,7 @@ describe('MurekaService', () => {
           prompt: 'a happy song',
         }),
         {
+          maxRedirects: 0,
           headers: {
             Authorization: 'Bearer env-key',
             'Content-Type': 'application/json',
@@ -166,6 +172,7 @@ describe('MurekaService', () => {
         'https://platform.mureka.ai/v1/instrumental/generate',
         { model: 'V9', prompt: 'a beat' },
         {
+          maxRedirects: 0,
           headers: {
             Authorization: 'Bearer env-key',
             'Content-Type': 'application/json',
@@ -219,5 +226,67 @@ describe('MurekaService', () => {
         'Mureka completed with no audio URL',
       );
     });
+  });
+});
+
+describe('Mureka HTTPS transport boundary', () => {
+  it.each([
+    'http://example.com',
+    'ftp://example.com',
+    '/relative',
+    'invalid',
+    'https://user:password@example.com',
+    'https://example.com?token=secret',
+  ])(
+    'rejects invalid base URL before credentials or HTTP: %s',
+    async (baseUrl) => {
+      const harness = createHarness('private-key', baseUrl);
+      await expect(
+        harness.service.generateSong({ prompt: 'music' }),
+      ).rejects.toThrow('Mureka base URL must be');
+      expect(harness.configService.get).not.toHaveBeenCalledWith(
+        'MUREKA_API_KEY',
+      );
+      expect(harness.post).not.toHaveBeenCalled();
+      expect(harness.get).not.toHaveBeenCalled();
+    },
+  );
+
+  it('captures HTTPS path prefix once and disables submission and polling redirects', async () => {
+    const harness = createHarness('env-key', 'https://example.com/music///');
+    harness.post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+    harness.get.mockReturnValue(
+      of({
+        data: {
+          status: 'succeeded',
+          choices: [{ url: 'https://cdn.example.com/music.mp3' }],
+        },
+      }),
+    );
+    harness.poll.mockImplementation(async (fetch: () => Promise<unknown>) => {
+      harness.configValues.MUREKA_API_BASE_URL = 'http://changed.example.com';
+      return { value: await fetch() };
+    });
+    await harness.service.generateSong({ prompt: 'music' });
+    expect(harness.post).toHaveBeenCalledWith(
+      'https://example.com/music/v1/song/generate',
+      expect.any(Object),
+      expect.objectContaining({ maxRedirects: 0 }),
+    );
+    expect(harness.get).toHaveBeenCalledWith(
+      'https://example.com/music/v1/song/query/task-1',
+      expect.objectContaining({
+        maxRedirects: 0,
+        headers: expect.objectContaining({ Authorization: 'Bearer env-key' }),
+      }),
+    );
+    expect(harness.configService.get).toHaveBeenCalledWith(
+      'MUREKA_API_BASE_URL',
+    );
+    expect(
+      vi
+        .mocked(harness.configService.get)
+        .mock.calls.filter(([key]) => key === 'MUREKA_API_BASE_URL'),
+    ).toHaveLength(1);
   });
 });

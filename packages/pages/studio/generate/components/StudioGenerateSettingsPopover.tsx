@@ -1,6 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  normalizeMusicSettings,
+  resolveMusicSettings,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { StudioGenerateSettingsPopoverProps } from '@genfeedai/props/studio/studio-generate.props';
 import {
@@ -45,11 +49,15 @@ export function describeRemixOutputSettings(
   settings: StudioGenerateSettingsPopoverProps['settings'],
   type: StudioGenerateSettingsPopoverProps['type'],
 ): string {
+  const duration =
+    type === 'music'
+      ? normalizeMusicSettings(settings.modelKey, settings).duration
+      : settings.duration;
   return [
     settings.aspectRatio,
     type === 'video' || type === 'avatar' || type === 'music'
-      ? settings.duration
-        ? `${settings.duration}s`
+      ? duration
+        ? `${duration}s`
         : null
       : null,
     `${settings.outputs}x`,
@@ -127,7 +135,11 @@ export default function StudioGenerateSettingsPopover({
   type,
 }: StudioGenerateSettingsPopoverProps): ReactElement {
   const translate = useTranslations('pages.studioGenerate');
-  const hasDuration = type === 'video' || type === 'avatar' || type === 'music';
+  const music = resolveMusicSettings(settings.modelKey);
+  const hasDuration =
+    type === 'video' ||
+    type === 'avatar' ||
+    (type === 'music' && music.hasDurationEditing);
   const summary = describeRemixOutputSettings(settings, type);
 
   return (
@@ -170,19 +182,42 @@ export default function StudioGenerateSettingsPopover({
           </SettingRow>
           {hasDuration ? (
             <SettingRow label="Duration">
-              <Input
-                aria-label="Duration"
-                className={SHELL_CONTROL_HEIGHT_CLASS}
-                max={REMIX_MAX_DURATION_SECONDS}
-                min={REMIX_MIN_DURATION_SECONDS}
-                onChange={(event) => {
-                  onChange({
-                    duration: clampRemixDurationSeconds(event.target.value),
-                  });
-                }}
-                type="number"
-                value={settings.duration ?? ''}
-              />
+              {type === 'music' ? (
+                <OptionSelect
+                  ariaLabel="Duration"
+                  onChange={(value) =>
+                    onChange(
+                      normalizeMusicSettings(settings.modelKey, {
+                        ...settings,
+                        duration: value ? Number(value) : undefined,
+                      }),
+                    )
+                  }
+                  options={music.durations.map((seconds) => ({
+                    label: `${seconds}s`,
+                    value: String(seconds),
+                  }))}
+                  placeholder="Duration"
+                  value={String(
+                    normalizeMusicSettings(settings.modelKey, settings)
+                      .duration ?? '',
+                  )}
+                />
+              ) : (
+                <Input
+                  aria-label="Duration"
+                  className={SHELL_CONTROL_HEIGHT_CLASS}
+                  max={REMIX_MAX_DURATION_SECONDS}
+                  min={REMIX_MIN_DURATION_SECONDS}
+                  onChange={(event) => {
+                    onChange({
+                      duration: clampRemixDurationSeconds(event.target.value),
+                    });
+                  }}
+                  type="number"
+                  value={settings.duration ?? ''}
+                />
+              )}
             </SettingRow>
           ) : null}
           <SettingRow label="Outputs">
