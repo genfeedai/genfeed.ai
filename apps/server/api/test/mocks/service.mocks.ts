@@ -32,7 +32,7 @@ export const mockCacheService = (): Partial<CacheService> => ({
   set: vi.fn().mockResolvedValue(true),
 });
 
-export const mockRepository = <T = any>() => ({
+export const mockRepository = <T = unknown>() => ({
   aggregate: vi.fn().mockResolvedValue([]),
   count: vi.fn().mockResolvedValue(0),
   countDocuments: vi.fn().mockResolvedValue(0),
@@ -54,7 +54,7 @@ export const mockRepository = <T = any>() => ({
   update: vi.fn().mockResolvedValue({ acknowledged: true }),
 });
 
-export const mockModel = <T = any>() => {
+export const mockModel = <T = unknown>() => {
   const mock = mockRepository<T>();
   return {
     ...mock,
@@ -218,7 +218,7 @@ export const mockPublicMetadata = (): unknown => ({
   user: 'test-id-' + Math.random().toString(36).slice(2, 9),
 });
 
-export const mockPaginatedResult = <T = any>(docs: T[] = []) => ({
+export const mockPaginatedResult = <T = unknown>(docs: T[] = []) => ({
   docs,
   hasNextPage: false,
   hasPrevPage: false,

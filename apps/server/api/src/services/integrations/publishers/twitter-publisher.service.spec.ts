@@ -216,9 +216,13 @@ describe('TwitterPublisherService', () => {
 
     service = module.get<TwitterPublisherService>(TwitterPublisherService);
     vi.spyOn(
-      service as any,
+      service as unknown as {
+        getTwitterClientFromCredential: TwitterPublisherService['getTwitterClientFromCredential'];
+      },
       'getTwitterClientFromCredential',
-    ).mockResolvedValue({ v2: { tweet: mockTweet } });
+    ).mockResolvedValue({ v2: { tweet: mockTweet } } as unknown as Awaited<
+      ReturnType<TwitterPublisherService['getTwitterClientFromCredential']>
+    >);
     _configService = module.get(ConfigService) as vi.Mocked<ConfigService>;
     logger = module.get(LoggerService) as vi.Mocked<LoggerService>;
     httpService = module.get(HttpService) as vi.Mocked<HttpService>;
@@ -871,7 +875,7 @@ describe('TwitterPublisherService', () => {
       };
 
       // Access protected method through type assertion
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(true);
     });
@@ -886,7 +890,7 @@ describe('TwitterPublisherService', () => {
         mediaUrls: ['https://api.test.com/ingredients/images/123'],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(true);
     });
@@ -905,7 +909,7 @@ describe('TwitterPublisherService', () => {
         ],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(true);
     });
@@ -913,7 +917,7 @@ describe('TwitterPublisherService', () => {
 
   describe('extractMediaInfo', () => {
     it('should extract media info for post with no ingredients', () => {
-      const result = (service as any).extractMediaInfo(mockTextPost);
+      const result = service['extractMediaInfo'](mockTextPost);
 
       expect(result.hasIngredients).toBe(false);
       expect(result.ingredientIds).toEqual([]);
@@ -922,7 +926,7 @@ describe('TwitterPublisherService', () => {
     });
 
     it('should extract media info for image post', () => {
-      const result = (service as any).extractMediaInfo(mockImagePost);
+      const result = service['extractMediaInfo'](mockImagePost);
 
       expect(result.hasIngredients).toBe(true);
       expect(result.ingredientIds.length).toBe(1);
@@ -932,7 +936,7 @@ describe('TwitterPublisherService', () => {
     });
 
     it('should extract media info for video post', () => {
-      const result = (service as any).extractMediaInfo(mockVideoPost);
+      const result = service['extractMediaInfo'](mockVideoPost);
 
       expect(result.hasIngredients).toBe(true);
       expect(result.isImagePost).toBe(false);
@@ -940,7 +944,7 @@ describe('TwitterPublisherService', () => {
     });
 
     it('should extract media info for carousel post', () => {
-      const result = (service as any).extractMediaInfo(mockCarouselPost);
+      const result = service['extractMediaInfo'](mockCarouselPost);
 
       expect(result.hasIngredients).toBe(true);
       expect(result.ingredientIds.length).toBe(3);
@@ -954,9 +958,7 @@ describe('TwitterPublisherService', () => {
         ingredients: [{ id: mockIngredientId, name: 'Test Ingredient' }],
       };
 
-      const result = (service as any).extractMediaInfo(
-        postWithPopulatedIngredients,
-      );
+      const result = service['extractMediaInfo'](postWithPopulatedIngredients);
 
       expect(result.ingredientIds[0]).toBe(mockIngredientId.toString());
     });
@@ -964,7 +966,7 @@ describe('TwitterPublisherService', () => {
 
   describe('createSuccessResult and createFailedResult', () => {
     it('should create correct success result', () => {
-      const result = (service as any).createSuccessResult(
+      const result = service['createSuccessResult'](
         'tweet-123',
         CredentialPlatform.TWITTER,
         'https://x.com/user/status/tweet-123',
@@ -981,7 +983,7 @@ describe('TwitterPublisherService', () => {
     });
 
     it('should create correct failed result', () => {
-      const result = (service as any).createFailedResult(
+      const result = service['createFailedResult'](
         CredentialPlatform.TWITTER,
         'Publishing failed',
       );

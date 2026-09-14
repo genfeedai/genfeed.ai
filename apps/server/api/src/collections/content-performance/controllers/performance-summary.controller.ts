@@ -56,10 +56,10 @@ export class PerformanceSummaryController {
   async getWeeklySummary(
     @Req() req: Request,
     @Query('brandId') brandId: string,
-    @Query('topN') topN: string,
-    @Query('worstN') worstN: string,
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('topN') topN: string | undefined,
+    @Query('worstN') worstN: string | undefined,
+    @Query('startDate') startDate: string | undefined,
+    @Query('endDate') endDate: string | undefined,
     @CurrentUser() user: User,
   ) {
     validateBrandId(brandId);
@@ -84,9 +84,9 @@ export class PerformanceSummaryController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getTopPerformers(
     @Query('brandId') brandId: string,
-    @Query('limit') limit: string,
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('limit') limit: string | undefined,
+    @Query('startDate') startDate: string | undefined,
+    @Query('endDate') endDate: string | undefined,
     @CurrentUser() user: User,
   ) {
     validateBrandId(brandId);
@@ -109,8 +109,8 @@ export class PerformanceSummaryController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getPromptPerformance(
     @Query('brandId') brandId: string,
-    @Query('startDate') startDate: string,
-    @Query('endDate') endDate: string,
+    @Query('startDate') startDate: string | undefined,
+    @Query('endDate') endDate: string | undefined,
     @CurrentUser() user: User,
   ) {
     validateBrandId(brandId);
