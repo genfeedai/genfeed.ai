@@ -1,4 +1,5 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 import type { ILabeledItem } from '../index';
 
 export type AppContext =
@@ -18,8 +19,8 @@ export interface MenuItemConfig {
   hrefScope?: 'brand' | 'global' | 'organization' | 'personal';
   label: string;
   icon?: ReactNode;
-  outline?: ComponentType<{ className?: string }>;
-  solid?: ComponentType<{ className?: string }>;
+  outline?: IconComponent;
+  solid?: IconComponent;
   group?: string;
   matchPaths?: string[];
   /** Query parameters that participate in active navigation identity. Null requires the key to be absent. */

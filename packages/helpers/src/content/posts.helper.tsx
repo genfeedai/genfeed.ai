@@ -8,6 +8,7 @@ import {
   APP_ROUTES,
   createPublishingPostsFilterRoute,
 } from '@genfeedai/contracts/constants';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import * as formatHelper from '@helpers/formatting/format/format.helper';
 import {
   DiscordIcon,
@@ -34,7 +35,6 @@ import {
 } from '@helpers/ui/icons/brands';
 import type { TabItem } from '@props/ui/navigation/tabs.props';
 import { LayoutGrid, Newspaper, Star } from 'lucide-react';
-import type { ComponentType } from 'react';
 
 export const POST_PLATFORM_VALUES = [
   Platform.YOUTUBE,
@@ -271,10 +271,7 @@ export function getPostVisibilityOptions(): Array<{
   ];
 }
 
-const PLATFORM_ICON_MAP: Record<
-  PostsPlatform,
-  ComponentType<{ className?: string }>
-> = {
+const PLATFORM_ICON_MAP: Record<PostsPlatform, IconComponent> = {
   all: LayoutGrid,
   [Platform.YOUTUBE]: YoutubeIcon,
   [Platform.INSTAGRAM]: InstagramIcon,

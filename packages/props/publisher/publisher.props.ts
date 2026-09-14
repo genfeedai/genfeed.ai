@@ -1,10 +1,10 @@
-import type { ComponentType } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 
 export interface PublisherTool {
   id: string;
   title: string;
   description: string;
   href: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   comingSoon?: boolean;
 }

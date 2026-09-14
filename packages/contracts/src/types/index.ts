@@ -3,6 +3,7 @@ export * from './cost';
 export * from './enums';
 export * from './execution';
 export * from './groups';
+export * from './icon';
 export * from './input-group';
 export * from './jobs';
 export * from './nodes/index';

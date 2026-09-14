@@ -1,3 +1,3 @@
-import type { ComponentType } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 
-export type AgentTypeIcon = ComponentType<{ className?: string }>;
+export type AgentTypeIcon = IconComponent;

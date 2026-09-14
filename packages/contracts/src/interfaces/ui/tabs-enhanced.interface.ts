@@ -1,10 +1,11 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 import type { NavigationTab } from '../index';
 
 export interface TabItem {
   id: string;
   label: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   badge?: ReactNode;
   isDisabled?: boolean;
 }

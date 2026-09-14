@@ -1,9 +1,9 @@
-import type { ComponentType } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 
 export interface GenerateOption {
   id: string;
   title: string;
   description: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   href: string;
 }

@@ -1,11 +1,12 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 
 export type SectionHeaderSize = 'sm' | 'md' | 'lg' | 'xl';
 export type SectionHeaderAlign = 'left' | 'center';
 
 export interface SectionHeaderProps {
   /** Optional icon displayed next to label */
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   /** Optional eyebrow/badge text above title */
   label?: string;
   /** Main headline - supports JSX for styled spans */

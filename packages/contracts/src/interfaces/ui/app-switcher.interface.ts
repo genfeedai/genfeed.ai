@@ -1,9 +1,9 @@
-import type { ComponentType } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { AppContext } from './menu-config.interface';
 
 export interface AppSwitcherItemConfig {
   id: AppContext;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   label: string;
   route: (orgSlug: string, brandSlug?: string) => string;
 }

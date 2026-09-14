@@ -1,3 +1,4 @@
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CardIconProps } from '@genfeedai/props/ui/ui.props';
 import { isValidElement } from 'react';
@@ -16,7 +17,7 @@ export default function CardIcon({
   const iconElement = isValidElement(icon)
     ? icon
     : (() => {
-        const Icon = icon as React.ComponentType<{ className?: string }>;
+        const Icon = icon as IconComponent;
         return <Icon className={cn(defaultIconClassName, iconClassName)} />;
       })();
 

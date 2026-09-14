@@ -2,13 +2,14 @@
 
 import { usePageHelp } from '@genfeedai/contexts/ui/page-help-context';
 import { useSidebarNavigation } from '@genfeedai/contexts/ui/sidebar-navigation-context';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ContainerProps } from '@genfeedai/props/ui/ui.props';
 import ContainerTitle from '@ui/layout/container-title/ContainerTitle';
 import HelpPopover from '@ui/layout/help-popover/HelpPopover';
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import Tabs from '@ui/navigation/tabs/Tabs';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { createContext, useContext, useState } from 'react';
 
 const ContainerInsetContext = createContext(false);
@@ -117,7 +118,7 @@ export default function Container({
       : undefined;
   const sectionIcon =
     hasVisibleTitle && typeof icon === 'function'
-      ? (icon as ComponentType<{ className?: string }>)
+      ? (icon as IconComponent)
       : undefined;
 
   const moduleTabsNode = resolvedHeaderTabs ? (

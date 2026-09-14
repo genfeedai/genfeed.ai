@@ -1,5 +1,6 @@
 'use client';
 
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
   InstagramIcon,
   LinkedinIcon,
@@ -12,7 +13,6 @@ import {
 import type { TrendPlatform } from '@pages/trends/shared/trends-platforms';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { LayoutGrid } from 'lucide-react';
-import type { ComponentType } from 'react';
 
 export type SocialsNavigationBasePath = '/discovery' | '/analytics/trends';
 
@@ -22,8 +22,6 @@ interface SocialsNavigationItem {
   label: string;
   matchMode?: 'exact';
 }
-
-type IconComponent = ComponentType<{ className?: string }>;
 
 const PLATFORM_ICONS: Record<TrendPlatform, IconComponent> = {
   instagram: InstagramIcon,

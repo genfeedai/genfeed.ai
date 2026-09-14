@@ -1,18 +1,14 @@
 'use client';
 
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers';
-import type {
-  ComponentProps,
-  ComponentType,
-  CSSProperties,
-  ReactNode,
-} from 'react';
+import type { ComponentProps, CSSProperties, ReactNode } from 'react';
 import { createContext, useContext, useId, useMemo } from 'react';
 import { ResponsiveContainer } from 'recharts';
 
 export type ChartSeriesConfig = {
   color?: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   label?: ReactNode;
 };
 
