@@ -5,6 +5,13 @@ import { useIngredientDetail } from './use-ingredient-detail';
 const mocks = vi.hoisted(() => {
   const service = { findAll: vi.fn(), findOne: vi.fn() };
   return {
+    brandId: 'brand-1',
+    ingredientActions: vi.fn<
+      (config: { onRefresh: () => Promise<void> }) => {
+        handlers: Record<string, never>;
+        loadingStates: Record<string, never>;
+      }
+    >(() => ({ handlers: {}, loadingStates: {} })),
     caches: new Map<string, Map<string, unknown>>(),
     clipboard: { copyToClipboard: vi.fn() },
     getService: vi.fn(() => Promise.resolve(service)),
@@ -17,7 +24,7 @@ const mocks = vi.hoisted(() => {
 });
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1', credentials: [] }),
+  useBrand: () => ({ brandId: mocks.brandId, credentials: [] }),
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
@@ -31,7 +38,7 @@ vi.mock(
 vi.mock(
   '@hooks/ui/ingredient/use-ingredient-actions/use-ingredient-actions',
   () => ({
-    default: () => ({ handlers: {}, loadingStates: {} }),
+    default: mocks.ingredientActions,
   }),
 );
 vi.mock('@providers/global-modals/global-modals.provider', () => ({
@@ -82,6 +89,7 @@ function renderDetail(id = 'image-1') {
 describe('useIngredientDetail loading', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.brandId = 'brand-1';
     mocks.caches.clear();
     mocks.service.findOne.mockReset().mockResolvedValue({ id: 'image-1' });
     mocks.service.findAll.mockReset().mockResolvedValue([{ id: 'child-1' }]);
@@ -150,6 +158,71 @@ describe('useIngredientDetail loading', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
     expect(result.current.ingredient?.id).toBe('image-1');
     expect(mocks.notifications.error).not.toHaveBeenCalled();
+  });
+
+  it('finishes a manual refresh while the active brand is unavailable', async () => {
+    const { result, rerender } = renderDetail();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    mocks.brandId = '';
+    rerender({ currentId: 'image-1' });
+    mocks.service.findOne.mockResolvedValue({
+      id: 'image-1',
+      label: 'Refreshed',
+    });
+    await act(async () => {
+      await result.current.findIngredient();
+    });
+    expect(result.current.isLoading).toBe(false);
+    expect(result.current.ingredient?.label).toBe('Refreshed');
+  });
+
+  it('ignores an action refresh parent after the selected ID changes', async () => {
+    const { result, rerender } = renderDetail();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const old = deferred<{ id: string }>();
+    mocks.service.findOne
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValue({ id: 'image-2' });
+    const onRefresh = mocks.ingredientActions.mock.lastCall?.[0].onRefresh;
+    expect(onRefresh).toBeDefined();
+    let refresh = Promise.resolve();
+    act(() => {
+      refresh = onRefresh?.() ?? Promise.resolve();
+    });
+    await waitFor(() => expect(mocks.service.findOne).toHaveBeenCalledTimes(2));
+    rerender({ currentId: 'image-2' });
+    await waitFor(() => expect(result.current.ingredient?.id).toBe('image-2'));
+    await act(async () => {
+      old.resolve({ id: 'old-action' });
+      await refresh;
+    });
+    expect(result.current.ingredient?.id).toBe('image-2');
+  });
+
+  it('ignores action refresh children after the selected ID changes', async () => {
+    const { result, rerender } = renderDetail();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const old = deferred<{ id: string }[]>();
+    mocks.service.findAll
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValue([{ id: 'new-child' }]);
+    const onRefresh = mocks.ingredientActions.mock.lastCall?.[0].onRefresh;
+    expect(onRefresh).toBeDefined();
+    let refresh = Promise.resolve();
+    act(() => {
+      refresh = onRefresh?.() ?? Promise.resolve();
+    });
+    await waitFor(() => expect(mocks.service.findAll).toHaveBeenCalledTimes(2));
+    mocks.service.findOne.mockResolvedValue({ id: 'image-2' });
+    rerender({ currentId: 'image-2' });
+    await waitFor(() =>
+      expect(result.current.childIngredients).toEqual([{ id: 'new-child' }]),
+    );
+    await act(async () => {
+      old.resolve([{ id: 'old-action-child' }]);
+      await refresh;
+    });
+    expect(result.current.childIngredients).toEqual([{ id: 'new-child' }]);
   });
 
   it('ignores a manual refresh after the selected ID changes', async () => {
