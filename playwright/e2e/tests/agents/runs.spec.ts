@@ -28,9 +28,39 @@ test.describe('Workflow Execution Runs', () => {
     await expect(
       authenticatedPage.getByRole('heading', { name: 'Recent Runs' }),
     ).toBeVisible();
-    await expect(authenticatedPage.getByText('Trend scan')).toBeVisible();
-    await expect(authenticatedPage.getByText('Caption draft')).toBeVisible();
-    await expect(authenticatedPage.getByText('trends.scan')).toBeVisible();
+    const history = authenticatedPage.getByRole('table', {
+      exact: true,
+      name: 'Recent runs',
+    });
+    await expect(history.getByRole('row')).toHaveCount(3);
+
+    for (const execution of [
+      { credits: '6', duration: '18s', id: 'execution-1', label: 'Trend scan' },
+      {
+        credits: '3',
+        duration: '9s',
+        id: 'execution-2',
+        label: 'Caption draft',
+      },
+    ]) {
+      const row = history.getByRole('row').filter({ hasText: execution.label });
+      await expect(row).toBeVisible();
+      await expect(
+        row.getByRole('cell', { exact: true, name: 'Completed' }),
+      ).toBeVisible();
+      await expect(
+        row.getByRole('cell', { exact: true, name: execution.credits }),
+      ).toBeVisible();
+      await expect(
+        row.getByRole('cell', { exact: true, name: execution.duration }),
+      ).toBeVisible();
+      await expect(
+        row.getByRole('link', { exact: true, name: 'View Details' }),
+      ).toHaveAttribute(
+        'href',
+        brandPath(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`),
+      );
+    }
   });
 
   test('filters execution history from the search box', async ({
