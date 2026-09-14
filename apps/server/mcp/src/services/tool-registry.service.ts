@@ -19,6 +19,7 @@ import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
+import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
 import { handleAdsGatewayTool } from '@mcp/tools/ads-gateway.tool';
 import { handleAgentChatTool } from '@mcp/tools/agent-chat.tool';
@@ -580,10 +581,7 @@ export class ToolRegistryService implements OnModuleInit {
         return {
           content: [
             {
-              text:
-                videos.length > 0
-                  ? `Found ${videos.length} videos:\n\n${JSON.stringify(videos, null, 2)}`
-                  : 'No videos found.',
+              text: formatListResult(videos, 'videos'),
               type: 'text',
             },
           ],
@@ -661,10 +659,11 @@ export class ToolRegistryService implements OnModuleInit {
           },
           content: [
             {
-              text:
-                articles.length > 0
-                  ? `Found ${articles.length} articles matching "${args.query}":\n\n${JSON.stringify(articles, null, 2)}`
-                  : `No articles found matching "${args.query}".`,
+              text: formatListResult(
+                articles,
+                'articles',
+                ` matching "${args.query}"`,
+              ),
               type: 'text',
             },
           ],
@@ -706,10 +705,7 @@ export class ToolRegistryService implements OnModuleInit {
           },
           content: [
             {
-              text:
-                images.length > 0
-                  ? `Found ${images.length} images:\n\n${JSON.stringify(images, null, 2)}`
-                  : 'No images found.',
+              text: formatListResult(images, 'images'),
               type: 'text',
             },
           ],
@@ -723,10 +719,7 @@ export class ToolRegistryService implements OnModuleInit {
         return {
           content: [
             {
-              text:
-                avatars.length > 0
-                  ? `Found ${avatars.length} avatars:\n\n${JSON.stringify(avatars, null, 2)}`
-                  : 'No avatars found.',
+              text: formatListResult(avatars, 'avatars'),
               type: 'text',
             },
           ],
@@ -740,10 +733,7 @@ export class ToolRegistryService implements OnModuleInit {
         return {
           content: [
             {
-              text:
-                musicTracks.length > 0
-                  ? `Found ${musicTracks.length} music tracks:\n\n${JSON.stringify(musicTracks, null, 2)}`
-                  : 'No music tracks found.',
+              text: formatListResult(musicTracks, 'music tracks'),
               type: 'text',
             },
           ],
