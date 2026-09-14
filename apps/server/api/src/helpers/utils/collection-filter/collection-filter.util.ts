@@ -25,7 +25,8 @@ import { ForbiddenException } from '@nestjs/common';
  *   { orderBy: { ... } }
  * ];
  */
-export class CollectionFilterUtil {
+
+export const CollectionFilterUtil = {
   /**
    * Build a brand filter without allowing a member to override the active
    * brand carried by the authenticated request context.
@@ -34,7 +35,7 @@ export class CollectionFilterUtil {
    * members must switch their active brand first, which makes the request
    * context the single authorization source instead of trusting a query param.
    */
-  static buildAuthorizedBrandFilter(
+  buildAuthorizedBrandFilter(
     brand: unknown,
     user: { brandId?: string },
     isSuperAdmin: boolean,
@@ -52,7 +53,7 @@ export class CollectionFilterUtil {
     }
 
     return CollectionFilterUtil.buildBrandFilter(brand, user, defaultTo);
-  }
+  },
 
   /**
    * Authorize list-query brand/org filters for non-superadmins.
@@ -64,7 +65,7 @@ export class CollectionFilterUtil {
    *
    * Superadmins may filter any org/brand.
    */
-  static resolveAuthorizedTenantQuery(
+  resolveAuthorizedTenantQuery(
     query: { organizationId?: string; brandId?: string },
     user: {
       organizationId?: string;
@@ -101,14 +102,14 @@ export class CollectionFilterUtil {
       ...(organizationId ? { organizationId } : {}),
       ...(query.brandId ? { brandId: String(query.brandId) } : {}),
     };
-  }
+  },
 
   /**
    * Write authorized org/brand filters onto a list `match` object.
    * Members cannot select another organization; missing brand falls back to
    * the session brand when present.
    */
-  static applyAuthorizedTenantMatch(
+  applyAuthorizedTenantMatch(
     match: Record<string, unknown>,
     query: { organizationId?: string; brandId?: string },
     user: {
@@ -131,7 +132,7 @@ export class CollectionFilterUtil {
     } else if (user.brandId) {
       match.brandId = String(user.brandId);
     }
-  }
+  },
 
   /**
    * Build admin filter for superadmin org/brand filtering
@@ -151,7 +152,7 @@ export class CollectionFilterUtil {
    *   // Use adminFilter instead of normal ownership filter
    * }
    */
-  static buildAdminFilter(
+  buildAdminFilter(
     user: { isSuperAdmin?: boolean },
     query: {
       organizationId?: string;
@@ -180,7 +181,7 @@ export class CollectionFilterUtil {
     }
 
     return filter;
-  }
+  },
 
   /**
    * Build brand filter with fallback logic
@@ -210,7 +211,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildBrandFilter(undefined, user, 'exists')
    * // Returns: { not: null }
    */
-  static buildBrandFilter(
+  buildBrandFilter(
     brand: unknown,
     user?: { brandId?: string },
     defaultTo: 'user' | 'exists' | 'none' = 'user',
@@ -233,7 +234,7 @@ export class CollectionFilterUtil {
       default:
         return { not: null };
     }
-  }
+  },
 
   /**
    * Build scope filter with defaults
@@ -255,7 +256,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildScopeFilter(undefined)
    * // Returns: undefined
    */
-  static buildScopeFilter(scope?: unknown): AssetScope | undefined {
+  buildScopeFilter(scope?: unknown): AssetScope | undefined {
     if (typeof scope !== 'string') {
       return undefined;
     }
@@ -263,7 +264,7 @@ export class CollectionFilterUtil {
     return Object.values(AssetScope).includes(scope as AssetScope)
       ? (scope as AssetScope)
       : undefined;
-  }
+  },
 
   /**
    * Build search filter across multiple fields
@@ -285,7 +286,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildSearchFilter(undefined, ['label'])
    * // Returns: { where: {} }
    */
-  static buildSearchFilter(
+  buildSearchFilter(
     search?: string,
     fields: string[] = ['metadata.label', 'metadata.description'],
   ): Record<string, unknown> {
@@ -301,7 +302,7 @@ export class CollectionFilterUtil {
         OR: orConditions,
       },
     };
-  }
+  },
 
   /**
    * Build ownership filter for user/organization
@@ -323,7 +324,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildOwnershipFilter(user, { includeOrganization: false })
    * // Returns: { userId: '...' }
    */
-  static buildOwnershipFilter(
+  buildOwnershipFilter(
     user: { userId?: string; organizationId?: string },
     options: {
       includeOrganization?: boolean;
@@ -365,7 +366,7 @@ export class CollectionFilterUtil {
 
     // Fallback if no conditions
     return {};
-  }
+  },
 
   /**
    * Build date range filter
@@ -393,7 +394,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildDateRangeFilter(undefined, undefined)
    * // Returns: {}
    */
-  static buildDateRangeFilter(
+  buildDateRangeFilter(
     startDate?: string | Date,
     endDate?: string | Date,
     field: string = 'createdAt',
@@ -413,7 +414,7 @@ export class CollectionFilterUtil {
     }
 
     return { [field]: filter };
-  }
+  },
 
   /**
    * Build array filter for multi-value fields
@@ -441,7 +442,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildArrayFilter(['tag1', 'tag2'], 'tags', true)
    * // Returns: { tags: { hasEvery: ['tag1', 'tag2'] } }
    */
-  static buildArrayFilter(
+  buildArrayFilter(
     values?: string | string[],
     field: string = 'tags',
     matchAll: boolean = false,
@@ -458,7 +459,7 @@ export class CollectionFilterUtil {
 
     const operator = matchAll ? 'hasEvery' : 'in';
     return { [field]: { [operator]: arrayValues } };
-  }
+  },
 
   /**
    * Build status filter condition
@@ -486,9 +487,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildStatusFilter(undefined)
    * // Returns: {}
    */
-  static buildStatusFilter(
-    status?: string | string[],
-  ): Record<string, unknown> {
+  buildStatusFilter(status?: string | string[]): Record<string, unknown> {
     if (!status) {
       return {};
     }
@@ -502,7 +501,7 @@ export class CollectionFilterUtil {
     }
 
     return { status: String(status).trim() };
-  }
+  },
 
   /**
    * Build category filter
@@ -523,9 +522,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildCategoryFilter(['image', 'video'])
    * // Returns: { category: { in: ['image', 'video'] } }
    */
-  static buildCategoryFilter(
-    category?: string | string[],
-  ): Record<string, unknown> {
+  buildCategoryFilter(category?: string | string[]): Record<string, unknown> {
     if (!category) {
       return {};
     }
@@ -535,7 +532,7 @@ export class CollectionFilterUtil {
     }
 
     return { category };
-  }
+  },
 
   /**
    * Conditional query fragments
@@ -554,12 +551,12 @@ export class CollectionFilterUtil {
    *   { relationInclude: { from: 'children', ... } }
    * ])
    */
-  static conditionalStages(
+  conditionalStages(
     condition: boolean,
     stages: Record<string, unknown>[],
   ): Record<string, unknown>[] {
     return condition ? stages : [];
-  }
+  },
 
   /**
    * Build boolean filter with proper string handling
@@ -586,7 +583,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildBooleanFilter(undefined, { not: null })
    * // Returns: { not: null }
    */
-  static buildBooleanFilter(
+  buildBooleanFilter(
     value?: string | boolean,
     defaultValue: Record<string, unknown> = { not: null },
   ): boolean | Record<string, unknown> {
@@ -601,7 +598,7 @@ export class CollectionFilterUtil {
 
     // Handle boolean values
     return Boolean(value);
-  }
+  },
 
   /**
    * Build sort object from query string
@@ -628,7 +625,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildSortObject(undefined, { createdAt: -1 })
    * // Returns: { createdAt: -1 }
    */
-  static buildSortObject(
+  buildSortObject(
     sort?: string,
     defaultSort: Record<string, 1 | -1> = { createdAt: -1 },
   ): Record<string, 1 | -1> {
@@ -649,7 +646,7 @@ export class CollectionFilterUtil {
     }
 
     return Object.keys(sortObject).length > 0 ? sortObject : defaultSort;
-  }
+  },
 
   /**
    * Build pagination options
@@ -665,7 +662,7 @@ export class CollectionFilterUtil {
    * CollectionFilterUtil.buildPaginationOptions(query, customLabels)
    * // Returns: { page: 1, limit: 50, pagination: true, customLabels: {...} }
    */
-  static buildPaginationOptions(
+  buildPaginationOptions(
     query: { page?: number; limit?: number; pagination?: boolean | string },
     customLabels?: Record<string, string>,
   ): Record<string, unknown> {
@@ -681,5 +678,5 @@ export class CollectionFilterUtil {
       pagination: paginationValue,
       ...(customLabels && { customLabels }),
     };
-  }
-}
+  },
+};

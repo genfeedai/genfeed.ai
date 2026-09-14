@@ -14,7 +14,8 @@
  * // Enrich create DTO
  * const enrichedDto = PresetFilterUtil.enrichPresetDto(createDto, user);
  */
-export class PresetFilterUtil {
+
+export const PresetFilterUtil = {
   /**
    * Build scope OR conditions for three-tier filtering
    *
@@ -44,7 +45,7 @@ export class PresetFilterUtil {
    * //   { userId: '456' }
    * // ]
    */
-  static buildScopeOrConditions(identity: {
+  buildScopeOrConditions(identity: {
     organizationId?: string;
     userId?: string;
   }): Array<Record<string, unknown>> {
@@ -59,7 +60,7 @@ export class PresetFilterUtil {
     }
 
     return orConditions;
-  }
+  },
 
   /**
    * Check if user can modify preset
@@ -97,7 +98,7 @@ export class PresetFilterUtil {
    * )
    * // Returns: true
    */
-  static canUserModifyPreset(
+  canUserModifyPreset(
     user: {
       isSuperAdmin?: boolean;
       organizationId?: string;
@@ -119,7 +120,7 @@ export class PresetFilterUtil {
     // Check organization ownership for non-default presets
     const presetOrgId = preset.organizationId;
     return presetOrgId === organizationId;
-  }
+  },
 
   /**
    * Enrich preset create DTO with proper organization/brand/user
@@ -156,7 +157,7 @@ export class PresetFilterUtil {
    * )
    * // Returns: { label: 'Org Preset', organizationId: '456', brandId: null }
    */
-  static enrichPresetDto(
+  enrichPresetDto(
     createDto: Record<string, unknown>,
     user: {
       brandId?: string;
@@ -180,7 +181,7 @@ export class PresetFilterUtil {
     }
 
     return enriched;
-  }
+  },
 
   /**
    * Build base match stage for presets
@@ -206,7 +207,7 @@ export class PresetFilterUtil {
    * //   OR: [...scope conditions...]
    * // }
    */
-  static buildBaseMatch(
+  buildBaseMatch(
     identity: { organizationId?: string; userId?: string },
     query: {
       category?: string;
@@ -236,5 +237,5 @@ export class PresetFilterUtil {
     matchStage.OR = PresetFilterUtil.buildScopeOrConditions(identity);
 
     return matchStage;
-  }
-}
+  },
+};

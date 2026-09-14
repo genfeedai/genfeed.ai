@@ -14,7 +14,8 @@
  * // Parse featured filter
  * const isFeatured = TemplateFilterUtil.parseFeaturedFilter(query.isFeatured);
  */
-export class TemplateFilterUtil {
+
+export const TemplateFilterUtil = {
   /**
    * Build template filters object from query
    *
@@ -46,7 +47,7 @@ export class TemplateFilterUtil {
    * })
    * // Returns: { industries: ['technology', 'finance'] }
    */
-  static buildTemplateFilters(
+  buildTemplateFilters(
     query: {
       purpose?: 'content' | 'prompt';
       key?: string;
@@ -135,7 +136,7 @@ export class TemplateFilterUtil {
     }
 
     return filters;
-  }
+  },
 
   /**
    * Build array membership filter.
@@ -145,7 +146,7 @@ export class TemplateFilterUtil {
    * @param values - Single value or array of values
    * @returns Prisma where fragment.
    */
-  static buildArrayInFilter(
+  buildArrayInFilter(
     field: string,
     values?: string | string[],
   ): Record<string, unknown> {
@@ -160,7 +161,7 @@ export class TemplateFilterUtil {
     }
 
     return { [field]: { in: arrayValues } };
-  }
+  },
 
   /**
    * Parse featured filter (boolean string handling)
@@ -190,7 +191,7 @@ export class TemplateFilterUtil {
    * TemplateFilterUtil.parseFeaturedFilter(undefined)
    * // Returns: undefined
    */
-  static parseFeaturedFilter(value?: string | boolean): boolean | undefined {
+  parseFeaturedFilter(value?: string | boolean): boolean | undefined {
     if (value === undefined) {
       return undefined;
     }
@@ -202,7 +203,7 @@ export class TemplateFilterUtil {
 
     // Handle boolean values
     return Boolean(value);
-  }
+  },
 
   /**
    * Build purpose filter for prompt templates
@@ -227,15 +228,13 @@ export class TemplateFilterUtil {
    * TemplateFilterUtil.buildPurposeFilter(undefined)
    * // Returns: {}
    */
-  static buildPurposeFilter(
-    purpose?: 'content' | 'prompt',
-  ): Record<string, unknown> {
+  buildPurposeFilter(purpose?: 'content' | 'prompt'): Record<string, unknown> {
     if (!purpose) {
       return {};
     }
 
     return { purpose };
-  }
+  },
 
   /**
    * Build key filter for prompt templates
@@ -255,11 +254,11 @@ export class TemplateFilterUtil {
    * TemplateFilterUtil.buildKeyFilter(undefined)
    * // Returns: {}
    */
-  static buildKeyFilter(key?: string): Record<string, unknown> {
+  buildKeyFilter(key?: string): Record<string, unknown> {
     if (!key) {
       return {};
     }
 
     return { key };
-  }
-}
+  },
+};

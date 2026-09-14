@@ -31,8 +31,8 @@ export const ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS = [
   'xArticleMetadata',
 ] as const;
 
-export class ArticleFilterUtil {
-  static toPrismaArticleStatus(
+export const ArticleFilterUtil = {
+  toPrismaArticleStatus(
     status?: ArticleStatus | PrismaArticleStatusValue | string,
   ): PrismaArticleStatusValue | undefined {
     if (status === undefined || status === '') {
@@ -58,9 +58,9 @@ export class ArticleFilterUtil {
     }
 
     return undefined;
-  }
+  },
 
-  static toPersistedArticleStatus(
+  toPersistedArticleStatus(
     status: ArticleStatus | PrismaArticleStatusValue | string,
   ): PrismaArticleStatusValue {
     const mapped = ArticleFilterUtil.toPrismaArticleStatus(status);
@@ -71,9 +71,9 @@ export class ArticleFilterUtil {
     throw new BadRequestException(
       `ArticleStatus "${status}" cannot be persisted to Article.status`,
     );
-  }
+  },
 
-  static buildPublicArticleStatusFilter(): {
+  buildPublicArticleStatusFilter(): {
     status: PrismaArticleStatusValue;
   } {
     return {
@@ -81,7 +81,7 @@ export class ArticleFilterUtil {
         ArticleStatus.PUBLISHED,
       ),
     };
-  }
+  },
 
   /**
    * Canonical public-release boundary for articles.
@@ -90,7 +90,7 @@ export class ArticleFilterUtil {
    * this clock injectable so callers and tests can reason about the exact
    * release boundary without mutating global time.
    */
-  static buildPublicArticleVisibilityFilter(now: Date = new Date()): {
+  buildPublicArticleVisibilityFilter(now: Date = new Date()): {
     publishedAt: { lte: Date };
     status: PrismaArticleStatusValue;
   } {
@@ -98,17 +98,15 @@ export class ArticleFilterUtil {
       publishedAt: { lte: now },
       ...ArticleFilterUtil.buildPublicArticleStatusFilter(),
     };
-  }
+  },
 
-  static isPublicArticleStatus(status: unknown): boolean {
+  isPublicArticleStatus(status: unknown): boolean {
     return (
       ArticleFilterUtil.toPrismaArticleStatus(String(status)) === 'PUBLISHED'
     );
-  }
+  },
 
-  static toArticlePersistenceData<T extends Record<string, unknown>>(
-    data: T,
-  ): T {
+  toArticlePersistenceData<T extends Record<string, unknown>>(data: T): T {
     const persistable: Record<string, unknown> = { ...data };
     for (const key of ARTICLE_CREATE_UNKNOWN_PRISMA_FIELDS) {
       delete persistable[key];
@@ -124,9 +122,9 @@ export class ArticleFilterUtil {
         String(persistable.status),
       ),
     } as unknown as T;
-  }
+  },
 
-  static buildArticleStatusFilter(
+  buildArticleStatusFilter(
     status?:
       | ArticleStatus
       | PrismaArticleStatusValue
@@ -145,17 +143,17 @@ export class ArticleFilterUtil {
     }
 
     return { status: { in: mapped } };
-  }
+  },
 
-  static buildCategoryFilter(category?: string): Record<string, unknown> {
+  buildCategoryFilter(category?: string): Record<string, unknown> {
     return category ? { category } : {};
-  }
+  },
 
-  static buildTagFilter(tagId?: string): Record<string, unknown> {
+  buildTagFilter(tagId?: string): Record<string, unknown> {
     return tagId && isEntityId(tagId) ? { tags: { some: { id: tagId } } } : {};
-  }
+  },
 
-  static buildContentSearchFilter(search?: string): Record<string, unknown> {
+  buildContentSearchFilter(search?: string): Record<string, unknown> {
     if (!search?.trim()) return {};
 
     const searchFilter = { contains: search.trim(), mode: 'insensitive' };
@@ -166,13 +164,13 @@ export class ArticleFilterUtil {
         { content: searchFilter },
       ],
     };
-  }
+  },
 
-  static buildTagPopulation(): Record<string, unknown> {
+  buildTagPopulation(): Record<string, unknown> {
     return { include: { tags: true } };
-  }
+  },
 
-  static buildArticlequery(
+  buildArticlequery(
     query: {
       status?: ArticleStatus | ArticleStatus[];
       category?: string;
@@ -211,5 +209,5 @@ export class ArticleFilterUtil {
       orderBy: { [sortBy]: sortDirection === 'asc' ? 1 : -1 },
       where,
     };
-  }
-}
+  },
+};
