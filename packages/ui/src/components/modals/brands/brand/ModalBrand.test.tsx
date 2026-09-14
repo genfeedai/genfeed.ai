@@ -414,7 +414,7 @@ describe('ModalBrand', () => {
       expect(postBrandMock).toHaveBeenNthCalledWith(
         2,
         expect.objectContaining({
-          brand: 'brand-created',
+          brandId: 'brand-created',
           category: LinkCategory.WEBSITE,
           url: 'https://acme.test',
         }),

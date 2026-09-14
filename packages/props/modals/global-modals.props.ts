@@ -10,6 +10,7 @@ import type {
   IIngredient,
   IPost,
 } from '@genfeedai/contracts/interfaces';
+import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
   ModalConfirmProps,
@@ -44,7 +45,7 @@ export interface GlobalModalGalleryConfig {
   isNoneAllowed?: boolean;
   maxSelectableItems?: number;
   accountReference?: IAsset | null;
-  onSelectAccountReference?: (assets: IAsset[]) => void;
+  onSelectAccountReference?: (assets: AccountMediaReference[]) => void;
   selectedReferences?: string[];
 }
 

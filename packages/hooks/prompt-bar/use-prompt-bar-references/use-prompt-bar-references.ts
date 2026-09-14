@@ -1,5 +1,5 @@
 import { IngredientFormat, ModelCategory } from '@genfeedai/contracts';
-import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type {
   UsePromptBarReferencesOptions,
   UsePromptBarReferencesReturn,
@@ -13,7 +13,7 @@ const FORMAT_NAME_MAP: Record<IngredientFormat, string> = {
 };
 
 function hasIncompatibleAspectRatio(
-  image: IAsset | IImage,
+  image: MediaReference,
   targetFormat: IngredientFormat,
 ): boolean {
   const width =
@@ -59,16 +59,16 @@ export function usePromptBarReferences(
     notificationsService,
   } = options;
 
-  const [references, setReferences] = useState<(IAsset | IImage)[]>([]);
+  const [references, setReferences] = useState<MediaReference[]>([]);
   const [referenceSource, setReferenceSource] = useState<
     'brand' | 'ingredient' | ''
   >('');
-  const [endFrame, setEndFrame] = useState<IAsset | IImage | null>(null);
+  const [endFrame, setEndFrame] = useState<MediaReference | null>(null);
   const isUserSelectingReferencesRef = useRef(false);
   const hasInitializedReferencesRef = useRef(false);
 
   const handleReferenceSelect = useCallback(
-    (selectedArray: (IAsset | IImage)[]) => {
+    (selectedArray: MediaReference[]) => {
       if (
         currentModelCategory === ModelCategory.VIDEO &&
         selectedArray.length > 0
@@ -162,7 +162,7 @@ export function usePromptBarReferences(
       const referenceObjects = limitedAssets.map((asset) => ({
         id: asset.id,
         ingredientUrl: asset.url,
-      })) as (IAsset | IImage)[];
+      })) as MediaReference[];
 
       setReferenceSource('brand');
       isUserSelectingReferencesRef.current = true;

@@ -195,7 +195,7 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
-        onSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+        onSubmit(e);
       }
     }
   };
@@ -281,18 +281,19 @@ export function useModalBot({ bot, onConfirm }: ModalBotProps) {
     }
   };
 
-  const handleArrayToggle = <T>(
+  const handleArrayToggle = (
     settingsKey: keyof typeof SETTINGS_DEFAULTS,
     field: string,
-    item: T,
-    defaultSettings: { [key: string]: T[] },
+    item: unknown,
+    defaultSettings: { [key: string]: unknown[] },
   ) => {
-    const currentSettings =
-      form.getValues(settingsKey) ?? SETTINGS_DEFAULTS[settingsKey];
-    const currentItems =
-      (currentSettings as unknown as { [key: string]: T[] })[field] ||
-      defaultSettings[field] ||
-      [];
+    const currentSettings: Record<string, unknown> = {
+      ...(form.getValues(settingsKey) ?? SETTINGS_DEFAULTS[settingsKey]),
+    };
+    const value = currentSettings[field];
+    const currentItems: unknown[] = Array.isArray(value)
+      ? value
+      : (defaultSettings[field] ?? []);
     const newItems = currentItems.includes(item)
       ? currentItems.filter((i) => i !== item)
       : [...currentItems, item];
