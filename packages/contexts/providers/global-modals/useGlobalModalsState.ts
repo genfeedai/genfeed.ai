@@ -2,13 +2,11 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
-  type IngredientCategory,
   ModalEnum,
   type Platform,
   type PostRepurposeMode,
 } from '@genfeedai/contracts';
 import type {
-  IAsset,
   IBrand,
   ICredential,
   IIngredient,
@@ -21,12 +19,16 @@ import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-a
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
+  GlobalModalGalleryConfig,
+  GlobalModalIllustrationConfig,
+  GlobalModalUploadConfig,
+} from '@genfeedai/props/modals/global-modals.props';
+import type {
   ModalConfirmProps,
   ModalExportProps,
   ModalMetadataProps,
   ModalPromptProps,
 } from '@genfeedai/props/modals/modal.props';
-import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
 import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
@@ -71,34 +73,13 @@ export function useGlobalModalsState() {
     }>
   >([]);
 
-  const [uploadConfig, setUploadConfig] = useState<{
-    category: string;
-    parentId?: string;
-    parentModel?: string;
-    width?: number;
-    height?: number;
-    isResizeEnabled?: boolean;
-    isMultiple?: boolean;
-    maxFiles?: number;
-    initialFiles?: File[];
-    autoSubmit?: boolean;
-    onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
-  } | null>(null);
+  const [uploadConfig, setUploadConfig] =
+    useState<GlobalModalUploadConfig | null>(null);
   const [uploadTrigger, setUploadTrigger] = useState(0);
 
-  const [galleryConfig, setGalleryConfig] = useState<{
-    isOpen: boolean;
-    category: IngredientCategory;
-    onSelect: (items: GallerySelectItem[]) => void;
-    title?: string;
-    selectedId?: string;
-    format?: string;
-    isNoneAllowed?: boolean;
-    maxSelectableItems?: number;
-    accountReference?: IAsset | null;
-    onSelectAccountReference?: (assets: IAsset[]) => void;
-    selectedReferences?: string[];
-  } | null>(null);
+  const [galleryConfig, setGalleryConfig] = useState<
+    (GlobalModalGalleryConfig & { isOpen: boolean }) | null
+  >(null);
 
   const [ingredientOverlayData, setIngredientOverlayData] = useState<{
     ingredient: IIngredient | null;
@@ -140,12 +121,8 @@ export function useGlobalModalsState() {
     onConfirm?: () => void;
   } | null>(null);
 
-  const [generateIllustrationConfig, setGenerateIllustrationConfig] = useState<{
-    postId: string;
-    initialPrompt?: string;
-    platform?: Platform;
-    onConfirm: (imageId: string) => void;
-  } | null>(null);
+  const [generateIllustrationConfig, setGenerateIllustrationConfig] =
+    useState<GlobalModalIllustrationConfig | null>(null);
   const [generateIllustrationTrigger, setGenerateIllustrationTrigger] =
     useState(0);
 
@@ -217,47 +194,18 @@ export function useGlobalModalsState() {
 
   const currentConfirm = confirmQueue[0];
 
-  const openUpload = useCallback(
-    (config: {
-      category: string;
-      parentId?: string;
-      parentModel?: string;
-      width?: number;
-      height?: number;
-      isResizeEnabled?: boolean;
-      isMultiple?: boolean;
-      maxFiles?: number;
-      initialFiles?: File[];
-      autoSubmit?: boolean;
-      onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
-    }) => {
-      setUploadConfig(config);
-      setUploadTrigger((prev) => prev + 1);
-    },
-    [],
-  );
+  const openUpload = useCallback((config: GlobalModalUploadConfig) => {
+    setUploadConfig(config);
+    setUploadTrigger((prev) => prev + 1);
+  }, []);
 
   const closeUpload = useCallback(() => {
     setUploadConfig(null);
   }, []);
 
-  const openGallery = useCallback(
-    (config: {
-      category: IngredientCategory;
-      onSelect: (items: GallerySelectItem[]) => void;
-      title?: string;
-      selectedId?: string;
-      format?: string;
-      isNoneAllowed?: boolean;
-      maxSelectableItems?: number;
-      accountReference?: IAsset | null;
-      onSelectAccountReference?: (assets: IAsset[]) => void;
-      selectedReferences?: string[];
-    }) => {
-      setGalleryConfig({ ...config, isOpen: true });
-    },
-    [],
-  );
+  const openGallery = useCallback((config: GlobalModalGalleryConfig) => {
+    setGalleryConfig({ ...config, isOpen: true });
+  }, []);
 
   const closeGallery = useCallback(() => {
     setGalleryConfig(null);
@@ -351,12 +299,7 @@ export function useGlobalModalsState() {
   }, []);
 
   const openGenerateIllustration = useCallback(
-    (config: {
-      postId: string;
-      initialPrompt?: string;
-      platform?: Platform;
-      onConfirm: (imageId: string) => void;
-    }) => {
+    (config: GlobalModalIllustrationConfig) => {
       setGenerateIllustrationConfig(config);
       setGenerateIllustrationTrigger((prev) => prev + 1);
     },
