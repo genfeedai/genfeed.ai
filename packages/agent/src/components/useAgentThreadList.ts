@@ -3,6 +3,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadStatus } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { logger } from '@genfeedai/services/core/logger.service';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   getErrorMessage,
@@ -473,8 +474,11 @@ export function useAgentThreadList({
         } else {
           setThreads(currentThreads.filter((item) => item.id !== thread.id));
         }
-      } catch {
-        // Silently ignore failed archive
+      } catch (error) {
+        logger.error('Failed to archive thread', {
+          error,
+          threadId: thread.id,
+        });
       } finally {
         setOpenMenuThreadId(null);
       }
@@ -497,8 +501,11 @@ export function useAgentThreadList({
         await apiService.unarchiveThread(thread.id);
         const currentThreads = useAgentChatStore.getState().threads;
         setThreads(currentThreads.filter((item) => item.id !== thread.id));
-      } catch {
-        // Silently ignore failed unarchive
+      } catch (error) {
+        logger.error('Failed to unarchive thread', {
+          error,
+          threadId: thread.id,
+        });
       } finally {
         setOpenMenuThreadId(null);
       }
@@ -529,8 +536,8 @@ export function useAgentThreadList({
         setActiveRun(null);
         resetStreamState();
         setActiveThread(branchedThread.id);
-      } catch {
-        // Silently ignore failed branch
+      } catch (error) {
+        logger.error('Failed to branch thread', { error, threadId: thread.id });
       } finally {
         setOpenMenuThreadId(null);
       }
@@ -563,8 +570,11 @@ export function useAgentThreadList({
             ),
           ),
         );
-      } catch {
-        // Silently ignore failed pin toggle
+      } catch (error) {
+        logger.error('Failed to update thread pin', {
+          error,
+          threadId: thread.id,
+        });
       } finally {
         setOpenMenuThreadId(null);
       }
@@ -588,8 +598,8 @@ export function useAgentThreadList({
           onNavigate(getNewThreadHref());
         }
       }
-    } catch {
-      // Silently ignore failed bulk archive
+    } catch (error) {
+      logger.error('Failed to archive threads', { error });
     }
   }, [
     activeThreadId,
@@ -633,8 +643,8 @@ export function useAgentThreadList({
             ),
           ),
         );
-      } catch {
-        // Silently ignore failed rename
+      } catch (error) {
+        logger.error('Failed to rename thread', { error, threadId: thread.id });
       } finally {
         handleCancelRename();
       }
