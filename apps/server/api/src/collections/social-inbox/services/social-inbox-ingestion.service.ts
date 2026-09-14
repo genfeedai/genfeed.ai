@@ -859,10 +859,7 @@ export class SocialInboxIngestionService {
     return counts;
   }
 
-  /**
-   * LinkedIn DMs only ingest when the connected-account grant includes a
-   * mailbox scope. The standard `w_member_social` path is not permitted.
-   */
+  /** LinkedIn DMs require mailbox scope; `w_member_social` does not permit them. */
   async ingestLinkedInDms(
     scope: SocialInboxScope,
     options: { credentialId?: string } = {},
