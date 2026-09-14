@@ -18,7 +18,8 @@ export type YoutubeOAuthClient = OAuth2Client;
  * );
  * ```
  */
-export class YoutubeOAuth2Util {
+
+export const YoutubeOAuth2Util = {
   /**
    * Create a new Google OAuth2 client configured for YouTube
    *
@@ -27,7 +28,7 @@ export class YoutubeOAuth2Util {
    * @param redirectUri - OAuth2 redirect URI
    * @returns Configured OAuth2 client instance
    */
-  static createClient(
+  createClient(
     clientId: string,
     clientSecret: string,
     redirectUri: string,
@@ -37,5 +38,5 @@ export class YoutubeOAuth2Util {
       clientSecret,
       redirectUri,
     ) as unknown as YoutubeOAuthClient;
-  }
-}
+  },
+};
