@@ -2,6 +2,10 @@
 
 import { useOptionalUser } from '@genfeedai/contexts/user/user-context/user-context';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
+import {
+  readLocalStorageStringArray,
+  writeLocalStorageStringArray,
+} from '@genfeedai/helpers/data/storage/storage.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { User } from '@genfeedai/models/auth/user.model';
 import { logger } from '@genfeedai/services/core/logger.service';
@@ -15,40 +19,11 @@ type FavoriteModelSettingsPatch = Partial<ISetting> & {
 };
 
 function readStoredFavoriteModelKeys(): string[] {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const stored = window.localStorage.getItem(MODEL_FAVORITES_STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
-
-    const parsed = JSON.parse(stored);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed.filter((value): value is string => typeof value === 'string');
-  } catch {
-    return [];
-  }
+  return readLocalStorageStringArray(MODEL_FAVORITES_STORAGE_KEY);
 }
 
-function writeStoredFavoriteModelKeys(favoriteModelKeys: string[]): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      MODEL_FAVORITES_STORAGE_KEY,
-      JSON.stringify(favoriteModelKeys),
-    );
-  } catch {
-    // Storage unavailable or full. Keep UI state in memory.
-  }
+function writeStoredFavoriteModelKeys(keys: string[]): void {
+  writeLocalStorageStringArray(MODEL_FAVORITES_STORAGE_KEY, keys);
 }
 
 export function useModelFavorites(): {

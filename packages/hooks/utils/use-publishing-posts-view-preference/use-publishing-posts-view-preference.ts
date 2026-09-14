@@ -4,6 +4,10 @@ import {
   PUBLISHING_POSTS_VIEW_MODES,
   type PublishingPostsViewMode,
 } from '@genfeedai/contracts/constants';
+import {
+  readLocalStorageItem,
+  writeLocalStorageItem,
+} from '@genfeedai/helpers/data/storage/storage.helper';
 import { useCallback } from 'react';
 
 const STORAGE_KEY_PREFIX = 'genfeed:publishing:posts-view';
@@ -30,32 +34,24 @@ export function usePublishingPostsViewPreference(
   brandId?: string | null,
 ): UsePublishingPostsViewPreferenceReturn {
   const getStoredView = useCallback((): PublishingPostsViewMode | undefined => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-
     const storageKey = getStorageKey(brandId);
     if (!storageKey) {
       return undefined;
     }
 
-    const stored = window.localStorage.getItem(storageKey);
+    const stored = readLocalStorageItem(storageKey);
 
     return PUBLISHING_POSTS_VIEW_MODES.find((mode) => mode === stored);
   }, [brandId]);
 
   const storeView = useCallback(
     (view: PublishingPostsViewMode) => {
-      if (typeof window === 'undefined') {
-        return;
-      }
-
       const storageKey = getStorageKey(brandId);
       if (!storageKey) {
         return;
       }
 
-      window.localStorage.setItem(storageKey, view);
+      writeLocalStorageItem(storageKey, view);
     },
     [brandId],
   );

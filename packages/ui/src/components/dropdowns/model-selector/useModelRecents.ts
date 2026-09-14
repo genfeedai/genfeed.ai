@@ -1,47 +1,24 @@
 'use client';
 
+import {
+  readLocalStorageStringArray,
+  writeLocalStorageStringArray,
+} from '@genfeedai/helpers/data/storage/storage.helper';
+
 import { useCallback, useState } from 'react';
 
 export const MODEL_RECENTS_STORAGE_KEY = 'genfeed:model-recent-keys';
 export const MAX_RECENT_MODEL_KEYS = 4;
 
 export function readStoredRecentModelKeys(): string[] {
-  if (typeof window === 'undefined') {
-    return [];
-  }
-
-  try {
-    const stored = window.localStorage.getItem(MODEL_RECENTS_STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
-
-    const parsed = JSON.parse(stored);
-    if (!Array.isArray(parsed)) {
-      return [];
-    }
-
-    return parsed
-      .filter((value): value is string => typeof value === 'string')
-      .slice(0, MAX_RECENT_MODEL_KEYS);
-  } catch {
-    return [];
-  }
+  return readLocalStorageStringArray(MODEL_RECENTS_STORAGE_KEY).slice(
+    0,
+    MAX_RECENT_MODEL_KEYS,
+  );
 }
 
-function writeStoredRecentModelKeys(recentModelKeys: string[]): void {
-  if (typeof window === 'undefined') {
-    return;
-  }
-
-  try {
-    window.localStorage.setItem(
-      MODEL_RECENTS_STORAGE_KEY,
-      JSON.stringify(recentModelKeys),
-    );
-  } catch {
-    // Storage unavailable or full. Keep UI state in memory.
-  }
+function writeStoredRecentModelKeys(keys: string[]): void {
+  writeLocalStorageStringArray(MODEL_RECENTS_STORAGE_KEY, keys);
 }
 
 /**

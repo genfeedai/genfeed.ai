@@ -126,77 +126,14 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
     [getIngredientsService],
   );
 
-  const findIngredient = useCallback(async () => {
-    setIsLoading(true);
-    const url = `GET /ingredients/${id}`;
-
-    try {
-      const service = await getIngredientsService();
-      const data = await service.findOne(id);
-
-      logger.info(`${url} success`, data);
-      setIngredient(data);
-      if (ingredientCache && ingredientCacheMeta) {
-        ingredientCache.set(ingredientCacheKey, data, INGREDIENT_CACHE_TTL_MS);
-        ingredientCacheMeta.set(
-          ingredientCacheKey,
-          new Date().toISOString(),
-          INGREDIENT_CACHE_TTL_MS,
-        );
-      }
-      setIsUsingCache(false);
-      setCachedAt(null);
-
-      // Fetch child ingredients
-      await findChildIngredients(id);
-      setIsLoading(false);
-    } catch (error) {
-      const cached = ingredientCache?.get(ingredientCacheKey) ?? null;
-      const cachedTimestamp =
-        ingredientCacheMeta?.get(ingredientCacheKey) ?? null;
-
-      if (cached) {
-        setIngredient(cached);
-        setIsUsingCache(true);
-        setCachedAt(cachedTimestamp);
-        setIsLoading(false);
-        return;
-      }
-
-      logger.error(`${url} failed`, error);
-      notificationsService.error('Failed to load ingredient');
-      router.push(`/ingredients/${type}`);
-      setIsLoading(false);
-    }
-  }, [
-    id,
-    type,
-    router,
-    notificationsService,
-    ingredientCache,
-    ingredientCacheKey,
-    ingredientCacheMeta,
-    getIngredientsService,
-    findChildIngredients,
-  ]);
-
-  useEffect(() => {
-    if (!brandId || !id) {
-      return;
-    }
-
-    let cancelled = false;
-
-    const loadData = async () => {
+  const loadIngredient = useCallback(
+    async (signal?: AbortSignal) => {
       const url = `GET /ingredients/${id}`;
 
       try {
         const service = await getIngredientsService();
         const data = await service.findOne(id);
-
-        if (cancelled) {
-          return;
-        }
+        if (signal?.aborted) return;
 
         logger.info(`${url} success`, data);
         setIngredient(data);
@@ -215,59 +152,55 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
         setIsUsingCache(false);
         setCachedAt(null);
 
-        // Fetch child ingredients
         try {
-          const childData = await service.findAll({ parent: id });
-          if (!cancelled) {
-            setChildIngredients(childData);
-          }
+          const children = await service.findAll({ parent: id });
+          if (!signal?.aborted) setChildIngredients(children);
         } catch (error) {
           logger.error('Failed to load child ingredients', error);
         }
-
-        if (!cancelled) {
-          setIsLoading(false);
-        }
       } catch (error) {
-        if (cancelled) {
-          return;
-        }
+        if (signal?.aborted) return;
 
         const cached = ingredientCache?.get(ingredientCacheKey) ?? null;
         const cachedTimestamp =
           ingredientCacheMeta?.get(ingredientCacheKey) ?? null;
-
         if (cached) {
           setIngredient(cached);
           setIsUsingCache(true);
           setCachedAt(cachedTimestamp);
-          setIsLoading(false);
           return;
         }
 
         logger.error(`${url} failed`, error);
         notificationsService.error('Failed to load ingredient');
         router.push(`/ingredients/${type}`);
-        setIsLoading(false);
+      } finally {
+        if (!signal?.aborted) setIsLoading(false);
       }
-    };
+    },
+    [
+      id,
+      type,
+      router,
+      notificationsService,
+      ingredientCache,
+      ingredientCacheKey,
+      ingredientCacheMeta,
+      getIngredientsService,
+    ],
+  );
 
-    loadData();
+  const findIngredient = useCallback(async () => {
+    setIsLoading(true);
+    await loadIngredient();
+  }, [loadIngredient]);
 
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    brandId,
-    id,
-    type,
-    router,
-    ingredientCache,
-    ingredientCacheKey,
-    ingredientCacheMeta,
-    getIngredientsService,
-    notificationsService,
-  ]);
+  useEffect(() => {
+    if (!brandId || !id) return;
+    const controller = new AbortController();
+    void loadIngredient(controller.signal);
+    return () => controller.abort();
+  }, [brandId, id, loadIngredient]);
 
   const handleShareVideo = async () => {
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
