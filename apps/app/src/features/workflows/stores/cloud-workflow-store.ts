@@ -69,7 +69,10 @@ interface CloudWorkflowActions {
     inputValues: Record<string, unknown>,
   ) => Promise<void>;
   /** Schedule an auto-save after a debounce period */
-  scheduleAutoSave: (service: WorkflowApiService) => void;
+  scheduleAutoSave: (
+    service: WorkflowApiService,
+    onError: (error: unknown) => void,
+  ) => void;
   /** Cancel any pending auto-save */
   cancelAutoSave: () => void;
   /** Reset cloud state (for unmount / navigation) */
@@ -130,8 +133,8 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Failed to archive workflow';
-        logger.error('Cloud workflow archive failed', { error, workflowId });
         set({ cloudError: message });
+        throw error;
       }
     },
     autoSaveTimeoutId: null,
@@ -164,8 +167,8 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         const brands = await service.listBrands();
         set({ brands, isBrandsLoading: false });
       } catch (error) {
-        logger.error('Failed to load brands', { error });
         set({ isBrandsLoading: false });
+        throw error;
       }
     },
 
@@ -230,8 +233,8 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Failed to load workflow';
-        logger.error('Cloud workflow load failed', { error, workflowId });
         set({ cloudError: message, isCloudLoading: false });
+        throw error;
       }
     },
     organizationId: null,
@@ -259,11 +262,8 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Failed to publish workflow';
-        logger.error('Cloud workflow publish failed', {
-          error,
-          workflowId: id,
-        });
         set({ cloudError: message });
+        throw error;
       }
     },
 
@@ -399,14 +399,13 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       } catch (error) {
         const message =
           error instanceof Error ? error.message : 'Failed to save workflow';
-        logger.error('Cloud workflow save failed', { error, workflowId });
         useWorkflowStore.setState({ isSaving: false });
         set({ cloudError: message, hasQueuedSave: false });
         throw error;
       }
     },
 
-    scheduleAutoSave: (service) => {
+    scheduleAutoSave: (service, onError) => {
       const { autoSaveTimeoutId } = get();
       const workflowStore = useWorkflowStore.getState();
 
@@ -430,8 +429,8 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       const timeoutId = setTimeout(async () => {
         try {
           await get().saveToCloud(service);
-        } catch {
-          // Save errors are already logged in saveToCloud
+        } catch (error) {
+          onError(error);
         }
       }, AUTO_SAVE_DEBOUNCE_MS);
 
@@ -490,10 +489,6 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           error instanceof Error
             ? error.message
             : 'Failed to save workflow defaults';
-        logger.error('Cloud workflow defaults update failed', {
-          error,
-          workflowId,
-        });
         set({ cloudError: message, inputVariables });
         throw error;
       }
