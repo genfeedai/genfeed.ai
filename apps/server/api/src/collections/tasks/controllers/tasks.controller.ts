@@ -2,6 +2,10 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { TaskCountersService } from '@api/collections/task-counters/services/task-counters.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
+import {
+  CheckoutTaskDto,
+  ReleaseTaskDto,
+} from '@api/collections/tasks/dto/task-lease.dto';
 import { TaskQueryDto } from '@api/collections/tasks/dto/task-query.dto';
 import { UpdateTaskDto } from '@api/collections/tasks/dto/update-task.dto';
 import { UpdateTaskOutputDto } from '@api/collections/tasks/dto/update-task-output.dto';
@@ -425,7 +429,7 @@ export class TasksController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body() body: { agentId: string; runId: string },
+    @Body() body: CheckoutTaskDto,
   ) {
     if (!body.agentId || !body.runId) {
       throw new BadRequestException('agentId and runId are required');
@@ -454,7 +458,7 @@ export class TasksController extends BaseCRUDController<
     @Req() request: Request,
     @CurrentUser() user: User,
     @Param('id') id: string,
-    @Body() body: { agentId: string },
+    @Body() body: ReleaseTaskDto,
   ) {
     if (!body.agentId) {
       throw new BadRequestException('agentId is required');
