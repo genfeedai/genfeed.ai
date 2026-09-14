@@ -13,9 +13,6 @@ import { of, throwError } from 'rxjs';
 
 describe('DiscordService', () => {
   let service: DiscordService;
-  let configService: ConfigService;
-  let credentialsService: CredentialsService;
-  let httpService: HttpService;
 
   const mockConfigGet = vi.fn((key: string) => {
     const config: Record<string, string> = {
@@ -75,9 +72,6 @@ describe('DiscordService', () => {
     }).compile();
 
     service = module.get<DiscordService>(DiscordService);
-    configService = module.get<ConfigService>(ConfigService);
-    credentialsService = module.get<CredentialsService>(CredentialsService);
-    httpService = module.get<HttpService>(HttpService);
   });
 
   it('should be defined', () => {

@@ -26,7 +26,7 @@ class TestWebhookController extends BaseWebhookController {
     return this.validateResult as WebhookValidationResult<T>;
   }
 
-  protected async processWebhook<T>(event: T, _url: string): Promise<void> {
+  protected async processWebhook<T>(_event: T, _url: string): Promise<void> {
     if (this.processShouldThrow) {
       throw new Error('Processing failed');
     }

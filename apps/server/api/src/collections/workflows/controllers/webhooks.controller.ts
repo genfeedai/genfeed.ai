@@ -80,7 +80,7 @@ export class WebhooksController {
         );
       }
     } else if (authType === 'bearer') {
-      if (!authHeader || !authHeader.startsWith('Bearer ')) {
+      if (!authHeader?.startsWith('Bearer ')) {
         throw new HttpException(
           { error: 'Missing or invalid Authorization header', status: 401 },
           HttpStatus.UNAUTHORIZED,

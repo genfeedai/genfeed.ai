@@ -15,7 +15,6 @@ describe('WhatsappController', () => {
   let controller: WhatsappController;
   let whatsappService: vi.Mocked<WhatsappService>;
   let brandsService: vi.Mocked<BrandsService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const mockUser = {} as User;
   const mockBrandId = 'test-object-id';
@@ -48,7 +47,6 @@ describe('WhatsappController', () => {
     controller = module.get<WhatsappController>(WhatsappController);
     whatsappService = module.get(WhatsappService);
     brandsService = module.get(BrandsService);
-    loggerService = module.get(LoggerService);
   });
 
   afterEach(() => {

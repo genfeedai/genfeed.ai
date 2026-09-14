@@ -154,7 +154,7 @@ export class ActivitiesController {
   @Patch()
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async bulkUpdate(
-    @Req() request: Request,
+    @Req() _request: Request,
     @Body() bulkUpdateDto: BulkUpdateActivitiesDto,
     @CurrentUser() user: User,
   ): Promise<{ updated: string[]; failed: string[]; message: string }> {
