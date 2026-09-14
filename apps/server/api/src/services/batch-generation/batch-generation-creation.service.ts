@@ -31,6 +31,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -115,7 +116,7 @@ export class BatchGenerationCreationService {
           brandId: dto.brandId,
           config: config as Prisma.InputJsonValue,
           isDeleted: false,
-          items: items as unknown as Prisma.InputJsonValue,
+          items: toPrismaJson(items),
           organizationId: orgId,
           status: toPrismaBatchStatus(BatchStatus.PENDING),
           userId,
@@ -202,7 +203,7 @@ export class BatchGenerationCreationService {
             brandId: dto.brandId,
             config: config as Prisma.InputJsonValue,
             isDeleted: false,
-            items: batchItems as unknown as Prisma.InputJsonValue,
+            items: toPrismaJson(batchItems),
             organizationId: orgId,
             status: toPrismaBatchStatus(BatchStatus.COMPLETED),
             userId,

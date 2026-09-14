@@ -272,6 +272,31 @@ describe('AdminWarmupAccountsService', () => {
     expect(invitationService.createInvitation).not.toHaveBeenCalled();
     expect(reconcileWarmupWorkspace).toHaveBeenCalled();
     expect(result.status).toBe('PROVISIONED');
+    expect(tx.warmupAccount.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          auditEvents: [
+            {
+              actorUserId: 'operator_1',
+              message: 'Provisioned warm-up organization and first brand.',
+              timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+            },
+          ],
+          diagnostics: {
+            steps: [
+              'Created or reused lead user.',
+              'Created warm-up organization.',
+              'Created first brand workspace.',
+              'Granted operator member access.',
+            ].map((message) => ({
+              message,
+              status: 'done',
+              timestamp: expect.stringMatching(/^\d{4}-\d{2}-\d{2}T/),
+            })),
+          },
+        }),
+      }),
+    );
   });
 
   it('blocks sending when readiness has missing prerequisites', async () => {
