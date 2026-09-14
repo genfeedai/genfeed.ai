@@ -24,46 +24,10 @@ const DANGEROUS_PATTERNS = [
   /<style\b/gi,
 ];
 
-// SQL injection patterns
-const SQL_INJECTION_PATTERNS = [
-  /(\b(SELECT|INSERT|UPDATE|DELETE|DROP|CREATE|ALTER|EXEC|EXECUTE)\b)/gi,
-  /(UNION\s+SELECT)/gi,
-  /(\bOR\s+\d+\s*=\s*\d+)/gi,
-  /(\bOR\s+['"]?\d+['"]?\s*=\s*['"]?\d+['"]?)/gi,
-  /(\bAND\s+\d+\s*=\s*\d+)/gi,
-  /(--\s)/g,
-  /(\/\*.*\*\/)/g,
-  /(\bxp_cmdshell\b)/gi,
-  /(\bsp_executesql\b)/gi,
-];
-
-const NOSQL_OPERATOR_PREFIX = `\\${String.fromCharCode(36)}`;
-
-const NOSQL_INJECTION_PATTERNS = [
-  'where',
-  'ne',
-  'gt',
-  'gte',
-  'lt',
-  'lte',
-  'in',
-  'nin',
-  'or',
-  'and',
-  'nor',
-  'not',
-  'regex',
-  'type',
-  'expr',
-  'jsonSchema',
-  'mod',
-  'size',
-  'all',
-  'elemMatch',
-].map((operator) => new RegExp(`${NOSQL_OPERATOR_PREFIX}${operator}`, 'gi'));
-
 /**
- * Sanitize string to prevent XSS and injection attacks
+ * Reject known XSS patterns and encode HTML text characters.
+ * Database safety belongs to typed query parameters, not content keywords.
+ * HTML, URL and script sinks still require context-specific handling.
  */
 function sanitizeString(value: string, fieldName: string): string {
   let sanitized = value;
@@ -76,32 +40,6 @@ function sanitizeString(value: string, fieldName: string): string {
         `${fieldName} contains potentially dangerous content`,
       );
     }
-  }
-
-  // Check for SQL injection patterns
-  for (const pattern of SQL_INJECTION_PATTERNS) {
-    pattern.lastIndex = 0;
-    if (pattern.test(sanitized)) {
-      throw new ValidationException(
-        `${fieldName} contains potentially malicious SQL patterns`,
-      );
-    }
-  }
-
-  // Check for NoSQL injection patterns (more lenient for legitimate use)
-  let noSqlPatternCount = 0;
-  for (const pattern of NOSQL_INJECTION_PATTERNS) {
-    pattern.lastIndex = 0;
-    if (pattern.test(sanitized)) {
-      noSqlPatternCount++;
-    }
-  }
-
-  // If multiple NoSQL patterns are found, it's likely an injection attempt
-  if (noSqlPatternCount >= 3) {
-    throw new ValidationException(
-      `${fieldName} contains potentially malicious NoSQL patterns`,
-    );
   }
 
   // Basic HTML encoding for special characters
