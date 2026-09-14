@@ -232,10 +232,14 @@ export class CreditsGuard implements CanActivate {
             rawAttributes?.[skipWhenBodyAttribute] === true),
       );
 
+      const pricingModelKey = modelKey || creditsConfig.modelKey;
+      const modelSource = modelKey ? 'request body' : 'decorator';
+
       // Determine credits required: from model in body, modelKey in decorator, or fixed amount
       if (shouldSkipCredits) {
         requiredCredits = 0;
-      } else if (modelKey) {
+      } else if (pricingModelKey) {
+        const modelKey = pricingModelKey;
         const normalized = baseModelKey(modelKey);
         // Special handling for Replicate training model (trainer): credits scale with steps
         if (isTrainerKey(normalized)) {
@@ -255,7 +259,9 @@ export class CreditsGuard implements CanActivate {
             amount: requiredCredits,
             modelKey,
           };
-          request.creditsConfig = updatedCreditsConfig;
+          if (modelSource === 'request body') {
+            request.creditsConfig = updatedCreditsConfig;
+          }
           // Continue to balance check below
         } else if (isTrainingKey(modelKey)) {
           // Trained model (genfeedai/<id>): use custom model cost
@@ -270,7 +276,9 @@ export class CreditsGuard implements CanActivate {
             amount: requiredCredits,
             modelKey,
           };
-          request.creditsConfig = updatedCreditsConfig;
+          if (modelSource === 'request body') {
+            request.creditsConfig = updatedCreditsConfig;
+          }
         } else {
           // Resolve the database row before classifying slash-shaped keys as
           // provider destinations. Known provider models (for example
@@ -333,98 +341,9 @@ export class CreditsGuard implements CanActivate {
             this.loggerService.error('Credits guard: Model not found', {
               modelKey,
               normalized,
-              source: 'request body',
+              source: modelSource,
             });
 
-            throw new InsufficientCreditsException(0, 0);
-          }
-        }
-      } else if (creditsConfig.modelKey) {
-        const normalized = baseModelKey(creditsConfig.modelKey);
-        // If decorator provides the training model key (trainer), compute dynamically using steps
-        if (isTrainerKey(normalized)) {
-          requiredCredits = this.calculateTrainingCredits(body?.steps);
-          this.loggerService.debug(
-            'Credits guard: Training credits calculated',
-            {
-              modelKey: creditsConfig.modelKey,
-              requiredCredits,
-              steps: body?.steps || this.DEFAULT_TRAINING_STEPS,
-            },
-          );
-        } else if (isTrainingKey(creditsConfig.modelKey)) {
-          // Trained model (genfeedai/<id>): use custom model cost
-          requiredCredits = this.getCustomModelCost();
-          this.loggerService.debug(
-            'Credits guard: Trained model detected via decorator, applying custom model cost',
-            { modelKey: creditsConfig.modelKey, requiredCredits },
-          );
-        } else {
-          // Try to find model in database first (for known models like Ideogram, Imagen, nano-banana-pro, etc.)
-          const model = await this.modelsService.findOne({
-            key: normalized,
-          });
-
-          if (model) {
-            resolvedModel = model;
-            // Model found in database - use database cost or dynamic pricing
-            this.loggerService.debug(
-              'Credits guard: Model found in database (decorator)',
-              {
-                cost: model.cost,
-                costPerUnit: model.costPerUnit,
-                databaseKey: model.key,
-                label: model.label,
-                minCost: model.minCost,
-                modelKey: normalized,
-                pricingType: model.pricingType,
-              },
-            );
-
-            if (model.label?.toLowerCase().includes('training')) {
-              requiredCredits = this.TRAINING_MODEL_FLAT_COST;
-              this.loggerService.debug(
-                'Credits guard: Training model label detected (decorator), flat credits applied',
-                { label: model.label, modelKey: normalized, requiredCredits },
-              );
-            } else {
-              // Use dynamic pricing calculation
-              requiredCredits = this.calculateDynamicCost(
-                model,
-                width,
-                height,
-                duration,
-              );
-            }
-          } else if (
-            isFalDestination(creditsConfig.modelKey) ||
-            isReplicateDestination(creditsConfig.modelKey) ||
-            isReplicateVersionId(creditsConfig.modelKey)
-          ) {
-            // Model not in database but is a dynamic provider destination/version: use custom model cost as fallback
-            requiredCredits = this.getCustomModelCost();
-            this.loggerService.warn(
-              'Credits guard: Model not found in database (decorator), using custom model cost fallback',
-              {
-                customCost: requiredCredits,
-                isFalDestination: isFalDestination(creditsConfig.modelKey),
-                isReplicateDestination: isReplicateDestination(
-                  creditsConfig.modelKey,
-                ),
-                isReplicateVersionId: isReplicateVersionId(
-                  creditsConfig.modelKey,
-                ),
-                modelKey: creditsConfig.modelKey,
-                normalized,
-              },
-            );
-          } else {
-            // Model not found and not a Replicate destination
-            this.loggerService.error('Credits guard: Model not found', {
-              modelKey: creditsConfig.modelKey,
-              normalized,
-              source: 'decorator',
-            });
             throw new InsufficientCreditsException(0, 0);
           }
         }

@@ -241,6 +241,62 @@ describe('CreditsGuard', () => {
     });
   });
 
+  describe.each(['body', 'decorator'])('model pricing from %s', (source) => {
+    it.each([
+      ['known-model', { cost: 7, key: 'known-model' }, 7],
+      [
+        'training-model',
+        { cost: 99, key: 'training-model', label: 'Training model' },
+        5,
+      ],
+      [MODEL_KEYS.REPLICATE_FAST_FLUX_TRAINER, null, 500],
+      ['genfeedai/custom/model', null, 5],
+      ['fal-ai/unknown-model', null, 5],
+    ])('prices %s consistently', async (model, record, expectedCredits) => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(
+        source === 'decorator' ? { modelKey: model } : {},
+      );
+      modelsService.findOne.mockResolvedValue(record);
+      const context = createContext(source === 'body' ? { model } : {});
+
+      await expect(guard.canActivate(context)).resolves.toBe(true);
+
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(orgId, expectedCredits);
+      expect(context.switchToHttp().getRequest().creditsConfig).toMatchObject({
+        amount: expectedCredits,
+        modelKey: model,
+      });
+    });
+
+    it('rejects missing non-provider models', async () => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(
+        source === 'decorator' ? { modelKey: 'missing-model' } : {},
+      );
+      modelsService.findOne.mockResolvedValue(null);
+
+      await expect(
+        guard.canActivate(
+          createContext(source === 'body' ? { model: 'missing-model' } : {}),
+        ),
+      ).rejects.toThrow();
+    });
+  });
+
+  it('keeps the body model ahead of the decorator default', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({
+      modelKey: 'default-model',
+    });
+    modelsService.findOne.mockResolvedValue({ cost: 7, key: 'body-model' });
+
+    await guard.canActivate(createContext({ model: 'body-model' }));
+
+    expect(modelsService.findOne).toHaveBeenCalledExactlyOnceWith({
+      key: 'body-model',
+    });
+  });
+
   it('bills from providerCostUsd × applyMargin so admin margin applies live', async () => {
     const { applyMargin, setRuntimeMarginMultiplier } = await import(
       '@genfeedai/pricing'
