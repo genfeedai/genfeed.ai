@@ -8,6 +8,7 @@ import { MetadataEntity } from '@api/collections/metadata/entities/metadata.enti
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -34,7 +35,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { Request } from 'express';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 
@@ -55,7 +55,7 @@ export class ImageReframeService {
   ) {}
 
   async reframeImage(
-    request: Request,
+    request: RequestWithSelectedModel,
     imageId: string,
     user: User,
     createImageDto: CreateImageDto,
@@ -198,7 +198,7 @@ export class ImageReframeService {
     metadataId: string;
     parentId: string;
     promptData: Awaited<ReturnType<PromptsService['create']>>;
-    request: Request;
+    request: RequestWithSelectedModel;
     targetHeight: number;
     targetWidth: number;
     url: string;
@@ -238,8 +238,7 @@ export class ImageReframeService {
               : undefined,
           height: targetHeight,
           modelCategory:
-            ((request as unknown as { selectedModel?: { category?: string } })
-              .selectedModel?.category as ModelCategory) ||
+            (request.selectedModel?.category as ModelCategory) ||
             ModelCategory.IMAGE_EDIT,
           prompt: promptData.original,
           references: [parentImageUrl],

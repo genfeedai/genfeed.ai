@@ -1,6 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import type { ModelValidationOptions } from '@api/helpers/guards/models/models.guard';
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import type { ActivitySource, MemberRole } from '@genfeedai/contracts';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
@@ -18,7 +19,7 @@ export interface AgentEndpointRequest extends RequestWithContext {
     modelKey?: string;
   };
   creditsOutputCount?: number;
-  selectedModel?: unknown;
+  selectedModel?: RequestWithSelectedModel['selectedModel'];
 }
 
 /**
