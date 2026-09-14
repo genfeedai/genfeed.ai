@@ -1,8 +1,4 @@
-import type {
-  IPostingSet,
-  IPostingSignature,
-  PostingSetReferenceState,
-} from '@genfeedai/contracts/interfaces';
+import type { PostingSetReferenceState } from '@genfeedai/contracts/interfaces';
 
 export interface PostingSetPickerTarget {
   credentialId: string;
@@ -15,7 +11,7 @@ export interface PostingSetPickerTarget {
   validationState?: PostingSetReferenceState;
 }
 
-export interface PostingSetPickerProps {
+export interface SchedulerPostingSetPickerProps {
   brandId: string;
   currentTargets: PostingSetPickerTarget[];
   isDisabled?: boolean;
@@ -23,23 +19,7 @@ export interface PostingSetPickerProps {
   timezone: string;
 }
 
-export interface PostingSetPickerListItem {
-  postingSet: IPostingSet;
-}
-
 export interface PublishingPostingSetsSectionProps {
   brandId: string;
   timezone: string;
-}
-
-export interface PublishingPostingSetCreateInput {
-  description?: string;
-  label: string;
-  targets: PostingSetPickerTarget[];
-}
-
-export interface PostingSetSignatureOption {
-  id: string;
-  label: string;
-  signature: IPostingSignature;
 }

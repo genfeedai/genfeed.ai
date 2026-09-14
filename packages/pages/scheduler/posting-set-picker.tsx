@@ -1,6 +1,5 @@
 'use client';
 
-import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type {
   IPostingSet,
   IPostingSetTarget,
@@ -9,16 +8,14 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type {
-  PostingSetPickerProps,
   PostingSetPickerTarget,
+  SchedulerPostingSetPickerProps,
 } from '@props/scheduler/posting-set-picker.props';
 import { PostingSetsService } from '@services/content/posting-sets.service';
 import { PostingSignaturesService } from '@services/content/posting-signatures.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import { Input } from '@ui/primitives/input';
 import {
   Select,
   SelectContent,
@@ -26,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import SharedPostingSetPicker from '@ui/publisher/PostingSetPicker';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 const NONE_SIGNATURE_VALUE = 'none';
@@ -153,7 +151,7 @@ export default function PostingSetPicker({
   isDisabled,
   onApply,
   timezone,
-}: PostingSetPickerProps) {
+}: SchedulerPostingSetPickerProps) {
   const notifications = NotificationsService.getInstance();
   const getPostingSetsService = useAuthedService((token: string) =>
     PostingSetsService.getInstance(token),
@@ -250,88 +248,81 @@ export default function PostingSetPicker({
     [getPostingSetsService, notifications, onApply, postingSets, timezone],
   );
 
-  const handleSaveCurrentSelection = useCallback(async () => {
-    const label = newSetLabel.trim();
-    if (!brandId || !label || currentTargets.length === 0) {
-      return;
-    }
-    setIsSaving(true);
-    try {
-      const service = await getPostingSetsService();
-      const signatureId =
-        selectedSignatureId === NONE_SIGNATURE_VALUE
-          ? undefined
-          : selectedSignatureId;
-      const created = await service.post({
-        brandId,
-        label,
-        targets: toCreateTargets(currentTargets, signatureId),
-      });
-      setPostingSets((previous) => [created, ...previous]);
-      setNewSetLabel('');
-      notifications.success?.('Posting set saved');
-    } catch (error) {
-      logger.error('Failed to save posting set', error);
-      notifications.error('Failed to save posting set');
-    } finally {
-      setIsSaving(false);
-    }
-  }, [
-    brandId,
-    currentTargets,
-    getPostingSetsService,
-    newSetLabel,
-    notifications,
-    selectedSignatureId,
-  ]);
+  const handleSaveCurrentSelection = useCallback(
+    async (label: string) => {
+      if (!brandId || !label || currentTargets.length === 0) {
+        return;
+      }
+      setIsSaving(true);
+      try {
+        const service = await getPostingSetsService();
+        const signatureId =
+          selectedSignatureId === NONE_SIGNATURE_VALUE
+            ? undefined
+            : selectedSignatureId;
+        const created = await service.post({
+          brandId,
+          label,
+          targets: toCreateTargets(currentTargets, signatureId),
+        });
+        setPostingSets((previous) => [created, ...previous]);
+        setNewSetLabel('');
+        notifications.success?.('Posting set saved');
+      } catch (error) {
+        logger.error('Failed to save posting set', error);
+        notifications.error('Failed to save posting set');
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [
+      brandId,
+      currentTargets,
+      getPostingSetsService,
+      notifications,
+      selectedSignatureId,
+    ],
+  );
 
   const previewTargets =
     expandedTargets.length > 0 ? expandedTargets : currentTargets;
 
   return (
-    <div className="flex flex-col gap-3">
-      <p className="gen-label">Posting set</p>
-      {isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading posting sets…</p>
-      ) : postingSets.length === 0 ? (
-        <p className="text-sm text-muted-foreground">
-          No posting sets yet. Save the current selection to reuse it.
-        </p>
-      ) : (
-        <div className="flex flex-col gap-2">
-          {postingSets.map((postingSet) => (
-            <div
-              key={postingSet.id}
-              className="gen-glass flex items-center justify-between gap-3 rounded-lg p-3"
-            >
-              <div className="flex min-w-0 flex-col gap-1">
-                <span className="truncate text-sm font-medium">
-                  {postingSet.label}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  {postingSet.targets.length} target
-                  {postingSet.targets.length === 1 ? '' : 's'}
-                </span>
-              </div>
-              <Button
-                isDisabled={isDisabled || isExpanding}
-                isLoading={isExpanding && selectedSetId === postingSet.id}
-                label={selectedSetId === postingSet.id ? 'Selected' : 'Use set'}
-                size={ButtonSize.SM}
-                variant={
-                  selectedSetId === postingSet.id
-                    ? ButtonVariant.DEFAULT
-                    : ButtonVariant.SECONDARY
-                }
-                onClick={() => {
-                  void handleSelectSet(postingSet.id);
-                }}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-
+    <SharedPostingSetPicker
+      variant="cards"
+      canSave={currentTargets.length > 0}
+      isDisabled={isDisabled}
+      isExpanding={isExpanding}
+      isLoading={isLoading}
+      isSaving={isSaving}
+      onSaveCurrent={handleSaveCurrentSelection}
+      onSelectSet={handleSelectSet}
+      saveLabel={newSetLabel}
+      onSaveLabelChange={setNewSetLabel}
+      selectedSetId={selectedSetId}
+      sets={postingSets}
+      saveOptions={
+        signatures.length > 0 ? (
+          <Select
+            disabled={isDisabled || isSaving}
+            value={selectedSignatureId}
+            onValueChange={setSelectedSignatureId}
+          >
+            <SelectTrigger aria-label="Posting signature">
+              <SelectValue placeholder="Attach a signature (optional)" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value={NONE_SIGNATURE_VALUE}>No signature</SelectItem>
+              {signatures.map((signature) => (
+                <SelectItem key={signature.id} value={signature.id}>
+                  {signature.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        ) : null
+      }
+    >
       {previewTargets.length > 0 ? (
         <div className="flex flex-col gap-2">
           <p className="gen-label-sm text-muted-foreground">Targets</p>
@@ -368,52 +359,6 @@ export default function PostingSetPicker({
           {selectedSet.label} has no expandable targets.
         </p>
       ) : null}
-
-      <div className="flex flex-col gap-2">
-        <p className="gen-label-sm text-muted-foreground">
-          Save current selection as set
-        </p>
-        <Input
-          aria-label="Posting set label"
-          isDisabled={isDisabled || isSaving}
-          placeholder="Set label"
-          value={newSetLabel}
-          onChange={(event) => setNewSetLabel(event.target.value)}
-        />
-        {signatures.length > 0 ? (
-          <Select
-            disabled={isDisabled || isSaving}
-            value={selectedSignatureId}
-            onValueChange={setSelectedSignatureId}
-          >
-            <SelectTrigger aria-label="Posting signature">
-              <SelectValue placeholder="Attach a signature (optional)" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value={NONE_SIGNATURE_VALUE}>No signature</SelectItem>
-              {signatures.map((signature) => (
-                <SelectItem key={signature.id} value={signature.id}>
-                  {signature.label}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        ) : null}
-        <Button
-          isDisabled={
-            isDisabled ||
-            isSaving ||
-            newSetLabel.trim().length === 0 ||
-            currentTargets.length === 0
-          }
-          isLoading={isSaving}
-          label="Save current selection as set"
-          variant={ButtonVariant.SECONDARY}
-          onClick={() => {
-            void handleSaveCurrentSelection();
-          }}
-        />
-      </div>
-    </div>
+    </SharedPostingSetPicker>
   );
 }
