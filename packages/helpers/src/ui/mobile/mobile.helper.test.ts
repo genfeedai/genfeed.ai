@@ -142,6 +142,63 @@ describe('mobile.helper', () => {
       expect(result).toContain('linkedin://');
     });
 
+    it.each([
+      ['youtube.com/channel/channel-id', 'vnd.youtube://channel/channel-id'],
+      ['youtube.com/c/example', 'vnd.youtube:///c/example'],
+      ['youtube.com/user/example', 'vnd.youtube:///user/example'],
+      ['tiktok.com/video/123', 'snssdk1233://aweme/detail/123'],
+      ['instagram.com/reel/123', 'instagram://media?id=123'],
+      ['instagram.com/example', 'instagram://user?username=example'],
+      ['x.com/example', 'twitter://user?screen_name=example'],
+      ['linkedin.com/company/example', 'linkedin://company/example'],
+    ])('preserves iOS deep links for %s', (path, expected) => {
+      setUserAgent('iPhone');
+      expect(getDeepLink(`https://${path}`, true)).toBe(expected);
+    });
+
+    it.each([
+      [
+        'youtube.com/channel/channel-id',
+        'youtube.com/channel/channel-id',
+        'com.google.android.youtube',
+      ],
+      [
+        'youtube.com/c/example',
+        'youtube.com/c/example',
+        'com.google.android.youtube',
+      ],
+      [
+        'tiktok.com/@example',
+        'tiktok.com/@example',
+        'com.zhiliaoapp.musically',
+      ],
+      [
+        'instagram.com/reel/123',
+        'instagram.com/reel/123',
+        'com.instagram.android',
+      ],
+      [
+        'instagram.com/example',
+        'instagram.com/_u/example',
+        'com.instagram.android',
+      ],
+      [
+        'x.com/example/status/123',
+        'x.com/example/status/123',
+        'com.twitter.android',
+      ],
+      [
+        'linkedin.com/company/example',
+        'linkedin.com/company/example',
+        'com.linkedin.android',
+      ],
+    ])('preserves Android intent links for %s', (path, target, packageName) => {
+      setUserAgent('Android');
+      expect(getDeepLink(`https://${path}`, true)).toBe(
+        `intent://${target}#Intent;package=${packageName};scheme=https;end`,
+      );
+    });
+
     it('returns original url for unknown domains on mobile', () => {
       setUserAgent('Mozilla/5.0 (iPhone; CPU iPhone OS 14_0 like Mac OS X)');
       const url = 'https://example.com/some/path';
