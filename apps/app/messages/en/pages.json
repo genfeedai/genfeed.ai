@@ -482,6 +482,7 @@
     "videoReference": "Video Reference",
     "remixOutput": {
       "description": "These settings are saved to this remix run before generation.",
+      "duration": "Duration",
       "title": "Output"
     },
     "remixRun": {

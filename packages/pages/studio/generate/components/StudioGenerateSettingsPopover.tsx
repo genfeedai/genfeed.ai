@@ -184,7 +184,7 @@ export default function StudioGenerateSettingsPopover({
             <SettingRow label="Duration">
               {type === 'music' ? (
                 <OptionSelect
-                  ariaLabel="Duration"
+                  ariaLabel={translate('remixOutput.duration')}
                   onChange={(value) =>
                     onChange(
                       normalizeMusicSettings(settings.modelKey, {
@@ -197,7 +197,7 @@ export default function StudioGenerateSettingsPopover({
                     label: `${seconds}s`,
                     value: String(seconds),
                   }))}
-                  placeholder="Duration"
+                  placeholder={translate('remixOutput.duration')}
                   value={String(
                     normalizeMusicSettings(settings.modelKey, settings)
                       .duration ?? '',
