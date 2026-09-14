@@ -1,4 +1,3 @@
-export * from './abort-controller.interface';
 export * from './config.interface';
 export * from './connecting-states.interface';
 export * from './date.interface';
