@@ -1,11 +1,12 @@
 import type { useRouter } from 'next/navigation';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import type { IconComponent } from '../../types/icon';
 import type { IOrganizationSetting } from '../index';
 
 export interface ModuleCard {
   key: string;
   category: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   title: string;
   description: string;
   renderDetails?: (settings: IOrganizationSetting | undefined) => ReactNode;

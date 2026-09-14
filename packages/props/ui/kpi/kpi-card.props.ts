@@ -1,11 +1,12 @@
 import type { CardSize, CardVariant } from '@genfeedai/contracts';
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 
 export interface KPICardProps {
   label: string;
   value: ReactNode;
   description?: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   iconClassName?: string;
   valueClassName?: string;
   trend?: number;

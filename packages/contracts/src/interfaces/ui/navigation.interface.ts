@@ -1,4 +1,5 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import type { IconComponent } from '../../types/icon';
 import type { IconType } from './icon.interface';
 
 export interface INavigationItem {
@@ -36,7 +37,7 @@ export interface AppLink {
 export interface NavigationTab {
   href: string;
   label: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   isDisabled?: boolean;
   badge?: ReactNode;
 }

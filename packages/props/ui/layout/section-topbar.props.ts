@@ -1,4 +1,5 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 import type { PageHelpContent } from './page-help.props';
 
 /**
@@ -15,7 +16,7 @@ export interface SectionTopbarProps {
   /** Optional muted one-line subtitle, hidden on narrow widths */
   subtitle?: string;
   /** Optional leading icon next to the title */
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   /** Right-aligned controls (refresh, filters, view toggles) */
   actions?: ReactNode;
   /** Left-aligned non-tab navigation, such as a semantic back link */

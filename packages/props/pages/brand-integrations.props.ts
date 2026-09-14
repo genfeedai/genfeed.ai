@@ -1,7 +1,7 @@
 import type { CredentialPlatform } from '@genfeedai/contracts';
 import type { AccountHealthSummary } from '@genfeedai/contracts/interfaces';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { BrandDetailSocialConnection } from '@genfeedai/props/pages/brand-detail.props';
-import type { ComponentType } from 'react';
 
 export type AccountConnectionStatus = 'connected' | 'needsReconnect';
 
@@ -78,7 +78,7 @@ export type ConnectPlatformReadiness = 'available' | 'unavailable' | 'unknown';
 export interface ConnectAccountPlatform {
   category: string;
   connectId?: string;
-  Icon: ComponentType<{ className?: string }>;
+  Icon: IconComponent;
   iconClassName: string;
   isConnectAvailable: boolean;
   label: string;

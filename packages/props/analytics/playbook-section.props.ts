@@ -1,8 +1,8 @@
 import type { ITrendPlaybook } from '@genfeedai/contracts/interfaces';
-import type { ComponentType } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 
 export type PlatformConfigEntry = {
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   label?: string;
 };
 

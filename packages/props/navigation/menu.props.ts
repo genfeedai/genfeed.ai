@@ -3,7 +3,8 @@ import type {
   MenuConfig,
   MenuItemConfig,
 } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 
 /**
  * Base menu props shared across menu components
@@ -15,8 +16,8 @@ export interface BaseMenuProps {
 interface MenuPrimaryActionConfigBase {
   label: string;
   icon?: ReactNode;
-  outline?: ComponentType<{ className?: string }>;
-  solid?: ComponentType<{ className?: string }>;
+  outline?: IconComponent;
+  solid?: IconComponent;
 }
 
 export type MenuPrimaryActionConfig =
@@ -97,8 +98,8 @@ export interface MenuItemProps {
   href?: string;
   label: string;
   icon?: ReactNode;
-  outline?: ComponentType<{ className?: string }>;
-  solid?: ComponentType<{ className?: string }>;
+  outline?: IconComponent;
+  solid?: IconComponent;
   isActive?: boolean;
   isComingSoon?: boolean;
   onClick?: () => void;
@@ -110,8 +111,8 @@ export interface MenuItemProps {
 export interface MenuLabelProps {
   label: string;
   icon?: ReactNode;
-  outline?: ComponentType<{ className?: string }>;
-  solid?: ComponentType<{ className?: string }>;
+  outline?: IconComponent;
+  solid?: IconComponent;
   isActive?: boolean;
   onClick?: () => void;
   chevronIcon?: ReactNode;

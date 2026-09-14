@@ -1,4 +1,4 @@
-import type { ComponentType } from 'react';
+import type { IconComponent } from '../../types/icon';
 
 export interface OverviewCard {
   id: string;
@@ -7,7 +7,7 @@ export interface OverviewCard {
   cta: string;
   href?: string;
   onClick?: () => void;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   color?: string;
 }
 
