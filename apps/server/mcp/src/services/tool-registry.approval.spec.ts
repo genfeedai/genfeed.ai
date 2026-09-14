@@ -187,10 +187,10 @@ describe('ToolRegistryService — approval queue', () => {
       toolName: 'create_post',
     });
 
-    const result = (await registry.handleToolCall({
+    await registry.handleToolCall({
       arguments: { approvalId: 'apr-1', decision: 'approve' },
       name: 'resolve_approval',
-    })) as { content: { text: string }[] };
+    });
 
     // The claim happens BEFORE execution and carries no result yet (the atomic
     // PENDING -> APPROVED fence). getApproval is no longer part of the flow.

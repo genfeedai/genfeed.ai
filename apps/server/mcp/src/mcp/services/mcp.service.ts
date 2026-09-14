@@ -25,7 +25,7 @@ export class MCPService {
       mcpServers: {
         genfeed: {
           headers: {
-            Authorization: 'Bearer ${GENFEED_API_KEY}',
+            Authorization: `Bearer \${GENFEED_API_KEY}`,
           },
           transport: 'streamable-http',
           type: 'http',
@@ -75,7 +75,7 @@ bearer_token_env_var = "GENFEED_API_KEY"`,
                 GENFEED_API_KEY: 'gf_live_xxx',
               },
               headers: {
-                Authorization: 'Bearer ${GENFEED_API_KEY}',
+                Authorization: `Bearer \${GENFEED_API_KEY}`,
               },
               transport: 'streamable-http',
               type: 'http',
