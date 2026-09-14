@@ -1,3 +1,4 @@
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
   FacebookIcon,
   GoogleColorIcon,
@@ -15,9 +16,7 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { Star } from 'lucide-react';
-import type { ComponentType, ReactElement } from 'react';
-
-type IconComponent = ComponentType<{ className?: string }>;
+import type { ReactElement } from 'react';
 
 interface PlatformIconConfig {
   Icon: IconComponent;

@@ -1,10 +1,11 @@
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn';
 import type { ComponentType, MouseEvent, ReactNode } from 'react';
 
 interface SidebarNavItemProps {
   href: string;
   label: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   isActive?: boolean;
   badge?: number;
   badgeTone?: 'default' | 'danger';

@@ -1,10 +1,11 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
+import type { IconComponent } from '../../types/icon';
 
 export interface ICommand {
   id: string;
   label: string;
   description?: string;
-  icon?: string | ComponentType<{ className?: string }>;
+  icon?: string | IconComponent;
   shortcut?: string[];
   keywords?: string[];
   category: CommandCategory;

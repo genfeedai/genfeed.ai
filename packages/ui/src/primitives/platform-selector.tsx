@@ -2,6 +2,7 @@
 
 import { ButtonVariant } from '@genfeedai/contracts';
 import type { ICredential } from '@genfeedai/contracts/interfaces';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers';
 import {
   FacebookIcon,
@@ -12,10 +13,8 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { Star } from 'lucide-react';
-import type { ComponentType, ReactElement } from 'react';
+import type { ReactElement } from 'react';
 import { Button } from './button';
-
-type IconComponent = ComponentType<{ className?: string }>;
 
 interface PlatformIconConfig {
   Icon: IconComponent;

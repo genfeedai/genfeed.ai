@@ -6,6 +6,7 @@ import type {
   ChannelTargetValidationResult,
 } from '@genfeedai/contracts/api-types/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ComponentType } from 'react';
 
 export type PlatformPreviewMedia = {
@@ -88,4 +89,4 @@ export type PlatformPreviewRendererProps = {
 export type PlatformPreviewRenderer =
   ComponentType<PlatformPreviewRendererProps>;
 
-export type PlatformPreviewIcon = ComponentType<{ className?: string }>;
+export type PlatformPreviewIcon = IconComponent;

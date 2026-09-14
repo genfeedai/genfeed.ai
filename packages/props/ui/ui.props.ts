@@ -11,9 +11,10 @@ import {
   CardVariant,
 } from '@genfeedai/contracts';
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { PageHelpContent } from '@genfeedai/props/ui/layout/page-help.props';
 import type { TabItem, TabsProps } from '@props/ui/navigation/tabs.props';
-import type { ComponentType, MouseEvent, ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 
 export { BentoRowSpan, BentoSize, BentoSpan, BentoVariant, CardVariant };
 
@@ -40,7 +41,7 @@ export interface CardProps {
   overlay?: string;
   className?: string;
   bodyClassName?: string;
-  icon?: ComponentType<{ className?: string }> | ReactNode;
+  icon?: IconComponent | ReactNode;
   iconWrapperClassName?: string;
   iconClassName?: string;
   id?: string;
@@ -53,7 +54,7 @@ export interface CardProps {
 }
 
 export interface CardIconProps {
-  icon: ComponentType<{ className?: string }> | ReactNode;
+  icon: IconComponent | ReactNode;
   className?: string;
   iconClassName?: string;
   label?: string;
@@ -62,7 +63,7 @@ export interface CardIconProps {
 export interface ContainerProps {
   label?: ReactNode;
   description?: ReactNode;
-  icon?: ComponentType<{ className?: string }> | ReactNode;
+  icon?: IconComponent | ReactNode;
   titleVisibility?: 'visible' | 'sr-only';
   tabs?: TabItem[] | NavigationTab[];
   headerTabs?: TabsProps;

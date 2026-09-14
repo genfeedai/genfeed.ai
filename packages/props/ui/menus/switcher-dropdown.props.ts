@@ -1,4 +1,5 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 
 export interface SwitcherDropdownItem {
   id: string;
@@ -8,7 +9,7 @@ export interface SwitcherDropdownItem {
   trailingAction?: {
     ariaLabel: string;
     href?: string;
-    icon: ComponentType<{ className?: string }>;
+    icon: IconComponent;
     onAction: () => void;
     target?: '_blank' | '_self';
   };
@@ -17,7 +18,7 @@ export interface SwitcherDropdownItem {
 export interface SwitcherDropdownFooterAction {
   label: string;
   onAction: () => void;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
 }
 
 export interface SwitcherDropdownProps {

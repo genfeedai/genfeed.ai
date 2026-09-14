@@ -1,12 +1,13 @@
 import type { NavigationTab } from '@genfeedai/contracts/interfaces/ui/navigation.interface';
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 
 export type TabsMatchMode = 'exact' | 'prefix';
 
 export interface TabItem {
   id: string;
   label: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   badge?: ReactNode;
   isDisabled?: boolean;
 }
@@ -38,7 +39,7 @@ export type TabsEnhancedProps = TabsProps;
 export interface PanelTabItem {
   readonly id: string;
   readonly label: string;
-  readonly icon?: ComponentType<{ className?: string }>;
+  readonly icon?: IconComponent;
   readonly content: ReactNode;
   readonly isOpen: boolean;
   readonly keepMounted?: boolean;
