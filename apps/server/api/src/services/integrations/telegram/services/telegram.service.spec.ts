@@ -81,6 +81,37 @@ describe('TelegramService', () => {
     const brandId = 'test-object-id';
     const userId = 'test-object-id';
 
+    it('reports missing bot configuration at the existing server-error boundary', async () => {
+      vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
+      vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
+      const module = await Test.createTestingModule({
+        providers: [
+          TelegramService,
+          { provide: ConfigService, useValue: { get: () => undefined } },
+          { provide: CredentialsService, useValue: mockCredentialsService },
+          { provide: LoggerService, useValue: mockLoggerService },
+        ],
+      }).compile();
+      try {
+        const result = module
+          .get(TelegramService)
+          .verifyAndSaveAuth(orgId, brandId, userId, validAuthData);
+        await expect(result).rejects.toMatchObject({
+          status: HttpStatus.INTERNAL_SERVER_ERROR,
+          response: {
+            detail: 'Telegram bot token is not configured',
+            title: 'Telegram Verification Failed',
+          },
+        });
+        expect(TelegramAuthUtil.verifyAuthData).not.toHaveBeenCalled();
+        expect(
+          mockCredentialsService.createPendingForBrand,
+        ).not.toHaveBeenCalled();
+      } finally {
+        await module.close();
+      }
+    });
+
     it('should verify auth data and create new credential', async () => {
       vi.mocked(TelegramAuthUtil.hasRequiredFields).mockReturnValue(true);
       vi.mocked(TelegramAuthUtil.isAuthDateValid).mockReturnValue(true);
