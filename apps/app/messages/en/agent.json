@@ -169,16 +169,24 @@
   },
   "postingSets": {
     "disconnected": "Disconnected",
+    "empty": "No posting sets yet. Save the current selection to reuse it.",
     "expanding": "Expanding posting set\u2026",
     "label": "Posting set",
+    "labelAria": "Posting set label",
+    "labelPlaceholder": "Set label",
+    "loading": "Loading posting sets\u2026",
     "none": "No posting set",
     "placeholder": "Apply a saved set",
     "save": "Save set",
     "saveLabel": "Save current channels as a set",
     "savePlaceholder": "Set name",
+    "saveSelection": "Save current selection as set",
     "saving": "Saving\u2026",
     "selectAria": "Saved posting set",
-    "signatures": "Posting signature"
+    "selected": "Selected",
+    "signatures": "Posting signature",
+    "targetCount": "{count, plural, one {# target} other {# targets}}",
+    "useSet": "Use set"
   },
   "postSidebarSchedule": {
     "musicConfirmation": "Music Usage Confirmation",
