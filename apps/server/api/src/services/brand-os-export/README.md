@@ -24,7 +24,7 @@ Public retrieval is limited to 60 requests per minute per IP on each document ro
 
 A missing optional section is labeled `missing`. Missing brand identity, invalid field types, control characters, overlong strings or arrays, and artifacts over 128 KB fail closed. Export status reports `unavailable` when an existing approved revision cannot be serialized, while retaining its revision and publication metadata so settings and revocation remain usable. Its `schemaVersion: "1"` identifies the supported artifact renderer; revision history exposes the snapshot's stored `exportSchemaVersion`. An unsupported stored version remains unavailable. Downloads and publication still fail closed. The system never silently truncates approved rules. Current limits are 8,000 characters per string and 50 items per array or source list.
 
-Authenticated members can download. Only current organization owners and administrators with brand access can publish, update publication or revoke. Anonymous private access, tenant mismatch, revoked publication and deleted brands return a generic not-found response. Published artifacts are excluded from indexing through response headers.
+Authenticated members can download. Only current organization owners and administrators with brand access can publish, update publication or revoke. API keys also require the explicit `admin` scope; an owner-issued key does not inherit publication privileges without it. Anonymous private access, tenant mismatch, revoked publication and deleted brands return a generic not-found response. Published artifacts are excluded from indexing through response headers.
 
 ## Verification
 

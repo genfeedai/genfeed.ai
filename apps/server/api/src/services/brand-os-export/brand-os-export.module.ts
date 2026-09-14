@@ -1,3 +1,5 @@
+import { MembersModule } from '@api/collections/members/members.module';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import {
   BrandOsExportController,
   PublicBrandOsExportController,
@@ -8,9 +10,9 @@ import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 @Module({
-  imports: [ConfigModule, LoggerModule, PrismaModule],
+  imports: [ConfigModule, LoggerModule, MembersModule, PrismaModule],
   controllers: [BrandOsExportController, PublicBrandOsExportController],
   exports: [BrandOsExportService],
-  providers: [BrandOsExportService],
+  providers: [BrandOsExportService, RolesGuard],
 })
 export class BrandOsExportModule {}

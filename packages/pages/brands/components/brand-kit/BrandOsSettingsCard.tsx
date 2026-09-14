@@ -278,8 +278,10 @@ export default function BrandOsSettingsCard({
     (revision) => revision.id === exportState?.revisionId,
   );
   const publicationOutdated =
+    canManage &&
     Boolean(exportState?.publicUrl) &&
-    exportState &&
+    Boolean(exportState?.digest) &&
+    exportState?.canPublish &&
     exportState.revisionId !== exportState.publishedRevisionId;
 
   return (
@@ -446,9 +448,11 @@ export default function BrandOsSettingsCard({
               })}
             </h3>
             <p className="text-sm text-muted-foreground">
-              {t(`export.${exportState.state}`)}
+              {exportState.state === 'unavailable' && exportState.revisionId
+                ? t('exportInvalid')
+                : t(`export.${exportState.state}`)}
             </p>
-            {currentApproved && (
+            {currentApproved && exportState.digest && (
               <p className="text-xs text-muted-foreground">
                 {t('downloadVersion', { version: currentApproved.version })}
               </p>

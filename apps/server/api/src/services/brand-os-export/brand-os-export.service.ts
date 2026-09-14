@@ -1,5 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { resolveApiKeyEffectiveMemberRole } from '@api/helpers/utils/auth/api-key-role.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import type {
@@ -62,8 +63,15 @@ export class BrandOsExportService {
     ]);
     if (!brand || !member)
       throw new NotFoundException({ message: 'Not found' });
-    const role = member.roleKey ?? member.role?.key;
-    const canPublish = role === MemberRole.OWNER || role === MemberRole.ADMIN;
+    const role = member.role?.key ?? member.roleKey;
+    const effectiveRole = resolveApiKeyEffectiveMemberRole(
+      user,
+      role === MemberRole.OWNER || role === MemberRole.ADMIN
+        ? role
+        : MemberRole.USER,
+    );
+    const canPublish =
+      effectiveRole === MemberRole.OWNER || effectiveRole === MemberRole.ADMIN;
     if (admin && !canPublish)
       throw new NotFoundException({ message: 'Not found' });
     return canPublish;

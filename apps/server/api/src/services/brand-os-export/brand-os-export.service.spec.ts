@@ -1,7 +1,7 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandOsExportService } from '@api/services/brand-os-export/brand-os-export.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -222,6 +222,37 @@ describe('Brand OS export publication boundary', () => {
     await expect(service.revoke('brand-1', actor)).rejects.toMatchObject({
       status: 404,
     });
+  });
+  it.each([
+    { scopes: undefined },
+    { scopes: [] },
+    { scopes: ['*'] },
+    { scopes: [ApiKeyScope.VIDEOS_READ] },
+  ])(
+    'caps direct service owner-key calls without explicit admin scope: %j',
+    async ({ scopes }) => {
+      const keyActor = { ...actor, isApiKey: true, scopes };
+      expect((await service.state('brand-1', keyActor)).canPublish).toBe(false);
+      await expect(
+        service.publish('brand-1', 'rev-1', keyActor),
+      ).rejects.toMatchObject({ status: 404 });
+      await expect(service.revoke('brand-1', keyActor)).rejects.toMatchObject({
+        status: 404,
+      });
+      expect(db.brandOsPublication.upsert).not.toHaveBeenCalled();
+      expect(db.brandOsPublication.updateMany).not.toHaveBeenCalled();
+    },
+  );
+  it('permits explicit admin-scoped keys only for an elevated issuing member', async () => {
+    const keyActor = { ...actor, isApiKey: true, scopes: [ApiKeyScope.ADMIN] };
+    expect((await service.state('brand-1', keyActor)).canPublish).toBe(true);
+    await service.publish('brand-1', 'rev-1', keyActor);
+    await service.revoke('brand-1', keyActor);
+    db.member.findFirst.mockResolvedValue({ roleKey: MemberRole.USER });
+    expect((await service.state('brand-1', keyActor)).canPublish).toBe(false);
+    await expect(
+      service.publish('brand-1', 'rev-1', keyActor),
+    ).rejects.toMatchObject({ status: 404 });
   });
   it('scopes membership and revision queries and rejects a moved public brand', async () => {
     await service.publish('brand-1', 'rev-1', actor);

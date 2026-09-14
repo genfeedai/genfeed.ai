@@ -170,10 +170,48 @@ describe('BrandOsRevisionsService', () => {
       status: BrandOsRevisionStatus.DRAFT,
       version: 1,
     });
-    expect(tx.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(tx.$queryRaw).toHaveBeenCalledTimes(1);
     expect(
       (await service.list(ORG, BRAND))[0].content.fields.label?.currentValue,
     ).toBe('Acme');
+  });
+
+  it('reads existing history without a transaction or brand lock', async () => {
+    const { service, prisma, tx } = harness([row('older', 1), row('newer', 2)]);
+    const history = await service.list(ORG, BRAND);
+    expect(history.map((revision) => revision.id)).toEqual(['newer', 'older']);
+    expect(tx.brand.findFirst).toHaveBeenCalledWith({
+      where: { id: BRAND, organizationId: ORG, isDeleted: false },
+    });
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(tx.$queryRaw).not.toHaveBeenCalled();
+    expect(tx.brandOsRevision.create).not.toHaveBeenCalled();
+  });
+
+  it('initializes only one revision when empty history is loaded concurrently', async () => {
+    const { service, rows, tx } = harness();
+    const [first, second] = await Promise.all([
+      service.list(ORG, BRAND),
+      service.list(ORG, BRAND),
+    ]);
+    expect(first).toEqual(second);
+    expect(first).toHaveLength(1);
+    expect(rows).toHaveLength(1);
+    expect(tx.brandOsRevision.create).toHaveBeenCalledTimes(1);
+    expect(tx.brand.update).toHaveBeenCalledTimes(1);
+  });
+
+  it('checks the live tenant brand before returning existing history', async () => {
+    const { service, prisma, tx } = harness([row()]);
+    await expect(service.list('foreign-org', BRAND)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    tx.brand.findFirst.mockResolvedValue(null);
+    await expect(service.list(ORG, BRAND)).rejects.toBeInstanceOf(
+      NotFoundException,
+    );
+    expect(tx.brandOsRevision.findMany).not.toHaveBeenCalled();
+    expect(prisma.$transaction).not.toHaveBeenCalled();
   });
 
   it('allocates unique versions under concurrent creation and never reuses a soft-deleted version', async () => {

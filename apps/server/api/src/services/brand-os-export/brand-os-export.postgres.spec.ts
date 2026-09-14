@@ -161,6 +161,10 @@ describe.skipIf(!databaseUrl)('Brand OS export with real PostgreSQL', () => {
     await expect(
       service.download('brand-1', { ...actor, organizationId: 'other-org' }),
     ).rejects.toMatchObject({ status: 404 });
+    await scoped.query('UPDATE "roles" SET "key" = $1 WHERE "id" = $2', [
+      'user',
+      'role-1',
+    ]);
     await scoped.query('UPDATE "members" SET "roleKey" = $1 WHERE "id" = $2', [
       'user',
       'member-1',
@@ -168,6 +172,10 @@ describe.skipIf(!databaseUrl)('Brand OS export with real PostgreSQL', () => {
     await expect(service.revoke('brand-1', actor)).rejects.toMatchObject({
       status: 404,
     });
+    await scoped.query('UPDATE "roles" SET "key" = $1 WHERE "id" = $2', [
+      'owner',
+      'role-1',
+    ]);
     await scoped.query('UPDATE "members" SET "roleKey" = $1 WHERE "id" = $2', [
       'owner',
       'member-1',

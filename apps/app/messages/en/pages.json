@@ -2295,7 +2295,7 @@
       "unavailable": "Approve a revision to create your design.md export.",
       "private": "Your approved design.md is private. Only organization members can download it.",
       "published": "A public snapshot is available at the link below. New approvals require an explicit publication update.",
-      "revoked": "Public access has been revoked. Organization members can still download the approved design.md."
+      "revoked": "Public access has been revoked. Organization members can still download the approved design.md. Publishing again re-enables previously shared stable links."
     },
     "groups": {
       "profile": "Profile",
@@ -2316,7 +2316,7 @@
     "saving": "Saving draft",
     "saved": "Revision {version} saved as a draft.",
     "approving": "Approving revision",
-    "approved": "Revision {version} approved. Public access changes only when you publish.",
+    "approved": "Revision {version} approved. Generation now uses this Brand OS identity; legacy voice values outside it no longer apply. Public access changes only when you publish.",
     "downloading": "Downloading design.md",
     "downloaded": "Your approved design.md has been downloaded.",
     "errorPreserved": "{error} Your unsaved edits have been kept.",
@@ -2366,6 +2366,7 @@
       "published": "published",
       "revoked": "revoked"
     },
+    "exportInvalid": "Approved revision cannot be exported. Review required identity and export limits, then save and approve a corrected revision.",
     "revisionLink": "Open immutable revision design.md",
     "scanPersistenceFailed": "Website scan succeeded, but the draft could not be saved as a revision. Your scanned fields are still available below.",
     "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below."

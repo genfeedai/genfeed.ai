@@ -1,4 +1,6 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { MembersService } from '@api/collections/members/services/members.service';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import {
   BrandOsExportController,
@@ -8,7 +10,7 @@ import { BrandOsExportService } from '@api/services/brand-os-export/brand-os-exp
 import type { CacheService } from '@api/services/cache/cache.service';
 import { RateLimitGuard } from '@api/shared/guards/rate-limit/rate-limit.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MemberRole } from '@genfeedai/contracts';
+import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -33,7 +35,7 @@ import {
 const actor: AuthenticatedUser = {
   brandId: 'brand-1',
   id: 'user-1',
-  organizationId: 'org-1',
+  organizationId: 'cbrandosexportorg0000000001',
   userId: 'user-1',
 };
 const revision = {
@@ -69,10 +71,10 @@ describe('Brand OS export real HTTP pipeline', () => {
         .mockImplementation((args: { where?: { revokedAt?: null } }) =>
           published && (args.where?.revokedAt !== null || !revoked)
             ? {
-                brand: { organizationId: 'org-1' },
+                brand: { organizationId: 'cbrandosexportorg0000000001' },
                 brandId: 'brand-1',
                 id: 'publication-1',
-                organizationId: 'org-1',
+                organizationId: 'cbrandosexportorg0000000001',
                 publishedAt: new Date('2026-09-14T00:00:00Z'),
                 publishedRevisionIds: ['revision-1'],
                 revisionId: 'revision-1',
@@ -102,7 +104,18 @@ describe('Brand OS export real HTTP pipeline', () => {
     );
     const moduleRef = await Test.createTestingModule({
       controllers: [BrandOsExportController, PublicBrandOsExportController],
-      providers: [{ provide: BrandOsExportService, useValue: service }],
+      providers: [
+        { provide: BrandOsExportService, useValue: service },
+        {
+          provide: MembersService,
+          useValue: {
+            findOne: vi
+              .fn()
+              .mockImplementation(() => ({ role: { key: memberRole } })),
+          },
+        },
+        RolesGuard,
+      ],
     }).compile();
     app = moduleRef.createNestApplication();
     app.use(
@@ -113,6 +126,16 @@ describe('Brand OS export real HTTP pipeline', () => {
       ) => {
         if (req.headers.authorization === 'Bearer member-session')
           req.user = actor;
+        if (req.headers.authorization === 'Bearer owner-key')
+          req.user = {
+            ...actor,
+            isApiKey: true,
+            scopes: [ApiKeyScope.VIDEOS_READ],
+          };
+        if (req.headers.authorization === 'Bearer wildcard-key')
+          req.user = { ...actor, isApiKey: true, scopes: ['*'] };
+        if (req.headers.authorization === 'Bearer admin-key')
+          req.user = { ...actor, isApiKey: true, scopes: [ApiKeyScope.ADMIN] };
         next();
       },
     );
@@ -200,7 +223,7 @@ describe('Brand OS export real HTTP pipeline', () => {
       .post('/brands/brand-1/brand-os/publication')
       .set('Authorization', 'Bearer member-session')
       .send({ revisionId: 'revision-1' })
-      .expect(404);
+      .expect(403);
   });
   it.each([
     '/public/brand-os/publication-1/design.md',
@@ -221,6 +244,58 @@ describe('Brand OS export real HTTP pipeline', () => {
       );
     },
   );
+  it.each(['owner-key', 'wildcard-key'])(
+    'does not let an owner-issued %s mutate publication without explicit admin scope',
+    async (token) => {
+      const before = db.activity.create.mock.calls.length;
+      const state = await request(app.getHttpServer())
+        .get('/brands/brand-1/brand-os/export')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(200);
+      expect(state.body.data.attributes.canPublish).toBe(false);
+      await request(app.getHttpServer())
+        .post('/brands/brand-1/brand-os/publication')
+        .set('Authorization', `Bearer ${token}`)
+        .send({ revisionId: 'revision-1' })
+        .expect(403);
+      published = true;
+      await request(app.getHttpServer())
+        .delete('/brands/brand-1/brand-os/publication')
+        .set('Authorization', `Bearer ${token}`)
+        .expect(403);
+      expect(revoked).toBe(false);
+      expect(db.activity.create.mock.calls.length).toBe(before);
+    },
+  );
+  it('permits an owner-issued admin-scoped key to publish and revoke', async () => {
+    const state = await request(app.getHttpServer())
+      .get('/brands/brand-1/brand-os/export')
+      .set('Authorization', 'Bearer admin-key')
+      .expect(200);
+    expect(state.body.data.attributes.canPublish).toBe(true);
+    await request(app.getHttpServer())
+      .post('/brands/brand-1/brand-os/publication')
+      .set('Authorization', 'Bearer admin-key')
+      .send({ revisionId: 'revision-1' })
+      .expect(201);
+    await request(app.getHttpServer())
+      .delete('/brands/brand-1/brand-os/publication')
+      .set('Authorization', 'Bearer admin-key')
+      .expect(200);
+    expect(revoked).toBe(true);
+  });
+  it('does not elevate a member-issued key even with admin scope', async () => {
+    memberRole = MemberRole.USER;
+    await request(app.getHttpServer())
+      .post('/brands/brand-1/brand-os/publication')
+      .set('Authorization', 'Bearer admin-key')
+      .send({ revisionId: 'revision-1' })
+      .expect(403);
+    await request(app.getHttpServer())
+      .delete('/brands/brand-1/brand-os/publication')
+      .set('Authorization', 'Bearer member-session')
+      .expect(403);
+  });
   it('publishes publicly and revokes stable and immutable URLs through HTTP', async () => {
     const stable = '/public/brand-os/publication-1/design.md';
     const immutable = '/public/brand-os/publication-1/revision-1/design.md';

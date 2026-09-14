@@ -33,11 +33,18 @@ export class BrandOsRevisionsService {
     organizationId: string,
     brandId: string,
   ): Promise<IBrandOsRevision[]> {
-    await this.ensureInitial(organizationId, brandId);
-    const rows = await this.prisma.brandOsRevision.findMany({
+    await this.requireBrand(this.prisma, organizationId, brandId);
+    let rows = await this.prisma.brandOsRevision.findMany({
       orderBy: { version: 'desc' },
       where: { brandId, isDeleted: false, organizationId },
     });
+    if (rows.length === 0) {
+      await this.ensureInitial(organizationId, brandId);
+      rows = await this.prisma.brandOsRevision.findMany({
+        orderBy: { version: 'desc' },
+        where: { brandId, isDeleted: false, organizationId },
+      });
+    }
     return rows.map((row) => this.toRevision(row));
   }
 

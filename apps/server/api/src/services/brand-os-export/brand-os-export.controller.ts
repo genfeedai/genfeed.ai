@@ -1,9 +1,12 @@
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BrandOsExportService } from '@api/services/brand-os-export/brand-os-export.service';
 import { PublishBrandOsDto } from '@api/services/brand-os-export/publish-brand-os.dto';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { MemberRole } from '@genfeedai/contracts';
 import type {
   IBrandOsDesignArtifact,
   JsonApiSingleResponse,
@@ -25,6 +28,7 @@ import {
   Res,
   UnauthorizedException,
   UseFilters,
+  UseGuards,
 } from '@nestjs/common';
 import type { Request, Response } from 'express';
 
@@ -85,6 +89,8 @@ export class BrandOsExportController {
     sendArtifact(response, await this.service.download(id, user), 'attachment');
   }
   @Post('publication')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @Header('Cache-Control', 'no-store')
   async publish(
     @Req() request: Request,
@@ -99,6 +105,8 @@ export class BrandOsExportController {
     );
   }
   @Delete('publication')
+  @UseGuards(RolesGuard)
+  @RolesDecorator(MemberRole.OWNER, MemberRole.ADMIN)
   @Header('Cache-Control', 'no-store')
   async revoke(
     @Req() request: Request,

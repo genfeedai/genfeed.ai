@@ -288,6 +288,11 @@ describe('Brand OS revision settings', () => {
       ),
     );
     expect(mocks.publishBrandOsDesign).not.toHaveBeenCalled();
+    expect(
+      await screen.findByText(
+        /Generation now uses this Brand OS identity; legacy voice values outside it no longer apply/,
+      ),
+    ).toBeInTheDocument();
   });
 
   it('forks an approved revision and retains the approved history', async () => {
@@ -342,6 +347,11 @@ describe('Brand OS revision settings', () => {
       screen.getByRole('button', { name: 'Revoke public access' }),
     );
     await screen.findByText('design.md · revoked');
+    expect(
+      screen.getByText(
+        /Publishing again re-enables previously shared stable links/,
+      ),
+    ).toBeInTheDocument();
     expect(
       screen.queryByRole('link', { name: 'Open public design.md' }),
     ).not.toBeInTheDocument();
@@ -600,6 +610,19 @@ describe('Brand OS revision settings', () => {
       exportState({ state: 'revoked', revisionId: 'revision-2', digest: null }),
     );
     await renderSettings();
+    expect(
+      screen.getByText(
+        'Approved revision cannot be exported. Review required identity and export limits, then save and approve a corrected revision.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText('Approve a revision to create your design.md export.'),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(
+        'A newer approved revision is available. Update the publication to share it.',
+      ),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByRole('link', { name: 'Open public design.md' }),
     ).toHaveAttribute('href', 'https://example.com/public/design.md');
