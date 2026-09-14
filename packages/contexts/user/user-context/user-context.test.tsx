@@ -16,7 +16,6 @@ const useAuthedServiceMock = vi.fn();
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
-  useUser: () => useUserMock(),
 }));
 
 vi.mock('../internal/context-authed-service', () => ({

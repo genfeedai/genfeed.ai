@@ -22,7 +22,6 @@ const authServiceGetInstanceMock = vi.hoisted(() => vi.fn());
 
 vi.mock('@genfeedai/auth-client/react', () => ({
   useAuth: () => useAuthMock(),
-  useUser: () => useUserMock(),
 }));
 
 vi.mock('@genfeedai/hooks/auth/use-auth-identity/use-auth-identity', () => ({
