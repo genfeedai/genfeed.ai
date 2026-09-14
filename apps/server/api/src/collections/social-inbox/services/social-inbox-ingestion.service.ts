@@ -20,6 +20,7 @@ import type {
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { LinkedInService } from '@api/services/integrations/linkedin/services/linkedin.service';
@@ -109,13 +110,10 @@ export class SocialInboxIngestionService {
   private get workflowExecutionQueueService():
     | WorkflowExecutionQueueService
     | undefined {
-    try {
-      return this.moduleRef.get(WorkflowExecutionQueueService, {
-        strict: false,
-      });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(
+      this.moduleRef,
+      WorkflowExecutionQueueService,
+    );
   }
 
   async ingestInboundMessage(

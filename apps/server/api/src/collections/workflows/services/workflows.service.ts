@@ -33,6 +33,7 @@ import {
 import { SYSTEM_WORKFLOW_CATALOG } from '@api/collections/workflows/workflows.tokens';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { EntityFactory } from '@api/shared/factories/entity/entity.factory';
@@ -86,44 +87,29 @@ export class WorkflowsService extends BaseService<
    * without importing those siblings.
    */
   private get workflowExecutorService(): WorkflowExecutorService | undefined {
-    try {
-      return this.moduleRef.get(WorkflowExecutorService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, WorkflowExecutorService);
   }
 
   private get workflowExecutionQueueService():
     | WorkflowExecutionQueueService
     | undefined {
-    try {
-      return this.moduleRef.get(WorkflowExecutionQueueService, {
-        strict: false,
-      });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(
+      this.moduleRef,
+      WorkflowExecutionQueueService,
+    );
   }
 
   private get marketplaceApiClient(): MarketplaceApiClient | undefined {
-    try {
-      return this.moduleRef.get(MarketplaceApiClient, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, MarketplaceApiClient);
   }
 
   private get systemWorkflowCatalogService():
     | SystemWorkflowCatalogService
     | undefined {
-    try {
-      return this.moduleRef.get<SystemWorkflowCatalogService>(
-        SYSTEM_WORKFLOW_CATALOG,
-        { strict: false },
-      );
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider<SystemWorkflowCatalogService>(
+      this.moduleRef,
+      SYSTEM_WORKFLOW_CATALOG,
+    );
   }
 
   private assertWorkflowMutable(workflow: Pick<WorkflowDocument, 'metadata'>) {
