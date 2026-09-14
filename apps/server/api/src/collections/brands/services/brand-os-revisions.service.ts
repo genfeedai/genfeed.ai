@@ -80,12 +80,13 @@ export class BrandOsRevisionsService {
     tokenHash?: string,
   ): Promise<IBrandOsRevision | null> {
     const row = await this.prisma.brandOsRevision.findFirst({
-      orderBy: { version: 'asc' },
+      orderBy: { version: 'desc' },
       where: {
         brandId,
         isDeleted: false,
         organizationId,
         sourcePreviewTokenHash: tokenHash ?? { not: null },
+        status: tokenHash ? undefined : BrandOsRevisionStatus.DRAFT,
       },
     });
     return row ? this.toRevision(row) : null;
@@ -123,12 +124,7 @@ export class BrandOsRevisionsService {
               brandId,
               organizationId,
             )),
-            agentConfig:
-              brand.agentConfig &&
-              typeof brand.agentConfig === 'object' &&
-              !Array.isArray(brand.agentConfig)
-                ? (brand.agentConfig as BrandKitSourceBrand['agentConfig'])
-                : undefined,
+            agentConfig: this.legacyAgentConfig(brand.agentConfig),
             referenceImages: Array.isArray(brand.referenceImages)
               ? brand.referenceImages.filter(
                   (value): value is string => typeof value === 'string',
@@ -338,6 +334,41 @@ export class BrandOsRevisionsService {
       Prisma.sql`SELECT "id" FROM "brands" WHERE "id" = ${brandId} AND "organizationId" = ${organizationId} AND "isDeleted" = false FOR UPDATE`,
     );
     return this.requireBrand(tx, organizationId, brandId);
+  }
+
+  private legacyAgentConfig(
+    value: unknown,
+  ): BrandKitSourceBrand['agentConfig'] {
+    const object = (input: unknown): Record<string, unknown> =>
+      input && typeof input === 'object' && !Array.isArray(input)
+        ? (input as Record<string, unknown>)
+        : {};
+    const text = (input: unknown): string | undefined =>
+      typeof input === 'string' ? input : undefined;
+    const strings = (input: unknown): string[] | undefined =>
+      Array.isArray(input)
+        ? input.filter((item): item is string => typeof item === 'string')
+        : undefined;
+    const config = object(value);
+    const voice = object(config.voice);
+    const strategy = object(config.strategy);
+    return {
+      voice: {
+        tone: text(voice.tone),
+        style: text(voice.style),
+        audience: strings(voice.audience),
+        values: strings(voice.values),
+        messagingPillars: strings(voice.messagingPillars),
+        doNotSoundLike: strings(voice.doNotSoundLike),
+        sampleOutput: text(voice.sampleOutput),
+      },
+      strategy: {
+        contentTypes: strings(strategy.contentTypes),
+        platforms: strings(strategy.platforms),
+        goals: strings(strategy.goals),
+        frequency: text(strategy.frequency),
+      },
+    };
   }
 
   private normalize(

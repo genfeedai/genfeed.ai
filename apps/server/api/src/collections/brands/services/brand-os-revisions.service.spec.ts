@@ -46,14 +46,18 @@ function row(
   };
 }
 
-function harness(initial: BrandOsRevision[] = []) {
+function harness(initial: BrandOsRevision[] = [], legacyAgentConfig?: unknown) {
   const rows = structuredClone(initial);
   let counter = Math.max(0, ...rows.map((item) => item.version));
   let pending = Promise.resolve();
   const matches = (record: BrandOsRevision, where: Record<string, unknown>) =>
-    Object.entries(where).every(
-      ([key, value]) => Reflect.get(record, key) === value,
-    );
+    Object.entries(where).every(([key, value]) => {
+      if (value === undefined) return true;
+      const actual: unknown = Reflect.get(record, key);
+      if (value && typeof value === 'object' && 'not' in value)
+        return actual !== value.not;
+      return actual === value;
+    });
   const tx = {
     $queryRaw: vi.fn().mockResolvedValue([{ id: BRAND }]),
     brand: {
@@ -61,6 +65,7 @@ function harness(initial: BrandOsRevision[] = []) {
         async ({ where }: { where: { id: string; organizationId: string } }) =>
           where.id === BRAND && where.organizationId === ORG
             ? {
+                agentConfig: legacyAgentConfig,
                 brandOsRevisionVersion: counter,
                 id: BRAND,
                 isDeleted: false,
@@ -384,4 +389,109 @@ describe('BrandOsRevisionsService', () => {
     ]);
     expect(rows.map((item) => item.version)).toEqual([1, 2]);
   });
+  it('returns only the newest live claimed draft for the handoff', async () => {
+    const first = {
+      ...row('first-claim', 1),
+      sourcePreviewTokenHash: 'first-token',
+    };
+    const latest = {
+      ...row('latest-claim', 2),
+      sourcePreviewTokenHash: 'latest-token',
+    };
+    const manual = row('manual', 3);
+    const deleted = {
+      ...row('deleted-claim', 4),
+      isDeleted: true,
+      sourcePreviewTokenHash: 'deleted-token',
+    };
+    const foreign = {
+      ...row('foreign-claim', 5),
+      organizationId: 'foreign-org',
+      sourcePreviewTokenHash: 'foreign-token',
+    };
+    const { service } = harness([first, latest, manual, deleted, foreign]);
+    await expect(service.findClaimed(ORG, BRAND)).resolves.toMatchObject({
+      id: 'latest-claim',
+    });
+  });
+
+  it('hides terminal claims from the handoff but preserves token-specific durable retries', async () => {
+    const approved = {
+      ...row('approved-claim', 1, BrandOsRevisionStatus.APPROVED),
+      sourcePreviewTokenHash: 'approved-token',
+    };
+    const superseded = {
+      ...row('superseded-claim', 2, BrandOsRevisionStatus.SUPERSEDED),
+      sourcePreviewTokenHash: 'superseded-token',
+    };
+    const { service, rows } = harness([
+      approved,
+      superseded,
+      row('unrelated-draft', 3),
+    ]);
+    await expect(service.findClaimed(ORG, BRAND)).resolves.toBeNull();
+    await expect(
+      service.findClaimed(ORG, BRAND, 'approved-token'),
+    ).resolves.toMatchObject({
+      id: 'approved-claim',
+      status: BrandOsRevisionStatus.APPROVED,
+    });
+    await expect(
+      service.findClaimed(ORG, BRAND, 'superseded-token'),
+    ).resolves.toMatchObject({
+      id: 'superseded-claim',
+      status: BrandOsRevisionStatus.SUPERSEDED,
+    });
+    await expect(
+      service.ensureInitial(ORG, BRAND, draft(), 'approved-token'),
+    ).resolves.toMatchObject({ id: 'approved-claim' });
+    expect(rows).toHaveLength(3);
+  });
+
+  it('initializes legacy brand configuration by omitting malformed optional values without coercion', async () => {
+    const { service } = harness([], {
+      voice: {
+        tone: 42,
+        style: 'Direct',
+        audience: 'Everyone',
+        values: ['Evidence', 1, null],
+        sampleOutput: { wrong: 'shape' },
+      },
+      strategy: {
+        platforms: ['linkedin', false],
+        contentTypes: { wrong: 'shape' },
+        goals: null,
+        frequency: 5,
+      },
+    });
+    const [initial] = await service.list(ORG, BRAND);
+    expect(initial.content.fields.voiceTone?.currentValue).toBeUndefined();
+    expect(initial.content.fields.voiceAudience?.currentValue).toBeUndefined();
+    expect(
+      initial.content.fields.voiceSampleOutput?.currentValue,
+    ).toBeUndefined();
+    expect(initial.content.fields.voiceStyle?.currentValue).toBe('Direct');
+    expect(initial.content.fields.voiceValues?.currentValue).toEqual([
+      'Evidence',
+    ]);
+    expect(initial.content.fields.strategyPlatforms?.currentValue).toEqual([
+      'linkedin',
+    ]);
+    expect(
+      initial.content.fields.strategyFrequency?.currentValue,
+    ).toBeUndefined();
+    const explicit = draft();
+    if (explicit.fields.voiceTone) explicit.fields.voiceTone.proposedValue = 42;
+    await expect(service.create(ORG, BRAND, explicit)).rejects.toBeInstanceOf(
+      BadRequestException,
+    );
+  });
+
+  it.each([null, 7, ['wrong'], { voice: ['wrong'], strategy: 'wrong' }])(
+    'initializes malformed legacy configuration containers safely: %j',
+    async (config) => {
+      const { service } = harness([], config);
+      await expect(service.list(ORG, BRAND)).resolves.toHaveLength(1);
+    },
+  );
 });

@@ -240,15 +240,28 @@ export default function BrandOsRevisionFields({
                                 (candidate.id && entry.id === candidate.id)
                               ),
                           );
+                          const currentValues = Array.isArray(
+                            field.currentValue,
+                          )
+                            ? field.currentValue
+                            : [field.currentValue];
+                          const restoreCurrent =
+                            checked !== true &&
+                            field.currentValue !== undefined &&
+                            (remaining.length === 0 ||
+                              JSON.stringify(remaining) ===
+                                JSON.stringify(currentValues));
                           onFieldChange(key, {
-                            applyActionDefault:
-                              checked === true
+                            applyActionDefault: restoreCurrent
+                              ? 'preserve'
+                              : checked === true
                                 ? 'accept'
                                 : remaining.length
                                   ? 'accept'
                                   : 'reject',
-                            proposedValue:
-                              key === 'references'
+                            proposedValue: restoreCurrent
+                              ? field.currentValue
+                              : key === 'references'
                                 ? checked === true
                                   ? [...remaining, candidateValue(candidate)]
                                   : remaining

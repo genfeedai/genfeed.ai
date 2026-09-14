@@ -90,21 +90,17 @@ export default function BrandSettingsKitPage() {
           onRefreshBrand={() => handleRefreshBrand(true)}
         />
 
-        {canManage && (
-          <BrandKitReviewCard
-            onDraftCreated={persistRevision}
-            brand={brand}
-            brandId={brandId}
-            loadClaimedBrandOsDraft
-            onBrandOsDraftAccepted={() =>
-              captureBrandOsFunnelStage('draft_accepted')
-            }
-            onBrandOsDraftLoaded={() =>
-              captureBrandOsFunnelStage('draft_saved')
-            }
-            onRefreshBrand={() => handleRefreshBrand(true)}
-          />
-        )}
+        <BrandKitReviewCard
+          onDraftCreated={canManage ? persistRevision : undefined}
+          brand={brand}
+          brandId={brandId}
+          loadClaimedBrandOsDraft
+          onBrandOsDraftAccepted={() =>
+            captureBrandOsFunnelStage('draft_accepted')
+          }
+          onBrandOsDraftLoaded={() => captureBrandOsFunnelStage('draft_saved')}
+          onRefreshBrand={() => handleRefreshBrand(true)}
+        />
 
         <div className="flex flex-col gap-1 border-t border-border pt-3">
           <h2 className="text-sm font-semibold text-foreground">
@@ -115,19 +111,17 @@ export default function BrandSettingsKitPage() {
           </p>
         </div>
 
-        {canManage && (
-          <BrandDetailManualKitCard
-            onDraftCreated={persistRevision}
-            brand={brand}
-            brandId={brandId}
-            onRefreshBrand={() => handleRefreshBrand(true)}
-            onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
-            onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
-            onUploadReference={() =>
-              handleOpenUploadModal(AssetCategory.REFERENCE)
-            }
-          />
-        )}
+        <BrandDetailManualKitCard
+          onDraftCreated={canManage ? persistRevision : undefined}
+          brand={brand}
+          brandId={brandId}
+          onRefreshBrand={() => handleRefreshBrand(true)}
+          onUploadBanner={() => handleOpenUploadModal(AssetCategory.BANNER)}
+          onUploadLogo={() => handleOpenUploadModal(AssetCategory.LOGO)}
+          onUploadReference={() =>
+            handleOpenUploadModal(AssetCategory.REFERENCE)
+          }
+        />
 
         <BrandWatermarkSettings
           key={brandId}

@@ -5,6 +5,8 @@ import {
   PublicBrandOsExportController,
 } from '@api/services/brand-os-export/brand-os-export.controller';
 import { BrandOsExportService } from '@api/services/brand-os-export/brand-os-export.service';
+import type { CacheService } from '@api/services/cache/cache.service';
+import { RateLimitGuard } from '@api/shared/guards/rate-limit/rate-limit.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { MemberRole } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
@@ -14,6 +16,7 @@ import {
   type INestApplication,
   UnauthorizedException,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import type { NextFunction, Request, Response } from 'express';
 import request from 'supertest';
@@ -44,6 +47,10 @@ const revision = {
 
 describe('Brand OS export real HTTP pipeline', () => {
   let app: INestApplication;
+  const rateLimitCache = {
+    incr: vi.fn().mockResolvedValue(1),
+    expire: vi.fn().mockResolvedValue(undefined),
+  };
   let published = false;
   let revoked = false;
   let memberRole: MemberRole;
@@ -119,12 +126,19 @@ describe('Brand OS export real HTTP pipeline', () => {
         return true;
       },
     });
+    app.useGlobalGuards(
+      new RateLimitGuard(
+        new Reflector(),
+        rateLimitCache as unknown as CacheService,
+      ),
+    );
     app.useGlobalPipes(new ValidationPipe());
     await app.init();
   });
   beforeEach(() => {
     published = false;
     revoked = false;
+    rateLimitCache.incr.mockResolvedValue(1);
     memberRole = MemberRole.OWNER;
   });
   afterAll(async () => {
@@ -188,6 +202,25 @@ describe('Brand OS export real HTTP pipeline', () => {
       .send({ revisionId: 'revision-1' })
       .expect(404);
   });
+  it.each([
+    '/public/brand-os/publication-1/design.md',
+    '/public/brand-os/publication-1/revision-1/design.md',
+  ])(
+    'rate limits public reads before artifact audit writes: %s',
+    async (url) => {
+      published = true;
+      const before = db.activity.create.mock.calls.length;
+      rateLimitCache.incr.mockResolvedValue(61);
+      const result = await request(app.getHttpServer()).get(url).expect(429);
+      expect(result.headers['retry-after']).toBe('60');
+      expect(result.headers['x-ratelimit-limit']).toBe('60');
+      expect(db.activity.create.mock.calls.length).toBe(before);
+      expect(rateLimitCache.incr).toHaveBeenLastCalledWith(
+        expect.stringContaining(':ip:'),
+        1,
+      );
+    },
+  );
   it('publishes publicly and revokes stable and immutable URLs through HTTP', async () => {
     const stable = '/public/brand-os/publication-1/design.md';
     const immutable = '/public/brand-os/publication-1/revision-1/design.md';

@@ -10,6 +10,12 @@ const updateAgentConfigMock = vi.fn().mockResolvedValue(undefined);
 const successMock = vi.fn();
 const errorMock = vi.fn();
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  const t = translateFromCatalog('pages.brandOsSettings');
+  return { useTranslations: () => t };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => ({
     createManualBrandKitDraft: createManualBrandKitDraftMock,
@@ -259,5 +265,29 @@ describe('BrandDetailManualKitCard', () => {
       },
     });
     expect(onRefreshBrand).toHaveBeenCalled();
+  });
+  it('retains manual input and reports failed revision persistence without a false success', async () => {
+    const onDraftCreated = vi
+      .fn()
+      .mockRejectedValue(new Error('Revision unavailable'));
+    render(
+      <BrandDetailManualKitCard {...props} onDraftCreated={onDraftCreated} />,
+    );
+    fireEvent.change(screen.getByLabelText('Manual brand description'), {
+      target: { value: 'Kept description' },
+    });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create Manual Draft' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Manual draft created, but it could not be saved as a revision.',
+    );
+    expect(screen.getByLabelText('Manual brand description')).toHaveValue(
+      'Kept description',
+    );
+    expect(successMock).not.toHaveBeenCalled();
+    expect(errorMock).toHaveBeenCalledWith(
+      expect.stringContaining('Manual draft created'),
+    );
   });
 });

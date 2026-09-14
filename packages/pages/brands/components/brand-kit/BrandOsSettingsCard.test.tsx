@@ -191,7 +191,7 @@ function exportState(
     state: 'unavailable',
     revisionId: null,
     schemaVersion: '1',
-    digest: null,
+    digest: overrides.revisionId ? 'approved-digest' : null,
     generatedAt: null,
     publishedRevisionId: null,
     publicUrl: null,
@@ -502,5 +502,125 @@ describe('Brand OS revision settings', () => {
     expect(
       screen.getByRole('button', { name: 'Refresh history' }),
     ).toBeEnabled();
+  });
+  it.each(['logo', 'references'] as const)(
+    'restores current %s after deselecting a candidate, but respects explicit exclusion',
+    async (key) => {
+      const currentAsset = {
+        role: key === 'logo' ? ('logo' as const) : ('reference' as const),
+        sourceType: 'manual' as const,
+        url: 'https://example.com/current.png',
+      };
+      const currentValue = key === 'references' ? [currentAsset] : currentAsset;
+      const saved = revision();
+      saved.content.fields[key] = {
+        key,
+        label: key,
+        group: 'assets',
+        ownerPath: key === 'logo' ? 'brand.logo' : 'brand.references',
+        applyActionDefault: 'preserve',
+        currentValue,
+        diagnostics: [],
+        evidence: [],
+      };
+      saved.content.assetCandidates = [
+        {
+          candidateId: 'candidate-1',
+          label: 'Candidate image',
+          role: currentAsset.role,
+          sourceType: 'website',
+          url: 'https://example.com/candidate.png',
+        },
+      ];
+      mocks.listBrandOsRevisions.mockResolvedValue([saved]);
+      mocks.updateBrandOsRevision.mockImplementation(
+        async (_brandId, _revisionId, body) =>
+          revision({ content: body.content }),
+      );
+      await renderSettings();
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: 'Use Candidate image' }),
+      );
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: 'Use Candidate image' }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+      await waitFor(() =>
+        expect(mocks.updateBrandOsRevision).toHaveBeenCalledWith(
+          'brand-1',
+          'revision-1',
+          expect.objectContaining({
+            content: expect.objectContaining({
+              fields: expect.objectContaining({
+                [key]: expect.objectContaining({
+                  applyActionDefault: 'preserve',
+                  proposedValue: currentValue,
+                }),
+              }),
+            }),
+          }),
+        ),
+      );
+      await screen.findByText('Revision 1 saved as a draft.');
+      const label = key === 'logo' ? 'Logo' : 'Reference assets';
+      fireEvent.click(
+        screen.getByRole('checkbox', { name: `Include ${label} in approval` }),
+      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save draft' }));
+      await waitFor(() =>
+        expect(mocks.updateBrandOsRevision).toHaveBeenLastCalledWith(
+          'brand-1',
+          'revision-1',
+          expect.objectContaining({
+            content: expect.objectContaining({
+              fields: expect.objectContaining({
+                [key]: expect.objectContaining({
+                  applyActionDefault: 'reject',
+                }),
+              }),
+            }),
+          }),
+        ),
+      );
+    },
+  );
+
+  it('exposes and revokes an older publication when the latest approved export is unavailable', async () => {
+    mocks.getBrandOsExport.mockResolvedValue(
+      exportState({
+        state: 'unavailable',
+        revisionId: 'revision-2',
+        digest: null,
+        publishedRevisionId: 'revision-1',
+        publicUrl: 'https://example.com/public/design.md',
+        revisionUrl: 'https://example.com/public/revision-1/design.md',
+      }),
+    );
+    mocks.revokeBrandOsDesign.mockResolvedValue(
+      exportState({ state: 'revoked', revisionId: 'revision-2', digest: null }),
+    );
+    await renderSettings();
+    expect(
+      screen.getByRole('link', { name: 'Open public design.md' }),
+    ).toHaveAttribute('href', 'https://example.com/public/design.md');
+    expect(
+      screen.getByRole('link', { name: 'Open immutable revision design.md' }),
+    ).toHaveAttribute(
+      'href',
+      'https://example.com/public/revision-1/design.md',
+    );
+    expect(
+      screen.getByRole('button', { name: 'Download design.md' }),
+    ).toBeDisabled();
+    expect(
+      screen.queryByRole('button', { name: 'Update publication' }),
+    ).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Revoke public access' }),
+    );
+    await screen.findByText('design.md · revoked');
+    expect(
+      screen.queryByRole('link', { name: 'Open immutable revision design.md' }),
+    ).not.toBeInTheDocument();
   });
 });

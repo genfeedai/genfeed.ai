@@ -3,6 +3,7 @@ import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os
 import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import { BrandOsRevisionStatus } from '@genfeedai/contracts';
 import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';
@@ -78,7 +79,14 @@ describe('BrandOsPreviewService', () => {
     findClaimed: ReturnType<typeof vi.fn>;
     ensureInitial: ReturnType<typeof vi.fn>;
   };
-  let stored: Map<string, { content: IBrandKitDraft; tokenHash: string }>;
+  let stored: Map<
+    string,
+    {
+      content: IBrandKitDraft;
+      tokenHash: string;
+      status: BrandOsRevisionStatus;
+    }
+  >;
 
   beforeEach(() => {
     redisHarness = createRedisHarness();
@@ -99,7 +107,10 @@ describe('BrandOsPreviewService', () => {
       findClaimed: vi.fn(
         async (orgId: string, brandId: string, tokenHash?: string) => {
           const row = stored.get(`${orgId}:${brandId}`);
-          return row && (!tokenHash || tokenHash === row.tokenHash)
+          return row &&
+            (tokenHash
+              ? tokenHash === row.tokenHash
+              : row.status === BrandOsRevisionStatus.DRAFT)
             ? row
             : null;
         },
@@ -111,7 +122,11 @@ describe('BrandOsPreviewService', () => {
           content: IBrandKitDraft,
           tokenHash: string,
         ) => {
-          const row = { content, tokenHash };
+          const row = {
+            content,
+            tokenHash,
+            status: BrandOsRevisionStatus.DRAFT,
+          };
           stored.set(`${orgId}:${brandId}`, row);
           return row;
         },
@@ -314,6 +329,26 @@ describe('BrandOsPreviewService', () => {
     await expect(service.readClaimedPreview('org-1', brand)).resolves.toEqual(
       claimed,
     );
+    await expect(
+      service.claimPreview(preview.previewToken, 'org-1', brand),
+    ).resolves.toEqual(claimed);
+    expect(revisions.ensureInitial).toHaveBeenCalledTimes(1);
+  });
+  it('stops offering an approved claim as a draft but keeps claim retries durable', async () => {
+    const preview = await service.createPreview({ guidance: 'Approved once.' });
+    const claimed = await service.claimPreview(
+      preview.previewToken,
+      'org-1',
+      brand,
+    );
+    const revision = stored.get('org-1:brand-1');
+    if (!revision) throw new Error('Expected persisted claim');
+    revision.status = BrandOsRevisionStatus.APPROVED;
+    redisHarness.values.clear();
+    redisService.getPublisher.mockReturnValue(null);
+    await expect(
+      service.readClaimedPreview('org-1', brand),
+    ).rejects.toBeInstanceOf(NotFoundException);
     await expect(
       service.claimPreview(preview.previewToken, 'org-1', brand),
     ).resolves.toEqual(claimed);

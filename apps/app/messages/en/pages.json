@@ -2359,6 +2359,15 @@
     "assetCandidate": "Asset candidate",
     "addEntry": "Add {label}",
     "removeEntry": "Remove {label} {index}",
-    "listLimit": "Use at most 50 entries per list. Your edits are still available."
+    "listLimit": "Use at most 50 entries per list. Your edits are still available.",
+    "visibility": {
+      "unavailable": "unavailable",
+      "private": "private",
+      "published": "published",
+      "revoked": "revoked"
+    },
+    "revisionLink": "Open immutable revision design.md",
+    "scanPersistenceFailed": "Website scan succeeded, but the draft could not be saved as a revision. Your scanned fields are still available below.",
+    "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below."
   }
 }

@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from 'vitest';
 import BrandSettingsKitPage from './content';
 
 const mocks = vi.hoisted(() => ({
+  role: 'owner',
   captureBrandOsFunnelStage: vi.fn(),
   handleOpenUploadModal: vi.fn(),
   handleRefreshBrand: vi.fn(),
@@ -11,7 +12,7 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
-  useUserRole: () => 'owner',
+  useUserRole: () => mocks.role,
 }));
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => vi.fn(),
@@ -51,6 +52,7 @@ vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
 
 vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
   default: (props: {
+    onDraftCreated?: unknown;
     loadClaimedBrandOsDraft?: boolean;
     onBrandOsDraftAccepted?: () => void;
     onBrandOsDraftLoaded?: () => void;
@@ -58,6 +60,7 @@ vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
     <section
       data-load-claimed={String(props.loadClaimedBrandOsDraft)}
       data-testid="review-card"
+      data-can-persist={String(Boolean(props.onDraftCreated))}
     >
       Brand Kit Review
       <button type="button" onClick={props.onBrandOsDraftLoaded}>
@@ -71,7 +74,14 @@ vi.mock('@pages/brands/components/brand-kit/BrandKitReviewCard', () => ({
 }));
 
 vi.mock('@pages/brands/components/sidebar/BrandDetailManualKitCard', () => ({
-  default: () => <section data-testid="manual-card">Manual Brand Kit</section>,
+  default: (props: { onDraftCreated?: unknown }) => (
+    <section
+      data-testid="manual-card"
+      data-can-persist={String(Boolean(props.onDraftCreated))}
+    >
+      Manual Brand Kit
+    </section>
+  ),
 }));
 
 vi.mock('@pages/brands/components/sidebar/BrandWatermarkSettings', () => ({
@@ -159,5 +169,22 @@ describe('BrandSettingsKitPage', () => {
       screen.queryByRole('link', { name: /open knowledge/i }),
     ).not.toBeInTheDocument();
     expect(screen.queryByText('Brand Knowledge')).not.toBeInTheDocument();
+  });
+  it('keeps legacy scan and manual cards available to members without revision persistence callbacks', () => {
+    mocks.role = 'member';
+    try {
+      render(<BrandSettingsKitPage />);
+      expect(screen.getByTestId('review-card')).toHaveAttribute(
+        'data-can-persist',
+        'false',
+      );
+      expect(screen.getByTestId('manual-card')).toHaveAttribute(
+        'data-can-persist',
+        'false',
+      );
+      expect(screen.getByTestId('brand-os-settings')).toBeInTheDocument();
+    } finally {
+      mocks.role = 'owner';
+    }
   });
 });

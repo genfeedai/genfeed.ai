@@ -302,6 +302,50 @@ describe('Brand OS export publication boundary', () => {
       status: 409,
     });
   });
+  it.each(['malformed', 'unknown-schema'] as const)(
+    'reports unavailable for %s approved artifacts without hiding revision metadata',
+    async (kind) => {
+      if (kind === 'malformed')
+        revisions[0].content.fields.label.currentValue = '';
+      else revisions[0].exportSchemaVersion = 'future';
+      expect(await service.state('brand-1', actor)).toMatchObject({
+        canPublish: true,
+        digest: null,
+        generatedAt: null,
+        revisionId: 'rev-1',
+        state: 'unavailable',
+      });
+      await expect(service.download('brand-1', actor)).rejects.toMatchObject({
+        status: kind === 'malformed' ? 422 : 404,
+      });
+    },
+  );
+  it('preserves an earlier publication and revocation metadata when the current approval cannot export', async () => {
+    await service.publish('brand-1', 'rev-1', actor);
+    revisions[0].status = 'SUPERSEDED';
+    const invalid = approved('rev-2', 2);
+    invalid.content.fields.label.currentValue = '';
+    revisions.unshift(invalid);
+    expect(await service.state('brand-1', actor)).toMatchObject({
+      digest: null,
+      generatedAt: null,
+      publishedRevisionId: 'rev-1',
+      publicUrl: 'https://api.example.com/v1/public/brand-os/pub-1/design.md',
+      revisionId: 'rev-2',
+      state: 'unavailable',
+    });
+    expect((await service.publicArtifact('pub-1')).revisionId).toBe('rev-1');
+    expect(await service.revoke('brand-1', actor)).toMatchObject({
+      digest: null,
+      publicUrl: null,
+      publishedRevisionId: 'rev-1',
+      revisionId: 'rev-2',
+      state: 'unavailable',
+    });
+    await expect(service.publicArtifact('pub-1')).rejects.toMatchObject({
+      status: 404,
+    });
+  });
   it('rejects malformed approved content before publication writes', async () => {
     revisions[0].content.fields.label.currentValue = '';
     await expect(

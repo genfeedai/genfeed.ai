@@ -3,6 +3,7 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { BrandOsExportService } from '@api/services/brand-os-export/brand-os-export.service';
 import { PublishBrandOsDto } from '@api/services/brand-os-export/publish-brand-os.dto';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import type {
   IBrandOsDesignArtifact,
   JsonApiSingleResponse,
@@ -117,6 +118,7 @@ export class PublicBrandOsExportController {
   constructor(private readonly service: BrandOsExportService) {}
   @Get(':publicationId/design.md')
   @Public()
+  @RateLimit({ limit: 60, scope: 'ip', windowMs: 60_000 })
   @Header('Cache-Control', 'no-store')
   async current(
     @Param('publicationId') publicationId: string,
@@ -130,6 +132,7 @@ export class PublicBrandOsExportController {
   }
   @Get(':publicationId/:revisionId/design.md')
   @Public()
+  @RateLimit({ limit: 60, scope: 'ip', windowMs: 60_000 })
   @Header('Cache-Control', 'no-store')
   async revision(
     @Param('publicationId') publicationId: string,

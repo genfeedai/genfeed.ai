@@ -191,6 +191,25 @@ describe.skipIf(!databaseUrl)('Brand OS export with real PostgreSQL', () => {
     await expect(service.publicArtifact(publication.id)).rejects.toMatchObject({
       status: 404,
     });
+    await scoped.query(
+      'UPDATE "brands" SET "isDeleted" = false WHERE "id" = $1',
+      ['brand-1'],
+    );
+    await scoped.query(
+      'UPDATE "brand_os_publications" SET "isDeleted" = true WHERE "id" = $1',
+      [publication.id],
+    );
+    await expect(
+      service.publish('brand-1', 'rev-2', actor),
+    ).rejects.toMatchObject({ status: 409 });
+    const tombstone = await scoped.query(
+      'SELECT "isDeleted" FROM "brand_os_publications" WHERE "id" = $1',
+      [publication.id],
+    );
+    expect(tombstone.rows[0].isDeleted).toBe(true);
+    await expect(service.publicArtifact(publication.id)).rejects.toMatchObject({
+      status: 404,
+    });
     const audits = await prisma.activity.findMany({
       where: { brandId: 'brand-1', isDeleted: false, organizationId: 'org-1' },
     });

@@ -111,7 +111,18 @@ export class BrandOsExportService {
       }),
       this.prisma.brandOsPublication.findFirst({ where }),
     ]);
-    const artifact = revision ? this.artifact(revision, 'private') : null;
+    let artifact: IBrandOsDesignArtifact | null = null;
+    if (revision) {
+      try {
+        artifact = this.artifact(revision, 'private');
+      } catch (error) {
+        if (
+          !(error instanceof NotFoundException) &&
+          !(error instanceof UnprocessableEntityException)
+        )
+          throw error;
+      }
+    }
     const published = publication && !publication.revokedAt;
     const publicUrl = published
       ? `${this.apiBase()}/public/brand-os/${publication.id}/design.md`
@@ -130,7 +141,7 @@ export class BrandOsExportService {
         ? `${this.apiBase()}/public/brand-os/${publication.id}/${publication.revisionId}/design.md`
         : null,
       schemaVersion: '1',
-      state: !revision
+      state: !artifact
         ? 'unavailable'
         : published
           ? 'published'
@@ -202,7 +213,6 @@ export class BrandOsExportService {
           revisionId,
         },
         update: {
-          isDeleted: false,
           publishedAt: new Date(),
           publishedById: user.userId,
           publishedRevisionIds,

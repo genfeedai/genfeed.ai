@@ -327,6 +327,17 @@ describe('approved Brand OS identity', () => {
         brandOsRevisionsService: {
           findApproved: vi.fn().mockResolvedValue(approved),
         },
+        brandsService: {
+          findOne: vi.fn().mockResolvedValue({
+            ...BRAND,
+            agentConfig: {
+              voice: { hashtags: ['#Legacy'], taglines: ['Legacy tagline'] },
+              platformOverrides: {
+                linkedin: { voice: { tone: 'Legacy override' } },
+              },
+            },
+          }),
+        },
         harnessProfilesService: {
           buildContributionForBrand: vi.fn().mockResolvedValue(profile),
         },
@@ -335,6 +346,7 @@ describe('approved Brand OS identity', () => {
       brandId: 'brand-1',
       organizationId: 'org-1',
       contentType: 'post',
+      platform: 'linkedin',
     });
     expect(brandOsRevisionsService.findApproved).toHaveBeenCalledWith(
       'org-1',
@@ -354,6 +366,10 @@ describe('approved Brand OS identity', () => {
         }),
       }),
     );
+    const input = contentHarnessService.composeBrief.mock.calls[0][0];
+    expect(input.voiceProfile.hashtags).toBeUndefined();
+    expect(input.voiceProfile.taglines).toBeUndefined();
+    expect(JSON.stringify(input)).not.toContain('Legacy override');
   });
   it('falls back to profile identity only when no approval exists', async () => {
     const { service, contentHarnessService } = createService();

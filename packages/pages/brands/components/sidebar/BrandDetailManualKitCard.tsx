@@ -27,6 +27,7 @@ import {
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
 import { CircleCheck, FileText, Upload } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type ChangeEvent, useCallback, useMemo, useState } from 'react';
 
 type ManualKitFormState = {
@@ -277,6 +278,7 @@ export default function BrandDetailManualKitCard({
   onUploadLogo,
   onUploadReference,
 }: BrandDetailManualKitCardProps) {
+  const brandOsTranslate = useTranslations('pages.brandOsSettings');
   const notifications = NotificationsService.getInstance();
   const [form, setForm] = useState<ManualKitFormState>(() =>
     toFormState(brand),
@@ -388,7 +390,14 @@ export default function BrandDetailManualKitCard({
       const proposedKeys = readProposedFieldKeys(nextDraft);
       setDraft(nextDraft);
       setSelectedFields(proposedKeys);
-      await onDraftCreated?.(nextDraft);
+      try {
+        await onDraftCreated?.(nextDraft);
+      } catch {
+        logger.error('Failed to persist manual Brand OS revision');
+        setError(brandOsTranslate('manualPersistenceFailed'));
+        notifications.error(brandOsTranslate('manualPersistenceFailed'));
+        return;
+      }
       notifications.success('Manual brand kit draft ready');
     } catch (draftError) {
       logger.error('Failed to create manual brand kit draft', draftError);
@@ -405,6 +414,7 @@ export default function BrandDetailManualKitCard({
     getBrandsService,
     notifications,
     onDraftCreated,
+    brandOsTranslate,
   ]);
 
   const toggleSelectedField = useCallback((key: ManualApplyFieldKey): void => {
@@ -654,7 +664,10 @@ export default function BrandDetailManualKitCard({
         </div>
 
         {error ? (
-          <p className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive">
+          <p
+            role="alert"
+            className="rounded-md border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive"
+          >
             {error}
           </p>
         ) : null}

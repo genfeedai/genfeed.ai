@@ -278,7 +278,8 @@ export default function BrandOsSettingsCard({
     (revision) => revision.id === exportState?.revisionId,
   );
   const publicationOutdated =
-    exportState?.state === 'published' &&
+    Boolean(exportState?.publicUrl) &&
+    exportState &&
     exportState.revisionId !== exportState.publishedRevisionId;
 
   return (
@@ -440,7 +441,9 @@ export default function BrandOsSettingsCard({
             aria-label={t('exportLabel')}
           >
             <h3 className="text-sm font-semibold">
-              {t('exportTitle', { state: exportState.state })}
+              {t('exportTitle', {
+                state: t(`visibility.${exportState.state}`),
+              })}
             </h3>
             <p className="text-sm text-muted-foreground">
               {t(`export.${exportState.state}`)}
@@ -455,7 +458,7 @@ export default function BrandOsSettingsCard({
                 {t('publicationOutdated')}
               </p>
             )}
-            {exportState.publicUrl && exportState.state === 'published' && (
+            {exportState.publicUrl && (
               <Link
                 className="block break-all text-sm underline"
                 href={exportState.publicUrl}
@@ -465,16 +468,27 @@ export default function BrandOsSettingsCard({
                 {t('publicLink')}
               </Link>
             )}
+            {exportState.revisionUrl && (
+              <Link
+                className="block break-all text-sm underline"
+                href={exportState.revisionUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                {t('revisionLink')}
+              </Link>
+            )}
             <div className="flex flex-wrap gap-2">
               <Button
                 label={t('download')}
-                isDisabled={busy || !exportState.revisionId}
+                isDisabled={busy || !exportState.digest}
                 onClick={download}
               />
               {canManage &&
                 exportState.canPublish &&
                 exportState.revisionId &&
-                (exportState.state !== 'published' || publicationOutdated) && (
+                exportState.digest &&
+                (!exportState.publicUrl || publicationOutdated) && (
                   <Button
                     label={
                       publicationOutdated
@@ -499,7 +513,7 @@ export default function BrandOsSettingsCard({
                     }}
                   />
                 )}
-              {canManage && exportState.state === 'published' && (
+              {canManage && exportState.publicUrl && (
                 <Button
                   label={t('revoke')}
                   variant={ButtonVariant.SECONDARY}
