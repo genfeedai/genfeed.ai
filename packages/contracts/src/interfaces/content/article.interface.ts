@@ -11,7 +11,7 @@ import type { SeoScorecardSnapshot } from './seo-scorecard.interface';
 import type { IXArticleMetadata } from './x-article-metadata.interface';
 
 export interface IArticle extends IBaseEntity {
-  organizationId?: string | null;
+  organizationId?: string;
   user: IUser;
   organization: IOrganization;
   brand?: IBrand;
