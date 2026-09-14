@@ -3,6 +3,7 @@
     "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/contexts": "workspace:*",
+    "@genfeedai/helpers": "workspace:*",
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",

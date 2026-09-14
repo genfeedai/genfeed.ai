@@ -106,8 +106,9 @@ vi.mock(
 // RoutedOrganizationProvider ancestor (that lives above AppProtectedLayout in
 // ProtectedLayoutClient), and the settings-commands hook is exercised on its
 // own in use-settings-commands-registration.test.ts.
+const settingsRegistrationSpy = vi.hoisted(() => vi.fn());
 vi.mock('./settings-search/use-settings-commands-registration', () => ({
-  useSettingsCommandsRegistration: () => {},
+  useSettingsCommandsRegistration: settingsRegistrationSpy,
 }));
 
 vi.mock(
@@ -570,6 +571,19 @@ describe('AppProtectedLayout', () => {
       writable: true,
     });
   });
+
+  it.each(['/admin', '/onboarding/brand', '/org-123/~/agent/onboarding'])(
+    'registers settings on palette host %s',
+    (pathname) => {
+      mockPathname.value = pathname;
+      render(
+        <AppProtectedLayout>
+          <div>Protected content</div>
+        </AppProtectedLayout>,
+      );
+      expect(settingsRegistrationSpy).toHaveBeenCalledTimes(1);
+    },
+  );
 
   it('hides the shell low credits banner on promptbar routes', () => {
     mockPathname.value = '/studio/storyboard';

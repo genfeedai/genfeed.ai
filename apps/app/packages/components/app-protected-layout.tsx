@@ -561,7 +561,7 @@ function AppLayoutWithDynamicMenu({
       ) : null}
       <CommandPaletteProvider>
         {/* Admin is an isolated control plane and intentionally has no Agent
-          thread commands. Focused onboarding has no palette to put them in. */}
+          thread commands. Focused onboarding excludes thread commands. */}
         {isFocusedOnboardingRoute || isAdminRoute ? null : (
           <AgentThreadCommandsBridge
             threads={threads}
@@ -570,9 +570,7 @@ function AppLayoutWithDynamicMenu({
           />
         )}
         <CommandPaletteInitializer />
-        {isFocusedOnboardingRoute || isAdminRoute ? null : (
-          <SettingsCommandsBridge currentApp={currentApp} />
-        )}
+        <SettingsCommandsBridge currentApp={currentApp} />
         {guardedMainLayout}
         <LazyCommandPalette />
       </CommandPaletteProvider>

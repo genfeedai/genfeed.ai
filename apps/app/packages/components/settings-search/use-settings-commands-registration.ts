@@ -4,38 +4,23 @@ import {
   buildSettingsSearchCatalog,
   resolveSettingsSearchHref,
 } from '@app-config/settings-search-catalog';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { SettingsSurface } from '@genfeedai/contracts';
+import { parseScopedAppPath } from '@genfeedai/contracts/constants';
 import type { AppContext } from '@genfeedai/contracts/interfaces';
 import type { ICommand } from '@genfeedai/contracts/interfaces/ui/command-palette.interface';
+import { useOnboardingRouteAccess } from '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
+import { useIsDesktopClient } from '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client';
 import type { SettingsSearchItem } from '@genfeedai/props/ui/settings-search/settings-search.props';
 import { CommandPaletteService } from '@genfeedai/services/core/command-palette.service';
 import { Settings } from 'lucide-react';
-import { useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
-
-/** Anchored settings results (e.g. `/settings/personal#appearance`) scroll to
- * their section instead of relying on the browser's default hash jump, which
- * next/navigation's client-side push does not perform on its own. */
-function scrollToSettingsHash(href: string): void {
-  const hashIndex = href.indexOf('#');
-  if (hashIndex < 0) {
-    return;
-  }
-
-  const hash = href.slice(hashIndex + 1);
-  if (!hash) {
-    return;
-  }
-
-  document.getElementById(hash)?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
-  });
-}
+import { useSettingsNavigation } from './use-settings-navigation';
 
 interface BuildScopeCommandsOptions {
   brandSlug: string;
@@ -101,26 +86,48 @@ function resolvePriority(currentApp: AppContext | undefined): number {
  * Settings/Brand Management/Billing (`commands.registry.ts` no longer
  * registers those separately — see its `createDefaultCommands` doc comment).
  *
- * Tiered by session availability: personal items always register;
- * organization items once an org is known; brand items only once a session
- * brand exists — never gated on the URL alone, so results follow the
- * operator across routes instead of a second URL-driven settings finder.
+ * Commands register when the settings destination is accessible. Personal
+ * items need no organization; organization items use confirmed or known
+ * active context, and brand items require a matching organization.
  */
 export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
-  const router = useRouter();
+  const navigate = useSettingsNavigation();
+  const pathname = usePathname();
+  const { canRender, redirectTarget } =
+    useOnboardingRouteAccess('/settings/personal');
+  const isDesktop = useIsDesktopClient();
+  const isAccessible = isDesktop || (canRender && !redirectTarget);
   const { selectedBrand } = useBrand();
-  const { confirmedOrganizationSlug } = useRoutedOrganization();
-  const orgSlug =
-    confirmedOrganizationSlug || getBrandOrganizationSlug(selectedBrand);
-  const brandSlug = selectedBrand?.slug ?? '';
+  const { confirmedOrganizationSlug, isRouteConfirmed, organizations, status } =
+    useRoutedOrganization();
+  const routeOrgSlug = parseScopedAppPath(pathname)?.orgSlug;
+  const isKeylessScopedRoute =
+    Boolean(routeOrgSlug) &&
+    !isBetterAuthEnabled() &&
+    isRouteConfirmed &&
+    status === 'unscoped';
+  const isContextReady = routeOrgSlug
+    ? isKeylessScopedRoute ||
+      (status === 'matched' &&
+        isRouteConfirmed &&
+        confirmedOrganizationSlug === routeOrgSlug)
+    : status === 'matched' || status === 'unscoped';
+  const brandOrgSlug = getBrandOrganizationSlug(selectedBrand);
+  const activeOrganizationSlug = !routeOrgSlug
+    ? organizations.find((organization) => organization.isActive)?.slug
+    : '';
+  const orgSlug = isContextReady
+    ? (isKeylessScopedRoute ? routeOrgSlug : confirmedOrganizationSlug) ||
+      activeOrganizationSlug ||
+      brandOrgSlug
+    : '';
+  const brandSlug =
+    orgSlug && brandOrgSlug === orgSlug ? (selectedBrand?.slug ?? '') : '';
   const isEnterprise = hasOrganizationBillingHint();
   const priority = resolvePriority(currentApp);
 
   useEffect(() => {
-    const navigate = (href: string) => {
-      router.push(href);
-      scrollToSettingsHash(href);
-    };
+    if (!isAccessible) return;
 
     const options: BuildScopeCommandsOptions = {
       brandSlug,
@@ -150,5 +157,5 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
         CommandPaletteService.unregisterCommands(registeredIds);
       }
     };
-  }, [brandSlug, isEnterprise, orgSlug, priority, router]);
+  }, [brandSlug, isAccessible, isEnterprise, navigate, orgSlug, priority]);
 }

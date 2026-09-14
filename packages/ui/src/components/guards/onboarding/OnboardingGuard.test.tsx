@@ -1,7 +1,8 @@
 // @vitest-environment jsdom
 'use client';
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { useOnboardingRouteAccess } from '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access';
+import { render, renderHook, screen, waitFor } from '@testing-library/react';
 import OnboardingGuard from '@ui/guards/onboarding/OnboardingGuard';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -57,6 +58,47 @@ describe('OnboardingGuard', () => {
     delete process.env.NEXT_PUBLIC_BETTER_AUTH_ENABLED;
     delete process.env.NEXT_PUBLIC_GENFEED_LICENSE_KEY;
     delete process.env.NEXT_PUBLIC_DESKTOP_SHELL;
+  });
+
+  it.each([false, true])(
+    'evaluates settings destination access independently of the onboarding host (completed: %s)',
+    (isCompleted) => {
+      pathnameMock.mockReturnValue('/onboarding/brand');
+      useCurrentUserMock.mockReturnValue({
+        currentUser: {
+          isOnboardingCompleted: isCompleted,
+          onboardingStepsCompleted: isCompleted ? ['brand'] : [],
+        },
+        isLoading: false,
+      });
+      useAccessStateMock.mockReturnValue({
+        accessState: {},
+        hasPaygCredits: false,
+        isByok: false,
+        isLoading: false,
+        isSubscribed: false,
+        isSuperAdmin: false,
+        needsOnboarding: true,
+      });
+      const { result } = renderHook(() =>
+        useOnboardingRouteAccess('/settings/personal'),
+      );
+      expect(result.current.canRender).toBe(isCompleted);
+      expect(result.current.redirectTarget).toBe(
+        isCompleted ? null : '/onboarding/brand',
+      );
+      expect(replaceMock).not.toHaveBeenCalled();
+    },
+  );
+
+  it('reports loading destination access without performing a redirect', () => {
+    useCurrentUserMock.mockReturnValue({ currentUser: null, isLoading: true });
+    useAccessStateMock.mockReturnValue({ accessState: null, isLoading: true });
+    const { result } = renderHook(() =>
+      useOnboardingRouteAccess('/settings/personal'),
+    );
+    expect(result.current).toEqual({ canRender: false, redirectTarget: null });
+    expect(replaceMock).not.toHaveBeenCalled();
   });
 
   it('renders the agent onboarding surface when access state never hydrates', async () => {
