@@ -584,7 +584,10 @@ describe('ApiKeysController', () => {
 
     it('lists only active keys belonging to the user in the authenticated organization', async () => {
       const result = await controller.findAll(mockRequest, mockUser, {
+        isDeleted: false,
         limit: 100,
+        page: 1,
+        sort: 'createdAt: -1',
       });
       expect(service.findAll).toHaveBeenCalledWith(
         {
@@ -651,6 +654,7 @@ describe('ApiKeysController', () => {
           const result =
             operation === 'update'
               ? controller.update(mockRequest, mockUser, key.id, {
+                  isDeleted: false,
                   label: 'Hijacked',
                 })
               : controller[operation](mockRequest, mockUser, key.id);
