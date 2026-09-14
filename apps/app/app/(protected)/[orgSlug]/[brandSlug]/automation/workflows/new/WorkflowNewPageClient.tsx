@@ -73,7 +73,7 @@ function buildMessagesAutomationSeed(
   const platform = searchParams.get('platform') ?? 'youtube';
   const sourceContentId = searchParams.get('sourceContentId') ?? '';
 
-  const nodes = [
+  const nodes: WorkflowSeed['nodes'] = [
     {
       data: {
         config: {
@@ -94,10 +94,10 @@ function buildMessagesAutomationSeed(
       position: { x: 120, y: 160 },
       type: 'commentTrigger',
     },
-  ] as unknown as WorkflowSeed['nodes'];
+  ];
 
   return {
-    edges: [] as unknown as WorkflowSeed['edges'],
+    edges: [],
     nodes,
     workflowName: 'Social Comment Automation',
   };

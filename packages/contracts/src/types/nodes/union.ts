@@ -22,6 +22,7 @@ import type {
 import type {
   AudioInputNodeData,
   CastPromptNodeData,
+  CommentTriggerNodeData,
   ImageInputNodeData,
   PromptConstructorNodeData,
   PromptNodeData,
@@ -45,6 +46,7 @@ import type {
 } from './processing-nodes';
 
 export type WorkflowNodeData =
+  | CommentTriggerNodeData
   | ImageInputNodeData
   | AudioInputNodeData
   | VideoInputNodeData
@@ -82,7 +84,10 @@ export type WorkflowNodeData =
 // WORKFLOW NODE & EDGE
 // =============================================================================
 
-export type WorkflowNode = Node<WorkflowNodeData, NodeType>;
+export type WorkflowNode = Node<
+  WorkflowNodeData,
+  NodeType | CommentTriggerNodeData['type']
+>;
 
 /**
  * Edge data for workflow edges
