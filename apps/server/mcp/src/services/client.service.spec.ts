@@ -1,11 +1,11 @@
 import { createHash } from 'node:crypto';
-import { MCP_ACTION_ORIGIN_PROOF_HEADER } from '@genfeedai/contracts';
+import { MCP_ACTION_ORIGIN_PROOF_HEADER, Platform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ConfigService } from '@mcp/config/config.service';
 import { ClientService } from '@mcp/services/client.service';
 import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
-import { AxiosInstance } from 'axios';
+import axios, { type AxiosInstance } from 'axios';
 import type { Mock } from 'vitest';
 
 describe('ClientService (MCP)', () => {
@@ -13,11 +13,7 @@ describe('ClientService (MCP)', () => {
   let loggerService: LoggerService;
 
   const mockAxiosInstance: Partial<AxiosInstance> = {
-    defaults: {
-      headers: {
-        Authorization: '',
-      },
-    } as any,
+    defaults: axios.create({ headers: { Authorization: '' } }).defaults,
     delete: vi.fn(),
     get: vi.fn(),
     patch: vi.fn(),
@@ -653,7 +649,7 @@ describe('ClientService (MCP)', () => {
       const params = {
         contentId: 'content-123',
         customMessage: 'Check this out!',
-        platforms: ['twitter', 'linkedin'] as any,
+        platforms: [Platform.TWITTER, Platform.LINKEDIN],
       };
 
       const mockResponse = {

@@ -47,7 +47,7 @@ export function handleAccountManagementTool(
         ],
       };
     },
-    list_brands: async (a) => {
+    list_brands: async () => {
       const brands = await client.listBrands();
       const brandList = Array.isArray(brands) ? brands : [];
       return {
