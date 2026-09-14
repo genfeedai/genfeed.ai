@@ -1,4 +1,5 @@
 import type { ExecutableNode } from '../../types';
+import { isRecord } from '../../utils/record';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -65,10 +66,6 @@ const VALID_TONE_STYLES = new Set<HookToneStyle>([
   'humorous',
   'dramatic',
 ]);
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function stringifyContext(value: unknown): string | null {
   const text = toNonEmptyString(value);
