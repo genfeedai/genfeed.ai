@@ -85,7 +85,7 @@ describe('AgentThreadEngineService', () => {
     $transaction: ReturnType<typeof vi.fn>;
     agentThreadEvent: MockPrismaModel;
     agentThreadSnapshot: MockPrismaModel;
-    workflowExecution: MockPrismaModel;
+    $queryRaw: ReturnType<typeof vi.fn>;
   };
   let mockPrisma: MockPrisma;
   let agentThreadsService: vi.Mocked<Pick<AgentThreadsService, 'findOne'>>;
@@ -102,7 +102,7 @@ describe('AgentThreadEngineService', () => {
 
   beforeEach(async () => {
     mockPrisma = {
-      workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
+      $queryRaw: vi.fn().mockResolvedValue([]),
       agentThreadEvent: {
         create: vi.fn().mockResolvedValue(mockEventRow),
         findFirst: vi.fn().mockResolvedValue(null),
