@@ -65,7 +65,7 @@ export async function createImage(
   return flattenSingle<Image>(response);
 }
 
-export async function getImage(id: string): Promise<Image> {
-  const response = await get<JsonApiSingleResponse>(`/images/${id}`);
+export async function getImage(id: string, signal?: AbortSignal): Promise<Image> {
+  const response = await get<JsonApiSingleResponse>(`/images/${id}`, { signal });
   return flattenSingle<Image>(response);
 }

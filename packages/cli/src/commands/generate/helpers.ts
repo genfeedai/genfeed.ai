@@ -5,6 +5,7 @@ import type { Article } from '@/api/articles';
 import { getActiveBrand } from '@/config/store';
 import { formatLabel, print, printJson } from '@/ui/theme';
 import { NoBrandError } from '@/utils/errors';
+import type { MediaObservation } from '@/utils/media-status';
 import { waitForCompletion } from '@/utils/websocket';
 
 type OutputLabel = readonly [string, string] | false | undefined;
@@ -47,11 +48,11 @@ export function printArticle(article: Article): void {
   print();
 }
 
-export async function waitForGenerated<T>(
+export async function waitForGenerated<T extends MediaObservation>(
   spinner: Ora,
   generatingType: string,
   generatedType: string,
-  getResult: () => Promise<T>,
+  getResult: (signal: AbortSignal) => Promise<T>,
   taskId: string,
   taskType: 'IMAGE' | 'VIDEO',
   timeout: number

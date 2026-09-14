@@ -123,6 +123,18 @@ describe('api/videos', () => {
   });
 
   describe('getVideo', () => {
+    it('forwards cancellation to the media status read', async () => {
+      const controller = new AbortController();
+      mockFetch.mockResolvedValue({
+        data: { attributes: { status: IngredientStatus.PROCESSING }, id: 'media-1', type: 'video' },
+      });
+      await getVideo('media-1', controller.signal);
+      expect(mockFetch).toHaveBeenCalledWith('/videos/media-1', {
+        method: 'GET',
+        signal: controller.signal,
+      });
+    });
+
     it('flattens generated video with url', async () => {
       mockFetch.mockResolvedValue({
         data: {

@@ -93,7 +93,7 @@ export const imageCommand = new Command('image')
         spinner,
         'image',
         'Image',
-        () => getImage(image.id),
+        (signal) => getImage(image.id, signal),
         image.id,
         'IMAGE',
         300000

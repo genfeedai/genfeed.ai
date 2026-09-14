@@ -51,7 +51,7 @@ export const videoCommand = new Command('video')
         spinner,
         'video',
         'Video',
-        () => getVideo(video.id),
+        (signal) => getVideo(video.id, signal),
         video.id,
         'VIDEO',
         600000
