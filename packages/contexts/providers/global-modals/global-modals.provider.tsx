@@ -1,27 +1,13 @@
 'use client';
-import type {
-  IngredientCategory,
-  Platform,
-  PostRepurposeMode,
-} from '@genfeedai/contracts';
-import type {
-  IAsset,
-  IBrand,
-  ICredential,
-  IIngredient,
-  IPost,
-} from '@genfeedai/contracts/interfaces';
 import type { UsePostModalOptions } from '@genfeedai/contracts/interfaces/hooks/use-publication-modal.interface';
 import { capitalize } from '@genfeedai/helpers/formatting/format/format.helper';
-import type { Brand } from '@genfeedai/models/organization/brand.model';
 import type {
-  ModalConfirmProps,
-  ModalExportProps,
-  ModalMetadataProps,
-  ModalPromptProps,
-} from '@genfeedai/props/modals/modal.props';
-import type { GallerySelectItem } from '@genfeedai/props/modals/modal-gallery.props';
-import type { PostRepurposeSource } from '@genfeedai/props/modals/modal-post-repurpose.props';
+  GlobalModalConfirmDeleteConfig,
+  GlobalModalsContextValue,
+  GlobalModalsProviderProps,
+  GlobalModalUploadConfig,
+} from '@genfeedai/props/modals/global-modals.props';
+
 import {
   scheduleModalGlobalSideEffectCleanup,
   useRouteModalGlobalSideEffectCleanup,
@@ -37,99 +23,21 @@ import {
 import GlobalModalsRenderer from './GlobalModalsRenderer';
 import { useGlobalModalsState } from './useGlobalModalsState';
 
-export interface GlobalModalsContextValue {
-  publishIngredient: IIngredient | null;
-  openPostBatchModal: (ingredient: IIngredient | IIngredient[]) => void;
-  handlePostClose: () => void;
-  openPostMetadataOverlay: (post: IPost, onConfirm?: () => void) => void;
-  closePostMetadataOverlay: () => void;
-  openConfirm: (
-    config: Omit<ModalConfirmProps, 'onConfirm'> & {
-      onConfirm: () => void | Promise<void>;
-    },
-  ) => void;
-  closeConfirm: () => void;
-  openUpload: (config: {
-    category: IngredientCategory | string;
-    parentId?: string;
-    parentModel?: string;
-    width?: number;
-    height?: number;
-    isResizeEnabled?: boolean;
-    isMultiple?: boolean;
-    maxFiles?: number;
-    initialFiles?: File[];
-    autoSubmit?: boolean;
-    onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
-  }) => void;
-  closeUpload: () => void;
-  openGallery: (config: {
-    category: IngredientCategory;
-    onSelect: (items: GallerySelectItem[]) => void;
-    title?: string;
-    selectedId?: string;
-    format?: string;
-    isNoneAllowed?: boolean;
-    maxSelectableItems?: number;
-    accountReference?: IAsset | null;
-    onSelectAccountReference?: (assets: IAsset[]) => void;
-    selectedReferences?: string[];
-  }) => void;
-  closeGallery: () => void;
-  openIngredientOverlay: (
-    ingredient: IIngredient | null,
-    onConfirm?: () => void,
-  ) => void;
-  closeIngredientOverlay: () => void;
-  openExport: (config: ModalExportProps) => void;
-  closeExport: () => void;
-  openCredentialModal: (
-    credential: ICredential | null,
-    onConfirm: () => void,
-  ) => void;
-  closeCredentialModal: () => void;
-  openPromptModal: (
-    config: Omit<ModalPromptProps, 'onConfirm'> & {
-      onConfirm: (prompt: string) => void;
-    },
-  ) => void;
-  closePromptModal: () => void;
-  openMetadataModal: (config: ModalMetadataProps) => void;
-  closeMetadataModal: () => void;
-  openBrandOverlay: (
-    brand: IBrand | Brand | null,
-    onConfirm?: () => void,
-    initialView?: 'edit' | 'overview',
-  ) => void;
-  closeBrandOverlay: () => void;
-  openGenerateIllustration: (config: {
-    postId: string;
-    initialPrompt?: string;
-    platform?: Platform;
-    onConfirm: (imageId: string) => void;
-  }) => void;
-  closeGenerateIllustration: () => void;
-  openPostRemixModal: (
-    post: IPost,
-    onSubmit: (description: string, label?: string) => Promise<void>,
-  ) => void;
-  closePostRemixModal: () => void;
-  openPostRepurposeModal: (
-    source: PostRepurposeSource,
-    onSubmit: (platform: Platform, mode: PostRepurposeMode) => Promise<void>,
-  ) => void;
-  closePostRepurposeModal: () => void;
-}
+export type {
+  GlobalModalsContextValue,
+  GlobalModalsProviderProps,
+} from '@genfeedai/props/modals/global-modals.props';
 
 const GlobalModalsContext = createContext<GlobalModalsContextValue | null>(
   null,
 );
 
-export function usePostModal(options: UsePostModalOptions = {}): {
-  handlePostClose: () => void;
-  openPostBatchModal: (ingredient: IIngredient | IIngredient[]) => void;
-  publishIngredient: IIngredient | null;
-} {
+export function usePostModal(
+  options: UsePostModalOptions = {},
+): Pick<
+  GlobalModalsContextValue,
+  'handlePostClose' | 'openPostBatchModal' | 'publishIngredient'
+> {
   const context = use(GlobalModalsContext);
   if (!context) {
     throw new Error('usePostModal must be used within GlobalModalsProvider');
@@ -167,9 +75,7 @@ export function useConfirmModal(): Pick<
 }
 
 export function useUploadModal(
-  options: {
-    onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
-  } = {},
+  options: Pick<GlobalModalUploadConfig, 'onComplete'> = {},
 ) {
   const context = use(GlobalModalsContext);
   if (!context) {
@@ -177,19 +83,7 @@ export function useUploadModal(
   }
 
   const openUpload = useCallback(
-    (config: {
-      category: string;
-      parentId?: string;
-      parentModel?: string;
-      width?: number;
-      height?: number;
-      isResizeEnabled?: boolean;
-      isMultiple?: boolean;
-      maxFiles?: number;
-      initialFiles?: File[];
-      autoSubmit?: boolean;
-      onComplete?: (ingredients: (IIngredient | IAsset)[]) => void;
-    }) => {
+    (config: GlobalModalUploadConfig) => {
       context.openUpload({
         ...config,
         onComplete: config.onComplete || options.onComplete,
@@ -287,12 +181,7 @@ export function useConfirmDeleteModal() {
   }
 
   const openConfirmDelete = useCallback(
-    (config: {
-      entity: { id: string; label?: string; [key: string]: unknown } | null;
-      entityName: string;
-      onConfirm: () => void | Promise<void>;
-      confirmLabel?: string;
-    }) => {
+    (config: GlobalModalConfirmDeleteConfig) => {
       if (!config.entity) {
         return;
       }
@@ -411,10 +300,6 @@ export function usePostRepurposeModal(): Pick<
     closePostRepurposeModal: context.closePostRepurposeModal,
     openPostRepurposeModal: context.openPostRepurposeModal,
   };
-}
-
-export interface GlobalModalsProviderProps {
-  children: ReactNode;
 }
 
 export function GlobalModalsProvider({
