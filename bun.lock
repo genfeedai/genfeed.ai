@@ -1039,6 +1039,7 @@
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/helpers": "workspace:*",
         "@genfeedai/serializers": "workspace:*",
+        "zod": "4.5.4",
       },
       "devDependencies": {
         "vitest": "5.0.0",

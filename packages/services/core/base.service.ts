@@ -4,10 +4,6 @@ import type {
   IHttpError,
   IServiceSerializer,
 } from '@genfeedai/contracts/interfaces/utils/error.interface';
-import {
-  TypeValidator,
-  type ValidationSchema,
-} from '@genfeedai/utils/validation/type-validator.util';
 import { PagesService } from '@services/content/pages.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
@@ -26,6 +22,7 @@ import {
   buildInstanceKey,
   ServiceInstanceManager,
 } from '@services/core/service-instance-manager';
+import type { ZodType } from 'zod';
 
 export type { JsonApiResponseDocument } from '@services/core/json-api';
 
@@ -59,8 +56,8 @@ export abstract class BaseService<
   TUpdate = Partial<T>,
 > extends HTTPBaseService {
   // Override in child classes to provide response validation
-  protected responseSchema?: ValidationSchema;
-  protected itemSchema?: ValidationSchema;
+  protected responseSchema?: ZodType;
+  protected itemSchema?: ZodType;
 
   constructor(
     endpoint: string,
@@ -189,7 +186,7 @@ export abstract class BaseService<
     const items = this.extractCollection<Partial<T>>(document);
 
     // Validate array structure
-    if (!TypeValidator.isArray(items)) {
+    if (!Array.isArray(items)) {
       logger.error('Invalid response: expected array', { response: document });
       throw new TypeError('Invalid API response: expected array of items');
     }
@@ -199,7 +196,7 @@ export abstract class BaseService<
     if (itemSchema) {
       items.forEach((item: Partial<T>, index: number) => {
         try {
-          TypeValidator.assertType(item, itemSchema, `item[${index}]`);
+          itemSchema.parse(item);
         } catch (error) {
           logger.error('Item validation failed', { error, index, item });
           throw error;
@@ -237,7 +234,7 @@ export abstract class BaseService<
     // Validate response if schema is provided
     if (this.responseSchema) {
       try {
-        TypeValidator.assertType(data, this.responseSchema, 'response');
+        this.responseSchema.parse(data);
       } catch (error) {
         logger.error('Response validation failed', { error, response: data });
         throw error;
