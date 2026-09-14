@@ -121,7 +121,7 @@ describe('ReplicateService (coverage)', () => {
       });
 
       expect(id).toBe('pred_abc');
-      expect(client.predictions!.create).toHaveBeenCalledWith(
+      expect(client.predictions?.create).toHaveBeenCalledWith(
         expect.objectContaining({
           input: { prompt: 'test' },
           version: 'version',
