@@ -1,4 +1,5 @@
 import type { ExecutableNode } from '../../types';
+import { isRecord } from '../../utils/record';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -58,10 +59,6 @@ const XFADE_TRANSITION_MAP: Record<
   fade: 'fadeblack',
   wipe: 'wipeleft',
 };
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
-}
 
 function extractVideoUrl(value: unknown): string | undefined {
   if (typeof value === 'string' && value.trim().length > 0) {
