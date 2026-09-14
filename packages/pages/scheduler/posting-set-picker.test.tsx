@@ -16,6 +16,11 @@ const mocks = vi.hoisted(() => ({
   success: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const service = factory('test-token');
@@ -47,12 +52,11 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn() },
 }));
 
+const notifications = { error: mocks.error, success: mocks.success };
+
 vi.mock('@services/core/notifications.service', () => ({
   NotificationsService: {
-    getInstance: () => ({
-      error: mocks.error,
-      success: mocks.success,
-    }),
+    getInstance: () => notifications,
   },
 }));
 
@@ -197,6 +201,7 @@ describe('PostingSetPicker', () => {
     );
 
     expect(await screen.findByText('Short-form trio')).toBeVisible();
+    expect(screen.getByText('2 targets')).toBeVisible();
     fireEvent.click(screen.getByRole('button', { name: 'Use set' }));
 
     await waitFor(() => {
@@ -262,5 +267,48 @@ describe('PostingSetPicker', () => {
         ],
       });
     });
+  });
+  it('keeps the label after a failed save and clears it after a successful retry', async () => {
+    mocks.post.mockRejectedValueOnce(new Error('Unavailable'));
+    render(
+      <PostingSetPicker
+        brandId="brand-1"
+        currentTargets={[{ credentialId: 'cred-ig', platform: 'instagram' }]}
+        timezone="UTC"
+        onApply={vi.fn()}
+      />,
+    );
+    await screen.findByText('Short-form trio');
+    const label = screen.getByLabelText('Posting set label');
+    fireEvent.change(label, { target: { value: 'Keep this label' } });
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save current selection as set' }),
+    );
+    await waitFor(() =>
+      expect(mocks.error).toHaveBeenCalledWith('Failed to save posting set'),
+    );
+    expect(label).toHaveValue('Keep this label');
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Save current selection as set' }),
+    );
+    await waitFor(() => expect(label).toHaveValue(''));
+    expect(mocks.post).toHaveBeenCalledTimes(2);
+  });
+
+  it('disables selection and saving while the scheduler is disabled', async () => {
+    render(
+      <PostingSetPicker
+        brandId="brand-1"
+        currentTargets={[{ credentialId: 'cred-ig', platform: 'instagram' }]}
+        isDisabled
+        timezone="UTC"
+        onApply={vi.fn()}
+      />,
+    );
+    await screen.findByText('Short-form trio');
+    expect(screen.getByRole('button', { name: 'Use set' })).toBeDisabled();
+    expect(
+      screen.getByRole('button', { name: 'Save current selection as set' }),
+    ).toBeDisabled();
   });
 });

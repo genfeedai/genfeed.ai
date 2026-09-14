@@ -493,7 +493,7 @@
     "packages/pages/posts/release/release-detail-drawer.tsx": 7,
     "packages/pages/posts/release/release-engagement-rules.tsx": 5,
     "packages/pages/research/work-surface/ResearchFindingInspector.tsx": 5,
-    "packages/pages/scheduler/posting-set-picker.tsx": 13,
+    "packages/pages/scheduler/posting-set-picker.tsx": 5,
     "packages/pages/streaks/streaks-page.tsx": 13,
     "packages/pages/studio/fastlane/components/FastlaneBlitz.tsx": 17,
     "packages/pages/studio/fastlane/components/FastlaneBrandGate.tsx": 3,
