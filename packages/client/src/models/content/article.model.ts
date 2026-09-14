@@ -15,6 +15,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 export class Article extends BaseEntity implements IArticle {
+  declare public organizationId?: string;
   declare public user: IUser;
   declare public organization: IOrganization;
   declare public brand?: IBrand;
