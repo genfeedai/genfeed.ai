@@ -33,6 +33,7 @@ export default function PostingSetPicker({
   selectedSetId,
   sets,
 }: PostingSetPickerProps): ReactElement {
+  const translate = useTranslations('agent.postingSets');
   const [localSaveLabel, setLocalSaveLabel] = useState('');
   const saveLabel = controlledSaveLabel ?? localSaveLabel;
   const setSaveLabel = onSaveLabelChange ?? setLocalSaveLabel;
@@ -44,13 +45,13 @@ export default function PostingSetPicker({
   if (variant === 'cards') {
     return (
       <div className="flex flex-col gap-3">
-        <p className="gen-label">Posting set</p>
+        <p className="gen-label">{translate('label')}</p>
         {isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading posting sets…</p>
-        ) : sets.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            No posting sets yet. Save the current selection to reuse it.
+            {translate('loading')}
           </p>
+        ) : sets.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{translate('empty')}</p>
         ) : (
           <div className="flex flex-col gap-2">
             {sets.map((postingSet) => (
@@ -63,15 +64,18 @@ export default function PostingSetPicker({
                     {postingSet.label}
                   </span>
                   <span className="text-xs text-muted-foreground">
-                    {postingSet.targets.length} target
-                    {postingSet.targets.length === 1 ? '' : 's'}
+                    {translate('targetCount', {
+                      count: postingSet.targets.length,
+                    })}
                   </span>
                 </div>
                 <Button
                   isDisabled={isDisabled || isExpanding}
                   isLoading={isExpanding && selectedSetId === postingSet.id}
                   label={
-                    selectedSetId === postingSet.id ? 'Selected' : 'Use set'
+                    selectedSetId === postingSet.id
+                      ? translate('selected')
+                      : translate('useSet')
                   }
                   size={ButtonSize.SM}
                   variant={
@@ -91,12 +95,12 @@ export default function PostingSetPicker({
         {children}
         <div className="flex flex-col gap-2">
           <p className="gen-label-sm text-muted-foreground">
-            Save current selection as set
+            {translate('saveSelection')}
           </p>
           <Input
-            aria-label="Posting set label"
+            aria-label={translate('labelAria')}
             isDisabled={isDisabled || isSaving}
-            placeholder="Set label"
+            placeholder={translate('labelPlaceholder')}
             value={saveLabel}
             onChange={(event) => setSaveLabel(event.target.value)}
           />
@@ -109,7 +113,7 @@ export default function PostingSetPicker({
               !canSave
             }
             isLoading={isSaving}
-            label="Save current selection as set"
+            label={translate('saveSelection')}
             variant={ButtonVariant.SECONDARY}
             onClick={handleSave}
           />
@@ -121,37 +125,6 @@ export default function PostingSetPicker({
     );
   }
 
-  return (
-    <PostingSetSelectPicker
-      canSave={canSave}
-      expandError={expandError}
-      isExpanding={isExpanding}
-      isSaving={isSaving}
-      onSaveCurrent={handleSave}
-      onSelectSet={onSelectSet}
-      saveError={saveError}
-      saveLabel={saveLabel}
-      onSaveLabelChange={setSaveLabel}
-      selectedSetId={selectedSetId}
-      sets={sets}
-    />
-  );
-}
-
-function PostingSetSelectPicker({
-  canSave,
-  expandError,
-  isExpanding,
-  isSaving,
-  onSaveCurrent,
-  onSelectSet,
-  saveError,
-  saveLabel = '',
-  onSaveLabelChange,
-  selectedSetId,
-  sets,
-}: PostingSetPickerProps): ReactElement {
-  const translate = useTranslations('agent.postingSets');
   return (
     <div className="mb-3 space-y-2">
       <span className="mb-1 block text-2xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -193,7 +166,7 @@ function PostingSetSelectPicker({
           id="posting-set-save-label"
           label={translate('saveLabel')}
           name="posting-set-save-label"
-          onChange={(event) => onSaveLabelChange?.(event.target.value)}
+          onChange={(event) => setSaveLabel(event.target.value)}
           placeholder={translate('savePlaceholder')}
           value={saveLabel}
         />
@@ -201,7 +174,7 @@ function PostingSetSelectPicker({
           isDisabled={!canSave || saveLabel.trim().length === 0 || isSaving}
           isLoading={isSaving}
           label={isSaving ? translate('saving') : translate('save')}
-          onClick={() => onSaveCurrent(saveLabel.trim())}
+          onClick={handleSave}
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
         />
