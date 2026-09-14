@@ -6,6 +6,10 @@ import type {
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
+  BrandKitFieldKey,
+  IBrandOsRevision,
+} from '@genfeedai/contracts/interfaces';
+import type {
   ContentHarnessBrief,
   ContentHarnessContribution,
   ContentHarnessInput,
@@ -176,22 +180,100 @@ export const buildHarnessPersonaProfile = (
   };
 };
 
+function readBrandOsValue(
+  revision: IBrandOsRevision,
+  key: BrandKitFieldKey,
+): unknown {
+  const field = revision.content.fields[key];
+  return field?.currentValue;
+}
+
+function readBrandOsString(
+  revision: IBrandOsRevision,
+  key: BrandKitFieldKey,
+): string | undefined {
+  return toOptionalString(readBrandOsValue(revision, key));
+}
+
+function buildApprovedBrandOsVoice(
+  revision: IBrandOsRevision,
+): HarnessVoiceProfile {
+  return {
+    audience: toStringArray(readBrandOsValue(revision, 'voiceAudience')),
+    doNotSoundLike: toStringArray(
+      readBrandOsValue(revision, 'voiceDoNotSoundLike'),
+    ),
+    messagingPillars: toStringArray(
+      readBrandOsValue(revision, 'voiceMessagingPillars'),
+    ),
+    sampleOutput: readBrandOsString(revision, 'voiceSampleOutput'),
+    style: readBrandOsString(revision, 'voiceStyle'),
+    tone: readBrandOsString(revision, 'voiceTone'),
+    values: toStringArray(readBrandOsValue(revision, 'voiceValues')),
+  };
+}
+
+function buildApprovedBrandOsIdentity(
+  revision: IBrandOsRevision,
+): ContentHarnessContribution {
+  const systemDirectives = [
+    'Use this approved Brand OS as the authoritative brand identity.',
+  ];
+  const styleDirectives: string[] = [];
+  for (const key of [
+    'description',
+    'promptGuidelines',
+    'strategyGoals',
+    'strategyContentTypes',
+  ] as const) {
+    const value = readBrandOsValue(revision, key);
+    const text =
+      typeof value === 'string' ? value : toStringArray(value)?.join(', ');
+    if (text?.trim())
+      systemDirectives.push(
+        `${revision.content.fields[key]?.label ?? key}: ${text.trim()}`,
+      );
+  }
+  for (const key of [
+    'primaryColor',
+    'secondaryColor',
+    'backgroundColor',
+    'fontFamily',
+  ] as const) {
+    const value = readBrandOsString(revision, key);
+    if (value?.trim())
+      styleDirectives.push(
+        `${revision.content.fields[key]?.label ?? key}: ${value.trim()}`,
+      );
+  }
+  return { systemDirectives, styleDirectives };
+}
+
 export const buildHarnessInput = (params: {
   additionalSources?: HarnessSourceRecord[];
   brand?: BrandSource | null;
+  brandOsRevision?: IBrandOsRevision | null;
   intent: ContentHarnessIntent;
   organizationId: string;
   persona?: PersonaSource | null;
   profileContribution?: ContentHarnessContribution;
 }): ContentHarnessInput => {
-  const voiceProfile = params.brand
-    ? buildHarnessVoiceProfile(params.brand, params.intent.platform)
-    : undefined;
+  const voiceProfile = params.brandOsRevision
+    ? buildApprovedBrandOsVoice(params.brandOsRevision)
+    : params.brand
+      ? buildHarnessVoiceProfile(params.brand, params.intent.platform)
+      : undefined;
   const personaProfile = buildHarnessPersonaProfile(params.persona);
 
   return {
     brandId: params.brand?.id?.toString?.(),
-    brandName: toOptionalString(params.brand?.label),
+    brandName: params.brandOsRevision
+      ? readBrandOsString(params.brandOsRevision, 'label')
+      : toOptionalString(params.brand?.label),
+    brandOsRevisionId: params.brandOsRevision?.id,
+    identityContribution: params.brandOsRevision
+      ? buildApprovedBrandOsIdentity(params.brandOsRevision)
+      : undefined,
     intent: params.intent,
     organizationId: params.organizationId,
     personaProfile,

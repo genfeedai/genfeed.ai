@@ -653,4 +653,31 @@ describe('BrandKitReviewCard', () => {
       'Failed to scan website for brand kit fields.',
     );
   });
+  it('retains scanned fields and reports revision persistence failures separately', async () => {
+    const onDraftCreated = vi
+      .fn()
+      .mockRejectedValue(new Error('Revision unavailable'));
+    render(
+      <BrandKitReviewCard
+        brand={brandFixture}
+        brandId="brand-1"
+        onRefreshBrand={mocks.onRefreshBrand}
+        onDraftCreated={onDraftCreated}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText('Website URL'), {
+      target: { value: 'https://acme.test' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Scan' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Website scan succeeded, but the draft could not be saved as a revision.',
+    );
+    expect(screen.getByText('67% readiness')).toBeInTheDocument();
+    expect(
+      screen.queryByText('Failed to scan website for brand kit fields.'),
+    ).not.toBeInTheDocument();
+    expect(onDraftCreated).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1' }),
+    );
+  });
 });

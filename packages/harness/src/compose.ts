@@ -89,6 +89,10 @@ export async function composeContentHarnessBrief(
     systemDirectives: [],
   };
 
+  if (input.identityContribution) {
+    aggregate = mergeContribution(aggregate, input.identityContribution);
+  }
+
   const packs = registry.list();
   for (const pack of packs) {
     if (!pack.contribute) {
@@ -110,6 +114,9 @@ export async function composeContentHarnessBrief(
       platform: input.intent.platform,
     },
     packs: packs.map((pack) => pack.id),
+    receipts: input.brandOsRevisionId
+      ? { brandOs: 'approved', brandOsRevisionId: input.brandOsRevisionId }
+      : { brandOs: 'none' },
     providerHints: aggregate.providerHints ?? [],
     sources: aggregate.sources ?? [],
     styleDirectives: aggregate.styleDirectives ?? [],

@@ -1,6 +1,8 @@
 export * from './brand.interface';
 export * from './brand-interview.interface';
 export * from './brand-kit.interface';
+export * from './brand-os-export.interface';
+export * from './brand-os-revision.interface';
 export * from './byok-key-entry.interface';
 export * from './byok-provider-status.interface';
 export * from './byok-resolution-result.interface';
@@ -12,5 +14,4 @@ export * from './organization-category-seed.interface';
 export * from './organization-option.interface';
 export * from './organization-setting.interface';
 export * from './quota-status.interface';
-
 export * from './watermark-export.interface';

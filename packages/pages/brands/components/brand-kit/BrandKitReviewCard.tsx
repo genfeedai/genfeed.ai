@@ -315,6 +315,7 @@ function getDiagnostics(
 }
 
 export default function BrandKitReviewCard({
+  onDraftCreated,
   brand,
   brandId,
   loadClaimedBrandOsDraft = false,
@@ -323,6 +324,7 @@ export default function BrandKitReviewCard({
   onRefreshBrand,
 }: BrandKitReviewCardProps) {
   const translate = useTranslations('pages.brandKitReview');
+  const brandOsTranslate = useTranslations('pages.brandOsSettings');
   const getBrandsService = useAuthedService((token: string) =>
     BrandsService.getInstance(token),
   );
@@ -483,6 +485,12 @@ export default function BrandKitReviewCard({
 
       setDraft(nextDraft);
       initializeDraftReview(nextDraft);
+      try {
+        await onDraftCreated?.(nextDraft);
+      } catch {
+        logger.error('Failed to persist scanned Brand OS revision');
+        setError(brandOsTranslate('scanPersistenceFailed'));
+      }
     } catch (scanError) {
       logger.error('Failed to crawl brand kit website', scanError);
       setError('Failed to scan website for brand kit fields.');
@@ -495,6 +503,8 @@ export default function BrandKitReviewCard({
     initializeDraftReview,
     socialUrls,
     websiteUrl,
+    onDraftCreated,
+    brandOsTranslate,
   ]);
 
   const handleToggleField = useCallback(

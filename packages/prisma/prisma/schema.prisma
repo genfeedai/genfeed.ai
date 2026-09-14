@@ -542,6 +542,9 @@ enum SocialWarmupSignalSource {
 // ═══════════════════════════════════════════════════════════════
 
 model User {
+  approvedBrandOsRevisions BrandOsRevision[] @relation("BrandOsApprover")
+  publishedBrandOsPublications BrandOsPublication[] @relation("BrandOsPublisher")
+  revokedBrandOsPublications BrandOsPublication[] @relation("BrandOsRevoker")
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                       String          @id @default(cuid())
@@ -696,6 +699,8 @@ model User {
 }
 
 model Organization {
+  brandOsRevisions BrandOsRevision[]
+  brandOsPublications BrandOsPublication[]
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
   id                        String                @id @default(cuid())
@@ -909,6 +914,9 @@ model McpApproval {
 }
 
 model Brand {
+  brandOsRevisionVersion Int @default(0)
+  brandOsRevisions BrandOsRevision[]
+  brandOsPublications BrandOsPublication[]
   watermarkText            String?
   watermarkLogoId          String?
   watermarkOpacity         Float        @default(0.35)
@@ -6985,4 +6993,59 @@ model EmailSignalCheckpoint {
   updatedAt DateTime @updatedAt
   @@unique([organizationId, stream])
   @@map("email_signal_checkpoints")
+}
+
+
+enum BrandOsRevisionStatus {
+  DRAFT
+  APPROVED
+  SUPERSEDED
+}
+
+model BrandOsRevision {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  version Int
+  status BrandOsRevisionStatus @default(DRAFT)
+  content Json
+  exportSchemaVersion String @default("1")
+  sourcePreviewTokenHash String? @unique
+  approvedById String?
+  approvedBy User? @relation("BrandOsApprover", fields: [approvedById], references: [id], onDelete: Restrict)
+  approvedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  isDeleted Boolean @default(false)
+  publications BrandOsPublication[]
+
+  @@unique([organizationId, brandId, version])
+  @@index([organizationId, brandId, isDeleted, status])
+  @@map("brand_os_revisions")
+}
+
+model BrandOsPublication {
+  id String @id @default(cuid())
+  organizationId String
+  organization Organization @relation(fields: [organizationId], references: [id])
+  brandId String
+  brand Brand @relation(fields: [brandId], references: [id])
+  revisionId String
+  revision BrandOsRevision @relation(fields: [revisionId], references: [id])
+  publishedRevisionIds String[] @default([])
+  publishedById String
+  publishedBy User @relation("BrandOsPublisher", fields: [publishedById], references: [id])
+  publishedAt DateTime @default(now())
+  revokedById String?
+  revokedBy User? @relation("BrandOsRevoker", fields: [revokedById], references: [id])
+  revokedAt DateTime?
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([organizationId, brandId])
+  @@index([organizationId, brandId, isDeleted])
+  @@map("brand_os_publications")
 }

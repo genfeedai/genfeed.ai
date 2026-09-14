@@ -1,3 +1,4 @@
+import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
@@ -78,6 +79,8 @@ export class HarnessGenerationService {
     private readonly contextsService?: ContextsService,
     @Optional()
     private readonly moduleRef?: ModuleRef,
+    @Optional()
+    private readonly brandOsRevisionsService?: BrandOsRevisionsService,
   ) {}
 
   async resolveBrief(
@@ -104,6 +107,15 @@ export class HarnessGenerationService {
       if (!brand) {
         return null;
       }
+
+      const brandOsRevisionsService = this.resolveProvider(
+        this.brandOsRevisionsService,
+        BrandOsRevisionsService,
+      );
+      const brandOsRevision = await brandOsRevisionsService?.findApproved(
+        params.organizationId,
+        params.brandId,
+      );
 
       const profileContribution =
         await harnessProfilesService.buildContributionForBrand(
@@ -132,6 +144,7 @@ export class HarnessGenerationService {
             ...memorySources,
           ],
           brand,
+          brandOsRevision,
           intent: {
             contentType: params.contentType,
             objective: params.objective ?? 'engagement',
