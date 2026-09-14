@@ -53,8 +53,12 @@ describe('WorkflowEngineConverterService analytics brand resolution', () => {
         nodes: [
           {
             id: 'analytics',
+            position: { x: 0, y: 0 },
             type: 'genfeedAction',
-            data: { config: { actionId: 'analyticsFeedback', parameters } },
+            data: {
+              label: 'Analytics',
+              config: { actionId: 'analyticsFeedback', parameters },
+            },
           },
         ],
       });
