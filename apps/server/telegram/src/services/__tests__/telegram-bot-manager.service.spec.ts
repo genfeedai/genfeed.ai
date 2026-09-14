@@ -5,6 +5,8 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@telegram/config/config.service';
 import { TelegramBotManager } from '@telegram/services/telegram-bot-manager.service';
+import { AxiosHeaders, type AxiosResponse } from 'axios';
+import type { Bot, Context } from 'grammy';
 import { of, throwError } from 'rxjs';
 import type { Mocked } from 'vitest';
 
@@ -35,6 +37,16 @@ vi.mock('grammy', () => ({
     };
   }),
 }));
+
+function httpResponse<T>(data: T): AxiosResponse<T> {
+  return {
+    config: { headers: new AxiosHeaders() },
+    data,
+    headers: {},
+    status: 200,
+    statusText: 'OK',
+  };
+}
 
 function toApiIntegration(integration: OrgIntegration) {
   const { orgId, ...fields } = integration;
@@ -136,7 +148,7 @@ describe('TelegramBotManager', () => {
   describe('initialize', () => {
     it('should initialize with active integrations', async () => {
       httpService.get.mockReturnValue(
-        of({ data: [toApiIntegration(mockIntegration)] }) as any,
+        of(httpResponse([toApiIntegration(mockIntegration)])),
       );
       mockBot.start.mockResolvedValue(undefined);
 
@@ -169,7 +181,7 @@ describe('TelegramBotManager', () => {
     });
 
     it('should handle initialization with no integrations', async () => {
-      httpService.get.mockReturnValue(of({ data: [] }) as any);
+      httpService.get.mockReturnValue(of(httpResponse([])));
 
       await service.initialize();
 
@@ -224,7 +236,7 @@ describe('TelegramBotManager', () => {
     it('should shutdown all bots and clear state', async () => {
       // Setup a bot first
       httpService.get.mockReturnValue(
-        of({ data: [toApiIntegration(mockIntegration)] }) as any,
+        of(httpResponse([toApiIntegration(mockIntegration)])),
       );
       mockBot.start.mockResolvedValue(undefined);
       mockBot.stop.mockResolvedValue(undefined);
@@ -318,11 +330,11 @@ describe('TelegramBotManager', () => {
   describe('destroyBotInstance', () => {
     it('should stop the bot instance', async () => {
       const botInstance = {
-        bot: mockBot,
+        bot: mockBot as unknown as Bot,
         id: 'test-bot',
         integration: mockIntegration,
         orgId: 'org-123',
-      } as any;
+      };
 
       mockBot.stop.mockResolvedValue(undefined);
 
@@ -333,11 +345,11 @@ describe('TelegramBotManager', () => {
 
     it('should handle bot stop errors gracefully', async () => {
       const botInstance = {
-        bot: mockBot,
+        bot: mockBot as unknown as Bot,
         id: 'test-bot',
         integration: mockIntegration,
         orgId: 'org-123',
-      } as any;
+      };
 
       const error = new Error('Stop failed');
       mockBot.stop.mockRejectedValue(error);
@@ -436,7 +448,7 @@ describe('TelegramBotManager', () => {
     it('should fetch integration and add it', async () => {
       mockBot.start.mockResolvedValue(undefined);
       httpService.get.mockReturnValue(
-        of({ data: toApiIntegration(mockIntegration) }) as any,
+        of(httpResponse(toApiIntegration(mockIntegration))),
       );
 
       await service.fetchAndAddIntegration('test-id');
@@ -472,7 +484,7 @@ describe('TelegramBotManager', () => {
       await service.addIntegration(mockIntegration);
 
       httpService.get.mockReturnValue(
-        of({ data: toApiIntegration(mockIntegration) }) as any,
+        of(httpResponse(toApiIntegration(mockIntegration))),
       );
 
       await service.fetchAndUpdateIntegration('test-id');
@@ -501,7 +513,7 @@ describe('TelegramBotManager', () => {
     it('should fetch integrations from API', async () => {
       const mockIntegrations = [mockIntegration];
       httpService.get.mockReturnValue(
-        of({ data: mockIntegrations.map(toApiIntegration) }) as any,
+        of(httpResponse(mockIntegrations.map(toApiIntegration))),
       );
 
       const result = await service.fetchActiveIntegrations();
@@ -544,7 +556,7 @@ describe('TelegramBotManager', () => {
         },
       ];
 
-      httpService.get.mockReturnValue(of({ data: mockWorkflows }) as any);
+      httpService.get.mockReturnValue(of(httpResponse(mockWorkflows)));
 
       const result = await service.fetchOrgWorkflows('org-123');
 
@@ -583,7 +595,7 @@ describe('TelegramBotManager', () => {
 
       httpService.get.mockImplementation((url: string) => {
         if (url.endsWith('/v1/internal/integrations/TELEGRAM')) {
-          return of({ data: [] }) as any;
+          return of(httpResponse([]));
         }
 
         if (
@@ -591,10 +603,10 @@ describe('TelegramBotManager', () => {
             '/v1/internal/integrations/TELEGRAM/telegram-integration-1',
           )
         ) {
-          return of({ data: toApiIntegration(mockIntegration) }) as any;
+          return of(httpResponse(toApiIntegration(mockIntegration)));
         }
 
-        return of({ data: [] }) as any;
+        return of(httpResponse([]));
       });
 
       mockBot.start.mockResolvedValue(undefined);
@@ -629,7 +641,7 @@ describe('TelegramBotManager', () => {
         },
       );
 
-      httpService.get.mockReturnValue(of({ data: [] }) as any);
+      httpService.get.mockReturnValue(of(httpResponse([])));
       mockBot.start.mockResolvedValue(undefined);
 
       await service.initialize();
@@ -662,7 +674,7 @@ describe('TelegramBotManager', () => {
         replyWithPhoto: vi.fn().mockResolvedValue(undefined),
         replyWithVideo: vi.fn().mockResolvedValue(undefined),
         ...overrides,
-      }) as any;
+      }) as unknown as Context;
 
     it('should process hot-add to workflow execution and send generated media', async () => {
       const handlers = new Map<string, (message: unknown) => void>();
@@ -704,7 +716,7 @@ describe('TelegramBotManager', () => {
 
       httpService.get.mockImplementation((url: string) => {
         if (url.endsWith('/v1/internal/integrations/TELEGRAM')) {
-          return of({ data: [] }) as any;
+          return of(httpResponse([]));
         }
 
         if (
@@ -712,24 +724,24 @@ describe('TelegramBotManager', () => {
             '/v1/internal/integrations/TELEGRAM/telegram-integration-1',
           )
         ) {
-          return of({ data: integrationFromApi }) as any;
+          return of(httpResponse(integrationFromApi));
         }
 
         if (url.endsWith('/v1/orgs/org-123/workflows')) {
-          return of({ data: [workflowDefinition] }) as any;
+          return of(httpResponse([workflowDefinition]));
         }
 
         if (url.endsWith('/v1/orgs/org-123/workflows/wf-1')) {
-          return of({ data: workflowDefinition }) as any;
+          return of(httpResponse(workflowDefinition));
         }
 
-        return of({ data: [] }) as any;
+        return of(httpResponse([]));
       });
 
       httpService.post.mockImplementation((url: string) => {
         if (url.endsWith('/v1/internal/orgs/org-123/workflow-executions')) {
-          return of({
-            data: {
+          return of(
+            httpResponse({
               data: {
                 attributes: {
                   nodeResults: [],
@@ -737,15 +749,15 @@ describe('TelegramBotManager', () => {
                 },
                 id: 'exec-123',
               },
-            },
-          }) as any;
+            }),
+          );
         }
 
         return throwError(() => new Error(`Unexpected URL: ${url}`));
       });
       httpService.get.mockImplementation((url: string) => {
         if (url.endsWith('/v1/internal/integrations/TELEGRAM')) {
-          return of({ data: [] }) as any;
+          return of(httpResponse([]));
         }
 
         if (
@@ -753,22 +765,22 @@ describe('TelegramBotManager', () => {
             '/v1/internal/integrations/TELEGRAM/telegram-integration-1',
           )
         ) {
-          return of({ data: integrationFromApi }) as any;
+          return of(httpResponse(integrationFromApi));
         }
 
         if (url.endsWith('/v1/orgs/org-123/workflows')) {
-          return of({ data: [workflowDefinition] }) as any;
+          return of(httpResponse([workflowDefinition]));
         }
 
         if (url.endsWith('/v1/orgs/org-123/workflows/wf-1')) {
-          return of({ data: workflowDefinition }) as any;
+          return of(httpResponse(workflowDefinition));
         }
 
         if (
           url.endsWith('/v1/internal/orgs/org-123/workflow-executions/exec-123')
         ) {
-          return of({
-            data: {
+          return of(
+            httpResponse({
               data: {
                 attributes: {
                   nodeResults: [
@@ -784,11 +796,11 @@ describe('TelegramBotManager', () => {
                 },
                 id: 'exec-123',
               },
-            },
-          }) as any;
+            }),
+          );
         }
 
-        return of({ data: [] }) as any;
+        return of(httpResponse([]));
       });
       mockBot.start.mockResolvedValue(undefined);
 
