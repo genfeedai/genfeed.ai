@@ -459,52 +459,18 @@ export class XAdsService {
         );
 
         for (const window of reportingWindows) {
-          for (const placement of XAdsService.STATS_PLACEMENTS) {
-            for (const metricGroups of XAdsService.STATS_METRIC_GROUPS) {
-              const response = await this.makeRequest<XAdsStatsWireShape[]>(
-                credentials,
-                `/stats/accounts/${accountId}`,
-                {
-                  end_time: window.endTime,
-                  entity,
-                  entity_ids: ids,
-                  granularity: params.granularity ?? 'TOTAL',
-                  metric_groups: metricGroups,
-                  placement,
-                  start_time: window.startTime,
-                },
-              );
-              const isConversionRequest = metricGroups[0] === 'WEB_CONVERSION';
-
-              for (const row of response) {
-                const totals =
-                  totalsById.get(row.id) ?? createEmptyStatsAccumulator();
-                for (const idData of row.id_data) {
-                  if (isConversionRequest) {
-                    totals.conversions += sumPurchaseConversions(
-                      idData.metrics.conversion_purchases,
-                    );
-                    totals.conversionValueMicro += sumPurchaseSaleAmount(
-                      idData.metrics.conversion_purchases,
-                    );
-                    continue;
-                  }
-
-                  totals.billedChargeMicro += sumNumericMetric(
-                    idData.metrics.billed_charge_local_micro,
-                  );
-                  totals.billedEngagements += sumNumericMetric(
-                    idData.metrics.billed_engagements,
-                  );
-                  totals.clicks += sumNumericMetric(idData.metrics.clicks);
-                  totals.impressions += sumNumericMetric(
-                    idData.metrics.impressions,
-                  );
-                }
-                totalsById.set(row.id, totals);
-              }
-            }
-          }
+          await this.accumulateStatsWindow(
+            credentials,
+            accountId,
+            {
+              end_time: window.endTime,
+              entity,
+              entity_ids: ids,
+              granularity: params.granularity ?? 'TOTAL',
+              start_time: window.startTime,
+            },
+            totalsById,
+          );
         }
       }
 
@@ -527,6 +493,28 @@ export class XAdsService {
         safeXAdsErrorMetadata(error),
       );
       throw error;
+    }
+  }
+
+  private async accumulateStatsWindow(
+    credentials: XAdsRequestCredentials,
+    accountId: string,
+    query: XAdsStatsWindowQuery,
+    totalsById: Map<string, XAdsStatsAccumulator>,
+  ): Promise<void> {
+    for (const placement of XAdsService.STATS_PLACEMENTS) {
+      for (const metricGroups of XAdsService.STATS_METRIC_GROUPS) {
+        const response = await this.makeRequest<XAdsStatsWireShape[]>(
+          credentials,
+          `/stats/accounts/${accountId}`,
+          { ...query, metric_groups: metricGroups, placement },
+        );
+        accumulateStatsResponse(
+          totalsById,
+          response,
+          metricGroups[0] === 'WEB_CONVERSION',
+        );
+      }
     }
   }
 
@@ -688,6 +676,14 @@ interface XAdsStatsWireShape {
   }>;
 }
 
+interface XAdsStatsWindowQuery {
+  end_time: string;
+  entity: XAdsReportingEntity;
+  entity_ids: string[];
+  granularity: NonNullable<XAdsReportingParams['granularity']>;
+  start_time: string;
+}
+
 interface XAdsStatsAccumulator {
   billedChargeMicro: number;
   billedEngagements: number;
@@ -695,6 +691,35 @@ interface XAdsStatsAccumulator {
   conversions: number;
   conversionValueMicro: number;
   impressions: number;
+}
+
+function accumulateStatsResponse(
+  totalsById: Map<string, XAdsStatsAccumulator>,
+  rows: XAdsStatsWireShape[],
+  isConversionRequest: boolean,
+): void {
+  for (const row of rows) {
+    const totals = totalsById.get(row.id) ?? createEmptyStatsAccumulator();
+    for (const { metrics } of row.id_data) {
+      if (isConversionRequest) {
+        totals.conversions += sumPurchaseConversions(
+          metrics.conversion_purchases,
+        );
+        totals.conversionValueMicro += sumPurchaseSaleAmount(
+          metrics.conversion_purchases,
+        );
+        continue;
+      }
+
+      totals.billedChargeMicro += sumNumericMetric(
+        metrics.billed_charge_local_micro,
+      );
+      totals.billedEngagements += sumNumericMetric(metrics.billed_engagements);
+      totals.clicks += sumNumericMetric(metrics.clicks);
+      totals.impressions += sumNumericMetric(metrics.impressions);
+    }
+    totalsById.set(row.id, totals);
+  }
 }
 
 function createEmptyStatsAccumulator(): XAdsStatsAccumulator {
