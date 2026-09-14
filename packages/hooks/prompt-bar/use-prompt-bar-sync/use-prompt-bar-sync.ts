@@ -316,7 +316,7 @@ export function usePromptBarSync(
             );
 
           if (needsUpdate && referenceObjects.length > 0) {
-            setReferences(referenceObjects as MediaReference[]);
+            setReferences(referenceObjects);
             setReferenceSource('ingredient');
             hasInitializedReferencesRef.current = true;
           }

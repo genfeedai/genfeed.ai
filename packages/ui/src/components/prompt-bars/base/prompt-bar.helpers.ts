@@ -43,7 +43,7 @@ export function toAttachedPromptAsset(
   source: 'upload' | 'library',
 ): PromptBarAttachedAsset {
   return {
-    id: asset.id as string,
+    id: asset.id,
     kind: 'image',
     name:
       ('title' in asset && typeof asset.title === 'string' && asset.title) ||
