@@ -1,10 +1,6 @@
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/services/workflow-engine-executor-helper.service';
-import {
-  IngredientCategory,
-  IngredientStatus,
-  MetadataExtension,
-} from '@genfeedai/contracts';
+import { IngredientCategory, MetadataExtension } from '@genfeedai/contracts';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';

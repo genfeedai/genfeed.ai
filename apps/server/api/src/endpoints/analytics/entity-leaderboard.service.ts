@@ -69,7 +69,7 @@ export class EntityLeaderboardService {
     private readonly prisma: PrismaService,
     private readonly organizationsService: OrganizationsService,
     private readonly brandsService: BrandsService,
-    private readonly loggerService: LoggerService,
+    _loggerService: LoggerService,
   ) {}
 
   private entityColumn(field: EntityField): PrismaSql {

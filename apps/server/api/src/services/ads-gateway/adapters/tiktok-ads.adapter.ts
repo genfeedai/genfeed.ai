@@ -35,7 +35,7 @@ export class TikTokAdsAdapter implements IAdsAdapter {
 
   constructor(
     private readonly tiktokAdsService: TikTokAdsService,
-    private readonly logger: LoggerService,
+    _logger: LoggerService,
   ) {}
 
   async getAdAccounts(ctx: AdsAdapterContext): Promise<UnifiedAdAccount[]> {

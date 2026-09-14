@@ -25,7 +25,7 @@ import {
 @Controller('brands')
 export class BrandInterviewController {
   constructor(
-    private readonly logger: LoggerService,
+    _logger: LoggerService,
     private readonly brandInterviewService: BrandInterviewService,
   ) {}
 

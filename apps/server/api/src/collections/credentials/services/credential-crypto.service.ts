@@ -43,7 +43,7 @@ export class CredentialCryptoService {
 
   constructor(
     private readonly configService: ConfigService,
-    @Optional() private readonly logger?: LoggerService,
+    @Optional() _logger?: LoggerService,
   ) {}
 
   private get key(): Buffer {

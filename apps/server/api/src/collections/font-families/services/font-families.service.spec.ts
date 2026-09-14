@@ -35,7 +35,6 @@ describe('FontFamiliesService', () => {
     updateMany: ReturnType<typeof vi.fn>;
   };
   let mockPrismaService: Partial<PrismaService>;
-  let logger: LoggerService;
 
   const mockFontFamily = {
     id: fontFamilyId,
@@ -100,7 +99,6 @@ describe('FontFamiliesService', () => {
     }).compile();
 
     service = module.get<FontFamiliesService>(FontFamiliesService);
-    logger = module.get<LoggerService>(LoggerService);
 
     vi.clearAllMocks();
   });
