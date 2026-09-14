@@ -54,17 +54,19 @@ describe('resolveStudioGenerateCapabilities', () => {
     );
   });
 
-  it('keeps the static per-type capabilities when no model is resolved yet', () => {
+  it('hides model-specific controls when no model is resolved yet', () => {
     const capabilities = resolveStudioGenerateCapabilities('music', undefined);
-    expect(capabilities).toEqual(
-      getStudioGenerateTypeConfig('music').capabilities,
-    );
+    expect(capabilities).toMatchObject({
+      hasDuration: false,
+      hasInstrumentalToggle: false,
+      hasLyrics: false,
+    });
   });
 
-  it('keeps the static per-type capabilities in auto-select mode', () => {
+  it('hides model-specific controls in auto-select mode', () => {
     const capabilities = resolveStudioGenerateCapabilities('music', 'auto');
-    expect(capabilities.hasInstrumentalToggle).toBe(true);
-    expect(capabilities.hasLyrics).toBe(true);
+    expect(capabilities.hasInstrumentalToggle).toBe(false);
+    expect(capabilities.hasLyrics).toBe(false);
   });
 
   it('hides both instrumental and lyrics controls for MusicGen (no vocal support)', () => {

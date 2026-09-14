@@ -93,7 +93,7 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
     await adapter.generate(
       buildRequest({
         createMusicDto: Object.assign(new CreateMusicDto(), {
-          lyrics: 'Verse one',
+          lyrics: '  Verse one \n',
           text: 'a song',
         }),
       }),

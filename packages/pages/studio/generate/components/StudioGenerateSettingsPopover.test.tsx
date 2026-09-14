@@ -1,5 +1,7 @@
 import { RouterPriority } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import StudioGenerateSettingsPopover from '@pages/studio/generate/components/StudioGenerateSettingsPopover';
+import { getDefaultStudioGenerateSettings } from '@pages/studio/generate/utils/studio-generate-settings';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -93,5 +95,55 @@ describe('StudioGenerateSettingsPopover', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Reset' }));
 
     expect(onReset).toHaveBeenCalled();
+  });
+});
+
+describe('music Remix controls', () => {
+  it.each([MODEL_KEYS.FAL_LYRIA3_PRO, MODEL_KEYS.MUREKA_V9, 'auto', 'unknown'])(
+    'hides duration and stale summary for %s',
+    (modelKey) => {
+      render(
+        <StudioGenerateSettingsPopover
+          onChange={vi.fn()}
+          onReset={vi.fn()}
+          settings={{
+            ...getDefaultStudioGenerateSettings('music'),
+            modelKey,
+            duration: 90,
+          }}
+          type="music"
+        />,
+      );
+      const trigger = screen.getByRole('button', {
+        name: 'Generation settings',
+      });
+      expect(trigger).not.toHaveTextContent('90s');
+      fireEvent.click(trigger);
+      expect(screen.queryByLabelText('Duration')).not.toBeInTheDocument();
+    },
+  );
+
+  it('shows the MusicGen duration select and a normalized summary', () => {
+    render(
+      <StudioGenerateSettingsPopover
+        onChange={vi.fn()}
+        onReset={vi.fn()}
+        settings={{
+          ...getDefaultStudioGenerateSettings('music'),
+          modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+          duration: 90,
+        }}
+        type="music"
+      />,
+    );
+    const trigger = screen.getByRole('button', { name: 'Generation settings' });
+    expect(trigger).toHaveTextContent('30s');
+    fireEvent.click(trigger);
+    expect(
+      screen.getByRole('combobox', { name: 'Duration' }),
+    ).toHaveTextContent('30s');
+    expect(
+      screen.queryByRole('spinbutton', { name: 'Duration' }),
+    ).not.toBeInTheDocument();
   });
 });

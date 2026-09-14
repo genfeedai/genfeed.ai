@@ -1,3 +1,4 @@
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 /**
  * #4670 Agent -> Studio handoff: projects the Agent-resolved payload onto
  * Studio's own shapes. Kept separate from `studio-generation-setup-bridge.ts`
@@ -128,8 +129,13 @@ export function resolveHandoffSettingsOverrides(
   }
 
   if (payload.duration !== undefined) {
-    const allowed = getStudioDurations(payload.type);
-    if (allowed.length > 0 && !allowed.includes(payload.duration)) {
+    const allowed = getStudioDurations(payload.type, resolvedModelKey);
+    if (payload.type === 'music') {
+      patch.duration = normalizeMusicSettings(resolvedModelKey, {
+        duration: payload.duration,
+      }).duration;
+      if (patch.duration !== payload.duration) droppedFields.push('duration');
+    } else if (allowed.length > 0 && !allowed.includes(payload.duration)) {
       patch.duration = defaults.duration;
       droppedFields.push('duration');
     }

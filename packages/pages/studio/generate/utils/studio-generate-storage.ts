@@ -1,4 +1,5 @@
 import { RouterPriority } from '@genfeedai/contracts';
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import type {
   StudioGenerateSettings,
   StudioGenerateType,
@@ -108,7 +109,6 @@ export function sanitizeStudioGenerateSettings(
     return defaults;
   }
 
-  const durations = getStudioDurations(type);
   const {
     aspectRatio,
     avatarPhotoUrl,
@@ -136,6 +136,7 @@ export function sanitizeStudioGenerateSettings(
     typeof modelKey === 'string' && modelKey.trim()
       ? modelKey
       : defaults.modelKey;
+  const durations = getStudioDurations(type, resolvedModelKey);
   const allowedResolutions = getStudioResolutions(type, resolvedModelKey).map(
     (option) => option.value,
   );
@@ -169,6 +170,16 @@ export function sanitizeStudioGenerateSettings(
     style: pickFreeText(style),
     tags: pickStringList(tags),
     voiceId: pickFreeText(voiceId),
+    ...(type === 'music'
+      ? normalizeMusicSettings(resolvedModelKey, {
+          duration: typeof duration === 'number' ? duration : undefined,
+          instrumental:
+            typeof value.instrumental === 'boolean'
+              ? value.instrumental
+              : undefined,
+          lyrics: pickFreeText(value.lyrics),
+        })
+      : {}),
   };
 }
 

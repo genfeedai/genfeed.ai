@@ -384,6 +384,48 @@ describe('StudioGenerateComposer', () => {
     expect(studioLooksMocks.deleteLook).toHaveBeenCalledWith('preset-1');
   });
 
+  it('reconciles external music settings without mounting Output, idempotently', () => {
+    remixMocks.isRemixActive = true;
+    const onSettingsChange = vi.fn();
+    const musicSettings = {
+      ...settings,
+      modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      duration: 90,
+      instrumental: false,
+      lyrics: 'stale verse',
+    };
+    const { rerender } = render(
+      <StudioGenerateComposer
+        {...baseProps}
+        onSettingsChange={onSettingsChange}
+        prompt="music"
+        settings={musicSettings}
+        type="music"
+      />,
+    );
+    expect(onSettingsChange).toHaveBeenCalledWith({
+      duration: 30,
+      instrumental: true,
+      lyrics: undefined,
+    });
+    onSettingsChange.mockClear();
+    rerender(
+      <StudioGenerateComposer
+        {...baseProps}
+        onSettingsChange={onSettingsChange}
+        prompt="music"
+        settings={{
+          ...musicSettings,
+          duration: 30,
+          instrumental: true,
+          lyrics: undefined,
+        }}
+        type="music"
+      />,
+    );
+    expect(onSettingsChange).not.toHaveBeenCalled();
+  });
+
   it('resets the video resolution to the new model default when the model changes', () => {
     render(
       <StudioGenerateComposer

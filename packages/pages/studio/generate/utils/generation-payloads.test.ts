@@ -163,19 +163,19 @@ describe('buildMusicPayload', () => {
       30,
     );
 
-    expect(payload.duration).toBe(30);
+    expect(payload.duration).toBeUndefined();
     expect(payload.label).toMatch(/^music-\d+$/);
     expect(payload.model).toBe('music-model');
     expect(payload.text).toBe('lofi beat');
   });
 
-  it('defaults duration to 10 and omits the model on auto-select', () => {
+  it('omits unresolved Auto duration and model', () => {
     const payload = buildMusicPayload(
       makePromptData({ autoSelectModel: true }),
       'music-model',
     );
 
-    expect(payload.duration).toBe(10);
+    expect(payload.duration).toBeUndefined();
     expect(payload.model).toBeUndefined();
   });
 
@@ -195,7 +195,7 @@ describe('buildMusicPayload', () => {
 
   it('carries lyrics through for a model that supports them', () => {
     const payload = buildMusicPayload(
-      makePromptData({ lyrics: 'Verse one\nChorus' }),
+      makePromptData({ lyrics: '  Verse one\nChorus \n' }),
       MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
       30,
     );
@@ -203,7 +203,7 @@ describe('buildMusicPayload', () => {
     expect(payload.lyrics).toBe('Verse one\nChorus');
   });
 
-  it('drops lyrics and forces instrumental false for a model with no vocal support (MusicGen)', () => {
+  it('drops lyrics and forces instrumental true for a model with no vocal support (MusicGen)', () => {
     const payload = buildMusicPayload(
       makePromptData({
         instrumental: true,
@@ -213,7 +213,7 @@ describe('buildMusicPayload', () => {
       10,
     );
 
-    expect(payload.instrumental).toBe(false);
+    expect(payload.instrumental).toBe(true);
     expect(payload.lyrics).toBeUndefined();
   });
 
@@ -227,7 +227,7 @@ describe('buildMusicPayload', () => {
     expect(payload.lyrics).toBeUndefined();
   });
 
-  it('keeps whatever the operator set in auto-select mode (no single model to check)', () => {
+  it('clears settings until Auto resolves a model', () => {
     const payload = buildMusicPayload(
       makePromptData({
         autoSelectModel: true,
@@ -238,7 +238,9 @@ describe('buildMusicPayload', () => {
       10,
     );
 
-    expect(payload.instrumental).toBe(true);
+    expect(payload.instrumental).toBeUndefined();
+    expect(payload.lyrics).toBeUndefined();
+    expect(payload.duration).toBeUndefined();
   });
 });
 

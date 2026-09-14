@@ -1,3 +1,4 @@
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type {
   GenerationSetup,
   GenerationSetupRecommendation,
@@ -501,6 +502,169 @@ describe('generation-setup.store', () => {
       expect(persisted?.version).toBe(GENERATION_SETUP_STORE_VERSION);
       expect(persisted?.state?.setupByScope).toBeDefined();
       expect(persisted?.state).not.toHaveProperty('reasonsByScope');
+    });
+  });
+});
+
+describe('music normalization without a mounted Output tab', () => {
+  const scope = 'studio:music';
+  const defaults: GenerationSetupValues = { ...DEFAULTS, type: 'music' };
+  beforeEach(() => {
+    window.localStorage.clear();
+    useGenerationSetupStore.setState({ setupByScope: {}, reasonsByScope: {} });
+  });
+
+  it('normalizes model switches and preserves sources', () => {
+    applyGenerationSetupPreset(
+      scope,
+      'vocal',
+      {
+        modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        duration: 90,
+        lyrics: 'verse',
+      },
+      defaults,
+    );
+    setGenerationSetupField(
+      scope,
+      'modelKey',
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      defaults,
+    );
+    expect(getGenerationSetup(scope, defaults)).toMatchObject({
+      sources: { modelKey: 'user', duration: 'preset', lyrics: 'preset' },
+      values: { duration: 30, instrumental: true, lyrics: undefined },
+    });
+    setGenerationSetupField(
+      scope,
+      'modelKey',
+      MODEL_KEYS.FAL_LYRIA3_PRO,
+      defaults,
+    );
+    expect(getGenerationSetup(scope, defaults).values.duration).toBeUndefined();
+  });
+
+  it('normalizes recommendations and reset boundaries', () => {
+    applyGenerationSetupRecommendation(
+      scope,
+      {
+        reasons: {},
+        values: {
+          modelKey: MODEL_KEYS.REPLICATE_META_MUSICGEN,
+          duration: 90,
+          lyrics: 'verse',
+        },
+      },
+      defaults,
+    );
+    expect(getGenerationSetup(scope, defaults).values).toMatchObject({
+      duration: 30,
+      lyrics: undefined,
+      instrumental: true,
+    });
+    resetGenerationSetupAll(scope, defaults);
+    expect(getGenerationSetup(scope, defaults)).toMatchObject({
+      sources: {},
+      values: { duration: 30, lyrics: undefined, instrumental: true },
+    });
+  });
+
+  it('applies a restored model and lyrics atomically, including explicit clears', () => {
+    setGenerationSetupField(
+      scope,
+      'modelKey',
+      MODEL_KEYS.REPLICATE_META_MUSICGEN,
+      defaults,
+    );
+    useGenerationSetupStore.getState().patchMusicFields(
+      scope,
+      {
+        lyrics: 'restored verse',
+        instrumental: false,
+        modelKey: MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+        duration: 90,
+      },
+      defaults,
+    );
+    expect(getGenerationSetup(scope, defaults).values).toMatchObject({
+      duration: 90,
+      lyrics: 'restored verse',
+      instrumental: false,
+    });
+    useGenerationSetupStore.getState().patchMusicFields(
+      scope,
+      {
+        modelKey: 'auto',
+        lyrics: undefined,
+        duration: undefined,
+        instrumental: undefined,
+      },
+      defaults,
+    );
+    expect(getGenerationSetup(scope, defaults).values).toMatchObject({
+      duration: undefined,
+      lyrics: undefined,
+      instrumental: undefined,
+    });
+  });
+
+  it('normalizes same-version hydration and pure reads', async () => {
+    const stale = {
+      sources: { duration: 'user' },
+      values: {
+        ...defaults,
+        modelKey: MODEL_KEYS.MUREKA_V9,
+        duration: 90,
+        instrumental: true,
+        lyrics: 'stale',
+      },
+    };
+    window.localStorage.setItem(
+      GENERATION_SETUP_STORAGE_KEY,
+      JSON.stringify({
+        state: { setupByScope: { [scope]: stale } },
+        version: GENERATION_SETUP_STORE_VERSION,
+      }),
+    );
+    await useGenerationSetupStore.persist.rehydrate();
+    expect(
+      useGenerationSetupStore.getState().setupByScope[scope],
+    ).toMatchObject({
+      sources: { duration: 'user' },
+      values: { duration: undefined, instrumental: true, lyrics: undefined },
+    });
+  });
+  it('keeps automatic undefined clears out of user provenance and preserves preset pins', () => {
+    applyGenerationSetupPreset(
+      scope,
+      'lyria',
+      { modelKey: MODEL_KEYS.FAL_LYRIA3_PRO, duration: 90 },
+      defaults,
+    );
+    const before = getGenerationSetup(scope, defaults);
+    useGenerationSetupStore
+      .getState()
+      .patchMusicFields(
+        scope,
+        { duration: undefined, lyrics: undefined },
+        defaults,
+      );
+    expect(getGenerationSetup(scope, defaults)).toMatchObject({
+      presetId: 'lyria',
+      sources: before.sources,
+    });
+    expect(getGenerationSetup(scope, defaults).sources.lyrics).toBeUndefined();
+    useGenerationSetupStore
+      .getState()
+      .patchMusicFields(
+        scope,
+        { lyrics: 'new verse ', duration: undefined },
+        defaults,
+      );
+    expect(getGenerationSetup(scope, defaults)).toMatchObject({
+      presetId: undefined,
+      sources: { lyrics: 'user', duration: 'preset' },
+      values: { lyrics: 'new verse ' },
     });
   });
 });

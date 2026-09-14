@@ -31,7 +31,10 @@ import {
   type ByokProvider,
   PricingType,
 } from '@genfeedai/contracts';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  MODEL_KEYS,
+  normalizeMusicSettings,
+} from '@genfeedai/contracts/constants';
 import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { getDeserializer, isDeserializerRuntime } from '@genfeedai/helpers';
 import {
@@ -233,6 +236,13 @@ export class CreditsGuard implements CanActivate {
       );
 
       const pricingModelKey = modelKey || creditsConfig.modelKey;
+      const pricingDuration =
+        creditsConfig.source === ActivitySource.MUSIC_GENERATION &&
+        pricingModelKey
+          ? normalizeMusicSettings(baseModelKey(pricingModelKey), {
+              duration: duration || undefined,
+            }).duration
+          : duration;
       const modelSource = modelKey ? 'request body' : 'decorator';
 
       // Determine credits required: from model in body, modelKey in decorator, or fixed amount
@@ -315,7 +325,7 @@ export class CreditsGuard implements CanActivate {
                 model,
                 width,
                 height,
-                duration,
+                pricingDuration,
               );
             }
           } else if (

@@ -1,7 +1,6 @@
 'use client';
 
-import { ModelCategory } from '@genfeedai/contracts';
-import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import { resolveMusicSettings } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupOutputSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import { SHELL_CONTROL_HEIGHT_CLASS } from '@ui/constants/shell-chrome.constant';
@@ -9,7 +8,6 @@ import GenerationSetupFieldRow from '@ui/dropdowns/generation-setup/GenerationSe
 import {
   GENERATION_SETUP_ASPECT_RATIO_OPTIONS,
   GENERATION_SETUP_DURATION_OPTIONS_SECONDS,
-  GENERATION_SETUP_MUSIC_DURATION_OPTIONS_SECONDS,
   GENERATION_SETUP_OUTPUTS_OPTIONS,
 } from '@ui/dropdowns/generation-setup/generation-setup.constants';
 import { Input } from '@ui/primitives/input';
@@ -23,49 +21,6 @@ import {
 import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
-import { useEffect } from 'react';
-
-/**
- * Resolves the duration options (and whether duration is editable at all)
- * for the currently selected music model — providers disagree on both the
- * legal step grid (MusicGen: 5-30s; Eleven Music/Mureka: 10-90s) and whether
- * duration is even a real parameter (Lyria 3 Pro's fal schema silently
- * drops it). Falls back to the widest cross-provider grid when no specific
- * model is resolved yet (auto-select).
- */
-function resolveMusicDurationState(modelKey: string): {
-  hasDurationEditing: boolean;
-  options: readonly number[];
-} {
-  const capability = MODEL_OUTPUT_CAPABILITIES[modelKey];
-  const musicCapability =
-    capability?.category === ModelCategory.MUSIC ? capability : undefined;
-  if (!musicCapability) {
-    return {
-      hasDurationEditing: true,
-      options: GENERATION_SETUP_MUSIC_DURATION_OPTIONS_SECONDS,
-    };
-  }
-  return {
-    hasDurationEditing: musicCapability.hasDurationEditing ?? true,
-    options: musicCapability.durations?.length
-      ? musicCapability.durations
-      : GENERATION_SETUP_MUSIC_DURATION_OPTIONS_SECONDS,
-  };
-}
-
-/** Nearest legal option to `value` — used to snap a stale duration instead of silently sending an out-of-range one. */
-function snapToNearestOption(
-  value: number | undefined,
-  options: readonly number[],
-): number {
-  if (value === undefined || !options.length) {
-    return options[0] ?? 0;
-  }
-  return options.reduce((closest, option) =>
-    Math.abs(option - value) < Math.abs(closest - value) ? option : closest,
-  );
-}
 
 /** Output tab: aspect ratio, duration, output count, and (music only) style/instrumental/lyrics. */
 export default function GenerationSetupOutputSection({
@@ -78,34 +33,15 @@ export default function GenerationSetupOutputSection({
   const translate = useTranslations('agent.generationSetup');
   const isMusic = setup.values.type === 'music';
   const musicDurationState = isMusic
-    ? resolveMusicDurationState(setup.values.modelKey)
+    ? resolveMusicSettings(setup.values.modelKey)
     : null;
   const durationOptions = musicDurationState
-    ? musicDurationState.options
+    ? musicDurationState.durations
     : GENERATION_SETUP_DURATION_OPTIONS_SECONDS;
   const hasDurationEditing = musicDurationState
     ? musicDurationState.hasDurationEditing
     : true;
   const showDuration = capabilities.hasDuration && hasDurationEditing;
-
-  // A model switch can leave `duration` outside the newly-resolved model's
-  // own range (e.g. 90s carried over from Eleven Music onto MusicGen, whose
-  // max is 30s) — snap it into range immediately instead of letting a
-  // provider silently clamp a value the UI still shows as selected.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: only re-check when the resolved option grid, the current value, or duration's own availability changes; `onSetField` is a stable callback from the parent, not state this effect reacts to.
-  useEffect(() => {
-    if (
-      !showDuration ||
-      setup.values.duration === undefined ||
-      durationOptions.includes(setup.values.duration)
-    ) {
-      return;
-    }
-    onSetField(
-      'duration',
-      snapToNearestOption(setup.values.duration, durationOptions),
-    );
-  }, [durationOptions, setup.values.duration, showDuration]);
 
   return (
     <div className="flex flex-col gap-3">
@@ -185,7 +121,12 @@ export default function GenerationSetupOutputSection({
         </GenerationSetupFieldRow>
       ) : null}
 
-      {capabilities.hasInstrumentalToggle ? (
+      {(
+        musicDurationState
+          ? musicDurationState.hasInstrumentalToggle &&
+            capabilities.hasInstrumentalToggle
+          : capabilities.hasInstrumentalToggle
+      ) ? (
         <GenerationSetupFieldRow
           fieldKey="instrumental"
           label={translate('instrumental')}
@@ -203,7 +144,11 @@ export default function GenerationSetupOutputSection({
         </GenerationSetupFieldRow>
       ) : null}
 
-      {capabilities.hasLyrics ? (
+      {(
+        musicDurationState
+          ? musicDurationState.hasLyrics && capabilities.hasLyrics
+          : capabilities.hasLyrics
+      ) ? (
         <GenerationSetupFieldRow
           fieldKey="lyrics"
           label={translate('lyrics')}

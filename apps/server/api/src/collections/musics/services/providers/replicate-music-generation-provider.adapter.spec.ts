@@ -132,3 +132,36 @@ describe('ReplicateMusicGenerationProviderAdapter', () => {
     });
   });
 });
+
+describe('direct MusicGen duration guard', () => {
+  it.each([
+    [90, 30],
+    [1, 5],
+    [12.5, 10],
+    [Number.NaN, 10],
+  ])(
+    'normalizes %s seconds to %s before prompt construction',
+    async (duration, expected) => {
+      const buildPrompt = vi.fn().mockResolvedValue({ input: {} });
+      const adapter = new ReplicateMusicGenerationProviderAdapter(
+        { buildPrompt } as never,
+        { runModel: vi.fn().mockResolvedValue('id') } as never,
+      );
+      await adapter.generate({
+        createMusicDto: Object.assign(new CreateMusicDto(), { text: 'music' }),
+        duration,
+        model: 'meta/musicgen',
+        modelCategory: ModelCategory.MUSIC,
+        modelEndpoint: 'meta/musicgen',
+        modelProvider: ModelProvider.REPLICATE,
+        outputs: 1,
+        prompt: 'music',
+        seed: -1,
+      });
+      expect(buildPrompt).toHaveBeenCalledWith(
+        'meta/musicgen',
+        expect.objectContaining({ duration: expected }),
+      );
+    },
+  );
+});

@@ -88,8 +88,8 @@ describe('getDefaultStudioGenerateSettings', () => {
     expect(settings.duration).toBe(5);
   });
 
-  it('gives music a duration and no aspect-driven look', () => {
-    expect(getDefaultStudioGenerateSettings('music').duration).toBe(10);
+  it('leaves music duration unresolved in Auto', () => {
+    expect(getDefaultStudioGenerateSettings('music').duration).toBeUndefined();
   });
 });
 
@@ -131,7 +131,7 @@ describe('option lists', () => {
 
   it('offers durations only where the provider bills by length', () => {
     expect(getStudioDurations('video').length).toBeGreaterThan(0);
-    expect(getStudioDurations('music').length).toBeGreaterThan(0);
+    expect(getStudioDurations('music')).toEqual([]);
     expect(getStudioDurations('image')).toEqual([]);
   });
 });

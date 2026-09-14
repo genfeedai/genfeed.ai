@@ -953,9 +953,7 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
     // Direct integration (not fal/Replicate) — lyrics-first song generation.
     [MODEL_KEYS.MUREKA_V9]: {
       category: ModelCategory.MUSIC,
-      defaultDuration: 30,
-      durations: [10, 15, 20, 30, 45, 60, 90],
-      hasDurationEditing: true,
+      hasDurationEditing: false,
       isBatchSupported: false,
       languages: ['en', 'zh'],
       maxOutputs: 4,
@@ -1425,3 +1423,72 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 0,
     },
   };
+
+export interface MusicSettings {
+  duration?: number;
+  instrumental?: boolean;
+  lyrics?: string;
+}
+
+export interface ResolvedMusicSettings {
+  durations: readonly number[];
+  defaultDuration?: number;
+  hasDurationEditing: boolean;
+  hasInstrumentalToggle: boolean;
+  hasLyrics: boolean;
+  isInstrumentalOnly: boolean;
+}
+
+export function resolveMusicSettings(modelKey?: string): ResolvedMusicSettings {
+  const entry = modelKey ? MODEL_OUTPUT_CAPABILITIES[modelKey] : undefined;
+  const capability =
+    entry?.category === ModelCategory.MUSIC ? entry : undefined;
+  const durations =
+    capability?.hasDurationEditing === true ? (capability.durations ?? []) : [];
+  return {
+    defaultDuration: durations.length
+      ? (capability?.defaultDuration ?? durations[0])
+      : undefined,
+    durations,
+    hasDurationEditing: durations.length > 0,
+    hasInstrumentalToggle:
+      capability?.supportsVocals === true &&
+      capability.supportsInstrumental === true,
+    hasLyrics: capability?.supportsLyrics === true,
+    isInstrumentalOnly:
+      capability?.supportsInstrumental === true &&
+      capability.supportsVocals === false,
+  };
+}
+
+export function normalizeMusicSettings(
+  modelKey: string | undefined,
+  settings: MusicSettings,
+): MusicSettings {
+  const capability = resolveMusicSettings(modelKey);
+  const requested = settings.duration;
+  const duration = capability.hasDurationEditing
+    ? typeof requested === 'number' && Number.isFinite(requested)
+      ? capability.durations.reduce((closest, option) =>
+          Math.abs(option - requested) < Math.abs(closest - requested) ||
+          (Math.abs(option - requested) === Math.abs(closest - requested) &&
+            option < closest)
+            ? option
+            : closest,
+        )
+      : capability.defaultDuration
+    : undefined;
+  const instrumental = capability.isInstrumentalOnly
+    ? true
+    : capability.hasInstrumentalToggle
+      ? settings.instrumental === true
+      : undefined;
+  return {
+    duration,
+    instrumental,
+    lyrics:
+      capability.hasLyrics && instrumental !== true
+        ? settings.lyrics
+        : undefined,
+  };
+}

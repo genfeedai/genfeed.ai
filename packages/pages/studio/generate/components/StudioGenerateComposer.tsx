@@ -9,6 +9,7 @@ import {
   hasEndFrame,
   hasVideoReferences,
   MODEL_KEYS,
+  normalizeMusicSettings,
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
 import type { IStudioLook } from '@genfeedai/contracts/interfaces';
@@ -31,7 +32,6 @@ import {
 import { useStudioRemixRunScope } from '@pages/studio/generate/StudioRemixRunScope';
 import { getDefaultStudioResolution } from '@pages/studio/generate/utils/studio-generate-settings';
 import {
-  getStudioGenerateTypeConfig,
   isStudioGenerateType,
   listStudioGenerateTypeConfigs,
   resolveStudioGenerateCapabilities,
@@ -116,6 +116,27 @@ export default function StudioGenerateComposer({
     type,
     settings.modelKey,
   );
+  useEffect(() => {
+    if (type !== 'music') return;
+    const normalized = normalizeMusicSettings(settings.modelKey, {
+      duration: settings.duration,
+      instrumental: settings.instrumental,
+      lyrics: settings.lyrics,
+    });
+    if (
+      normalized.duration !== settings.duration ||
+      normalized.instrumental !== settings.instrumental ||
+      normalized.lyrics !== settings.lyrics
+    )
+      onSettingsChange(normalized);
+  }, [
+    type,
+    settings.modelKey,
+    settings.duration,
+    settings.instrumental,
+    settings.lyrics,
+    onSettingsChange,
+  ]);
   const { favoriteModelKeys, onFavoriteToggle } = useModelFavorites();
 
   const isPromptEmpty = prompt.trim().length === 0;

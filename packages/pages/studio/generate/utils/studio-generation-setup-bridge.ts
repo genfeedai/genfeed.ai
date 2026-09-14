@@ -24,6 +24,7 @@ import type { StudioGeneratePersistedState } from '@pages/studio/generate/utils/
 import { STUDIO_GENERATE_TYPES } from '@pages/studio/generate/utils/studio-generate-types';
 import {
   buildStudioGenerationSetupScope,
+  normalizeGenerationSetupValues,
   useGenerationSetupStore,
 } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import {
@@ -131,7 +132,13 @@ export function generationSetupValuesToStudioSettingsPatch(
 
   for (const key of STUDIO_BRIDGED_SETTINGS_KEYS) {
     const value = values[key];
-    if (value === undefined) {
+    if (
+      value === undefined &&
+      !(
+        values.type === 'music' &&
+        ['duration', 'instrumental', 'lyrics'].includes(key)
+      )
+    ) {
       continue;
     }
     if (key === 'modelKey' && typeof value === 'string') {
@@ -157,7 +164,10 @@ export function splitStudioSettingsPatch(
 
   for (const key of Object.keys(patch) as (keyof StudioGenerateSettings)[]) {
     const value = patch[key];
-    if (value === undefined) {
+    if (
+      value === undefined &&
+      !['duration', 'instrumental', 'lyrics'].includes(key)
+    ) {
       continue;
     }
     if (bridgedKeys.includes(key)) {
@@ -220,7 +230,7 @@ export function seedGenerationSetupFromLegacyStudioSettings(
     useGenerationSetupStore.setState({
       setupByScope: {
         ...useGenerationSetupStore.getState().setupByScope,
-        [scope]: { sources, values },
+        [scope]: { sources, values: normalizeGenerationSetupValues(values) },
       },
     });
   }

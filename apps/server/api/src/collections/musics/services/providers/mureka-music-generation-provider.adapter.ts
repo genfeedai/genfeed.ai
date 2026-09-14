@@ -5,6 +5,7 @@ import type {
 } from '@api/collections/musics/services/music-generation.types';
 import { MurekaService } from '@api/services/integrations/mureka/services/mureka.service';
 import { ModelProvider } from '@genfeedai/contracts';
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -28,14 +29,16 @@ export class MurekaMusicGenerationProviderAdapter
   async generate(
     request: MusicGenerationProviderRequest,
   ): Promise<MusicGenerationProviderResult> {
-    const instrumental = request.createMusicDto.instrumental ?? false;
+    const normalized = normalizeMusicSettings(
+      request.model,
+      request.createMusicDto,
+    );
+    const instrumental = normalized.instrumental;
     const result = await this.murekaService.generateSong({
       instrumental,
       // An instrumental request carries no lyrics, even if the field still
       // holds stale text from before the toggle was flipped.
-      lyrics: instrumental
-        ? undefined
-        : request.createMusicDto.lyrics || undefined,
+      lyrics: normalized.lyrics?.trim() || undefined,
       prompt: request.prompt,
     });
 

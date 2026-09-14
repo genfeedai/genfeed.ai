@@ -392,6 +392,61 @@ describe('CreditsGuard', () => {
     });
   });
 
+  it.each([
+    [MODEL_KEYS.REPLICATE_META_MUSICGEN, 90, 30],
+    [MODEL_KEYS.REPLICATE_META_MUSICGEN, 4, 5],
+    [MODEL_KEYS.REPLICATE_META_MUSICGEN, undefined, 10],
+    [MODEL_KEYS.FAL_ELEVENLABS_MUSIC, 4, 10],
+    [MODEL_KEYS.FAL_ELEVENLABS_MUSIC, undefined, 30],
+    [MODEL_KEYS.FAL_LYRIA3_PRO, 90, undefined],
+    [MODEL_KEYS.MUREKA_V9, 90, undefined],
+    ['unknown-music', 90, undefined],
+  ])(
+    'admits music %s at normalized duration %s',
+    async (model, duration, normalizedDuration) => {
+      vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+        key === CREDITS_KEY
+          ? { source: ActivitySource.MUSIC_GENERATION }
+          : undefined,
+      );
+      modelsService.findOne.mockResolvedValue({
+        cost: 7,
+        costPerUnit: 2,
+        key: model,
+        pricingType: 'per-second',
+      });
+      const body = { model, duration };
+      await guard.canActivate(createContext(body));
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).toHaveBeenCalledWith(
+        orgId,
+        normalizedDuration === undefined ? 7 : normalizedDuration * 2,
+      );
+      expect(body.duration).toBe(duration);
+    },
+  );
+
+  it('retains the raw duration for nonmusic credit admission', async () => {
+    vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+      key === CREDITS_KEY
+        ? { source: ActivitySource.VIDEO_GENERATION }
+        : undefined,
+    );
+    modelsService.findOne.mockResolvedValue({
+      cost: 7,
+      costPerUnit: 2,
+      key: 'video-model',
+      pricingType: 'per-second',
+    });
+    await guard.canActivate(
+      createContext({ model: 'video-model', duration: 90 }),
+    );
+    expect(
+      creditsUtilsService.checkOrganizationCreditsAvailable,
+    ).toHaveBeenCalledWith(orgId, 180);
+  });
+
   it('multiplies credits by 2 for high resolution via data.attributes', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue({});
     modelsService.findOne.mockResolvedValue({ cost: 10, key: 'img-model' });

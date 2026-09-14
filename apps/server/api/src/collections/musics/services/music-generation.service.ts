@@ -27,6 +27,7 @@ import {
   ModelCategory,
   PromptCategory,
 } from '@genfeedai/contracts';
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -180,6 +181,13 @@ export class MusicGenerationService {
       user.organizationId,
     );
 
+    const normalized = normalizeMusicSettings(model, createMusicDto);
+    const normalizedDto = {
+      ...createMusicDto,
+      ...normalized,
+      lyrics: normalized.lyrics?.trim() || undefined,
+    };
+
     const promptData = await this.promptsService.create(
       new PromptEntity({
         brandId,
@@ -195,7 +203,7 @@ export class MusicGenerationService {
       await this.sharedService.createMediaDocuments(user, {
         brandId,
         category: IngredientCategory.MUSIC,
-        duration: createMusicDto.duration,
+        duration: normalizedDto.duration,
         extension: MetadataExtension.MP3,
         generationPrompt: effectiveText,
         generationSeed: createMusicDto.seed,
@@ -221,7 +229,7 @@ export class MusicGenerationService {
     );
     const pendingIngredientIds = await this.dispatchOutputs({
       brandId,
-      createMusicDto,
+      createMusicDto: normalizedDto,
       ingredientId: ingredientData.id.toString(),
       metadataId: metadataData.id.toString(),
       model,
@@ -233,7 +241,7 @@ export class MusicGenerationService {
       user,
     });
     return this.serializeResult({
-      createMusicDto,
+      createMusicDto: normalizedDto,
       ingredientData,
       pendingIngredientIds,
       request,
@@ -401,7 +409,7 @@ export class MusicGenerationService {
       const { externalId: generationId, outputUrl } =
         await this.musicProviderRegistry.generate({
           createMusicDto: params.createMusicDto,
-          duration: params.createMusicDto.duration || 10,
+          duration: params.createMusicDto.duration,
           model: params.model,
           modelCategory,
           modelEndpoint: params.modelDocument.endpoint,

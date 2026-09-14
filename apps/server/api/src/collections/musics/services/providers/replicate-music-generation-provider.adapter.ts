@@ -7,6 +7,7 @@ import type {
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { ModelProvider } from '@genfeedai/contracts';
+import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -40,7 +41,10 @@ export class ReplicateMusicGenerationProviderAdapter
       request.model,
       {
         classifierFreeGuidance: request.createMusicDto.classifierFreeGuidance,
-        duration: request.duration,
+        duration: normalizeMusicSettings(request.model, {
+          ...request.createMusicDto,
+          duration: request.duration,
+        }).duration,
         modelCategory: request.modelCategory,
         modelVersion: request.createMusicDto.modelVersion,
         prompt: request.prompt,
