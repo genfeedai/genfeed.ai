@@ -2,140 +2,104 @@
 
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import type { IErrorDebugInfo } from '@genfeedai/contracts/interfaces/modals/error-debug.interface';
-import type {
-  IErrorBoundaryProps,
-  IErrorBoundaryState,
-} from '@genfeedai/contracts/interfaces/utils/error.interface';
+import type { IErrorBoundaryProps } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   closeModal,
   openModal,
 } from '@genfeedai/helpers/ui/modal/modal.helper';
+import type { ErrorBoundaryProps } from '@genfeedai/props/ui/feedback/error-boundary.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
 import { setErrorDebugInfo } from '@genfeedai/services/core/error-debug-store';
 import { logger } from '@genfeedai/services/core/logger.service';
+import { ErrorBoundary as SharedErrorBoundary } from '@ui/error/ErrorBoundary';
 import { Button } from '@ui/primitives/button';
-import { Component, type ErrorInfo } from 'react';
 
-class ErrorBoundary extends Component<
-  IErrorBoundaryProps,
-  IErrorBoundaryState
-> {
-  private maxRetries = 3;
+const MAX_RETRIES = 3;
 
-  public state: IErrorBoundaryState = {
-    hasError: false,
-    retryCount: 0,
-  };
-
-  public static getDerivedStateFromError(
-    error: Error,
-  ): Partial<IErrorBoundaryState> {
-    return {
-      errorMessage: error.message,
-      errorStack: error.stack,
-      hasError: true,
-    };
-  }
-
-  public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
+export default function ErrorBoundary({
+  children,
+  fallback,
+  onError,
+}: IErrorBoundaryProps) {
+  const reportError: ErrorBoundaryProps['reportError'] = (
+    error,
+    errorInfo,
+    failure,
+  ) => {
     logger.error('ErrorBoundary caught an error', {
       componentStack: errorInfo.componentStack,
       error,
-      retryCount: this.state.retryCount,
+      retryCount: failure.retryCount,
       tags: {
         errorBoundary: 'true',
-        maxRetries: String(this.maxRetries),
-        retryCount: String(this.state.retryCount),
+        maxRetries: String(MAX_RETRIES),
+        retryCount: String(failure.retryCount),
       },
       url: typeof window !== 'undefined' ? window.location.href : undefined,
       userAgent:
         typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
     });
-
-    this.props.onError?.(error, {
-      componentStack: errorInfo.componentStack ?? undefined,
-    });
-
+    onError?.(error, { componentStack: errorInfo.componentStack ?? undefined });
     const debugInfo: IErrorDebugInfo = {
       context: {
         componentStack: errorInfo.componentStack,
-        maxRetries: this.maxRetries,
-        retryCount: this.state.retryCount,
+        maxRetries: MAX_RETRIES,
+        retryCount: failure.retryCount,
         url: typeof window !== 'undefined' ? window.location.href : undefined,
         userAgent:
           typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
       },
       errorCode: 'ERROR_BOUNDARY',
       message: error.message || 'An unexpected error occurred',
-      onRetry:
-        this.state.retryCount < this.maxRetries ? this.handleRetry : undefined,
+      onRetry: failure.canRetry ? failure.resetErrorBoundary : undefined,
       stack: error.stack,
       timestamp: new Date().toISOString(),
     };
-
     setErrorDebugInfo(debugInfo);
-
-    if (!EnvironmentService.isProduction) {
-      if (typeof window !== 'undefined') {
-        openModal(ModalEnum.ERROR_DEBUG);
-      }
-    }
-  }
-
-  private handleRetry = () => {
-    if (this.state.retryCount < this.maxRetries) {
-      this.setState((prevState) => ({
-        errorMessage: undefined,
-        errorStack: undefined,
-        hasError: false,
-        retryCount: prevState.retryCount + 1,
-      }));
-
-      closeModal(ModalEnum.ERROR_DEBUG);
+    if (!EnvironmentService.isProduction && typeof window !== 'undefined') {
+      openModal(ModalEnum.ERROR_DEBUG);
     }
   };
 
-  public render() {
-    if (this.state.hasError) {
-      if (this.props.fallback) {
-        if (typeof this.props.fallback === 'function') {
-          return this.props.fallback(
-            new Error(
-              this.state.errorMessage || 'An unexpected error occurred',
-            ),
-            { componentStack: this.state.errorStack },
-          );
+  return (
+    <SharedErrorBoundary
+      maxRetries={MAX_RETRIES}
+      reportError={reportError}
+      onReset={() => closeModal(ModalEnum.ERROR_DEBUG)}
+      fallback={({ error, canRetry, resetErrorBoundary }) => {
+        if (fallback) {
+          return typeof fallback === 'function'
+            ? fallback(
+                new Error(error.message || 'An unexpected error occurred'),
+                { componentStack: error.stack },
+              )
+            : fallback;
         }
-        return this.props.fallback;
-      }
-
-      return (
-        <div className="fixed inset-0 flex items-center justify-center bg-card z-40">
-          <div className="flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
-            <h1 className="text-2xl font-semibold mb-4 text-center">
-              Something went wrong
-            </h1>
-
-            <p className="text-base text-foreground/70 mb-4 text-center">
-              {this.state.errorMessage || 'An unexpected error occurred'}
-            </p>
-            {this.state.retryCount < this.maxRetries && (
-              <Button
-                withWrapper={false}
-                variant={ButtonVariant.DEFAULT}
-                onClick={this.handleRetry}
-                ariaLabel="Try again"
-              >
-                Try Again
-              </Button>
-            )}
+        return (
+          <div className="fixed inset-0 flex items-center justify-center bg-card z-40">
+            <div className="flex flex-col items-center justify-center p-8 max-w-2xl mx-auto">
+              <h1 className="text-2xl font-semibold mb-4 text-center">
+                Something went wrong
+              </h1>
+              <p className="text-base text-foreground/70 mb-4 text-center">
+                {error.message || 'An unexpected error occurred'}
+              </p>
+              {canRetry && (
+                <Button
+                  withWrapper={false}
+                  variant={ButtonVariant.DEFAULT}
+                  onClick={resetErrorBoundary}
+                  ariaLabel="Try again"
+                >
+                  Try Again
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      );
-    }
-
-    return this.props.children;
-  }
+        );
+      }}
+    >
+      {children}
+    </SharedErrorBoundary>
+  );
 }
-
-export default ErrorBoundary;

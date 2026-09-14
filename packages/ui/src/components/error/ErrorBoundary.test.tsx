@@ -1,7 +1,7 @@
 /**
  * @vitest-environment jsdom
  */
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { ErrorBoundary } from '@ui/error/ErrorBoundary';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -68,5 +68,24 @@ describe('ErrorBoundary', () => {
       </ErrorBoundary>,
     );
     expect(fn).toHaveBeenCalled();
+  });
+  it('keeps the simple boundary retryable after more than three failures', async () => {
+    shouldThrow = true;
+    render(
+      <ErrorBoundary>
+        <Thrower />
+      </ErrorBoundary>,
+    );
+    for (let retry = 0; retry < 4; retry += 1) {
+      fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+      await waitFor(() =>
+        expect(
+          screen.getByRole('button', { name: /try again/i }),
+        ).toBeEnabled(),
+      );
+    }
+    shouldThrow = false;
+    fireEvent.click(screen.getByRole('button', { name: /try again/i }));
+    expect(screen.getByText('OK')).toBeTruthy();
   });
 });

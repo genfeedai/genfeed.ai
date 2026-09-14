@@ -1,60 +1,79 @@
 'use client';
 
+import type { IErrorBoundaryState } from '@genfeedai/contracts/interfaces/utils/error.interface';
+import type {
+  ErrorBoundaryFailure,
+  ErrorBoundaryProps,
+} from '@genfeedai/props/ui/feedback/error-boundary.props';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { ErrorFallback } from '@ui/error/ErrorFallback';
-import { Component, type ErrorInfo, type ReactNode } from 'react';
-
-interface ErrorBoundaryProps {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
-  title?: string;
-  description?: string;
-}
-
-interface ErrorBoundaryState {
-  hasError: boolean;
-  error: Error | null;
-}
+import { Component, type ErrorInfo } from 'react';
 
 export class ErrorBoundary extends Component<
   ErrorBoundaryProps,
-  ErrorBoundaryState
+  IErrorBoundaryState
 > {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { error: null, hasError: false };
-  }
+  state: IErrorBoundaryState = { error: null, hasError: false, retryCount: 0 };
 
-  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
+  static getDerivedStateFromError(error: Error): Partial<IErrorBoundaryState> {
     return { error, hasError: true };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    logger.error('[ErrorBoundary]', {
-      componentStack: errorInfo.componentStack,
-      error,
-    });
+    if (this.props.reportError) {
+      this.props.reportError(error, errorInfo, this.getFailure(error));
+    } else {
+      logger.error('[ErrorBoundary]', {
+        componentStack: errorInfo.componentStack,
+        error,
+      });
+    }
     this.props.onError?.(error, errorInfo);
   }
 
+  private get canRetry(): boolean {
+    return (
+      this.state.retryCount <
+      (this.props.maxRetries ?? Number.POSITIVE_INFINITY)
+    );
+  }
+
   private handleReset = () => {
-    this.setState({ error: null, hasError: false });
+    if (!this.canRetry) return;
+    this.setState((state) => ({
+      error: null,
+      hasError: false,
+      retryCount: state.retryCount + 1,
+    }));
+    this.props.onReset?.();
   };
 
+  private getFailure(error: Error): ErrorBoundaryFailure {
+    return {
+      canRetry: this.canRetry,
+      error,
+      resetErrorBoundary: this.handleReset,
+      retryCount: this.state.retryCount,
+    };
+  }
+
   render() {
-    if (this.state.hasError) {
-      return (
-        this.props.fallback ?? (
-          <ErrorFallback
-            error={this.state.error ?? undefined}
-            resetErrorBoundary={this.handleReset}
-            title={this.props.title}
-            description={this.props.description}
-          />
-        )
+    const { error } = this.state;
+    if (!this.state.hasError) return this.props.children;
+    if (typeof this.props.fallback === 'function') {
+      return this.props.fallback(
+        this.getFailure(error ?? new Error('An unexpected error occurred')),
       );
     }
-    return this.props.children;
+    return (
+      this.props.fallback ?? (
+        <ErrorFallback
+          error={error ?? undefined}
+          resetErrorBoundary={this.canRetry ? this.handleReset : undefined}
+          title={this.props.title}
+          description={this.props.description}
+        />
+      )
+    );
   }
 }
