@@ -609,7 +609,7 @@ export class SlackBotManager
     respond: SlackRespond,
   ) {
     const session = this.getSession(userId);
-    if (!session || !session.workflowId) {
+    if (!session?.workflowId) {
       await respond({ text: 'No workflow selected. Use /workflows to start.' });
       return;
     }

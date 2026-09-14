@@ -152,12 +152,12 @@ export function registerSlackBotHandlers(
     }
 
     const session = handlers.getSession(msg.user);
-    if (!session || session.state !== 'collecting') {
+    if (session?.state !== 'collecting') {
       return;
     }
 
     const currentInput = session.requiredInputs[session.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== 'text') {
+    if (currentInput?.inputType !== 'text') {
       return;
     }
 
@@ -177,17 +177,17 @@ export function registerSlackBotHandlers(
     try {
       const fileInfo = await client.files.info({ file: event.file_id });
       const file = fileInfo.file;
-      if (!file || !file.user) {
+      if (!file?.user) {
         return;
       }
 
       const session = handlers.getSession(file.user);
-      if (!session || session.state !== 'collecting') {
+      if (session?.state !== 'collecting') {
         return;
       }
 
       const currentInput = session.requiredInputs[session.currentInputIndex];
-      if (!currentInput || currentInput.inputType !== 'image') {
+      if (currentInput?.inputType !== 'image') {
         return;
       }
 
