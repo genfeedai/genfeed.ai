@@ -6,6 +6,7 @@ import { Logger } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { ConfigService } from '@slack/config/config.service';
 import { SlackBotManager } from '@slack/services/slack-bot-manager.service';
+import { AxiosHeaders, type AxiosResponse } from 'axios';
 import { of, throwError } from 'rxjs';
 import type { Mocked } from 'vitest';
 
@@ -29,6 +30,16 @@ const { mockApp, MockAppConstructor } = vi.hoisted(() => {
 vi.mock('@slack/bolt', () => ({
   App: MockAppConstructor,
 }));
+
+function httpResponse<T>(data: T): AxiosResponse<T> {
+  return {
+    config: { headers: new AxiosHeaders() },
+    data,
+    headers: {},
+    status: 200,
+    statusText: 'OK',
+  };
+}
 
 function toApiIntegration(integration: OrgIntegration) {
   const { orgId, ...fields } = integration;
@@ -132,7 +143,7 @@ describe('SlackBotManager', () => {
 
   describe('initialize', () => {
     it('should initialize successfully', async () => {
-      httpService.get.mockReturnValue(of({ data: [] } as any));
+      httpService.get.mockReturnValue(of(httpResponse([])));
 
       await service.initialize();
 
@@ -417,7 +428,7 @@ describe('SlackBotManager', () => {
     it('should fetch integration and add it', async () => {
       mockApp.start.mockResolvedValue(undefined);
       httpService.get.mockReturnValue(
-        of({ data: toApiIntegration(mockIntegration) } as any),
+        of(httpResponse(toApiIntegration(mockIntegration))),
       );
 
       await service['fetchAndAddIntegration']('slack-integration-1');
@@ -459,7 +470,7 @@ describe('SlackBotManager', () => {
         status: 'PAUSED' as const,
       };
       httpService.get.mockReturnValue(
-        of({ data: toApiIntegration(updatedIntegration) } as any),
+        of(httpResponse(toApiIntegration(updatedIntegration))),
       );
 
       await service['fetchAndUpdateIntegration']('slack-integration-1');
@@ -501,16 +512,16 @@ describe('SlackBotManager', () => {
       mockApp.start.mockResolvedValue(undefined);
       httpService.get.mockImplementation((url: string) => {
         if (url.endsWith('/v1/internal/integrations/SLACK')) {
-          return of({ data: [] } as any);
+          return of(httpResponse([]));
         }
 
         if (
           url.endsWith('/v1/internal/integrations/SLACK/slack-integration-1')
         ) {
-          return of({ data: toApiIntegration(mockIntegration) } as any);
+          return of(httpResponse(toApiIntegration(mockIntegration)));
         }
 
-        return of({ data: [] } as any);
+        return of(httpResponse([]));
       });
 
       await service.initialize();

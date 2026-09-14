@@ -85,6 +85,7 @@ vi.mock('rxjs', () => ({
   firstValueFrom: vi.fn(),
 }));
 
+import type { OrgIntegration } from '@genfeedai/integrations';
 import { LoggerService } from '@libs/logger/logger.service';
 import { SlackBotManager } from '@slack/services/slack-bot-manager.service';
 import { firstValueFrom } from 'rxjs';
@@ -109,7 +110,9 @@ describe('SlackBotManager', () => {
     warn: ReturnType<typeof vi.fn>;
   };
 
-  const makeIntegration = (overrides: Record<string, unknown> = {}) => ({
+  const makeIntegration = (
+    overrides: Partial<OrgIntegration> = {},
+  ): OrgIntegration => ({
     botToken: 'mock-test-bot-token',
     config: { allowedUserIds: [], appToken: 'mock-test-app-token' },
     createdAt: new Date(),
@@ -144,16 +147,22 @@ describe('SlackBotManager', () => {
     };
 
     service = new SlackBotManager(
-      mockConfigService as any,
-      mockHttpService as any,
-      mockRedisService as any,
+      mockConfigService as unknown as ConstructorParameters<
+        typeof SlackBotManager
+      >[0],
+      mockHttpService as unknown as ConstructorParameters<
+        typeof SlackBotManager
+      >[1],
+      mockRedisService as unknown as ConstructorParameters<
+        typeof SlackBotManager
+      >[2],
       mockLoggerService as unknown as LoggerService,
     );
   });
 
   describe('initialize', () => {
     it('should subscribe to Redis integration events', async () => {
-      mockFirstValueFrom.mockResolvedValue({ data: [] } as any);
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
 
       await service.initialize();
 
@@ -161,11 +170,11 @@ describe('SlackBotManager', () => {
     });
 
     it('should log initialization message', async () => {
-      mockFirstValueFrom.mockResolvedValue({ data: [] } as any);
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
 
       await service.initialize();
 
-      expect((service as any).logger.log).toHaveBeenCalledWith(
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
         'Initializing Slack Bot Manager',
       );
     });
@@ -178,7 +187,7 @@ describe('SlackBotManager', () => {
     });
 
     it('should not resubscribe to Redis on second initialize call', async () => {
-      mockFirstValueFrom.mockResolvedValue({ data: [] } as any);
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
 
       await service.initialize();
       await service.initialize();
@@ -190,7 +199,7 @@ describe('SlackBotManager', () => {
 
   describe('shutdown', () => {
     it('should NOT unsubscribe shared Redis channels (starves other bots)', async () => {
-      mockFirstValueFrom.mockResolvedValue({ data: [] } as any);
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
       await service.initialize();
 
       await service.shutdown();
@@ -202,19 +211,19 @@ describe('SlackBotManager', () => {
     });
 
     it('should clear sessions and userSettings maps', async () => {
-      mockFirstValueFrom.mockResolvedValue({ data: [] } as any);
+      mockFirstValueFrom.mockResolvedValue({ data: [] });
       await service.initialize();
 
       await service.shutdown();
 
-      expect((service as any).sessions.size).toBe(0);
-      expect((service as any).userSettings.size).toBe(0);
+      expect(service['sessions'].size).toBe(0);
+      expect(service['userSettings'].size).toBe(0);
     });
 
     it('should log shutdown message', async () => {
       await service.shutdown();
 
-      expect((service as any).logger.log).toHaveBeenCalledWith(
+      expect(mockLoggerService.log).toHaveBeenCalledWith(
         'Shutting down Slack Bot Manager',
       );
     });
@@ -224,7 +233,7 @@ describe('SlackBotManager', () => {
     it('should create and start a Slack App instance', async () => {
       const integration = makeIntegration();
 
-      const botInstance = await service.createBotInstance(integration as any);
+      const botInstance = await service.createBotInstance(integration);
 
       expect(botInstance.id).toBe('integration-1');
       expect(botInstance.orgId).toBe('org-1');
@@ -234,7 +243,7 @@ describe('SlackBotManager', () => {
     it('should return bot instance with correct integration reference', async () => {
       const integration = makeIntegration({ id: 'my-integration' });
 
-      const botInstance = await service.createBotInstance(integration as any);
+      const botInstance = await service.createBotInstance(integration);
 
       expect(botInstance.integration).toBe(integration);
     });
@@ -243,25 +252,25 @@ describe('SlackBotManager', () => {
   describe('destroyBotInstance', () => {
     it('should call stop on the Slack App', async () => {
       const integration = makeIntegration();
-      const botInstance = await service.createBotInstance(integration as any);
+      const botInstance = await service.createBotInstance(integration);
 
-      await service.destroyBotInstance(botInstance as any);
+      await service.destroyBotInstance(botInstance);
 
       expect(botInstance.app.stop).toHaveBeenCalled();
     });
 
     it('should handle stop errors gracefully', async () => {
       const integration = makeIntegration();
-      const botInstance = await service.createBotInstance(integration as any);
+      const botInstance = await service.createBotInstance(integration);
       botInstance.app.stop = vi
         .fn()
         .mockRejectedValue(new Error('Stop failed'));
 
       await expect(
-        service.destroyBotInstance(botInstance as any),
+        service.destroyBotInstance(botInstance),
       ).resolves.toBeUndefined();
 
-      expect((service as any).logger.error).toHaveBeenCalled();
+      expect(mockLoggerService.error).toHaveBeenCalled();
     });
   });
 
