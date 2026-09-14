@@ -11,7 +11,7 @@ describe('projectAgentTransferStatus', () => {
     [WorkflowExecutionStatus.COMPLETED, AgentTransferStatus.COMPLETED],
     [WorkflowExecutionStatus.CANCELLED, AgentTransferStatus.CANCELLED],
     [WorkflowExecutionStatus.FAILED, AgentTransferStatus.FAILED],
-    [WorkflowExecutionStatus.PAUSED, AgentTransferStatus.FAILED],
+    [WorkflowExecutionStatus.PENDING, AgentTransferStatus.FAILED],
     ['unrecognized-status', AgentTransferStatus.FAILED],
   ])('projects execution %s to transfer %s', (status, expected) => {
     expect(projectAgentTransferStatus(status)).toBe(expected);
