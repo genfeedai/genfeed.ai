@@ -1,4 +1,5 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { PerformanceSummaryController } from '@api/collections/content-performance/controllers/performance-summary.controller';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -13,9 +14,10 @@ describe('PerformanceSummaryController', () => {
   const mockBrandId = testId('brand');
   const mockOrgId = testId('org');
 
-  const mockUser = {
+  const mockUser: AuthenticatedUser = {
     id: 'user_123',
     brandId: mockBrandId,
+    userId: testId('user'),
     organizationId: mockOrgId,
   };
 
@@ -77,7 +79,7 @@ describe('PerformanceSummaryController', () => {
         '3',
         '2025-01-01',
         '2025-01-07',
-        mockUser as any,
+        mockUser,
       );
 
       expect(mockService.getWeeklySummary).toHaveBeenCalledWith(
@@ -96,11 +98,11 @@ describe('PerformanceSummaryController', () => {
       await controller.getWeeklySummary(
         mockReq,
         mockBrandId,
-        undefined as any,
-        undefined as any,
-        undefined as any,
-        undefined as any,
-        mockUser as any,
+        undefined,
+        undefined,
+        undefined,
+        undefined,
+        mockUser,
       );
 
       expect(mockService.getWeeklySummary).toHaveBeenCalledWith(
@@ -121,9 +123,9 @@ describe('PerformanceSummaryController', () => {
         mockBrandId,
         '5000',
         '9999',
-        undefined as any,
-        undefined as any,
-        mockUser as any,
+        undefined,
+        undefined,
+        mockUser,
       );
 
       expect(mockService.getWeeklySummary).toHaveBeenCalledWith(
@@ -144,9 +146,9 @@ describe('PerformanceSummaryController', () => {
       await controller.getTopPerformers(
         mockBrandId,
         '20',
-        undefined as any,
-        undefined as any,
-        mockUser as any,
+        undefined,
+        undefined,
+        mockUser,
       );
 
       expect(mockService.getTopPerformers).toHaveBeenCalledWith(
@@ -160,10 +162,10 @@ describe('PerformanceSummaryController', () => {
     it('should default limit to 10', async () => {
       await controller.getTopPerformers(
         mockBrandId,
-        undefined as any,
-        undefined as any,
-        undefined as any,
-        mockUser as any,
+        undefined,
+        undefined,
+        undefined,
+        mockUser,
       );
 
       expect(mockService.getTopPerformers).toHaveBeenCalledWith(
@@ -178,9 +180,9 @@ describe('PerformanceSummaryController', () => {
       await controller.getTopPerformers(
         mockBrandId,
         '10000',
-        undefined as any,
-        undefined as any,
-        mockUser as any,
+        undefined,
+        undefined,
+        mockUser,
       );
 
       expect(mockService.getTopPerformers).toHaveBeenCalledWith(
@@ -198,7 +200,7 @@ describe('PerformanceSummaryController', () => {
         mockBrandId,
         '2025-01-01',
         '2025-01-07',
-        mockUser as any,
+        mockUser,
       );
 
       expect(mockService.getPromptPerformance).toHaveBeenCalledWith(
@@ -214,10 +216,7 @@ describe('PerformanceSummaryController', () => {
     it('accepts a canonical cuid brandId', async () => {
       const cuidBrand = testId('brand', 2);
 
-      const result = await controller.getGenerationContext(
-        cuidBrand,
-        mockUser as any,
-      );
+      const result = await controller.getGenerationContext(cuidBrand, mockUser);
 
       expect(result).toEqual({
         context: 'No performance data available yet.',
@@ -230,7 +229,7 @@ describe('PerformanceSummaryController', () => {
 
     it('rejects an empty brandId', async () => {
       await expect(
-        controller.getGenerationContext('', mockUser as any),
+        controller.getGenerationContext('', mockUser),
       ).rejects.toThrow();
       expect(mockService.generatePerformanceContext).not.toHaveBeenCalled();
     });
@@ -240,7 +239,7 @@ describe('PerformanceSummaryController', () => {
     it('should return context object', async () => {
       const result = await controller.getGenerationContext(
         mockBrandId,
-        mockUser as any,
+        mockUser,
       );
 
       expect(result).toEqual({

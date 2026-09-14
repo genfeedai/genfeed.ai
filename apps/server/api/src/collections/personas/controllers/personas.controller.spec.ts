@@ -1,3 +1,6 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+import type { Request } from 'express';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeSingle: vi.fn((_data, _serializer) => ({ data: _data })),
 }));
@@ -22,7 +25,7 @@ const memberId2 = testId('member', 2);
 describe('PersonasController', () => {
   let controller: PersonasController;
 
-  const mockUser = {
+  const mockUser: AuthenticatedUser = {
     id: 'user_123',
     brandId,
     organizationId,
@@ -78,7 +81,7 @@ describe('PersonasController', () => {
       path: `/personas/${personaId}`,
       protocol: 'https',
       query: {},
-    } as any;
+    } as unknown as Request;
 
     it('should assign members to a persona when memberIds is present', async () => {
       const mockPersona = {
@@ -96,12 +99,7 @@ describe('PersonasController', () => {
         memberIds: [memberId1, memberId2],
       };
 
-      await controller.patch(
-        mockRequest,
-        mockUser as any,
-        personaId,
-        body as any,
-      );
+      await controller.patch(mockRequest, mockUser, personaId, body);
 
       expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
         personaId,
@@ -127,12 +125,7 @@ describe('PersonasController', () => {
         memberIds: [memberId1],
       };
 
-      await controller.patch(
-        mockRequest,
-        mockUser as any,
-        personaId,
-        body as any,
-      );
+      await controller.patch(mockRequest, mockUser, personaId, body);
 
       expect(mockServiceMethods.assignMembers).toHaveBeenCalledWith(
         personaId,
@@ -155,16 +148,16 @@ describe('PersonasController', () => {
       });
 
       await expect(
-        controller.patch(mockRequest, mockUser as any, personaId, {
+        controller.patch(mockRequest, mockUser, personaId, {
           memberIds: [memberId1],
-        } as any),
+        }),
       ).rejects.toThrow('DB error');
     });
   });
 
   describe('composeSheetPrompt', () => {
     it('returns the server-composed character sheet preset', async () => {
-      const result = await controller.composeSheetPrompt(mockUser as never, {
+      const result = await controller.composeSheetPrompt(mockUser, {
         description: 'a tall woman in a red coat',
         isNonHumanoid: false,
       });
@@ -184,7 +177,7 @@ describe('PersonasController', () => {
         label: 'Anna',
       });
 
-      const result = await controller.createFromSheet(mockUser as never, {
+      const result = await controller.createFromSheet(mockUser, {
         assetId: testId('asset'),
         handle: 'anna',
         label: 'Anna',
@@ -215,7 +208,7 @@ describe('PersonasController', () => {
         },
       ]);
 
-      const result = await controller.getMentions(mockUser as never, 'an');
+      const result = await controller.getMentions(mockUser, 'an');
 
       expect(mockServiceMethods.listCharacterMentions).toHaveBeenCalledWith({
         brandId,
@@ -228,13 +221,10 @@ describe('PersonasController', () => {
 
   describe('buildFindAllQuery (mention suggestions)', () => {
     it('scopes mentionable suggestions to the caller org/brand and active handles', () => {
-      const query = controller.buildFindAllQuery(
-        mockUser as never,
-        {
-          isMentionable: true,
-          q: 'an',
-        } as never,
-      );
+      const query = controller.buildFindAllQuery(mockUser, {
+        isMentionable: true,
+        q: 'an',
+      } as never);
 
       expect(query.where).toMatchObject({
         brandId,
@@ -255,14 +245,11 @@ describe('PersonasController', () => {
 
     it('refuses to search another organization', () => {
       const call = () =>
-        controller.buildFindAllQuery(
-          mockUser as never,
-          {
-            isMentionable: true,
-            organizationId: testId('org', 9),
-            q: 'an',
-          } as never,
-        );
+        controller.buildFindAllQuery(mockUser, {
+          isMentionable: true,
+          organizationId: testId('org', 9),
+          q: 'an',
+        } as never);
 
       expect(call).toThrow(ForbiddenException);
       try {

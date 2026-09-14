@@ -121,7 +121,10 @@
       }
     },
     {
-      "includes": ["apps/server/notifications/**/*.ts"],
+      "includes": [
+        "apps/server/notifications/**/*.ts",
+        "apps/server/api/**/*.ts"
+      ],
       "linter": {
         "rules": {
           "suspicious": {

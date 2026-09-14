@@ -1,5 +1,11 @@
-import type { ScrapedPost } from '@api/collections/content-intelligence/services/creator-scraper.service';
+import type { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
+import type {
+  CreatorScraperService,
+  ScrapedPost,
+} from '@api/collections/content-intelligence/services/creator-scraper.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
+import type { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
@@ -7,6 +13,7 @@ import {
   CreatorAnalysisStatus,
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ─── Mocks ─────────────────────────────────────────────────────────────────
@@ -38,11 +45,11 @@ const mockPatternStoreService = {
 
 function makeService() {
   return new PatternAnalyzerService(
-    mockLogger as any,
-    mockOpenRouterService as any,
-    mockContentIntelligenceService as any,
-    mockCreatorScraperService as any,
-    mockPatternStoreService as any,
+    mockLogger as unknown as LoggerService,
+    mockOpenRouterService as unknown as OpenRouterService,
+    mockContentIntelligenceService as unknown as ContentIntelligenceService,
+    mockCreatorScraperService as unknown as CreatorScraperService,
+    mockPatternStoreService as unknown as PatternStoreService,
   );
 }
 

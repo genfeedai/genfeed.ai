@@ -14,19 +14,6 @@ import {
 } from '@test/mocks/service.mocks';
 import type { Mock } from 'vitest';
 
-// Allow skipping this file when a real DB integration is not available
-// Set SKIP_DB_INTEGRATION=true to skip all tests in this file
-if (process.env.SKIP_DB_INTEGRATION === 'true') {
-  const g: any = global as any;
-  const d: any = (global as any).describe;
-  g.describe = ((name: string, fn: any) =>
-    d?.skip ? d.skip(name, fn) : describe(name, fn)) as any;
-  const i: any = (global as any).it;
-  g.it = ((name: string, fn: any) =>
-    i?.skip ? i.skip(name, fn) : it(name, fn)) as any;
-  g.test = g.it;
-}
-
 type CallableMock<Result = unknown> = Mock<(...args: unknown[]) => Result>;
 
 type CreditTransactionResult = {
@@ -53,84 +40,89 @@ type CreditTransactionsServiceMock = {
   findByUser: CallableMock;
 };
 
-describe('Payment Processing Integration Tests (Stripe)', () => {
+const integrationDescribe = describe.skipIf(
+  process.env.SKIP_DB_INTEGRATION === 'true',
+);
+
+integrationDescribe('Payment Processing Integration Tests (Stripe)', () => {
   // Increase timeout for integration database operations
   // vi timeout configured in vitest.config(30000);
 
-  let app: INestApplication;
-  let moduleRef: TestingModule;
+  let app: INestApplication | null;
+  let moduleRef: TestingModule | null;
 
   let stripeService: StripeService;
   let subscriptionsService: PaymentSubscriptionsServiceMock;
   let customersService: CustomersService;
   let creditTransactionsService: CreditTransactionsServiceMock;
-  let mockStripe: any;
+  const createStripeMock = () => ({
+    charges: {
+      create: vi.fn(),
+      list: vi.fn(),
+      retrieve: vi.fn(),
+    },
+    checkout: {
+      sessions: {
+        create: vi.fn(),
+        expire: vi.fn(),
+        retrieve: vi.fn(),
+      },
+    },
+    customers: {
+      create: vi.fn(),
+      del: vi.fn(),
+      list: vi.fn(),
+      retrieve: vi.fn(),
+      update: vi.fn(),
+    },
+    invoices: {
+      create: vi.fn(),
+      finalizeInvoice: vi.fn(),
+      list: vi.fn(),
+      pay: vi.fn(),
+      retrieve: vi.fn(),
+    },
+    paymentIntents: {
+      cancel: vi.fn(),
+      confirm: vi.fn(),
+      create: vi.fn(),
+      retrieve: vi.fn(),
+    },
+    paymentMethods: {
+      attach: vi.fn(),
+      create: vi.fn(),
+      detach: vi.fn(),
+      list: vi.fn(),
+    },
+    prices: {
+      create: vi.fn(),
+      list: vi.fn(),
+      retrieve: vi.fn(),
+      update: vi.fn(),
+    },
+    products: {
+      create: vi.fn(),
+      list: vi.fn(),
+      retrieve: vi.fn(),
+      update: vi.fn(),
+    },
+    subscriptions: {
+      cancel: vi.fn(),
+      create: vi.fn(),
+      list: vi.fn(),
+      retrieve: vi.fn(),
+      update: vi.fn(),
+    },
+    webhookEndpoints: {
+      create: vi.fn(),
+      del: vi.fn(),
+    },
+  });
+  let mockStripe: ReturnType<typeof createStripeMock>;
 
   beforeAll(async () => {
     // Create mock Stripe client
-    mockStripe = {
-      charges: {
-        create: vi.fn(),
-        list: vi.fn(),
-        retrieve: vi.fn(),
-      },
-      checkout: {
-        sessions: {
-          create: vi.fn(),
-          expire: vi.fn(),
-          retrieve: vi.fn(),
-        },
-      },
-      customers: {
-        create: vi.fn(),
-        del: vi.fn(),
-        list: vi.fn(),
-        retrieve: vi.fn(),
-        update: vi.fn(),
-      },
-      invoices: {
-        create: vi.fn(),
-        finalizeInvoice: vi.fn(),
-        list: vi.fn(),
-        pay: vi.fn(),
-        retrieve: vi.fn(),
-      },
-      paymentIntents: {
-        cancel: vi.fn(),
-        confirm: vi.fn(),
-        create: vi.fn(),
-        retrieve: vi.fn(),
-      },
-      paymentMethods: {
-        attach: vi.fn(),
-        create: vi.fn(),
-        detach: vi.fn(),
-        list: vi.fn(),
-      },
-      prices: {
-        create: vi.fn(),
-        list: vi.fn(),
-        retrieve: vi.fn(),
-        update: vi.fn(),
-      },
-      products: {
-        create: vi.fn(),
-        list: vi.fn(),
-        retrieve: vi.fn(),
-        update: vi.fn(),
-      },
-      subscriptions: {
-        cancel: vi.fn(),
-        create: vi.fn(),
-        list: vi.fn(),
-        retrieve: vi.fn(),
-        update: vi.fn(),
-      },
-      webhookEndpoints: {
-        create: vi.fn(),
-        del: vi.fn(),
-      },
-    };
+    mockStripe = createStripeMock();
 
     moduleRef = await Test.createTestingModule({
       providers: [
@@ -222,7 +214,7 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     try {
       if (app) {
         await app.close();
-        app = null as any;
+        app = null;
       }
     } catch {
       // Ignore close errors
@@ -231,14 +223,11 @@ describe('Payment Processing Integration Tests (Stripe)', () => {
     try {
       if (moduleRef) {
         await moduleRef.close();
-        moduleRef = null as any;
+        moduleRef = null;
       }
     } catch {
       // Ignore close errors
     }
-
-    // Clear mock references
-    mockStripe = null;
 
     // Allow event loop to clear pending handles
     await new Promise((resolve) => setImmediate(resolve));

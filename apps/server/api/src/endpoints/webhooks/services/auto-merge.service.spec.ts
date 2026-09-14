@@ -122,7 +122,7 @@ describe('AutoMergeService', () => {
       } as unknown as IngredientEntity;
 
       // Use private method access for testing
-      await (service as any).triggerAutoMergeAsync(ingredient);
+      await service['triggerAutoMergeAsync'](ingredient);
 
       expect(ingredientsService.create).not.toHaveBeenCalled();
     });
@@ -148,7 +148,7 @@ describe('AutoMergeService', () => {
         user: { id: 'test-object-id' },
       } as unknown as IngredientEntity;
 
-      await (service as any).triggerAutoMergeAsync(ingredient);
+      await service['triggerAutoMergeAsync'](ingredient);
 
       expect(metadataService.create).not.toHaveBeenCalled();
     });
@@ -170,7 +170,7 @@ describe('AutoMergeService', () => {
         user: undefined,
       } as unknown as IngredientEntity;
 
-      await (service as any).triggerAutoMergeAsync(ingredient);
+      await service['triggerAutoMergeAsync'](ingredient);
 
       expect(loggerService.warn).toHaveBeenCalled();
       expect(metadataService.create).not.toHaveBeenCalled();

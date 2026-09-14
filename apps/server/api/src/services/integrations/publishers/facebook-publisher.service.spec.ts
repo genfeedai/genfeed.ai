@@ -742,7 +742,7 @@ describe('FacebookPublisherService', () => {
         mediaUrls: [],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('does not support text-only posts');
@@ -761,7 +761,7 @@ describe('FacebookPublisherService', () => {
         ],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('does not support carousel posts');
@@ -777,7 +777,7 @@ describe('FacebookPublisherService', () => {
         mediaUrls: ['https://api.test.com/ingredients/images/123'],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(true);
     });
@@ -792,7 +792,7 @@ describe('FacebookPublisherService', () => {
         mediaUrls: ['https://api.test.com/ingredients/videos/123'],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(true);
     });
