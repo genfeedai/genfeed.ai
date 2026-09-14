@@ -317,7 +317,9 @@ test.describe('Discovery prefilled remix handoff', () => {
     );
     await expect(
       authenticatedPage.getByRole('region', { name: 'Remix run' }),
-    ).toBeVisible();
+    ).toContainText(
+      'Lead with a clear outcome, support it with proof, then close with a brand-specific action.',
+    );
     await expect(createBody).toMatchObject({
       source: {
         kind: 'trend_reference',
