@@ -16,31 +16,68 @@ export interface QueryProcessorOptions {
   defaultSort: Record<string, number>;
 }
 
-export class QueryProcessor {
-  private static readonly DEFAULT_OPTIONS: QueryProcessorOptions = {
-    defaultLimit: 10,
-    defaultSort: { createdAt: -1 },
-    maxLimit: 100,
-  };
+const DEFAULT_OPTIONS: QueryProcessorOptions = {
+  defaultLimit: 10,
+  defaultSort: { createdAt: -1 },
+  maxLimit: 100,
+};
 
+function validatePage(page?: number): number {
+  if (page === undefined || page === null) {
+    return 1;
+  }
+
+  const pageNumber = Number(page);
+
+  if (Number.isNaN(pageNumber) || pageNumber < 1) {
+    throw new ValidationException('Page must be a positive integer');
+  }
+
+  if (pageNumber > 10000) {
+    throw new ValidationException(
+      'Page number is too large. Maximum allowed is 10000',
+    );
+  }
+
+  return Math.floor(pageNumber);
+}
+
+function validateLimit(
+  limit?: number,
+  maxLimit: number = 100,
+  defaultLimit: number = 10,
+): number {
+  if (limit === undefined || limit === null) {
+    return defaultLimit;
+  }
+
+  const limitNumber = Number(limit);
+
+  if (Number.isNaN(limitNumber) || limitNumber < 1) {
+    throw new ValidationException('Limit must be a positive integer');
+  }
+
+  if (limitNumber > maxLimit) {
+    throw new ValidationException(`Limit cannot exceed ${maxLimit}`);
+  }
+
+  return Math.floor(limitNumber);
+}
+export const QueryProcessor = {
   /**
    * Process pagination query parameters with validation
    */
-  static processPaginationQuery(
+  processPaginationQuery(
     query: BasePaginationQuery,
     options: Partial<QueryProcessorOptions> = {},
   ): ProcessedPaginationQuery {
-    const opts = { ...QueryProcessor.DEFAULT_OPTIONS, ...options };
+    const opts = { ...DEFAULT_OPTIONS, ...options };
 
     // Validate and process page
-    const page = QueryProcessor.validatePage(query.page);
+    const page = validatePage(query.page);
 
     // Validate and process limit
-    const limit = QueryProcessor.validateLimit(
-      query.limit,
-      opts.maxLimit,
-      opts.defaultLimit,
-    );
+    const limit = validateLimit(query.limit, opts.maxLimit, opts.defaultLimit);
 
     // Process pagination flag
     const pagination = query.pagination !== false;
@@ -58,9 +95,9 @@ export class QueryProcessor {
       skip,
       sort,
     };
-  }
+  },
 
-  static createPaginationQuery(
+  createPaginationQuery(
     processedQuery: ProcessedPaginationQuery,
   ): Array<Record<string, unknown>> {
     const query: Array<Record<string, unknown>> = [];
@@ -73,12 +110,12 @@ export class QueryProcessor {
     }
 
     return query;
-  }
+  },
 
   /**
    * Process search query with text search capabilities
    */
-  static processSearchQuery(
+  processSearchQuery(
     searchTerm?: string,
     searchFields: string[] = ['name', 'description', 'title'],
   ): Record<string, unknown> | null {
@@ -112,12 +149,12 @@ export class QueryProcessor {
     return {
       OR: searchFields.map((field) => ({ [field]: searchRegex })),
     };
-  }
+  },
 
   /**
    * Process date range filters
    */
-  static processDateRangeQuery(
+  processDateRangeQuery(
     startDate?: string | Date,
     endDate?: string | Date,
     field: string = 'createdAt',
@@ -148,12 +185,12 @@ export class QueryProcessor {
     }
 
     return hasDateFilter ? { [field]: dateQuery } : null;
-  }
+  },
 
   /**
    * Combine multiple query filters
    */
-  static combineFilters(
+  combineFilters(
     ...filters: Array<Record<string, unknown> | null>
   ): Record<string, unknown> {
     const validFilters = filters.filter(
@@ -169,12 +206,12 @@ export class QueryProcessor {
     }
 
     return { AND: validFilters };
-  }
+  },
 
   /**
    * Create aggregation options for aggregate pagination helpers.
    */
-  static createAggregationOptions(
+  createAggregationOptions(
     processedQuery: ProcessedPaginationQuery,
     customLabels?: Record<string, string>,
   ): Record<string, unknown> {
@@ -202,47 +239,5 @@ export class QueryProcessor {
     }
 
     return options;
-  }
-
-  private static validatePage(page?: number): number {
-    if (page === undefined || page === null) {
-      return 1;
-    }
-
-    const pageNumber = Number(page);
-
-    if (Number.isNaN(pageNumber) || pageNumber < 1) {
-      throw new ValidationException('Page must be a positive integer');
-    }
-
-    if (pageNumber > 10000) {
-      throw new ValidationException(
-        'Page number is too large. Maximum allowed is 10000',
-      );
-    }
-
-    return Math.floor(pageNumber);
-  }
-
-  private static validateLimit(
-    limit?: number,
-    maxLimit: number = 100,
-    defaultLimit: number = 10,
-  ): number {
-    if (limit === undefined || limit === null) {
-      return defaultLimit;
-    }
-
-    const limitNumber = Number(limit);
-
-    if (Number.isNaN(limitNumber) || limitNumber < 1) {
-      throw new ValidationException('Limit must be a positive integer');
-    }
-
-    if (limitNumber > maxLimit) {
-      throw new ValidationException(`Limit cannot exceed ${maxLimit}`);
-    }
-
-    return Math.floor(limitNumber);
-  }
-}
+  },
+};

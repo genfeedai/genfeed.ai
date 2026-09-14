@@ -8,23 +8,21 @@ import type {
  * Utility to build universal JSON prompt structure
  * This format is used across Replicate, OpenAI, and other providers
  */
-export class JsonPromptBuilder {
-  private static resolveBrandingMode(
-    params: PromptBuilderParams,
-  ): BrandingMode {
-    if (params.brandingMode) {
-      return params.brandingMode;
-    }
 
-    return params.isBrandingEnabled ? 'brand' : 'off';
+function resolveBrandingMode(params: PromptBuilderParams): BrandingMode {
+  if (params.brandingMode) {
+    return params.brandingMode;
   }
 
+  return params.isBrandingEnabled ? 'brand' : 'off';
+}
+export const JsonPromptBuilder = {
   /**
    * Build a universal JSON prompt from parameters
    * @param params - Prompt builder parameters
    * @returns Structured JSON prompt object
    */
-  static build(params: PromptBuilderParams): JsonPrompt {
+  build(params: PromptBuilderParams): JsonPrompt {
     const jsonPrompt: JsonPrompt = {
       elements: {},
       text: params.prompt,
@@ -69,7 +67,7 @@ export class JsonPromptBuilder {
       jsonPrompt.elements.speech = params.speech.trim();
     }
 
-    const brandingMode = JsonPromptBuilder.resolveBrandingMode(params);
+    const brandingMode = resolveBrandingMode(params);
 
     if (brandingMode === 'brand' && params.brand) {
       jsonPrompt.elements.brand = {
@@ -123,24 +121,24 @@ export class JsonPromptBuilder {
     }
 
     return jsonPrompt;
-  }
+  },
 
   /**
    * Convert JSON prompt to string format
    * @param jsonPrompt - The JSON prompt object
    * @returns Stringified JSON prompt
    */
-  static stringify(jsonPrompt: JsonPrompt): string {
+  stringify(jsonPrompt: JsonPrompt): string {
     return JSON.stringify(jsonPrompt);
-  }
+  },
 
   /**
    * Build and stringify in one call
    * @param params - Prompt builder parameters
    * @returns Stringified JSON prompt
    */
-  static buildAndStringify(params: PromptBuilderParams): string {
+  buildAndStringify(params: PromptBuilderParams): string {
     const jsonPrompt = JsonPromptBuilder.build(params);
     return JsonPromptBuilder.stringify(jsonPrompt);
-  }
-}
+  },
+};
