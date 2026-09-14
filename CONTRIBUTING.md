@@ -141,11 +141,11 @@ PR.
 
 Blank issues are disabled. Use one of the forms:
 
-| Form                                                                                          | Title prefix | Label         |
-| --------------------------------------------------------------------------------------------- | ------------ | ------------- |
-| [Bug report](https://github.com/genfeedai/genfeed.ai/issues/new?template=bug.yml)             | `fix:`       | `bug`         |
-| [Feature request](https://github.com/genfeedai/genfeed.ai/issues/new?template=feature.yml)    | `feat:`      | `enhancement` |
-| [Task](https://github.com/genfeedai/genfeed.ai/issues/new?template=task.yml)                  | `chore:` …   | `task`        |
+| Form                                                                                          | Title prefix | Issue type |
+| --------------------------------------------------------------------------------------------- | ------------ | ---------- |
+| [Bug report](https://github.com/genfeedai/genfeed.ai/issues/new?template=bug.yml)             | `fix:`       | Bug        |
+| [Feature request](https://github.com/genfeedai/genfeed.ai/issues/new?template=feature.yml)    | `feat:`      | Feature    |
+| [Task](https://github.com/genfeedai/genfeed.ai/issues/new?template=task.yml)                  | `chore:` …   | Task       |
 
 Questions and early ideas go to
 [Discussions](https://github.com/genfeedai/genfeed.ai/discussions), not issues
@@ -173,6 +173,7 @@ the issue.
   maintainer or a triage agent confirms or rewrites the acceptance criteria,
   applies labels, and places it on
   [Project #12](https://github.com/orgs/genfeedai/projects/12).
+- **Kind of work is the native issue type (Bug, Feature, Task), set by the form. Never a label.**
 - **Priority is a native organization Issue Field surfaced on Project #12, never a label.**
 - If you want to work on an issue, say so in a comment. Issues labelled
   `good first issue` and `help wanted` are pre-scoped for outside contributors.
@@ -186,7 +187,6 @@ the issue.
 | `needs:info` | Waiting on the reporter for details. |
 | `good first issue` | Pre-scoped for first-time contributors. Small, specified, no architecture decisions. |
 | `help wanted` | Maintainer-scoped work that outside contributors can pick up. |
-| `bug` / `enhancement` / `task` | Type label set by the matching issue form. |
 | `shipcode:*` | Internal automation — do not apply. |
 
 ## Pull-request contract

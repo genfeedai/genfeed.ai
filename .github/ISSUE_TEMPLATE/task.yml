@@ -1,6 +1,7 @@
 name: Agent-ready task
 description: Define a focused chore, refactor, documentation change, or implementation slice
-labels: ["task", "needs:triage"]
+type: Task
+labels: ["needs:triage"]
 body:
   - type: dropdown
     id: mode
