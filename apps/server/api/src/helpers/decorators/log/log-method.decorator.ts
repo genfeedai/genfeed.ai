@@ -18,7 +18,7 @@ const defaultOptions: LogMethodOptions = {
   logStart: true,
 };
 
-function copyMethodMetadata(source: Function, target: Function): void {
+function copyMethodMetadata(source: LoggedMethod, target: LoggedMethod): void {
   for (const metadataKey of Reflect.getMetadataKeys(source)) {
     Reflect.defineMetadata(
       metadataKey,
@@ -54,9 +54,10 @@ function createLoggedWrapper(
     }
 
     const startTime = Date.now();
+    const selectedLogger = opts.level ? logger[opts.level] : undefined;
     const logAtLevel =
-      typeof logger[opts.level!] === 'function'
-        ? logger[opts.level!].bind(logger)
+      typeof selectedLogger === 'function'
+        ? selectedLogger.bind(logger)
         : typeof logger.log === 'function'
           ? logger.log.bind(logger)
           : undefined;
@@ -143,7 +144,7 @@ export function LogMethod(options: LogMethodOptions = {}): MethodDecorator {
     _target: object,
     propertyKey: string | symbol,
     descriptor: PropertyDescriptor,
-  ): PropertyDescriptor | void => {
+  ): PropertyDescriptor => {
     if (typeof descriptor.value !== 'function') {
       throw new TypeError('LogMethod can only decorate methods');
     }
