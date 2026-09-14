@@ -21,7 +21,7 @@ import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import type { Prisma } from '@genfeedai/prisma';
+import type { Prisma, Profile as ProfileRow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -95,7 +95,7 @@ export class ProfilesService {
     return JSON.parse(JSON.stringify(value)) as Record<string, unknown>;
   }
 
-  private normalizeProfile(record: ProfileDocument): Profile {
+  private normalizeProfile(record: ProfileRow): Profile {
     const data = this.readObjectRecord(record.data);
     const {
       id: _dataId,
@@ -179,7 +179,7 @@ export class ProfilesService {
 
     this.logger.debug('Profile created', { profileId: profile.id });
 
-    return this.normalizeProfile(profile as unknown as ProfileDocument);
+    return this.normalizeProfile(profile);
   }
 
   /**
@@ -198,9 +198,7 @@ export class ProfilesService {
     });
 
     return results
-      .map((profile) =>
-        this.normalizeProfile(profile as unknown as ProfileDocument),
-      )
+      .map((profile) => this.normalizeProfile(profile))
       .filter((profile) => {
         if (
           filters?.isDefault !== undefined &&
@@ -230,7 +228,7 @@ export class ProfilesService {
       'Profile',
     );
 
-    return this.normalizeProfile(profile as unknown as ProfileDocument);
+    return this.normalizeProfile(profile);
   }
 
   /**
@@ -243,9 +241,7 @@ export class ProfilesService {
       }),
     });
 
-    return profile
-      ? this.normalizeProfile(profile as unknown as ProfileDocument)
-      : null;
+    return profile ? this.normalizeProfile(profile) : null;
   }
 
   /**
@@ -277,7 +273,7 @@ export class ProfilesService {
       where: { id },
     });
 
-    return this.normalizeProfile(result as unknown as ProfileDocument);
+    return this.normalizeProfile(result);
   }
 
   /**
@@ -336,11 +332,10 @@ export class ProfilesService {
 
       // Track usage — scope write predicate to org + soft-delete to prevent IDOR
       const nextUsageCount = (this.readNumber(profile.usageCount) ?? 0) + 1;
-      const profileDoc = profile as unknown as ProfileDocument;
       await this.prisma.profile.updateMany({
         data: {
           data: this.serializeProfileData({
-            ...this.readObjectRecord(profileDoc.data),
+            ...this.readObjectRecord(profile.data),
             ...profile,
             usageCount: nextUsageCount,
           }) as Prisma.InputJsonValue,

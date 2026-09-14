@@ -351,7 +351,7 @@ export class PostsService extends BaseService<
       requested: ids.length,
     });
 
-    return results as unknown as PostDocument[];
+    return results;
   }
 
   async listContentMentions(
@@ -941,7 +941,7 @@ export class PostsService extends BaseService<
       where: { isDeleted: false, parentId },
     });
 
-    return children as unknown as PostDocument[];
+    return children;
   }
 
   /**
@@ -1180,8 +1180,8 @@ export class PostsService extends BaseService<
         }
 
         visited.add(childId);
-        allPosts.push(child as unknown as PostDocument);
-        queue.push(child as unknown as PostDocument);
+        allPosts.push(child);
+        queue.push(child);
 
         if (allPosts.length >= maxPosts) {
           this.logger.warn('Max posts limit reached in getFullThread', {
@@ -1256,6 +1256,6 @@ export class PostsService extends BaseService<
       this.logger.warn(`Post ${id} not found for deletion`);
     }
 
-    return result as unknown as PostDocument | null;
+    return result;
   }
 }
