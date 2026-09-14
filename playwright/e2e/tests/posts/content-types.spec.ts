@@ -5,6 +5,7 @@ import {
   mockReviewQueue,
 } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { brandPath } from '../../utils/app-chrome';
 import { skipIfPlaywrightAuthBypassed } from '../../utils/playwright-auth-bypass';
 
 /**
@@ -25,13 +26,15 @@ test.describe('Posts — Content Types', () => {
     await mockPostsList(authenticatedPage);
   });
 
-  test('remix page loads remix interface', async ({ authenticatedPage }) => {
-    await authenticatedPage.goto(APP_ROUTES.PUBLISHING.REMIX);
-
-    await expect(authenticatedPage).toHaveURL(/publishing\/remix/);
-    // Remix page should render its interface
+  test('legacy remix page opens Studio Generate', async ({
+    authenticatedPage,
+  }) => {
+    await authenticatedPage.goto(brandPath(APP_ROUTES.PUBLISHING.REMIX));
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).pathname)
+      .toBe(brandPath(APP_ROUTES.STUDIO.GENERATE));
     await expect(
-      authenticatedPage.getByText(/remix|trend/i).first(),
+      authenticatedPage.getByRole('button', { name: 'Generate', exact: true }),
     ).toBeVisible();
   });
 

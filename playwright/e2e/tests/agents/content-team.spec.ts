@@ -32,7 +32,10 @@ test.describe('Agents — Content Team', () => {
       authenticatedPage.getByRole('heading', { name: 'Agents' }),
     ).toBeVisible();
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Add agent' }),
+      authenticatedPage.getByRole('button', {
+        name: 'Add agent',
+        exact: true,
+      }),
     ).toBeVisible();
   });
 
@@ -51,18 +54,19 @@ test.describe('Agents — Content Team', () => {
     );
     await expect(authenticatedPage.getByRole('dialog')).toBeVisible();
 
-    await authenticatedPage
-      .getByLabel('Agent Label')
-      .fill('Instagram Shorts Captain');
-    await authenticatedPage
-      .getByLabel('Primary Topic')
-      .fill('AI creator monetization');
-    await authenticatedPage.getByRole('button', { name: 'Add agent' }).click();
+    const dialog = authenticatedPage.getByRole('dialog');
+    await expect(
+      dialog.getByRole('tab', { name: 'Marketplace', exact: true }),
+    ).toHaveAttribute('aria-selected', 'true');
+    await dialog.getByTestId('activate-linkedin-copywriter').click();
 
     await expect
       .poll(() => new URL(authenticatedPage.url()).pathname)
       .toBe(brandPath(APP_ROUTES.AUTOMATION.AGENTS));
     await expect(authenticatedPage.getByRole('dialog')).toBeHidden();
+    await expect
+      .poll(() => new URL(authenticatedPage.url()).searchParams.has('add'))
+      .toBe(false);
   });
 
   test('new Program query opens the Creator Studio Program template', async ({

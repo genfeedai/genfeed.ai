@@ -149,7 +149,9 @@ for (const fixture of [
     await trigger.focus();
     await page.keyboard.press('Enter');
     await expect(
-      page.getByRole('heading', { name: fixture.label }),
+      page
+        .getByTestId('notification-inbox-row')
+        .filter({ hasText: fixture.label }),
     ).toBeVisible();
     await expect(page.getByText('Source unavailable')).toBeVisible();
     await page.getByRole('button', { name: 'Mark read', exact: true }).click();
@@ -185,7 +187,9 @@ for (const fixture of [
       .getByRole('button', { name: 'Open notifications, 0 unread' })
       .click();
     await expect(
-      page.getByRole('heading', { name: fixture.label }),
+      page
+        .getByTestId('notification-inbox-row')
+        .filter({ hasText: fixture.label }),
     ).toBeVisible();
     await expect(page.getByText('Unread', { exact: true })).toHaveCount(0);
     await page
@@ -205,7 +209,10 @@ for (const fixture of [
         '/v1/agent/threads/older-thread',
       ),
     );
-    await page.getByRole('link', { name: 'Open run' }).click();
+    await page
+      .getByRole('link')
+      .filter({ hasText: 'Older conversation' })
+      .click();
     await selectedThreadRequest;
     await expect(page).toHaveURL(expectedThreadUrl);
     await context.close();

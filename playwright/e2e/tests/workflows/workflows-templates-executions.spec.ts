@@ -108,7 +108,7 @@ test.describe('Workflow templates & executions interactions', () => {
     ).toBeVisible();
 
     const useLink = authenticatedPage
-      .getByRole('link', { name: 'Use Template', exact: true })
+      .getByRole('link', { name: 'Use template', exact: true })
       .first();
     await expect(useLink).toHaveAttribute(
       'href',

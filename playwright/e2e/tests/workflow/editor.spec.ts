@@ -392,7 +392,9 @@ test.describe('Workflow Editor', () => {
 
     await workflowPage.gotoTemplates();
 
-    await expect(authenticatedPage).toHaveURL(/automation\/templates/);
+    await expect(authenticatedPage).toHaveURL(
+      /automation\/workflows\/templates/,
+    );
     await expect(workflowPage.mainContent).toBeVisible();
   });
 

@@ -59,7 +59,7 @@ test.describe('Automation — Core Interactions', () => {
     await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agents`);
 
     await authenticatedPage
-      .getByRole('button', { exact: true, name: 'Add agent' })
+      .getByRole('button', { exact: true, name: 'Add your first agent' })
       .click();
     const dialog = authenticatedPage.getByRole('dialog');
     await expect(dialog).toBeVisible();
@@ -67,7 +67,7 @@ test.describe('Automation — Core Interactions', () => {
       dialog.getByRole('heading', { exact: true, name: 'Add agent' }),
     ).toBeVisible();
     await expect(
-      dialog.getByRole('tab', { exact: true, name: 'Agent library' }),
+      dialog.getByRole('tab', { exact: true, name: 'Marketplace' }),
     ).toHaveAttribute('aria-selected', 'true');
 
     await expect(authenticatedPage.locator('body')).toBeVisible();

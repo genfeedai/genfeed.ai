@@ -1,5 +1,9 @@
 import { ContentRunStatus } from '@genfeedai/contracts';
-import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
+import {
+  BrandRemixAdPlatform,
+  BrandRemixOrganicPlatform,
+  type BrandRemixRunView,
+} from '@genfeedai/contracts/api-types/contracts';
 import type { Page, Route } from '@playwright/test';
 import { mockReviewQueue } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -35,7 +39,7 @@ function buildRun({
             adId: 'meta-ad-1',
             credentialId: 'credential-meta-1',
             kind: 'connected_ad' as const,
-            platform: 'meta' as const,
+            platform: BrandRemixAdPlatform.META,
           }
         : source === 'saved'
           ? { kind: 'saved_ad' as const, savedAdId: 'saved-ad-1' }
@@ -71,8 +75,11 @@ function buildRun({
       reviewRequired: true as const,
       target:
         target === 'paid'
-          ? ({ kind: 'paid', platform: 'meta' } as const)
-          : ({ kind: 'organic', platform: 'tiktok' } as const),
+          ? ({ kind: 'paid', platform: BrandRemixAdPlatform.META } as const)
+          : ({
+              kind: 'organic',
+              platform: BrandRemixOrganicPlatform.TIKTOK,
+            } as const),
     },
     id,
     phase: 'prefilled' as const,
@@ -91,7 +98,10 @@ function buildRun({
         structure:
           'Lead with a clear outcome, support it with proof, then close with a brand-specific action.',
       },
-      platform,
+      platform:
+        platform === 'meta'
+          ? BrandRemixAdPlatform.META
+          : BrandRemixOrganicPlatform.TIKTOK,
       selector,
       sourceId:
         platform === 'tiktok' ? 'tiktok-reference-1' : 'ad-performance-meta-1',
@@ -215,7 +225,12 @@ async function routeRemixRun(
               subjects: ['Northstar'],
             },
             mediaKind: 'image' as const,
-            output: { aspectRatio: run.draft.output.aspectRatio },
+            output: {
+              aspectRatio:
+                'aspectRatio' in run.draft.output
+                  ? run.draft.output.aspectRatio
+                  : '1:1',
+            },
             provenance: [],
             references: [],
             version: 1 as const,
@@ -297,28 +312,14 @@ test.describe('Discovery prefilled remix handoff', () => {
     await openTikTokTrendFeed(authenticatedPage);
     await authenticatedPage.getByRole('button', { name: 'Remix' }).click();
 
-    await expect(
-      authenticatedPage.getByRole('heading', { name: /Remix for Northstar/i }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByText('Source pattern', { exact: true }),
-    ).toBeVisible();
-    await expect(
-      authenticatedPage.getByText(
-        'Lead with a clear outcome, support it with proof, then close with a brand-specific action.',
-        { exact: true },
-      ),
-    ).toBeVisible();
-    await authenticatedPage
-      .getByRole('button', { name: 'Continue to Studio' })
-      .click();
-
     await expect(authenticatedPage).toHaveURL(
       /\/studio\/generate\?run=run-tiktok-1$/,
     );
     await expect(
       authenticatedPage.getByRole('region', { name: 'Remix run' }),
-    ).toBeVisible();
+    ).toContainText(
+      'Lead with a clear outcome, support it with proof, then close with a brand-specific action.',
+    );
     await expect(createBody).toMatchObject({
       source: {
         kind: 'trend_reference',
@@ -327,11 +328,6 @@ test.describe('Discovery prefilled remix handoff', () => {
       },
     });
 
-    const generate = authenticatedPage.getByRole('button', {
-      name: 'Generate',
-    });
-    await expect(generate).toBeEnabled();
-    await generate.click();
     await authenticatedPage
       .getByRole('button', { name: 'Send 1 to Review' })
       .click();
@@ -434,13 +430,6 @@ test.describe('Discovery prefilled remix handoff', () => {
       .click();
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
-      .click();
-
-    await expect(
-      authenticatedPage.getByRole('heading', { name: /Remix for Northstar/i }),
-    ).toBeVisible();
-    await authenticatedPage
-      .getByRole('button', { name: 'Continue to Studio' })
       .click();
 
     await expect(authenticatedPage).toHaveURL(
@@ -625,10 +614,10 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
-    await authenticatedPage
-      .getByRole('button', { name: 'Continue to Studio' })
-      .click();
 
+    await expect(authenticatedPage).toHaveURL(
+      /\/studio\/generate\?run=run-saved-ad-1$/,
+    );
     expect(createBody).toMatchObject({
       source: { kind: 'saved_ad', savedAdId: 'saved-ad-1' },
     });
@@ -942,13 +931,9 @@ test.describe('Discovery prefilled remix handoff', () => {
     await authenticatedPage
       .getByRole('button', { name: 'Remix for my brand' })
       .click();
-    await authenticatedPage
-      .getByRole('button', { name: 'Continue to Studio' })
-      .click();
 
     const panel = authenticatedPage.getByRole('region', { name: 'Remix run' });
     await expect(panel).toBeVisible();
-    await authenticatedPage.getByRole('button', { name: 'Generate' }).click();
     await panel.getByRole('button', { name: 'Send 1 to Review' }).click();
     await panel.getByRole('link', { name: 'Open Review' }).click();
     await expect(
