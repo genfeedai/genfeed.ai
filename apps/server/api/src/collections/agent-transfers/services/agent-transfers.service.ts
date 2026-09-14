@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { CreateAgentTransferDto } from '@api/collections/agent-transfers/dto/create-agent-transfer.dto';
+import { projectAgentTransferStatus } from '@api/collections/agent-transfers/services/agent-transfer-status.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AgentArtifactReferenceService, scopedWhere } from '@api/index';
 import {
@@ -439,7 +440,6 @@ export class AgentTransfersService {
         }),
       });
       if (execution && execution.status !== WorkflowExecutionStatus.PENDING) {
-        const status = execution.status as WorkflowExecutionStatus;
         const turnResult = readAgentTurnResult(execution.result);
         await this.prisma.agentTransfer.updateMany({
           data: {
@@ -451,14 +451,7 @@ export class AgentTransfersService {
             outputArtifactVersionPinIds: turnResult.artifactVersionPinIds,
             progress: execution.progress,
             startedAt: execution.startedAt,
-            status:
-              status === WorkflowExecutionStatus.RUNNING
-                ? AgentTransferStatus.RUNNING
-                : status === WorkflowExecutionStatus.COMPLETED
-                  ? AgentTransferStatus.COMPLETED
-                  : status === WorkflowExecutionStatus.CANCELLED
-                    ? AgentTransferStatus.CANCELLED
-                    : AgentTransferStatus.FAILED,
+            status: projectAgentTransferStatus(execution.status),
           },
           where: scopedWhere(actor.organizationId, {
             destinationExecutionId: acknowledgement.executionId,

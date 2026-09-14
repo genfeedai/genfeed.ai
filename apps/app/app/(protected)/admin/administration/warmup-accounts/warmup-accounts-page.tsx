@@ -329,17 +329,33 @@ export default function WarmupAccountsPage({
             return;
           }
 
-          const account =
-            action === 'inspect'
-              ? await service.inspectInvitation(accountId, controller.signal)
-              : action === 'send'
-                ? await service.sendInvitation(accountId, controller.signal)
-                : action === 'resend'
-                  ? await service.resendInvitation(accountId, controller.signal)
-                  : await service.revokeInvitation(
-                      accountId,
-                      controller.signal,
-                    );
+          let account: IWarmupAccount;
+          switch (action) {
+            case 'inspect':
+              account = await service.inspectInvitation(
+                accountId,
+                controller.signal,
+              );
+              break;
+            case 'send':
+              account = await service.sendInvitation(
+                accountId,
+                controller.signal,
+              );
+              break;
+            case 'resend':
+              account = await service.resendInvitation(
+                accountId,
+                controller.signal,
+              );
+              break;
+            default:
+              account = await service.revokeInvitation(
+                accountId,
+                controller.signal,
+              );
+              break;
+          }
 
           if (!isCurrentRequest()) {
             return;
