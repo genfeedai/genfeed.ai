@@ -6,6 +6,7 @@ import {
 } from '@api/services/integrations/fal/services/fal-contract';
 import { ModelProvider } from '@genfeedai/contracts';
 import type { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { Injectable } from '@nestjs/common';
 import {
   mapFalPricing,
@@ -76,7 +77,7 @@ export class FalModelContractSyncService {
           openapi: candidate.openapi as Prisma.InputJsonValue,
           openapiVersion: candidate.openapiVersion,
           outputSchema: candidate.outputSchema as Prisma.InputJsonValue,
-          pricing: candidate.pricing as unknown as Prisma.InputJsonValue,
+          pricing: toPrismaJson(candidate.pricing),
           pricingType: candidate.pricingType,
           provider: ModelProvider.FAL,
           reviewStatus:

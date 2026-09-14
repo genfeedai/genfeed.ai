@@ -7,6 +7,7 @@ import {
   type CreditBalance,
   type Organization,
   Prisma,
+  toPrismaJson,
   type WarmupAccount,
 } from '@genfeedai/prisma';
 import { BadRequestException } from '@nestjs/common';
@@ -460,10 +461,10 @@ export async function claimWarmupWorkspace(
     where: { id: account.id, organizationId, isDeleted: false },
     data: {
       status: 'CLAIMED',
-      diagnostics: {
+      diagnostics: toPrismaJson({
         ...(account.diagnostics as Prisma.JsonObject),
         preparation: { ...preparation, claimedAt: event.timestamp },
-      } as unknown as Prisma.InputJsonValue,
+      }),
       auditEvents: [
         ...(Array.isArray(account.auditEvents) ? account.auditEvents : []),
         event,

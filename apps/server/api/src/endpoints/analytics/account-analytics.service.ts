@@ -27,7 +27,7 @@ import type {
   IFleetEvaluationPolicy,
   ITopContent,
 } from '@genfeedai/contracts/interfaces';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type PeriodRow = {
@@ -231,14 +231,14 @@ export class AccountAnalyticsService {
     if (existing) {
       await this.prisma.organizationSetting.update({
         data: {
-          fleetEvaluationPolicy: next as unknown as Prisma.InputJsonValue,
+          fleetEvaluationPolicy: toPrismaJson(next),
         },
         where: { id: existing.id },
       });
     } else {
       await this.prisma.organizationSetting.create({
         data: {
-          fleetEvaluationPolicy: next as unknown as Prisma.InputJsonValue,
+          fleetEvaluationPolicy: toPrismaJson(next),
           organizationId,
         },
       });

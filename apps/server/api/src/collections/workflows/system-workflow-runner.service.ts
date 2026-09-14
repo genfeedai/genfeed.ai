@@ -44,7 +44,7 @@ import {
   WorkflowExecutionTrigger,
   WorkflowStatus,
 } from '@genfeedai/contracts';
-import { Prisma } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   buildActionExecutionInput,
   type ExecutionContext,
@@ -468,9 +468,8 @@ export class SystemWorkflowRunnerService
           const nextVersion = await transaction.workflowVersion.create({
             data: {
               contentHash: nextDefinition.contentHash,
-              graph: nextDefinition.graph as unknown as Prisma.InputJsonValue,
-              inputSchema:
-                nextDefinition.inputSchema as unknown as Prisma.InputJsonValue,
+              graph: toPrismaJson(nextDefinition.graph),
+              inputSchema: toPrismaJson(nextDefinition.inputSchema),
               organizationId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
               userId: SYSTEM_WORKFLOW_PRINCIPAL_ID,
               version: currentVersion.version + 1,

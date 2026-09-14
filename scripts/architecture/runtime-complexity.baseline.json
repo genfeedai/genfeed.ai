@@ -6,7 +6,7 @@
     "symbol": "AgentMemoriesService.scoreFeedbackMemory"
   },
   {
-    "actual": 190,
+    "actual": 188,
     "file": "apps/server/api/src/collections/agent-transfers/services/agent-transfers.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTransfersService.create"

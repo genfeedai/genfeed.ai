@@ -21,7 +21,7 @@ import {
   type VideoContinuityClipFinding,
   type VideoContinuityQaReport,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -346,10 +346,10 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       ...tasks.map((task) =>
         this.prisma.task.updateMany({
           data: {
-            decomposition: {
+            decomposition: toPrismaJson({
               ...this.readRecord(task.decomposition),
               continuityQa: report,
-            } as unknown as Prisma.InputJsonValue,
+            }),
           },
           where: scopedWhere(organizationId, { id: task.id }),
         }),
@@ -357,10 +357,10 @@ export class ClipContinuityWorkflowService implements OnModuleInit {
       ...batchItems.map((item) =>
         this.prisma.batchItem.updateMany({
           data: {
-            data: {
+            data: toPrismaJson({
               ...this.readRecord(item.data),
               continuityQa: report,
-            } as unknown as Prisma.InputJsonValue,
+            }),
           },
           where: scopedWhere(organizationId, { id: item.id }),
         }),
