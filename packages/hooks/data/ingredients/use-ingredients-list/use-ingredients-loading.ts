@@ -299,12 +299,12 @@ export function useIngredientsLoading({
 
         logger.info(`${url} success`, data);
 
-        setIngredients(data as unknown as IIngredient[]);
+        setIngredients(data);
 
         if (ingredientsCache && ingredientsCacheMeta) {
           ingredientsCache.set(
             ingredientsCacheKey,
-            data as unknown as IIngredient[],
+            data,
             INGREDIENTS_CACHE_TTL_MS,
           );
           ingredientsCacheMeta.set(

@@ -1,6 +1,5 @@
 'use client';
 
-import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { StudioGenerateJob } from '@pages/studio/generate/types';
 import { toStudioGenerateJob } from '@pages/studio/generate/utils/studio-generate-asset';
@@ -69,9 +68,7 @@ export function useStudioGenerateGallery({
         }
 
         const jobs = ingredients
-          .map((ingredient) =>
-            toStudioGenerateJob(ingredient as unknown as IIngredient),
-          )
+          .map((ingredient) => toStudioGenerateJob(ingredient))
           .filter((job): job is StudioGenerateJob => job !== null)
           .toSorted((left, right) => right.createdAt - left.createdAt);
 
