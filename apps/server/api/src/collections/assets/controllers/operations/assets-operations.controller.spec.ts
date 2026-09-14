@@ -185,6 +185,44 @@ describe('AssetsOperationsController', () => {
       expect(result).toBeDefined();
     });
 
+    it.each(['Create a logo about SQL', '$where, $not and $or examples'])(
+      'passes literal content to generation while keeping database arguments structured: %s',
+      async (text) => {
+        brandsService.findOne.mockResolvedValue(null);
+
+        await controller.generate(mockRequest, mockUser, {
+          category: AssetCategory.LOGO,
+          model: 'test-model',
+          parentId: mockBrandId,
+          parentType: AssetParent.BRAND,
+          text,
+        });
+
+        expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+          expect.any(String),
+          expect.objectContaining({
+            prompt: `Generate a professional logo (1024x1024). ${text}`,
+          }),
+          mockOrgId,
+        );
+        expect(assetsService.create).toHaveBeenCalledWith({
+          category: AssetCategory.LOGO,
+          parentId: mockBrandId,
+          parentType: AssetParent.BRAND,
+          userId: mockUserId,
+        });
+        expect(assetsService.patchAll).toHaveBeenCalledWith(
+          {
+            category: AssetCategory.LOGO,
+            parentBrandId: mockBrandId,
+            parentType: AssetParent.BRAND,
+            userId: mockUserId,
+          },
+          { isDeleted: true },
+        );
+      },
+    );
+
     it('should reject a non-brand parent type', async () => {
       const userWithoutBrand = {
         id: 'user_456',

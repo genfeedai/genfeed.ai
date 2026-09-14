@@ -143,29 +143,6 @@ describe('InputValidationUtil', () => {
         'testField contains potentially dangerous content',
       );
     });
-
-    it('should detect and reject SQL injection patterns', () => {
-      expectValidationDetail(
-        () =>
-          InputValidationUtil.validateString(
-            'SELECT * FROM users WHERE id = 1 OR 1=1',
-            'testField',
-          ),
-        'testField contains potentially malicious SQL patterns',
-      );
-    });
-
-    it('should detect multiple NoSQL injection patterns', () => {
-      const op = String.fromCharCode(36);
-      expectValidationDetail(
-        () =>
-          InputValidationUtil.validateString(
-            `{ ${op}where: "this.a == this.b", ${op}regex: ".*", ${op}not: null }`,
-            'testField',
-          ),
-        'testField contains potentially malicious NoSQL patterns',
-      );
-    });
   });
 
   describe('validateNumber', () => {
@@ -526,37 +503,68 @@ describe('InputValidationUtil', () => {
     });
   });
 
-  describe('security - SQL injection prevention', () => {
-    it('should reject SQL injection patterns', () => {
-      const sqlPatterns = [
-        "1' OR '1'='1",
-        'SELECT * FROM users',
-        'DROP TABLE users',
-        'INSERT INTO users VALUES',
-        'UPDATE users SET',
-        'DELETE FROM users',
-        '1 UNION SELECT',
-        'EXEC xp_cmdshell',
-      ];
-
-      sqlPatterns.forEach((pattern) => {
+  describe('content boundary protections', () => {
+    it.each([{ $ne: null }, { $where: 'true', $or: [] }, ['Create a logo']])(
+      'rejects structured values instead of interpreting query operators: %j',
+      (value) => {
         expectValidationDetail(
-          () => InputValidationUtil.validateString(pattern, 'testField'),
-          'testField contains potentially malicious SQL patterns',
+          () => InputValidationUtil.validateString(value, 'text'),
+          'text must be a string',
         );
-      });
+      },
+    );
+
+    it.each([
+      '<svg onanimationstart="alert(1)">',
+      '<img src=x onpointerenter="alert(1)">',
+      '<script',
+    ])('encodes markup outside the known XSS patterns: %s', (value) => {
+      const result = InputValidationUtil.validateString(value, 'text');
+      expect(result).not.toMatch(/[<>"']/);
+      expect(result).toContain('&lt;');
+    });
+
+    it('rejects XSS on consecutive calls even alongside permitted SQL text', () => {
+      for (let attempt = 0; attempt < 2; attempt++) {
+        expectValidationDetail(
+          () =>
+            InputValidationUtil.validateString(
+              'Create <script>alert(1)</script>',
+              'text',
+            ),
+          'text contains potentially dangerous content',
+        );
+      }
     });
   });
 
-  describe('security - NoSQL injection prevention', () => {
-    it('should reject NoSQL injection when multiple operators present', () => {
-      const op = String.fromCharCode(36);
-      const noSqlPattern = `{ "${op}where": "this.a == this.b", "${op}not": null, "${op}or": [] }`;
+  describe('literal content', () => {
+    it.each([
+      'Create a video about SQL',
+      'Update our launch announcement',
+      'Select your preferred style',
+      'Release notes -- update available',
+      'SELECT * FROM users',
+      'DROP TABLE users',
+      '1 UNION SELECT',
+      'EXEC xp_cmdshell',
+    ])('accepts ordinary text containing database keywords: %s', (text) => {
+      expect(InputValidationUtil.validateString(text, 'text')).toBe(text);
+    });
 
-      expectValidationDetail(
-        () => InputValidationUtil.validateString(noSqlPattern, 'testField'),
-        'testField contains potentially malicious NoSQL patterns',
+    it('encodes quotes in SQL-like text without rejecting it', () => {
+      expect(InputValidationUtil.validateString("1' OR '1'='1", 'text')).toBe(
+        '1&#x27; OR &#x27;1&#x27;=&#x27;1',
       );
+    });
+
+    it('accepts NoSQL operator names as literal content while encoding HTML characters', () => {
+      expect(
+        InputValidationUtil.validateString(
+          '$where: "example", $not: null, $or: []',
+          'text',
+        ),
+      ).toBe('$where: &quot;example&quot;, $not: null, $or: []');
     });
   });
 });
