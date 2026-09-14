@@ -31,6 +31,7 @@ const mocks = vi.hoisted(() => ({
   assetActionsHook: vi.fn(),
   attachments: vi.fn(),
   applyTypeSettings: vi.fn(),
+  brandId: { value: 'brand-1' },
   composer: vi.fn(),
   findByIds: vi.fn().mockResolvedValue([]),
   gallery: vi.fn(),
@@ -141,7 +142,7 @@ vi.mock('@hooks/ui/use-attachments/use-attachments', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1' }),
+  useBrand: () => ({ brandId: mocks.brandId.value }),
 }));
 
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
@@ -314,6 +315,7 @@ describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isHydrated.value = true;
+    mocks.brandId.value = 'brand-1';
     mocks.remixRun.value = null;
     mocks.type.value = 'image';
     mocks.handoff.value = { isLoading: false, payload: null };
@@ -831,6 +833,52 @@ describe('StudioGenerateWorkspace', () => {
         <StudioGenerateWorkspace />
       </StrictMode>,
     );
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+    expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+  });
+
+  it('attaches references when the brand resolves after the first render', async () => {
+    // The common load path: the brand provider has not resolved on the first
+    // render, so the handoff is accepted on a later one. Acceptance must
+    // re-trigger the reference and model-validation effects rather than
+    // leaving them gated on a value they never observed change.
+    mocks.brandId.value = '';
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'provider/model-x',
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'image',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/neon.png',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+
+    mocks.brandId.value = 'brand-1';
+    rerender(<StudioGenerateWorkspace />);
 
     await waitFor(() => {
       expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
