@@ -29,6 +29,7 @@ import {
 } from '@api/collections/videos/services/video-generation-prompt.util';
 import type { GenerationPlaceholderScope } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { resolveGenerationDimensions } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
@@ -124,7 +125,7 @@ export class VideoGenerationPreparationService {
   async resolve(
     user: User,
     createVideoDto: CreateVideoDto,
-    request: Request,
+    request: RequestWithSelectedModel<Request>,
   ): Promise<ResolvedVideoGenerationRequest> {
     if (!requireVideoPromptInput(createVideoDto)) {
       throw new HttpException(
@@ -402,8 +403,8 @@ export class VideoGenerationPreparationService {
         lighting: createVideoDto.lighting,
         modelInputSchema: resolved.modelInputSchema,
         modelCategory:
-          ((request as unknown as { selectedModel?: { category?: string } })
-            .selectedModel?.category as ModelCategory) || ModelCategory.VIDEO,
+          (request.selectedModel?.category as ModelCategory) ||
+          ModelCategory.VIDEO,
         mood: createVideoDto.mood,
         outputs: createVideoDto.outputs,
         prompt: promptText,

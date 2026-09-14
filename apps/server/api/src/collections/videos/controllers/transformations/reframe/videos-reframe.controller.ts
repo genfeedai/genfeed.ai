@@ -17,6 +17,7 @@ import {
   ModelsGuard,
   ValidateModel,
 } from '@api/helpers/guards/models/models.guard';
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -57,7 +58,6 @@ import {
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
-import type { Request } from 'express';
 
 @AutoSwagger()
 @Controller('videos')
@@ -91,7 +91,7 @@ export class VideosReframeController {
   @ValidateModel({ category: ModelCategory.VIDEO_EDIT })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async reframeVideo(
-    @Req() request: Request,
+    @Req() request: RequestWithSelectedModel,
     @Param('videoId') videoId: string,
     @CurrentUser() user: User,
     @Body() createVideoDto: CreateVideoDto,
@@ -246,7 +246,7 @@ export class VideosReframeController {
     metadataId: string;
     parentId: string;
     promptData: Awaited<ReturnType<PromptsService['create']>>;
-    request: Request;
+    request: RequestWithSelectedModel;
     targetHeight: number;
     targetWidth: number;
     url: string;
@@ -275,8 +275,7 @@ export class VideosReframeController {
             camera: createVideoDto.camera,
             height: targetHeight,
             modelCategory:
-              ((request as unknown as { selectedModel?: { category?: string } })
-                .selectedModel?.category as ModelCategory) ||
+              (request.selectedModel?.category as ModelCategory) ||
               ModelCategory.VIDEO_EDIT,
             mood: createVideoDto.mood,
             prompt: promptData.original,
