@@ -1,9 +1,26 @@
-import { renderHook } from '@testing-library/react';
+import type { RoutedOrganizationSummary } from '@genfeedai/contexts/user/organization-context/organization-context';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const mockPathname = vi.hoisted(() => ({ value: '/settings/personal' }));
+const mockAccess = vi.hoisted(() => ({
+  canRender: true,
+  redirectTarget: null as string | null,
+}));
+const mockDesktop = vi.hoisted(() => ({ value: false }));
+const mockBilling = vi.hoisted(() => ({ value: false }));
+vi.mock(
+  '@genfeedai/hooks/navigation/use-onboarding-route-access/use-onboarding-route-access',
+  () => ({ useOnboardingRouteAccess: () => mockAccess }),
+);
+vi.mock(
+  '@genfeedai/hooks/ui/use-is-desktop-client/use-is-desktop-client',
+  () => ({ useIsDesktopClient: () => mockDesktop.value }),
+);
 const mockPush = vi.hoisted(() => vi.fn());
 
 vi.mock('next/navigation', () => ({
+  usePathname: () => mockPathname.value,
   useRouter: () => ({ push: mockPush }),
 }));
 
@@ -27,7 +44,12 @@ vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
 }));
 
 const mockUseRoutedOrganization = vi.hoisted(() =>
-  vi.fn(() => ({ confirmedOrganizationSlug: null as string | null })),
+  vi.fn(() => ({
+    confirmedOrganizationSlug: null as string | null,
+    status: 'unscoped',
+    organizations: [] as RoutedOrganizationSummary[],
+    isRouteConfirmed: true,
+  })),
 );
 vi.mock(
   '@genfeedai/contexts/user/organization-context/organization-context',
@@ -37,7 +59,7 @@ vi.mock(
 );
 
 vi.mock('@genfeedai/config/license', () => ({
-  hasOrganizationBillingHint: () => false,
+  hasOrganizationBillingHint: () => mockBilling.value,
 }));
 
 import { useSettingsCommandsRegistration } from './use-settings-commands-registration';
@@ -52,11 +74,20 @@ function getRegisteredIds(): string[] {
 describe('useSettingsCommandsRegistration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAccess.canRender = true;
+    mockAccess.redirectTarget = null;
+    mockDesktop.value = false;
+    mockBilling.value = false;
+    mockPathname.value = '/settings/personal';
+    window.history.replaceState({}, '', '/settings/personal');
     mockRegisterCommands.mockImplementation((commands: { id: string }[]) =>
       commands.map((command) => command.id),
     );
     mockUseBrand.mockReturnValue({ selectedBrand: null });
     mockUseRoutedOrganization.mockReturnValue({
+      status: 'unscoped',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
       confirmedOrganizationSlug: null,
     });
   });
@@ -102,6 +133,9 @@ describe('useSettingsCommandsRegistration', () => {
 
   it('registers organization-scope commands once an org is confirmed, including General/Brands/Credits (#4660 review)', () => {
     mockUseRoutedOrganization.mockReturnValue({
+      status: 'unscoped',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
       confirmedOrganizationSlug: 'acme',
     });
 
@@ -118,6 +152,9 @@ describe('useSettingsCommandsRegistration', () => {
 
   it('still does not register brand commands with only an org known', () => {
     mockUseRoutedOrganization.mockReturnValue({
+      status: 'unscoped',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
       confirmedOrganizationSlug: 'acme',
     });
 
@@ -131,6 +168,9 @@ describe('useSettingsCommandsRegistration', () => {
 
   it('registers brand-scope commands once an org and a session brand are both known', () => {
     mockUseRoutedOrganization.mockReturnValue({
+      status: 'unscoped',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
       confirmedOrganizationSlug: 'acme',
     });
     mockUseBrand.mockReturnValue({
@@ -151,6 +191,9 @@ describe('useSettingsCommandsRegistration', () => {
 
   it('falls back to the selected brand organization when the route has no confirmed org', () => {
     mockUseRoutedOrganization.mockReturnValue({
+      status: 'unscoped',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
       confirmedOrganizationSlug: null,
     });
     mockUseBrand.mockReturnValue({
@@ -174,6 +217,9 @@ describe('useSettingsCommandsRegistration', () => {
 
   it('boosts every result to priority 7 when the operator is not in a specialized module (currentApp is "workspace" or unset)', () => {
     mockUseRoutedOrganization.mockReturnValue({
+      status: 'unscoped',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
       confirmedOrganizationSlug: 'acme',
     });
 
@@ -190,6 +236,9 @@ describe('useSettingsCommandsRegistration', () => {
 
   it('leaves results at the baseline priority when the operator is in a specialized module (#4660 review: rank by currentApp, not settings scope)', () => {
     mockUseRoutedOrganization.mockReturnValue({
+      status: 'unscoped',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
       confirmedOrganizationSlug: 'acme',
     });
 
@@ -247,9 +296,11 @@ describe('useSettingsCommandsRegistration', () => {
       command.id.endsWith('personal-section:appearance'),
     );
 
-    appearanceCommand?.action();
+    act(() => appearanceCommand?.action());
 
-    expect(mockPush).toHaveBeenCalledWith('/settings/personal#appearance');
+    expect(mockPush).toHaveBeenCalledWith('/settings/personal#appearance', {
+      scroll: false,
+    });
     expect(scrollIntoView).toHaveBeenCalledWith({
       behavior: 'smooth',
       block: 'start',
@@ -257,6 +308,144 @@ describe('useSettingsCommandsRegistration', () => {
 
     document.body.removeChild(anchorEl);
   });
+
+  it.each(['loading', 'switching', 'unauthorized', 'failed'])(
+    'suppresses stale scopes while context is %s',
+    (status) => {
+      mockUseRoutedOrganization.mockReturnValue({
+        status,
+        organizations: [] as RoutedOrganizationSummary[],
+        isRouteConfirmed: false,
+        confirmedOrganizationSlug: 'acme',
+      });
+      mockUseBrand.mockReturnValue({
+        selectedBrand: { slug: 'brand', organization: { slug: 'acme' } },
+      });
+      renderHook(() => useSettingsCommandsRegistration());
+      expect(
+        getRegisteredIds().some((id) => /:(organization|brand):/.test(id)),
+      ).toBe(false);
+    },
+  );
+
+  it.each([false, true])(
+    'requires a scoped organization route to be confirmed (%s)',
+    (isRouteConfirmed) => {
+      mockPathname.value = '/acme/~/settings/general';
+      mockUseRoutedOrganization.mockReturnValue({
+        status: 'matched',
+        organizations: [],
+        isRouteConfirmed,
+        confirmedOrganizationSlug: 'acme',
+      });
+      const { rerender } = renderHook(() => useSettingsCommandsRegistration());
+      expect(
+        getRegisteredIds().some((id) => id.includes(':organization:')),
+      ).toBe(isRouteConfirmed);
+      mockUseRoutedOrganization.mockReturnValue({
+        status: 'matched',
+        organizations: [] as RoutedOrganizationSummary[],
+        isRouteConfirmed: true,
+        confirmedOrganizationSlug: 'other',
+      });
+      rerender();
+      expect(
+        getRegisteredIds().some((id) => id.includes(':organization:')),
+      ).toBe(false);
+    },
+  );
+
+  it.each([false, true])(
+    'uses the known active organization on an unscoped host (stale brand: %s)',
+    (hasStaleBrand) => {
+      mockUseRoutedOrganization.mockReturnValue({
+        confirmedOrganizationSlug: null,
+        isRouteConfirmed: true,
+        status: 'unscoped',
+        organizations: [
+          {
+            id: 'org-acme',
+            slug: 'acme',
+            label: 'Acme',
+            isActive: true,
+            brand: null,
+          },
+        ],
+      });
+      if (hasStaleBrand)
+        mockUseBrand.mockReturnValue({
+          selectedBrand: {
+            slug: 'stale-brand',
+            organization: { slug: 'other' },
+          },
+        });
+      renderHook(() => useSettingsCommandsRegistration());
+      const commands = mockRegisterCommands.mock.calls.at(-1)?.[0] as {
+        id: string;
+        action: () => void;
+      }[];
+      const organizationCommand = commands.find(
+        (command) =>
+          command.id === 'settings-catalog:organization:/settings/general',
+      );
+      expect(organizationCommand).toBeDefined();
+      act(() => organizationCommand?.action());
+      expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/general');
+      expect(getRegisteredIds().some((id) => id.includes(':brand:'))).toBe(
+        false,
+      );
+    },
+  );
+
+  it('keeps the confirmed organization but omits a brand from another organization', () => {
+    mockUseRoutedOrganization.mockReturnValue({
+      status: 'matched',
+      organizations: [] as RoutedOrganizationSummary[],
+      isRouteConfirmed: true,
+      confirmedOrganizationSlug: 'acme',
+    });
+    mockUseBrand.mockReturnValue({
+      selectedBrand: { slug: 'brand', organization: { slug: 'other' } },
+    });
+    renderHook(() => useSettingsCommandsRegistration());
+    expect(getRegisteredIds().some((id) => id.includes(':organization:'))).toBe(
+      true,
+    );
+    expect(getRegisteredIds().some((id) => id.includes(':brand:'))).toBe(false);
+  });
+
+  it('unregisters settings when destination access becomes blocked and preserves desktop bypass', () => {
+    const { rerender } = renderHook(() => useSettingsCommandsRegistration());
+    const ids = getRegisteredIds();
+    mockAccess.canRender = false;
+    mockAccess.redirectTarget = '/onboarding/brand';
+    mockRegisterCommands.mockClear();
+    rerender();
+    expect(mockUnregisterCommands).toHaveBeenCalledWith(ids);
+    expect(mockRegisterCommands).not.toHaveBeenCalled();
+    mockDesktop.value = true;
+    rerender();
+    expect(getRegisteredIds().length).toBeGreaterThan(0);
+  });
+
+  it.each([false, true])(
+    'preserves the billing hint gate (%s)',
+    (isEnabled) => {
+      mockBilling.value = isEnabled;
+      mockUseRoutedOrganization.mockReturnValue({
+        status: 'matched',
+        organizations: [] as RoutedOrganizationSummary[],
+        isRouteConfirmed: true,
+        confirmedOrganizationSlug: 'acme',
+      });
+      renderHook(() => useSettingsCommandsRegistration());
+      expect(
+        getRegisteredIds().includes(
+          'settings-catalog:organization:/settings/subscription',
+        ),
+      ).toBe(isEnabled);
+    },
+  );
 
   it('unregisters everything it registered on unmount', () => {
     const { unmount } = renderHook(() => useSettingsCommandsRegistration());
