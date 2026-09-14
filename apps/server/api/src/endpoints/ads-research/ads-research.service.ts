@@ -4,6 +4,7 @@ import { CreativePatternsService } from '@api/collections/creative-patterns/crea
 import type { CreativePatternDocument } from '@api/collections/creative-patterns/schemas/creative-pattern.schema';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { mapAdsCredentialPlatform } from '@api/services/ads-gateway/ads-credential-platform.util';
 import { AdsGatewayService } from '@api/services/ads-gateway/ads-gateway.service';
@@ -959,11 +960,7 @@ export class AdsResearchService {
     if (this.harnessGenerationService) {
       return this.harnessGenerationService;
     }
-    try {
-      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, HarnessGenerationService);
   }
 
   private buildAdPack(params: {

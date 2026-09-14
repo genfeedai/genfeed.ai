@@ -1,4 +1,5 @@
 import type { AuthenticatedRequest } from '@api/auth/interfaces/authenticated-user.interface';
+import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import {
   isFalDestination,
@@ -25,7 +26,7 @@ export const ValidateModel =
 
 export interface ModelsGuardRequest extends AuthenticatedRequest {
   body?: Record<string, unknown>;
-  selectedModel?: unknown;
+  selectedModel?: ModelDocument;
 }
 
 @Injectable()

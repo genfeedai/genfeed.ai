@@ -12,6 +12,7 @@ import { WorkflowExecutorService } from '@api/collections/workflows/services/wor
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/workflow-templates';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger, WorkflowStatus } from '@genfeedai/contracts';
@@ -315,13 +316,9 @@ export class AgentStrategyWorkflowRunService {
     if (direct) {
       return direct;
     }
-    try {
-      const resolved = this.moduleRef?.get(token, { strict: false });
-      if (resolved) {
-        return resolved;
-      }
-    } catch {
-      // Converted below to a stable API error.
+    const resolved = resolveOptionalProvider(this.moduleRef, token);
+    if (resolved) {
+      return resolved;
     }
     throw new ServiceUnavailableException(`${label} service is unavailable`);
   }

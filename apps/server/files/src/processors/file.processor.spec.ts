@@ -338,6 +338,14 @@ describe('FileProcessor', () => {
   });
 
   describe('handleUploadToS3', () => {
+    it('rejects a missing file path before processing', async () => {
+      const job = createMockJob('missing-path', createJobData());
+      await expect(processor.handleUploadToS3(job)).rejects.toThrow(
+        'S3 upload requires a file path',
+      );
+      expect(s3Service.uploadFile).not.toHaveBeenCalled();
+    });
+
     it('uploads the file and returns the resulting location', async () => {
       const job = createMockJob(
         'upload-to-s3',
@@ -393,6 +401,14 @@ describe('FileProcessor', () => {
   });
 
   describe('handleAddWatermark', () => {
+    it('rejects a missing file path before processing', async () => {
+      const job = createMockJob('missing-path', createJobData());
+      await expect(processor.handleAddWatermark(job)).rejects.toThrow(
+        'Watermark processing requires a file path',
+      );
+      expect(ffmpegService.addTextOverlay).not.toHaveBeenCalled();
+    });
+
     it('adds a text overlay watermark and returns the output path', async () => {
       const job = createMockJob(
         'add-watermark',

@@ -1,5 +1,6 @@
 import { WorkflowLifecycle } from '@genfeedai/contracts';
 import { useWorkflowStore } from '@genfeedai/workflows/ui/stores';
+import { logger } from '@services/core/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type {
   CloudWorkflowData,
@@ -7,14 +8,33 @@ import type {
 } from '../services/workflow-api';
 import { useCloudWorkflowStore } from './cloud-workflow-store';
 
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: vi.fn(), warn: vi.fn() },
+}));
+
 function createService() {
+  const archive = vi.fn();
+  const get = vi.fn();
+  const listBrands = vi.fn();
+  const publish = vi.fn();
   const create = vi.fn();
   const update = vi.fn();
 
   return {
+    archive,
+    get,
+    listBrands,
+    publish,
     create,
     update,
-    service: { create, update } as unknown as WorkflowApiService,
+    service: {
+      archive,
+      get,
+      listBrands,
+      publish,
+      create,
+      update,
+    } as unknown as WorkflowApiService,
   };
 }
 
@@ -32,6 +52,7 @@ const oneNode = [
 
 describe('useCloudWorkflowStore.saveToCloud', () => {
   beforeEach(() => {
+    vi.clearAllMocks();
     useWorkflowStore.setState({
       edgeStyle: 'default',
       edges: [],
@@ -53,6 +74,34 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
       workflowId: null,
     });
   });
+
+  it.each([
+    'archiveWorkflow',
+    'publishWorkflow',
+    'loadFromCloud',
+    'loadBrands',
+  ] as const)(
+    'propagates %s failures without logging in the store',
+    async (action) => {
+      const error = new Error('Request failed');
+      const { service, archive, get, listBrands, publish } = createService();
+      for (const request of [archive, get, listBrands, publish])
+        request.mockRejectedValue(error);
+      useCloudWorkflowStore.setState({
+        workflowId: 'wf-1',
+        brands: [],
+        isBrandsLoading: false,
+      });
+      const request =
+        action === 'loadFromCloud'
+          ? useCloudWorkflowStore.getState()[action]('wf-1', service)
+          : useCloudWorkflowStore.getState()[action](service);
+      await expect(request).rejects.toBe(error);
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(useCloudWorkflowStore.getState().isBrandsLoading).toBe(false);
+      expect(useCloudWorkflowStore.getState().isCloudLoading).toBe(false);
+    },
+  );
 
   it('creates with the current brand so the library list can find it', async () => {
     useWorkflowStore.setState({ nodes: oneNode as never });
@@ -163,6 +212,7 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
 
     expect(useCloudWorkflowStore.getState().hasQueuedSave).toBe(false);
     expect(useCloudWorkflowStore.getState().cloudError).toBe('network error');
+    expect(logger.error).not.toHaveBeenCalled();
     expect(useWorkflowStore.getState().isDirty).toBe(true);
   });
 
@@ -241,10 +291,21 @@ describe('useCloudWorkflowStore.scheduleAutoSave', () => {
     useWorkflowStore.setState({ isSaving: true });
     const { service } = createService();
 
-    useCloudWorkflowStore.getState().scheduleAutoSave(service);
+    useCloudWorkflowStore.getState().scheduleAutoSave(service, vi.fn());
 
     expect(useCloudWorkflowStore.getState().hasQueuedSave).toBe(true);
     // No debounce timer should be scheduled while a save is already running.
     expect(useCloudWorkflowStore.getState().autoSaveTimeoutId).toBeNull();
+  });
+  it('hands an autosave failure to its UI error callback once', async () => {
+    const error = new Error('Autosave failed');
+    const { service, update } = createService();
+    update.mockRejectedValue(error);
+    const onError = vi.fn();
+    useCloudWorkflowStore.getState().scheduleAutoSave(service, onError);
+    await vi.advanceTimersByTimeAsync(2000);
+    expect(onError).toHaveBeenCalledExactlyOnceWith(error);
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(useCloudWorkflowStore.getState().cloudError).toBe('Autosave failed');
   });
 });

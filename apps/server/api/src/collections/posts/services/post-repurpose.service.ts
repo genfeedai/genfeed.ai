@@ -356,7 +356,7 @@ export class PostRepurposeService {
       where: scopedWhere(params.organizationId, { id: params.credentialId }),
     });
 
-    if (!credential || !credential.isConnected) {
+    if (!credential?.isConnected) {
       throw new BadRequestException({
         detail: `Credential ${params.credentialId} is not connected to this organization.`,
         title: 'Credential not available',

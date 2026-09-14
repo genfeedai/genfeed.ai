@@ -1,6 +1,6 @@
 import type { CardEmptySize, CardVariant } from '@genfeedai/contracts';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { CardEmptyAction } from '@genfeedai/props/ui/cards/card-empty.props';
-import type { ComponentType } from 'react';
 
 /**
  * Shared contract for the `EmptyState` primitive.
@@ -18,7 +18,7 @@ export interface EmptyStateProps {
   /** Required next step. An empty state must always offer an action. */
   action: CardEmptyAction;
   /** Optional leading icon; sized by `size`. */
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   iconClassName?: string;
   /** Optional supporting copy under the title. */
   description?: string;

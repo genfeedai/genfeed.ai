@@ -1,7 +1,7 @@
-import type { ComponentType } from 'react';
+import type { IconComponent } from '../../types/icon';
 
 export interface IPlatformBadgeConfig {
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   label: string;
   bgColor: string;
   textColor: string;

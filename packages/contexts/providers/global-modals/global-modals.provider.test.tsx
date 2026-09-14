@@ -5,11 +5,7 @@ import {
   useConfirmModal,
 } from './global-modals.provider';
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: () => ({
-    user: { reload: vi.fn() },
-  }),
-}));
+vi.mock('@genfeedai/auth-client/react', () => ({}));
 
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({

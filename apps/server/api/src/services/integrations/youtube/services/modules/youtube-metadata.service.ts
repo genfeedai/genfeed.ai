@@ -115,7 +115,7 @@ export class YoutubeMetadataService {
 
       const video = response.data.items?.[0];
 
-      if (!video || !video.status) {
+      if (!video?.status) {
         throw new Error('Video not found or status not available');
       }
 

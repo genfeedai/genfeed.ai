@@ -227,21 +227,21 @@ export function useBrandDetail(): UseBrandDetailReturn {
 
       if (videosResult.status === 'fulfilled') {
         logger.info(`GET /public/videos success`, videosResult.value);
-        newVideos = videosResult.value as unknown as IVideo[];
+        newVideos = videosResult.value;
       } else {
         logger.error(`GET /public/videos failed`, videosResult.reason);
       }
 
       if (imagesResult.status === 'fulfilled') {
         logger.info(`GET /public/images success`, imagesResult.value);
-        newImages = imagesResult.value as unknown as IImage[];
+        newImages = imagesResult.value;
       } else {
         logger.error(`GET /public/images failed`, imagesResult.reason);
       }
 
       if (articlesResult.status === 'fulfilled') {
         logger.info(`GET /public/articles success`, articlesResult.value);
-        newArticles = articlesResult.value as unknown as IArticle[];
+        newArticles = articlesResult.value;
       } else {
         logger.error(`GET /public/articles failed`, articlesResult.reason);
       }

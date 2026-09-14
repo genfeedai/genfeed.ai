@@ -2,18 +2,19 @@ import type {
   IFilters,
   IFiltersState,
 } from '@genfeedai/contracts/interfaces/utils/filters.interface';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type {
   TableAction,
   TableColumn,
   TableErrorState,
 } from '@props/ui/display/table.props';
 import type { FiltersBarProps } from '@props/ui/forms/filters.props';
-import type { ComponentType, ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 export interface ListPageLayoutProps<T> {
   title: string;
   description?: string;
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   items: T[];
   columns: TableColumn<T>[];
   actions?: TableAction<T>[];

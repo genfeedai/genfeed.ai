@@ -172,6 +172,51 @@ describe('BaseConfigService', () => {
   });
 
   describe('env file paths by environment', () => {
+    it.each([
+      {
+        environment: 'development',
+        paths: [
+          '.env',
+          'apps/server/test-app/.env',
+          'apps/server/test-app/.env.local',
+          '.env.local',
+        ],
+        workingDir: 'root' as const,
+      },
+      {
+        environment: 'development',
+        paths: [
+          '../../.env',
+          'test-app/.env',
+          'test-app/.env.local',
+          '../../.env.local',
+        ],
+        workingDir: 'apps/server' as const,
+      },
+      {
+        environment: 'production',
+        paths: ['.env.production', 'apps/server/test-app/.env.production'],
+        workingDir: 'root' as const,
+      },
+      {
+        environment: 'production',
+        paths: ['../../.env.production', 'test-app/.env.production'],
+        workingDir: 'apps/server' as const,
+      },
+    ])(
+      'preserves exact $environment file precedence from $workingDir',
+      ({ environment, paths, workingDir }) => {
+        process.env.NODE_ENV = environment;
+        mockExistsSync.mockReturnValue(false);
+
+        new ConcreteConfigService({ workingDir });
+
+        expect(
+          mockExistsSync.mock.calls.map((call: [string]) => call[0]),
+        ).toEqual(paths);
+      },
+    );
+
     it('should use production env files in production mode', () => {
       process.env.NODE_ENV = 'production';
       mockExistsSync.mockReturnValue(false);

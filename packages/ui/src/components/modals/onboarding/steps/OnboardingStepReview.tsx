@@ -1,6 +1,7 @@
 'use client';
 
 import type { IExtractedBrandData } from '@genfeedai/contracts/interfaces';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import Badge from '@ui/display/badge/Badge';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
@@ -17,7 +18,7 @@ function ReviewSection({
   title,
   children,
 }: {
-  icon?: React.ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   title: string;
   children: ReactNode;
 }) {

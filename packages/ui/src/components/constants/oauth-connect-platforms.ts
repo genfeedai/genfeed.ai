@@ -1,4 +1,5 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import {
   FacebookIcon,
   GoogleColorIcon,
@@ -10,7 +11,6 @@ import {
   YoutubeIcon,
 } from '@genfeedai/helpers/ui/icons/brands';
 import { Radio, Star } from 'lucide-react';
-import type { ComponentType } from 'react';
 
 export type OAuthConnectPlatformCategoryId =
   | 'social'
@@ -35,7 +35,7 @@ export interface OAuthConnectPlatform {
   /**
    * Brand mark for this tile. It belongs to the tile, not to {@link platform}.
    */
-  Icon: ComponentType<{ className?: string }>;
+  Icon: IconComponent;
   /** Brand colour for {@link Icon}. */
   iconClassName: string;
   label: string;

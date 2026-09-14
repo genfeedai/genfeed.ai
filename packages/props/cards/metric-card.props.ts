@@ -1,4 +1,5 @@
-import type { ComponentType, ReactNode } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { ReactNode } from 'react';
 
 export type MetricCardSize = 'sm' | 'md' | 'lg';
 
@@ -20,7 +21,7 @@ export type MetricCardProps = {
   /** Secondary line under the value (not a trend) */
   description?: ReactNode;
   /** Optional leading/trailing icon */
-  icon?: ComponentType<{ className?: string }>;
+  icon?: IconComponent;
   iconClassName?: string;
   /** Show skeleton for the value */
   isLoading?: boolean;

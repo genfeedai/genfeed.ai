@@ -93,7 +93,7 @@ export function registerDiscordBotHandlers(
 
     const sessionKey = `${message.channelId}:${message.author.id}`;
     const session = handlers.getSession(sessionKey);
-    if (!session || session.state !== 'collecting') {
+    if (session?.state !== 'collecting') {
       return;
     }
 

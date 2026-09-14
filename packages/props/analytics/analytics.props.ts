@@ -4,15 +4,15 @@ import type {
   IGrowthTrends,
   ITimeSeriesDataPoint,
 } from '@genfeedai/contracts/interfaces';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { PlatformBreakdownData } from '@genfeedai/services/analytics/analytics.service';
-import type { ComponentType } from 'react';
 
 export interface AnalyticsTool {
   id: string;
   title: string;
   description: string;
   href: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   comingSoon?: boolean;
 }
 

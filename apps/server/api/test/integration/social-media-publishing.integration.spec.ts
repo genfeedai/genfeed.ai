@@ -105,25 +105,16 @@ interface MockPostAnalyticsService extends Partial<PostAnalyticsService> {
   aggregateAnalytics: vi.Mock;
 }
 
-// Allow skipping this file when a real DB integration is not available
-// Set SKIP_DB_INTEGRATION=true to skip all tests in this file
-if (process.env.SKIP_DB_INTEGRATION === 'true') {
-  const g: any = global as any;
-  const d: any = (global as any).describe;
-  g.describe = ((name: string, fn: any) =>
-    d?.skip ? d.skip(name, fn) : describe(name, fn)) as any;
-  const i: any = (global as any).it;
-  g.it = ((name: string, fn: any) =>
-    i?.skip ? i.skip(name, fn) : it(name, fn)) as any;
-  g.test = g.it;
-}
+const integrationDescribe = describe.skipIf(
+  process.env.SKIP_DB_INTEGRATION === 'true',
+);
 
-describe('Social Media Publishing Integration Tests', () => {
+integrationDescribe('Social Media Publishing Integration Tests', () => {
   // Increase timeout for integration database operations
   // vi timeout configured in vitest.config(30000);
 
-  let app: INestApplication;
-  let moduleRef: TestingModule;
+  let app: INestApplication | null;
+  let moduleRef: TestingModule | null;
 
   let twitterService: MockTwitterService;
   let instagramService: MockInstagramService;
@@ -264,7 +255,7 @@ describe('Social Media Publishing Integration Tests', () => {
     try {
       if (app) {
         await app.close();
-        app = null as any;
+        app = null;
       }
     } catch {
       // Ignore close errors
@@ -273,7 +264,7 @@ describe('Social Media Publishing Integration Tests', () => {
     try {
       if (moduleRef) {
         await moduleRef.close();
-        moduleRef = null as any;
+        moduleRef = null;
       }
     } catch {
       // Ignore close errors

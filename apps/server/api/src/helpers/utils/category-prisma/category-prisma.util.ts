@@ -168,56 +168,59 @@ function toPrismaLabel(value: string): string {
   return value.replace(/-/g, '_').toUpperCase();
 }
 
-export class CategoryPrismaUtil {
-  /**
-   * Map a single IngredientCategory value to its Prisma SCREAMING_SNAKE form.
-   *
-   * - Domain enum values (already SCREAMING) → identity.
-   * - Legacy lowercase / hyphen form (e.g. 'video', 'image-edit') → uppercased.
-   * - `undefined` / empty string → returns `undefined` (caller omits the filter).
-   * - Non-empty unmappable value → throws BadRequestException.
-   */
-  static toIngredientCategory(
-    value: IngredientCategory | string,
-  ): PrismaIngredientCategoryValue;
-  static toIngredientCategory(value: undefined): undefined;
-  static toIngredientCategory(
-    value?: IngredientCategory | string,
-  ): PrismaIngredientCategoryValue | undefined;
-  static toIngredientCategory(
-    value?: IngredientCategory | string,
-  ): PrismaIngredientCategoryValue | undefined {
-    if (value === undefined || value === '') {
-      return undefined;
-    }
+/**
+ * Map a single IngredientCategory value to its Prisma SCREAMING_SNAKE form.
+ *
+ * - Domain enum values (already SCREAMING) → identity.
+ * - Legacy lowercase / hyphen form (e.g. 'video', 'image-edit') → uppercased.
+ * - `undefined` / empty string → returns `undefined` (caller omits the filter).
+ * - Non-empty unmappable value → throws BadRequestException.
+ */
+function toIngredientCategory(
+  value: IngredientCategory | string,
+): PrismaIngredientCategoryValue;
 
-    const mapped =
-      APP_TO_PRISMA_INGREDIENT_CATEGORY[value as IngredientCategory];
-    if (mapped !== undefined) {
-      return mapped;
-    }
+function toIngredientCategory(value: undefined): undefined;
 
-    // Accept already-Prisma-form values and legacy lowercase/hyphen spellings.
-    const normalized = toPrismaLabel(String(value));
-    if (PRISMA_INGREDIENT_CATEGORY_VALUES.has(normalized)) {
-      return normalized as PrismaIngredientCategoryValue;
-    }
+function toIngredientCategory(
+  value?: IngredientCategory | string,
+): PrismaIngredientCategoryValue | undefined;
 
-    throw new BadRequestException(`Unknown IngredientCategory: ${value}`);
+function toIngredientCategory(
+  value?: IngredientCategory | string,
+): PrismaIngredientCategoryValue | undefined {
+  if (value === undefined || value === '') {
+    return undefined;
   }
+
+  const mapped = APP_TO_PRISMA_INGREDIENT_CATEGORY[value as IngredientCategory];
+  if (mapped !== undefined) {
+    return mapped;
+  }
+
+  // Accept already-Prisma-form values and legacy lowercase/hyphen spellings.
+  const normalized = toPrismaLabel(String(value));
+  if (PRISMA_INGREDIENT_CATEGORY_VALUES.has(normalized)) {
+    return normalized as PrismaIngredientCategoryValue;
+  }
+
+  throw new BadRequestException(`Unknown IngredientCategory: ${value}`);
+}
+export const CategoryPrismaUtil = {
+  toIngredientCategory,
 
   /**
    * Build a Prisma `where` fragment for a single IngredientCategory filter.
    * Returns `{}` when category is absent (caller spreads safely).
    */
-  static toIngredientCategoryFilter(
+  toIngredientCategoryFilter(
     category?: IngredientCategory | string,
   ): Record<string, unknown> {
     if (category === undefined || category === '') {
       return {};
     }
     return { category: CategoryPrismaUtil.toIngredientCategory(category) };
-  }
+  },
 
   /**
    * Map a single OrganizationCategory app-enum value to its Prisma UPPERCASE
@@ -229,7 +232,7 @@ export class CategoryPrismaUtil {
    * - `undefined` / empty string → returns `undefined` (caller omits the field).
    * - Non-empty unmappable value → throws BadRequestException.
    */
-  static toOrganizationCategory(
+  toOrganizationCategory(
     value?: OrganizationCategory | string,
   ): PrismaOrganizationCategoryValue | undefined {
     if (value === undefined || value === '') {
@@ -248,20 +251,20 @@ export class CategoryPrismaUtil {
     }
 
     throw new BadRequestException(`Unknown OrganizationCategory: ${value}`);
-  }
+  },
 
   /**
    * Build a Prisma `where` fragment for a single OrganizationCategory filter.
    * Returns `{}` when category is absent (caller spreads safely).
    */
-  static toOrganizationCategoryFilter(
+  toOrganizationCategoryFilter(
     category?: OrganizationCategory | string,
   ): Record<string, unknown> {
     if (category === undefined || category === '') {
       return {};
     }
     return { category: CategoryPrismaUtil.toOrganizationCategory(category) };
-  }
+  },
 
   /**
    * Map a single AssetScope app-enum value to its Prisma UPPERCASE form.
@@ -272,9 +275,7 @@ export class CategoryPrismaUtil {
    * - `undefined` / empty string → returns `undefined`.
    * - Non-empty unmappable value → throws BadRequestException.
    */
-  static toAssetScope(
-    value?: AssetScope | string,
-  ): PrismaAssetScopeValue | undefined {
+  toAssetScope(value?: AssetScope | string): PrismaAssetScopeValue | undefined {
     if (value === undefined || value === '') {
       return undefined;
     }
@@ -290,7 +291,7 @@ export class CategoryPrismaUtil {
     }
 
     throw new BadRequestException(`Unknown AssetScope: ${value}`);
-  }
+  },
 
   /**
    * Map a single IngredientStatus app-enum value to its Prisma UPPERCASE form.
@@ -301,7 +302,7 @@ export class CategoryPrismaUtil {
    * - `undefined` / empty string → returns `undefined`.
    * - Non-empty unmappable value → throws BadRequestException.
    */
-  static toIngredientStatus(
+  toIngredientStatus(
     value?: IngredientStatus | string,
   ): PrismaIngredientStatusValue | undefined {
     if (value === undefined || value === '') {
@@ -323,5 +324,5 @@ export class CategoryPrismaUtil {
     }
 
     throw new BadRequestException(`Unknown IngredientStatus: ${value}`);
-  }
-}
+  },
+};

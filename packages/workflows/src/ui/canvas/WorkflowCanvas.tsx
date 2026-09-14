@@ -40,6 +40,7 @@ import {
   createIdLookup,
   filterItemsByIdLookup,
   isEventFromHandle,
+  supportsImageInput,
 } from '../lib';
 import {
   decodeWorkflowNodeTransfer,
@@ -63,31 +64,6 @@ import { ReferenceEdge } from './ReferenceEdge';
 import { ShortcutHelpModal } from './ShortcutHelpModal';
 
 const DEFAULT_NODE_COLOR = 'hsl(var(--muted-foreground))';
-
-/**
- * Check if the model's schema supports image input
- * Used to determine whether to enable/disable image input handles
- */
-function supportsImageInput(
-  schema: Record<string, unknown> | undefined,
-): boolean {
-  if (!schema) return true; // Default to true if no schema
-
-  const properties = (schema as { properties?: Record<string, unknown> })
-    .properties;
-  if (!properties) return true;
-
-  // Check for common image input field names across providers
-  return !!(
-    properties.image ||
-    properties.image_input ||
-    properties.image_url ||
-    properties.image_urls ||
-    properties.start_image ||
-    properties.first_frame_image ||
-    properties.reference_images
-  );
-}
 
 function getEdgeDataType(
   edge: WorkflowEdge,

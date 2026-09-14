@@ -1,3 +1,4 @@
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 export type PromptInput = Record<string, unknown> & {
   prompt?: string;
   resolution?: string;
@@ -70,7 +71,7 @@ export interface ResolvedVideoGenerationRequest {
   modelProvider?: ModelProvider | string;
   modelSchemaFamily?: string;
   referenceIds: string[];
-  request: Request;
+  request: RequestWithSelectedModel<Request>;
   user: User;
 }
 

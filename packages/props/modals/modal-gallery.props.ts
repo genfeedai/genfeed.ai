@@ -9,7 +9,8 @@ import type {
   IVideo,
 } from '@genfeedai/contracts/interfaces';
 import type { AccountMediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
-import type { ComponentType, Dispatch, SetStateAction } from 'react';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { Dispatch, SetStateAction } from 'react';
 
 /**
  * What the gallery modal hands back through `onSelect`: the ingredient kinds the
@@ -130,7 +131,7 @@ export interface ModalGalleryReferencesTabProps {
 }
 
 export interface ModalGalleryEmptyStateProps {
-  emptyIcon: ComponentType<{ className?: string }>;
+  emptyIcon: IconComponent;
   emptyMessage: string;
   category: IngredientCategory;
 }

@@ -15,6 +15,7 @@ import type {
   VideoQaStreamInfo,
 } from '@genfeedai/contracts/types';
 import type { ExecutableNode } from '../../types';
+import { isRecord } from '../../utils/record';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -94,10 +95,6 @@ interface ProbeStreamRecord {
 interface ProbeJsonRecord {
   format?: { duration?: unknown };
   streams?: ProbeStreamRecord[];
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null;
 }
 
 export function parseFrameRate(value: unknown): number | null {

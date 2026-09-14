@@ -216,7 +216,7 @@ export class DiscordService {
         platform: CredentialPlatform.DISCORD,
       });
 
-      if (!credential || !credential.refreshToken) {
+      if (!credential?.refreshToken) {
         throw new HttpException(
           {
             detail: 'Discord credential not found',

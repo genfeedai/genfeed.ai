@@ -292,20 +292,22 @@ describe('LogMethod Decorator', () => {
         'status',
       );
 
-      expect(descriptor).toBeDefined();
-      Reflect.defineMetadata(PATH_METADATA, 'status', descriptor!.value);
+      if (!descriptor) {
+        throw new Error('Expected the status method descriptor');
+      }
+      Reflect.defineMetadata(PATH_METADATA, 'status', descriptor.value);
       Reflect.defineMetadata(
         METHOD_METADATA,
         RequestMethod.GET,
-        descriptor!.value,
+        descriptor.value,
       );
 
-      LogMethod()(TestController.prototype, 'status', descriptor!);
+      LogMethod()(TestController.prototype, 'status', descriptor);
 
-      expect(Reflect.getMetadata(PATH_METADATA, descriptor!.value)).toBe(
+      expect(Reflect.getMetadata(PATH_METADATA, descriptor.value)).toBe(
         'status',
       );
-      expect(Reflect.getMetadata(METHOD_METADATA, descriptor!.value)).toBe(
+      expect(Reflect.getMetadata(METHOD_METADATA, descriptor.value)).toBe(
         RequestMethod.GET,
       );
     });

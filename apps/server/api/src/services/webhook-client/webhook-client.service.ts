@@ -36,11 +36,7 @@ export class WebhookClientService {
         organizationId: organizationId,
       });
 
-      if (
-        !settings ||
-        !settings.isWebhookEnabled ||
-        !settings.webhookEndpoint
-      ) {
+      if (!settings?.isWebhookEnabled || !settings.webhookEndpoint) {
         this.logger.log(
           `${this.constructorName} webhooks not enabled or endpoint not configured`,
           { organizationId },
@@ -122,8 +118,7 @@ export class WebhookClientService {
       });
 
       if (
-        !settings ||
-        !settings.isWebhookEnabled ||
+        !settings?.isWebhookEnabled ||
         !settings.webhookEndpoint ||
         !settings.webhookSecret
       ) {

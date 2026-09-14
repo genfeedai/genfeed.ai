@@ -209,7 +209,7 @@ describe('AnalyticsFeedbackExecutor.execute', () => {
     });
   });
 
-  it('falls back to the brand id carried on the execution context', async () => {
+  it('uses the brand id resolved into node config', async () => {
     const resolver = vi.fn().mockResolvedValue({
       avgEngagementRate: 0.2,
       bestPlatform: 'tiktok',
@@ -222,16 +222,13 @@ describe('AnalyticsFeedbackExecutor.execute', () => {
     });
 
     const result = await createAnalyticsFeedbackExecutor(resolver).execute({
-      context: {
-        ...executionContext,
-        brandId: 'brand-from-context',
-      } as ExecutionContext,
+      context: executionContext,
       inputs: new Map<string, unknown>(),
-      node: makeNode(),
+      node: makeNode({ brandId: 'brand-from-config' }),
     });
 
     expect(resolver).toHaveBeenCalledWith({
-      brandId: 'brand-from-context',
+      brandId: 'brand-from-config',
       organizationId: 'org-1',
       topN: 5,
       worstN: 5,

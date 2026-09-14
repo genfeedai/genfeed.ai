@@ -1665,22 +1665,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/votes/controllers/votes.controller.spec.ts",
-      "fingerprint": "15971571968525c82cf3",
-      "message": "Argument of type '{ entity: string; }' is not assignable to parameter of type 'CreateVoteDto'.   Property 'entityModel' is missing in type '{ entity: string; }' but required in type 'CreateVoteDto'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/votes/controllers/votes.controller.spec.ts",
-      "fingerprint": "d2cf4a280c8ba8bfd243",
-      "message": "Argument of type '{ entity: string; }' is not assignable to parameter of type 'CreateVoteDto'.   Property 'entityModel' is missing in type '{ entity: string; }' but required in type 'CreateVoteDto'.",
-      "workspace": "api"
-    },
-    {
       "code": 2554,
       "count": 1,
       "file": "apps/server/api/src/collections/votes/entities/vote.entity.spec.ts",

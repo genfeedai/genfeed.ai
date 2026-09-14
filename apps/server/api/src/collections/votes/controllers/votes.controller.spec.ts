@@ -1,3 +1,5 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw { response, status: 400 };
@@ -31,8 +33,9 @@ describe('VotesController', () => {
 
   const mockReq = {} as Request;
 
-  const mockUser = {
+  const mockUser: AuthenticatedUser = {
     id: 'user_123',
+    brandId: testId('brand'),
     organizationId,
     userId,
   };
@@ -75,7 +78,7 @@ describe('VotesController', () => {
     const result = await controller.create(
       mockReq,
       validCreateVoteDto,
-      mockUser as any,
+      mockUser,
     );
 
     expect(service.create).toHaveBeenCalledOnce();
@@ -89,13 +92,21 @@ describe('VotesController', () => {
 
   it('throws BadRequestException when entity is invalid ObjectId', async () => {
     await expect(
-      controller.create(mockReq, { entity: 'invalid-id' }, mockUser as any),
+      controller.create(
+        mockReq,
+        { ...validCreateVoteDto, entity: 'invalid-id' },
+        mockUser,
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
   it('throws BadRequestException when entity is missing', async () => {
     await expect(
-      controller.create(mockReq, {} as any, mockUser as any),
+      controller.create(
+        mockReq,
+        {} as Parameters<VotesController['create']>[1],
+        mockUser,
+      ),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -103,7 +114,7 @@ describe('VotesController', () => {
     service.create.mockRejectedValue(new Error('fail'));
 
     await expect(
-      controller.create(mockReq, { entity: validEntityId }, mockUser as any),
+      controller.create(mockReq, validCreateVoteDto, mockUser),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 
@@ -118,7 +129,7 @@ describe('VotesController', () => {
     const result = await controller.create(
       mockReq,
       { entity: validEntityId, entityModel: VoteEntityModel.PROMPT },
-      mockUser as any,
+      mockUser,
     );
 
     expect(service.create).toHaveBeenCalledWith(
@@ -138,7 +149,7 @@ describe('VotesController', () => {
     const result = await controller.create(
       mockReq,
       validCreateVoteDto,
-      mockUser as any,
+      mockUser,
     );
 
     expect(service.create).toHaveBeenCalledWith(
@@ -148,7 +159,7 @@ describe('VotesController', () => {
   });
 
   it('removes a vote (soft-delete) via DELETE endpoint', async () => {
-    await controller.remove(validEntityId, mockUser as any);
+    await controller.remove(validEntityId, mockUser);
 
     expect(service.patchAll).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -161,7 +172,7 @@ describe('VotesController', () => {
 
   it('throws BadRequestException for invalid entityId on DELETE', async () => {
     await expect(
-      controller.remove('invalid-id', mockUser as any),
+      controller.remove('invalid-id', mockUser),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
 });

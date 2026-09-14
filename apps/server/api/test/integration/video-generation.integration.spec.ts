@@ -36,20 +36,11 @@ interface MockFFmpegService {
   probe: vi.Mock;
 }
 
-// Allow skipping this file when a real DB integration is not available
-// Set SKIP_DB_INTEGRATION=true to skip all tests in this file
-if (process.env.SKIP_DB_INTEGRATION === 'true') {
-  const g: any = global as any;
-  const d: any = (global as any).describe;
-  g.describe = ((name: string, fn: any) =>
-    d?.skip ? d.skip(name, fn) : describe(name, fn)) as any;
-  const i: any = (global as any).it;
-  g.it = ((name: string, fn: any) =>
-    i?.skip ? i.skip(name, fn) : it(name, fn)) as any;
-  g.test = g.it;
-}
+const integrationDescribe = describe.skipIf(
+  process.env.SKIP_DB_INTEGRATION === 'true',
+);
 
-describe('Video Generation Integration Tests', () => {
+integrationDescribe('Video Generation Integration Tests', () => {
   let app: INestApplication;
 
   let elevenLabsService: ElevenLabsService;
@@ -393,19 +384,19 @@ async function retryWithBackoff<T>(
   maxRetries: number,
   delay: number,
 ): Promise<T> {
-  let lastError: Error;
+  let lastError: unknown;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
     } catch (error: unknown) {
-      lastError = error as Error;
+      lastError = error;
       await new Promise((resolve) => setTimeout(resolve, delay * 2 ** i));
     }
   }
-  throw lastError!;
+  throw lastError;
 }
 
-async function generateScenesWithFallback(scenes: any[]) {
+async function generateScenesWithFallback(scenes: unknown[]) {
   return Promise.all(
     scenes.map(async () => {
       try {

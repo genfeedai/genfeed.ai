@@ -1,3 +1,4 @@
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 /**
  * Author-reply conversation loop for brand posts.
  *
@@ -1011,15 +1012,12 @@ export class AuthorReplyLoopService implements OnModuleInit {
     if (this.credentialsService) {
       return this.credentialsService;
     }
-    try {
-      const resolved = this.moduleRef?.get(CredentialsService, {
-        strict: false,
-      });
-      if (resolved) {
-        return resolved;
-      }
-    } catch {
-      // Converted below to a stable API error.
+    const resolved = resolveOptionalProvider(
+      this.moduleRef,
+      CredentialsService,
+    );
+    if (resolved) {
+      return resolved;
     }
     throw new BadRequestException('Connected account service is unavailable');
   }

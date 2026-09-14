@@ -28,24 +28,25 @@ export abstract class BaseFactory<T> {
  * Factory for generating opaque test string IDs.
  * Prisma uses string IDs (cuid/ulid/uuid).
  */
-export class TestIdFactory {
-  static create(): string {
+
+export const TestIdFactory = {
+  create(): string {
     return 'test-id-' + Math.random().toString(36).slice(2, 9);
-  }
+  },
 
-  static createString(): string {
+  createString(): string {
     return TestIdFactory.create();
-  }
+  },
 
-  static createMany(count: number): string[] {
+  createMany(count: number): string[] {
     return Array.from({ length: count }, () => TestIdFactory.create());
-  }
+  },
 
-  static createManyStrings(count: number): string[] {
+  createManyStrings(count: number): string[] {
     return TestIdFactory.createMany(count);
-  }
+  },
 
-  static isValid(id: string): boolean {
+  isValid(id: string): boolean {
     return typeof id === 'string' && id.length > 0;
-  }
-}
+  },
+};

@@ -2,6 +2,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import {
   buildHarnessInput,
@@ -248,10 +249,6 @@ export class HarnessGenerationService {
     if (direct) {
       return direct;
     }
-    try {
-      return this.moduleRef?.get(token, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, token);
   }
 }

@@ -1,11 +1,24 @@
 import type { WorkflowRecurrence } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowRecurrenceType } from '@genfeedai/contracts';
 
-export class RecurrenceValidator {
+/**
+ * Apply timezone to date
+ */
+function applyTimezone(date: Date, timezone: string): Date {
+  try {
+    // Convert to target timezone
+    const tzString = date.toLocaleString('en-US', { timeZone: timezone });
+    return new Date(tzString);
+  } catch (_e) {
+    // If timezone conversion fails, return original date
+    return date;
+  }
+}
+export const RecurrenceValidator = {
   /**
    * Validate recurrence settings
    */
-  static validate(recurrence?: WorkflowRecurrence): {
+  validate(recurrence?: WorkflowRecurrence): {
     valid: boolean;
     error?: string;
   } {
@@ -29,12 +42,12 @@ export class RecurrenceValidator {
     }
 
     return { valid: true };
-  }
+  },
 
   /**
    * Calculate first run time with timezone applied
    */
-  static calculateFirstRun(
+  calculateFirstRun(
     scheduledFor?: Date,
     recurrence?: WorkflowRecurrence,
   ): Date {
@@ -44,26 +57,9 @@ export class RecurrenceValidator {
 
     // Apply timezone if specified
     if (recurrence?.timezone) {
-      return RecurrenceValidator.applyTimezone(
-        scheduledFor,
-        recurrence.timezone,
-      );
+      return applyTimezone(scheduledFor, recurrence.timezone);
     }
 
     return scheduledFor;
-  }
-
-  /**
-   * Apply timezone to date
-   */
-  private static applyTimezone(date: Date, timezone: string): Date {
-    try {
-      // Convert to target timezone
-      const tzString = date.toLocaleString('en-US', { timeZone: timezone });
-      return new Date(tzString);
-    } catch (_e) {
-      // If timezone conversion fails, return original date
-      return date;
-    }
-  }
-}
+  },
+};

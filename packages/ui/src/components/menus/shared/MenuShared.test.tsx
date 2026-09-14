@@ -32,8 +32,6 @@ vi.mock('@genfeedai/auth-client/react', () => {
     BetterAuthProvider: ({ children }: { children: React.ReactNode }) => (
       <>{children}</>
     ),
-    SignedIn: ({ children }: { children: React.ReactNode }) => <>{children}</>,
-    SignedOut: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     UserButton: () => <div data-testid="user-button" />,
     useAuth: () => ({
       getToken: vi.fn().mockResolvedValue('mock-token'),
@@ -42,29 +40,6 @@ vi.mock('@genfeedai/auth-client/react', () => {
       orgId: 'org_test123',
       sessionId: 'sess_test123',
       userId: 'user_test123',
-    }),
-    useOrganization: () => ({
-      isLoaded: true,
-      membership: { role: 'org:admin' },
-      organization: { id: 'org_test123', name: 'Test Org' },
-    }),
-    useOrganizationList: () => ({
-      isLoaded: true,
-      setActive: vi.fn(),
-      userMemberships: { data: [] },
-    }),
-    useUser: () => ({
-      isLoaded: true,
-      isSignedIn: true,
-      user: {
-        emailAddresses: [{ emailAddress: 'test@example.com', id: 'email_1' }],
-        firstName: 'Test',
-        fullName: 'Test User',
-        id: 'user_test123',
-        imageUrl: 'https://example.com/avatar.png',
-        lastName: 'User',
-        primaryEmailAddress: { emailAddress: 'test@example.com' },
-      },
     }),
   };
 });

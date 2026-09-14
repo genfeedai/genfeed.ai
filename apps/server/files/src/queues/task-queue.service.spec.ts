@@ -6,17 +6,21 @@ import { FILE_QUEUE_NAMES as QUEUE_NAMES } from '@genfeedai/contracts/queue';
 import { getQueueToken } from '@nestjs/bullmq';
 import { Test, type TestingModule } from '@nestjs/testing';
 
+function createMockQueue() {
+  return {
+    add: vi.fn().mockResolvedValue({ id: 'test-job-id' }),
+    clean: vi.fn(),
+    getJob: vi.fn(),
+    getJobCounts: vi.fn(),
+  };
+}
+
 describe('TaskQueueService', () => {
   let service: TaskQueueService;
-  let mockQueue: any;
+  let mockQueue: ReturnType<typeof createMockQueue>;
 
   beforeEach(async () => {
-    mockQueue = {
-      add: vi.fn().mockResolvedValue({ id: 'test-job-id' }),
-      clean: vi.fn(),
-      getJob: vi.fn(),
-      getJobCounts: vi.fn(),
-    };
+    mockQueue = createMockQueue();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [

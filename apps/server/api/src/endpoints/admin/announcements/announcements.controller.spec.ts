@@ -17,7 +17,7 @@ vi.mock('@api/helpers/decorators/user/current-user.decorator', () => ({
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   serializeCollection: vi.fn(
-    (req: unknown, _serializer: unknown, data: unknown) => ({
+    (_req: unknown, _serializer: unknown, data: unknown) => ({
       data,
       serialized: true,
     }),

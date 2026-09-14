@@ -33,13 +33,7 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
     }),
 }));
 
-vi.mock('@genfeedai/auth-client/react', () => ({
-  useUser: () => ({
-    user: {
-      publicMetadata: {},
-    },
-  }),
-}));
+vi.mock('@genfeedai/auth-client/react', () => ({}));
 
 vi.mock(
   '@genfeedai/contexts/providers/access-state/access-state.provider',

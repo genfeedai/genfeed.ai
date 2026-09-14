@@ -6,32 +6,29 @@ type SerializableDocument = {
   [key: string]: unknown;
 };
 
-export class EntityFactory {
-  static create<T extends BaseEntity>(
-    EntityClass: Type<T>,
-    partial: Partial<T>,
-  ): T {
+export const EntityFactory = {
+  create<T extends BaseEntity>(EntityClass: Type<T>, partial: Partial<T>): T {
     return new EntityClass(partial);
-  }
+  },
 
-  static createBatch<T extends BaseEntity>(
+  createBatch<T extends BaseEntity>(
     EntityClass: Type<T>,
     partials: Partial<T>[],
   ): T[] {
     return partials.map((partial) =>
       EntityFactory.create(EntityClass, partial),
     );
-  }
+  },
 
-  static createWithDefaults<T extends BaseEntity>(
+  createWithDefaults<T extends BaseEntity>(
     EntityClass: Type<T>,
     partial: Partial<T>,
     defaults: Partial<T>,
   ): T {
     return EntityFactory.create(EntityClass, { ...defaults, ...partial });
-  }
+  },
 
-  static transform<T extends BaseEntity>(
+  transform<T extends BaseEntity>(
     EntityClass: Type<T>,
     data: Record<string, unknown>,
     mapping?: Record<string, string>,
@@ -53,9 +50,9 @@ export class EntityFactory {
     }
 
     return EntityFactory.create(EntityClass, transformed as Partial<T>);
-  }
+  },
 
-  static fromDocument<T extends BaseEntity>(
+  fromDocument<T extends BaseEntity>(
     EntityClass: Type<T>,
     document: unknown,
     populate: string[] = [],
@@ -83,9 +80,9 @@ export class EntityFactory {
     }
 
     return EntityFactory.create(EntityClass, plain as Partial<T>);
-  }
+  },
 
-  static fromDocuments<T extends BaseEntity>(
+  fromDocuments<T extends BaseEntity>(
     EntityClass: Type<T>,
     documents: Array<unknown>,
     populate: string[] = [],
@@ -93,5 +90,5 @@ export class EntityFactory {
     return documents.map((doc) =>
       EntityFactory.fromDocument(EntityClass, doc, populate),
     );
-  }
-}
+  },
+};

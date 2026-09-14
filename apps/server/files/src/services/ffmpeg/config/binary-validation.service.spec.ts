@@ -46,6 +46,20 @@ describe('BinaryValidationService', () => {
     expect(service).toBeDefined();
   });
 
+  it('returns validated binary paths', async () => {
+    await service.validateBinaries();
+    expect(service.getBinaryPaths()).toEqual({
+      ffmpegPath: '/usr/local/bin/ffmpeg',
+      ffprobePath: '/usr/local/bin/ffprobe',
+    });
+  });
+
+  it('rejects access before validation', () => {
+    expect(() => service.getBinaryPaths()).toThrow(
+      'Binaries not validated yet',
+    );
+  });
+
   describe('validateBinaries', () => {
     it('should validate binaries successfully', async () => {
       await service.validateBinaries();

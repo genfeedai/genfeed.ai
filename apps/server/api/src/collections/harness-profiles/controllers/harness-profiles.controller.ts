@@ -8,6 +8,7 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import {
   serializeCollection,
   serializeSingle,
@@ -135,13 +136,7 @@ export class HarnessProfilesController {
     if (this.systemWorkflowRunner) {
       return this.systemWorkflowRunner;
     }
-    try {
-      return this.moduleRef?.get(SystemWorkflowRunnerService, {
-        strict: false,
-      });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, SystemWorkflowRunnerService);
   }
 
   @Patch(':profileId')

@@ -1,11 +1,14 @@
+import type { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import {
   CreatorScraperService,
   type ScrapedPost,
 } from '@api/collections/content-intelligence/services/creator-scraper.service';
+import type { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
 } from '@genfeedai/contracts';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockApifyService = {
@@ -26,9 +29,9 @@ const mockLogger = {
 
 function makeService() {
   return new CreatorScraperService(
-    mockApifyService as any,
-    mockContentIntelligenceService as any,
-    mockLogger as any,
+    mockApifyService as unknown as ApifyService,
+    mockContentIntelligenceService as unknown as ContentIntelligenceService,
+    mockLogger as unknown as LoggerService,
   );
 }
 
@@ -299,7 +302,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
 
   it('handles unsupported platform and returns null', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      ...makeCreator('youtube' as any),
+      ...makeCreator('youtube' as ContentIntelligencePlatform),
     });
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
 
@@ -344,13 +347,13 @@ describe('CreatorScraperService.scrapeCreator', () => {
 
     const result = await service.scrapeCreator(creatorId);
     expect(result).not.toBeNull();
-    expect(result!.profile.displayName).toBe('John Doe');
-    expect(result!.profile.followerCount).toBe(5000);
-    expect(result!.posts).toHaveLength(1);
-    expect(result!.posts[0].text).toBe('Hello LinkedIn #tech');
-    expect(result!.posts[0].hashtags).toEqual(['tech']);
-    expect(result!.posts[0].likes).toBe(100);
-    expect(result!.posts[0].engagementRate).toBeGreaterThan(0);
+    expect(result?.profile.displayName).toBe('John Doe');
+    expect(result?.profile.followerCount).toBe(5000);
+    expect(result?.posts).toHaveLength(1);
+    expect(result?.posts[0].text).toBe('Hello LinkedIn #tech');
+    expect(result?.posts[0].hashtags).toEqual(['tech']);
+    expect(result?.posts[0].likes).toBe(100);
+    expect(result?.posts[0].engagementRate).toBeGreaterThan(0);
 
     expect(mockApifyService.runActor).toHaveBeenCalledWith(
       'curious_coder/linkedin-profile-scraper',
@@ -393,10 +396,10 @@ describe('CreatorScraperService.scrapeCreator', () => {
     ]);
 
     const result = await service.scrapeCreator(creatorId);
-    expect(result!.profile.displayName).toBe('TikToker');
-    expect(result!.posts[0].likes).toBe(500);
-    expect(result!.posts[0].views).toBe(10000);
-    expect(result!.posts[0].hashtags).toEqual(['dance']);
+    expect(result?.profile.displayName).toBe('TikToker');
+    expect(result?.posts[0].likes).toBe(500);
+    expect(result?.posts[0].views).toBe(10000);
+    expect(result?.posts[0].hashtags).toEqual(['dance']);
   });
 
   it('updates status to FAILED when apify throws', async () => {
@@ -444,7 +447,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
 
     const result = await service.scrapeCreator(creatorId);
     // (50+10+5)/1000 * 100 = 6.5
-    expect(result!.posts[0].engagementRate).toBe(6.5);
+    expect(result?.posts[0].engagementRate).toBe(6.5);
   });
 
   it('falls back to likes*20 when impressionCount missing for LinkedIn', async () => {
@@ -472,10 +475,10 @@ describe('CreatorScraperService.scrapeCreator', () => {
     ]);
 
     const result = await service.scrapeCreator(creatorId);
-    const post = result!.posts[0];
+    const post = result?.posts[0];
     // views = likes * 20 = 2000; engagement = 100/2000 * 100 = 5
-    expect(post.views).toBe(2000);
-    expect(post.engagementRate).toBe(5);
+    expect(post?.views).toBe(2000);
+    expect(post?.engagementRate).toBe(5);
   });
 });
 
@@ -513,7 +516,7 @@ describe('CreatorScraperService hashtag extraction', () => {
     ]);
 
     return service.scrapeCreator(creatorId).then((result) => {
-      expect(result!.posts[0].hashtags).toEqual(['AI', 'MachineLearning']);
+      expect(result?.posts[0].hashtags).toEqual(['AI', 'MachineLearning']);
     });
   });
 
@@ -541,7 +544,7 @@ describe('CreatorScraperService hashtag extraction', () => {
     ]);
 
     return service.scrapeCreator(creatorId).then((result) => {
-      expect(result!.posts[0].hashtags).toEqual([]);
+      expect(result?.posts[0].hashtags).toEqual([]);
     });
   });
 });

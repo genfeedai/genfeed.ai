@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import {
   DiscordIcon,
@@ -16,7 +17,6 @@ import { Button } from '@ui/primitives';
 import { Calendar, Mail } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
-import type { ComponentType } from 'react';
 
 interface FooterLink {
   href: string;
@@ -31,7 +31,7 @@ interface FooterSection {
 
 interface SocialLink {
   href: string;
-  icon: ComponentType<{ className?: string }>;
+  icon: IconComponent;
   label: string;
 }
 

@@ -682,7 +682,7 @@ describe('InstagramPublisherService', () => {
         mediaUrls: [],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(false);
       expect(result.error).toContain('does not support text-only posts');
@@ -698,7 +698,7 @@ describe('InstagramPublisherService', () => {
         mediaUrls: ['https://api.test.com/ingredients/images/123'],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(true);
     });
@@ -752,7 +752,7 @@ describe('InstagramPublisherService', () => {
         ],
       };
 
-      const result = (service as any).validatePost(context, mediaInfo);
+      const result = service['validatePost'](context, mediaInfo);
 
       expect(result.valid).toBe(true);
     });

@@ -1,5 +1,5 @@
-export class BrandFilterUtil {
-  static buildBrandAssetInclude(
+export const BrandFilterUtil = {
+  buildBrandAssetInclude(
     options: {
       includeBanner?: boolean;
       includeCredentials?: boolean;
@@ -20,5 +20,5 @@ export class BrandFilterUtil {
       ...(includeLogo ? { logo: true } : {}),
       ...(includeReferences ? { references: true } : {}),
     };
-  }
-}
+  },
+};

@@ -38,7 +38,7 @@ describe('MCPService', () => {
       expect(serverConfig).toBeDefined();
       expect(serverConfig).toMatchObject({
         headers: {
-          Authorization: 'Bearer ${GENFEED_API_KEY}',
+          Authorization: `Bearer \${GENFEED_API_KEY}`,
         },
         transport: 'streamable-http',
         type: 'http',
@@ -52,7 +52,7 @@ describe('MCPService', () => {
 
       expect(serverConfig).toMatchObject({
         headers: {
-          Authorization: 'Bearer ${GENFEED_API_KEY}',
+          Authorization: `Bearer \${GENFEED_API_KEY}`,
         },
         url: 'https://mcp.genfeed.ai/mcp',
       });

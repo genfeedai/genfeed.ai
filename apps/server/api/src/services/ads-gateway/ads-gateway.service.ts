@@ -18,10 +18,10 @@ export class AdsGatewayService {
   private readonly adapters: Map<AdsPlatform, IAdsAdapter>;
 
   constructor(
-    private readonly metaAdapter: MetaAdsAdapter,
-    private readonly googleAdapter: GoogleAdsAdapter,
-    private readonly tiktokAdapter: TikTokAdsAdapter,
-    private readonly xAdsAdapter: XAdsAdapter,
+    metaAdapter: MetaAdsAdapter,
+    googleAdapter: GoogleAdsAdapter,
+    tiktokAdapter: TikTokAdsAdapter,
+    xAdsAdapter: XAdsAdapter,
     private readonly logger: LoggerService,
   ) {
     this.adapters = new Map<AdsPlatform, IAdsAdapter>([
