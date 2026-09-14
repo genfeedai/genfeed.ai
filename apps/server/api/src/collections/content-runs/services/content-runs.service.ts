@@ -194,7 +194,7 @@ export class ContentRunsService {
       },
     });
 
-    return hydrateContentRun(run as unknown as Record<string, unknown>) ?? run;
+    return hydrateContentRun(run) ?? run;
   }
 
   async createBriefRun(
@@ -246,10 +246,7 @@ export class ContentRunsService {
       where: { id: runId },
     });
 
-    return (
-      hydrateContentRun(updated as unknown as Record<string, unknown>) ??
-      updated
-    );
+    return hydrateContentRun(updated) ?? updated;
   }
 
   async createRemixPack(
@@ -264,9 +261,7 @@ export class ContentRunsService {
       throw new NotFoundException('ContentRun', runId);
     }
 
-    const hydrated =
-      hydrateContentRun(existing as unknown as Record<string, unknown>) ??
-      existing;
+    const hydrated = hydrateContentRun(existing) ?? existing;
     const currentConfig = isContentRunRecord(existing.config)
       ? existing.config
       : {};
@@ -291,10 +286,7 @@ export class ContentRunsService {
       where: { id: runId },
     });
 
-    return (
-      hydrateContentRun(updated as unknown as Record<string, unknown>) ??
-      updated
-    );
+    return hydrateContentRun(updated) ?? updated;
   }
 
   async listByBrand(
@@ -311,9 +303,7 @@ export class ContentRunsService {
       }),
     });
 
-    const hydratedRuns = hydrateContentRuns(
-      runs as unknown as Record<string, unknown>[],
-    );
+    const hydratedRuns = hydrateContentRuns(runs);
 
     if (!skillSlug) {
       return hydratedRuns;
@@ -330,6 +320,6 @@ export class ContentRunsService {
       where: scopedWhere(organizationId, { id: runId }),
     });
 
-    return hydrateContentRun(run as unknown as Record<string, unknown> | null);
+    return hydrateContentRun(run);
   }
 }
