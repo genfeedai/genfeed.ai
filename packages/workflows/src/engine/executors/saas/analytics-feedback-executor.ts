@@ -135,11 +135,11 @@ export class AnalyticsFeedbackExecutor extends BaseExecutor {
     const topN = this.getOptionalConfig<number>(node.config, 'topN', 5);
     const worstN = this.getOptionalConfig<number>(node.config, 'worstN', 5);
 
-    const brandId =
-      this.getOptionalConfig<string | null>(node.config, 'brandId', null) ??
-      ((context as unknown as Record<string, unknown>).brandId as
-        | string
-        | undefined);
+    const brandId = this.getOptionalConfig<string | null>(
+      node.config,
+      'brandId',
+      null,
+    );
 
     if (!brandId) {
       return {
