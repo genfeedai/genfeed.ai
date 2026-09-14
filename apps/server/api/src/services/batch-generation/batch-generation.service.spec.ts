@@ -478,7 +478,6 @@ describe('BatchGenerationService approval version pins', () => {
         items: [
           expect.objectContaining({
             reviewDecision: 'approved',
-            versionPinId: undefined,
           }),
         ],
       },
@@ -488,6 +487,9 @@ describe('BatchGenerationService approval version pins', () => {
         organizationId: 'org-1',
       },
     });
+    const persistedItems =
+      batchDelegate.updateMany.mock.calls[0]?.[0].data.items;
+    expect(persistedItems[0]).not.toHaveProperty('versionPinId');
   });
 
   it('hydrates an older batch item with the durable Post review pin', async () => {
