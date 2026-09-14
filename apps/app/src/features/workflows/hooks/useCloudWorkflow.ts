@@ -255,7 +255,9 @@ export function useCloudWorkflow({
 
         serviceRef.current = service;
         useCloudWorkflowStore.getState().setPendingBrandId(brandId || null);
-        useCloudWorkflowStore.getState().scheduleAutoSave(service);
+        useCloudWorkflowStore.getState().scheduleAutoSave(service, (error) => {
+          logger.error('Workflow auto-save failed', { error });
+        });
       } catch (error) {
         logger.error('Auto-save service initialization failed', { error });
       }
