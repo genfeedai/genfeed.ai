@@ -200,10 +200,9 @@ export function useIngredientDetail({ type, id }: IngredientDetailProps) {
   }, [loadIngredient]);
 
   useEffect(() => {
-    if (!brandId || !id) return;
     const controller = new AbortController();
     requestController.current = controller;
-    void loadIngredient(controller.signal);
+    if (brandId && id) void loadIngredient(controller.signal);
     return () => controller.abort();
   }, [brandId, id, loadIngredient]);
 
