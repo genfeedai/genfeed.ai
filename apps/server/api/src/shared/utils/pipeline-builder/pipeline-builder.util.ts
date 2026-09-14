@@ -31,10 +31,11 @@ export class PipelineBuilder {
   }
 
   static mergeMatches(conditions: MatchConditions[]): MatchConditions {
-    return conditions.reduce<MatchConditions>(
-      (acc, condition) => ({ ...acc, ...condition }),
-      {},
-    );
+    const merged: MatchConditions = Object.create(null);
+    for (const condition of conditions) {
+      Object.assign(merged, condition);
+    }
+    return { ...merged };
   }
 
   match(conditions: MatchConditions): this {

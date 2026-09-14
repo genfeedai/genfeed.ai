@@ -605,6 +605,7 @@ export const createTestDatabaseHelper = (
  * Creates a test module with mocked external services and PrismaModule.
  */
 @Module({})
+// biome-ignore lint/complexity/noStaticOnlyClass: Nest requires a decorated module class for dynamic module registration.
 export class E2ETestModule {
   /**
    * Create a test module for specific controllers/services
