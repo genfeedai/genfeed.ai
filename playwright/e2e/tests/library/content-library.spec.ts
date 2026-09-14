@@ -72,9 +72,18 @@ test.describe('Content Library', () => {
       await authenticatedPage.goto(brandPath(APP_ROUTES.LIBRARY.ASSETS));
       await authenticatedPage.waitForLoadState('domcontentloaded');
 
-      await expect(authenticatedPage).toHaveURL(/view=grid/);
+      await expect(
+        authenticatedPage.getByRole('radio', {
+          name: 'Contact sheet',
+          exact: true,
+        }),
+      ).toBeChecked();
       await authenticatedPage.getByRole('radio', { name: 'List' }).click();
       await expect(authenticatedPage).toHaveURL(/view=list/);
+      await authenticatedPage
+        .getByRole('radio', { name: 'Contact sheet', exact: true })
+        .click();
+      await expect(authenticatedPage).toHaveURL(/view=grid/);
     });
 
     test('should show avatars section', async ({ authenticatedPage }) => {

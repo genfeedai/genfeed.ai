@@ -5,6 +5,7 @@ import { playwrightApiEndpoint } from '../../config/environment';
 import { mockActiveSubscription } from '../../fixtures/api-mocks.fixture';
 import { expect, test } from '../../fixtures/auth.fixture';
 import { CalendarPage } from '../../pages/calendar.page';
+import { brandPath } from '../../utils/app-chrome';
 import { assertRouteRenders } from '../../utils/route-assertions';
 
 function jsonApiCollection(
@@ -37,7 +38,7 @@ function jsonApiResource(
 function missingSlot(identityKey: string, instant: string) {
   return {
     attributes: {
-      brandId: 'brand-123',
+      brandId: 'brand-1',
       cadenceId: 'cadence-1',
       credentialId: 'credential-1',
       format: PostCategory.REEL,
@@ -143,7 +144,10 @@ test.describe('Calendar — slot density', () => {
     authenticatedPage,
   }) => {
     await mockCadenceCalendar(authenticatedPage);
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISHING.CALENDAR);
+    await assertRouteRenders(
+      authenticatedPage,
+      brandPath(APP_ROUTES.PUBLISHING.CALENDAR),
+    );
 
     const bulk = authenticatedPage.getByRole('button', {
       name: /Generate missing \(2\)/,
@@ -167,7 +171,10 @@ test.describe('Calendar — slot density', () => {
   }) => {
     await mockCadenceCalendar(authenticatedPage);
     const calendar = new CalendarPage(authenticatedPage);
-    await assertRouteRenders(authenticatedPage, APP_ROUTES.PUBLISHING.CALENDAR);
+    await assertRouteRenders(
+      authenticatedPage,
+      brandPath(APP_ROUTES.PUBLISHING.CALENDAR),
+    );
 
     await expect(
       authenticatedPage.getByRole('button', { name: /Generate missing \(2\)/ }),

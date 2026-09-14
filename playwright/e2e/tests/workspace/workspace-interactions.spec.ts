@@ -133,7 +133,7 @@ test.describe('Workspace — deep interactions', () => {
 
     const openReview = authenticatedPage
       .getByTestId('operational-home-needs-you')
-      .getByRole('link', { name: 'Open queue' });
+      .getByRole('link', { name: 'Attention queue' });
     await expect(openReview).toBeVisible();
     await openReview.click();
     await expect
@@ -152,20 +152,20 @@ test.describe('Workspace — deep interactions', () => {
     await historyItem.click();
     const inspector = authenticatedPage.getByTestId('workspace-task-inspector');
     await expect(inspector).toBeVisible();
-    const inspectorDialog = authenticatedPage
-      .getByRole('dialog')
-      .filter({ has: inspector });
-    await expect(inspectorDialog).toBeVisible();
+    const inspectorPanel = authenticatedPage.getByRole('complementary', {
+      name: 'Workspace inspector',
+    });
+    await expect(inspectorPanel).toBeVisible();
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
       .toBe('workspace-task-review-1');
-    await inspectorDialog
-      .getByRole('button', { exact: true, name: 'Close' })
+    await inspectorPanel
+      .getByRole('button', { exact: true, name: 'Close inspector' })
       .click();
     await expect
       .poll(() => new URL(authenticatedPage.url()).searchParams.get('taskId'))
       .toBeNull();
-    await expect(inspectorDialog).toBeHidden();
+    await expect(inspector).toHaveText('Select a task to see its details.');
 
     const primaryAction = authenticatedPage
       .getByTestId('desktop-sidebar-rail')
