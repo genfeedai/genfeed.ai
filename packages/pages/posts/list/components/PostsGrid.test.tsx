@@ -1,10 +1,11 @@
+import EvalCell from './EvalCell';
 import '@testing-library/jest-dom/vitest';
 import { Platform, PostStatus } from '@genfeedai/contracts';
 import type { IPost } from '@genfeedai/contracts/interfaces';
 import PostsGrid, {
   type PostCardAction,
 } from '@pages/posts/list/components/PostsGrid';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const pushMock = vi.fn();
@@ -170,5 +171,41 @@ describe('PostsGrid', () => {
     fireEvent.click(screen.getByRole('menuitem', { name: /delete post/i }));
 
     expect(deleteActionOnClick).toHaveBeenCalledWith(basePost);
+  });
+});
+
+describe('shared post evaluation control', () => {
+  it.each(['table', 'grid'] as const)(
+    'preserves %s click behavior and reports zero scores',
+    async (presentation) => {
+      const onEvaluated = vi.fn();
+      const onParentClick = vi.fn();
+      evaluateMock.mockResolvedValue({ data: { overallScore: 0 } });
+      render(
+        <div onClick={onParentClick}>
+          <EvalCell
+            post={basePost}
+            onEvaluated={onEvaluated}
+            presentation={presentation}
+          />
+        </div>,
+      );
+      fireEvent.click(screen.getByRole('button'));
+      await waitFor(() =>
+        expect(onEvaluated).toHaveBeenCalledWith(basePost.id, 0),
+      );
+      expect(onParentClick).toHaveBeenCalledTimes(
+        presentation === 'grid' ? 0 : 1,
+      );
+    },
+  );
+
+  it('shows an existing zero score instead of evaluating again', () => {
+    evaluateMock.mockReset();
+    render(
+      <EvalCell post={{ ...basePost, evalScore: 0 }} onEvaluated={vi.fn()} />,
+    );
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(evaluateMock).not.toHaveBeenCalled();
   });
 });

@@ -20,11 +20,9 @@ import {
 } from '@helpers/formatting/timezone/timezone.helper';
 import { getPlatformIconComponent } from '@helpers/ui/platform-icon/platform-icon.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useEvaluation } from '@hooks/ui/evaluation/use-evaluation/use-evaluation';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
 import Badge from '@ui/display/badge/Badge';
-import EvaluationBadge from '@ui/evaluation/badge/EvaluationBadge';
 import { Button, Button as PrimitiveButton } from '@ui/primitives/button';
 import { buttonVariants } from '@ui/primitives/button.variants';
 import {
@@ -33,11 +31,12 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
-import { ArrowUp, Copy, Ellipsis, ExternalLink } from 'lucide-react';
+import { Copy, Ellipsis, ExternalLink } from 'lucide-react';
 import Image from 'next/image';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
 import { memo, useMemo } from 'react';
+import EvalCell from './EvalCell';
 
 export interface PostCardAction {
   key: string;
@@ -48,54 +47,7 @@ export interface PostCardAction {
   isVisible?: (post: IPost) => boolean;
 }
 
-interface EvalGridCellProps {
-  post: IPost;
-  onEvaluated: (postId: string, score: number) => void;
-}
-
-const EvalGridCell = memo(function EvalGridCell({
-  post,
-  onEvaluated,
-}: EvalGridCellProps) {
-  const { evaluation, isEvaluating, evaluate } = useEvaluation({
-    autoFetch: false,
-    contentId: post.id,
-    contentType: 'post',
-  });
-
-  const score = evaluation?.data.overallScore ?? post.evalScore;
-
-  if (score != null) {
-    return <EvaluationBadge score={score} size={ComponentSize.XS} />;
-  }
-
-  const handleEvaluate = async () => {
-    try {
-      const result = await evaluate();
-      if (result?.data.overallScore != null) {
-        onEvaluated(post.id, result.data.overallScore);
-      }
-    } catch {
-      // Error handled by hook
-    }
-  };
-
-  return (
-    <Button
-      variant={ButtonVariant.GHOST}
-      icon={<ArrowUp />}
-      label="Evaluate"
-      tooltip="Evaluate"
-      isLoading={isEvaluating}
-      onClick={(event) => {
-        event.stopPropagation();
-        handleEvaluate();
-      }}
-      size={ButtonSize.XS}
-      className="rounded-lg border border-border bg-muted px-2.5 text-muted-foreground hover:bg-hover hover:text-foreground"
-    />
-  );
-});
+const EvalGridCell = memo(EvalCell);
 
 function getPostMediaUrls(post: IPost): string[] {
   return (post.ingredients ?? [])
@@ -414,7 +366,11 @@ const PostsGrid = memo(
                   </span>
                 )}
 
-                <EvalGridCell post={post} onEvaluated={onPostEvaluated} />
+                <EvalGridCell
+                  presentation="grid"
+                  post={post}
+                  onEvaluated={onPostEvaluated}
+                />
 
                 {visiblePrimaryAction && (
                   <Button

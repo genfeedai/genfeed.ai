@@ -2,6 +2,10 @@
 
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import type { ISetting } from '@genfeedai/contracts/interfaces';
+import {
+  readLocalStorageItem,
+  writeLocalStorageItem,
+} from '@genfeedai/helpers/data/storage/storage.helper';
 import { User } from '@genfeedai/models/auth/user.model';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { UsersService } from '@genfeedai/services/organization/users.service';
@@ -21,16 +25,12 @@ function getSidebarProgressVisibleStorageKey(
 }
 
 function getStoredVisibility(userId?: string | null): boolean | undefined {
-  if (typeof window === 'undefined') {
-    return undefined;
-  }
-
   const storageKey = getSidebarProgressVisibleStorageKey(userId);
   if (!storageKey) {
     return undefined;
   }
 
-  const stored = window.localStorage.getItem(storageKey);
+  const stored = readLocalStorageItem(storageKey);
 
   if (stored === null) {
     return undefined;
@@ -65,8 +65,8 @@ export function useSidebarProgressPreference(): UseSidebarProgressPreferenceRetu
 
       const storageKey = getSidebarProgressVisibleStorageKey(currentUser?.id);
 
-      if (typeof window !== 'undefined' && storageKey) {
-        window.localStorage.setItem(storageKey, String(next));
+      if (storageKey) {
+        writeLocalStorageItem(storageKey, String(next));
       }
 
       if (!currentUser) {
@@ -117,11 +117,9 @@ export function useSidebarProgressPreference(): UseSidebarProgressPreferenceRetu
 
     setLocalVisibility(persistedVisibility);
 
-    if (typeof window !== 'undefined') {
-      const storageKey = getSidebarProgressVisibleStorageKey(currentUserId);
-      if (storageKey) {
-        window.localStorage.setItem(storageKey, String(persistedVisibility));
-      }
+    const storageKey = getSidebarProgressVisibleStorageKey(currentUserId);
+    if (storageKey) {
+      writeLocalStorageItem(storageKey, String(persistedVisibility));
     }
   }, [currentUser?.settings?.isSidebarProgressVisible, currentUserId]);
 
