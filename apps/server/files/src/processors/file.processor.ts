@@ -273,7 +273,10 @@ export class FileProcessor extends WorkerHost {
     try {
       await this.updateProgress(job, 0, 'Starting upload to S3...');
 
-      const filePath = params.filePath!;
+      const filePath = params.filePath;
+      if (!filePath) {
+        throw new Error('S3 upload requires a file path');
+      }
       const s3Key =
         params.s3Key || this.s3Service.generateS3Key('files', ingredientId);
 
@@ -305,7 +308,10 @@ export class FileProcessor extends WorkerHost {
     try {
       await this.updateProgress(job, 0, 'Adding watermark...');
 
-      const inputPath = params.filePath!;
+      const inputPath = params.filePath;
+      if (!inputPath) {
+        throw new Error('Watermark processing requires a file path');
+      }
       const outputPath = path.join(
         path.dirname(inputPath),
         `${path.basename(inputPath, path.extname(inputPath))}_watermark${path.extname(inputPath)}`,

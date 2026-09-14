@@ -26,6 +26,11 @@ export class FFmpegStreamService {
       additionalArgs?: string[];
     } = {},
   ): Promise<void> {
+    const binaryPath = ffmpegPath;
+    if (!binaryPath) {
+      throw new Error('FFmpeg binary not found');
+    }
+
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     return new Promise((resolve, reject) => {
@@ -64,7 +69,7 @@ export class FFmpegStreamService {
       args.push('-movflags', 'frag_keyframe+empty_moov'); // Enable streaming output
       args.push('-y', outputPath);
 
-      const ffmpeg = spawn(ffmpegPath!, args);
+      const ffmpeg = spawn(binaryPath, args);
       const processId = `${Date.now()}-${Math.random()}`;
       this.activeProcesses.set(processId, ffmpeg);
 
@@ -133,6 +138,11 @@ export class FFmpegStreamService {
       resize?: { width: number; height: number };
     } = {},
   ): { outputStream: PassThrough; ffmpegProcess: ChildProcess } {
+    const binaryPath = ffmpegPath;
+    if (!binaryPath) {
+      throw new Error('FFmpeg binary not found');
+    }
+
     const outputStream = new PassThrough();
 
     const args: string[] = [
@@ -171,7 +181,7 @@ export class FFmpegStreamService {
       'pipe:1', // Output to stdout
     );
 
-    const ffmpegProcess = spawn(ffmpegPath!, args);
+    const ffmpegProcess = spawn(binaryPath, args);
 
     // Pipe input stream to ffmpeg
     inputStream.pipe(ffmpegProcess.stdin);

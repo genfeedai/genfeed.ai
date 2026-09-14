@@ -45,11 +45,28 @@ import * as fs from 'node:fs';
 import axios from 'axios';
 import { google } from 'googleapis';
 
+function createMockOAuth2Client() {
+  return {
+    on: vi.fn(),
+    setCredentials: vi.fn(),
+  };
+}
+
+function createMockYoutubeAPI() {
+  return {
+    videos: {
+      insert: vi.fn().mockResolvedValue({
+        data: { id: 'youtube-video-id-123' },
+      }),
+    },
+  };
+}
+
 describe('YoutubeService', () => {
   let service: YoutubeService;
   let mockConfigService: Mocked<ConfigService>;
-  let mockYoutubeAPI: any;
-  let mockOAuth2Client: any;
+  let mockYoutubeAPI: ReturnType<typeof createMockYoutubeAPI>;
+  let mockOAuth2Client: ReturnType<typeof createMockOAuth2Client>;
 
   const mockCredential = {
     accessToken: 'test-access-token',
@@ -70,18 +87,9 @@ describe('YoutubeService', () => {
 
   beforeEach(async () => {
     // Reset mocks
-    mockOAuth2Client = {
-      on: vi.fn(),
-      setCredentials: vi.fn(),
-    };
+    mockOAuth2Client = createMockOAuth2Client();
 
-    mockYoutubeAPI = {
-      videos: {
-        insert: vi.fn().mockResolvedValue({
-          data: { id: 'youtube-video-id-123' },
-        }),
-      },
-    };
+    mockYoutubeAPI = createMockYoutubeAPI();
 
     (google.auth.OAuth2 as Mock).mockImplementation(function OAuth2Mock() {
       return mockOAuth2Client;
@@ -166,18 +174,15 @@ describe('YoutubeService', () => {
   describe('uploadVideo', () => {
     beforeEach(() => {
       // Mock the write stream to properly resolve
-      const mockWriter = {
-        on: vi.fn().mockImplementation(function (
-          this: any,
-          event: string,
-          callback: () => void,
-        ) {
+      const mockWriter = { on: vi.fn() };
+      mockWriter.on.mockImplementation(
+        (event: string, callback: () => void) => {
           if (event === 'finish') {
             setTimeout(callback, 0);
           }
-          return this;
-        }),
-      };
+          return mockWriter;
+        },
+      );
       (fs.createWriteStream as Mock).mockReturnValue(mockWriter);
 
       const mockDataStream = {
@@ -323,7 +328,7 @@ describe('YoutubeService', () => {
     it('should default to private for unknown status', async () => {
       await service.uploadVideo({
         ...mockUploadParams,
-        status: 'unknown-status' as any,
+        status: 'unknown-status' as PostStatus,
       });
 
       expect(mockYoutubeAPI.videos.insert).toHaveBeenCalledWith(
