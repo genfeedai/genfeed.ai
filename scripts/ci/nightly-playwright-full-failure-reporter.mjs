@@ -22,6 +22,7 @@ export function buildPlaywrightFullExcerpt({ result, inventory }) {
 
 export async function reportNightlyPlaywrightFullFailure({
   github,
+  projectGithub = github,
   owner,
   repo,
   failedJob = 'e2e-frontend-full',
@@ -36,6 +37,7 @@ export async function reportNightlyPlaywrightFullFailure({
 }) {
   return reportScheduledFailure({
     github,
+    projectGithub,
     owner,
     repo,
     trackerLabel: NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL,

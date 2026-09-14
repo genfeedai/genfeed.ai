@@ -266,9 +266,9 @@ jobs:
           path: playwright/artifacts/report/
 
       - name: Create or update the bounded Playwright full-tier tracker
-        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          REPOSITORY_TOKEN: ${{ github.token }}
           FULL_TIER_RESULT: ${{ needs.e2e-frontend-full.result }}
           SOURCE_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
@@ -277,6 +277,7 @@ jobs:
         with:
           github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
+            const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const fs = require('node:fs');
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
@@ -318,8 +319,8 @@ jobs:
               inventory,
             });
             const { owner, repo } = context.repo;
-            const jobs = await github.paginate(
-              github.rest.actions.listJobsForWorkflowRun,
+            const jobs = await repositoryGithub.paginate(
+              repositoryGithub.rest.actions.listJobsForWorkflowRun,
               {
                 owner,
                 repo,
@@ -352,7 +353,7 @@ jobs:
                       'Missing Playwright full-tier summary report or artifact.',
                   }));
             const failures = await collectScheduledRunFailures({
-              github,
+              github: repositoryGithub,
               owner,
               repo,
               jobs: jobsForTracking,
@@ -360,7 +361,8 @@ jobs:
             });
             for (const failure of failures) {
               await reportNightlyPlaywrightFullFailure({
-                github,
+                github: repositoryGithub,
+                projectGithub: github,
                 owner,
                 repo,
                 ...failure,
