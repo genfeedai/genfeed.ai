@@ -57,14 +57,14 @@ export class BinaryValidationService {
    * Get validated binary paths
    */
   getBinaryPaths(): { ffmpegPath: string; ffprobePath: string } {
-    if (!BinaryValidationService.validated) {
+    if (!BinaryValidationService.validated || !ffmpegPath) {
       throw new Error(
         'Binaries not validated yet. Call validateBinaries() first.',
       );
     }
 
     return {
-      ffmpegPath: ffmpegPath!,
+      ffmpegPath,
       ffprobePath: ffprobeStatic.path,
     };
   }

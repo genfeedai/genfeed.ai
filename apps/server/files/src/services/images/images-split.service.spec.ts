@@ -20,11 +20,23 @@ vi.mock('sharp', () => {
 
 import sharp from 'sharp';
 
+function createMockSharpInstance() {
+  return {
+    extract: vi.fn().mockReturnThis(),
+    jpeg: vi.fn().mockReturnThis(),
+    metadata: vi.fn().mockResolvedValue({
+      height: 1000,
+      width: 1000,
+    }),
+    toBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-frame-data')),
+  };
+}
+
 describe('ImagesSplitService', () => {
   let service: ImagesSplitService;
   let mockConfigService: Mocked<ConfigService>;
   let mockLogger: Mocked<LoggerService>;
-  let mockSharpInstance: any;
+  let mockSharpInstance: ReturnType<typeof createMockSharpInstance>;
 
   beforeEach(async () => {
     mockConfigService = {} as Mocked<ConfigService>;
@@ -37,15 +49,7 @@ describe('ImagesSplitService', () => {
     } as unknown as Mocked<LoggerService>;
 
     // Reset sharp mock
-    mockSharpInstance = {
-      extract: vi.fn().mockReturnThis(),
-      jpeg: vi.fn().mockReturnThis(),
-      metadata: vi.fn().mockResolvedValue({
-        height: 1000,
-        width: 1000,
-      }),
-      toBuffer: vi.fn().mockResolvedValue(Buffer.from('mock-frame-data')),
-    };
+    mockSharpInstance = createMockSharpInstance();
     (sharp as Mock).mockReturnValue(mockSharpInstance);
 
     const module: TestingModule = await Test.createTestingModule({
