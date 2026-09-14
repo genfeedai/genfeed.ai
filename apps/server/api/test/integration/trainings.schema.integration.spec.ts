@@ -3,20 +3,11 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { Test, TestingModule } from '@nestjs/testing';
 
-// Allow skipping this file when the Prisma DB is not available
-// Set SKIP_PRISMA_DB=true to skip all tests in this file
-if (process.env.SKIP_PRISMA_DB === 'true') {
-  const g: any = global as any;
-  const d: any = (global as any).describe;
-  g.describe = ((name: string, fn: any) =>
-    d?.skip ? d.skip(name, fn) : describe(name, fn)) as any;
-  const i: any = (global as any).it;
-  g.it = ((name: string, fn: any) =>
-    i?.skip ? i.skip(name, fn) : it(name, fn)) as any;
-  g.test = g.it;
-}
+const integrationDescribe = describe.skipIf(
+  process.env.SKIP_PRISMA_DB === 'true',
+);
 
-describe('Training Schema (integration)', () => {
+integrationDescribe('Training Schema (integration)', () => {
   let moduleRef: TestingModule;
   let prisma: PrismaService;
 

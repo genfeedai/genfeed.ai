@@ -1,11 +1,14 @@
+import type { ContentIntelligenceService } from '@api/collections/content-intelligence/services/content-intelligence.service';
 import {
   CreatorScraperService,
   type ScrapedPost,
 } from '@api/collections/content-intelligence/services/creator-scraper.service';
+import type { ApifyService } from '@api/services/integrations/apify/services/apify.service';
 import {
   ContentIntelligencePlatform,
   CreatorAnalysisStatus,
 } from '@genfeedai/contracts';
+import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockApifyService = {
@@ -26,9 +29,9 @@ const mockLogger = {
 
 function makeService() {
   return new CreatorScraperService(
-    mockApifyService as any,
-    mockContentIntelligenceService as any,
-    mockLogger as any,
+    mockApifyService as unknown as ApifyService,
+    mockContentIntelligenceService as unknown as ContentIntelligenceService,
+    mockLogger as unknown as LoggerService,
   );
 }
 
@@ -299,7 +302,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
 
   it('handles unsupported platform and returns null', async () => {
     mockContentIntelligenceService.findOne.mockResolvedValue({
-      ...makeCreator('youtube' as any),
+      ...makeCreator('youtube' as ContentIntelligencePlatform),
     });
     mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
 

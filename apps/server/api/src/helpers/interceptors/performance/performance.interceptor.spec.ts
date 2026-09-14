@@ -445,11 +445,11 @@ describe('APIMetricsInterceptor', () => {
   const mockExecutionContext = {
     getRequest: vi.fn(),
     switchToHttp: vi.fn().mockReturnThis(),
-  } as unknown as ExecutionContext;
+  } as unknown as ExecutionContext & { getRequest: ReturnType<typeof vi.fn> };
 
   const mockCallHandler = {
-    handle: vi.fn(),
-  } as unknown as CallHandler;
+    handle: vi.fn<CallHandler['handle']>(),
+  } satisfies CallHandler;
 
   beforeEach(() => {
     loggerService = {
@@ -468,8 +468,8 @@ describe('APIMetricsInterceptor', () => {
         method: 'GET',
         url: '/v1/videos/123',
       };
-      (mockExecutionContext as any).getRequest.mockReturnValue(mockRequest);
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       await firstValueFrom(
         interceptor.intercept(mockExecutionContext, mockCallHandler),
@@ -493,8 +493,8 @@ describe('APIMetricsInterceptor', () => {
         method: 'GET',
         url: '/v1/videos/123',
       };
-      (mockExecutionContext as any).getRequest.mockReturnValue(mockRequest);
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       await firstValueFrom(
         interceptor.intercept(mockExecutionContext, mockCallHandler),
@@ -508,8 +508,8 @@ describe('APIMetricsInterceptor', () => {
         method: 'GET',
         url: '/api/test',
       };
-      (mockExecutionContext as any).getRequest.mockReturnValue(mockRequest);
-      (mockCallHandler as any).handle.mockReturnValue(of('success'));
+      mockExecutionContext.getRequest.mockReturnValue(mockRequest);
+      mockCallHandler.handle.mockReturnValue(of('success'));
 
       await firstValueFrom(
         interceptor.intercept(mockExecutionContext, mockCallHandler),
@@ -534,8 +534,8 @@ describe('APIMetricsInterceptor', () => {
 
       for (const { url, expected } of testCases) {
         const mockRequest = { method: 'GET', url };
-        (mockExecutionContext as any).getRequest.mockReturnValue(mockRequest);
-        (mockCallHandler as any).handle.mockReturnValue(of('success'));
+        mockExecutionContext.getRequest.mockReturnValue(mockRequest);
+        mockCallHandler.handle.mockReturnValue(of('success'));
 
         await firstValueFrom(
           interceptor.intercept(mockExecutionContext, mockCallHandler),
