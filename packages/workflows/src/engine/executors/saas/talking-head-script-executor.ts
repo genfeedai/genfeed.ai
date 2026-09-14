@@ -5,6 +5,7 @@ import type {
   TalkingHeadScriptSegmentPurpose,
 } from '../../../contracts/talking-head-script';
 import type { ExecutableNode } from '../../types';
+import { isRecord } from '../../utils/record';
 import {
   BaseExecutor,
   type ExecutorInput,
@@ -64,10 +65,6 @@ type ResolvedTalkingHeadScriptRequest = Omit<
   TalkingHeadScriptGenerationRequest,
   'validationError'
 >;
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
 
 function roundTo(value: number, decimalPlaces: number): number {
   const factor = 10 ** decimalPlaces;
