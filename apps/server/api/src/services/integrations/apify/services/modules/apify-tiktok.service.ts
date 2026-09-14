@@ -86,7 +86,13 @@ export class ApifyTikTokService {
       const soundMap = new Map<string, ApifySoundData>();
 
       for (const video of videos) {
-        if (video.soundId && !soundMap.has(video.soundId)) {
+        if (!video.soundId) {
+          continue;
+        }
+        const existing = soundMap.get(video.soundId);
+        if (existing) {
+          existing.usageCount += 1;
+        } else {
           soundMap.set(video.soundId, {
             growthRate: 0,
             platform: 'tiktok',
@@ -95,9 +101,6 @@ export class ApifyTikTokService {
             usageCount: 1,
             viralityScore: Math.min(100, video.viralScore),
           });
-        } else if (video.soundId) {
-          const existing = soundMap.get(video.soundId)!;
-          existing.usageCount += 1;
         }
       }
 

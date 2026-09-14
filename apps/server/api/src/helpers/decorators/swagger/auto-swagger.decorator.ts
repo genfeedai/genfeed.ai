@@ -8,7 +8,7 @@ const SWAGGER_DECORATORS = {
 } as const;
 
 export function AutoSwagger(tag?: string): ClassDecorator {
-  return (target: Function) => {
+  return (target) => {
     const controllerPath = Reflect.getMetadata(PATH_METADATA, target);
     if (
       controllerPath &&

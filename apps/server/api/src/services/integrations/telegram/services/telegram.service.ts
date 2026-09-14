@@ -80,11 +80,15 @@ export class TelegramService {
         );
       }
 
+      if (this.botToken === undefined) {
+        throw new Error('Telegram bot token is not configured');
+      }
+
       // Verify HMAC signature
       if (
         !TelegramAuthUtil.verifyAuthData(
           authData as unknown as Record<string, unknown>,
-          this.botToken!,
+          this.botToken,
         )
       ) {
         this.loggerService.error(`${url} invalid HMAC signature`);

@@ -69,9 +69,10 @@ export class ApifyTwitterService {
       const normalizedTweets = this.normalizeTwitterTweets(rawTweets);
 
       // Filter by sinceId if provided
-      if (options?.sinceId) {
+      const sinceId = options?.sinceId;
+      if (sinceId) {
         return normalizedTweets.filter(
-          (tweet) => BigInt(tweet.id) > BigInt(options.sinceId!),
+          (tweet) => BigInt(tweet.id) > BigInt(sinceId),
         );
       }
 
@@ -117,9 +118,10 @@ export class ApifyTwitterService {
       const normalizedTweets = this.normalizeTwitterTweets(rawTweets);
 
       // Filter by sinceId if provided (for incremental fetching)
-      if (options?.sinceId) {
+      const sinceId = options?.sinceId;
+      if (sinceId) {
         return normalizedTweets.filter(
-          (tweet) => BigInt(tweet.id) > BigInt(options.sinceId!),
+          (tweet) => BigInt(tweet.id) > BigInt(sinceId),
         );
       }
 
@@ -228,9 +230,10 @@ export class ApifyTwitterService {
 
       const normalizedTweets = this.normalizeTwitterTweets(rawTweets);
 
-      if (options?.sinceId) {
+      const sinceId = options?.sinceId;
+      if (sinceId) {
         return normalizedTweets.filter(
-          (tweet) => BigInt(tweet.id) > BigInt(options.sinceId!),
+          (tweet) => BigInt(tweet.id) > BigInt(sinceId),
         );
       }
 
