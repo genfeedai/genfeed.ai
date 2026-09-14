@@ -36,7 +36,7 @@ export class AgentMemoriesController {
 
   @Get()
   @ApiOperation({ summary: 'List memory entries for the user' })
-  async list(@Req() req: Request, @CurrentUser() user: User) {
+  async list(@Req() _req: Request, @CurrentUser() user: User) {
     try {
       const organization = user.organizationId;
       const dbUserId = user.userId ?? user.id;
@@ -73,7 +73,7 @@ export class AgentMemoriesController {
   @Post()
   @ApiOperation({ summary: 'Create a new memory entry' })
   async create(
-    @Req() req: Request,
+    @Req() _req: Request,
     @Body() body: {
       campaignId?: string;
       content: string;
@@ -174,7 +174,7 @@ export class AgentMemoriesController {
   @Delete(':id')
   @ApiOperation({ summary: 'Delete a memory entry' })
   async remove(
-    @Req() req: Request,
+    @Req() _req: Request,
     @Param('id') id: string,
     @CurrentUser() user: User,
   ) {

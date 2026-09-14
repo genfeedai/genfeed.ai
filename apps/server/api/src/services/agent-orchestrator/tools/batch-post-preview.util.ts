@@ -57,9 +57,7 @@ export function takeBatchPostPreviews(
       id: entry.postId,
       platform: entry.platform,
       title:
-        (entry.previewText && entry.previewText.trim()) ||
-        entry.topic ||
-        `Post ${entry.index + 1}`,
+        entry.previewText?.trim() || entry.topic || `Post ${entry.index + 1}`,
       type: 'post',
     });
   }

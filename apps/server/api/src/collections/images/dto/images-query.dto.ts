@@ -2,7 +2,7 @@ import { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AssetScope } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
-import { Expose, Transform } from 'class-transformer';
+import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,

@@ -42,7 +42,6 @@ vi.mock('@api/helpers/utils/response/response.util', () => ({
 describe('ElementsCamerasController', () => {
   let controller: ElementsCamerasController;
   let camerasService: vi.Mocked<ElementsCamerasService>;
-  let loggerService: vi.Mocked<LoggerService>;
 
   const mockSuperAdminUser = {
     id: 'user-123',
@@ -90,7 +89,6 @@ describe('ElementsCamerasController', () => {
       ElementsCamerasController,
     );
     camerasService = module.get(ElementsCamerasService);
-    loggerService = module.get(LoggerService);
 
     vi.spyOn(CameraSerializer, 'serialize').mockImplementation((data) => ({
       data: data as never,

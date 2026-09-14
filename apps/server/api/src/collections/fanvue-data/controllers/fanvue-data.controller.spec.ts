@@ -40,15 +40,6 @@ describe('FanvueDataController', () => {
     expect(controller._fanvueDataService).toBe(service);
   });
 
-  it('should expose the service as a readonly property', () => {
-    const descriptor = Object.getOwnPropertyDescriptor(
-      Object.getPrototypeOf(controller),
-      '_fanvueDataService',
-    );
-    // The service is assigned via constructor, should be accessible
-    expect(controller._fanvueDataService).toBeDefined();
-  });
-
   it('should be decorated with @Controller("fanvue-data")', () => {
     const path = Reflect.getMetadata('path', FanvueDataController);
     expect(path).toBe('fanvue-data');

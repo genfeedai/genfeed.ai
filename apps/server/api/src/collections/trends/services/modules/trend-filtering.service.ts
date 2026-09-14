@@ -56,7 +56,7 @@ export class TrendFilteringService {
     trends: TrendEntity[],
     brandDescription: string,
   ): TrendEntity[] {
-    if (!brandDescription || !brandDescription.trim()) {
+    if (!brandDescription?.trim()) {
       return trends;
     }
 
