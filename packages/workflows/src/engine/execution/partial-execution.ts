@@ -95,36 +95,42 @@ export function planPartialExecution(
   }> = [];
 
   for (const nodeId of allNeededNodes) {
-    if (!nodesToExecute.has(nodeId)) {
-      const node = nodeMap.get(nodeId);
-      if (!node) {
+    if (nodesToExecute.has(nodeId)) {
+      continue;
+    }
+
+    const node = nodeMap.get(nodeId);
+    if (!node) {
+      continue;
+    }
+
+    if (
+      (node.isLocked && node.cachedOutput !== undefined) ||
+      nodeCache.has(nodeId)
+    ) {
+      nodesRequiringCache.push(nodeId);
+      continue;
+    }
+
+    for (const selectedNodeId of selectedNodeIds) {
+      const selectedDeps = dependencies.get(selectedNodeId) ?? [];
+      if (
+        !selectedDeps.includes(nodeId) &&
+        !findAllDependencies([selectedNodeId], dependencies).has(nodeId)
+      ) {
         continue;
       }
 
-      if (node.isLocked && node.cachedOutput !== undefined) {
-        nodesRequiringCache.push(nodeId);
-      } else if (nodeCache.has(nodeId)) {
-        nodesRequiringCache.push(nodeId);
+      const existing = missingDependencies.find(
+        (missing) => missing.nodeId === selectedNodeId,
+      );
+      if (existing) {
+        existing.missingInputs.push(nodeId);
       } else {
-        for (const selectedNodeId of selectedNodeIds) {
-          const selectedDeps = dependencies.get(selectedNodeId) ?? [];
-          if (
-            selectedDeps.includes(nodeId) ||
-            findAllDependencies([selectedNodeId], dependencies).has(nodeId)
-          ) {
-            const existing = missingDependencies.find(
-              (m) => m.nodeId === selectedNodeId,
-            );
-            if (existing) {
-              existing.missingInputs.push(nodeId);
-            } else {
-              missingDependencies.push({
-                missingInputs: [nodeId],
-                nodeId: selectedNodeId,
-              });
-            }
-          }
-        }
+        missingDependencies.push({
+          missingInputs: [nodeId],
+          nodeId: selectedNodeId,
+        });
       }
     }
   }
