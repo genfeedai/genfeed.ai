@@ -177,7 +177,7 @@ export function useArticleDetail({
       } else {
         const created = await service.post({
           ...payload,
-          organizationId: organizationId,
+          organizationId: organizationId ?? undefined,
         });
         setArticle(created);
         initialFormRef.current = { ...form };
