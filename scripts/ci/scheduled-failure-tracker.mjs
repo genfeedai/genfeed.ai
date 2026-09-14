@@ -491,7 +491,7 @@ async function updateTracker(
 
 async function promoteTracker(
   github,
-  { owner, repo, issueNumber, trackerLabel, core },
+  { owner, repo, issueNumber, trackerLabel, core, projectGithub },
 ) {
   await tryApplyTrackerLabel(github, {
     owner,
@@ -500,7 +500,7 @@ async function promoteTracker(
     label: 'codex:automation',
     core,
   });
-  await triageCiFailureOnProject(github, {
+  await triageCiFailureOnProject(projectGithub, {
     owner,
     repo,
     issueNumber,
@@ -531,6 +531,7 @@ async function closeDuplicateTrackers(
 
 export async function reportScheduledFailure({
   github,
+  projectGithub = github,
   owner,
   repo,
   trackerLabel,
@@ -649,6 +650,7 @@ export async function reportScheduledFailure({
     });
     if (actionable) {
       await promoteTracker(github, {
+        projectGithub,
         owner,
         repo,
         issueNumber: canonical.issue.number,
@@ -744,6 +746,7 @@ export async function reportScheduledFailure({
   }
 
   await promoteTracker(github, {
+    projectGithub,
     owner,
     repo,
     issueNumber: canonical.issue.number,

@@ -7,6 +7,7 @@ import {
   ISSUE_TYPE_BUG,
   PRIORITY_P0,
 } from './genfeed-project-board.mjs';
+import { reportNightlyPlaywrightFullFailure } from './nightly-playwright-full-failure-reporter.mjs';
 import {
   buildScheduledFailureBody,
   classifyScheduledFailure,
@@ -589,3 +590,110 @@ test('concurrent creates converge on the oldest canonical tracker', async () => 
   assert.equal(open[0].number, 100);
   assert.equal(parseTrackerState(open[0].body).occurrences, 2);
 });
+
+for (const reporter of [
+  reportScheduledFailure,
+  reportNightlyPlaywrightFullFailure,
+]) {
+  test(`${reporter.name} routes creation and recurrence through distinct clients`, async () => {
+    const repository = githubFixture();
+    const project = githubFixture();
+    const projectReads = [];
+    project.github.rest.issues.get = async (input) => {
+      projectReads.push(input.issue_number);
+      return repository.github.rest.issues.get(input);
+    };
+    const input = {
+      github: repository.github,
+      projectGithub: project.github,
+      ...failure(),
+    };
+    const first = await reporter(input);
+    const second = await reporter({
+      ...input,
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+    });
+
+    assert.equal(first.action, 'created');
+    assert.equal(second.action, 'updated');
+    assert.equal(second.issueNumber, first.issueNumber);
+    assert.equal(repository.issues.length, 1);
+    assert.equal(parseTrackerState(repository.issues[0].body).occurrences, 2);
+    assert.equal(repository.calls.comments.length, 0);
+    assert.equal(repository.calls.updates.length, 2);
+    assert.ok(repository.calls.labels.length > 0);
+    assert.equal(repository.calls.graphql.length, 0);
+    assert.deepEqual(projectReads, [first.issueNumber, first.issueNumber]);
+    assert.equal(project.issues.length, 0);
+    assert.equal(project.calls.updates.length, 0);
+    assert.equal(project.calls.labels.length, 0);
+    assert.equal(
+      project.calls.graphql.filter(({ query }) =>
+        query.includes('addProjectV2ItemById'),
+      ).length,
+      2,
+    );
+    assert.equal(
+      project.calls.graphql.filter(({ query }) =>
+        query.includes('updateIssue('),
+      ).length,
+      2,
+    );
+  });
+
+  test(`${reporter.name} preserves denied update errors and retries the canonical tracker`, async () => {
+    const fixture = githubFixture();
+    const input = { github: fixture.github, ...failure() };
+    const first = await reporter(input);
+    const persistedBody = fixture.issues[0].body;
+    const update = fixture.github.rest.issues.update;
+    const denied = Object.assign(
+      new Error('Resource not accessible by integration'),
+      { status: 403 },
+    );
+    fixture.github.rest.issues.update = async () => {
+      throw denied;
+    };
+    const retryInput = {
+      ...input,
+      runId: 11,
+      runUrl: 'https://github.test/runs/11',
+    };
+
+    await assert.rejects(reporter(retryInput), (error) => error === denied);
+    assert.equal(fixture.issues.length, 1);
+    assert.equal(fixture.issues[0].body, persistedBody);
+    assert.equal(parseTrackerState(fixture.issues[0].body).occurrences, 1);
+    assert.equal(fixture.calls.comments.length, 0);
+
+    fixture.github.rest.issues.update = update;
+    const retried = await reporter(retryInput);
+    assert.equal(retried.issueNumber, first.issueNumber);
+    assert.equal(retried.action, 'updated');
+    assert.equal(fixture.issues.length, 1);
+    assert.equal(parseTrackerState(fixture.issues[0].body).occurrences, 2);
+    assert.equal(fixture.calls.comments.length, 0);
+  });
+
+  test(`${reporter.name} exposes project triage failures after the repository write`, async () => {
+    const repository = githubFixture();
+    const project = githubFixture();
+    project.github.rest.issues.get = repository.github.rest.issues.get;
+    project.github.graphql = async () => {
+      throw new Error('Project credential denied');
+    };
+    await assert.rejects(
+      reporter({
+        github: repository.github,
+        projectGithub: project.github,
+        ...failure(),
+        core: { warning() {} },
+      }),
+      /Project credential denied/u,
+    );
+    assert.equal(repository.issues.length, 1);
+    assert.equal(parseTrackerState(repository.issues[0].body).occurrences, 1);
+    assert.equal(repository.calls.graphql.length, 0);
+  });
+}

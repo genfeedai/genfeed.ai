@@ -62,7 +62,64 @@ test('full-tier reporter separates failed scenarios from matrix job logs', () =>
   assert.match(WORKFLOW, /actions: read/u);
   assert.match(WORKFLOW, /contents: read/u);
   assert.match(WORKFLOW, /issues: write/u);
-  assert.match(WORKFLOW, /github\.rest\.actions\.listJobsForWorkflowRun/u);
+  assert.match(
+    WORKFLOW,
+    /repositoryGithub\.rest\.actions\.listJobsForWorkflowRun/u,
+  );
   assert.match(WORKFLOW, /collectScheduledRunFailures/u);
   assert.match(WORKFLOW, /trackerJob: 'e2e-frontend-full'/u);
+});
+
+test('full-tier failure step separates repository and project credentials', () => {
+  const report = WORKFLOW.split('  nightly-failure-report:')[1].split(
+    '  nightly-recovery-report:',
+  )[0];
+  const step = report.split(
+    '- name: Create or update the bounded Playwright full-tier tracker',
+  )[1];
+  assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
+  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/u);
+  assert.match(
+    step,
+    /const repositoryGithub = getOctokit\(process.env.REPOSITORY_TOKEN\)/u,
+  );
+  assert.match(
+    step,
+    /const jobs = await repositoryGithub.paginate\(\s*repositoryGithub.rest.actions.listJobsForWorkflowRun/u,
+  );
+  assert.match(
+    step,
+    /collectScheduledRunFailures\(\{\s*github: repositoryGithub,/u,
+  );
+  assert.match(
+    step,
+    /reportNightlyPlaywrightFullFailure\(\{\s*github: repositoryGithub,\s*projectGithub: github,/u,
+  );
+  assert.match(report, /github.event_name == 'schedule'/u);
+  assert.match(
+    report,
+    /permissions:\s*actions: read\s*contents: read\s*issues: write/u,
+  );
+  assert.match(
+    report,
+    /group: nightly-playwright-full-failure-reporter\s*cancel-in-progress: false/u,
+  );
+  assert.match(report, /persist-credentials: false/u);
+});
+
+test('full-tier tracker failures stay visible while optional inventory remains tolerated', () => {
+  const report = WORKFLOW.split('  nightly-failure-report:')[1].split(
+    '  nightly-recovery-report:',
+  )[0];
+  const [before, step] = report.split(
+    '- name: Create or update the bounded Playwright full-tier tracker',
+  );
+  assert.doesNotMatch(step, /continue-on-error:/u);
+  assert.doesNotMatch(step, /catch\s*\(/u);
+  assert.match(
+    before,
+    /name: Download full-tier summary[\s\S]*continue-on-error: true/u,
+  );
+  const recovery = WORKFLOW.split('  nightly-recovery-report:')[1];
+  assert.match(recovery, /github-token: \$\{\{ github.token \}\}/u);
 });
