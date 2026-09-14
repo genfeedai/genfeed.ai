@@ -286,8 +286,8 @@ describe('Brand OS export publication boundary', () => {
     expect(db.brandOsPublication.findFirst).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.objectContaining({
-          brand: { isDeleted: false },
-          organization: { isDeleted: false },
+          brand: { is: { isDeleted: false } },
+          organization: { is: { isDeleted: false } },
           revokedAt: null,
         }),
       }),

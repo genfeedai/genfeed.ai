@@ -10,6 +10,7 @@ describe('Brand OS transport boundaries', () => {
       organizationId: 'org',
       brandId: 'brand',
       version: 2,
+      exportSchemaVersion: '1',
       status: 'APPROVED',
       content,
       approvedById: 'owner',
@@ -19,7 +20,13 @@ describe('Brand OS transport boundaries', () => {
     });
     expect(output.data).toMatchObject({
       id: 'revision',
-      attributes: { version: 2, status: 'APPROVED', content, brandId: 'brand' },
+      attributes: {
+        version: 2,
+        exportSchemaVersion: '1',
+        status: 'APPROVED',
+        content,
+        brandId: 'brand',
+      },
     });
     expect(JSON.stringify(output)).not.toContain('PRIVATE_');
   });

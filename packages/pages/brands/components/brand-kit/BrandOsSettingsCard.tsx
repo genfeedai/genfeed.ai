@@ -355,10 +355,10 @@ export default function BrandOsSettingsCard({
                 {t('revisionDetails', {
                   version: selected.version,
                   status: t(`statuses.${selected.status.toLowerCase()}`),
-                  date: new Date(selected.updatedAt).toLocaleString(),
+                  date: new Date(selected.updatedAt).toLocaleString('en-US'),
                 })}
                 {selected.approvedAt
-                  ? ` · ${t('approvedDate', { date: new Date(selected.approvedAt).toLocaleString() })}`
+                  ? ` · ${t('approvedDate', { date: new Date(selected.approvedAt).toLocaleString('en-US') })}`
                   : ''}
               </p>
             )}

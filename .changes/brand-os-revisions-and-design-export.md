@@ -3,7 +3,10 @@ packages: @genfeedai/contracts @genfeedai/harness @genfeedai/helpers @genfeedai/
 Add durable Brand OS revision and publication contracts, their serializers,
 Brand Kit revision/history controls, and authenticated revision/export methods
 on BrandsService. The existing scan and manual-kit components gain optional
-onDraftCreated callbacks; existing callers may omit them.
+onDraftCreated callbacks; existing callers may omit them. Durable claimed handoffs
+no longer expire with Redis, so IBrandOsDraftHandoff.expiresAt is optional; callers
+must tolerate an absent expiry. Revision responses include exportSchemaVersion
+to identify the stored artifact schema independently of the revision number.
 
 ContentHarnessInput accepts an optional approved revision identity and contribution.
 Composed brief receipts identify the approved Brand OS revision, or record

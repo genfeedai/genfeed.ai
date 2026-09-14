@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { BrandsModule } from '@api/collections/brands/brands.module';
+import { BrandOsRevisionsController } from '@api/collections/brands/controllers/brand-os-revisions.controller';
 import { BrandsController } from '@api/collections/brands/controllers/brands.controller';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
 import { BrandsSetupController } from '@api/collections/brands/controllers/brands-setup.controller';
@@ -60,6 +61,7 @@ describe('Brands split controllers', () => {
     expect(
       Reflect.getMetadata(MODULE_METADATA.CONTROLLERS, BrandsModule),
     ).toEqual([
+      BrandOsRevisionsController,
       BrandsAgentConfigController,
       BrandsSetupController,
       BrandsController,

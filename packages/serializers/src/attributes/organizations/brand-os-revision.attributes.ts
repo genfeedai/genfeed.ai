@@ -4,6 +4,7 @@ export const brandOsRevisionAttributes = createEntityAttributes([
   'organizationId',
   'brandId',
   'version',
+  'exportSchemaVersion',
   'status',
   'content',
   'approvedById',

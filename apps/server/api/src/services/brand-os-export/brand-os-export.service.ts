@@ -48,7 +48,7 @@ export class BrandOsExportService {
           id: brandId,
           isDeleted: false,
           organizationId: where.organizationId,
-          organization: { isDeleted: false },
+          organization: { is: { isDeleted: false } },
         },
       }),
       this.prisma.member.findFirst({
@@ -289,8 +289,8 @@ export class BrandOsExportService {
         id: publicationId,
         isDeleted: false,
         revokedAt: null,
-        brand: { isDeleted: false },
-        organization: { isDeleted: false },
+        brand: { is: { isDeleted: false } },
+        organization: { is: { isDeleted: false } },
       },
     });
     if (
