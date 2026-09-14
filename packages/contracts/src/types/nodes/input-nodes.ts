@@ -4,6 +4,20 @@
 
 import type { BaseNodeData } from './base';
 
+export interface CommentTriggerNodeData extends BaseNodeData {
+  type: 'commentTrigger';
+  conversationId: string;
+  credentialId: string;
+  platform: string;
+  sourceContentId: string;
+  config: {
+    conversationId: string;
+    credentialId: string;
+    platform: string;
+    sourceContentId: string;
+  };
+}
+
 export interface ImageInputNodeData extends BaseNodeData {
   image: string | null;
   filename: string | null;
