@@ -232,7 +232,7 @@ export interface IBrandOsPreview {
 export interface IBrandOsDraftHandoff {
   id: string;
   draft: IBrandKitDraft;
-  expiresAt: string;
+  expiresAt?: string;
   status: 'claimed';
 }
 

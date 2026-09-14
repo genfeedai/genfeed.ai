@@ -269,6 +269,7 @@ function createManualInput(
 }
 
 export default function BrandDetailManualKitCard({
+  onDraftCreated,
   brand,
   brandId,
   onRefreshBrand,
@@ -387,6 +388,7 @@ export default function BrandDetailManualKitCard({
       const proposedKeys = readProposedFieldKeys(nextDraft);
       setDraft(nextDraft);
       setSelectedFields(proposedKeys);
+      await onDraftCreated?.(nextDraft);
       notifications.success('Manual brand kit draft ready');
     } catch (draftError) {
       logger.error('Failed to create manual brand kit draft', draftError);
@@ -402,6 +404,7 @@ export default function BrandDetailManualKitCard({
     form,
     getBrandsService,
     notifications,
+    onDraftCreated,
   ]);
 
   const toggleSelectedField = useCallback((key: ManualApplyFieldKey): void => {

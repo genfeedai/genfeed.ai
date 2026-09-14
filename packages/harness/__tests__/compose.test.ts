@@ -146,3 +146,36 @@ describe('composeContentHarnessBrief', () => {
     expect(brief.guardrails.length).toBeGreaterThan(0);
   });
 });
+
+describe('Brand OS identity receipts', () => {
+  it('records the exact revision without changing profile sources', async () => {
+    const registry = new ContentHarnessRegistry();
+    registry.registerPack(CORE_CONTENT_HARNESS_PACK);
+    const brief = await composeContentHarnessBrief(registry, {
+      brandOsRevisionId: 'revision-2',
+      identityContribution: { systemDirectives: ['Approved positioning'] },
+      intent: { contentType: 'post', objective: 'engagement' },
+      profileContribution: {
+        sources: [{ id: 'example', kind: 'brand_example', content: 'Example' }],
+      },
+    });
+    expect(brief.receipts).toEqual({
+      brandOs: 'approved',
+      brandOsRevisionId: 'revision-2',
+    });
+    expect(brief.systemDirectives).toContain('Approved positioning');
+    expect(brief.sources).toEqual([
+      { id: 'example', kind: 'brand_example', content: 'Example' },
+    ]);
+  });
+
+  it('records an explicit absence when no approved identity exists', async () => {
+    const brief = await composeContentHarnessBrief(
+      new ContentHarnessRegistry(),
+      {
+        intent: { contentType: 'image', objective: 'awareness' },
+      },
+    );
+    expect(brief.receipts).toEqual({ brandOs: 'none' });
+  });
+});

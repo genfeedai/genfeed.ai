@@ -15,6 +15,7 @@ import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-
 import { AiInfluencerModule } from '@api/services/ai-influencer/ai-influencer.module';
 import { BatchContentModule } from '@api/services/batch-content/batch-content.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
+import { BrandOsExportModule } from '@api/services/brand-os-export/brand-os-export.module';
 import { ContentEngineModule } from '@api/services/content-engine/content-engine.module';
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
@@ -34,6 +35,7 @@ import { Module } from '@nestjs/common';
   imports: [
     BatchContentModule,
     BatchGenerationModule,
+    BrandOsExportModule,
     ContentEngineModule,
     ContentGatewayModule,
     CostReportingModule,

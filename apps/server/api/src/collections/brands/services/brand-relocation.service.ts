@@ -705,7 +705,12 @@ export class BrandRelocationService {
     // 2. First-order tables: rewrite the denormalized org key.
     for (const target of FIRST_ORDER_TARGETS) {
       await client[target.delegate].updateMany({
-        data: { [target.orgField]: destOrgId },
+        data: {
+          [target.orgField]: destOrgId,
+          ...(target.delegate === 'brandOsPublication'
+            ? { revokedAt: new Date(), publishedRevisionIds: [] }
+            : {}),
+        },
         where: {
           [target.brandField]: brandId,
           [target.orgField]: { not: destOrgId },

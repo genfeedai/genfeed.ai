@@ -5,6 +5,7 @@ import {
 import { BaseEntity } from '@api/entities/base.entity';
 
 export class BrandEntity extends BaseEntity implements Brand {
+  brandOsRevisionVersion!: number;
   declare readonly id: string;
   declare readonly userId: string;
   declare readonly organizationId: string;

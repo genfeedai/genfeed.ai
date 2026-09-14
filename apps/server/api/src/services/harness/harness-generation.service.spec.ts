@@ -1,6 +1,8 @@
+import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type { ContentHarnessBrief } from '@genfeedai/harness';
+import { buildBrandKitDraftFromManualInput } from '@genfeedai/helpers';
 import { describe, expect, it, vi } from 'vitest';
 
 const BRAND = {
@@ -25,6 +27,7 @@ const EMPTY_BRIEF: ContentHarnessBrief = {
 };
 
 function createService(overrides?: {
+  brandOsRevisionsService?: { findApproved: ReturnType<typeof vi.fn> };
   brandsService?: { findOne: ReturnType<typeof vi.fn> };
   contentHarnessService?: { composeBrief: ReturnType<typeof vi.fn> };
   contextsService?: { retrieveBrandContentMemory: ReturnType<typeof vi.fn> };
@@ -46,6 +49,10 @@ function createService(overrides?: {
     retrieveBrandContentMemory: vi.fn().mockResolvedValue([]),
   };
 
+  const brandOsRevisionsService = overrides?.brandOsRevisionsService ?? {
+    findApproved: vi.fn().mockResolvedValue(null),
+  };
+
   const service = new HarnessGenerationService(
     contentHarnessService as never,
     logger as never,
@@ -53,9 +60,11 @@ function createService(overrides?: {
     harnessProfilesService as never,
     contextsService as never,
     undefined,
+    brandOsRevisionsService as unknown as BrandOsRevisionsService,
   );
 
   return {
+    brandOsRevisionsService,
     brandsService,
     contentHarnessService,
     contextsService,
@@ -283,5 +292,97 @@ describe('HarnessGenerationService#resolveBrief', () => {
         }),
       );
     });
+  });
+});
+
+describe('approved Brand OS identity', () => {
+  it('uses approved identity while preserving knowledge and profile layers', async () => {
+    const approved = {
+      id: 'revision-2',
+      content: buildBrandKitDraftFromManualInput(
+        { id: 'brand-1' },
+        {
+          label: 'Approved name',
+          voiceTone: 'Direct',
+          primaryColor: '#112233',
+          description: 'Approved positioning',
+        },
+      ),
+    };
+    for (const field of Object.values(approved.content.fields)) {
+      if (field) {
+        field.currentValue = field.proposedValue;
+        delete field.proposedValue;
+      }
+    }
+    const voiceTone = approved.content.fields.voiceTone;
+    if (voiceTone) voiceTone.proposedValue = 'Unapproved candidate';
+    const profile = {
+      sources: [
+        { id: 'example', content: 'Profile example', kind: 'brand_example' },
+      ],
+    };
+    const { service, contentHarnessService, brandOsRevisionsService } =
+      createService({
+        brandOsRevisionsService: {
+          findApproved: vi.fn().mockResolvedValue(approved),
+        },
+        harnessProfilesService: {
+          buildContributionForBrand: vi.fn().mockResolvedValue(profile),
+        },
+      });
+    await service.resolveBrief({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      contentType: 'post',
+    });
+    expect(brandOsRevisionsService.findApproved).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+    );
+    expect(contentHarnessService.composeBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandName: 'Approved name',
+        brandOsRevisionId: 'revision-2',
+        voiceProfile: expect.objectContaining({ tone: 'Direct' }),
+        profileContribution: profile,
+        identityContribution: expect.objectContaining({
+          systemDirectives: expect.arrayContaining([
+            'Description: Approved positioning',
+          ]),
+          styleDirectives: expect.arrayContaining(['Primary color: #112233']),
+        }),
+      }),
+    );
+  });
+  it('falls back to profile identity only when no approval exists', async () => {
+    const { service, contentHarnessService } = createService();
+    await service.resolveBrief({
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      contentType: 'post',
+    });
+    expect(contentHarnessService.composeBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandName: 'Test Brand',
+        brandOsRevisionId: undefined,
+        identityContribution: undefined,
+      }),
+    );
+  });
+  it('does not silently reconstruct identity after an approval lookup failure', async () => {
+    const { service, contentHarnessService } = createService({
+      brandOsRevisionsService: {
+        findApproved: vi.fn().mockRejectedValue(new Error('unavailable')),
+      },
+    });
+    expect(
+      await service.resolveBrief({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        contentType: 'post',
+      }),
+    ).toBeNull();
+    expect(contentHarnessService.composeBrief).not.toHaveBeenCalled();
   });
 });

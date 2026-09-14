@@ -4,6 +4,7 @@ import type {
   IArticle,
   IBrand,
   IBrandKitAssetValue,
+  IBrandKitDraft,
   IClockTime,
   IImage,
   ILink,
@@ -264,6 +265,7 @@ export interface BrandDetailIdentityCardProps {
 }
 
 export interface BrandKitReviewCardProps {
+  onDraftCreated?: (draft: IBrandKitDraft) => Promise<void>;
   brand: IBrand;
   brandId: string;
   loadClaimedBrandOsDraft?: boolean;
@@ -287,6 +289,7 @@ export interface BrandKitAssetTileProps {
 }
 
 export interface BrandDetailManualKitCardProps {
+  onDraftCreated?: (draft: IBrandKitDraft) => Promise<void>;
   brand: IBrand;
   brandId: string;
   onRefreshBrand: () => Promise<void>;

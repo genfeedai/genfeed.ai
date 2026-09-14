@@ -10,6 +10,23 @@ const mocks = vi.hoisted(() => ({
   handleRequestDeleteReference: vi.fn(),
 }));
 
+vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
+  useUserRole: () => 'owner',
+}));
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => vi.fn(),
+}));
+vi.mock('@services/social/brands.service', () => ({
+  BrandsService: { getInstance: vi.fn() },
+}));
+vi.mock('@pages/brands/components/brand-kit/BrandOsSettingsCard', () => ({
+  default: () => (
+    <section data-testid="brand-os-settings">
+      Revision history and export
+    </section>
+  ),
+}));
+
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };

@@ -315,6 +315,7 @@ function getDiagnostics(
 }
 
 export default function BrandKitReviewCard({
+  onDraftCreated,
   brand,
   brandId,
   loadClaimedBrandOsDraft = false,
@@ -483,6 +484,7 @@ export default function BrandKitReviewCard({
 
       setDraft(nextDraft);
       initializeDraftReview(nextDraft);
+      await onDraftCreated?.(nextDraft);
     } catch (scanError) {
       logger.error('Failed to crawl brand kit website', scanError);
       setError('Failed to scan website for brand kit fields.');
@@ -495,6 +497,7 @@ export default function BrandKitReviewCard({
     initializeDraftReview,
     socialUrls,
     websiteUrl,
+    onDraftCreated,
   ]);
 
   const handleToggleField = useCallback(

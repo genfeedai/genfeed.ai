@@ -1,7 +1,9 @@
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
+import type { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
+import type { IBrandKitDraft } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { RedisService } from '@libs/redis/redis.service';
 import {
@@ -19,16 +21,19 @@ function createRedisHarness() {
         _keyCount: number,
         sourceKey: string,
         destinationKey: string,
+        owner: string,
       ) => {
         const value = values.get(sourceKey);
         if (!value) {
           return null;
         }
-        values.set(destinationKey, value);
-        values.delete(sourceKey);
+        const reserved = values.get(destinationKey);
+        if (reserved && reserved !== owner) return null;
+        values.set(destinationKey, owner);
         return value;
       },
     ),
+    del: vi.fn(async (key: string) => Number(values.delete(key))),
     get: vi.fn(async (key: string) => values.get(key) ?? null),
     set: vi.fn(
       async (
@@ -69,6 +74,11 @@ describe('BrandOsPreviewService', () => {
   };
   let redisService: { getPublisher: ReturnType<typeof vi.fn> };
   let service: BrandOsPreviewService;
+  let revisions: {
+    findClaimed: ReturnType<typeof vi.fn>;
+    ensureInitial: ReturnType<typeof vi.fn>;
+  };
+  let stored: Map<string, { content: IBrandKitDraft; tokenHash: string }>;
 
   beforeEach(() => {
     redisHarness = createRedisHarness();
@@ -84,10 +94,34 @@ describe('BrandOsPreviewService', () => {
       warn: vi.fn(),
     };
 
+    stored = new Map();
+    revisions = {
+      findClaimed: vi.fn(
+        async (orgId: string, brandId: string, tokenHash?: string) => {
+          const row = stored.get(`${orgId}:${brandId}`);
+          return row && (!tokenHash || tokenHash === row.tokenHash)
+            ? row
+            : null;
+        },
+      ),
+      ensureInitial: vi.fn(
+        async (
+          orgId: string,
+          brandId: string,
+          content: IBrandKitDraft,
+          tokenHash: string,
+        ) => {
+          const row = { content, tokenHash };
+          stored.set(`${orgId}:${brandId}`, row);
+          return row;
+        },
+      ),
+    };
     service = new BrandOsPreviewService(
       scraper as unknown as BrandScraperService,
       redisService as unknown as RedisService,
       logger as unknown as LoggerService,
+      revisions as unknown as BrandOsRevisionsService,
     );
   });
 
@@ -177,7 +211,7 @@ describe('BrandOsPreviewService', () => {
     );
   });
 
-  it('atomically consumes a token once and binds the draft to the tenant brand', async () => {
+  it('persists the tenant draft before consuming a token and supports idempotent retries', async () => {
     const preview = await service.createPreview({
       guidance: 'Use concise claims with evidence.',
     });
@@ -199,16 +233,18 @@ describe('BrandOsPreviewService', () => {
       'Use concise claims with evidence.',
     );
     expect(redisHarness.client.eval).toHaveBeenCalledWith(
-      expect.stringContaining("redis.call('DEL', KEYS[1])"),
+      expect.stringContaining("redis.call('PTTL', KEYS[1])"),
       2,
       expect.stringMatching(/^brand-os:preview:[a-f0-9]{64}$/),
       expect.stringMatching(/^brand-os:claimed:[a-f0-9]{64}$/),
-      '3600',
+      expect.stringMatching(/^[a-f0-9]{64}$/),
     );
 
     await expect(
       service.claimPreview(preview.previewToken, 'org-1', brand),
-    ).rejects.toBeInstanceOf(GoneException);
+    ).resolves.toEqual(claimed);
+    expect(revisions.ensureInitial).toHaveBeenCalledTimes(1);
+    expect(redisHarness.client.del).toHaveBeenCalledTimes(1);
   });
 
   it('keeps claimed reads isolated by organization and brand', async () => {
@@ -232,7 +268,7 @@ describe('BrandOsPreviewService', () => {
     ).rejects.toBeInstanceOf(NotFoundException);
   });
 
-  it('treats Redis outage as recoverable and never falls back to a Brand row', async () => {
+  it('treats preview Redis outage as recoverable and missing durable claims as not found', async () => {
     redisService.getPublisher.mockReturnValue(null);
 
     await expect(
@@ -240,6 +276,47 @@ describe('BrandOsPreviewService', () => {
     ).rejects.toBeInstanceOf(ServiceUnavailableException);
     await expect(
       service.readClaimedPreview('org-1', brand),
-    ).rejects.toBeInstanceOf(ServiceUnavailableException);
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+  it('keeps the token reserved and retryable when persistence fails', async () => {
+    const preview = await service.createPreview({
+      guidance: 'Keep this evidence.',
+    });
+    revisions.ensureInitial.mockRejectedValueOnce(new Error('database down'));
+    await expect(
+      service.claimPreview(preview.previewToken, 'org-1', brand),
+    ).rejects.toThrow('database down');
+    expect(redisHarness.client.del).not.toHaveBeenCalled();
+    await expect(
+      service.claimPreview(preview.previewToken, 'org-2', {
+        ...brand,
+        organizationId: 'org-2',
+        id: 'brand-2',
+      } as BrandDocument),
+    ).rejects.toBeInstanceOf(GoneException);
+    await expect(
+      service.claimPreview(preview.previewToken, 'org-1', brand),
+    ).resolves.toMatchObject({ status: 'claimed' });
+  });
+
+  it('reads durable claims after Redis expires or fails, including safe retry after cleanup failure', async () => {
+    const preview = await service.createPreview({
+      guidance: 'Durable evidence.',
+    });
+    redisHarness.client.del.mockRejectedValueOnce(new Error('redis down'));
+    const claimed = await service.claimPreview(
+      preview.previewToken,
+      'org-1',
+      brand,
+    );
+    redisHarness.values.clear();
+    redisService.getPublisher.mockReturnValue(null);
+    await expect(service.readClaimedPreview('org-1', brand)).resolves.toEqual(
+      claimed,
+    );
+    await expect(
+      service.claimPreview(preview.previewToken, 'org-1', brand),
+    ).resolves.toEqual(claimed);
+    expect(revisions.ensureInitial).toHaveBeenCalledTimes(1);
   });
 });

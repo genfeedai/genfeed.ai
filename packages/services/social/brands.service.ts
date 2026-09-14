@@ -15,7 +15,10 @@ import type {
   IBrandKitDraft,
   IBrandKitManualInput,
   IBrandOsDraftHandoff,
+  IBrandOsExportState,
   IBrandOsPreviewClaimRequest,
+  IBrandOsRevision,
+  IBrandOsRevisionUpdateRequest,
   IBrandSetupRequest,
   IBrandSetupResponse,
   IBrandSkillSelection,
@@ -378,6 +381,101 @@ export class BrandsService extends BaseService<Brand> {
     return await this.instance
       .get<JsonApiResponseDocument>(`/${id}/brand-kit/brand-os`)
       .then((res) => deserializeResource<IBrandOsDraftHandoff>(res.data));
+  }
+
+  public async listBrandOsRevisions(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandOsRevision[]> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${id}/brand-os/revisions`,
+      { signal },
+    );
+    return deserializeCollection<IBrandOsRevision>(response.data);
+  }
+
+  public async getBrandOsRevision(
+    id: string,
+    revisionId: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandOsRevision> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${id}/brand-os/revisions/${revisionId}`,
+      { signal },
+    );
+    return deserializeResource<IBrandOsRevision>(response.data);
+  }
+
+  public async createBrandOsRevision(
+    id: string,
+    content: IBrandKitDraft,
+  ): Promise<IBrandOsRevision> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/brand-os/revisions`,
+      { content },
+    );
+    return deserializeResource<IBrandOsRevision>(response.data);
+  }
+
+  public async updateBrandOsRevision(
+    id: string,
+    revisionId: string,
+    data: IBrandOsRevisionUpdateRequest,
+  ): Promise<IBrandOsRevision> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/${id}/brand-os/revisions/${revisionId}`,
+      data,
+    );
+    return deserializeResource<IBrandOsRevision>(response.data);
+  }
+
+  public async approveBrandOsRevision(
+    id: string,
+    revisionId: string,
+    updatedAt: string,
+  ): Promise<IBrandOsRevision> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/brand-os/revisions/${revisionId}/approve`,
+      { updatedAt },
+    );
+    return deserializeResource<IBrandOsRevision>(response.data);
+  }
+
+  public async getBrandOsExport(
+    id: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandOsExportState> {
+    const response = await this.instance.get<JsonApiResponseDocument>(
+      `/${id}/brand-os/export`,
+      { signal },
+    );
+    return deserializeResource<IBrandOsExportState>(response.data);
+  }
+
+  public async downloadBrandOsDesign(id: string): Promise<Blob> {
+    const response = await this.instance.get<Blob>(
+      `/${id}/brand-os/design.md`,
+      { responseType: 'blob' },
+    );
+    return response.data;
+  }
+
+  public async publishBrandOsDesign(
+    id: string,
+    revisionId: string,
+  ): Promise<IBrandOsExportState> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/${id}/brand-os/publication`,
+      { revisionId },
+    );
+    return deserializeResource<IBrandOsExportState>(response.data);
+  }
+
+  public async revokeBrandOsDesign(id: string): Promise<IBrandOsExportState> {
+    const response = await this.instance.delete<JsonApiResponseDocument>(
+      `/${id}/brand-os/publication`,
+    );
+    return deserializeResource<IBrandOsExportState>(response.data);
   }
 
   public async applyBrandKitDraft(

@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { hashToken, toBase64Url } from '@api/auth/shared/pkce.util';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
+import { BrandOsRevisionsService } from '@api/collections/brands/services/brand-os-revisions.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type {
@@ -27,7 +28,6 @@ import {
 import type Redis from 'ioredis';
 
 const PREVIEW_TTL_SECONDS = 30 * 60;
-const CLAIMED_DRAFT_TTL_SECONDS = 60 * 60;
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{43}$/;
 const PREVIEW_KEY_PREFIX = 'brand-os:preview:';
 const CLAIMED_KEY_PREFIX = 'brand-os:claimed:';
@@ -37,11 +37,12 @@ const MAX_GUIDANCE_LENGTH = 12_000;
 
 const CLAIM_PREVIEW_SCRIPT = `
 local value = redis.call('GET', KEYS[1])
-if not value then
-  return nil
+if not value then return nil end
+local owner = redis.call('GET', KEYS[2])
+if owner and owner ~= ARGV[1] then return nil end
+if not owner then
+  redis.call('SET', KEYS[2], ARGV[1], 'PX', redis.call('PTTL', KEYS[1]))
 end
-redis.call('SET', KEYS[2], value, 'EX', ARGV[1])
-redis.call('DEL', KEYS[1])
 return value
 `;
 
@@ -55,6 +56,7 @@ export class BrandOsPreviewService {
     private readonly brandScraperService: BrandScraperService,
     private readonly redisService: RedisService,
     private readonly logger: LoggerService,
+    private readonly revisions: BrandOsRevisionsService,
   ) {}
 
   async createPreview(input: IBrandOsPreviewRequest): Promise<IBrandOsPreview> {
@@ -132,28 +134,30 @@ export class BrandOsPreviewService {
     brand: BrandDocument,
   ): Promise<IBrandOsDraftHandoff> {
     this.assertToken(previewToken);
-    const client = this.requireRedis();
     const brandId = String(brand.id);
+    const tokenHash = hashToken(previewToken);
+    const existing = await this.revisions.findClaimed(
+      organizationId,
+      brandId,
+      tokenHash,
+    );
+    if (existing)
+      return { draft: existing.content, id: brandId, status: 'claimed' };
+    const client = this.requireRedis();
     const previewKey = this.previewKey(previewToken);
-    const claimedKey = this.claimedKey(organizationId, brandId);
     let serialized: unknown;
-
     try {
       serialized = await client.eval(
         CLAIM_PREVIEW_SCRIPT,
         2,
         previewKey,
-        claimedKey,
-        String(CLAIMED_DRAFT_TTL_SECONDS),
+        `${CLAIMED_KEY_PREFIX}${tokenHash}`,
+        hashToken(`${organizationId}:${brandId}`),
       );
     } catch (error) {
-      this.logger.error('Brand OS preview claim unavailable', {
-        code: 'brand_os_preview_claim_unavailable',
-        error,
-      });
+      this.logger.error('Brand OS preview claim unavailable', { error });
       throw this.unavailable();
     }
-
     if (typeof serialized !== 'string') {
       throw new GoneException({
         code: 'brand_os_preview_expired_or_claimed',
@@ -161,43 +165,41 @@ export class BrandOsPreviewService {
         title: 'Gone',
       });
     }
-
-    return this.toClaimedHandoff(
+    const handoff = this.toClaimedHandoff(
       this.parseStoredPreview(serialized),
       organizationId,
       brand,
     );
+    // The token remains retryable for its reserved tenant until persistence succeeds.
+    const revision = await this.revisions.ensureInitial(
+      organizationId,
+      brandId,
+      handoff.draft,
+      tokenHash,
+    );
+    try {
+      await client.del(previewKey);
+    } catch (error) {
+      this.logger.warn('Brand OS persisted preview cleanup deferred', {
+        error,
+      });
+    }
+    return { draft: revision.content, id: brandId, status: 'claimed' };
   }
 
   async readClaimedPreview(
     organizationId: string,
     brand: BrandDocument,
   ): Promise<IBrandOsDraftHandoff> {
-    const client = this.requireRedis();
-    const brandId = String(brand.id);
-    let serialized: string | null;
-
-    try {
-      serialized = await client.get(this.claimedKey(organizationId, brandId));
-    } catch (error) {
-      this.logger.error('Brand OS claimed draft unavailable', {
-        code: 'brand_os_claimed_draft_unavailable',
-        error,
-      });
-      throw this.unavailable();
-    }
-
-    if (!serialized) {
+    const revision = await this.revisions.findClaimed(
+      organizationId,
+      String(brand.id),
+    );
+    if (!revision)
       throw new NotFoundException({
         message: 'No claimed Brand OS draft is available for this brand.',
       });
-    }
-
-    return this.toClaimedHandoff(
-      this.parseStoredPreview(serialized),
-      organizationId,
-      brand,
-    );
+    return { draft: revision.content, id: String(brand.id), status: 'claimed' };
   }
 
   private async storePreview(value: StoredBrandOsPreview): Promise<string> {
@@ -281,7 +283,6 @@ export class BrandOsPreviewService {
 
     return {
       draft,
-      expiresAt: this.expiresAt(CLAIMED_DRAFT_TTL_SECONDS),
       id: String(brand.id),
       status: 'claimed',
     };
@@ -323,10 +324,6 @@ export class BrandOsPreviewService {
 
   private previewKey(token: string): string {
     return `${PREVIEW_KEY_PREFIX}${hashToken(token)}`;
-  }
-
-  private claimedKey(organizationId: string, brandId: string): string {
-    return `${CLAIMED_KEY_PREFIX}${hashToken(`${organizationId}:${brandId}`)}`;
   }
 
   private expiresAt(ttlSeconds: number): string {

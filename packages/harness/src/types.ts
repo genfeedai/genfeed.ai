@@ -72,6 +72,8 @@ export interface ContentHarnessInput {
   organizationId?: string;
   brandId?: string;
   brandName?: string;
+  brandOsRevisionId?: string;
+  identityContribution?: ContentHarnessContribution;
   intent: ContentHarnessIntent;
   voiceProfile?: HarnessVoiceProfile;
   personaProfile?: HarnessPersonaProfile;
@@ -89,7 +91,12 @@ export interface ContentHarnessContribution {
   sources?: HarnessSourceRecord[];
 }
 
+export type ContentHarnessReceipts =
+  | { brandOs: 'none' }
+  | { brandOs: 'approved'; brandOsRevisionId: string };
+
 export interface ContentHarnessBrief {
+  receipts?: ContentHarnessReceipts;
   packs: string[];
   systemDirectives: string[];
   styleDirectives: string[];
