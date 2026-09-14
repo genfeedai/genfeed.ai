@@ -437,13 +437,13 @@ export class TelegramBotManager
     }
 
     const session = this.getSession(chatId);
-    if (!session || session.state !== 'collecting') {
+    if (session?.state !== 'collecting') {
       await ctx.reply('No active workflow. Use /workflows to start one.');
       return;
     }
 
     const currentInput = session.requiredInputs[session.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== 'text') {
+    if (currentInput?.inputType !== 'text') {
       await ctx.reply("I'm expecting an image, not text. Please send a photo.");
       return;
     }
@@ -467,13 +467,13 @@ export class TelegramBotManager
     }
 
     const session = this.getSession(chatId);
-    if (!session || session.state !== 'collecting') {
+    if (session?.state !== 'collecting') {
       await ctx.reply('No active input collection. Use /workflows to start.');
       return;
     }
 
     const currentInput = session.requiredInputs[session.currentInputIndex];
-    if (!currentInput || currentInput.inputType !== 'image') {
+    if (currentInput?.inputType !== 'image') {
       await ctx.reply(
         "I'm not expecting an image right now. Please send text.",
       );
@@ -784,7 +784,7 @@ export class TelegramBotManager
 
   async handleRun(ctx: Context, chatId: string, orgId: string) {
     const session = this.getSession(chatId);
-    if (!session || !session.workflowId) {
+    if (!session?.workflowId) {
       await ctx.reply('No workflow selected. Use /workflows to start.');
       return;
     }
