@@ -88,39 +88,18 @@ export abstract class BaseConfigService<
     const isDeployed = isProduction || isStaging || isTest;
     const { appName, workingDir } = options;
     const fromServer = workingDir === 'apps/server';
-    const rootLocalFile = fromServer ? '../../.env.local' : '.env.local';
-    const serviceLocalFile = fromServer
-      ? `${appName}/.env.local`
-      : `apps/server/${appName}/.env.local`;
+    const rootPrefix = fromServer ? '../../' : '';
+    const servicePrefix = fromServer ? appName : `apps/server/${appName}`;
+    const rootLocalFile = `${rootPrefix}.env.local`;
+    const serviceLocalFile = `${servicePrefix}/.env.local`;
+    const envSuffix = isDeployed ? `.${env}` : '';
+    const envFiles = [
+      `${rootPrefix}.env${envSuffix}`,
+      `${servicePrefix}/.env${envSuffix}`,
+    ];
 
-    let envFiles: string[];
-
-    if (fromServer) {
-      envFiles = isProduction
-        ? ['../../.env.production', `${appName}/.env.production`]
-        : isStaging
-          ? ['../../.env.staging', `${appName}/.env.staging`]
-          : isTest
-            ? ['../../.env.test', `${appName}/.env.test`]
-            : [
-                '../../.env',
-                `${appName}/.env`,
-                serviceLocalFile,
-                rootLocalFile,
-              ];
-    } else {
-      envFiles = isProduction
-        ? ['.env.production', `apps/server/${appName}/.env.production`]
-        : isStaging
-          ? ['.env.staging', `apps/server/${appName}/.env.staging`]
-          : isTest
-            ? ['.env.test', `apps/server/${appName}/.env.test`]
-            : [
-                '.env',
-                `apps/server/${appName}/.env`,
-                serviceLocalFile,
-                rootLocalFile,
-              ];
+    if (!isDeployed) {
+      envFiles.push(serviceLocalFile, rootLocalFile);
     }
 
     let serviceLocal: Record<string, string> = {};
