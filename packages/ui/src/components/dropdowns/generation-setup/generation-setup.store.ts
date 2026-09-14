@@ -194,13 +194,18 @@ export const useGenerationSetupStore = create<GenerationSetupState>()(
         patchMusicFields: (scope, patch, defaults) => {
           const current = getOrCreateSetup(get().setupByScope, scope, defaults);
           const sources = { ...current.sources };
-          for (const key of Object.keys(patch) as GenerationSetupFieldKey[])
-            sources[key] = 'user';
+          let hasDefinedEdit = false;
+          for (const key of Object.keys(patch) as GenerationSetupFieldKey[]) {
+            if (patch[key] !== undefined) {
+              sources[key] = 'user';
+              hasDefinedEdit = true;
+            }
+          }
           set({
             setupByScope: {
               ...get().setupByScope,
               [scope]: {
-                presetId: undefined,
+                presetId: hasDefinedEdit ? undefined : current.presetId,
                 sources,
                 values: { ...current.values, ...patch },
               },

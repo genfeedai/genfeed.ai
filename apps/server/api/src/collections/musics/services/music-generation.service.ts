@@ -181,9 +181,11 @@ export class MusicGenerationService {
       user.organizationId,
     );
 
+    const normalized = normalizeMusicSettings(model, createMusicDto);
     const normalizedDto = {
       ...createMusicDto,
-      ...normalizeMusicSettings(model, createMusicDto),
+      ...normalized,
+      lyrics: normalized.lyrics?.trim() || undefined,
     };
 
     const promptData = await this.promptsService.create(

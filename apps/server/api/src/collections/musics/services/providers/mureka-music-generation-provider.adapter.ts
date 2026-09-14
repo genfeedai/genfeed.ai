@@ -38,7 +38,7 @@ export class MurekaMusicGenerationProviderAdapter
       instrumental,
       // An instrumental request carries no lyrics, even if the field still
       // holds stale text from before the toggle was flipped.
-      lyrics: instrumental ? undefined : normalized.lyrics,
+      lyrics: normalized.lyrics?.trim() || undefined,
       prompt: request.prompt,
     });
 

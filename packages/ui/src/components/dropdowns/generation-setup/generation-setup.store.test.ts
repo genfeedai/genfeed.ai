@@ -634,4 +634,37 @@ describe('music normalization without a mounted Output tab', () => {
       values: { duration: undefined, instrumental: true, lyrics: undefined },
     });
   });
+  it('keeps automatic undefined clears out of user provenance and preserves preset pins', () => {
+    applyGenerationSetupPreset(
+      scope,
+      'lyria',
+      { modelKey: MODEL_KEYS.FAL_LYRIA3_PRO, duration: 90 },
+      defaults,
+    );
+    const before = getGenerationSetup(scope, defaults);
+    useGenerationSetupStore
+      .getState()
+      .patchMusicFields(
+        scope,
+        { duration: undefined, lyrics: undefined },
+        defaults,
+      );
+    expect(getGenerationSetup(scope, defaults)).toMatchObject({
+      presetId: 'lyria',
+      sources: before.sources,
+    });
+    expect(getGenerationSetup(scope, defaults).sources.lyrics).toBeUndefined();
+    useGenerationSetupStore
+      .getState()
+      .patchMusicFields(
+        scope,
+        { lyrics: 'new verse ', duration: undefined },
+        defaults,
+      );
+    expect(getGenerationSetup(scope, defaults)).toMatchObject({
+      presetId: undefined,
+      sources: { lyrics: 'user', duration: 'preset' },
+      values: { lyrics: 'new verse ' },
+    });
+  });
 });

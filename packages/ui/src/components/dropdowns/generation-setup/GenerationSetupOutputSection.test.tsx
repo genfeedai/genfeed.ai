@@ -6,7 +6,9 @@ import type {
 } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import type { StudioGenerateCapabilities } from '@genfeedai/contracts/interfaces/studio/studio-generate.interface';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import GenerationSetupOutputSection from '@ui/dropdowns/generation-setup/GenerationSetupOutputSection';
+import { useGenerationSetupStore } from '@ui/dropdowns/generation-setup/generation-setup.store';
 import { Children, isValidElement, type ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -225,4 +227,50 @@ describe('sanity: MusicGen and Eleven Music capability durations used above', ()
     expect(elevenMusic?.category).toBe(ModelCategory.MUSIC);
     expect(lyria?.category).toBe(ModelCategory.MUSIC);
   });
+});
+
+function StoredMusicOutput() {
+  const setup = useGenerationSetupStore(
+    (state) => state.setupByScope['test:music'],
+  );
+  return (
+    <GenerationSetupOutputSection
+      capabilities={MUSIC_CAPABILITIES}
+      onResetField={() => {}}
+      onSetField={(key, value) =>
+        useGenerationSetupStore
+          .getState()
+          .setField('test:music', key, value, buildSetup().values)
+      }
+      reasons={{}}
+      setup={setup}
+    />
+  );
+}
+
+describe('controlled lyrics editing', () => {
+  it.each([
+    MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
+    MODEL_KEYS.FAL_LYRIA3_PRO,
+    MODEL_KEYS.MUREKA_V9,
+  ])(
+    'preserves spaces and Enter through store normalization for %s',
+    async (modelKey) => {
+      useGenerationSetupStore.setState({
+        setupByScope: { 'test:music': buildSetup({ modelKey }) },
+      });
+      render(<StoredMusicOutput />);
+      const user = userEvent.setup();
+      const lyrics = screen.getByLabelText('Lyrics');
+      await user.type(lyrics, 'Verse ');
+      expect(lyrics).toHaveValue('Verse ');
+      await user.type(lyrics, 'one{Enter}');
+      expect(lyrics).toHaveValue('Verse one\n');
+      await user.type(lyrics, 'Chorus');
+      expect(
+        useGenerationSetupStore.getState().setupByScope['test:music'].values
+          .lyrics,
+      ).toBe('Verse one\nChorus');
+    },
+  );
 });

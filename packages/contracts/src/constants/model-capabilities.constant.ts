@@ -1488,7 +1488,7 @@ export function normalizeMusicSettings(
     instrumental,
     lyrics:
       capability.hasLyrics && instrumental !== true
-        ? settings.lyrics?.trim() || undefined
+        ? settings.lyrics
         : undefined,
   };
 }

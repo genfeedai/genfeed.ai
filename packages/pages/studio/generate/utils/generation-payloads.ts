@@ -128,6 +128,7 @@ export function buildMusicPayload(
     autoSelectModel: isAutoSelectModel,
     folder: promptData.folder || undefined,
     ...normalized,
+    lyrics: normalized.lyrics?.trim() || undefined,
     label: `music-${Date.now()}`,
     model: isAutoSelectModel ? undefined : modelKey,
     outputs: promptData.outputs || 1,

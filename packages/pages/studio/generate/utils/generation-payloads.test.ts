@@ -195,7 +195,7 @@ describe('buildMusicPayload', () => {
 
   it('carries lyrics through for a model that supports them', () => {
     const payload = buildMusicPayload(
-      makePromptData({ lyrics: 'Verse one\nChorus' }),
+      makePromptData({ lyrics: '  Verse one\nChorus \n' }),
       MODEL_KEYS.FAL_ELEVENLABS_MUSIC,
       30,
     );

@@ -157,9 +157,9 @@ describe('music settings contract', () => {
   it('uses Eleven Music defaults and clears instrumental lyrics', () => {
     expect(
       normalizeMusicSettings(MODEL_KEYS.FAL_ELEVENLABS_MUSIC, {
-        lyrics: '  verse  ',
+        lyrics: '  verse  \n',
       }),
-    ).toEqual({ duration: 30, instrumental: false, lyrics: 'verse' });
+    ).toEqual({ duration: 30, instrumental: false, lyrics: '  verse  \n' });
     expect(
       normalizeMusicSettings(MODEL_KEYS.FAL_ELEVENLABS_MUSIC, {
         duration: 17,
