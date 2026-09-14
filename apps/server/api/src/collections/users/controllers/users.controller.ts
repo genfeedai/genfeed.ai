@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
+import { CreateAvatarUploadDto } from '@api/collections/users/dto/create-avatar-upload.dto';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
@@ -208,7 +209,7 @@ export class UsersController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async getAvatarUploadUrl(
     @CurrentUser() user: User,
-    @Body() body: { contentType: string },
+    @Body() body: CreateAvatarUploadDto,
   ) {
     const key = `${user.organizationId}/${user.userId ?? user.id}-${Date.now()}`;
 
