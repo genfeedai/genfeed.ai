@@ -29,7 +29,11 @@ const mocks = vi.hoisted(() => ({
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
   const t = translateFromCatalog('pages.brandOsSettings');
-  return { useTranslations: () => t };
+  const common = translateFromCatalog('common.actions');
+  return {
+    useTranslations: (namespace: string) =>
+      namespace === 'common.actions' ? common : t,
+  };
 });
 vi.mock('@hooks/auth/use-user-role/use-user-role', () => ({
   useUserRole: () => mocks.role,
@@ -449,5 +453,54 @@ describe('Brand OS revision settings', () => {
         }),
       ),
     );
+  });
+  it('keeps approved revisions editable when export validation fails and retries only export metadata', async () => {
+    mocks.listBrandOsRevisions.mockResolvedValue([
+      revision({ status: 'APPROVED' }),
+    ]);
+    mocks.getBrandOsExport.mockRejectedValueOnce(
+      new Error('Approved brand identity is missing.'),
+    );
+    await renderSettings();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Approved brand identity is missing.',
+    );
+    expect(
+      screen.getByRole('combobox', { name: 'Revision history' }),
+    ).toBeEnabled();
+    expect(screen.getByLabelText('Description')).toBeEnabled();
+    expect(
+      screen.getByRole('button', { name: 'Save as new draft' }),
+    ).toBeEnabled();
+    fireEvent.change(screen.getByLabelText('Description'), {
+      target: { value: 'Repaired draft identity' },
+    });
+    mocks.getBrandOsExport.mockResolvedValue(
+      exportState({ state: 'private', revisionId: 'revision-1' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Retry', exact: true }));
+    await screen.findByText('design.md · private');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Description')).toHaveValue(
+      'Repaired draft identity',
+    );
+    expect(mocks.listBrandOsRevisions).toHaveBeenCalledTimes(1);
+    expect(mocks.getBrandOsExport).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not expose a revision editor when the revision history request fails', async () => {
+    mocks.listBrandOsRevisions.mockRejectedValueOnce(
+      new Error('Revision history unavailable.'),
+    );
+    render(
+      <BrandOsSettingsCard brandId="brand-1" onRefreshBrand={mocks.refresh} />,
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Revision history unavailable.',
+    );
+    expect(screen.queryByLabelText('Description')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Refresh history' }),
+    ).toBeEnabled();
   });
 });

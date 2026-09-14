@@ -41,6 +41,7 @@ export default function BrandOsSettingsCard({
   onRefreshBrand,
 }: BrandOsSettingsCardProps) {
   const t = useTranslations('pages.brandOsSettings');
+  const common = useTranslations('common.actions');
   const role = useUserRole();
   const canManage = role === MemberRole.ADMIN || role === MemberRole.OWNER;
   const getService = useAuthedService((token: string) =>
@@ -55,6 +56,7 @@ export default function BrandOsSettingsCard({
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [exportError, setExportError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [reload, setReload] = useState(0);
   const mounted = useRef(true);
@@ -82,12 +84,22 @@ export default function BrandOsSettingsCard({
       setError(null);
       try {
         const service = await getService();
-        const [nextRevisions, nextExport] = await Promise.all([
+        const [revisionResult, exportResult] = await Promise.allSettled([
           service.listBrandOsRevisions(brandId, controller.signal),
           service.getBrandOsExport(brandId, controller.signal),
         ]);
         if (controller.signal.aborted) return;
-        setExportState(nextExport);
+        if (revisionResult.status === 'rejected') throw revisionResult.reason;
+        if (exportResult.status === 'fulfilled') {
+          setExportState(exportResult.value);
+          setExportError(null);
+        } else {
+          setExportState(null);
+          setExportError(
+            errorMessage(exportResult.reason, t('operationFailed')),
+          );
+        }
+        const nextRevisions = revisionResult.value;
         if (dirtyRef.current) {
           setNotice(t('newRevisions'));
           return;
@@ -207,6 +219,19 @@ export default function BrandOsSettingsCard({
     });
   }
 
+  async function refreshExport(service: BrandsService) {
+    try {
+      const state = await service.getBrandOsExport(brandId);
+      if (!mounted.current) return;
+      setExportState(state);
+      setExportError(null);
+    } catch (exportLoadError) {
+      if (!mounted.current) return;
+      setExportState(null);
+      setExportError(errorMessage(exportLoadError, t('operationFailed')));
+    }
+  }
+
   function approve() {
     if (!selected || dirty || !canManage) return;
     void perform(t('approving'), async (service) => {
@@ -227,7 +252,7 @@ export default function BrandOsSettingsCard({
       );
       setContent(approved.content);
       setNotice(t('approved', { version: approved.version }));
-      setExportState(await service.getBrandOsExport(brandId));
+      await refreshExport(service);
       await onRefreshBrand();
     });
   }
@@ -390,6 +415,23 @@ export default function BrandOsSettingsCard({
               </p>
             )}
           </>
+        )}
+        {exportError && (
+          <section
+            aria-label={t('exportLabel')}
+            className="space-y-3 border-t border-border pt-4"
+          >
+            <h3 className="text-sm font-semibold">{t('exportLabel')}</h3>
+            <p role="alert" className="text-sm text-destructive">
+              {exportError}
+            </p>
+            <Button
+              label={common('retry')}
+              isDisabled={busy || loading}
+              variant={ButtonVariant.SECONDARY}
+              onClick={() => void perform(t('exportLabel'), refreshExport)}
+            />
+          </section>
         )}
         {exportState && (
           <div
