@@ -35,3 +35,38 @@ describe('WorkflowEngineConverterService event isolation', () => {
     ).toBe(false);
   });
 });
+
+describe('WorkflowEngineConverterService analytics brand resolution', () => {
+  const converter = new WorkflowEngineConverterService();
+
+  it.each([
+    [{}, 'workflow-brand'],
+    [{ brandId: 'node-brand' }, 'node-brand'],
+  ])(
+    'resolves the workflow brand without replacing an explicit node brand',
+    (parameters, expectedBrandId) => {
+      const workflow = converter.convertToExecutableWorkflow({
+        brandId: 'workflow-brand',
+        id: 'workflow',
+        organizationId: 'organization',
+        userId: 'user',
+        nodes: [
+          {
+            id: 'analytics',
+            position: { x: 0, y: 0 },
+            type: 'genfeedAction',
+            data: {
+              label: 'Analytics',
+              config: { actionId: 'analyticsFeedback', parameters },
+            },
+          },
+        ],
+      });
+
+      expect(workflow.nodes[0]?.config).toEqual({
+        actionId: 'analyticsFeedback',
+        parameters: { brandId: expectedBrandId },
+      });
+    },
+  );
+});
