@@ -11,7 +11,8 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
  * const parentConditions = IngredientFilterUtil.buildParentFilter(query.parentId);
  *
  */
-export class IngredientFilterUtil {
+
+export const IngredientFilterUtil = {
   /**
    * Build parent filter conditions
    *
@@ -23,7 +24,7 @@ export class IngredientFilterUtil {
    * @param parentId - Parent ID from query params
    * @returns Filter conditions for parent field
    */
-  static buildParentFilter(
+  buildParentFilter(
     parentId: string | null | undefined,
   ): Record<string, unknown> {
     // Check if parent parameter is explicitly provided in query
@@ -44,7 +45,7 @@ export class IngredientFilterUtil {
 
     // No parent parameter provided - show BOTH parents and children
     return {};
-  }
+  },
 
   /**
    * Build folder filter conditions
@@ -57,7 +58,7 @@ export class IngredientFilterUtil {
    * @param folderId - Folder ID from query params
    * @returns Filter conditions for folder field
    */
-  static buildFolderFilter(
+  buildFolderFilter(
     folderId: string | null | undefined,
   ): Record<string, unknown> {
     const hasFolderParam = folderId !== undefined;
@@ -73,7 +74,7 @@ export class IngredientFilterUtil {
 
     // No folder parameter means the Library's "All Assets" view.
     return {};
-  }
+  },
 
   /**
    * Build training filter conditions
@@ -85,9 +86,7 @@ export class IngredientFilterUtil {
    * @param trainingId - Training ID from query params
    * @returns Filter conditions for training field
    */
-  static buildTrainingFilter(
-    trainingId: string | undefined,
-  ): Record<string, unknown> {
+  buildTrainingFilter(trainingId: string | undefined): Record<string, unknown> {
     if (trainingId) {
       if (isEntityId(trainingId)) {
         // Show only ingredients with this specific training
@@ -100,5 +99,5 @@ export class IngredientFilterUtil {
 
     // Default: exclude training ingredients
     return { trainingId: null };
-  }
-}
+  },
+};

@@ -82,14 +82,15 @@ const SHELF_FILTERS: Record<LibraryShelf, Record<string, unknown>> = {
  * const status = LibraryShelfUtil.buildStatusFilter(query.status, query.shelf);
  * // where: { AND: [{ organizationId, isDeleted }, shelf, status, ...] }
  */
-export class LibraryShelfUtil {
+
+export const LibraryShelfUtil = {
   /**
    * Build the Prisma `where` fragment for a shelf.
    *
    * Returns `{}` for an absent or unrecognised shelf so callers can spread it
    * unconditionally.
    */
-  static buildShelfFilter(shelf?: unknown): Record<string, unknown> {
+  buildShelfFilter(shelf?: unknown): Record<string, unknown> {
     const parsed = parseLibraryShelf(shelf);
 
     if (!parsed) {
@@ -97,7 +98,7 @@ export class LibraryShelfUtil {
     }
 
     return SHELF_FILTERS[parsed];
-  }
+  },
 
   /**
    * Build the status fragment for the Library list.
@@ -107,7 +108,7 @@ export class LibraryShelfUtil {
    * always return nothing. With no shelf, an explicit status list wins and the
    * fallback is `LIBRARY_DEFAULT_STATUSES`.
    */
-  static buildStatusFilter(
+  buildStatusFilter(
     status?: Array<IngredientStatus | string>,
     shelf?: unknown,
   ): Record<string, unknown> {
@@ -124,19 +125,19 @@ export class LibraryShelfUtil {
         in: explicit.length > 0 ? explicit : [...LIBRARY_DEFAULT_STATUSES],
       },
     };
-  }
+  },
 
   /**
    * Build the fragment for the Starred place. `isFavorite: false` is not a
    * destination in the Library — "not starred" is just All assets — so only an
    * explicit `true` narrows the query.
    */
-  static buildPlaceFilter(isFavorite?: boolean): Record<string, unknown> {
+  buildPlaceFilter(isFavorite?: boolean): Record<string, unknown> {
     return isFavorite === true ? { isFavorite: true } : {};
-  }
+  },
 
   /** The statuses the Library shows when no shelf and no filter are selected. */
-  static get defaultStatuses(): readonly IngredientStatus[] {
+  get defaultStatuses(): readonly IngredientStatus[] {
     return LIBRARY_DEFAULT_STATUSES;
-  }
-}
+  },
+};
