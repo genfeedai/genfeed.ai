@@ -6,6 +6,7 @@ import { ImagesService } from '@api/collections/images/services/images.service';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
+import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -30,7 +31,6 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { getErrorMessage } from '@libs/utils/error/get-error-message.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
-import type { Request } from 'express';
 
 const LEGACY_CONTROLLER_NAME = 'ImagesTransformationsController';
 
@@ -51,7 +51,7 @@ export class ImageUpscaleService {
   ) {}
 
   async upscaleImage(
-    request: Request,
+    request: RequestWithSelectedModel,
     imageId: string,
     user: User,
     imageEditDto: ImageEditDto,
