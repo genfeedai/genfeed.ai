@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsObject, IsString } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsObject, IsOptional, IsString } from 'class-validator';
 
 export class ValidateWorkflowConnectionDto {
   @IsString()
@@ -20,7 +20,8 @@ export class ValidateWorkflowConnectionDto {
 }
 
 export class ValidateWorkflowInputsDto {
+  @IsOptional()
   @IsObject()
-  @ApiProperty({ description: 'Workflow input values', type: Object })
-  readonly inputs!: Record<string, unknown>;
+  @ApiPropertyOptional({ description: 'Workflow input values', type: Object })
+  readonly inputs?: Record<string, unknown>;
 }
