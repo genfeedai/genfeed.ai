@@ -5,6 +5,10 @@ import {
   ImportWorkflowDto,
 } from '@api/collections/workflows/dto/execute-workflow.dto';
 import {
+  ValidateWorkflowConnectionDto,
+  ValidateWorkflowInputsDto,
+} from '@api/collections/workflows/dto/validate-workflow-builder.dto';
+import {
   getNodeDefinition,
   getNodesByCategory,
   UNIFIED_NODE_REGISTRY as NODE_REGISTRY,
@@ -78,15 +82,9 @@ export class WorkflowBuilderController {
 
   @Post('validate-connection')
   @LogMethod({ logEnd: false, logError: true, logStart: true })
-  validateNodeConnection(
-    @Body()
-    body: {
-      sourceType: string;
-      sourceHandle: string;
-      targetType: string;
-      targetHandle: string;
-    },
-  ): { data: { valid: boolean; reason?: string } } {
+  validateNodeConnection(@Body() body: ValidateWorkflowConnectionDto): {
+    data: { valid: boolean; reason?: string };
+  } {
     const { sourceType, sourceHandle, targetType, targetHandle } = body;
     const valid = validateConnection(
       sourceType,
@@ -247,7 +245,7 @@ export class WorkflowBuilderController {
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async validateWorkflowReference(
     @Param('workflowId') workflowId: string,
-    @Body() body: { inputs: Record<string, unknown> },
+    @Body() body: ValidateWorkflowInputsDto,
     @CurrentUser() user: User,
   ): Promise<{ data: { isValid: boolean; errors: string[] } }> {
     const workflow = await this.workflowsService.findOwnedOrThrow(workflowId, {
