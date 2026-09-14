@@ -13,6 +13,7 @@ vi.mock('next-intl', async () => {
 import IssuesList from './issues-list';
 
 const mocks = vi.hoisted(() => ({
+  logError: vi.fn(),
   findOne: vi.fn(),
   getService: vi.fn(),
   list: vi.fn(),
@@ -20,6 +21,10 @@ const mocks = vi.hoisted(() => ({
   replace: vi.fn(),
   searchParams: new URLSearchParams(),
   updateTask: vi.fn(),
+}));
+
+vi.mock('@services/core/logger.service', () => ({
+  logger: { error: mocks.logError },
 }));
 
 vi.mock('@services/core/notifications.service', () => ({
@@ -48,6 +53,18 @@ describe('IssuesList view controls', () => {
     mocks.list.mockReset();
     mocks.list.mockResolvedValue([]);
     mocks.getService.mockResolvedValue({ list: mocks.list });
+  });
+
+  it('reports a failed list request', async () => {
+    const error = new Error('Request failed');
+    mocks.list.mockRejectedValueOnce(error);
+    render(<IssuesList />);
+    await waitFor(() =>
+      expect(mocks.logError).toHaveBeenCalledWith(
+        'Failed to load tasks',
+        error,
+      ),
+    );
   });
 
   it('shows a table skeleton while loading before the empty card', async () => {

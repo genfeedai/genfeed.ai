@@ -12,6 +12,7 @@ import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-serv
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import { useBrandInterview } from '@hooks/utils/use-brand-interview/use-brand-interview';
 import type { BrandExampleContext } from '@props/settings/interview-content.props';
+import { logger } from '@services/core/logger.service';
 import { BrandInterviewService } from '@services/social/brand-interview.service';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
@@ -511,9 +512,11 @@ export default function BrandSettingsInterviewPage() {
           setIdleScore(result.overallScore);
         }
       } catch (err: unknown) {
-        const e = err as Error;
-        if (e?.name !== 'AbortError') {
-          // decorative score only
+        if (
+          !controller.signal.aborted &&
+          !(err instanceof Error && err.name === 'AbortError')
+        ) {
+          logger.error('Failed to load interview score', err);
         }
       }
     };
