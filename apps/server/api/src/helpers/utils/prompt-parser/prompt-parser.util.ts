@@ -7,8 +7,72 @@ import type {
 import { PromptCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 
-export class PromptParser {
-  static parsePrompt(
+function buildPromptObject(
+  brand: IPromptBrandContext | null | undefined,
+  originalPrompt: string,
+): IPromptObject {
+  const promptData: IPromptObject = {
+    prompt: originalPrompt,
+  };
+
+  if (brand) {
+    promptData.brand = {
+      backgroundColor: brand?.backgroundColor,
+      description: brand?.description || '',
+      label: brand?.label || '',
+      primaryColor: brand?.primaryColor,
+      secondaryColor: brand?.secondaryColor,
+      systemPrompt: brand?.text || '',
+    };
+  }
+
+  return promptData;
+}
+
+function isValidPromptCategory(category: string): category is PromptCategory {
+  return Object.values(PromptCategory).includes(category as PromptCategory);
+}
+
+function normalizeType(type: string): string {
+  if (!type) {
+    return type;
+  }
+
+  // Already the canonical Prisma SCREAMING_SNAKE form (e.g.
+  // 'MODELS_PROMPT_IMAGE') — pass through unmodified.
+  if (isValidPromptCategory(type)) {
+    return type;
+  }
+
+  // Training models (special case) — checked before the generic hyphen
+  // normalization below since 'genfeedai'/'trainer' aren't literal
+  // category spellings.
+  const key = type.toLowerCase();
+  if (key.includes('genfeedai') || key.includes('trainer')) {
+    return PromptCategory.MODELS_PROMPT_TRAINING;
+  }
+
+  // Legacy lowercase-hyphen spellings (e.g. 'models-prompt-image') map onto
+  // the Prisma SCREAMING_SNAKE form.
+  if (
+    key.startsWith('models-prompt-') ||
+    key.startsWith('presets-') ||
+    key.startsWith('brand-') ||
+    key.startsWith('storyboard-') ||
+    key.startsWith('post-content-') ||
+    key.startsWith('post-title-')
+  ) {
+    return key.replace(/-/g, '_').toUpperCase();
+  }
+
+  // Model category should come from DB via ModelsGuard, not guessed from strings
+  // DTOs validate with @IsEnum(PromptCategory) - unknown types should error
+  throw new Error(
+    `Invalid prompt category: ${type}. Category must be a valid PromptCategory enum value.`,
+  );
+}
+export const PromptParser = {
+  parsePrompt(
     _configService: ConfigService | null,
     options: IPromptParserOptions,
   ): IPromptParserResult {
@@ -21,15 +85,15 @@ export class PromptParser {
       );
     }
 
-    const normalizedType = PromptParser.normalizeType(type);
+    const normalizedType = normalizeType(type);
 
-    if (!PromptParser.isValidPromptCategory(normalizedType)) {
+    if (!isValidPromptCategory(normalizedType)) {
       throw new Error(
         `Unsupported prompt type: ${String(type)}. Supported types: ${PromptParser.getSupportedTypes().join(', ')}`,
       );
     }
 
-    const promptObject = PromptParser.buildPromptObject(brand, originalPrompt);
+    const promptObject = buildPromptObject(brand, originalPrompt);
     const promptString = JSON.stringify(promptObject);
 
     return {
@@ -37,78 +101,11 @@ export class PromptParser {
       promptObject,
       promptString,
     };
-  }
+  },
 
-  private static buildPromptObject(
-    brand: IPromptBrandContext | null | undefined,
-    originalPrompt: string,
-  ): IPromptObject {
-    const promptData: IPromptObject = {
-      prompt: originalPrompt,
-    };
-
-    if (brand) {
-      promptData.brand = {
-        backgroundColor: brand?.backgroundColor,
-        description: brand?.description || '',
-        label: brand?.label || '',
-        primaryColor: brand?.primaryColor,
-        secondaryColor: brand?.secondaryColor,
-        systemPrompt: brand?.text || '',
-      };
-    }
-
-    return promptData;
-  }
-
-  private static isValidPromptCategory(
-    category: string,
-  ): category is PromptCategory {
-    return Object.values(PromptCategory).includes(category as PromptCategory);
-  }
-
-  private static normalizeType(type: string): string {
-    if (!type) {
-      return type;
-    }
-
-    // Already the canonical Prisma SCREAMING_SNAKE form (e.g.
-    // 'MODELS_PROMPT_IMAGE') — pass through unmodified.
-    if (PromptParser.isValidPromptCategory(type)) {
-      return type;
-    }
-
-    // Training models (special case) — checked before the generic hyphen
-    // normalization below since 'genfeedai'/'trainer' aren't literal
-    // category spellings.
-    const key = type.toLowerCase();
-    if (key.includes('genfeedai') || key.includes('trainer')) {
-      return PromptCategory.MODELS_PROMPT_TRAINING;
-    }
-
-    // Legacy lowercase-hyphen spellings (e.g. 'models-prompt-image') map onto
-    // the Prisma SCREAMING_SNAKE form.
-    if (
-      key.startsWith('models-prompt-') ||
-      key.startsWith('presets-') ||
-      key.startsWith('brand-') ||
-      key.startsWith('storyboard-') ||
-      key.startsWith('post-content-') ||
-      key.startsWith('post-title-')
-    ) {
-      return key.replace(/-/g, '_').toUpperCase();
-    }
-
-    // Model category should come from DB via ModelsGuard, not guessed from strings
-    // DTOs validate with @IsEnum(PromptCategory) - unknown types should error
-    throw new Error(
-      `Invalid prompt category: ${type}. Category must be a valid PromptCategory enum value.`,
-    );
-  }
-
-  static getSupportedTypes(): string[] {
+  getSupportedTypes(): string[] {
     return Object.values(PromptCategory);
-  }
+  },
 
   /**
    * Maps model key to model-specific system prompt template key
@@ -119,7 +116,7 @@ export class PromptParser {
    * @param modelKey - The model key from ModelKey enum (e.g., 'black-forest-labs/flux-2-pro')
    * @returns Template key for model-specific system prompt (e.g., 'system.model.flux-2-pro')
    */
-  static getModelSystemPromptTemplateKey(modelKey: string): string {
+  getModelSystemPromptTemplateKey(modelKey: string): string {
     if (!modelKey) {
       return '';
     }
@@ -132,7 +129,7 @@ export class PromptParser {
     const modelName = parts.length > 1 ? parts[parts.length - 1] : modelKey;
 
     return `system.model.${modelName}`;
-  }
+  },
 
   /**
    * Maps PromptCategory to system prompt template key
@@ -143,7 +140,7 @@ export class PromptParser {
    * @param category - The normalized prompt category
    * @returns Template key for system prompt (e.g., 'system.instagram.content')
    */
-  static getSystemPromptTemplateKey(category: string): string {
+  getSystemPromptTemplateKey(category: string): string {
     // Map category to template key following pattern: system.{platform/type}.{subtype}
     const categoryMap: Record<string, string> = {
       [PromptCategory.BRAND_DESCRIPTION]: 'system.brand-description',
@@ -168,5 +165,5 @@ export class PromptParser {
     };
 
     return categoryMap[category] || 'system.default';
-  }
-}
+  },
+};

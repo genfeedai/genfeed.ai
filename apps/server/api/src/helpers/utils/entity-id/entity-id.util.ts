@@ -7,11 +7,12 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
  * Entity ids are canonical Prisma string ids (cuid/cuid2/uuid/ulid) — see
  * `isEntityId`.
  */
-export class EntityIdUtil {
+
+export const EntityIdUtil = {
   /**
    * Validate that a string is a supported entity id.
    */
-  static validate(id: string, fieldName: string = 'id'): string {
+  validate(id: string, fieldName: string = 'id'): string {
     if (!id || typeof id !== 'string') {
       throw new ValidationException(
         `${fieldName} is required and must be a string`,
@@ -25,12 +26,12 @@ export class EntityIdUtil {
     }
 
     return id;
-  }
+  },
 
   /**
    * Validate multiple entity IDs at once.
    */
-  static validateMany(ids: string[], fieldName: string = 'ids'): string[] {
+  validateMany(ids: string[], fieldName: string = 'ids'): string[] {
     if (!Array.isArray(ids)) {
       throw new ValidationException(`${fieldName} must be an array`);
     }
@@ -42,24 +43,24 @@ export class EntityIdUtil {
     return ids.map((id, index) =>
       EntityIdUtil.validate(id, `${fieldName}[${index}]`),
     );
-  }
+  },
 
   /**
    * Safely validate a string id without throwing.
    */
-  static toValidId(id: string): string | null {
+  toValidId(id: string): string | null {
     if (!isEntityId(id)) {
       return null;
     }
 
     return id;
-  }
+  },
 
   /**
    * Normalize a value to an id string.
    * Returns undefined for invalid/empty values (does not throw).
    */
-  static normalizeId(value: string | null | undefined): string | undefined {
+  normalizeId(value: string | null | undefined): string | undefined {
     if (!value) {
       return undefined;
     }
@@ -70,10 +71,10 @@ export class EntityIdUtil {
 
     const trimmed = value.trim();
     return trimmed === '' ? undefined : trimmed;
-  }
+  },
 
   /** Resolve a canonical Prisma id, falling back to the requested id. */
-  static resolveCanonicalId(entity: unknown, fallbackId: string): string {
+  resolveCanonicalId(entity: unknown, fallbackId: string): string {
     if (typeof entity !== 'object' || entity === null) {
       return fallbackId;
     }
@@ -82,12 +83,12 @@ export class EntityIdUtil {
     return typeof canonicalId === 'string' && canonicalId.length > 0
       ? canonicalId
       : fallbackId;
-  }
+  },
 
   /**
    * Normalize an array of values to id strings, filtering out invalid entries.
    */
-  static normalizeIds(
+  normalizeIds(
     values: Array<string | null | undefined> | undefined,
   ): string[] | undefined {
     if (!values || !Array.isArray(values)) {
@@ -97,19 +98,19 @@ export class EntityIdUtil {
     return values
       .map((v) => EntityIdUtil.normalizeId(v))
       .filter((v): v is string => v !== undefined);
-  }
+  },
 
   /**
    * Check if a value is a supported entity id string.
    */
-  static isValid(id: unknown): id is string {
+  isValid(id: unknown): id is string {
     return isEntityId(id);
-  }
+  },
 
   /**
    * Validate and enrich DTO with user context
    */
-  static enrichWithUserContext(
+  enrichWithUserContext(
     dto: Record<string, unknown>,
     user: Pick<AuthenticatedUser, 'userId' | 'organizationId' | 'id'>,
   ): Record<string, unknown> {
@@ -125,13 +126,13 @@ export class EntityIdUtil {
         : undefined,
       userId: EntityIdUtil.validate(userId, 'userId'),
     };
-  }
+  },
 
   /**
    * Convert relationship id field (parent, folder, etc.) from various input types.
    * Handles: string ids, null (remove relationship), empty objects, invalid data.
    */
-  static async convertRelationshipField(
+  async convertRelationshipField(
     value: unknown,
     fieldName: string,
   ): Promise<string | null> {
@@ -160,5 +161,5 @@ export class EntityIdUtil {
     throw new ValidationException(
       `Invalid ${fieldName} type. Expected string, null, or undefined, got ${typeof value}`,
     );
-  }
-}
+  },
+};
