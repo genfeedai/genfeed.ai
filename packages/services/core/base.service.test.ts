@@ -1,4 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
 
 // Mock dependencies
 function normalizeRelationshipGraph<T>(value: T): T {
@@ -79,17 +80,13 @@ vi.mock('@services/core/logger.service', () => ({
   },
 }));
 
-vi.mock('@genfeedai/utils/validation/type-validator.util', () => ({
-  TypeValidator: {
-    assertType: vi.fn(),
-    isArray: vi.fn((val) => Array.isArray(val)),
-  },
-}));
-
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { PagesService } from '@services/content/pages.service';
 // Import after mocks
-import { BaseService } from '@services/core/base.service';
+import {
+  BaseService,
+  type JsonApiResponseDocument,
+} from '@services/core/base.service';
 import { logger } from '@services/core/logger.service';
 
 // Create a concrete implementation for testing
@@ -113,25 +110,30 @@ class TestService extends BaseService<TestModel> {
     super('/test', token, TestModel, mockSerializer);
   }
 
+  public setValidationSchema(schema: z.ZodType) {
+    this.responseSchema = schema;
+    this.itemSchema = schema;
+  }
+
   // Expose protected methods for testing
   public testMapMany(document: unknown) {
-    return this.mapMany(document as any);
+    return this.mapMany(document as JsonApiResponseDocument);
   }
 
   public testMapOne(document: unknown) {
-    return this.mapOne(document as any);
+    return this.mapOne(document as JsonApiResponseDocument);
   }
 
   public testExtractResource<D>(document: unknown) {
-    return this.extractResource<D>(document as any);
+    return this.extractResource<D>(document as JsonApiResponseDocument);
   }
 
   public testExtractCollection<D>(document: unknown) {
-    return this.extractCollection<D>(document as any);
+    return this.extractCollection<D>(document as JsonApiResponseDocument);
   }
 
   public getInstanceForTest() {
-    return (this as any).instance;
+    return vi.mocked(this.instance);
   }
 
   public testHandleOperationError(operation: string, error: unknown) {
@@ -169,7 +171,10 @@ describe('BaseService', () => {
 
   describe('constructor', () => {
     it('should construct with correct base URL', () => {
-      expect((service as any).baseURL).toBe('https://api.genfeed.ai/v1/test');
+      expect(service).toHaveProperty(
+        'baseURL',
+        'https://api.genfeed.ai/v1/test',
+      );
     });
 
     it('should store model reference', () => {
@@ -274,7 +279,10 @@ describe('BaseService', () => {
         'token-1',
       );
       expect(instance).toBeInstanceOf(TestService);
-      expect((instance as any).baseURL).toBe('https://api.genfeed.ai/v1/test');
+      expect(instance).toHaveProperty(
+        'baseURL',
+        'https://api.genfeed.ai/v1/test',
+      );
     });
 
     it('should reuse the same instance for the same subclass and token', () => {
@@ -318,7 +326,8 @@ describe('BaseService', () => {
       expect(instance1).toBeInstanceOf(TestService);
       expect(instance2).toBeInstanceOf(OtherTestService);
       expect(instance1).not.toBe(instance2);
-      expect((instance2 as any).baseURL).toBe(
+      expect(instance2).toHaveProperty(
+        'baseURL',
         'https://api.genfeed.ai/v1/other',
       );
     });
@@ -336,10 +345,12 @@ describe('BaseService', () => {
       );
 
       expect(instance1).not.toBe(instance2);
-      expect((instance1 as any).baseURL).toBe(
+      expect(instance1).toHaveProperty(
+        'baseURL',
         'https://api.genfeed.ai/v1/org/org-1/test',
       );
-      expect((instance2 as any).baseURL).toBe(
+      expect(instance2).toHaveProperty(
+        'baseURL',
         'https://api.genfeed.ai/v1/org/org-1/test',
       );
     });
@@ -357,10 +368,12 @@ describe('BaseService', () => {
       );
 
       expect(instance1).not.toBe(instance2);
-      expect((instance1 as any).baseURL).toBe(
+      expect(instance1).toHaveProperty(
+        'baseURL',
         'https://api.genfeed.ai/v1/org/org-1/test',
       );
-      expect((instance2 as any).baseURL).toBe(
+      expect(instance2).toHaveProperty(
+        'baseURL',
         'https://api.genfeed.ai/v1/org/org-2/test',
       );
     });
@@ -1237,5 +1250,32 @@ describe('HTTPBaseService handleRequest signal merging', () => {
     // though a distinct per-request signal was also provided.
     svc.cancelPendingRequests();
     expect(composedSignal.aborted).toBe(true);
+  });
+});
+
+describe('BaseService response schemas', () => {
+  it('rejects invalid single responses before model construction', async () => {
+    const service = new TestService('token');
+    service.setValidationSchema(z.object({ id: z.string().min(1) }));
+    await expect(service.testMapOne({ data: { id: 42 } })).rejects.toThrow();
+  });
+
+  it('rejects an invalid collection member', async () => {
+    const service = new TestService('token');
+    service.setValidationSchema(z.object({ id: z.string().min(1) }));
+    await expect(
+      service.testMapMany({ data: [{ id: 'valid' }, { id: '' }] }),
+    ).rejects.toThrow();
+  });
+
+  it('preserves fields outside the validation schema during model construction', async () => {
+    const service = new TestService('token');
+    service.setValidationSchema(z.object({ id: z.string() }));
+    expect(
+      await service.testMapOne({ data: { id: 'one', name: 'Unchanged' } }),
+    ).toEqual(new TestModel({ id: 'one', name: 'Unchanged' }));
+    expect(
+      await service.testMapMany({ data: [{ id: 'two', name: 'Preserved' }] }),
+    ).toEqual([new TestModel({ id: 'two', name: 'Preserved' })]);
   });
 });
