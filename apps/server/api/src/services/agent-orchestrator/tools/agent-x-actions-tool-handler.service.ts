@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
@@ -308,11 +309,7 @@ export class AgentXActionsToolHandler {
     if (this.twitterService) {
       return this.twitterService;
     }
-    try {
-      return this.moduleRef?.get(TwitterService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, TwitterService);
   }
 
   private unavailableResult(): AgentToolResult {

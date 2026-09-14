@@ -6,6 +6,10 @@ import { describe, expect, it } from 'vitest';
 class OptionalService {}
 
 describe('resolveOptionalProvider', () => {
+  it('returns undefined when ModuleRef is absent', () => {
+    expect(resolveOptionalProvider(undefined, OptionalService)).toBeUndefined();
+  });
+
   it.each([OptionalService, 'optional-service', Symbol('optional-service')])(
     'resolves a registered class, string or symbol token',
     async (token) => {

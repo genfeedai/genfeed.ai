@@ -1,5 +1,6 @@
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import type {
   OpenRouterChatCompletionParams,
@@ -134,11 +135,7 @@ export class ContentQualityScorerService {
     if (this.harnessGenerationService) {
       return this.harnessGenerationService;
     }
-    try {
-      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, HarnessGenerationService);
   }
 
   /**

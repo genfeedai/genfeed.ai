@@ -108,7 +108,7 @@
     "symbol": "AvatarVideoGenerationService.resolveIdentityInputs"
   },
   {
-    "actual": 1189,
+    "actual": 1186,
     "file": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
@@ -330,7 +330,7 @@
     "symbol": "PromptBuilderService.buildPrompt"
   },
   {
-    "actual": 1079,
+    "actual": 1077,
     "file": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts"

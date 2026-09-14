@@ -4,6 +4,7 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import {
   calculateEstimatedTextCredits,
   getMinimumTextCredits,
@@ -340,11 +341,7 @@ DM text:`;
     if (this.harnessGenerationService) {
       return this.harnessGenerationService;
     }
-    try {
-      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, HarnessGenerationService);
   }
 
   private async assertCreditsAvailable(organizationId: string): Promise<void> {
