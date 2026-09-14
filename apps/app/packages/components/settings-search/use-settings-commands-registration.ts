@@ -4,6 +4,7 @@ import {
   buildSettingsSearchCatalog,
   resolveSettingsSearchHref,
 } from '@app-config/settings-search-catalog';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
@@ -100,17 +101,25 @@ export function useSettingsCommandsRegistration(currentApp?: AppContext): void {
   const { confirmedOrganizationSlug, isRouteConfirmed, organizations, status } =
     useRoutedOrganization();
   const routeOrgSlug = parseScopedAppPath(pathname)?.orgSlug;
+  const isKeylessScopedRoute =
+    Boolean(routeOrgSlug) &&
+    !isBetterAuthEnabled() &&
+    isRouteConfirmed &&
+    status === 'unscoped';
   const isContextReady = routeOrgSlug
-    ? status === 'matched' &&
-      isRouteConfirmed &&
-      confirmedOrganizationSlug === routeOrgSlug
+    ? isKeylessScopedRoute ||
+      (status === 'matched' &&
+        isRouteConfirmed &&
+        confirmedOrganizationSlug === routeOrgSlug)
     : status === 'matched' || status === 'unscoped';
   const brandOrgSlug = getBrandOrganizationSlug(selectedBrand);
   const activeOrganizationSlug = !routeOrgSlug
     ? organizations.find((organization) => organization.isActive)?.slug
     : '';
   const orgSlug = isContextReady
-    ? confirmedOrganizationSlug || activeOrganizationSlug || brandOrgSlug
+    ? (isKeylessScopedRoute ? routeOrgSlug : confirmedOrganizationSlug) ||
+      activeOrganizationSlug ||
+      brandOrgSlug
     : '';
   const brandSlug =
     orgSlug && brandOrgSlug === orgSlug ? (selectedBrand?.slug ?? '') : '';

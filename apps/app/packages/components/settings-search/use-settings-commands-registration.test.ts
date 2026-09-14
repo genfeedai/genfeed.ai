@@ -7,6 +7,10 @@ const mockAccess = vi.hoisted(() => ({
   canRender: true,
   redirectTarget: null as string | null,
 }));
+const mockAuthEnabled = vi.hoisted(() => ({ value: true }));
+vi.mock('@genfeedai/auth-client', () => ({
+  isBetterAuthEnabled: () => mockAuthEnabled.value,
+}));
 const mockDesktop = vi.hoisted(() => ({ value: false }));
 const mockBilling = vi.hoisted(() => ({ value: false }));
 vi.mock(
@@ -74,6 +78,7 @@ function getRegisteredIds(): string[] {
 describe('useSettingsCommandsRegistration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAuthEnabled.value = true;
     mockAccess.canRender = true;
     mockAccess.redirectTarget = null;
     mockDesktop.value = false;
@@ -396,6 +401,59 @@ describe('useSettingsCommandsRegistration', () => {
       );
     },
   );
+
+  it.each([null, 'acme', 'other'])(
+    'preserves keyless scoped organization access with brand organization %s',
+    (brandOrgSlug) => {
+      mockAuthEnabled.value = false;
+      mockPathname.value = '/acme/~/settings/general';
+      mockUseRoutedOrganization.mockReturnValue({
+        confirmedOrganizationSlug: null,
+        isRouteConfirmed: true,
+        organizations: [],
+        status: 'unscoped',
+      });
+      if (brandOrgSlug)
+        mockUseBrand.mockReturnValue({
+          selectedBrand: {
+            slug: 'selected-brand',
+            organization: { slug: brandOrgSlug },
+          },
+        });
+      renderHook(() => useSettingsCommandsRegistration());
+      const commands = mockRegisterCommands.mock.calls.at(-1)?.[0] as {
+        id: string;
+        action: () => void;
+      }[];
+      const organizationCommand = commands.find(
+        (command) =>
+          command.id === 'settings-catalog:organization:/settings/general',
+      );
+      expect(organizationCommand).toBeDefined();
+      act(() => organizationCommand?.action());
+      expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/general');
+      expect(getRegisteredIds().some((id) => id.includes(':brand:'))).toBe(
+        brandOrgSlug === 'acme',
+      );
+    },
+  );
+
+  it('does not apply the keyless scoped bypass when authentication is enabled', () => {
+    mockPathname.value = '/acme/~/settings/general';
+    mockUseRoutedOrganization.mockReturnValue({
+      confirmedOrganizationSlug: null,
+      isRouteConfirmed: true,
+      organizations: [],
+      status: 'unscoped',
+    });
+    mockUseBrand.mockReturnValue({
+      selectedBrand: { slug: 'selected-brand', organization: { slug: 'acme' } },
+    });
+    renderHook(() => useSettingsCommandsRegistration());
+    expect(
+      getRegisteredIds().some((id) => /:(organization|brand):/.test(id)),
+    ).toBe(false);
+  });
 
   it('keeps the confirmed organization but omits a brand from another organization', () => {
     mockUseRoutedOrganization.mockReturnValue({

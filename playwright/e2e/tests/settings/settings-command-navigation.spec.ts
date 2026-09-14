@@ -19,7 +19,7 @@ test.describe('Settings command navigation', () => {
       test(`${host} reveals ${label} after navigation`, async ({
         authenticatedPage: page,
       }) => {
-        await page.setViewportSize({ height: 600, width: 1280 });
+        await page.setViewportSize({ height: 320, width: 1280 });
         await page.goto(host, { waitUntil: 'domcontentloaded' });
         await expectNoErrorOverlay(page);
 
@@ -39,7 +39,7 @@ test.describe('Settings command navigation', () => {
           new RegExp(`/settings/personal#${anchor}$`),
         );
         await expect(search).toBeHidden();
-        await expect(page.locator(`#${anchor}`)).toBeInViewport();
+        await expect(page.locator(`#${anchor}`)).toBeInViewport({ ratio: 1 });
         await expectNoErrorOverlay(page);
       });
     }
