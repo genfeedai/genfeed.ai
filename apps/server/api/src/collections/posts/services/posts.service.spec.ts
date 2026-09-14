@@ -111,6 +111,29 @@ describe('PostsService batchSchedule', () => {
     vi.clearAllMocks();
   });
 
+  it('preserves persisted and populated post values at direct-read boundaries', async () => {
+    const { post, service } = makeService();
+    const createdAt = new Date('2026-09-01T10:00:00Z');
+    const ingredients = [{ id: 'ingredient-1' }];
+    const row = {
+      createdAt,
+      credentialId: null,
+      id: 'post-1',
+      ingredients,
+      organizationId: 'org-1',
+      platform: null,
+    };
+    post.findMany.mockResolvedValue([row]);
+
+    const found = await service.findByIds(['post-1'], 'org-1');
+    const children = await service.getChildren('parent-1');
+
+    expect(found).toEqual([row]);
+    expect(children).toEqual([row]);
+    expect(found[0]?.createdAt).toBe(createdAt);
+    expect(found[0]?.ingredients).toBe(ingredients);
+  });
+
   it('writes canonical scalar IDs and converts public arrays to Prisma relations', async () => {
     const { post, service } = makeService();
 

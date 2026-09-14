@@ -184,7 +184,7 @@ export class TrackedLinksService {
       organizationId,
     });
 
-    return trackedLink as unknown as TrackedLink;
+    return trackedLink;
   }
 
   /**
@@ -353,7 +353,7 @@ export class TrackedLinksService {
       linkId,
     );
 
-    return link as unknown as TrackedLink;
+    return link;
   }
 
   /**
@@ -380,7 +380,7 @@ export class TrackedLinksService {
       orderBy: { createdAt: 'desc' },
       where: scopedWhere(organizationId, { contentId }),
     });
-    return results as unknown as TrackedLink[];
+    return results;
   }
 
   /**
@@ -406,7 +406,7 @@ export class TrackedLinksService {
       orderBy: { createdAt: 'desc' },
       where,
     });
-    return results as unknown as TrackedLink[];
+    return results;
   }
 
   /**
@@ -745,7 +745,7 @@ export class TrackedLinksService {
     linkId: string,
     organizationId: string,
     updates: TrackedLinkUpdatePayload,
-  ): Promise<TrackedLink> {
+  ): Promise<TrackedLink | null> {
     // Allowlist: only safe, user-editable fields are forwarded to the DB.
     // shortCode, organizationId, stats, etc. must never be mutated via this path.
     const safeData: TrackedLinkUpdatePayload = {};
@@ -778,7 +778,7 @@ export class TrackedLinksService {
     });
 
     this.logger.log(`Tracked link updated: ${linkId}`);
-    return result as unknown as TrackedLink;
+    return result;
   }
 
   /**
