@@ -160,8 +160,7 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
       accessTokenExpiry: new Date().toISOString(),
       accessTokenSecret: '',
       brandId,
-      externalHandle: 'https://test-ghost-blog.example.com',
-      externalId: 'ghost-site-e2e',
+      externalId: 'https://test-ghost-blog.example.com',
       isConnected: true,
       oauthToken: '',
       oauthTokenSecret: '',
@@ -182,6 +181,8 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
     expect(persisted?.platform).toBe(
       toPrismaCredentialPlatform(CredentialPlatform.GHOST),
     );
+    expect(persisted?.externalId).toBe(createDto.externalId);
+    expect(persisted?.externalHandle).toBeFalsy();
     expect(persisted?.organizationId).toBe(organizationId);
     expect(persisted?.isDeleted).toBe(false);
     expect(persisted?.accessToken).toBeTruthy();
@@ -205,8 +206,7 @@ describeWithDatabase('Publish flow real-backend proof (#334)', () => {
       {
         accessToken: EncryptionUtil.encrypt(plaintextApiKey),
         brandId,
-        externalHandle: ghostUrl,
-        externalId: 'ghost-site-e2e',
+        externalId: ghostUrl,
         id: credentialId,
         isConnected: true,
         isDeleted: false,
