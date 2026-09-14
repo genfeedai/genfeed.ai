@@ -8,13 +8,12 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   FormDropdownOption as DropdownFieldOption,
-  IAsset,
   IFolder,
-  IImage,
   IModel,
   ITraining,
 } from '@genfeedai/contracts/interfaces';
 import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { StudioGenerationMeter } from '@props/prompt-bars/prompt-bar-generation-meter.props';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type {
@@ -78,9 +77,9 @@ export interface PromptBarEssentialsProps {
   formatIcon: ReactNode;
   videoDurations: number[];
 
-  references: (IAsset | IImage)[];
+  references: MediaReference[];
   referenceSource: 'brand' | 'ingredient' | '';
-  setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
+  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
   setReferenceSource: Dispatch<SetStateAction<'' | 'brand' | 'ingredient'>>;
   folders?: IFolder[];
 
@@ -167,10 +166,10 @@ export interface PromptBarQuickOptionsProps {
 
   folders?: IFolder[];
 
-  references: (IAsset | IImage)[];
-  setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
-  endFrame: IAsset | IImage | null;
-  setEndFrame: Dispatch<SetStateAction<IAsset | IImage | null>>;
+  references: MediaReference[];
+  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
+  endFrame: MediaReference | null;
+  setEndFrame: Dispatch<SetStateAction<MediaReference | null>>;
   referenceSource: 'brand' | 'ingredient' | '';
   setReferenceSource: Dispatch<SetStateAction<'brand' | 'ingredient' | ''>>;
 

@@ -98,7 +98,7 @@ export default function ModalFolder({
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
       e.preventDefault();
       if (!isSubmitting && form.formState.isValid) {
-        onSubmit(e as unknown as Parameters<typeof onSubmit>[0]);
+        onSubmit(e);
       }
     }
   };

@@ -20,7 +20,6 @@ import type {
   IElementStyle,
   IFolder,
   IFontFamily,
-  IImage,
   IIngredient,
   IModel,
   IPreset,
@@ -29,6 +28,8 @@ import type {
   ITraining,
 } from '@genfeedai/contracts/interfaces';
 import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
+import type { GlobalModalGalleryConfig } from '@genfeedai/props/modals/global-modals.props';
 import type { PromptsService } from '@genfeedai/services/content/prompts.service';
 import type { PromptBarSuggestionItem } from '@props/prompt-bars/prompt-bar-suggestion-item.props';
 import type { AnyExtension, JSONContent } from '@tiptap/core';
@@ -190,8 +191,8 @@ export interface PromptBarFormatControlsProps {
   form: UseFormReturn<PromptTextareaSchema>;
   normalizedWatchedModels: string[];
   watchedModel: string;
-  references: (IAsset | IImage)[];
-  setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
+  references: MediaReference[];
+  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
   setReferenceSource: Dispatch<SetStateAction<'' | 'brand' | 'ingredient'>>;
   triggerConfigChange: () => void;
   isDisabledState: boolean;
@@ -231,18 +232,7 @@ export interface PromptTextareaProps {
   className?: string;
 }
 
-export interface GalleryModalOptions {
-  category: IngredientCategory;
-  title?: string;
-  format?: IngredientFormat | string;
-  onSelect: (assets: (IAsset | IImage)[]) => void;
-  onSelectAccountReference?: (assets: IAsset[]) => void;
-  selectedReferences?: string[];
-  maxSelectableItems?: number;
-  selectedId?: string;
-  isNoneAllowed?: boolean;
-  accountReference?: IAsset | null;
-}
+export type GalleryModalOptions = GlobalModalGalleryConfig;
 
 export interface UploadModalOptions {
   category: IngredientCategory | string;
@@ -276,13 +266,13 @@ export interface PromptBarFrameControlsProps {
   isVideoModel: boolean;
   hasAnyImagenModel: boolean;
 
-  references: (IAsset | IImage)[];
-  endFrame: IAsset | IImage | null;
+  references: MediaReference[];
+  endFrame: MediaReference | null;
   referenceSource: 'brand' | 'ingredient' | '';
 
-  onReferencesChange: (refs: (IAsset | IImage)[]) => void;
+  onReferencesChange: (refs: MediaReference[]) => void;
   onReferenceSourceChange: (source: 'brand' | 'ingredient' | '') => void;
-  onEndFrameChange: (frame: IAsset | IImage | null) => void;
+  onEndFrameChange: (frame: MediaReference | null) => void;
   openGallery: (options: GalleryModalOptions) => void;
   openUpload: (options: UploadModalOptions) => void;
 
@@ -398,13 +388,13 @@ export interface UsePromptBarReferencesOptions {
 }
 
 export interface UsePromptBarReferencesReturn {
-  references: (IAsset | IImage)[];
-  setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
-  endFrame: IAsset | IImage | null;
-  setEndFrame: Dispatch<SetStateAction<IAsset | IImage | null>>;
+  references: MediaReference[];
+  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
+  endFrame: MediaReference | null;
+  setEndFrame: Dispatch<SetStateAction<MediaReference | null>>;
   referenceSource: 'brand' | 'ingredient' | '';
   setReferenceSource: Dispatch<SetStateAction<'brand' | 'ingredient' | ''>>;
-  handleReferenceSelect: (selection: (IAsset | IImage)[]) => void;
+  handleReferenceSelect: (selection: MediaReference[]) => void;
   handleSelectAccountReference: (assets: { id: string; url: string }[]) => void;
   isUserSelectingReferencesRef: RefObject<boolean>;
   hasInitializedReferencesRef: RefObject<boolean>;
@@ -430,10 +420,10 @@ export interface UsePromptBarSyncOptions {
   externalHeight?: number;
   categoryType?: IngredientCategory;
   models?: IModel[];
-  references: (IAsset | IImage)[];
+  references: MediaReference[];
   referenceSource: 'brand' | 'ingredient' | '';
   isUserSelectingReferencesRef: RefObject<boolean>;
-  setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
+  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
   setReferenceSource: Dispatch<SetStateAction<'brand' | 'ingredient' | ''>>;
   hasInitializedReferencesRef: RefObject<boolean>;
 }
@@ -579,10 +569,10 @@ export interface PromptBarExpandedViewProps {
   filteredSounds: ISound[];
   filteredBlacklists: IElementBlacklist[];
 
-  references: (IAsset | IImage)[];
-  setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
-  endFrame: IAsset | IImage | null;
-  setEndFrame: Dispatch<SetStateAction<IAsset | IImage | null>>;
+  references: MediaReference[];
+  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
+  endFrame: MediaReference | null;
+  setEndFrame: Dispatch<SetStateAction<MediaReference | null>>;
   referenceSource: 'brand' | 'ingredient' | '';
   setReferenceSource: Dispatch<SetStateAction<'brand' | 'ingredient' | ''>>;
 

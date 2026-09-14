@@ -1,9 +1,5 @@
 import { type AssetScope, formatEnumLabel } from '@genfeedai/contracts';
-import type {
-  ICredential,
-  IImage,
-  IIngredient,
-} from '@genfeedai/contracts/interfaces';
+import type { ICredential, IIngredient } from '@genfeedai/contracts/interfaces';
 import IngredientDetailImage from '@ui/ingredients/detail-image/IngredientDetailImage';
 import IngredientDetailVideo from '@ui/ingredients/detail-video/IngredientDetailVideo';
 import IngredientWorkObjectContent from '@ui/modals/ingredients/ingredient/IngredientWorkObjectContent';
@@ -114,7 +110,7 @@ export default function IngredientOverlayMediaContent({
         ) : isImage ? (
           <IngredientDetailImage
             childIngredients={childIngredients}
-            image={localIngredient as unknown as IImage}
+            image={localIngredient}
             isCloning={isCloning}
             isConvertingToVideo={isConvertingToVideo}
             isDownloading={isDownloading}

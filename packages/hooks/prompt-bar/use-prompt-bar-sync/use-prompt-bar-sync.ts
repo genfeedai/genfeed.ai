@@ -4,7 +4,7 @@ import {
   IngredientFormat,
   ModelCategory,
 } from '@genfeedai/contracts';
-import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type {
   UsePromptBarSyncOptions,
   UsePromptBarSyncReturn,
@@ -255,7 +255,9 @@ export function usePromptBarSync(
       'endFrame',
       'prompt_template',
     ] as const;
-    stringFields.forEach((field) => syncField(field));
+    stringFields.forEach((field) => {
+      syncField(field);
+    });
 
     const syncArrayField = (field: 'blacklist' | 'sounds' | 'tags'): void => {
       if (promptConfig[field] === undefined) {
@@ -309,12 +311,12 @@ export function usePromptBarSync(
           const needsUpdate =
             references.length !== referenceObjects.length ||
             references.some(
-              (ref: IAsset | IImage, idx: number) =>
+              (ref: MediaReference, idx: number) =>
                 ref.id !== referenceObjects[idx]?.id,
             );
 
           if (needsUpdate && referenceObjects.length > 0) {
-            setReferences(referenceObjects as (IAsset | IImage)[]);
+            setReferences(referenceObjects as MediaReference[]);
             setReferenceSource('ingredient');
             hasInitializedReferencesRef.current = true;
           }

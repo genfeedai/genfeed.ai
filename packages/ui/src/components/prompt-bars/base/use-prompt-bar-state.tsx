@@ -37,7 +37,6 @@ import { usePromptBarReferences } from '@genfeedai/hooks/prompt-bar/use-prompt-b
 import { usePromptBarSync } from '@genfeedai/hooks/prompt-bar/use-prompt-bar-sync/use-prompt-bar-sync';
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import type {
-  GalleryModalOptions,
   PromptBarAttachedAsset,
   PromptBarProps,
 } from '@genfeedai/props/studio/prompt-bar.props';
@@ -808,9 +807,7 @@ export function usePromptBarState({
     onCancel,
     onDocumentChange: handlePromptDocumentChange,
     openAttachedAssetsBrowser,
-    openGallery: openGallery as unknown as (
-      options: GalleryModalOptions,
-    ) => void,
+    openGallery,
     openUpload,
     pathname,
     previousPrompt,

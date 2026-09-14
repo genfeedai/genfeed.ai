@@ -10,7 +10,6 @@ import type {
 } from '@genfeedai/contracts';
 import type {
   FormDropdownOption as DropdownFieldOption,
-  IAsset,
   IElementCamera,
   IElementCameraMovement,
   IElementLens,
@@ -20,12 +19,12 @@ import type {
   IElementStyle,
   IFolder,
   IFontFamily,
-  IImage,
   IModel,
   IPreset,
   ITraining,
 } from '@genfeedai/contracts/interfaces';
 import type { IGenerationItem } from '@genfeedai/contracts/interfaces/components/generation.interface';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { MediaConfig } from '@genfeedai/contracts/interfaces/ui/media-config.interface';
 import type { StudioGenerationMeter } from '@genfeedai/props/prompt-bars/prompt-bar-generation-meter.props';
 import type { PromptBarSuggestionItem } from '@genfeedai/props/prompt-bars/prompt-bar-suggestion-item.props';
@@ -100,10 +99,10 @@ export interface PromptBarInternalContextValue {
   formatIcon: ReactNode;
   videoDurations: number[];
 
-  references: (IAsset | IImage)[];
-  setReferences: Dispatch<SetStateAction<(IAsset | IImage)[]>>;
-  endFrame: IAsset | IImage | null;
-  setEndFrame: Dispatch<SetStateAction<IAsset | IImage | null>>;
+  references: MediaReference[];
+  setReferences: Dispatch<SetStateAction<MediaReference[]>>;
+  endFrame: MediaReference | null;
+  setEndFrame: Dispatch<SetStateAction<MediaReference | null>>;
   referenceSource: 'brand' | 'ingredient' | '';
   setReferenceSource: Dispatch<SetStateAction<'' | 'brand' | 'ingredient'>>;
 

@@ -37,7 +37,6 @@ import { useFormSubmitWithState } from '@genfeedai/hooks/utils/use-form-submit/u
 import { useSocketManager } from '@genfeedai/hooks/utils/use-socket-manager/use-socket-manager';
 import { Prompt } from '@genfeedai/models/content/prompt.model';
 import { Brand } from '@genfeedai/models/organization/brand.model';
-import type { Link } from '@genfeedai/models/social/link.model';
 import type { BrandOverlayProps } from '@genfeedai/props/modals/modal.props';
 import { AssetsService } from '@genfeedai/services/content/assets.service';
 import { PromptsService } from '@genfeedai/services/content/prompts.service';
@@ -628,11 +627,11 @@ export function useModalBrand(
               const normalizedWebsiteUrl = websiteUrl.trim();
               const linksService = await getLinksService();
               await linksService.post({
-                brand: createdBrand.id,
+                brandId: createdBrand.id,
                 category: LinkCategory.WEBSITE,
                 label: 'Website',
                 url: normalizedWebsiteUrl,
-              } as unknown as Partial<Link>);
+              });
 
               const draft = await service.crawlBrandKitWebsite(
                 createdBrand.id,

@@ -1,7 +1,7 @@
 'use client';
 
 import { ButtonVariant, IngredientCategory } from '@genfeedai/contracts';
-import type { IAsset, IImage } from '@genfeedai/contracts/interfaces';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { PromptBarFrameControlsProps } from '@genfeedai/props/studio/prompt-bar.props';
 import { EnvironmentService } from '@genfeedai/services/core/environment.service';
@@ -11,7 +11,7 @@ import Image from 'next/image';
 import { type MouseEvent, memo } from 'react';
 
 function getImageUrl(
-  asset: IAsset | IImage,
+  asset: MediaReference,
   referenceSource: 'brand' | 'ingredient' | '',
 ): string {
   if ('ingredientUrl' in asset && asset.ingredientUrl) {
@@ -178,7 +178,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
   );
 
   const setReferences = (
-    assets: (IAsset | IImage)[],
+    assets: MediaReference[],
     source: 'brand' | 'ingredient' | '',
   ) => {
     onReferencesChange(assets);
@@ -190,7 +190,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     );
   };
 
-  const handleReferenceSelect = (assets: (IAsset | IImage)[]) => {
+  const handleReferenceSelect = (assets: MediaReference[]) => {
     if (assets.length === 0) {
       setReferences([], '');
       return;
@@ -252,7 +252,7 @@ const PromptBarFrameControls = memo(function PromptBarFrameControls({
     });
   };
 
-  const handleUploadComplete = (ingredients: (IImage | IAsset)[]) => {
+  const handleUploadComplete = (ingredients: MediaReference[]) => {
     const ingredient = ingredients[0];
     if (!ingredient) {
       return;

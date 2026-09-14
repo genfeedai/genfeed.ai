@@ -1,10 +1,7 @@
 import type { PromptTextareaSchema } from '@genfeedai/client/schemas';
 import { IngredientCategory } from '@genfeedai/contracts';
-import type {
-  IAsset,
-  IImage,
-  IIngredient,
-} from '@genfeedai/contracts/interfaces';
+import type { IAsset, IIngredient } from '@genfeedai/contracts/interfaces';
+import type { MediaReference } from '@genfeedai/contracts/interfaces/components/media-reference.interface';
 import type { MediaConfig } from '@genfeedai/contracts/interfaces/ui/media-config.interface';
 import type { UploadModalOptions } from '@genfeedai/props/studio/prompt-bar.props';
 import type { DragEvent } from 'react';
@@ -14,18 +11,18 @@ import { isFileDrag, normalizeUploadedReference } from './prompt-bar.helpers';
 
 type UsePromptBarDragDropParams = {
   currentConfig: MediaConfig;
-  endFrame: IAsset | IImage | null;
+  endFrame: MediaReference | null;
   form: UseFormReturn<PromptTextareaSchema>;
-  handleReferenceSelect: (selection: (IAsset | IImage)[]) => void;
+  handleReferenceSelect: (selection: MediaReference[]) => void;
   isDisabledState: boolean;
   isOnlyImagenModels: boolean;
   maxReferenceCount: number;
   openUpload: (options: UploadModalOptions) => void;
   referenceSource: 'brand' | 'ingredient' | '';
-  references: (IAsset | IImage)[];
-  setEndFrame: (value: IAsset | IImage | null) => void;
+  references: MediaReference[];
+  setEndFrame: (value: MediaReference | null) => void;
   setReferenceSource: (value: '' | 'brand' | 'ingredient') => void;
-  setReferences: (value: (IAsset | IImage)[]) => void;
+  setReferences: (value: MediaReference[]) => void;
   supportsMultipleReferences: boolean;
   triggerConfigChange: () => void;
   watchedHeight?: number;
@@ -138,13 +135,14 @@ export function usePromptBarDragDrop({
 
   const handleDroppedUploadComplete = useCallback(
     (uploadedIngredients: (IIngredient | IAsset)[]) => {
-      const uploadedReferences = uploadedIngredients.reduce<
-        (IAsset | IImage)[]
-      >((acc, uploaded) => {
-        const reference = normalizeUploadedReference(uploaded);
-        if (reference !== null) acc.push(reference);
-        return acc;
-      }, []);
+      const uploadedReferences = uploadedIngredients.reduce<MediaReference[]>(
+        (acc, uploaded) => {
+          const reference = normalizeUploadedReference(uploaded);
+          if (reference !== null) acc.push(reference);
+          return acc;
+        },
+        [],
+      );
 
       if (uploadedReferences.length === 0) {
         return;
