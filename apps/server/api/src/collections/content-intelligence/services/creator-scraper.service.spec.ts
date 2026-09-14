@@ -347,13 +347,13 @@ describe('CreatorScraperService.scrapeCreator', () => {
 
     const result = await service.scrapeCreator(creatorId);
     expect(result).not.toBeNull();
-    expect(result!.profile.displayName).toBe('John Doe');
-    expect(result!.profile.followerCount).toBe(5000);
-    expect(result!.posts).toHaveLength(1);
-    expect(result!.posts[0].text).toBe('Hello LinkedIn #tech');
-    expect(result!.posts[0].hashtags).toEqual(['tech']);
-    expect(result!.posts[0].likes).toBe(100);
-    expect(result!.posts[0].engagementRate).toBeGreaterThan(0);
+    expect(result?.profile.displayName).toBe('John Doe');
+    expect(result?.profile.followerCount).toBe(5000);
+    expect(result?.posts).toHaveLength(1);
+    expect(result?.posts[0].text).toBe('Hello LinkedIn #tech');
+    expect(result?.posts[0].hashtags).toEqual(['tech']);
+    expect(result?.posts[0].likes).toBe(100);
+    expect(result?.posts[0].engagementRate).toBeGreaterThan(0);
 
     expect(mockApifyService.runActor).toHaveBeenCalledWith(
       'curious_coder/linkedin-profile-scraper',
@@ -396,10 +396,10 @@ describe('CreatorScraperService.scrapeCreator', () => {
     ]);
 
     const result = await service.scrapeCreator(creatorId);
-    expect(result!.profile.displayName).toBe('TikToker');
-    expect(result!.posts[0].likes).toBe(500);
-    expect(result!.posts[0].views).toBe(10000);
-    expect(result!.posts[0].hashtags).toEqual(['dance']);
+    expect(result?.profile.displayName).toBe('TikToker');
+    expect(result?.posts[0].likes).toBe(500);
+    expect(result?.posts[0].views).toBe(10000);
+    expect(result?.posts[0].hashtags).toEqual(['dance']);
   });
 
   it('updates status to FAILED when apify throws', async () => {
@@ -447,7 +447,7 @@ describe('CreatorScraperService.scrapeCreator', () => {
 
     const result = await service.scrapeCreator(creatorId);
     // (50+10+5)/1000 * 100 = 6.5
-    expect(result!.posts[0].engagementRate).toBe(6.5);
+    expect(result?.posts[0].engagementRate).toBe(6.5);
   });
 
   it('falls back to likes*20 when impressionCount missing for LinkedIn', async () => {
@@ -475,10 +475,10 @@ describe('CreatorScraperService.scrapeCreator', () => {
     ]);
 
     const result = await service.scrapeCreator(creatorId);
-    const post = result!.posts[0];
+    const post = result?.posts[0];
     // views = likes * 20 = 2000; engagement = 100/2000 * 100 = 5
-    expect(post.views).toBe(2000);
-    expect(post.engagementRate).toBe(5);
+    expect(post?.views).toBe(2000);
+    expect(post?.engagementRate).toBe(5);
   });
 });
 
@@ -516,7 +516,7 @@ describe('CreatorScraperService hashtag extraction', () => {
     ]);
 
     return service.scrapeCreator(creatorId).then((result) => {
-      expect(result!.posts[0].hashtags).toEqual(['AI', 'MachineLearning']);
+      expect(result?.posts[0].hashtags).toEqual(['AI', 'MachineLearning']);
     });
   });
 
@@ -544,7 +544,7 @@ describe('CreatorScraperService hashtag extraction', () => {
     ]);
 
     return service.scrapeCreator(creatorId).then((result) => {
-      expect(result!.posts[0].hashtags).toEqual([]);
+      expect(result?.posts[0].hashtags).toEqual([]);
     });
   });
 });

@@ -257,7 +257,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
         p.templateCategory === ContentPatternCategory.QUESTION,
     );
     expect(hook).toBeDefined();
-    expect(hook!.placeholders).toContain('QUESTION');
+    expect(hook?.placeholders).toContain('QUESTION');
   });
 
   it('extracts CONTRARIAN hook when starting with "stop"', async () => {
@@ -294,8 +294,8 @@ describe('PatternAnalyzerService rule-based extraction', () => {
       (p) => p.templateCategory === ContentPatternCategory.STORY,
     );
     expect(hook).toBeDefined();
-    expect(hook!.placeholders).toContain('TIMEFRAME');
-    expect(hook!.placeholders).toContain('EXPERIENCE');
+    expect(hook?.placeholders).toContain('TIMEFRAME');
+    expect(hook?.placeholders).toContain('EXPERIENCE');
   });
 
   it('extracts LIST template when 3+ numbered items', async () => {
@@ -310,7 +310,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
         p.templateCategory === ContentPatternCategory.LIST,
     );
     expect(list).toBeDefined();
-    expect(list!.placeholders).toContain('NUMBER');
+    expect(list?.placeholders).toContain('NUMBER');
   });
 
   it('does NOT extract LIST for only 2 numbered items', async () => {

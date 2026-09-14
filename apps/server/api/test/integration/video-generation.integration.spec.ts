@@ -384,16 +384,16 @@ async function retryWithBackoff<T>(
   maxRetries: number,
   delay: number,
 ): Promise<T> {
-  let lastError: Error;
+  let lastError: unknown;
   for (let i = 0; i < maxRetries; i++) {
     try {
       return await fn();
     } catch (error: unknown) {
-      lastError = error as Error;
+      lastError = error;
       await new Promise((resolve) => setTimeout(resolve, delay * 2 ** i));
     }
   }
-  throw lastError!;
+  throw lastError;
 }
 
 async function generateScenesWithFallback(scenes: unknown[]) {
