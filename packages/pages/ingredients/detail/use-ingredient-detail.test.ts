@@ -152,6 +152,60 @@ describe('useIngredientDetail loading', () => {
     expect(mocks.notifications.error).not.toHaveBeenCalled();
   });
 
+  it('ignores a manual refresh after the selected ID changes', async () => {
+    const { result, rerender } = renderDetail();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const old = deferred<{ id: string }>();
+    const current = deferred<{ id: string }>();
+    mocks.service.findOne
+      .mockReturnValueOnce(old.promise)
+      .mockReturnValueOnce(current.promise);
+    let refresh = Promise.resolve();
+    act(() => {
+      refresh = result.current.findIngredient();
+    });
+    await waitFor(() => expect(mocks.service.findOne).toHaveBeenCalledTimes(2));
+    rerender({ currentId: 'image-2' });
+    await waitFor(() =>
+      expect(mocks.service.findOne).toHaveBeenCalledWith('image-2'),
+    );
+    await act(async () => {
+      old.resolve({ id: 'old-refresh' });
+      await refresh;
+    });
+    expect(result.current.ingredient?.id).toBe('image-1');
+    expect(result.current.isLoading).toBe(true);
+    await act(async () => {
+      current.resolve({ id: 'image-2' });
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.ingredient?.id).toBe('image-2');
+  });
+
+  it('ignores manual refresh children after the selected ID changes', async () => {
+    const { result, rerender } = renderDetail();
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    const old = deferred<{ id: string }[]>();
+    mocks.service.findAll
+      .mockReturnValueOnce(old.promise)
+      .mockResolvedValue([{ id: 'new-child' }]);
+    let refresh = Promise.resolve();
+    act(() => {
+      refresh = result.current.findIngredient();
+    });
+    await waitFor(() => expect(mocks.service.findAll).toHaveBeenCalledTimes(2));
+    mocks.service.findOne.mockResolvedValue({ id: 'image-2' });
+    rerender({ currentId: 'image-2' });
+    await waitFor(() =>
+      expect(result.current.childIngredients).toEqual([{ id: 'new-child' }]),
+    );
+    await act(async () => {
+      old.resolve([{ id: 'old-child' }]);
+      await refresh;
+    });
+    expect(result.current.childIngredients).toEqual([{ id: 'new-child' }]);
+  });
+
   it('ignores an old parent response after the selected ID changes', async () => {
     const old = deferred<{ id: string }>();
     mocks.service.findOne
