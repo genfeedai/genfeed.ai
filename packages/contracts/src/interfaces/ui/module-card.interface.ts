@@ -1,6 +1,6 @@
-import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { useRouter } from 'next/navigation';
 import type { ReactNode } from 'react';
+import type { IconComponent } from '../../types/icon';
 import type { IOrganizationSetting } from '../index';
 
 export interface ModuleCard {

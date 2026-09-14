@@ -1,5 +1,5 @@
-import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ReactNode } from 'react';
+import type { IconComponent } from '../../types/icon';
 
 export interface ICommand {
   id: string;

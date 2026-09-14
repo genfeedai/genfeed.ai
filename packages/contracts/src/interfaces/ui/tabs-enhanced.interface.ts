@@ -1,5 +1,5 @@
-import type { IconComponent } from '@genfeedai/contracts/types/icon';
 import type { ReactNode } from 'react';
+import type { IconComponent } from '../../types/icon';
 import type { NavigationTab } from '../index';
 
 export interface TabItem {

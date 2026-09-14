@@ -1,4 +1,4 @@
-import type { IconComponent } from '@genfeedai/contracts/types/icon';
+import type { IconComponent } from '../../types/icon';
 
 export interface IPlatformBadgeConfig {
   icon: IconComponent;
