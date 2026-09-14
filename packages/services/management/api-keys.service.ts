@@ -37,6 +37,15 @@ export class ApiKeysService extends BaseService<
     super(API_ENDPOINTS.API_KEYS, token, ApiKey, ApiKeySerializer);
   }
 
+  public static forOrganization(
+    token: string,
+    organizationId: string,
+  ): ApiKeysService {
+    const service = new ApiKeysService(token);
+    service.bindRequestOrganization(organizationId);
+    return service;
+  }
+
   public static getInstance(token: string): ApiKeysService {
     return BaseService.getDataServiceInstance(ApiKeysService, token);
   }

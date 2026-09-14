@@ -138,7 +138,9 @@ export class ApiKeysController {
     const existingKeys = await this.apiKeysService.findAll(
       {
         where: {
+          isDeleted: false,
           isRevoked: false,
+          organizationId: user.organizationId,
           userId: user.userId ?? user.id,
         },
       },
@@ -189,7 +191,9 @@ export class ApiKeysController {
     const findAllQuery = {
       orderBy: { createdAt: -1 },
       where: {
+        isDeleted: false,
         isRevoked: false,
+        organizationId: user.organizationId,
         userId: user.userId ?? user.id,
         ...(query.label && {
           label: { mode: 'insensitive', contains: query.label },
@@ -228,6 +232,8 @@ export class ApiKeysController {
   ) {
     const apiKey = await this.apiKeysService.findOne({
       id: apiKeyId,
+      isDeleted: false,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 
@@ -256,6 +262,8 @@ export class ApiKeysController {
     // Verify ownership before updating
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
+      isDeleted: false,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 
@@ -297,6 +305,7 @@ export class ApiKeysController {
   ) {
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
+      isDeleted: false,
       isRevoked: false,
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
@@ -386,7 +395,9 @@ export class ApiKeysController {
     // Verify ownership before revoking
     const existingKey = await this.apiKeysService.findOne({
       id: apiKeyId,
+      isDeleted: false,
       isRevoked: false,
+      organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     });
 

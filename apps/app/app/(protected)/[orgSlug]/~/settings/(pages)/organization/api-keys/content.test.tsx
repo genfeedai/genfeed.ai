@@ -1,5 +1,11 @@
 import '@testing-library/jest-dom/vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SettingsApiKeysPage from './content';
@@ -38,6 +44,16 @@ const mocks = vi.hoisted(() => ({
   >(),
   createApiKey: vi.fn(),
   desktop: false,
+  authEnabled: true,
+  sessionId: 'session-1',
+  routeSlug: 'test-org',
+  confirmedSlug: 'test-org',
+  confirmedId: 'org-1',
+  confirmed: true,
+  status: 'matched',
+  tokenWait: null as Promise<void> | null,
+  cancelPendingRequests: vi.fn(),
+  boundFactory: vi.fn(),
   findAllApiKeys: vi.fn(),
   getApiKeysService: vi.fn(),
   getByokAllProviders: vi.fn(),
@@ -72,11 +88,39 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
       return existingService;
     }
 
-    const service = async () => factory('test-token');
+    const service = async () => {
+      await mocks.tokenWait;
+      return factory('test-token');
+    };
     mocks.authedServices.set(factory, service);
     return service;
   },
 }));
+
+vi.mock('@genfeedai/auth-client', () => ({
+  isBetterAuthEnabled: () => mocks.authEnabled,
+}));
+vi.mock('@hooks/auth/use-auth-identity/use-auth-identity', () => ({
+  useAuthIdentity: () => ({
+    sessionId: mocks.sessionId,
+    userId: 'user-1',
+    orgId: mocks.confirmedId,
+  }),
+}));
+vi.mock('next/navigation', () => ({
+  useParams: () => ({ orgSlug: mocks.routeSlug }),
+}));
+vi.mock(
+  '@genfeedai/contexts/user/organization-context/organization-context',
+  () => ({
+    useRoutedOrganization: () => ({
+      status: mocks.status,
+      isRouteConfirmed: mocks.confirmed,
+      confirmedOrganizationId: mocks.confirmedId,
+      confirmedOrganizationSlug: mocks.confirmedSlug,
+    }),
+  }),
+);
 
 vi.mock('@services/core/logger.service', () => ({
   logger: {
@@ -106,7 +150,18 @@ vi.mock('@services/organization/organizations.service', () => ({
 
 vi.mock('@services/management/api-keys.service', () => ({
   ApiKeysService: {
+    forOrganization: (token: string, organizationId: string) => {
+      mocks.boundFactory(token, organizationId);
+      return {
+        cancelPendingRequests: mocks.cancelPendingRequests,
+        createApiKey: mocks.createApiKey,
+        findAll: mocks.findAllApiKeys,
+        revokeApiKey: mocks.revokeApiKey,
+        rotateApiKey: mocks.rotateApiKey,
+      };
+    },
     getInstance: () => ({
+      cancelPendingRequests: mocks.cancelPendingRequests,
       createApiKey: mocks.createApiKey,
       findAll: mocks.findAllApiKeys,
       revokeApiKey: mocks.revokeApiKey,
@@ -279,6 +334,13 @@ describe('SettingsApiKeysPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.desktop = false;
+    mocks.authEnabled = true;
+    mocks.sessionId = 'session-1';
+    mocks.routeSlug = mocks.confirmedSlug = 'test-org';
+    mocks.confirmedId = 'org-1';
+    mocks.confirmed = true;
+    mocks.status = 'matched';
+    mocks.tokenWait = null;
     mocks.isReady = true;
     mocks.isSelfHosted = false;
     mocks.organizationId = 'org-1';
@@ -318,6 +380,245 @@ describe('SettingsApiKeysPage', () => {
     mocks.saveByokProviderKey.mockResolvedValue({});
     mocks.validateByokProviderKey.mockResolvedValue({ isValid: true });
   });
+
+  it.each(['selected', 'slug', 'confirmation', 'status'])(
+    'blocks a %s mismatch and loads after reconciliation',
+    async (mismatch) => {
+      if (mismatch === 'selected') mocks.organizationId = 'org-other';
+      if (mismatch === 'slug') mocks.routeSlug = 'other';
+      if (mismatch === 'confirmation') mocks.confirmed = false;
+      if (mismatch === 'status') mocks.status = 'reconciling';
+      const view = render(<SettingsApiKeysPage />);
+      await act(async () => {});
+      expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
+      expect(
+        screen.queryByRole('button', { name: 'Create Key' }),
+      ).not.toBeInTheDocument();
+      mocks.organizationId = 'org-1';
+      mocks.routeSlug = 'test-org';
+      mocks.confirmed = true;
+      mocks.status = 'matched';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      expect(mocks.boundFactory).toHaveBeenCalledWith('test-token', 'org-1');
+    },
+  );
+
+  it('only bypasses confirmation for keyless self-hosting', async () => {
+    mocks.isSelfHosted = true;
+    mocks.confirmed = false;
+    const view = render(<SettingsApiKeysPage />);
+    await act(async () => {});
+    expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
+    mocks.authEnabled = false;
+    view.rerender(<SettingsApiKeysPage />);
+    await screen.findByText('MCP Key');
+    expect(mocks.boundFactory).not.toHaveBeenCalled();
+  });
+
+  it('does not dispatch after deferred token acquisition outlives the scope', async () => {
+    const token = deferred<void>();
+    mocks.tokenWait = token.promise;
+    const view = render(<SettingsApiKeysPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Create Key' }));
+    mocks.confirmed = false;
+    view.rerender(<SettingsApiKeysPage />);
+    await act(async () => token.resolve());
+    expect(mocks.findAllApiKeys).not.toHaveBeenCalled();
+    expect(mocks.createApiKey).not.toHaveBeenCalled();
+    expect(mocks.notificationsError).not.toHaveBeenCalled();
+  });
+
+  it.each(['initial', 'refresh'])(
+    'ignores stale %s results through A to B to A',
+    async (kind) => {
+      const pending = deferred<unknown[]>();
+      if (kind === 'initial')
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+      const view = render(<SettingsApiKeysPage />);
+      if (kind === 'refresh') {
+        await screen.findByText('MCP Key');
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+        );
+      }
+      await waitFor(() => expect(mocks.findAllApiKeys).toHaveBeenCalled());
+      mocks.organizationId = mocks.confirmedId = 'org-2';
+      mocks.routeSlug = mocks.confirmedSlug = 'second';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      mocks.organizationId = mocks.confirmedId = 'org-1';
+      mocks.routeSlug = mocks.confirmedSlug = 'test-org';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      await act(async () =>
+        pending.resolve([{ id: 'stale', label: 'STALE SECRET' }]),
+      );
+      expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['Create Key', 'Rotate', 'Revoke'])(
+    'makes %s continuations inert after switching, including rejection',
+    async (action) => {
+      const pending = deferred<unknown>();
+      const method =
+        action === 'Create Key'
+          ? mocks.createApiKey
+          : action === 'Rotate'
+            ? mocks.rotateApiKey
+            : mocks.revokeApiKey;
+      method.mockReturnValueOnce(pending.promise);
+      const view = render(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalled());
+      mocks.organizationId = mocks.confirmedId = 'org-2';
+      mocks.routeSlug = mocks.confirmedSlug = 'second';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      const fetchCount = mocks.findAllApiKeys.mock.calls.length;
+      await act(async () =>
+        pending.resolve({ id: 'old', key: 'STALE SECRET' }),
+      );
+      expect(mocks.findAllApiKeys).toHaveBeenCalledTimes(fetchCount);
+      expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
+      expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: action })).toBeEnabled();
+      const failure = deferred<unknown>();
+      method.mockReturnValueOnce(failure.promise);
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalledTimes(2));
+      view.unmount();
+      await act(async () => failure.reject(new Error('old scope failed')));
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['Create Key', 'Rotate', 'Revoke'])(
+    'does not dispatch %s after token resolution following identity replacement',
+    async (action) => {
+      const view = render(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      const pending = deferred<void>();
+      mocks.tokenWait = pending.promise;
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      mocks.sessionId = 'session-2';
+      mocks.tokenWait = null;
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      await act(async () => pending.resolve());
+      expect(mocks.createApiKey).not.toHaveBeenCalled();
+      expect(mocks.rotateApiKey).not.toHaveBeenCalled();
+      expect(mocks.revokeApiKey).not.toHaveBeenCalled();
+      expect(screen.getByRole('button', { name: action })).toBeEnabled();
+    },
+  );
+
+  it.each(['Create Key', 'Rotate', 'Revoke'])(
+    'ignores %s completion after A to B to A without clearing new busy state',
+    async (action) => {
+      const method =
+        action === 'Create Key'
+          ? mocks.createApiKey
+          : action === 'Rotate'
+            ? mocks.rotateApiKey
+            : mocks.revokeApiKey;
+      const old = deferred<unknown>();
+      method.mockReturnValueOnce(old.promise);
+      const view = render(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalledTimes(1));
+      mocks.organizationId = mocks.confirmedId = 'org-2';
+      mocks.routeSlug = mocks.confirmedSlug = 'second';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      mocks.organizationId = mocks.confirmedId = 'org-1';
+      mocks.routeSlug = mocks.confirmedSlug = 'test-org';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      const current = deferred<unknown>();
+      method.mockReturnValueOnce(current.promise);
+      fireEvent.click(screen.getByRole('button', { name: action }));
+      await waitFor(() => expect(method).toHaveBeenCalledTimes(2));
+      await act(async () => old.resolve({ id: 'old', key: 'STALE SECRET' }));
+      expect(screen.queryByText('STALE SECRET')).not.toBeInTheDocument();
+      expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
+      expect(
+        screen.getByRole('button', {
+          name: action === 'Create Key' ? 'Creating...' : action,
+        }),
+      ).toBeDisabled();
+      view.unmount();
+      await act(async () =>
+        current.resolve({ id: 'current', key: 'UNMOUNTED SECRET' }),
+      );
+      expect(mocks.notificationsSuccess).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['initial', 'refresh'])(
+    'suppresses stale %s errors after identity replacement',
+    async (kind) => {
+      const pending = deferred<unknown[]>();
+      if (kind === 'initial')
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+      const view = render(<SettingsApiKeysPage />);
+      if (kind === 'refresh') {
+        await screen.findByText('MCP Key');
+        mocks.findAllApiKeys.mockReturnValueOnce(pending.promise);
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Refresh Genfeed API keys' }),
+        );
+      }
+      await waitFor(() =>
+        expect(mocks.findAllApiKeys).toHaveBeenCalledTimes(
+          kind === 'initial' ? 1 : 2,
+        ),
+      );
+      mocks.sessionId = 'session-2';
+      view.rerender(<SettingsApiKeysPage />);
+      await screen.findByText('MCP Key');
+      await act(async () => pending.reject(new Error('stale request failed')));
+      expect(
+        screen.queryByText("Couldn't load API keys"),
+      ).not.toBeInTheDocument();
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+      expect(mocks.loggerError).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['initial', 'Create Key', 'Rotate', 'Revoke'])(
+    'silently handles dispatch cancellation during %s before React reconciliation',
+    async (operation) => {
+      const cancellation = { isCancelled: true, silent: true };
+      if (operation === 'initial')
+        mocks.findAllApiKeys.mockRejectedValueOnce(cancellation);
+      const view = render(<SettingsApiKeysPage />);
+      if (operation !== 'initial') {
+        await screen.findByText('MCP Key');
+        const method =
+          operation === 'Create Key'
+            ? mocks.createApiKey
+            : operation === 'Rotate'
+              ? mocks.rotateApiKey
+              : mocks.revokeApiKey;
+        method.mockRejectedValueOnce(cancellation);
+        fireEvent.click(screen.getByRole('button', { name: operation }));
+        await waitFor(() => expect(method).toHaveBeenCalled());
+      }
+      await act(async () => {});
+      expect(mocks.notificationsError).not.toHaveBeenCalled();
+      expect(mocks.loggerError).not.toHaveBeenCalled();
+      expect(
+        screen.queryByText("Couldn't load API keys"),
+      ).not.toBeInTheDocument();
+      view.unmount();
+    },
+  );
 
   it('loads Genfeed API keys without provider tabs', async () => {
     render(<SettingsApiKeysPage />);
@@ -533,3 +834,13 @@ describe('SettingsApiKeysPage', () => {
     });
   });
 });
+
+function deferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (error: Error) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}

@@ -16,6 +16,7 @@ import {
 import axios, {
   type AxiosError,
   type AxiosInstance,
+  CanceledError,
   type InternalAxiosRequestConfig,
 } from 'axios';
 
@@ -43,13 +44,18 @@ export const HTTP_REQUEST_TIMEOUT_MS = 30_000;
 
 const httpServiceInstances = new ServiceInstanceManager<HTTPBaseService>();
 let requestOrganizationId: string | null = null;
+let requestOrganizationRevision = 0;
 
 export function setRequestOrganizationId(organizationId: string | null): void {
-  requestOrganizationId = organizationId?.trim() || null;
+  const nextOrganizationId = organizationId?.trim() || null;
+  if (nextOrganizationId !== requestOrganizationId) {
+    requestOrganizationRevision += 1;
+    requestOrganizationId = nextOrganizationId;
+  }
 }
 
 export function clearRequestOrganizationId(): void {
-  requestOrganizationId = null;
+  setRequestOrganizationId(null);
 }
 
 /**
@@ -76,6 +82,8 @@ export abstract class HTTPBaseService {
   protected instance: AxiosInstance;
   protected token: string;
   protected readonly baseURL: string;
+  private boundOrganizationId: string | undefined;
+  private boundOrganizationRevision: number | undefined;
   private abortController: AbortController | null = null;
 
   public constructor(baseURL: string, token: string) {
@@ -197,6 +205,14 @@ export abstract class HTTPBaseService {
     }
   }
 
+  protected bindRequestOrganization(organizationId: string): void {
+    if (this.boundOrganizationId !== undefined) {
+      throw new Error('Request organization is already bound');
+    }
+    this.boundOrganizationId = organizationId.trim();
+    this.boundOrganizationRevision = requestOrganizationRevision;
+  }
+
   private initializeRequestInterceptor = () => {
     this.instance.interceptors.request.use(this.handleRequest);
   };
@@ -206,9 +222,18 @@ export abstract class HTTPBaseService {
   };
 
   private handleRequest = (config: InternalAxiosRequestConfig) => {
+    if (
+      this.boundOrganizationId !== undefined &&
+      (!this.boundOrganizationId ||
+        this.boundOrganizationId !== requestOrganizationId ||
+        this.boundOrganizationRevision !== requestOrganizationRevision)
+    ) {
+      throw new CanceledError('Request organization is no longer confirmed');
+    }
     config.headers.Authorization = `Bearer ${this.token}`;
     if (requestOrganizationId) {
-      config.headers[ORGANIZATION_CONTEXT_HEADER] = requestOrganizationId;
+      config.headers[ORGANIZATION_CONTEXT_HEADER] =
+        this.boundOrganizationId ?? requestOrganizationId;
     }
 
     // Don't auto-cancel previous requests - let them complete naturally

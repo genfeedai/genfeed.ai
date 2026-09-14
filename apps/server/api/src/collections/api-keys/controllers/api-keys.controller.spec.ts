@@ -477,6 +477,7 @@ describe('ApiKeysController', () => {
 
       expect(service.findOne).toHaveBeenCalledWith({
         id,
+        isDeleted: false,
         isRevoked: false,
         organizationId,
         userId,
@@ -535,6 +536,140 @@ describe('ApiKeysController', () => {
       expect(service.createWithKey).not.toHaveBeenCalled();
       expect(service.rotateWithKey).not.toHaveBeenCalled();
     });
+  });
+
+  describe('organization authorization', () => {
+    const otherOrganizationId = testId('org', 2);
+    const activeKey = {
+      ...mockApiKey,
+      id: apiKeyId,
+      organizationId,
+      userId,
+      isDeleted: false,
+    };
+    const foreignKey = {
+      ...activeKey,
+      id: rotatedApiKeyId,
+      organizationId: otherOrganizationId,
+    };
+    const deletedKey = {
+      ...activeKey,
+      id: testId('apikey', 3),
+      isDeleted: true,
+    };
+    const rows = [activeKey, foreignKey, deletedKey];
+    const matches = (row: typeof activeKey, where: Record<string, unknown>) =>
+      Object.entries(where).every(
+        ([field, value]) => row[field as keyof typeof row] === value,
+      );
+
+    beforeEach(() => {
+      mockApiKeysService.findOne.mockImplementation(
+        async (where: Record<string, unknown>) =>
+          rows.find((row) => matches(row, where)) ?? null,
+      );
+      mockApiKeysService.findAll.mockImplementation(
+        async ({ where }: { where: Record<string, unknown> }) => {
+          const docs = rows.filter((row) => matches(row, where));
+          return {
+            docs,
+            limit: 100,
+            page: 1,
+            totalDocs: docs.length,
+            totalPages: 1,
+          };
+        },
+      );
+    });
+
+    it('lists only active keys belonging to the user in the authenticated organization', async () => {
+      const result = await controller.findAll(mockRequest, mockUser, {
+        limit: 100,
+      });
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          orderBy: { createdAt: -1 },
+          where: {
+            isDeleted: false,
+            isRevoked: false,
+            organizationId,
+            userId,
+          },
+        },
+        { limit: 100, page: 1 },
+      );
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]).toMatchObject({ id: apiKeyId });
+    });
+
+    it('counts the creation limit only in the authenticated organization', async () => {
+      const foreignRows = Array.from({ length: 10 }, (_, index) => ({
+        ...foreignKey,
+        id: `foreign-${index}`,
+      }));
+      mockApiKeysService.findAll.mockImplementation(
+        async ({ where }: { where: Record<string, unknown> }) => {
+          const docs = foreignRows.filter((row) => matches(row, where));
+          return {
+            docs,
+            limit: 100,
+            page: 1,
+            totalDocs: docs.length,
+            totalPages: 1,
+          };
+        },
+      );
+      mockApiKeysService.createWithKey.mockResolvedValue({
+        apiKey: activeKey,
+        plainKey: 'new-key',
+      });
+      await controller.create(mockRequest, mockUser, {
+        category: ApiKeyCategory.GENFEEDAI,
+        label: 'New key',
+        scopes: ['read'],
+      });
+      expect(service.findAll).toHaveBeenCalledWith(
+        {
+          where: {
+            isDeleted: false,
+            isRevoked: false,
+            organizationId,
+            userId,
+          },
+        },
+        { limit: 100, page: 1 },
+      );
+      expect(service.createWithKey).toHaveBeenCalledWith(
+        expect.objectContaining({ organizationId, userId }),
+      );
+    });
+
+    it.each(['findOne', 'update', 'revoke', 'rotate'] as const)(
+      'rejects foreign and deleted keys before %s can expose or mutate them',
+      async (operation) => {
+        for (const key of [foreignKey, deletedKey]) {
+          const result =
+            operation === 'update'
+              ? controller.update(mockRequest, mockUser, key.id, {
+                  label: 'Hijacked',
+                })
+              : controller[operation](mockRequest, mockUser, key.id);
+          await expect(result).rejects.toThrow(HttpException);
+          expect(service.findOne).toHaveBeenLastCalledWith({
+            id: key.id,
+            isDeleted: false,
+            organizationId,
+            userId,
+            ...(['revoke', 'rotate'].includes(operation)
+              ? { isRevoked: false }
+              : {}),
+          });
+        }
+        expect(service.patch).not.toHaveBeenCalled();
+        expect(service.revoke).not.toHaveBeenCalled();
+        expect(service.rotateWithKey).not.toHaveBeenCalled();
+      },
+    );
   });
 
   describe('validate', () => {

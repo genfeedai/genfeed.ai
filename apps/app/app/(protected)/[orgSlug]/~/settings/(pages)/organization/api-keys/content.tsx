@@ -1,7 +1,9 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { isBetterAuthEnabled } from '@genfeedai/auth-client';
 import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { useRoutedOrganization } from '@genfeedai/contexts/user/organization-context/organization-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import {
   API_KEY_SCOPE_OPTIONS,
@@ -11,15 +13,18 @@ import {
 import type { ApiKey } from '@genfeedai/models/auth/api-key.model';
 import { hasApiAccess } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type {
+  AuthorizedApiKeysContentProps,
   ProductApiKeyForm,
   ProductApiKeyScope,
   ProductPlainKey,
 } from '@props/settings/api-keys-content.props';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { isCancelledRequest } from '@services/core/operation-error';
 import { ApiKeysService } from '@services/management/api-keys.service';
 import Card from '@ui/card/Card';
 import CardEmpty from '@ui/card/empty/CardEmpty';
@@ -36,6 +41,7 @@ import {
   TriangleAlert,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -105,8 +111,50 @@ function getVisibleKey(apiKey: ApiKey): string | undefined {
 const API_ACCESS_UPGRADE_TIER_LABEL = 'Pro';
 
 export default function SettingsApiKeysPage() {
+  const { organizationId, isReady } = useBrand();
+  const {
+    status,
+    isRouteConfirmed,
+    confirmedOrganizationId,
+    confirmedOrganizationSlug,
+  } = useRoutedOrganization();
+  const { sessionId, userId, orgId } = useAuthIdentity();
+  const { orgSlug } = useParams<{ orgSlug: string }>();
+  const isKeylessSelfHosted =
+    isSelfHostedDeployment() && !isBetterAuthEnabled();
+  const isAuthorized =
+    isKeylessSelfHosted ||
+    (status === 'matched' &&
+      isRouteConfirmed &&
+      Boolean(confirmedOrganizationId) &&
+      orgSlug === confirmedOrganizationSlug &&
+      organizationId === confirmedOrganizationId);
+  if (!isReady || !organizationId || !isAuthorized) return null;
+  const authorizedOrganizationId = isKeylessSelfHosted
+    ? organizationId
+    : confirmedOrganizationId;
+  if (!authorizedOrganizationId) return null;
+  return (
+    <AuthorizedApiKeysContent
+      key={JSON.stringify([
+        authorizedOrganizationId,
+        sessionId,
+        userId,
+        orgId,
+        isKeylessSelfHosted,
+      ])}
+      organizationId={authorizedOrganizationId}
+      isKeylessSelfHosted={isKeylessSelfHosted}
+    />
+  );
+}
+
+function AuthorizedApiKeysContent({
+  organizationId,
+  isKeylessSelfHosted,
+}: AuthorizedApiKeysContentProps) {
   const translate = useTranslations('common.settings.apiKeys');
-  const { organizationId, isReady, settings } = useBrand();
+  const { isReady, settings } = useBrand();
   const { orgHref } = useOrgUrl();
   const selfHostedDeployment = isSelfHostedDeployment();
   const hasProductApiAccess =
@@ -127,9 +175,52 @@ export default function SettingsApiKeysPage() {
     string | null
   >(null);
   const getApiKeysService = useAuthedService(
-    useCallback((token: string) => ApiKeysService.getInstance(token), []),
+    useCallback(
+      (token: string) =>
+        isKeylessSelfHosted
+          ? ApiKeysService.getInstance(token)
+          : ApiKeysService.forOrganization(token, organizationId),
+      [isKeylessSelfHosted, organizationId],
+    ),
   );
   const productKeysFetchIdRef = useRef(0);
+  const lifecycleRef = useRef({ active: true, generation: 0 });
+  const scopedServicesRef = useRef(new Set<ApiKeysService>());
+  const pageControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(() => {
+    lifecycleRef.current.active = true;
+    pageControllerRef.current = new AbortController();
+    return () => {
+      lifecycleRef.current.active = false;
+      lifecycleRef.current.generation += 1;
+      pageControllerRef.current?.abort();
+      for (const service of scopedServicesRef.current)
+        service.cancelPendingRequests();
+      scopedServicesRef.current.clear();
+    };
+  }, []);
+
+  const currentOperation = useCallback(() => {
+    const generation = lifecycleRef.current.generation;
+    return () =>
+      lifecycleRef.current.active &&
+      lifecycleRef.current.generation === generation;
+  }, []);
+
+  const acquireService = useCallback(
+    async (isCurrent: () => boolean) => {
+      if (!isCurrent()) return null;
+      const service = await getApiKeysService();
+      if (!isCurrent()) {
+        service.cancelPendingRequests();
+        return null;
+      }
+      scopedServicesRef.current.add(service);
+      return service;
+    },
+    [getApiKeysService],
+  );
 
   const selectedScopeSet = useMemo(
     () => new Set(productForm.selectedScopes),
@@ -138,24 +229,33 @@ export default function SettingsApiKeysPage() {
 
   const fetchProductApiKeys = useCallback(
     async (signal?: AbortSignal) => {
+      const isActive = currentOperation();
+      if (!isActive()) return;
       const fetchId = productKeysFetchIdRef.current + 1;
       productKeysFetchIdRef.current = fetchId;
       const isCurrentFetch = () =>
-        productKeysFetchIdRef.current === fetchId && !signal?.aborted;
+        isActive() &&
+        productKeysFetchIdRef.current === fetchId &&
+        !signal?.aborted;
 
       if (isCurrentFetch()) {
         setIsProductLoading(true);
         setHasProductKeysLoadError(false);
       }
       try {
-        const service = await getApiKeysService();
-        const apiKeys = await service.findAll({ limit: 100 }, signal);
+        const service = await acquireService(isCurrentFetch);
+        if (!service || !isCurrentFetch()) return;
+        const apiKeys = await service.findAll(
+          { limit: 100 },
+          signal ?? pageControllerRef.current?.signal,
+        );
 
         if (isCurrentFetch()) {
           setProductApiKeys(Array.isArray(apiKeys) ? apiKeys : []);
           setHasProductKeysLoadError(false);
         }
       } catch (error) {
+        if (isCancelledRequest(error)) return;
         if (isCurrentFetch()) {
           logger.error('Failed to fetch Genfeed API keys', error);
           NotificationsService.getInstance().error(loadErrorMessage);
@@ -168,7 +268,7 @@ export default function SettingsApiKeysPage() {
         }
       }
     },
-    [getApiKeysService, loadErrorMessage],
+    [acquireService, currentOperation, loadErrorMessage],
   );
 
   useEffect(() => {
@@ -231,6 +331,8 @@ export default function SettingsApiKeysPage() {
   };
 
   const handleCreateProductKey = async () => {
+    const isCurrent = currentOperation();
+    if (!isCurrent()) return;
     if (!hasProductApiAccess) {
       NotificationsService.getInstance().error(
         translate('errors.paidPlanRequired'),
@@ -245,7 +347,8 @@ export default function SettingsApiKeysPage() {
 
     setIsCreatingProductKey(true);
     try {
-      const service = await getApiKeysService();
+      const service = await acquireService(isCurrent);
+      if (!service || !isCurrent()) return;
       const apiKey = await service.createApiKey({
         allowedIps: parseCommaSeparated(productForm.allowedIps),
         description: productForm.description.trim() || undefined,
@@ -256,6 +359,7 @@ export default function SettingsApiKeysPage() {
           : undefined,
         scopes: productForm.selectedScopes,
       });
+      if (!isCurrent()) return;
       const key = getVisibleKey(apiKey);
 
       if (key) {
@@ -264,30 +368,40 @@ export default function SettingsApiKeysPage() {
 
       setProductForm(createInitialProductApiKeyForm(defaultKeyName));
       await fetchProductApiKeys();
+      if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.created'));
     } catch (error) {
+      if (!isCurrent() || isCancelledRequest(error)) return;
       logger.error('Failed to create Genfeed API key', error);
       NotificationsService.getInstance().error(translate('errors.create'));
     } finally {
-      setIsCreatingProductKey(false);
+      if (isCurrent()) setIsCreatingProductKey(false);
     }
   };
 
   const handleCopyProductKey = async (key: string) => {
+    const isCurrent = currentOperation();
+    if (!isCurrent()) return;
     try {
       await navigator.clipboard.writeText(key);
+      if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.copied'));
     } catch (error) {
+      if (!isCurrent() || isCancelledRequest(error)) return;
       logger.error('Failed to copy Genfeed API key', error);
       NotificationsService.getInstance().error(translate('errors.copy'));
     }
   };
 
   const handleRotateProductKey = async (apiKey: ApiKey) => {
+    const isCurrent = currentOperation();
+    if (!isCurrent()) return;
     setMutatingProductKeyId(apiKey.id);
     try {
-      const service = await getApiKeysService();
+      const service = await acquireService(isCurrent);
+      if (!service || !isCurrent()) return;
       const rotatedKey = await service.rotateApiKey(apiKey.id);
+      if (!isCurrent()) return;
       const key = getVisibleKey(rotatedKey);
 
       if (key) {
@@ -299,27 +413,35 @@ export default function SettingsApiKeysPage() {
       }
 
       await fetchProductApiKeys();
+      if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.rotated'));
     } catch (error) {
+      if (!isCurrent() || isCancelledRequest(error)) return;
       logger.error('Failed to rotate Genfeed API key', error);
       NotificationsService.getInstance().error(translate('errors.rotate'));
     } finally {
-      setMutatingProductKeyId(null);
+      if (isCurrent()) setMutatingProductKeyId(null);
     }
   };
 
   const handleRevokeProductKey = async (apiKey: ApiKey) => {
+    const isCurrent = currentOperation();
+    if (!isCurrent()) return;
     setMutatingProductKeyId(apiKey.id);
     try {
-      const service = await getApiKeysService();
+      const service = await acquireService(isCurrent);
+      if (!service || !isCurrent()) return;
       await service.revokeApiKey(apiKey.id);
+      if (!isCurrent()) return;
       await fetchProductApiKeys();
+      if (!isCurrent()) return;
       NotificationsService.getInstance().success(translate('success.revoked'));
     } catch (error) {
+      if (!isCurrent() || isCancelledRequest(error)) return;
       logger.error('Failed to revoke Genfeed API key', error);
       NotificationsService.getInstance().error(translate('errors.revoke'));
     } finally {
-      setMutatingProductKeyId(null);
+      if (isCurrent()) setMutatingProductKeyId(null);
     }
   };
 
