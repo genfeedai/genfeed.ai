@@ -121,54 +121,31 @@
       }
     },
     {
-      "includes": [
-        "apps/server/notifications/**/*.ts",
-        "apps/server/api/**/*.ts"
-      ],
+      "includes": ["apps/server/**"],
       "linter": {
         "rules": {
+          "complexity": {
+            "noBannedTypes": "error",
+            "noStaticOnlyClass": "error",
+            "useOptionalChain": "error"
+          },
+          "correctness": {
+            "noUnusedFunctionParameters": "error",
+            "noUnusedImports": "error",
+            "noUnusedPrivateClassMembers": "error",
+            "noUnusedVariables": "error"
+          },
+          "performance": {
+            "noAccumulatingSpread": "error"
+          },
+          "style": {
+            "noNonNullAssertion": "error"
+          },
           "suspicious": {
-            "noExplicitAny": "error"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/server/api/src/collections/agent-goals/**/*.ts"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedImports": "error"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/server/api/src/collections/assets/**/*.ts"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedImports": "error"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/server/api/src/collections/bots/**/*.ts"],
-      "linter": {
-        "rules": {
-          "correctness": {
-            "noUnusedImports": "error"
-          }
-        }
-      }
-    },
-    {
-      "includes": ["apps/server/api/src/collections/videos/**/*.ts"],
-      "linter": {
-        "rules": {
-          "suspicious": {
-            "noExplicitAny": "error"
+            "noConfusingVoidType": "error",
+            "noExplicitAny": "error",
+            "noGlobalIsNan": "error",
+            "noTemplateCurlyInString": "error"
           }
         }
       }
