@@ -1,4 +1,5 @@
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -83,15 +84,12 @@ export class XActivityWebhookController {
     if (this.xActivityWebhookService) {
       return this.xActivityWebhookService;
     }
-    try {
-      const resolved = this.moduleRef?.get(XActivityWebhookService, {
-        strict: false,
-      });
-      if (resolved) {
-        return resolved;
-      }
-    } catch {
-      // Converted below to a stable API error.
+    const resolved = resolveOptionalProvider(
+      this.moduleRef,
+      XActivityWebhookService,
+    );
+    if (resolved) {
+      return resolved;
     }
     throw new ServiceUnavailableException(
       'X webhook processing is unavailable',

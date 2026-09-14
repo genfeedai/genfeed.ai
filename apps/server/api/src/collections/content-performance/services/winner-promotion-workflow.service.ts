@@ -1,4 +1,5 @@
 import { AUTOMATION_WORKFLOW_IDS } from '@api/collections/workflows/services/automation-workflow-definitions';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import type { WinnerPromotionCandidate } from '@api/services/harness/harness-winner-promotion.service';
@@ -225,13 +226,10 @@ export class WinnerPromotionWorkflowService {
     if (this.harnessWinnerPromotionService) {
       return this.harnessWinnerPromotionService;
     }
-    try {
-      return this.moduleRef?.get(HarnessWinnerPromotionService, {
-        strict: false,
-      });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(
+      this.moduleRef,
+      HarnessWinnerPromotionService,
+    );
   }
 
   private lockKey(organizationId: string): string {

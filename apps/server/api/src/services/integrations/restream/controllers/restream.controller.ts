@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RestreamService } from '@api/services/integrations/restream/services/restream.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
@@ -187,13 +188,9 @@ export class RestreamController {
     if (direct) {
       return direct;
     }
-    try {
-      const resolved = this.moduleRef?.get(token, { strict: false });
-      if (resolved) {
-        return resolved;
-      }
-    } catch {
-      // Converted below to a stable API error.
+    const resolved = resolveOptionalProvider(this.moduleRef, token);
+    if (resolved) {
+      return resolved;
     }
     throw new HttpException(
       { detail: 'Restream dependencies are unavailable', title: 'Unavailable' },

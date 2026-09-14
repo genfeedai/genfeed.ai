@@ -1,4 +1,5 @@
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
@@ -315,11 +316,7 @@ export class AgentProactiveToolHandler {
     if (this.twitterService) {
       return this.twitterService;
     }
-    try {
-      return this.moduleRef?.get(TwitterService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, TwitterService);
   }
 
   async draftEngagementReply(

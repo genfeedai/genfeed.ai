@@ -1,4 +1,5 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -754,11 +755,7 @@ export class AgentMediaAssetGenerationService {
     if (this.harnessGenerationService) {
       return this.harnessGenerationService;
     }
-    try {
-      return this.moduleRef?.get(HarnessGenerationService, { strict: false });
-    } catch {
-      return undefined;
-    }
+    return resolveOptionalProvider(this.moduleRef, HarnessGenerationService);
   }
 
   private buildVideoBody(params: {
