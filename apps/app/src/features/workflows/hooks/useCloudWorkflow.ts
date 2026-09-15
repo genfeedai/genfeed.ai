@@ -17,6 +17,7 @@ import type {
   WorkflowInputVariable,
 } from '@/features/workflows/services/workflow-api';
 import { createWorkflowApiService } from '@/features/workflows/services/workflow-api';
+import { selectCloudWorkflowEditKey } from '@/features/workflows/stores/cloud-workflow-snapshot';
 import { useCloudWorkflowStore } from '@/features/workflows/stores/cloud-workflow-store';
 
 // =============================================================================
@@ -146,6 +147,7 @@ export function useCloudWorkflow({
 
   // Shared store selectors
   const isDirty = useWorkflowStore(selectIsDirty);
+  const durableEditKey = useWorkflowStore(selectCloudWorkflowEditKey);
   const isSaving = useWorkflowStore(selectIsSaving);
 
   // -------------------------------------------------------------------------
@@ -249,7 +251,11 @@ export function useCloudWorkflow({
     const scheduleAutoSave = async () => {
       try {
         const service = serviceRef.current ?? (await getService());
-        if (cancelled) {
+        if (
+          cancelled ||
+          selectCloudWorkflowEditKey(useWorkflowStore.getState()) !==
+            durableEditKey
+        ) {
           return;
         }
 
@@ -269,7 +275,7 @@ export function useCloudWorkflow({
       cancelled = true;
       useCloudWorkflowStore.getState().cancelAutoSave();
     };
-  }, [autoSave, brandId, getService, isDirty]);
+  }, [autoSave, brandId, durableEditKey, getService, isDirty]);
 
   // -------------------------------------------------------------------------
   // Action callbacks

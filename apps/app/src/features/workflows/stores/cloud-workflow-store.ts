@@ -13,6 +13,10 @@ import type {
   WorkflowApiService,
   WorkflowInputVariable,
 } from '@/features/workflows/services/workflow-api';
+import {
+  getCloudWorkflowSnapshot,
+  selectCloudWorkflowEditKey,
+} from '@/features/workflows/stores/cloud-workflow-snapshot';
 
 // =============================================================================
 // TYPES
@@ -316,16 +320,9 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
       useWorkflowStore.setState({ isSaving: true });
       set({ hasQueuedSave: false });
 
-      // Snapshot exactly what this request will persist. Every node/edge/
-      // group mutation replaces these with new array references (never
-      // mutates in place), so a reference change after the request settles
-      // means an edit landed while the save was in flight.
-      const snapshot = {
-        edges: workflowStore.edges,
-        groups: workflowStore.groups,
-        nodes: workflowStore.nodes,
-        workflowName: workflowStore.workflowName,
-      };
+      const snapshot = getCloudWorkflowSnapshot(workflowStore);
+      const snapshotKey = JSON.stringify(snapshot);
+      const inputVariablesKey = JSON.stringify(inputVariables);
 
       try {
         const restoredNodes = restoreWorkflowNodeTypes(
@@ -333,7 +330,7 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         ) as CloudWorkflowData['nodes'];
 
         const payload = {
-          edgeStyle: workflowStore.edgeStyle,
+          edgeStyle: snapshot.edgeStyle,
           edges: snapshot.edges,
           groups: snapshot.groups,
           inputVariables,
@@ -364,7 +361,6 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
 
           // Update IDs after first save
           set({
-            inputVariables: savedData.inputVariables ?? [],
             pendingCreateMetadata: null,
             pendingTemplateId: null,
             workflowId: savedData.id,
@@ -372,15 +368,11 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
           useWorkflowStore.setState({ workflowId: savedData.id });
         }
 
-        // A concurrent edit during the request means this save's payload is
-        // already stale — keep the canvas dirty and queue a trailing save
-        // instead of reporting edits as saved that never actually went out.
-        const settledState = useWorkflowStore.getState();
+        const hasConcurrentInputEdit =
+          JSON.stringify(get().inputVariables) !== inputVariablesKey;
         const hasConcurrentEdit =
-          settledState.edges !== snapshot.edges ||
-          settledState.groups !== snapshot.groups ||
-          settledState.nodes !== snapshot.nodes ||
-          settledState.workflowName !== snapshot.workflowName;
+          selectCloudWorkflowEditKey(useWorkflowStore.getState()) !==
+            snapshotKey || hasConcurrentInputEdit;
 
         useWorkflowStore.setState({
           isDirty: hasConcurrentEdit,
@@ -388,8 +380,10 @@ export const useCloudWorkflowStore = create<CloudWorkflowStore>()(
         });
         set({
           cloudError: null,
-          hasQueuedSave: get().hasQueuedSave || hasConcurrentEdit,
-          inputVariables: savedData.inputVariables ?? inputVariables,
+          hasQueuedSave: hasConcurrentEdit,
+          inputVariables: hasConcurrentInputEdit
+            ? get().inputVariables
+            : (savedData.inputVariables ?? inputVariables),
         });
 
         if (get().hasQueuedSave) {

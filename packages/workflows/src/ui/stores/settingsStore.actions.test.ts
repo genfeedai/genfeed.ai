@@ -213,9 +213,9 @@ describe('settingsStore — preferences', () => {
     configureEdgeStyleMirror(undefined);
 
     expect(() =>
-      useSettingsStore.getState().setEdgeStyle('step'),
+      useSettingsStore.getState().setEdgeStyle('straight'),
     ).not.toThrow();
-    expect(readPersisted().edgeStyle).toBe('step');
+    expect(readPersisted().edgeStyle).toBe('straight');
   });
 
   it('preserves host-owned extensions in the storage key', () => {

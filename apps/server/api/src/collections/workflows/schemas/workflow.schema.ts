@@ -1,3 +1,4 @@
+import type { EdgeStyle } from '@genfeedai/contracts/types';
 import type {
   Workflow as PrismaWorkflow,
   WorkflowExecution as PrismaWorkflowExecution,
@@ -51,6 +52,7 @@ export type WorkflowInputVariable = {
 };
 
 export type WorkflowVersionGraph = {
+  edgeStyle?: EdgeStyle;
   edges: WorkflowEdge[];
   lockedNodeIds: string[];
   nodes: WorkflowVisualNode[];
@@ -87,6 +89,7 @@ export interface WorkflowDocument
   sourceAssetModel?: string | null;
   nodes: WorkflowVisualNode[];
   edges: WorkflowEdge[];
+  edgeStyle?: EdgeStyle;
   inputVariables: WorkflowInputVariable[];
   versionId: string;
   version: number;

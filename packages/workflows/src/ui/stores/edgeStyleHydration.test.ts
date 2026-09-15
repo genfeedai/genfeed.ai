@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import type {
+  EdgeStyle,
   WorkflowEdge,
   WorkflowFile,
   WorkflowNode,
@@ -8,6 +9,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   configureEdgeStyleMirror,
   getEdgeStylePreference,
+  normalizeEdgeStyle,
   resolveGraphEdgeStyle,
   setEdgeStylePreference,
 } from './edgeStyleMirror';
@@ -137,6 +139,29 @@ afterEach(() => {
 });
 
 describe('edgeStyle preference registry', () => {
+  it.each(['bezier', 'step', '', 42, {}, null, undefined])(
+    'normalizes persisted noncanonical style %j to default',
+    (style) => {
+      expect(normalizeEdgeStyle(style)).toBe('default');
+    },
+  );
+
+  it('migrates a loaded legacy record before its next save', async () => {
+    service.getById.mockResolvedValueOnce({
+      ...savedWorkflow,
+      edgeStyle: 'bezier',
+      nodes: [makeNode('a', 'prompt')],
+    });
+    await useWorkflowStore.getState().loadWorkflowById('wf-1');
+    expect(useWorkflowStore.getState().edgeStyle).toBe('default');
+    await useWorkflowStore.getState().saveWorkflow();
+    expect(service.update).toHaveBeenCalledWith(
+      'wf-1',
+      expect.objectContaining({ edgeStyle: 'default' }),
+      undefined,
+    );
+  });
+
   it('falls back to default when no preference or record style exists', () => {
     expect(getEdgeStylePreference()).toBe('default');
     expect(resolveGraphEdgeStyle(undefined)).toBe('default');
@@ -271,6 +296,58 @@ describe('save after hydration', () => {
 });
 
 describe('settings preference stays in sync for later loads', () => {
+  it.each([
+    { expected: 'default', serverStyle: 'bezier' },
+    { expected: 'default', serverStyle: 'step' },
+    { expected: 'smoothstep', serverStyle: 'smoothstep' },
+    { expected: 'straight', serverStyle: undefined },
+  ])(
+    'hydrates and saves canonical server preference $serverStyle',
+    async ({ expected, serverStyle }) => {
+      useSettingsStore.setState({ edgeStyle: 'straight', isSyncing: false });
+      configureSettingsSync({
+        pull: vi.fn().mockResolvedValue({ edgeStyle: serverStyle }),
+        push: vi.fn(),
+      });
+
+      await useSettingsStore.getState().syncFromServer();
+
+      expect(useSettingsStore.getState().edgeStyle).toBe(expected);
+      expect(getEdgeStylePreference()).toBe(expected);
+      expect(
+        JSON.parse(localStorage.getItem('genfeed-settings') ?? '{}'),
+      ).toMatchObject({ edgeStyle: expected });
+      useWorkflowStore
+        .getState()
+        .loadWorkflow(
+          makeFile({ edgeStyle: undefined, nodes: [makeNode('a', 'prompt')] }),
+        );
+      expect(useWorkflowStore.getState().edgeStyle).toBe(expected);
+      await useWorkflowStore.getState().saveWorkflow();
+      expect(service.create).toHaveBeenCalledWith(
+        expect.objectContaining({ edgeStyle: expected }),
+        undefined,
+      );
+    },
+  );
+
+  it('normalizes runtime legacy preference writes before graph hydration', () => {
+    setEdgeStylePreference('bezier' as EdgeStyle);
+    expect(resolveGraphEdgeStyle(undefined)).toBe('default');
+  });
+
+  it('normalizes runtime legacy settings before persistence and live mirroring', () => {
+    const mirror = vi.fn();
+    configureEdgeStyleMirror(mirror);
+    useSettingsStore.getState().setEdgeStyle('bezier' as EdgeStyle);
+    expect(useSettingsStore.getState().edgeStyle).toBe('default');
+    expect(getEdgeStylePreference()).toBe('default');
+    expect(mirror).toHaveBeenCalledWith('default');
+    expect(
+      JSON.parse(localStorage.getItem('genfeed-settings') ?? '{}'),
+    ).toMatchObject({ edgeStyle: 'default' });
+  });
+
   it('setEdgeStyle records the preference for the next graph without a style', () => {
     useSettingsStore.getState().setEdgeStyle('straight');
     expect(getEdgeStylePreference()).toBe('straight');

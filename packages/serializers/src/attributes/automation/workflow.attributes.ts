@@ -17,6 +17,7 @@ export const workflowAttributes = createEntityAttributes([
   'nextRunAt',
   'nodes',
   'edges',
+  'edgeStyle',
   'inputVariables',
   'version',
   'versionId',

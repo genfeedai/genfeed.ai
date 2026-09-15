@@ -9,6 +9,27 @@ describe('CreateWorkflowDto', () => {
   });
 
   describe('validation', () => {
+    it.each(['default', 'smoothstep', 'straight'])(
+      'retains %s edge style through whitelist validation',
+      async (edgeStyle) => {
+        const dto = plainToInstance(CreateWorkflowDto, {
+          label: 'Styled graph',
+          edgeStyle,
+        });
+        expect(await validate(dto, { whitelist: true })).toHaveLength(0);
+        expect(dto).toHaveProperty('edgeStyle', edgeStyle);
+      },
+    );
+
+    it('rejects unsupported edge styles', async () => {
+      const dto = plainToInstance(CreateWorkflowDto, {
+        label: 'Styled graph',
+        edgeStyle: 'unknown',
+      });
+      expect(await validate(dto, { whitelist: true })).toContainEqual(
+        expect.objectContaining({ property: 'edgeStyle' }),
+      );
+    });
     it('should create an instance', () => {
       const dto = new CreateWorkflowDto();
       expect(dto).toBeInstanceOf(CreateWorkflowDto);

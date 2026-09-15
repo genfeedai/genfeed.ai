@@ -4,6 +4,7 @@ import {
   WorkflowStatus,
   WorkflowTrigger,
 } from '@genfeedai/contracts';
+import { type EdgeStyle, EdgeStyleEnum } from '@genfeedai/contracts/types';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -415,6 +416,15 @@ export class CreateWorkflowDto {
     type: [WorkflowEdgeDto],
   })
   readonly edges?: WorkflowEdgeDto[];
+
+  @IsEnum(EdgeStyleEnum)
+  @IsOptional()
+  @ApiProperty({
+    description: 'Rendering style of the workflow graph edges',
+    enum: EdgeStyleEnum,
+    required: false,
+  })
+  readonly edgeStyle?: EdgeStyle;
 
   @IsArray()
   @ValidateNested({ each: true })

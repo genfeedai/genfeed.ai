@@ -46,6 +46,21 @@ function createDeferred<T>() {
   return { promise, resolve };
 }
 
+function savedWorkflow(): CloudWorkflowData {
+  return {
+    id: 'wf-1',
+    label: 'Sfsfsd',
+    nodes: [],
+    edges: [],
+    edgeStyle: 'default',
+    inputVariables: [],
+    lifecycle: WorkflowLifecycle.DRAFT,
+    organizationId: 'org-1',
+    createdAt: '2026-09-15T00:00:00Z',
+    updatedAt: '2026-09-15T00:00:00Z',
+  };
+}
+
 const oneNode = [
   { data: {}, id: 'n1', position: { x: 0, y: 0 }, type: 'prompt' },
 ];
@@ -171,7 +186,7 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
     expect(useWorkflowStore.getState().isDirty).toBe(false);
   });
 
-  it('queues a trailing save instead of dropping a request made while one is in flight', async () => {
+  it('coalesces a repeated save request when the durable payload is unchanged', async () => {
     useWorkflowStore.setState({ nodes: oneNode as never, workflowId: 'wf-1' });
     useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
     const { service, update } = createService();
@@ -186,18 +201,138 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
 
     const firstSave = useCloudWorkflowStore.getState().saveToCloud(service);
 
-    // A second save request arrives while the first is still in flight —
-    // it must be queued as a trailing save, not dropped.
+    // A repeated request waits for settlement, then coalesces if no durable edit arrived.
     await useCloudWorkflowStore.getState().saveToCloud(service);
 
     expect(update).toHaveBeenCalledTimes(1);
     expect(useCloudWorkflowStore.getState().hasQueuedSave).toBe(true);
 
-    deferredFirst.resolve({ id: 'wf-1', inputVariables: [], label: 'Sfsfsd' });
+    deferredFirst.resolve(savedWorkflow());
     await firstSave;
 
-    expect(update).toHaveBeenCalledTimes(2);
+    expect(update).toHaveBeenCalledTimes(1);
     expect(useCloudWorkflowStore.getState().hasQueuedSave).toBe(false);
+  });
+
+  it.each([
+    { selected: true },
+    { measured: { width: 400, height: 200 }, width: 400, height: 200 },
+    {
+      data: {
+        status: 'running',
+        progress: 50,
+        error: 'transient',
+        jobId: 'job-1',
+      },
+    },
+  ])(
+    'does not save transient node changes during a request: %j',
+    async (transient) => {
+      useWorkflowStore.setState({
+        nodes: oneNode as never,
+        workflowId: 'wf-1',
+      });
+      useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
+      const { service, update } = createService();
+      const pending = createDeferred<CloudWorkflowData>();
+      update.mockReturnValueOnce(pending.promise);
+      update.mockResolvedValue({ id: 'wf-1', inputVariables: [] });
+      const saving = useCloudWorkflowStore.getState().saveToCloud(service);
+      useWorkflowStore.setState({
+        nodes: [{ ...oneNode[0], ...transient }] as never,
+      });
+      pending.resolve(savedWorkflow());
+      await saving;
+      expect(update).toHaveBeenCalledTimes(1);
+      expect(useWorkflowStore.getState().isDirty).toBe(false);
+    },
+  );
+
+  it('strips transient state while preserving real edits in a trailing save', async () => {
+    useWorkflowStore.setState({ nodes: oneNode as never, workflowId: 'wf-1' });
+    useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
+    const { service, update } = createService();
+    const pending = createDeferred<CloudWorkflowData>();
+    update.mockReturnValueOnce(pending.promise);
+    update.mockResolvedValue({ id: 'wf-1', inputVariables: [] });
+    const saving = useCloudWorkflowStore.getState().saveToCloud(service);
+    useWorkflowStore.setState({
+      nodes: [
+        {
+          ...oneNode[0],
+          selected: true,
+          measured: { width: 400 },
+          data: {
+            prompt: 'edited',
+            status: 'running',
+            progress: 50,
+            error: 'transient',
+            jobId: 'job-1',
+          },
+        },
+      ] as never,
+    });
+    pending.resolve(savedWorkflow());
+    await saving;
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update.mock.calls[1][1].nodes).toEqual([
+      {
+        id: 'n1',
+        position: { x: 0, y: 0 },
+        type: 'workflowInput',
+        data: {
+          config: {
+            defaultValue: 'edited',
+            inputName: 'n1',
+            inputType: 'text',
+            required: false,
+          },
+          label: 'text input',
+        },
+      },
+    ]);
+  });
+
+  it('ignores edge selection but saves concurrent edge style and input defaults', async () => {
+    useWorkflowStore.setState({
+      nodes: oneNode as never,
+      edges: [{ id: 'e1', source: 'n1', target: 'n2' }] as never,
+      workflowId: 'wf-1',
+    });
+    useCloudWorkflowStore.setState({ workflowId: 'wf-1' });
+    const { service, update } = createService();
+    const pending = createDeferred<CloudWorkflowData>();
+    update.mockReturnValueOnce(pending.promise);
+    update.mockResolvedValue({
+      id: 'wf-1',
+      inputVariables: [
+        { key: 'prompt', label: 'Prompt', type: 'text', defaultValue: 'new' },
+      ],
+    });
+    const saving = useCloudWorkflowStore.getState().saveToCloud(service);
+    useWorkflowStore.setState({
+      edgeStyle: 'straight',
+      edges: [
+        { id: 'e1', source: 'n1', target: 'n2', selected: true },
+      ] as never,
+    });
+    useCloudWorkflowStore.setState({
+      inputVariables: [
+        { key: 'prompt', label: 'Prompt', type: 'text', defaultValue: 'new' },
+      ],
+    });
+    pending.resolve(savedWorkflow());
+    await saving;
+    expect(update).toHaveBeenCalledTimes(2);
+    expect(update.mock.calls[1][1]).toMatchObject({
+      edgeStyle: 'straight',
+      edges: [{ id: 'e1', source: 'n1', target: 'n2' }],
+      inputVariables: [{ key: 'prompt', defaultValue: 'new' }],
+    });
+    expect(update.mock.calls[1][1].edges[0]).not.toHaveProperty('selected');
+    expect(
+      useCloudWorkflowStore.getState().inputVariables[0].defaultValue,
+    ).toBe('new');
   });
 
   it('drops the queued-save flag and stays unsaved when a save fails', async () => {
@@ -239,7 +374,7 @@ describe('useCloudWorkflowStore.saveToCloud', () => {
     ];
     useWorkflowStore.setState({ nodes: editedNodes as never });
 
-    deferredFirst.resolve({ id: 'wf-1', inputVariables: [], label: 'Sfsfsd' });
+    deferredFirst.resolve(savedWorkflow());
     await firstSave;
 
     // The first request's payload predates the edit, so the canvas must

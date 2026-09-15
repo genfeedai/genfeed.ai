@@ -1,4 +1,4 @@
-import type { EdgeStyle } from '@genfeedai/contracts/types';
+import { type EdgeStyle, EdgeStyleEnum } from '@genfeedai/contracts/types';
 
 // =============================================================================
 // Module-level edge-style mirror
@@ -21,19 +21,19 @@ import type { EdgeStyle } from '@genfeedai/contracts/types';
  */
 type EdgeStyleMirror = (style: EdgeStyle) => void;
 
-const DEFAULT_EDGE_STYLE: EdgeStyle = 'default';
+const DEFAULT_EDGE_STYLE: EdgeStyle = EdgeStyleEnum.DEFAULT;
 const NOOP_EDGE_STYLE_MIRROR: EdgeStyleMirror = () => {};
 
 /** localStorage key the settings store persists to. */
 export const SETTINGS_STORAGE_KEY = 'genfeed-settings';
 
 /** Resolve a stored edge style, migrating the legacy `'bezier'` value. */
-export function normalizeEdgeStyle(
-  style: EdgeStyle | 'bezier' | null | undefined,
-): EdgeStyle {
-  return style === 'bezier' || style === null || style === undefined
-    ? DEFAULT_EDGE_STYLE
-    : style;
+export function normalizeEdgeStyle(style: unknown): EdgeStyle {
+  return style === EdgeStyleEnum.DEFAULT ||
+    style === EdgeStyleEnum.SMOOTHSTEP ||
+    style === EdgeStyleEnum.STRAIGHT
+    ? style
+    : DEFAULT_EDGE_STYLE;
 }
 
 function readPersistedEdgeStyle(): EdgeStyle {
@@ -74,7 +74,7 @@ export function getEdgeStyleMirror(): EdgeStyleMirror {
 
 /** Persist the current user preference for graph hydration (not a live restyle). */
 export function setEdgeStylePreference(style: EdgeStyle): void {
-  _preference = style;
+  _preference = normalizeEdgeStyle(style);
 }
 
 /** Preference used when a workflow record has no `edgeStyle` of its own. */
@@ -96,6 +96,6 @@ export function resolveGraphEdgeStyle(
   recordStyle: string | null | undefined,
 ): EdgeStyle {
   return hasRecordEdgeStyle(recordStyle)
-    ? (recordStyle as EdgeStyle)
+    ? normalizeEdgeStyle(recordStyle)
     : _preference;
 }

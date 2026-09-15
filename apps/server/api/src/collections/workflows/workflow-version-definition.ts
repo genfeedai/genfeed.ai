@@ -11,6 +11,7 @@ import {
   GENFEED_ACTION_NODE_TYPE,
   getActionDefinition,
 } from '@genfeedai/actions';
+import { type EdgeStyle, EdgeStyleEnum } from '@genfeedai/contracts/types';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   isEngineNativeNodeType,
@@ -18,6 +19,7 @@ import {
 } from '@genfeedai/workflows/engine';
 
 export interface WorkflowDefinitionInput {
+  edgeStyle?: EdgeStyle;
   edges?: WorkflowEdge[];
   inputVariables?: WorkflowInputVariable[];
   lockedNodeIds?: string[];
@@ -38,6 +40,17 @@ export function isPersistableWorkflowNodeType(nodeType: string): boolean {
   return (
     nodeType === GENFEED_ACTION_NODE_TYPE || isEngineNativeNodeType(nodeType)
   );
+}
+
+function readEdgeStyle(value: unknown): EdgeStyle | undefined {
+  switch (value) {
+    case EdgeStyleEnum.DEFAULT:
+    case EdgeStyleEnum.SMOOTHSTEP:
+    case EdgeStyleEnum.STRAIGHT:
+      return value;
+    default:
+      return undefined;
+  }
 }
 
 function readRecord(value: unknown): Record<string, unknown> {
@@ -130,6 +143,7 @@ export function buildWorkflowVersionDefinition(
   inputSchema: WorkflowInputVariable[];
 } {
   const graph: WorkflowVersionGraph = {
+    ...(input.edgeStyle !== undefined ? { edgeStyle: input.edgeStyle } : {}),
     edges: input.edges ?? [],
     lockedNodeIds: input.lockedNodeIds ?? [],
     nodes: (input.nodes ?? []).map(validateActionBackedNode),
@@ -196,6 +210,7 @@ export function hydrateWorkflowDefinition(
   return {
     ...(workflow as unknown as WorkflowDocument),
     currentVersionId: currentVersion.id,
+    edgeStyle: readEdgeStyle(graph.edgeStyle) ?? EdgeStyleEnum.DEFAULT,
     edges: Array.isArray(graph.edges) ? (graph.edges as WorkflowEdge[]) : [],
     inputVariables: Array.isArray(currentVersion.inputSchema)
       ? currentVersion.inputSchema
@@ -214,6 +229,7 @@ export function hydrateWorkflowDefinition(
 }
 
 export const WORKFLOW_DEFINITION_FIELDS = [
+  'edgeStyle',
   'edges',
   'inputVariables',
   'lockedNodeIds',
@@ -232,6 +248,7 @@ export function splitWorkflowDefinition(input: Record<string, unknown>): {
 
   const workflow = { ...input };
   const definition: WorkflowDefinitionInput = {
+    edgeStyle: readEdgeStyle(input.edgeStyle),
     edges: Array.isArray(input.edges)
       ? (input.edges as WorkflowEdge[])
       : undefined,
