@@ -48,6 +48,7 @@ import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
+import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
@@ -234,6 +235,7 @@ import { Module } from '@nestjs/common';
     AgentOrchestratorSyncLoopService,
     AgentOrchestratorUiActionBrandIdentityService,
     AgentOrchestratorUiActionConfirmedToolService,
+    AgentGenerationDecisionService,
     AgentOrchestratorUiActionMutationService,
     AgentOrchestratorUiActionFinalizerService,
     AgentOrchestratorUiActionPlanService,

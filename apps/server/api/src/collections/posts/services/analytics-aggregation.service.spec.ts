@@ -3,7 +3,7 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 
 describe('AnalyticsAggregationService', () => {
-  it('does not add soft-delete filters to PostAnalytics queries', async () => {
+  it('scopes PostAnalytics queries to active organization rows', async () => {
     const postAnalyticsAggregate = vi.fn().mockResolvedValue({
       _avg: { engagementRate: null },
       _count: { _all: 0 },
@@ -52,7 +52,7 @@ describe('AnalyticsAggregationService', () => {
         brandId: 'brand_1',
         organizationId: 'org_1',
       });
-      expect(query.where).not.toHaveProperty('isDeleted');
+      expect(query.where).toHaveProperty('isDeleted', false);
     }
     expect(postsCount).toHaveBeenCalledWith('org_1', {
       brandId: 'brand_1',

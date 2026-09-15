@@ -6,6 +6,7 @@ export * from './analytics-query-reference.interface';
 export * from './evaluation.interface';
 export * from './fleet-evaluation-policy.interface';
 export * from './outlier-baseline.interface';
+export * from './outlier-persistence.interface';
 export * from './saved-ad.interface';
 export * from './training.interface';
 export * from './trend.interface';

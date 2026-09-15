@@ -141,7 +141,7 @@ describe('PostsAnalyticsController', () => {
       expect(mockPostsService.findOne).toHaveBeenCalled();
       expect(
         mockPostAnalyticsService.getPostAnalyticsSummary,
-      ).toHaveBeenCalledWith(postId);
+      ).toHaveBeenCalledWith(postId, mockUser.organizationId);
       expect(result).toBeDefined();
       expect(result.data?.type).toBe('post-analytics');
       expect(result.data?.attributes).toBeDefined();
@@ -177,6 +177,7 @@ describe('PostsAnalyticsController', () => {
         postId,
         new Date('2025-01-01'),
         new Date('2025-01-31'),
+        mockUser.organizationId,
       );
       expect(result).toBeDefined();
     });

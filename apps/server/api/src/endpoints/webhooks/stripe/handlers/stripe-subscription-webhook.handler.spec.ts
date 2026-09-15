@@ -2,7 +2,8 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
+import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import {
@@ -40,7 +41,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
     recordSubscriptionLapsed: vi.fn(),
   };
   const creditReconciler = { reconcile: vi.fn() };
-  const billingAccountService = { resolveWebhookOrganization: vi.fn() };
+  const billingService = { resolve: vi.fn(), persist: vi.fn() };
 
   function stripeSubscription(
     overrides: Record<string, unknown> = {},
@@ -80,7 +81,8 @@ describe('StripeSubscriptionWebhookHandler', () => {
       SubscriptionPlan.MONTHLY,
     );
     supportService.resolveTierFromPriceId.mockReturnValue(null);
-    billingAccountService.resolveWebhookOrganization.mockResolvedValue('org_1');
+    billingService.resolve.mockResolvedValue({ subscription: dbSubscription });
+    billingService.persist.mockResolvedValue(dbSubscription);
     subscriptionsService.findByOrganizationId.mockResolvedValue(null);
 
     const module: TestingModule = await Test.createTestingModule({
@@ -96,8 +98,8 @@ describe('StripeSubscriptionWebhookHandler', () => {
           useValue: creditReconciler,
         },
         {
-          provide: OrganizationBillingAccountService,
-          useValue: billingAccountService,
+          provide: StripeWebhookBillingService,
+          useValue: billingService,
         },
       ],
     }).compile();
@@ -114,8 +116,8 @@ describe('StripeSubscriptionWebhookHandler', () => {
 
       await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
 
-      expect(subscriptionsService.patch).toHaveBeenCalledWith(
-        'sub_db_1',
+      expect(billingService.persist).toHaveBeenCalledWith(
+        { subscription: dbSubscription },
         expect.objectContaining({
           status: SubscriptionStatus.ACTIVE,
           stripePriceId: 'price_1',
@@ -161,45 +163,86 @@ describe('StripeSubscriptionWebhookHandler', () => {
       ).toHaveBeenCalledWith('org_1', SubscriptionTier.PRO, 'test');
     });
 
-    it('throws when no canonical or metadata-backed subscription target exists', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
-
+    it('propagates classified identity errors without nested logs or side effects', async () => {
+      billingService.resolve.mockRejectedValueOnce(
+        new StripeWebhookBillingError('identity_missing'),
+      );
       await expect(
         handler.handleSubscriptionCreated(stripeSubscription(), 'test'),
-      ).rejects.toThrow('Subscription reconciliation target unavailable');
-
-      expect(loggerService.warn).toHaveBeenCalledWith(
-        expect.stringContaining('reconciliation target unavailable'),
-        { category: 'subscription_missing' },
-      );
-      expect(subscriptionsService.patch).not.toHaveBeenCalled();
+      ).rejects.toMatchObject({ code: 'identity_missing' });
+      expect(billingService.persist).not.toHaveBeenCalled();
       expect(creditReconciler.reconcile).not.toHaveBeenCalled();
+      expect(loggerService.warn).not.toHaveBeenCalled();
+      expect(loggerService.error).not.toHaveBeenCalled();
     });
 
-    it('falls back to verified billing metadata for out-of-order creation events', async () => {
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
-      subscriptionsService.findByOrganizationId.mockResolvedValue(
-        dbSubscription,
-      );
-      subscriptionsService.patch.mockResolvedValue(dbSubscription);
+    it.each([
+      { items: { data: [] } },
+      { items: { data: [{ price: { id: '' } }] } },
+      { status: 'future_status' },
+      {
+        items: {
+          data: [{ price: { id: 'price_1' }, current_period_end: Infinity }],
+        },
+      },
+      {
+        items: {
+          data: [{ price: { id: 'price_1' }, current_period_start: 1e30 }],
+        },
+      },
+      {
+        items: {
+          data: [{ price: { id: 'price_1' }, current_period_start: null }],
+        },
+      },
+    ])(
+      'rejects invalid subscription payload before writes: %j',
+      async (payload) => {
+        await expect(
+          handler.handleSubscriptionCreated(
+            stripeSubscription(payload),
+            'test',
+          ),
+        ).rejects.toMatchObject({ code: 'invalid_payload' });
+        expect(billingService.persist).not.toHaveBeenCalled();
+        expect(
+          subscriptionsService.syncSubscriptionState,
+        ).not.toHaveBeenCalled();
+        expect(creditReconciler.reconcile).not.toHaveBeenCalled();
+        expect(
+          supportService.updateOrganizationTierAndModels,
+        ).not.toHaveBeenCalled();
+      },
+    );
 
+    it('persists timestamp zero as the Unix epoch', async () => {
       await handler.handleSubscriptionCreated(
         stripeSubscription({
-          metadata: {
-            billing_account_type: 'organization',
-            billing_organization_id: 'org_1',
+          items: {
+            data: [
+              {
+                price: { id: 'price_1' },
+                current_period_start: 0,
+                current_period_end: 0,
+              },
+            ],
           },
         }),
         'test',
       );
-
-      expect(
-        billingAccountService.resolveWebhookOrganization,
-      ).toHaveBeenCalledWith(
-        'cus_123',
-        expect.objectContaining({ billing_organization_id: 'org_1' }),
+      expect(billingService.persist).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          currentPeriodStart: new Date(0),
+          currentPeriodEnd: new Date(0),
+        }),
       );
-      expect(subscriptionsService.patch).toHaveBeenCalled();
+      expect(creditReconciler.reconcile).toHaveBeenCalledWith(
+        expect.objectContaining({
+          periodStart: new Date(0),
+          periodEnd: new Date(0),
+        }),
+      );
     });
 
     it('propagates reconciliation failures so Stripe can retry the event', async () => {

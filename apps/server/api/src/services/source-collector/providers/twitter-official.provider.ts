@@ -5,6 +5,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
@@ -154,6 +155,7 @@ function mapSingleTweet(tweet: {
   url: string;
 }): CollectedSourcePost {
   return {
+    ...normalizeSourcePostFlags(tweet),
     authorId: tweet.authorId,
     authorUsername: tweet.authorUsername,
     contentType: 'tweet',
@@ -187,6 +189,7 @@ function mapOfficialTweet(tweet: {
     authorAvatarUrl: tweet.authorAvatarUrl,
     authorDisplayName: tweet.authorName,
     authorFollowersCount: tweet.authorFollowersCount,
+    ...normalizeSourcePostFlags(tweet),
     authorId: tweet.authorId,
     authorUsername: tweet.authorUsername,
     contentType: 'tweet',

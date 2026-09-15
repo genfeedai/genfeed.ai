@@ -100,8 +100,6 @@ const DEFAULT_ENUM_VALUES: Record<string, string[]> = {
   output_format: ['jpg', 'png', 'webp'],
   // Refine options
   refine: ['no_refiner', 'expert_ensemble_refiner', 'base_image_refiner'],
-  // GPT Image OpenAPI quality
-  quality: ['low', 'medium', 'high', 'xhigh', 'max', 'auto'],
   // Resolution options
   resolution: ['1K', '2K', '4K', '720p', '1080p'],
   // Safety filter level
@@ -361,7 +359,15 @@ function SchemaInputsComponent({
         if (property.allOf && property.allOf.length > 0) {
           const enumKey = getEnumKey(property.allOf[0].$ref);
           const options =
-            enumValues?.[enumKey] ?? DEFAULT_ENUM_VALUES[enumKey] ?? [];
+            enumValues?.[enumKey] ??
+            componentSchemas?.[enumKey]?.enum?.map(String) ??
+            property.enum ??
+            (key === 'quality' ? undefined : DEFAULT_ENUM_VALUES[enumKey]) ??
+            [];
+
+          if (key === 'quality' && options.length === 0) {
+            return null;
+          }
 
           if (options.length > 0) {
             // Get the component schema type for proper type coercion
@@ -391,7 +397,7 @@ function SchemaInputsComponent({
         }
 
         // Direct enum type
-        if (property.enum) {
+        if (property.enum && (key !== 'quality' || property.enum.length > 0)) {
           return (
             <EnumSelect
               key={key}

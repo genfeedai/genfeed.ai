@@ -1,3 +1,4 @@
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { CreatePostAnalyticsDto } from '@api/collections/posts/dto/create-post-analytics.dto';
 import { PostAnalyticsEntity } from '@api/collections/posts/entities/post-analytics.entity';
 import { type PostDocument } from '@api/collections/posts/post.schema';
@@ -12,6 +13,9 @@ import {
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
+import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
+import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import type { CredentialPlatform, Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -39,14 +43,25 @@ export class PostAnalyticsService extends BaseService<
     public readonly logger: LoggerService,
 
     private readonly postsService: PostsService,
+    private readonly outliersService: OutliersService,
   ) {
     super(prisma, 'postAnalytics', logger);
+  }
+
+  async refreshOutliers(context: AnalyticsPersistenceContext) {
+    return this.outliersService.refresh({
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      accountType: 'credential',
+      accountId: context.credentialId,
+    });
   }
 
   async updateTodayAnalytics(
     postId: string,
     platform: CredentialPlatform,
     metrics: UpdateTodayAnalyticsMetrics,
+    context: AnalyticsPersistenceContext,
   ): Promise<PostAnalyticsEntity | null> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
@@ -55,8 +70,32 @@ export class PostAnalyticsService extends BaseService<
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
 
+    // Fetch post to get required fields for upsert
+    const post = await this.postsService.findOne({
+      id: postId,
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      isDeleted: false,
+    });
+    if (!post) {
+      this.logger.error(`Post ${postId} not found for analytics update`);
+      throw new Error('Analytics post not found in account scope');
+    }
+
+    // Analytics ownership always comes from canonical scalar foreign keys.
+    const owner = this.resolvePostOwner(post);
+    if (!owner) {
+      return null;
+    }
+
     const yesterdayAnalytics = await this.prisma.postAnalytics.findFirst({
-      where: { date: yesterday, platform, postId },
+      where: {
+        date: yesterday,
+        platform,
+        postId,
+        organizationId: owner.organizationId,
+        isDeleted: false,
+      },
     });
 
     const yDoc = yesterdayAnalytics as unknown as Record<string, number> | null;
@@ -81,19 +120,49 @@ export class PostAnalyticsService extends BaseService<
           100
         : 0;
 
-    // Fetch post to get required fields for upsert
-    const post = await this.postsService.findOne({ id: postId });
-    if (!post) {
-      this.logger.error(`Post ${postId} not found for analytics update`);
-      return null;
+    const credentialId = context.credentialId;
+    if (
+      !credentialId ||
+      (metrics.credentialId && metrics.credentialId !== credentialId) ||
+      (post.credentialId && post.credentialId !== credentialId)
+    ) {
+      throw new Error('Outlier analytics requires an unambiguous credential');
     }
-
-    // Analytics ownership always comes from canonical scalar foreign keys.
-    const owner = this.resolvePostOwner(post);
-    if (!owner) {
-      return null;
-    }
-
+    const account = {
+      organizationId: owner.organizationId,
+      brandId: owner.brandId,
+      accountType: 'credential' as const,
+      accountId: credentialId,
+    };
+    await this.outliersService.authorize(account);
+    const attributedMetrics = {
+      ...metrics,
+      credentialId,
+      isPinned: metrics.isPinned ?? null,
+      isPromoted: metrics.isPromoted ?? null,
+      metricAvailability: {
+        views:
+          Number.isSafeInteger(metrics.totalViews) && metrics.totalViews >= 0
+            ? 'observed'
+            : 'unavailable',
+        ...metrics.metricAvailability,
+      },
+    };
+    const credential = await this.prisma.credential.findFirst({
+      where: {
+        id: credentialId,
+        organizationId: owner.organizationId,
+        brandId: owner.brandId,
+        isDeleted: false,
+      },
+      select: { platform: true },
+    });
+    if (
+      !credential ||
+      fromPrismaCredentialPlatform(credential.platform) !==
+        fromPrismaCredentialPlatform(platform)
+    )
+      throw new Error('Outlier analytics credential is unavailable');
     const result = await this.prisma.postAnalytics.upsert({
       create: {
         brandId: owner.brandId,
@@ -103,16 +172,18 @@ export class PostAnalyticsService extends BaseService<
         platform,
         postId,
         userId: owner.userId,
-        ...metrics,
+        ...attributedMetrics,
         ...increments,
       } as Prisma.PostAnalyticsUncheckedCreateInput,
       update: {
         engagementRate,
-        ...metrics,
+        ...attributedMetrics,
         ...increments,
       } as Prisma.PostAnalyticsUpdateInput,
       where: {
         postId_platform_date: { date: today, platform, postId },
+        organizationId: owner.organizationId,
+        isDeleted: false,
       },
     });
 
@@ -121,7 +192,10 @@ export class PostAnalyticsService extends BaseService<
       : null;
   }
 
-  async getPostAnalyticsSummary(postId: string): Promise<{
+  async getPostAnalyticsSummary(
+    postId: string,
+    organizationId: string,
+  ): Promise<{
     totalViews: number;
     totalLikes: number;
     totalComments: number;
@@ -141,7 +215,7 @@ export class PostAnalyticsService extends BaseService<
     >;
   }> {
     const allDocs = await this.prisma.postAnalytics.findMany({
-      where: { postId },
+      where: scopedWhere(organizationId, { postId }),
     });
 
     const docs = allDocs as unknown as Array<{
@@ -250,6 +324,7 @@ export class PostAnalyticsService extends BaseService<
     postId: string,
     startDate: Date,
     endDate: Date,
+    organizationId: string,
     platform?: string,
   ): Promise<PostAnalyticsEntity[]> {
     const where: Record<string, unknown> = {
@@ -263,7 +338,10 @@ export class PostAnalyticsService extends BaseService<
 
     const results = await this.prisma.postAnalytics.findMany({
       orderBy: { date: 'asc' },
-      where: where as Prisma.PostAnalyticsWhereInput,
+      where: scopedWhere(
+        organizationId,
+        where as Prisma.PostAnalyticsWhereInput,
+      ),
     });
 
     return results.map(
@@ -296,6 +374,8 @@ export class PostAnalyticsService extends BaseService<
   async processTwitterAnalytics(
     postId: string,
     analytics: {
+      isPinned?: boolean | null;
+      isPromoted?: boolean | null;
       views: number;
       likes: number;
       comments: number;
@@ -306,14 +386,20 @@ export class PostAnalyticsService extends BaseService<
       engagementRate?: number;
       mediaType?: 'text' | 'image' | 'video' | 'mixed';
     },
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.TWITTER, {
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalShares: analytics.retweets || 0,
-        totalViews: analytics.impressions || analytics.views,
-      });
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.TWITTER,
+        {
+          totalComments: analytics.comments,
+          totalLikes: analytics.likes,
+          totalShares: analytics.retweets || 0,
+          totalViews: analytics.views,
+        },
+        context,
+      );
 
       this.logger.log(`Updated Twitter analytics for post ${postId}`);
     } catch (error: unknown) {
@@ -331,12 +417,14 @@ export class PostAnalyticsService extends BaseService<
   async processYouTubeAnalytics(
     postId: string,
     analytics: YouTubePostMetrics,
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.YOUTUBE,
         mapYouTubePostMetrics(analytics),
+        context,
       );
 
       this.logger.log(`Updated YouTube analytics for post ${postId}`);
@@ -355,6 +443,8 @@ export class PostAnalyticsService extends BaseService<
   async processInstagramAnalytics(
     postId: string,
     analytics: {
+      isPinned?: boolean | null;
+      isPromoted?: boolean | null;
       views?: number;
       likes: number;
       comments: number;
@@ -365,25 +455,30 @@ export class PostAnalyticsService extends BaseService<
       engagementRate?: number;
       mediaType?: 'image' | 'video' | 'carousel' | 'reel' | 'story';
     },
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.INSTAGRAM, {
-        impressions: analytics.impressions ?? null,
-        metricAvailability: {
-          impressions:
-            analytics.impressions == null ? 'unavailable' : 'observed',
-          reach: analytics.reach == null ? 'unavailable' : 'observed',
-          views: analytics.views == null ? 'unavailable' : 'observed',
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.INSTAGRAM,
+        {
+          impressions: analytics.impressions ?? null,
+          metricAvailability: {
+            impressions:
+              analytics.impressions == null ? 'unavailable' : 'observed',
+            reach: analytics.reach == null ? 'unavailable' : 'observed',
+            views: analytics.views == null ? 'unavailable' : 'observed',
+          },
+          reach: analytics.reach ?? null,
+          totalComments: analytics.comments,
+          totalLikes: analytics.likes,
+          totalSaves: analytics.saves || 0,
+          totalShares: analytics.shares || 0,
+          totalViews: analytics.views ?? 0,
+          videoViews: analytics.views ?? null,
         },
-        reach: analytics.reach ?? null,
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalSaves: analytics.saves || 0,
-        totalShares: analytics.shares || 0,
-        totalViews:
-          analytics.views || analytics.impressions || analytics.reach || 0,
-        videoViews: analytics.views ?? null,
-      });
+        context,
+      );
 
       this.logger.log(`Updated Instagram analytics for post ${postId}`);
     } catch (error: unknown) {
@@ -401,12 +496,14 @@ export class PostAnalyticsService extends BaseService<
   async processTikTokAnalytics(
     postId: string,
     analytics: TikTokPostMetrics,
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
       await this.updateTodayAnalytics(
         postId,
         CREDENTIAL_PLATFORM.TIKTOK,
         mapTikTokPostMetrics(analytics),
+        context,
       );
 
       this.logger.log(`Updated TikTok analytics for post ${postId}`);
@@ -425,6 +522,8 @@ export class PostAnalyticsService extends BaseService<
   async processPinterestAnalytics(
     postId: string,
     analytics: {
+      isPinned?: boolean | null;
+      isPromoted?: boolean | null;
       views?: number;
       impressions?: number;
       likes: number;
@@ -433,23 +532,29 @@ export class PostAnalyticsService extends BaseService<
       clicks?: number;
       engagementRate?: number;
     },
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.PINTEREST, {
-        clicks: analytics.clicks ?? null,
-        impressions: analytics.impressions ?? null,
-        metricAvailability: {
-          clicks: analytics.clicks == null ? 'unavailable' : 'observed',
-          impressions:
-            analytics.impressions == null ? 'unavailable' : 'observed',
-          views: analytics.views == null ? 'unavailable' : 'observed',
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.PINTEREST,
+        {
+          clicks: analytics.clicks ?? null,
+          impressions: analytics.impressions ?? null,
+          metricAvailability: {
+            clicks: analytics.clicks == null ? 'unavailable' : 'observed',
+            impressions:
+              analytics.impressions == null ? 'unavailable' : 'observed',
+            views: analytics.views == null ? 'unavailable' : 'observed',
+          },
+          totalComments: analytics.comments,
+          totalLikes: analytics.likes,
+          totalSaves: analytics.saves || 0,
+          totalShares: 0,
+          totalViews: analytics.views ?? 0,
         },
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalSaves: analytics.saves || 0,
-        totalShares: 0,
-        totalViews: analytics.views || analytics.impressions || 0,
-      });
+        context,
+      );
 
       this.logger.log(`Updated Pinterest analytics for post ${postId}`);
     } catch (error: unknown) {
@@ -467,6 +572,8 @@ export class PostAnalyticsService extends BaseService<
   async processLinkedInAnalytics(
     postId: string,
     analytics: {
+      isPinned?: boolean | null;
+      isPromoted?: boolean | null;
       views: number;
       likes: number;
       comments: number;
@@ -477,24 +584,30 @@ export class PostAnalyticsService extends BaseService<
       reach?: number;
       mediaType?: 'text' | 'image' | 'video' | 'article' | 'document' | 'mixed';
     },
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.LINKEDIN, {
-        clicks: analytics.clicks ?? null,
-        impressions: analytics.impressions ?? null,
-        metricAvailability: {
-          clicks: analytics.clicks == null ? 'unavailable' : 'observed',
-          impressions:
-            analytics.impressions == null ? 'unavailable' : 'observed',
-          reach: analytics.reach == null ? 'unavailable' : 'observed',
-          views: 'observed',
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.LINKEDIN,
+        {
+          clicks: analytics.clicks ?? null,
+          impressions: analytics.impressions ?? null,
+          metricAvailability: {
+            clicks: analytics.clicks == null ? 'unavailable' : 'observed',
+            impressions:
+              analytics.impressions == null ? 'unavailable' : 'observed',
+            reach: analytics.reach == null ? 'unavailable' : 'observed',
+            views: 'observed',
+          },
+          reach: analytics.reach ?? null,
+          totalComments: analytics.comments,
+          totalLikes: analytics.likes,
+          totalShares: analytics.shares || 0,
+          totalViews: analytics.views,
         },
-        reach: analytics.reach ?? null,
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalShares: analytics.shares || 0,
-        totalViews: analytics.impressions || analytics.views,
-      });
+        context,
+      );
 
       this.logger.log(`Updated LinkedIn analytics for post ${postId}`);
     } catch (error: unknown) {
@@ -513,19 +626,28 @@ export class PostAnalyticsService extends BaseService<
   async processMastodonAnalytics(
     postId: string,
     analytics: {
+      isPinned?: boolean | null;
+      isPromoted?: boolean | null;
       views: number;
       likes: number;
       comments: number;
       boosts: number;
     },
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.MASTODON, {
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalShares: analytics.boosts,
-        totalViews: 0, // Mastodon does not expose view counts
-      });
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.MASTODON,
+        {
+          totalComments: analytics.comments,
+          totalLikes: analytics.likes,
+          totalShares: analytics.boosts,
+          metricAvailability: { views: 'unavailable' },
+          totalViews: 0, // Mastodon does not expose view counts
+        },
+        context,
+      );
 
       this.logger.log(`Updated Mastodon analytics for post ${postId}`);
     } catch (error: unknown) {
@@ -543,6 +665,8 @@ export class PostAnalyticsService extends BaseService<
   async processFacebookAnalytics(
     postId: string,
     analytics: {
+      isPinned?: boolean | null;
+      isPromoted?: boolean | null;
       views: number;
       likes: number;
       comments: number;
@@ -551,22 +675,28 @@ export class PostAnalyticsService extends BaseService<
       impressions?: number;
       engagementRate?: number;
     },
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.FACEBOOK, {
-        impressions: analytics.impressions ?? null,
-        metricAvailability: {
-          impressions:
-            analytics.impressions == null ? 'unavailable' : 'observed',
-          reach: analytics.reach == null ? 'unavailable' : 'observed',
-          views: 'observed',
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.FACEBOOK,
+        {
+          impressions: analytics.impressions ?? null,
+          metricAvailability: {
+            impressions:
+              analytics.impressions == null ? 'unavailable' : 'observed',
+            reach: analytics.reach == null ? 'unavailable' : 'observed',
+            views: 'observed',
+          },
+          reach: analytics.reach ?? null,
+          totalComments: analytics.comments,
+          totalLikes: analytics.likes,
+          totalShares: analytics.shares,
+          totalViews: analytics.views,
         },
-        reach: analytics.reach ?? null,
-        totalComments: analytics.comments,
-        totalLikes: analytics.likes,
-        totalShares: analytics.shares,
-        totalViews: analytics.impressions || analytics.views,
-      });
+        context,
+      );
 
       this.logger.log(`Updated Facebook analytics for post ${postId}`);
     } catch (error: unknown) {
@@ -584,20 +714,28 @@ export class PostAnalyticsService extends BaseService<
   async processThreadsAnalytics(
     postId: string,
     analytics: {
+      isPinned?: boolean | null;
+      isPromoted?: boolean | null;
       views: number;
       likes: number;
       replies: number;
       reposts: number;
       quotes: number;
     },
+    context: AnalyticsPersistenceContext,
   ): Promise<void> {
     try {
-      await this.updateTodayAnalytics(postId, CREDENTIAL_PLATFORM.THREADS, {
-        totalComments: analytics.replies,
-        totalLikes: analytics.likes,
-        totalShares: analytics.reposts + analytics.quotes,
-        totalViews: analytics.views,
-      });
+      await this.updateTodayAnalytics(
+        postId,
+        CREDENTIAL_PLATFORM.THREADS,
+        {
+          totalComments: analytics.replies,
+          totalLikes: analytics.likes,
+          totalShares: analytics.reposts + analytics.quotes,
+          totalViews: analytics.views,
+        },
+        context,
+      );
 
       this.logger.log(`Updated Threads analytics for post ${postId}`);
     } catch (error: unknown) {

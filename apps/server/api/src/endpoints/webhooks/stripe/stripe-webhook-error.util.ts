@@ -1,7 +1,9 @@
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import { isStripeSignatureVerificationError } from '@api/services/integrations/stripe/services/stripe-error.util';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 
 export const StripeWebhookErrorKind = {
+  BILLING: 'BILLING',
   EXPECTED: 'EXPECTED',
   FAULT: 'FAULT',
   IDEMPOTENT: 'IDEMPOTENT',
@@ -21,6 +23,7 @@ export type StripeWebhookErrorMapping = {
 };
 
 export type StripeWebhookErrorDiagnostics = {
+  code?: string;
   errorName: string;
   eventId?: string;
   eventType?: string;
@@ -60,6 +63,15 @@ function getErrorName(error: unknown): string {
 export function mapStripeWebhookError(
   error: unknown,
 ): StripeWebhookErrorMapping {
+  if (error instanceof StripeWebhookBillingError) {
+    return {
+      kind: StripeWebhookErrorKind.BILLING,
+      shouldAcknowledge: false,
+      shouldReleaseIdempotencyKey: true,
+      shouldReportAsFault: false,
+      status: HttpStatus.SERVICE_UNAVAILABLE,
+    };
+  }
   if (isPrismaUniqueConstraintError(error)) {
     return {
       kind: StripeWebhookErrorKind.REPLAY,
@@ -119,6 +131,7 @@ export function getStripeWebhookErrorDiagnostics(
   event?: { id?: string; type?: string } | null,
 ): StripeWebhookErrorDiagnostics {
   return {
+    ...(error instanceof StripeWebhookBillingError ? { code: error.code } : {}),
     errorName: getErrorName(error),
     ...(event?.id ? { eventId: event.id } : {}),
     ...(event?.type ? { eventType: event.type } : {}),
@@ -127,6 +140,7 @@ export function getStripeWebhookErrorDiagnostics(
 }
 
 export function toStripeWebhookException(error: unknown): unknown {
+  if (error instanceof StripeWebhookBillingError) return error;
   const mapping = mapStripeWebhookError(error);
 
   if (

@@ -1,3 +1,4 @@
+import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions';
@@ -55,7 +56,15 @@ describe('persisted mutation approvals', () => {
     },
   });
   const approvals = { findOwned: vi.fn(), resolve: vi.fn() };
-  const messages = { getMessagesByRoom: vi.fn(), patchAll: vi.fn() };
+  const messages = { getMessagesByRoom: vi.fn() };
+  const transaction = {
+    $queryRaw: vi.fn(),
+    agentThread: { findFirst: vi.fn() },
+    agentMessage: { findMany: vi.fn(), updateMany: vi.fn(), update: vi.fn() },
+  };
+  const prisma = {
+    $transaction: vi.fn(async (callback) => callback(transaction)),
+  };
   const executor = { executeTool: vi.fn() };
   const finalizer = {
     finalizeStructuredAssistantTurn: vi.fn(async (value) => value),
@@ -65,14 +74,23 @@ describe('persisted mutation approvals', () => {
     messages as never,
     executor as never,
     finalizer as never,
+    prisma as never,
   );
   beforeEach(() => {
     vi.clearAllMocks();
+    transaction.$queryRaw.mockResolvedValue([]);
     approvals.findOwned.mockResolvedValue(approval());
     messages.getMessagesByRoom.mockResolvedValue([
       { id: 'message-1', role: 'assistant', metadata: { uiActions: [card()] } },
     ]);
-    messages.patchAll.mockResolvedValue({ modifiedCount: 1 });
+    transaction.agentThread.findFirst.mockResolvedValue({
+      brandId: 'brand-1',
+      contextVersion: 2,
+    });
+    transaction.agentMessage.findMany.mockImplementation(async () =>
+      messages.getMessagesByRoom(),
+    );
+    transaction.agentMessage.updateMany.mockResolvedValue({ count: 1 });
     executor.executeTool.mockResolvedValue({
       success: true,
       creditsUsed: 4,
@@ -90,13 +108,13 @@ describe('persisted mutation approvals', () => {
         userId: 'user-1',
       }),
     );
-    expect(messages.patchAll).toHaveBeenCalledWith(
-      expect.objectContaining({
+    expect(transaction.agentMessage.updateMany).toHaveBeenCalledWith({
+      where: expect.objectContaining({
         id: 'message-1',
         organizationId: 'org-1',
         threadId: 'thread-1',
       }),
-      expect.objectContaining({
+      data: expect.objectContaining({
         metadata: expect.objectContaining({
           uiActions: [
             expect.objectContaining({
@@ -107,7 +125,7 @@ describe('persisted mutation approvals', () => {
           ],
         }),
       }),
-    );
+    });
   });
   it.each(['organizationId', 'userId'] as const)(
     'rejects a different %s',
@@ -212,6 +230,10 @@ describe('persisted mutation approvals', () => {
     messages.getMessagesByRoom.mockResolvedValue([
       { id: 'message-2', role: 'assistant', metadata: { uiActions: [next] } },
     ]);
+    transaction.agentThread.findFirst.mockResolvedValue({
+      brandId: 'brand-2',
+      contextVersion: 3,
+    });
     await service.execute('confirm_mutation', request);
     expect(executor.executeTool).toHaveBeenCalledTimes(1);
     expect(executor.executeTool).toHaveBeenCalledWith(
@@ -233,11 +255,12 @@ describe('persisted mutation approvals', () => {
       })),
     );
     await service.execute('confirm_mutation', params());
-    expect(messages.patchAll).toHaveBeenCalledTimes(2);
-    expect(messages.patchAll.mock.calls.map((call) => call[0].id)).toEqual([
-      'message-1',
-      'message-2',
-    ]);
+    expect(transaction.agentMessage.updateMany).toHaveBeenCalledTimes(2);
+    expect(
+      transaction.agentMessage.updateMany.mock.calls.map(
+        (call) => call[0].where.id,
+      ),
+    ).toEqual(['message-1', 'message-2']);
     expect(executor.executeTool).toHaveBeenCalledTimes(1);
   });
 
@@ -304,14 +327,13 @@ describe('persisted mutation approvals', () => {
     messages.getMessagesByRoom.mockResolvedValue([
       { id: 'message-1', role: 'assistant', metadata: { uiActions: [action] } },
     ]);
-    messages.patchAll.mockResolvedValue({ modifiedCount: 0 });
     await service.execute('decline_mutation', params());
     expect(approvals.resolve).not.toHaveBeenCalled();
     expect(executor.executeTool).not.toHaveBeenCalled();
   });
 
   it('retries card persistence using the executor replay instead of resolving again', async () => {
-    messages.patchAll.mockResolvedValueOnce({ modifiedCount: 0 });
+    transaction.agentMessage.updateMany.mockResolvedValueOnce({ count: 0 });
     await expect(service.execute('confirm_mutation', params())).rejects.toThrow(
       'Unable to update',
     );
@@ -353,9 +375,9 @@ describe('persisted mutation approvals', () => {
         result: expect.objectContaining({ success: false }),
       }),
     );
-    expect(messages.patchAll).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
+    expect(transaction.agentMessage.updateMany).toHaveBeenCalledWith({
+      where: expect.anything(),
+      data: expect.objectContaining({
         metadata: expect.objectContaining({
           uiActions: [
             expect.objectContaining({
@@ -367,6 +389,154 @@ describe('persisted mutation approvals', () => {
           ],
         }),
       }),
+    });
+  });
+
+  it('preserves a generation decision written after loading the mutation proposal', async () => {
+    const generation = {
+      id: 'generation-1',
+      type: 'generation_action_card',
+      title: 'Image',
+      generationType: 'image',
+      data: {
+        sourceActionId: 'generation-1',
+        brandId: 'brand-1',
+        scopeVersion: 2,
+        decision: 'pending',
+      },
+    };
+    const original = {
+      id: 'message-1',
+      role: 'assistant',
+      metadata: { uiActions: [card(), generation], note: 'original' },
+    };
+    let persisted: Record<string, unknown> = structuredClone(original.metadata);
+    messages.getMessagesByRoom.mockResolvedValue([structuredClone(original)]);
+    transaction.agentMessage.findMany.mockImplementation(async () => [
+      { id: original.id, metadata: structuredClone(persisted) },
+    ]);
+    transaction.agentMessage.update.mockImplementation(async ({ data }) => {
+      persisted = data.metadata;
+      return { id: original.id };
+    });
+    transaction.agentMessage.updateMany.mockImplementation(async ({ data }) => {
+      persisted = data.metadata;
+      return { count: 1 };
+    });
+    const decisions = new AgentGenerationDecisionService(prisma as never);
+    executor.executeTool.mockImplementationOnce(async () => {
+      expect(transaction.$queryRaw).not.toHaveBeenCalled();
+      await decisions.transition(
+        { ...params(), payload: { sourceActionId: generation.id } },
+        'declined',
+      );
+      persisted = {
+        ...persisted,
+        note: 'fresh metadata',
+        unrelated: { retained: true },
+      };
+      return { success: true, creditsUsed: 4 };
+    });
+    await service.execute('confirm_mutation', params());
+    expect(persisted).toMatchObject({
+      note: 'fresh metadata',
+      unrelated: { retained: true },
+      uiActions: [
+        expect.objectContaining({
+          id: sourceActionId,
+          data: expect.objectContaining({ status: 'approved' }),
+        }),
+        expect.objectContaining({
+          id: generation.id,
+          data: expect.objectContaining({ decision: 'declined' }),
+        }),
+      ],
+    });
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(2);
+    expect(transaction.$queryRaw.mock.calls.map((call) => call[1])).toEqual([
+      JSON.stringify([
+        'agent-generation-decision',
+        'org-1',
+        'user-1',
+        'thread-1',
+      ]),
+      JSON.stringify([
+        'agent-generation-decision',
+        'org-1',
+        'user-1',
+        'thread-1',
+      ]),
+    ]);
+    const locks = transaction.$queryRaw.mock.invocationCallOrder;
+    const threadReads =
+      transaction.agentThread.findFirst.mock.invocationCallOrder;
+    const messageReads =
+      transaction.agentMessage.findMany.mock.invocationCallOrder;
+    expect(locks[1]).toBeLessThan(threadReads[1]);
+    expect(threadReads[1]).toBeLessThan(messageReads[1]);
+    expect(messageReads[1]).toBeLessThan(
+      transaction.agentMessage.updateMany.mock.invocationCallOrder[0],
     );
+    expect(transaction.agentMessage.findMany).toHaveBeenLastCalledWith({
+      where: {
+        threadId: 'thread-1',
+        organizationId: 'org-1',
+        isDeleted: false,
+        role: 'assistant',
+      },
+      select: { id: true, metadata: true },
+    });
+  });
+
+  it('rejects an unavailable owned active thread before reading or patching messages', async () => {
+    transaction.agentThread.findFirst.mockResolvedValue(null);
+    await expect(service.execute('decline_mutation', params())).rejects.toThrow(
+      'active approval thread',
+    );
+    expect(transaction.agentThread.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'thread-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        isDeleted: false,
+        status: 'active',
+      },
+    });
+    expect(transaction.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      transaction.agentThread.findFirst.mock.invocationCallOrder[0],
+    );
+    expect(transaction.agentMessage.findMany).not.toHaveBeenCalled();
+    expect(transaction.agentMessage.updateMany).not.toHaveBeenCalled();
+    expect(finalizer.finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    { approvalId: 'other' },
+    { sourceActionId: 'other' },
+    { scopeVersion: 3 },
+    { brandId: 'other' },
+  ])('revalidates fresh card identity and scope %j', async (change) => {
+    const fresh = card();
+    fresh.data = { ...fresh.data, ...change };
+    transaction.agentMessage.findMany.mockResolvedValue([
+      { id: 'message-1', metadata: { uiActions: [fresh] } },
+    ]);
+    await expect(
+      service.execute('decline_mutation', params()),
+    ).rejects.toThrow();
+    expect(transaction.agentMessage.updateMany).not.toHaveBeenCalled();
+    expect(finalizer.finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
+  });
+
+  it('rejects a thread scope changed since initial proposal validation', async () => {
+    transaction.agentThread.findFirst.mockResolvedValue({
+      brandId: 'brand-2',
+      contextVersion: 3,
+    });
+    await expect(service.execute('decline_mutation', params())).rejects.toThrow(
+      'scope is unavailable',
+    );
+    expect(transaction.agentMessage.findMany).not.toHaveBeenCalled();
+    expect(transaction.agentMessage.updateMany).not.toHaveBeenCalled();
   });
 });

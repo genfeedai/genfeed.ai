@@ -509,6 +509,7 @@ describe('InstagramService', () => {
         1,
         'https://graph.facebook.com/v24.0/me/accounts',
         {
+          timeout: 10_000,
           params: {
             access_token: 'token',
             fields:
@@ -523,6 +524,7 @@ describe('InstagramService', () => {
         2,
         'https://graph.facebook.com/v24.0/me/accounts',
         {
+          timeout: 10_000,
           params: {
             access_token: 'token',
             after: 'cursor-1',
@@ -558,6 +560,27 @@ describe('InstagramService', () => {
 
       // 25 is the documented cap (INSTAGRAM_ACCOUNT_LIST_MAX_PAGES).
       expect(httpServiceMock.get).toHaveBeenCalledTimes(25);
+    });
+
+    it('sanitizes a timed out account request', async () => {
+      (httpServiceMock.get as Mock).mockReturnValue(
+        throwError(() => ({
+          code: 'ECONNABORTED',
+          message:
+            'timeout https://graph.facebook.com?access_token=secret-timeout-token',
+          config: { params: { access_token: 'secret-timeout-token' } },
+        })),
+      );
+      await expect(
+        service.listAuthorizedInstagramAccounts('secret-timeout-token'),
+      ).rejects.toBeTruthy();
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ timeout: 10_000 }),
+      );
+      expect(JSON.stringify(loggerMock.error.mock.calls)).not.toContain(
+        'secret-timeout-token',
+      );
     });
 
     it('never lets access_token reach the logs on failure', async () => {

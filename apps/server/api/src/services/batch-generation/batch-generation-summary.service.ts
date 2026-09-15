@@ -228,6 +228,7 @@ export class BatchGenerationSummaryService {
             where: {
               organizationId: { in: organizationIds },
               postId: { in: postIds },
+              isDeleted: false,
             },
           })
         : [];

@@ -202,6 +202,7 @@ export default function InstagramAccountSelector({
           {availableAccounts.map((account) => (
             <Button
               key={account.id}
+              aria-pressed={selectedAccount?.id === account.id}
               className={`w-full p-3 transition-[box-shadow,background-color] ${
                 selectedAccount?.id === account.id
                   ? 'shadow-border-strong bg-primary/10'

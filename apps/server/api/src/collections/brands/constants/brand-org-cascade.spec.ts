@@ -93,6 +93,32 @@ function parseDualKeyedModels(schema: string): ParsedModel[] {
 }
 
 describe('brand-org-cascade config', () => {
+  it('moves outlier snapshot ownership before measurements without moving org configuration', () => {
+    const parent = FIRST_ORDER_TARGETS.findIndex(
+      (target) => target.delegate === 'outlierBaselineSnapshot',
+    );
+    const child = FIRST_ORDER_TARGETS.findIndex(
+      (target) => target.delegate === 'outlierPostPerformance',
+    );
+    expect(parent).toBeGreaterThanOrEqual(0);
+    expect(child).toBeGreaterThan(parent);
+    expect(FIRST_ORDER_TARGETS[parent]).toMatchObject({
+      table: 'outlier_baseline_snapshots',
+      brandField: 'brandId',
+      orgField: 'organizationId',
+    });
+    expect(FIRST_ORDER_TARGETS[child]).toMatchObject({
+      table: 'outlier_post_performances',
+      brandField: 'brandId',
+      orgField: 'organizationId',
+    });
+    expect(
+      FIRST_ORDER_TARGETS.some(
+        (target) => target.delegate === 'outlierConfiguration',
+      ),
+    ).toBe(false);
+  });
+
   const schema = readFileSync(findSchemaPath(), 'utf8');
   const dualKeyed = parseDualKeyedModels(schema);
 

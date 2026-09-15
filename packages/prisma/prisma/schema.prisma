@@ -2815,6 +2815,9 @@ model PostAnalytics {
   watchTimeSeconds       Float?
   averageWatchTimeSeconds Float?
   metricAvailability     Json               @default("{}")
+  isDeleted              Boolean            @default(false)
+  isPinned               Boolean?
+  isPromoted             Boolean?
   correctionKind         String?
   engagementRate         Float              @default(0)
   createdAt              DateTime           @default(now())
@@ -7048,4 +7051,82 @@ model BrandOsPublication {
   @@unique([organizationId, brandId])
   @@index([organizationId, brandId, isDeleted])
   @@map("brand_os_publications")
+}
+
+model OutlierConfiguration {
+  id String @id @default(cuid())
+  organizationId String @unique
+  windowSize Int @default(20)
+  minimumSampleSize Int @default(5)
+  outlierThreshold Float @default(3)
+  breakoutThreshold Float @default(10)
+  maturityHoursByPlatform Json @default("{}")
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@map("outlier_configurations")
+}
+
+model OutlierBaselineSnapshot {
+  inputFingerprint String
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  accountType String
+  accountId String
+  platform String
+  contentType String
+  medianViews Float?
+  sampleSize Int
+  windowSize Int
+  minimumSampleSize Int
+  maturityMs Float
+  outlierThreshold Float
+  breakoutThreshold Float
+  status String
+  computedAt DateTime
+  exclusions Json
+  unknownEligibility Json
+  contributorIds String[]
+  idempotencyKey String
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  performances OutlierPostPerformance[]
+  @@unique([id, organizationId])
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, accountId, platform, computedAt])
+  @@index([organizationId, brandId, accountType, accountId, platform, contentType, isDeleted])
+  @@map("outlier_baseline_snapshots")
+}
+
+model OutlierPostPerformance {
+  id String @id @default(cuid())
+  organizationId String
+  brandId String
+  accountType String
+  accountId String
+  platform String
+  contentType String
+  postId String?
+  sourcePostId String?
+  logicalPostId String
+  measuredAt DateTime
+  views Float?
+  publishedAt DateTime?
+  outlierRatio Float?
+  outlierTier String?
+  baselineSnapshotId String
+  baselineSnapshot OutlierBaselineSnapshot @relation(fields: [baselineSnapshotId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  isContributor Boolean
+  eligibility String
+  exclusionReasons Json
+  isPinnedUnknown Boolean
+  isPromotedUnknown Boolean
+  isDeleted Boolean @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@unique([baselineSnapshotId, logicalPostId])
+  @@index([organizationId, baselineSnapshotId, isDeleted, logicalPostId])
+  @@map("outlier_post_performances")
 }

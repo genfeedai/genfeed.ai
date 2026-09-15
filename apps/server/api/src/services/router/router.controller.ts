@@ -163,6 +163,7 @@ export class RouterController {
     const estimate = await this.estimateService.estimate({
       category: body.category,
       duration: body.duration,
+      modelKey: body.modelKey,
       organizationId,
       outputs: body.outputs,
       prioritize: body.prioritize,

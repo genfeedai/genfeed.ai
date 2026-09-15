@@ -24,6 +24,9 @@ describe('AgentThreadsController', () => {
     getUserThreads: ReturnType<typeof vi.fn>;
     findOne: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
+    resolveSavedMode: ReturnType<typeof vi.fn>;
+    updateAgentMode: ReturnType<typeof vi.fn>;
+    updateThreadMetadata: ReturnType<typeof vi.fn>;
   };
   let messagesService: {
     addMessage: ReturnType<typeof vi.fn>;
@@ -44,6 +47,7 @@ describe('AgentThreadsController', () => {
   const mockUserId = testId('user');
 
   const mockUser = {
+    brandId: 'brand_current',
     id: mockUserId,
     organizationId: 'org_current',
     userId: mockUserId,
@@ -53,6 +57,9 @@ describe('AgentThreadsController', () => {
     service = {
       archiveAllThreads: vi.fn(),
       create: vi.fn(),
+      resolveSavedMode: vi.fn().mockResolvedValue('manual'),
+      updateAgentMode: vi.fn().mockResolvedValue({ mode: 'auto' }),
+      updateThreadMetadata: vi.fn().mockResolvedValue({ id: 'thread' }),
       findOne: vi.fn(),
       getUserThreads: vi.fn(),
     };
@@ -456,11 +463,13 @@ describe('AgentThreadsController', () => {
   describe('createThread', () => {
     it('should create a new thread', async () => {
       service.create.mockResolvedValue({ id: 'new' });
+      service.resolveSavedMode.mockResolvedValue('plan');
       await controller.createThread({} as never, { title: 'Test' }, mockUser);
       expect(service.create).toHaveBeenCalledWith(
         expect.objectContaining({
           organizationId: 'org_current',
           title: 'Test',
+          mode: 'plan',
           userId: mockUserId,
         }),
       );
@@ -468,6 +477,47 @@ describe('AgentThreadsController', () => {
   });
 
   describe('updateThreadContext', () => {
+    it('routes the mode command with authenticated canonical identity', async () => {
+      await controller.updateAgentMode(
+        { mode: 'auto' as never, threadId: 'thread' },
+        mockUser,
+      );
+      expect(service.updateAgentMode).toHaveBeenCalledWith(
+        mockUserId,
+        'org_current',
+        'auto',
+        'thread',
+      );
+    });
+    it('rejects invalid generic metadata mode before persistence', async () => {
+      await expect(
+        controller.updateThread(
+          {} as never,
+          'thread',
+          { mode: 'broken' as never },
+          mockUser,
+        ),
+      ).rejects.toThrow();
+      expect(service.updateThreadMetadata).not.toHaveBeenCalled();
+    });
+    it('requires ownership for generic metadata patches', async () => {
+      service.findOne.mockResolvedValue(null);
+      await expect(
+        controller.updateThread(
+          {} as never,
+          'foreign',
+          { mode: 'auto' as never },
+          mockUser,
+        ),
+      ).rejects.toThrow();
+      expect(service.findOne).toHaveBeenCalledWith({
+        id: 'foreign',
+        organizationId: 'org_current',
+        userId: mockUserId,
+        isDeleted: false,
+      });
+      expect(service.updateThreadMetadata).not.toHaveBeenCalled();
+    });
     it('passes the canonical tenant and user authority to the CAS service', async () => {
       scopeService.mutateBrandScope.mockResolvedValue({
         brandId: 'brand-1',

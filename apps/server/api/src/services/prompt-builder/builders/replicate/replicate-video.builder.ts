@@ -32,7 +32,10 @@ import type {
   WanVideoInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
 import { assertRequiredSchemaInput } from '@api/services/prompt-builder/utils/replicate-schema.util';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  getModelMaxReferences,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import {
   calculateAspectRatio,
   convertRatioToOrientation,
@@ -174,7 +177,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0:
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST:
       case MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5:
-        return this.buildSeedance2Prompt(params, promptText);
+        return this.buildSeedance2Prompt(model, params, promptText);
 
       case MODEL_KEYS.REPLICATE_PIXVERSE_PIXVERSE_V6:
         return this.buildPixVerseV6Prompt(params, promptText, negativePrompt);
@@ -485,6 +488,7 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
   }
 
   private buildSeedance2Prompt(
+    model: string,
     params: PromptBuilderParams,
     promptText: string,
   ): Seedance2Input {
@@ -510,8 +514,19 @@ export class ReplicateVideoBuilder extends BaseReplicateBuilder {
       input.generate_audio = params.isAudioEnabled;
     }
 
+    // The first reference is this shot's start frame; every further still is
+    // an identity reference (character, product, style sheet) and rides the
+    // provider's multi-image field instead of being dropped (#4652). The
+    // catalog ceiling (9 on the 2.0 family, 30 on 2.5) bounds the identity set.
     if (params.references && params.references.length > 0) {
-      input.image = params.references[0];
+      const [startFrame, ...identityReferences] = params.references;
+      input.image = startFrame;
+      if (identityReferences.length > 0) {
+        input.reference_images = identityReferences.slice(
+          0,
+          getModelMaxReferences(model),
+        );
+      }
     }
 
     if (params.endFrame) {

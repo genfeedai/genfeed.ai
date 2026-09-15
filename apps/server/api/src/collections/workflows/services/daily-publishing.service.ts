@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { filterSourcePostVariations } from '@api/collections/posts/services/source-post-variation-output.util';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
@@ -271,6 +272,7 @@ export class DailyPublishingService implements OnModuleInit {
       post.externalId ? [{ ...post, externalId: post.externalId }] : [],
     );
     const errors: string[] = [];
+    let successful = 0;
     for (const post of items.slice(0, 50)) {
       try {
         if (state.platform === CredentialPlatform.TWITTER)
@@ -289,9 +291,24 @@ export class DailyPublishingService implements OnModuleInit {
                 },
               ],
             });
+        successful += 1;
       } catch (error) {
         errors.push(
           `${post.id}: ${error instanceof Error ? error.message : 'Analytics refresh failed'}`,
+        );
+      }
+    }
+    if (successful > 0) {
+      try {
+        await this.moduleRef.get(OutliersService, { strict: false }).refresh({
+          organizationId: action.context.organizationId,
+          brandId: state.request.brandId,
+          accountType: 'credential',
+          accountId: state.credentialId,
+        });
+      } catch (error) {
+        errors.push(
+          error instanceof Error ? error.message : 'Baseline refresh failed',
         );
       }
     }
@@ -374,6 +391,7 @@ export class DailyPublishingService implements OnModuleInit {
         organizationId: scope.organizationId,
         brandId: scope.brandId,
         credentialId: scope.credentialId,
+        isDeleted: false,
         date: { gte: new Date(Date.now() - 30 * 86400000) },
         post: { is: { ...scope, targetExecutionState: 'published' } },
       },

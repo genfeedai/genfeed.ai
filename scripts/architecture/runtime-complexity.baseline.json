@@ -216,7 +216,7 @@
     "symbol": "AgentTurnWorkflowExecutionService.execute"
   },
   {
-    "actual": 208,
+    "actual": 206,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-analytics-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"

@@ -17,6 +17,25 @@ function message(
 }
 
 describe('findPendingGenerationAction', () => {
+  it('hides every copy of a declined action but retains recoverable approved cards', () => {
+    const pending = {
+      id: 'root',
+      type: 'generation_action_card' as const,
+      title: 'Image',
+      generationType: 'image' as const,
+    };
+    expect(
+      findPendingGenerationAction([
+        message('declined', [{ ...pending, data: { decision: 'declined' } }]),
+        message('older-copy', [pending]),
+      ]),
+    ).toBeNull();
+    expect(
+      findPendingGenerationAction([
+        message('approved', [{ ...pending, data: { decision: 'approved' } }]),
+      ])?.id,
+    ).toBe('root');
+  });
   it('returns the newest unresolved generation request', () => {
     const action = findPendingGenerationAction([
       message('message-1', [

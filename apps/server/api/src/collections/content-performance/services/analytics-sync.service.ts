@@ -72,7 +72,7 @@ export class AnalyticsSyncService {
     const analytics = await this.prisma.postAnalytics.findMany({
       orderBy: [{ date: 'asc' }, { id: 'asc' }],
       take: MAX_DISCOVERY_ITEMS + 1,
-      where,
+      where: scopedWhere(options.organizationId, where),
     });
     if (analytics.length > MAX_DISCOVERY_ITEMS) {
       throw new Error(

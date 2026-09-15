@@ -1,3 +1,7 @@
+import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
+import { OutlierInputsService } from '@api/collections/outliers/services/outlier-inputs.service';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+
 /**
  * Real-Postgres proof for listening evidence -> content -> release -> outcome.
  *
@@ -150,6 +154,9 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         ListeningTopicAttributionService,
         ListeningTopicCollectorService,
         ListeningTopicsService,
+        OutliersService,
+        OutlierInputsService,
+        OutlierConfigurationService,
         PostAnalyticsService,
         PostsService,
         SourcePostsService,
@@ -463,7 +470,17 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         totalShares: 3,
         totalViews: 400,
       },
+      {
+        organizationId: primary.organizationId,
+        brandId: primary.brandId,
+        credentialId: primary.credentialId,
+      },
     );
+    await postAnalyticsService.refreshOutliers({
+      organizationId: primary.organizationId,
+      brandId: primary.brandId,
+      credentialId: primary.credentialId,
+    });
     if (!analytics) {
       throw new Error('Expected canonical PostAnalytics ingestion');
     }

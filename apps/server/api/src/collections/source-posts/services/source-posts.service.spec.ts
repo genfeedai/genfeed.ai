@@ -1,3 +1,5 @@
+import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -50,6 +52,10 @@ describe('SourcePostsService', () => {
     findFirst: vi.fn(),
   };
 
+  const outliers = {
+    authorize: vi.fn().mockResolvedValue({}),
+    refresh: vi.fn().mockResolvedValue([]),
+  };
   let service: SourcePostsService;
 
   beforeEach(() => {
@@ -60,10 +66,31 @@ describe('SourcePostsService', () => {
         listeningTheme,
         post,
         sourcePost,
+        socialSource: {
+          findFirst: vi.fn().mockResolvedValue({ sourceType: 'account' }),
+        },
       } as unknown as PrismaService,
       logger,
       credentialsService as never,
+      outliers as unknown as OutliersService,
     );
+  });
+
+  it('propagates outlier refresh failures after storing the account batch', async () => {
+    outliers.refresh.mockRejectedValueOnce(new Error('snapshot failed'));
+    await expect(
+      service.upsertCollectedPosts(
+        {
+          id: 'source',
+          organizationId: 'org',
+          brandId: 'brand',
+          userId: 'user',
+          platform: 'twitter',
+          handle: 'author',
+        },
+        [],
+      ),
+    ).rejects.toThrow('snapshot failed');
   });
 
   it('rejects missing and blank external identifiers before the Prisma upsert', async () => {

@@ -274,8 +274,11 @@ export class WorkflowAutomationExecutorRegistrarService {
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.FINALIZE_COLLECTION,
-      async (node, inputs) =>
-        service.finalizeCollection(actionInputs(node.config, inputs)),
+      async (node, inputs, context) =>
+        service.finalizeCollection(
+          context.organizationId,
+          actionInputs(node.config, inputs),
+        ),
     );
     engine.registerExecutor(
       ANALYTICS_SYNC_ACTION_IDS.GENERIC_RESOLVE_WINDOW,

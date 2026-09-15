@@ -67,6 +67,7 @@ type GenerationActionCardControlsProps = {
   estimatedCredits?: number | null;
   /** `false` when the server could not price this generation (#4672). */
   isEstimateAvailable?: boolean;
+  isEstimatePending?: boolean;
   /** Concrete model the estimate (and Generate) would resolve to. */
   resolvedModelKey?: string | null;
   onDurationChange: (value: number) => void;
@@ -112,7 +113,8 @@ export function GenerationActionCardControls({
   duration,
   durationOptions,
   estimatedCredits,
-  isEstimateAvailable = true,
+  isEstimateAvailable = false,
+  isEstimatePending = false,
   resolvedModelKey,
   onDurationChange,
   resolution,
@@ -157,6 +159,7 @@ export function GenerationActionCardControls({
                 event.nativeEvent.isComposing ||
                 isDisabled ||
                 isPromptEmpty ||
+                !isEstimateAvailable ||
                 !showGenerate
               ) {
                 return;
@@ -388,11 +391,13 @@ export function GenerationActionCardControls({
                 </span>
               ) : null}
               <span>
-                {isEstimateAvailable && typeof estimatedCredits === 'number'
-                  ? translate('estimatedCredits', {
-                      credits: estimatedCredits,
-                    })
-                  : translate('estimateUnavailable')}
+                {isEstimatePending
+                  ? translate('estimateLoading')
+                  : isEstimateAvailable && typeof estimatedCredits === 'number'
+                    ? translate('estimatedCredits', {
+                        credits: estimatedCredits,
+                      })
+                    : translate('estimateUnavailable')}
               </span>
             </span>
           ) : null}
@@ -452,7 +457,9 @@ export function GenerationActionCardControls({
               }
               className={trailingControlClass}
               icon={<ArrowUp className="size-4" />}
-              isDisabled={isPromptEmpty || isAllowlistEmpty}
+              isDisabled={
+                isPromptEmpty || isAllowlistEmpty || !isEstimateAvailable
+              }
               onClick={onGenerate}
               size={ButtonSize.ICON}
               tooltip={translate('generateTooltip')}

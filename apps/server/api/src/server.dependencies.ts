@@ -1,4 +1,5 @@
 import type { ByokProvider } from '@genfeedai/contracts';
+import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import type { Prisma, PrismaClient } from '@genfeedai/prisma';
 
 export type {
@@ -122,13 +123,41 @@ export interface ServerSocialAnalytics {
 }
 
 export interface ServerPostAnalytics {
-  processInstagramAnalytics(postId: string, analytics: unknown): Promise<void>;
-  processLinkedInAnalytics(postId: string, analytics: unknown): Promise<void>;
-  processMastodonAnalytics(postId: string, analytics: unknown): Promise<void>;
-  processPinterestAnalytics(postId: string, analytics: unknown): Promise<void>;
-  processTikTokAnalytics(postId: string, analytics: unknown): Promise<void>;
-  processTwitterAnalytics(postId: string, analytics: unknown): Promise<void>;
-  processYouTubeAnalytics(postId: string, analytics: unknown): Promise<void>;
+  processInstagramAnalytics(
+    postId: string,
+    analytics: unknown,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void>;
+  processLinkedInAnalytics(
+    postId: string,
+    analytics: unknown,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void>;
+  processMastodonAnalytics(
+    postId: string,
+    analytics: unknown,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void>;
+  processPinterestAnalytics(
+    postId: string,
+    analytics: unknown,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void>;
+  processTikTokAnalytics(
+    postId: string,
+    analytics: unknown,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void>;
+  processTwitterAnalytics(
+    postId: string,
+    analytics: unknown,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void>;
+  processYouTubeAnalytics(
+    postId: string,
+    analytics: unknown,
+    context: AnalyticsPersistenceContext,
+  ): Promise<void>;
 }
 
 export interface ServerPosts {

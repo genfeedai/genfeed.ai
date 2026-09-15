@@ -6,7 +6,11 @@ import {
   extractInvoiceSubscriptionId,
   extractInvoiceSubscriptionMetadata,
 } from '@api/endpoints/webhooks/stripe/stripe-webhook.util';
-import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
+import {
+  StripeWebhookBillingService,
+  stripeWebhookPeriod,
+} from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   ActivitySource,
@@ -43,7 +47,7 @@ export class StripeInvoiceWebhookHandler {
     private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
     private readonly supportService: StripeWebhookSupportService,
     private readonly creditReconciler: StripeSubscriptionCreditReconcilerService,
-    private readonly billingAccountService: OrganizationBillingAccountService,
+    private readonly billingService: StripeWebhookBillingService,
   ) {}
 
   async handleInvoicePaid(invoice: StripeInvoice, url: string): Promise<void> {
@@ -59,66 +63,23 @@ export class StripeInvoiceWebhookHandler {
         return;
       }
 
+      if (typeof invoice.id !== 'string' || !invoice.id.trim()) {
+        throw new StripeWebhookBillingError('invalid_payload');
+      }
       const stripeSubscriptionId = extractInvoiceSubscriptionId(invoice);
 
-      if (!stripeSubscriptionId) {
-        return this.loggerService.warn(
-          `${url} invoice carries no subscription id, skipping`,
-          { billingReason, invoiceId: invoice.id },
-        );
-      }
-
-      let subscription = await this.subscriptionsService.findOne({
-        stripeSubscriptionId: stripeSubscriptionId,
+      const identity = await this.billingService.resolve({
+        customer: invoice.customer,
+        stripeSubscriptionId,
+        metadata: extractInvoiceSubscriptionMetadata(invoice),
       });
-
-      if (!subscription) {
-        const customerId =
-          typeof invoice.customer === 'string'
-            ? invoice.customer
-            : invoice.customer?.id;
-        if (!customerId) {
-          throw new Error('Invoice billing identity unavailable');
-        }
-
-        // The persisted customer link comes first: a Stripe customer created
-        // before the billing-account metadata convention carries no markers, so
-        // resolveWebhookOrganization rejects it and the webhook 500s into a
-        // Stripe retry loop (API-GENFEED-AI-7S). Same order as the subscription
-        // handler.
-        subscription =
-          await this.subscriptionsService.findByStripeCustomerId(customerId);
-
-        if (!subscription) {
-          const organizationId =
-            await this.billingAccountService.resolveWebhookOrganization(
-              customerId,
-              extractInvoiceSubscriptionMetadata(invoice),
-            );
-          subscription =
-            await this.subscriptionsService.findByOrganizationId(
-              organizationId,
-            );
-        }
-      }
-
-      if (!subscription) {
-        throw new Error('Subscription reconciliation target unavailable');
-      }
-      if (
-        subscription.stripeSubscriptionId &&
-        subscription.stripeSubscriptionId !== stripeSubscriptionId
-      ) {
-        throw new Error('Subscription reconciliation identity conflict');
-      }
-
-      const updatedSubscription = await this.subscriptionsService.patch(
-        String(subscription.id),
-        {
-          status: SubscriptionStatus.ACTIVE,
-          stripeSubscriptionId,
-        },
-      );
+      const subscription = identity.subscription;
+      const periodEnd = stripeWebhookPeriod(invoice.period_end);
+      const periodStart = stripeWebhookPeriod(invoice.period_start);
+      const updatedSubscription = await this.billingService.persist(identity, {
+        status: SubscriptionStatus.ACTIVE,
+        stripeSubscriptionId: identity.stripeSubscriptionId,
+      });
 
       // Sync subscription state to DB
       await this.subscriptionsService.syncSubscriptionState(
@@ -128,14 +89,10 @@ export class StripeInvoiceWebhookHandler {
       await this.creditReconciler.reconcile({
         billingReason,
         invoiceId: invoice.id,
-        ...(invoice.period_end
-          ? { periodEnd: new Date(invoice.period_end * 1000) }
-          : {}),
-        ...(invoice.period_start
-          ? { periodStart: new Date(invoice.period_start * 1000) }
-          : {}),
-        stripeSubscriptionId,
-        subscription,
+        ...(periodEnd ? { periodEnd } : {}),
+        ...(periodStart ? { periodStart } : {}),
+        stripeSubscriptionId: identity.stripeSubscriptionId,
+        subscription: updatedSubscription,
         trigger: 'invoice.paid',
         url,
       });
@@ -150,9 +107,11 @@ export class StripeInvoiceWebhookHandler {
         stripeSubscriptionId,
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed to handle invoice paid`, {
-        category: 'reconciliation_failed',
-      });
+      if (!(error instanceof StripeWebhookBillingError)) {
+        this.loggerService.error(`${url} failed to handle invoice paid`, {
+          category: 'reconciliation_failed',
+        });
+      }
       throw error;
     }
   }

@@ -74,6 +74,7 @@ import {
   type ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -307,6 +308,32 @@ export default function StudioGenerateWorkspace(): ReactElement {
   // themselves would.
   const { payload: handoffPayload } = useStudioGenerateHandoff();
   const appliedHandoffRef = useRef(false);
+  const handoffScope = useMemo(
+    () => ({ brandId, getIngredientsService, handoffPayload, organizationId }),
+    [brandId, getIngredientsService, handoffPayload, organizationId],
+  );
+  const [acceptedHandoffScope, setAcceptedHandoffScope] = useState<
+    typeof handoffScope | null
+  >(null);
+  const isHandoffAccepted = acceptedHandoffScope === handoffScope;
+  const handoffScopeRef = useRef(handoffScope);
+  const handoffReferencesControllerRef = useRef<AbortController | null>(null);
+  useLayoutEffect(() => {
+    if (handoffScopeRef.current !== handoffScope) {
+      handoffReferencesControllerRef.current?.abort();
+      handoffScopeRef.current = handoffScope;
+    }
+  }, [handoffScope]);
+  // Guards the reference fetch against resolving after a real unmount while
+  // surviving React Strict Mode's dev-only mount -> cleanup -> mount cycle,
+  // which re-sets it to `true` before the in-flight request resolves.
+  const isMountedRef = useRef(false);
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     // Wait for the active brand to resolve before deciding anything — an
@@ -332,26 +359,54 @@ export default function StudioGenerateWorkspace(): ReactElement {
       );
       return;
     }
+    setAcceptedHandoffScope(handoffScope);
 
     setPrompt(handoffPayload.prompt);
     applyTypeSettings(
       handoffPayload.type,
       buildStudioSettingsPatchFromHandoff(handoffPayload),
     );
+  }, [
+    applyTypeSettings,
+    brandId,
+    handoffPayload,
+    handoffScope,
+    isHydrated,
+    notificationsService,
+  ]);
 
+  // Keep the one-request latch across Strict Mode's synthetic remount.
+  // Scope changes permanently invalidate the pending result, without retrying
+  // a handoff that has already been consumed.
+  const handoffReferencesRequestedRef = useRef(false);
+  useEffect(() => {
+    if (
+      !isHandoffAccepted ||
+      !handoffPayload ||
+      handoffReferencesRequestedRef.current
+    ) {
+      return;
+    }
     const referenceIds = handoffPayload.references ?? [];
     if (referenceIds.length === 0) {
       return;
     }
+    handoffReferencesRequestedRef.current = true;
+
     const role = studioHandoffReferenceRole(handoffPayload.type);
-    let isCancelled = false;
+    const controller = new AbortController();
+    handoffReferencesControllerRef.current = controller;
+    const isScopeCurrent = () =>
+      isMountedRef.current &&
+      !controller.signal.aborted &&
+      handoffScopeRef.current === handoffScope;
     void (async () => {
       try {
         const service = await getIngredientsService();
-        const assets = await service.findByIds(referenceIds);
-        if (isCancelled) {
+        if (!isScopeCurrent()) {
           return;
         }
+        const assets = await service.findByIds(referenceIds);
         const newReferences = assets.reduce<StudioContentReference[]>(
           (accumulator, asset) => {
             const thumbnailUrl = resolveStudioAssetUrl(asset);
@@ -374,7 +429,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
           },
           [],
         );
-        if (newReferences.length === 0) {
+        if (!isScopeCurrent() || newReferences.length === 0) {
           return;
         }
         setContentReferences((current) => [...current, ...newReferences]);
@@ -384,17 +439,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         // the rest of the prefill.
       }
     })();
-    return () => {
-      isCancelled = true;
-    };
-  }, [
-    applyTypeSettings,
-    brandId,
-    getIngredientsService,
-    handoffPayload,
-    isHydrated,
-    notificationsService,
-  ]);
+  }, [getIngredientsService, handoffPayload, handoffScope, isHandoffAccepted]);
 
   // #4716 review P1: the Agent resolves a concrete model at handoff time, but
   // the org's enabled-model allowlist can differ from what the Agent saw (or
@@ -406,7 +451,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
   useEffect(() => {
     if (
       !handoffPayload ||
-      !appliedHandoffRef.current ||
+      !isHandoffAccepted ||
       handoffModelValidatedRef.current ||
       type !== handoffPayload.type ||
       isLoadingModels
@@ -457,6 +502,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     }
   }, [
     handoffPayload,
+    isHandoffAccepted,
     isLoadingModels,
     models,
     notificationsService,

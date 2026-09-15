@@ -4,6 +4,7 @@ import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-messag
 import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
+import { useAgentModePersistence } from '@genfeedai/agent/hooks/use-agent-mode-persistence';
 import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-follow-up-queue';
 import type {
   AgentChatMessage as AgentChatMessageType,
@@ -36,17 +37,12 @@ import {
 } from '@genfeedai/agent/utils/derive-timeline';
 import { hasRenderableThreadState } from '@genfeedai/agent/utils/has-renderable-thread-state';
 import { resolveRetryPrompt } from '@genfeedai/agent/utils/resolve-retry-prompt';
-import {
-  type AgentThreadMode,
-  UploadStatus,
-  WorkflowExecutionStatus,
-} from '@genfeedai/contracts';
+import { UploadStatus, WorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   AttachmentItem,
   ChatAttachment,
 } from '@genfeedai/props/ui/attachments.props';
 import { useAttachments } from '@hooks/ui/use-attachments/use-attachments';
-import { UsersService } from '@services/organization/users.service';
 import {
   useCallback,
   useEffect,
@@ -164,6 +160,14 @@ export function useAgentChatContainer({
   );
   const clearStaleActiveRun = useAgentChatStore((s) => s.clearStaleActiveRun);
   const draftAgentMode = useAgentChatStore((s) => s.draftAgentMode);
+  const savedAgentMode = useAgentChatStore((s) => s.savedAgentMode);
+  const hasExplicitDraftAgentMode = useAgentChatStore(
+    (s) => s.hasExplicitDraftAgentMode,
+  );
+  const sendAgentMode =
+    activeThreadId || savedAgentMode !== null || hasExplicitDraftAgentMode
+      ? draftAgentMode
+      : undefined;
   const latestProposedPlan = useAgentChatStore((s) => s.latestProposedPlan);
   const onboardingSignupGiftCredits = useAgentChatStore(
     (s) => s.onboardingSignupGiftCredits,
@@ -180,11 +184,9 @@ export function useAgentChatContainer({
     (s) => s.socketConnectionState,
   );
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
-  const setDraftAgentMode = useAgentChatStore((s) => s.setDraftAgentMode);
   const setLatestProposedPlan = useAgentChatStore(
     (s) => s.setLatestProposedPlan,
   );
-  const updateThread = useAgentChatStore((s) => s.updateThread);
   const upsertThread = useAgentChatStore((s) => s.upsertThread);
 
   const { sendMessage: sendNonStreaming } = useAgentChat({
@@ -280,42 +282,6 @@ export function useAgentChatContainer({
 
   activeThreadIdRef.current = activeThreadId;
   messagesCursorRef.current = messagesCursor;
-
-  // Seeds the not-yet-created-thread draft mode from the user's saved
-  // `Setting.agentMode` preference (#4672, FR4) — the store default is
-  // Manual until this resolves. A thread that has since loaded (its own
-  // persisted `mode` already applied via `setDraftAgentMode` elsewhere)
-  // always wins; this never overwrites one. Best-effort only: a fetch
-  // failure just leaves the safe Manual default in place.
-  const hasSeededAgentModeRef = useRef(false);
-  useEffect(() => {
-    if (hasSeededAgentModeRef.current) {
-      return;
-    }
-    hasSeededAgentModeRef.current = true;
-    if (typeof apiService.getToken !== 'function') {
-      return;
-    }
-    let isCancelled = false;
-    void (async () => {
-      try {
-        const token = await apiService.getToken();
-        if (!token || isCancelled) {
-          return;
-        }
-        const user = await UsersService.getInstance(token).findMe();
-        const savedMode = user.settings.agentMode;
-        if (!isCancelled && !activeThreadIdRef.current && savedMode) {
-          setDraftAgentMode(savedMode);
-        }
-      } catch {
-        // Best-effort seed only.
-      }
-    })();
-    return () => {
-      isCancelled = true;
-    };
-  }, [apiService, setDraftAgentMode]);
 
   const isRunActive =
     activeRunStatus === 'running' || activeRunStatus === 'cancelling';
@@ -497,46 +463,7 @@ export function useAgentChatContainer({
     threadId: activeThreadId,
   });
 
-  // Changing the mode updates the active thread (when one exists) and always
-  // persists the choice as the user's saved default for new threads (#4672,
-  // FR3/FR6) — a mode picked with no thread yet still needs to stick.
-  const setAgentMode = useCallback(
-    async (mode: AgentThreadMode) => {
-      const previousMode = draftAgentMode;
-      setDraftAgentMode(mode);
-
-      if (activeThreadId) {
-        updateThread(activeThreadId, { mode });
-      }
-
-      try {
-        if (activeThreadId) {
-          await apiService.updateThread(activeThreadId, { mode });
-        }
-
-        const token = await apiService.getToken();
-        if (token) {
-          await UsersService.getInstance(token).patchMeSettings({
-            agentMode: mode,
-          });
-        }
-      } catch {
-        if (activeThreadId) {
-          updateThread(activeThreadId, { mode: previousMode });
-        }
-        setDraftAgentMode(previousMode);
-        setError('Failed to update agent mode.');
-      }
-    },
-    [
-      activeThreadId,
-      apiService,
-      draftAgentMode,
-      setDraftAgentMode,
-      setError,
-      updateThread,
-    ],
-  );
+  const setAgentMode = useAgentModePersistence(apiService);
 
   const handleSend = useCallback(
     (
@@ -579,7 +506,7 @@ export function useAgentChatContainer({
             generationMode: options?.generationMode,
             generationSettings: options?.generationSettings,
             knowledgeSelection: options?.knowledgeSelection,
-            agentMode: options?.agentMode ?? draftAgentMode,
+            agentMode: options?.agentMode ?? sendAgentMode,
           },
         });
         if (!enqueued.accepted) {
@@ -595,12 +522,12 @@ export function useAgentChatContainer({
         generationMode: options?.generationMode,
         generationSettings: options?.generationSettings,
         knowledgeSelection: options?.knowledgeSelection,
-        agentMode: options?.agentMode ?? draftAgentMode,
+        agentMode: options?.agentMode ?? sendAgentMode,
       });
       return true;
     },
     [
-      draftAgentMode,
+      sendAgentMode,
       followLatestTurn,
       followUpQueue,
       isReadOnly,

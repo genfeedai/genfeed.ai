@@ -686,7 +686,283 @@ describe('CredentialsService', () => {
 
     function loadPendingCredential(): void {
       prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
+      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
     }
+
+    function useStoredRows(rows: Array<Record<string, unknown>>) {
+      const matches = (
+        row: Record<string, unknown>,
+        where: Record<string, unknown>,
+      ): boolean =>
+        Object.entries(where).every(([key, value]) => {
+          if (key === 'OR')
+            return (value as Array<Record<string, unknown>>).some((condition) =>
+              matches(row, condition),
+            );
+          if (value && typeof value === 'object' && 'not' in value)
+            return row[key] !== value.not;
+          return row[key] === value;
+        });
+      prisma.credential.findFirst.mockImplementation(
+        async ({ where }: { where: Record<string, unknown> }) =>
+          (() => {
+            const row = rows.find((candidate) => matches(candidate, where));
+            return row ? { ...row } : null;
+          })(),
+      );
+      prisma.credential.updateMany.mockImplementation(
+        async ({
+          where,
+          data,
+        }: {
+          where: Record<string, unknown>;
+          data: Record<string, unknown>;
+        }) => {
+          const matched = rows.filter((row) => matches(row, where));
+          for (const row of matched) Object.assign(row, data);
+          return { count: matched.length };
+        },
+      );
+      prisma.credential.update.mockImplementation(
+        async ({
+          where,
+          data,
+        }: {
+          where: Record<string, unknown>;
+          data: Record<string, unknown>;
+        }) => {
+          const row = rows.find((candidate) => matches(candidate, where));
+          if (!row) throw new Error('Missing live row');
+          Object.assign(row, data);
+          return { ...row };
+        },
+      );
+      let previous = Promise.resolve();
+      prisma.$transaction.mockImplementation(
+        async (callback: (tx: typeof prisma) => Promise<unknown>) => {
+          const next = previous.then(async () => {
+            const snapshot = rows.map((row) => ({ ...row }));
+            try {
+              return await callback(prisma);
+            } catch (error) {
+              rows.forEach((row, index) => {
+                for (const key of Object.keys(row)) delete row[key];
+                Object.assign(row, snapshot[index]);
+              });
+              throw error;
+            }
+          });
+          previous = next.then(
+            () => undefined,
+            () => undefined,
+          );
+          return next;
+        },
+      );
+    }
+
+    it.each([
+      'FACEBOOK',
+      'LINKEDIN',
+      'REDDIT',
+      'TWITTER',
+      'YOUTUBE',
+      'INSTAGRAM',
+    ])(
+      'settles token-first %s callbacks and repeats the same identity',
+      async (platform) => {
+        const row = {
+          ...pendingCredential,
+          accessToken: crypto.encrypt('stored-token'),
+          isConnected: true,
+          isDeleted: false,
+          platform,
+        };
+        useStoredRows([row]);
+        const first = await service.updateExternalProfile(row.id, orgId, {
+          id: 'verified-account',
+          handle: 'first',
+        });
+        const second = await service.updateExternalProfile(row.id, orgId, {
+          id: 'verified-account',
+          handle: 'refreshed',
+        });
+        expect(first).toMatchObject({
+          id: row.id,
+          externalId: 'verified-account',
+          isConnected: true,
+        });
+        expect(second).toMatchObject({
+          id: row.id,
+          externalHandle: 'refreshed',
+          accessToken: row.accessToken,
+        });
+        expect(crypto.decrypt(row.accessToken)).toBe('stored-token');
+      },
+    );
+
+    it.each(['missing', 'foreign', 'deleted'])(
+      'never writes a %s source from a stale callback',
+      async (state) => {
+        const row = {
+          ...pendingCredential,
+          isDeleted: state === 'deleted',
+          organizationId: state === 'foreign' ? 'other-org' : orgId,
+        };
+        useStoredRows(state === 'missing' ? [] : [row]);
+        await expect(
+          service.connectAccount(
+            row.id,
+            orgId,
+            { id: 'account-1' },
+            { accessToken: 'incoming-token' },
+          ),
+        ).rejects.toThrow(/not found/);
+        expect(prisma.credential.updateMany).not.toHaveBeenCalled();
+        expect(prisma.credential.update).not.toHaveBeenCalled();
+        expect(row.accessToken).toBe('fresh-token');
+      },
+    );
+
+    it('rejects different identity without changing profile, token, or OAuth state', async () => {
+      const row = {
+        ...pendingCredential,
+        externalId: 'held-account',
+        isDeleted: false,
+        oauthState: 'pending-state',
+        externalHandle: 'held',
+        accessToken: crypto.encrypt('working-token'),
+      };
+      useStoredRows([row]);
+      const before = { ...row };
+      await expect(
+        service.connectAccount(
+          row.id,
+          orgId,
+          { id: 'different-account', handle: 'different' },
+          { accessToken: 'incoming-token' },
+        ),
+      ).rejects.toMatchObject({
+        status: 400,
+        response: { title: 'Already Connected' },
+      });
+      expect(row).toEqual(before);
+      expect(prisma.credential.update).not.toHaveBeenCalled();
+    });
+
+    it.each([false, true])(
+      'serializes conflicting selections before incumbent mutation (incumbent=%s)',
+      async (hasIncumbent) => {
+        const row = {
+          ...pendingCredential,
+          isDeleted: false,
+          accessToken: crypto.encrypt('original-token'),
+        };
+        const incumbent = {
+          ...row,
+          id: 'incumbent-2',
+          externalId: 'account-2',
+          accessToken: crypto.encrypt('incumbent-token'),
+        };
+        const incumbentBefore = { ...incumbent };
+        useStoredRows(hasIncumbent ? [row, incumbent] : [row]);
+        const results = await Promise.allSettled([
+          service.connectAccount(
+            row.id,
+            orgId,
+            { id: 'account-1' },
+            { accessToken: 'winning-token' },
+          ),
+          service.connectAccount(
+            row.id,
+            orgId,
+            { id: 'account-2' },
+            { accessToken: 'losing-token' },
+          ),
+        ]);
+        expect(results.map((result) => result.status)).toEqual([
+          'fulfilled',
+          'rejected',
+        ]);
+        expect(row.externalId).toBe('account-1');
+        expect(crypto.decrypt(row.accessToken)).toBe('winning-token');
+        expect(incumbent).toEqual(incumbentBefore);
+      },
+    );
+
+    it('uses the current locked connection rather than the pre-lock snapshot', async () => {
+      const row = {
+        ...pendingCredential,
+        isDeleted: false,
+        accessToken: crypto.encrypt('current-token'),
+      };
+      const incumbent = { ...row, id: 'incumbent', externalId: 'account-1' };
+      useStoredRows([row, incumbent]);
+      prisma.credential.findFirst.mockResolvedValueOnce({
+        ...row,
+        accessToken: crypto.encrypt('stale-token'),
+      });
+      const result = await service.updateExternalProfile(row.id, orgId, {
+        id: 'account-1',
+      });
+      expect(result.id).toBe('incumbent');
+      expect(crypto.decrypt(incumbent.accessToken)).toBe('current-token');
+      expect(row.accessToken).toBeNull();
+    });
+
+    it.each([
+      { organizationId: 'other-org' },
+      { brandId: 'other-brand' },
+      { platform: 'FACEBOOK' },
+      { isDeleted: true },
+    ])('never merges into an out-of-scope incumbent %j', async (scope) => {
+      const row = { ...pendingCredential, isDeleted: false };
+      const other = {
+        ...row,
+        id: 'unrelated',
+        externalId: 'account-1',
+        ...scope,
+      };
+      const before = { ...other };
+      useStoredRows([row, other]);
+      const result = await service.connectAccount(
+        row.id,
+        orgId,
+        { id: 'account-1' },
+        { accessToken: 'incoming-token' },
+      );
+      expect(result.id).toBe(row.id);
+      expect(other).toEqual(before);
+      expect(result.accessToken).toMatch(CIPHERTEXT_PATTERN);
+      expect(crypto.decrypt(result.accessToken as string)).toBe(
+        'incoming-token',
+      );
+    });
+
+    it('rolls back incoming encrypted token and OAuth state when persistence fails', async () => {
+      const row = {
+        ...pendingCredential,
+        isDeleted: false,
+        oauthState: 'pending-state',
+      };
+      useStoredRows([row]);
+      const before = { ...row };
+      prisma.credential.update.mockRejectedValueOnce(
+        new Error('database unavailable'),
+      );
+      await expect(
+        service.connectAccount(
+          row.id,
+          orgId,
+          { id: 'account-1' },
+          { accessToken: 'incoming-token' },
+        ),
+      ).rejects.toThrow('database unavailable');
+      expect(row).toEqual(before);
+      const data = prisma.credential.update.mock.calls[0][0].data;
+      expect(data.accessToken).toMatch(CIPHERTEXT_PATTERN);
+      expect(data.externalId).toBe('account-1');
+    });
 
     it('rejects a connection the provider never identified', async () => {
       loadPendingCredential();
@@ -713,28 +989,22 @@ describe('CredentialsService', () => {
         id: 'account-2',
       });
 
-      // The claim is conditional on the row's own pre-claim state (see the
-      // "losing writer" test below) rather than a blind patch by id, so it
-      // goes through updateMany, not update.
-      const patched = prisma.credential.updateMany.mock.calls.at(-1)?.[0] as {
-        data: Record<string, unknown>;
-        where: Record<string, unknown>;
-      };
-
-      expect(patched.where).toEqual(
-        expect.objectContaining({
-          externalId: null,
+      expect(prisma.credential.updateMany).toHaveBeenCalledWith({
+        data: { oauthState: null },
+        where: {
           id: 'pending-1',
-          isConnected: false,
-          organizationId: orgId,
-        }),
-      );
-      expect(patched.data).toEqual(
-        expect.objectContaining({
-          externalId: 'account-2',
-          isConnected: true,
           isDeleted: false,
-          oauthState: null,
+          organizationId: orgId,
+          OR: [{ externalId: null }, { externalId: 'account-2' }],
+        },
+      });
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            externalId: 'account-2',
+            isConnected: true,
+            oauthState: null,
+          }),
         }),
       );
     });
@@ -789,7 +1059,6 @@ describe('CredentialsService', () => {
           accessToken: 'fresh-token',
           externalId: 'account-1',
           isConnected: true,
-          isDeleted: false,
         }),
       );
 
@@ -798,19 +1067,28 @@ describe('CredentialsService', () => {
         isDeleted: false,
         organizationId: orgId,
       });
-      expect(retirementUpdate.data).toEqual({
-        isConnected: false,
-        isDeleted: true,
-        oauthState: null,
-      });
+      expect(retirementUpdate.data).toEqual(
+        expect.objectContaining({
+          isConnected: false,
+          isDeleted: true,
+          oauthState: null,
+          accessToken: null,
+          refreshToken: null,
+          oauthToken: null,
+          oauthTokenSecret: null,
+          oauthTokenHash: null,
+          accessTokenSecret: null,
+        }),
+      );
     });
 
     it('folds into the winner when a concurrent verify claimed the identity first', async () => {
       loadPendingCredential();
       prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent yet
-      prisma.credential.updateMany.mockRejectedValueOnce(
+      prisma.credential.update.mockRejectedValueOnce(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
+      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
       prisma.credential.findFirst.mockResolvedValueOnce({ id: 'winner-1' }); // retry finds it
 
       const survivor = await service.updateExternalProfile('pending-1', orgId, {
@@ -818,8 +1096,14 @@ describe('CredentialsService', () => {
       });
 
       expect(survivor.id).toBe('winner-1');
+      expect(prisma.$transaction).toHaveBeenCalledTimes(2);
       expect(prisma.credential.update.mock.calls.at(-1)?.[0]).toEqual({
-        data: { isConnected: false, isDeleted: true, oauthState: null },
+        data: expect.objectContaining({
+          isConnected: false,
+          isDeleted: true,
+          oauthState: null,
+          accessToken: null,
+        }),
         where: {
           id: 'pending-1',
           isDeleted: false,
@@ -831,9 +1115,10 @@ describe('CredentialsService', () => {
     it('rethrows a unique violation when no winner can be found', async () => {
       loadPendingCredential();
       prisma.credential.findFirst.mockResolvedValueOnce(null);
-      prisma.credential.updateMany.mockRejectedValueOnce(
+      prisma.credential.update.mockRejectedValue(
         Object.assign(new Error('Unique constraint failed'), { code: 'P2002' }),
       );
+      prisma.credential.findFirst.mockResolvedValueOnce(pendingCredential);
       prisma.credential.findFirst.mockResolvedValueOnce(null);
 
       await expect(
@@ -859,7 +1144,7 @@ describe('CredentialsService', () => {
       expect(incumbentLookup.where.organizationId).toBe(orgId);
     });
 
-    it('applies the connection payload before identity is settled', async () => {
+    it('persists encrypted connection fields with the settled identity', async () => {
       loadPendingCredential(); // updateExternalProfile reads the pending row
       prisma.credential.findFirst.mockResolvedValueOnce(null); // no incumbent
 

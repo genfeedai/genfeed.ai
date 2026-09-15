@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { SourcePostDocument } from '@api/collections/source-posts/schemas/source-post.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
@@ -8,6 +9,7 @@ import {
   CredentialPlatform,
   PostVisibility,
   SocialSourcePlatform,
+  SocialSourceType,
   SourcePostActionType,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -137,6 +139,7 @@ export class SourcePostsService {
     private readonly prisma: PrismaService,
     readonly _logger: LoggerService,
     private readonly credentialsService: CredentialsService,
+    private readonly outliersService: OutliersService,
   ) {}
 
   private get db(): PrismaWithSourcePosts {
@@ -211,6 +214,28 @@ export class SourcePostsService {
     source: SourceRecord,
     posts: SourcePostCreateInput[],
   ): Promise<SourcePostUpsertResult> {
+    const accountSource = await this.prisma.socialSource.findFirst({
+      where: {
+        id: source.id,
+        organizationId: source.organizationId,
+        brandId: source.brandId,
+        isDeleted: false,
+      },
+      select: { sourceType: true },
+    });
+    if (!accountSource)
+      throw new NotFoundException({ message: 'Source not found' });
+    const isAccountSource = [
+      SocialSourceType.ACCOUNT,
+      SocialSourceType.OWN_ACCOUNT,
+    ].includes(accountSource.sourceType as SocialSourceType);
+    const account = {
+      organizationId: source.organizationId,
+      brandId: source.brandId,
+      accountType: 'social_source' as const,
+      accountId: source.id,
+    };
+    if (isAccountSource) await this.outliersService.authorize(account);
     const collected: SourcePostDocument[] = [];
     let rejectedCount = 0;
 
@@ -253,6 +278,7 @@ export class SourcePostsService {
       );
     }
 
+    if (isAccountSource) await this.outliersService.refresh(account);
     return { posts: collected, rejectedCount };
   }
 

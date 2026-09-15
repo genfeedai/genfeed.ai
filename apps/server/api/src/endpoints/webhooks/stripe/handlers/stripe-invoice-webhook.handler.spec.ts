@@ -5,7 +5,8 @@ import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscr
 import { StripeInvoiceWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-invoice-webhook.handler';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
-import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
+import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import {
   ByokBillingStatus,
   SubscriptionPlan,
@@ -53,7 +54,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     logUnresolvedGrant: vi.fn(),
     resolvePlanCredits: vi.fn().mockResolvedValue(5_900),
   };
-  const billingAccountService = { resolveWebhookOrganization: vi.fn() };
+  const billingService = { resolve: vi.fn(), persist: vi.fn() };
 
   function stripeResponse<T extends object>(resource: T): Stripe.Response<T> {
     return {
@@ -99,7 +100,14 @@ describe('StripeInvoiceWebhookHandler', () => {
     subscriptionsService.patch.mockResolvedValue(monthlySubscription);
     subscriptionsService.findByOrganizationId.mockResolvedValue(null);
     subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
-    billingAccountService.resolveWebhookOrganization.mockResolvedValue('org_1');
+    billingService.resolve.mockResolvedValue({
+      subscription: monthlySubscription,
+      stripeSubscriptionId: 'sub_stripe_1',
+    });
+    billingService.persist.mockImplementation(async (identity, patch) => ({
+      ...identity.subscription,
+      ...patch,
+    }));
     supportService.resolveTierFromPriceId.mockReturnValue(null);
     creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
     supportService.hasSubscriptionCreditGrant.mockResolvedValue(false);
@@ -124,8 +132,8 @@ describe('StripeInvoiceWebhookHandler', () => {
           useValue: creditGrantService,
         },
         {
-          provide: OrganizationBillingAccountService,
-          useValue: billingAccountService,
+          provide: StripeWebhookBillingService,
+          useValue: billingService,
         },
       ],
     }).compile();
@@ -157,7 +165,9 @@ describe('StripeInvoiceWebhookHandler', () => {
         'test',
       );
 
-      expect(subscriptionsService.findOne).toHaveBeenCalledWith({
+      expect(billingService.resolve).toHaveBeenCalledWith({
+        customer: undefined,
+        metadata: undefined,
         stripeSubscriptionId: 'sub_stripe_1',
       });
       expect(
@@ -180,9 +190,12 @@ describe('StripeInvoiceWebhookHandler', () => {
     });
 
     it('resets credits for yearly subscriptions', async () => {
-      subscriptionsService.findOne.mockResolvedValue({
-        ...monthlySubscription,
-        plan: SubscriptionPlan.YEARLY,
+      billingService.resolve.mockResolvedValue({
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          plan: SubscriptionPlan.YEARLY,
+        },
       });
       subscriptionsService.patch.mockResolvedValue({
         ...monthlySubscription,
@@ -212,9 +225,12 @@ describe('StripeInvoiceWebhookHandler', () => {
     });
 
     it('grants the verified Pro allocation for a monthly subscription', async () => {
-      subscriptionsService.findOne.mockResolvedValue({
-        ...monthlySubscription,
-        stripePriceId: 'price_pro',
+      billingService.resolve.mockResolvedValue({
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          stripePriceId: 'price_pro',
+        },
       });
       creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
 
@@ -241,9 +257,12 @@ describe('StripeInvoiceWebhookHandler', () => {
     });
 
     it('grants the verified Scale allocation for a monthly subscription', async () => {
-      subscriptionsService.findOne.mockResolvedValue({
-        ...monthlySubscription,
-        stripePriceId: 'price_scale',
+      billingService.resolve.mockResolvedValue({
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          stripePriceId: 'price_scale',
+        },
       });
       creditGrantService.resolvePlanCredits.mockResolvedValue(60_000);
 
@@ -270,10 +289,13 @@ describe('StripeInvoiceWebhookHandler', () => {
     });
 
     it('grants the verified yearly allocation for a yearly Pro subscription', async () => {
-      subscriptionsService.findOne.mockResolvedValue({
-        ...monthlySubscription,
-        plan: SubscriptionPlan.YEARLY,
-        stripePriceId: 'price_pro_yearly',
+      billingService.resolve.mockResolvedValue({
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          plan: SubscriptionPlan.YEARLY,
+          stripePriceId: 'price_pro_yearly',
+        },
       });
       creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
 
@@ -296,94 +318,41 @@ describe('StripeInvoiceWebhookHandler', () => {
       );
     });
 
-    it('does not query subscriptions when the invoice carries no subscription id', async () => {
-      await handler.handleInvoicePaid(invoiceWith({}), 'test');
-
-      expect(subscriptionsService.findOne).not.toHaveBeenCalled();
-      expect(loggerService.warn).toHaveBeenCalled();
-    });
-
-    it('throws when the subscription and billing identity are unavailable', async () => {
-      subscriptionsService.findOne.mockResolvedValue(null);
-
+    it('propagates missing billing identity without nested logs or writes', async () => {
+      billingService.resolve.mockRejectedValueOnce(
+        new StripeWebhookBillingError('identity_missing'),
+      );
       await expect(
-        handler.handleInvoicePaid(
-          invoiceWith({
-            parent: {
-              subscription_details: { subscription: 'sub_missing' },
-            },
-          }),
-          'test',
-        ),
-      ).rejects.toThrow('Invoice billing identity unavailable');
+        handler.handleInvoicePaid(invoiceWith({}), 'test'),
+      ).rejects.toMatchObject({ code: 'identity_missing' });
+      expect(billingService.persist).not.toHaveBeenCalled();
       expect(
         creditsUtilsService.addOrganizationCreditsWithExpiration,
       ).not.toHaveBeenCalled();
+      expect(loggerService.warn).not.toHaveBeenCalled();
+      expect(loggerService.error).not.toHaveBeenCalled();
     });
 
-    it('reconciles an out-of-order invoice through verified subscription metadata', async () => {
-      subscriptionsService.findOne.mockResolvedValue(null);
-      subscriptionsService.findByOrganizationId.mockResolvedValue({
-        ...monthlySubscription,
-        stripeSubscriptionId: null,
-      });
-
+    it('passes expanded customer and subscription metadata to canonical resolution', async () => {
+      const metadata = {
+        billing_account_type: 'billing_account',
+        billing_account_id: 'ba_1',
+        billing_organization_id: 'org_1',
+      };
       await handler.handleInvoicePaid(
         invoiceWith({
-          customer: 'cus_123',
+          customer: { id: 'cus_1' },
           parent: {
-            subscription_details: {
-              metadata: {
-                billing_account_type: 'organization',
-                billing_organization_id: 'org_1',
-              },
-              subscription: 'sub_new',
-            },
+            subscription_details: { subscription: 'sub_stripe_1', metadata },
           },
         }),
         'test',
       );
-
-      expect(
-        billingAccountService.resolveWebhookOrganization,
-      ).toHaveBeenCalled();
-      expect(subscriptionsService.patch).toHaveBeenCalledWith(
-        'sub_db_1',
-        expect.objectContaining({ stripeSubscriptionId: 'sub_new' }),
-      );
-    });
-
-    // API-GENFEED-AI-7S: a Stripe customer created before the billing-account
-    // metadata convention carries no markers, so resolveWebhookOrganization
-    // rejected it and the webhook 500d into a Stripe retry loop. The persisted
-    // customer link resolves the subscription without trusting metadata.
-    it('reconciles through the persisted customer link when the Stripe customer carries no billing metadata', async () => {
-      subscriptionsService.findOne.mockResolvedValue(null);
-      subscriptionsService.findByStripeCustomerId.mockResolvedValue({
-        ...monthlySubscription,
-        stripeSubscriptionId: null,
+      expect(billingService.resolve).toHaveBeenCalledWith({
+        customer: { id: 'cus_1' },
+        metadata,
+        stripeSubscriptionId: 'sub_stripe_1',
       });
-
-      await handler.handleInvoicePaid(
-        invoiceWith({
-          customer: 'cus_legacy',
-          parent: {
-            subscription_details: { metadata: {}, subscription: 'sub_new' },
-          },
-        }),
-        'test',
-      );
-
-      expect(subscriptionsService.findByStripeCustomerId).toHaveBeenCalledWith(
-        'cus_legacy',
-      );
-      expect(
-        billingAccountService.resolveWebhookOrganization,
-      ).not.toHaveBeenCalled();
-      expect(subscriptionsService.patch).toHaveBeenCalledWith(
-        'sub_db_1',
-        expect.objectContaining({ stripeSubscriptionId: 'sub_new' }),
-      );
     });
 
     it('marks onboarding complete on the first subscription invoice', async () => {
@@ -481,9 +450,12 @@ describe('StripeInvoiceWebhookHandler', () => {
     });
 
     it('#1398: skips a duplicate yearly grant when the invoice reference already exists', async () => {
-      subscriptionsService.findOne.mockResolvedValue({
-        ...monthlySubscription,
-        plan: SubscriptionPlan.YEARLY,
+      billingService.resolve.mockResolvedValue({
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          plan: SubscriptionPlan.YEARLY,
+        },
       });
       creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
       supportService.hasSubscriptionCreditGrant.mockResolvedValue(true);
@@ -531,9 +503,12 @@ describe('StripeInvoiceWebhookHandler', () => {
     });
 
     it('#1398: treats a P2002 unique-constraint race on the yearly grant as a no-op, not an error', async () => {
-      subscriptionsService.findOne.mockResolvedValue({
-        ...monthlySubscription,
-        plan: SubscriptionPlan.YEARLY,
+      billingService.resolve.mockResolvedValue({
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: {
+          ...monthlySubscription,
+          plan: SubscriptionPlan.YEARLY,
+        },
       });
       creditGrantService.resolvePlanCredits.mockResolvedValue(70_800);
       const uniqueConstraintError = { code: 'P2002' };

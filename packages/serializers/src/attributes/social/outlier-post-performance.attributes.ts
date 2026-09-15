@@ -1,0 +1,23 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+export const outlierPostPerformanceAttributes = createEntityAttributes([
+  'organizationId',
+  'brandId',
+  'accountType',
+  'accountId',
+  'platform',
+  'contentType',
+  'postId',
+  'sourcePostId',
+  'logicalPostId',
+  'measuredAt',
+  'views',
+  'publishedAt',
+  'outlierRatio',
+  'outlierTier',
+  'baselineSnapshotId',
+  'isContributor',
+  'eligibility',
+  'exclusionReasons',
+  'isPinnedUnknown',
+  'isPromotedUnknown',
+]);

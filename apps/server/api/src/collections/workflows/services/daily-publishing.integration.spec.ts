@@ -1,6 +1,7 @@
 import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TrendsService } from '@api/collections/trends/services/trends.service';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
@@ -174,6 +175,7 @@ function harness() {
       },
     ),
   };
+  const outliers = { refresh: vi.fn().mockResolvedValue([]) };
   const twitterAnalytics = { collect: vi.fn(async () => undefined) };
   const socialAnalytics = { collect: vi.fn(async () => undefined) };
   const actions = new Map<string, SystemWorkflowActionExecutor>();
@@ -184,6 +186,7 @@ function harness() {
   };
   const providers = new Map<unknown, unknown>([
     [SystemWorkflowRunnerService, runner],
+    [OutliersService, outliers],
     [ContentGeneratorService, generator],
     [TrendsService, trends],
     [ContentQualityScorerService, scorer],
@@ -287,6 +290,7 @@ function harness() {
     trends,
     scorer,
     twitterAnalytics,
+    outliers,
     socialAnalytics,
     run: (executionId: string, inputs: Record<string, unknown> = {}) =>
       runGraph(
@@ -363,6 +367,7 @@ describe('daily publishing executable graph', () => {
     }
     expectCompleted(await fixture.run('with-history'));
     expect(fixture.twitterAnalytics.collect).toHaveBeenCalledTimes(2);
+    expect(fixture.outliers.refresh).toHaveBeenCalledTimes(2);
     expect(fixture.socialAnalytics.collect).toHaveBeenCalledTimes(2);
     for (const collector of [
       fixture.twitterAnalytics,

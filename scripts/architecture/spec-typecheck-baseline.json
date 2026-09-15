@@ -82,54 +82,6 @@
     },
     {
       "code": 2345,
-      "count": 2,
-      "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
-      "fingerprint": "10004ec0928a2317d1f5",
-      "message": "Argument of type '{ id: string; organizationId: string; userId: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Property 'brandId' is missing in type '{ id: string; organizationId: string; userId: string; }' but required in type 'AuthenticatedUser'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
-      "fingerprint": "171e92bb76cafe7ffa18",
-      "message": "Argument of type '{ id: string; organizationId: string; userId: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Property 'brandId' is missing in type '{ id: string; organizationId: string; userId: string; }' but required in type 'AuthenticatedUser'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
-      "fingerprint": "6aec8c2b5ffa1e9632a4",
-      "message": "Argument of type '{ id: string; organizationId: string; userId: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Property 'brandId' is missing in type '{ id: string; organizationId: string; userId: string; }' but required in type 'AuthenticatedUser'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
-      "fingerprint": "85ca55a743179a61e5d2",
-      "message": "Argument of type '{ id: string; organizationId: string; userId: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Property 'brandId' is missing in type '{ id: string; organizationId: string; userId: string; }' but required in type 'AuthenticatedUser'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 12,
-      "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
-      "fingerprint": "95299b31d3b7c84e10e5",
-      "message": "Argument of type '{ id: string; organizationId: string; userId: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Property 'brandId' is missing in type '{ id: string; organizationId: string; userId: string; }' but required in type 'AuthenticatedUser'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/agent-threads/controllers/agent-threads.controller.spec.ts",
-      "fingerprint": "c69d1ee5b524b5a67fa2",
-      "message": "Argument of type '{ id: string; organizationId: string; userId: string; }' is not assignable to parameter of type 'AuthenticatedUser'.   Property 'brandId' is missing in type '{ id: string; organizationId: string; userId: string; }' but required in type 'AuthenticatedUser'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
       "count": 3,
       "file": "apps/server/api/src/collections/api-keys/controllers/api-keys.controller.spec.ts",
       "fingerprint": "991beb087c8aba37f4c4",

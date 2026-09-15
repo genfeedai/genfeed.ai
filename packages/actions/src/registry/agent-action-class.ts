@@ -115,7 +115,7 @@ export function getAgentActionClass(
  * the #4672 confirmation matrix:
  * - Outbound always confirms.
  * - Manual confirms credit-spending, brand-context, and gated actions too.
- * - Auto and Plan (running its approved steps) confirm nothing but outbound.
+ * - Auto and Plan preserve existing approval requirements.
  *
  * `mode` is `undefined` for a call with no thread at all (MCP, CLI, a
  * recurring task, a system-triggered batch) — #4672 modes are a per-*thread*
@@ -134,7 +134,7 @@ export function resolveEffectiveMutationPolicy(
   mode: AgentThreadModeValue | undefined,
   declaredPolicy: ToolMutationPolicy | undefined,
 ): ToolMutationPolicy | undefined {
-  if (mode === undefined) {
+  if (declaredPolicy === 'approval-required' || mode === undefined) {
     return declaredPolicy;
   }
   const actionClass = getAgentActionClass(toolName);
@@ -144,7 +144,7 @@ export function resolveEffectiveMutationPolicy(
   if (actionClass === AGENT_ACTION_CLASS.OUTBOUND) {
     return 'approval-required';
   }
-  if (mode === 'manual') {
+  if (mode !== 'auto' && mode !== 'plan') {
     return 'approval-required';
   }
   return 'direct';

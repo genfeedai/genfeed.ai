@@ -2,14 +2,24 @@ import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { StudioGenerateType } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
   IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
   Max,
+  MaxLength,
   Min,
 } from 'class-validator';
+
+/** Generous enough for any real Agent-resolved prompt; bounds the record
+ * that otherwise sits in Redis, unvalidated in size, for the handoff's
+ * 10-minute TTL (#4716 re-review P3). */
+const MAX_HANDOFF_PROMPT_LENGTH = 8000;
+/** No legitimate generation attaches anywhere near this many references —
+ * bounds the same unvalidated-size record. */
+const MAX_HANDOFF_REFERENCES = 20;
 
 const STUDIO_GENERATE_TYPES = [
   'image',
@@ -31,6 +41,7 @@ export class CreateAgentStudioHandoffDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(MAX_HANDOFF_PROMPT_LENGTH)
   @ApiProperty({ description: 'The prompt as the Agent wrote it' })
   readonly prompt!: string;
 
@@ -40,6 +51,7 @@ export class CreateAgentStudioHandoffDto {
 
   @IsString()
   @IsNotEmpty()
+  @MaxLength(200)
   @ApiProperty({
     description:
       'The concrete model the router resolved — never the literal "auto"',
@@ -48,6 +60,7 @@ export class CreateAgentStudioHandoffDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(20)
   @ApiProperty({ required: false })
   readonly aspectRatio?: string;
 
@@ -67,16 +80,19 @@ export class CreateAgentStudioHandoffDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(20)
   @ApiProperty({ required: false })
   readonly resolution?: string;
 
   @IsOptional()
+  @ArrayMaxSize(MAX_HANDOFF_REFERENCES)
   @IsEntityId({ each: true })
   @ApiProperty({ isArray: true, required: false, type: [String] })
   readonly references?: string[];
 
   @IsString()
   @IsOptional()
+  @MaxLength(2048)
   @ApiProperty({
     description: "Brand identity's portrait URL, for an avatar handoff",
     required: false,
@@ -85,6 +101,7 @@ export class CreateAgentStudioHandoffDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(200)
   @ApiProperty({
     description: 'Provider voice id, for an avatar or voice handoff',
     required: false,
