@@ -8,6 +8,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   configureEdgeStyleMirror,
   getEdgeStylePreference,
+  normalizeEdgeStyle,
   resolveGraphEdgeStyle,
   setEdgeStylePreference,
 } from './edgeStyleMirror';
@@ -137,6 +138,29 @@ afterEach(() => {
 });
 
 describe('edgeStyle preference registry', () => {
+  it.each(['bezier', 'step', '', 42, {}, null, undefined])(
+    'normalizes persisted noncanonical style %j to default',
+    (style) => {
+      expect(normalizeEdgeStyle(style)).toBe('default');
+    },
+  );
+
+  it('migrates a loaded legacy record before its next save', async () => {
+    service.getById.mockResolvedValueOnce({
+      ...savedWorkflow,
+      edgeStyle: 'bezier',
+      nodes: [makeNode('a', 'prompt')],
+    });
+    await useWorkflowStore.getState().loadWorkflowById('wf-1');
+    expect(useWorkflowStore.getState().edgeStyle).toBe('default');
+    await useWorkflowStore.getState().saveWorkflow();
+    expect(service.update).toHaveBeenCalledWith(
+      'wf-1',
+      expect.objectContaining({ edgeStyle: 'default' }),
+      undefined,
+    );
+  });
+
   it('falls back to default when no preference or record style exists', () => {
     expect(getEdgeStylePreference()).toBe('default');
     expect(resolveGraphEdgeStyle(undefined)).toBe('default');
