@@ -1,5 +1,6 @@
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
 import { ApiKeysModule } from '@api/collections/api-keys/api-keys.module';
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { CustomersModule } from '@api/collections/customers/customers.module';
@@ -21,6 +22,7 @@ import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/hand
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
@@ -33,6 +35,7 @@ import { Module, type Provider } from '@nestjs/common';
 
 const BaseModule = createServiceModule(StripeWebhookService, {
   additionalImports: [
+    BillingAccountsModule,
     ActivitiesModule,
     ApiKeysModule,
     BrandsModule,
@@ -56,6 +59,7 @@ const BaseModule = createServiceModule(StripeWebhookService, {
     }),
   ],
   additionalProviders: [
+    StripeWebhookBillingService,
     StripeAttributionTrackerService,
     StripeCheckoutWebhookHandler,
     StripeCustomerWebhookHandler,

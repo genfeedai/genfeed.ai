@@ -1,10 +1,12 @@
 import { UsersService } from '@api/collections/users/services/users.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import {
-  BillingAccountResolutionError,
-  OrganizationBillingAccountService,
-} from '@api/services/integrations/stripe/services/organization-billing-account.service';
+  StripeWebhookBillingService,
+  type StripeWebhookSubscriptionPatch,
+  stripeWebhookPeriod,
+} from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import type { StripeSubscription } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import {
@@ -32,7 +34,7 @@ export class StripeSubscriptionWebhookHandler {
     private readonly supportService: StripeWebhookSupportService,
     private readonly lifecycleEmailService: LifecycleEmailService,
     private readonly creditReconciler: StripeSubscriptionCreditReconcilerService,
-    private readonly billingAccountService: OrganizationBillingAccountService,
+    private readonly billingService: StripeWebhookBillingService,
   ) {}
 
   async handleSubscriptionCreated(
@@ -40,39 +42,17 @@ export class StripeSubscriptionWebhookHandler {
     url: string,
   ): Promise<void> {
     try {
-      // Find existing subscription by Stripe customer ID
-      let existingSubscription =
-        await this.subscriptionsService.findByStripeCustomerId(
-          subscription.customer as string,
-        );
-
-      if (!existingSubscription) {
-        const organizationId =
-          await this.billingAccountService.resolveWebhookOrganization(
-            String(subscription.customer),
-            subscription.metadata,
-          );
-        existingSubscription =
-          await this.subscriptionsService.findByOrganizationId(organizationId);
-      }
-
-      if (!existingSubscription) {
-        this.loggerService.warn(
-          `${url} subscription reconciliation target unavailable`,
-          { category: 'subscription_missing' },
-        );
-        throw new Error('Subscription reconciliation target unavailable');
-      }
-
-      const organizationId = this.resolveSubscriptionOrganizationId(
-        existingSubscription,
-        url,
-      );
-      const stripePriceId = subscription.items.data[0].price.id;
+      const identity = await this.billingService.resolve({
+        customer: subscription.customer,
+        stripeSubscriptionId: subscription.id,
+        metadata: subscription.metadata,
+      });
+      const existingSubscription = identity.subscription;
+      const organizationId = existingSubscription.organizationId;
       const subscriptionData = this.buildSubscriptionCreatePatch(subscription);
-
-      const updatedSubscription = await this.subscriptionsService.patch(
-        String(existingSubscription.id),
+      const stripePriceId = subscriptionData.stripePriceId as string;
+      const updatedSubscription = await this.billingService.persist(
+        identity,
         subscriptionData,
       );
 
@@ -108,12 +88,12 @@ export class StripeSubscriptionWebhookHandler {
       const subscriptionItem = subscription.items.data[0];
       await this.creditReconciler.reconcile({
         billingReason: 'subscription_create',
-        ...(subscriptionItem.current_period_end
+        ...(subscriptionItem.current_period_end !== undefined
           ? {
               periodEnd: new Date(subscriptionItem.current_period_end * 1000),
             }
           : {}),
-        ...(subscriptionItem.current_period_start
+        ...(subscriptionItem.current_period_start !== undefined
           ? {
               periodStart: new Date(
                 subscriptionItem.current_period_start * 1000,
@@ -138,18 +118,39 @@ export class StripeSubscriptionWebhookHandler {
         stripeSubscriptionId: subscription.id,
       });
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed to handle subscription created`, {
-        category:
-          error instanceof BillingAccountResolutionError
-            ? error.category
-            : 'reconciliation_failed',
-      });
+      if (!(error instanceof StripeWebhookBillingError)) {
+        this.loggerService.error(
+          `${url} failed to handle subscription created`,
+          { category: 'reconciliation_failed' },
+        );
+      }
       throw error;
     }
   }
 
   /** Build the DB patch for a newly created Stripe subscription. */
-  private buildSubscriptionCreatePatch(subscription: StripeSubscription) {
+  private buildSubscriptionCreatePatch(
+    subscription: StripeSubscription,
+  ): StripeWebhookSubscriptionPatch {
+    const item = subscription.items?.data?.[0];
+    if (
+      !item?.price ||
+      typeof item.price.id !== 'string' ||
+      !item.price.id.trim() ||
+      ![
+        'active',
+        'canceled',
+        'past_due',
+        'trialing',
+        'incomplete',
+        'incomplete_expired',
+        'unpaid',
+        'paused',
+      ].includes(subscription.status) ||
+      typeof subscription.cancel_at_period_end !== 'boolean'
+    ) {
+      throw new StripeWebhookBillingError('invalid_payload');
+    }
     // Determine the canonical plan from the Stripe price.
     // Stripe's Interval includes an open `OtherString` brand; re-check via
     // plain string so TS narrows to our closed StripeRecurringInterval union.
@@ -174,9 +175,8 @@ export class StripeSubscriptionWebhookHandler {
 
     return {
       cancelAtPeriodEnd: subscription.cancel_at_period_end,
-      currentPeriodEnd: currentPeriodEnd && new Date(currentPeriodEnd * 1000),
-      currentPeriodStart:
-        currentPeriodStart && new Date(currentPeriodStart * 1000),
+      currentPeriodEnd: stripeWebhookPeriod(currentPeriodEnd),
+      currentPeriodStart: stripeWebhookPeriod(currentPeriodStart),
       status: toPrismaSubscriptionStatus(subscription.status),
       stripePriceId: subscription.items.data[0].price.id,
       stripeSubscriptionId: subscription.id,
