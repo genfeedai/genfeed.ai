@@ -159,9 +159,15 @@ export function GenerationActionCardStatusPanel({
         resultId ?? '',
       ),
     );
-    const studioHref = href(
-      `${APP_ROUTES.STUDIO.EDIT}?${generationType === 'video' ? 'videoId' : 'imageId'}=${encodeURIComponent(resultId ?? '')}`,
-    );
+    // Only the video editor accepts a source asset by id
+    // (`/studio/edit/new?videoId=`); no Studio route consumes an image id, so
+    // the edit control is offered for video results only.
+    const editorHref =
+      generationType === 'video' && resultId
+        ? href(
+            `${APP_ROUTES.STUDIO.EDIT_NEW}?videoId=${encodeURIComponent(resultId)}`,
+          )
+        : undefined;
 
     return (
       <div className="space-y-2">
@@ -194,18 +200,20 @@ export function GenerationActionCardStatusPanel({
               Use as input
             </Button>
           ) : null}
-          <Button
-            asChild
-            variant={ButtonVariant.DEFAULT}
-            size={ButtonSize.SM}
-            className="flex-1"
-            withWrapper={false}
-          >
-            <Link href={studioHref}>
-              <Paintbrush className="size-3" />
-              {translate('editResult')}
-            </Link>
-          </Button>
+          {editorHref ? (
+            <Button
+              asChild
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              className="flex-1"
+              withWrapper={false}
+            >
+              <Link href={editorHref}>
+                <Paintbrush className="size-3" />
+                {translate('editResult')}
+              </Link>
+            </Button>
+          ) : null}
           {onOpenInStudio ? (
             <Button
               variant={ButtonVariant.SECONDARY}

@@ -57,10 +57,9 @@ describe('generation result recovery and navigation', () => {
 
   it('distinguishes editing the result from reusing generation settings', () => {
     const { onOpenInStudio, onRetry } = renderPanel({ status: 'done' });
-    expect(screen.getByRole('link', { name: 'editResult' })).toHaveAttribute(
-      'href',
-      '/acme/brand/studio/edit?imageId=asset-1',
-    );
+    // No Studio route consumes an image id, so an image result offers reuse
+    // and library navigation without a dead-end edit link.
+    expect(screen.queryByRole('link', { name: 'editResult' })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'reuseSettings' }));
     expect(onOpenInStudio).toHaveBeenCalledOnce();
     expect(onRetry).not.toHaveBeenCalled();
@@ -74,7 +73,7 @@ describe('generation result recovery and navigation', () => {
     renderPanel({ generationType: 'video', isImage: false, status: 'done' });
     expect(screen.getByRole('link', { name: 'editResult' })).toHaveAttribute(
       'href',
-      '/acme/brand/studio/edit?videoId=asset-1',
+      '/acme/brand/studio/edit/new?videoId=asset-1',
     );
   });
 });
