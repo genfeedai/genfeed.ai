@@ -1344,9 +1344,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     expect(
       await screen.findByText(/temporarily unavailable/i),
