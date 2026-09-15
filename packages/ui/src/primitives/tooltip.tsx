@@ -17,11 +17,11 @@ function TooltipProvider({
   ...props
 }: ComponentPropsWithRef<typeof TooltipPrimitive.Provider>) {
   return (
-    <TooltipProviderContext value={true}>
+    <TooltipProviderContext.Provider value={true}>
       <TooltipPrimitive.Provider delayDuration={delayDuration} {...props}>
         {children}
       </TooltipPrimitive.Provider>
-    </TooltipProviderContext>
+    </TooltipProviderContext.Provider>
   );
 }
 
