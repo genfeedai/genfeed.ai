@@ -74,7 +74,7 @@ export function getEdgeStyleMirror(): EdgeStyleMirror {
 
 /** Persist the current user preference for graph hydration (not a live restyle). */
 export function setEdgeStylePreference(style: EdgeStyle): void {
-  _preference = style;
+  _preference = normalizeEdgeStyle(style);
 }
 
 /** Preference used when a workflow record has no `edgeStyle` of its own. */

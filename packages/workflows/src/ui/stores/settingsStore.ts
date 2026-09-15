@@ -371,14 +371,15 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
     },
 
     setEdgeStyle: (style) => {
-      setAndPersist(() => ({ edgeStyle: style }));
-      setEdgeStylePreference(style);
+      const normalizedStyle = normalizeEdgeStyle(style);
+      setAndPersist(() => ({ edgeStyle: normalizedStyle }));
+      setEdgeStylePreference(normalizedStyle);
       // Synchronous through the mirror registry. The previous dynamic import of
       // './workflow' dodged the store cycle but left a floating promise: it
       // force-loaded the whole graph just to restyle edges, and could resolve
       // after a test environment had torn down, failing the run with an
       // unhandled rejection.
-      getEdgeStyleMirror()(style);
+      getEdgeStyleMirror()(normalizedStyle);
     },
 
     setHasSeenWelcome: (seen) => {
@@ -432,7 +433,7 @@ export const useSettingsStore = create<SettingsStore>((set, get) => {
         set((state) => {
           const merged = {
             defaults: { ...state.defaults, ...server.defaults },
-            edgeStyle: server.edgeStyle ?? state.edgeStyle,
+            edgeStyle: normalizeEdgeStyle(server.edgeStyle ?? state.edgeStyle),
             hasSeenWelcome: server.hasSeenWelcome ?? state.hasSeenWelcome,
             recentModels: server.recentModels ?? state.recentModels,
             showMinimap: server.showMinimap ?? state.showMinimap,

@@ -9,3 +9,7 @@ preserve the stored style, and clones retain it. No database migration is needed
 Workflow record hydration now applies the existing edge-style migration before
 save. Legacy `bezier` and invalid persisted settings normalize to `default`,
 while canonical styles and missing-record preference fallback stay intact.
+
+Server-synced settings and runtime preference writes use the same canonical
+edge-style normalization before persistence, live mirroring, and new graph
+hydration. Omitted server preferences preserve the current valid local style.
