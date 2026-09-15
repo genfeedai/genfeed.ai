@@ -7,6 +7,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import type { AppProvidersProps } from '@genfeedai/props/providers/app-providers.props';
 import { QueryClientProvider } from '@tanstack/react-query';
+import { TooltipProvider } from '@ui/primitives/tooltip';
 import { makeQueryClient } from '@ui/providers/query-client';
 import ThemeCookieSync from '@ui/providers/ThemeCookieSync';
 import { ThemeStorageBootstrapScript } from '@ui/theme/ThemeBootstrapScript';
@@ -71,9 +72,11 @@ export default function AppProviders({
       >
         <ThemeCookieSync storageKey={storageKey} />
         <FormModEnterSubmit />
-        {children}
-        {includeToaster ? <AppToaster /> : null}
-        {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
+        <TooltipProvider>
+          {children}
+          {includeToaster ? <AppToaster /> : null}
+          {includeLazyModalErrorDebug ? <LazyModalErrorDebug /> : null}
+        </TooltipProvider>
       </ThemeProvider>
       <LazyReactQueryDevtools initialIsOpen={false} />
     </QueryClientProvider>

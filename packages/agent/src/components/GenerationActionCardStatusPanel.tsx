@@ -20,6 +20,7 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -89,6 +90,7 @@ export function GenerationActionCardStatusPanel({
     return (
       <AgentRunFailureCard
         className="mb-0"
+        onRetry={isPilotCeilingReached ? undefined : onRetry}
         error={
           isPilotCeilingReached
             ? translate('pilotCeilingReached', {
@@ -192,13 +194,18 @@ export function GenerationActionCardStatusPanel({
               Use as input
             </Button>
           ) : null}
-          <a
-            href={studioHref}
-            className="flex flex-1 items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+          <Button
+            asChild
+            variant={ButtonVariant.DEFAULT}
+            size={ButtonSize.SM}
+            className="flex-1"
+            withWrapper={false}
           >
-            <Paintbrush className="size-3" />
-            Edit in Studio
-          </a>
+            <Link href={studioHref}>
+              <Paintbrush className="size-3" />
+              {translate('editResult')}
+            </Link>
+          </Button>
           {onOpenInStudio ? (
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -207,15 +214,18 @@ export function GenerationActionCardStatusPanel({
               className="flex-1"
             >
               <ExternalLink className="size-3" />
-              {translate('openInStudio')}
+              {translate('reuseSettings')}
             </Button>
           ) : null}
-          <a
-            href={libraryHref}
-            className="flex flex-1 items-center justify-center border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+          <Button
+            asChild
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            className="flex-1"
+            withWrapper={false}
           >
-            Library
-          </a>
+            <Link href={libraryHref}>{translate('viewInLibrary')}</Link>
+          </Button>
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}

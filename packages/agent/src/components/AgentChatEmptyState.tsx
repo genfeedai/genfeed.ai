@@ -131,7 +131,7 @@ export function AgentChatEmptyState({
             <h2 className="text-sm font-semibold tracking-[-0.01em] text-foreground">
               {emptyStateTitle}
             </h2>
-            <p className="mt-1 truncate text-xs leading-5 text-foreground/48">
+            <p className="mt-1 break-words text-xs leading-5 text-muted-foreground">
               {emptyStateDescription}
             </p>
           </div>
@@ -158,7 +158,7 @@ export function AgentChatEmptyState({
           <h2 className="mb-2 text-center text-2xl font-semibold tracking-[-0.03em] text-foreground md:text-[1.75rem]">
             {emptyStateTitle}
           </h2>
-          <p className="mb-5 max-w-2xl truncate text-center text-sm leading-5 text-foreground/48">
+          <p className="mb-5 w-full max-w-2xl break-words text-center text-sm leading-5 text-muted-foreground">
             {emptyStateDescription}
           </p>
 

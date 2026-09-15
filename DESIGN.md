@@ -820,3 +820,16 @@ animations in chrome.
   inside cards.
 - **Don't** add coloured accents or glow shadows to chrome — colour enters only
   through the four doors above.
+
+## UI Review Checkpoints
+
+For changes to shared controls, empty states, result actions, or motion, apply
+[Emil's design-engineering review](https://github.com/emilkowalski/skills/blob/main/skills/emil-design-eng/SKILL.md)
+and [Jakub's better-ui review](https://github.com/jakubkrehel/skills/blob/main/skills/better-ui/SKILL.md)
+during design and before PR publication. This design contract and existing product
+behavior take precedence over conflicting upstream recipes.
+
+Review the actual task in empty, loading, success, and error states, including
+keyboard focus, touch, narrow layouts, theme changes, and reduced motion. Use a
+Before/After table with source locations and user impact. Mark browser checks that
+were not run as unverified; source inspection alone is not visual approval.
