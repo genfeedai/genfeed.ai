@@ -246,10 +246,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
       // `lifecycle` stays operator territory on routine updates — see the
-      // self-heal below when we reassert a category default.
+      // first-curation transition and category-default self-heal below.
       // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
-      ...(entry.isLegacy
-        ? { isActive: false, isDefault: false, isPublic: false }
+      ...(entry.isLegacy ? { isDefault: false } : {}),
+      ...(entry.isLegacy && !(entry.isActive && entry.cost > 0)
+        ? { isActive: false, isPublic: false }
         : {}),
     };
 
@@ -284,14 +285,10 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       // Previously uncurated (cost 0) rows stay inactive until the catalog
       // prices them. First curation must turn them on — including LEGACY
       // models, which stay selectable via the Legacy pill.
-      if (
-        existingRow.cost === 0 &&
-        entry.cost > 0 &&
-        entry.isActive &&
-        !entry.isLegacy
-      ) {
+      if (existingRow.cost === 0 && entry.cost > 0 && entry.isActive) {
         updateData.isActive = true;
-        updateData.isPublic = true;
+        updateData.isPublic = entry.isPublic ?? true;
+        updateData.lifecycle = entry.lifecycle;
       }
     }
 
