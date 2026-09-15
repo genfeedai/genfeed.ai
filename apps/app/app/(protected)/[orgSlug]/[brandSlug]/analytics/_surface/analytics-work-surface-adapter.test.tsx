@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 
 const navigation = vi.hoisted(() => ({
@@ -84,10 +84,35 @@ import AnalyticsWorkSurfaceAdapter from './analytics-work-surface-adapter';
 
 function InspectorHarness() {
   const adapter = useActiveAnalyticsWorkspaceSurfaceAdapter();
-  return <>{adapter?.inspectorContent}</>;
+  return (
+    <>
+      <span data-testid="workspace-brand">
+        {adapter?.brandId ?? 'organization-wide'}
+      </span>
+      {adapter?.inspectorContent}
+    </>
+  );
+}
+
+function renderAdapter() {
+  return (
+    <AnalyticsWorkspaceSurfaceAdapterProvider>
+      <AnalyticsWorkSurfaceAdapter>
+        <InspectorHarness />
+      </AnalyticsWorkSurfaceAdapter>
+    </AnalyticsWorkspaceSurfaceAdapterProvider>
+  );
 }
 
 describe('AnalyticsWorkSurfaceAdapter', () => {
+  beforeEach(() => {
+    navigation.pathname = '/acme/~/analytics/brands/brand-2';
+    brandContextValue.brands = [
+      { id: 'brand-2', label: 'Moonrise', organization: { id: 'org-1' } },
+    ];
+    brandContextValue.organizationId = 'org-1';
+    orgUrlValue.brandSlug = '';
+  });
   it('shows the real brand name instead of the "selected brand" placeholder', () => {
     navigation.pathname = '/acme/~/analytics/brands/brand-2';
 
@@ -100,10 +125,11 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     );
 
     expect(screen.getByText('acme / Moonrise')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
     expect(screen.queryByText(/selected brand/)).not.toBeInTheDocument();
   });
 
-  it('falls back to the placeholder when the route brand has not resolved yet', () => {
+  it('uses organization-wide scope when the route brand is unknown', () => {
     navigation.pathname = '/acme/~/analytics/brands/brand-unresolved';
 
     render(
@@ -114,7 +140,83 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
       </AnalyticsWorkspaceSurfaceAdapterProvider>,
     );
 
-    expect(screen.getByText('acme / selected brand')).toBeInTheDocument();
+    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
+      'organization-wide',
+    );
+  });
+
+  it('rejects a matching brand ID from another organization even inside a brand shell', () => {
+    brandContextValue.brands = [
+      {
+        id: 'brand-2',
+        label: 'Other organization',
+        organization: { id: 'org-2' },
+      },
+    ];
+    navigation.pathname = '/acme/moonrise/analytics/brands/brand-2';
+    orgUrlValue.brandSlug = 'moonrise';
+
+    render(renderAdapter());
+
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
+      'organization-wide',
+    );
+    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
+    expect(screen.queryByText(/Other organization/)).not.toBeInTheDocument();
+  });
+
+  it('waits for authorized brands to load before exposing a route binding', () => {
+    brandContextValue.brands = [];
+    const view = render(renderAdapter());
+
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
+      'organization-wide',
+    );
+    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
+
+    brandContextValue.brands = [
+      { id: 'brand-2', label: 'Moonrise', organization: { id: 'org-1' } },
+    ];
+    view.rerender(renderAdapter());
+
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
+    expect(screen.getByText('acme / Moonrise')).toBeInTheDocument();
+  });
+
+  it('drops a stale route binding when the brand is removed', () => {
+    const view = render(renderAdapter());
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
+
+    brandContextValue.brands = [];
+    view.rerender(renderAdapter());
+
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
+      'organization-wide',
+    );
+    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
+  });
+
+  it('drops the old route binding when the organization changes', () => {
+    const view = render(renderAdapter());
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
+
+    brandContextValue.organizationId = 'org-2';
+    view.rerender(renderAdapter());
+
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
+      'organization-wide',
+    );
+    expect(screen.getByText('acme / all brands')).toBeInTheDocument();
+  });
+
+  it('preserves the authorized route binding on platform analytics', () => {
+    navigation.pathname =
+      '/acme/~/analytics/brands/brand-2/platforms/instagram';
+    render(renderAdapter());
+
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent('brand-2');
+    expect(screen.getByText('acme / Moonrise')).toBeInTheDocument();
   });
 
   it('shows "all brands" on routes that name no brand', () => {
@@ -129,5 +231,8 @@ describe('AnalyticsWorkSurfaceAdapter', () => {
     );
 
     expect(screen.getByText('acme / all brands')).toBeInTheDocument();
+    expect(screen.getByTestId('workspace-brand')).toHaveTextContent(
+      'organization-wide',
+    );
   });
 });

@@ -323,7 +323,7 @@ function AnalyticsWorkSurfaceBridge({
   );
   const brandScopeLabel =
     routeBrand?.label ??
-    (routeBrandId ? 'selected brand' : brandSlug || 'all brands');
+    (routeBrandId ? 'all brands' : brandSlug || 'all brands');
   const scopeLabel = `${orgSlug || 'organization'} / ${brandScopeLabel}`;
 
   useEffect(() => {
@@ -377,7 +377,7 @@ function AnalyticsWorkSurfaceBridge({
   }, [handleExport, openExport]);
   const adapter = useMemo<AnalyticsWorkspaceSurfaceAdapterState>(
     () => ({
-      ...(routeBrandId ? { brandId: routeBrandId } : {}),
+      ...(routeBrand ? { brandId: getBrandEntityId(routeBrand) } : {}),
       composerContext: queryReference ? (
         <AnalyticsComposerQueryChip reference={queryReference} />
       ) : null,
@@ -399,7 +399,7 @@ function AnalyticsWorkSurfaceBridge({
       handleOpenExport,
       queryReference,
       restoredState,
-      routeBrandId,
+      routeBrand,
       scopeLabel,
     ],
   );
