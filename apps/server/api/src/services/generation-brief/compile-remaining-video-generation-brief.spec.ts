@@ -332,6 +332,196 @@ describe('compileRemainingVideoGenerationBrief', () => {
     ).toThrow('cannot combine');
   });
 
+  it('sends Seedance 2.5 identity stills alongside the start frame (#4652)', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'strict',
+      intent: { objective: 'The founder walks through the workshop' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'character-front', role: 'character' },
+        { assetId: 'character-profile', role: 'character' },
+        { assetId: 'hero-product', role: 'product' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch.image).toBe('start-frame');
+    expect(result.dispatch.reference_images).toEqual([
+      'character-front',
+      'character-profile',
+      'hero-product',
+    ]);
+    expect(result.dispatch).not.toHaveProperty('reference_videos');
+    expect(result.evidence.omittedSignals).toEqual([]);
+    expect(result.evidence.appliedFields).toEqual(
+      expect.arrayContaining([
+        'references.first_frame',
+        'references.character',
+        'references.product',
+      ]),
+    );
+  });
+
+  it('sends Seedance 2.5 identity stills without a start frame', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'strict',
+      intent: { objective: 'The same presenter on a rooftop at dusk' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [
+        { assetId: 'character-front', role: 'character' },
+        { assetId: 'brand-palette', role: 'style' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch).not.toHaveProperty('image');
+    expect(result.dispatch.reference_images).toEqual([
+      'character-front',
+      'brand-palette',
+    ]);
+    expect(result.evidence.appliedFields).not.toContain(
+      'references.first_frame',
+    );
+    expect(result.evidence.appliedFields).toEqual(
+      expect.arrayContaining(['references.character', 'references.style']),
+    );
+  });
+
+  it('never encodes Seedance identity stills as video references', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'strict',
+      intent: { objective: 'Match the motion of the clip with our presenter' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [
+        { assetId: 'character-front', role: 'character' },
+        { assetId: 'motion-clip', role: 'reference_video' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch.reference_images).toEqual(['character-front']);
+    expect(result.dispatch.reference_videos).toEqual(['motion-clip']);
+  });
+
+  it('keeps identity stills on a Seedance 2.5 last-frame interpolation', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'strict',
+      intent: { objective: 'Move between the keyframes with the same person' },
+      mediaKind: 'video',
+      output: { resolution: '720p' },
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'end-frame', role: 'last_frame' },
+        { assetId: 'character-front', role: 'character' },
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    expect(result.dispatch).toMatchObject({
+      image: 'start-frame',
+      last_frame_image: 'end-frame',
+      reference_images: ['character-front'],
+    });
+  });
+
+  it('caps Seedance 2.0 identity stills at its nine-image ceiling', () => {
+    const withinCeiling = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'strict',
+      intent: { objective: 'A product walkthrough with the same host' },
+      mediaKind: 'video',
+      output: {},
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        ...Array.from({ length: 9 }, (_, index) => ({
+          assetId: `sheet-${index + 1}`,
+          role: 'character' as const,
+        })),
+      ],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief: withinCeiling,
+      family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0),
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
+    });
+    expect(result.dispatch.reference_images).toHaveLength(9);
+
+    const overflow = videoGenerationBriefSchema.parse({
+      ...withinCeiling,
+      references: [
+        ...withinCeiling.references,
+        { assetId: 'sheet-10', role: 'character' },
+      ],
+    });
+    expect(() =>
+      compileRemainingVideoGenerationBrief({
+        brief: overflow,
+        family: familyFor(MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0),
+        modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
+      }),
+    ).toThrow('accepts at most 9 image references');
+  });
+
+  it('fails closed in strict fidelity when a Seedance profile has no identity field', () => {
+    const modelKey = MODEL_KEYS.FAL_SEEDANCE_2_0;
+    const family = familyFor(modelKey);
+    const profile = family.profiles.find(
+      (candidate) => candidate.modelKey === modelKey,
+    );
+    expect(profile?.references.nativeFields).not.toContain('reference_images');
+
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'strict',
+      intent: { objective: 'The presenter turns to camera' },
+      mediaKind: 'video',
+      output: {},
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'character-front', role: 'character' },
+      ],
+      version: 1,
+    });
+
+    expect(() =>
+      compileRemainingVideoGenerationBrief({ brief, family, modelKey }),
+    ).toThrow('cannot honor required references.character');
+  });
+
   it('rejects Kling Omni video references in incompatible 4K mode', () => {
     const brief = videoGenerationBriefSchema.parse({
       constraints: [],

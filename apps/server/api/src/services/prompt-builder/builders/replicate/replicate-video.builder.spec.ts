@@ -439,6 +439,66 @@ describe('ReplicateVideoBuilder', () => {
     });
   });
 
+  describe('buildPrompt - Seedance (#4652)', () => {
+    const baseParams: PromptBuilderParams = {
+      height: 1080,
+      modelCategory: ModelCategory.VIDEO,
+      prompt: 'The same presenter walks through the workshop',
+      width: 1920,
+    };
+
+    it('sends the first reference as the start frame and the rest as identity refs', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        {
+          ...baseParams,
+          endFrame: 'end.jpg',
+          references: ['start.jpg', 'character-front.jpg', 'product.jpg'],
+        },
+        'test',
+      );
+
+      expect(result).toMatchObject({
+        image: 'start.jpg',
+        last_frame: 'end.jpg',
+        reference_images: ['character-front.jpg', 'product.jpg'],
+      });
+    });
+
+    it('omits reference_images when only a start frame is supplied', () => {
+      const result = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        { ...baseParams, references: ['start.jpg'] },
+        'test',
+      );
+
+      expect(result).toHaveProperty('image', 'start.jpg');
+      expect(result).not.toHaveProperty('reference_images');
+    });
+
+    it('bounds identity refs by the catalog ceiling per Seedance generation', () => {
+      const references = Array.from(
+        { length: 12 },
+        (_, index) => `ref-${index + 1}.jpg`,
+      );
+
+      const seedance20 = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
+        { ...baseParams, references },
+        'test',
+      ) as Record<string, unknown>;
+      expect(seedance20.image).toBe('ref-1.jpg');
+      expect(seedance20.reference_images).toHaveLength(9);
+
+      const seedance25 = builder.buildPrompt(
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        { ...baseParams, references },
+        'test',
+      ) as Record<string, unknown>;
+      expect(seedance25.reference_images).toHaveLength(11);
+    });
+  });
+
   describe('buildPrompt - WAN Video', () => {
     it('should require a reference image', () => {
       const params: PromptBuilderParams = {

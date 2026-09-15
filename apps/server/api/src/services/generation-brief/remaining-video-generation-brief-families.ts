@@ -318,12 +318,17 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
       compilerId: SEEDANCE_VIDEO_COMPILER_ID,
       compilerVersion: REMAINING_VIDEO_COMPILER_VERSION,
       profiles: [
+        // Replicate's Seedance 2.0 family accepts up to 9 still references and
+        // 3 reference videos; the identity stills ride `reference_images`,
+        // distinct from the `image` start frame (#4652).
         profile(
           'seedance-2-0-capability',
           MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0,
           {
             audioSupported: true,
-            nativeFields: ['image', 'reference_videos'],
+            maxReferences: 9,
+            maxVideoReferences: 3,
+            nativeFields: ['image', 'reference_images', 'reference_videos'],
           },
         ),
         profile(
@@ -331,9 +336,13 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_0_FAST,
           {
             audioSupported: true,
-            nativeFields: ['image', 'reference_videos'],
+            maxReferences: 9,
+            maxVideoReferences: 3,
+            nativeFields: ['image', 'reference_images', 'reference_videos'],
           },
         ),
+        // Seedance 2.5 is catalogued for 30 still references (identity
+        // character/product/style sheets) plus 10 reference videos.
         profile(
           'seedance-2-5-capability',
           MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
@@ -341,7 +350,12 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
             audioSupported: true,
             maxReferences: 30,
             maxVideoReferences: 10,
-            nativeFields: ['image', 'last_frame_image', 'reference_videos'],
+            nativeFields: [
+              'image',
+              'last_frame_image',
+              'reference_images',
+              'reference_videos',
+            ],
           },
         ),
         profile('fal-seedance-2-0-capability', MODEL_KEYS.FAL_SEEDANCE_2_0, {
@@ -352,6 +366,7 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
       spec: {
         aspectRatioField: 'aspect_ratio',
         durationField: 'duration',
+        extraReferenceField: 'reference_images',
         firstFrameField: 'image',
         lastFrameField: 'last_frame_image',
         modelLabel: 'Seedance',
