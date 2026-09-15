@@ -10,6 +10,7 @@ import { resolveLastGeneratedAsset } from '@genfeedai/agent/server';
 import {
   AGENT_RUNTIME_ACTIVE_STATES,
   AgentRuntimeState,
+  AgentThreadMode,
   AgentThreadStatus,
   IngredientCategory,
   resolveAgentRuntimeState,
@@ -17,7 +18,7 @@ import {
 import type { IAgentRunProjection } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ThreadRunStatus =
   | 'queued'
@@ -95,6 +96,49 @@ export class AgentThreadsService extends BaseService<
     private readonly agentMessagesService: AgentMessagesService,
   ) {
     super(prisma, 'agentThread', logger);
+  }
+
+  async resolveSavedMode(userId: string): Promise<AgentThreadMode> {
+    const setting = await this.prisma.setting.findFirst({
+      where: { userId, isDeleted: false },
+    });
+    return Object.values(AgentThreadMode).includes(
+      setting?.agentMode as AgentThreadMode,
+    )
+      ? (setting?.agentMode as AgentThreadMode)
+      : AgentThreadMode.MANUAL;
+  }
+
+  async updateAgentMode(
+    userId: string,
+    organizationId: string,
+    mode: AgentThreadMode,
+    threadId?: string,
+  ) {
+    if (!Object.values(AgentThreadMode).includes(mode))
+      throw new BadRequestException('Invalid agent mode.');
+    return this.prisma.$transaction(async (transaction) => {
+      if (threadId) {
+        const updated = await transaction.agentThread.updateMany({
+          where: {
+            id: threadId,
+            organizationId,
+            userId,
+            isDeleted: false,
+            status: AgentThreadStatus.ACTIVE,
+          },
+          data: { mode },
+        });
+        if (updated.count !== 1)
+          throw new NotFoundException('Thread', threadId);
+      }
+      await transaction.setting.upsert({
+        where: { userId, isDeleted: false },
+        create: { userId, agentMode: mode },
+        update: { agentMode: mode },
+      });
+      return { mode, threadId };
+    });
   }
 
   async getUserThreads(

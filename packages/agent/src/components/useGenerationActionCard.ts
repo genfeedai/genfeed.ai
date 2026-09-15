@@ -1,3 +1,4 @@
+import { useGenerationQuote } from '@genfeedai/agent/hooks/use-generation-quote';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -49,7 +50,6 @@ import {
   shouldOfferAutoModel,
 } from '@helpers/model-allowlist.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
-import { useDebounce } from '@hooks/utils/use-debounce/use-debounce';
 import {
   buildAgentGenerationSetupScope,
   getGenerationSetup,
@@ -75,9 +75,6 @@ export type GenerationActionCardStatus =
   | 'error'
   | 'declined'
   | 'pilot_review';
-
-/** Debounce window before a prompt change re-fetches the credit estimate. */
-const ESTIMATE_DEBOUNCE_MS = 400;
 
 function isKnownInvalidModelVersionError(message: string): boolean {
   const normalized = message.toLowerCase();
@@ -210,7 +207,13 @@ export function useGenerationActionCard({
       ? Math.min(8, Math.round(requested))
       : 1;
   });
-  const [status, setStatus] = useState<GenerationActionCardStatus>('idle');
+  const [status, setStatus] = useState<GenerationActionCardStatus>(
+    action.data?.decision === 'declined' ? 'declined' : 'idle',
+  );
+  const [hasStarted, setHasStarted] = useState(
+    action.data?.decision === 'approved',
+  );
+  const [isDeclining, setIsDeclining] = useState(false);
   const [generationStartedAt, setGenerationStartedAt] = useState<
     number | undefined
   >();
@@ -219,7 +222,7 @@ export function useGenerationActionCard({
     number | null
   >(null);
   const [isPilotCeilingReached, setIsPilotCeilingReached] = useState(false);
-  const isFullRunRef = useRef(false);
+  const [isFullRun, setIsFullRun] = useState(false);
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -499,74 +502,56 @@ export function useGenerationActionCard({
     }
   }, []);
 
-  // Resolved concrete model + credit estimate (#4672). Org-scoped, sourced
-  // from the server for both image and video so it reflects enabled models
-  // and real pricing multipliers rather than a client-side quote. Debounced
-  // off the prompt (typed character by character); every other input below
-  // is a discrete pick, so it re-fetches immediately against the latest
-  // debounced prompt instead of waiting out its own debounce window.
-  const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
-  const [isEstimateAvailable, setIsEstimateAvailable] = useState(true);
-  const [resolvedModelKey, setResolvedModelKey] = useState<string | null>(null);
-  const debouncedEstimatePrompt = useDebounce(prompt, ESTIMATE_DEBOUNCE_MS);
-
-  // biome-ignore lint/correctness/useExhaustiveDependencies: modelKey and aspectRatio intentionally re-trigger the fetch though neither is part of the request body — a changed pick means the last estimate no longer describes what Generate would run.
-  useEffect(() => {
-    const trimmedPrompt = debouncedEstimatePrompt.trim();
-    if (!trimmedPrompt) {
-      setEstimatedCredits(null);
-      setIsEstimateAvailable(true);
-      setResolvedModelKey(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    apiService
-      .estimateGenerationCredits(
-        {
-          category: generationType,
-          duration: generationType === 'video' ? duration : undefined,
-          outputs: generationType === 'image' ? outputs : undefined,
-          prioritize,
-          prompt: trimmedPrompt,
-          resolution: resolution || undefined,
-        },
-        controller.signal,
-      )
-      .then((estimate) => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        setEstimatedCredits(estimate.credits);
-        setIsEstimateAvailable(estimate.isAvailable);
-        setResolvedModelKey(estimate.modelKey);
-      })
-      .catch(() => {
-        if (controller.signal.aborted) {
-          return;
-        }
-        // Never block or hide Generate — just report the estimate as
-        // unavailable, same as the server's own isAvailable:false path.
-        setEstimatedCredits(null);
-        setIsEstimateAvailable(false);
-        setResolvedModelKey(null);
-      });
-
-    return () => controller.abort();
-  }, [
-    apiService,
-    debouncedEstimatePrompt,
-    generationType,
-    duration,
-    outputs,
-    prioritize,
-    resolution,
-    // Re-triggers on an explicit model pick and aspect ratio too, even though
-    // neither is part of the request body — a changed pick means the last
-    // estimate no longer describes what Generate would actually run.
-    modelKey,
+  const requestDuration =
+    generationType === 'video'
+      ? isFullRun
+        ? duration
+        : (resolveVideoPilotDuration(duration, durationOptions) ?? duration)
+      : undefined;
+  const estimateInput = useMemo(
+    () => ({
+      category: generationType,
+      duration: requestDuration,
+      modelKey: isAutoMode ? undefined : modelKey || undefined,
+      outputs: generationType === 'image' ? outputs : undefined,
+      prioritize,
+      prompt: prompt.trim(),
+      resolution: resolution || undefined,
+    }),
+    [
+      generationType,
+      requestDuration,
+      isAutoMode,
+      modelKey,
+      outputs,
+      prioritize,
+      prompt,
+      resolution,
+    ],
+  );
+  const estimateFingerprint = JSON.stringify([
+    estimateInput,
+    isAutoMode,
     aspectRatio,
+    referenceIds,
+    startFrameId,
+    endFrameId,
+    videoReferenceIds,
+    organizationId,
+    brandId,
+    activeThreadId,
   ]);
+  const {
+    estimatedCredits,
+    isEstimateAvailable,
+    isEstimatePending,
+    resolvedModelKey,
+  } = useGenerationQuote(
+    apiService,
+    estimateInput,
+    estimateFingerprint,
+    isAutoMode || Boolean(modelKey),
+  );
 
   const clearGenerationOutcome = useCallback(() => {
     setResultUrl(null);
@@ -581,6 +566,10 @@ export function useGenerationActionCard({
         useAgentWorkObjectGateStore.getState(),
       ) ||
       !prompt.trim() ||
+      !isEstimateAvailable ||
+      !resolvedModelKey ||
+      status === 'declined' ||
+      isDeclining ||
       status === 'generating' ||
       isAllowlistEmpty ||
       isPilotCeilingReached
@@ -621,7 +610,6 @@ export function useGenerationActionCard({
       return;
     }
 
-    const isFullRun = isFullRunRef.current;
     const pilotDuration =
       generationType === 'video'
         ? resolveVideoPilotDuration(duration, durationOptions)
@@ -639,6 +627,7 @@ export function useGenerationActionCard({
     clearGenerationOutcome();
     setGenerationStartedAt(Date.now());
     setStatus('generating');
+    setHasStarted(true);
     // Dismiss the sticky composer error stack so it cannot cover this card's
     // Generate control while the user retries from the card itself.
     setComposerError(null);
@@ -658,10 +647,10 @@ export function useGenerationActionCard({
           duration: requestDuration,
           endFrame: endFrameId ?? undefined,
           generationType,
-          model: !isAutoMode && modelKey ? modelKey : undefined,
+          model: resolvedModelKey,
           outputs: generationType === 'image' ? outputs : undefined,
           prioritize,
-          prompt,
+          prompt: prompt.trim(),
           references:
             generationType === 'video' && startFrameId
               ? [startFrameId]
@@ -682,7 +671,7 @@ export function useGenerationActionCard({
             composerError?.trim() ? composerError : 'Generation failed',
           );
         }
-        isFullRunRef.current = false;
+        setIsFullRun(false);
         setStatus(
           !isFullRun && pilotDuration !== null ? 'pilot_review' : 'done',
         );
@@ -694,8 +683,8 @@ export function useGenerationActionCard({
           category: getPromptCategoryForGenerationType(generationType),
           duration: requestDuration,
           isSkipEnhancement: true,
-          model: !isAutoMode && modelKey ? modelKey : undefined,
-          original: prompt,
+          model: resolvedModelKey,
+          original: prompt.trim(),
           ratio: aspectRatio,
         },
         controller.signal,
@@ -706,11 +695,11 @@ export function useGenerationActionCard({
         brandId: brandId || undefined,
         duration: requestDuration,
         endFrame: endFrameId ?? undefined,
-        modelKey: !isAutoMode && modelKey ? modelKey : undefined,
+        modelKey: resolvedModelKey,
         outputs: generationType === 'image' ? outputs : undefined,
         prioritize,
         promptId: promptDoc.id,
-        promptText: prompt,
+        promptText: prompt.trim(),
         references:
           generationType === 'video' && startFrameId
             ? [startFrameId]
@@ -734,10 +723,9 @@ export function useGenerationActionCard({
         );
       }
       setResultUrl(result.url);
-      isFullRunRef.current = false;
+      setIsFullRun(false);
       setStatus(!isFullRun && pilotDuration !== null ? 'pilot_review' : 'done');
     } catch (err: unknown) {
-      isFullRunRef.current = false;
       if (controller.signal.aborted) {
         setStatus('idle');
         return;
@@ -784,13 +772,16 @@ export function useGenerationActionCard({
     setThreadUiBusy,
     isAllowlistEmpty,
     videoReferenceIds,
+    isFullRun,
+    isEstimateAvailable,
+    resolvedModelKey,
+    isDeclining,
   ]);
 
   const handleRetry = useCallback(async () => {
     if (isPilotCeilingReached) {
       return;
     }
-    isFullRunRef.current = false;
     clearGenerationOutcome();
     setStatus('idle');
     await handleGenerate();
@@ -800,9 +791,9 @@ export function useGenerationActionCard({
     if (status !== 'pilot_review' || isPilotCeilingReached) {
       return;
     }
-    isFullRunRef.current = true;
-    await handleGenerate();
-  }, [handleGenerate, isPilotCeilingReached, status]);
+    setIsFullRun(true);
+    setStatus('idle');
+  }, [isPilotCeilingReached, status]);
 
   const handleRejectPilot = useCallback(() => {
     if (status !== 'pilot_review') {
@@ -811,7 +802,7 @@ export function useGenerationActionCard({
 
     const nextRejected = paidRejectedCount + 1;
     setPaidRejectedCount(nextRejected);
-    isFullRunRef.current = false;
+    setIsFullRun(false);
 
     if (hasReachedVideoPilotRetryCeiling(nextRejected)) {
       setIsPilotCeilingReached(true);
@@ -826,17 +817,37 @@ export function useGenerationActionCard({
     setStatus('idle');
   }, [clearGenerationOutcome, paidRejectedCount, status]);
 
-  // Declining a review ends it without ever calling the server (#4672): the
-  // gated `generate_image`/`generate_video` preview never created a pending
-  // approval to clean up, so this is purely a client-side state transition.
-  const handleDecline = useCallback(() => {
-    if (status === 'generating' || status === 'declined') {
-      return;
+  useEffect(() => {
+    if (action.data?.decision === 'declined') setStatus('declined');
+    if (action.data?.decision === 'approved') setHasStarted(true);
+  }, [action.data?.decision]);
+  const canDecline = Boolean(
+    onUiAction &&
+      activeThreadId &&
+      status === 'idle' &&
+      !hasStarted &&
+      !isDeclining,
+  );
+  const handleDecline = useCallback(async () => {
+    if (!canDecline || !onUiAction) return;
+    setIsDeclining(true);
+    try {
+      const outcome = await onUiAction('decline_generate_media', {
+        sourceActionId: action.id,
+      });
+      if (outcome === false) throw new Error('Failed to decline generation.');
+      setStatus('declined');
+    } catch (failure) {
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : 'Failed to decline generation.',
+      );
+      setComposerError('Failed to decline generation. Try again.');
+    } finally {
+      setIsDeclining(false);
     }
-    abortRef.current?.abort();
-    isFullRunRef.current = false;
-    setStatus('declined');
-  }, [status]);
+  }, [action.id, canDecline, onUiAction, setComposerError]);
 
   // #4670 Open in Studio: a concrete model is required — the resolved
   // org-scoped estimate model when the operator left Auto, or their explicit
@@ -1093,6 +1104,7 @@ export function useGenerationActionCard({
     durationOptions,
     estimatedCredits,
     isEstimateAvailable,
+    isEstimatePending,
     resolvedModelKey,
     referenceIds,
     referenceNotice,
@@ -1109,6 +1121,7 @@ export function useGenerationActionCard({
     handleAcceptPilotVoid,
     handleRejectPilot,
     handleDecline,
+    canDecline,
     canOpenInStudio,
     handleOpenInStudioVoid,
     handleStop,

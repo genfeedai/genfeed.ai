@@ -62,6 +62,7 @@ export interface GenerateIngredientResult {
  * the authenticated user.
  */
 export interface EstimateGenerationCreditsParams {
+  modelKey?: string;
   category: 'image' | 'video';
   duration?: number;
   outputs?: number;
@@ -72,7 +73,7 @@ export interface EstimateGenerationCreditsParams {
 }
 
 export interface EstimateGenerationCreditsResult {
-  /** `null` when the estimate is unavailable — never blocks the review. */
+  /** `null` when unavailable; generation requires an available finite quote. */
   credits: number | null;
   isAvailable: boolean;
   modelKey: string | null;

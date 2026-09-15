@@ -22,6 +22,18 @@ export function findPendingGenerationAction(
   generationType?: ThreadGenerationType | null,
 ): AgentUiAction | null {
   const resolvedActionIds = new Set<string>();
+  for (const message of messages) {
+    if (threadId && message.threadId !== threadId) continue;
+    for (const action of message.metadata?.uiActions ?? []) {
+      const resolvedId = readResolvedGenerationActionId(action);
+      if (resolvedId) resolvedActionIds.add(resolvedId);
+      if (
+        action.type === 'generation_action_card' &&
+        action.data?.decision === 'declined'
+      )
+        resolvedActionIds.add(action.id);
+    }
+  }
 
   for (
     let messageIndex = messages.length - 1;

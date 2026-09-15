@@ -227,6 +227,7 @@ export class AgentOrchestratorUiActionService {
       case 'confirm_agent_transfer':
       case 'confirm_publish_post':
       case 'confirm_generate_media':
+      case 'decline_generate_media':
       case 'confirm_outreach_sequence':
       case 'confirm_save_brand_voice_profile':
         return withAgentScopeResult(

@@ -1,4 +1,6 @@
+import { createHash } from 'node:crypto';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
+import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { throwFailedUiActionResult } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-error';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
@@ -10,7 +12,10 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
-import type { CuratedActionName } from '@genfeedai/actions';
+import {
+  buildLogicalWriteKey,
+  type CuratedActionName,
+} from '@genfeedai/actions';
 import { toRouterPriority } from '@genfeedai/contracts';
 import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -20,6 +25,7 @@ type ConfirmedToolAction =
   | 'decline_mutation'
   | 'confirm_agent_transfer'
   | 'confirm_generate_media'
+  | 'decline_generate_media'
   | 'confirm_install_official_workflow'
   | 'confirm_outreach_sequence'
   | 'confirm_publish_post'
@@ -40,6 +46,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     private readonly finalizer: AgentOrchestratorUiActionFinalizerService,
     private readonly cacheService: CacheService,
     private readonly mutationActions: AgentOrchestratorUiActionMutationService,
+    private readonly generationDecisions: AgentGenerationDecisionService,
   ) {}
 
   async execute(
@@ -58,6 +65,8 @@ export class AgentOrchestratorUiActionConfirmedToolService {
         return this.executePublishPost(params);
       case 'confirm_generate_media':
         return this.executeGenerateMedia(params);
+      case 'decline_generate_media':
+        return this.executeDeclineGeneration(params);
       case 'confirm_outreach_sequence':
         return this.executeOutreachSequence(params);
       case 'confirm_save_brand_voice_profile':
@@ -255,8 +264,9 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       params,
       'save_brand_voice_profile' as CuratedActionName,
       toolPayload,
+      { confirmationOrigin: 'thread-ui-action' },
     );
-    if (!execution.result.success) {
+    if (!execution.result.success || execution.result.requiresConfirmation) {
       throwFailedUiActionResult(
         execution.result.error,
         'Failed to save brand voice.',
@@ -276,12 +286,29 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     params: ThreadUiActionExecutionParams,
   ): Promise<AgentChatResult> {
     const request = this.readMediaRequest(params);
+    const decisionCard = await this.generationDecisions.transition(
+      params,
+      'approved',
+    );
+    const executionSourceActionId = buildLogicalWriteKey({
+      organizationId: params.context.organizationId,
+      userId: params.context.userId,
+      threadId: params.threadId,
+      toolName: request.toolName,
+      arguments: {
+        sourceActionId: request.sourceActionId,
+        generationType: request.generationType,
+        model: request.model,
+        prioritize: request.priority,
+        ...request.toolPayload,
+      },
+    });
     const idempotencyKey = [
       'agent-media',
       params.context.organizationId,
       params.context.userId,
       params.threadId,
-      request.sourceActionId,
+      executionSourceActionId,
       request.generationType,
       request.outputs ?? 1,
     ].join(':');
@@ -304,7 +331,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
             confirmationOrigin: 'thread-ui-action',
             generationModelOverride: request.model,
             generationPriority: request.priority,
-            sourceActionId: request.sourceActionId,
+            sourceActionId: executionSourceActionId,
           },
         );
         if (!execution.result.success) {
@@ -315,18 +342,21 @@ export class AgentOrchestratorUiActionConfirmedToolService {
         }
         const linkedResult = {
           ...execution.result,
-          nextActions: (execution.result.nextActions ?? []).map((action) => ({
-            ...action,
-            data: {
-              ...(action.data ?? {}),
-              sourceGenerationActionId: request.sourceActionId,
-            },
-          })),
+          nextActions: [
+            decisionCard,
+            ...(execution.result.nextActions ?? []).map((action) => ({
+              ...action,
+              data: {
+                ...(action.data ?? {}),
+                sourceGenerationActionId: request.sourceActionId,
+              },
+            })),
+          ],
         };
         return this.finalizer.finalizeStructuredAssistantTurn({
           content: `${request.generationType === 'image' ? 'Image' : 'Video'} generation accepted.`,
           context: params.context,
-          eventIdempotencyKey: `agent-media-result:${request.sourceActionId}`,
+          eventIdempotencyKey: `agent-media-result:${executionSourceActionId}`,
           model: params.model,
           result: linkedResult,
           threadId: params.threadId,
@@ -337,6 +367,40 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       // so a stale in-memory reservation must not block the one-hour replay.
       { lockTtlSeconds: 120 },
     );
+  }
+
+  private async executeDeclineGeneration(
+    params: ThreadUiActionExecutionParams,
+  ): Promise<AgentChatResult> {
+    const card = await this.generationDecisions.transition(params, 'declined');
+    const digest = createHash('sha256')
+      .update(
+        [
+          params.context.organizationId,
+          params.context.userId,
+          params.threadId,
+          card.id,
+          'declined',
+        ].join('\u001f'),
+      )
+      .digest('hex');
+    const messageId = [
+      digest.slice(0, 8),
+      digest.slice(8, 12),
+      `5${digest.slice(13, 16)}`,
+      `a${digest.slice(17, 20)}`,
+      digest.slice(20, 32),
+    ].join('-');
+    return this.finalizer.finalizeStructuredAssistantTurn({
+      content: 'Generation declined. No credits were charged.',
+      context: params.context,
+      eventIdempotencyKey: `agent-media-declined:${card.id}`,
+      messageId,
+      model: params.model,
+      result: { creditsUsed: 0, success: true, nextActions: [card] },
+      threadId: params.threadId,
+      toolCalls: [],
+    });
   }
 
   private readMediaRequest(params: ThreadUiActionExecutionParams) {

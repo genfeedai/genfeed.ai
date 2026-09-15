@@ -70,8 +70,7 @@ export class AgentToolMutationAuthorizationService {
    * (`resolveEffectiveMutationPolicy` treats `undefined` that way); #4672
    * modes are a per-*thread* concept and do not apply outside one.
    *
-   * `context.agentMode` wins when a caller already knows it (thread UI
-   * actions, tests). A call that DOES have a thread but could not resolve its
+   * Caller-provided modes are ignored. A call that has a thread but cannot resolve its
    * mode (storage unavailable, corrupt value) fails safe to Manual rather
    * than returning `undefined` — only "no thread" skips the matrix, never "a
    * thread whose mode we failed to read."
@@ -79,9 +78,6 @@ export class AgentToolMutationAuthorizationService {
   async resolveAgentModeForContext(
     context: ToolExecutionContext,
   ): Promise<AgentThreadModeValue | undefined> {
-    if (context.agentMode) {
-      return context.agentMode;
-    }
     if (!context.threadId) {
       return undefined;
     }
@@ -89,6 +85,8 @@ export class AgentToolMutationAuthorizationService {
       const thread = await this.agentThreadsService.findOne({
         id: context.threadId,
         organizationId: context.organizationId,
+        userId: context.userId,
+        isDeleted: false,
       });
       const mode = (thread as { mode?: unknown } | null)?.mode;
       if (mode === 'auto' || mode === 'manual' || mode === 'plan') {
@@ -316,15 +314,18 @@ export class AgentToolMutationAuthorizationService {
       parameters,
       { threadId: context.threadId, scope: context.validatedScope },
     );
+    if (!approval?.id) {
+      throw new Error('Approval storage did not return a pending approval id');
+    }
 
     return {
       kind: 'return',
       result: {
-        approvalId: approval?.id,
+        approvalId: approval.id,
         approvalStatus: 'pending',
         creditsUsed: 0,
         data: {
-          approvalId: approval?.id,
+          approvalId: approval.id,
           mutationPolicy: 'approval-required',
           status: 'pending',
           toolName,

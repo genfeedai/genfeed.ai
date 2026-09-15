@@ -258,6 +258,8 @@ export const CONVERSATION_CACHE_FRESHNESS_MS = 20_000;
 interface AgentChatState {
   activeRunId: string | null;
   draftAgentMode: AgentThreadMode;
+  savedAgentMode: AgentThreadMode | null;
+  hasExplicitDraftAgentMode: boolean;
   latestProposedPlan: AgentProposedPlan | null;
   messages: AgentChatMessage[];
   hasMoreMessages: boolean;
@@ -738,7 +740,8 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunId: null,
       activeRunStatus: 'idle',
       composerSeed: null,
-      draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
+      draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
+      hasExplicitDraftAgentMode: false,
       error: null,
       latestProposedPlan: null,
       hasMoreMessages: false,
@@ -806,6 +809,8 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   conversationCacheByThread: {},
   creditsRemaining: null,
   draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
+  savedAgentMode: null,
+  hasExplicitDraftAgentMode: false,
   endOverlaySession: (overlayId) =>
     set((state) => {
       if (!state.overlayActiveIds.includes(overlayId)) {
@@ -959,7 +964,8 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunId: null,
       activeRunStatus: 'idle',
       composerSeed: null,
-      draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
+      draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
+      hasExplicitDraftAgentMode: false,
       error: null,
       latestProposedPlan: null,
       hasMoreMessages: false,
@@ -997,7 +1003,11 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       activeRunId: null,
       activeRunStatus: 'idle',
       composerSeed: null,
-      draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
+      draftAgentMode:
+        get().threads.find((thread) => thread.id === threadId)?.mode ??
+        get().savedAgentMode ??
+        DEFAULT_AGENT_THREAD_MODE,
+      hasExplicitDraftAgentMode: false,
       error: cached.error,
       latestProposedPlan: cached.latestProposedPlan,
       hasMoreMessages: cached.hasMoreMessages,

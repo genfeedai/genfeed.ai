@@ -20,6 +20,24 @@ import type {
 
 export const AGENT_THREADS_ENDPOINT = '/agent/threads';
 
+export async function updateAgentMode(
+  api: AgentBaseApiService,
+  mode: AgentThreadMode,
+  threadId?: string,
+): Promise<{ mode: AgentThreadMode; threadId?: string }> {
+  const token = await api.config.getToken();
+  if (!token)
+    throw new Error('Authentication is required to update agent mode.');
+  return api.fetchJson(
+    `${api.config.baseUrl}${AGENT_THREADS_ENDPOINT}/mode`,
+    {
+      method: 'PATCH',
+      body: JSON.stringify({ mode, threadId }),
+    },
+    'Failed to update agent mode',
+  );
+}
+
 export interface AgentMessagesPage {
   hasMore: boolean;
   messages: AgentChatMessage[];

@@ -105,6 +105,15 @@ describe('agent runtime workflow registration contract', () => {
     };
     const dependencies = Array.from({ length: 18 }, () => ({}));
     dependencies[1] = settingsService;
+    dependencies[2] = {
+      findOne: vi.fn().mockResolvedValue({
+        id: 'thread-1',
+        brandId: null,
+        contextVersion: 4,
+      }),
+    };
+    const addMessage = vi.fn().mockResolvedValue({ id: 'source-message' });
+    dependencies[3] = { addMessage };
     dependencies[4] = creditsUtilsService;
     dependencies[6] = contextService;
     dependencies[12] = uiActionService;
@@ -154,6 +163,26 @@ describe('agent runtime workflow registration contract', () => {
         userId: 'user-1',
       }),
       expect.objectContaining({ runInThreadLane: expect.any(Function) }),
+    );
+    expect(addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        role: 'assistant',
+        room: 'thread-1',
+        metadata: {
+          uiActions: [
+            expect.objectContaining({
+              id: 'composer-generation-execution-1',
+              data: expect.objectContaining({
+                decision: 'pending',
+                scopeVersion: 4,
+              }),
+            }),
+          ],
+        },
+      }),
+    );
+    expect(addMessage.mock.invocationCallOrder[0]).toBeLessThan(
+      uiActionService.handleThreadUiAction.mock.invocationCallOrder[0],
     );
     expect(result).toMatchObject({
       content: 'Image generation accepted.',

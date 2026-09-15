@@ -1,4 +1,4 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
+import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { RouterService } from '@api/services/router/router.service';
 import { ModelCategory, type RouterPriority } from '@genfeedai/contracts';
 import {
@@ -6,11 +6,12 @@ import {
   quoteVideoGenerationCredits,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface AgentGenerationCreditEstimateInput {
   category: ModelCategory.IMAGE | ModelCategory.VIDEO;
   duration?: number;
+  modelKey?: string;
   organizationId: string;
   outputs?: number;
   prioritize?: RouterPriority;
@@ -24,8 +25,7 @@ export interface AgentGenerationCreditEstimate {
   /** `null` when the estimate could not be computed. */
   credits: number | null;
   isAvailable: boolean;
-  /** Resolved even when pricing lookup failed, so the review card can still
-   * name the model it would use. */
+  /** Concrete validated model; unavailable quotes never disclose a key. */
   modelKey: string | null;
 }
 
@@ -37,38 +37,63 @@ export interface AgentGenerationCreditEstimate {
  * multipliers" — this service adds both) — and prices it with the
  * duration/resolution/output multipliers `#4672` requires.
  *
- * Never throws: an unresolvable model, a model missing pricing fields, or
+ * Invalid output counts reject. An unresolvable model, missing pricing, or
  * any registry error surfaces as `isAvailable: false` so the review card
- * still renders with "estimate unavailable" and waits for confirmation
- * (Manual mode never auto-runs on a failed estimate).
+ * renders as unavailable and prevents generation until a current quote exists.
  */
 @Injectable()
 export class AgentGenerationEstimateService {
   constructor(
     private readonly routerService: RouterService,
-    private readonly modelsService: ModelsService,
+    private readonly modelRegistrationService: ModelRegistrationService,
     private readonly logger: LoggerService,
   ) {}
 
   async estimate(
     input: AgentGenerationCreditEstimateInput,
   ): Promise<AgentGenerationCreditEstimate> {
-    let modelKey: string | null = null;
+    if (
+      input.outputs !== undefined &&
+      (!Number.isInteger(input.outputs) ||
+        input.outputs < 1 ||
+        input.outputs > 8)
+    ) {
+      throw new BadRequestException(
+        'Outputs must be an integer between 1 and 8.',
+      );
+    }
     try {
-      const recommendation = await this.routerService.selectModel({
-        category: input.category,
-        duration: input.duration,
-        organizationId: input.organizationId,
-        outputs: input.outputs,
-        prioritize: input.prioritize,
-        prompt: input.prompt,
-      });
-      modelKey = recommendation.modelDetails.key;
-      const baseCost = recommendation.modelDetails.cost;
+      const modelKey =
+        input.modelKey ??
+        (
+          await this.routerService.selectModel({
+            category: input.category,
+            duration: input.duration,
+            organizationId: input.organizationId,
+            outputs: input.outputs,
+            prioritize: input.prioritize,
+            prompt: input.prompt,
+          })
+        ).modelDetails.key;
 
-      const model = await this.findEnabledModel(modelKey, input.organizationId);
-      if (!model || baseCost === undefined) {
-        return { credits: null, isAvailable: false, modelKey };
+      const model = await this.modelRegistrationService.validateModelForOrg(
+        modelKey,
+        input.organizationId,
+      );
+      const baseCost = model?.cost;
+      if (
+        !model ||
+        model.key !== modelKey ||
+        model.category !== input.category ||
+        !model.isActive ||
+        model.isDeleted ||
+        (model.organizationId &&
+          model.organizationId !== input.organizationId) ||
+        typeof baseCost !== 'number' ||
+        !Number.isFinite(baseCost) ||
+        baseCost < 0
+      ) {
+        return { credits: null, isAvailable: false, modelKey: null };
       }
 
       const outputs = Math.max(1, input.outputs ?? 1);
@@ -90,24 +115,16 @@ export class AgentGenerationEstimateService {
               input.quality,
             ) * outputs;
 
-      return { credits, isAvailable: true, modelKey };
+      return Number.isFinite(credits) && credits >= 0
+        ? { credits, isAvailable: true, modelKey }
+        : { credits: null, isAvailable: false, modelKey: null };
     } catch (error: unknown) {
       this.logger.warn('Agent generation credit estimate unavailable', {
         category: input.category,
         error: error instanceof Error ? error.message : String(error),
         organizationId: input.organizationId,
       });
-      return { credits: null, isAvailable: false, modelKey };
+      return { credits: null, isAvailable: false, modelKey: null };
     }
-  }
-
-  /** Org-private row first, then the global catalog row — mirrors the
-   * registry's own visibility precedence without depending on
-   * `RouterService`'s private helpers (owned by lane G). */
-  private async findEnabledModel(key: string, organizationId: string) {
-    return (
-      (await this.modelsService.findOne({ key, organizationId })) ??
-      (await this.modelsService.findOne({ key, organizationId: null }))
-    );
   }
 }
