@@ -6,6 +6,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { CredentialPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -333,6 +334,7 @@ export class YoutubeOfficialProvider implements SourceTimelineProvider {
       const title = readString(item.snippet?.title) ?? '';
       const description = readString(item.snippet?.description);
       videos.set(id, {
+        ...normalizeSourcePostFlags(item),
         contentType:
           durationSeconds !== undefined && durationSeconds <= SHORT_MAX_SECONDS
             ? 'short'

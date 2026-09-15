@@ -58,6 +58,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { AssetGateService } from '@api/collections/organization-settings/services/asset-gate.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutreachCampaignsService } from '@api/collections/outreach-campaigns/services/outreach-campaigns.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
@@ -444,7 +445,14 @@ const WORKER_DOMAIN_SERVICES = [
     WORKFLOW_ENGINE_ADAPTER,
     WORKFLOW_EXECUTOR,
   ],
-  imports: [CacheModule, ConfigModule, HttpModule, LoggerModule, PrismaModule],
+  imports: [
+    OutliersCoreModule,
+    CacheModule,
+    ConfigModule,
+    HttpModule,
+    LoggerModule,
+    PrismaModule,
+  ],
   providers: [
     ...WORKER_DOMAIN_SERVICES,
     {

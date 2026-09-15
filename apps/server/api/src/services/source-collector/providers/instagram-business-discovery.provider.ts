@@ -5,6 +5,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -85,6 +86,7 @@ function mapDiscoveryNode(
   return {
     authorDisplayName: readString(discovery.name),
     authorFollowersCount: readCount(discovery.followers_count),
+    ...normalizeSourcePostFlags(node),
     authorId: readString(discovery.id),
     authorUsername: readString(discovery.username),
     contentType: toContentType(node),

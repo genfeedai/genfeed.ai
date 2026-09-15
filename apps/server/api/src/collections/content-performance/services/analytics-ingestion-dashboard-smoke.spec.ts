@@ -1,4 +1,5 @@
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
+import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import type { ServerPrisma } from '@api/server.dependencies';
@@ -130,6 +131,9 @@ describe('analytics ingestion to dashboard smoke path', () => {
   }
 
   const prisma = {
+    credential: {
+      findFirst: vi.fn().mockResolvedValue({ platform: 'YOUTUBE' }),
+    },
     $queryRaw: vi.fn((query: unknown) => {
       const matchingRows = filterAnalyticsRows({
         brandId,
@@ -368,19 +372,29 @@ describe('analytics ingestion to dashboard smoke path', () => {
       prisma as unknown as PrismaService,
       logger as unknown as LoggerService,
       postsService as never,
+      {
+        authorize: vi.fn().mockResolvedValue({}),
+        refresh: vi.fn().mockResolvedValue([]),
+      } as unknown as OutliersService,
     );
     const performanceSummaryService = new PerformanceSummaryService(
       prisma as unknown as ServerPrisma,
     );
 
-    await postAnalyticsService.processYouTubeAnalytics(postId, {
-      comments: 30,
-      likes: 300,
-      views: 3000,
-    });
+    await postAnalyticsService.processYouTubeAnalytics(
+      postId,
+      {
+        comments: 30,
+        likes: 300,
+        views: 3000,
+      },
+      { organizationId, brandId, credentialId: 'credential-smoke' },
+    );
 
-    const postSummary =
-      await postAnalyticsService.getPostAnalyticsSummary(postId);
+    const postSummary = await postAnalyticsService.getPostAnalyticsSummary(
+      postId,
+      organizationId,
+    );
     vi.setSystemTime(new Date('2026-04-17T12:00:00.000Z'));
     const dashboardSummary = await performanceSummaryService.getWeeklySummary(
       organizationId,

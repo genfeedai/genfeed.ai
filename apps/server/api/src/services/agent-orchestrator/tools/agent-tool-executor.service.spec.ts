@@ -2780,6 +2780,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.creditsUsed).toBe(0);
     expect(postAnalyticsService.getPostAnalyticsSummary).toHaveBeenCalledWith(
       testId('postanalytics'),
+      testId('org'),
     );
     expect(result.nextActions).toEqual([
       expect.objectContaining({
@@ -2879,6 +2880,7 @@ describe('AgentToolExecutorService', () => {
     );
     expect(postAnalyticsService.getPostAnalyticsSummary).toHaveBeenCalledWith(
       testId('postarticle1'),
+      testId('org'),
     );
     expect(result.data).toMatchObject({
       articleId: testId('article1'),

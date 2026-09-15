@@ -5,6 +5,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import type { SocialPostUrlReference } from '@genfeedai/contracts';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
@@ -46,8 +47,11 @@ function readCount(value: unknown): number | undefined {
 }
 
 function readDate(value: unknown): Date | undefined {
-  const raw = readString(value);
-  if (!raw) {
+  const raw =
+    typeof value === 'number' && Number.isFinite(value)
+      ? value
+      : readString(value);
+  if (raw === undefined) {
     return undefined;
   }
   const parsed = new Date(raw);
@@ -104,6 +108,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
         platform,
         posts: filtered.map(
           (tweet): CollectedSourcePost => ({
+            ...normalizeSourcePostFlags(tweet),
             authorAvatarUrl: tweet.authorAvatarUrl,
             authorDisplayName: tweet.authorDisplayName,
             authorFollowersCount: tweet.authorFollowersCount,
@@ -142,12 +147,13 @@ export class ApifySocialProvider implements SourceTimelineProvider {
         platform,
         posts: posts.map(
           (post): CollectedSourcePost => ({
+            ...normalizeSourcePostFlags(post),
             authorUsername: post.ownerUsername || handle,
             contentType: post.videoUrl ? 'reel' : 'post',
             contentUrl: post.shortCode
               ? `https://www.instagram.com/p/${post.shortCode}/`
               : undefined,
-            createdAt: post.timestamp ? new Date(post.timestamp) : new Date(),
+            createdAt: readDate(post.timestamp),
             id: post.id,
             mediaUrls: [post.videoUrl, post.imageUrl].filter(
               (url): url is string => Boolean(url),
@@ -175,12 +181,13 @@ export class ApifySocialProvider implements SourceTimelineProvider {
         platform,
         posts: videos.map(
           (video): CollectedSourcePost => ({
+            ...normalizeSourcePostFlags(video),
             authorUsername: video.authorMeta?.name || handle,
             contentType: 'video',
             contentUrl: video.webVideoUrl,
             createdAt: video.createTime
-              ? new Date(video.createTime * 1000)
-              : new Date(),
+              ? readDate(video.createTime * 1000)
+              : undefined,
             id: video.id,
             mediaUrls: video.webVideoUrl ? [video.webVideoUrl] : [],
             metrics: {
@@ -215,11 +222,12 @@ export class ApifySocialProvider implements SourceTimelineProvider {
             const url =
               readString(video.url) ?? `https://www.youtube.com/watch?v=${id}`;
             return {
+              ...normalizeSourcePostFlags(video),
               authorId: readString(video.channelId),
               authorUsername: readString(video.channelName) || handle,
               contentType: 'video',
               contentUrl: url,
-              createdAt: readDate(video.publishedAt) ?? new Date(),
+              createdAt: readDate(video.publishedAt),
               id,
               metrics: {
                 comments: readCount(video.commentCount),
@@ -254,6 +262,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
               readString(post.imageUrl) ?? readString(post.images?.[0]);
             const videoUrl = readString(post.videoUrl);
             return {
+              ...normalizeSourcePostFlags(post),
               authorDisplayName:
                 readString(post.authorName) ?? readString(post.authorFullName),
               authorUsername: handle,
@@ -265,8 +274,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
               createdAt:
                 readDate(post.postedAt) ??
                 readDate(post.date) ??
-                readDate(post.publishedAt) ??
-                new Date(),
+                readDate(post.publishedAt),
               id,
               mediaUrls: [videoUrl, imageUrl].filter((value): value is string =>
                 Boolean(value),
@@ -341,7 +349,7 @@ export class ApifySocialProvider implements SourceTimelineProvider {
             contentUrl: post.shortCode
               ? `https://www.instagram.com/p/${post.shortCode}/`
               : reference.url,
-            createdAt: post.timestamp ? new Date(post.timestamp) : new Date(),
+            createdAt: readDate(post.timestamp),
             id: post.id,
             mediaUrls: [post.videoUrl, post.imageUrl].filter(
               (url): url is string => Boolean(url),
@@ -372,8 +380,8 @@ export class ApifySocialProvider implements SourceTimelineProvider {
             contentType: 'video',
             contentUrl: video.webVideoUrl || reference.url,
             createdAt: video.createTime
-              ? new Date(video.createTime * 1000)
-              : new Date(),
+              ? readDate(video.createTime * 1000)
+              : undefined,
             id: video.id,
             mediaUrls: video.webVideoUrl ? [video.webVideoUrl] : [],
             metrics: {

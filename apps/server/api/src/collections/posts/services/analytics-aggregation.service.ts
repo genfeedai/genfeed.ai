@@ -162,12 +162,15 @@ export class AnalyticsAggregationService {
         by: ['platform'],
         orderBy: { _sum: { totalViews: 'desc' } },
         take: 20,
-        where: this.buildPostAnalyticsWhere({
-          brandId,
-          endDate: parsedEndDate,
+        where: scopedWhere(
           organizationId,
-          startDate: parsedStartDate,
-        }),
+          this.buildPostAnalyticsWhere({
+            brandId,
+            endDate: parsedEndDate,
+            organizationId,
+            startDate: parsedStartDate,
+          }),
+        ),
       }),
     ]);
 
@@ -253,7 +256,7 @@ export class AnalyticsAggregationService {
       },
       by: ['date'],
       orderBy: { date: 'asc' },
-      where,
+      where: scopedWhere(organizationId, where),
     });
 
     return postAnalyticsProjection.buildTimeSeries(
@@ -294,7 +297,7 @@ export class AnalyticsAggregationService {
         totalViews: true,
       },
       by: ['date', 'platform'],
-      where,
+      where: scopedWhere(organizationId, where),
     });
 
     return postAnalyticsProjection.buildTimeSeriesWithPlatforms(
@@ -331,7 +334,7 @@ export class AnalyticsAggregationService {
           AVG("engagementRate") AS engagement_rate,
           COUNT(DISTINCT "postId") AS post_count
         FROM "post_analytics"
-        WHERE "organizationId" = ${organizationId}
+        WHERE "isDeleted" = false AND "organizationId" = ${organizationId}
           AND "date" >= ${startDate}
           AND "date" <= ${endDate}
           ${this.buildBrandSqlPredicate(brandId)}
@@ -388,7 +391,7 @@ export class AnalyticsAggregationService {
           ? { _max: { totalLikes: 'desc' } }
           : { _max: { totalViews: 'desc' } },
       take: candidateLimit,
-      where,
+      where: scopedWhere(organizationId, where),
     });
 
     const topScored = postAnalyticsProjection.scoreTopContent(
@@ -452,7 +455,7 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where,
+          where: scopedWhere(organizationId, where),
         }),
         this.prisma.postAnalytics.aggregate({
           _sum: {
@@ -461,14 +464,14 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: prevWhere,
+          where: scopedWhere(organizationId, prevWhere),
         }),
         this.prisma.postAnalytics.groupBy({
           _sum: { totalViews: true },
           by: ['date'],
           orderBy: { _sum: { totalViews: 'desc' } },
           take: 1,
-          where,
+          where: scopedWhere(organizationId, where),
         }),
       ]);
 
@@ -507,7 +510,7 @@ export class AnalyticsAggregationService {
         totalSaves: true,
         totalShares: true,
       },
-      where,
+      where: scopedWhere(organizationId, where),
     });
 
     return postAnalyticsProjection.buildEngagementBreakdown(
@@ -561,7 +564,7 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where,
+          where: scopedWhere(organizationId, where),
         }),
         this.prisma.postAnalytics.aggregate({
           _sum: {
@@ -570,13 +573,13 @@ export class AnalyticsAggregationService {
             totalShares: true,
             totalViews: true,
           },
-          where: prevWhere,
+          where: scopedWhere(organizationId, prevWhere),
         }),
         this.prisma.$queryRaw<DistinctPostCountRow[]>(
           Prisma.sql`
           SELECT COUNT(DISTINCT "postId") AS post_count
           FROM "post_analytics"
-          WHERE "organizationId" = ${organizationId}
+          WHERE "isDeleted" = false AND "organizationId" = ${organizationId}
             AND "platform" = ${normalizedPlatform}
             AND "date" >= ${parsedStartDate}
             AND "date" <= ${parsedEndDate}

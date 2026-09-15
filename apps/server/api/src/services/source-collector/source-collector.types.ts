@@ -5,6 +5,8 @@ import type { SocialSourcePlatform } from '@genfeedai/contracts';
  * Maps cleanly into SocialMonitor SocialContentData / sourcePost rows.
  */
 export type CollectedSourcePost = {
+  isPinned?: boolean | null;
+  isPromoted?: boolean | null;
   id: string;
   text: string;
   platform: SocialSourcePlatform | string;

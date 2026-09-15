@@ -1,3 +1,4 @@
+import type { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { PostDocument } from '@api/collections/posts/post.schema';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
@@ -7,6 +8,7 @@ import type { LoggerService } from '@libs/logger/logger.service';
 const TWITTER = 'TWITTER' as never;
 
 function createHarness(post: unknown) {
+  const refresh = vi.fn().mockResolvedValue([]);
   const upsert = vi.fn().mockResolvedValue({ id: 'analytics_1' });
   const findFirst = vi.fn().mockResolvedValue(null);
   const logger = {
@@ -18,14 +20,27 @@ function createHarness(post: unknown) {
   const service = new PostAnalyticsService(
     {
       postAnalytics: { findFirst, upsert },
+      credential: {
+        findFirst: vi.fn().mockResolvedValue({ platform: 'TWITTER' }),
+      },
     } as unknown as PrismaService,
     logger,
     {
-      findOne: vi.fn().mockResolvedValue(post),
+      findOne: vi
+        .fn()
+        .mockResolvedValue(
+          post && typeof post === 'object'
+            ? { ...post, credentialId: 'credential_1' }
+            : post,
+        ),
     } as unknown as PostsService,
+    {
+      authorize: vi.fn().mockResolvedValue({}),
+      refresh,
+    } as unknown as OutliersService,
   );
 
-  return { findFirst, logger, service, upsert };
+  return { findFirst, logger, service, upsert, refresh };
 }
 
 const metrics = {
@@ -48,7 +63,11 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
       userId: 'user_1',
     } as unknown as PostDocument);
 
-    await service.updateTodayAnalytics('post_1', TWITTER, metrics);
+    await service.updateTodayAnalytics('post_1', TWITTER, metrics, {
+      organizationId: 'org_1',
+      brandId: 'brand_1',
+      credentialId: 'credential_1',
+    });
 
     const create = upsert.mock.calls[0][0].create;
 
@@ -76,7 +95,11 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
       userId: 'user_1',
     } as unknown as PostDocument);
 
-    await service.updateTodayAnalytics('post_1', TWITTER, metrics);
+    await service.updateTodayAnalytics('post_1', TWITTER, metrics, {
+      organizationId: 'org_1',
+      brandId: 'brand_1',
+      credentialId: 'credential_1',
+    });
 
     expect(upsert.mock.calls[0][0].create).toMatchObject({
       brandId: 'brand_1',
@@ -92,11 +115,20 @@ describe('PostAnalyticsService.updateTodayAnalytics', () => {
       organizationId: 'org_1',
     } as unknown as PostDocument);
 
-    const result = await service.updateTodayAnalytics('post_1', TWITTER, {
-      totalComments: 0,
-      totalLikes: 0,
-      totalViews: 0,
-    });
+    const result = await service.updateTodayAnalytics(
+      'post_1',
+      TWITTER,
+      {
+        totalComments: 0,
+        totalLikes: 0,
+        totalViews: 0,
+      },
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
+    );
 
     expect(result).toBeNull();
     expect(upsert).not.toHaveBeenCalled();
@@ -111,14 +143,22 @@ describe('PostAnalyticsService provider metric mapping', () => {
       .spyOn(service, 'updateTodayAnalytics')
       .mockResolvedValue(null);
 
-    await service.processYouTubeAnalytics('post_1', {
-      averageViewDuration: 12,
-      comments: 3,
-      estimatedMinutesWatched: 2.5,
-      impressions: 80,
-      likes: 20,
-      views: 100,
-    });
+    await service.processYouTubeAnalytics(
+      'post_1',
+      {
+        averageViewDuration: 12,
+        comments: 3,
+        estimatedMinutesWatched: 2.5,
+        impressions: 80,
+        likes: 20,
+        views: 100,
+      },
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
+    );
 
     expect(update).toHaveBeenCalledWith(
       'post_1',
@@ -133,6 +173,11 @@ describe('PostAnalyticsService provider metric mapping', () => {
         videoViews: 100,
         watchTimeSeconds: 150,
       }),
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
     );
   });
 
@@ -142,14 +187,22 @@ describe('PostAnalyticsService provider metric mapping', () => {
       .spyOn(service, 'updateTodayAnalytics')
       .mockResolvedValue(null);
 
-    await service.processTikTokAnalytics('post_1', {
-      comments: 3,
-      likes: 20,
-      reach: 75,
-      shares: 4,
-      totalPlayTime: 240,
-      views: 100,
-    });
+    await service.processTikTokAnalytics(
+      'post_1',
+      {
+        comments: 3,
+        likes: 20,
+        reach: 75,
+        shares: 4,
+        totalPlayTime: 240,
+        views: 100,
+      },
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
+    );
 
     expect(update).toHaveBeenCalledWith(
       'post_1',
@@ -163,6 +216,93 @@ describe('PostAnalyticsService provider metric mapping', () => {
           watchTimeSeconds: 'observed',
         }),
       }),
+      {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      },
+    );
+  });
+});
+
+describe('analytics awaited outlier persistence', () => {
+  it('propagates baseline failure after the analytics write', async () => {
+    const h = createHarness({
+      id: 'p',
+      organizationId: 'org_1',
+      brandId: 'brand_1',
+      userId: 'u',
+    });
+    h.refresh.mockRejectedValueOnce(new Error('snapshot failed'));
+    await expect(
+      h.service.updateTodayAnalytics('p', TWITTER, metrics, {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      }),
+    ).rejects.toThrow('snapshot failed');
+    expect(h.upsert).toHaveBeenCalledOnce();
+  });
+  it('does not finish before refresh resolves', async () => {
+    const h = createHarness({
+      id: 'p',
+      organizationId: 'org_1',
+      brandId: 'brand_1',
+      userId: 'u',
+    });
+    let release!: () => void;
+    h.refresh.mockImplementationOnce(
+      () =>
+        new Promise<void>((resolve) => {
+          release = resolve;
+        }),
+    );
+    let isFinished = false;
+    const pending = h.service
+      .updateTodayAnalytics('p', TWITTER, metrics, {
+        organizationId: 'org_1',
+        brandId: 'brand_1',
+        credentialId: 'credential_1',
+      })
+      .then(() => {
+        isFinished = true;
+      });
+    await vi.waitFor(() => expect(h.refresh).toHaveBeenCalledOnce());
+    expect(isFinished).toBe(false);
+    release();
+    await pending;
+    expect(isFinished).toBe(true);
+  });
+});
+
+describe('active scoped daily analytics reads', () => {
+  it('requires the caller organization for summaries and date ranges', async () => {
+    const findMany = vi.fn().mockResolvedValue([]);
+    const service = new PostAnalyticsService(
+      { postAnalytics: { findMany } } as unknown as PrismaService,
+      {} as LoggerService,
+      {} as PostsService,
+      {} as OutliersService,
+    );
+    await service.getPostAnalyticsSummary('post', 'org');
+    expect(findMany).toHaveBeenLastCalledWith({
+      where: { organizationId: 'org', isDeleted: false, postId: 'post' },
+    });
+    const start = new Date('2026-01-01');
+    const end = new Date('2026-01-31');
+    await service.getAnalyticsByDateRange('post', start, end, 'org', 'TWITTER');
+    expect(findMany).toHaveBeenLastCalledWith({
+      orderBy: { date: 'asc' },
+      where: {
+        organizationId: 'org',
+        isDeleted: false,
+        postId: 'post',
+        platform: 'TWITTER',
+        date: { gte: start, lte: end },
+      },
+    });
+    await expect(service.getPostAnalyticsSummary('post', '')).rejects.toThrow(
+      'organizationId is required',
     );
   });
 });

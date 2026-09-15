@@ -102,7 +102,7 @@ describe('InstagramOfficialProvider', () => {
         likes: 10,
         reach: 80,
         saves: 5,
-        views: 100,
+        views: undefined,
       },
       text: 'caption m1',
       thumbnailUrl: 'https://cdn/m1.jpg',

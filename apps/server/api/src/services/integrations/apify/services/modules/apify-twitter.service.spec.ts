@@ -123,6 +123,28 @@ describe('ApifyTwitterService', () => {
     expect(result).toEqual([]);
   });
 
+  it('retains explicit pin and promotion flags and leaves missing flags unknown', async () => {
+    baseService.runActor.mockResolvedValue([
+      { ...mockTweet, is_pinned: true, is_sponsored: false },
+      mockTweet,
+    ]);
+    const result = await service.getTwitterUserTimeline('testuser');
+    expect(result[0]).toMatchObject({ isPinned: true, isPromoted: false });
+    expect(result[1]).toMatchObject({ isPinned: null, isPromoted: null });
+  });
+
+  it('leaves invalid or missing publication dates absent', async () => {
+    baseService.runActor.mockResolvedValue([
+      { ...mockTweet, created_at: undefined },
+      { ...mockTweet, created_at: 'invalid' },
+    ]);
+    const result = await service.getTwitterUserTimeline('testuser');
+    expect(result.map((tweet) => tweet.createdAt)).toEqual([
+      undefined,
+      undefined,
+    ]);
+  });
+
   it('getTwitterUserTimeline fetches user tweets', async () => {
     baseService.runActor.mockResolvedValue([mockTweet]);
     const result = await service.getTwitterUserTimeline('testuser');

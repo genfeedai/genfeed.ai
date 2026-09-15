@@ -118,6 +118,11 @@ export class AnalyticsYouTubeCollectionService {
           await this.postAnalyticsService.processYouTubeAnalytics(
             post.id,
             analytics,
+            {
+              organizationId: post.organizationId,
+              brandId: post.brandId,
+              credentialId: resolution.credentialId,
+            },
           );
           readyTargets.push(target);
         } catch (error: unknown) {

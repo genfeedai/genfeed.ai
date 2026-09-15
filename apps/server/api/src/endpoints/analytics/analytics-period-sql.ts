@@ -34,7 +34,7 @@ export function analyticsPeriodTotalsSql(options: {
         LAG("totalShares") OVER w AS prev_shares,
         LAG("totalSaves") OVER w AS prev_saves
       FROM "post_analytics"
-      WHERE "date" <= ${options.endDate}
+      WHERE "isDeleted" = false AND "date" <= ${options.endDate}
         ${options.brandFilter}
         ${options.orgFilter}
       WINDOW w AS (PARTITION BY "postId", "platform" ORDER BY "date")
@@ -76,7 +76,7 @@ export function analyticsPeriodSeriesSql(options: {
         LAG("totalShares") OVER w AS prev_shares,
         LAG("totalSaves") OVER w AS prev_saves
       FROM "post_analytics"
-      WHERE "date" <= ${options.endDate}
+      WHERE "isDeleted" = false AND "date" <= ${options.endDate}
         ${options.brandFilter}
         ${options.orgFilter}
       WINDOW w AS (PARTITION BY "postId", "platform" ORDER BY "date")
@@ -121,7 +121,7 @@ export function analyticsAccountPeriodSeriesSql(options: {
         LAG(pa."totalSaves") OVER w AS prev_saves
       FROM "post_analytics" pa
       INNER JOIN "posts" p ON p.id = pa."postId"
-      WHERE pa."organizationId" = ${options.organizationId}
+      WHERE pa."isDeleted" = false AND pa."organizationId" = ${options.organizationId}
         AND p."isDeleted" = false
         AND p."credentialId" = ${options.credentialId}
         AND pa."date" <= ${options.endDate}
@@ -171,7 +171,7 @@ export function analyticsAccountTopPostsSql(options: {
         "totalShares",
         "engagementRate"
       FROM "post_analytics"
-      WHERE "postId" = p.id
+      WHERE "isDeleted" = false AND "postId" = p.id
         AND "organizationId" = ${options.organizationId}
         AND "date" >= ${options.startDate}
         AND "date" <= ${options.endDate}

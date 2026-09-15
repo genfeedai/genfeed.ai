@@ -81,6 +81,11 @@ describe('AnalyticsTwitterCollectionService', () => {
     expect(harness.postAnalytics.processTwitterAnalytics).toHaveBeenCalledWith(
       'post-1',
       { views: 42 },
+      {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+      },
     );
     expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
       expect.objectContaining({

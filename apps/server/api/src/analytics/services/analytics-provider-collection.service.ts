@@ -83,15 +83,23 @@ export class AnalyticsProviderCollectionService {
         post.externalId,
         EncryptionUtil.decrypt(credential.accessToken),
       );
-      await this.postAnalyticsService.processFacebookAnalytics(post.id, {
-        comments: analytics.comments,
-        engagementRate: analytics.engagementRate,
-        impressions: analytics.impressions,
-        likes: analytics.likes,
-        reach: analytics.reach,
-        shares: analytics.shares,
-        views: analytics.views,
-      });
+      await this.postAnalyticsService.processFacebookAnalytics(
+        post.id,
+        {
+          comments: analytics.comments,
+          engagementRate: analytics.engagementRate,
+          impressions: analytics.impressions,
+          likes: analytics.likes,
+          reach: analytics.reach,
+          shares: analytics.shares,
+          views: analytics.views,
+        },
+        {
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+        },
+      );
       await this.accountSnapshots.upsertDailySnapshot({
         brandId: post.brandId,
         credentialId: resolution.credentialId,
@@ -106,20 +114,46 @@ export class AnalyticsProviderCollectionService {
     data: SocialAnalyticsCollectionInput,
   ): Promise<AnalyticsCollectionResult> {
     return this.collectPosts(data, 'Threads', async (post) => {
+      const resolution = await resolveAnalyticsCollectionCredential({
+        brandId: post.brandId,
+        credentialId: post.credentialId,
+        lookup: this.credentialsService,
+        organizationId: post.organizationId,
+        platform: CredentialPlatform.THREADS,
+      });
+      if (
+        resolution.kind === 'ambiguous' ||
+        resolution.kind === 'missing' ||
+        resolution.kind === 'mismatch'
+      ) {
+        throw Object.assign(
+          new Error(attributionFailureFor(resolution.kind).message),
+          {
+            analyticsFailure: attributionFailureFor(resolution.kind),
+            status: 409,
+          },
+        );
+      }
+
       const analytics = await this.threadsService.getThreadInsights(
         post.organizationId,
         post.brandId,
         post.externalId,
-        post.credentialId,
+        resolution.credentialId,
       );
       await this.postAnalyticsService.processThreadsAnalytics(
         post.id,
         analytics,
+        {
+          organizationId: post.organizationId,
+          brandId: post.brandId,
+          credentialId: resolution.credentialId,
+        },
       );
-      if (post.credentialId) {
+      if (resolution.credentialId) {
         await this.accountSnapshots.upsertDailySnapshot({
           brandId: post.brandId,
-          credentialId: post.credentialId,
+          credentialId: resolution.credentialId,
           organizationId: post.organizationId,
           platform: CredentialPlatform.THREADS,
           ...extractProfileCounts(analytics),

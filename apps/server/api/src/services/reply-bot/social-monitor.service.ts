@@ -580,29 +580,35 @@ export class SocialMonitorService {
   private convertTwitterToSocialContent(
     tweets: ApifyNormalizedTweet[],
   ): SocialContentData[] {
-    return tweets.map((tweet) => ({
-      authorAvatarUrl: tweet.authorAvatarUrl,
-      authorDisplayName: tweet.authorDisplayName,
-      authorFollowersCount: tweet.authorFollowersCount,
-      authorId: tweet.authorId,
-      authorUsername: tweet.authorUsername,
-      contentType: SocialContentType.TWEET,
-      contentUrl: `https://x.com/${tweet.authorUsername}/status/${tweet.id}`,
-      createdAt: tweet.createdAt,
-      hashtags: tweet.hashtags,
-      id: tweet.id,
-      inReplyToId: tweet.inReplyToTweetId,
-      isRepost: tweet.isRetweet,
-      metrics: tweet.metrics
-        ? {
-            comments: tweet.metrics.replies,
-            likes: tweet.metrics.likes,
-            shares: tweet.metrics.retweets,
-          }
-        : undefined,
-      platform: ReplyBotPlatform.TWITTER,
-      text: tweet.text,
-    }));
+    return tweets
+      .filter(
+        (tweet): tweet is ApifyNormalizedTweet & { createdAt: Date } =>
+          tweet.createdAt instanceof Date &&
+          Number.isFinite(tweet.createdAt.getTime()),
+      )
+      .map((tweet) => ({
+        authorAvatarUrl: tweet.authorAvatarUrl,
+        authorDisplayName: tweet.authorDisplayName,
+        authorFollowersCount: tweet.authorFollowersCount,
+        authorId: tweet.authorId,
+        authorUsername: tweet.authorUsername,
+        contentType: SocialContentType.TWEET,
+        contentUrl: `https://x.com/${tweet.authorUsername}/status/${tweet.id}`,
+        createdAt: tweet.createdAt,
+        hashtags: tweet.hashtags,
+        id: tweet.id,
+        inReplyToId: tweet.inReplyToTweetId,
+        isRepost: tweet.isRetweet,
+        metrics: tweet.metrics
+          ? {
+              comments: tweet.metrics.replies,
+              likes: tweet.metrics.likes,
+              shares: tweet.metrics.retweets,
+            }
+          : undefined,
+        platform: ReplyBotPlatform.TWITTER,
+        text: tweet.text,
+      }));
   }
 
   // --- Instagram ---

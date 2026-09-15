@@ -185,6 +185,31 @@ describe('SocialMonitorService', () => {
     expect(result).toEqual([]);
   });
 
+  it('excludes undated tweets from reply candidates', async () => {
+    mockApifyService.getTwitterUserTimeline.mockResolvedValueOnce([
+      {
+        authorId: 'u',
+        authorUsername: 'bob',
+        id: 'missing',
+        isRetweet: false,
+        text: 'missing',
+      },
+      {
+        authorId: 'u',
+        authorUsername: 'bob',
+        id: 'invalid',
+        isRetweet: false,
+        text: 'invalid',
+        createdAt: new Date(NaN),
+      },
+    ]);
+    expect(
+      await service.getUserTimeline(ReplyBotPlatform.TWITTER, 'bob', {
+        preferOfficialApi: false,
+      }),
+    ).toEqual([]);
+  });
+
   it('filters retweets and replies from twitter timeline by default (reply-bot)', async () => {
     mockApifyService.getTwitterUserTimeline.mockResolvedValueOnce([
       {

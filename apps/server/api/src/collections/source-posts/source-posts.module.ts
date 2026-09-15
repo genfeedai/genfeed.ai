@@ -1,4 +1,5 @@
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
+import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { SourcePostsController } from '@api/collections/source-posts/controllers/source-posts.controller';
 import { SourcePostsService } from '@api/collections/source-posts/services/source-posts.service';
 import { Module } from '@nestjs/common';
@@ -6,7 +7,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [SourcePostsController],
   exports: [SourcePostsService],
-  imports: [CredentialsCoreModule],
+  imports: [OutliersCoreModule, CredentialsCoreModule],
   providers: [SourcePostsService],
 })
 export class SourcePostsModule {}

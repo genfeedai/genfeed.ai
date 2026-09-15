@@ -210,7 +210,10 @@ export class AgentAnalyticsToolHandler {
     );
     const postId = publishedPost?.id ? String(publishedPost.id) : undefined;
     const postSummary = postId
-      ? await this.postAnalyticsService.getPostAnalyticsSummary(postId)
+      ? await this.postAnalyticsService.getPostAnalyticsSummary(
+          postId,
+          ctx.organizationId,
+        )
       : null;
 
     if (!postSummary && !articleSummary) {
@@ -303,8 +306,10 @@ export class AgentAnalyticsToolHandler {
         'selected post',
       );
 
-      const summary =
-        await this.postAnalyticsService.getPostAnalyticsSummary(postId);
+      const summary = await this.postAnalyticsService.getPostAnalyticsSummary(
+        postId,
+        ctx.organizationId,
+      );
       const metrics = this.buildEngagementMetrics(summary);
 
       return {
@@ -385,8 +390,10 @@ export class AgentAnalyticsToolHandler {
       }
 
       const resolvedPostId = String(publishedPost.id);
-      const summary =
-        await this.postAnalyticsService.getPostAnalyticsSummary(resolvedPostId);
+      const summary = await this.postAnalyticsService.getPostAnalyticsSummary(
+        resolvedPostId,
+        ctx.organizationId,
+      );
       const metrics = this.buildEngagementMetrics(summary);
 
       return {

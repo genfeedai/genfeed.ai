@@ -7,6 +7,7 @@ import { ApifyRedditService } from '@api/services/integrations/apify/services/mo
 import { ApifyTikTokService } from '@api/services/integrations/apify/services/modules/apify-tiktok.service';
 import { ApifyTwitterService } from '@api/services/integrations/apify/services/modules/apify-twitter.service';
 import { ApifyYouTubeService } from '@api/services/integrations/apify/services/modules/apify-youtube.service';
+import { Platform } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
 
@@ -500,6 +501,21 @@ describe('ApifyService', () => {
   });
 
   describe('convertToUnifiedComment', () => {
+    it('rejects Twitter comments without a valid publication date', () => {
+      expect(() =>
+        service.convertToUnifiedComment(
+          { id: 'missing' } as never,
+          Platform.TWITTER,
+        ),
+      ).toThrow('publication date');
+      expect(() =>
+        service.convertToUnifiedComment(
+          { id: 'invalid', createdAt: new Date(NaN) } as never,
+          Platform.TWITTER,
+        ),
+      ).toThrow('publication date');
+    });
+
     it('should convert a twitter tweet to unified format', () => {
       const tweet = {
         authorAvatarUrl: 'https://avatar.com/test.jpg',

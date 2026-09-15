@@ -115,6 +115,11 @@ export class AnalyticsTwitterCollectionService {
           await this.postAnalyticsService.processTwitterAnalytics(
             post.id,
             analytics,
+            {
+              organizationId: post.organizationId,
+              brandId: post.brandId,
+              credentialId: credentialId,
+            },
           );
           readyTargets.push(target);
         } catch (error: unknown) {

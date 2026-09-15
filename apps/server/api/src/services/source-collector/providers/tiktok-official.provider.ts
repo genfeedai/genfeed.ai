@@ -5,6 +5,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -78,6 +79,7 @@ function mapVideoNode(
   const embedLink = readString(node.embed_link);
 
   return {
+    ...normalizeSourcePostFlags(node),
     authorId,
     authorUsername: handle,
     contentType: 'video',

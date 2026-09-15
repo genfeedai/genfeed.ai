@@ -374,6 +374,7 @@ export class DailyPublishingService implements OnModuleInit {
         organizationId: scope.organizationId,
         brandId: scope.brandId,
         credentialId: scope.credentialId,
+        isDeleted: false,
         date: { gte: new Date(Date.now() - 30 * 86400000) },
         post: { is: { ...scope, targetExecutionState: 'published' } },
       },

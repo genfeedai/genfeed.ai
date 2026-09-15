@@ -5,6 +5,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -89,6 +90,7 @@ function mapMediaNode(
   const shortcode = readString(node.shortcode);
 
   return {
+    ...normalizeSourcePostFlags(node),
     authorId: igUserId,
     authorUsername: handle,
     contentType: toContentType(node),
@@ -105,7 +107,7 @@ function mapMediaNode(
       reach: readInsight(node, 'reach'),
       saves: readInsight(node, 'saved'),
       shares: readInsight(node, 'shares'),
-      views: readInsight(node, 'impressions') ?? readInsight(node, 'reach'),
+      views: readInsight(node, 'views'),
     },
     platform: SocialSourcePlatform.INSTAGRAM,
     text: readString(node.caption) ?? '',

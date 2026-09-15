@@ -341,8 +341,10 @@ export class PostsController extends BaseCRUDController<
     // Fetch analytics summary for this post (non-blocking, returns null on error)
     let analytics = null;
     try {
-      analytics =
-        await this.postAnalyticsService.getPostAnalyticsSummary(postId);
+      analytics = await this.postAnalyticsService.getPostAnalyticsSummary(
+        postId,
+        user.organizationId,
+      );
     } catch (error: unknown) {
       this.loggerService.warn(
         `Failed to fetch analytics for post ${postId}: ${(error as Error)?.message}`,

@@ -2,6 +2,8 @@ export interface UpdateTodayAnalyticsMetrics {
   averageWatchTimeSeconds?: number | null;
   clicks?: number | null;
   credentialId?: string | null;
+  isPinned?: boolean | null;
+  isPromoted?: boolean | null;
   impressions?: number | null;
   metricAvailability?: Record<string, string>;
   reach?: number | null;
@@ -15,6 +17,8 @@ export interface UpdateTodayAnalyticsMetrics {
 }
 
 export interface YouTubePostMetrics {
+  isPinned?: boolean | null;
+  isPromoted?: boolean | null;
   averageViewDuration?: number;
   averageViewPercentage?: number;
   clickThroughRate?: number;
@@ -34,6 +38,8 @@ export interface YouTubePostMetrics {
 }
 
 export interface TikTokPostMetrics {
+  isPinned?: boolean | null;
+  isPromoted?: boolean | null;
   averagePlayTime?: number;
   comments: number;
   engagementRate?: number;
@@ -59,12 +65,15 @@ export function mapYouTubePostMetrics(
       ? null
       : analytics.estimatedMinutesWatched * 60;
   return {
+    isPinned: analytics.isPinned ?? null,
+    isPromoted: analytics.isPromoted ?? null,
     averageWatchTimeSeconds,
     impressions,
     metricAvailability: {
       averageWatchTimeSeconds: availability(averageWatchTimeSeconds),
       impressions: availability(impressions),
       videoViews: 'observed',
+      views: 'observed',
       watchTimeSeconds: availability(watchTimeSeconds),
     },
     totalComments: analytics.comments,
@@ -83,11 +92,14 @@ export function mapTikTokPostMetrics(
   const reach = analytics.reach ?? null;
   const watchTimeSeconds = analytics.totalPlayTime ?? null;
   return {
+    isPinned: analytics.isPinned ?? null,
+    isPromoted: analytics.isPromoted ?? null,
     averageWatchTimeSeconds,
     metricAvailability: {
       averageWatchTimeSeconds: availability(averageWatchTimeSeconds),
       reach: availability(reach),
       videoViews: 'observed',
+      views: 'observed',
       watchTimeSeconds: availability(watchTimeSeconds),
     },
     reach,

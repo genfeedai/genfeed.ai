@@ -121,12 +121,20 @@ export class AnalyticsSocialCollectionService {
           REELS: 'reel',
           VIDEO: 'video',
         } as const;
-        await this.postAnalyticsService.processInstagramAnalytics(post.id, {
-          ...analytics,
-          mediaType: analytics.mediaType
-            ? mediaTypes[analytics.mediaType as keyof typeof mediaTypes]
-            : undefined,
-        });
+        await this.postAnalyticsService.processInstagramAnalytics(
+          post.id,
+          {
+            ...analytics,
+            mediaType: analytics.mediaType
+              ? mediaTypes[analytics.mediaType as keyof typeof mediaTypes]
+              : undefined,
+          },
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
         await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
@@ -137,10 +145,18 @@ export class AnalyticsSocialCollectionService {
           post.externalId,
           credentialId,
         );
-        await this.postAnalyticsService.processTikTokAnalytics(post.id, {
-          ...analytics,
-          shares: analytics.shares ?? 0,
-        });
+        await this.postAnalyticsService.processTikTokAnalytics(
+          post.id,
+          {
+            ...analytics,
+            shares: analytics.shares ?? 0,
+          },
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
         await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
@@ -154,6 +170,11 @@ export class AnalyticsSocialCollectionService {
         await this.postAnalyticsService.processPinterestAnalytics(
           post.id,
           analytics,
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
         );
         await this.recordSnapshot(post, credentialId, analytics);
         return;
@@ -165,17 +186,25 @@ export class AnalyticsSocialCollectionService {
           post.externalId,
           credentialId,
         );
-        await this.postAnalyticsService.processLinkedInAnalytics(post.id, {
-          clicks: analytics.clicks,
-          comments: analytics.comments,
-          engagementRate: analytics.engagementRate,
-          impressions: analytics.impressions,
-          likes: analytics.likes,
-          mediaType: analytics.mediaType,
-          reach: analytics.reach,
-          shares: analytics.shares,
-          views: analytics.views,
-        });
+        await this.postAnalyticsService.processLinkedInAnalytics(
+          post.id,
+          {
+            clicks: analytics.clicks,
+            comments: analytics.comments,
+            engagementRate: analytics.engagementRate,
+            impressions: analytics.impressions,
+            likes: analytics.likes,
+            mediaType: analytics.mediaType,
+            reach: analytics.reach,
+            shares: analytics.shares,
+            views: analytics.views,
+          },
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
         await this.recordSnapshot(post, credentialId, analytics);
         return;
       }
@@ -189,6 +218,11 @@ export class AnalyticsSocialCollectionService {
         await this.postAnalyticsService.processMastodonAnalytics(
           post.id,
           analytics,
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
         );
         await this.recordSnapshot(post, credentialId, analytics);
         return;
