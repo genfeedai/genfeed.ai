@@ -736,16 +736,12 @@ export class CredentialsService
     profile: ExternalCredentialProfile,
     connection: Record<string, unknown> = {},
   ): Promise<CredentialDocument> {
-    if (Object.keys(connection).length > 0) {
-      await this.patch(credentialId, {
-        ...connection,
-        isConnected: true,
-        isDeleted: false,
-        oauthState: null,
-      });
-    }
-
-    return this.updateExternalProfile(credentialId, organizationId, profile);
+    return this.prepareConnectedAccount(
+      credentialId,
+      organizationId,
+      profile,
+      connection,
+    );
   }
 
   /**
@@ -766,6 +762,15 @@ export class CredentialsService
     credentialId: string,
     organizationId: string,
     profile: ExternalCredentialProfile,
+  ): Promise<CredentialDocument> {
+    return this.prepareConnectedAccount(credentialId, organizationId, profile);
+  }
+
+  private async prepareConnectedAccount(
+    credentialId: string,
+    organizationId: string,
+    profile: ExternalCredentialProfile,
+    connection: Record<string, unknown> = {},
   ): Promise<CredentialDocument> {
     const credential = await this.findOne({
       id: credentialId,
@@ -833,7 +838,12 @@ export class CredentialsService
       );
     }
 
-    return this.reconcileConnectedAccount(credential, externalId, update);
+    return this.reconcileConnectedAccount(
+      credential,
+      externalId,
+      update,
+      this.cryptoService.encryptSecretFields(this.normalizeData(connection)),
+    );
   }
 
   /**
@@ -848,129 +858,101 @@ export class CredentialsService
     credential: CredentialDocument,
     externalId: string,
     profileUpdate: Record<string, string | null>,
+    connectionUpdate: Record<string, unknown>,
   ): Promise<CredentialDocument> {
-    const brandId = credential.brandId as string | null | undefined;
-    const prismaPlatform = toPrismaCredentialPlatform(
-      credential.platform as CredentialPlatform,
-    );
-
-    // Conditional on the row's own pre-claim state (unconnected, no
-    // externalId yet) rather than a blind patch by id. Two callers racing
-    // to settle *different* identities onto the same pending row (e.g. two
-    // concurrent select-account requests) never collide on a unique
-    // constraint — nothing else would stop the second write from silently
-    // overwriting the first's claim. `isDeleted` is left out of the filter
-    // (not defaulted to false) so a soft-deleted row can still be reclaimed
-    // on reconnect, matching the un-scoped `patch` this replaces. The
-    // returned document is built from the known prior state plus the exact
-    // fields just written, rather than a follow-up read, since `updateMany`
-    // does not return the row.
-    const claimIdentity = async (): Promise<CredentialDocument> => {
-      const claim = {
-        ...profileUpdate,
-        externalId,
-        isConnected: true,
-        isDeleted: false,
-        oauthState: null,
-      };
-
-      const { modifiedCount } = await this.patchAll(
-        {
-          externalId: null,
-          id: credential.id,
-          isConnected: false,
-          isDeleted: undefined,
-          organizationId: credential.organizationId,
-        },
-        claim,
-      );
-
-      if (modifiedCount === 0) {
-        throw new HttpException(
-          {
-            detail:
-              'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
-            title: 'Already Connected',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
-      return { ...credential, ...claim } as CredentialDocument;
-    };
-
-    if (!brandId || !prismaPlatform) {
-      // No brand or no persisted platform means no sibling set to reconcile
-      // against — there is nothing this row could collide with.
-      return claimIdentity();
-    }
-
     const organizationId = requireCredentialRelationId(
       credential.organizationId,
       'organizationId',
     );
-
-    const mergeIntoIncumbent = async (): Promise<CredentialDocument | null> =>
+    const settle = () =>
       this.prisma.$transaction(async (tx) => {
-        const incumbent = await tx.credential.findFirst({
-          select: { id: true },
-          where: scopedWhere(organizationId, {
-            brandId,
-            externalId,
-            id: { not: credential.id },
-            platform: prismaPlatform,
-          }),
-        });
-
-        if (!incumbent) {
-          return null;
-        }
-
-        const survivor = await tx.credential.update({
-          data: {
-            ...this.carriedConnectionColumns(credential),
-            ...profileUpdate,
-            externalId,
-            isConnected: true,
+        // Lock the live source before looking up or mutating an incumbent. A
+        // conflicting selection cannot replace the identity of the first writer.
+        const { count } = await tx.credential.updateMany({
+          data: { oauthState: null },
+          where: {
+            id: credential.id,
+            organizationId,
             isDeleted: false,
-            oauthState: null,
+            OR: [{ externalId: null }, { externalId }],
           },
-          where: scopedWhere(organizationId, { id: incumbent.id }),
         });
-
-        // The just-authorized row has handed over everything that matters.
-        // Retire it softly — a foreign key may already point at it.
-        await tx.credential.update({
-          data: { isConnected: false, isDeleted: true, oauthState: null },
+        if (count === 0) {
+          throw new HttpException(
+            {
+              detail:
+                'This credential is already connected to an account. Disconnect and reconnect to choose a different one.',
+              title: 'Already Connected',
+            },
+            HttpStatus.BAD_REQUEST,
+          );
+        }
+        const source = await tx.credential.findFirst({
           where: scopedWhere(organizationId, { id: credential.id }),
         });
-
+        if (!source) {
+          throw new Error(`Credential ${credential.id} not found`);
+        }
+        const clearedOAuth = {
+          oauthState: null,
+          oauthToken: null,
+          oauthTokenHash: null,
+          oauthTokenSecret: null,
+        };
+        const data = {
+          ...this.carriedConnectionColumns(
+            this.normalizeDocument({ ...source }),
+          ),
+          ...connectionUpdate,
+          ...profileUpdate,
+          ...clearedOAuth,
+          externalId,
+          isConnected: true,
+        };
+        const incumbent =
+          source.brandId && source.platform
+            ? await tx.credential.findFirst({
+                select: { id: true },
+                where: scopedWhere(organizationId, {
+                  brandId: source.brandId,
+                  externalId,
+                  id: { not: source.id },
+                  platform: source.platform,
+                }),
+              })
+            : null;
+        const survivor = await tx.credential.update({
+          data,
+          where: scopedWhere(organizationId, {
+            id: incumbent?.id ?? source.id,
+          }),
+        });
+        if (incumbent) {
+          await tx.credential.update({
+            data: {
+              ...clearedOAuth,
+              accessToken: null,
+              accessTokenSecret: null,
+              accessTokenExpiry: null,
+              refreshToken: null,
+              refreshTokenExpiry: null,
+              grantedScopes: [],
+              grantedScopesCapturedAt: null,
+              isConnected: false,
+              isDeleted: true,
+            },
+            where: scopedWhere(organizationId, { id: source.id }),
+          });
+        }
         return this.normalizeDocument(survivor);
       });
-
-    const merged = await mergeIntoIncumbent();
-
-    if (merged) {
-      return merged;
-    }
-
     try {
-      return await claimIdentity();
+      return await settle();
     } catch (error: unknown) {
       if (!isUniqueConstraintViolation(error)) {
         throw error;
       }
-
-      // A concurrent verify — a double-clicked consent, or a provider that
-      // delivered its callback twice — claimed this identity first. Fold into
-      // the winner rather than leaving the operator with a failed reconnect.
-      const survivor = await mergeIntoIncumbent();
-
-      if (!survivor) {
-        throw error;
-      }
-
-      return survivor;
+      return settle();
     }
   }
 

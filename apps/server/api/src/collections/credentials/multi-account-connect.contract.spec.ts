@@ -74,8 +74,8 @@ describe('multi-account connect contract', () => {
     expect(service).toContain('async createPendingForBrand(');
     expect(service).toContain('private async reconcileConnectedAccount(');
     expect(service).not.toContain('async upsertForBrand(');
-    expect(service).toContain(
-      'return this.reconcileConnectedAccount(credential, externalId, update)',
+    expect(service).toMatch(
+      /return this\.reconcileConnectedAccount\(\s*credential,\s*externalId,\s*update,/,
     );
   });
 
