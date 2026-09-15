@@ -92,7 +92,7 @@ function WorkflowExecutionCard({
           asChild
           variant={ButtonVariant.GHOST}
           size={ButtonSize.XS}
-          className="opacity-0 transition-opacity group-hover:opacity-100"
+          className="opacity-100 transition-opacity [@media(hover:hover)_and_(pointer:fine)]:opacity-0 [@media(hover:hover)_and_(pointer:fine)]:group-hover:opacity-100 [@media(hover:hover)_and_(pointer:fine)]:group-focus-within:opacity-100"
         >
           <Link
             href={href(`${APP_ROUTES.AUTOMATION.RUNS}/${execution.id}`)}

@@ -1,10 +1,8 @@
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers';
 import { Slot } from '@radix-ui/react-slot';
-import * as TooltipPrimitive from '@radix-ui/react-tooltip';
 import type {
   ButtonHTMLAttributes,
-  ComponentPropsWithRef,
   MouseEvent,
   ReactElement,
   ReactNode,
@@ -15,6 +13,7 @@ import {
   resolveButtonVariant,
   TEXT_TRANSFORM_CLASSES,
 } from './button.variants';
+import { SimpleTooltip } from './tooltip';
 
 export interface ButtonProps
   extends Omit<
@@ -38,61 +37,6 @@ export interface ButtonProps
   tooltipPosition?: 'top' | 'bottom' | 'left' | 'right';
   withWrapper?: boolean;
   wrapperClassName?: string;
-}
-
-const TooltipProvider: typeof TooltipPrimitive.Provider =
-  TooltipPrimitive.Provider;
-
-const Tooltip: typeof TooltipPrimitive.Root = TooltipPrimitive.Root;
-
-const TooltipTrigger: typeof TooltipPrimitive.Trigger =
-  TooltipPrimitive.Trigger;
-
-function TooltipContent({
-  ref,
-  className,
-  sideOffset = 4,
-  ...props
-}: ComponentPropsWithRef<typeof TooltipPrimitive.Content>) {
-  return (
-    <TooltipPrimitive.Portal>
-      <TooltipPrimitive.Content
-        ref={ref}
-        sideOffset={sideOffset}
-        className={cn(
-          'z-50 overflow-hidden rounded-md bg-popover px-2.5 py-1.5 text-xs font-medium text-popover-foreground shadow-dropdown animate-in fade-in-0 zoom-in-95 data-[state=closed]:animate-out data-[state=closed]:fade-out-0 data-[state=closed]:zoom-out-95 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2',
-          className,
-        )}
-        {...props}
-      />
-    </TooltipPrimitive.Portal>
-  );
-}
-TooltipContent.displayName = TooltipPrimitive.Content.displayName;
-
-function SimpleTooltip({
-  children,
-  isDisabled = false,
-  label,
-  position = 'top',
-}: {
-  children: ReactElement;
-  isDisabled?: boolean;
-  label: string;
-  position?: 'top' | 'bottom' | 'left' | 'right';
-}) {
-  if (isDisabled || !label) {
-    return children;
-  }
-
-  return (
-    <TooltipProvider delayDuration={200}>
-      <Tooltip>
-        <TooltipTrigger asChild>{children}</TooltipTrigger>
-        <TooltipContent side={position}>{label}</TooltipContent>
-      </Tooltip>
-    </TooltipProvider>
-  );
 }
 
 function Spinner({

@@ -20,6 +20,7 @@ import {
   RefreshCw,
   X,
 } from 'lucide-react';
+import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
@@ -89,6 +90,7 @@ export function GenerationActionCardStatusPanel({
     return (
       <AgentRunFailureCard
         className="mb-0"
+        onRetry={isPilotCeilingReached ? undefined : onRetry}
         error={
           isPilotCeilingReached
             ? translate('pilotCeilingReached', {
@@ -157,9 +159,15 @@ export function GenerationActionCardStatusPanel({
         resultId ?? '',
       ),
     );
-    const studioHref = href(
-      `${APP_ROUTES.STUDIO.EDIT}?${generationType === 'video' ? 'videoId' : 'imageId'}=${encodeURIComponent(resultId ?? '')}`,
-    );
+    // Only the video editor accepts a source asset by id
+    // (`/studio/edit/new?videoId=`); no Studio route consumes an image id, so
+    // the edit control is offered for video results only.
+    const editorHref =
+      generationType === 'video' && resultId
+        ? href(
+            `${APP_ROUTES.STUDIO.EDIT_NEW}?videoId=${encodeURIComponent(resultId)}`,
+          )
+        : undefined;
 
     return (
       <div className="space-y-2">
@@ -192,13 +200,20 @@ export function GenerationActionCardStatusPanel({
               Use as input
             </Button>
           ) : null}
-          <a
-            href={studioHref}
-            className="flex flex-1 items-center justify-center gap-1 border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-          >
-            <Paintbrush className="size-3" />
-            Edit in Studio
-          </a>
+          {editorHref ? (
+            <Button
+              asChild
+              variant={ButtonVariant.DEFAULT}
+              size={ButtonSize.SM}
+              className="flex-1"
+              withWrapper={false}
+            >
+              <Link href={editorHref}>
+                <Paintbrush className="size-3" />
+                {translate('editResult')}
+              </Link>
+            </Button>
+          ) : null}
           {onOpenInStudio ? (
             <Button
               variant={ButtonVariant.SECONDARY}
@@ -207,15 +222,18 @@ export function GenerationActionCardStatusPanel({
               className="flex-1"
             >
               <ExternalLink className="size-3" />
-              {translate('openInStudio')}
+              {translate('reuseSettings')}
             </Button>
           ) : null}
-          <a
-            href={libraryHref}
-            className="flex flex-1 items-center justify-center border border-border px-3 py-1.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+          <Button
+            asChild
+            variant={ButtonVariant.SECONDARY}
+            size={ButtonSize.SM}
+            className="flex-1"
+            withWrapper={false}
           >
-            Library
-          </a>
+            <Link href={libraryHref}>{translate('viewInLibrary')}</Link>
+          </Button>
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.SM}

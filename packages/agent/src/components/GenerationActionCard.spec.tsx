@@ -49,6 +49,9 @@ vi.mock('next-intl', () => ({
           loadingModels: 'Loading Genfeed models…',
           noModelsEnabled: 'No models enabled',
           noModelsEnabledTitle: 'No models enabled for this workspace',
+          editResult: 'Edit result',
+          reuseSettings: 'Reuse generation settings',
+          viewInLibrary: 'View in Library',
           openInStudio: 'Open in Studio',
           openInStudioAria: 'Open this generation in Studio',
           pilotCeilingReached:
@@ -1248,7 +1251,7 @@ describe('GenerationActionCard', () => {
     });
 
     expect(
-      (await screen.findAllByRole('link', { name: 'Library' })).length,
+      (await screen.findAllByRole('link', { name: 'View in Library' })).length,
     ).toBeGreaterThan(0);
   });
 
@@ -1304,7 +1307,59 @@ describe('GenerationActionCard', () => {
     expect(storeState.setError).toHaveBeenCalledTimes(1);
     expect(storeState.setError).toHaveBeenCalledWith(null);
     expect(
-      (await screen.findAllByRole('link', { name: 'Library' })).length,
+      (await screen.findAllByRole('link', { name: 'View in Library' })).length,
+    ).toBeGreaterThan(0);
+  });
+
+  it('retries a transient failure from its error card with the same generation settings', async () => {
+    const generateIngredient = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Request failed with status code 503'))
+      .mockResolvedValueOnce({
+        id: 'image-2',
+        url: 'https://cdn.test/image-2.png',
+      });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+            prompt: 'Broadcast newsroom crypto banner.',
+          },
+          generationType: 'image',
+          id: 'action-retry-transient-error',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+              label: 'FLUX Schnell',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    await clickGenerate('image');
+
+    expect(
+      await screen.findByText(/temporarily unavailable/i),
+    ).toBeInTheDocument();
+    expect(generateIngredient).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(2);
+    });
+    expect(generateIngredient.mock.calls[1]?.slice(0, 2)).toEqual(
+      generateIngredient.mock.calls[0]?.slice(0, 2),
+    );
+    expect(
+      (await screen.findAllByRole('link', { name: 'View in Library' })).length,
     ).toBeGreaterThan(0);
   });
 
@@ -2081,7 +2136,7 @@ describe('GenerationActionCard', () => {
     expect(onOpenInStudio).not.toHaveBeenCalled();
   });
 
-  it('renders Open in Studio on the completed result once generation finishes', async () => {
+  it('offers reuse of generation settings on the completed result once generation finishes', async () => {
     const onOpenInStudio = vi.fn();
     const createStudioHandoff = vi
       .fn()
@@ -2124,7 +2179,7 @@ describe('GenerationActionCard', () => {
     });
 
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Open in Studio' }),
+      await screen.findByRole('button', { name: 'Reuse generation settings' }),
     );
 
     // The action pins an explicit model, so the handoff carries that pin
@@ -2145,7 +2200,7 @@ describe('GenerationActionCard', () => {
     );
   });
 
-  it('does not render Open in Studio on the completed result without a handler', async () => {
+  it('does not offer reuse of generation settings on the completed result without a handler', async () => {
     const generateIngredient = vi.fn().mockResolvedValue({
       id: 'image-completed-2',
       url: 'https://cdn.test/image-completed-2.png',
@@ -2181,10 +2236,10 @@ describe('GenerationActionCard', () => {
       expect(generateIngredient).toHaveBeenCalledTimes(1);
     });
     expect(
-      await screen.findAllByRole('link', { name: 'Library' }),
+      await screen.findAllByRole('link', { name: 'View in Library' }),
     ).not.toHaveLength(0);
     expect(
-      screen.queryByRole('button', { name: 'Open in Studio' }),
+      screen.queryByRole('button', { name: 'Reuse generation settings' }),
     ).not.toBeInTheDocument();
   });
 });
