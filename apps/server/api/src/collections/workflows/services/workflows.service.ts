@@ -237,6 +237,7 @@ export class WorkflowsService extends BaseService<
     }
     const nextDefinition = buildWorkflowVersionDefinition({
       edges: definition.edges ?? existing.edges,
+      edgeStyle: definition.edgeStyle ?? existing.edgeStyle,
       inputVariables: definition.inputVariables ?? existing.inputVariables,
       lockedNodeIds: definition.lockedNodeIds ?? existing.lockedNodeIds,
       nodes: definition.nodes ?? existing.nodes,
@@ -609,6 +610,7 @@ export class WorkflowsService extends BaseService<
               null,
           description: workflowDoc.description ?? undefined,
           edges: workflowDoc.edges,
+          edgeStyle: workflowDoc.edgeStyle,
           executionCount: 0,
           inputVariables: workflowDoc.inputVariables,
           isScheduleEnabled: isProtectedSystemWorkflow

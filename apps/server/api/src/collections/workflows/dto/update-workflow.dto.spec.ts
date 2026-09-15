@@ -9,6 +9,11 @@ describe('UpdateWorkflowDto', () => {
   });
 
   describe('validation', () => {
+    it('retains an edge-style-only patch through whitelist validation', async () => {
+      const dto = plainToInstance(UpdateWorkflowDto, { edgeStyle: 'straight' });
+      expect(await validate(dto, { whitelist: true })).toHaveLength(0);
+      expect(dto).toHaveProperty('edgeStyle', 'straight');
+    });
     it('should create an instance', () => {
       const dto = new UpdateWorkflowDto();
       expect(dto).toBeInstanceOf(UpdateWorkflowDto);

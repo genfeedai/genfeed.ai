@@ -56,6 +56,7 @@ export function buildWorkflowCreatePayload(input: {
       defaultRecurringBrandId: workflowData.defaultRecurringBrandId,
       description: workflowData.description,
       edges: workflowData.edges ?? [],
+      edgeStyle: workflowData.edgeStyle,
       executionCount: workflowData.executionCount ?? 0,
       inputVariables: workflowData.inputVariables ?? [],
       isScheduleEnabled: workflowData.isScheduleEnabled,

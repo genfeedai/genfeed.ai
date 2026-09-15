@@ -1,11 +1,68 @@
+import { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
+import { buildWorkflowCreatePayload } from '@api/collections/workflows/services/workflow-create-payload.util';
 import {
   buildWorkflowVersionDefinition,
   createVersionedWorkflow,
+  hydrateWorkflowDefinition,
+  splitWorkflowDefinition,
 } from '@api/collections/workflows/workflow-version-definition';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { describe, expect, it, vi } from 'vitest';
 
 describe('buildWorkflowVersionDefinition', () => {
+  it('keeps the historical hash for code-authored graphs with no edge style', () => {
+    expect(buildWorkflowVersionDefinition({}).contentHash).toBe(
+      'sha256:v1:d9c9b01f8619d9247a565fc2b5a99a8a20b78611ca9fa4860e3bfff75960ce79',
+    );
+  });
+
+  it('round-trips edge style in the version graph and includes it in the hash', () => {
+    const { definition, workflow } = splitWorkflowDefinition(
+      buildWorkflowCreatePayload({
+        defaultLabel: 'Styled graph',
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workflowData: Object.assign(new CreateWorkflowDto(), {
+          label: 'Styled graph',
+          edgeStyle: 'straight',
+          nodes: [],
+          edges: [],
+        }),
+      }),
+    );
+    expect(workflow).not.toHaveProperty('edgeStyle');
+    const stored = buildWorkflowVersionDefinition(definition);
+    expect(stored.graph).toHaveProperty('edgeStyle', 'straight');
+    const restored = hydrateWorkflowDefinition({
+      id: 'workflow-1',
+      currentVersion: {
+        id: 'version-1',
+        version: 1,
+        graph: stored.graph,
+        inputSchema: stored.inputSchema,
+      },
+    });
+    expect(restored).toHaveProperty('edgeStyle', 'straight');
+    const changed = buildWorkflowVersionDefinition(
+      splitWorkflowDefinition({ edgeStyle: 'smoothstep', nodes: [], edges: [] })
+        .definition,
+    );
+    expect(changed.contentHash).not.toBe(stored.contentHash);
+  });
+
+  it('restores the default for versions saved before edge style was persisted', () => {
+    expect(
+      hydrateWorkflowDefinition({
+        id: 'workflow-1',
+        currentVersion: {
+          id: 'version-1',
+          version: 1,
+          graph: { nodes: [], edges: [] },
+          inputSchema: [],
+        },
+      }),
+    ).toHaveProperty('edgeStyle', 'default');
+  });
   it('persists explicit action nodes and workflow inputs as one graph', () => {
     const definition = buildWorkflowVersionDefinition({
       nodes: [

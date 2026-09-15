@@ -508,6 +508,7 @@ describe('WorkflowsService system workflow guardrails', () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
       brandId: 'source-brand',
       edges: [],
+      edgeStyle: 'straight',
       executionCount: 3,
       id: 'workflow-1',
       inputVariables: [],
@@ -537,6 +538,7 @@ describe('WorkflowsService system workflow guardrails', () => {
     expect(createInput).toMatchObject({
       brandId: 'brand-2',
       defaultRecurringBrandId: 'brand-2',
+      edgeStyle: 'straight',
       executionCount: 0,
       isScheduleEnabled: true,
       label: 'Launch Workflow (Copy)',
@@ -789,4 +791,83 @@ describe('WorkflowsService.publishToMarketplace', () => {
     expect(result).toBeInstanceOf(WorkflowEntity);
     expect(result.id).toBe('workflow-1');
   });
+});
+
+describe('WorkflowsService versioned edge style patches', () => {
+  it.each([
+    { patch: { edgeStyle: 'smoothstep' }, expected: 'smoothstep' },
+    { patch: { edges: [] }, expected: 'straight' },
+  ])(
+    'persists the current edge style when patching $patch',
+    async ({ patch, expected }) => {
+      const graph = {
+        edgeStyle: expected,
+        edges: [],
+        nodes: [],
+        lockedNodeIds: [],
+      };
+      const workflowVersionCreate = vi
+        .fn()
+        .mockResolvedValue({ id: 'version-2' });
+      const updateMany = vi.fn().mockResolvedValue({ count: 1 });
+      const transaction = {
+        workflowVersion: { create: workflowVersionCreate },
+        workflow: {
+          updateMany,
+          findUniqueOrThrow: vi.fn().mockResolvedValue({
+            id: 'workflow-1',
+            currentVersion: {
+              id: 'version-2',
+              version: 2,
+              graph,
+              inputSchema: [],
+            },
+          }),
+        },
+      };
+      const prisma = {
+        $transaction: vi.fn(
+          async (callback: (tx: typeof transaction) => Promise<unknown>) =>
+            callback(transaction),
+        ),
+      };
+      const service = new WorkflowsService(
+        prisma as unknown as ConstructorParameters<typeof WorkflowsService>[0],
+        {
+          log: vi.fn(),
+          debug: vi.fn(),
+          warn: vi.fn(),
+          error: vi.fn(),
+        } as unknown as ConstructorParameters<typeof WorkflowsService>[1],
+        emptyModuleRef as unknown as ConstructorParameters<
+          typeof WorkflowsService
+        >[2],
+      );
+      vi.spyOn(service, 'findOne').mockResolvedValue(
+        Object.assign(new WorkflowEntity({}), {
+          id: 'workflow-1',
+          organizationId: 'org-1',
+          userId: 'user-1',
+          versionId: 'version-1',
+          version: 1,
+          edgeStyle: 'straight',
+          edges: [],
+          nodes: [],
+          lockedNodeIds: [],
+          inputVariables: [],
+        }),
+      );
+      const result = await service.patch('workflow-1', patch);
+      expect(workflowVersionCreate).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          graph: expect.objectContaining({ edgeStyle: expected }),
+        }),
+      });
+      expect(updateMany).toHaveBeenCalledWith({
+        data: { currentVersionId: 'version-2' },
+        where: { currentVersionId: 'version-1', id: 'workflow-1' },
+      });
+      expect(result).toHaveProperty('edgeStyle', expected);
+    },
+  );
 });

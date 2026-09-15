@@ -40,6 +40,7 @@ export class WorkflowEntity extends BaseEntity implements WorkflowDocument {
   declare tags?: string[];
   declare nodes: WorkflowVisualNode[];
   declare edges: WorkflowEdge[];
+  declare edgeStyle?: WorkflowDocument['edgeStyle'];
   declare inputVariables: WorkflowInputVariable[];
   declare versionId: string;
   declare version: number;
