@@ -102,6 +102,7 @@ export function GenerationActionCard({
     durationOptions,
     estimatedCredits,
     isEstimateAvailable,
+    isEstimatePending,
     resolvedModelKey,
     endFrameId,
     textareaRef,
@@ -111,6 +112,7 @@ export function GenerationActionCard({
     handleAcceptPilotVoid,
     handleRejectPilot,
     handleDecline,
+    canDecline,
     canOpenInStudio,
     handleOpenInStudioVoid,
     handleStop,
@@ -280,6 +282,7 @@ export function GenerationActionCard({
             durationOptions={durationOptions}
             estimatedCredits={estimatedCredits}
             isEstimateAvailable={isEstimateAvailable}
+            isEstimatePending={isEstimatePending}
             resolvedModelKey={resolvedModelKey}
             onDurationChange={handleDurationChange}
             resolution={resolution}
@@ -291,7 +294,7 @@ export function GenerationActionCard({
               (status === 'idle' || status === 'error') &&
               !isPilotCeilingReached
             }
-            showDecline={status === 'idle' || status === 'error'}
+            showDecline={canDecline}
             showStop={status === 'generating'}
             onGenerate={handleGenerateVoid}
             onDecline={handleDecline}

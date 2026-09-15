@@ -80,6 +80,30 @@ describe('getAgentActionClass', () => {
 });
 
 describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
+  it.each(['auto', 'manual', 'plan', undefined] as const)(
+    'preserves every explicit approval-required policy in %s',
+    (mode) => {
+      for (const tool of [
+        'generate_image',
+        'save_brand_voice_profile',
+        'create_brand',
+        'create_chat',
+        'schedule_post',
+      ])
+        expect(
+          resolveEffectiveMutationPolicy(tool, mode, 'approval-required'),
+        ).toBe('approval-required');
+    },
+  );
+  it('fails closed for unknown runtime modes', () => {
+    expect(
+      resolveEffectiveMutationPolicy(
+        'generate_image',
+        'corrupt' as 'manual',
+        'direct',
+      ),
+    ).toBe('approval-required');
+  });
   it('Manual confirms credit-spending, brand-context, gated, and outbound', () => {
     expect(
       resolveEffectiveMutationPolicy('generate_image', 'manual', 'direct'),
@@ -103,7 +127,7 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
     ).toBe('approval-required');
   });
 
-  it('Auto executes credit-spending, brand-context, and gated without confirmation', () => {
+  it('Auto executes direct credit-spending and brand-context while preserving existing gates', () => {
     expect(
       resolveEffectiveMutationPolicy('generate_image', 'auto', 'direct'),
     ).toBe('direct');
@@ -120,7 +144,7 @@ describe('resolveEffectiveMutationPolicy — #4672 confirmation matrix', () => {
         'auto',
         'approval-required',
       ),
-    ).toBe('direct');
+    ).toBe('approval-required');
   });
 
   it('Auto still confirms outbound', () => {

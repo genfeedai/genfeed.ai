@@ -1,164 +1,119 @@
-import { ModelsService } from '@api/collections/models/services/models.service';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
-import { RouterService } from '@api/services/router/router.service';
+import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-generation-credits.dto';
 import { ModelCategory } from '@genfeedai/contracts';
-import { LoggerService } from '@libs/logger/logger.service';
-import { Test, type TestingModule } from '@nestjs/testing';
+import { validate } from 'class-validator';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AgentGenerationEstimateService', () => {
-  let service: AgentGenerationEstimateService;
-  let routerService: { selectModel: ReturnType<typeof vi.fn> };
-  let modelsService: { findOne: ReturnType<typeof vi.fn> };
-
-  beforeEach(async () => {
-    routerService = { selectModel: vi.fn() };
-    modelsService = { findOne: vi.fn() };
-
-    const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        AgentGenerationEstimateService,
-        { provide: RouterService, useValue: routerService },
-        { provide: ModelsService, useValue: modelsService },
-        { provide: LoggerService, useValue: { warn: vi.fn() } },
-      ],
-    }).compile();
-
-    service = module.get(AgentGenerationEstimateService);
+  const selectModel = vi.fn();
+  const validateModelForOrg = vi.fn();
+  const service = new AgentGenerationEstimateService(
+    { selectModel } as never,
+    { validateModelForOrg } as never,
+    { warn: vi.fn() } as never,
+  );
+  const input = {
+    category: ModelCategory.IMAGE as const,
+    organizationId: 'org-1',
+    prompt: 'A red car',
+  };
+  const model = {
+    key: 'openai/gpt-image-2',
+    category: ModelCategory.IMAGE,
+    cost: 50,
+    isActive: true,
+    isDeleted: false,
+    organizationId: null,
+  };
+  const unavailable = { credits: null, isAvailable: false, modelKey: null };
+  beforeEach(() => {
+    vi.clearAllMocks();
+    selectModel.mockResolvedValue({
+      modelDetails: { key: model.key, cost: 999 },
+    });
+    validateModelForOrg.mockResolvedValue(model);
   });
-
-  it('prices an image request with the image quality multiplier and output count', async () => {
-    routerService.selectModel.mockResolvedValue({
-      modelDetails: { cost: 50, key: 'openai/gpt-image-2', category: 'image' },
-    });
-    modelsService.findOne.mockResolvedValue({
-      key: 'openai/gpt-image-2',
-      costPerUnit: null,
-      minCost: null,
-      pricingType: null,
-    });
-
-    const result = await service.estimate({
-      category: ModelCategory.IMAGE,
-      organizationId: 'org-1',
+  it('prices Auto and explicit model from the same validated organization row', async () => {
+    const auto = await service.estimate({
+      ...input,
       outputs: 2,
-      prompt: 'a red car',
       quality: 'low',
     });
-
-    expect(result.isAvailable).toBe(true);
-    expect(result.modelKey).toBe('openai/gpt-image-2');
-    // 50 base * 0.112 (gpt-image low quality) = 5.6 -> ceil 6, * 2 outputs = 12
-    expect(result.credits).toBe(12);
-  });
-
-  it('prices a video request with duration and resolution multipliers', async () => {
-    routerService.selectModel.mockResolvedValue({
-      modelDetails: { cost: 100, key: 'some/video-model', category: 'video' },
+    const explicit = await service.estimate({
+      ...input,
+      modelKey: model.key,
+      outputs: 2,
+      quality: 'low',
     });
-    modelsService.findOne.mockResolvedValue({
-      key: 'some/video-model',
+    expect(auto).toEqual({
+      credits: 12,
+      isAvailable: true,
+      modelKey: model.key,
+    });
+    expect(explicit).toEqual(auto);
+    expect(selectModel).toHaveBeenCalledTimes(1);
+    expect(validateModelForOrg).toHaveBeenCalledWith(model.key, 'org-1');
+  });
+  it('applies video pricing multipliers', async () => {
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      category: ModelCategory.VIDEO,
       costPerUnit: 10,
       minCost: 50,
       pricingType: 'per-second',
     });
-
-    const result = await service.estimate({
-      category: ModelCategory.VIDEO,
-      duration: 8,
-      organizationId: 'org-1',
-      outputs: 1,
-      prompt: 'a drone shot of the coast',
-    });
-
-    expect(result.isAvailable).toBe(true);
-    // per-second: 8 * 10 = 80, max(80, minCost 50) = 80, no resolution multiplier
-    expect(result.credits).toBe(80);
+    expect(
+      await service.estimate({
+        ...input,
+        category: ModelCategory.VIDEO,
+        duration: 8,
+      }),
+    ).toMatchObject({ credits: 80, isAvailable: true });
   });
-
-  it('reports the estimate unavailable when no model resolves, without throwing', async () => {
-    routerService.selectModel.mockRejectedValue(
-      new Error('No Recommended models enabled for this workspace'),
-    );
-
-    const result = await service.estimate({
-      category: ModelCategory.IMAGE,
-      organizationId: 'org-1',
-      prompt: 'a red car',
-    });
-
-    expect(result).toEqual({
-      credits: null,
-      isAvailable: false,
-      modelKey: null,
+  it('preserves the pricing helper minimum when base cost is zero', async () => {
+    validateModelForOrg.mockResolvedValue({ ...model, cost: 0 });
+    expect(await service.estimate(input)).toMatchObject({
+      credits: 1,
+      isAvailable: true,
     });
   });
-
-  it('reports the estimate unavailable when the resolved model has no base cost', async () => {
-    routerService.selectModel.mockResolvedValue({
-      modelDetails: {
-        cost: undefined,
-        key: 'no-cost/model',
+  it.each([
+    { key: 'retired-successor' },
+    { category: ModelCategory.VIDEO },
+    { isActive: false },
+    { isDeleted: true },
+    { organizationId: 'foreign' },
+    { cost: undefined },
+    { cost: null },
+    { cost: Number.NaN },
+    { cost: Infinity },
+    { cost: -1 },
+  ])(
+    'rejects unavailable model row %j without exposing a key',
+    async (override) => {
+      validateModelForOrg.mockResolvedValue({ ...model, ...override });
+      expect(await service.estimate(input)).toEqual(unavailable);
+    },
+  );
+  it('hides model identity when organization policy rejects it', async () => {
+    validateModelForOrg.mockRejectedValue(new Error('not enabled'));
+    expect(await service.estimate(input)).toEqual(unavailable);
+  });
+  it.each([0, 9, 1.5, Number.NaN, Infinity])(
+    'rejects invalid output count %s at service and DTO boundaries',
+    async (outputs) => {
+      await expect(service.estimate({ ...input, outputs })).rejects.toThrow(
+        'Outputs must be an integer',
+      );
+      const dto = Object.assign(new EstimateGenerationCreditsDto(), {
+        prompt: 'Car',
         category: 'image',
-      },
-    });
-    modelsService.findOne.mockResolvedValue({
-      key: 'no-cost/model',
-      costPerUnit: null,
-      minCost: null,
-      pricingType: null,
-    });
-
-    const result = await service.estimate({
-      category: ModelCategory.IMAGE,
-      organizationId: 'org-1',
-      prompt: 'a red car',
-    });
-
-    expect(result).toEqual({
-      credits: null,
-      isAvailable: false,
-      modelKey: 'no-cost/model',
-    });
-  });
-
-  it('reports the estimate unavailable when the resolved model has no pricing row', async () => {
-    routerService.selectModel.mockResolvedValue({
-      modelDetails: { cost: 50, key: 'orphaned/model', category: 'image' },
-    });
-    modelsService.findOne.mockResolvedValue(null);
-
-    const result = await service.estimate({
-      category: ModelCategory.IMAGE,
-      organizationId: 'org-1',
-      prompt: 'a red car',
-    });
-
-    expect(result).toEqual({
-      credits: null,
-      isAvailable: false,
-      modelKey: 'orphaned/model',
-    });
-  });
-
-  it('only scopes to this organization — never trusts a caller-supplied organizationId beyond what it is given', async () => {
-    routerService.selectModel.mockResolvedValue({
-      modelDetails: { cost: 50, key: 'openai/gpt-image-2', category: 'image' },
-    });
-    modelsService.findOne.mockResolvedValue({
-      key: 'openai/gpt-image-2',
-      costPerUnit: null,
-      minCost: null,
-      pricingType: null,
-    });
-
-    await service.estimate({
-      category: ModelCategory.IMAGE,
-      organizationId: 'org-42',
-      prompt: 'a red car',
-    });
-
-    expect(routerService.selectModel).toHaveBeenCalledWith(
-      expect.objectContaining({ organizationId: 'org-42' }),
-    );
-  });
+        outputs,
+      });
+      expect(
+        (await validate(dto)).some((error) => error.property === 'outputs'),
+      ).toBe(true);
+      expect(selectModel).not.toHaveBeenCalled();
+    },
+  );
 });

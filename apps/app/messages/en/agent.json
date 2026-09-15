@@ -105,6 +105,7 @@
     "durationSeconds": "{seconds}s",
     "endFrame": "End Frame",
     "estimateUnavailable": "Estimate unavailable",
+    "estimateLoading": "Calculating estimate…",
     "estimatedCredits": "~{credits} credits",
     "generateAria": "Generate image",
     "generateTooltip": "Generate",

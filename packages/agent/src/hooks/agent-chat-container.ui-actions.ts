@@ -11,6 +11,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { applyDashboardOperation } from '@genfeedai/agent/utils/apply-dashboard-operation';
 import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-response';
+import { reconcileGenerationDecision } from '@genfeedai/agent/utils/reconcile-generation-decision';
 import { syncAgentThreadFromTurn } from '@genfeedai/agent/utils/sync-agent-thread-from-turn';
 import type { AgentThreadMode } from '@genfeedai/contracts';
 
@@ -225,7 +226,14 @@ export async function handleAgentUiAction(
     const reconciledApprovals =
       action === 'confirm_mutation' || action === 'decline_mutation'
         ? reconcileMutationApproval(returnedActions, payload, response.threadId)
-        : new Set<unknown>();
+        : action === 'confirm_generate_media' ||
+            action === 'decline_generate_media'
+          ? reconcileGenerationDecision(
+              returnedActions,
+              payload?.sourceActionId,
+              response.threadId,
+            )
+          : new Set<unknown>();
 
     const sourceActionId =
       typeof payload?.sourceActionId === 'string'

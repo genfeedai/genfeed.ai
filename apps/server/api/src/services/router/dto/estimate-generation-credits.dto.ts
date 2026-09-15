@@ -3,6 +3,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import {
   IsEnum,
   IsIn,
+  IsInt,
   IsNotEmpty,
   IsNumber,
   IsOptional,
@@ -21,6 +22,12 @@ type EstimateCategory = (typeof ESTIMATE_CATEGORIES)[number];
  * enabled models.
  */
 export class EstimateGenerationCreditsDto {
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  @ApiProperty({ required: false })
+  readonly modelKey?: string;
+
   @IsString()
   @IsNotEmpty()
   @ApiProperty({
@@ -59,7 +66,7 @@ export class EstimateGenerationCreditsDto {
   })
   readonly duration?: number;
 
-  @IsNumber()
+  @IsInt()
   @IsOptional()
   @Min(1)
   @Max(8)

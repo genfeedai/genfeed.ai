@@ -373,7 +373,10 @@ export function useAgentFullPage({
       setActiveThreadStatus(null);
       setWorkspacePlanningTaskId(null);
       setActiveThread(null);
-      setDraftAgentMode(DEFAULT_AGENT_THREAD_MODE);
+      setDraftAgentMode(
+        useAgentChatStore.getState().savedAgentMode ??
+          DEFAULT_AGENT_THREAD_MODE,
+      );
       setLatestProposedPlan(null);
       resetActiveConversationState();
       return;

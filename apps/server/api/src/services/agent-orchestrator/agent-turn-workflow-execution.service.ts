@@ -25,6 +25,7 @@ import type {
   AgentThreadUiActionRequest,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
+import { persistComposerGenerationSource } from '@api/services/agent-orchestrator/persist-composer-generation-source';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import {
   buildSeedThreadTitle,
@@ -676,6 +677,12 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       return null;
     }
     const settings = state.request.generationSettings;
+    const sourceActionId = await persistComposerGenerationSource(
+      state,
+      generationMode,
+      this.agentThreadsService,
+      this.agentMessagesService,
+    );
     const result = await this.executeUiAction(
       {
         action: 'confirm_generate_media',
@@ -700,7 +707,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           ...(settings?.prioritize ? { prioritize: settings.prioritize } : {}),
           prompt: state.request.content,
           ...(settings?.resolution ? { resolution: settings.resolution } : {}),
-          sourceActionId: `composer-generation-${state.executionId}`,
+          sourceActionId,
         },
         threadId: state.threadId,
       },

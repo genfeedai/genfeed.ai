@@ -388,9 +388,11 @@ function createApiServiceMock(options?: {
     });
   const estimateGenerationCredits =
     options?.estimateGenerationCredits ??
-    vi
-      .fn()
-      .mockResolvedValue({ credits: null, isAvailable: true, modelKey: null });
+    vi.fn().mockImplementation(async (input: { modelKey?: string }) => ({
+      credits: 1,
+      isAvailable: true,
+      modelKey: input.modelKey ?? 'quoted-auto-model',
+    }));
   const createStudioHandoff =
     options?.createStudioHandoff ??
     vi.fn().mockResolvedValue({ id: 'handoff-1' });
@@ -410,6 +412,14 @@ function createApiServiceMock(options?: {
     ),
     getModels: vi.fn(() => Promise.resolve(models)),
   };
+}
+
+async function clickGenerate(type: 'image' | 'video') {
+  const button = await screen.findByRole('button', {
+    name: new RegExp(`generate ${type}`, 'i'),
+  });
+  await waitFor(() => expect(button).toBeEnabled());
+  fireEvent.click(button);
 }
 
 function renderGenerationActionCard(ui: ReactElement) {
@@ -450,9 +460,83 @@ describe('GenerationActionCard', () => {
     await act(async () =>
       useAgentWorkObjectGateStore.getState().setObjects('thread-1', []),
     );
-    expect(generate).toBeEnabled();
+    await waitFor(() => expect(generate).toBeEnabled());
   });
 
+  it('starts declined on reload and never offers another execution or decline', async () => {
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          id: 'persisted-declined',
+          type: 'generation_action_card',
+          title: 'Image',
+          generationType: 'image',
+          generationParams: { prompt: 'Portrait' },
+          data: { decision: 'declined' },
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={vi.fn()}
+      />,
+    );
+    expect(
+      screen.getByText('Declined — no credits were charged.'),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /generate image/i }),
+    ).toBeNull();
+    expect(
+      screen.queryByRole('button', { name: 'Decline this generation' }),
+    ).toBeNull();
+  });
+  it('never reintroduces Decline for a persisted approved source', () => {
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          id: 'persisted-approved',
+          type: 'generation_action_card',
+          title: 'Image',
+          generationType: 'image',
+          generationParams: { prompt: 'Portrait' },
+          data: { decision: 'approved' },
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={vi.fn()}
+      />,
+    );
+    expect(
+      screen.queryByRole('button', { name: 'Decline this generation' }),
+    ).toBeNull();
+  });
+  it('shows decline persistence failure without falsely marking the review declined', async () => {
+    const onUiAction = vi.fn().mockResolvedValue(false);
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          id: 'decline-failure',
+          type: 'generation_action_card',
+          title: 'Image',
+          generationType: 'image',
+          generationParams: { prompt: 'Portrait' },
+        }}
+        apiService={createApiServiceMock()}
+        onUiAction={onUiAction}
+      />,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Decline this generation' }),
+    );
+    await waitFor(() =>
+      expect(storeState.setError).toHaveBeenCalledWith(
+        'Failed to decline generation. Try again.',
+      ),
+    );
+    expect(
+      screen.queryByText('Declined — no credits were charged.'),
+    ).toBeNull();
+    expect(
+      screen.getByRole('button', { name: 'Decline this generation' }),
+    ).toBeInTheDocument();
+  });
   it('can start as a compact inferred-mode strip and reveal settings on demand', async () => {
     renderGenerationActionCard(
       <GenerationActionCard
@@ -780,9 +864,7 @@ describe('GenerationActionCard', () => {
     fireEvent.click(screen.getByRole('button', { name: '2x' }));
     expect(outputsTrigger).toHaveTextContent('2x');
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     await waitFor(() => {
       expect(onUiAction).toHaveBeenCalledWith(
@@ -1091,9 +1173,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     expect(
       await screen.findByRole('textbox', { name: 'Prompt' }),
@@ -1142,9 +1222,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     expect(
       await screen.findByText(
@@ -1163,7 +1241,7 @@ describe('GenerationActionCard', () => {
       screen.queryByRole('button', { name: /try again/i }),
     ).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: /generate image/i }));
+    await clickGenerate('image');
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(2);
@@ -1207,9 +1285,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     expect(
       await screen.findByText(/provider authentication failed/i),
@@ -1254,9 +1330,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     expect(
       await screen.findByText(/provider authentication failed/i),
@@ -1304,9 +1378,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
     expect(
       await screen.findByText(/provider authentication failed/i),
     ).toBeInTheDocument();
@@ -1350,9 +1422,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     await waitFor(() => {
       expect(onUiAction).toHaveBeenCalledWith(
@@ -1396,9 +1466,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     fireEvent.click(
       (await screen.findAllByRole('button', { name: /stop generation/i }))[0],
@@ -1416,6 +1484,60 @@ describe('GenerationActionCard', () => {
   });
 
   it('shows an allowlisted generate model and hides disabled catalog rows', async () => {
+    const model = createModel({
+      key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+      label: 'Nano Banana',
+    });
+    const other = createModel({
+      key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+      label: 'FLUX',
+    });
+    brandState.organizationId = 'org_demo';
+    brandState.settings = { enabledModelIds: [model.key, other.key] };
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 5,
+      isAvailable: true,
+      modelKey: model.key,
+    });
+    const apiService = createApiServiceMock({
+      models: [model, other],
+      estimateGenerationCredits,
+    });
+    const action = {
+      id: 'removed-model',
+      type: 'generation_action_card' as const,
+      title: 'Image',
+      generationType: 'image' as const,
+      generationParams: { prompt: 'Portrait', model: model.key },
+    };
+    const view = renderGenerationActionCard(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /generate image/i }),
+      ).toBeEnabled(),
+    );
+    brandState.settings = { enabledModelIds: [other.key] };
+    view.rerender(
+      <GenerationActionCard action={action} apiService={apiService} />,
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole('button', { name: /generate image/i }),
+      ).toBeDisabled(),
+    );
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 450));
+    });
+    expect(
+      estimateGenerationCredits.mock.calls.every(
+        (call) => call[0].modelKey === model.key,
+      ),
+    ).toBe(true);
+  });
+
+  it('shows only enabled catalog rows in the model picker', async () => {
     const flux = createModel({
       key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
       label: 'FLUX Schnell',
@@ -1541,9 +1663,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate video/i }),
-    );
+    await clickGenerate('video');
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledWith(
@@ -1564,6 +1684,9 @@ describe('GenerationActionCard', () => {
         name: 'Accept the pilot and generate the full-length video',
       }),
     );
+
+    expect(generateIngredient).toHaveBeenCalledTimes(1);
+    await clickGenerate('video');
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(2);
@@ -1608,9 +1731,7 @@ describe('GenerationActionCard', () => {
     );
 
     for (let attempt = 1; attempt <= 3; attempt += 1) {
-      fireEvent.click(
-        await screen.findByRole('button', { name: /generate video/i }),
-      );
+      await clickGenerate('video');
       fireEvent.click(
         await screen.findByRole('button', { name: 'Reject this pilot' }),
       );
@@ -1709,7 +1830,7 @@ describe('GenerationActionCard', () => {
     expect(screen.getByText('~12 credits')).toBeInTheDocument();
   });
 
-  it('shows "estimate unavailable" without blocking Generate', async () => {
+  it('shows "estimate unavailable" and blocks Generate', async () => {
     const estimateGenerationCredits = vi.fn().mockResolvedValue({
       credits: null,
       isAvailable: false,
@@ -1736,7 +1857,7 @@ describe('GenerationActionCard', () => {
     ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /generate image/i }),
-    ).toBeEnabled();
+    ).toBeDisabled();
   });
 
   it('treats a failed estimate request the same as isAvailable:false', async () => {
@@ -1764,7 +1885,7 @@ describe('GenerationActionCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('declines a review without calling the server, ending it without charge', async () => {
+  it('persists decline before ending the review without charge', async () => {
     const generateIngredient = vi.fn();
     const onUiAction = vi.fn();
 
@@ -1790,7 +1911,9 @@ describe('GenerationActionCard', () => {
       await screen.findByText('Declined — no credits were charged.'),
     ).toBeInTheDocument();
     expect(generateIngredient).not.toHaveBeenCalled();
-    expect(onUiAction).not.toHaveBeenCalled();
+    expect(onUiAction).toHaveBeenCalledWith('decline_generate_media', {
+      sourceActionId: 'action-decline',
+    });
     expect(
       screen.queryByRole('button', { name: /generate image/i }),
     ).not.toBeInTheDocument();
@@ -1994,9 +2117,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(1);
@@ -2054,9 +2175,7 @@ describe('GenerationActionCard', () => {
       />,
     );
 
-    fireEvent.click(
-      await screen.findByRole('button', { name: /generate image/i }),
-    );
+    await clickGenerate('image');
 
     await waitFor(() => {
       expect(generateIngredient).toHaveBeenCalledTimes(1);

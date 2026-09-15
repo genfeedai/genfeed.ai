@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { UsersService } from '@api/collections/users/services/users.service';
@@ -86,6 +87,23 @@ export class AgentThreadsController {
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'listThreads');
     }
+  }
+
+  @Patch('mode')
+  @ApiOperation({
+    summary:
+      'Save the agent mode and optionally update the active thread atomically',
+  })
+  async updateAgentMode(
+    @Body() body: UpdateAgentModeDto,
+    @CurrentUser() user: User,
+  ) {
+    return this.agentThreadsService.updateAgentMode(
+      await this.resolveDatabaseUserId(user),
+      this.resolveOrganizationId(user),
+      body.mode,
+      body.threadId,
+    );
   }
 
   @Get(':threadId/messages')
@@ -212,6 +230,7 @@ export class AgentThreadsController {
         source: body.source || 'web',
         title: body.title,
         userId: dbUserId,
+        mode: await this.agentThreadsService.resolveSavedMode(dbUserId),
       });
       return serializeSingle(req, AgentThreadSerializer, thread);
     } catch (error: unknown) {
@@ -345,6 +364,20 @@ export class AgentThreadsController {
   ) {
     try {
       const organizationId = this.resolveOrganizationId(user);
+      const userId = await this.resolveDatabaseUserId(user);
+      if (
+        body.mode !== undefined &&
+        !Object.values(AgentThreadMode).includes(body.mode)
+      ) {
+        throw new BadRequestException('Invalid agent mode.');
+      }
+      const owned = await this.agentThreadsService.findOne({
+        id: threadId,
+        organizationId,
+        userId,
+        isDeleted: false,
+      });
+      if (!owned) throw new BadRequestException('Thread not found.');
       const updated =
         body.status === AgentThreadStatus.ARCHIVED
           ? await this.agentThreadsService.archiveThread(
