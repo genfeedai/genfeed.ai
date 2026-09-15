@@ -1,11 +1,136 @@
+import type { FinalizeStructuredAssistantTurnParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionConfirmedToolService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-confirmed-tool.service';
+import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
+import type { AgentChatResult } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
 
 import { describe, expect, it, vi } from 'vitest';
 
+async function finalizedResponse(
+  value: FinalizeStructuredAssistantTurnParams,
+): Promise<AgentChatResult> {
+  return Object.freeze({
+    threadId: value.threadId,
+    creditsUsed: value.result.creditsUsed ?? 0,
+    creditsRemaining: 100,
+    toolCalls: value.toolCalls,
+    message: Object.freeze({
+      content: value.content,
+      role: 'assistant' as const,
+      metadata: Object.freeze({
+        uiActions: Object.freeze(value.result.nextActions ?? []),
+        model: value.model,
+      }),
+    }),
+  });
+}
+
 describe('AgentOrchestratorUiActionConfirmedToolService', () => {
+  it.each(['approved', 'declined'] as const)(
+    'reloads one original generation card after %s finalization',
+    async (decision) => {
+      const root: AgentUiAction = {
+        id: 'root',
+        type: 'generation_action_card',
+        title: 'Image',
+        generationType: 'image',
+        data: { decision },
+      };
+      const persistedActions: unknown[][] = [[root]];
+      const addMessage = vi.fn(async (value) => {
+        persistedActions.push(value.metadata.uiActions);
+        Object.freeze(value.metadata.uiActions);
+        Object.freeze(value.metadata);
+      });
+      const events = {
+        recordAssistantFinalized: vi.fn(async (value) => {
+          Object.freeze(value.metadata);
+        }),
+        recordRunCompleted: vi.fn(),
+        recordToolStarted: vi.fn(),
+        recordToolCompleted: vi.fn(),
+      };
+      const finalizer = new AgentOrchestratorUiActionFinalizerService(
+        { addMessage } as never,
+        {
+          getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
+        } as never,
+        {
+          buildAssistantUiActions: vi.fn(({ uiActions }) => ({
+            uiActions,
+            suggestedActions: [],
+          })),
+        } as never,
+        events as never,
+      );
+      const finalize = vi.spyOn(finalizer, 'finalizeStructuredAssistantTurn');
+      const service = new AgentOrchestratorUiActionConfirmedToolService(
+        {
+          executeTool: vi.fn().mockResolvedValue({
+            success: true,
+            creditsUsed: 1,
+            nextActions: [
+              { id: 'output', type: 'media_gallery', title: 'Image' },
+            ],
+          }),
+        } as never,
+        events as never,
+        finalizer,
+        {
+          acquireLock: vi.fn().mockResolvedValue(true),
+          get: vi.fn().mockResolvedValue(null),
+          set: vi.fn(),
+          releaseLock: vi.fn(),
+        } as never,
+        {} as never,
+        { transition: vi.fn().mockResolvedValue(root) } as never,
+      );
+      const response = await service.execute(
+        decision === 'approved'
+          ? 'confirm_generate_media'
+          : 'decline_generate_media',
+        {
+          context: { organizationId: 'org', userId: 'user' },
+          threadId: 'thread',
+          model: 'chat',
+          payload:
+            decision === 'approved'
+              ? {
+                  sourceActionId: 'root',
+                  generationType: 'image',
+                  prompt: 'A coast',
+                }
+              : { sourceActionId: 'root' },
+        },
+      );
+      expect(
+        persistedActions
+          .flat()
+          .filter(
+            (action) =>
+              (action as AgentUiAction).type === 'generation_action_card',
+          ),
+      ).toEqual([root]);
+      expect(addMessage).toHaveBeenCalledTimes(1);
+      expect(finalize.mock.calls[0][0].result.nextActions ?? []).not.toContain(
+        root,
+      );
+      expect(response.message.metadata.uiActions).toEqual([
+        root,
+        ...persistedActions[1],
+      ]);
+      expect(
+        events.recordAssistantFinalized.mock.calls[0][0].metadata.uiActions,
+      ).toEqual(persistedActions[1]);
+      expect(response.message.metadata).not.toBe(
+        events.recordAssistantFinalized.mock.calls[0][0].metadata,
+      );
+      expect(persistedActions[1]).toHaveLength(decision === 'approved' ? 1 : 0);
+    },
+  );
   it('reuses the decline transcript identity without executing tools or charging credits', async () => {
     const executeTool = vi.fn();
-    const finalizeStructuredAssistantTurn = vi.fn().mockResolvedValue({});
+    const finalizeStructuredAssistantTurn = vi.fn(finalizedResponse);
     const service = new AgentOrchestratorUiActionConfirmedToolService(
       { executeTool } as never,
       {} as never,
@@ -27,8 +152,8 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       model: 'chat',
       payload: { sourceActionId: 'root' },
     };
-    await service.execute('decline_generate_media', params);
-    await service.execute('decline_generate_media', params);
+    const response = await service.execute('decline_generate_media', params);
+    const replay = await service.execute('decline_generate_media', params);
     const first = finalizeStructuredAssistantTurn.mock.calls[0][0];
     const second = finalizeStructuredAssistantTurn.mock.calls[1][0];
     expect(first.messageId).toMatch(
@@ -40,6 +165,18 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       toolCalls: [],
     });
     expect(executeTool).not.toHaveBeenCalled();
+    expect(first.result.nextActions).toBeUndefined();
+    expect(second.result.nextActions).toBeUndefined();
+    const persisted =
+      await finalizeStructuredAssistantTurn.mock.results[0].value;
+    expect(persisted.message.metadata.uiActions).toEqual([]);
+    expect(response.message.metadata.uiActions).toEqual([
+      expect.objectContaining({ id: 'root', data: { decision: 'declined' } }),
+    ]);
+    expect(replay.message.metadata.uiActions).toEqual(
+      response.message.metadata.uiActions,
+    );
+    expect(response.message.metadata).not.toBe(persisted.message.metadata);
   });
   it('replays an exact request while full duration and changed models have separate recovery identities', async () => {
     const executeTool = vi.fn().mockResolvedValue({
@@ -47,9 +184,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       creditsUsed: 10,
       nextActions: [{ id: 'output', type: 'media_gallery', title: 'Video' }],
     });
-    const finalizeStructuredAssistantTurn = vi.fn(
-      async (value: unknown) => value,
-    );
+    const finalizeStructuredAssistantTurn = vi.fn(finalizedResponse);
     const cached = new Map<string, unknown>();
     const transition = vi.fn().mockResolvedValue({
       id: 'root',
@@ -84,8 +219,24 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
         prompt: 'A coast',
       },
     };
-    await service.execute('confirm_generate_media', request);
-    await service.execute('confirm_generate_media', request);
+    const response = await service.execute('confirm_generate_media', request);
+    const replay = await service.execute('confirm_generate_media', request);
+    expect(response.message.metadata.uiActions).toEqual([
+      expect.objectContaining({ id: 'root', data: { decision: 'approved' } }),
+      expect.objectContaining({
+        id: 'output',
+        data: { sourceGenerationActionId: 'root' },
+      }),
+    ]);
+    expect(replay.message.metadata.uiActions).toEqual(
+      response.message.metadata.uiActions,
+    );
+    const persisted =
+      await finalizeStructuredAssistantTurn.mock.results[0].value;
+    expect(persisted.message.metadata.uiActions).toEqual([
+      expect.objectContaining({ id: 'output' }),
+    ]);
+    expect(response.message.metadata).not.toBe(persisted.message.metadata);
     expect(executeTool).toHaveBeenCalledTimes(1);
     await service.execute('confirm_generate_media', {
       ...request,
@@ -104,7 +255,6 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       expect(call[0]).toMatchObject({
         result: {
           nextActions: [
-            expect.objectContaining({ id: 'root' }),
             expect.objectContaining({
               data: { sourceGenerationActionId: 'root' },
             }),
@@ -153,9 +303,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       nextActions: [],
       success: true,
     });
-    const finalizeStructuredAssistantTurn = vi
-      .fn()
-      .mockResolvedValue({ threadId: 'thread-1' });
+    const finalizeStructuredAssistantTurn = vi.fn(finalizedResponse);
     const service = new AgentOrchestratorUiActionConfirmedToolService(
       { executeTool } as never,
       {

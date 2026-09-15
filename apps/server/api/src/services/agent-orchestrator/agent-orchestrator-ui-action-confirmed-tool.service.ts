@@ -17,7 +17,10 @@ import {
   type CuratedActionName,
 } from '@genfeedai/actions';
 import { toRouterPriority } from '@genfeedai/contracts';
-import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
+import {
+  type AgentToolResult,
+  type AgentUiAction,
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
 type ConfirmedToolAction =
@@ -313,7 +316,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       request.outputs ?? 1,
     ].join(':');
 
-    return runIdempotent(
+    const response = await runIdempotent(
       this.cacheService,
       idempotencyKey,
       async () => {
@@ -343,7 +346,6 @@ export class AgentOrchestratorUiActionConfirmedToolService {
         const linkedResult = {
           ...execution.result,
           nextActions: [
-            decisionCard,
             ...(execution.result.nextActions ?? []).map((action) => ({
               ...action,
               data: {
@@ -367,6 +369,7 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       // so a stale in-memory reservation must not block the one-hour replay.
       { lockTtlSeconds: 120 },
     );
+    return this.withGenerationDecision(response, decisionCard);
   }
 
   private async executeDeclineGeneration(
@@ -391,16 +394,37 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       `a${digest.slice(17, 20)}`,
       digest.slice(20, 32),
     ].join('-');
-    return this.finalizer.finalizeStructuredAssistantTurn({
+    const response = await this.finalizer.finalizeStructuredAssistantTurn({
       content: 'Generation declined. No credits were charged.',
       context: params.context,
       eventIdempotencyKey: `agent-media-declined:${card.id}`,
       messageId,
       model: params.model,
-      result: { creditsUsed: 0, success: true, nextActions: [card] },
+      result: { creditsUsed: 0, success: true },
       threadId: params.threadId,
       toolCalls: [],
     });
+    return this.withGenerationDecision(response, card);
+  }
+
+  private withGenerationDecision(
+    response: AgentChatResult,
+    card: AgentUiAction,
+  ): AgentChatResult {
+    const metadata = response.message.metadata;
+    return {
+      ...response,
+      message: {
+        ...response.message,
+        metadata: {
+          ...metadata,
+          uiActions: [
+            card,
+            ...(Array.isArray(metadata?.uiActions) ? metadata.uiActions : []),
+          ],
+        },
+      },
+    };
   }
 
   private readMediaRequest(params: ThreadUiActionExecutionParams) {

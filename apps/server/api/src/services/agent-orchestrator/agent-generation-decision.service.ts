@@ -61,6 +61,7 @@ export class AgentGenerationDecisionService {
           'The active generation thread was not found.',
         );
       const messages = await transaction.agentMessage.findMany({
+        select: { id: true, metadata: true },
         where: {
           threadId,
           organizationId: context.organizationId,
