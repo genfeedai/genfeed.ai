@@ -1,3 +1,4 @@
+import { OutliersModule } from '@api/collections/outliers/outliers.module';
 /** Collection HTTP and persistence modules registered by the API process. */
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
@@ -185,6 +186,7 @@ import { Module } from '@nestjs/common';
     TasksModule,
     LinksModule,
     ListeningTopicsModule,
+    OutliersModule,
     MarketplaceIntegrationModule,
     McpApprovalsModule,
     MembersModule,

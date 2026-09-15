@@ -32,7 +32,11 @@ describe('InstagramOfficialProvider', () => {
 
   function mediaPage(
     ids: string[],
-    options: { after?: string; timestamp?: string } = {},
+    options: {
+      after?: string;
+      timestamp?: string;
+      withoutInsights?: boolean;
+    } = {},
   ) {
     return of({
       data: {
@@ -40,13 +44,15 @@ describe('InstagramOfficialProvider', () => {
           caption: `caption ${id}`,
           comments_count: 2,
           id,
-          insights: {
-            data: [
-              { name: 'impressions', values: [{ value: 100 }] },
-              { name: 'reach', values: [{ value: 80 }] },
-              { name: 'saved', values: [{ value: 5 }] },
-            ],
-          },
+          insights: options.withoutInsights
+            ? undefined
+            : {
+                data: [
+                  { name: 'views', values: [{ value: 100 }] },
+                  { name: 'reach', values: [{ value: 80 }] },
+                  { name: 'saved', values: [{ value: 5 }] },
+                ],
+              },
           like_count: 10,
           media_product_type: 'REELS',
           media_type: 'VIDEO',
@@ -98,7 +104,7 @@ describe('InstagramOfficialProvider', () => {
       mediaUrls: ['https://cdn/m1.mp4'],
       metrics: {
         comments: 2,
-        impressions: 100,
+        impressions: undefined,
         likes: 10,
         reach: 80,
         saves: 5,
@@ -108,6 +114,12 @@ describe('InstagramOfficialProvider', () => {
       thumbnailUrl: 'https://cdn/m1.jpg',
     });
     expect(httpService.get).toHaveBeenCalledTimes(2);
+    expect(httpService.get.mock.calls[0][1].params.fields).toContain(
+      'insights.metric(views,',
+    );
+    expect(httpService.get.mock.calls[0][1].params.fields).not.toContain(
+      'impressions',
+    );
     expect(httpService.get.mock.calls[0][0]).toContain('/ig-user-1/media');
     expect(httpService.get.mock.calls[0][1].params.access_token).toBe(
       'decrypted:enc-token',
@@ -162,7 +174,7 @@ describe('InstagramOfficialProvider', () => {
           },
         };
       })
-      .mockReturnValueOnce(mediaPage(['m1']));
+      .mockReturnValueOnce(mediaPage(['m1'], { withoutInsights: true }));
 
     const result = await provider.collectTimeline(
       SocialSourcePlatform.INSTAGRAM,
@@ -171,6 +183,7 @@ describe('InstagramOfficialProvider', () => {
     );
 
     expect(result.posts).toHaveLength(1);
+    expect(result.posts[0].metrics?.views).toBeUndefined();
     expect(httpService.get.mock.calls[1][1].params.fields).not.toContain(
       'insights',
     );

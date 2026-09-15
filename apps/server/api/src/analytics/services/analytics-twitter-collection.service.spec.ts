@@ -34,6 +34,7 @@ function createHarness(analytics = new Map<string, unknown>()) {
     patch: vi.fn(),
     resolveBrandAccount: vi.fn().mockResolvedValue({
       accessToken: 'access-token',
+      id: 'credential-1',
     }),
   } satisfies ServerCredentialStore;
   const logger = {
@@ -76,11 +77,20 @@ describe('AnalyticsTwitterCollectionService', () => {
   it('collects and finalizes exactly one action item', async () => {
     const harness = createHarness(new Map([['tweet-1', { views: 42 }]]));
 
-    await harness.service.collect(input());
+    expect(await harness.service.collect(input())).toEqual({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      credentialId: 'credential-1',
+    });
 
     expect(harness.postAnalytics.processTwitterAnalytics).toHaveBeenCalledWith(
       'post-1',
       { views: 42 },
+      {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        credentialId: 'credential-1',
+      },
     );
     expect(harness.accountSnapshots.upsertDailySnapshot).toHaveBeenCalledWith(
       expect.objectContaining({

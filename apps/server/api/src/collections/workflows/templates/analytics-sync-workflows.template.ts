@@ -66,7 +66,7 @@ function collectionTemplate(params: {
   return {
     category: 'analytics',
     changeSummary:
-      'Split due-post discovery, bounded provider collection, and collection-state finalization into action-backed workflow nodes.',
+      'Await bounded post collection and refresh each successful account baseline once after collection.',
     description: params.description,
     edges: [
       {
@@ -104,10 +104,11 @@ function collectionTemplate(params: {
         220,
         {
           childWorkflowId: params.childWorkflowId,
-          interItemDelayMs: 100,
           itemInputKey: 'item',
           maxConcurrency: 5,
-          mode: 'scheduled',
+          mode: 'await',
+          failureMode: 'collect',
+          baseInput: { deferOutlierRefresh: true },
         },
       ),
       actionNode(
@@ -118,7 +119,7 @@ function collectionTemplate(params: {
       ),
     ],
     schedule: params.schedule,
-    version: 2,
+    version: 3,
   };
 }
 
@@ -254,9 +255,17 @@ function collectionChildWorkflow(
 ): SystemWorkflowGraphDefinition {
   return {
     canonicalId,
+    changeSummary:
+      'Forward deferred account refresh and return resolved account context.',
     definition: {
       edges: [],
       inputVariables: [
+        {
+          key: 'deferOutlierRefresh',
+          label: 'Defer account baseline refresh',
+          required: false,
+          type: 'boolean',
+        },
         {
           key: 'item',
           label: 'Analytics post',
@@ -268,7 +277,7 @@ function collectionChildWorkflow(
         createTemplateActionNode(actionId, {
           data: {
             config: {},
-            inputVariableKeys: ['item'],
+            inputVariableKeys: ['item', 'deferOutlierRefresh'],
             label,
           },
           id: 'collect-post',
@@ -279,7 +288,7 @@ function collectionChildWorkflow(
     description: `${label} for one discovered post.`,
     label,
     resultNodeId: 'collect-post',
-    version: 1,
+    version: 2,
   };
 }
 

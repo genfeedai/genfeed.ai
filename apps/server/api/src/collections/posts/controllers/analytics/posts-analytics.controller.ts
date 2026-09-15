@@ -97,8 +97,10 @@ export class PostsAnalyticsController {
     }
 
     // Get analytics summary
-    const summary =
-      await this.postAnalyticsService.getPostAnalyticsSummary(postId);
+    const summary = await this.postAnalyticsService.getPostAnalyticsSummary(
+      postId,
+      user.organizationId,
+    );
 
     // Get analytics by date range if provided
     let dateRangeAnalytics = null;
@@ -108,6 +110,7 @@ export class PostsAnalyticsController {
           postId,
           new Date(startDate),
           new Date(endDate),
+          user.organizationId,
         );
     }
 
@@ -219,8 +222,10 @@ export class PostsAnalyticsController {
     );
 
     // Get updated analytics
-    const summary =
-      await this.postAnalyticsService.getPostAnalyticsSummary(postId);
+    const summary = await this.postAnalyticsService.getPostAnalyticsSummary(
+      postId,
+      user.organizationId,
+    );
 
     return {
       data: {

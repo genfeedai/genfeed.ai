@@ -181,7 +181,8 @@ export class PerformanceSummaryService {
     const dateRange = (matchFilter.date ?? {}) as DateRangeFilter;
 
     return Prisma.sql`
-      pa."organizationId" = ${String(matchFilter.organizationId ?? '')}
+      pa."isDeleted" = false
+      AND pa."organizationId" = ${String(matchFilter.organizationId ?? '')}
       AND pa."brandId" = ${String(matchFilter.brandId ?? '')}
       AND pa."date" >= ${dateRange.gte ?? new Date(0)}
       AND pa."date" <= ${dateRange.lte ?? new Date()}
@@ -352,10 +353,10 @@ export class PerformanceSummaryService {
 
     // Fetch post analytics grouped by post, then join with posts
     const analytics = await this.prisma.postAnalytics.findMany({
-      where: {
+      where: scopedWhere(organizationId, {
         ...matchFilter,
         post: { is: scopedWhere(organizationId) },
-      },
+      }),
       orderBy: { engagementRate: 'desc' },
       take: 50,
     });
@@ -515,7 +516,10 @@ export class PerformanceSummaryService {
     const rows = await this.prisma.postAnalytics.findMany({
       distinct: ['postId'],
       select: { postId: true },
-      where: { ...matchFilter, post: { is: scopedWhere(organizationId) } },
+      where: scopedWhere(organizationId, {
+        ...matchFilter,
+        post: { is: scopedWhere(organizationId) },
+      }),
     });
     return rows.length;
   }
@@ -575,7 +579,7 @@ export class PerformanceSummaryService {
     };
 
     const analytics = await this.prisma.postAnalytics.findMany({
-      where,
+      where: scopedWhere(organizationId, where),
       orderBy: { engagementRate: sortDirection },
       take: limit,
     });
@@ -790,7 +794,7 @@ export class PerformanceSummaryService {
           totalLikes: true,
           totalShares: true,
         },
-        where: filter,
+        where: scopedWhere(String(filter.organizationId ?? ''), filter),
       });
       const sums = (aggregate as { _sum?: Record<string, unknown> })._sum ?? {};
       return (

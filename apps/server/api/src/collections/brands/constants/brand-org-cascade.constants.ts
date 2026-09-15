@@ -68,6 +68,18 @@ export interface SecondOrderCascadeTarget {
  */
 export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
   {
+    delegate: 'outlierBaselineSnapshot',
+    table: 'outlier_baseline_snapshots',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
+    delegate: 'outlierPostPerformance',
+    table: 'outlier_post_performances',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'brandOsRevision',
     table: 'brand_os_revisions',
     brandField: 'brandId',

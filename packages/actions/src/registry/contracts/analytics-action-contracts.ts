@@ -21,9 +21,21 @@ const ANALYTICS_POST = closedObjectSchema(
   },
   ['attemptKey', 'brandId', 'externalId', 'id', 'organizationId', 'platform'],
 );
+const OUTLIER_ACCOUNT = closedObjectSchema(
+  {
+    organizationId: STRING_SCHEMA,
+    brandId: STRING_SCHEMA,
+    credentialId: STRING_SCHEMA,
+  },
+  ['organizationId', 'brandId', 'credentialId'],
+);
 const COLLECTION_RESULT = closedObjectSchema(
-  { attempted: INTEGER_SCHEMA, batches: INTEGER_SCHEMA },
-  ['attempted', 'batches'],
+  {
+    attempted: INTEGER_SCHEMA,
+    batches: INTEGER_SCHEMA,
+    outlierAccount: OUTLIER_ACCOUNT,
+  },
+  ['attempted', 'batches', 'outlierAccount'],
 );
 const SYNC_ITEM = closedObjectSchema(
   {
@@ -83,6 +95,42 @@ const SCHEDULED_COLLECTION = closedObjectSchema(
   },
   ['count', 'results'],
 );
+const AWAITED_COLLECTION = closedObjectSchema(
+  {
+    count: INTEGER_SCHEMA,
+    results: arraySchema({
+      anyOf: [
+        closedObjectSchema(
+          {
+            index: INTEGER_SCHEMA,
+            provenance: closedObjectSchema(
+              {
+                executionId: STRING_SCHEMA,
+                workflowId: STRING_SCHEMA,
+                workflowLabel: STRING_SCHEMA,
+                idempotencyKey: STRING_SCHEMA,
+                nodeId: STRING_SCHEMA,
+              },
+              ['executionId', 'workflowId', 'workflowLabel'],
+            ),
+            result: COLLECTION_RESULT,
+          },
+          ['index', 'provenance', 'result'],
+        ),
+        closedObjectSchema(
+          {
+            index: INTEGER_SCHEMA,
+            error: STRING_SCHEMA,
+            executionId: STRING_SCHEMA,
+            status: enumSchema(['failed'] as const),
+          },
+          ['index', 'error', 'status'],
+        ),
+      ],
+    }),
+  },
+  ['count', 'results'],
+);
 const WINDOW = closedObjectSchema(
   {
     brandId: STRING_SCHEMA,
@@ -94,20 +142,25 @@ const WINDOW = closedObjectSchema(
 
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'analytics.collection.finalize': {
-    inputSchema: closedObjectSchema({ collection: SCHEDULED_COLLECTION }, [
-      'collection',
-    ]),
+    inputSchema: closedObjectSchema(
+      { collection: { anyOf: [SCHEDULED_COLLECTION, AWAITED_COLLECTION] } },
+      ['collection'],
+    ),
     outputSchema: closedObjectSchema(
       {
         attempted: INTEGER_SCHEMA,
         batches: INTEGER_SCHEMA,
-        status: enumSchema(['completed'] as const),
+        failed: INTEGER_SCHEMA,
+        status: enumSchema(['completed', 'completed_with_errors'] as const),
       },
       ['attempted', 'batches', 'status'],
     ),
   },
   'analytics.facebook.collect': {
-    inputSchema: closedObjectSchema({ item: ANALYTICS_POST }, ['item']),
+    inputSchema: closedObjectSchema(
+      { item: ANALYTICS_POST, deferOutlierRefresh: BOOLEAN_SCHEMA },
+      ['item'],
+    ),
     outputSchema: COLLECTION_RESULT,
   },
   'analytics.generic.detect-alerts': {
@@ -162,19 +215,31 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
     ),
   },
   'analytics.social.collect': {
-    inputSchema: closedObjectSchema({ item: ANALYTICS_POST }, ['item']),
+    inputSchema: closedObjectSchema(
+      { item: ANALYTICS_POST, deferOutlierRefresh: BOOLEAN_SCHEMA },
+      ['item'],
+    ),
     outputSchema: COLLECTION_RESULT,
   },
   'analytics.threads.collect': {
-    inputSchema: closedObjectSchema({ item: ANALYTICS_POST }, ['item']),
+    inputSchema: closedObjectSchema(
+      { item: ANALYTICS_POST, deferOutlierRefresh: BOOLEAN_SCHEMA },
+      ['item'],
+    ),
     outputSchema: COLLECTION_RESULT,
   },
   'analytics.twitter.collect': {
-    inputSchema: closedObjectSchema({ item: ANALYTICS_POST }, ['item']),
+    inputSchema: closedObjectSchema(
+      { item: ANALYTICS_POST, deferOutlierRefresh: BOOLEAN_SCHEMA },
+      ['item'],
+    ),
     outputSchema: COLLECTION_RESULT,
   },
   'analytics.youtube.collect': {
-    inputSchema: closedObjectSchema({ item: ANALYTICS_POST }, ['item']),
+    inputSchema: closedObjectSchema(
+      { item: ANALYTICS_POST, deferOutlierRefresh: BOOLEAN_SCHEMA },
+      ['item'],
+    ),
     outputSchema: COLLECTION_RESULT,
   },
 };

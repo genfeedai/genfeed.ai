@@ -83,6 +83,7 @@ describe('AnalyticsYouTubeCollectionService', () => {
     expect(harness.postAnalytics.processYouTubeAnalytics).toHaveBeenCalledWith(
       'post-1',
       { views: 42 },
+      { organizationId: 'org-1', brandId: 'brand-1', credentialId: 'cred-1' },
     );
     expect(harness.collectionState.markReadyBatch).toHaveBeenCalledWith([
       expect.objectContaining({

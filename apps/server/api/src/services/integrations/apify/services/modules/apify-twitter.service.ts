@@ -6,6 +6,7 @@ import type {
   TrendOptions,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -276,13 +277,17 @@ export class ApifyTwitterService {
     tweets: ApifyTwitterTweet[],
   ): ApifyNormalizedTweet[] {
     return tweets.map((tweet) => ({
+      ...normalizeSourcePostFlags(tweet),
       authorAvatarUrl: tweet.user?.profile_image_url_https,
       authorDisplayName: tweet.user?.name,
       authorFollowersCount: tweet.user?.followers_count,
       authorId: tweet.user?.id_str || '',
       authorUsername: tweet.user?.screen_name || '',
       conversationId: tweet.conversation_id_str,
-      createdAt: tweet.created_at ? new Date(tweet.created_at) : new Date(),
+      createdAt:
+        tweet.created_at && Number.isFinite(Date.parse(tweet.created_at))
+          ? new Date(tweet.created_at)
+          : undefined,
       hashtags:
         tweet.entities?.hashtags?.map((h: { text: string }) => h.text) || [],
       id: tweet.id,

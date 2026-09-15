@@ -5,6 +5,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -20,7 +21,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 const MEDIA_FIELDS =
   'id,caption,media_type,media_product_type,media_url,thumbnail_url,timestamp,permalink,like_count,comments_count,shortcode';
-const MEDIA_INSIGHTS_FIELDS = `${MEDIA_FIELDS},insights.metric(impressions,reach,saved,shares,total_interactions)`;
+const MEDIA_INSIGHTS_FIELDS = `${MEDIA_FIELDS},insights.metric(views,reach,saved,shares,total_interactions)`;
 
 interface InstagramGraphMediaNode {
   caption?: unknown;
@@ -89,6 +90,7 @@ function mapMediaNode(
   const shortcode = readString(node.shortcode);
 
   return {
+    ...normalizeSourcePostFlags(node),
     authorId: igUserId,
     authorUsername: handle,
     contentType: toContentType(node),
@@ -105,7 +107,7 @@ function mapMediaNode(
       reach: readInsight(node, 'reach'),
       saves: readInsight(node, 'saved'),
       shares: readInsight(node, 'shares'),
-      views: readInsight(node, 'impressions') ?? readInsight(node, 'reach'),
+      views: readInsight(node, 'views'),
     },
     platform: SocialSourcePlatform.INSTAGRAM,
     text: readString(node.caption) ?? '',

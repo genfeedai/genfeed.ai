@@ -2,6 +2,9 @@ import { type PostAnalytics } from '@genfeedai/prisma';
 
 export class PostAnalyticsEntity implements PostAnalytics {
   declare readonly id: string;
+  declare readonly isDeleted: boolean;
+  declare readonly isPinned: boolean | null;
+  declare readonly isPromoted: boolean | null;
   declare readonly postId: string;
   declare readonly userId: string;
   declare readonly brandId: string;

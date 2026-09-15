@@ -6,6 +6,7 @@ import type {
   SourceCollectContext,
   SourceCollectResult,
 } from '@api/services/source-collector/source-collector.types';
+import { normalizeSourcePostFlags } from '@api/services/source-collector/source-post-flags';
 import { CredentialPlatform, SocialSourcePlatform } from '@genfeedai/contracts';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
 import { HttpService } from '@nestjs/axios';
@@ -238,6 +239,7 @@ export class LinkedinOfficialProvider implements SourceTimelineProvider {
           .map((thumbnail) => readString(thumbnail.url))
           .find((url): url is string => Boolean(url));
         collected.push({
+          ...normalizeSourcePostFlags(node),
           authorDisplayName: displayName,
           authorId: authorUrn,
           authorUsername: handle,

@@ -21,7 +21,10 @@ import {
   type ServerSocialAnalytics,
 } from '@api/server.dependencies';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
+import type {
+  AnalyticsPersistenceContext,
+  ServerAnalyticsCollectionState,
+} from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -50,7 +53,9 @@ export class AnalyticsSocialCollectionService {
     private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
-  async collect(data: SocialAnalyticsCollectionInput): Promise<void> {
+  async collect(
+    data: SocialAnalyticsCollectionInput,
+  ): Promise<AnalyticsPersistenceContext> {
     if (data.posts.length !== 1) {
       throw new Error('Social analytics action requires exactly one post');
     }
@@ -59,10 +64,11 @@ export class AnalyticsSocialCollectionService {
       throw new Error('Social analytics action requires exactly one post');
     }
     try {
-      await this.collectPost(post);
+      const context = await this.collectPost(post);
       await this.analyticsCollectionState.markReady(
         this.target(data.attemptKey, post),
       );
+      return context;
     } catch (error: unknown) {
       const platform = this.platformLabel(post.platform);
       const failure = classifyAnalyticsCollectionError(error, platform);
@@ -84,7 +90,145 @@ export class AnalyticsSocialCollectionService {
     }
   }
 
-  private async collectPost(post: AnalyticsCollectionPost): Promise<void> {
+  private async collectPost(
+    post: AnalyticsCollectionPost,
+  ): Promise<AnalyticsPersistenceContext> {
+    const resolution = await this.resolveCollectionCredential(post);
+    const credentialId = resolution.credentialId;
+    const context = {
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId,
+    };
+
+    switch (post.platform) {
+      case CredentialPlatform.INSTAGRAM: {
+        const analytics = await this.instagramService.getMediaAnalytics(
+          post.organizationId,
+          post.brandId,
+          post.externalId,
+          credentialId,
+        );
+        const mediaTypes = {
+          CAROUSEL_ALBUM: 'carousel',
+          IMAGE: 'image',
+          REELS: 'reel',
+          VIDEO: 'video',
+        } as const;
+        await this.postAnalyticsService.processInstagramAnalytics(
+          post.id,
+          {
+            ...analytics,
+            mediaType: analytics.mediaType
+              ? mediaTypes[analytics.mediaType as keyof typeof mediaTypes]
+              : undefined,
+          },
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
+        await this.recordSnapshot(post, credentialId, analytics);
+        return context;
+      }
+      case CredentialPlatform.TIKTOK: {
+        const analytics = await this.tiktokService.getMediaAnalytics(
+          post.organizationId,
+          post.brandId,
+          post.externalId,
+          credentialId,
+        );
+        await this.postAnalyticsService.processTikTokAnalytics(
+          post.id,
+          {
+            ...analytics,
+            shares: analytics.shares ?? 0,
+          },
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
+        await this.recordSnapshot(post, credentialId, analytics);
+        return context;
+      }
+      case CredentialPlatform.PINTEREST: {
+        const analytics = await this.pinterestService.getMediaAnalytics(
+          post.organizationId,
+          post.brandId,
+          post.externalId,
+          credentialId,
+        );
+        await this.postAnalyticsService.processPinterestAnalytics(
+          post.id,
+          analytics,
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
+        await this.recordSnapshot(post, credentialId, analytics);
+        return context;
+      }
+      case CredentialPlatform.LINKEDIN: {
+        const analytics = await this.linkedInService.getMediaAnalytics(
+          post.organizationId,
+          post.brandId,
+          post.externalId,
+          credentialId,
+        );
+        await this.postAnalyticsService.processLinkedInAnalytics(
+          post.id,
+          {
+            clicks: analytics.clicks,
+            comments: analytics.comments,
+            engagementRate: analytics.engagementRate,
+            impressions: analytics.impressions,
+            likes: analytics.likes,
+            mediaType: analytics.mediaType,
+            reach: analytics.reach,
+            shares: analytics.shares,
+            views: analytics.views,
+          },
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
+        await this.recordSnapshot(post, credentialId, analytics);
+        return context;
+      }
+      case CredentialPlatform.MASTODON: {
+        const analytics = await this.mastodonService.getMediaAnalytics(
+          post.organizationId,
+          post.brandId,
+          post.externalId,
+          credentialId,
+        );
+        await this.postAnalyticsService.processMastodonAnalytics(
+          post.id,
+          analytics,
+          {
+            organizationId: post.organizationId,
+            brandId: post.brandId,
+            credentialId: credentialId,
+          },
+        );
+        await this.recordSnapshot(post, credentialId, analytics);
+        return context;
+      }
+      default:
+        throw new Error(
+          `Unsupported social analytics platform: ${post.platform}`,
+        );
+    }
+  }
+
+  private async resolveCollectionCredential(post: AnalyticsCollectionPost) {
     const resolution = await resolveAnalyticsCollectionCredential({
       brandId: post.brandId,
       credentialId: post.credentialId,
@@ -105,99 +249,7 @@ export class AnalyticsSocialCollectionService {
         },
       );
     }
-    const credentialId = resolution.credentialId;
-
-    switch (post.platform) {
-      case CredentialPlatform.INSTAGRAM: {
-        const analytics = await this.instagramService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
-          credentialId,
-        );
-        const mediaTypes = {
-          CAROUSEL_ALBUM: 'carousel',
-          IMAGE: 'image',
-          REELS: 'reel',
-          VIDEO: 'video',
-        } as const;
-        await this.postAnalyticsService.processInstagramAnalytics(post.id, {
-          ...analytics,
-          mediaType: analytics.mediaType
-            ? mediaTypes[analytics.mediaType as keyof typeof mediaTypes]
-            : undefined,
-        });
-        await this.recordSnapshot(post, credentialId, analytics);
-        return;
-      }
-      case CredentialPlatform.TIKTOK: {
-        const analytics = await this.tiktokService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
-          credentialId,
-        );
-        await this.postAnalyticsService.processTikTokAnalytics(post.id, {
-          ...analytics,
-          shares: analytics.shares ?? 0,
-        });
-        await this.recordSnapshot(post, credentialId, analytics);
-        return;
-      }
-      case CredentialPlatform.PINTEREST: {
-        const analytics = await this.pinterestService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
-          credentialId,
-        );
-        await this.postAnalyticsService.processPinterestAnalytics(
-          post.id,
-          analytics,
-        );
-        await this.recordSnapshot(post, credentialId, analytics);
-        return;
-      }
-      case CredentialPlatform.LINKEDIN: {
-        const analytics = await this.linkedInService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
-          credentialId,
-        );
-        await this.postAnalyticsService.processLinkedInAnalytics(post.id, {
-          clicks: analytics.clicks,
-          comments: analytics.comments,
-          engagementRate: analytics.engagementRate,
-          impressions: analytics.impressions,
-          likes: analytics.likes,
-          mediaType: analytics.mediaType,
-          reach: analytics.reach,
-          shares: analytics.shares,
-          views: analytics.views,
-        });
-        await this.recordSnapshot(post, credentialId, analytics);
-        return;
-      }
-      case CredentialPlatform.MASTODON: {
-        const analytics = await this.mastodonService.getMediaAnalytics(
-          post.organizationId,
-          post.brandId,
-          post.externalId,
-          credentialId,
-        );
-        await this.postAnalyticsService.processMastodonAnalytics(
-          post.id,
-          analytics,
-        );
-        await this.recordSnapshot(post, credentialId, analytics);
-        return;
-      }
-      default:
-        throw new Error(
-          `Unsupported social analytics platform: ${post.platform}`,
-        );
-    }
+    return resolution;
   }
 
   private async recordSnapshot(

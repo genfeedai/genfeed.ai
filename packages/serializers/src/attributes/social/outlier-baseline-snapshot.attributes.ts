@@ -1,0 +1,21 @@
+import { createEntityAttributes } from '@genfeedai/helpers';
+export const outlierBaselineSnapshotAttributes = createEntityAttributes([
+  'organizationId',
+  'brandId',
+  'accountType',
+  'accountId',
+  'platform',
+  'contentType',
+  'medianViews',
+  'sampleSize',
+  'windowSize',
+  'minimumSampleSize',
+  'maturityMs',
+  'outlierThreshold',
+  'breakoutThreshold',
+  'status',
+  'computedAt',
+  'exclusions',
+  'unknownEligibility',
+  'contributorIds',
+]);

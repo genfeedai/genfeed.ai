@@ -190,6 +190,14 @@ export interface ApifyTwitterTrend {
  * Twitter/X tweet data from Apify scraper
  */
 export interface ApifyTwitterTweet {
+  isPinned?: boolean;
+  is_pinned?: boolean;
+  pinned?: boolean;
+  isPromoted?: boolean;
+  is_promoted?: boolean;
+  promoted?: boolean;
+  isSponsored?: boolean;
+  is_sponsored?: boolean;
   id: string;
   id_str?: string;
   text: string;
@@ -241,6 +249,8 @@ export interface ApifyTwitterUser {
  * Normalized tweet data for reply bot system
  */
 export interface ApifyNormalizedTweet {
+  isPinned?: boolean | null;
+  isPromoted?: boolean | null;
   id: string;
   text: string;
   authorId: string;
@@ -248,7 +258,7 @@ export interface ApifyNormalizedTweet {
   authorDisplayName?: string;
   authorAvatarUrl?: string;
   authorFollowersCount?: number;
-  createdAt: Date;
+  createdAt?: Date;
   conversationId?: string;
   inReplyToUserId?: string;
   inReplyToTweetId?: string;

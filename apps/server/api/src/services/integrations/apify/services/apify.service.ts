@@ -340,6 +340,8 @@ export class ApifyService {
   ): ApifyNormalizedSocialComment {
     if (platform === Platform.TWITTER) {
       const tweet = comment as ApifyNormalizedTweet;
+      if (!tweet.createdAt || !Number.isFinite(tweet.createdAt.getTime()))
+        throw new Error('Twitter comment publication date is required');
       return {
         authorAvatarUrl: tweet.authorAvatarUrl,
         authorDisplayName: tweet.authorDisplayName,

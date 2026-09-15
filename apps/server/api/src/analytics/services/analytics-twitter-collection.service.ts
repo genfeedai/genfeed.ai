@@ -13,6 +13,7 @@ import {
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
+  AnalyticsPersistenceContext,
   IReplyBotCredentialData,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
@@ -43,7 +44,9 @@ export class AnalyticsTwitterCollectionService {
     private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
-  async collect(data: TwitterAnalyticsCollectionInput): Promise<void> {
+  async collect(
+    data: TwitterAnalyticsCollectionInput,
+  ): Promise<AnalyticsPersistenceContext> {
     const { posts, credentialId } = data;
 
     this.logger.log(
@@ -55,24 +58,8 @@ export class AnalyticsTwitterCollectionService {
     const settledPostIds = new Set<string>();
 
     try {
-      if (posts.length !== 1) {
-        throw new Error('Twitter analytics action requires exactly one post');
-      }
-
+      const credential = await this.resolveCollectionCredential(data);
       const firstPost = posts[0];
-      const credential = firstPost
-        ? await this.credentialsService.resolveBrandAccount({
-            brandId: firstPost.brandId,
-            credentialId,
-            organizationId: firstPost.organizationId,
-            platform: CredentialPlatform.TWITTER,
-          })
-        : null;
-
-      if (!credential) {
-        this.logger.error(`Credential ${credentialId} not found`);
-        throw new Error(`Credential ${credentialId} not found`);
-      }
 
       const credentialData = this.buildCredentialData(credential);
       const tweetIds = posts.map((post) => post.externalId);
@@ -115,6 +102,11 @@ export class AnalyticsTwitterCollectionService {
           await this.postAnalyticsService.processTwitterAnalytics(
             post.id,
             analytics,
+            {
+              organizationId: post.organizationId,
+              brandId: post.brandId,
+              credentialId: credentialId,
+            },
           );
           readyTargets.push(target);
         } catch (error: unknown) {
@@ -166,6 +158,11 @@ export class AnalyticsTwitterCollectionService {
           ),
         });
       }
+      return {
+        organizationId: posts[0].organizationId,
+        brandId: posts[0].brandId,
+        credentialId: credential.id,
+      };
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'Twitter');
       const unsettledPosts = posts.filter(
@@ -192,6 +189,32 @@ export class AnalyticsTwitterCollectionService {
 
       throw error;
     }
+  }
+
+  private async resolveCollectionCredential(
+    data: TwitterAnalyticsCollectionInput,
+  ) {
+    const { posts, credentialId } = data;
+    if (posts.length !== 1) {
+      throw new Error('Twitter analytics action requires exactly one post');
+    }
+
+    const firstPost = posts[0];
+    const credential = firstPost
+      ? await this.credentialsService.resolveBrandAccount({
+          brandId: firstPost.brandId,
+          credentialId,
+          organizationId: firstPost.organizationId,
+          platform: CredentialPlatform.TWITTER,
+        })
+      : null;
+
+    if (!credential) {
+      this.logger.error(`Credential ${credentialId} not found`);
+      throw new Error(`Credential ${credentialId} not found`);
+    }
+
+    return credential;
   }
 
   private buildCredentialData(credential: unknown): IReplyBotCredentialData {
