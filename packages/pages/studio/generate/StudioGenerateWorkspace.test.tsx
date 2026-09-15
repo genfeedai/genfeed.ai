@@ -7,7 +7,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-selector.constants';
-import { useCallback, useRef } from 'react';
+import { StrictMode, useCallback, useRef } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StudioGenerateWorkspace from './StudioGenerateWorkspace';
 
@@ -31,6 +31,10 @@ const mocks = vi.hoisted(() => ({
   assetActionsHook: vi.fn(),
   attachments: vi.fn(),
   applyTypeSettings: vi.fn(),
+  brandId: { value: 'brand-1' },
+  organizationId: { value: 'org-1' },
+  authIdentity: { value: 'identity-1' },
+  getToken: vi.fn().mockResolvedValue('test-token'),
   composer: vi.fn(),
   findByIds: vi.fn().mockResolvedValue([]),
   gallery: vi.fn(),
@@ -141,7 +145,10 @@ vi.mock('@hooks/ui/use-attachments/use-attachments', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: 'brand-1' }),
+  useBrand: () => ({
+    brandId: mocks.brandId.value,
+    organizationId: mocks.organizationId.value,
+  }),
 }));
 
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
@@ -222,7 +229,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const factoryRef = useRef(factory);
     factoryRef.current = factory;
-    return useCallback(async () => factoryRef.current('test-token'), []);
+    const identity = mocks.authIdentity.value;
+    return useCallback(
+      async () => factoryRef.current(await mocks.getToken(identity)),
+      [identity],
+    );
   },
 }));
 
@@ -314,6 +325,10 @@ describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.isHydrated.value = true;
+    mocks.brandId.value = 'brand-1';
+    mocks.organizationId.value = 'org-1';
+    mocks.authIdentity.value = 'identity-1';
+    mocks.getToken.mockResolvedValue('test-token');
     mocks.remixRun.value = null;
     mocks.type.value = 'image';
     mocks.handoff.value = { isLoading: false, payload: null };
@@ -799,12 +814,239 @@ describe('StudioGenerateWorkspace', () => {
     );
   });
 
-  it('skips a handoff created under a different brand and shows the fallback notice instead of prefilling (#4716 review P2)', async () => {
+  it('attaches the resolved reference exactly once under React StrictMode double-invoke (#4716 re-review P3)', async () => {
+    // StrictMode's dev-only double-invoke (mount -> cleanup -> mount) is what
+    // exposed the bug: the old single effect latched its ref before starting
+    // the fetch, so the synthetic remount correctly skipped a second fetch,
+    // but its cleanup flagged the *first* (and only) run as cancelled,
+    // discarding the one real result. The fix's ref latches before the fetch
+    // starts and the effect never cancels, so exactly one fetch happens and
+    // its result is kept.
     mocks.handoff.value = {
       isLoading: false,
       payload: {
-        brandId: 'brand-other',
+        brandId: 'brand-1',
         modelKey: 'provider/model-x',
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'image',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/neon.png',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    render(
+      <StrictMode>
+        <StudioGenerateWorkspace />
+      </StrictMode>,
+    );
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+    expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['handoff', 'brand', 'organization', 'identity', 'brand round trip'])(
+    'discards pending handoff references after a %s change',
+    async (change) => {
+      const asset = {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/old.png',
+        id: 'old-reference',
+      };
+      const pending = Promise.withResolvers<(typeof asset)[]>();
+      mocks.findByIds.mockReturnValue(pending.promise);
+      mocks.handoff.value = {
+        isLoading: false,
+        payload: {
+          brandId: 'brand-1',
+          prompt: 'Original handoff',
+          references: ['old-reference'],
+          type: 'image',
+        },
+      };
+      const { rerender } = render(<StudioGenerateWorkspace />);
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+
+      if (change === 'handoff') {
+        mocks.handoff.value = {
+          isLoading: false,
+          payload: {
+            ...mocks.handoff.value.payload,
+            prompt: 'Replacement handoff',
+            references: ['new-reference'],
+          },
+        };
+      } else if (change === 'organization') {
+        mocks.organizationId.value = 'org-2';
+      } else if (change === 'identity') {
+        mocks.authIdentity.value = 'identity-2';
+      } else {
+        mocks.brandId.value = 'brand-2';
+      }
+      rerender(<StudioGenerateWorkspace />);
+      if (change === 'brand round trip') {
+        mocks.brandId.value = 'brand-1';
+        rerender(<StudioGenerateWorkspace />);
+      }
+      await act(async () => pending.resolve([asset]));
+
+      expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: asset.id })]),
+      );
+      expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not request handoff references when identity changes while acquiring the service', async () => {
+    const token = Promise.withResolvers<string>();
+    mocks.getToken.mockReturnValue(token.promise);
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        references: ['old-reference'],
+        type: 'image',
+      },
+    };
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    await waitFor(() => expect(mocks.getToken).toHaveBeenCalled());
+    mocks.authIdentity.value = 'identity-2';
+    rerender(<StudioGenerateWorkspace />);
+    await act(async () => token.resolve('replacement-token'));
+
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+  });
+
+  it('does not use a later handoff after accepting one without references', async () => {
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        type: 'image',
+      },
+    };
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    mocks.updateSettings.mockClear();
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Replacement handoff',
+        references: ['new-reference'],
+        type: 'image',
+      },
+    };
+    rerender(<StudioGenerateWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    expect(screen.getByText('Original handoff')).toBeVisible();
+  });
+
+  it('does not request references after unmount while acquiring the service', async () => {
+    const token = Promise.withResolvers<string>();
+    mocks.getToken.mockReturnValue(token.promise);
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        references: ['old-reference'],
+        type: 'image',
+      },
+    };
+    const { unmount } = render(<StudioGenerateWorkspace />);
+    await waitFor(() => expect(mocks.getToken).toHaveBeenCalled());
+    unmount();
+    await act(async () => token.resolve('test-token'));
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+  });
+
+  it('attaches references when the brand resolves after the first render', async () => {
+    // The common load path: the brand provider has not resolved on the first
+    // render, so the handoff is accepted on a later one. Acceptance must
+    // re-trigger the reference and model-validation effects rather than
+    // leaving them gated on a value they never observed change.
+    mocks.brandId.value = '';
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'provider/model-x',
+        prompt: 'A neon skyline at dusk',
+        references: ['asset-1'],
+        type: 'image',
+      },
+    };
+    mocks.findByIds.mockResolvedValue([
+      {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/neon.png',
+        id: 'asset-1',
+        metadataLabel: 'Neon skyline clip',
+      },
+    ]);
+
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+    expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
+
+    mocks.brandId.value = 'brand-1';
+    rerender(<StudioGenerateWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.findByIds).toHaveBeenCalledWith(['asset-1']);
+    });
+    await waitFor(() => {
+      const composerProps = mocks.composer.mock.calls.at(-1)?.[0] as {
+        attachedAssets: Array<{ id: string; name: string }>;
+      };
+      expect(composerProps.attachedAssets).toContainEqual(
+        expect.objectContaining({ id: 'asset-1', name: 'Neon skyline clip' }),
+      );
+    });
+    expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+  });
+
+  it('skips a handoff created under a different brand and never runs model/param fallback on it either (#4716 re-review P2)', async () => {
+    // `type` already matches the payload's type (both default to 'image'),
+    // and the model catalog carries a real allowlist that does not include
+    // the payload's model — exactly the condition the re-review found: a
+    // foreign-brand handoff whose type happens to match the current one
+    // must not let the *second* effect (model/param fallback) run against a
+    // patch that was never applied, even though its own gate only checked
+    // "was a decision already made", not "was the handoff actually accepted".
+    mocks.models.value = {
+      isLoadingModels: false,
+      models: [{ key: 'provider/model-allowed' }],
+    };
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        aspectRatio: '2.39:1',
+        brandId: 'brand-other',
+        duration: 999,
+        modelKey: 'provider/model-unavailable',
+        outputs: 99,
         prompt: 'Should never appear',
         type: 'image',
       },
@@ -819,5 +1061,10 @@ describe('StudioGenerateWorkspace', () => {
     });
     expect(mocks.applyTypeSettings).not.toHaveBeenCalled();
     expect(screen.queryByText('Should never appear')).not.toBeInTheDocument();
+
+    // Give the (mis-gated, pre-fix) model/param effect every chance to fire.
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    expect(mocks.notify).toHaveBeenCalledTimes(1);
   });
 });
