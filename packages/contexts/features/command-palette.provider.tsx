@@ -23,6 +23,21 @@ export function CommandPaletteProvider({
     selectedIndex: 0,
   }));
 
+  useEffect(() => {
+    const refreshCommands = (): void => {
+      setState((prev) => ({
+        ...prev,
+        commands: CommandPaletteService.getAllCommands(),
+        filteredCommands: CommandPaletteService.searchCommands(prev.query),
+        selectedIndex: 0,
+      }));
+    };
+    const unsubscribe =
+      CommandPaletteService.subscribeRegistry(refreshCommands);
+    refreshCommands();
+    return unsubscribe;
+  }, []);
+
   const getClosedState = useCallback(
     (): Partial<ICommandPaletteState> => ({
       isOpen: false,
@@ -155,22 +170,11 @@ export function CommandPaletteProvider({
   }, []);
 
   const registerCommands = useCallback((commands: readonly ICommand[]) => {
-    const registeredIds = CommandPaletteService.registerCommands(commands);
-    const nextCommands = CommandPaletteService.getAllCommands();
-    setState((prev) => ({
-      ...prev,
-      commands: nextCommands,
-    }));
-    return registeredIds;
+    return CommandPaletteService.registerCommands(commands);
   }, []);
 
   const unregisterCommands = useCallback((commandIds: readonly string[]) => {
     CommandPaletteService.unregisterCommands(commandIds);
-    const nextCommands = CommandPaletteService.getAllCommands();
-    setState((prev) => ({
-      ...prev,
-      commands: nextCommands,
-    }));
   }, []);
 
   const value: ICommandPaletteContext = {
