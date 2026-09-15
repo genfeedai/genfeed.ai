@@ -19,6 +19,7 @@ import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
   AnalyticsCollectionFailedTarget,
+  AnalyticsPersistenceContext,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -28,6 +29,7 @@ export type AnalyticsCollectionResult = {
   failed: number;
   processed: number;
   requested: number;
+  context: AnalyticsPersistenceContext;
 };
 
 @Injectable()
@@ -107,6 +109,11 @@ export class AnalyticsProviderCollectionService {
         platform: CredentialPlatform.FACEBOOK,
         ...extractProfileCounts(analytics),
       });
+      return {
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId: resolution.credentialId,
+      };
     });
   }
 
@@ -159,6 +166,11 @@ export class AnalyticsProviderCollectionService {
           ...extractProfileCounts(analytics),
         });
       }
+      return {
+        organizationId: post.organizationId,
+        brandId: post.brandId,
+        credentialId: resolution.credentialId,
+      };
     });
   }
 
@@ -167,7 +179,7 @@ export class AnalyticsProviderCollectionService {
     platformLabel: string,
     collect: (
       post: SocialAnalyticsCollectionInput['posts'][number],
-    ) => Promise<void>,
+    ) => Promise<AnalyticsPersistenceContext>,
   ): Promise<AnalyticsCollectionResult> {
     if (data.posts.length !== 1) {
       throw new Error(`${platformLabel} analytics action requires one post`);
@@ -178,8 +190,9 @@ export class AnalyticsProviderCollectionService {
     }
     const target = this.target(data.attemptKey, post);
     try {
-      await collect(post);
+      const context = await collect(post);
       await this.collectionState.markReady(target);
+      return { failed: 0, processed: 1, requested: 1, context };
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, platformLabel);
       const failedTarget: AnalyticsCollectionFailedTarget = {
@@ -199,12 +212,6 @@ export class AnalyticsProviderCollectionService {
       }
       throw error;
     }
-
-    return {
-      failed: 0,
-      processed: 1,
-      requested: 1,
-    };
   }
 
   private async disableAnalytics(postId: string): Promise<void> {

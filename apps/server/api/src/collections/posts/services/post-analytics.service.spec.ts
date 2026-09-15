@@ -225,25 +225,28 @@ describe('PostAnalyticsService provider metric mapping', () => {
   });
 });
 
-describe('analytics awaited outlier persistence', () => {
-  it('propagates baseline failure after the analytics write', async () => {
+describe('analytics explicit account baseline refresh', () => {
+  const context = {
+    organizationId: 'org_1',
+    brandId: 'brand_1',
+    credentialId: 'credential_1',
+  };
+  it('writes independently and propagates the explicit batch refresh failure', async () => {
     const h = createHarness({
       id: 'p',
       organizationId: 'org_1',
       brandId: 'brand_1',
       userId: 'u',
     });
-    h.refresh.mockRejectedValueOnce(new Error('snapshot failed'));
-    await expect(
-      h.service.updateTodayAnalytics('p', TWITTER, metrics, {
-        organizationId: 'org_1',
-        brandId: 'brand_1',
-        credentialId: 'credential_1',
-      }),
-    ).rejects.toThrow('snapshot failed');
+    await h.service.updateTodayAnalytics('p', TWITTER, metrics, context);
     expect(h.upsert).toHaveBeenCalledOnce();
+    expect(h.refresh).not.toHaveBeenCalled();
+    h.refresh.mockRejectedValueOnce(new Error('snapshot failed'));
+    await expect(h.service.refreshOutliers(context)).rejects.toThrow(
+      'snapshot failed',
+    );
   });
-  it('does not finish before refresh resolves', async () => {
+  it('awaits the explicit refresh completion', async () => {
     const h = createHarness({
       id: 'p',
       organizationId: 'org_1',
@@ -257,21 +260,15 @@ describe('analytics awaited outlier persistence', () => {
           release = resolve;
         }),
     );
-    let isFinished = false;
-    const pending = h.service
-      .updateTodayAnalytics('p', TWITTER, metrics, {
-        organizationId: 'org_1',
-        brandId: 'brand_1',
-        credentialId: 'credential_1',
-      })
-      .then(() => {
-        isFinished = true;
-      });
+    let finished = false;
+    const pending = h.service.refreshOutliers(context).then(() => {
+      finished = true;
+    });
     await vi.waitFor(() => expect(h.refresh).toHaveBeenCalledOnce());
-    expect(isFinished).toBe(false);
+    expect(finished).toBe(false);
     release();
     await pending;
-    expect(isFinished).toBe(true);
+    expect(finished).toBe(true);
   });
 });
 

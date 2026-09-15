@@ -17,6 +17,7 @@ import {
 import { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   AnalyticsCollectionAttemptRef,
+  AnalyticsPersistenceContext,
   ServerAnalyticsCollectionState,
 } from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
@@ -41,7 +42,9 @@ export class AnalyticsYouTubeCollectionService {
     private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
-  async collect(data: YouTubeAnalyticsCollectionInput): Promise<void> {
+  async collect(
+    data: YouTubeAnalyticsCollectionInput,
+  ): Promise<AnalyticsPersistenceContext> {
     const { posts, organizationId, brandId } = data;
 
     this.logger.log(
@@ -58,26 +61,7 @@ export class AnalyticsYouTubeCollectionService {
       }
 
       const videoIds = posts.map((post) => post.externalId);
-      const resolution = await resolveAnalyticsCollectionCredential({
-        brandId,
-        credentialId: data.credentialId,
-        lookup: this.credentialsService,
-        organizationId,
-        platform: CredentialPlatform.YOUTUBE,
-      });
-      if (
-        resolution.kind === 'ambiguous' ||
-        resolution.kind === 'missing' ||
-        resolution.kind === 'mismatch'
-      ) {
-        throw Object.assign(
-          new Error(attributionFailureFor(resolution.kind).message),
-          {
-            analyticsFailure: attributionFailureFor(resolution.kind),
-            status: 409,
-          },
-        );
-      }
+      const resolution = await this.resolveCollectionCredential(data);
       const analyticsMap = await this.youtubeService.getMediaAnalyticsBatch(
         organizationId,
         brandId,
@@ -166,6 +150,7 @@ export class AnalyticsYouTubeCollectionService {
       if (readyTargets.length > 0) {
         await this.recordSnapshot(data, resolution.credentialId, analyticsMap);
       }
+      return { organizationId, brandId, credentialId: resolution.credentialId };
     } catch (error: unknown) {
       const failure = classifyAnalyticsCollectionError(error, 'YouTube');
       const unsettledPosts = posts.filter(
@@ -189,6 +174,33 @@ export class AnalyticsYouTubeCollectionService {
       );
       throw error;
     }
+  }
+
+  private async resolveCollectionCredential(
+    data: YouTubeAnalyticsCollectionInput,
+  ) {
+    const { organizationId, brandId } = data;
+    const resolution = await resolveAnalyticsCollectionCredential({
+      brandId,
+      credentialId: data.credentialId,
+      lookup: this.credentialsService,
+      organizationId,
+      platform: CredentialPlatform.YOUTUBE,
+    });
+    if (
+      resolution.kind === 'ambiguous' ||
+      resolution.kind === 'missing' ||
+      resolution.kind === 'mismatch'
+    ) {
+      throw Object.assign(
+        new Error(attributionFailureFor(resolution.kind).message),
+        {
+          analyticsFailure: attributionFailureFor(resolution.kind),
+          status: 409,
+        },
+      );
+    }
+    return resolution;
   }
 
   private async recordSnapshot(

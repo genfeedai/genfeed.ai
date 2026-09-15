@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { AnalyticsSocialCollectionService } from '@api/analytics/services/analytics-social-collection.service';
 import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analytics-twitter-collection.service';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
 import {
@@ -34,6 +35,7 @@ function setup() {
   const posts = { batchSchedule: vi.fn() };
   const twitter = { collect: vi.fn() };
   const social = { collect: vi.fn() };
+  const outliers = { refresh: vi.fn().mockResolvedValue([]) };
   const quality = {
     scoreContent: vi.fn().mockResolvedValue({ score: 9, feedback: [] }),
   };
@@ -44,17 +46,19 @@ function setup() {
   };
   const ref = {
     get: (token: unknown) =>
-      token === SystemWorkflowRunnerService
-        ? runner
-        : token === PostsService
-          ? posts
-          : token === AnalyticsTwitterCollectionService
-            ? twitter
-            : token === AnalyticsSocialCollectionService
-              ? social
-              : token === ContentQualityScorerService
-                ? quality
-                : undefined,
+      token === OutliersService
+        ? outliers
+        : token === SystemWorkflowRunnerService
+          ? runner
+          : token === PostsService
+            ? posts
+            : token === AnalyticsTwitterCollectionService
+              ? twitter
+              : token === AnalyticsSocialCollectionService
+                ? social
+                : token === ContentQualityScorerService
+                  ? quality
+                  : undefined,
   };
   new DailyPublishingService(
     prisma as unknown as PrismaService,
@@ -87,7 +91,7 @@ function setup() {
         workflowLabel: 'Daily',
       },
     } satisfies SystemWorkflowActionRequest);
-  return { prisma, posts, state, invoke, twitter, social, quality };
+  return { prisma, posts, state, invoke, twitter, social, quality, outliers };
 }
 describe('daily account publishing', () => {
   it('leaves passing content as a review draft by default', async () => {
@@ -212,7 +216,7 @@ describe('daily account publishing', () => {
   it.each(['twitter', 'linkedin'])(
     'collects each %s post separately and continues after an individual failure',
     async (platform) => {
-      const { prisma, state, invoke, twitter, social } = setup();
+      const { prisma, state, invoke, twitter, social, outliers } = setup();
       const collector = platform === 'twitter' ? twitter : social;
       prisma.post.findMany.mockResolvedValue([
         {
@@ -235,6 +239,7 @@ describe('daily account publishing', () => {
         item: { ...state, platform },
       });
       expect(collector.collect).toHaveBeenCalledTimes(2);
+      expect(outliers.refresh).toHaveBeenCalledOnce();
       expect(
         collector.collect.mock.calls.map((call) =>
           call[0].posts.map((post: { id: string }) => post.id),
@@ -245,6 +250,25 @@ describe('daily account publishing', () => {
       });
     },
   );
+  it('refreshes once after a successful account batch and records a baseline error', async () => {
+    const { prisma, state, invoke, twitter, outliers } = setup();
+    prisma.post.findMany.mockResolvedValue(
+      ['one', 'two'].map((id) => ({
+        id,
+        externalId: id,
+        organizationId: 'org',
+        brandId: 'brand',
+      })),
+    );
+    outliers.refresh.mockImplementation(async () => {
+      expect(twitter.collect).toHaveBeenCalledTimes(2);
+      throw new Error('baseline unavailable');
+    });
+    expect(
+      await invoke('daily-publishing.collect-analytics', { item: state }),
+    ).toMatchObject({ analyticsRefreshError: 'baseline unavailable' });
+    expect(outliers.refresh).toHaveBeenCalledOnce();
+  });
   it.each([undefined, null, '', 42])(
     'rejects invalid postId %s before lookup or updates',
     async (postId) => {

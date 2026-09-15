@@ -21,7 +21,10 @@ import {
   type ServerSocialAnalytics,
 } from '@api/server.dependencies';
 import { CredentialPlatform } from '@genfeedai/contracts';
-import type { ServerAnalyticsCollectionState } from '@genfeedai/contracts/interfaces';
+import type {
+  AnalyticsPersistenceContext,
+  ServerAnalyticsCollectionState,
+} from '@genfeedai/contracts/interfaces';
 import { Inject, Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -50,7 +53,9 @@ export class AnalyticsSocialCollectionService {
     private readonly accountSnapshots: AccountAnalyticsSnapshotService,
   ) {}
 
-  async collect(data: SocialAnalyticsCollectionInput): Promise<void> {
+  async collect(
+    data: SocialAnalyticsCollectionInput,
+  ): Promise<AnalyticsPersistenceContext> {
     if (data.posts.length !== 1) {
       throw new Error('Social analytics action requires exactly one post');
     }
@@ -59,10 +64,11 @@ export class AnalyticsSocialCollectionService {
       throw new Error('Social analytics action requires exactly one post');
     }
     try {
-      await this.collectPost(post);
+      const context = await this.collectPost(post);
       await this.analyticsCollectionState.markReady(
         this.target(data.attemptKey, post),
       );
+      return context;
     } catch (error: unknown) {
       const platform = this.platformLabel(post.platform);
       const failure = classifyAnalyticsCollectionError(error, platform);
@@ -84,28 +90,16 @@ export class AnalyticsSocialCollectionService {
     }
   }
 
-  private async collectPost(post: AnalyticsCollectionPost): Promise<void> {
-    const resolution = await resolveAnalyticsCollectionCredential({
-      brandId: post.brandId,
-      credentialId: post.credentialId,
-      lookup: this.credentialsService,
-      organizationId: post.organizationId,
-      platform: post.platform,
-    });
-    if (
-      resolution.kind === 'ambiguous' ||
-      resolution.kind === 'missing' ||
-      resolution.kind === 'mismatch'
-    ) {
-      throw Object.assign(
-        new Error(attributionFailureFor(resolution.kind).message),
-        {
-          analyticsFailure: attributionFailureFor(resolution.kind),
-          status: 409,
-        },
-      );
-    }
+  private async collectPost(
+    post: AnalyticsCollectionPost,
+  ): Promise<AnalyticsPersistenceContext> {
+    const resolution = await this.resolveCollectionCredential(post);
     const credentialId = resolution.credentialId;
+    const context = {
+      organizationId: post.organizationId,
+      brandId: post.brandId,
+      credentialId,
+    };
 
     switch (post.platform) {
       case CredentialPlatform.INSTAGRAM: {
@@ -136,7 +130,7 @@ export class AnalyticsSocialCollectionService {
           },
         );
         await this.recordSnapshot(post, credentialId, analytics);
-        return;
+        return context;
       }
       case CredentialPlatform.TIKTOK: {
         const analytics = await this.tiktokService.getMediaAnalytics(
@@ -158,7 +152,7 @@ export class AnalyticsSocialCollectionService {
           },
         );
         await this.recordSnapshot(post, credentialId, analytics);
-        return;
+        return context;
       }
       case CredentialPlatform.PINTEREST: {
         const analytics = await this.pinterestService.getMediaAnalytics(
@@ -177,7 +171,7 @@ export class AnalyticsSocialCollectionService {
           },
         );
         await this.recordSnapshot(post, credentialId, analytics);
-        return;
+        return context;
       }
       case CredentialPlatform.LINKEDIN: {
         const analytics = await this.linkedInService.getMediaAnalytics(
@@ -206,7 +200,7 @@ export class AnalyticsSocialCollectionService {
           },
         );
         await this.recordSnapshot(post, credentialId, analytics);
-        return;
+        return context;
       }
       case CredentialPlatform.MASTODON: {
         const analytics = await this.mastodonService.getMediaAnalytics(
@@ -225,13 +219,37 @@ export class AnalyticsSocialCollectionService {
           },
         );
         await this.recordSnapshot(post, credentialId, analytics);
-        return;
+        return context;
       }
       default:
         throw new Error(
           `Unsupported social analytics platform: ${post.platform}`,
         );
     }
+  }
+
+  private async resolveCollectionCredential(post: AnalyticsCollectionPost) {
+    const resolution = await resolveAnalyticsCollectionCredential({
+      brandId: post.brandId,
+      credentialId: post.credentialId,
+      lookup: this.credentialsService,
+      organizationId: post.organizationId,
+      platform: post.platform,
+    });
+    if (
+      resolution.kind === 'ambiguous' ||
+      resolution.kind === 'missing' ||
+      resolution.kind === 'mismatch'
+    ) {
+      throw Object.assign(
+        new Error(attributionFailureFor(resolution.kind).message),
+        {
+          analyticsFailure: attributionFailureFor(resolution.kind),
+          status: 409,
+        },
+      );
+    }
+    return resolution;
   }
 
   private async recordSnapshot(

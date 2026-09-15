@@ -270,6 +270,18 @@ export class AgentAnalyticsToolHandler {
     };
   }
 
+  private analyticsContentId(
+    params: Record<string, unknown>,
+  ): string | undefined {
+    return typeof params.contentId === 'string' &&
+      params.contentId.trim().length > 0
+      ? params.contentId.trim()
+      : typeof params.ingredientId === 'string' &&
+          params.ingredientId.trim().length > 0
+        ? params.ingredientId.trim()
+        : undefined;
+  }
+
   async getAnalytics(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
@@ -278,13 +290,7 @@ export class AgentAnalyticsToolHandler {
       typeof params.postId === 'string' && params.postId.trim().length > 0
         ? params.postId.trim()
         : undefined;
-    const contentId =
-      typeof params.contentId === 'string' && params.contentId.trim().length > 0
-        ? params.contentId.trim()
-        : typeof params.ingredientId === 'string' &&
-            params.ingredientId.trim().length > 0
-          ? params.ingredientId.trim()
-          : undefined;
+    const contentId = this.analyticsContentId(params);
 
     if (postId) {
       const post = await this.postsService.findOne({

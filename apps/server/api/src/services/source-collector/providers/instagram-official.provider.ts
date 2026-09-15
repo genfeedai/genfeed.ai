@@ -21,7 +21,7 @@ const REQUEST_TIMEOUT_MS = 15_000;
 
 const MEDIA_FIELDS =
   'id,caption,media_type,media_product_type,media_url,thumbnail_url,timestamp,permalink,like_count,comments_count,shortcode';
-const MEDIA_INSIGHTS_FIELDS = `${MEDIA_FIELDS},insights.metric(impressions,reach,saved,shares,total_interactions)`;
+const MEDIA_INSIGHTS_FIELDS = `${MEDIA_FIELDS},insights.metric(views,reach,saved,shares,total_interactions)`;
 
 interface InstagramGraphMediaNode {
   caption?: unknown;

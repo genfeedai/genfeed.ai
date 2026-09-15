@@ -30,6 +30,7 @@ import {
   Query,
   Req,
   UseGuards,
+  ValidationPipe,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -89,7 +90,7 @@ export class OutliersController {
   @Get() async list(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
-    @Query() query: OutlierQueryDto,
+    @Query(new ValidationPipe({ transform: true })) query: OutlierQueryDto,
   ) {
     return serializeCollection(
       request,
@@ -120,7 +121,7 @@ export class OutliersController {
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
     @Param('id') id: string,
-    @Query() query: OutlierPaginationDto,
+    @Query(new ValidationPipe({ transform: true })) query: OutlierPaginationDto,
   ) {
     return serializeCollection(
       request,

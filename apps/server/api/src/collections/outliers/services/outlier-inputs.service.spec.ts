@@ -64,7 +64,9 @@ function inputHarness() {
   const socialSource = {
     findMany: vi.fn().mockResolvedValue([{ id: 'source' }]),
   };
+  const queryRaw = vi.fn().mockResolvedValue([{ id: 'latest' }]);
   return {
+    queryRaw,
     sourcePost,
     postAnalytics,
     socialSource,
@@ -72,6 +74,7 @@ function inputHarness() {
       sourcePost,
       postAnalytics,
       socialSource,
+      $queryRaw: queryRaw,
     } as unknown as PrismaService),
   };
 }
@@ -197,6 +200,23 @@ describe('outlier account history adapters', () => {
     );
     await expect(h.service.read(account)).rejects.toThrow('10000-record');
     expect(h.sourcePost.findMany).toHaveBeenCalledTimes(51);
+  });
+  it('fails when the latest distinct analytics observations exceed the bound', async () => {
+    const h = inputHarness();
+    h.queryRaw.mockResolvedValue(
+      Array.from({ length: 200 }, (_, i) => ({ id: String(i) })),
+    );
+    h.postAnalytics.findMany.mockResolvedValue(
+      Array.from({ length: 200 }, (_, i) => ({
+        id: String(i),
+        credentialId: 'account',
+        metricAvailability: {},
+        updatedAt: new Date(),
+        post: { id: String(i), credentialId: 'account', category: 'TEXT' },
+      })),
+    );
+    await expect(h.service.read(account)).rejects.toThrow('10000-record');
+    expect(h.queryRaw).toHaveBeenCalledTimes(51);
   });
   it('rejects conflicting canonical credential references', async () => {
     const h = inputHarness();

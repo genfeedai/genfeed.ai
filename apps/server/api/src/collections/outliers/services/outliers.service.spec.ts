@@ -1,6 +1,7 @@
 import type { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import type { OutlierInputsService } from '@api/collections/outliers/services/outlier-inputs.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
+import { setTopLinks } from '@api/helpers/utils/response/response.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { OutlierObservation } from '@genfeedai/contracts/interfaces';
 import type {
@@ -338,6 +339,45 @@ describe('outlier history read authorization', () => {
         take: 10,
         orderBy: [{ computedAt: 'desc' }, { id: 'desc' }],
       }),
+    );
+  });
+  it('normalizes string pagination and supplies serializer metadata', async () => {
+    const h = readHarness();
+    const result = await h.service.list(scope, {
+      page: '2',
+      limit: '10',
+    } as unknown as Parameters<OutliersService['list']>[1]);
+    expect(result).toMatchObject({
+      page: 2,
+      limit: 10,
+      totalDocs: 0,
+      totalPages: 0,
+    });
+    const options = setTopLinks(
+      { originalUrl: '/outlier-baselines?page=2&limit=10' },
+      {},
+      result,
+    );
+    expect(options).toMatchObject({
+      topLevelLinks: { pagination: { page: 2, limit: 10, total: 0, pages: 0 } },
+    });
+    expect(h.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 10, take: 10 }),
+    );
+    const posts = await h.service.posts(
+      'org',
+      'snapshot',
+      '2' as unknown as number,
+      '10' as unknown as number,
+    );
+    expect(posts).toMatchObject({
+      page: 2,
+      limit: 10,
+      totalDocs: 0,
+      totalPages: 0,
+    });
+    expect(h.performanceFind).toHaveBeenCalledWith(
+      expect.objectContaining({ skip: 10, take: 10 }),
     );
   });
   it('rejects missing or cross-org snapshots before account authorization', async () => {

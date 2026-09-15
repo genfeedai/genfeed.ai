@@ -1,4 +1,5 @@
 import { mapPostCategoryToContentType } from '@api/collections/content-performance/utils/content-performance-category.util';
+import { latestOutlierAnalyticsIds } from '@api/collections/outliers/services/outlier-latest-analytics.query';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
@@ -175,85 +176,95 @@ export class OutlierInputsService {
         });
       if (rows.length < 200) break;
     }
-    if (scope.accountType === 'credential') {
-      const prismaPlatform = toPrismaCredentialPlatform(platform);
-      if (!prismaPlatform) throw new NotFoundException('Outlier account');
-      for (let skip = 0; ; skip += 200) {
-        const rows = await this.prisma.postAnalytics.findMany({
-          where: {
-            ...scopeWhere,
-            platform: prismaPlatform,
-            post: { ...scopeWhere, OR: [{ platform }, { platform: null }] },
-            OR: [
-              { credentialId: scope.accountId },
-              { credentialId: null, post: { credentialId: scope.accountId } },
-            ],
-          },
-          select: {
-            id: true,
-            credentialId: true,
-            totalViews: true,
-            metricAvailability: true,
-            isPinned: true,
-            isPromoted: true,
-            updatedAt: true,
-            post: {
-              select: {
-                id: true,
-                credentialId: true,
-                externalId: true,
-                category: true,
-                publishedAt: true,
-                publicationDate: true,
-              },
+    if (scope.accountType === 'credential')
+      observations.push(...(await this.readAnalytics(scope, recordCount)));
+    return this.selectLatest(observations);
+  }
+  private async readAnalytics(
+    scope: OutlierResolvedAccount,
+    recordCount: number,
+  ): Promise<OutlierObservation[]> {
+    const { organizationId, brandId, platform } = scope;
+    const scopeWhere = { organizationId, brandId, isDeleted: false };
+    const observations: OutlierObservation[] = [];
+    const prismaPlatform = toPrismaCredentialPlatform(platform);
+    if (!prismaPlatform) throw new NotFoundException('Outlier account');
+    for (let skip = 0; ; skip += 200) {
+      const latest = await this.prisma.$queryRaw<Array<{ id: string }>>(
+        latestOutlierAnalyticsIds(scope, prismaPlatform, skip),
+      );
+      if (!latest.length) break;
+      const rows = await this.prisma.postAnalytics.findMany({
+        where: scopedWhere(scope.organizationId, {
+          ...scopeWhere,
+          platform: prismaPlatform,
+          id: { in: latest.map((row) => row.id) },
+        }),
+        select: {
+          id: true,
+          credentialId: true,
+          totalViews: true,
+          metricAvailability: true,
+          isPinned: true,
+          isPromoted: true,
+          updatedAt: true,
+          post: {
+            select: {
+              id: true,
+              credentialId: true,
+              externalId: true,
+              category: true,
+              publishedAt: true,
+              publicationDate: true,
             },
           },
-          orderBy: { id: 'asc' },
-          skip,
-          take: 200,
-        });
-        recordCount += rows.length;
-        if (recordCount > 10000)
+        },
+        orderBy: { id: 'asc' },
+        take: 200,
+      });
+      recordCount += rows.length;
+      if (recordCount > 10000)
+        throw new Error(
+          'Outlier history exceeds the 10000-record safety limit',
+        );
+      for (const row of rows) {
+        if (
+          row.credentialId &&
+          row.post.credentialId &&
+          row.credentialId !== row.post.credentialId
+        )
           throw new Error(
-            'Outlier history exceeds the 10000-record safety limit',
+            'Outlier analytics credential attribution disagrees with post',
           );
-        for (const row of rows) {
-          if (
-            row.credentialId &&
-            row.post.credentialId &&
-            row.credentialId !== row.post.credentialId
-          )
-            throw new Error(
-              'Outlier analytics credential attribution disagrees with post',
-            );
-          const availability = row.metricAvailability as Record<
-            string,
-            unknown
-          >;
-          observations.push({
-            ...scope,
-            id: row.post.externalId
-              ? `${platform}:${row.post.externalId}`
-              : `post:${row.post.id}`,
-            contentType: normalizeOutlierContentType(
-              mapPostCategoryToContentType(row.post.category),
-            ),
-            publishedAtMs:
-              (row.post.publishedAt ?? row.post.publicationDate)?.getTime() ??
-              NaN,
-            views: availability.views === 'observed' ? row.totalViews : null,
-            isDeleted: false,
-            isPinned: row.isPinned,
-            isPromoted: row.isPromoted,
-            postId: row.post.id,
-            sourcePostId: null,
-            measuredAt: row.updatedAt,
-            sourceIdentity: `analytics:${row.id}`,
-          });
-        }
-        if (rows.length < 200) break;
+        const availability = row.metricAvailability as Record<string, unknown>;
+        observations.push({
+          ...scope,
+          id: row.post.externalId
+            ? `${platform}:${row.post.externalId}`
+            : `post:${row.post.id}`,
+          contentType: normalizeOutlierContentType(
+            mapPostCategoryToContentType(row.post.category),
+          ),
+          publishedAtMs:
+            (row.post.publishedAt ?? row.post.publicationDate)?.getTime() ??
+            NaN,
+          views: availability.views === 'observed' ? row.totalViews : null,
+          isDeleted: false,
+          isPinned: row.isPinned,
+          isPromoted: row.isPromoted,
+          postId: row.post.id,
+          sourcePostId: null,
+          measuredAt: row.updatedAt,
+          sourceIdentity: `analytics:${row.id}`,
+        });
       }
+      if (latest.length < 200) break;
     }
+    return observations;
+  }
+  private selectLatest(
+    observations: OutlierObservation[],
+  ): OutlierObservation[] {
     const selected = new Map<string, OutlierObservation>();
     for (const observation of observations) {
       const previous = selected.get(observation.id);

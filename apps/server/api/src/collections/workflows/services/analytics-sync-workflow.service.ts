@@ -9,6 +9,7 @@ import { AnalyticsTwitterCollectionService } from '@api/analytics/services/analy
 import { AnalyticsYouTubeCollectionService } from '@api/analytics/services/analytics-youtube-collection.service';
 import { PostAnalyticsCollectionStateService } from '@api/analytics/services/post-analytics-collection-state.service';
 import { AnalyticsSyncService } from '@api/collections/content-performance/services/analytics-sync.service';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import type { PostEntity } from '@api/collections/posts/entities/post.entity';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
@@ -28,6 +29,7 @@ import { scopedWhere } from '@api/index';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import { CredentialPlatform, TargetExecutionState } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
+import type { AnalyticsPersistenceContext } from '@genfeedai/contracts/interfaces';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type AnalyticsPost = PostEntity & {
@@ -56,6 +58,7 @@ type AnalyticsDiscovery = {
 export type AnalyticsCollectionActionResult = {
   attempted: number;
   batches: number;
+  outlierAccount: AnalyticsPersistenceContext;
 };
 
 export type QueuedAnalyticsWorkflowResult = {
@@ -95,6 +98,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     private readonly analyticsSync: AnalyticsSyncService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
+    private readonly outliers: OutliersService,
   ) {}
 
   onModuleInit(): void {
@@ -247,24 +251,30 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     input: Record<string, unknown>,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
-    await this.providerCollection.collectFacebook(this.socialJobData(post));
-    return { attempted: 1, batches: 1 };
+    const { context } = await this.providerCollection.collectFacebook(
+      this.socialJobData(post),
+    );
+    return this.completeCollection(context, input);
   }
 
   async collectSocial(
     input: Record<string, unknown>,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
-    await this.socialCollection.collect(this.socialJobData(post));
-    return { attempted: 1, batches: 1 };
+    const context = await this.socialCollection.collect(
+      this.socialJobData(post),
+    );
+    return this.completeCollection(context, input);
   }
 
   async collectThreads(
     input: Record<string, unknown>,
   ): Promise<AnalyticsCollectionActionResult> {
     const post = this.readAnalyticsItem(input.item);
-    await this.providerCollection.collectThreads(this.socialJobData(post));
-    return { attempted: 1, batches: 1 };
+    const { context } = await this.providerCollection.collectThreads(
+      this.socialJobData(post),
+    );
+    return this.completeCollection(context, input);
   }
 
   async collectTwitter(
@@ -279,8 +289,8 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       credentialId: post.credentialId,
       posts: [this.collectionPost(post)],
     };
-    await this.twitterCollection.collect(data);
-    return { attempted: 1, batches: 1 };
+    const context = await this.twitterCollection.collect(data);
+    return this.completeCollection(context, input);
   }
 
   async collectYouTube(
@@ -294,27 +304,66 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
       organizationId: post.organizationId,
       posts: [this.collectionPost(post)],
     };
-    await this.youtubeCollection.collect(data);
-    return { attempted: 1, batches: 1 };
+    const context = await this.youtubeCollection.collect(data);
+    return this.completeCollection(context, input);
   }
 
-  finalizeCollection(input: Record<string, unknown>): {
-    attempted: number;
-    batches: number;
-    status: 'completed';
-  } {
+  private async completeCollection(
+    context: AnalyticsPersistenceContext,
+    input: Record<string, unknown>,
+  ): Promise<AnalyticsCollectionActionResult> {
+    if (input.deferOutlierRefresh !== true) await this.refreshAccount(context);
+    return { attempted: 1, batches: 1, outlierAccount: context };
+  }
+  private refreshAccount(context: AnalyticsPersistenceContext) {
+    return this.outliers.refresh({
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      accountType: 'credential',
+      accountId: context.credentialId,
+    });
+  }
+  async finalizeCollection(
+    organizationId: string,
+    input: Record<string, unknown>,
+  ) {
     const collection = this.readRecord(input.collection);
     const results = this.readArray(collection.results);
+    const accounts = new Map<string, AnalyticsPersistenceContext>();
+    let failed = 0;
+    for (const raw of results) {
+      const item = this.readRecord(raw);
+      if (typeof item.jobId === 'string') continue;
+      if (item.status === 'failed') {
+        failed += 1;
+        continue;
+      }
+      const result = this.readRecord(item.result);
+      const account = this.readRecord(result.outlierAccount);
+      if (
+        account.organizationId !== organizationId ||
+        !this.readOptionalString(account.brandId) ||
+        !this.readOptionalString(account.credentialId)
+      )
+        throw new Error('Invalid analytics result account scope');
+      const context = {
+        organizationId,
+        brandId: account.brandId as string,
+        credentialId: account.credentialId as string,
+      };
+      accounts.set(
+        JSON.stringify([context.brandId, context.credentialId]),
+        context,
+      );
+    }
+    for (const account of accounts.values()) await this.refreshAccount(account);
     return {
-      attempted:
-        results.length > 0
-          ? results.length
-          : this.readNumber(collection.attempted),
-      batches:
-        results.length > 0
-          ? results.length
-          : this.readNumber(collection.batches),
-      status: 'completed',
+      attempted: results.length,
+      batches: results.length,
+      failed,
+      status: failed
+        ? ('completed_with_errors' as const)
+        : ('completed' as const),
     };
   }
 
@@ -419,10 +468,11 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         id: `collect-each-${branch.id}`,
         parameters: {
           childWorkflowId: branch.childWorkflowId,
-          interItemDelayMs: 100,
           itemInputKey: 'item',
           maxConcurrency: 5,
-          mode: 'scheduled',
+          mode: 'await',
+          failureMode: 'collect',
+          baseInput: { deferOutlierRefresh: true },
         },
         position: { x: index * 260, y: 220 },
       }),
@@ -449,12 +499,14 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     ]);
     return {
       canonicalId: 'analytics.organization-refresh',
+      changeSummary:
+        'Await post collection and refresh each successful account once.',
       definition: { edges, inputVariables: [], nodes },
       description:
         'Collects due analytics through independent provider action branches.',
       label: 'Organization Analytics Refresh',
       resultNodeId: 'finalize-youtube',
-      version: 1,
+      version: 2,
     };
   }
 
@@ -464,6 +516,8 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     const childWorkflowId = this.collectionWorkflowForPlatform(platform);
     return {
       canonicalId: analyticsPostRefreshWorkflowId(platform),
+      changeSummary:
+        'Await post collection before refreshing account baselines.',
       definition: {
         edges: [
           {
@@ -506,7 +560,9 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
               childWorkflowId,
               itemInputKey: 'item',
               maxConcurrency: 1,
-              mode: 'scheduled',
+              mode: 'await',
+              failureMode: 'collect',
+              baseInput: { deferOutlierRefresh: true },
             },
             position: { x: 0, y: 220 },
           }),
@@ -521,7 +577,7 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
         'Collects fresh analytics for one authorized published post.',
       label: 'Post Analytics Refresh',
       resultNodeId: 'finalize-post',
-      version: 1,
+      version: 2,
     };
   }
 
@@ -659,10 +715,6 @@ export class AnalyticsSyncWorkflowService implements OnModuleInit {
     return typeof value === 'string' && value.trim().length > 0
       ? value
       : undefined;
-  }
-
-  private readNumber(value: unknown): number {
-    return typeof value === 'number' && Number.isFinite(value) ? value : 0;
   }
 
   private windowKey(windowMs: number): number {

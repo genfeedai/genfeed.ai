@@ -48,6 +48,15 @@ export class PostAnalyticsService extends BaseService<
     super(prisma, 'postAnalytics', logger);
   }
 
+  async refreshOutliers(context: AnalyticsPersistenceContext) {
+    return this.outliersService.refresh({
+      organizationId: context.organizationId,
+      brandId: context.brandId,
+      accountType: 'credential',
+      accountId: context.credentialId,
+    });
+  }
+
   async updateTodayAnalytics(
     postId: string,
     platform: CredentialPlatform,
@@ -177,8 +186,6 @@ export class PostAnalyticsService extends BaseService<
         isDeleted: false,
       },
     });
-
-    await this.outliersService.refresh(account);
 
     return result
       ? new PostAnalyticsEntity(result as PostAnalyticsDocument)

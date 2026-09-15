@@ -391,6 +391,11 @@ describe('analytics ingestion to dashboard smoke path', () => {
       { organizationId, brandId, credentialId: 'credential-smoke' },
     );
 
+    await postAnalyticsService.refreshOutliers({
+      organizationId,
+      brandId,
+      credentialId: 'credential-smoke',
+    });
     const postSummary = await postAnalyticsService.getPostAnalyticsSummary(
       postId,
       organizationId,

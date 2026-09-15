@@ -65,6 +65,37 @@ describe.skipIf(!databaseUrl)('outlier PostgreSQL persistence', () => {
           )
         ).rows,
       ).toEqual([{ baselineSnapshotId: 's' }]);
+      await client.query(
+        `UPDATE outlier_post_performances SET "outlierRatio" = 3.5 WHERE id = 'p'`,
+      );
+      const history = `SELECT p.id, p."organizationId", p."baselineSnapshotId", p."outlierRatio", s."windowSize", s."inputFingerprint" FROM outlier_post_performances p JOIN outlier_baseline_snapshots s ON s.id = p."baselineSnapshotId" WHERE p.id = 'p'`;
+      const original = (await client.query(history)).rows[0];
+      await client.query('BEGIN');
+      await client.query(
+        `UPDATE outlier_baseline_snapshots SET "organizationId" = 'destination' WHERE id = 's'`,
+      );
+      expect((await client.query(history)).rows[0]).toEqual({
+        ...original,
+        organizationId: 'destination',
+      });
+      await client.query('ROLLBACK');
+      expect((await client.query(history)).rows[0]).toEqual(original);
+      await client.query('BEGIN');
+      await client.query(
+        `UPDATE outlier_baseline_snapshots SET "organizationId" = 'destination' WHERE id = 's'`,
+      );
+      expect(
+        (
+          await client.query(
+            `UPDATE outlier_post_performances SET "organizationId" = 'destination' WHERE "organizationId" = 'org' AND "brandId" = 'b'`,
+          )
+        ).rowCount,
+      ).toBe(0);
+      await client.query('COMMIT');
+      expect((await client.query(history)).rows[0]).toEqual({
+        ...original,
+        organizationId: 'destination',
+      });
     } finally {
       await client.query(`DROP SCHEMA IF EXISTS "${schema}" CASCADE`);
       client.release();

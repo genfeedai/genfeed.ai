@@ -476,6 +476,11 @@ describeWithDatabase('Listening content attribution lifecycle (#1798)', () => {
         credentialId: primary.credentialId,
       },
     );
+    await postAnalyticsService.refreshOutliers({
+      organizationId: primary.organizationId,
+      brandId: primary.brandId,
+      credentialId: primary.credentialId,
+    });
     if (!analytics) {
       throw new Error('Expected canonical PostAnalytics ingestion');
     }
