@@ -674,6 +674,7 @@ describe('WorkflowsService system workflow guardrails', () => {
   it('falls back to the caller brand when the source workflow brand is soft-deleted or out of org (#4664)', async () => {
     vi.spyOn(service, 'findVisibleOrThrow').mockResolvedValue({
       brandId: 'gone-brand',
+      defaultRecurringBrandId: 'gone-brand',
       edges: [],
       id: 'workflow-1',
       inputVariables: [],
@@ -705,8 +706,10 @@ describe('WorkflowsService system workflow guardrails', () => {
 
     const createInput = vi.mocked(service.create).mock.calls[0]?.[0] as {
       brandId?: string;
+      defaultRecurringBrandId?: string;
     };
     expect(createInput.brandId).toBe('fallback-brand');
+    expect(createInput.defaultRecurringBrandId).toBe('fallback-brand');
   });
 
   it('still rejects an explicit invalid target brand even when a fallback brand is available', async () => {

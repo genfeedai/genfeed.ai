@@ -602,7 +602,11 @@ export class WorkflowsService extends BaseService<
           config: workflowDoc.config,
           defaultRecurringBrandId: isProtectedSystemWorkflow
             ? null
-            : targetBrandId || workflowDoc.defaultRecurringBrandId || null,
+            : targetBrandId ||
+              (!isSourceBrandAccessible
+                ? brandId
+                : workflowDoc.defaultRecurringBrandId) ||
+              null,
           description: workflowDoc.description ?? undefined,
           edges: workflowDoc.edges,
           executionCount: 0,
