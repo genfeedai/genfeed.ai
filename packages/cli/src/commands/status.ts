@@ -8,29 +8,7 @@ import { getImage } from '@/api/images';
 import { getVideo } from '@/api/videos';
 import { formatError, formatLabel, print, printJson } from '@/ui/theme';
 import { ApiError, handleError } from '@/utils/errors';
-
-/**
- * Both vocabularies are Prisma-backed, so both arrive SCREAMING_SNAKE and are
- * rendered by their own formatter. Images and videos are ingredients — their
- * success state is `GENERATED`, not a `COMPLETED` that does not exist — while
- * articles carry a publish lifecycle.
- *
- * @see .agents/memory/rules/enum_source_of_truth.md
- */
-type Status = IngredientStatus | PersistedArticleStatus;
-
-/** Media is finished and downloadable once the ingredient has an asset. */
-const SUCCESS_STATUSES: ReadonlySet<Status> = new Set([
-  IngredientStatus.GENERATED,
-  IngredientStatus.UPLOADED,
-  IngredientStatus.VALIDATED,
-]);
-
-/** The generation pipeline is still expected to move these along. */
-const IN_PROGRESS_STATUSES: ReadonlySet<Status> = new Set([
-  IngredientStatus.DRAFT,
-  IngredientStatus.PROCESSING,
-]);
+import { MEDIA_IN_PROGRESS_STATUSES, MEDIA_SUCCESS_STATUSES } from '@/utils/media-status';
 
 interface BaseStatusResult {
   id: string;
@@ -193,7 +171,7 @@ export function createStatusCommand(name = 'status'): Command {
         if (result.type !== 'article') {
           print(formatLabel('Model', result.model));
 
-          if (SUCCESS_STATUSES.has(result.status) && result.url) {
+          if (MEDIA_SUCCESS_STATUSES.has(result.status) && result.url) {
             print(formatLabel('URL', result.url));
 
             if (result.dimensions) {
@@ -237,7 +215,7 @@ export function createStatusCommand(name = 'status'): Command {
           }
         }
 
-        if (result.type !== 'article' && IN_PROGRESS_STATUSES.has(result.status)) {
+        if (result.type !== 'article' && MEDIA_IN_PROGRESS_STATUSES.has(result.status)) {
           print();
           print(chalk.dim('Generation is still in progress. Check again later.'));
         }

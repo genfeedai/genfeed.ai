@@ -44,7 +44,7 @@ export async function createVideo(
   return flattenSingle<Video>(response);
 }
 
-export async function getVideo(id: string): Promise<Video> {
-  const response = await get<JsonApiSingleResponse>(`/videos/${id}`);
+export async function getVideo(id: string, signal?: AbortSignal): Promise<Video> {
+  const response = await get<JsonApiSingleResponse>(`/videos/${id}`, { signal });
   return flattenSingle<Video>(response);
 }

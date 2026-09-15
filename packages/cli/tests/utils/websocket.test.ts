@@ -1,431 +1,291 @@
+import { IngredientStatus } from '@genfeedai/contracts';
 import type { IBackgroundTaskUpdatePayload } from '@genfeedai/contracts/interfaces';
+import type { Ora } from 'ora';
+import { io } from 'socket.io-client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import type { Image } from '@/api/images';
+import { ApiError, AuthError } from '@/utils/errors';
+import { createWebSocketConnection, waitForCompletion } from '@/utils/websocket';
 
-// Mock socket.io-client
+type Observation = Pick<Image, 'id' | 'status' | 'error'>;
+const handlers = new Map<string, (data?: unknown) => void>();
 const mockSocket = {
-  connected: true,
   disconnect: vi.fn(),
   on: vi.fn(),
+  removeAllListeners: vi.fn(),
 };
+vi.mock('socket.io-client', () => ({ io: vi.fn(() => mockSocket) }));
 
-vi.mock('socket.io-client', () => ({
-  io: vi.fn(() => mockSocket),
-}));
+async function flushMicrotasks(): Promise<void> {
+  for (let index = 0; index < 20; index += 1) await Promise.resolve();
+}
 
-async function flushMicrotasks(turns: number = 5): Promise<void> {
-  for (let i = 0; i < turns; i += 1) {
-    await Promise.resolve();
-  }
+const processing: Observation = { id: 'media-1', status: IngredientStatus.PROCESSING };
+const generated: Observation = { id: 'media-1', status: IngredientStatus.GENERATED };
+
+function emitUpdate(overrides: Partial<IBackgroundTaskUpdatePayload> = {}): void {
+  handlers.get('background-task-update')?.({
+    resultId: 'media-1',
+    resultType: 'IMAGE',
+    status: 'completed',
+    taskId: 'task-1',
+    timestamp: '2026-09-14T00:00:00Z',
+    userId: 'user-1',
+    ...overrides,
+  });
+}
+
+function start(getResult: (signal: AbortSignal) => Promise<Observation>, spinner?: Ora) {
+  return waitForCompletion({
+    getResult,
+    spinner,
+    taskId: 'media-1',
+    taskType: 'IMAGE',
+    timeout: 10000,
+  });
 }
 
 describe('utils/websocket', () => {
-  let waitForCompletion: typeof import('../../src/utils/websocket').waitForCompletion;
-  let createWebSocketConnection: typeof import('../../src/utils/websocket').createWebSocketConnection;
-
   beforeEach(async () => {
     vi.useFakeTimers();
     vi.clearAllMocks();
-    mockSocket.on.mockReset();
-    mockSocket.disconnect.mockReset();
+    handlers.clear();
+    mockSocket.on.mockImplementation((event: string, handler: (data?: unknown) => void) => {
+      handlers.set(event, handler);
+      return mockSocket;
+    });
+    mockSocket.removeAllListeners.mockImplementation(() => handlers.clear());
     const store = await import('../../src/config/store');
     vi.spyOn(store, 'getApiKey').mockResolvedValue('test-api-key');
     vi.spyOn(store, 'getApiUrl').mockResolvedValue('https://api.genfeed.ai/v1');
-
-    const websocket = await import('../../src/utils/websocket');
-    waitForCompletion = websocket.waitForCompletion;
-    createWebSocketConnection = websocket.createWebSocketConnection;
   });
 
   afterEach(() => {
+    vi.clearAllTimers();
     vi.useRealTimers();
   });
 
   describe('waitForCompletion', () => {
-    it('resolves when receiving completed status', async () => {
-      const mockResult = {
-        id: 'test-123',
-        status: 'completed',
-        url: 'https://example.com/video.mp4',
-      };
-      const getResult = vi.fn().mockResolvedValue(mockResult);
+    it.each([IngredientStatus.GENERATED, IngredientStatus.UPLOADED, IngredientStatus.VALIDATED])(
+      'returns existing %s media before opening a socket',
+      async (status) => {
+        const getResult = vi.fn().mockResolvedValue({ ...generated, status });
+        const result = await start(getResult);
+        expect(result.result).toEqual({ ...generated, status });
+        expect(getResult).toHaveBeenCalledTimes(1);
+        expect(io).not.toHaveBeenCalled();
+        expect(vi.getTimerCount()).toBe(0);
+      }
+    );
 
-      // Capture the event handlers
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-123',
-        taskType: 'VIDEO',
-        timeout: 5000,
-      });
+    it('recovers a missed completion event by polling the original media', async () => {
+      const getResult = vi.fn().mockResolvedValueOnce(processing).mockResolvedValue(generated);
+      const promise = start(getResult);
       await flushMicrotasks();
-      expect(mockSocket.on).toHaveBeenCalled();
-
-      // Simulate connection
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-
-      // Simulate completion event
-      const updateEvent: IBackgroundTaskUpdatePayload = {
-        progress: 100,
-        resultId: 'test-123',
-        resultType: 'VIDEO',
-        status: 'completed',
-        taskId: 'task-abc',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(updateEvent);
-
-      const result = await promise;
-      expect(result.result).toEqual(mockResult);
       expect(getResult).toHaveBeenCalledTimes(1);
-      expect(mockSocket.disconnect).toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect((await promise).result).toEqual(generated);
+      expect(getResult).toHaveBeenCalledTimes(2);
+      expect(mockSocket.disconnect).toHaveBeenCalledTimes(1);
+      expect(handlers.size).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
+      await vi.advanceTimersByTimeAsync(20000);
+      expect(getResult).toHaveBeenCalledTimes(2);
     });
 
-    it('rejects when receiving failed status', async () => {
-      const getResult = vi.fn();
+    it.each(['connect', 'connect_error', 'disconnect'])(
+      'continues reading durable state after %s',
+      async (event) => {
+        const getResult = vi.fn().mockResolvedValueOnce(processing).mockResolvedValue(generated);
+        const promise = start(getResult);
+        await flushMicrotasks();
+        handlers.get(event)?.(event === 'disconnect' ? 'transport close' : new Error('offline'));
+        await vi.advanceTimersByTimeAsync(2000);
+        expect((await promise).result).toEqual(generated);
+      }
+    );
 
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-456',
-        taskType: 'IMAGE',
-        timeout: 5000,
-      });
+    it('observes immediately after reconnect', async () => {
+      const getResult = vi.fn().mockResolvedValue(processing);
+      const startedAt = Date.now();
+      const promise = start(getResult);
       await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-
-      // Simulate failure event
-      const updateEvent: IBackgroundTaskUpdatePayload = {
-        error: 'Generation failed: invalid prompt',
-        resultType: 'IMAGE',
-        status: 'failed',
-        taskId: 'test-456',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(updateEvent);
-
-      await expect(promise).rejects.toThrow('Generation failed: invalid prompt');
-      expect(getResult).not.toHaveBeenCalled();
-      expect(mockSocket.disconnect).toHaveBeenCalled();
+      handlers.get('connect')?.();
+      await flushMicrotasks();
+      handlers.get('disconnect')?.('transport close');
+      getResult.mockResolvedValue(generated);
+      handlers.get('connect')?.();
+      expect((await promise).result).toEqual(generated);
+      expect(Date.now()).toBe(startedAt);
     });
 
-    it('ignores events for different task IDs', async () => {
-      const mockResult = { id: 'test-123', status: 'completed' };
-      const getResult = vi.fn().mockResolvedValue(mockResult);
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-123',
-        taskType: 'VIDEO',
-        timeout: 5000,
-      });
+    it.each(['completed', 'failed'] as const)('treats stale %s events as hints', async (status) => {
+      const getResult = vi.fn().mockResolvedValue(processing);
+      const settled = vi.fn();
+      const promise = start(getResult).then(settled);
       await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-
-      // Send event for different task - should be ignored
-      const wrongTaskEvent: IBackgroundTaskUpdatePayload = {
-        resultId: 'other-task',
-        resultType: 'VIDEO',
-        status: 'completed',
-        taskId: 'other-task',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(wrongTaskEvent);
-
-      // getResult should not have been called
-      expect(getResult).not.toHaveBeenCalled();
-
-      // Now send correct event
-      const correctEvent: IBackgroundTaskUpdatePayload = {
-        resultType: 'VIDEO',
-        status: 'completed',
-        taskId: 'test-123',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(correctEvent);
-
-      const result = await promise;
-      expect(result.result).toEqual(mockResult);
-    });
-
-    it('ignores events for different task types', async () => {
-      const mockResult = { id: 'test-123', status: 'completed' };
-      const getResult = vi.fn().mockResolvedValue(mockResult);
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-123',
-        taskType: 'VIDEO',
-        timeout: 5000,
-      });
+      emitUpdate({ status });
       await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-
-      // Send IMAGE event for same ID - should be ignored
-      const wrongTypeEvent: IBackgroundTaskUpdatePayload = {
-        resultType: 'IMAGE',
-        status: 'completed',
-        taskId: 'test-123',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(wrongTypeEvent);
-
-      expect(getResult).not.toHaveBeenCalled();
-
-      // Now send correct type
-      const correctEvent: IBackgroundTaskUpdatePayload = {
-        resultType: 'VIDEO',
-        status: 'completed',
-        taskId: 'test-123',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(correctEvent);
-
-      const result = await promise;
-      expect(result.result).toEqual(mockResult);
-    });
-
-    it('times out after specified duration', async () => {
-      const getResult = vi.fn();
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-timeout',
-        taskType: 'VIDEO',
-        timeout: 5000,
-      });
-      await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-
-      // Advance past timeout
-      vi.advanceTimersByTime(6000);
-
-      await expect(promise).rejects.toThrow('Operation timed out');
-      expect(mockSocket.disconnect).toHaveBeenCalled();
-    });
-
-    it('rejects on connection error', async () => {
-      const getResult = vi.fn();
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-conn-error',
-        taskType: 'IMAGE',
-        timeout: 5000,
-      });
-      await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-
-      // Simulate connection error
-      eventHandlers.connect_error?.({ message: 'Connection refused' });
-
-      await expect(promise).rejects.toThrow('WebSocket connection failed: Connection refused');
-      expect(mockSocket.disconnect).toHaveBeenCalled();
-    });
-
-    it('updates spinner with progress', async () => {
-      const mockResult = { id: 'test-progress', status: 'completed' };
-      const getResult = vi.fn().mockResolvedValue(mockResult);
-      const spinner = { text: '' };
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        spinner: spinner as Parameters<typeof waitForCompletion>[0]['spinner'],
-        taskId: 'test-progress',
-        taskType: 'VIDEO',
-        timeout: 10000,
-      });
-      await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-
-      // Send progress update
-      const progressEvent: IBackgroundTaskUpdatePayload = {
-        progress: 50,
-        resultType: 'VIDEO',
-        status: 'processing',
-        taskId: 'test-progress',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(progressEvent);
-
-      expect(spinner.text).toContain('50%');
-
-      // Complete
-      const completeEvent: IBackgroundTaskUpdatePayload = {
-        progress: 100,
-        resultType: 'VIDEO',
-        status: 'completed',
-        taskId: 'test-progress',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(completeEvent);
-
+      expect(getResult).toHaveBeenCalledTimes(2);
+      expect(settled).not.toHaveBeenCalled();
+      getResult.mockResolvedValue(generated);
+      await vi.advanceTimersByTimeAsync(2000);
       await promise;
+      expect(settled).toHaveBeenCalledWith(expect.objectContaining({ result: generated }));
     });
 
-    it('rejects when getResult throws after completion', async () => {
-      const getResult = vi.fn().mockRejectedValue(new Error('result fetch failed'));
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        taskId: 'test-bad-result',
-        taskType: 'IMAGE',
-        timeout: 5000,
-      });
+    it('ignores unrelated IDs/types and updates matching progress', async () => {
+      const spinner = { text: 'initial' } as Ora;
+      const getResult = vi.fn().mockResolvedValue(processing);
+      const promise = start(getResult, spinner);
       await flushMicrotasks();
+      emitUpdate({ resultId: 'other', taskId: 'other' });
+      emitUpdate({ resultType: 'VIDEO' });
+      emitUpdate({ progress: 45, status: 'processing' });
+      await flushMicrotasks();
+      expect(getResult).toHaveBeenCalledTimes(1);
+      expect(spinner.text).toContain('45%');
+      getResult.mockResolvedValue(generated);
+      emitUpdate({ resultId: undefined, taskId: 'media-1' });
+      expect((await promise).result).toEqual(generated);
+    });
 
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
+    it('coalesces terminal hints during a read without overlapping GETs', async () => {
+      let finishRead: ((value: Observation) => void) | undefined;
+      const getResult = vi
+        .fn()
+        .mockResolvedValueOnce(processing)
+        .mockImplementationOnce(
+          () =>
+            new Promise<Observation>((resolve) => {
+              finishRead = resolve;
+            })
+        )
+        .mockResolvedValue(generated);
+      const promise = start(getResult);
+      await flushMicrotasks();
+      await vi.advanceTimersByTimeAsync(2000);
+      emitUpdate();
+      emitUpdate();
+      handlers.get('connect')?.();
+      await vi.advanceTimersByTimeAsync(4000);
+      expect(getResult).toHaveBeenCalledTimes(2);
+      finishRead?.(processing);
+      expect((await promise).result).toEqual(generated);
+      expect(getResult).toHaveBeenCalledTimes(3);
+      expect(vi.getTimerCount()).toBe(0);
+    });
 
-      const completeEvent: IBackgroundTaskUpdatePayload = {
-        resultType: 'IMAGE',
-        status: 'completed',
-        taskId: 'test-bad-result',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(completeEvent);
+    it.each([IngredientStatus.FAILED, IngredientStatus.REJECTED, IngredientStatus.ARCHIVED])(
+      'rejects durable %s with an actionable status command',
+      async (status) => {
+        const promise = start(vi.fn().mockResolvedValue({ ...processing, status }));
+        await expect(promise).rejects.toMatchObject({
+          suggestion: expect.stringContaining('gf status media-1 --type image'),
+        });
+        expect(vi.getTimerCount()).toBe(0);
+      }
+    );
 
-      await expect(promise).rejects.toThrow('result fetch failed');
+    it('preserves the API failure reason', async () => {
+      const getResult = vi.fn().mockResolvedValue({
+        ...processing,
+        error: 'Prompt rejected',
+        status: IngredientStatus.FAILED,
+      });
+      await expect(start(getResult)).rejects.toThrow('Prompt rejected');
+    });
+
+    it.each([
+      new AuthError(),
+      new ApiError('bad request', 400),
+      new ApiError('forbidden', 403),
+      new ApiError('missing', 404),
+    ])('fails promptly for permanent API denial %s', async (error) => {
+      const getResult = vi.fn().mockRejectedValue(error);
+      await expect(start(getResult)).rejects.toBe(error);
+      await vi.advanceTimersByTimeAsync(20000);
+      expect(getResult).toHaveBeenCalledTimes(1);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it.each([
+      new Error('network unavailable'),
+      new ApiError('slow', 408),
+      new ApiError('rate limited', 429),
+      new ApiError('unavailable', 503),
+    ])('recovers from transient read error %s', async (error) => {
+      const getResult = vi.fn().mockRejectedValueOnce(error).mockResolvedValue(generated);
+      const promise = start(getResult);
+      await flushMicrotasks();
+      await vi.advanceTimersByTimeAsync(2000);
+      expect((await promise).result).toEqual(generated);
+      expect(getResult).toHaveBeenCalledTimes(2);
+    });
+
+    it('rejects an unexpected media identity', async () => {
+      await expect(start(vi.fn().mockResolvedValue({ ...generated, id: 'other' }))).rejects.toThrow(
+        'Unexpected media'
+      );
+    });
+
+    it('times out and aborts a hanging initial read without later socket setup', async () => {
+      let signal: AbortSignal | undefined;
+      let finishRead: ((value: Observation) => void) | undefined;
+      const getResult = vi.fn((value: AbortSignal) => {
+        signal = value;
+        return new Promise<Observation>((resolve) => {
+          finishRead = resolve;
+        });
+      });
+      const promise = start(getResult);
+      const rejection = expect(promise).rejects.toThrow('Operation timed out');
+      await vi.advanceTimersByTimeAsync(10000);
+      await rejection;
+      expect(signal?.aborted).toBe(true);
+      finishRead?.(generated);
+      await flushMicrotasks();
+      expect(io).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
       expect(getResult).toHaveBeenCalledTimes(1);
     });
 
-    it('updates the spinner while an unresolved socket reconnects', async () => {
-      const getResult = vi.fn().mockResolvedValue({ id: 'test-reconnect' });
-      const spinner = { text: '' };
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        spinner: spinner as Parameters<typeof waitForCompletion>[0]['spinner'],
-        taskId: 'test-reconnect',
-        taskType: 'VIDEO',
-        timeout: 5000,
-      });
-      await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.connect?.({});
-      eventHandlers.disconnect?.('transport close');
-
-      expect(spinner.text).toBe('Reconnecting...');
-
-      const completeEvent: IBackgroundTaskUpdatePayload = {
-        resultType: 'VIDEO',
-        status: 'completed',
-        taskId: 'test-reconnect',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(completeEvent);
-
-      await promise;
+    it('keeps the overall deadline active during a hanging later GET', async () => {
+      let readSignal: AbortSignal | undefined;
+      const getResult = vi
+        .fn()
+        .mockResolvedValueOnce(processing)
+        .mockImplementation((signal: AbortSignal) => {
+          readSignal = signal;
+          return new Promise<Observation>(() => {});
+        });
+      const promise = start(getResult);
+      const rejection = expect(promise).rejects.toThrow('Operation timed out');
+      await vi.advanceTimersByTimeAsync(10000);
+      await rejection;
+      expect(readSignal?.aborted).toBe(true);
+      expect(mockSocket.disconnect).toHaveBeenCalledTimes(1);
+      expect(handlers.size).toBe(0);
+      expect(vi.getTimerCount()).toBe(0);
     });
 
-    it('ignores a client-initiated disconnect', async () => {
-      const getResult = vi.fn().mockResolvedValue({ id: 'test-client-disconnect' });
-      const spinner = { text: 'initial' };
-
-      const eventHandlers: Record<string, (data: unknown) => void> = {};
-      mockSocket.on.mockImplementation((event: string, handler: (data: unknown) => void) => {
-        eventHandlers[event] = handler;
-        return mockSocket;
-      });
-
-      const promise = waitForCompletion({
-        getResult,
-        spinner: spinner as Parameters<typeof waitForCompletion>[0]['spinner'],
-        taskId: 'test-client-disconnect',
-        taskType: 'VIDEO',
-        timeout: 5000,
-      });
+    it('does not open a late socket after configuration resolves past the deadline', async () => {
+      let finishConfig: ((value: string) => void) | undefined;
+      const store = await import('../../src/config/store');
+      vi.mocked(store.getApiUrl).mockImplementation(
+        () =>
+          new Promise<string>((resolve) => {
+            finishConfig = resolve;
+          })
+      );
+      const promise = start(vi.fn().mockResolvedValue(processing));
+      const rejection = expect(promise).rejects.toThrow('Operation timed out');
+      await vi.advanceTimersByTimeAsync(10000);
+      await rejection;
+      finishConfig?.('https://api.genfeed.ai/v1');
       await flushMicrotasks();
-
-      vi.advanceTimersByTime(0);
-      eventHandlers.disconnect?.('io client disconnect');
-
-      expect(spinner.text).toBe('initial');
-
-      const completeEvent: IBackgroundTaskUpdatePayload = {
-        resultType: 'VIDEO',
-        status: 'completed',
-        taskId: 'test-client-disconnect',
-        timestamp: '2026-08-07T00:00:00.000Z',
-        userId: 'user-1',
-      };
-      eventHandlers['background-task-update']?.(completeEvent);
-
-      await promise;
+      expect(io).not.toHaveBeenCalled();
+      expect(vi.getTimerCount()).toBe(0);
     });
   });
 

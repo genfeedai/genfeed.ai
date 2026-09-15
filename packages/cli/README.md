@@ -447,6 +447,13 @@ articles use the active brand; pass `--brand <id>` to override it.
 | `--words <n>` | Target word count, 2500-10000 (`article-x` only) |
 | `--no-header-image` | Skip the header image (`article-x` only) |
 
+Image and video generation waits check durable API status before subscribing to live
+updates, then check every two seconds while unfinished. Socket interruptions and
+missed events recover through these reads without starting another generation.
+The existing five-minute image and ten-minute video deadlines include status reads;
+on timeout, use `gf status <id> --type image` (or `video`) to inspect the original job.
+Authentication and access errors stop the wait immediately.
+
 ## Scripting
 
 Use `--json` for machine-readable output:
