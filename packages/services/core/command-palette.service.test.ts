@@ -37,6 +37,45 @@ describe('CommandPaletteService', () => {
     CommandPaletteService.clearCommands();
   });
 
+  describe('registry subscriptions', () => {
+    it('notifies once per changed batch and stops after unsubscribe', () => {
+      const listener = vi.fn();
+      const unsubscribe = CommandPaletteService.subscribeRegistry(listener);
+      try {
+        CommandPaletteService.registerCommands([
+          makeCommand('a', 'Alpha'),
+          makeCommand('b', 'Beta'),
+        ]);
+        expect(listener).toHaveBeenCalledTimes(1);
+        CommandPaletteService.registerCommands([makeCommand('a', 'Duplicate')]);
+        CommandPaletteService.registerCommands([]);
+        CommandPaletteService.unregisterCommands(['missing']);
+        expect(listener).toHaveBeenCalledTimes(1);
+        CommandPaletteService.unregisterCommands(['a', 'b']);
+        expect(listener).toHaveBeenCalledTimes(2);
+        unsubscribe();
+        CommandPaletteService.registerCommands([makeCommand('c', 'Gamma')]);
+        expect(listener).toHaveBeenCalledTimes(2);
+      } finally {
+        unsubscribe();
+      }
+    });
+
+    it('notifies when clearing an occupied registry but not an empty registry', () => {
+      CommandPaletteService.registerCommands([makeCommand('a', 'Alpha')]);
+      const listener = vi.fn();
+      const unsubscribe = CommandPaletteService.subscribeRegistry(listener);
+      try {
+        CommandPaletteService.clearCommands();
+        CommandPaletteService.clearCommands();
+        expect(listener).toHaveBeenCalledTimes(1);
+        expect(CommandPaletteService.getAllCommands()).toEqual([]);
+      } finally {
+        unsubscribe();
+      }
+    });
+  });
+
   describe('registerCommands', () => {
     it('registers a command and increments count', () => {
       CommandPaletteService.registerCommands([makeCommand('cmd-1', 'Test')]);

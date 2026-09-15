@@ -8,12 +8,24 @@ import { logger } from '@services/core/logger.service';
 
 class CommandPaletteServiceClass {
   private commands: Map<string, ICommand> = new Map();
+  private readonly registryListeners = new Set<() => void>();
   private recentCommands: string[] = [];
   private readonly maxRecentCommands = 10;
   private readonly storageKey = 'command-palette-recent';
 
   constructor() {
     this.loadRecentCommands();
+  }
+
+  subscribeRegistry(listener: () => void): () => void {
+    this.registryListeners.add(listener);
+    return () => {
+      this.registryListeners.delete(listener);
+    };
+  }
+
+  private notifyRegistryChanged(): void {
+    for (const listener of this.registryListeners) listener();
   }
 
   /**
@@ -50,6 +62,8 @@ class CommandPaletteServiceClass {
       });
     }
 
+    if (registeredIds.length > 0) this.notifyRegistryChanged();
+
     return registeredIds;
   }
 
@@ -81,6 +95,8 @@ class CommandPaletteServiceClass {
         count: missingIds.length,
       });
     }
+
+    if (removedIds.length > 0) this.notifyRegistryChanged();
   }
 
   /**
@@ -298,7 +314,9 @@ class CommandPaletteServiceClass {
    * Clear all commands
    */
   clearCommands(): void {
+    const hadCommands = this.commands.size > 0;
     this.commands.clear();
+    if (hadCommands) this.notifyRegistryChanged();
     logger.debug('All commands cleared');
   }
 
