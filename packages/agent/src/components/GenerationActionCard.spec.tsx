@@ -1235,6 +1235,60 @@ describe('GenerationActionCard', () => {
     ).toBeGreaterThan(0);
   });
 
+  it('retries a transient failure from its error card with the same generation settings', async () => {
+    const generateIngredient = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('Request failed with status code 503'))
+      .mockResolvedValueOnce({
+        id: 'image-2',
+        url: 'https://cdn.test/image-2.png',
+      });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            model: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+            prompt: 'Broadcast newsroom crypto banner.',
+          },
+          generationType: 'image',
+          id: 'action-retry-transient-error',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          generateIngredient,
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
+              label: 'FLUX Schnell',
+            }),
+          ],
+        })}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', { name: /generate image/i }),
+    );
+
+    expect(
+      await screen.findByText(/temporarily unavailable/i),
+    ).toBeInTheDocument();
+    expect(generateIngredient).toHaveBeenCalledTimes(1);
+    fireEvent.click(screen.getByRole('button', { name: 'Retry' }));
+
+    await waitFor(() => {
+      expect(generateIngredient).toHaveBeenCalledTimes(2);
+    });
+    expect(generateIngredient.mock.calls[1]?.slice(0, 2)).toEqual(
+      generateIngredient.mock.calls[0]?.slice(0, 2),
+    );
+    expect(
+      (await screen.findAllByRole('link', { name: 'View in Library' })).length,
+    ).toBeGreaterThan(0);
+  });
+
   it('keeps Generate clickable when the composer UI action reports failure', async () => {
     storeState.error =
       'Failed to respond to UI action: 401 - The model provider rejected the credentials for this request.';
