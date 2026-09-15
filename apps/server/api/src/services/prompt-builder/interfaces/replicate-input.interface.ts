@@ -402,9 +402,15 @@ export interface Seedance2Input extends BaseVideoInput {
   generate_audio?: boolean;
   resolution?: string;
   seed?: number;
+  /** Start frame for this shot. Not an identity reference. */
   image?: string;
   /** Seedance 2.5 last-frame control for image-to-video. */
   last_frame?: string;
+  /**
+   * Identity stills (character, product, style sheets) sent alongside the
+   * start frame — up to 9 on the 2.0 family and 30 on 2.5 (#4652).
+   */
+  reference_images?: string[];
   video?: string;
   audio?: string;
 }

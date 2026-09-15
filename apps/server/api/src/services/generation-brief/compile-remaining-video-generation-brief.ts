@@ -88,6 +88,10 @@ export function compileRemainingVideoGenerationBrief(
   let firstFrameAssetId: string | undefined;
   let lastFrameAssetId: string | undefined;
   const extraReferenceAssetIds: string[] = [];
+  // Roles that landed on the multi-image identity field, so evidence can
+  // show `references.character` / `references.product` were applied rather
+  // than only the start and last frames (#4652).
+  const extraReferenceRoles = new Set<string>();
   const videoReferenceAssetIds: string[] = [];
   const supportsFirstFrame = profile.references.roles.includes('first_frame');
 
@@ -143,6 +147,7 @@ export function compileRemainingVideoGenerationBrief(
       profile.references.nativeFields.includes(spec.extraReferenceField)
     ) {
       extraReferenceAssetIds.push(reference.assetId);
+      extraReferenceRoles.add(reference.role);
       continue;
     }
     recordOmittedGenerationBriefSignal(
@@ -365,6 +370,9 @@ export function compileRemainingVideoGenerationBrief(
       ...(brief.intent.brandContext ? ['intent.brandContext'] : []),
       ...(firstFrameAssetId ? ['references.first_frame'] : []),
       ...(lastFrameAssetId ? ['references.last_frame'] : []),
+      ...[...extraReferenceRoles]
+        .filter((role) => role !== 'first_frame' && role !== 'last_frame')
+        .map((role) => `references.${role}`),
       ...(resolution ? ['output.resolution'] : []),
       ...(videoReferenceAssetIds.length > 0
         ? ['references.reference_video']

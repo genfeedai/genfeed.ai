@@ -66,6 +66,40 @@ describe('runVideoGenerationBrief', () => {
     expect(result.brief?.output.durationSeconds).toBe(8);
   });
 
+  it('routes Seedance identity references onto the multi-image field (#4652)', () => {
+    const result = runVideoGenerationBrief({
+      durationSeconds: 5,
+      height: 1080,
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      objective: 'The founder demos the product on the bench',
+      references: [
+        { assetId: 'start-frame', role: 'first_frame' },
+        { assetId: 'character-front', role: 'character' },
+        { assetId: 'hero-product', role: 'product' },
+      ],
+      surface: 'studio',
+      width: 1920,
+    });
+
+    expect(result.dispatch).toMatchObject({
+      image: 'start-frame',
+      reference_images: ['character-front', 'hero-product'],
+    });
+    expect(result.evidence).toMatchObject({
+      actionVerb: 'generate',
+      status: 'compiled',
+    });
+    if (result.evidence.status === 'compiled') {
+      expect(result.evidence.appliedFields).toEqual(
+        expect.arrayContaining([
+          'references.first_frame',
+          'references.character',
+          'references.product',
+        ]),
+      );
+    }
+  });
+
   describe('brandContext (#4676)', () => {
     it('reaches the compiled prompt when passed, independent of avoid-forced fidelity', () => {
       const result = runVideoGenerationBrief({
