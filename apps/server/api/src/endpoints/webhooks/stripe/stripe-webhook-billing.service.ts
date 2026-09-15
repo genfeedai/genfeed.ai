@@ -164,11 +164,18 @@ export class StripeWebhookBillingService {
     ) {
       throw new StripeWebhookBillingError('identity_conflict');
     }
+    const metadataType = input.metadata?.[BILLING_ACCOUNT_METADATA.type];
+    if (
+      metadataType !== undefined &&
+      metadataType !== 'organization' &&
+      metadataType !== 'billing_account'
+    ) {
+      throw new StripeWebhookBillingError('identity_conflict');
+    }
     const expectedMetadata = {
       [BILLING_ACCOUNT_METADATA.organizationId]: subscription.organizationId,
       organizationId: subscription.organizationId,
       [BILLING_ACCOUNT_METADATA.billingAccountId]: account.id,
-      [BILLING_ACCOUNT_METADATA.type]: 'billing_account',
     };
     for (const [key, value] of Object.entries(expectedMetadata)) {
       if (

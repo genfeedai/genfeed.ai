@@ -138,6 +138,39 @@ describe('Stripe billing HTTP composition', () => {
     await app.close();
   });
 
+  it.each(['customer.subscription.created', 'invoice.paid'])(
+    'accepts production checkout metadata in real %s composition',
+    async (type) => {
+      const metadata = {
+        billing_account_type: 'organization',
+        billing_organization_id: 'org_1',
+      };
+      const object =
+        type === 'customer.subscription.created'
+          ? { ...created, metadata }
+          : {
+              id: 'in_production',
+              billing_reason: 'subscription_cycle',
+              customer: 'cus_1',
+              parent: {
+                subscription_details: { subscription: 'sub_1', metadata },
+              },
+            };
+      stripe.constructWebhookEvent.mockResolvedValue({
+        id: 'evt_production',
+        type,
+        data: { object },
+      });
+      await request(app.getHttpServer())
+        .post('/webhooks/stripe/callback')
+        .send({})
+        .expect(200);
+      expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(1);
+      expect(reconciler.reconcile).toHaveBeenCalledTimes(1);
+      expect(logger.warn).not.toHaveBeenCalled();
+      expect(logger.error).not.toHaveBeenCalled();
+    },
+  );
   it('returns one classified warning and 503, releases the acquired key, and retries after repair', async () => {
     accounts.resolveForOrganization.mockResolvedValueOnce(null);
     const response = await request(app.getHttpServer())

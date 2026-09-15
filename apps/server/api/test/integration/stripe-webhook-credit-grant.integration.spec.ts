@@ -490,9 +490,14 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     },
   );
 
-  it.each(['created-first', 'invoice-first'])(
-    'deduplicates the durable initial grant across %s arrival order',
-    async (order) => {
+  it.each([
+    ['created-first', false],
+    ['invoice-first', false],
+    ['created-first', true],
+    ['invoice-first', true],
+  ])(
+    'deduplicates initial grant across %s arrival order with production metadata=%s',
+    async (order, hasProductionMetadata) => {
       const stripeSubscriptionId = `sub_${generateIdString()}`;
       const { organizationId, subscription } =
         await seedOrganizationWithSubscription({
@@ -511,6 +516,13 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
         }),
       );
       invoiceEvent.data.object.billing_reason = 'subscription_create';
+      const metadata = hasProductionMetadata
+        ? {
+            billing_account_type: 'organization',
+            billing_organization_id: organizationId,
+          }
+        : {};
+      invoiceEvent.data.object.parent.subscription_details.metadata = metadata;
       const createdEvent = {
         ...invoiceEvent,
         id: `evt_${generateIdString()}`,
@@ -518,6 +530,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
         data: {
           object: {
             id: stripeSubscriptionId,
+            metadata,
             customer: { id: `cus_${stripeSubscriptionId}` },
             status: 'active',
             cancel_at_period_end: false,

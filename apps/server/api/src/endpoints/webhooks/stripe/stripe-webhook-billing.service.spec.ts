@@ -63,6 +63,48 @@ describe('StripeWebhookBillingService', () => {
       });
     },
   );
+  it.each(['subscription', 'customer'])(
+    'accepts production checkout organization metadata through persisted %s identity',
+    async (path) => {
+      if (path === 'customer')
+        prisma.subscription.findMany.mockResolvedValueOnce([]);
+      await expect(
+        service.resolve({
+          ...input,
+          metadata: {
+            billing_account_type: 'organization',
+            billing_organization_id: 'org_1',
+          },
+        }),
+      ).resolves.toMatchObject({ billingAccountId: 'ba_1' });
+    },
+  );
+  it('does not use the organization marker as metadata-only routing authority', async () => {
+    prisma.subscription.findMany.mockResolvedValue([]);
+    prisma.customer.findMany.mockResolvedValue([]);
+    await expect(
+      service.resolve({
+        ...input,
+        metadata: { ...metadata, billing_account_type: 'organization' },
+      }),
+    ).rejects.toMatchObject({ code: 'identity_missing' });
+    expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+  });
+  it.each(['billing_organization_id', 'organizationId', 'billing_account_id'])(
+    'rejects mismatched %s with production organization metadata',
+    async (key) => {
+      await expect(
+        service.resolve({
+          ...input,
+          metadata: {
+            billing_account_type: 'organization',
+            billing_organization_id: 'org_1',
+            [key]: 'other',
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'identity_conflict' });
+    },
+  );
   it('uses bounded scoped persisted-customer fallback without provider metadata', async () => {
     prisma.subscription.findMany.mockResolvedValueOnce([]);
     await service.resolve(input);
