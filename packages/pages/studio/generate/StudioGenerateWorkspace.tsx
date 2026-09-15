@@ -74,6 +74,7 @@ import {
   type ReactElement,
   useCallback,
   useEffect,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
@@ -307,14 +308,22 @@ export default function StudioGenerateWorkspace(): ReactElement {
   // themselves would.
   const { payload: handoffPayload } = useStudioGenerateHandoff();
   const appliedHandoffRef = useRef(false);
-  // Set only once the handoff has actually been accepted (past the brand
-  // check) — separate from `appliedHandoffRef`, which latches on the first
-  // decision either way, so a rejected (cross-brand) handoff never lets the
-  // downstream effects run against a patch that was never applied (#4716
-  // re-review P2). State rather than a ref: acceptance usually happens on a
-  // later render, once the brand resolves, and the downstream effects must
-  // re-run when it flips.
-  const [isHandoffAccepted, setIsHandoffAccepted] = useState(false);
+  const handoffScope = useMemo(
+    () => ({ brandId, getIngredientsService, handoffPayload, organizationId }),
+    [brandId, getIngredientsService, handoffPayload, organizationId],
+  );
+  const [acceptedHandoffScope, setAcceptedHandoffScope] = useState<
+    typeof handoffScope | null
+  >(null);
+  const isHandoffAccepted = acceptedHandoffScope === handoffScope;
+  const handoffScopeRef = useRef(handoffScope);
+  const handoffReferencesControllerRef = useRef<AbortController | null>(null);
+  useLayoutEffect(() => {
+    if (handoffScopeRef.current !== handoffScope) {
+      handoffReferencesControllerRef.current?.abort();
+      handoffScopeRef.current = handoffScope;
+    }
+  }, [handoffScope]);
   // Guards the reference fetch against resolving after a real unmount while
   // surviving React Strict Mode's dev-only mount -> cleanup -> mount cycle,
   // which re-sets it to `true` before the in-flight request resolves.
@@ -350,7 +359,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
       );
       return;
     }
-    setIsHandoffAccepted(true);
+    setAcceptedHandoffScope(handoffScope);
 
     setPrompt(handoffPayload.prompt);
     applyTypeSettings(
@@ -361,18 +370,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
     applyTypeSettings,
     brandId,
     handoffPayload,
+    handoffScope,
     isHydrated,
     notificationsService,
   ]);
 
-  // #4716 re-review P3: kept as its own effect, separate from the apply
-  // effect above, because React 18 Strict Mode's dev-only double-invoke
-  // (mount -> cleanup -> mount) stranded a per-run cancellation flag: the
-  // synthetic cleanup cancelled the only fetch that ever started.
-  // `handoffReferencesRequestedRef` latches before the fetch starts and is
-  // never reset, so at most one fetch runs for the component's life; the
-  // component-level `isMountedRef` then discards the result only after a
-  // real unmount, which Strict Mode's synthetic cycle does not leave behind.
+  // Keep the one-request latch across Strict Mode's synthetic remount.
+  // Scope changes permanently invalidate the pending result, without retrying
+  // a handoff that has already been consumed.
   const handoffReferencesRequestedRef = useRef(false);
   useEffect(() => {
     if (
@@ -389,9 +394,18 @@ export default function StudioGenerateWorkspace(): ReactElement {
     handoffReferencesRequestedRef.current = true;
 
     const role = studioHandoffReferenceRole(handoffPayload.type);
+    const controller = new AbortController();
+    handoffReferencesControllerRef.current = controller;
+    const isScopeCurrent = () =>
+      isMountedRef.current &&
+      !controller.signal.aborted &&
+      handoffScopeRef.current === handoffScope;
     void (async () => {
       try {
         const service = await getIngredientsService();
+        if (!isScopeCurrent()) {
+          return;
+        }
         const assets = await service.findByIds(referenceIds);
         const newReferences = assets.reduce<StudioContentReference[]>(
           (accumulator, asset) => {
@@ -415,7 +429,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
           },
           [],
         );
-        if (!isMountedRef.current || newReferences.length === 0) {
+        if (!isScopeCurrent() || newReferences.length === 0) {
           return;
         }
         setContentReferences((current) => [...current, ...newReferences]);
@@ -425,7 +439,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         // the rest of the prefill.
       }
     })();
-  }, [getIngredientsService, handoffPayload, isHandoffAccepted]);
+  }, [getIngredientsService, handoffPayload, handoffScope, isHandoffAccepted]);
 
   // #4716 review P1: the Agent resolves a concrete model at handoff time, but
   // the org's enabled-model allowlist can differ from what the Agent saw (or

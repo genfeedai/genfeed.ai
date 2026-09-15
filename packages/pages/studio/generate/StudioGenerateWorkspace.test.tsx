@@ -32,6 +32,9 @@ const mocks = vi.hoisted(() => ({
   attachments: vi.fn(),
   applyTypeSettings: vi.fn(),
   brandId: { value: 'brand-1' },
+  organizationId: { value: 'org-1' },
+  authIdentity: { value: 'identity-1' },
+  getToken: vi.fn().mockResolvedValue('test-token'),
   composer: vi.fn(),
   findByIds: vi.fn().mockResolvedValue([]),
   gallery: vi.fn(),
@@ -142,7 +145,10 @@ vi.mock('@hooks/ui/use-attachments/use-attachments', () => ({
 }));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({ brandId: mocks.brandId.value }),
+  useBrand: () => ({
+    brandId: mocks.brandId.value,
+    organizationId: mocks.organizationId.value,
+  }),
 }));
 
 vi.mock('@genfeedai/contexts/ui/sidebar-navigation-context', () => ({
@@ -223,7 +229,11 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const factoryRef = useRef(factory);
     factoryRef.current = factory;
-    return useCallback(async () => factoryRef.current('test-token'), []);
+    const identity = mocks.authIdentity.value;
+    return useCallback(
+      async () => factoryRef.current(await mocks.getToken(identity)),
+      [identity],
+    );
   },
 }));
 
@@ -316,6 +326,9 @@ describe('StudioGenerateWorkspace', () => {
     vi.clearAllMocks();
     mocks.isHydrated.value = true;
     mocks.brandId.value = 'brand-1';
+    mocks.organizationId.value = 'org-1';
+    mocks.authIdentity.value = 'identity-1';
+    mocks.getToken.mockResolvedValue('test-token');
     mocks.remixRun.value = null;
     mocks.type.value = 'image';
     mocks.handoff.value = { isLoading: false, payload: null };
@@ -846,6 +859,126 @@ describe('StudioGenerateWorkspace', () => {
       );
     });
     expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+  });
+
+  it.each(['handoff', 'brand', 'organization', 'identity', 'brand round trip'])(
+    'discards pending handoff references after a %s change',
+    async (change) => {
+      const asset = {
+        category: 'image',
+        cdnUrl: 'https://cdn.example/old.png',
+        id: 'old-reference',
+      };
+      const pending = Promise.withResolvers<(typeof asset)[]>();
+      mocks.findByIds.mockReturnValue(pending.promise);
+      mocks.handoff.value = {
+        isLoading: false,
+        payload: {
+          brandId: 'brand-1',
+          prompt: 'Original handoff',
+          references: ['old-reference'],
+          type: 'image',
+        },
+      };
+      const { rerender } = render(<StudioGenerateWorkspace />);
+      await waitFor(() => expect(mocks.findByIds).toHaveBeenCalledTimes(1));
+
+      if (change === 'handoff') {
+        mocks.handoff.value = {
+          isLoading: false,
+          payload: {
+            ...mocks.handoff.value.payload,
+            prompt: 'Replacement handoff',
+            references: ['new-reference'],
+          },
+        };
+      } else if (change === 'organization') {
+        mocks.organizationId.value = 'org-2';
+      } else if (change === 'identity') {
+        mocks.authIdentity.value = 'identity-2';
+      } else {
+        mocks.brandId.value = 'brand-2';
+      }
+      rerender(<StudioGenerateWorkspace />);
+      if (change === 'brand round trip') {
+        mocks.brandId.value = 'brand-1';
+        rerender(<StudioGenerateWorkspace />);
+      }
+      await act(async () => pending.resolve([asset]));
+
+      expect(mocks.composer.mock.calls.at(-1)?.[0].attachedAssets).not.toEqual(
+        expect.arrayContaining([expect.objectContaining({ id: asset.id })]),
+      );
+      expect(mocks.findByIds).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not request handoff references when identity changes while acquiring the service', async () => {
+    const token = Promise.withResolvers<string>();
+    mocks.getToken.mockReturnValue(token.promise);
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        references: ['old-reference'],
+        type: 'image',
+      },
+    };
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    await waitFor(() => expect(mocks.getToken).toHaveBeenCalled());
+    mocks.authIdentity.value = 'identity-2';
+    rerender(<StudioGenerateWorkspace />);
+    await act(async () => token.resolve('replacement-token'));
+
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+  });
+
+  it('does not use a later handoff after accepting one without references', async () => {
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        type: 'image',
+      },
+    };
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    mocks.updateSettings.mockClear();
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Replacement handoff',
+        references: ['new-reference'],
+        type: 'image',
+      },
+    };
+    rerender(<StudioGenerateWorkspace />);
+    await act(async () => {});
+
+    expect(mocks.findByIds).not.toHaveBeenCalled();
+    expect(mocks.updateSettings).not.toHaveBeenCalled();
+    expect(screen.getByText('Original handoff')).toBeVisible();
+  });
+
+  it('does not request references after unmount while acquiring the service', async () => {
+    const token = Promise.withResolvers<string>();
+    mocks.getToken.mockReturnValue(token.promise);
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        prompt: 'Original handoff',
+        references: ['old-reference'],
+        type: 'image',
+      },
+    };
+    const { unmount } = render(<StudioGenerateWorkspace />);
+    await waitFor(() => expect(mocks.getToken).toHaveBeenCalled());
+    unmount();
+    await act(async () => token.resolve('test-token'));
+    expect(mocks.findByIds).not.toHaveBeenCalled();
   });
 
   it('attaches references when the brand resolves after the first render', async () => {
