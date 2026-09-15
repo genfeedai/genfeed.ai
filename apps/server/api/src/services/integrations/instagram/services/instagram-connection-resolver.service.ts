@@ -137,7 +137,7 @@ export class InstagramConnectionResolverService {
       );
 
     const { access_token, expires_in } = longTokenRes.data || {};
-    const scope = tokenRes.data.scope ?? longTokenRes.data?.scope;
+    let scope = tokenRes.data.scope ?? longTokenRes.data?.scope;
 
     if (!access_token) {
       return returnBadRequest({
@@ -150,6 +150,39 @@ export class InstagramConnectionResolverService {
     // account — surface that specifically, rather than the generic "not
     // eligible" error the empty-list case below throws.
     markStage('permission_check');
+    if (scope == null) {
+      const permissions = await firstValueFrom(
+        this.httpService.get<unknown>(
+          `${this.graphUrl}/${this.apiVersion}/me/permissions`,
+          { params: { access_token }, timeout: 10_000 },
+        ),
+      );
+      const payload = permissions.data;
+      const entries =
+        payload &&
+        typeof payload === 'object' &&
+        'data' in payload &&
+        Array.isArray(payload.data)
+          ? payload.data
+          : [];
+      scope = parseInstagramGrantedScopes(
+        entries
+          .flatMap((entry: unknown) => {
+            if (
+              !entry ||
+              typeof entry !== 'object' ||
+              !('status' in entry) ||
+              entry.status !== 'granted' ||
+              !('permission' in entry) ||
+              typeof entry.permission !== 'string'
+            ) {
+              return [];
+            }
+            return [entry.permission];
+          })
+          .join(','),
+      ).join(',');
+    }
     const grantedScopesList = parseInstagramGrantedScopes(scope);
     if (!grantedScopesList.includes(INSTAGRAM_PAGES_SCOPE)) {
       throw new HttpException(

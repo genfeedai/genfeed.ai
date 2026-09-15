@@ -289,10 +289,13 @@ function abandonedSelectionRow(
 }
 
 class FakeAbandonedSelectionClient implements AbandonedSelectionCleanupClient {
+  readonly findCalls: AbandonedSelectionFindManyArgs[] = [];
+  beforeUpdate: (() => void) | undefined;
   readonly updateCalls: AbandonedSelectionUpdateManyArgs[] = [];
   readonly credential = {
-    findMany: async (args: AbandonedSelectionFindManyArgs) =>
-      this.rows
+    findMany: async (args: AbandonedSelectionFindManyArgs) => {
+      this.findCalls.push(args);
+      return this.rows
         .filter(
           (row) =>
             row.organizationId === args.where.organizationId &&
@@ -306,8 +309,11 @@ class FakeAbandonedSelectionClient implements AbandonedSelectionCleanupClient {
             (!args.where.id || row.id > args.where.id.gt),
         )
         .sort((left, right) => left.id.localeCompare(right.id))
-        .map((row) => ({ id: row.id, updatedAt: row.updatedAt })),
+        .slice(0, args.take)
+        .map((row) => ({ id: row.id, updatedAt: row.updatedAt }));
+    },
     updateMany: async (args: AbandonedSelectionUpdateManyArgs) => {
+      this.beforeUpdate?.();
       this.updateCalls.push(args);
       let count = 0;
       for (const row of this.rows) {
@@ -352,6 +358,81 @@ describe('runAbandonedInstagramSelectionCleanup', () => {
     });
     expect(rows[0].isDeleted).toBe(true);
     expect(rows[0].accessToken).toBeNull();
+  });
+
+  it.each([false, true])(
+    'advances through 100 plus remainder rows (dryRun=%s)',
+    async (dryRun) => {
+      const rows = Array.from({ length: 137 }, (_, index) =>
+        abandonedSelectionRow({
+          id: `credential-${String(index).padStart(3, '0')}`,
+        }),
+      );
+      const client = new FakeAbandonedSelectionClient(rows);
+      const report = await runAbandonedInstagramSelectionCleanup(
+        client,
+        { dryRun, organizationId: ORGANIZATION_ID },
+        NOW,
+      );
+      expect(report).toEqual({
+        concurrentChangesSkipped: 0,
+        dryRun,
+        scanned: 137,
+        updated: dryRun ? 0 : 137,
+        wouldUpdate: 137,
+      });
+      expect(client.findCalls.map((call) => call.where.id?.gt)).toEqual([
+        undefined,
+        'credential-099',
+      ]);
+      expect(client.findCalls.map((call) => call.take)).toEqual([100, 100]);
+      if (dryRun) {
+        expect(client.updateCalls).toHaveLength(0);
+        expect(
+          rows.every(
+            (row) => !row.isDeleted && row.accessToken === 'encrypted-token',
+          ),
+        ).toBe(true);
+      } else {
+        expect(
+          client.updateCalls.map((call) => call.where.id.in.length),
+        ).toEqual([100, 37]);
+        const updatedIds = client.updateCalls.flatMap(
+          (call) => call.where.id.in,
+        );
+        expect(new Set(updatedIds).size).toBe(137);
+        expect(
+          rows.every((row) => row.isDeleted && row.accessToken === null),
+        ).toBe(true);
+      }
+    },
+  );
+
+  it('preserves a concurrently connected row and its token', async () => {
+    const row = abandonedSelectionRow();
+    const client = new FakeAbandonedSelectionClient([row]);
+    client.beforeUpdate = () => {
+      row.externalId = 'selected-account';
+      row.isConnected = true;
+      row.accessToken = 'new-encrypted-token';
+    };
+    const report = await runAbandonedInstagramSelectionCleanup(
+      client,
+      { dryRun: false, organizationId: ORGANIZATION_ID },
+      NOW,
+    );
+    expect(report).toMatchObject({
+      concurrentChangesSkipped: 1,
+      scanned: 1,
+      updated: 0,
+      wouldUpdate: 1,
+    });
+    expect(row).toMatchObject({
+      isDeleted: false,
+      isConnected: true,
+      externalId: 'selected-account',
+      accessToken: 'new-encrypted-token',
+    });
   });
 
   it('never touches a row that already resolved an account', async () => {

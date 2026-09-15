@@ -298,6 +298,7 @@ export class InstagramService {
           this.httpService.get(
             `${this.graphUrl}/${this.apiVersion}/me/accounts`,
             {
+              timeout: 10_000,
               params: {
                 access_token: accessToken,
                 ...(afterCursor ? { after: afterCursor } : {}),

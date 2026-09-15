@@ -211,6 +211,27 @@ describe('InstagramAccountSelector', () => {
     expect(confirmButton).toBeDisabled();
   });
 
+  it('exposes the actual selected account as pressed', async () => {
+    mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
+      candidateAccounts,
+    );
+    render(
+      <InstagramAccountSelector
+        credentialId={credentialId}
+        onConnected={vi.fn()}
+      />,
+    );
+    const first = await screen.findByRole('button', { name: /Genfeed AI/ });
+    const second = screen.getByRole('button', { name: /Genfeed Studio/ });
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+    expect(second).toHaveAttribute('aria-pressed', 'false');
+    fireEvent.click(first);
+    expect(first).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(second);
+    expect(first).toHaveAttribute('aria-pressed', 'false');
+    expect(second).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('confirms the selection through the select-account endpoint, never the generic PATCH', async () => {
     const onConnected = vi.fn();
     mockCredentialsService.findCredentialInstagramPages.mockResolvedValue(
