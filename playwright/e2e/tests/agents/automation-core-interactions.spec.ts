@@ -41,7 +41,13 @@ test.describe('Automation — Core Interactions', () => {
   }) => {
     await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/agents`);
     await expect(
-      authenticatedPage.getByRole('button', { name: 'Add agent' }),
+      authenticatedPage.getByText('No agents yet', { exact: true }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', {
+        exact: true,
+        name: 'Add your first agent',
+      }),
     ).toBeVisible();
 
     await assertRouteRenders(authenticatedPage, `${BRAND_BASE}/campaigns`);
