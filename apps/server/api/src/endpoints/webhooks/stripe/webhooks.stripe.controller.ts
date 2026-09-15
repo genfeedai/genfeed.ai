@@ -1,3 +1,4 @@
+import { StripeWebhookBillingExceptionFilter } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing-exception.filter';
 import {
   getStripeWebhookErrorDiagnostics,
   mapStripeWebhookError,
@@ -13,7 +14,7 @@ import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Controller, HttpCode, Post, Req } from '@nestjs/common';
+import { Controller, HttpCode, Post, Req, UseFilters } from '@nestjs/common';
 import type { Request } from 'express';
 import type Stripe from 'stripe';
 
@@ -22,6 +23,7 @@ const WEBHOOK_IDEMPOTENCY_TTL = 86400;
 
 @AutoSwagger()
 @Public()
+@UseFilters(StripeWebhookBillingExceptionFilter)
 @Controller('webhooks/stripe')
 export class StripeWebhookController {
   private readonly constructorName: string = String(this.constructor.name);

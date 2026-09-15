@@ -1,3 +1,4 @@
+import { BillingAccountsModule } from '@api/collections/billing-accounts/billing-accounts.module';
 import { StripeAttributionTrackerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-attribution-tracker.service';
 import { StripeCheckoutWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-checkout-webhook.handler';
 import { StripeCustomerWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-customer-webhook.handler';
@@ -6,6 +7,7 @@ import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/hand
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import { StripeWebhooksModule } from '@api/endpoints/webhooks/stripe/stripe-webhooks.module';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
@@ -32,7 +34,11 @@ describe('StripeWebhooksModule', () => {
       Reflect.getMetadata(MODULE_METADATA.PROVIDERS, StripeWebhooksModule) ??
       [];
 
+    expect(
+      Reflect.getMetadata(MODULE_METADATA.IMPORTS, StripeWebhooksModule),
+    ).toContain(BillingAccountsModule);
     for (const provider of [
+      StripeWebhookBillingService,
       StripeAttributionTrackerService,
       StripeCheckoutWebhookHandler,
       StripeCustomerWebhookHandler,

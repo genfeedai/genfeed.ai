@@ -74,11 +74,12 @@ import { StripePaymentWebhookHandler } from '@api/endpoints/webhooks/stripe/hand
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeSubscriptionWebhookHandler } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-webhook.handler';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
-import { OrganizationBillingAccountService } from '@api/services/integrations/stripe/services/organization-billing-account.service';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -178,6 +179,7 @@ const buildSubscriptionsServiceStub = (
 const buildCreditGrantServiceStub = () =>
   ({
     logUnresolvedGrant: vi.fn(),
+    resolveTierFromPriceId: vi.fn(() => null),
     resolvePlanCredits: vi.fn(
       async (
         plan: string | null | undefined,
@@ -200,7 +202,7 @@ const buildCreditGrantServiceStub = () =>
     ),
   }) satisfies Pick<
     SubscriptionCreditGrantService,
-    'logUnresolvedGrant' | 'resolvePlanCredits'
+    'logUnresolvedGrant' | 'resolvePlanCredits' | 'resolveTierFromPriceId'
   >;
 
 const buildInvoicePaidEventPayload = (params: {
@@ -214,6 +216,7 @@ const buildInvoicePaidEventPayload = (params: {
     data: {
       object: {
         billing_reason: 'subscription_cycle',
+        customer: `cus_${params.stripeSubscriptionId}`,
         id: params.invoiceId,
         metadata: {},
         object: 'invoice',
@@ -273,7 +276,8 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           provide: RedisService,
           useValue: { getPublisher: () => redisPublisherDouble },
         },
-        { provide: StripeSubscriptionWebhookHandler, useValue: {} },
+        StripeSubscriptionWebhookHandler,
+        { provide: LifecycleEmailService, useValue: {} },
         { provide: StripeCheckoutWebhookHandler, useValue: {} },
         { provide: StripeCustomerWebhookHandler, useValue: {} },
         { provide: StripePaymentWebhookHandler, useValue: {} },
@@ -281,10 +285,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           provide: SUBSCRIPTIONS_SERVICE,
           useValue: buildSubscriptionsServiceStub(subscriptionsById),
         },
-        {
-          provide: OrganizationBillingAccountService,
-          useValue: { resolveWebhookOrganization: vi.fn() },
-        },
+        StripeWebhookBillingService,
         {
           provide: UsersService,
           useValue: {
@@ -403,10 +404,165 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
       stripeSubscriptionId: params.stripeSubscriptionId,
       userId,
     };
+    const account =
+      await billingAccountsService.resolveForOrganization(organizationId);
+    const customer = await prisma.customer.create({
+      data: {
+        organizationId,
+        billingAccountId: account.id,
+        stripeCustomerId: `cus_${params.stripeSubscriptionId}`,
+      },
+    });
+    await prisma.subscription.create({
+      data: {
+        id: String(subscription.id),
+        organizationId,
+        userId,
+        customerId: customer.id,
+        billingAccountId: account.id,
+        stripeSubscriptionId: params.stripeSubscriptionId,
+        stripePriceId: subscription.stripePriceId,
+        plan: params.plan,
+        status: 'ACTIVE',
+      },
+    });
     subscriptionsById.set(params.stripeSubscriptionId, subscription);
 
     return { organizationId, subscription };
   };
+
+  it.each([
+    'organization-account',
+    'account-deleted',
+    'customer-deleted',
+    'subscription-deleted',
+  ])(
+    'rejects persistence after %s changes between resolve and write',
+    async (change) => {
+      const stripeSubscriptionId = `sub_${generateIdString()}`;
+      const { organizationId, subscription } =
+        await seedOrganizationWithSubscription({
+          plan: SubscriptionPlan.MONTHLY,
+          stripeSubscriptionId,
+        });
+      const billing = moduleRef.get(StripeWebhookBillingService);
+      const identity = await billing.resolve({
+        customer: `cus_${stripeSubscriptionId}`,
+        stripeSubscriptionId,
+      });
+      if (change === 'organization-account') {
+        const replacement = await prisma.billingAccount.create({
+          data: { label: 'Replacement' },
+        });
+        await prisma.organization.update({
+          where: { id: organizationId },
+          data: { billingAccountId: replacement.id },
+        });
+      } else if (change === 'account-deleted') {
+        await prisma.billingAccount.update({
+          where: { id: identity.billingAccountId },
+          data: { isDeleted: true },
+        });
+      } else if (change === 'customer-deleted') {
+        await prisma.customer.update({
+          where: { id: identity.subscription.customerId as string },
+          data: { isDeleted: true },
+        });
+      } else {
+        await prisma.subscription.update({
+          where: { id: String(subscription.id) },
+          data: { isDeleted: true },
+        });
+      }
+      await expect(
+        billing.persist(identity, { status: 'TRIALING', stripeSubscriptionId }),
+      ).rejects.toMatchObject({ code: 'identity_conflict' });
+      expect(
+        (
+          await prisma.subscription.findUnique({
+            where: { id: String(subscription.id) },
+          })
+        )?.status,
+      ).toBe('ACTIVE');
+      expect(
+        await prisma.creditTransaction.count({ where: { organizationId } }),
+      ).toBe(0);
+    },
+  );
+
+  it.each(['created-first', 'invoice-first'])(
+    'deduplicates the durable initial grant across %s arrival order',
+    async (order) => {
+      const stripeSubscriptionId = `sub_${generateIdString()}`;
+      const { organizationId, subscription } =
+        await seedOrganizationWithSubscription({
+          plan: SubscriptionPlan.MONTHLY,
+          stripeSubscriptionId,
+        });
+      await prisma.subscription.update({
+        where: { id: String(subscription.id) },
+        data: { stripeSubscriptionId: null },
+      });
+      const invoiceEvent = JSON.parse(
+        buildInvoicePaidEventPayload({
+          eventId: `evt_${generateIdString()}`,
+          invoiceId: `in_${generateIdString()}`,
+          stripeSubscriptionId,
+        }),
+      );
+      invoiceEvent.data.object.billing_reason = 'subscription_create';
+      const createdEvent = {
+        ...invoiceEvent,
+        id: `evt_${generateIdString()}`,
+        type: 'customer.subscription.created',
+        data: {
+          object: {
+            id: stripeSubscriptionId,
+            customer: { id: `cus_${stripeSubscriptionId}` },
+            status: 'active',
+            cancel_at_period_end: false,
+            items: {
+              data: [
+                {
+                  price: {
+                    id: PRO_MONTHLY_PRICE_ID,
+                    recurring: { interval: 'month' },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      };
+      const events =
+        order === 'created-first'
+          ? [createdEvent, invoiceEvent]
+          : [invoiceEvent, createdEvent];
+      for (const event of [
+        ...events,
+        { ...invoiceEvent, id: `evt_${generateIdString()}` },
+      ]) {
+        await controller.handleStripe(
+          signAndBuildRequest(JSON.stringify(event)),
+        );
+      }
+      expect(
+        await prisma.subscription.count({ where: { organizationId } }),
+      ).toBe(1);
+      expect(await prisma.customer.count({ where: { organizationId } })).toBe(
+        1,
+      );
+      expect(
+        await prisma.creditTransaction.count({
+          where: {
+            organizationId,
+            referenceId: `stripe-subscription:${stripeSubscriptionId}`,
+            referenceType: 'stripe-subscription:initial-grant',
+          },
+        }),
+      ).toBe(1);
+    },
+  );
 
   it('processes a monthly invoice.paid webhook exactly once when the identical Stripe event is replayed (Redis-level idempotency)', async () => {
     const stripeSubscriptionId = `sub_${generateIdString()}`;
