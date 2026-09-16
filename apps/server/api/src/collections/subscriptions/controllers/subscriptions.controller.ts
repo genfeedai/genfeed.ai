@@ -3,7 +3,8 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ChangePlanDto } from '@api/collections/subscriptions/dto/change-plan.dto';
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
-import { SubscriptionPreviewExceptionFilter } from '@api/collections/subscriptions/errors/subscription-preview-exception.filter';
+import { SubscriptionBillingExceptionFilter } from '@api/collections/subscriptions/errors/subscription-billing-exception.filter';
+import { toSubscriptionChangeException } from '@api/collections/subscriptions/errors/subscription-change-failure.util';
 import { toSubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -23,6 +24,7 @@ import type {
   OrganizationCreditUsageResponse,
   SubscriptionChangePreview,
 } from '@genfeedai/contracts/interfaces';
+import { SubscriptionPlanChangeCreditsOutcome } from '@genfeedai/contracts/interfaces/billing';
 import { SubscriptionSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -125,6 +127,7 @@ export class SubscriptionsController {
   }
 
   @Patch('current')
+  @UseFilters(SubscriptionBillingExceptionFilter)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async changePlan(
     @Req() request: RequestWithContext,
@@ -144,23 +147,24 @@ export class SubscriptionsController {
 
       return {
         data: result,
-        message: 'Subscription plan changed successfully',
+        // The plan change is durable either way; say so without claiming the
+        // credit reset that did not happen.
+        message:
+          result.creditsOutcome === SubscriptionPlanChangeCreditsOutcome.FAILED
+            ? 'Subscription plan changed; its credit allocation could not be reset and is being repaired'
+            : 'Subscription plan changed successfully',
         success: true,
       };
     } catch (error: unknown) {
-      throw new HttpException(
-        {
-          error: (error as Error)?.message,
-          message: 'Failed to change subscription plan',
-          success: false,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // The service already classifies its own failures; anything else that
+      // escapes becomes the same typed exception so the method filter always
+      // renders a stable `code` plus retry contract instead of a raw message.
+      throw toSubscriptionChangeException(error);
     }
   }
 
   @Post('current/preview')
-  @UseFilters(SubscriptionPreviewExceptionFilter)
+  @UseFilters(SubscriptionBillingExceptionFilter)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async previewChange(
     @Req() request: RequestWithContext,

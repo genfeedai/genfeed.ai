@@ -12,7 +12,7 @@ export * from './media-vendor-cost.interface';
 export * from './pricing.interface';
 export * from './referral.interface';
 export * from './subscription.interface';
-export * from './subscription-preview-failure.interface';
+export * from './subscription-failure.interface';
 export * from './subscriptions-service.contract';
 export type {
   ITopbarBalanceSegment,

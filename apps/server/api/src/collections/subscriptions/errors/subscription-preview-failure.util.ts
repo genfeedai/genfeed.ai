@@ -1,9 +1,15 @@
-import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import {
   classifyStripeFailure,
-  getStripeErrorCode,
-  type StripeFailureCategory,
-} from '@api/services/integrations/stripe/services/stripe-error.util';
+  getStripeErrorParam,
+  isNonTransientStripeErrorType,
+  isStripeError,
+  isStripeServerFault,
+} from '@api/collections/subscriptions/errors/stripe-failure-reader.util';
+import {
+  buildSubscriptionFailureDiagnostics,
+  type SubscriptionFailureDiagnostics,
+} from '@api/collections/subscriptions/errors/subscription-failure-diagnostics.util';
+import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import {
   StripeUpcomingInvoiceError,
   StripeUpcomingInvoiceErrorCode,
@@ -22,71 +28,8 @@ export const SubscriptionPreviewStage = {
 export type SubscriptionPreviewStage =
   (typeof SubscriptionPreviewStage)[keyof typeof SubscriptionPreviewStage];
 
-export type SubscriptionPreviewFailureCategory =
-  | StripeFailureCategory
-  | 'local_state'
-  | 'unknown';
-
-/**
- * Safe, structured context for logs and error tracking. Deliberately excludes
- * the Stripe message, `raw` payload, headers, and any secret-bearing field.
- */
-export type SubscriptionPreviewFailureDiagnostics = {
-  category: SubscriptionPreviewFailureCategory;
-  code: SubscriptionPreviewFailureCode;
-  errorName: string;
-  isRetryable: boolean;
-  stage?: SubscriptionPreviewStage;
-  stripeCode?: string;
-  stripeRequestId?: string;
-  stripeStatusCode?: number;
-};
-
-type StripeLikeError = {
-  param?: unknown;
-  requestId?: unknown;
-  statusCode?: unknown;
-  type?: unknown;
-};
-
-const NON_TRANSIENT_STRIPE_TYPES: ReadonlySet<string> = new Set([
-  'StripeAPIError',
-  'StripeAuthenticationError',
-  'StripeIdempotencyError',
-  'StripePermissionError',
-]);
-
-function asStripeLikeError(error: unknown): StripeLikeError | null {
-  return error && typeof error === 'object' ? (error as StripeLikeError) : null;
-}
-
-function getStripeStatusCode(error: unknown): number | undefined {
-  const statusCode = asStripeLikeError(error)?.statusCode;
-  return typeof statusCode === 'number' ? statusCode : undefined;
-}
-
-function getStripeErrorType(error: unknown): string | undefined {
-  const type = asStripeLikeError(error)?.type;
-  return typeof type === 'string' ? type : undefined;
-}
-
-function getStripeErrorParam(error: unknown): string | undefined {
-  const param = asStripeLikeError(error)?.param;
-  return typeof param === 'string' ? param : undefined;
-}
-
-function getStripeRequestId(error: unknown): string | undefined {
-  const requestId = asStripeLikeError(error)?.requestId;
-  return typeof requestId === 'string' ? requestId : undefined;
-}
-
-function isStripeError(error: unknown): boolean {
-  return (
-    getStripeErrorType(error) !== undefined ||
-    getStripeErrorCode(error) !== undefined ||
-    getStripeStatusCode(error) !== undefined
-  );
-}
+export type SubscriptionPreviewFailureDiagnostics =
+  SubscriptionFailureDiagnostics<SubscriptionPreviewStage>;
 
 /**
  * A Stripe `resource_missing` names the offending param, which tells us which
@@ -138,16 +81,10 @@ function classifyStripeApiError(
   if (category === 'configuration') {
     return SubscriptionPreviewFailureCode.BILLING_PROVIDER_REJECTED;
   }
-
-  // Stripe wraps its own 5xx as a generic StripeAPIError; that is an outage
-  // worth one bounded retry, unlike the same class on a 4xx.
-  const statusCode = getStripeStatusCode(error);
-  if (statusCode !== undefined && statusCode >= 500) {
+  if (isStripeServerFault(error)) {
     return SubscriptionPreviewFailureCode.BILLING_PROVIDER_UNAVAILABLE;
   }
-
-  const type = getStripeErrorType(error);
-  if (type !== undefined && NON_TRANSIENT_STRIPE_TYPES.has(type)) {
+  if (isNonTransientStripeErrorType(error)) {
     return SubscriptionPreviewFailureCode.BILLING_PROVIDER_REJECTED;
   }
   // StripeInvalidRequestError / StripeCardError: Stripe understood the request
@@ -195,39 +132,14 @@ export function toSubscriptionPreviewException(
   );
 }
 
-function categoryOf(
-  exception: SubscriptionPreviewException,
-): SubscriptionPreviewFailureCategory {
-  const { cause } = exception;
-  if (cause instanceof StripeUpcomingInvoiceError) {
-    return 'local_state';
-  }
-  if (isStripeError(cause)) {
-    return classifyStripeFailure(cause);
-  }
-  if (exception.code === SubscriptionPreviewFailureCode.PREVIEW_FAILED) {
-    return 'unknown';
-  }
-  return 'local_state';
-}
-
 export function getSubscriptionPreviewFailureDiagnostics(
   exception: SubscriptionPreviewException,
   stage?: SubscriptionPreviewStage,
 ): SubscriptionPreviewFailureDiagnostics {
-  const { cause } = exception;
-  const stripeCode = getStripeErrorCode(cause);
-  const stripeRequestId = getStripeRequestId(cause);
-  const stripeStatusCode = getStripeStatusCode(cause);
-
-  return {
-    category: categoryOf(exception),
-    code: exception.code,
-    errorName: cause instanceof Error ? cause.name : exception.name,
-    isRetryable: exception.isRetryable,
-    ...(stage === undefined ? {} : { stage }),
-    ...(stripeCode === undefined ? {} : { stripeCode }),
-    ...(stripeRequestId === undefined ? {} : { stripeRequestId }),
-    ...(stripeStatusCode === undefined ? {} : { stripeStatusCode }),
-  };
+  return buildSubscriptionFailureDiagnostics({
+    exception,
+    isUnclassified:
+      exception.code === SubscriptionPreviewFailureCode.PREVIEW_FAILED,
+    stage,
+  });
 }
