@@ -387,15 +387,18 @@ describe('StripeWebhookBillingService', () => {
       },
     });
   });
-  it.each([0, 2])('rejects guarded write count %s', async (count) => {
-    prisma.subscription.updateMany.mockResolvedValue({ count });
-    await expect(
-      service.persist(await service.resolve(input), {
-        status: 'ACTIVE',
-        stripeSubscriptionId: 'sub_1',
-      }),
-    ).rejects.toMatchObject({ code: 'identity_conflict' });
-  });
+  it.each([0, 2])(
+    'rejects guarded write count %s as a retryable stale identity',
+    async (count) => {
+      prisma.subscription.updateMany.mockResolvedValue({ count });
+      await expect(
+        service.persist(await service.resolve(input), {
+          status: 'ACTIVE',
+          stripeSubscriptionId: 'sub_1',
+        }),
+      ).rejects.toMatchObject({ code: 'identity_stale', isRetryable: true });
+    },
+  );
   it('classifies persistence P2002 as retryable conflict while preserving other failures', async () => {
     const identity = await service.resolve(input);
     prisma.subscription.updateMany.mockRejectedValueOnce({ code: 'P2002' });

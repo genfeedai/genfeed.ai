@@ -58,19 +58,22 @@ describe('stripe-webhook-error.util', () => {
       expect(mapping.shouldReleaseIdempotencyKey).toBe(false);
     });
 
-    it('keeps identity_missing (the checkout race) retryable and releases the event key', () => {
-      const mapping = mapStripeWebhookError(
-        new StripeWebhookBillingError('identity_missing'),
-      );
+    it.each(['identity_missing', 'identity_stale'] as const)(
+      'keeps %s (a race a later delivery can win) retryable and releases the event key',
+      (code) => {
+        const mapping = mapStripeWebhookError(
+          new StripeWebhookBillingError(code),
+        );
 
-      expect(mapping).toEqual({
-        kind: StripeWebhookErrorKind.BILLING,
-        shouldAcknowledge: false,
-        shouldReleaseIdempotencyKey: true,
-        shouldReportAsFault: false,
-        status: HttpStatus.SERVICE_UNAVAILABLE,
-      });
-    });
+        expect(mapping).toEqual({
+          kind: StripeWebhookErrorKind.BILLING,
+          shouldAcknowledge: false,
+          shouldReleaseIdempotencyKey: true,
+          shouldReportAsFault: false,
+          status: HttpStatus.SERVICE_UNAVAILABLE,
+        });
+      },
+    );
 
     it.each([
       'invalid_payload',

@@ -278,8 +278,11 @@ export class StripeWebhookBillingService {
           },
         },
       });
+      // The guard pins every identity field read by `resolve`. A miss means
+      // another delivery changed them in between (a lost update), not a
+      // conflicting identity: retrying re-resolves against the updated row.
       if (result.count !== 1)
-        throw new StripeWebhookBillingError('identity_conflict');
+        throw new StripeWebhookBillingError('identity_stale');
     } catch (error) {
       if (
         error &&

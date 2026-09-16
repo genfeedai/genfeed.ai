@@ -212,33 +212,45 @@ describe('Stripe billing HTTP composition', () => {
     expect(reconciler.reconcile).toHaveBeenCalledTimes(1);
   });
   it.each([0, 2])(
-    'stops all dependent writes and acknowledges the deterministic conflict when guarded persistence count is %s',
+    'stops all dependent writes, returns 503, releases the key and succeeds on redelivery when guarded persistence count is %s',
     async (count) => {
-      prisma.subscription.updateMany.mockResolvedValue({ count });
-      await request(app.getHttpServer())
+      prisma.subscription.updateMany.mockResolvedValueOnce({ count });
+      const response = await request(app.getHttpServer())
         .post('/webhooks/stripe/callback')
-        .send({})
-        .expect(200);
+        .send({});
+      expect(response.status).toBe(503);
+      expect(response.body).toEqual({
+        errors: [
+          {
+            status: '503',
+            title: 'Service Unavailable',
+            detail: 'Stripe webhook billing reconciliation unavailable',
+            code: 'identity_stale',
+          },
+        ],
+      });
       expect(subscriptions.syncSubscriptionState).not.toHaveBeenCalled();
       expect(support.updateOrganizationTierAndModels).not.toHaveBeenCalled();
       expect(reconciler.reconcile).not.toHaveBeenCalled();
       expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
-        expect.stringContaining('webhook billing acknowledged'),
+        expect.stringContaining('webhook billing rejected'),
         expect.objectContaining({
-          code: 'identity_conflict',
+          code: 'identity_stale',
           eventId: 'evt_1',
           kind: 'BILLING',
         }),
       );
       expect(logger.error).not.toHaveBeenCalled();
-      // The event key is kept: a redelivery of the same event is a duplicate,
-      // not another attempt at a failure that cannot succeed.
-      expect(publisher.del).not.toHaveBeenCalled();
+      // A concurrent delivery moved the identity fields between resolve and
+      // persist. The key is released so Stripe's redelivery re-resolves
+      // against the updated row and completes the write.
+      expect(publisher.del).toHaveBeenCalledWith('stripe:webhook:evt_1');
       await request(app.getHttpServer())
         .post('/webhooks/stripe/callback')
         .send({})
         .expect(200);
-      expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(1);
+      expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(2);
+      expect(reconciler.reconcile).toHaveBeenCalledTimes(1);
     },
   );
   it.each([undefined, '', ' '])(
