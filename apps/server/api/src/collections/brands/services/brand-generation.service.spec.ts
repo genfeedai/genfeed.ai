@@ -3,12 +3,16 @@ import {
   BrandProfileGenerationException,
 } from '@api/collections/brands/exceptions/brand-profile-generation.exception';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
-import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
+import {
+  type BrandFinder,
+  BrandGenerationService,
+} from '@api/collections/brands/services/brand-generation.service';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { BrandProfileGenerationFailureReason } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
+import type { Mock } from 'vitest';
 
 describe('BrandGenerationService', () => {
   const organizationId = 'org-1';
@@ -16,7 +20,7 @@ describe('BrandGenerationService', () => {
     scrapeWebsite: ReturnType<typeof vi.fn>;
     validateUrl: ReturnType<typeof vi.fn>;
   };
-  let findBrand: ReturnType<typeof vi.fn>;
+  let findBrand: Mock<BrandFinder>;
   let llmDispatcherService: { chatCompletion: ReturnType<typeof vi.fn> };
   let logger: {
     debug: ReturnType<typeof vi.fn>;
@@ -50,7 +54,7 @@ describe('BrandGenerationService', () => {
       scrapeWebsite: vi.fn(),
       validateUrl: vi.fn().mockReturnValue({ isValid: true }),
     };
-    findBrand = vi.fn();
+    findBrand = vi.fn<BrandFinder>();
     llmDispatcherService = { chatCompletion: vi.fn() };
     logger = { debug: vi.fn(), warn: vi.fn() };
     service = new BrandGenerationService(
