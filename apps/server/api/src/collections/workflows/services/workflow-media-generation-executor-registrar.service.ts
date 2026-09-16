@@ -3,6 +3,7 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
+  resolveVideoIdentityReferencePlan,
   runImageGenerationBrief,
   runVideoGenerationBrief,
   toRedactedGenerationBriefProviderData,
@@ -21,7 +22,12 @@ import {
   ModelCategory,
   TransformationCategory,
 } from '@genfeedai/contracts';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type {
+  ClipChainIdentityReference,
+  VideoGenerationIdentityLock,
+} from '@genfeedai/contracts/interfaces';
 import {
   type ExecutableNode,
   type ExecutionContext,
@@ -36,6 +42,49 @@ import {
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+
+const IDENTITY_REFERENCE_ROLES = new Set<ClipChainIdentityReference['role']>([
+  'character',
+  'product',
+  'subject',
+]);
+
+const IDENTITY_REFERENCE_CATEGORIES: readonly IngredientCategory[] = [
+  IngredientCategory.IMAGE,
+  IngredientCategory.AVATAR,
+];
+
+/**
+ * An identity lock is explicit: a malformed entry fails the segment instead
+ * of being dropped, so a run never silently degrades to last-frame identity.
+ */
+function readIdentityReferences(value: unknown): ClipChainIdentityReference[] {
+  if (value === undefined || value === null) {
+    return [];
+  }
+  if (!Array.isArray(value)) {
+    throw new Error('videoGen identityReferences must be an array');
+  }
+  return value.map((entry, index) => {
+    const record =
+      entry && typeof entry === 'object'
+        ? (entry as Record<string, unknown>)
+        : undefined;
+    const assetId =
+      typeof record?.assetId === 'string' ? record.assetId.trim() : '';
+    const role = record?.role;
+    if (
+      assetId.length === 0 ||
+      typeof role !== 'string' ||
+      !IDENTITY_REFERENCE_ROLES.has(role as ClipChainIdentityReference['role'])
+    ) {
+      throw new Error(
+        `videoGen identityReferences[${index}] must be { assetId, role: character | product | subject }`,
+      );
+    }
+    return { assetId, role: role as ClipChainIdentityReference['role'] };
+  });
+}
 
 function replaceReferenceTokens(
   value: unknown,
@@ -204,49 +253,12 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     const replicateService = this.replicateService;
 
     videoGenExecutor.setResolver(async (model, params, context, node) => {
-      const references = Array.isArray(params.references)
-        ? params.references.filter(
-            (reference): reference is string => typeof reference === 'string',
-          )
-        : undefined;
-      const videoReferences = Array.isArray(params.videoReferences)
-        ? params.videoReferences.filter(
-            (reference): reference is string => typeof reference === 'string',
-          )
-        : undefined;
-      const lastFrame =
-        typeof params.lastFrame === 'string' ? params.lastFrame : undefined;
-      const referenceReplacements = new Map<string, string>();
-      const referenceAssetIds = references?.map((reference, index) => {
-        const assetId =
-          this.helper.extractIngredientId(reference) ??
-          `workflow-image-reference-${index + 1}`;
-        referenceReplacements.set(assetId, reference);
-        return assetId;
-      });
-      const endFrameId = lastFrame
-        ? (this.helper.extractIngredientId(lastFrame) ??
-          'workflow-last-frame-reference')
-        : undefined;
-      if (endFrameId && lastFrame) {
-        referenceReplacements.set(endFrameId, lastFrame);
-      }
-      const videoReferenceAssetIds = await Promise.all(
-        (videoReferences ?? []).map(async (reference, index) => {
-          const ingredientId = this.helper.extractIngredientId(reference);
-          const assetId =
-            ingredientId ?? `workflow-video-reference-${index + 1}`;
-          const providerUrl =
-            ingredientId && this.filesClientService
-              ? await this.filesClientService.getPresignedDownloadUrl(
-                  ingredientId,
-                  'videos',
-                )
-              : reference;
-          referenceReplacements.set(assetId, providerUrl);
-          return assetId;
-        }),
-      );
+      const {
+        endFrameId,
+        referenceAssetIds,
+        referenceReplacements,
+        videoReferenceAssetIds,
+      } = await this.resolveVideoReferenceInputs(params);
       const prompt = typeof params.prompt === 'string' ? params.prompt : '';
       const height = typeof params.height === 'number' ? params.height : 1080;
       const width = typeof params.width === 'number' ? params.width : 1920;
@@ -256,32 +268,67 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         typeof params.negativePrompt === 'string'
           ? params.negativePrompt
           : undefined;
+      const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
+      // Run-level identity stills (#4653). Tenancy preflight runs before the
+      // brief compiles and before any output or provider dispatch exists, so
+      // a deleted or foreign id fails without consuming credits.
+      const identityReferences = readIdentityReferences(
+        params.identityReferences,
+      );
+      const identityPlan =
+        identityReferences.length > 0
+          ? await this.resolveIdentityReferencePlan({
+              brandId,
+              firstFrameAssetId: referenceAssetIds?.[0],
+              identityReferences,
+              lastFrameAssetId: endFrameId,
+              model: model as string,
+              node,
+              organizationId: context.organizationId,
+              referenceReplacements,
+            })
+          : undefined;
+      const briefReferences: readonly GenerationBriefReference[] | undefined =
+        identityPlan?.references ??
+        referenceAssetIds?.map((assetId) => ({
+          assetId,
+          role: 'first_frame' as const,
+        }));
       const compiled = runVideoGenerationBrief({
         actionVerb:
           params.actionVerb === 'extend' ? params.actionVerb : undefined,
         avoid: negativePrompt ? [negativePrompt] : undefined,
         durationSeconds: duration,
-        endFrameId,
+        endFrameId: identityPlan ? identityPlan.endFrameId : endFrameId,
         height,
         model: model as string,
         objective: prompt,
         referenceIds: [],
-        references: referenceAssetIds?.map((assetId) => ({
-          assetId,
-          role: 'first_frame' as const,
-        })),
+        references: briefReferences,
         seed: typeof params.seed === 'number' ? params.seed : undefined,
         surface: 'workflow',
         videoReferenceIds: videoReferenceAssetIds,
         width,
       });
+      if (identityPlan && !compiled.dispatch) {
+        throw new Error(
+          `Model "${String(model)}" is exempt from generation-brief compilation and cannot honor an identity lock`,
+        );
+      }
       const input = compiled.dispatch
         ? (replaceReferenceTokens(
             compiled.dispatch,
             referenceReplacements,
           ) as Record<string, unknown>)
         : { prompt };
-      const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
+      const lineageReferences = [
+        ...(typeof params.parentIngredientId === 'string'
+          ? [params.parentIngredientId]
+          : []),
+        ...(identityPlan?.identityLock.references.map(
+          (reference) => reference.assetId,
+        ) ?? []),
+      ];
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
         continuation: {
           actionId: 'videoGen',
@@ -306,9 +353,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             compiled.evidence,
           ),
           references:
-            typeof params.parentIngredientId === 'string'
-              ? [params.parentIngredientId]
-              : undefined,
+            lineageReferences.length > 0 ? lineageReferences : undefined,
           userId: context.userId,
         },
         resultUrl: (ingredientId) =>
@@ -321,6 +366,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         generationBriefEvidence: compiled.evidence,
         generationSource: compiled.generationSource,
         id: pendingOutput.ingredientId,
+        ...(identityPlan ? { identityLock: identityPlan.identityLock } : {}),
         model,
         provider: 'replicate',
         status: IngredientStatus.PROCESSING,
@@ -334,6 +380,141 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       'videoGen',
       this.helper.wrapEngineExecutor(videoGenExecutor),
     );
+  }
+
+  /**
+   * Maps the executor's reference inputs (start frame, last frame, reference
+   * videos) to brief asset ids and the provider URL each id resolves to.
+   */
+  private async resolveVideoReferenceInputs(
+    params: Record<string, unknown>,
+  ): Promise<{
+    endFrameId?: string;
+    referenceAssetIds?: string[];
+    referenceReplacements: Map<string, string>;
+    videoReferenceAssetIds: string[];
+  }> {
+    const references = Array.isArray(params.references)
+      ? params.references.filter(
+          (reference): reference is string => typeof reference === 'string',
+        )
+      : undefined;
+    const videoReferences = Array.isArray(params.videoReferences)
+      ? params.videoReferences.filter(
+          (reference): reference is string => typeof reference === 'string',
+        )
+      : undefined;
+    const lastFrame =
+      typeof params.lastFrame === 'string' ? params.lastFrame : undefined;
+    const referenceReplacements = new Map<string, string>();
+    const referenceAssetIds = references?.map((reference, index) => {
+      const assetId =
+        this.helper.extractIngredientId(reference) ??
+        `workflow-image-reference-${index + 1}`;
+      referenceReplacements.set(assetId, reference);
+      return assetId;
+    });
+    const endFrameId = lastFrame
+      ? (this.helper.extractIngredientId(lastFrame) ??
+        'workflow-last-frame-reference')
+      : undefined;
+    if (endFrameId && lastFrame) {
+      referenceReplacements.set(endFrameId, lastFrame);
+    }
+    const videoReferenceAssetIds = await Promise.all(
+      (videoReferences ?? []).map(async (reference, index) => {
+        const ingredientId = this.helper.extractIngredientId(reference);
+        const assetId = ingredientId ?? `workflow-video-reference-${index + 1}`;
+        const providerUrl =
+          ingredientId && this.filesClientService
+            ? await this.filesClientService.getPresignedDownloadUrl(
+                ingredientId,
+                'videos',
+              )
+            : reference;
+        referenceReplacements.set(assetId, providerUrl);
+        return assetId;
+      }),
+    );
+
+    return {
+      endFrameId,
+      referenceAssetIds,
+      referenceReplacements,
+      videoReferenceAssetIds,
+    };
+  }
+
+  /**
+   * Preflights the run's identity stills against the tenant and brand, maps
+   * each id to a provider-reachable URL, and applies the capability-profile
+   * conflict rule (identity stills win over a conflicting frame role).
+   */
+  private async resolveIdentityReferencePlan(args: {
+    brandId: string;
+    firstFrameAssetId?: string;
+    identityReferences: readonly ClipChainIdentityReference[];
+    lastFrameAssetId?: string;
+    model: string;
+    node: ExecutableNode;
+    organizationId: string;
+    referenceReplacements: Map<string, string>;
+  }): Promise<{
+    endFrameId?: string;
+    identityLock: VideoGenerationIdentityLock;
+    references: GenerationBriefReference[];
+  }> {
+    for (const reference of args.identityReferences) {
+      let asset: Awaited<
+        ReturnType<WorkflowEngineExecutorHelperService['requireMediaAsset']>
+      >;
+      try {
+        asset = await this.helper.requireMediaAsset(
+          reference.assetId,
+          args.organizationId,
+          IDENTITY_REFERENCE_CATEGORIES,
+        );
+      } catch {
+        throw new Error(
+          `Identity ${reference.role} reference ${reference.assetId} is unavailable for this organization`,
+        );
+      }
+      if (asset.brandId !== args.brandId) {
+        throw new Error(
+          `Identity ${reference.role} reference ${reference.assetId} does not belong to the run brand`,
+        );
+      }
+      args.referenceReplacements.set(
+        reference.assetId,
+        this.helper.buildMediaIngredientUrl(asset.id, asset.category),
+      );
+    }
+
+    const plan = resolveVideoIdentityReferencePlan({
+      firstFrameAssetId: args.firstFrameAssetId,
+      identityReferences: args.identityReferences,
+      lastFrameAssetId: args.lastFrameAssetId,
+      modelKey: args.model,
+    });
+    if (
+      plan.identityLock.omittedFrameRoles.length > 0 ||
+      plan.identityLock.omittedReferences.length > 0
+    ) {
+      this.loggerService.warn(
+        'WorkflowMediaGenerationExecutorRegistrarService identity lock omitted conflicting inputs',
+        {
+          model: args.model,
+          nodeId: args.node.id,
+          omittedFrameRoles: plan.identityLock.omittedFrameRoles,
+          omittedReferences: plan.identityLock.omittedReferences.map(
+            (reference) => reference.assetId,
+          ),
+          reason: plan.identityLock.reason,
+        },
+      );
+    }
+
+    return plan;
   }
 
   private registerLipSyncExecutor(engine: WorkflowEngine): void {

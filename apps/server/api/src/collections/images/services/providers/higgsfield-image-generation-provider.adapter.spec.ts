@@ -1,4 +1,5 @@
 import type { ImageGenerationProviderRequest } from '@api/collections/images/services/image-generation.types';
+import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
 import type { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -10,15 +11,17 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
     );
   }
 
-  describe('supports', () => {
-    it('matches the Higgsfield Soul model key', () => {
-      const adapter = buildAdapter({});
-      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_SOUL)).toBe(true);
+  describe('dispatch', () => {
+    it('is resolved for the Higgsfield Soul model key', () => {
+      expect(resolveImageGenerationProvider(MODEL_KEYS.HIGGSFIELD_SOUL)).toBe(
+        buildAdapter({}).provider,
+      );
     });
 
-    it('rejects other model keys', () => {
-      const adapter = buildAdapter({});
-      expect(adapter.supports('klingai/v2/pro/text-to-image')).toBe(false);
+    it('is not resolved for other model keys', () => {
+      expect(
+        resolveImageGenerationProvider('klingai/v2/pro/text-to-image'),
+      ).not.toBe(buildAdapter({}).provider);
     });
   });
 

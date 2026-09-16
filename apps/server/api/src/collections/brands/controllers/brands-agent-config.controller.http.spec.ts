@@ -1,5 +1,9 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
+import {
+  BRAND_PROFILE_GENERATION_INVALID_CODE,
+  BrandProfileGenerationException,
+} from '@api/collections/brands/exceptions/brand-profile-generation.exception';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -8,6 +12,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { BrandProfileGenerationFailureReason } from '@genfeedai/contracts';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { INestApplication } from '@nestjs/common';
@@ -39,10 +44,12 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
 
   let app: INestApplication;
   let assertAccessibleSkillSlugs: ReturnType<typeof vi.fn>;
+  let generateBrandVoice: ReturnType<typeof vi.fn>;
   let updateAgentConfig: ReturnType<typeof vi.fn>;
 
   beforeAll(async () => {
     assertAccessibleSkillSlugs = vi.fn().mockResolvedValue(undefined);
+    generateBrandVoice = vi.fn();
     updateAgentConfig = vi.fn().mockResolvedValue(mockBrand);
 
     vi.spyOn(BrandSerializer, 'serialize').mockImplementation((data) => ({
@@ -52,7 +59,10 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
     const moduleRef = await Test.createTestingModule({
       controllers: [BrandsAgentConfigController],
       providers: [
-        { provide: BrandsService, useValue: { updateAgentConfig } },
+        {
+          provide: BrandsService,
+          useValue: { generateBrandVoice, updateAgentConfig },
+        },
         {
           provide: IngredientsService,
           useValue: {
@@ -105,6 +115,7 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
 
   beforeEach(() => {
     assertAccessibleSkillSlugs.mockClear();
+    generateBrandVoice.mockReset();
     updateAgentConfig.mockClear();
     updateAgentConfig.mockResolvedValue(mockBrand);
   });
@@ -314,5 +325,64 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
       .expect(400);
 
     expect(updateAgentConfig).not.toHaveBeenCalled();
+  });
+
+  describe('POST /brands/:id/agent-config/generate-voice', () => {
+    const generatedProfile = {
+      audience: ['founders'],
+      doNotSoundLike: [],
+      hashtags: [],
+      messagingPillars: ['automation'],
+      prompting: { conversationStarters: [], seeds: [] },
+      sampleOutput: '',
+      strategy: { goals: [], topics: ['automation'] },
+      style: 'direct',
+      taglines: [],
+      tone: 'bold',
+      values: [],
+    };
+
+    it('returns the validated profile on the valid path', async () => {
+      generateBrandVoice.mockResolvedValue(generatedProfile);
+
+      const response = await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({})
+        .expect(201);
+
+      expect(response.body).toEqual({ data: generatedProfile });
+      expect(generateBrandVoice).toHaveBeenCalledWith(
+        expect.objectContaining({ brandId }),
+        orgId,
+      );
+    });
+
+    it('returns the classified 422 for invalid provider output without persisting', async () => {
+      generateBrandVoice.mockRejectedValue(
+        new BrandProfileGenerationException({
+          isRetryable: true,
+          missingFields: ['style'],
+          outputLength: 12,
+          reason: BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({})
+        .expect(422);
+
+      expect(response.body).toMatchObject({
+        code: BRAND_PROFILE_GENERATION_INVALID_CODE,
+        detail: expect.stringContaining('missing style'),
+        meta: {
+          isRetryable: true,
+          missingFields: ['style'],
+          reason: BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
+        },
+        title: 'Brand profile generation failed',
+      });
+      expect(updateAgentConfig).not.toHaveBeenCalled();
+    });
   });
 });

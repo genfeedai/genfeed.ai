@@ -2,6 +2,8 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeSubscriptionCreditReconcilerService } from '@api/endpoints/webhooks/stripe/handlers/stripe-subscription-credit-reconciler.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
+import { CreditGrantBillingAccountMismatchException } from '@api/exceptions/business-logic.exception';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
 import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -68,6 +70,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
   it('allocates the initial monthly grant from subscription.created with a durable subscription key', async () => {
     await expect(
       service.reconcile({
+        billingAccountId: 'ba_1',
         billingReason: 'subscription_create',
         periodEnd,
         periodStart,
@@ -125,6 +128,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
 
     await expect(
       service.reconcile({
+        billingAccountId: 'ba_1',
         billingReason: 'subscription_create',
         invoiceId: 'in_123',
         periodEnd,
@@ -192,6 +196,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
     );
 
     const invoiceResult = await service.reconcile({
+      billingAccountId: 'ba_1',
       billingReason: 'subscription_create',
       invoiceId: 'in_early',
       periodEnd,
@@ -202,6 +207,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
       url: 'test',
     });
     const subscriptionResult = await service.reconcile({
+      billingAccountId: 'ba_1',
       billingReason: 'subscription_create',
       periodEnd,
       periodStart,
@@ -221,6 +227,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
 
   it('keeps recurring cycle grants keyed by invoice id', async () => {
     await service.reconcile({
+      billingAccountId: 'ba_1',
       billingReason: 'subscription_cycle',
       invoiceId: 'in_cycle_1',
       periodEnd,
@@ -245,6 +252,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
   it('does not grant credits for an incomplete subscription.created event', async () => {
     await expect(
       service.reconcile({
+        billingAccountId: 'ba_1',
         billingReason: 'subscription_create',
         periodEnd,
         periodStart,
@@ -275,6 +283,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
 
     await expect(
       service.reconcile({
+        billingAccountId: 'ba_1',
         billingReason: 'subscription_create',
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: monthlySubscription,
@@ -291,6 +300,62 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
     );
   });
 
+  it.each([
+    {
+      call: 'addOrganizationCreditsWithExpiration',
+      plan: SubscriptionPlan.MONTHLY,
+    },
+    { call: 'resetOrganizationCredits', plan: SubscriptionPlan.YEARLY },
+  ] as const)(
+    'pins the $plan ledger write to the verified billing account',
+    async ({ call, plan }) => {
+      creditsUtilsService.addOrganizationCreditsWithExpiration.mockResolvedValue(
+        undefined,
+      );
+      creditsUtilsService.resetOrganizationCredits.mockResolvedValue(undefined);
+
+      await service.reconcile({
+        billingAccountId: 'ba_1',
+        billingReason: 'subscription_cycle',
+        invoiceId: 'in_cycle',
+        stripeSubscriptionId: 'sub_stripe_1',
+        subscription: { ...monthlySubscription, plan },
+        trigger: 'invoice.paid',
+        url: 'test',
+      });
+
+      const options = creditsUtilsService[call].mock.calls[0].at(-1);
+      expect(options).toMatchObject({
+        billingAccountId: 'ba_1',
+        referenceId: 'stripe-invoice:in_cycle',
+      });
+    },
+  );
+
+  it('classifies a billing-account relink refused by the ledger as retryable identity_stale', async () => {
+    creditsUtilsService.addOrganizationCreditsWithExpiration.mockRejectedValue(
+      new CreditGrantBillingAccountMismatchException('ba_1', 'ba_2'),
+    );
+
+    const attempt = service.reconcile({
+      billingAccountId: 'ba_1',
+      billingReason: 'subscription_create',
+      stripeSubscriptionId: 'sub_stripe_1',
+      subscription: monthlySubscription,
+      subscriptionStatus: SubscriptionStatus.ACTIVE,
+      trigger: 'customer.subscription.created',
+      url: 'test',
+    });
+
+    await expect(attempt).rejects.toBeInstanceOf(StripeWebhookBillingError);
+    await expect(attempt).rejects.toMatchObject({
+      code: 'identity_stale',
+      isRetryable: true,
+    });
+    expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
+    expect(supportService.setHasEverHadCredits).not.toHaveBeenCalled();
+  });
+
   it('propagates credit ledger failures for webhook retry', async () => {
     const ledgerError = new Error('ledger unavailable');
     creditsUtilsService.addOrganizationCreditsWithExpiration.mockRejectedValue(
@@ -299,6 +364,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
 
     await expect(
       service.reconcile({
+        billingAccountId: 'ba_1',
         billingReason: 'subscription_create',
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: monthlySubscription,
@@ -314,6 +380,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
 
     await expect(
       service.reconcile({
+        billingAccountId: 'ba_1',
         billingReason: 'subscription_create',
         periodEnd,
         periodStart,

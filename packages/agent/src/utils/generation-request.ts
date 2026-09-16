@@ -1,18 +1,11 @@
 import { RouterPriority } from '@genfeedai/contracts';
-import type { AgentClipRunIdentity } from '@genfeedai/contracts/interfaces';
+import { resolveAgentGenerationDimensions } from '@genfeedai/contracts/constants';
+import type {
+  AgentClipRunIdentity,
+  GenerationExecutionDimensions,
+} from '@genfeedai/contracts/interfaces';
 
 export const DEFAULT_AGENT_GENERATION_PRIORITY = RouterPriority.QUALITY;
-
-const ASPECT_RATIO_DIMENSIONS: Record<
-  string,
-  { width: number; height: number }
-> = {
-  '1:1': { height: 1024, width: 1024 },
-  '3:4': { height: 1365, width: 1024 },
-  '4:3': { height: 768, width: 1024 },
-  '9:16': { height: 1024, width: 576 },
-  '16:9': { height: 576, width: 1024 },
-};
 
 export function getPromptCategoryForGenerationType(
   generationType: 'image' | 'video',
@@ -22,11 +15,11 @@ export function getPromptCategoryForGenerationType(
     : 'models-prompt-image';
 }
 
-export function getDimensionsForAspectRatio(ratio: string): {
-  width: number;
-  height: number;
-} {
-  return ASPECT_RATIO_DIMENSIONS[ratio] ?? ASPECT_RATIO_DIMENSIONS['1:1'];
+/** #4813 Same table the Agent tool and the pre-review quote resolve through. */
+export function getDimensionsForAspectRatio(
+  ratio: string,
+): GenerationExecutionDimensions {
+  return resolveAgentGenerationDimensions(ratio);
 }
 
 export function buildAgentGenerationRequestBody({

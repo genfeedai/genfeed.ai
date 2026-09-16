@@ -98,7 +98,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
       expect(row).toBeDefined();
 
-      expect(row?.isLegacy).toBe(false);
       expect(row?.isActive).toBe(false);
       expect(row?.lifecycle).toBe(ModelLifecycle.RETIRED);
       expect(row?.succeededBy).toBe(succeededBy);
@@ -132,7 +131,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
     expect(retiredRow).toMatchObject({
       isActive: false,
-      isLegacy: false,
       succeededBy: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
     });
     expect(retiredRow?.cost).toBeGreaterThan(0);
@@ -158,7 +156,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
 
     expect(image15).toMatchObject({
       isActive: true,
-      isLegacy: false,
       isPublic: true,
       label: 'GPT Image 1.5',
       lifecycle: ModelLifecycle.LEGACY,
@@ -166,7 +163,6 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     });
     expect(image2).toMatchObject({
       isActive: true,
-      isLegacy: false,
       isPublic: true,
       label: 'GPT Image 2',
       lifecycle: ModelLifecycle.AVAILABLE,

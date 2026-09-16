@@ -1,12 +1,15 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
+import { SubscriptionPreviewFailureCode } from '@genfeedai/contracts/interfaces/billing';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
@@ -116,6 +119,8 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
           useValue: creditGrantService,
         },
         { provide: LoggerService, useValue: loggerService },
+        // The preview route's method filter reads the Sentry environment.
+        { provide: ConfigService, useValue: { get: () => 'development' } },
       ],
     })
       .overrideGuard(RolesGuard)
@@ -171,35 +176,57 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       );
     });
 
-    it('wraps a preview failure in a 500 envelope', async () => {
+    it('turns an unclassified preview failure into a typed preview_failed fault without echoing its message', async () => {
       subscriptionsService.previewSubscriptionChange.mockRejectedValue(
-        new Error('stripe unavailable'),
+        new Error('stripe unavailable provider-secret-token'),
       );
 
       const error = await controller
         .previewChange(contextRequest(), mockUser, { price: 'price_new' })
         .catch((caught: unknown) => caught);
 
-      expect(payloadOf(error)).toEqual({
-        error: 'stripe unavailable',
-        message: 'Failed to generate preview',
-        success: false,
-      });
+      expect(error).toBeInstanceOf(SubscriptionPreviewException);
+      const exception = error as SubscriptionPreviewException;
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.PREVIEW_FAILED,
+      );
+      expect(exception.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(JSON.stringify(exception.getResponse())).not.toContain(
+        'provider-secret-token',
+      );
     });
 
-    it('keeps a client-state preview failure as its 4xx', async () => {
-      const clientError = new BadRequestException(
-        'No active Stripe subscription found',
+    it('keeps a classified preview failure exactly as the service raised it', async () => {
+      const classified = new SubscriptionPreviewException(
+        SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_MISSING,
       );
       subscriptionsService.previewSubscriptionChange.mockRejectedValue(
-        clientError,
+        classified,
       );
 
       const error = await controller
         .previewChange(contextRequest(), mockUser, { price: 'price_new' })
         .catch((caught: unknown) => caught);
 
-      expect(error).toBe(clientError);
+      expect(error).toBe(classified);
+    });
+
+    it('classifies a stray 4xx from below as rejected client state', async () => {
+      subscriptionsService.previewSubscriptionChange.mockRejectedValue(
+        new BadRequestException('No active Stripe subscription found'),
+      );
+
+      const error = await controller
+        .previewChange(contextRequest(), mockUser, { price: 'price_new' })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBeInstanceOf(SubscriptionPreviewException);
+      expect((error as SubscriptionPreviewException).code).toBe(
+        SubscriptionPreviewFailureCode.PREVIEW_REJECTED,
+      );
+      expect((error as SubscriptionPreviewException).getStatus()).toBe(
+        HttpStatus.UNPROCESSABLE_ENTITY,
+      );
     });
 
     it('previews the routed organization instead of stale token metadata', async () => {

@@ -70,6 +70,13 @@ export interface IDeductCreditsOptions {
 
 export interface IAddCreditsOptions {
   actorUserId?: string;
+  /**
+   * When set, the grant may only land on this billing account. A wallet that
+   * resolves to any other account aborts the ledger write inside its
+   * transaction, so an account relink after the caller's identity check can
+   * never redirect the credits.
+   */
+  billingAccountId?: string;
   idempotencyKey?: string;
   metadata?: Record<string, unknown>;
   referenceId?: string;

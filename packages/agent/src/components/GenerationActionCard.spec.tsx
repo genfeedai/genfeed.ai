@@ -880,6 +880,62 @@ describe('GenerationActionCard', () => {
     });
   });
 
+  it('re-quotes changed outputs with the aspect ratio and blocks Generate until the fresh quote lands', async () => {
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 4,
+      isAvailable: true,
+      modelKey: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            aspectRatio: '9:16',
+            model: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+            prompt: 'Editorial portrait with restrained studio lighting.',
+          },
+          generationType: 'image',
+          id: 'action-requote',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          estimateGenerationCredits,
+          models: [
+            createModel({
+              key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
+              label: 'Nano Banana',
+            }),
+          ],
+        })}
+        onUiAction={vi.fn().mockResolvedValue(undefined)}
+      />,
+    );
+
+    const generate = await screen.findByRole('button', {
+      name: /generate image/i,
+    });
+    await waitFor(() => expect(generate).toBeEnabled(), { timeout: 2000 });
+    expect(estimateGenerationCredits).toHaveBeenLastCalledWith(
+      expect.objectContaining({ aspectRatio: '9:16', outputs: 1 }),
+      expect.any(AbortSignal),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '2x' }));
+    expect(generate).toBeDisabled();
+
+    await waitFor(
+      () =>
+        expect(estimateGenerationCredits).toHaveBeenLastCalledWith(
+          expect.objectContaining({ aspectRatio: '9:16', outputs: 2 }),
+          expect.any(AbortSignal),
+        ),
+      { timeout: 2000 },
+    );
+    await waitFor(() => expect(generate).toBeEnabled(), { timeout: 2000 });
+  });
+
   it('maps auto priority state into the shared selector label', async () => {
     const imageModel = createModel({
       key: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA,
@@ -1827,6 +1883,7 @@ describe('GenerationActionCard', () => {
       () => {
         expect(estimateGenerationCredits).toHaveBeenCalledWith(
           expect.objectContaining({
+            aspectRatio: '1:1',
             category: 'image',
             prompt: 'A portrait at golden hour.',
           }),

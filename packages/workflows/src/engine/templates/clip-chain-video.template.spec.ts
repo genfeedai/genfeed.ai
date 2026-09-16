@@ -4,6 +4,7 @@ import { createVideoStitchExecutor } from '../executors/saas/video-stitch-execut
 import type { ExecutableWorkflow } from '../types';
 import { DEFAULT_CREDIT_COSTS } from '../utils/credit-calculator';
 import {
+  buildClipChainIdentityReferences,
   buildClipChainVideoTemplate,
   buildVideoExtensionTemplate,
   CLIP_CHAIN_VIDEO_TEMPLATE,
@@ -193,6 +194,173 @@ describe('ClipChainVideoTemplate', () => {
           ),
         ).prompt,
       ).toBe(actionParameters(originalPrompt).prompt);
+    });
+  });
+
+  describe('Run-level identity lock (#4653)', () => {
+    const identity = {
+      characterIngredientIds: ['character-1', 'character-1'],
+      environmentIngredientIds: ['room-1'],
+      productIngredientIds: ['product-1'],
+    };
+    const expectedReferences = [
+      { assetId: 'character-1', role: 'character' },
+      { assetId: 'product-1', role: 'product' },
+      { assetId: 'room-1', role: 'subject' },
+    ];
+
+    it('maps character, product, and environment ids to identity roles once', () => {
+      expect(buildClipChainIdentityReferences(identity)).toEqual(
+        expectedReferences,
+      );
+    });
+
+    it('requires a character ingredient id for the identity path', () => {
+      expect(() =>
+        buildClipChainIdentityReferences({ characterIngredientIds: [] }),
+      ).toThrow('at least one character ingredient id');
+      expect(() =>
+        buildClipChainVideoTemplate({
+          identity: { characterIngredientIds: [' '] },
+        }),
+      ).toThrow('at least one character ingredient id');
+    });
+
+    it('stores the identity ids once on the instance and attaches the same refs to every segment', () => {
+      const instance = createClipChainWorkflowInstance({
+        brandId: 'brand-1',
+        identity,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workflowId: 'wf-identity-1',
+      });
+
+      expect(instance.identity).toEqual({
+        characterIngredientIds: ['character-1'],
+        environmentIngredientIds: ['room-1'],
+        productIngredientIds: ['product-1'],
+      });
+      expect(Object.isFrozen(instance.identity)).toBe(true);
+      expect(Object.isFrozen(instance.identity?.characterIngredientIds)).toBe(
+        true,
+      );
+      expect(instance.metadata.tags).toContain('identity-lock');
+
+      const segments = instance.nodes.filter((node) =>
+        isActionNode(node, 'videoGen'),
+      );
+      expect(segments).toHaveLength(DEFAULT_CLIP_CHAIN_SEGMENT_COUNT);
+      for (const segment of segments) {
+        const parameters = actionParameters(segment);
+        expect(parameters.identityReferences).toEqual(expectedReferences);
+        expect(parameters.brandId).toBe('brand-1');
+      }
+      // Each segment owns its copy; a mutation on one cannot drift another.
+      expect(actionParameters(segments[0]).identityReferences).not.toBe(
+        actionParameters(segments[1]).identityReferences,
+      );
+      expect(
+        actionParameters(
+          instance.nodes.find((node) => node.id === 'video-stitch-1'),
+        ).brandId,
+      ).toBe('brand-1');
+    });
+
+    it('keeps the last-frame extract as the next start frame, never as an identity ref', () => {
+      const instance = createClipChainWorkflowInstance({
+        identity,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workflowId: 'wf-identity-2',
+      });
+
+      for (
+        let index = 1;
+        index < DEFAULT_CLIP_CHAIN_SEGMENT_COUNT;
+        index += 1
+      ) {
+        expect(instance.edges).toContainEqual(
+          expect.objectContaining({
+            source: `frame-extract-${index}`,
+            sourceHandle: 'last_frame',
+            target: `video-gen-${index + 1}`,
+            targetHandle: 'image',
+          }),
+        );
+      }
+      const references = actionParameters(
+        instance.nodes.find((node) => node.id === 'video-gen-2'),
+      ).identityReferences as Array<{ assetId: string }>;
+      expect(
+        references.some((reference) =>
+          reference.assetId.startsWith('frame-extract'),
+        ),
+      ).toBe(false);
+    });
+
+    it('leaves the catalog original without identity refs', () => {
+      expect(CLIP_CHAIN_VIDEO_TEMPLATE.identity).toBeUndefined();
+      expect(CLIP_CHAIN_VIDEO_TEMPLATE.metadata.tags).not.toContain(
+        'identity-lock',
+      );
+      for (const node of CLIP_CHAIN_VIDEO_TEMPLATE.nodes.filter((item) =>
+        isActionNode(item, 'videoGen'),
+      )) {
+        expect(actionParameters(node)).not.toHaveProperty('identityReferences');
+      }
+    });
+
+    it('delivers the identity refs to every segment executor, including after a last-frame handoff', async () => {
+      const seenIdentity = new Map<string, unknown>();
+      const startFrames = new Map<string, unknown>();
+      const engine = new WorkflowEngine({
+        creditCosts: DEFAULT_CREDIT_COSTS,
+        retryConfig: {
+          backoffMultiplier: 1,
+          baseDelayMs: 0,
+          maxDelayMs: 0,
+          maxRetries: 0,
+        },
+      });
+      engine.registerExecutor('videoGen', async (node, inputs) => {
+        seenIdentity.set(node.id, node.config.identityReferences);
+        startFrames.set(node.id, inputs.get('image'));
+        return {
+          id: node.id,
+          model: 'stub-model',
+          provider: 'stub',
+          status: 'completed',
+          videoUrl: `https://cdn.example/${node.id}.mp4`,
+        };
+      });
+      engine.registerExecutor('videoFrameExtract', async (node) => {
+        const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
+        return {
+          image: lastFrame,
+          last_frame: lastFrame,
+          sourceVideo: `https://cdn.example/${node.id}-source.mp4`,
+        };
+      });
+      engine.registerExecutor('videoStitch', async () => ({
+        video: 'https://cdn.example/clip-chain.mp4',
+        videoUrl: 'https://cdn.example/clip-chain.mp4',
+      }));
+
+      const instance = createClipChainWorkflowInstance({
+        identity,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        workflowId: 'wf-identity-3',
+      });
+      const result = await engine.execute(toExecutableWorkflow(instance));
+
+      expect(result.status).toBe('completed');
+      expect(startFrames.get('video-gen-2')).toBe(
+        'https://cdn.example/last-from-frame-extract-1.jpg',
+      );
+      for (const nodeId of ['video-gen-1', 'video-gen-2', 'video-gen-3']) {
+        expect(seenIdentity.get(nodeId)).toEqual(expectedReferences);
+      }
     });
   });
 

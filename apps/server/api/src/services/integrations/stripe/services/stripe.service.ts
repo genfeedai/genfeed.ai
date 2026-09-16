@@ -6,6 +6,11 @@ import {
   isStripeSignatureVerificationError,
   StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
+import { StripeUpcomingInvoiceError } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
+import {
+  assertUpcomingInvoiceRequest,
+  resolveUpcomingInvoiceSubscriptionItem,
+} from '@api/services/integrations/stripe/services/stripe-upcoming-invoice-guards.util';
 import {
   collectUpcomingInvoiceLines,
   type UpcomingInvoicePreview,
@@ -1085,47 +1090,15 @@ export class StripeService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      if (!this.isStripePriceId(currentPriceId)) {
-        throw new BadRequestException('Invalid current Stripe price ID');
-      }
-      if (!this.isStripePriceId(newPriceId)) {
-        throw new BadRequestException('Invalid Stripe price ID');
-      }
-      if (
-        quantity !== undefined &&
-        (!Number.isInteger(quantity) || quantity < 1)
-      ) {
-        throw new BadRequestException(
-          'Subscription quantity must be a positive integer',
-        );
-      }
+      assertUpcomingInvoiceRequest(currentPriceId, newPriceId, quantity);
 
       const subscription =
         await this.stripe.subscriptions.retrieve(subscriptionId);
-      const subscriptionCustomerId =
-        typeof subscription.customer === 'string'
-          ? subscription.customer
-          : subscription.customer?.id;
-      if (subscriptionCustomerId !== customerId) {
-        throw new BadRequestException(
-          'Stripe subscription does not belong to the requested customer',
-        );
-      }
-
-      if (subscription.items.data.length === 0) {
-        throw new BadRequestException('No subscription items found');
-      }
-      if (subscription.items.data.every((item) => !item.price?.id)) {
-        throw new BadRequestException('No price found for subscription item');
-      }
-      const subscriptionItem = subscription.items.data.find(
-        (item) => item.price?.id === currentPriceId,
+      const subscriptionItem = resolveUpcomingInvoiceSubscriptionItem(
+        subscription,
+        customerId,
+        currentPriceId,
       );
-      if (!subscriptionItem?.id) {
-        throw new BadRequestException(
-          'No subscription item found for current Stripe price',
-        );
-      }
       const targetPrice = await this.stripe.prices.retrieve(newPriceId);
       const targetQuantity =
         targetPrice.recurring?.usage_type === 'metered'
@@ -1171,7 +1144,17 @@ export class StripeService {
 
       return fullUpcomingInvoice;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      // Never log the raw Stripe error: `raw` carries request headers and
+      // log URLs. The classified category plus tenant ids is enough context.
+      this.loggerService.error(`${url} failed`, {
+        category: classifyStripeFailure(error),
+        code:
+          error instanceof StripeUpcomingInvoiceError ? error.code : undefined,
+        customerId,
+        currentPriceId,
+        newPriceId,
+        subscriptionId,
+      });
       throw error;
     }
   }

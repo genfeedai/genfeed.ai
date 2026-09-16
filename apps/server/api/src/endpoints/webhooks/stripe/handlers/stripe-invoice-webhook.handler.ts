@@ -63,10 +63,20 @@ export class StripeInvoiceWebhookHandler {
         return;
       }
 
+      const stripeSubscriptionId = extractInvoiceSubscriptionId(invoice);
+
+      if (!stripeSubscriptionId) {
+        // Nothing to reconcile: there is no subscription to attach the invoice
+        // to, and a retry cannot add one. Acknowledge instead of failing.
+        return this.loggerService.warn(
+          `${url} invoice carries no subscription id, skipping`,
+          { billingReason, invoiceId: invoice.id },
+        );
+      }
+
       if (typeof invoice.id !== 'string' || !invoice.id.trim()) {
         throw new StripeWebhookBillingError('invalid_payload');
       }
-      const stripeSubscriptionId = extractInvoiceSubscriptionId(invoice);
 
       const identity = await this.billingService.resolve({
         customer: invoice.customer,
@@ -87,6 +97,7 @@ export class StripeInvoiceWebhookHandler {
       );
 
       await this.creditReconciler.reconcile({
+        billingAccountId: identity.billingAccountId,
         billingReason,
         invoiceId: invoice.id,
         ...(periodEnd ? { periodEnd } : {}),

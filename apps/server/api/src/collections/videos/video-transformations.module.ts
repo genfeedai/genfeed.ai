@@ -1,6 +1,7 @@
 /**
  * Video Transformations Module
- * Handles video transformation operations: upscale, resize, gif, lip-sync, reframe, effects, edits.
+ * Handles video transformation operations: upscale, resize, gif, lip-sync, reframe, effects, edits,
+ * plus the workflow-backed extend and identity-locked clip-chain runs.
  * Split from VideosModule to reduce circular dependencies.
  */
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
@@ -9,6 +10,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
+import { VideosClipChainController } from '@api/collections/videos/controllers/transformations/clip-chain/videos-clip-chain.controller';
 import { VideosEditsController } from '@api/collections/videos/controllers/transformations/edits/videos-edits.controller';
 import { VideosEffectsController } from '@api/collections/videos/controllers/transformations/effects/videos-effects.controller';
 import { VideosExtendController } from '@api/collections/videos/controllers/transformations/extend/videos-extend.controller';
@@ -35,6 +37,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
+    VideosClipChainController,
     VideosEditsController,
     VideosEffectsController,
     VideosExtendController,

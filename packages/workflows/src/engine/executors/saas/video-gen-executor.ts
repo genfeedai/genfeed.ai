@@ -1,3 +1,7 @@
+import type {
+  ClipChainIdentityReference,
+  VideoGenerationIdentityLock,
+} from '@genfeedai/contracts/interfaces';
 import type { ExecutionContext } from '../../execution/engine';
 import type { ExecutableNode } from '../../types';
 import {
@@ -14,6 +18,11 @@ export interface VideoGenOutput {
   filename?: string;
   generationBriefEvidence?: Record<string, unknown>;
   generationSource?: string;
+  /**
+   * Recorded when the segment ran with run-level identity stills (#4653):
+   * which stills were sent and whether a frame role was dropped for them.
+   */
+  identityLock?: VideoGenerationIdentityLock;
   model: string;
   provider: string;
   videoUrl: string;
@@ -103,6 +112,10 @@ export class VideoGenExecutor extends BaseExecutor {
         undefined,
       ),
       height: this.getOptionalConfig<number>(node.config, 'height', 1080),
+      // Run-level identity stills ride next to the start frame, never as it.
+      identityReferences: this.getOptionalConfig<
+        ClipChainIdentityReference[] | undefined
+      >(node.config, 'identityReferences', undefined),
       lastFrame,
       negativePrompt: this.getOptionalConfig<string | undefined>(
         node.config,

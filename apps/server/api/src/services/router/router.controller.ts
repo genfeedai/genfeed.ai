@@ -7,6 +7,7 @@ import { EstimateGenerationCreditsDto } from '@api/services/router/dto/estimate-
 import { SelectModelDto } from '@api/services/router/dto/select-model.dto';
 import { ModelRecommendation } from '@api/services/router/interfaces/router.interfaces';
 import { RouterService } from '@api/services/router/router.service';
+import type { AgentGenerationQuote } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Body, Controller, Post } from '@nestjs/common';
 import {
@@ -144,11 +145,7 @@ export class RouterController {
   async estimateGenerationCredits(
     @Body() body: EstimateGenerationCreditsDto,
     @CurrentUser() user: User,
-  ): Promise<{
-    credits: number | null;
-    isAvailable: boolean;
-    modelKey: string | null;
-  }> {
+  ): Promise<AgentGenerationQuote> {
     const url = `${RouterController.name} estimateGenerationCredits`;
     // organizationId is never trusted from the request body — a caller must
     // not be able to price (or discover) another organization's enabled
@@ -161,6 +158,7 @@ export class RouterController {
     });
 
     const estimate = await this.estimateService.estimate({
+      aspectRatio: body.aspectRatio,
       category: body.category,
       duration: body.duration,
       modelKey: body.modelKey,

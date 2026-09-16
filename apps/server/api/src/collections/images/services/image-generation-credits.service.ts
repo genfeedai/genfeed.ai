@@ -6,15 +6,9 @@ import { baseModelKey } from '@api/collections/models/utils/model-key.util';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
-  calculateDynamicImageCost,
   commitDeferredCredits,
   type DeferredCreditsRequest,
-  doesImageProviderFanOutPerOutput,
   isDeferredCreditsRequest,
-  requestedOutputCount,
-  resolveGenerationDimensions,
-  resolveModelCreditCost,
-  scaleCreditsForFanOut,
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
   hasGenerationSourceActionId,
@@ -27,7 +21,7 @@ import type { ByokProvider } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   buildPricingAuditStamp,
-  quoteImageGenerationQualityCredits,
+  calculateImageGenerationCredits,
 } from '@genfeedai/pricing';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -144,28 +138,23 @@ export class ImageGenerationCreditsService {
     const resolvedModelDoc = await this.modelsService.findOne({
       key: baseModelKey(model),
     });
-    const { height, width } = resolveGenerationDimensions(
-      createImageDto.width,
-      createImageDto.height,
-    );
-    const baseCost = resolveModelCreditCost(resolvedModelDoc, (modelDoc) =>
-      calculateDynamicImageCost(modelDoc, width, height),
-    );
-    const isBatchSupported =
-      MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
-
-    const requiredCredits = scaleCreditsForFanOut(
-      quoteImageGenerationQualityCredits(
-        baseCost,
+    // #4813 Same calculator the Agent quote uses; only the inputs differ. The
+    // row's provider resolves dispatch exactly as image execution does, so a
+    // Fal row with a generic key is never billed with Replicate semantics.
+    const { credits: requiredCredits } = calculateImageGenerationCredits({
+      height: createImageDto.height,
+      imageProvider: this.providerRegistry.providerFor(
         model,
-        createImageDto.quality,
+        resolvedModelDoc?.provider,
       ),
-      requestedOutputCount(createImageDto.outputs),
-      doesImageProviderFanOutPerOutput(
-        this.providerRegistry.providerFor(model) ?? undefined,
-        isBatchSupported,
-      ),
-    );
+      isBatchSupported:
+        MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false,
+      modelKey: model,
+      outputs: createImageDto.outputs,
+      pricing: resolvedModelDoc,
+      quality: createImageDto.quality,
+      width: createImageDto.width,
+    });
 
     return { requiredCredits, resolvedModelDoc };
   }

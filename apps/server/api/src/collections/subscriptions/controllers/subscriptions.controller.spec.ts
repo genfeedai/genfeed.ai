@@ -9,6 +9,7 @@ import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscr
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -108,6 +109,8 @@ describe('SubscriptionsController', () => {
           provide: LoggerService,
           useValue: mockLoggerService,
         },
+        // The preview route's method filter reads the Sentry environment.
+        { provide: ConfigService, useValue: { get: () => 'development' } },
       ],
     })
       .overrideGuard(RolesGuard)

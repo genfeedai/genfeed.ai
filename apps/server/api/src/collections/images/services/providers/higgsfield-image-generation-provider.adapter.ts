@@ -4,7 +4,6 @@ import type {
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { calculateAspectRatio } from '@genfeedai/helpers';
 
 /**
@@ -21,10 +20,6 @@ export class HiggsFieldImageGenerationProviderAdapter
   readonly provider = 'higgsfield' as const;
 
   constructor(private readonly higgsFieldService: HiggsFieldService) {}
-
-  supports(model: string): boolean {
-    return model === MODEL_KEYS.HIGGSFIELD_SOUL;
-  }
 
   async prepare(
     request: ImageGenerationProviderRequest,

@@ -9,6 +9,7 @@ export type {
   VideoExtensionTemplateParams,
 } from './clip-chain-video.template';
 export {
+  buildClipChainIdentityReferences,
   buildClipChainVideoTemplate,
   buildVideoExtensionTemplate,
   CLIP_CHAIN_VIDEO_TEMPLATE,

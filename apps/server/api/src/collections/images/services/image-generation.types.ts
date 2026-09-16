@@ -137,5 +137,4 @@ export interface ImageGenerationProviderAdapter {
   prepare(
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider>;
-  supports(model: string, provider?: ModelProvider | string): boolean;
 }

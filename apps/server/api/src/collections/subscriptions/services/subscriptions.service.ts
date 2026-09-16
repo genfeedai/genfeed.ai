@@ -3,6 +3,12 @@ import { CustomersService } from '@api/collections/customers/services/customers.
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
+import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
+import {
+  getSubscriptionPreviewFailureDiagnostics,
+  SubscriptionPreviewStage,
+  toSubscriptionPreviewException,
+} from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -21,11 +27,12 @@ import {
   toPrismaSubscriptionStatus,
 } from '@genfeedai/contracts';
 import type { SubscriptionChangePreview } from '@genfeedai/contracts/interfaces';
-import type {
-  ISubscriptionFindAllOptions,
-  ISubscriptionFindAllResult,
-  ISubscriptionOssReadModel,
-  ISubscriptionsService,
+import {
+  type ISubscriptionFindAllOptions,
+  type ISubscriptionFindAllResult,
+  type ISubscriptionOssReadModel,
+  type ISubscriptionsService,
+  SubscriptionPreviewFailureCode,
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -39,6 +46,9 @@ import {
 
 type SubscriptionsFindAllResult =
   AggregatePaginateResult<SubscriptionDocument> & ISubscriptionFindAllResult;
+
+/** Mirrors the DTO/StripeService shape check; a malformed persisted id is local state, not a Stripe fault. */
+const STRIPE_PRICE_ID_PATTERN = /^price_[A-Za-z0-9]+$/;
 
 /**
  * Organization (Stripe) subscriptions service, bound to `SUBSCRIPTIONS_SERVICE`
@@ -441,47 +451,79 @@ export class SubscriptionsService
     }
   }
 
+  /**
+   * Prices a plan change without touching the subscription row, credits, or
+   * Stripe state: the only provider call is a preview invoice. Every failure
+   * leaves as one classified {@link SubscriptionPreviewException}. Local
+   * prerequisites are checked before any Stripe call so a stale row never
+   * reaches the provider, and the failing Stripe stage is recorded so the
+   * classifier can tell a missing price from a missing subscription.
+   */
   async previewSubscriptionChange(
     organizationId: string,
     newPriceId: string,
   ): Promise<SubscriptionChangePreview> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let stage: SubscriptionPreviewStage | undefined;
 
     try {
-      // Find the organization's subscription
-      const subscription = await this.findByOrganizationId(organizationId);
+      // An empty organization would silently widen the tenant-scoped lookup.
+      if (!organizationId) {
+        throw new SubscriptionPreviewException(
+          SubscriptionPreviewFailureCode.ORGANIZATION_REQUIRED,
+        );
+      }
 
+      const subscription = await this.findByOrganizationId(organizationId);
       if (!subscription) {
-        throw new Error('Subscription not found');
+        throw new SubscriptionPreviewException(
+          SubscriptionPreviewFailureCode.SUBSCRIPTION_MISSING,
+        );
       }
 
       if (!subscription.stripeSubscriptionId) {
-        throw new BadRequestException('No active Stripe subscription found');
+        throw new SubscriptionPreviewException(
+          SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_MISSING,
+        );
       }
 
-      const currentPriceId = this.requireString(
-        subscription.stripePriceId,
-        'Subscription stripePriceId',
-      );
+      const currentPriceId = subscription.stripePriceId;
+      if (!currentPriceId || !STRIPE_PRICE_ID_PATTERN.test(currentPriceId)) {
+        throw new SubscriptionPreviewException(
+          SubscriptionPreviewFailureCode.CURRENT_PRICE_MISSING,
+        );
+      }
 
-      // Get the upcoming invoice preview
-      const upcomingInvoice = await this.stripeService.getUpcomingInvoice(
-        this.requireString(
-          await this.resolveStripeCustomerId(
-            subscription.customerId,
-            subscription.organizationId,
-          ),
-          'Subscription stripeCustomerId',
-        ),
-        subscription.stripeSubscriptionId,
-        currentPriceId,
-        newPriceId,
+      const stripeCustomerId = await this.resolveStripeCustomerId(
+        subscription.customerId,
+        organizationId,
       );
+      if (!stripeCustomerId) {
+        throw new SubscriptionPreviewException(
+          SubscriptionPreviewFailureCode.BILLING_CUSTOMER_MISSING,
+        );
+      }
 
+      // Resolve both prices before the preview: `getUpcomingInvoice` retrieves
+      // the target price itself, and Stripe reports a missing id there with
+      // `param: 'id'`, which the classifier could not tell apart from a
+      // missing subscription. Pricing first pins that failure to this stage.
+      stage = SubscriptionPreviewStage.PRICE;
       const [currentPrice, newPrice] = await Promise.all([
         this.stripeService.getPrice(currentPriceId),
         this.stripeService.getPrice(newPriceId),
       ]);
+
+      // Get the upcoming invoice preview
+      stage = SubscriptionPreviewStage.UPCOMING_INVOICE;
+      const upcomingInvoice = await this.stripeService.getUpcomingInvoice(
+        stripeCustomerId,
+        subscription.stripeSubscriptionId,
+        currentPriceId,
+        newPriceId,
+      );
+      stage = undefined;
+
       const prorationAmount = upcomingInvoice.lines.data.reduce(
         (amount, line) =>
           line.parent?.subscription_item_details?.proration
@@ -531,8 +573,20 @@ export class SubscriptionsService
         },
       };
     } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
-      throw error;
+      const exception = toSubscriptionPreviewException(error, stage);
+      // Safe diagnostics only: the raw error (and any Stripe payload on it)
+      // stays on `exception.cause` for error tracking, never in logs.
+      const context = {
+        ...getSubscriptionPreviewFailureDiagnostics(exception, stage),
+        newPriceId,
+        organizationId,
+      };
+      if (exception.code === SubscriptionPreviewFailureCode.PREVIEW_FAILED) {
+        this.logger.error(`${url} failed`, undefined, context);
+      } else {
+        this.logger.warn(`${url} failed`, context);
+      }
+      throw exception;
     }
   }
 }
