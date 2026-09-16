@@ -1306,6 +1306,10 @@ describe('SubscriptionsService', () => {
         SubscriptionPreviewFailureCode.PRICE_NOT_FOUND,
       );
       expect(exception.getStatus()).toBe(404);
+      // Prices resolve before the preview: Stripe reports a missing id from
+      // the preview's own price retrieve with `param: 'id'`, which would
+      // otherwise read as a missing subscription.
+      expect(stripeService.getUpcomingInvoice).not.toHaveBeenCalled();
       expectNoStateMutation();
     });
 

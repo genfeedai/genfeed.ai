@@ -504,6 +504,16 @@ export class SubscriptionsService
         );
       }
 
+      // Resolve both prices before the preview: `getUpcomingInvoice` retrieves
+      // the target price itself, and Stripe reports a missing id there with
+      // `param: 'id'`, which the classifier could not tell apart from a
+      // missing subscription. Pricing first pins that failure to this stage.
+      stage = SubscriptionPreviewStage.PRICE;
+      const [currentPrice, newPrice] = await Promise.all([
+        this.stripeService.getPrice(currentPriceId),
+        this.stripeService.getPrice(newPriceId),
+      ]);
+
       // Get the upcoming invoice preview
       stage = SubscriptionPreviewStage.UPCOMING_INVOICE;
       const upcomingInvoice = await this.stripeService.getUpcomingInvoice(
@@ -512,12 +522,6 @@ export class SubscriptionsService
         currentPriceId,
         newPriceId,
       );
-
-      stage = SubscriptionPreviewStage.PRICE;
-      const [currentPrice, newPrice] = await Promise.all([
-        this.stripeService.getPrice(currentPriceId),
-        this.stripeService.getPrice(newPriceId),
-      ]);
       stage = undefined;
 
       const prorationAmount = upcomingInvoice.lines.data.reduce(
