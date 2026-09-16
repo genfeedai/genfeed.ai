@@ -2,9 +2,7 @@ import { BrandsModule } from '@api/collections/brands/brands.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
-import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
-import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
-import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
+import { BotCallbackModule } from '@api/services/bot-gateway/bot-callback.module';
 import { BotGatewayController } from '@api/services/bot-gateway/bot-gateway.controller';
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
 import { BotMediaGenerationDispatcherService } from '@api/services/bot-gateway/bot-media-generation-dispatcher.service';
@@ -12,7 +10,6 @@ import { BotGenerationService } from '@api/services/bot-gateway/services/bot-gen
 import { BOT_MEDIA_GENERATION_DISPATCHER } from '@api/services/bot-gateway/services/bot-media-generation-dispatcher.interface';
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
 import { ConfigModule } from '@libs/config/config.module';
-import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -21,10 +18,10 @@ import { Module } from '@nestjs/common';
   imports: [
     ConfigModule,
     AgentGenerationGatewayModule,
+    BotCallbackModule,
     BrandsModule,
     CredentialsCoreModule,
     CreditsModule,
-    HttpModule,
   ],
   providers: [
     BotGatewayService,
@@ -35,9 +32,6 @@ import { Module } from '@nestjs/common';
       useExisting: BotMediaGenerationDispatcherService,
     },
     BotUserResolverService,
-    DiscordBotAdapter,
-    SlackBotAdapter,
-    TelegramBotAdapter,
   ],
 })
 export class BotGatewayModule {}

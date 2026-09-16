@@ -2,7 +2,7 @@ import type { EvaluationsService } from '@api/collections/evaluations/services/e
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import type { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
-import type { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
+import type { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -16,7 +16,7 @@ async function flushBackgroundWork(): Promise<void> {
 
 describe('PostProcessingOrchestratorService', () => {
   let service: PostProcessingOrchestratorService;
-  let botGatewayService: {
+  let botCallbackResponder: {
     sendCompletionResponse: ReturnType<typeof vi.fn>;
     sendErrorResponse: ReturnType<typeof vi.fn>;
   };
@@ -31,7 +31,7 @@ describe('PostProcessingOrchestratorService', () => {
   let evaluationsService: { evaluateContent: ReturnType<typeof vi.fn> };
 
   beforeEach(() => {
-    botGatewayService = {
+    botCallbackResponder = {
       sendCompletionResponse: vi.fn().mockResolvedValue(undefined),
       sendErrorResponse: vi.fn().mockResolvedValue(undefined),
     };
@@ -52,7 +52,7 @@ describe('PostProcessingOrchestratorService', () => {
     };
 
     service = new PostProcessingOrchestratorService(
-      botGatewayService as unknown as BotGatewayService,
+      botCallbackResponder as unknown as BotCallbackResponderService,
       configService as unknown as ConfigService,
       organizationSettingsService as unknown as OrganizationSettingsService,
       loggerService as unknown as LoggerService,
@@ -65,7 +65,7 @@ describe('PostProcessingOrchestratorService', () => {
       service.notifyBotGatewayIfNeeded('ing-1', IngredientCategory.VIDEO);
       await flushBackgroundWork();
 
-      expect(botGatewayService.sendCompletionResponse).toHaveBeenCalledWith(
+      expect(botCallbackResponder.sendCompletionResponse).toHaveBeenCalledWith(
         'ing-1',
         'https://cdn.example.com/videos/ing-1',
         'video',
@@ -76,7 +76,7 @@ describe('PostProcessingOrchestratorService', () => {
       service.notifyBotGatewayFailureIfNeeded('ing-1', 'Provider timed out');
       await flushBackgroundWork();
 
-      expect(botGatewayService.sendErrorResponse).toHaveBeenCalledWith(
+      expect(botCallbackResponder.sendErrorResponse).toHaveBeenCalledWith(
         'ing-1',
         'Provider timed out',
       );
@@ -86,7 +86,7 @@ describe('PostProcessingOrchestratorService', () => {
   describe('triggerAutoEvaluationIfEnabled', () => {
     it('should not crash when evaluationsService is not available', () => {
       const serviceWithoutEval = new PostProcessingOrchestratorService(
-        botGatewayService as unknown as BotGatewayService,
+        botCallbackResponder as unknown as BotCallbackResponderService,
         configService as unknown as ConfigService,
         organizationSettingsService as unknown as OrganizationSettingsService,
         loggerService as unknown as LoggerService,

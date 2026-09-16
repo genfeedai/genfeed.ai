@@ -37,9 +37,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
-  Optional,
 } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 const MUSIC_COMPLETION_TIMEOUT_MS = 180_000;
 const MUSIC_COMPLETION_POLL_INTERVAL_MS = 3_000;
@@ -86,23 +84,8 @@ export class MusicGenerationService {
     private readonly promptsService: PromptsService,
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
-    // WebhooksService lives behind WebhooksCoreModule, a hub already tangled
-    // with Brands/Workflows/ContentEngine/ClipProjects — importing it here
-    // would close a large pre-existing ring (see module-graph.spec.ts).
-    // Resolved lazily via ModuleRef instead of an `imports` edge; it's
-    // already instantiated elsewhere in the app (WebhooksModule, the
-    // Replicate/HeyGen poll queues), so no module needs to provide it to
-    // MusicsModule directly.
-    @Optional()
-    private readonly moduleRef?: ModuleRef,
+    private readonly webhooksService: WebhooksService,
   ) {}
-
-  private getWebhooksService(): WebhooksService {
-    if (!this.moduleRef) {
-      throw new Error('WebhooksService is unavailable');
-    }
-    return this.moduleRef.get(WebhooksService, { strict: false });
-  }
 
   async generateMusic(
     user: User,
@@ -463,7 +446,7 @@ export class MusicGenerationService {
       // processors use, so activity/cost/dimension updates, the
       // still-PROCESSING guard, and the completion notification all run.
       if (outputUrl) {
-        await this.getWebhooksService().processMediaForIngredient(
+        await this.webhooksService.processMediaForIngredient(
           params.ingredientId,
           IngredientCategory.MUSIC,
           outputUrl,

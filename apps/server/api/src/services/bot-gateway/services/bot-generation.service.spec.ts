@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { BotCallbackContextService } from '@api/services/bot-gateway/services/bot-callback-context.service';
 import { BotGenerationService } from '@api/services/bot-gateway/services/bot-generation.service';
 import {
   BOT_MEDIA_GENERATION_DISPATCHER,
@@ -69,6 +70,7 @@ describe('BotGenerationService', () => {
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        BotCallbackContextService,
         BotGenerationService,
         {
           provide: ConfigService,
@@ -148,28 +150,15 @@ describe('BotGenerationService', () => {
       86_400,
       JSON.stringify({ ...callbackContext, ingredientId }),
     );
-    await expect(service.getCallbackContext(ingredientId)).resolves.toEqual({
-      ...callbackContext,
-      ingredientId,
-    });
-  });
-
-  it('removes callback context after delivery', async () => {
-    redisValues.set(
-      `bot-generation:callback:${ingredientId}`,
-      JSON.stringify(callbackContext),
+    expect(redisValues.get(`bot-generation:callback:${ingredientId}`)).toBe(
+      JSON.stringify({ ...callbackContext, ingredientId }),
     );
-
-    await service.removeCallbackContext(ingredientId);
-
-    await expect(
-      service.getCallbackContext(ingredientId),
-    ).resolves.toBeUndefined();
   });
 
   it('rejects generation when durable callback storage is unavailable', async () => {
     const module = await Test.createTestingModule({
       providers: [
+        BotCallbackContextService,
         BotGenerationService,
         { provide: ConfigService, useValue: {} },
         { provide: CreditsUtilsService, useValue: creditsUtilsService },
