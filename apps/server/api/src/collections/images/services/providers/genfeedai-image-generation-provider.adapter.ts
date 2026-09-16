@@ -3,7 +3,6 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
-import { isGenfeedAiDestination } from '@api/collections/models/utils/model-key.util';
 import { ComfyUIService } from '@api/services/integrations/comfyui/comfyui.service';
 import { Injectable } from '@nestjs/common';
 
@@ -14,10 +13,6 @@ export class GenfeedAiImageGenerationProviderAdapter
   readonly provider = 'genfeedai' as const;
 
   constructor(private readonly comfyUIService: ComfyUIService) {}
-
-  supports(model: string): boolean {
-    return isGenfeedAiDestination(model);
-  }
 
   async prepare(
     request: ImageGenerationProviderRequest,

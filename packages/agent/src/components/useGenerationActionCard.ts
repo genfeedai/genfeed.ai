@@ -508,8 +508,11 @@ export function useGenerationActionCard({
         ? duration
         : (resolveVideoPilotDuration(duration, durationOptions) ?? duration)
       : undefined;
+  // #4813 The quote carries every input the charge prices: the aspect ratio
+  // resolves the executed dimensions for per-megapixel models.
   const estimateInput = useMemo(
     () => ({
+      aspectRatio,
       category: generationType,
       duration: requestDuration,
       modelKey: isAutoMode ? undefined : modelKey || undefined,
@@ -519,6 +522,7 @@ export function useGenerationActionCard({
       resolution: resolution || undefined,
     }),
     [
+      aspectRatio,
       generationType,
       requestDuration,
       isAutoMode,
@@ -532,7 +536,6 @@ export function useGenerationActionCard({
   const estimateFingerprint = JSON.stringify([
     estimateInput,
     isAutoMode,
-    aspectRatio,
     referenceIds,
     startFrameId,
     endFrameId,

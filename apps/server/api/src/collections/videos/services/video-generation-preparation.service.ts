@@ -31,7 +31,6 @@ import type { GenerationPlaceholderScope } from '@api/common/interfaces/generati
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import type { RequestWithSelectedModel } from '@api/helpers/guards/models/request-with-selected-model.interface';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { resolveGenerationDimensions } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
   isImageToVideoRequest,
   resolveGenerationDefaultModel,
@@ -69,6 +68,7 @@ import {
   getModelMaxVideoReferences,
   hasVideoReferences,
 } from '@genfeedai/contracts/constants';
+import { resolveGenerationDimensions } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';

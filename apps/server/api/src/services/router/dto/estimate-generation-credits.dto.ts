@@ -16,7 +16,8 @@ const ESTIMATE_CATEGORIES = [ModelCategory.IMAGE, ModelCategory.VIDEO] as const;
 type EstimateCategory = (typeof ESTIMATE_CATEGORIES)[number];
 
 /**
- * #4672 Manual-mode review card estimate request. `organizationId` is never
+ * #4672 Manual-mode review card estimate request (#4813 adds the aspect ratio
+ * so dimensional pricing quotes the executed dimensions). `organizationId` is never
  * accepted here — the controller resolves it from the authenticated user so
  * a caller cannot price (or, worse, learn about) another organization's
  * enabled models.
@@ -77,6 +78,17 @@ export class EstimateGenerationCreditsDto {
     required: false,
   })
   readonly outputs?: number;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Aspect ratio the Agent request executes with (e.g. "1:1", "16:9"); drives per-megapixel pricing dimensions',
+    example: '1:1',
+    required: false,
+  })
+  readonly aspectRatio?: string;
 
   @IsString()
   @IsOptional()

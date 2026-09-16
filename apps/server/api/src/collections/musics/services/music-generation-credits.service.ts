@@ -2,11 +2,8 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
-import {
-  applyMinCost,
-  calculatePerSecondCost,
-} from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { ActivitySource, PricingType } from '@genfeedai/contracts';
+import { applyMinCost, calculatePerSecondCost } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
