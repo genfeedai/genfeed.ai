@@ -1,5 +1,17 @@
 import { ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
+
+/**
+ * A registry key, label, or endpoint is only safe to case-normalize once it is
+ * a non-empty string. Prisma types the columns as `String`, but a registry row
+ * or provider capability lookup can still surface `undefined`, `null`, or
+ * non-string metadata at runtime, and `toLowerCase` on that threw a
+ * `TypeError` in production (#4733). Validate here, before normalizing.
+ */
+export function isModelMetadataString(value: unknown): value is string {
+  return typeof value === 'string' && value.trim().length > 0;
+}
 
 export function baseModelKey(key?: string): string | undefined {
   if (!key || typeof key !== 'string') {
@@ -62,8 +74,20 @@ export function getProviderModelKey(
   return endpoint;
 }
 
-/** Resolve a collision-safe Fal selection key back to its provider endpoint. */
+/**
+ * Resolve a collision-safe Fal selection key back to its provider endpoint.
+ *
+ * The `fal/` namespace match stays case-insensitive for valid keys. Missing or
+ * malformed endpoint metadata fails closed with a 400 instead of reaching
+ * `toLowerCase` and throwing a `TypeError` (#4733).
+ */
 export function getFalEndpointFromModelKey(key: string): string {
+  if (!isModelMetadataString(key)) {
+    throw new BadRequestException({
+      detail: 'Model endpoint must be a non-empty string',
+      title: 'Model endpoint unavailable',
+    });
+  }
   return key.toLowerCase().startsWith('fal/') ? key.slice(4) : key;
 }
 

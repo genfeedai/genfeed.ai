@@ -1439,8 +1439,19 @@ export interface ResolvedMusicSettings {
   isInstrumentalOnly: boolean;
 }
 
-export function resolveMusicSettings(modelKey?: string): ResolvedMusicSettings {
-  const entry = modelKey ? MODEL_OUTPUT_CAPABILITIES[modelKey] : undefined;
+/**
+ * Capability lookup for a music model key. The key is registry metadata that
+ * can arrive as `undefined`, `null`, or a non-string at runtime; anything but
+ * a non-empty string fails closed to "no capabilities" instead of throwing
+ * (#4733). Valid keys resolve exactly as before.
+ */
+export function resolveMusicSettings(
+  modelKey?: string | null,
+): ResolvedMusicSettings {
+  const entry =
+    typeof modelKey === 'string' && modelKey.length > 0
+      ? MODEL_OUTPUT_CAPABILITIES[modelKey]
+      : undefined;
   const capability =
     entry?.category === ModelCategory.MUSIC ? entry : undefined;
   const durations =
@@ -1462,7 +1473,7 @@ export function resolveMusicSettings(modelKey?: string): ResolvedMusicSettings {
 }
 
 export function normalizeMusicSettings(
-  modelKey: string | undefined,
+  modelKey: string | null | undefined,
   settings: MusicSettings,
 ): MusicSettings {
   const capability = resolveMusicSettings(modelKey);

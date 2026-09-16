@@ -4,6 +4,7 @@ import {
   getProviderModelKey,
   isFalDestination,
   isGenfeedAiDestination,
+  isModelMetadataString,
   isReplicateDestination,
   isReplicateVersionId,
   isTrainerKey,
@@ -11,6 +12,7 @@ import {
 } from '@api/collections/models/utils/model-key.util';
 import { ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
 
 // Contract tests for the model-routing heuristics that decide which provider a
 // given model key resolves to. These are string-prefix/regex heuristics on the
@@ -214,6 +216,60 @@ describe('model-key.util', () => {
       expect(getFalEndpointFromModelKey('fal-ai/flux/dev')).toBe(
         'fal-ai/flux/dev',
       );
+    });
+
+    it('matches the fal/ namespace case-insensitively for valid keys', () => {
+      expect(getFalEndpointFromModelKey('FAL/google/nano-banana-2-lite')).toBe(
+        'google/nano-banana-2-lite',
+      );
+      expect(getFalEndpointFromModelKey('Fal-AI/flux/dev')).toBe(
+        'Fal-AI/flux/dev',
+      );
+    });
+
+    // #4733: a registry row with missing or malformed endpoint metadata used
+    // to reach `toLowerCase` and throw a TypeError in production.
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['a number', 42],
+      ['an object', { endpoint: 'fal/google/nano-banana-2-lite' }],
+      ['an empty string', ''],
+      ['whitespace', '   '],
+    ])('rejects %s with a 400 instead of a TypeError', (_label, value) => {
+      let caught: unknown;
+      try {
+        getFalEndpointFromModelKey(value as unknown as string);
+      } catch (error: unknown) {
+        caught = error;
+      }
+
+      expect(caught).toBeInstanceOf(BadRequestException);
+      expect(caught).not.toBeInstanceOf(TypeError);
+      expect((caught as BadRequestException).getResponse()).toEqual({
+        detail: 'Model endpoint must be a non-empty string',
+        title: 'Model endpoint unavailable',
+      });
+    });
+  });
+
+  describe('isModelMetadataString', () => {
+    it('accepts non-empty strings regardless of case', () => {
+      expect(isModelMetadataString('meta/musicgen')).toBe(true);
+      expect(isModelMetadataString('FAL/elevenlabs/music')).toBe(true);
+    });
+
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['a number', 42],
+      ['a boolean', true],
+      ['an object', { label: 'MusicGen' }],
+      ['an array', ['meta/musicgen']],
+      ['an empty string', ''],
+      ['whitespace', ' \t\n'],
+    ])('rejects %s', (_label, value) => {
+      expect(isModelMetadataString(value)).toBe(false);
     });
   });
 
