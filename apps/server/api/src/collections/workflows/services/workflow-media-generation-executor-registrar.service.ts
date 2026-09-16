@@ -246,49 +246,12 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
     const replicateService = this.replicateService;
 
     videoGenExecutor.setResolver(async (model, params, context, node) => {
-      const references = Array.isArray(params.references)
-        ? params.references.filter(
-            (reference): reference is string => typeof reference === 'string',
-          )
-        : undefined;
-      const videoReferences = Array.isArray(params.videoReferences)
-        ? params.videoReferences.filter(
-            (reference): reference is string => typeof reference === 'string',
-          )
-        : undefined;
-      const lastFrame =
-        typeof params.lastFrame === 'string' ? params.lastFrame : undefined;
-      const referenceReplacements = new Map<string, string>();
-      const referenceAssetIds = references?.map((reference, index) => {
-        const assetId =
-          this.helper.extractIngredientId(reference) ??
-          `workflow-image-reference-${index + 1}`;
-        referenceReplacements.set(assetId, reference);
-        return assetId;
-      });
-      const endFrameId = lastFrame
-        ? (this.helper.extractIngredientId(lastFrame) ??
-          'workflow-last-frame-reference')
-        : undefined;
-      if (endFrameId && lastFrame) {
-        referenceReplacements.set(endFrameId, lastFrame);
-      }
-      const videoReferenceAssetIds = await Promise.all(
-        (videoReferences ?? []).map(async (reference, index) => {
-          const ingredientId = this.helper.extractIngredientId(reference);
-          const assetId =
-            ingredientId ?? `workflow-video-reference-${index + 1}`;
-          const providerUrl =
-            ingredientId && this.filesClientService
-              ? await this.filesClientService.getPresignedDownloadUrl(
-                  ingredientId,
-                  'videos',
-                )
-              : reference;
-          referenceReplacements.set(assetId, providerUrl);
-          return assetId;
-        }),
-      );
+      const {
+        endFrameId,
+        referenceAssetIds,
+        referenceReplacements,
+        videoReferenceAssetIds,
+      } = await this.resolveVideoReferenceInputs(params);
       const prompt = typeof params.prompt === 'string' ? params.prompt : '';
       const height = typeof params.height === 'number' ? params.height : 1080;
       const width = typeof params.width === 'number' ? params.width : 1920;
@@ -410,6 +373,69 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       'videoGen',
       this.helper.wrapEngineExecutor(videoGenExecutor),
     );
+  }
+
+  /**
+   * Maps the executor's reference inputs (start frame, last frame, reference
+   * videos) to brief asset ids and the provider URL each id resolves to.
+   */
+  private async resolveVideoReferenceInputs(
+    params: Record<string, unknown>,
+  ): Promise<{
+    endFrameId?: string;
+    referenceAssetIds?: string[];
+    referenceReplacements: Map<string, string>;
+    videoReferenceAssetIds: string[];
+  }> {
+    const references = Array.isArray(params.references)
+      ? params.references.filter(
+          (reference): reference is string => typeof reference === 'string',
+        )
+      : undefined;
+    const videoReferences = Array.isArray(params.videoReferences)
+      ? params.videoReferences.filter(
+          (reference): reference is string => typeof reference === 'string',
+        )
+      : undefined;
+    const lastFrame =
+      typeof params.lastFrame === 'string' ? params.lastFrame : undefined;
+    const referenceReplacements = new Map<string, string>();
+    const referenceAssetIds = references?.map((reference, index) => {
+      const assetId =
+        this.helper.extractIngredientId(reference) ??
+        `workflow-image-reference-${index + 1}`;
+      referenceReplacements.set(assetId, reference);
+      return assetId;
+    });
+    const endFrameId = lastFrame
+      ? (this.helper.extractIngredientId(lastFrame) ??
+        'workflow-last-frame-reference')
+      : undefined;
+    if (endFrameId && lastFrame) {
+      referenceReplacements.set(endFrameId, lastFrame);
+    }
+    const videoReferenceAssetIds = await Promise.all(
+      (videoReferences ?? []).map(async (reference, index) => {
+        const ingredientId = this.helper.extractIngredientId(reference);
+        const assetId = ingredientId ?? `workflow-video-reference-${index + 1}`;
+        const providerUrl =
+          ingredientId && this.filesClientService
+            ? await this.filesClientService.getPresignedDownloadUrl(
+                ingredientId,
+                'videos',
+              )
+            : reference;
+        referenceReplacements.set(assetId, providerUrl);
+        return assetId;
+      }),
+    );
+
+    return {
+      endFrameId,
+      referenceAssetIds,
+      referenceReplacements,
+      videoReferenceAssetIds,
+    };
   }
 
   /**
