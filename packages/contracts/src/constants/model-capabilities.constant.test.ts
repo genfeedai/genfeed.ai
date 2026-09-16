@@ -85,8 +85,13 @@ describe('model-capabilities.constant', () => {
 });
 
 describe('music settings contract', () => {
+  // #4733: the key is registry metadata, so `null` and non-string values
+  // must fail closed exactly like an unknown key instead of throwing.
   it.each([
     undefined,
+    null,
+    42 as unknown as string,
+    { key: MODEL_KEYS.FAL_ELEVENLABS_MUSIC } as unknown as string,
     '',
     'auto',
     'unknown',
@@ -152,6 +157,16 @@ describe('music settings contract', () => {
         lyrics: 'stale',
       }),
     ).toEqual({ duration: expected, instrumental: true, lyrics: undefined });
+  });
+
+  it('resolves a valid music key with its exact registry spelling', () => {
+    expect(resolveMusicSettings(MODEL_KEYS.FAL_ELEVENLABS_MUSIC)).toMatchObject(
+      {
+        hasDurationEditing: true,
+        hasInstrumentalToggle: true,
+        hasLyrics: true,
+      },
+    );
   });
 
   it('uses Eleven Music defaults and clears instrumental lyrics', () => {

@@ -85,20 +85,14 @@ export class StripeSubscriptionWebhookHandler {
         );
       }
 
-      const subscriptionItem = subscription.items.data[0];
       await this.creditReconciler.reconcile({
+        billingAccountId: identity.billingAccountId,
         billingReason: 'subscription_create',
-        ...(subscriptionItem.current_period_end !== undefined
-          ? {
-              periodEnd: new Date(subscriptionItem.current_period_end * 1000),
-            }
+        ...(subscriptionData.currentPeriodEnd
+          ? { periodEnd: subscriptionData.currentPeriodEnd }
           : {}),
-        ...(subscriptionItem.current_period_start !== undefined
-          ? {
-              periodStart: new Date(
-                subscriptionItem.current_period_start * 1000,
-              ),
-            }
+        ...(subscriptionData.currentPeriodStart
+          ? { periodStart: subscriptionData.currentPeriodStart }
           : {}),
         stripeSubscriptionId: subscription.id,
         subscription: {

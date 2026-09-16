@@ -7,9 +7,11 @@ import {
   FASTLANE_FORMATS,
   type GenerateFastlaneIdeasDto,
 } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
+import { BrandProfileGenerationException } from '@api/collections/brands/exceptions/brand-profile-generation.exception';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import {
+  BrandProfileValidationError,
   buildBrandProfileAnalysisPrompt,
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
@@ -22,13 +24,10 @@ import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type {
   FastlaneFormat,
   FastlaneIdea,
+  IBrandProfileGenerationDiagnostics,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Injectable,
-  InternalServerErrorException,
-} from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export type BrandFinder = (
   criteria: Record<string, unknown>,
@@ -192,23 +191,52 @@ export class BrandGenerationService {
       organizationId,
     );
 
-    return this.parseBrandVoiceCompletion(
+    return this.validateBrandVoiceCompletion(
       completion.choices?.[0]?.message?.content?.trim() ?? '',
+      dto.brandId,
+      organizationId,
     );
   }
 
-  private parseBrandVoiceCompletion(rawContent: string): GeneratedBrandVoice {
+  /**
+   * Validates provider output against the brand-profile contract before it
+   * leaves this service. Nothing is persisted here — the client applies the
+   * returned profile through `PATCH /brands/:id/agent-config` — so a rejected
+   * profile never touches the stored one.
+   *
+   * Contract violations are provider-output failures, not internal faults:
+   * they become a classified 422 with redacted diagnostics (shape only, never
+   * the payload). Anything else propagates unchanged so genuine server faults
+   * keep their 500 and Sentry capture.
+   */
+  private validateBrandVoiceCompletion(
+    rawContent: string,
+    brandId: string | undefined,
+    organizationId: string,
+  ): GeneratedBrandVoice {
     try {
       return parseGeneratedBrandProfile(rawContent);
     } catch (error: unknown) {
-      this.logger.warn('Failed to parse brand voice LLM response', {
-        error,
-        rawContent,
+      if (!(error instanceof BrandProfileValidationError)) {
+        throw error;
+      }
+
+      const diagnostics: IBrandProfileGenerationDiagnostics = {
+        isRetryable: true,
+        missingFields: error.missingFields,
+        outputLength: rawContent.length,
+        reason: error.reason,
+      };
+
+      this.logger.warn('Generated brand profile failed validation', {
+        ...diagnostics,
+        brandId,
+        operation: 'generateBrandVoice',
+        organizationId,
         service: this.constructorName,
       });
-      throw new InternalServerErrorException(
-        'The generated brand profile was invalid. Please try again.',
-      );
+
+      throw new BrandProfileGenerationException(diagnostics);
     }
   }
 

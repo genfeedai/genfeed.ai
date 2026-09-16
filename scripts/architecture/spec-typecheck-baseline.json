@@ -265,30 +265,6 @@
       "workspace": "api"
     },
     {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/services/brand-generation.service.spec.ts",
-      "fingerprint": "4817eafd072c810a1f5a",
-      "message": "Argument of type 'Mock<Procedure | Constructable>' is not assignable to parameter of type 'BrandFinder'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type 'BrandFinder'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(criteria: Record<string, unknown>): Promise<BrandDocument | null>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/brands/services/brand-generation.service.spec.ts",
-      "fingerprint": "6760af53816d30b7caa9",
-      "message": "Argument of type 'Mock<Procedure | Constructable>' is not assignable to parameter of type 'BrandFinder'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type 'BrandFinder'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(criteria: Record<string, unknown>): Promise<BrandDocument | null>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 1,
-      "file": "apps/server/api/src/collections/brands/services/brand-generation.service.spec.ts",
-      "fingerprint": "cadae05683da7324c753",
-      "message": "Argument of type 'Mock<Procedure | Constructable>' is not assignable to parameter of type 'BrandFinder'.   Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' is not assignable to type 'BrandFinder'.     Type 'MockInstance<Procedure | Constructable> & (new (...args: any[]) => any) & {}' provides no match for the signature '(criteria: Record<string, unknown>): Promise<BrandDocument | null>'.",
-      "workspace": "api"
-    },
-    {
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/collections/captions/controllers/captions.controller.spec.ts",

@@ -3,6 +3,7 @@ import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import type { ModelDocument } from '@api/collections/models/schemas/model.schema';
 import { ModelsService } from '@api/collections/models/services/models.service';
+import { isModelMetadataString } from '@api/collections/models/utils/model-key.util';
 import { CreateMusicDto } from '@api/collections/musics/dto/create-music.dto';
 import { MusicGenerationCreditsService } from '@api/collections/musics/services/music-generation-credits.service';
 import { MusicGenerationNotificationsService } from '@api/collections/musics/services/music-generation-notifications.service';
@@ -32,6 +33,7 @@ import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
 import { MusicSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   HttpException,
   HttpStatus,
   Injectable,
@@ -270,28 +272,46 @@ export class MusicGenerationService {
     model: string,
     organizationId: string,
   ): Promise<ModelDocument> {
+    // The resolved key is metadata, not a validated input: an empty brand or
+    // organization default, or a router miss, can hand over `undefined`/`null`
+    // at runtime. Reject it here — `findOne` drops an undefined filter and
+    // the provider adapters lowercase the key/endpoint downstream (#4733).
+    if (!isModelMetadataString(model)) {
+      throw this.buildMusicModelUnavailableException(
+        'A music model key is required',
+      );
+    }
+
     const modelDocument = await this.modelsService.findOne({
       key: model,
       organizationId,
     });
 
+    // The endpoint is what the fal adapter case-normalizes, so a row missing
+    // it must fail closed before any prompt/ingredient documents exist.
     const isEligible =
       !!modelDocument &&
       modelDocument.isActive &&
       modelDocument.category === ModelCategory.MUSIC &&
+      isModelMetadataString(modelDocument.endpoint) &&
       this.musicProviderRegistry.supports(model, modelDocument.provider);
 
     if (!isEligible) {
-      throw new HttpException(
-        {
-          detail: `No active music model is available for "${model}"`,
-          title: 'Music model unavailable',
-        },
-        HttpStatus.BAD_REQUEST,
+      throw this.buildMusicModelUnavailableException(
+        `No active music model is available for "${model}"`,
       );
     }
 
     return modelDocument as ModelDocument;
+  }
+
+  private buildMusicModelUnavailableException(
+    detail: string,
+  ): BadRequestException {
+    return new BadRequestException({
+      detail,
+      title: 'Music model unavailable',
+    });
   }
 
   private async dispatchOutputs(

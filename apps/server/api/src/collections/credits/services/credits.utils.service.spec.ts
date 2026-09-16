@@ -5,7 +5,10 @@ import { CreditTransactionsService } from '@api/collections/credits/services/cre
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  CreditGrantBillingAccountMismatchException,
+} from '@api/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -324,6 +327,63 @@ describe('CreditsUtilsService', () => {
       );
     });
 
+    it('writes to the pinned billing account and keeps the pin off the ledger row', async () => {
+      const service = buildService();
+
+      await service.addOrganizationCreditsWithExpiration(
+        'org_1',
+        50,
+        'stripe',
+        'renewal credits',
+        new Date('2027-01-01T00:00:00Z'),
+        { billingAccountId: 'ba_1' },
+      );
+
+      expect(creditBalanceService.updateBalance).toHaveBeenCalledWith(
+        'org_1',
+        150,
+        'ba_1',
+        txClient,
+      );
+      // The pin is a write guard, not a transaction option: it must not reach
+      // the ledger entry as if it were a reference or idempotency key.
+      expect(
+        creditTransactionsService.createTransactionEntry.mock.calls[0],
+      ).toHaveLength(9);
+    });
+
+    it('aborts inside the transaction when the wallet resolves to a different billing account', async () => {
+      const service = buildService();
+      billingAccountsService.resolveForOrganization.mockResolvedValue({
+        id: 'ba_2',
+      });
+      creditBalanceService.getOrCreateBalance.mockResolvedValue({
+        balance: 100,
+        billingAccountId: 'ba_2',
+        heldAmount: 0,
+        id: 'bal_2',
+        organizationId: 'org_1',
+        version: 1,
+      });
+
+      await expect(
+        service.addOrganizationCreditsWithExpiration(
+          'org_1',
+          50,
+          'stripe',
+          'renewal credits',
+          new Date('2027-01-01T00:00:00Z'),
+          { billingAccountId: 'ba_1' },
+        ),
+      ).rejects.toBeInstanceOf(CreditGrantBillingAccountMismatchException);
+
+      expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
+      expect(websocketService.emit).not.toHaveBeenCalled();
+    });
+
     it('persists a caller-provided idempotency key on the ledger entry', async () => {
       const service = buildService();
 
@@ -590,6 +650,33 @@ describe('CreditsUtilsService', () => {
         undefined,
         txClient,
       );
+    });
+
+    it('aborts the reset when the wallet resolves to a different billing account', async () => {
+      const service = buildService();
+      billingAccountsService.resolveForOrganization.mockResolvedValue({
+        id: 'ba_2',
+      });
+      creditBalanceService.getOrCreateBalance.mockResolvedValue({
+        balance: 100,
+        billingAccountId: 'ba_2',
+        heldAmount: 0,
+        id: 'bal_2',
+        organizationId: 'org_1',
+        version: 1,
+      });
+
+      await expect(
+        service.resetOrganizationCredits('org_1', 500, 'system', 'reset', {
+          billingAccountId: 'ba_1',
+        }),
+      ).rejects.toBeInstanceOf(CreditGrantBillingAccountMismatchException);
+
+      expect(creditBalanceService.updateBalance).not.toHaveBeenCalled();
+      expect(
+        creditTransactionsService.createTransactionEntry,
+      ).not.toHaveBeenCalled();
+      expect(websocketService.emit).not.toHaveBeenCalled();
     });
 
     // #1398: the yearly subscription reset path relies on this reference

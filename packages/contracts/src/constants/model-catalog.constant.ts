@@ -66,7 +66,11 @@ export interface ModelCatalogSeedEntry {
   isFree?: boolean;
   isHighlighted?: boolean;
   isImagenModel?: boolean;
-  isLegacy?: boolean;
+  /**
+   * The only legacy signal the catalog carries. The registry's `isLegacy`
+   * flag is operator territory (it hides a retired key from the public
+   * catalog) and is never seeded.
+   */
   lifecycle: ModelLifecycle;
   isPublic?: boolean;
   isReferencesMandatory?: boolean;
@@ -144,7 +148,6 @@ function buildMediaCatalogEntries(): ModelCatalogSeedEntry[] {
       isActive: isCurated,
       isDefault: curated?.isDefault ?? false,
       isHighlighted: curated?.isHighlighted ?? false,
-      isLegacy: false,
       lifecycle:
         curated && 'lifecycle' in curated && curated.lifecycle
           ? curated.lifecycle
@@ -256,7 +259,6 @@ function buildAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       isActive: !isSelfHosted,
       isDefault,
       isHighlighted: isDefault,
-      isLegacy: false,
       lifecycle:
         isDefault || model.key === HIGHLIGHTED_AGENT_CHAT_MODEL_KEY
           ? ModelLifecycle.RECOMMENDED
@@ -297,7 +299,6 @@ function buildRetiredAgentCatalogEntries(): ModelCatalogSeedEntry[] {
       isActive: false,
       isDefault: false,
       isHighlighted: false,
-      isLegacy: false,
       lifecycle: ModelLifecycle.RETIRED,
       isPublic: false,
       key,

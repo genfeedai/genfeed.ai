@@ -39,8 +39,12 @@ function isNonemptyId(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+/**
+ * Stripe omits or nulls a period boundary the same way (absent), while zero is
+ * a real Unix timestamp. Anything else that is not a finite number is malformed.
+ */
 export function stripeWebhookPeriod(value: unknown): Date | undefined {
-  if (value === undefined) return undefined;
+  if (value === undefined || value === null) return undefined;
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     throw new StripeWebhookBillingError('invalid_payload');
   }
@@ -274,8 +278,11 @@ export class StripeWebhookBillingService {
           },
         },
       });
+      // The guard pins every identity field read by `resolve`. A miss means
+      // another delivery changed them in between (a lost update), not a
+      // conflicting identity: retrying re-resolves against the updated row.
       if (result.count !== 1)
-        throw new StripeWebhookBillingError('identity_conflict');
+        throw new StripeWebhookBillingError('identity_stale');
     } catch (error) {
       if (
         error &&

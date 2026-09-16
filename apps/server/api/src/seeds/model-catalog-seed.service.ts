@@ -9,6 +9,7 @@
 
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isCloudDeployment } from '@genfeedai/config';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import {
   getModelCatalogForDeployment,
   isRetiredAgentChatModel,
@@ -72,6 +73,9 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
   /**
    * Fields the seed owns outright — labels, categories, capability metadata.
    * Rewritten on every boot so a catalogue correction reaches existing rows.
+   * `lifecycle` is written by `upsertEntry`, which lets an operator demotion
+   * survive; activation (`isActive`, `isPublic`, `isDefault`) is deliberately
+   * not here — see `upsertEntry`.
    */
   // Plain scalar values only — inferred so the same shape spreads into both
   // ModelCreateInput and ModelUpdateInput without update-operation unions.
@@ -198,6 +202,21 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     return activeDefault.key === entry.key;
   }
 
+  private isLifecyclePinnedByOperator(
+    existingRow: { isDeprecated: boolean; isLegacy: boolean } | null,
+    entry: ModelCatalogSeedEntry,
+  ): boolean {
+    if (!existingRow) {
+      return false;
+    }
+    const hasOperatorDemotion =
+      existingRow.isLegacy || existingRow.isDeprecated;
+    const isCatalogDemotion =
+      entry.lifecycle === ModelLifecycle.LEGACY ||
+      entry.lifecycle === ModelLifecycle.RETIRED;
+    return hasOperatorDemotion && !isCatalogDemotion;
+  }
+
   private async upsertEntry(entry: ModelCatalogSeedEntry): Promise<void> {
     const shared = this.buildSharedFields(entry);
 
@@ -211,9 +230,12 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDiscovered: false,
       isHighlighted: entry.isHighlighted ?? false,
       isFree: entry.isFree ?? false,
-      isLegacy: entry.isLegacy ?? false,
-      lifecycle: entry.lifecycle,
+      // The catalog never seeds a hidden-legacy row: `lifecycle` carries the
+      // LEGACY/RETIRED semantics, and `isLegacy` remains the operator flag
+      // that keeps a retired key out of the public catalog.
+      isLegacy: false,
       isPublic: entry.isPublic ?? true,
+      lifecycle: entry.lifecycle,
       endpoint: entry.endpoint ?? entry.key,
       key: entry.key,
       label: entry.label,
@@ -226,9 +248,25 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
         : {}),
     };
 
+    // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
+    const existingRow = await this.prisma.model.findUnique({
+      select: { cost: true, id: true, isDeprecated: true, isLegacy: true },
+      where: { key: entry.key },
+    });
+
     const updateData: Prisma.ModelUpdateInput = {
       ...shared,
       ...(entry.endpoint ? { endpoint: entry.endpoint } : {}),
+      // The catalog propagates its lifecycle so a key it later demotes picks
+      // that up on the next boot. An operator demotion is the exception:
+      // `ModelsService.transitionLifecycle` writes `isLegacy`/`isDeprecated`
+      // with the lifecycle, and a catalog that still says AVAILABLE or
+      // RECOMMENDED must not resurrect that row and leave its sibling flags
+      // half-transitioned. The catalog may still move such a row further
+      // down to LEGACY or RETIRED.
+      ...(this.isLifecyclePinnedByOperator(existingRow, entry)
+        ? {}
+        : { lifecycle: entry.lifecycle }),
       isDeleted: false,
       // `isActive` and `cost` stay operator/discovery territory: a curated row
       // may have been priced or disabled deliberately, and the seed's 0 for an
@@ -245,20 +283,8 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.providerCostUsd != null
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
-      // `lifecycle` stays operator territory on routine updates — see the
-      // first-curation transition and category-default self-heal below.
       // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
-      ...(entry.isLegacy ? { isDefault: false } : {}),
-      ...(entry.isLegacy && !(entry.isActive && entry.cost > 0)
-        ? { isActive: false, isPublic: false }
-        : {}),
     };
-
-    // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
-    const existingRow = await this.prisma.model.findUnique({
-      select: { cost: true, id: true },
-      where: { key: entry.key },
-    });
 
     if (!existingRow) {
       // Brand-new key: seed every field exactly once, including the
@@ -276,7 +302,6 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
           await this.demoteOtherCategoryDefaults(entry);
           updateData.isActive = true;
           updateData.isDiscovered = false;
-          updateData.lifecycle = entry.lifecycle;
           updateData.isPublic = true;
         }
         updateData.isDefault = targetIsDefault;
@@ -284,11 +309,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
 
       // Previously uncurated (cost 0) rows stay inactive until the catalog
       // prices them. First curation must turn them on — including LEGACY
-      // models, which stay selectable via the Legacy pill.
+      // models, which stay selectable via the Legacy pill. Already-priced
+      // rows keep their operator activation and visibility.
       if (existingRow.cost === 0 && entry.cost > 0 && entry.isActive) {
         updateData.isActive = true;
         updateData.isPublic = entry.isPublic ?? true;
-        updateData.lifecycle = entry.lifecycle;
       }
     }
 
