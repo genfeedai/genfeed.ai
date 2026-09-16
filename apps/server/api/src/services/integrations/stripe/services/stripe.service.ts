@@ -6,10 +6,11 @@ import {
   isStripeSignatureVerificationError,
   StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
+import { StripeUpcomingInvoiceError } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
 import {
-  StripeUpcomingInvoiceError,
-  StripeUpcomingInvoiceErrorCode,
-} from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
+  assertUpcomingInvoiceRequest,
+  resolveUpcomingInvoiceSubscriptionItem,
+} from '@api/services/integrations/stripe/services/stripe-upcoming-invoice-guards.util';
 import {
   collectUpcomingInvoiceLines,
   type UpcomingInvoicePreview,
@@ -1089,62 +1090,15 @@ export class StripeService {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
 
     try {
-      if (!this.isStripePriceId(currentPriceId)) {
-        throw new StripeUpcomingInvoiceError(
-          StripeUpcomingInvoiceErrorCode.INVALID_PRICE_ID,
-          'Invalid current Stripe price ID',
-        );
-      }
-      if (!this.isStripePriceId(newPriceId)) {
-        throw new StripeUpcomingInvoiceError(
-          StripeUpcomingInvoiceErrorCode.INVALID_PRICE_ID,
-          'Invalid Stripe price ID',
-        );
-      }
-      if (
-        quantity !== undefined &&
-        (!Number.isInteger(quantity) || quantity < 1)
-      ) {
-        throw new StripeUpcomingInvoiceError(
-          StripeUpcomingInvoiceErrorCode.INVALID_QUANTITY,
-          'Subscription quantity must be a positive integer',
-        );
-      }
+      assertUpcomingInvoiceRequest(currentPriceId, newPriceId, quantity);
 
       const subscription =
         await this.stripe.subscriptions.retrieve(subscriptionId);
-      const subscriptionCustomerId =
-        typeof subscription.customer === 'string'
-          ? subscription.customer
-          : subscription.customer?.id;
-      if (subscriptionCustomerId !== customerId) {
-        throw new StripeUpcomingInvoiceError(
-          StripeUpcomingInvoiceErrorCode.CUSTOMER_MISMATCH,
-          'Stripe subscription does not belong to the requested customer',
-        );
-      }
-
-      if (subscription.items.data.length === 0) {
-        throw new StripeUpcomingInvoiceError(
-          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
-          'No subscription items found',
-        );
-      }
-      if (subscription.items.data.every((item) => !item.price?.id)) {
-        throw new StripeUpcomingInvoiceError(
-          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
-          'No price found for subscription item',
-        );
-      }
-      const subscriptionItem = subscription.items.data.find(
-        (item) => item.price?.id === currentPriceId,
+      const subscriptionItem = resolveUpcomingInvoiceSubscriptionItem(
+        subscription,
+        customerId,
+        currentPriceId,
       );
-      if (!subscriptionItem?.id) {
-        throw new StripeUpcomingInvoiceError(
-          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
-          'No subscription item found for current Stripe price',
-        );
-      }
       const targetPrice = await this.stripe.prices.retrieve(newPriceId);
       const targetQuantity =
         targetPrice.recurring?.usage_type === 'metered'
