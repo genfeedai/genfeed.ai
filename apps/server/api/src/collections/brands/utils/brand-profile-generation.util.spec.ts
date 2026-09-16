@@ -1,4 +1,8 @@
-import { parseGeneratedBrandProfile } from '@api/collections/brands/utils/brand-profile-generation.util';
+import {
+  BrandProfileValidationError,
+  parseGeneratedBrandProfile,
+} from '@api/collections/brands/utils/brand-profile-generation.util';
+import { BrandProfileGenerationFailureReason } from '@genfeedai/contracts';
 
 const response = {
   audience: ['founders', 'operators'],
@@ -63,8 +67,63 @@ describe('brand profile generation', () => {
   });
 
   it('rejects profiles without the fields needed for personalization', () => {
-    expect(() =>
-      parseGeneratedBrandProfile(JSON.stringify({ tone: 'confident' })),
-    ).toThrow('missing tone, style, audience, or topics');
+    let caught: unknown;
+    try {
+      parseGeneratedBrandProfile(JSON.stringify({ tone: 'confident' }));
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BrandProfileValidationError);
+    const validationError = caught as BrandProfileValidationError;
+    expect(validationError.reason).toBe(
+      BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
+    );
+    expect(validationError.missingFields).toEqual([
+      'style',
+      'audience',
+      'topics',
+    ]);
+    expect(validationError.message).toBe(
+      'Brand profile response is missing style, audience, topics.',
+    );
+  });
+
+  it.each([
+    ['', BrandProfileGenerationFailureReason.EMPTY_OUTPUT],
+    ['   ', BrandProfileGenerationFailureReason.EMPTY_OUTPUT],
+    ['not-json', BrandProfileGenerationFailureReason.MALFORMED_JSON],
+    ['{"tone": ', BrandProfileGenerationFailureReason.MALFORMED_JSON],
+    ['["tone"]', BrandProfileGenerationFailureReason.NOT_AN_OBJECT],
+    ['"confident"', BrandProfileGenerationFailureReason.NOT_AN_OBJECT],
+  ])('classifies unparseable output %j as %s', (content, reason) => {
+    let caught: unknown;
+    try {
+      parseGeneratedBrandProfile(content);
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BrandProfileValidationError);
+    expect((caught as BrandProfileValidationError).reason).toBe(reason);
+    expect((caught as BrandProfileValidationError).missingFields).toEqual([]);
+  });
+
+  it('never echoes the provider payload in the validation error', () => {
+    const secret = 'provider-payload-marker';
+    let caught: unknown;
+    try {
+      parseGeneratedBrandProfile(`{"tone": "${secret}", "leak": "${secret}"}`);
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BrandProfileValidationError);
+    expect((caught as BrandProfileValidationError).message).not.toContain(
+      secret,
+    );
+    expect(
+      (caught as BrandProfileValidationError).missingFields.join(','),
+    ).not.toContain(secret);
   });
 });
