@@ -474,9 +474,13 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
           data: { isDeleted: true },
         });
       }
+      // Every case here moves an identity field the guard pins, so the CAS
+      // matches no row. That is a stale read, not a proven conflict: the
+      // delivery is rejected as retryable so Stripe re-resolves against the
+      // current rows instead of the write being acknowledged and dropped.
       await expect(
         billing.persist(identity, { status: 'TRIALING', stripeSubscriptionId }),
-      ).rejects.toMatchObject({ code: 'identity_conflict' });
+      ).rejects.toMatchObject({ code: 'identity_stale', isRetryable: true });
       expect(
         (
           await prisma.subscription.findUnique({
