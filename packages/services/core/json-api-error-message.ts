@@ -100,6 +100,11 @@ function readErrorMetaValue(error: unknown, key: string): unknown {
   return isRecord(meta) ? meta[key] : undefined;
 }
 
+/**
+ * Reads `key` from the first error member's `meta` as a finite number.
+ * Returns undefined when the key is absent or holds any other type, so a
+ * string in `meta` can never reach a caller through this reader.
+ */
 export function getJsonApiErrorMetaNumber(
   error: unknown,
   key: string,
@@ -111,6 +116,11 @@ export function getJsonApiErrorMetaNumber(
     : undefined;
 }
 
+/**
+ * Reads `key` from the first error member's `meta` as a boolean. Returns
+ * undefined when the key is absent or holds any other type, so a truthy
+ * lookalike such as the string `'true'` is never treated as `true`.
+ */
 export function getJsonApiErrorMetaBoolean(
   error: unknown,
   key: string,

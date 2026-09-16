@@ -46,6 +46,7 @@ function isKnownCode(
   return code !== undefined && code in MESSAGE_KEY_BY_CODE;
 }
 
+/** Keeps whole counts above zero; anything else is not a usable budget. */
 function asPositiveInteger(value: number | undefined): number | undefined {
   return value !== undefined && Number.isInteger(value) && value > 0
     ? value

@@ -96,6 +96,7 @@ export default function PlansCard() {
   // goes through Checkout; the change endpoint would reject it outright.
   const hasStripeSubscription = Boolean(subscription?.stripeSubscriptionId);
 
+  /** Sends an organization with no subscription to Stripe Checkout. */
   const startCheckout = async (tier: PlanTier, stripePriceId: string) => {
     const service = await getStripeService();
     const result = await service.createCheckoutSession({
@@ -153,6 +154,12 @@ export default function PlansCard() {
     });
   };
 
+  /**
+   * Starts a plan change: Checkout for an organization that has never
+   * subscribed, otherwise a preview the user confirms. A failed preview
+   * renders its classified cause and, when the API allowed one, a retry that
+   * re-enters this same handler.
+   */
   const handleSelectPlan = async (tier: PlanTier) => {
     const { stripePriceId } = getPlanByTier(tier);
 
@@ -186,11 +193,16 @@ export default function PlansCard() {
     }
   };
 
+  /** Drops the pending preview without touching the retry budget. */
   const cancelPlanChange = () => {
     setPendingTier(null);
     setPreview(null);
   };
 
+  /**
+   * Applies the previewed change. Its failure is classified like the preview's,
+   * so a transient one offers the same bounded retry rather than a dead end.
+   */
   const handleConfirmPlanChange = async () => {
     if (!pendingTier) {
       return;
