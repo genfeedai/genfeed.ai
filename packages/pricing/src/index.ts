@@ -16,6 +16,7 @@
  * consume BYOK_FEE_PERCENTAGE and BYOK_FREE_THRESHOLD_CREDITS from this package.
  */
 
+export * from './generation-credit-calculator';
 export * from './live-model-pricing';
 export * from './plans-pricing';
 export * from './provider-pricing';

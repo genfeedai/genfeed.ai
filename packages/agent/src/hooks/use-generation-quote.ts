@@ -1,14 +1,9 @@
 import type {
   AgentApiService,
   EstimateGenerationCreditsParams,
-  EstimateGenerationCreditsResult,
 } from '@genfeedai/agent/services/agent-api.service';
+import type { AgentGenerationQuoteState } from '@genfeedai/contracts/interfaces';
 import { useEffect, useRef, useState } from 'react';
-
-type GenerationQuote = EstimateGenerationCreditsResult & {
-  version: number;
-  status: 'available' | 'error';
-};
 
 export function useGenerationQuote(
   apiService: AgentApiService,
@@ -16,7 +11,7 @@ export function useGenerationQuote(
   fingerprint: string,
   isEnabled = true,
 ) {
-  const [quote, setQuote] = useState<GenerationQuote | null>(null);
+  const [quote, setQuote] = useState<AgentGenerationQuoteState | null>(null);
   const identity = useRef({ fingerprint, version: 0 });
   if (identity.current.fingerprint !== fingerprint)
     identity.current = { fingerprint, version: identity.current.version + 1 };

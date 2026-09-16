@@ -29,6 +29,10 @@ import {
   Status,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import {
+  DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+  resolveAgentGenerationDimensions,
+} from '@genfeedai/contracts/constants';
 import type {
   AgentToolResult,
   AgentUiAction,
@@ -130,20 +134,6 @@ export class AgentOnboardingToolHandler {
       return;
     }
     await this.streamPublisher.publishToolProgress(data);
-  }
-
-  private aspectRatioToDimensions(ratio: string): {
-    width: number;
-    height: number;
-  } {
-    const map: Record<string, { width: number; height: number }> = {
-      '1:1': { height: 1024, width: 1024 },
-      '3:4': { height: 1365, width: 1024 },
-      '4:3': { height: 768, width: 1024 },
-      '9:16': { height: 1024, width: 576 },
-      '16:9': { height: 576, width: 1024 },
-    };
-    return map[ratio] || map['1:1'];
   }
 
   async createBrand(
@@ -1292,7 +1282,9 @@ export class AgentOnboardingToolHandler {
       return this.checkOnboardingStatus(ctx);
     }
 
-    const dimensions = this.aspectRatioToDimensions('1:1');
+    const dimensions = resolveAgentGenerationDimensions(
+      DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+    );
     const body: Record<string, unknown> = {
       autoSelectModel: true,
       height: dimensions.height,

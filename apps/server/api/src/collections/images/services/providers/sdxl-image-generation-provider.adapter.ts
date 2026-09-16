@@ -3,7 +3,6 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -11,10 +10,6 @@ export class SdxlImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter
 {
   readonly provider = 'sdxl' as const;
-
-  supports(model: string): boolean {
-    return model === MODEL_KEYS.SDXL;
-  }
 
   async prepare(
     _request: ImageGenerationProviderRequest,

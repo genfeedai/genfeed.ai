@@ -23,7 +23,11 @@ import {
 } from '@genfeedai/contracts';
 import {
   createLibraryAssetRoute,
+  DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+  DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
+  DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
   MODEL_OUTPUT_CAPABILITIES,
+  resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
@@ -219,10 +223,10 @@ export class AgentMediaAssetGenerationService {
       prompt: rawPrompt,
       topic: rawPrompt.slice(0, 120),
     });
-    const dimensions = this.aspectRatioToDimensions(
+    const dimensions = resolveAgentGenerationDimensions(
       ctx.generationSettings?.aspectRatio ||
         (params.aspectRatio as string) ||
-        '1:1',
+        DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
     );
     const promptPreview = rawPrompt.substring(0, 80);
     const imageUrl =
@@ -389,8 +393,10 @@ export class AgentMediaAssetGenerationService {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const imageId = String(params.imageId || '');
-    const aspectRatio = String(params.aspectRatio || '1:1');
-    const dimensions = this.aspectRatioToDimensions(aspectRatio);
+    const aspectRatio = String(
+      params.aspectRatio || DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+    );
+    const dimensions = resolveAgentGenerationDimensions(aspectRatio);
     const response = toMediaResponseRecord(
       await this.generationGateway.reframeImage({
         body: {
@@ -483,10 +489,10 @@ export class AgentMediaAssetGenerationService {
       (typeof params.model === 'string' && params.model.trim().length > 0
         ? params.model.trim()
         : (ctx.generationModelOverride ?? undefined));
-    const dimensions = this.aspectRatioToDimensions(
+    const dimensions = resolveAgentGenerationDimensions(
       ctx.generationSettings?.aspectRatio ||
         (params.aspectRatio as string) ||
-        '16:9',
+        DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
     );
     const imageUrl =
       (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
@@ -512,7 +518,9 @@ export class AgentMediaAssetGenerationService {
       ctx,
       dimensions,
       duration:
-        ctx.generationSettings?.duration || (params.duration as number) || 10,
+        ctx.generationSettings?.duration ||
+        (params.duration as number) ||
+        DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
       endFrame:
         typeof params.endFrame === 'string' ? params.endFrame : undefined,
       extraReferences: resolvedReferences.references,
@@ -928,20 +936,6 @@ export class AgentMediaAssetGenerationService {
           error,
         ),
       );
-  }
-
-  private aspectRatioToDimensions(ratio: string): {
-    height: number;
-    width: number;
-  } {
-    const map: Record<string, { height: number; width: number }> = {
-      '1:1': { height: 1024, width: 1024 },
-      '3:4': { height: 1365, width: 1024 },
-      '4:3': { height: 768, width: 1024 },
-      '9:16': { height: 1024, width: 576 },
-      '16:9': { height: 576, width: 1024 },
-    };
-    return map[ratio] || map['1:1'];
   }
 }
 

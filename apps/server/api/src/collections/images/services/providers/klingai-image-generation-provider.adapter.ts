@@ -4,7 +4,6 @@ import type {
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import { KlingAIService } from '@api/services/integrations/klingai/services/klingai.service';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -14,10 +13,6 @@ export class KlingAiImageGenerationProviderAdapter
   readonly provider = 'klingai' as const;
 
   constructor(private readonly klingAIService: KlingAIService) {}
-
-  supports(model: string): boolean {
-    return model === MODEL_KEYS.KLINGAI_V2;
-  }
 
   async prepare(
     request: ImageGenerationProviderRequest,

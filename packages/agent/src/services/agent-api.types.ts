@@ -1,5 +1,7 @@
-import type { ModelCategory, RouterPriority } from '@genfeedai/contracts';
+import type { ModelCategory } from '@genfeedai/contracts';
 import type {
+  AgentGenerationQuote,
+  AgentGenerationQuoteRequest,
   AgentStudioHandoffPayload,
   IModel,
 } from '@genfeedai/contracts/interfaces';
@@ -57,27 +59,12 @@ export interface GenerateIngredientResult {
 }
 
 /**
- * `POST /router/estimate-generation-credits` request (#4672 Manual-mode
- * review card). `organizationId` is never sent — the server derives it from
- * the authenticated user.
+ * `POST /router/estimate-generation-credits` request/response (#4672
+ * Manual-mode review card, #4813 billing parity). Shapes live in contracts so
+ * the server quote and this client speak one type.
  */
-export interface EstimateGenerationCreditsParams {
-  modelKey?: string;
-  category: 'image' | 'video';
-  duration?: number;
-  outputs?: number;
-  prioritize?: RouterPriority;
-  prompt: string;
-  quality?: string;
-  resolution?: string;
-}
-
-export interface EstimateGenerationCreditsResult {
-  /** `null` when unavailable; generation requires an available finite quote. */
-  credits: number | null;
-  isAvailable: boolean;
-  modelKey: string | null;
-}
+export type EstimateGenerationCreditsParams = AgentGenerationQuoteRequest;
+export type EstimateGenerationCreditsResult = AgentGenerationQuote;
 
 /**
  * `POST /agent/studio-handoff` request (#4670 Open in Studio). The Agent

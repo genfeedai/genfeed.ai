@@ -5,15 +5,9 @@ import type { CreateVideoDto } from '@api/collections/videos/dto/create-video.dt
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
-  applyVideoResolutionCreditMultiplier,
-  calculateDynamicVideoCost,
   commitDeferredCredits,
   type DeferredCreditsRequest,
   isDeferredCreditsRequest,
-  resolveGenerationDimensions,
-  resolveModelCreditCost,
-  scaleCreditsForNonBatchOutputs,
-  videoOutputCount,
 } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import {
   hasGenerationSourceActionId,
@@ -26,6 +20,7 @@ import type { ByokProvider } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   buildPricingAuditStamp,
+  calculateVideoGenerationCredits,
   FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,
 } from '@genfeedai/pricing';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -226,31 +221,18 @@ export class VideoGenerationCreditsService {
     const resolvedModelDoc = await this.modelsService.findOne({
       key: baseModelKey(model),
     });
-    const { height, width } = resolveGenerationDimensions(
-      createVideoDto.width,
-      createVideoDto.height,
-    );
-    const baseCost = resolveModelCreditCost(resolvedModelDoc, (modelDoc) =>
-      calculateDynamicVideoCost(
-        modelDoc,
-        width,
-        height,
-        createVideoDto.duration || 0,
-      ),
-    );
-    const resolutionAdjusted = applyVideoResolutionCreditMultiplier(
-      baseCost,
-      model,
-      createVideoDto.resolution,
-    );
-    const isBatchSupported =
-      MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false;
-
-    const requiredCredits = scaleCreditsForNonBatchOutputs(
-      resolutionAdjusted,
-      videoOutputCount(createVideoDto.outputs),
-      isBatchSupported,
-    );
+    // #4813 Same calculator the Agent quote uses; only the inputs differ.
+    const { credits: requiredCredits } = calculateVideoGenerationCredits({
+      duration: createVideoDto.duration,
+      height: createVideoDto.height,
+      isBatchSupported:
+        MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false,
+      modelKey: model,
+      outputs: createVideoDto.outputs,
+      pricing: resolvedModelDoc,
+      resolution: createVideoDto.resolution,
+      width: createVideoDto.width,
+    });
 
     return { requiredCredits, resolvedModelDoc };
   }

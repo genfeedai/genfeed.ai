@@ -4,6 +4,7 @@ import type {
   ImageGenerationProviderRequest,
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
+import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { FalImageGenerationProviderAdapter } from '@api/collections/images/services/providers/fal-image-generation-provider.adapter';
 import { GenfeedAiImageGenerationProviderAdapter } from '@api/collections/images/services/providers/genfeedai-image-generation-provider.adapter';
 import { HiggsFieldImageGenerationProviderAdapter } from '@api/collections/images/services/providers/higgsfield-image-generation-provider.adapter';
@@ -39,24 +40,23 @@ export class ImageGenerationProviderRegistryService {
   }
 
   supports(model: string, provider?: ModelProvider | string): boolean {
-    return this.adapters.some((adapter) => adapter.supports(model, provider));
+    return this.providerFor(model, provider) !== null;
   }
 
+  /** Dispatch and billing share `resolveImageGenerationProvider` (#4813). */
   providerFor(
     model: string,
     provider?: ModelProvider | string,
   ): ImageGenerationProvider | null {
-    return (
-      this.adapters.find((candidate) => candidate.supports(model, provider))
-        ?.provider ?? null
-    );
+    return resolveImageGenerationProvider(model, provider);
   }
 
   async prepare(
     request: ImageGenerationProviderRequest,
   ): Promise<PreparedImageGenerationProvider | null> {
-    const adapter = this.adapters.find((candidate) =>
-      candidate.supports(request.model, request.modelProvider),
+    const provider = this.providerFor(request.model, request.modelProvider);
+    const adapter = this.adapters.find(
+      (candidate) => candidate.provider === provider,
     );
     return adapter ? adapter.prepare(request) : null;
   }

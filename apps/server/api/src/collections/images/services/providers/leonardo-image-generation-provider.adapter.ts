@@ -4,7 +4,6 @@ import type {
   PreparedImageGenerationProvider,
 } from '@api/collections/images/services/image-generation.types';
 import { LeonardoAIService } from '@api/services/integrations/leonardoai/services/leonardoai.service';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -14,10 +13,6 @@ export class LeonardoImageGenerationProviderAdapter
   readonly provider = 'leonardo' as const;
 
   constructor(private readonly leonardoAiService: LeonardoAIService) {}
-
-  supports(model: string): boolean {
-    return model === MODEL_KEYS.LEONARDOAI;
-  }
 
   async prepare(
     request: ImageGenerationProviderRequest,

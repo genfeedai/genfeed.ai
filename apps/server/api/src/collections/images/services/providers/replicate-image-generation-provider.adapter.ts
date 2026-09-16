@@ -12,30 +12,15 @@ import {
   shouldPollReplicatePrediction,
 } from '@api/collections/images/services/providers/replicate-image-generation.helpers';
 import { GenerationCancelledError } from '@api/collections/ingredients/errors/generation-cancelled.error';
-import {
-  isFalDestination,
-  isGenfeedAiDestination,
-  isReplicateDestination,
-} from '@api/collections/models/utils/model-key.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   canReceiveProviderWebhooks,
   isCloudDeployment,
 } from '@genfeedai/config';
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
-import {
-  MODEL_KEYS,
-  MODEL_OUTPUT_CAPABILITIES,
-} from '@genfeedai/contracts/constants';
+import { ModelCategory } from '@genfeedai/contracts';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import { Injectable } from '@nestjs/common';
-
-const REPLICATE_IMAGE_MODELS: readonly string[] = [
-  MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_3,
-  MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4,
-  MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_FAST,
-  MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4_ULTRA,
-];
 
 const LOCAL_PREDICTION_POLL_INTERVAL_MS = 2_000;
 const LOCAL_PREDICTION_TIMEOUT_MS = 180_000;
@@ -56,18 +41,6 @@ export class ReplicateImageGenerationProviderAdapter
     private readonly promptBuilderService: PromptBuilderService,
     private readonly replicateService: ReplicateService,
   ) {}
-
-  supports(model: string, provider?: ModelProvider | string): boolean {
-    if (provider) {
-      return provider === ModelProvider.REPLICATE;
-    }
-
-    return (
-      !isFalDestination(model) &&
-      !isGenfeedAiDestination(model) &&
-      (REPLICATE_IMAGE_MODELS.includes(model) || isReplicateDestination(model))
-    );
-  }
 
   private async waitForLocalPrediction(
     predictionId: string,

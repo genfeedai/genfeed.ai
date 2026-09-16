@@ -1,45 +1,45 @@
+import { resolveImageGenerationProvider } from '@api/collections/images/services/image-generation-provider.util';
 import { ModelRegistrationService } from '@api/collections/models/services/model-registration.service';
 import { RouterService } from '@api/services/router/router.service';
-import { ModelCategory, type RouterPriority } from '@genfeedai/contracts';
+import { ModelCategory } from '@genfeedai/contracts';
 import {
-  quoteImageGenerationQualityCredits,
-  quoteVideoGenerationCredits,
+  DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+  DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
+  DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+  MODEL_OUTPUT_CAPABILITIES,
+  resolveAgentGenerationDimensions,
+} from '@genfeedai/contracts/constants';
+import type {
+  AgentGenerationQuote,
+  AgentGenerationQuoteInput,
+} from '@genfeedai/contracts/interfaces';
+import {
+  calculateImageGenerationCredits,
+  calculateVideoGenerationCredits,
 } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-export interface AgentGenerationCreditEstimateInput {
-  category: ModelCategory.IMAGE | ModelCategory.VIDEO;
-  duration?: number;
-  modelKey?: string;
-  organizationId: string;
-  outputs?: number;
-  prioritize?: RouterPriority;
-  prompt: string;
-  /** Image quality tier (`standard` | `hd`) — ignored for video. */
-  quality?: string;
-  resolution?: string;
-}
-
-export interface AgentGenerationCreditEstimate {
-  /** `null` when the estimate could not be computed. */
-  credits: number | null;
-  isAvailable: boolean;
-  /** Concrete validated model; unavailable quotes never disclose a key. */
-  modelKey: string | null;
-}
+const UNAVAILABLE_QUOTE: AgentGenerationQuote = {
+  credits: null,
+  isAvailable: false,
+  modelKey: null,
+};
 
 /**
- * #4672 Manual-mode review card estimate. Resolves the concrete,
- * organization-enabled model the Agent's request would actually use — the
- * same `RouterService.selectModel` auto-selection the real generation call
- * makes (issue audit: "returns base cost without org scoping or
- * multipliers" — this service adds both) — and prices it with the
- * duration/resolution/output multipliers `#4672` requires.
+ * #4672 Manual-mode review card estimate, #4813 billing parity. Resolves the
+ * concrete, organization-enabled model the Agent's request would actually use
+ * (the same `RouterService.selectModel` auto-selection the real generation
+ * call makes) and prices it through the very calculator
+ * `ImageGenerationCreditsService` / `VideoGenerationCreditsService` reserve
+ * with: effective execution dimensions from the aspect ratio, per-megapixel
+ * and minimum-cost rules, quality/resolution/duration multipliers, and the
+ * provider fan-out or native-batch output semantics.
  *
  * Invalid output counts reject. An unresolvable model, missing pricing, or
  * any registry error surfaces as `isAvailable: false` so the review card
  * renders as unavailable and prevents generation until a current quote exists.
+ * Quoting never debits credits and never contacts a generation provider.
  */
 @Injectable()
 export class AgentGenerationEstimateService {
@@ -50,8 +50,8 @@ export class AgentGenerationEstimateService {
   ) {}
 
   async estimate(
-    input: AgentGenerationCreditEstimateInput,
-  ): Promise<AgentGenerationCreditEstimate> {
+    input: AgentGenerationQuoteInput,
+  ): Promise<AgentGenerationQuote> {
     if (
       input.outputs !== undefined &&
       (!Number.isInteger(input.outputs) ||
@@ -62,12 +62,14 @@ export class AgentGenerationEstimateService {
         'Outputs must be an integer between 1 and 8.',
       );
     }
+    const isVideo = input.category === ModelCategory.VIDEO;
+    const category = isVideo ? ModelCategory.VIDEO : ModelCategory.IMAGE;
     try {
       const modelKey =
         input.modelKey ??
         (
           await this.routerService.selectModel({
-            category: input.category,
+            category,
             duration: input.duration,
             organizationId: input.organizationId,
             outputs: input.outputs,
@@ -84,7 +86,7 @@ export class AgentGenerationEstimateService {
       if (
         !model ||
         model.key !== modelKey ||
-        model.category !== input.category ||
+        model.category !== category ||
         !model.isActive ||
         model.isDeleted ||
         (model.organizationId &&
@@ -93,38 +95,53 @@ export class AgentGenerationEstimateService {
         !Number.isFinite(baseCost) ||
         baseCost < 0
       ) {
-        return { credits: null, isAvailable: false, modelKey: null };
+        return UNAVAILABLE_QUOTE;
       }
 
-      const outputs = Math.max(1, input.outputs ?? 1);
-      const credits =
-        input.category === ModelCategory.VIDEO
-          ? quoteVideoGenerationCredits({
-              cost: baseCost,
-              costPerUnit: model.costPerUnit,
-              duration: input.duration,
-              minCost: model.minCost,
-              modelKey,
-              outputs,
-              pricingType: model.pricingType,
-              resolution: input.resolution,
-            })
-          : quoteImageGenerationQualityCredits(
-              baseCost,
-              modelKey,
-              input.quality,
-            ) * outputs;
+      const dimensions = resolveAgentGenerationDimensions(
+        input.aspectRatio,
+        isVideo
+          ? DEFAULT_AGENT_VIDEO_ASPECT_RATIO
+          : DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+      );
+      const pricing = {
+        cost: baseCost,
+        costPerUnit: model.costPerUnit,
+        minCost: model.minCost,
+        pricingType: model.pricingType,
+      };
+      const isBatchSupported =
+        MODEL_OUTPUT_CAPABILITIES[modelKey]?.isBatchSupported ?? false;
+      const { credits } = isVideo
+        ? calculateVideoGenerationCredits({
+            ...dimensions,
+            duration: input.duration || DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
+            isBatchSupported,
+            modelKey,
+            outputs: input.outputs,
+            pricing,
+            resolution: input.resolution,
+          })
+        : calculateImageGenerationCredits({
+            ...dimensions,
+            imageProvider: resolveImageGenerationProvider(modelKey),
+            isBatchSupported,
+            modelKey,
+            outputs: input.outputs,
+            pricing,
+            quality: input.quality,
+          });
 
       return Number.isFinite(credits) && credits >= 0
         ? { credits, isAvailable: true, modelKey }
-        : { credits: null, isAvailable: false, modelKey: null };
+        : UNAVAILABLE_QUOTE;
     } catch (error: unknown) {
       this.logger.warn('Agent generation credit estimate unavailable', {
         category: input.category,
         error: error instanceof Error ? error.message : String(error),
         organizationId: input.organizationId,
       });
-      return { credits: null, isAvailable: false, modelKey: null };
+      return UNAVAILABLE_QUOTE;
     }
   }
 }
