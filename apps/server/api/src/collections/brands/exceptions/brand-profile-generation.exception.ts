@@ -8,6 +8,7 @@ export const BRAND_PROFILE_GENERATION_INVALID_CODE =
 const RETRY_HINT =
   'Try again; adding a website URL, description, or target audience gives the model more to work with.';
 
+/** Actionable, payload-free client message for a classified failure. */
 function buildDetail(diagnostics: IBrandProfileGenerationDiagnostics): string {
   switch (diagnostics.reason) {
     case BrandProfileGenerationFailureReason.EMPTY_OUTPUT:
@@ -29,6 +30,7 @@ function buildDetail(diagnostics: IBrandProfileGenerationDiagnostics): string {
  * provider payload — so the failure is observable and the caller can act.
  */
 export class BrandProfileGenerationException extends HttpException {
+  /** @param diagnostics Redacted shape-only diagnostics; also exposed as `meta`. */
   constructor(public readonly diagnostics: IBrandProfileGenerationDiagnostics) {
     const detail = buildDetail(diagnostics);
 

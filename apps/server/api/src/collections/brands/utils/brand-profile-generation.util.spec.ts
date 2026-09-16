@@ -109,6 +109,28 @@ describe('brand profile generation', () => {
     expect((caught as BrandProfileValidationError).missingFields).toEqual([]);
   });
 
+  it('recovers a profile object wrapped in fences or a single-element array', () => {
+    const fenced = `\`\`\`json\n${JSON.stringify(response)}\n\`\`\``;
+    const wrapped = JSON.stringify([response]);
+
+    expect(parseGeneratedBrandProfile(fenced).tone).toBe(response.tone);
+    expect(parseGeneratedBrandProfile(wrapped).tone).toBe(response.tone);
+  });
+
+  it('still rejects an incomplete profile recovered from an array wrapper', () => {
+    let caught: unknown;
+    try {
+      parseGeneratedBrandProfile(JSON.stringify([{ tone: 'confident' }]));
+    } catch (error: unknown) {
+      caught = error;
+    }
+
+    expect(caught).toBeInstanceOf(BrandProfileValidationError);
+    expect((caught as BrandProfileValidationError).reason).toBe(
+      BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
+    );
+  });
+
   it('never echoes the provider payload in the validation error', () => {
     const secret = 'provider-payload-marker';
     let caught: unknown;

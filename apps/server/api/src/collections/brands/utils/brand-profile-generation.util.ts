@@ -12,6 +12,11 @@ import type {
  * payload — so callers can map it to a bounded, redacted API error.
  */
 export class BrandProfileValidationError extends Error {
+  /**
+   * @param reason Classified failure category.
+   * @param missingFields Contract field names absent from the output; only
+   *   populated for `MISSING_REQUIRED_FIELDS`.
+   */
   constructor(
     public readonly reason: BrandProfileGenerationFailureReason,
     public readonly missingFields: string[] = [],
@@ -104,6 +109,14 @@ function readStringList(
   });
 }
 
+/**
+ * Extracts the profile object from raw model output. Models sometimes wrap
+ * the object in markdown fences, prose, or a single-element array, so the
+ * outermost `{...}` span is parsed rather than the whole string; the result
+ * is still field-validated by `parseGeneratedBrandProfile`, so recovery
+ * never admits an incomplete profile. Output with no parseable object is
+ * classified, never echoed.
+ */
 function parseJsonObject(content: string): Record<string, unknown> {
   if (!content.trim()) {
     throw new BrandProfileValidationError(
@@ -251,6 +264,11 @@ function buildPrompting(
   };
 }
 
+/**
+ * Validates raw model output against the brand-profile contract and returns
+ * the normalized profile. Throws `BrandProfileValidationError` (classified,
+ * payload-free) for empty, malformed, non-object, or incomplete output.
+ */
 export function parseGeneratedBrandProfile(
   content: string,
 ): IGeneratedBrandProfile {
