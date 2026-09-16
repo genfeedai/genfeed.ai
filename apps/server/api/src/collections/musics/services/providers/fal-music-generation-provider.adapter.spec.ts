@@ -3,6 +3,7 @@ import type { MusicGenerationProviderRequest } from '@api/collections/musics/ser
 import { FalMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/fal-music-generation-provider.adapter';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
 
 describe('FalMusicGenerationProviderAdapter', () => {
   const buildRequest = (
@@ -28,6 +29,52 @@ describe('FalMusicGenerationProviderAdapter', () => {
       expect(adapter.supports(MODEL_KEYS.FAL_ELEVENLABS_MUSIC)).toBe(true);
       expect(adapter.supports(MODEL_KEYS.FAL_LYRIA3_PRO)).toBe(true);
       expect(adapter.supports('meta/musicgen')).toBe(false);
+    });
+  });
+
+  // #4733: the registry row's endpoint is case-normalized before dispatch.
+  // Missing or malformed metadata must fail closed, never surface a TypeError.
+  describe('generate — malformed registry endpoint', () => {
+    it.each([
+      ['undefined', undefined],
+      ['null', null],
+      ['a number', 42],
+      ['an empty string', ''],
+    ])(
+      'rejects an endpoint of %s with a 400 before calling fal',
+      async (_label, modelEndpoint) => {
+        const falService = { run: vi.fn() };
+        const adapter = new FalMusicGenerationProviderAdapter(
+          falService as never,
+        );
+
+        await expect(
+          adapter.generate(
+            buildRequest({ modelEndpoint: modelEndpoint as unknown as string }),
+          ),
+        ).rejects.toBeInstanceOf(BadRequestException);
+        expect(falService.run).not.toHaveBeenCalled();
+      },
+    );
+
+    it('still dispatches a valid endpoint with a different case', async () => {
+      const falService = {
+        run: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://fal.example.com/a.mp3' }),
+      };
+      const adapter = new FalMusicGenerationProviderAdapter(
+        falService as never,
+      );
+
+      await adapter.generate(
+        buildRequest({ modelEndpoint: 'FAL/elevenlabs/music' }),
+      );
+
+      expect(falService.run).toHaveBeenCalledWith(
+        'elevenlabs/music',
+        expect.objectContaining({ prompt: 'upbeat electronic music' }),
+      );
     });
   });
 

@@ -21,7 +21,7 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 import { MusicSerializer } from '@genfeedai/serializers';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
 import type { Request } from 'express';
 
 describe('MusicGenerationService', () => {
@@ -475,6 +475,94 @@ describe('MusicGenerationService', () => {
     expect(created.promptsService.create).not.toHaveBeenCalled();
     expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
     expect(created.musicProviderRegistry.generate).not.toHaveBeenCalled();
+  });
+
+  // #4733: registry metadata is not a validated input. A row whose endpoint
+  // is missing or malformed must produce a controlled 400 before any prompt
+  // or ingredient document exists, never a TypeError from `toLowerCase`.
+  it.each([
+    ['undefined', undefined],
+    ['null', null],
+    ['a number', 42],
+    ['an empty string', ''],
+  ])(
+    'rejects a registry row whose endpoint is %s before creating any job',
+    async (_label, endpoint) => {
+      const created = createService();
+      created.modelsService.findOne.mockResolvedValue({
+        ...activeMusicModel,
+        endpoint,
+      } as never);
+
+      try {
+        await created.service.generateMusic(user, buildDto(), request);
+        expect.fail('Expected the malformed-endpoint rejection to throw');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).not.toBeInstanceOf(TypeError);
+        expect((error as HttpException).getStatus()).toBe(
+          HttpStatus.BAD_REQUEST,
+        );
+        expect((error as HttpException).getResponse()).toEqual(
+          expect.objectContaining({ title: 'Music model unavailable' }),
+        );
+      }
+      expect(created.promptsService.create).not.toHaveBeenCalled();
+      expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+      expect(created.musicProviderRegistry.generate).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    ['undefined', undefined],
+    ['null', null],
+    ['a number', 42],
+  ])(
+    'rejects when the resolved model key is %s instead of querying an unscoped row',
+    async (_label, systemDefault) => {
+      const created = createService();
+      created.brandsService.findOne.mockResolvedValue({
+        id: 'brand-from-user',
+      } as never);
+      created.organizationSettingsService.findOne.mockResolvedValue(
+        {} as never,
+      );
+      created.routerService.getDefaultModel.mockResolvedValue(
+        systemDefault as never,
+      );
+
+      try {
+        await created.service.generateMusic(
+          user,
+          buildDto({ model: undefined }),
+          request,
+        );
+        expect.fail('Expected the missing-key rejection to throw');
+      } catch (error: unknown) {
+        expect(error).toBeInstanceOf(BadRequestException);
+        expect(error).not.toBeInstanceOf(TypeError);
+        expect((error as HttpException).getResponse()).toEqual({
+          detail: 'A music model key is required',
+          title: 'Music model unavailable',
+        });
+      }
+      expect(created.modelsService.findOne).not.toHaveBeenCalled();
+      expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    },
+  );
+
+  it('accepts a valid registry row whose endpoint uses a different case', async () => {
+    const created = createService();
+    created.modelsService.findOne.mockResolvedValue({
+      ...activeMusicModel,
+      endpoint: 'META/musicgen',
+    } as never);
+
+    await created.service.generateMusic(user, buildDto(), request);
+
+    expect(created.musicProviderRegistry.generate).toHaveBeenCalledWith(
+      expect.objectContaining({ modelEndpoint: 'META/musicgen' }),
+    );
   });
 
   it('rejects an inactive registry row even when explicitly requested', async () => {
