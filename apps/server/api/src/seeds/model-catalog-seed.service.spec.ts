@@ -1,8 +1,10 @@
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ModelLifecycle } from '@genfeedai/contracts';
 import {
   AGENT_CHAT_MODEL_KEYS,
   getModelCatalogForDeployment,
   LOWEST_COST_VIDEO_MODEL_KEY,
+  MODEL_KEYS,
   UNIFIED_MODEL_CATALOG,
 } from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
@@ -126,8 +128,7 @@ describe('ModelCatalogSeedService', () => {
 
   it('activates a previously unpriced catalog row on first curation', async () => {
     const newlyCurated = UNIFIED_MODEL_CATALOG.find(
-      (entry) =>
-        entry.isActive && entry.cost > 0 && !entry.isDefault && !entry.isLegacy,
+      (entry) => entry.isActive && entry.cost > 0 && !entry.isDefault,
     );
     expect(newlyCurated).toBeDefined();
     if (!newlyCurated) {
@@ -163,48 +164,44 @@ describe('ModelCatalogSeedService', () => {
         isActive: true,
         isLegacy: false,
         isPublic: true,
-        lifecycle: 'LEGACY',
+        lifecycle: ModelLifecycle.LEGACY,
       });
     });
 
-    it.each([false, true])(
-      'activates first curation with isLegacy %s and adopts catalog lifecycle',
-      async (isLegacy) => {
-        const entry = { ...gptImage, isDefault: false, isLegacy };
-        prisma.model.findUnique.mockResolvedValue({ cost: 0, id: 'existing' });
+    it('activates first curation and adopts the catalog lifecycle', async () => {
+      const entry = { ...gptImage, isDefault: false };
+      prisma.model.findUnique.mockResolvedValue({ cost: 0, id: 'existing' });
 
-        await service.reconcileCatalog([entry]);
+      await service.reconcileCatalog([entry]);
 
-        expect(callForKey(entry.key)?.update).toMatchObject({
-          isActive: true,
-          isPublic: true,
-          lifecycle: 'LEGACY',
-          ...(isLegacy ? { isDefault: false } : {}),
-        });
-      },
-    );
+      const update = callForKey(entry.key)?.update;
+      expect(update).toMatchObject({
+        isActive: true,
+        isPublic: true,
+        lifecycle: ModelLifecycle.LEGACY,
+      });
+      expect(update).not.toHaveProperty('isDefault');
+    });
 
-    it.each([false, true])(
-      'preserves priced operator activation, visibility and lifecycle with isLegacy %s',
-      async (isLegacy) => {
-        const entry = { ...gptImage, isDefault: false, isLegacy };
-        prisma.model.findUnique.mockResolvedValue({
-          cost: entry.cost,
-          id: 'existing',
-        });
+    it('preserves priced operator activation and visibility while propagating lifecycle', async () => {
+      const entry = { ...gptImage, isDefault: false };
+      prisma.model.findUnique.mockResolvedValue({
+        cost: entry.cost,
+        id: 'existing',
+      });
 
-        await service.reconcileCatalog([entry]);
+      await service.reconcileCatalog([entry]);
 
-        const update = callForKey(entry.key)?.update;
-        expect(update).not.toHaveProperty('isActive');
-        expect(update).not.toHaveProperty('isPublic');
-        expect(update).not.toHaveProperty('lifecycle');
-        if (isLegacy) expect(update).toMatchObject({ isDefault: false });
-      },
-    );
+      const update = callForKey(entry.key)?.update;
+      expect(update).toMatchObject({ lifecycle: ModelLifecycle.LEGACY });
+      expect(update).not.toHaveProperty('isActive');
+      expect(update).not.toHaveProperty('isDefault');
+      expect(update).not.toHaveProperty('isLegacy');
+      expect(update).not.toHaveProperty('isPublic');
+    });
 
     it('keeps a curated legacy model selectable on the next priced reconciliation', async () => {
-      const entry = { ...gptImage, isDefault: false, isLegacy: true };
+      const entry = { ...gptImage, isDefault: false };
       prisma.model.findUnique.mockResolvedValueOnce({
         cost: 0,
         id: 'existing',
@@ -217,43 +214,45 @@ describe('ModelCatalogSeedService', () => {
         id: 'existing',
       });
       await service.reconcileCatalog([entry]);
+      const secondUpdate = upsertCalls()[1].update;
 
-      expect({ ...firstUpdate, ...upsertCalls()[1].update }).toMatchObject({
+      expect(firstUpdate).toMatchObject({
         isActive: true,
-        isDefault: false,
         isPublic: true,
-        lifecycle: 'LEGACY',
+        lifecycle: ModelLifecycle.LEGACY,
       });
+      expect(secondUpdate).toMatchObject({ lifecycle: ModelLifecycle.LEGACY });
+      expect(secondUpdate).not.toHaveProperty('isActive');
+      expect(secondUpdate).not.toHaveProperty('isPublic');
     });
 
     it.each([
-      { cost: 0, isActive: true },
-      { cost: 1, isActive: false },
-    ])('disables unrelated legacy entries: %j', async (overrides) => {
-      const entry = {
-        ...gptImage,
-        ...overrides,
-        isDefault: false,
-        isLegacy: true,
-      };
-      prisma.model.findUnique.mockResolvedValue({ cost: 0, id: 'existing' });
+      { cost: 0, isActive: false, isPublic: false },
+      { cost: 1, isActive: false, isPublic: false },
+    ])(
+      'never activates an unrelated LEGACY entry the catalog leaves off: %j',
+      async (overrides) => {
+        const entry = { ...gptImage, ...overrides, isDefault: false };
+        prisma.model.findUnique.mockResolvedValue({ cost: 0, id: 'existing' });
 
-      await service.reconcileCatalog([entry]);
+        await service.reconcileCatalog([entry]);
 
-      expect(callForKey(entry.key)?.update).toMatchObject({
-        isActive: false,
-        isDefault: false,
-        isPublic: false,
-      });
-    });
+        const call = callForKey(entry.key);
+        expect(call?.create).toMatchObject({
+          isActive: false,
+          isPublic: false,
+          lifecycle: ModelLifecycle.LEGACY,
+        });
+        expect(call?.update).toMatchObject({
+          lifecycle: ModelLifecycle.LEGACY,
+        });
+        expect(call?.update).not.toHaveProperty('isActive');
+        expect(call?.update).not.toHaveProperty('isPublic');
+      },
+    );
 
     it('retains catalog-private visibility on first curation', async () => {
-      const entry = {
-        ...gptImage,
-        isDefault: false,
-        isLegacy: true,
-        isPublic: false,
-      };
+      const entry = { ...gptImage, isDefault: false, isPublic: false };
       prisma.model.findUnique.mockResolvedValue({ cost: 0, id: 'existing' });
 
       await service.reconcileCatalog([entry]);
@@ -261,8 +260,54 @@ describe('ModelCatalogSeedService', () => {
       expect(callForKey(entry.key)?.update).toMatchObject({
         isActive: true,
         isPublic: false,
-        lifecycle: 'LEGACY',
+        lifecycle: ModelLifecycle.LEGACY,
       });
+    });
+  });
+
+  describe('lifecycle propagation', () => {
+    const gptImage2 = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_2,
+    );
+    if (!gptImage2) {
+      throw new Error('Expected GPT Image 2 in the real catalog');
+    }
+    expect(gptImage2.lifecycle).toBe(ModelLifecycle.AVAILABLE);
+
+    it.each([
+      ModelLifecycle.LEGACY,
+      ModelLifecycle.RETIRED,
+      ModelLifecycle.RECOMMENDED,
+    ])(
+      'propagates a catalog flip to %s onto an already-priced row without touching activation',
+      async (lifecycle) => {
+        const entry = { ...gptImage2, isDefault: false, lifecycle };
+        prisma.model.findUnique.mockResolvedValue({
+          cost: entry.cost,
+          id: 'existing',
+        });
+
+        await service.reconcileCatalog([entry]);
+
+        const update = callForKey(entry.key)?.update;
+        expect(update).toMatchObject({ lifecycle });
+        expect(update).not.toHaveProperty('isActive');
+        expect(update).not.toHaveProperty('isDefault');
+        expect(update).not.toHaveProperty('isLegacy');
+        expect(update).not.toHaveProperty('isPublic');
+      },
+    );
+
+    it('writes the same lifecycle on create and update', async () => {
+      await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
+
+      for (const call of upsertCalls()) {
+        const entry = UNIFIED_MODEL_CATALOG.find(
+          (candidate) => candidate.key === call.where.key,
+        );
+        expect(call.create.lifecycle).toBe(entry?.lifecycle);
+        expect(call.update.lifecycle).toBe(entry?.lifecycle);
+      }
     });
   });
 
@@ -369,9 +414,10 @@ describe('ModelCatalogSeedService', () => {
     expect(call?.update).not.toHaveProperty('endpoint');
   });
 
-  it('creates Retired aliases and carries successors forward without overwriting operator lifecycle', async () => {
+  it('creates Retired aliases and carries lifecycle and successors forward without touching operator flags', async () => {
     const retiredEntry = UNIFIED_MODEL_CATALOG.find(
-      (entry) => entry.lifecycle === 'RETIRED' && entry.succeededBy,
+      (entry) =>
+        entry.lifecycle === ModelLifecycle.RETIRED && entry.succeededBy,
     );
     expect(retiredEntry).toBeDefined();
 
@@ -380,14 +426,16 @@ describe('ModelCatalogSeedService', () => {
     const call = callForKey(retiredEntry?.key ?? '');
     expect(call?.create).toMatchObject({
       isLegacy: false,
-      lifecycle: 'RETIRED',
+      lifecycle: ModelLifecycle.RETIRED,
       succeededBy: retiredEntry?.succeededBy,
     });
     expect(call?.update).toMatchObject({
+      lifecycle: ModelLifecycle.RETIRED,
       succeededBy: retiredEntry?.succeededBy,
     });
+    expect(call?.update).not.toHaveProperty('isActive');
     expect(call?.update).not.toHaveProperty('isLegacy');
-    expect(call?.update).not.toHaveProperty('lifecycle');
+    expect(call?.update).not.toHaveProperty('isPublic');
   });
 
   it('demotes the previous category default before upserting a new one', async () => {

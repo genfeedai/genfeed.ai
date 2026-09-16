@@ -70,8 +70,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
   }
 
   /**
-   * Fields the seed owns outright — labels, categories, capability metadata.
-   * Rewritten on every boot so a catalogue correction reaches existing rows.
+   * Fields the seed owns outright — labels, categories, lifecycle, capability
+   * metadata. Rewritten on every boot so a catalogue correction reaches
+   * existing rows: a key the catalog later demotes to LEGACY or RETIRED picks
+   * up that lifecycle on the next reconciliation. Activation (`isActive`,
+   * `isPublic`, `isDefault`) is deliberately not here — see `upsertEntry`.
    */
   // Plain scalar values only — inferred so the same shape spreads into both
   // ModelCreateInput and ModelUpdateInput without update-operation unions.
@@ -80,6 +83,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       category: entry.category,
       description: entry.description,
       label: entry.label,
+      lifecycle: entry.lifecycle,
       provider: entry.provider,
       ...(entry.aspectRatios ? { aspectRatios: [...entry.aspectRatios] } : {}),
       ...(entry.capabilities ? { capabilities: [...entry.capabilities] } : {}),
@@ -211,8 +215,10 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       isDiscovered: false,
       isHighlighted: entry.isHighlighted ?? false,
       isFree: entry.isFree ?? false,
-      isLegacy: entry.isLegacy ?? false,
-      lifecycle: entry.lifecycle,
+      // The catalog never seeds a hidden-legacy row: `lifecycle` carries the
+      // LEGACY/RETIRED semantics, and `isLegacy` remains the operator flag
+      // that keeps a retired key out of the public catalog.
+      isLegacy: false,
       isPublic: entry.isPublic ?? true,
       endpoint: entry.endpoint ?? entry.key,
       key: entry.key,
@@ -245,13 +251,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.providerCostUsd != null
         ? { providerCostUsd: entry.providerCostUsd }
         : {}),
-      // `lifecycle` stays operator territory on routine updates — see the
-      // first-curation transition and category-default self-heal below.
       // `isDefault` is deliberately absent here — see resolveUpdateIsDefault.
-      ...(entry.isLegacy ? { isDefault: false } : {}),
-      ...(entry.isLegacy && !(entry.isActive && entry.cost > 0)
-        ? { isActive: false, isPublic: false }
-        : {}),
     };
 
     // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
@@ -276,7 +276,6 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
           await this.demoteOtherCategoryDefaults(entry);
           updateData.isActive = true;
           updateData.isDiscovered = false;
-          updateData.lifecycle = entry.lifecycle;
           updateData.isPublic = true;
         }
         updateData.isDefault = targetIsDefault;
@@ -284,11 +283,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
 
       // Previously uncurated (cost 0) rows stay inactive until the catalog
       // prices them. First curation must turn them on — including LEGACY
-      // models, which stay selectable via the Legacy pill.
+      // models, which stay selectable via the Legacy pill. Already-priced
+      // rows keep their operator activation and visibility.
       if (existingRow.cost === 0 && entry.cost > 0 && entry.isActive) {
         updateData.isActive = true;
         updateData.isPublic = entry.isPublic ?? true;
-        updateData.lifecycle = entry.lifecycle;
       }
     }
 
