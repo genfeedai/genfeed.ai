@@ -216,9 +216,11 @@ describe('Stripe webhook credit grant guard (relink between persist and reconcil
       );
 
       await expect(attempt).rejects.toBeInstanceOf(StripeWebhookBillingError);
+      // Stale, not proven conflicting: Stripe's redelivery re-resolves
+      // against the current link instead of dropping the paid grant.
       await expect(attempt).rejects.toMatchObject({
-        code: 'identity_conflict',
-        isRetryable: false,
+        code: 'identity_stale',
+        isRetryable: true,
       });
       // The guarded subscription write already happened — that is the window.
       expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(1);

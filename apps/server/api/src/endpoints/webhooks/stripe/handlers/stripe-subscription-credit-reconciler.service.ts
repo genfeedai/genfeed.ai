@@ -243,9 +243,12 @@ export class StripeSubscriptionCreditReconcilerService {
     } catch (error: unknown) {
       if (error instanceof CreditGrantBillingAccountMismatchException) {
         // The organization was relinked after the subscription row was
-        // verified; the ledger refused the write, so no credits moved. A retry
-        // would fail identity validation the same way — classify, don't loop.
-        throw new StripeWebhookBillingError('identity_conflict');
+        // verified; the ledger refused the write, so no credits moved. The
+        // identity is stale, not proven conflicting: a redelivery re-resolves
+        // against the current link and either grants or lands on a
+        // deterministic `identity_conflict` from `resolve`. Acknowledging
+        // here would drop a paid grant permanently.
+        throw new StripeWebhookBillingError('identity_stale');
       }
       if (!this.supportService.isUniqueConstraintError(error)) {
         throw error;

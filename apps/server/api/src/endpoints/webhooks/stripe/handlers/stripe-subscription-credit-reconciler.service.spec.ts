@@ -332,7 +332,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
     },
   );
 
-  it('classifies a billing-account relink refused by the ledger as identity_conflict', async () => {
+  it('classifies a billing-account relink refused by the ledger as retryable identity_stale', async () => {
     creditsUtilsService.addOrganizationCreditsWithExpiration.mockRejectedValue(
       new CreditGrantBillingAccountMismatchException('ba_1', 'ba_2'),
     );
@@ -349,8 +349,8 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
 
     await expect(attempt).rejects.toBeInstanceOf(StripeWebhookBillingError);
     await expect(attempt).rejects.toMatchObject({
-      code: 'identity_conflict',
-      isRetryable: false,
+      code: 'identity_stale',
+      isRetryable: true,
     });
     expect(supportService.recordCreditsActivity).not.toHaveBeenCalled();
     expect(supportService.setHasEverHadCredits).not.toHaveBeenCalled();
