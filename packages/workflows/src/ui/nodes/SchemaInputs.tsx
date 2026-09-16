@@ -10,7 +10,7 @@ import {
   SelectValue,
 } from '@genfeedai/ui/primitives/select';
 import { Slider } from '@genfeedai/ui/primitives/slider';
-import { memo, useCallback, useMemo } from 'react';
+import { memo, useCallback, useEffect, useMemo } from 'react';
 import { NegativePromptSelector } from './NegativePromptSelector';
 
 /**
@@ -26,7 +26,7 @@ export interface SchemaProperty {
   maximum?: number;
   'x-order'?: number;
   allOf?: Array<{ $ref: string }>;
-  enum?: string[];
+  enum?: Array<string | number>;
   nullable?: boolean;
 }
 
@@ -121,6 +121,71 @@ const DEFAULT_ENUM_VALUES: Record<string, string[]> = {
 function getEnumKey(refPath: string): string {
   const parts = refPath.split('/');
   return parts[parts.length - 1];
+}
+
+/**
+ * Enum options the selected model declares for a property, in precedence
+ * order: an explicit override, the referenced component schema, then a direct
+ * enum on the property itself.
+ *
+ * `undefined` means the model declares nothing. The renderer may then fall
+ * back to the generic list, but a stored value must never be judged against
+ * that list — it is not model-specific, so a value outside it can still be
+ * valid for the provider.
+ */
+function resolveDeclaredEnumOptions(
+  key: string,
+  property: SchemaProperty,
+  enumValues: Record<string, string[]> | undefined,
+  componentSchemas: Record<string, ComponentSchema> | undefined,
+): string[] | undefined {
+  const reference = property.allOf?.[0]?.$ref;
+  if (!reference) {
+    // Providers declare numeric enums directly too; the repair effect and the
+    // select compare strings, so a stored `20` must match a declared `20`.
+    return property.enum?.map(String);
+  }
+
+  const enumKey = getEnumKey(reference);
+  const direct = property.enum?.map(String);
+  const referenced =
+    enumValues?.[enumKey] ??
+    componentSchemas?.[enumKey]?.enum?.map(String) ??
+    direct;
+
+  if (referenced === undefined || referenced.length > 0 || key === 'quality') {
+    return referenced;
+  }
+
+  // An explicitly empty referenced list still lets a direct enum render.
+  return direct ?? referenced;
+}
+
+/**
+ * Type of the referenced component schema, so a selected string option can be
+ * written back as the number the provider expects.
+ */
+function resolveEnumType(
+  property: SchemaProperty,
+  componentSchemas: Record<string, ComponentSchema> | undefined,
+): string | undefined {
+  const reference = property.allOf?.[0]?.$ref;
+  return reference
+    ? componentSchemas?.[getEnumKey(reference)]?.type
+    : property.type;
+}
+
+function parseEnumValue(
+  value: string,
+  enumType: string | undefined,
+): string | number {
+  if (enumType === 'integer') {
+    return Number.parseInt(value, 10);
+  }
+  if (enumType === 'number') {
+    return Number.parseFloat(value);
+  }
+  return value;
 }
 
 /**
@@ -333,6 +398,40 @@ function SchemaInputsComponent({
       });
   }, [schema]);
 
+  // A node saved while an older schema (or the retired generic fallback)
+  // offered an option the current model rejects still holds that value: the
+  // select renders a blank trigger, never fires onChange, and the run would
+  // submit it to the provider. Repair the persisted value through the same
+  // change handler a manual pick uses — the model's default when it is still
+  // offered, otherwise the first declared option.
+  useEffect(() => {
+    for (const [key, property] of sortedProperties) {
+      const declared = resolveDeclaredEnumOptions(
+        key,
+        property,
+        enumValues,
+        componentSchemas,
+      );
+      if (!declared || declared.length === 0) {
+        continue;
+      }
+
+      const value = values[key];
+      if (value == null || declared.includes(String(value))) {
+        continue;
+      }
+
+      const preferred =
+        property.default != null && declared.includes(String(property.default))
+          ? String(property.default)
+          : declared[0];
+      handleChange(
+        key,
+        parseEnumValue(preferred, resolveEnumType(property, componentSchemas)),
+      );
+    }
+  }, [sortedProperties, values, enumValues, componentSchemas, handleChange]);
+
   if (!schema || sortedProperties.length === 0) {
     return null;
   }
@@ -355,59 +454,39 @@ function SchemaInputsComponent({
           );
         }
 
-        // Enum type (allOf with $ref)
-        if (property.allOf && property.allOf.length > 0) {
-          const enumKey = getEnumKey(property.allOf[0].$ref);
-          const options =
-            enumValues?.[enumKey] ??
-            componentSchemas?.[enumKey]?.enum?.map(String) ??
-            property.enum ??
-            (key === 'quality' ? undefined : DEFAULT_ENUM_VALUES[enumKey]) ??
-            [];
+        // Enum type: a referenced component schema ($ref) or a direct enum.
+        // Quality never falls back to the generic list — an unknown quality
+        // contract renders no selector rather than inventing options.
+        const reference = property.allOf?.[0]?.$ref;
+        const options =
+          resolveDeclaredEnumOptions(
+            key,
+            property,
+            enumValues,
+            componentSchemas,
+          ) ??
+          (reference && key !== 'quality'
+            ? DEFAULT_ENUM_VALUES[getEnumKey(reference)]
+            : undefined) ??
+          [];
 
-          if (key === 'quality' && options.length === 0) {
-            return null;
-          }
+        if (options.length > 0) {
+          const enumType = resolveEnumType(property, componentSchemas);
 
-          if (options.length > 0) {
-            // Get the component schema type for proper type coercion
-            const componentSchema = componentSchemas?.[enumKey];
-            const enumType = componentSchema?.type;
-
-            return (
-              <EnumSelect
-                key={key}
-                propertyKey={key}
-                property={property}
-                value={value}
-                options={options}
-                onChange={(v) => {
-                  // Convert string value to correct type based on component schema
-                  if (enumType === 'integer') {
-                    handleChange(key, Number.parseInt(v, 10));
-                  } else if (enumType === 'number') {
-                    handleChange(key, Number.parseFloat(v));
-                  } else {
-                    handleChange(key, v);
-                  }
-                }}
-              />
-            );
-          }
-        }
-
-        // Direct enum type
-        if (property.enum && (key !== 'quality' || property.enum.length > 0)) {
           return (
             <EnumSelect
               key={key}
               propertyKey={key}
               property={property}
               value={value}
-              options={property.enum}
-              onChange={(v) => handleChange(key, v)}
+              options={options}
+              onChange={(v) => handleChange(key, parseEnumValue(v, enumType))}
             />
           );
+        }
+
+        if (key === 'quality') {
+          return null;
         }
 
         // Boolean type
