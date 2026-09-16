@@ -75,6 +75,30 @@ interface CreditsBreakdownResponse {
   };
 }
 
+/**
+ * Wraps a failed read without collapsing what it already knows.
+ *
+ * An exception that carries its own status keeps it: re-wrapping an
+ * intentional 4xx as a 500 reported ordinary client state as a server fault
+ * and paged error tracking for it. Anything else becomes a 500 whose body
+ * carries no underlying message — `AllExceptionFilter` redacts those in
+ * production, and a hand-built envelope must not undo that — while the cause
+ * travels with the exception so error tracking keeps the diagnosis.
+ */
+function toReadFailure(error: unknown, message: string): HttpException {
+  if (error instanceof HttpException) {
+    return error;
+  }
+
+  return new HttpException(
+    { message, success: false },
+    HttpStatus.INTERNAL_SERVER_ERROR,
+    {
+      cause: error,
+    },
+  );
+}
+
 // All of the Stripe logic is handled in the webhooks/stripe/webhooks.stripe.service.ts file because we have a portal for the user to manage their subscription
 
 @AutoSwagger()
@@ -115,14 +139,7 @@ export class SubscriptionsController {
 
       return serializeCollection(request, SubscriptionSerializer, data);
     } catch (error: unknown) {
-      throw new HttpException(
-        {
-          error: (error as Error)?.message,
-          message: 'Failed to retrieve subscriptions',
-          success: false,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw toReadFailure(error, 'Failed to retrieve subscriptions');
     }
   }
 
@@ -253,14 +270,7 @@ export class SubscriptionsController {
         success: true,
       };
     } catch (error: unknown) {
-      throw new HttpException(
-        {
-          error: (error as Error)?.message,
-          message: 'Failed to get credits breakdown',
-          success: false,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      throw toReadFailure(error, 'Failed to get credits breakdown');
     }
   }
 
@@ -342,13 +352,9 @@ export class SubscriptionsController {
         totalPages: paginated.totalPages,
       };
     } catch (error: unknown) {
-      throw new HttpException(
-        {
-          error: (error as Error)?.message,
-          message: 'Failed to retrieve organization credit usage',
-          success: false,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
+      throw toReadFailure(
+        error,
+        'Failed to retrieve organization credit usage',
       );
     }
   }

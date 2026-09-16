@@ -136,18 +136,20 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
   });
 
   describe('error envelopes', () => {
-    it('wraps a findAll failure in a 500 envelope', async () => {
-      subscriptionsService.findAll.mockRejectedValue(new Error('db offline'));
+    it('wraps a findAll failure in a 500 that keeps the cause out of the body', async () => {
+      const cause = new Error('db offline at 10.0.0.4:5432');
+      subscriptionsService.findAll.mockRejectedValue(cause);
 
       const error = await controller
         .findAll({} as Request, defaultQuery)
         .catch((caught: unknown) => caught);
 
       expect(payloadOf(error)).toEqual({
-        error: 'db offline',
         message: 'Failed to retrieve subscriptions',
         success: false,
       });
+      // The cause still reaches error tracking; it just never reaches the client.
+      expect((error as HttpException).cause).toBe(cause);
     });
 
     it('turns an unclassified plan-change failure into a typed fault without echoing its message', async () => {
@@ -302,9 +304,10 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       ).toHaveBeenCalledWith('org_routed', 'price_new');
     });
 
-    it('wraps a credits-breakdown failure in a 500 envelope', async () => {
+    it('wraps a credits-breakdown failure in a 500 that keeps the cause out of the body', async () => {
+      const cause = new Error('credits ledger unavailable');
       creditsUtilsService.getOrganizationCreditsWithExpiration.mockRejectedValue(
-        new Error('credits ledger unavailable'),
+        cause,
       );
 
       const error = await controller
@@ -312,13 +315,13 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         .catch((caught: unknown) => caught);
 
       expect(payloadOf(error)).toEqual({
-        error: 'credits ledger unavailable',
         message: 'Failed to get credits breakdown',
         success: false,
       });
+      expect((error as HttpException).cause).toBe(cause);
     });
 
-    it('refuses a credits breakdown with no resolvable organization', async () => {
+    it('keeps a credits breakdown with no resolvable organization as its own 400', async () => {
       const anonymousUser = {
         ...mockUser,
         organizationId: '',
@@ -328,28 +331,31 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         .getCreditsBreakdown(anonymousUser, contextRequest())
         .catch((caught: unknown) => caught);
 
-      expect(payloadOf(error)).toEqual({
-        error: 'Organization ID is required to retrieve credits',
-        message: 'Failed to get credits breakdown',
-        success: false,
-      });
+      // Ordinary client state: re-wrapping it as a 500 paged error tracking
+      // for a request that was simply missing an organization.
+      expect(error).toBeInstanceOf(HttpException);
+      expect((error as HttpException).getStatus()).toBe(HttpStatus.BAD_REQUEST);
+      expect((error as HttpException).getResponse()).toBe(
+        'Organization ID is required to retrieve credits',
+      );
       expect(
         creditsUtilsService.getOrganizationCreditsWithExpiration,
       ).not.toHaveBeenCalled();
     });
 
-    it('wraps an admin credit-usage failure in a 500 envelope', async () => {
-      subscriptionsService.findAll.mockRejectedValue(new Error('timeout'));
+    it('wraps an admin credit-usage failure in a 500 that keeps the cause out of the body', async () => {
+      const cause = new Error('timeout');
+      subscriptionsService.findAll.mockRejectedValue(cause);
 
       const error = await controller
         .getCreditUsage(defaultQuery)
         .catch((caught: unknown) => caught);
 
       expect(payloadOf(error)).toEqual({
-        error: 'timeout',
         message: 'Failed to retrieve organization credit usage',
         success: false,
       });
+      expect((error as HttpException).cause).toBe(cause);
     });
   });
 
