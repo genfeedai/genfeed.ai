@@ -105,6 +105,13 @@ export function resolveVideoIdentityReferencePlan(
   const omittedFrameRoles: VideoGenerationFrameRole[] = [];
 
   if (supportsIdentityStills) {
+    // The catalog ceiling is the compile-time ceiling; enforce it here so an
+    // over-long identity lock fails at creation, not on segment 1's compile.
+    if (briefIdentityReferences.length > capability.max) {
+      throw new Error(
+        `Model "${input.modelKey}" accepts at most ${capability.max} identity references; ${briefIdentityReferences.length} were provided.`,
+      );
+    }
     const references: GenerationBriefReference[] = [];
     if (input.firstFrameAssetId) {
       references.push({

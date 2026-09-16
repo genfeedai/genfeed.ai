@@ -114,6 +114,27 @@ describe('resolveVideoIdentityReferencePlan', () => {
     expect(plan.identityLock.omittedReferences).toEqual([]);
   });
 
+  it('fails closed at planning time when identity stills exceed the model ceiling', () => {
+    // Veo 3.1 carries reference_images with a catalog ceiling of 3.
+    expect(() =>
+      resolveVideoIdentityReferencePlan({
+        identityReferences: [
+          { assetId: 'character-1', role: 'character' },
+          { assetId: 'character-2', role: 'character' },
+          { assetId: 'product-1', role: 'product' },
+          { assetId: 'room-1', role: 'subject' },
+        ],
+        modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+      }),
+    ).toThrow('accepts at most 3 identity references');
+    expect(() =>
+      resolveVideoIdentityReferencePlan({
+        identityReferences: identityReferences,
+        modelKey: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1,
+      }),
+    ).not.toThrow();
+  });
+
   it('fails closed for a model without image references', () => {
     expect(() =>
       resolveVideoIdentityReferencePlan({

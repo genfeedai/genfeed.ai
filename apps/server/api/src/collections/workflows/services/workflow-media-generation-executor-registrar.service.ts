@@ -54,29 +54,36 @@ const IDENTITY_REFERENCE_CATEGORIES: readonly IngredientCategory[] = [
   IngredientCategory.AVATAR,
 ];
 
+/**
+ * An identity lock is explicit: a malformed entry fails the segment instead
+ * of being dropped, so a run never silently degrades to last-frame identity.
+ */
 function readIdentityReferences(value: unknown): ClipChainIdentityReference[] {
-  if (!Array.isArray(value)) {
+  if (value === undefined || value === null) {
     return [];
   }
-  const references: ClipChainIdentityReference[] = [];
-  for (const entry of value) {
-    if (!entry || typeof entry !== 'object') {
-      continue;
-    }
-    const { assetId, role } = entry as Record<string, unknown>;
-    if (
-      typeof assetId === 'string' &&
-      assetId.trim().length > 0 &&
-      typeof role === 'string' &&
-      IDENTITY_REFERENCE_ROLES.has(role as ClipChainIdentityReference['role'])
-    ) {
-      references.push({
-        assetId: assetId.trim(),
-        role: role as ClipChainIdentityReference['role'],
-      });
-    }
+  if (!Array.isArray(value)) {
+    throw new Error('videoGen identityReferences must be an array');
   }
-  return references;
+  return value.map((entry, index) => {
+    const record =
+      entry && typeof entry === 'object'
+        ? (entry as Record<string, unknown>)
+        : undefined;
+    const assetId =
+      typeof record?.assetId === 'string' ? record.assetId.trim() : '';
+    const role = record?.role;
+    if (
+      assetId.length === 0 ||
+      typeof role !== 'string' ||
+      !IDENTITY_REFERENCE_ROLES.has(role as ClipChainIdentityReference['role'])
+    ) {
+      throw new Error(
+        `videoGen identityReferences[${index}] must be { assetId, role: character | product | subject }`,
+      );
+    }
+    return { assetId, role: role as ClipChainIdentityReference['role'] };
+  });
 }
 
 function replaceReferenceTokens(

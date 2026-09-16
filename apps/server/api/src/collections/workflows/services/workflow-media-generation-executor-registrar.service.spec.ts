@@ -612,6 +612,35 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
       expect(replicateService.runModel).not.toHaveBeenCalled();
     });
 
+    it('fails a malformed identity reference entry instead of silently dropping the lock', async () => {
+      const { createAndLinkProcessingOutput, engine, replicateService } =
+        createIdentityHarness();
+
+      await expect(
+        getActionExecutor(engine, 'videoGen')?.(
+          {
+            config: {
+              brandId: 'brand-1',
+              // Hand-edited entry without a role: the lock must not degrade
+              // to a last-frame-only generate.
+              identityReferences: [{ assetId: 'character-1' }],
+              model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+              prompt: 'Segment one beat',
+            },
+            id: 'video-gen-1',
+            inputs: [],
+            label: 'Segment 1 Video',
+            type: 'videoGen',
+          },
+          new Map(),
+          executionContext,
+        ),
+      ).rejects.toThrow();
+
+      expect(createAndLinkProcessingOutput).not.toHaveBeenCalled();
+      expect(replicateService.runModel).not.toHaveBeenCalled();
+    });
+
     it('rejects an identity still owned by another brand before dispatch', async () => {
       const requireMediaAsset = vi.fn(async (value: unknown) => ({
         brandId: 'brand-2',
