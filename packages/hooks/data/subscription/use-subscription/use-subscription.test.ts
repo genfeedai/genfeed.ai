@@ -326,7 +326,7 @@ describe('useSubscription', () => {
       });
     });
 
-    it('should show error notification on failure', async () => {
+    it('rethrows a failure for the caller to classify, without notifying itself', async () => {
       const newPriceId = 'price_123';
       mockSubscriptionsService.changeSubscriptionPlan.mockRejectedValue(
         new Error('Failed'),
@@ -340,11 +340,10 @@ describe('useSubscription', () => {
         result.current.changeSubscriptionPlan(newPriceId),
       ).rejects.toThrow();
 
-      await waitFor(() => {
-        expect(mockNotificationsService.error).toHaveBeenCalledWith(
-          'Subscription plan change',
-        );
-      });
+      // The API classifies this failure with a public code and a retry
+      // allowance; a generic toast here would be a second notification for
+      // one failure, and would hide both.
+      expect(mockNotificationsService.error).not.toHaveBeenCalled();
     });
   });
 

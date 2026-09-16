@@ -99,3 +99,17 @@ export interface ISubscriptionFailureError {
   status: string;
   title: string;
 }
+
+/**
+ * A classified subscription failure as a client needs it: the catalog key for
+ * the message to show, and the retry allowance the API granted. `retry` is
+ * absent unless the API classified the failure as retryable.
+ */
+export interface ISubscriptionFailureView {
+  code?: SubscriptionFailureCode;
+  messageKey: string;
+  retry?: {
+    maxAttempts: number;
+    notBeforeMs: number;
+  };
+}

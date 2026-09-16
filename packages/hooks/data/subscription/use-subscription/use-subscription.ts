@@ -126,8 +126,11 @@ export function useSubscription(): UseSubscriptionReturn {
 
       return await service.previewSubscriptionChange(newPriceId);
     } catch (err) {
+      // The caller renders the message: the API classifies this failure with a
+      // public code and a retry allowance, and acting on either needs the
+      // caller's own state. Emitting a generic toast here as well produced two
+      // notifications for one failure.
       logger.error('Failed to preview subscription change:', err);
-      notificationsService.error('Subscription preview');
       throw err;
     }
   };
@@ -142,8 +145,9 @@ export function useSubscription(): UseSubscriptionReturn {
 
       notificationsService.success('Subscription plan changed');
     } catch (err) {
+      // Classified the same way as the preview above, and rendered by the
+      // caller for the same reason.
       logger.error('Failed to change subscription plan:', err);
-      notificationsService.error('Subscription plan change');
       throw err;
     }
   };

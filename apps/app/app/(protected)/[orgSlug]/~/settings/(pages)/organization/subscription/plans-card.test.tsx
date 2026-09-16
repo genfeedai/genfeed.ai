@@ -36,10 +36,13 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 
+// One stable instance so a test can assert the single notification a failure
+// produces, and the retry action attached to it.
+const { notifications } = vi.hoisted(() => ({
+  notifications: { error: vi.fn(), success: vi.fn() },
+}));
 vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
-  },
+  NotificationsService: { getInstance: () => notifications },
 }));
 
 vi.mock('@genfeedai/pricing', async (importOriginal) => {
@@ -195,5 +198,106 @@ describe('PlansCard', () => {
     expect(
       await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
     ).toBeVisible();
+  });
+
+  describe('failed plan preview', () => {
+    /** An axios-shaped rejection carrying a JSON:API error document. */
+    function apiError(member: Record<string, unknown>) {
+      return { response: { data: { errors: [member] } } };
+    }
+
+    async function selectScale() {
+      mockSubscription('sub_stripe_1');
+      render(<PlansCard />);
+      fireEvent.click(await screen.findByRole('button', { name: /Scale/i }));
+    }
+
+    it('shows one notification naming the cause instead of a generic message', async () => {
+      previewPlanChange.mockRejectedValue(
+        apiError({ code: 'price_not_found' }),
+      );
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      expect(notifications.error).toHaveBeenCalledWith(
+        'Plan preview',
+        expect.objectContaining({
+          description: 'This plan is no longer available.',
+        }),
+      );
+      // A non-retryable cause must not offer a retry the API did not allow.
+      expect(notifications.error.mock.calls[0][1]).not.toHaveProperty(
+        'actionLabel',
+      );
+    });
+
+    it('falls back to the generic message for a code it does not know', async () => {
+      previewPlanChange.mockRejectedValue(apiError({ code: 'brand_new' }));
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      expect(notifications.error).toHaveBeenCalledWith(
+        'Plan preview',
+        expect.objectContaining({
+          description: 'Something went wrong. Please try again.',
+        }),
+      );
+    });
+
+    it('offers a retry for a transient failure and runs it', async () => {
+      previewPlanChange
+        .mockRejectedValueOnce(
+          apiError({
+            code: 'billing_provider_unavailable',
+            meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 0 },
+          }),
+        )
+        .mockResolvedValueOnce({
+          isDowngrade: false,
+          isUpgrade: true,
+          newPriceId: 'price_scale',
+          prorationAmount: 1_000,
+          upcomingInvoice: { amount_due: 1_000, currency: 'usd', lines: [] },
+        });
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      const options = notifications.error.mock.calls[0][1] as {
+        actionLabel: string;
+        onAction: () => void;
+      };
+      expect(options.actionLabel).toBe('Try again');
+
+      options.onAction();
+
+      await waitFor(() => expect(previewPlanChange).toHaveBeenCalledTimes(2));
+    });
+
+    it('stops offering a retry once the API-granted budget is spent', async () => {
+      previewPlanChange.mockRejectedValue(
+        apiError({
+          code: 'billing_provider_unavailable',
+          meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 0 },
+        }),
+      );
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      const first = notifications.error.mock.calls[0][1] as {
+        onAction: () => void;
+      };
+
+      first.onAction();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(2));
+      // One retry was granted and spent, so the second notification offers none.
+      expect(notifications.error.mock.calls[1][1]).not.toHaveProperty(
+        'actionLabel',
+      );
+    });
   });
 });
