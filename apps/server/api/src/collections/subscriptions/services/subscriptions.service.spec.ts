@@ -1,6 +1,7 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { SubscriptionChangeException } from '@api/collections/subscriptions/errors/subscription-change.exception';
 import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import type { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
@@ -18,6 +19,8 @@ import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
 import {
   type ISubscriptionOssReadModel,
+  SubscriptionChangeFailureCode,
+  SubscriptionPlanChangeCreditsOutcome,
   SubscriptionPreviewFailureCode,
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
@@ -901,35 +904,289 @@ describe('SubscriptionsService', () => {
       expect(updateArgs[0].data.status).toBe(SubscriptionStatus.CANCELLED);
     });
 
-    it('throws NotFound when the organization has no subscription', async () => {
-      subscriptionDelegate.findFirst.mockResolvedValue(null);
+    /** A classified plan-change failure, unwrapped for assertions. */
+    async function changeFailure(
+      newPriceId = 'price_new',
+      organizationId = ORGANIZATION_ID,
+    ): Promise<SubscriptionChangeException> {
+      const caught = await service
+        .changeSubscriptionPlan(organizationId, newPriceId)
+        .catch((error: unknown) => error);
+      expect(caught).toBeInstanceOf(SubscriptionChangeException);
+      return caught as SubscriptionChangeException;
+    }
 
-      await expect(
-        service.changeSubscriptionPlan(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toBeInstanceOf(NotFoundException);
+    /** Nothing may reach Stripe or our row before the preconditions pass. */
+    function expectNoPlanChangeAttempted(): void {
       expect(stripeService.changeSubscriptionPlan).not.toHaveBeenCalled();
+      expect(subscriptionDelegate.update).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.resetOrganizationCredits,
+      ).not.toHaveBeenCalled();
+    }
+
+    it('refuses an empty organization before the tenant-scoped lookup runs', async () => {
+      const exception = await changeFailure('price_new', '');
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.ORGANIZATION_REQUIRED,
+      );
+      expect(exception.getStatus()).toBe(400);
+      // A blank organization would otherwise mutate whichever row Prisma
+      // returned once it dropped the undefined filter.
+      expect(subscriptionDelegate.findFirst).not.toHaveBeenCalled();
+      expectNoPlanChangeAttempted();
     });
 
-    it('throws BadRequest when the local row has no Stripe subscription', async () => {
+    it('classifies a missing subscription row as subscription_missing', async () => {
+      subscriptionDelegate.findFirst.mockResolvedValue(null);
+
+      const exception = await changeFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.SUBSCRIPTION_MISSING,
+      );
+      expect(exception.getStatus()).toBe(404);
+      expect(subscriptionDelegate.findFirst).toHaveBeenCalledWith({
+        where: { isDeleted: false, organizationId: ORGANIZATION_ID },
+      });
+      expectNoPlanChangeAttempted();
+    });
+
+    it('classifies a row without a Stripe subscription as stripe_subscription_missing', async () => {
       subscriptionDelegate.findFirst.mockResolvedValue(
         buildSubscription({ customerId: null, stripeSubscriptionId: null }),
       );
 
-      await expect(
-        service.changeSubscriptionPlan(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toBeInstanceOf(BadRequestException);
+      const exception = await changeFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.STRIPE_SUBSCRIPTION_MISSING,
+      );
+      expect(exception.getStatus()).toBe(409);
+      expectNoPlanChangeAttempted();
     });
 
-    it('propagates a Stripe failure after logging it', async () => {
-      stripeService.changeSubscriptionPlan.mockRejectedValue(
-        new Error('card_declined'),
+    it('classifies a price Stripe no longer knows as price_not_found', async () => {
+      stripeService.getPrice.mockRejectedValue(
+        Object.assign(new Error('No such price: price_new'), {
+          code: 'resource_missing',
+          param: 'id',
+          statusCode: 404,
+          type: 'StripeInvalidRequestError',
+        }),
       );
 
-      await expect(
-        service.changeSubscriptionPlan(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toThrowError('card_declined');
-      expect(logger.error).toHaveBeenCalled();
+      const exception = await changeFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.PRICE_NOT_FOUND,
+      );
+      expect(exception.getStatus()).toBe(404);
+      expectNoPlanChangeAttempted();
+    });
+
+    it('classifies a non-recurring price as plan_interval_unsupported', async () => {
+      stripeService.getPrice.mockResolvedValue({
+        id: 'price_one_time',
+        recurring: null,
+      });
+
+      const exception = await changeFailure('price_one_time');
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.PLAN_INTERVAL_UNSUPPORTED,
+      );
+      expect(exception.getStatus()).toBe(422);
+      expectNoPlanChangeAttempted();
+    });
+
+    it('classifies a transient Stripe outage as a retryable 503 and never writes', async () => {
+      stripeService.changeSubscriptionPlan.mockRejectedValue(
+        Object.assign(new Error('connect ECONNRESET provider-secret-token'), {
+          raw: { headers: { authorization: 'Bearer provider-secret-token' } },
+          requestId: 'req_9',
+          type: 'StripeConnectionError',
+        }),
+      );
+
+      const exception = await changeFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.BILLING_PROVIDER_UNAVAILABLE,
+      );
+      expect(exception.getStatus()).toBe(503);
+      expect(exception.meta).toEqual({
+        isRetryable: true,
+        maxRetries: 1,
+        retryAfterSeconds: 5,
+      });
       expect(subscriptionDelegate.update).not.toHaveBeenCalled();
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          category: 'provider_unavailable',
+          code: 'billing_provider_unavailable',
+          stage: 'plan_change',
+          stripeRequestId: 'req_9',
+        }),
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'provider-secret-token',
+      );
+    });
+
+    it('classifies a change Stripe refused as plan_change_rejected', async () => {
+      stripeService.changeSubscriptionPlan.mockRejectedValue(
+        Object.assign(new Error('Cannot change a cancelled subscription'), {
+          code: 'parameter_invalid',
+          statusCode: 400,
+          type: 'StripeInvalidRequestError',
+        }),
+      );
+
+      const exception = await changeFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.PLAN_CHANGE_REJECTED,
+      );
+      expect(exception.getStatus()).toBe(422);
+      expect(subscriptionDelegate.update).not.toHaveBeenCalled();
+    });
+
+    describe('once Stripe has applied the change', () => {
+      beforeEach(() => {
+        stripeService.changeSubscriptionPlan.mockResolvedValue(
+          buildStripeSubscription({ priceId: 'price_new' }),
+        );
+        creditGrantService.resolvePlanCredits.mockResolvedValue(5_900);
+      });
+
+      it('retries the local write once before giving up', async () => {
+        subscriptionDelegate.update
+          .mockRejectedValueOnce(new Error('deadlock detected'))
+          .mockResolvedValueOnce(buildSubscription());
+
+        const result = await service.changeSubscriptionPlan(
+          ORGANIZATION_ID,
+          'price_new',
+        );
+
+        expect(subscriptionDelegate.update).toHaveBeenCalledTimes(2);
+        expect(result.creditsOutcome).toBe(
+          SubscriptionPlanChangeCreditsOutcome.RESET,
+        );
+      });
+
+      it('reports a persistent local write failure as plan_change_not_recorded, never as transient', async () => {
+        subscriptionDelegate.update.mockRejectedValue(
+          new Error('connection terminated'),
+        );
+
+        const exception = await changeFailure();
+
+        expect(exception.code).toBe(
+          SubscriptionChangeFailureCode.PLAN_CHANGE_NOT_RECORDED,
+        );
+        expect(exception.getStatus()).toBe(500);
+        // Billing and our record disagree; a retry cannot clear that, so the
+        // response must not invite one.
+        expect(exception.meta).toEqual({
+          isRetryable: false,
+          maxRetries: 0,
+          retryAfterSeconds: null,
+        });
+        expect(subscriptionDelegate.update).toHaveBeenCalledTimes(2);
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('failed'),
+          undefined,
+          expect.objectContaining({
+            code: 'plan_change_not_recorded',
+            organizationId: ORGANIZATION_ID,
+            stage: 'record',
+          }),
+        );
+        // The change is real, so no credit reset is attempted on a row we
+        // could not update.
+        expect(
+          creditsUtilsService.resetOrganizationCredits,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('keeps the completed change and reports the credit reset that failed', async () => {
+        subscriptionDelegate.update.mockResolvedValue(buildSubscription());
+        creditsUtilsService.resetOrganizationCredits.mockRejectedValue(
+          new Error('credit ledger unavailable'),
+        );
+
+        const result = await service.changeSubscriptionPlan(
+          ORGANIZATION_ID,
+          'price_new',
+        );
+
+        // Failing here would tell the caller the change did not happen and
+        // invite a retry that cannot undo it.
+        expect(result.creditsOutcome).toBe(
+          SubscriptionPlanChangeCreditsOutcome.FAILED,
+        );
+        expect(result.subscription).toBeDefined();
+        expect(logger.error).toHaveBeenCalledWith(
+          expect.stringContaining('credits were not reset'),
+          undefined,
+          expect.objectContaining({
+            code: 'plan_credits_not_reset',
+            organizationId: ORGANIZATION_ID,
+            stage: 'credits',
+          }),
+        );
+      });
+
+      it('reports an unresolved grant without touching the balance', async () => {
+        subscriptionDelegate.update.mockResolvedValue(buildSubscription());
+        creditGrantService.resolvePlanCredits.mockResolvedValue(null);
+
+        const result = await service.changeSubscriptionPlan(
+          ORGANIZATION_ID,
+          'price_new',
+        );
+
+        expect(result.creditsOutcome).toBe(
+          SubscriptionPlanChangeCreditsOutcome.UNRESOLVED,
+        );
+        expect(
+          creditsUtilsService.resetOrganizationCredits,
+        ).not.toHaveBeenCalled();
+      });
+
+      it('leaves credits alone when the price did not actually change', async () => {
+        subscriptionDelegate.update.mockResolvedValue(buildSubscription());
+
+        const result = await service.changeSubscriptionPlan(
+          ORGANIZATION_ID,
+          'price_monthly',
+        );
+
+        expect(result.creditsOutcome).toBe(
+          SubscriptionPlanChangeCreditsOutcome.UNCHANGED,
+        );
+        expect(
+          creditsUtilsService.resetOrganizationCredits,
+        ).not.toHaveBeenCalled();
+      });
+    });
+
+    it('reports an unclassified fault as plan_change_failed with the cause attached', async () => {
+      const cause = new TypeError('items is undefined');
+      stripeService.getPrice.mockRejectedValue(cause);
+
+      const exception = await changeFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.PLAN_CHANGE_FAILED,
+      );
+      expect(exception.getStatus()).toBe(500);
+      expect(exception.cause).toBe(cause);
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 

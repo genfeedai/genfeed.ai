@@ -1,5 +1,5 @@
+import { SubscriptionBillingExceptionFilter } from '@api/collections/subscriptions/errors/subscription-billing-exception.filter';
 import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
-import { SubscriptionPreviewExceptionFilter } from '@api/collections/subscriptions/errors/subscription-preview-exception.filter';
 import { toSubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import { SubscriptionPreviewFailureCode } from '@genfeedai/contracts/interfaces/billing';
 import type { ConfigService } from '@libs/config/config.service';
@@ -14,14 +14,14 @@ vi.mock('@sentry/nestjs', () => ({
 
 type MockFn = ReturnType<typeof vi.fn>;
 
-describe('SubscriptionPreviewExceptionFilter', () => {
+describe('SubscriptionBillingExceptionFilter', () => {
   let logger: { error: MockFn; log: MockFn; warn: MockFn };
   let response: { json: MockFn; setHeader: MockFn; status: MockFn };
   let host: ArgumentsHost;
   let sentryEnvironment: string;
 
-  function buildFilter(): SubscriptionPreviewExceptionFilter {
-    return new SubscriptionPreviewExceptionFilter(
+  function buildFilter(): SubscriptionBillingExceptionFilter {
+    return new SubscriptionBillingExceptionFilter(
       logger as unknown as LoggerService,
       {
         get: (key: string) =>
@@ -64,7 +64,7 @@ describe('SubscriptionPreviewExceptionFilter', () => {
       ],
     });
     expect(logger.warn).toHaveBeenCalledWith(
-      'Subscription preview rejected',
+      'Subscription preview failed',
       expect.objectContaining({
         code: 'billing_provider_unavailable',
         isRetryable: true,

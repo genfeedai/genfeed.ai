@@ -1,6 +1,7 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
+import { SubscriptionChangeException } from '@api/collections/subscriptions/errors/subscription-change.exception';
 import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
@@ -8,7 +9,11 @@ import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscr
 import type { BaseQueryDto } from '@api/helpers/dto/base-query.dto';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
-import { SubscriptionPreviewFailureCode } from '@genfeedai/contracts/interfaces/billing';
+import {
+  SubscriptionChangeFailureCode,
+  SubscriptionPlanChangeCreditsOutcome,
+  SubscriptionPreviewFailureCode,
+} from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common';
@@ -145,9 +150,9 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
       });
     });
 
-    it('wraps a plan-change failure in a 500 envelope', async () => {
+    it('turns an unclassified plan-change failure into a typed fault without echoing its message', async () => {
       subscriptionsService.changeSubscriptionPlan.mockRejectedValue(
-        new Error('card_declined'),
+        new Error('card_declined provider-secret-token'),
       );
 
       const error = await controller
@@ -156,15 +161,71 @@ describe('SubscriptionsController — failure paths and plan/cycle mapping', () 
         })
         .catch((caught: unknown) => caught);
 
-      expect(payloadOf(error)).toEqual({
-        error: 'card_declined',
-        message: 'Failed to change subscription plan',
-        success: false,
+      expect(error).toBeInstanceOf(SubscriptionChangeException);
+      const exception = error as SubscriptionChangeException;
+      expect(exception.code).toBe(
+        SubscriptionChangeFailureCode.PLAN_CHANGE_FAILED,
+      );
+      expect(exception.getStatus()).toBe(HttpStatus.INTERNAL_SERVER_ERROR);
+      expect(JSON.stringify(exception.getResponse())).not.toContain(
+        'provider-secret-token',
+      );
+    });
+
+    it('keeps a classified plan-change failure exactly as the service raised it', async () => {
+      const classified = new SubscriptionChangeException(
+        SubscriptionChangeFailureCode.SUBSCRIPTION_MISSING,
+      );
+      subscriptionsService.changeSubscriptionPlan.mockRejectedValue(classified);
+
+      const error = await controller
+        .changePlan(contextRequest(ORGANIZATION_ID), mockUser, {
+          newPriceId: 'price_new',
+        })
+        .catch((caught: unknown) => caught);
+
+      expect(error).toBe(classified);
+    });
+
+    it('reports a durable change whose credit reset failed without claiming the reset', async () => {
+      subscriptionsService.changeSubscriptionPlan.mockResolvedValue({
+        creditsOutcome: SubscriptionPlanChangeCreditsOutcome.FAILED,
+        stripeSubscription: {},
+        subscription: {},
       });
+
+      const result = await controller.changePlan(
+        contextRequest(ORGANIZATION_ID),
+        mockUser,
+        { newPriceId: 'price_new' },
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.message).toContain('could not be reset');
+    });
+
+    it('reports a fully applied change as a plain success', async () => {
+      subscriptionsService.changeSubscriptionPlan.mockResolvedValue({
+        creditsOutcome: SubscriptionPlanChangeCreditsOutcome.RESET,
+        stripeSubscription: {},
+        subscription: {},
+      });
+
+      const result = await controller.changePlan(
+        contextRequest(ORGANIZATION_ID),
+        mockUser,
+        { newPriceId: 'price_new' },
+      );
+
+      expect(result.message).toBe('Subscription plan changed successfully');
     });
 
     it('falls back to token metadata when the request carries no context', async () => {
-      subscriptionsService.changeSubscriptionPlan.mockResolvedValue({});
+      subscriptionsService.changeSubscriptionPlan.mockResolvedValue({
+        creditsOutcome: SubscriptionPlanChangeCreditsOutcome.RESET,
+        stripeSubscription: {},
+        subscription: {},
+      });
 
       await controller.changePlan(contextRequest(), mockUser, {
         newPriceId: 'price_new',

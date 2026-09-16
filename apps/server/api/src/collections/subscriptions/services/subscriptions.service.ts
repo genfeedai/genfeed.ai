@@ -3,6 +3,12 @@ import { CustomersService } from '@api/collections/customers/services/customers.
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import type { CreateSubscriptionDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
 import type { UpdateSubscriptionDto } from '@api/collections/subscriptions/dto/update-subscription.dto';
+import { SubscriptionChangeException } from '@api/collections/subscriptions/errors/subscription-change.exception';
+import {
+  getSubscriptionChangeFailureDiagnostics,
+  SubscriptionChangeStage,
+  toSubscriptionChangeException,
+} from '@api/collections/subscriptions/errors/subscription-change-failure.util';
 import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import {
   getSubscriptionPreviewFailureDiagnostics,
@@ -14,7 +20,10 @@ import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscr
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere } from '@api/index';
-import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import {
+  StripeService,
+  type StripeSubscription,
+} from '@api/services/integrations/stripe/services/stripe.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BaseService,
@@ -31,7 +40,10 @@ import {
   type ISubscriptionFindAllOptions,
   type ISubscriptionFindAllResult,
   type ISubscriptionOssReadModel,
+  type ISubscriptionPlanChangeResult,
   type ISubscriptionsService,
+  SubscriptionChangeFailureCode,
+  SubscriptionPlanChangeCreditsOutcome,
   SubscriptionPreviewFailureCode,
 } from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
@@ -281,6 +293,17 @@ export class SubscriptionsService
   async findByOrganizationId(
     organizationId: string,
   ): Promise<SubscriptionDocument | null> {
+    // Prisma drops an `undefined` filter, so a blank organization would turn
+    // this into an unscoped first-row read — and callers that mutate what it
+    // returns would then write across tenants. Mirrors `BaseService.findOne`.
+    if (!organizationId) {
+      this.logger.warn(
+        'findByOrganizationId called with an empty organization — returning null instead of an unscoped first-row read',
+        { model: 'subscription' },
+      );
+      return null;
+    }
+
     const result = await this.prisma.subscription.findFirst({
       where: { isDeleted: false, organizationId },
     });
@@ -338,28 +361,56 @@ export class SubscriptionsService
     }
   }
 
+  /**
+   * Applies a plan change to Stripe and to our own row.
+   *
+   * The ordering matters: everything before the provider call is a local
+   * precondition that leaves no trace when it fails, and everything after it
+   * runs against a subscription the provider already bills at the new price.
+   * A failure to record that change is therefore reported as a divergence
+   * rather than a plain fault, and the change is never reversed automatically
+   * — a compensating Stripe update can fail in turn and would leave reversing
+   * prorations on a real invoice, so reconciliation is a deliberate act.
+   */
   async changeSubscriptionPlan(
     organizationId: string,
     newPriceId: string,
-  ): Promise<unknown> {
+  ): Promise<
+    ISubscriptionPlanChangeResult<StripeSubscription, SubscriptionDocument>
+  > {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    let stage: SubscriptionChangeStage | undefined;
 
     try {
-      // Find the organization's subscription
+      // An empty organization would widen the tenant-scoped lookup below, and
+      // this path mutates whatever that lookup returns.
+      if (!organizationId) {
+        throw new SubscriptionChangeException(
+          SubscriptionChangeFailureCode.ORGANIZATION_REQUIRED,
+        );
+      }
+
       const subscription = await this.findByOrganizationId(organizationId);
       if (!subscription) {
-        throw new NotFoundException('Subscription');
+        throw new SubscriptionChangeException(
+          SubscriptionChangeFailureCode.SUBSCRIPTION_MISSING,
+        );
       }
 
       if (!subscription.stripeSubscriptionId) {
-        throw new BadRequestException('No active Stripe subscription found');
+        throw new SubscriptionChangeException(
+          SubscriptionChangeFailureCode.STRIPE_SUBSCRIPTION_MISSING,
+        );
       }
 
+      stage = SubscriptionChangeStage.PRICE;
       const newPrice = await this.stripeService.getPrice(newPriceId);
+      stage = undefined;
+
       const recurringInterval = newPrice.recurring?.interval;
       if (recurringInterval !== 'month' && recurringInterval !== 'year') {
-        throw new BadRequestException(
-          'Subscription price must use a monthly or yearly billing interval',
+        throw new SubscriptionChangeException(
+          SubscriptionChangeFailureCode.PLAN_INTERVAL_UNSUPPORTED,
         );
       }
       const newPlan =
@@ -367,7 +418,11 @@ export class SubscriptionsService
           ? SubscriptionPlan.YEARLY
           : SubscriptionPlan.MONTHLY;
 
-      // Change the plan in Stripe with pro-rata billing
+      const previousPlan = subscription.plan ?? undefined;
+      const previousPriceId = subscription.stripePriceId ?? undefined;
+
+      // Change the plan in Stripe with pro-rata billing.
+      stage = SubscriptionChangeStage.PLAN_CHANGE;
       const updatedStripeSubscription =
         await this.stripeService.changeSubscriptionPlan(
           subscription.stripeSubscriptionId,
@@ -375,65 +430,27 @@ export class SubscriptionsService
           'create_prorations',
         );
 
-      // Update our local subscription record
-      const updatedSubscription = await this.patch(subscription.id.toString(), {
-        currentPeriodEnd: updatedStripeSubscription.items.data[0]
-          ?.current_period_end
-          ? new Date(
-              updatedStripeSubscription.items.data[0].current_period_end * 1000,
-            )
-          : undefined,
-        status: toPrismaSubscriptionStatus(updatedStripeSubscription.status),
-        stripePriceId: newPriceId,
-        plan: newPlan,
+      // From here the customer is billed on `newPriceId` whatever happens.
+      stage = SubscriptionChangeStage.RECORD;
+      const updatedSubscription = await this.recordPlanChange({
+        newPlan,
+        newPriceId,
+        subscriptionId: subscription.id.toString(),
+        updatedStripeSubscription,
+      });
+      stage = undefined;
+
+      const creditsOutcome = await this.resetCreditsForPlanChange({
+        newPlan,
+        newPriceId,
+        organizationId,
+        previousPlan,
+        previousPriceId,
+        url,
       });
 
-      // Sync subscription state to DB
-      await this.syncSubscriptionState(updatedSubscription);
-
-      // Reset credits to the new allocation when the plan changes. The new
-      // allocation is whatever the customer's new Stripe price includes — a
-      // price we cannot resolve leaves the existing balance alone rather than
-      // resetting it to a default unrelated to what they now pay.
-      const previousPlan = subscription.plan ?? undefined;
-      const previousPriceId = subscription.stripePriceId ?? undefined;
-      if (newPriceId !== previousPriceId) {
-        const creditsForNewPlan =
-          (await this.creditGrantService.resolvePlanCredits(
-            newPlan,
-            newPriceId,
-          )) ?? 0;
-        const source =
-          newPlan === SubscriptionPlan.YEARLY
-            ? 'change_to_yearly'
-            : 'change_to_monthly';
-
-        if (creditsForNewPlan <= 0) {
-          this.creditGrantService.logUnresolvedGrant(url, {
-            organizationId,
-            stripePriceId: newPriceId,
-          });
-        }
-
-        if (creditsForNewPlan > 0) {
-          await this.creditsUtilsService.resetOrganizationCredits(
-            organizationId,
-            creditsForNewPlan,
-            source,
-            `Credits reset due to subscription price change from ${previousPriceId ?? 'unknown'} to ${newPriceId} (${previousPlan ?? 'unknown'} to ${newPlan})`,
-          );
-
-          this.logger.log(`${url} credits reset for plan change`, {
-            newCredits: creditsForNewPlan,
-            newPlan,
-            oldPlan: previousPlan,
-            organizationId,
-            source,
-          });
-        }
-      }
-
       this.logger.log(`${url} success`, {
+        creditsOutcome,
         newPriceId,
         newPlan,
         oldPriceId: previousPriceId,
@@ -442,12 +459,150 @@ export class SubscriptionsService
       });
 
       return {
+        creditsOutcome,
         stripeSubscription: updatedStripeSubscription,
         subscription: updatedSubscription,
       };
     } catch (error: unknown) {
-      this.logger.error(`${url} failed`, error);
-      throw error;
+      const exception = toSubscriptionChangeException(error, stage);
+      // Safe diagnostics only: the raw error (and any Stripe payload on it)
+      // stays on `exception.cause` for error tracking, never in logs.
+      const context = {
+        ...getSubscriptionChangeFailureDiagnostics(exception, stage),
+        newPriceId,
+        organizationId,
+      };
+      if (
+        exception.code === SubscriptionChangeFailureCode.PLAN_CHANGE_FAILED ||
+        exception.code ===
+          SubscriptionChangeFailureCode.PLAN_CHANGE_NOT_RECORDED
+      ) {
+        this.logger.error(`${url} failed`, undefined, context);
+      } else {
+        this.logger.warn(`${url} failed`, context);
+      }
+      throw exception;
+    }
+  }
+
+  /**
+   * Writes the applied plan change to our row. Retried once because the
+   * provider has already moved: a transient write failure here is the
+   * difference between a consistent record and a billing divergence.
+   */
+  private async recordPlanChange(input: {
+    newPlan: SubscriptionPlan;
+    newPriceId: string;
+    subscriptionId: string;
+    updatedStripeSubscription: StripeSubscription;
+  }): Promise<SubscriptionDocument> {
+    const currentPeriodEnd =
+      input.updatedStripeSubscription.items.data[0]?.current_period_end;
+    const patch = {
+      currentPeriodEnd: currentPeriodEnd
+        ? new Date(currentPeriodEnd * 1000)
+        : undefined,
+      plan: input.newPlan,
+      status: toPrismaSubscriptionStatus(
+        input.updatedStripeSubscription.status,
+      ),
+      stripePriceId: input.newPriceId,
+    };
+
+    let lastError: unknown;
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        // Re-applying the same patch is idempotent, so a retry is safe.
+        const updatedSubscription = await this.patch(
+          input.subscriptionId,
+          patch,
+        );
+        await this.syncSubscriptionState(updatedSubscription);
+        return updatedSubscription;
+      } catch (error: unknown) {
+        lastError = error;
+      }
+    }
+
+    throw lastError;
+  }
+
+  /**
+   * Resets credits to the new plan's allocation. Never throws: by the time it
+   * runs, the plan change is durable in Stripe and in our row, so failing the
+   * request would tell the caller the change did not happen and invite a retry
+   * that cannot undo it. The failure is classified and reported instead, and
+   * the outcome travels back with the result.
+   */
+  private async resetCreditsForPlanChange(input: {
+    newPlan: SubscriptionPlan;
+    newPriceId: string;
+    organizationId: string;
+    previousPlan?: string;
+    previousPriceId?: string;
+    url: string;
+  }): Promise<SubscriptionPlanChangeCreditsOutcome> {
+    if (input.newPriceId === input.previousPriceId) {
+      return SubscriptionPlanChangeCreditsOutcome.UNCHANGED;
+    }
+
+    try {
+      // The new allocation is whatever the customer's new Stripe price
+      // includes — a price we cannot resolve leaves the existing balance alone
+      // rather than resetting it to a default unrelated to what they now pay.
+      const creditsForNewPlan =
+        (await this.creditGrantService.resolvePlanCredits(
+          input.newPlan,
+          input.newPriceId,
+        )) ?? 0;
+
+      if (creditsForNewPlan <= 0) {
+        this.creditGrantService.logUnresolvedGrant(input.url, {
+          organizationId: input.organizationId,
+          stripePriceId: input.newPriceId,
+        });
+        return SubscriptionPlanChangeCreditsOutcome.UNRESOLVED;
+      }
+
+      const source =
+        input.newPlan === SubscriptionPlan.YEARLY
+          ? 'change_to_yearly'
+          : 'change_to_monthly';
+
+      await this.creditsUtilsService.resetOrganizationCredits(
+        input.organizationId,
+        creditsForNewPlan,
+        source,
+        `Credits reset due to subscription price change from ${input.previousPriceId ?? 'unknown'} to ${input.newPriceId} (${input.previousPlan ?? 'unknown'} to ${input.newPlan})`,
+      );
+
+      this.logger.log(`${input.url} credits reset for plan change`, {
+        newCredits: creditsForNewPlan,
+        newPlan: input.newPlan,
+        oldPlan: input.previousPlan,
+        organizationId: input.organizationId,
+        source,
+      });
+
+      return SubscriptionPlanChangeCreditsOutcome.RESET;
+    } catch (error: unknown) {
+      const exception = toSubscriptionChangeException(
+        error,
+        SubscriptionChangeStage.CREDITS,
+      );
+      this.logger.error(
+        `${input.url} plan changed but credits were not reset`,
+        undefined,
+        {
+          ...getSubscriptionChangeFailureDiagnostics(
+            exception,
+            SubscriptionChangeStage.CREDITS,
+          ),
+          newPriceId: input.newPriceId,
+          organizationId: input.organizationId,
+        },
+      );
+      return SubscriptionPlanChangeCreditsOutcome.FAILED;
     }
   }
 

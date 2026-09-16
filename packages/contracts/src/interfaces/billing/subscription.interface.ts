@@ -90,3 +90,35 @@ export interface OrganizationCreditUsageResponse {
   totalDocs: number;
   totalPages: number;
 }
+
+/**
+ * What happened to the plan's credit allocation during a plan change. The
+ * change itself is durable in every case; `FAILED` means the allocation still
+ * needs repair and has been reported for it.
+ */
+export const SubscriptionPlanChangeCreditsOutcome = {
+  /** The reset was attempted and did not complete. */
+  FAILED: 'failed',
+  /** Credits were reset to the new plan's allocation. */
+  RESET: 'reset',
+  /** The price did not change, so the allocation was left alone. */
+  UNCHANGED: 'unchanged',
+  /** The new price carries no resolvable grant, so the balance was left alone. */
+  UNRESOLVED: 'unresolved',
+} as const;
+
+export type SubscriptionPlanChangeCreditsOutcome =
+  (typeof SubscriptionPlanChangeCreditsOutcome)[keyof typeof SubscriptionPlanChangeCreditsOutcome];
+
+/**
+ * Result of a completed plan change. Generic over the provider and persistence
+ * shapes so the shared contract never depends on the Stripe SDK types.
+ */
+export interface ISubscriptionPlanChangeResult<
+  TProviderSubscription,
+  TSubscription,
+> {
+  creditsOutcome: SubscriptionPlanChangeCreditsOutcome;
+  stripeSubscription: TProviderSubscription;
+  subscription: TSubscription;
+}

@@ -1,13 +1,6 @@
-import {
-  type ISubscriptionPreviewFailureMeta,
-  SubscriptionPreviewFailureCode,
-} from '@genfeedai/contracts/interfaces/billing';
-import { HttpException, HttpStatus } from '@nestjs/common';
-
-/** Seconds a client should wait before its single bounded retry. */
-export const SUBSCRIPTION_PREVIEW_RETRY_AFTER_SECONDS = 5;
-/** Further attempts a client may make after a retryable failure. */
-export const SUBSCRIPTION_PREVIEW_MAX_RETRIES = 1;
+import { SubscriptionBillingException } from '@api/collections/subscriptions/errors/subscription-billing.exception';
+import { SubscriptionPreviewFailureCode } from '@genfeedai/contracts/interfaces/billing';
+import { HttpStatus } from '@nestjs/common';
 
 const SUBSCRIPTION_PREVIEW_TITLE = 'Subscription preview failed';
 
@@ -66,47 +59,18 @@ const RETRYABLE_CODES: ReadonlySet<SubscriptionPreviewFailureCode> = new Set([
   SubscriptionPreviewFailureCode.BILLING_PROVIDER_UNAVAILABLE,
 ]);
 
-/**
- * Typed, stable failure for `POST /subscriptions/current/preview`. The
- * response body carries the public `code`, a safe `detail`, and a bounded
- * retry contract in `meta`; the original error stays on `cause` for error
- * tracking only and is never serialized.
- */
-export class SubscriptionPreviewException extends HttpException {
-  public readonly code: SubscriptionPreviewFailureCode;
-  public readonly meta: ISubscriptionPreviewFailureMeta;
-
+/** Typed, stable failure for `POST /subscriptions/current/preview`. */
+export class SubscriptionPreviewException extends SubscriptionBillingException<SubscriptionPreviewFailureCode> {
   constructor(code: SubscriptionPreviewFailureCode, cause?: unknown) {
-    const status = STATUS_BY_CODE[code];
-    const detail = DETAIL_BY_CODE[code];
-    const isRetryable = RETRYABLE_CODES.has(code);
-    const meta: ISubscriptionPreviewFailureMeta = {
-      isRetryable,
-      maxRetries: isRetryable ? SUBSCRIPTION_PREVIEW_MAX_RETRIES : 0,
-      retryAfterSeconds: isRetryable
-        ? SUBSCRIPTION_PREVIEW_RETRY_AFTER_SECONDS
-        : null,
-    };
-
-    super(
-      {
-        code,
-        detail,
-        meta,
-        status,
-        title: SUBSCRIPTION_PREVIEW_TITLE,
-      },
-      status,
-      cause === undefined ? undefined : { cause },
-    );
+    super({
+      cause,
+      code,
+      detail: DETAIL_BY_CODE[code],
+      isRetryable: RETRYABLE_CODES.has(code),
+      status: STATUS_BY_CODE[code],
+      title: SUBSCRIPTION_PREVIEW_TITLE,
+    });
 
     this.name = 'SubscriptionPreviewException';
-    this.code = code;
-    this.meta = meta;
-    this.message = detail;
-  }
-
-  public get isRetryable(): boolean {
-    return this.meta.isRetryable;
   }
 }
