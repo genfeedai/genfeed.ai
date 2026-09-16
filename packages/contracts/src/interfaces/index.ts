@@ -50,6 +50,7 @@ export * from './auth/authentication.interface';
 export * from './auth/better-auth.interface';
 export * from './auth/role.interface';
 export * from './automation/calendar-event.interface';
+export * from './automation/clip-chain-identity.interface';
 export * from './automation/content-delivery-workflow.interface';
 export * from './automation/metadata.interface';
 export * from './automation/setting.interface';

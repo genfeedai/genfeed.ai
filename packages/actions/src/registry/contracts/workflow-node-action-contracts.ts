@@ -7,12 +7,14 @@ import {
   enumSchema,
   INTEGER_SCHEMA,
   JSON_DOCUMENT_SCHEMA,
+  NON_EMPTY_STRING_SCHEMA,
   NUMBER_SCHEMA,
   nullableSchema,
   STRING_SCHEMA,
 } from './schema-builders';
 
 type InputField =
+  | 'identityReferences'
   | 'sourceLanguage'
   | 'targetLanguage'
   | 'timingToleranceSeconds'
@@ -206,6 +208,20 @@ const URL_OR_MEDIA_SCHEMA = {
   anyOf: [STRING_SCHEMA, MEDIA_VALUE_SCHEMA],
 } as const;
 /**
+ * Run-level identity stills a `videoGen` segment must send alongside — never
+ * instead of — its start frame (#4653). Roles are the generation-brief identity
+ * roles; the last-frame handoff is a separate `image` input.
+ */
+const IDENTITY_REFERENCES_SCHEMA = arraySchema(
+  closedObjectSchema(
+    {
+      assetId: NON_EMPTY_STRING_SCHEMA,
+      role: enumSchema(['character', 'product', 'subject'] as const),
+    },
+    ['assetId', 'role'],
+  ),
+);
+/**
  * Context fields an executor accepts either already flattened to text or as a
  * structured object it stringifies itself.
  */
@@ -326,6 +342,8 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'videoReference':
     case 'videoUrl':
       return URL_OR_MEDIA_SCHEMA;
+    case 'identityReferences':
+      return IDENTITY_REFERENCES_SCHEMA;
     case 'characterReferenceUrls':
     case 'productReferenceUrls':
     case 'images':
@@ -420,6 +438,7 @@ const GENERATED_MEDIA_OUTPUT = objectOutput(
     generationBriefEvidence: JSON_DOCUMENT_SCHEMA,
     generationSource: STRING_SCHEMA,
     id: STRING_SCHEMA,
+    identityLock: JSON_DOCUMENT_SCHEMA,
     imageUrl: STRING_SCHEMA,
     model: STRING_SCHEMA,
     provider: STRING_SCHEMA,
@@ -1336,6 +1355,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'duration',
         'fps',
         'height',
+        'identityReferences',
         'image',
         'lastFrame',
         'model',
