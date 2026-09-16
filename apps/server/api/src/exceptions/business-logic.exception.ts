@@ -65,6 +65,19 @@ export class InsufficientCreditsException extends BusinessLogicException {
   }
 }
 
+export class CreditGrantBillingAccountMismatchException extends BusinessLogicException {
+  constructor(
+    expectedBillingAccountId: string,
+    resolvedBillingAccountId: string,
+  ) {
+    super(
+      'Credit grant aborted: the organization billing account changed',
+      { expectedBillingAccountId, resolvedBillingAccountId },
+      'CREDIT_GRANT_BILLING_ACCOUNT_MISMATCH',
+    );
+  }
+}
+
 export class PlanLimitExceededException extends HttpException {
   constructor(options: PlanLimitExceededOptions) {
     const resourceLabel = PLAN_LIMIT_RESOURCE_LABELS[options.resource];

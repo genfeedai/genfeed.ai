@@ -101,6 +101,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     subscriptionsService.findByOrganizationId.mockResolvedValue(null);
     subscriptionsService.findByStripeCustomerId.mockResolvedValue(null);
     billingService.resolve.mockResolvedValue({
+      billingAccountId: 'ba_1',
       subscription: monthlySubscription,
       stripeSubscriptionId: 'sub_stripe_1',
     });
@@ -179,6 +180,7 @@ describe('StripeInvoiceWebhookHandler', () => {
         expect.stringContaining('monthly'),
         expect.any(Date),
         expect.objectContaining({
+          billingAccountId: 'ba_1',
           referenceId: 'stripe-invoice:in_123',
           referenceType: 'stripe-invoice:subscription-grant',
         }),
@@ -187,6 +189,47 @@ describe('StripeInvoiceWebhookHandler', () => {
         'org_1',
         'test',
       );
+    });
+
+    it('warns and skips a subscription_cycle invoice that carries no subscription id', async () => {
+      await expect(
+        handler.handleInvoicePaid(
+          invoiceWith({ billing_reason: 'subscription_cycle' }),
+          'test',
+        ),
+      ).resolves.toBeUndefined();
+
+      expect(loggerService.warn).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('invoice carries no subscription id'),
+        { billingReason: 'subscription_cycle', invoiceId: 'in_123' },
+      );
+      expect(billingService.resolve).not.toHaveBeenCalled();
+      expect(billingService.persist).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).not.toHaveBeenCalled();
+      expect(loggerService.error).not.toHaveBeenCalled();
+    });
+
+    it('treats null invoice period boundaries as absent', async () => {
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+          period_end: null,
+          period_start: null,
+        }),
+        'test',
+      );
+
+      expect(billingService.persist).toHaveBeenCalledTimes(1);
+      const options =
+        creditsUtilsService.addOrganizationCreditsWithExpiration.mock
+          .calls[0][5];
+      expect(options.metadata).not.toHaveProperty('periodEnd');
+      expect(options.metadata).not.toHaveProperty('periodStart');
+      expect(loggerService.warn).not.toHaveBeenCalled();
     });
 
     it('resets credits for yearly subscriptions', async () => {
@@ -323,7 +366,14 @@ describe('StripeInvoiceWebhookHandler', () => {
         new StripeWebhookBillingError('identity_missing'),
       );
       await expect(
-        handler.handleInvoicePaid(invoiceWith({}), 'test'),
+        handler.handleInvoicePaid(
+          invoiceWith({
+            parent: {
+              subscription_details: { subscription: 'sub_stripe_1' },
+            },
+          }),
+          'test',
+        ),
       ).rejects.toMatchObject({ code: 'identity_missing' });
       expect(billingService.persist).not.toHaveBeenCalled();
       expect(

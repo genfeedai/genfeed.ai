@@ -9,7 +9,10 @@ import { creditTransactionOptions } from '@api/collections/credits/services/cred
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  CreditGrantBillingAccountMismatchException,
+} from '@api/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
@@ -522,6 +525,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       input.organizationId,
       tx,
     );
+    this.assertGrantBillingAccount(wallet.billingAccountId, input.options);
     const currentBalance = wallet.available;
     const newBalance = currentBalance + input.creditsToAdd;
     const newSettledBalance = wallet.settled + input.creditsToAdd;
@@ -556,6 +560,27 @@ export class CreditsUtilsService implements ICreditsUtilsService {
     }
 
     return { currentBalance, newBalance, wasApplied: true };
+  }
+
+  /**
+   * A caller that verified the organization's billing account before deciding
+   * to grant (the Stripe webhook path) pins the grant to that account. The
+   * check runs inside the ledger transaction, after the wallet resolves, so a
+   * relink in between aborts the write instead of crediting the new account.
+   */
+  private assertGrantBillingAccount(
+    walletBillingAccountId: string,
+    options: IAddCreditsOptions | undefined,
+  ): void {
+    if (
+      options?.billingAccountId &&
+      options.billingAccountId !== walletBillingAccountId
+    ) {
+      throw new CreditGrantBillingAccountMismatchException(
+        options.billingAccountId,
+        walletBillingAccountId,
+      );
+    }
   }
 
   private findTransactionByIdempotencyKey(
@@ -807,6 +832,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       // Core reset logic always runs inside the required serializable transaction.
       const resetCore = async (tx?: PrismaTransactionClient) => {
         const wallet = await this.getBillingWalletSnapshot(organizationId, tx);
+        this.assertGrantBillingAccount(wallet.billingAccountId, options);
         const currentBalance = wallet.available;
 
         await this.creditBalanceService.updateBalance(
