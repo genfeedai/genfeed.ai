@@ -19,7 +19,7 @@ import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { getSubscriptionFailureView } from './subscription-failure.util';
 
@@ -86,6 +86,34 @@ export default function PlansCard() {
   const [isConfirming, setIsConfirming] = useState(false);
   /** Retries already spent per Stripe price, so the API's bound is honoured. */
   const retryAttempts = useRef<Map<string, number>>(new Map());
+  /**
+   * Which plan operation is current. A retry offered for an earlier one must
+   * not run: its callback captured that render's `pendingTier`, so a stale
+   * confirmation would change the plan the user has since cancelled or
+   * replaced, and a stale preview would overwrite the newer one.
+   */
+  const operationGeneration = useRef(0);
+  /** Timers for retries that are waiting out the API's `retryAfterSeconds`. */
+  const retryTimers = useRef<Set<number>>(new Set());
+
+  const supersedeRetries = () => {
+    operationGeneration.current += 1;
+    for (const timerId of retryTimers.current) {
+      window.clearTimeout(timerId);
+    }
+    retryTimers.current.clear();
+  };
+
+  // A timer that outlives the card would retry against an unmounted component.
+  useEffect(
+    () => () => {
+      for (const timerId of retryTimers.current) {
+        window.clearTimeout(timerId);
+      }
+      retryTimers.current.clear();
+    },
+    [],
+  );
 
   const getStripeService = useAuthedService((token: string) =>
     StripeService.getInstance(token),
@@ -133,6 +161,9 @@ export default function PlansCard() {
       view.retry !== undefined &&
       attemptsUsed < view.retry.maxAttempts;
 
+    // The operation this failure belongs to; a newer one invalidates the retry.
+    const generation = operationGeneration.current;
+
     const retryAction = canRetry
       ? {
           actionLabel: translate('subscription.plans.retryAction'),
@@ -143,7 +174,14 @@ export default function PlansCard() {
               (view.retry?.notBeforeMs ?? 0) - Date.now(),
             );
             // The API asked us not to come back before `retryAfterSeconds`.
-            window.setTimeout(() => input.onRetry?.(), waitMs);
+            const timerId = window.setTimeout(() => {
+              retryTimers.current.delete(timerId);
+              if (operationGeneration.current !== generation) {
+                return;
+              }
+              input.onRetry?.();
+            }, waitMs);
+            retryTimers.current.add(timerId);
           },
         }
       : {};
@@ -167,6 +205,9 @@ export default function PlansCard() {
       return;
     }
 
+    // This selection replaces whatever was in flight, including any retry
+    // still waiting out its delay for an earlier plan.
+    supersedeRetries();
     setBusyTier(tier);
 
     try {
@@ -193,8 +234,12 @@ export default function PlansCard() {
     }
   };
 
-  /** Drops the pending preview without touching the retry budget. */
+  /**
+   * Drops the pending preview. Cancelling also retires any offered retry: the
+   * user declined this change, so nothing may submit it later.
+   */
   const cancelPlanChange = () => {
+    supersedeRetries();
     setPendingTier(null);
     setPreview(null);
   };
@@ -214,6 +259,8 @@ export default function PlansCard() {
       return;
     }
 
+    // Only the newest confirmation may be retried.
+    supersedeRetries();
     setIsConfirming(true);
 
     try {

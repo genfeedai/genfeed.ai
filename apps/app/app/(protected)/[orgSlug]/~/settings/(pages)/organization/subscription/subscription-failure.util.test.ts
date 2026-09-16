@@ -60,6 +60,10 @@ describe('getSubscriptionFailureView', () => {
     ['no code at all', apiError({ detail: 'boom' })],
     ['a non-JSON:API error', new Error('network down')],
     ['a null rejection', null],
+    // The server names the code, and an `in` check would answer for inherited
+    // members, handing the catalog lookup a prototype member.
+    ['a prototype member name', apiError({ code: 'constructor' })],
+    ['another prototype member name', apiError({ code: 'toString' })],
   ])('falls back to the generic message for %s', (_label, error) => {
     const view = getSubscriptionFailureView(error);
 

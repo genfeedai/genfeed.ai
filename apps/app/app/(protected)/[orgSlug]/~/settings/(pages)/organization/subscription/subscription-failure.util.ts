@@ -40,10 +40,18 @@ const MESSAGE_KEY_BY_CODE: Record<SubscriptionFailureCode, string> = {
   [SubscriptionChangeFailureCode.PLAN_INTERVAL_UNSUPPORTED]: `${FAILURE_KEY_PREFIX}.planIntervalUnsupported`,
 };
 
+/**
+ * True when the API returned a code this client has a message for.
+ *
+ * `Object.hasOwn` rather than `in`: the server names the code, and `in` also
+ * answers for inherited members, so a code of `constructor` or `toString`
+ * would skip the fallback and hand the catalog lookup a prototype member
+ * instead of a message key.
+ */
 function isKnownCode(
   code: string | undefined,
 ): code is SubscriptionFailureCode {
-  return code !== undefined && code in MESSAGE_KEY_BY_CODE;
+  return code !== undefined && Object.hasOwn(MESSAGE_KEY_BY_CODE, code);
 }
 
 /** Keeps whole counts above zero; anything else is not a usable budget. */
