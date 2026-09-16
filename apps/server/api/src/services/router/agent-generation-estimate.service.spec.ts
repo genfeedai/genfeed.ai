@@ -120,6 +120,21 @@ describe('AgentGenerationEstimateService', () => {
       }),
     ).toMatchObject({ credits: 24, isAvailable: true });
   });
+  it('resolves fan-out from the model row provider, not the key shape', async () => {
+    validateModelForOrg.mockResolvedValue({
+      ...model,
+      cost: 6,
+      key: 'bytedance/seedream-4.5',
+      provider: 'fal',
+    });
+    expect(
+      await service.estimate({
+        ...input,
+        modelKey: 'bytedance/seedream-4.5',
+        outputs: 4,
+      }),
+    ).toMatchObject({ credits: 24, isAvailable: true });
+  });
   it('defaults a missing video duration to the Agent tool duration', async () => {
     validateModelForOrg.mockResolvedValue({
       ...model,

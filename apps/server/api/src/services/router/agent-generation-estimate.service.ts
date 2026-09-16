@@ -124,7 +124,10 @@ export class AgentGenerationEstimateService {
           })
         : calculateImageGenerationCredits({
             ...dimensions,
-            imageProvider: resolveImageGenerationProvider(modelKey),
+            imageProvider: resolveImageGenerationProvider(
+              modelKey,
+              model.provider,
+            ),
             isBatchSupported,
             modelKey,
             outputs: input.outputs,

@@ -20,8 +20,8 @@ describe('ImageGenerationCreditsService parity with the Agent quote', () => {
   };
   const modelsService = { findOne: vi.fn() };
   const providerRegistry = {
-    providerFor: vi.fn((model: string) =>
-      resolveImageGenerationProvider(model),
+    providerFor: vi.fn((model: string, provider?: string) =>
+      resolveImageGenerationProvider(model, provider),
     ),
   };
   const byokService = {

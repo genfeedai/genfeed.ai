@@ -117,6 +117,21 @@ export const GENERATION_CREDIT_PARITY_CASES: readonly GenerationCreditParityCase
       name: 'zero image base cost keeps the one-credit minimum',
     },
     {
+      aspectRatio: '1:1',
+      category: ModelCategory.IMAGE,
+      // Synthetic row: a batch-capable generic key served by Fal. Key-only
+      // resolution would bill once as Replicate batch (6); the row's provider
+      // is what dispatch executes, so Fal fans out × 4.
+      expectedCredits: 24,
+      model: {
+        cost: 6,
+        key: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_4_5,
+        provider: FAL,
+      },
+      name: 'model row provider decides fan-out over the key shape',
+      outputs: 4,
+    },
+    {
       aspectRatio: '16:9',
       category: ModelCategory.VIDEO,
       duration: 4,

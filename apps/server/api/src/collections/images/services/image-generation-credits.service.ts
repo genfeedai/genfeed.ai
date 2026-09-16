@@ -138,10 +138,15 @@ export class ImageGenerationCreditsService {
     const resolvedModelDoc = await this.modelsService.findOne({
       key: baseModelKey(model),
     });
-    // #4813 Same calculator the Agent quote uses; only the inputs differ.
+    // #4813 Same calculator the Agent quote uses; only the inputs differ. The
+    // row's provider resolves dispatch exactly as image execution does, so a
+    // Fal row with a generic key is never billed with Replicate semantics.
     const { credits: requiredCredits } = calculateImageGenerationCredits({
       height: createImageDto.height,
-      imageProvider: this.providerRegistry.providerFor(model),
+      imageProvider: this.providerRegistry.providerFor(
+        model,
+        resolvedModelDoc?.provider,
+      ),
       isBatchSupported:
         MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported ?? false,
       modelKey: model,
