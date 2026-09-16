@@ -26,7 +26,7 @@ export interface SchemaProperty {
   maximum?: number;
   'x-order'?: number;
   allOf?: Array<{ $ref: string }>;
-  enum?: string[];
+  enum?: Array<string | number>;
   nullable?: boolean;
 }
 
@@ -141,21 +141,24 @@ function resolveDeclaredEnumOptions(
 ): string[] | undefined {
   const reference = property.allOf?.[0]?.$ref;
   if (!reference) {
-    return property.enum;
+    // Providers declare numeric enums directly too; the repair effect and the
+    // select compare strings, so a stored `20` must match a declared `20`.
+    return property.enum?.map(String);
   }
 
   const enumKey = getEnumKey(reference);
+  const direct = property.enum?.map(String);
   const referenced =
     enumValues?.[enumKey] ??
     componentSchemas?.[enumKey]?.enum?.map(String) ??
-    property.enum;
+    direct;
 
   if (referenced === undefined || referenced.length > 0 || key === 'quality') {
     return referenced;
   }
 
   // An explicitly empty referenced list still lets a direct enum render.
-  return property.enum ?? referenced;
+  return direct ?? referenced;
 }
 
 /**
@@ -169,7 +172,7 @@ function resolveEnumType(
   const reference = property.allOf?.[0]?.$ref;
   return reference
     ? componentSchemas?.[getEnumKey(reference)]?.type
-    : undefined;
+    : property.type;
 }
 
 function parseEnumValue(

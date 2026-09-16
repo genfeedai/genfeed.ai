@@ -274,6 +274,26 @@ describe('SchemaInputs stale persisted enum values', () => {
     expect(onChange).not.toHaveBeenCalled();
   });
 
+  it('accepts a stored number that a direct numeric enum declares', () => {
+    const onChange = vi.fn();
+    renderInputs({
+      onChange,
+      schema: { steps: { default: 10, enum: [10, 20], type: 'integer' } },
+      values: { steps: 20 },
+    });
+    expect(onChange).not.toHaveBeenCalled();
+  });
+
+  it('repairs a stale direct numeric option back as a number', () => {
+    const onChange = vi.fn();
+    renderInputs({
+      onChange,
+      schema: { steps: { default: 10, enum: [10, 20], type: 'integer' } },
+      values: { steps: 30 },
+    });
+    expect(onChange).toHaveBeenCalledExactlyOnceWith('steps', 10);
+  });
+
   it('writes a repaired referenced numeric option back as a number', () => {
     const onChange = vi.fn();
     renderInputs({

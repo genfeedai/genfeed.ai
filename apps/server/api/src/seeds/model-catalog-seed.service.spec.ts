@@ -298,6 +298,71 @@ describe('ModelCatalogSeedService', () => {
       },
     );
 
+    it.each([
+      { isDeprecated: true, isLegacy: true },
+      { isDeprecated: true, isLegacy: false },
+    ])(
+      'keeps an operator demotion %j when the catalog still says AVAILABLE',
+      async (flags) => {
+        const entry = { ...gptImage2, isDefault: false };
+        prisma.model.findUnique.mockResolvedValue({
+          cost: entry.cost,
+          id: 'existing',
+          ...flags,
+        });
+
+        await service.reconcileCatalog([entry]);
+
+        const call = callForKey(entry.key);
+        expect(call?.update).not.toHaveProperty('lifecycle');
+        expect(call?.update).not.toHaveProperty('isLegacy');
+        expect(call?.update).not.toHaveProperty('isDeprecated');
+        expect(call?.create).toMatchObject({
+          lifecycle: ModelLifecycle.AVAILABLE,
+        });
+      },
+    );
+
+    it('still moves an operator-demoted row further down when the catalog retires it', async () => {
+      const entry = {
+        ...gptImage2,
+        isDefault: false,
+        lifecycle: ModelLifecycle.RETIRED,
+      };
+      prisma.model.findUnique.mockResolvedValue({
+        cost: entry.cost,
+        id: 'existing',
+        isDeprecated: true,
+        isLegacy: true,
+      });
+
+      await service.reconcileCatalog([entry]);
+
+      expect(callForKey(entry.key)?.update).toMatchObject({
+        lifecycle: ModelLifecycle.RETIRED,
+      });
+    });
+
+    it('propagates lifecycle onto a row without an operator demotion', async () => {
+      const entry = {
+        ...gptImage2,
+        isDefault: false,
+        lifecycle: ModelLifecycle.LEGACY,
+      };
+      prisma.model.findUnique.mockResolvedValue({
+        cost: entry.cost,
+        id: 'existing',
+        isDeprecated: false,
+        isLegacy: false,
+      });
+
+      await service.reconcileCatalog([entry]);
+
+      expect(callForKey(entry.key)?.update).toMatchObject({
+        lifecycle: ModelLifecycle.LEGACY,
+      });
+    });
+
     it('writes the same lifecycle on create and update', async () => {
       await service.reconcileCatalog(UNIFIED_MODEL_CATALOG);
 
