@@ -44,6 +44,14 @@ export { resolveImageGenerationBriefSupport } from '@api/services/generation-bri
 export { resolveImageGenerationFidelityMode } from '@api/services/generation-brief/resolve-image-generation-fidelity-mode';
 export { resolveVideoGenerationBriefSupport } from '@api/services/generation-brief/resolve-video-generation-brief-support';
 export { resolveVideoGenerationFidelityMode } from '@api/services/generation-brief/resolve-video-generation-fidelity-mode';
+export type {
+  ResolveVideoIdentityReferencePlanInput,
+  VideoIdentityReferencePlan,
+} from '@api/services/generation-brief/resolve-video-identity-reference-plan';
+export {
+  resolveVideoCapabilityReferences,
+  resolveVideoIdentityReferencePlan,
+} from '@api/services/generation-brief/resolve-video-identity-reference-plan';
 export type { RunImageGenerationBriefInput } from '@api/services/generation-brief/run-image-generation-brief';
 export {
   resolveImageGenerationBriefModelKey,

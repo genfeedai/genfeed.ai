@@ -397,6 +397,256 @@ describe('WorkflowMediaGenerationExecutorRegistrarService', () => {
     );
   });
 
+  describe('identity-locked clip-chain segments (#4653)', () => {
+    const executionContext = {
+      organizationId: 'org-1',
+      runId: 'run-1',
+      userId: 'user-1',
+      workflowId: 'workflow-1',
+      workflowVersionId: 'version-1',
+    };
+    const identityReferences = [
+      { assetId: 'character-1', role: 'character' },
+      { assetId: 'product-1', role: 'product' },
+    ];
+
+    function createIdentityHarness(options?: {
+      requireMediaAsset?: ReturnType<typeof vi.fn>;
+    }) {
+      const createAndLinkProcessingOutput = vi.fn(
+        async (
+          args: Parameters<
+            WorkflowEngineExecutorHelperService['createAndLinkProcessingOutput']
+          >[0],
+        ) => {
+          await args.runProvider('ingredient-1', 'continuation-1');
+          return { ingredientId: 'ingredient-1', metadataId: 'metadata-1' };
+        },
+      );
+      const requireMediaAsset =
+        options?.requireMediaAsset ??
+        vi.fn(async (value: unknown) => ({
+          brandId: 'brand-1',
+          category: 'IMAGE',
+          id: String(value),
+          storageKey: String(value),
+          storageType: 'images',
+        }));
+      const helper = {
+        buildMediaIngredientUrl: (ingredientId: string) =>
+          `https://api.test/images/${ingredientId}`,
+        buildVideoIngredientUrl: (ingredientId: string) =>
+          `https://api.test/videos/${ingredientId}`,
+        createAndLinkProcessingOutput,
+        extractIngredientId: (value: unknown) =>
+          typeof value === 'string'
+            ? value.match(/\/(?:images|videos)\/([^/?#]+)/i)?.[1]
+            : undefined,
+        requireBrandId: (brandId: unknown) => String(brandId),
+        requireMediaAsset,
+        wrapEngineExecutor,
+      } as unknown as WorkflowEngineExecutorHelperService;
+      const replicateService = {
+        runModel: vi.fn().mockResolvedValue('prediction-1'),
+      };
+      const logger = { log: vi.fn(), warn: vi.fn() };
+      const engine = new WorkflowEngine();
+      new WorkflowMediaGenerationExecutorRegistrarService(
+        helper,
+        logger as never,
+        undefined,
+        undefined,
+        undefined,
+        replicateService as never,
+      ).register(engine);
+
+      return {
+        createAndLinkProcessingOutput,
+        engine,
+        logger,
+        replicateService,
+        requireMediaAsset,
+      };
+    }
+
+    it('sends the run identity stills next to the last-frame start image on a multi-reference model', async () => {
+      const {
+        createAndLinkProcessingOutput,
+        engine,
+        replicateService,
+        requireMediaAsset,
+      } = createIdentityHarness();
+
+      const result = await getActionExecutor(engine, 'videoGen')?.(
+        {
+          config: {
+            brandId: 'brand-1',
+            identityReferences,
+            model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+            prompt: 'Segment two beat',
+          },
+          id: 'video-gen-2',
+          inputs: ['frame-extract-1'],
+          label: 'Segment 2 Video',
+          type: 'videoGen',
+        },
+        new Map([['image', 'https://api.test/images/last-frame-1']]),
+        executionContext,
+      );
+
+      expect(requireMediaAsset).toHaveBeenCalledWith(
+        'character-1',
+        'org-1',
+        expect.arrayContaining(['IMAGE', 'AVATAR']),
+      );
+      expect(replicateService.runModel).toHaveBeenCalledWith(
+        MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        expect.objectContaining({
+          // The previous segment's last frame stays the start frame …
+          image: 'https://api.test/images/last-frame-1',
+          // … and the identity stills ride the multi-image field beside it.
+          reference_images: [
+            'https://api.test/images/character-1',
+            'https://api.test/images/product-1',
+          ],
+        }),
+        undefined,
+        'continuation-1',
+      );
+      expect(createAndLinkProcessingOutput).toHaveBeenCalledWith(
+        expect.objectContaining({
+          output: expect.objectContaining({
+            providerData: expect.objectContaining({
+              appliedFields: expect.arrayContaining([
+                'references.first_frame',
+                'references.character',
+                'references.product',
+              ]),
+            }),
+            references: ['character-1', 'product-1'],
+          }),
+        }),
+      );
+      expect(result).toMatchObject({
+        identityLock: {
+          omittedFrameRoles: [],
+          omittedReferences: [],
+          references: identityReferences,
+        },
+      });
+    });
+
+    it('keeps the character still and omits the last-frame handoff when the model has a single start-frame slot', async () => {
+      const { engine, logger, replicateService } = createIdentityHarness();
+
+      const result = await getActionExecutor(engine, 'videoGen')?.(
+        {
+          config: {
+            brandId: 'brand-1',
+            identityReferences,
+            model: MODEL_KEYS.REPLICATE_GOOGLE_VEO_3_1_FAST,
+            prompt: 'Segment two beat',
+          },
+          id: 'video-gen-2',
+          inputs: ['frame-extract-1'],
+          label: 'Segment 2 Video',
+          type: 'videoGen',
+        },
+        new Map([['image', 'https://api.test/images/last-frame-1']]),
+        executionContext,
+      );
+
+      const [, input] = replicateService.runModel.mock.calls[0];
+      expect(input).toMatchObject({
+        image: 'https://api.test/images/character-1',
+      });
+      expect(input).not.toHaveProperty('last_frame');
+      expect(input).not.toHaveProperty('reference_images');
+      expect(result).toMatchObject({
+        identityLock: {
+          omittedFrameRoles: ['first_frame'],
+          omittedReferences: [{ assetId: 'product-1', role: 'product' }],
+          references: [{ assetId: 'character-1', role: 'character' }],
+        },
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('identity lock omitted'),
+        expect.objectContaining({
+          nodeId: 'video-gen-2',
+          omittedFrameRoles: ['first_frame'],
+        }),
+      );
+    });
+
+    it('fails a deleted or foreign identity still before any output or provider dispatch exists', async () => {
+      const requireMediaAsset = vi.fn(async () => {
+        throw new Error(
+          'Media asset is unavailable, unfinished, or has an incompatible type',
+        );
+      });
+      const { createAndLinkProcessingOutput, engine, replicateService } =
+        createIdentityHarness({ requireMediaAsset });
+
+      await expect(
+        getActionExecutor(engine, 'videoGen')?.(
+          {
+            config: {
+              brandId: 'brand-1',
+              identityReferences,
+              model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+              prompt: 'Segment one beat',
+            },
+            id: 'video-gen-1',
+            inputs: [],
+            label: 'Segment 1 Video',
+            type: 'videoGen',
+          },
+          new Map(),
+          executionContext,
+        ),
+      ).rejects.toThrow(
+        'Identity character reference character-1 is unavailable for this organization',
+      );
+
+      expect(createAndLinkProcessingOutput).not.toHaveBeenCalled();
+      expect(replicateService.runModel).not.toHaveBeenCalled();
+    });
+
+    it('rejects an identity still owned by another brand before dispatch', async () => {
+      const requireMediaAsset = vi.fn(async (value: unknown) => ({
+        brandId: 'brand-2',
+        category: 'IMAGE',
+        id: String(value),
+        storageKey: String(value),
+        storageType: 'images',
+      }));
+      const { createAndLinkProcessingOutput, engine, replicateService } =
+        createIdentityHarness({ requireMediaAsset });
+
+      await expect(
+        getActionExecutor(engine, 'videoGen')?.(
+          {
+            config: {
+              brandId: 'brand-1',
+              identityReferences,
+              model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+              prompt: 'Segment one beat',
+            },
+            id: 'video-gen-1',
+            inputs: [],
+            label: 'Segment 1 Video',
+            type: 'videoGen',
+          },
+          new Map(),
+          executionContext,
+        ),
+      ).rejects.toThrow('does not belong to the run brand');
+
+      expect(createAndLinkProcessingOutput).not.toHaveBeenCalled();
+      expect(replicateService.runModel).not.toHaveBeenCalled();
+    });
+  });
+
   it('rejects lip-sync when the source media and audio belong to different brands', async () => {
     const requireMediaAsset = vi.fn(async (value: unknown) => {
       if (value === 'video-asset') {

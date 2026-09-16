@@ -1,3 +1,7 @@
+import type {
+  ClipChainIdentityIngredientIds,
+  ClipChainIdentityReference,
+} from '@genfeedai/contracts/interfaces';
 import type { ExecutableEdge, ExecutableNode } from '../types';
 import { createExecutableActionNode } from '../utils/action-node';
 import { getNodeCreditCost } from '../utils/credit-calculator';
@@ -24,10 +28,17 @@ export interface ClipChainTemplateMetadata {
 
 export interface ClipChainWorkflowTemplate
   extends Omit<WorkflowTemplate, 'metadata'> {
+  /**
+   * Run-level identity ingredient ids, stored once at instantiation and
+   * reused verbatim by every segment (#4653). Absent on the catalog original.
+   */
+  identity?: ClipChainIdentityIngredientIds;
   metadata: ClipChainTemplateMetadata;
 }
 
 export interface ClipChainTemplateParams {
+  brandId?: string;
+  identity?: ClipChainIdentityIngredientIds;
   identityDirective?: string;
   segmentCount?: number;
   segmentPrompts?: string[];
@@ -73,6 +84,75 @@ export function composeClipChainSegmentPrompt(
   return `${identity}\n\n${segment}`;
 }
 
+function uniqueIds(ids: readonly string[] | undefined): string[] {
+  return [
+    ...new Set(
+      (ids ?? []).map((id) => id.trim()).filter((id) => id.length > 0),
+    ),
+  ];
+}
+
+/**
+ * Resolves the run's locked identity ids into the generation-brief identity
+ * refs every segment sends. Character is required for the identity path;
+ * product stills ride as `product`; environment / location sheets ride as an
+ * extra `subject` still. A prompt-only identity sentence never substitutes
+ * for these ids.
+ */
+export function buildClipChainIdentityReferences(
+  identity: ClipChainIdentityIngredientIds,
+): ClipChainIdentityReference[] {
+  const characterIds = uniqueIds(identity.characterIngredientIds);
+  if (characterIds.length === 0) {
+    throw new Error(
+      'Clip-chain identity lock requires at least one character ingredient id',
+    );
+  }
+
+  const seen = new Set<string>(characterIds);
+  const references: ClipChainIdentityReference[] = characterIds.map(
+    (assetId) => ({ assetId, role: 'character' }),
+  );
+  for (const assetId of uniqueIds(identity.productIngredientIds)) {
+    if (!seen.has(assetId)) {
+      seen.add(assetId);
+      references.push({ assetId, role: 'product' });
+    }
+  }
+  for (const assetId of uniqueIds(identity.environmentIngredientIds)) {
+    if (!seen.has(assetId)) {
+      seen.add(assetId);
+      references.push({ assetId, role: 'subject' });
+    }
+  }
+
+  return references;
+}
+
+function freezeIdentity(
+  identity: ClipChainIdentityIngredientIds,
+): ClipChainIdentityIngredientIds {
+  return Object.freeze({
+    characterIngredientIds: Object.freeze(
+      uniqueIds(identity.characterIngredientIds),
+    ),
+    ...(identity.productIngredientIds
+      ? {
+          productIngredientIds: Object.freeze(
+            uniqueIds(identity.productIngredientIds),
+          ),
+        }
+      : {}),
+    ...(identity.environmentIngredientIds
+      ? {
+          environmentIngredientIds: Object.freeze(
+            uniqueIds(identity.environmentIngredientIds),
+          ),
+        }
+      : {}),
+  });
+}
+
 /**
  * Catalog credit estimate: N * videoGen + N * frameExtract + 1 stitch.
  * Frame extract has no dedicated cost key; `clip` is the existing extract
@@ -105,6 +185,8 @@ function buildClipChainNodes(
   identityDirective: string,
   segmentPrompts: string[] | undefined,
   videoConfig: ClipChainTemplateParams['videoConfig'],
+  identityReferences: readonly ClipChainIdentityReference[],
+  brandId: string | undefined,
 ): ExecutableNode[] {
   const nodes: ExecutableNode[] = [];
 
@@ -124,7 +206,19 @@ function buildClipChainNodes(
         label: `Segment ${index} Video`,
         parameters: {
           aspectRatio: videoConfig?.aspectRatio ?? '16:9',
+          ...(brandId ? { brandId } : {}),
           duration: videoConfig?.duration ?? 8,
+          // The same locked identity stills on every segment — including the
+          // ones whose start frame is the previous segment's last-frame
+          // extract. The extract stays a start-frame handoff on the `image`
+          // handle; it is never promoted to a character ref (#4653).
+          ...(identityReferences.length > 0
+            ? {
+                identityReferences: identityReferences.map((reference) => ({
+                  ...reference,
+                })),
+              }
+            : {}),
           model: videoConfig?.model ?? 'veo-3.1-fast',
           // identityDirective + segmentPrompt are already folded into `prompt`
           // above; segmentIndex is template bookkeeping only. None are part
@@ -163,6 +257,7 @@ function buildClipChainNodes(
       label: 'Concatenate Clips',
       parameters: {
         audioCodec: 'aac',
+        ...(brandId ? { brandId } : {}),
         outputQuality: 'full',
         seamlessLoop: false,
         transitionDuration: 0,
@@ -235,6 +330,12 @@ export function buildClipChainVideoTemplate(
 
   const identityDirective =
     params.identityDirective ?? DEFAULT_IDENTITY_DIRECTIVE;
+  const identity = params.identity
+    ? freezeIdentity(params.identity)
+    : undefined;
+  const identityReferences = identity
+    ? buildClipChainIdentityReferences(identity)
+    : [];
 
   return {
     category: 'video-generation',
@@ -242,6 +343,7 @@ export function buildClipChainVideoTemplate(
       'Chain N video segments by extracting each last frame as the next start frame, then concatenate into one continuous video',
     edges: buildClipChainEdges(segmentCount),
     id: CLIP_CHAIN_VIDEO_TEMPLATE_ID,
+    ...(identity ? { identity } : {}),
     metadata: {
       createdAt: '2026-08-24T00:00:00.000Z',
       creditEstimate: estimateClipChainCredits(segmentCount),
@@ -252,6 +354,7 @@ export function buildClipChainVideoTemplate(
         'last-frame',
         'start-frame',
         'ai-generation',
+        ...(identity ? ['identity-lock'] : []),
       ],
       version: '1.0.0',
     },
@@ -261,6 +364,8 @@ export function buildClipChainVideoTemplate(
       identityDirective,
       params.segmentPrompts,
       params.videoConfig,
+      identityReferences,
+      params.brandId,
     ),
   };
 }
@@ -275,12 +380,16 @@ export const createClipChainWorkflowInstance = (config: {
   workflowId: string;
   organizationId: string;
   userId: string;
+  brandId?: string;
+  identity?: ClipChainIdentityIngredientIds;
   identityDirective?: string;
   segmentCount?: number;
   segmentPrompts?: string[];
   videoConfig?: ClipChainTemplateParams['videoConfig'];
 }): ClipChainWorkflowInstance => {
   const template = buildClipChainVideoTemplate({
+    brandId: config.brandId,
+    identity: config.identity,
     identityDirective: config.identityDirective,
     segmentCount: config.segmentCount,
     segmentPrompts: config.segmentPrompts,

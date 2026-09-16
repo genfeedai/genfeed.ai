@@ -3,6 +3,7 @@ import { WorkflowEngineExecutorHelperService } from '@api/collections/workflows/
 import { ByokService } from '@api/services/byok/byok.service';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import {
+  resolveVideoIdentityReferencePlan,
   runImageGenerationBrief,
   runVideoGenerationBrief,
   toRedactedGenerationBriefProviderData,
@@ -21,7 +22,12 @@ import {
   ModelCategory,
   TransformationCategory,
 } from '@genfeedai/contracts';
+import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type {
+  ClipChainIdentityReference,
+  VideoGenerationIdentityLock,
+} from '@genfeedai/contracts/interfaces';
 import {
   type ExecutableNode,
   type ExecutionContext,
@@ -36,6 +42,42 @@ import {
 } from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
+
+const IDENTITY_REFERENCE_ROLES = new Set<ClipChainIdentityReference['role']>([
+  'character',
+  'product',
+  'subject',
+]);
+
+const IDENTITY_REFERENCE_CATEGORIES: readonly IngredientCategory[] = [
+  IngredientCategory.IMAGE,
+  IngredientCategory.AVATAR,
+];
+
+function readIdentityReferences(value: unknown): ClipChainIdentityReference[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  const references: ClipChainIdentityReference[] = [];
+  for (const entry of value) {
+    if (!entry || typeof entry !== 'object') {
+      continue;
+    }
+    const { assetId, role } = entry as Record<string, unknown>;
+    if (
+      typeof assetId === 'string' &&
+      assetId.trim().length > 0 &&
+      typeof role === 'string' &&
+      IDENTITY_REFERENCE_ROLES.has(role as ClipChainIdentityReference['role'])
+    ) {
+      references.push({
+        assetId: assetId.trim(),
+        role: role as ClipChainIdentityReference['role'],
+      });
+    }
+  }
+  return references;
+}
 
 function replaceReferenceTokens(
   value: unknown,
@@ -256,32 +298,67 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         typeof params.negativePrompt === 'string'
           ? params.negativePrompt
           : undefined;
+      const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
+      // Run-level identity stills (#4653). Tenancy preflight runs before the
+      // brief compiles and before any output or provider dispatch exists, so
+      // a deleted or foreign id fails without consuming credits.
+      const identityReferences = readIdentityReferences(
+        params.identityReferences,
+      );
+      const identityPlan =
+        identityReferences.length > 0
+          ? await this.resolveIdentityReferencePlan({
+              brandId,
+              firstFrameAssetId: referenceAssetIds?.[0],
+              identityReferences,
+              lastFrameAssetId: endFrameId,
+              model: model as string,
+              node,
+              organizationId: context.organizationId,
+              referenceReplacements,
+            })
+          : undefined;
+      const briefReferences: readonly GenerationBriefReference[] | undefined =
+        identityPlan?.references ??
+        referenceAssetIds?.map((assetId) => ({
+          assetId,
+          role: 'first_frame' as const,
+        }));
       const compiled = runVideoGenerationBrief({
         actionVerb:
           params.actionVerb === 'extend' ? params.actionVerb : undefined,
         avoid: negativePrompt ? [negativePrompt] : undefined,
         durationSeconds: duration,
-        endFrameId,
+        endFrameId: identityPlan ? identityPlan.endFrameId : endFrameId,
         height,
         model: model as string,
         objective: prompt,
         referenceIds: [],
-        references: referenceAssetIds?.map((assetId) => ({
-          assetId,
-          role: 'first_frame' as const,
-        })),
+        references: briefReferences,
         seed: typeof params.seed === 'number' ? params.seed : undefined,
         surface: 'workflow',
         videoReferenceIds: videoReferenceAssetIds,
         width,
       });
+      if (identityPlan && !compiled.dispatch) {
+        throw new Error(
+          `Model "${String(model)}" is exempt from generation-brief compilation and cannot honor an identity lock`,
+        );
+      }
       const input = compiled.dispatch
         ? (replaceReferenceTokens(
             compiled.dispatch,
             referenceReplacements,
           ) as Record<string, unknown>)
         : { prompt };
-      const brandId = this.helper.requireBrandId(params.brandId, 'videoGen');
+      const lineageReferences = [
+        ...(typeof params.parentIngredientId === 'string'
+          ? [params.parentIngredientId]
+          : []),
+        ...(identityPlan?.identityLock.references.map(
+          (reference) => reference.assetId,
+        ) ?? []),
+      ];
       const pendingOutput = await this.helper.createAndLinkProcessingOutput({
         continuation: {
           actionId: 'videoGen',
@@ -306,9 +383,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
             compiled.evidence,
           ),
           references:
-            typeof params.parentIngredientId === 'string'
-              ? [params.parentIngredientId]
-              : undefined,
+            lineageReferences.length > 0 ? lineageReferences : undefined,
           userId: context.userId,
         },
         resultUrl: (ingredientId) =>
@@ -321,6 +396,7 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
         generationBriefEvidence: compiled.evidence,
         generationSource: compiled.generationSource,
         id: pendingOutput.ingredientId,
+        ...(identityPlan ? { identityLock: identityPlan.identityLock } : {}),
         model,
         provider: 'replicate',
         status: IngredientStatus.PROCESSING,
@@ -334,6 +410,78 @@ export class WorkflowMediaGenerationExecutorRegistrarService {
       'videoGen',
       this.helper.wrapEngineExecutor(videoGenExecutor),
     );
+  }
+
+  /**
+   * Preflights the run's identity stills against the tenant and brand, maps
+   * each id to a provider-reachable URL, and applies the capability-profile
+   * conflict rule (identity stills win over a conflicting frame role).
+   */
+  private async resolveIdentityReferencePlan(args: {
+    brandId: string;
+    firstFrameAssetId?: string;
+    identityReferences: readonly ClipChainIdentityReference[];
+    lastFrameAssetId?: string;
+    model: string;
+    node: ExecutableNode;
+    organizationId: string;
+    referenceReplacements: Map<string, string>;
+  }): Promise<{
+    endFrameId?: string;
+    identityLock: VideoGenerationIdentityLock;
+    references: GenerationBriefReference[];
+  }> {
+    for (const reference of args.identityReferences) {
+      let asset: Awaited<
+        ReturnType<WorkflowEngineExecutorHelperService['requireMediaAsset']>
+      >;
+      try {
+        asset = await this.helper.requireMediaAsset(
+          reference.assetId,
+          args.organizationId,
+          IDENTITY_REFERENCE_CATEGORIES,
+        );
+      } catch {
+        throw new Error(
+          `Identity ${reference.role} reference ${reference.assetId} is unavailable for this organization`,
+        );
+      }
+      if (asset.brandId !== args.brandId) {
+        throw new Error(
+          `Identity ${reference.role} reference ${reference.assetId} does not belong to the run brand`,
+        );
+      }
+      args.referenceReplacements.set(
+        reference.assetId,
+        this.helper.buildMediaIngredientUrl(asset.id, asset.category),
+      );
+    }
+
+    const plan = resolveVideoIdentityReferencePlan({
+      firstFrameAssetId: args.firstFrameAssetId,
+      identityReferences: args.identityReferences,
+      lastFrameAssetId: args.lastFrameAssetId,
+      modelKey: args.model,
+    });
+    if (
+      plan.identityLock.omittedFrameRoles.length > 0 ||
+      plan.identityLock.omittedReferences.length > 0
+    ) {
+      this.loggerService.warn(
+        'WorkflowMediaGenerationExecutorRegistrarService identity lock omitted conflicting inputs',
+        {
+          model: args.model,
+          nodeId: args.node.id,
+          omittedFrameRoles: plan.identityLock.omittedFrameRoles,
+          omittedReferences: plan.identityLock.omittedReferences.map(
+            (reference) => reference.assetId,
+          ),
+          reason: plan.identityLock.reason,
+        },
+      );
+    }
+
+    return plan;
   }
 
   private registerLipSyncExecutor(engine: WorkflowEngine): void {
