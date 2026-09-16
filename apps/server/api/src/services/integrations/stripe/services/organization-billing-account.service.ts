@@ -152,30 +152,6 @@ export class OrganizationBillingAccountService {
     };
   }
 
-  async resolveWebhookOrganization(
-    stripeCustomerId: string,
-    metadata: Record<string, string> | null | undefined,
-  ): Promise<string> {
-    const organizationId = metadata?.[BILLING_ACCOUNT_METADATA.organizationId];
-    const billingAccountId =
-      metadata?.[BILLING_ACCOUNT_METADATA.billingAccountId];
-    if (
-      metadata?.[BILLING_ACCOUNT_METADATA.type] !== 'billing_account' ||
-      !organizationId ||
-      !billingAccountId
-    ) {
-      throw this.failure('billing_customer_unverified', 'identity_conflict');
-    }
-
-    const account =
-      await this.billingAccountsService.resolveForOrganization(organizationId);
-    if (account.id !== billingAccountId) {
-      throw this.failure('billing_customer_unverified', 'identity_conflict');
-    }
-    await this.resolveExisting(organizationId, { stripeCustomerId });
-    return organizationId;
-  }
-
   private assertProjectionMatches(
     persistedId: string | null,
     projectedId: string | null | undefined,

@@ -1,3 +1,4 @@
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import {
   getStripeWebhookErrorDiagnostics,
   mapStripeWebhookError,
@@ -57,6 +58,41 @@ describe('stripe-webhook-error.util', () => {
       expect(mapping.shouldReleaseIdempotencyKey).toBe(false);
     });
 
+    it('keeps identity_missing (the checkout race) retryable and releases the event key', () => {
+      const mapping = mapStripeWebhookError(
+        new StripeWebhookBillingError('identity_missing'),
+      );
+
+      expect(mapping).toEqual({
+        kind: StripeWebhookErrorKind.BILLING,
+        shouldAcknowledge: false,
+        shouldReleaseIdempotencyKey: true,
+        shouldReportAsFault: false,
+        status: HttpStatus.SERVICE_UNAVAILABLE,
+      });
+    });
+
+    it.each([
+      'invalid_payload',
+      'identity_conflict',
+      'identity_ambiguous',
+    ] as const)(
+      'acknowledges deterministic %s like a replay and keeps the event key',
+      (code) => {
+        const mapping = mapStripeWebhookError(
+          new StripeWebhookBillingError(code),
+        );
+
+        expect(mapping).toEqual({
+          kind: StripeWebhookErrorKind.BILLING,
+          shouldAcknowledge: true,
+          shouldReleaseIdempotencyKey: false,
+          shouldReportAsFault: false,
+          status: HttpStatus.OK,
+        });
+      },
+    );
+
     it('classifies unknown errors as retryable faults', () => {
       const mapping = mapStripeWebhookError(new Error('db timeout'));
 
@@ -92,6 +128,21 @@ describe('stripe-webhook-error.util', () => {
         eventId: 'evt_123',
         eventType: 'invoice.paid',
         kind: StripeWebhookErrorKind.FAULT,
+      });
+    });
+
+    it('carries the billing code so an acknowledged failure is not silent', () => {
+      expect(
+        getStripeWebhookErrorDiagnostics(
+          new StripeWebhookBillingError('identity_conflict'),
+          { id: 'evt_conflict', type: 'invoice.paid' },
+        ),
+      ).toEqual({
+        code: 'identity_conflict',
+        errorName: 'StripeWebhookBillingError',
+        eventId: 'evt_conflict',
+        eventType: 'invoice.paid',
+        kind: StripeWebhookErrorKind.BILLING,
       });
     });
 

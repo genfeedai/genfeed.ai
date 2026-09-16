@@ -64,12 +64,25 @@ export function mapStripeWebhookError(
   error: unknown,
 ): StripeWebhookErrorMapping {
   if (error instanceof StripeWebhookBillingError) {
+    if (error.isRetryable) {
+      return {
+        kind: StripeWebhookErrorKind.BILLING,
+        shouldAcknowledge: false,
+        shouldReleaseIdempotencyKey: true,
+        shouldReportAsFault: false,
+        status: HttpStatus.SERVICE_UNAVAILABLE,
+      };
+    }
+
+    // Deterministic identity/payload failures are acknowledged like a replay:
+    // the event key stays acquired so the same delivery is not reprocessed,
+    // and the controller logs one structured warning carrying the code.
     return {
       kind: StripeWebhookErrorKind.BILLING,
-      shouldAcknowledge: false,
-      shouldReleaseIdempotencyKey: true,
+      shouldAcknowledge: true,
+      shouldReleaseIdempotencyKey: false,
       shouldReportAsFault: false,
-      status: HttpStatus.SERVICE_UNAVAILABLE,
+      status: HttpStatus.OK,
     };
   }
   if (isPrismaUniqueConstraintError(error)) {

@@ -166,7 +166,9 @@ describe('Stripe billing HTTP composition', () => {
         .send({})
         .expect(200);
       expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(1);
-      expect(reconciler.reconcile).toHaveBeenCalledTimes(1);
+      expect(reconciler.reconcile).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ billingAccountId: 'ba_1' }),
+      );
       expect(logger.warn).not.toHaveBeenCalled();
       expect(logger.error).not.toHaveBeenCalled();
     },
@@ -210,22 +212,37 @@ describe('Stripe billing HTTP composition', () => {
     expect(reconciler.reconcile).toHaveBeenCalledTimes(1);
   });
   it.each([0, 2])(
-    'stops all dependent writes when guarded persistence count is %s',
+    'stops all dependent writes and acknowledges the deterministic conflict when guarded persistence count is %s',
     async (count) => {
       prisma.subscription.updateMany.mockResolvedValue({ count });
       await request(app.getHttpServer())
         .post('/webhooks/stripe/callback')
         .send({})
-        .expect(503);
+        .expect(200);
       expect(subscriptions.syncSubscriptionState).not.toHaveBeenCalled();
       expect(support.updateOrganizationTierAndModels).not.toHaveBeenCalled();
       expect(reconciler.reconcile).not.toHaveBeenCalled();
-      expect(logger.warn).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('webhook billing acknowledged'),
+        expect.objectContaining({
+          code: 'identity_conflict',
+          eventId: 'evt_1',
+          kind: 'BILLING',
+        }),
+      );
       expect(logger.error).not.toHaveBeenCalled();
+      // The event key is kept: a redelivery of the same event is a duplicate,
+      // not another attempt at a failure that cannot succeed.
+      expect(publisher.del).not.toHaveBeenCalled();
+      await request(app.getHttpServer())
+        .post('/webhooks/stripe/callback')
+        .send({})
+        .expect(200);
+      expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(1);
     },
   );
   it.each([undefined, '', ' '])(
-    'rejects invalid renewal invoice id %j before writes',
+    'acknowledges invalid renewal invoice id %j without writes or a retry loop',
     async (id) => {
       stripe.constructWebhookEvent.mockResolvedValue({
         id: 'evt_invoice',
@@ -242,10 +259,75 @@ describe('Stripe billing HTTP composition', () => {
       await request(app.getHttpServer())
         .post('/webhooks/stripe/callback')
         .send({})
-        .expect(503);
+        .expect(200);
       expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
       expect(reconciler.reconcile).not.toHaveBeenCalled();
-      expect(logger.warn).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('webhook billing acknowledged'),
+        expect.objectContaining({ code: 'invalid_payload' }),
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+      expect(publisher.del).not.toHaveBeenCalled();
     },
   );
+  it('warns and acknowledges a subscription_cycle invoice with no subscription id', async () => {
+    stripe.constructWebhookEvent.mockResolvedValue({
+      id: 'evt_no_subscription',
+      type: 'invoice.paid',
+      data: {
+        object: {
+          id: 'in_no_subscription',
+          billing_reason: 'subscription_cycle',
+          customer: 'cus_1',
+        },
+      },
+    });
+    await request(app.getHttpServer())
+      .post('/webhooks/stripe/callback')
+      .send({})
+      .expect(200);
+    expect(prisma.subscription.findMany).not.toHaveBeenCalled();
+    expect(prisma.subscription.updateMany).not.toHaveBeenCalled();
+    expect(reconciler.reconcile).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
+      expect.stringContaining('invoice carries no subscription id'),
+      {
+        billingReason: 'subscription_cycle',
+        invoiceId: 'in_no_subscription',
+      },
+    );
+    expect(logger.error).not.toHaveBeenCalled();
+    expect(publisher.del).not.toHaveBeenCalled();
+  });
+  it('treats null invoice period boundaries as absent instead of rejecting the payload', async () => {
+    stripe.constructWebhookEvent.mockResolvedValue({
+      id: 'evt_null_period',
+      type: 'invoice.paid',
+      data: {
+        object: {
+          id: 'in_null_period',
+          billing_reason: 'subscription_cycle',
+          customer: 'cus_1',
+          parent: { subscription_details: { subscription: 'sub_1' } },
+          period_end: null,
+          period_start: null,
+        },
+      },
+    });
+    await request(app.getHttpServer())
+      .post('/webhooks/stripe/callback')
+      .send({})
+      .expect(200);
+    expect(prisma.subscription.updateMany).toHaveBeenCalledTimes(1);
+    expect(reconciler.reconcile).toHaveBeenCalledTimes(1);
+    const input = reconciler.reconcile.mock.calls[0][0];
+    expect(input).toMatchObject({
+      billingAccountId: 'ba_1',
+      invoiceId: 'in_null_period',
+    });
+    expect(input).not.toHaveProperty('periodEnd');
+    expect(input).not.toHaveProperty('periodStart');
+    expect(logger.warn).not.toHaveBeenCalled();
+    expect(logger.error).not.toHaveBeenCalled();
+  });
 });

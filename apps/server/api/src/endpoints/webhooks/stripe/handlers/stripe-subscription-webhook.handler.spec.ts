@@ -81,7 +81,10 @@ describe('StripeSubscriptionWebhookHandler', () => {
       SubscriptionPlan.MONTHLY,
     );
     supportService.resolveTierFromPriceId.mockReturnValue(null);
-    billingService.resolve.mockResolvedValue({ subscription: dbSubscription });
+    billingService.resolve.mockResolvedValue({
+      billingAccountId: 'ba_1',
+      subscription: dbSubscription,
+    });
     billingService.persist.mockResolvedValue(dbSubscription);
     subscriptionsService.findByOrganizationId.mockResolvedValue(null);
 
@@ -117,7 +120,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
       await handler.handleSubscriptionCreated(stripeSubscription(), 'test');
 
       expect(billingService.persist).toHaveBeenCalledWith(
-        { subscription: dbSubscription },
+        { billingAccountId: 'ba_1', subscription: dbSubscription },
         expect.objectContaining({
           status: SubscriptionStatus.ACTIVE,
           stripePriceId: 'price_1',
@@ -132,6 +135,7 @@ describe('StripeSubscriptionWebhookHandler', () => {
         'active',
       );
       expect(creditReconciler.reconcile).toHaveBeenCalledWith({
+        billingAccountId: 'ba_1',
         billingReason: 'subscription_create',
         periodEnd: new Date(1_750_000_000 * 1000),
         periodStart: new Date(1_747_321_600 * 1000),
@@ -190,11 +194,6 @@ describe('StripeSubscriptionWebhookHandler', () => {
           data: [{ price: { id: 'price_1' }, current_period_start: 1e30 }],
         },
       },
-      {
-        items: {
-          data: [{ price: { id: 'price_1' }, current_period_start: null }],
-        },
-      },
     ])(
       'rejects invalid subscription payload before writes: %j',
       async (payload) => {
@@ -214,6 +213,37 @@ describe('StripeSubscriptionWebhookHandler', () => {
         ).not.toHaveBeenCalled();
       },
     );
+
+    it('treats a null period boundary as absent instead of rejecting the payload', async () => {
+      await handler.handleSubscriptionCreated(
+        stripeSubscription({
+          items: {
+            data: [
+              {
+                price: { id: 'price_1' },
+                current_period_start: null,
+                current_period_end: 1_750_000_000,
+              },
+            ],
+          },
+        }),
+        'test',
+      );
+
+      expect(billingService.persist).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          currentPeriodStart: undefined,
+          currentPeriodEnd: new Date(1_750_000_000 * 1000),
+        }),
+      );
+      const input = creditReconciler.reconcile.mock.calls[0][0];
+      expect(input).toMatchObject({
+        billingAccountId: 'ba_1',
+        periodEnd: new Date(1_750_000_000 * 1000),
+      });
+      expect(input).not.toHaveProperty('periodStart');
+    });
 
     it('persists timestamp zero as the Unix epoch', async () => {
       await handler.handleSubscriptionCreated(

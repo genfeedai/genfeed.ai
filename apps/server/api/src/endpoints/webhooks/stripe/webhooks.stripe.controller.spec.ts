@@ -6,6 +6,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
   };
 });
 
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import { StripeWebhookErrorKind } from '@api/endpoints/webhooks/stripe/stripe-webhook-error.util';
 import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks.stripe.controller';
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
@@ -304,5 +305,75 @@ describe('StripeWebhookController', () => {
       );
       expect(mockPublisher.del).not.toHaveBeenCalled();
     });
+
+    it('rejects the retryable identity_missing billing error as 503 and releases the event key', async () => {
+      const mockEvent = {
+        data: { object: { id: 'sub_1' } },
+        id: 'evt_missing',
+        type: 'customer.subscription.created',
+      };
+      const missing = new StripeWebhookBillingError('identity_missing');
+
+      stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
+      stripeWebhookService.handleWebhookEvent.mockRejectedValue(missing);
+
+      await expect(
+        controller.handleStripe(mockRequest(Buffer.from('{}'))),
+      ).rejects.toBe(missing);
+
+      expect(missing.getStatus()).toBe(HttpStatus.SERVICE_UNAVAILABLE);
+      expect(loggerService.warn).toHaveBeenCalledExactlyOnceWith(
+        expect.stringContaining('webhook billing rejected'),
+        {
+          code: 'identity_missing',
+          errorName: 'StripeWebhookBillingError',
+          eventId: 'evt_missing',
+          eventType: 'customer.subscription.created',
+          kind: StripeWebhookErrorKind.BILLING,
+        },
+      );
+      expect(loggerService.error).not.toHaveBeenCalled();
+      expect(mockPublisher.del).toHaveBeenCalledWith(
+        'stripe:webhook:evt_missing',
+      );
+    });
+
+    it.each([
+      'invalid_payload',
+      'identity_conflict',
+      'identity_ambiguous',
+    ] as const)(
+      'acknowledges deterministic %s with one structured warning and keeps the event key',
+      async (code) => {
+        const mockEvent = {
+          data: { object: { id: 'in_1' } },
+          id: `evt_${code}`,
+          type: 'invoice.paid',
+        };
+
+        stripeService.constructWebhookEvent.mockResolvedValue(mockEvent);
+        stripeWebhookService.handleWebhookEvent.mockRejectedValue(
+          new StripeWebhookBillingError(code),
+        );
+
+        const result = await controller.handleStripe(
+          mockRequest(Buffer.from('{}')),
+        );
+
+        expect(result).toEqual({ success: true });
+        expect(loggerService.warn).toHaveBeenCalledExactlyOnceWith(
+          expect.stringContaining('webhook billing acknowledged'),
+          {
+            code,
+            errorName: 'StripeWebhookBillingError',
+            eventId: `evt_${code}`,
+            eventType: 'invoice.paid',
+            kind: StripeWebhookErrorKind.BILLING,
+          },
+        );
+        expect(loggerService.error).not.toHaveBeenCalled();
+        expect(mockPublisher.del).not.toHaveBeenCalled();
+      },
+    );
   });
 });

@@ -39,8 +39,12 @@ function isNonemptyId(value: unknown): value is string {
   return typeof value === 'string' && value.trim().length > 0;
 }
 
+/**
+ * Stripe omits or nulls a period boundary the same way (absent), while zero is
+ * a real Unix timestamp. Anything else that is not a finite number is malformed.
+ */
 export function stripeWebhookPeriod(value: unknown): Date | undefined {
-  if (value === undefined) return undefined;
+  if (value === undefined || value === null) return undefined;
   if (typeof value !== 'number' || !Number.isFinite(value)) {
     throw new StripeWebhookBillingError('invalid_payload');
   }

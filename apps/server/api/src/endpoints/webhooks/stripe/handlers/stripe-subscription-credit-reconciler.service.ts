@@ -1,6 +1,8 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/handlers/stripe-webhook-support.service';
+import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
+import { CreditGrantBillingAccountMismatchException } from '@api/exceptions/business-logic.exception';
 import {
   ActivityKey,
   ActivitySource,
@@ -25,6 +27,12 @@ type SubscriptionCreditTrigger =
   | 'invoice.paid';
 
 type SubscriptionCreditReconciliationInput = {
+  /**
+   * The billing account the guarded subscription write was verified against.
+   * The grant is pinned to it so a relink between that write and the ledger
+   * transaction cannot land plan credits on a replacement account.
+   */
+  billingAccountId: string;
   billingReason: 'subscription_create' | 'subscription_cycle';
   invoiceId?: string;
   periodEnd?: Date;
@@ -42,6 +50,7 @@ type CreditReference = {
 };
 
 type CreditTransactionOptions = CreditReference & {
+  billingAccountId: string;
   metadata: Record<string, unknown>;
 };
 
@@ -232,6 +241,12 @@ export class StripeSubscriptionCreditReconcilerService {
     try {
       await this.applyCreditTransaction(context);
     } catch (error: unknown) {
+      if (error instanceof CreditGrantBillingAccountMismatchException) {
+        // The organization was relinked after the subscription row was
+        // verified; the ledger refused the write, so no credits moved. A retry
+        // would fail identity validation the same way — classify, don't loop.
+        throw new StripeWebhookBillingError('identity_conflict');
+      }
       if (!this.supportService.isUniqueConstraintError(error)) {
         throw error;
       }
@@ -332,7 +347,11 @@ export class StripeSubscriptionCreditReconcilerService {
     };
     this.addInvoiceMetadata(metadata, context);
     this.addPeriodMetadata(metadata, context);
-    return { metadata, ...context.creditReference };
+    return {
+      billingAccountId: context.billingAccountId,
+      metadata,
+      ...context.creditReference,
+    };
   }
 
   private addInvoiceMetadata(

@@ -414,10 +414,19 @@ describe('StripeWebhookBillingService', () => {
       }),
     ).rejects.toBe(error);
   });
-  it.each([null, '', NaN, Infinity, 1e30])(
+  it.each(['', NaN, Infinity, 1e30, true, {}])(
     'rejects invalid timestamp %j',
     (value) => {
       expect(() => stripeWebhookPeriod(value)).toThrow();
     },
   );
+  it.each([undefined, null])(
+    'treats an absent timestamp %j as no period boundary',
+    (value) => {
+      expect(stripeWebhookPeriod(value)).toBeUndefined();
+    },
+  );
+  it('keeps zero as the Unix epoch', () => {
+    expect(stripeWebhookPeriod(0)).toEqual(new Date(0));
+  });
 });
