@@ -39,7 +39,9 @@ describe('resolveVideoIdentityReferencePlan', () => {
 
     expect(plan.references).toEqual([
       { assetId: 'last-frame-from-segment-1', role: 'first_frame' },
-      ...identityReferences,
+      { assetId: 'character-1', role: 'character' },
+      { assetId: 'product-1', role: 'product' },
+      { assetId: 'room-1', role: 'composition' },
     ]);
     expect(plan.endFrameId).toBeUndefined();
     expect(plan.identityLock).toEqual({
@@ -47,6 +49,27 @@ describe('resolveVideoIdentityReferencePlan', () => {
       omittedReferences: [],
       references: identityReferences,
     });
+  });
+
+  it('keeps the environment still out of the opening frame on a multi-image model without a start frame', () => {
+    const plan = resolveVideoIdentityReferencePlan({
+      identityReferences,
+      modelKey: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+    });
+
+    // Segment 1 has no last-frame handoff. A `subject` still would be
+    // promoted to the opening frame by the brief compiler; the room must ride
+    // the multi-image field instead so the run does not open on the set.
+    expect(plan.references).toEqual([
+      { assetId: 'character-1', role: 'character' },
+      { assetId: 'product-1', role: 'product' },
+      { assetId: 'room-1', role: 'composition' },
+    ]);
+    expect(
+      plan.references.some((reference) => reference.role === 'first_frame'),
+    ).toBe(false);
+    expect(plan.identityLock.omittedFrameRoles).toEqual([]);
+    expect(plan.identityLock.references).toEqual(identityReferences);
   });
 
   it('keeps an authored end frame alongside identity stills when the profile supports interpolation', () => {

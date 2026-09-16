@@ -85,7 +85,19 @@ export function resolveVideoIdentityReferencePlan(
   }
 
   const roles = new Set(capability.roles);
-  const supportsIdentityStills = identityReferences.every((reference) =>
+  // On a multi-image model every identity still must stay out of the frame
+  // slots: the brief compiler promotes a `subject` still to the opening frame
+  // when none is set (segment 1 has no last-frame handoff), which would open
+  // the run on the environment sheet instead of the character. Environment
+  // stills therefore ride the multi-image field as `composition`, a role every
+  // multi-image profile derives alongside `character` and `product`.
+  const briefIdentityReferences: GenerationBriefReference[] =
+    identityReferences.map((reference) =>
+      reference.role === 'subject'
+        ? { assetId: reference.assetId, role: 'composition' }
+        : reference,
+    );
+  const supportsIdentityStills = briefIdentityReferences.every((reference) =>
     roles.has(reference.role),
   );
   const supportsFirstFrame = roles.has('first_frame');
@@ -100,7 +112,7 @@ export function resolveVideoIdentityReferencePlan(
         role: 'first_frame',
       });
     }
-    references.push(...identityReferences);
+    references.push(...briefIdentityReferences);
     let endFrameId: string | undefined;
     if (input.lastFrameAssetId) {
       if (supportsLastFrame && input.firstFrameAssetId) {
