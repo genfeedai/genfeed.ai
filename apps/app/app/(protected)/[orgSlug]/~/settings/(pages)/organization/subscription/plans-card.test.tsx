@@ -36,10 +36,13 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 
+// One stable instance so a test can assert the single notification a failure
+// produces, and the retry action attached to it.
+const { notifications } = vi.hoisted(() => ({
+  notifications: { error: vi.fn(), success: vi.fn() },
+}));
 vi.mock('@services/core/notifications.service', () => ({
-  NotificationsService: {
-    getInstance: () => ({ error: vi.fn(), success: vi.fn() }),
-  },
+  NotificationsService: { getInstance: () => notifications },
 }));
 
 vi.mock('@genfeedai/pricing', async (importOriginal) => {
@@ -195,5 +198,241 @@ describe('PlansCard', () => {
     expect(
       await screen.findByText(/Stripe estimates your next invoice at \$49\.00/),
     ).toBeVisible();
+  });
+
+  describe('failed plan preview', () => {
+    /** An axios-shaped rejection carrying a JSON:API error document. */
+    function apiError(member: Record<string, unknown>) {
+      return { response: { data: { errors: [member] } } };
+    }
+
+    async function selectScale() {
+      mockSubscription('sub_stripe_1');
+      render(<PlansCard />);
+      fireEvent.click(await screen.findByRole('button', { name: /Scale/i }));
+    }
+
+    it('shows one notification naming the cause instead of a generic message', async () => {
+      previewPlanChange.mockRejectedValue(
+        apiError({ code: 'price_not_found' }),
+      );
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      expect(notifications.error).toHaveBeenCalledWith(
+        'Plan preview',
+        expect.objectContaining({
+          description: 'This plan is no longer available.',
+        }),
+      );
+      // A non-retryable cause must not offer a retry the API did not allow.
+      expect(notifications.error.mock.calls[0][1]).not.toHaveProperty(
+        'actionLabel',
+      );
+    });
+
+    it('falls back to the generic message for a code it does not know', async () => {
+      previewPlanChange.mockRejectedValue(apiError({ code: 'brand_new' }));
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      expect(notifications.error).toHaveBeenCalledWith(
+        'Plan preview',
+        expect.objectContaining({
+          description: 'Something went wrong. Please try again.',
+        }),
+      );
+    });
+
+    it('offers a retry for a transient failure and runs it', async () => {
+      previewPlanChange
+        .mockRejectedValueOnce(
+          apiError({
+            code: 'billing_provider_unavailable',
+            meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 0 },
+          }),
+        )
+        .mockResolvedValueOnce({
+          isDowngrade: false,
+          isUpgrade: true,
+          newPriceId: 'price_scale',
+          prorationAmount: 1_000,
+          upcomingInvoice: { amount_due: 1_000, currency: 'usd', lines: [] },
+        });
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      const options = notifications.error.mock.calls[0][1] as {
+        actionLabel: string;
+        onAction: () => void;
+      };
+      expect(options.actionLabel).toBe('Try again');
+
+      options.onAction();
+
+      await waitFor(() => expect(previewPlanChange).toHaveBeenCalledTimes(2));
+    });
+
+    it('stops offering a retry once the API-granted budget is spent', async () => {
+      previewPlanChange.mockRejectedValue(
+        apiError({
+          code: 'billing_provider_unavailable',
+          meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 0 },
+        }),
+      );
+
+      await selectScale();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      const first = notifications.error.mock.calls[0][1] as {
+        onAction: () => void;
+      };
+
+      first.onAction();
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(2));
+      // One retry was granted and spent, so the second notification offers none.
+      expect(notifications.error.mock.calls[1][1]).not.toHaveProperty(
+        'actionLabel',
+      );
+    });
+  });
+
+  describe('failed plan confirmation', () => {
+    /** An axios-shaped rejection carrying a JSON:API error document. */
+    function apiError(member: Record<string, unknown>) {
+      return { response: { data: { errors: [member] } } };
+    }
+
+    const transientFailure = apiError({
+      code: 'billing_provider_unavailable',
+      meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 0 },
+    });
+
+    /** Selects Scale, waits for its preview, and opens the confirmation. */
+    async function previewScale() {
+      mockSubscription('sub_123');
+      previewPlanChange.mockResolvedValue({
+        isDowngrade: false,
+        isUpgrade: true,
+        newPriceId: 'price_scale',
+        prorationAmount: 15_000,
+        upcomingInvoice: { amount_due: 32_500, currency: 'usd', lines: [] },
+      });
+
+      render(<PlansCard />);
+      fireEvent.click(screen.getByRole('button', { name: /Switch to Scale/i }));
+      await screen.findByRole('button', { name: /Confirm change/i });
+    }
+
+    function retryActionOf(callIndex: number) {
+      return notifications.error.mock.calls[callIndex][1] as {
+        actionLabel?: string;
+        onAction?: () => void;
+      };
+    }
+
+    it('names the cause and offers the retry the API allowed', async () => {
+      changeSubscriptionPlan.mockRejectedValue(transientFailure);
+      await previewScale();
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
+
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      expect(notifications.error).toHaveBeenCalledWith(
+        'Plan change',
+        expect.objectContaining({
+          description: 'Our billing provider is briefly unavailable.',
+        }),
+      );
+      expect(retryActionOf(0).actionLabel).toBe('Try again');
+    });
+
+    it('retries the same plan and then stops once the budget is spent', async () => {
+      changeSubscriptionPlan.mockRejectedValue(transientFailure);
+      await previewScale();
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+
+      retryActionOf(0).onAction?.();
+
+      await waitFor(() =>
+        expect(changeSubscriptionPlan).toHaveBeenCalledTimes(2),
+      );
+      expect(changeSubscriptionPlan).toHaveBeenNthCalledWith(2, 'price_scale');
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(2));
+      // One retry was granted and spent, so the second notification offers none.
+      expect(retryActionOf(1)).not.toHaveProperty('actionLabel');
+    });
+
+    it('waits out the delay the API asked for before retrying', async () => {
+      // A wide margin so a slow setup cannot eat the delay under test.
+      changeSubscriptionPlan.mockRejectedValue(
+        apiError({
+          code: 'billing_provider_unavailable',
+          meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 30 },
+        }),
+      );
+      await previewScale();
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+
+      vi.useFakeTimers();
+      try {
+        retryActionOf(0).onAction?.();
+
+        await vi.advanceTimersByTimeAsync(20_000);
+        // The API asked us not to come back yet.
+        expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
+
+        await vi.advanceTimersByTimeAsync(15_000);
+        expect(changeSubscriptionPlan).toHaveBeenCalledTimes(2);
+        expect(changeSubscriptionPlan).toHaveBeenNthCalledWith(
+          2,
+          'price_scale',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('does not submit a cancelled plan change when its retry fires later', async () => {
+      changeSubscriptionPlan.mockRejectedValue(transientFailure);
+      await previewScale();
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      const retry = retryActionOf(0);
+
+      // The user declines the change before reaching for the stale toast.
+      fireEvent.click(screen.getByRole('button', { name: /Cancel/i }));
+      retry.onAction?.();
+
+      // The retry captured the confirmation the user has since cancelled;
+      // running it would change the plan they just declined.
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
+    });
+
+    it('does not resurrect an earlier plan once another is selected', async () => {
+      changeSubscriptionPlan.mockRejectedValue(transientFailure);
+      await previewScale();
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+      const retry = retryActionOf(0);
+
+      fireEvent.click(screen.getByRole('button', { name: /Pro/i }));
+      retry.onAction?.();
+
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
+      expect(changeSubscriptionPlan).not.toHaveBeenCalledWith('price_pro');
+    });
   });
 });

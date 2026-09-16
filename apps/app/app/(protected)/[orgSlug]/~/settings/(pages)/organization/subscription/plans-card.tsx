@@ -19,7 +19,9 @@ import { Button } from '@ui/primitives/button';
 import { Text } from '@ui/typography/text';
 import { Check } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+import { getSubscriptionFailureView } from './subscription-failure.util';
 
 /**
  * Only the two self-serve plans are sold in the app. Free/PAYG is never
@@ -82,6 +84,36 @@ export default function PlansCard() {
   );
   const [busyTier, setBusyTier] = useState<PlanTier | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
+  /** Retries already spent per Stripe price, so the API's bound is honoured. */
+  const retryAttempts = useRef<Map<string, number>>(new Map());
+  /**
+   * Which plan operation is current. A retry offered for an earlier one must
+   * not run: its callback captured that render's `pendingTier`, so a stale
+   * confirmation would change the plan the user has since cancelled or
+   * replaced, and a stale preview would overwrite the newer one.
+   */
+  const operationGeneration = useRef(0);
+  /** Timers for retries that are waiting out the API's `retryAfterSeconds`. */
+  const retryTimers = useRef<Set<number>>(new Set());
+
+  const supersedeRetries = () => {
+    operationGeneration.current += 1;
+    for (const timerId of retryTimers.current) {
+      window.clearTimeout(timerId);
+    }
+    retryTimers.current.clear();
+  };
+
+  // A timer that outlives the card would retry against an unmounted component.
+  useEffect(
+    () => () => {
+      for (const timerId of retryTimers.current) {
+        window.clearTimeout(timerId);
+      }
+      retryTimers.current.clear();
+    },
+    [],
+  );
 
   const getStripeService = useAuthedService((token: string) =>
     StripeService.getInstance(token),
@@ -92,6 +124,7 @@ export default function PlansCard() {
   // goes through Checkout; the change endpoint would reject it outright.
   const hasStripeSubscription = Boolean(subscription?.stripeSubscriptionId);
 
+  /** Sends an organization with no subscription to Stripe Checkout. */
   const startCheckout = async (tier: PlanTier, stripePriceId: string) => {
     const service = await getStripeService();
     const result = await service.createCheckoutSession({
@@ -109,6 +142,62 @@ export default function PlansCard() {
     window.location.href = result.url;
   };
 
+  /**
+   * Shows the one notification for a failed billing call: the cause the API
+   * named, plus its retry action when the API allowed one and this failure has
+   * attempts left. `retryAttempts` is keyed per plan so switching plans starts
+   * a fresh budget rather than inheriting the previous plan's.
+   */
+  const notifyFailure = (input: {
+    error: unknown;
+    onRetry?: () => void;
+    retryKey: string;
+    titleKey: string;
+  }) => {
+    const view = getSubscriptionFailureView(input.error);
+    const attemptsUsed = retryAttempts.current.get(input.retryKey) ?? 0;
+    const canRetry =
+      input.onRetry !== undefined &&
+      view.retry !== undefined &&
+      attemptsUsed < view.retry.maxAttempts;
+
+    // The operation this failure belongs to; a newer one invalidates the retry.
+    const generation = operationGeneration.current;
+
+    const retryAction = canRetry
+      ? {
+          actionLabel: translate('subscription.plans.retryAction'),
+          onAction: () => {
+            retryAttempts.current.set(input.retryKey, attemptsUsed + 1);
+            const waitMs = Math.max(
+              0,
+              (view.retry?.notBeforeMs ?? 0) - Date.now(),
+            );
+            // The API asked us not to come back before `retryAfterSeconds`.
+            const timerId = window.setTimeout(() => {
+              retryTimers.current.delete(timerId);
+              if (operationGeneration.current !== generation) {
+                return;
+              }
+              input.onRetry?.();
+            }, waitMs);
+            retryTimers.current.add(timerId);
+          },
+        }
+      : {};
+
+    NotificationsService.getInstance().error(translate(input.titleKey), {
+      description: translate(view.messageKey),
+      ...retryAction,
+    });
+  };
+
+  /**
+   * Starts a plan change: Checkout for an organization that has never
+   * subscribed, otherwise a preview the user confirms. A failed preview
+   * renders its classified cause and, when the API allowed one, a retry that
+   * re-enters this same handler.
+   */
   const handleSelectPlan = async (tier: PlanTier) => {
     const { stripePriceId } = getPlanByTier(tier);
 
@@ -116,6 +205,9 @@ export default function PlansCard() {
       return;
     }
 
+    // This selection replaces whatever was in flight, including any retry
+    // still waiting out its delay for an earlier plan.
+    supersedeRetries();
     setBusyTier(tier);
 
     try {
@@ -126,21 +218,36 @@ export default function PlansCard() {
 
       setPreview(await previewPlanChange(stripePriceId));
       setPendingTier(tier);
+      retryAttempts.current.delete(stripePriceId);
     } catch (error) {
       logger.error('Failed to start plan change', error);
-      NotificationsService.getInstance().error(
-        translate('subscription.plans.changeError'),
-      );
+      notifyFailure({
+        error,
+        onRetry: () => {
+          void handleSelectPlan(tier);
+        },
+        retryKey: stripePriceId,
+        titleKey: 'subscription.plans.previewErrorTitle',
+      });
     } finally {
       setBusyTier(null);
     }
   };
 
+  /**
+   * Drops the pending preview. Cancelling also retires any offered retry: the
+   * user declined this change, so nothing may submit it later.
+   */
   const cancelPlanChange = () => {
+    supersedeRetries();
     setPendingTier(null);
     setPreview(null);
   };
 
+  /**
+   * Applies the previewed change. Its failure is classified like the preview's,
+   * so a transient one offers the same bounded retry rather than a dead end.
+   */
   const handleConfirmPlanChange = async () => {
     if (!pendingTier) {
       return;
@@ -152,13 +259,24 @@ export default function PlansCard() {
       return;
     }
 
+    // Only the newest confirmation may be retried.
+    supersedeRetries();
     setIsConfirming(true);
 
     try {
       await changeSubscriptionPlan(stripePriceId);
+      retryAttempts.current.delete(stripePriceId);
       cancelPlanChange();
     } catch (error) {
       logger.error('Failed to change plan', error);
+      notifyFailure({
+        error,
+        onRetry: () => {
+          void handleConfirmPlanChange();
+        },
+        retryKey: stripePriceId,
+        titleKey: 'subscription.plans.changeErrorTitle',
+      });
     } finally {
       setIsConfirming(false);
     }
