@@ -3,6 +3,8 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { ChangePlanDto } from '@api/collections/subscriptions/dto/change-plan.dto';
 import { CreateSubscriptionPreviewDto } from '@api/collections/subscriptions/dto/create-subscription.dto';
+import { SubscriptionPreviewExceptionFilter } from '@api/collections/subscriptions/errors/subscription-preview-exception.filter';
+import { toSubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview-failure.util';
 import { SubscriptionsService } from '@api/collections/subscriptions/services/subscriptions.service';
 import type { RequestWithContext } from '@api/common/middleware/request-context.middleware';
 import { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
@@ -33,6 +35,7 @@ import {
   Post,
   Query,
   Req,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import type { Request } from 'express';
@@ -157,6 +160,7 @@ export class SubscriptionsController {
   }
 
   @Post('current/preview')
+  @UseFilters(SubscriptionPreviewExceptionFilter)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async previewChange(
     @Req() request: RequestWithContext,
@@ -179,19 +183,10 @@ export class SubscriptionsController {
         success: true,
       };
     } catch (error: unknown) {
-      // A missing subscription or an invalid price is a client state, not a
-      // server failure; keep its 4xx so it does not page Sentry.
-      if (error instanceof HttpException && error.getStatus() < 500) {
-        throw error;
-      }
-      throw new HttpException(
-        {
-          error: (error as Error)?.message,
-          message: 'Failed to generate preview',
-          success: false,
-        },
-        HttpStatus.INTERNAL_SERVER_ERROR,
-      );
+      // The service already classifies its own failures; anything else that
+      // escapes becomes the same typed exception so the method filter always
+      // renders a stable `code` plus retry contract instead of a raw message.
+      throw toSubscriptionPreviewException(error);
     }
   }
 

@@ -20,12 +20,15 @@ import {
 import { SubscriptionCreditGrantModule } from '@api/common/subscriptions/subscription-credit-grant.module';
 import { StripeCoreModule } from '@api/services/integrations/stripe/stripe-core.module';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
+import { ConfigModule } from '@libs/config/config.module';
 import { Module } from '@nestjs/common';
 
 @Module({
   controllers: billingControllers([SubscriptionsController]),
   exports: [SubscriptionsService, SUBSCRIPTIONS_SERVICE],
+  // ConfigModule feeds the preview exception filter's Sentry environment gate.
   imports: [
+    ConfigModule,
     CreditsModule,
     CustomersModule,
     OrganizationsCoreModule,

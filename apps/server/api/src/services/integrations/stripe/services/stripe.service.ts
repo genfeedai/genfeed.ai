@@ -7,6 +7,10 @@ import {
   StripeBillingConfigurationError,
 } from '@api/services/integrations/stripe/services/stripe-error.util';
 import {
+  StripeUpcomingInvoiceError,
+  StripeUpcomingInvoiceErrorCode,
+} from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
+import {
   collectUpcomingInvoiceLines,
   type UpcomingInvoicePreview,
 } from '@api/services/integrations/stripe/services/stripe-upcoming-invoice-lines.util';
@@ -1086,16 +1090,23 @@ export class StripeService {
 
     try {
       if (!this.isStripePriceId(currentPriceId)) {
-        throw new BadRequestException('Invalid current Stripe price ID');
+        throw new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.INVALID_PRICE_ID,
+          'Invalid current Stripe price ID',
+        );
       }
       if (!this.isStripePriceId(newPriceId)) {
-        throw new BadRequestException('Invalid Stripe price ID');
+        throw new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.INVALID_PRICE_ID,
+          'Invalid Stripe price ID',
+        );
       }
       if (
         quantity !== undefined &&
         (!Number.isInteger(quantity) || quantity < 1)
       ) {
-        throw new BadRequestException(
+        throw new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.INVALID_QUANTITY,
           'Subscription quantity must be a positive integer',
         );
       }
@@ -1107,22 +1118,30 @@ export class StripeService {
           ? subscription.customer
           : subscription.customer?.id;
       if (subscriptionCustomerId !== customerId) {
-        throw new BadRequestException(
+        throw new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.CUSTOMER_MISMATCH,
           'Stripe subscription does not belong to the requested customer',
         );
       }
 
       if (subscription.items.data.length === 0) {
-        throw new BadRequestException('No subscription items found');
+        throw new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
+          'No subscription items found',
+        );
       }
       if (subscription.items.data.every((item) => !item.price?.id)) {
-        throw new BadRequestException('No price found for subscription item');
+        throw new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
+          'No price found for subscription item',
+        );
       }
       const subscriptionItem = subscription.items.data.find(
         (item) => item.price?.id === currentPriceId,
       );
       if (!subscriptionItem?.id) {
-        throw new BadRequestException(
+        throw new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
           'No subscription item found for current Stripe price',
         );
       }
@@ -1171,7 +1190,17 @@ export class StripeService {
 
       return fullUpcomingInvoice;
     } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
+      // Never log the raw Stripe error: `raw` carries request headers and
+      // log URLs. The classified category plus tenant ids is enough context.
+      this.loggerService.error(`${url} failed`, {
+        category: classifyStripeFailure(error),
+        code:
+          error instanceof StripeUpcomingInvoiceError ? error.code : undefined,
+        customerId,
+        currentPriceId,
+        newPriceId,
+        subscriptionId,
+      });
       throw error;
     }
   }

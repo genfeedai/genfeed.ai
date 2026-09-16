@@ -1,6 +1,7 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { CustomersService } from '@api/collections/customers/services/customers.service';
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
+import { SubscriptionPreviewException } from '@api/collections/subscriptions/errors/subscription-preview.exception';
 import type { SubscriptionDocument } from '@api/collections/subscriptions/schemas/subscription.schema';
 import type { SubscriptionCreditGrantService } from '@api/common/subscriptions/subscription-credit-grant.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -9,9 +10,16 @@ import type {
   StripeService,
   StripeSubscription,
 } from '@api/services/integrations/stripe/services/stripe.service';
+import {
+  StripeUpcomingInvoiceError,
+  StripeUpcomingInvoiceErrorCode,
+} from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SubscriptionPlan, SubscriptionStatus } from '@genfeedai/contracts';
-import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
+import {
+  type ISubscriptionOssReadModel,
+  SubscriptionPreviewFailureCode,
+} from '@genfeedai/contracts/interfaces/billing';
 import { Prisma } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -1121,55 +1129,274 @@ describe('SubscriptionsService', () => {
       expect(preview.isDowngrade).toBe(false);
     });
 
-    it('throws when the organization has no subscription', async () => {
-      subscriptionDelegate.findFirst.mockResolvedValue(null);
+    /** A preview is read-only: no failure path may touch local or Stripe state. */
+    function expectNoStateMutation(): void {
+      expect(subscriptionDelegate.create).not.toHaveBeenCalled();
+      expect(subscriptionDelegate.update).not.toHaveBeenCalled();
+      expect(subscriptionDelegate.updateMany).not.toHaveBeenCalled();
+      expect(organizationSettingDelegate.updateMany).not.toHaveBeenCalled();
+      expect(stripeService.changeSubscriptionPlan).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.resetOrganizationCredits,
+      ).not.toHaveBeenCalled();
+    }
 
-      await expect(
-        service.previewSubscriptionChange(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toThrowError('Subscription not found');
+    async function previewFailure(
+      newPriceId = 'price_new',
+      organizationId = ORGANIZATION_ID,
+    ): Promise<SubscriptionPreviewException> {
+      const caught = await service
+        .previewSubscriptionChange(organizationId, newPriceId)
+        .catch((error: unknown) => error);
+      expect(caught).toBeInstanceOf(SubscriptionPreviewException);
+      return caught as SubscriptionPreviewException;
+    }
+
+    it('refuses an empty organization before touching the tenant-scoped lookup', async () => {
+      const exception = await previewFailure('price_new', '');
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.ORGANIZATION_REQUIRED,
+      );
+      expect(subscriptionDelegate.findFirst).not.toHaveBeenCalled();
+      expectNoStateMutation();
     });
 
-    it('throws BadRequest when the local row has no Stripe subscription', async () => {
+    it('classifies a missing subscription row as subscription_missing', async () => {
+      subscriptionDelegate.findFirst.mockResolvedValue(null);
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.SUBSCRIPTION_MISSING,
+      );
+      expect(exception.getStatus()).toBe(404);
+      expect(subscriptionDelegate.findFirst).toHaveBeenCalledWith({
+        where: { isDeleted: false, organizationId: ORGANIZATION_ID },
+      });
+      expect(stripeService.getUpcomingInvoice).not.toHaveBeenCalled();
+      expectNoStateMutation();
+    });
+
+    it('classifies a row without a Stripe subscription as stripe_subscription_missing', async () => {
       subscriptionDelegate.findFirst.mockResolvedValue(
         buildSubscription({ stripeSubscriptionId: null }),
       );
 
-      await expect(
-        service.previewSubscriptionChange(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toBeInstanceOf(BadRequestException);
-    });
+      const exception = await previewFailure();
 
-    it('throws BadRequest when the local row has no current Stripe price', async () => {
-      subscriptionDelegate.findFirst.mockResolvedValue(
-        buildSubscription({ stripePriceId: null }),
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_MISSING,
       );
-
-      await expect(
-        service.previewSubscriptionChange(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toBeInstanceOf(BadRequestException);
       expect(stripeService.getUpcomingInvoice).not.toHaveBeenCalled();
+      expectNoStateMutation();
     });
 
-    it('throws BadRequest when no Stripe customer id can be resolved', async () => {
-      customerDelegate.findFirst.mockResolvedValue({
-        stripeCustomerId: null,
+    it.each([null, 'not-a-price'])(
+      'classifies a current price of %s as current_price_missing before any Stripe call',
+      async (stripePriceId) => {
+        subscriptionDelegate.findFirst.mockResolvedValue(
+          buildSubscription({ stripePriceId }),
+        );
+
+        const exception = await previewFailure();
+
+        expect(exception.code).toBe(
+          SubscriptionPreviewFailureCode.CURRENT_PRICE_MISSING,
+        );
+        expect(stripeService.getUpcomingInvoice).not.toHaveBeenCalled();
+        expect(stripeService.getPrice).not.toHaveBeenCalled();
+        expectNoStateMutation();
+      },
+    );
+
+    it('classifies an unresolvable Stripe customer as billing_customer_missing', async () => {
+      customerDelegate.findFirst.mockResolvedValue({ stripeCustomerId: null });
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.BILLING_CUSTOMER_MISSING,
+      );
+      expect(customerDelegate.findFirst).toHaveBeenCalledWith({
+        select: { stripeCustomerId: true },
+        where: {
+          id: 'cust_row_1',
+          isDeleted: false,
+          organizationId: ORGANIZATION_ID,
+        },
       });
-
-      await expect(
-        service.previewSubscriptionChange(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toBeInstanceOf(BadRequestException);
       expect(stripeService.getUpcomingInvoice).not.toHaveBeenCalled();
+      expectNoStateMutation();
     });
 
-    it('propagates a Stripe preview failure after logging it', async () => {
+    it('classifies a subscription owned by another Stripe customer as billing_customer_mismatch', async () => {
       stripeService.getUpcomingInvoice.mockRejectedValue(
-        new Error('stripe unavailable'),
+        new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.CUSTOMER_MISMATCH,
+          'Stripe subscription does not belong to the requested customer',
+        ),
       );
 
-      await expect(
-        service.previewSubscriptionChange(ORGANIZATION_ID, 'price_new'),
-      ).rejects.toThrowError('stripe unavailable');
-      expect(logger.error).toHaveBeenCalled();
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.BILLING_CUSTOMER_MISMATCH,
+      );
+      expect(exception.getStatus()).toBe(409);
+      expectNoStateMutation();
+    });
+
+    it('classifies Stripe items that no longer carry the recorded price as out of sync', async () => {
+      stripeService.getUpcomingInvoice.mockRejectedValue(
+        new StripeUpcomingInvoiceError(
+          StripeUpcomingInvoiceErrorCode.SUBSCRIPTION_ITEM_MISSING,
+          'No subscription item found for current Stripe price',
+        ),
+      );
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_OUT_OF_SYNC,
+      );
+      expectNoStateMutation();
+    });
+
+    it('classifies a Stripe subscription deleted upstream as stripe_subscription_missing', async () => {
+      stripeService.getUpcomingInvoice.mockRejectedValue(
+        Object.assign(new Error('No such subscription: sub_stripe_1'), {
+          code: 'resource_missing',
+          param: 'subscription',
+          statusCode: 404,
+          type: 'StripeInvalidRequestError',
+        }),
+      );
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.STRIPE_SUBSCRIPTION_MISSING,
+      );
+      expectNoStateMutation();
+    });
+
+    it('classifies a price Stripe no longer knows as price_not_found', async () => {
+      stripeService.getPrice.mockImplementation((priceId: string) =>
+        priceId === 'price_new'
+          ? Promise.reject(
+              Object.assign(new Error('No such price: price_new'), {
+                code: 'resource_missing',
+                param: 'id',
+                statusCode: 404,
+                type: 'StripeInvalidRequestError',
+              }),
+            )
+          : Promise.resolve({
+              currency: 'usd',
+              id: priceId,
+              recurring: { interval: 'month', interval_count: 1 },
+              unit_amount: 4_900,
+            }),
+      );
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.PRICE_NOT_FOUND,
+      );
+      expect(exception.getStatus()).toBe(404);
+      expectNoStateMutation();
+    });
+
+    it('classifies a proration Stripe refuses to price as preview_rejected', async () => {
+      stripeService.getUpcomingInvoice.mockRejectedValue(
+        Object.assign(
+          new Error('Cannot preview a subscription with a different currency'),
+          {
+            code: 'parameter_invalid',
+            statusCode: 400,
+            type: 'StripeInvalidRequestError',
+          },
+        ),
+      );
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.PREVIEW_REJECTED,
+      );
+      expect(exception.getStatus()).toBe(422);
+      expectNoStateMutation();
+    });
+
+    it('classifies a transient Stripe outage as a retryable 503 and logs safe diagnostics only', async () => {
+      stripeService.getUpcomingInvoice.mockRejectedValue(
+        Object.assign(new Error('connect ECONNRESET provider-secret-token'), {
+          raw: { headers: { authorization: 'Bearer provider-secret-token' } },
+          requestId: 'req_42',
+          type: 'StripeConnectionError',
+        }),
+      );
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.BILLING_PROVIDER_UNAVAILABLE,
+      );
+      expect(exception.getStatus()).toBe(503);
+      expect(exception.meta).toEqual({
+        isRetryable: true,
+        maxRetries: 1,
+        retryAfterSeconds: 5,
+      });
+      // One bounded retry is the client's call; the service never loops.
+      expect(stripeService.getUpcomingInvoice).toHaveBeenCalledTimes(1);
+      expect(logger.warn).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          category: 'provider_unavailable',
+          code: 'billing_provider_unavailable',
+          isRetryable: true,
+          organizationId: ORGANIZATION_ID,
+          stage: 'upcoming_invoice',
+          stripeRequestId: 'req_42',
+        }),
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'provider-secret-token',
+      );
+      expect(logger.error).not.toHaveBeenCalled();
+      expectNoStateMutation();
+    });
+
+    it('reports an unclassified fault as preview_failed with the cause attached', async () => {
+      const cause = new TypeError('lines is undefined');
+      stripeService.getUpcomingInvoice.mockRejectedValue(cause);
+
+      const exception = await previewFailure();
+
+      expect(exception.code).toBe(
+        SubscriptionPreviewFailureCode.PREVIEW_FAILED,
+      );
+      expect(exception.getStatus()).toBe(500);
+      expect(exception.cause).toBe(cause);
+      expect(logger.error).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        undefined,
+        expect.objectContaining({
+          category: 'unknown',
+          code: 'preview_failed',
+          errorName: 'TypeError',
+        }),
+      );
+      expectNoStateMutation();
+    });
+
+    it('never writes local or Stripe state even on success', async () => {
+      await service.previewSubscriptionChange(ORGANIZATION_ID, 'price_scale');
+
+      expectNoStateMutation();
     });
   });
 });

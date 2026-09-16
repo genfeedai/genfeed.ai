@@ -8,6 +8,10 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 });
 
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import {
+  StripeUpcomingInvoiceError,
+  StripeUpcomingInvoiceErrorCode,
+} from '@api/services/integrations/stripe/services/stripe-upcoming-invoice.error';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -638,6 +642,44 @@ describe('StripeService', () => {
           id: newPriceId,
           recurring: { usage_type: 'licensed' },
         } as unknown as Stripe.Price),
+      );
+    });
+
+    it('raises a typed customer_mismatch error before asking Stripe for a preview', async () => {
+      vi.spyOn(service.stripe.subscriptions, 'retrieve').mockResolvedValue(
+        stripeResponse({
+          customer: 'cus_other',
+          items: { data: [{ id: 'si_test', price: { id: currentPriceId } }] },
+        } as unknown as Stripe.Subscription),
+      );
+      const createPreviewSpy = vi.spyOn(
+        service.stripe.invoices,
+        'createPreview',
+      );
+      const errorSpy = vi.spyOn(loggerService, 'error');
+
+      const caught = await service
+        .getUpcomingInvoice(
+          customerId,
+          subscriptionId,
+          currentPriceId,
+          newPriceId,
+        )
+        .catch((error: unknown) => error);
+
+      expect(caught).toBeInstanceOf(StripeUpcomingInvoiceError);
+      expect((caught as StripeUpcomingInvoiceError).code).toBe(
+        StripeUpcomingInvoiceErrorCode.CUSTOMER_MISMATCH,
+      );
+      expect(createPreviewSpy).not.toHaveBeenCalled();
+      // The failure log carries the classified code and ids, never the error.
+      expect(errorSpy).toHaveBeenCalledWith(
+        expect.stringContaining('failed'),
+        expect.objectContaining({
+          code: 'customer_mismatch',
+          customerId,
+          subscriptionId,
+        }),
       );
     });
 
