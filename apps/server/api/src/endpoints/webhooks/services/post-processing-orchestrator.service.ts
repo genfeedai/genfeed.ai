@@ -1,7 +1,7 @@
 import { EvaluationsService } from '@api/collections/evaluations/services/evaluations.service';
 import { type IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
-import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
+import { BotCallbackResponderService } from '@api/services/bot-gateway/services/bot-callback-responder.service';
 import { EvaluationType, IngredientCategory } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -13,7 +13,7 @@ export class PostProcessingOrchestratorService {
   private readonly logContext = 'PostProcessingOrchestratorService';
 
   constructor(
-    private readonly botGatewayService: BotGatewayService,
+    private readonly botCallbackResponder: BotCallbackResponderService,
     private readonly configService: ConfigService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly loggerService: LoggerService,
@@ -34,7 +34,7 @@ export class PostProcessingOrchestratorService {
           category === IngredientCategory.IMAGE ? 'image' : 'video';
         const resultUrl = `${this.configService.ingredientsEndpoint}/${mediaType}s/${ingredientId}`;
 
-        await this.botGatewayService.sendCompletionResponse(
+        await this.botCallbackResponder.sendCompletionResponse(
           ingredientId,
           resultUrl,
           mediaType,
@@ -53,7 +53,7 @@ export class PostProcessingOrchestratorService {
     errorMessage: string,
   ): void {
     setImmediate(() => {
-      this.botGatewayService
+      this.botCallbackResponder
         .sendErrorResponse(ingredientId, errorMessage)
         .catch((error: unknown) => {
           this.loggerService.error(

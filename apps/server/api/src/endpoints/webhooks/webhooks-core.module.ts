@@ -34,14 +34,9 @@ import { LeonardoaiWebhookService } from '@api/endpoints/webhooks/leonardoai/web
 import { OpusProWebhookService } from '@api/endpoints/webhooks/opuspro/webhooks.opuspro.service';
 import { ReplicateGenerationWebhookHandler } from '@api/endpoints/webhooks/replicate/handlers/replicate-generation-webhook.handler';
 import { ReplicateWebhookVerificationService } from '@api/endpoints/webhooks/replicate/webhooks.replicate.verification.service';
-import { ActivityUpdateService } from '@api/endpoints/webhooks/services/activity-update.service';
-import { AutoMergeService } from '@api/endpoints/webhooks/services/auto-merge.service';
-import { MediaUploadService } from '@api/endpoints/webhooks/services/media-upload.service';
-import { MetadataLookupService } from '@api/endpoints/webhooks/services/metadata-lookup.service';
-import { PostProcessingOrchestratorService } from '@api/endpoints/webhooks/services/post-processing-orchestrator.service';
 import { StripeWebhooksModule } from '@api/endpoints/webhooks/stripe/stripe-webhooks.module';
 import { VercelWebhookService } from '@api/endpoints/webhooks/vercel/webhooks.vercel.service';
-import { WebhooksService } from '@api/endpoints/webhooks/webhooks.service';
+import { WebhooksMediaModule } from '@api/endpoints/webhooks/webhooks-media.module';
 import { TransactionModule } from '@api/helpers/utils/transaction/transaction.module';
 import { BotGatewayModule } from '@api/services/bot-gateway/bot-gateway.module';
 import { CacheService } from '@api/services/cache/cache.service';
@@ -62,6 +57,10 @@ import { Module } from '@nestjs/common';
 /**
  * Webhook providers without HTTP controllers. Workers import this so they
  * can complete media jobs without mounting the inbound webhook surface.
+ *
+ * The media-processing path (`WebhooksService` and its collaborators) lives
+ * in `WebhooksMediaModule`, a leaf this hub re-exports so callers that have
+ * not migrated to the leaf keep resolving `WebhooksService` from here.
  */
 @Module({
   exports: [
@@ -80,7 +79,7 @@ import { Module } from '@nestjs/common';
     ReplicateWebhookVerificationService,
     TrainingsModule,
     VercelWebhookService,
-    WebhooksService,
+    WebhooksMediaModule,
   ],
   imports: [
     ArgilModule,
@@ -119,12 +118,11 @@ import { Module } from '@nestjs/common';
     UserSetupModule,
     UsersModule,
     VoicesModule,
+    WebhooksMediaModule,
     WorkflowsModule,
   ],
   providers: [
     ArgilWebhookService,
-    ActivityUpdateService,
-    AutoMergeService,
     FleetWebhookService,
     ModelRegistrationService,
     GitHubWebhookService,
@@ -132,10 +130,7 @@ import { Module } from '@nestjs/common';
     HeygenWebhookVerificationService,
     KlingWebhookService,
     LeonardoaiWebhookService,
-    MediaUploadService,
-    MetadataLookupService,
     OpusProWebhookService,
-    PostProcessingOrchestratorService,
     ReplicateGenerationWebhookHandler,
     // Framework-agnostic construction: factory injects deps without relying on
     // decorator metadata for this verification service (#2738).
@@ -156,7 +151,6 @@ import { Module } from '@nestjs/common';
         ),
     },
     VercelWebhookService,
-    WebhooksService,
   ],
 })
 export class WebhooksCoreModule {}

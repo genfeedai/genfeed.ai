@@ -1,7 +1,5 @@
-import { DiscordBotAdapter } from '@api/services/bot-gateway/adapters/discord-bot.adapter';
-import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.adapter';
-import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
 import { BotGenerationService } from '@api/services/bot-gateway/services/bot-generation.service';
+import { BotPlatformAdapterRegistryService } from '@api/services/bot-gateway/services/bot-platform-adapter-registry.service';
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
 import {
   BotCommandType,
@@ -25,30 +23,21 @@ export class BotGatewayService {
 
   private readonly settingsUrl: string;
 
-  private readonly adapters: Map<CredentialPlatform, IBotPlatformAdapter>;
-
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
-    private readonly discordAdapter: DiscordBotAdapter,
-    private readonly slackAdapter: SlackBotAdapter,
-    private readonly telegramAdapter: TelegramBotAdapter,
+    private readonly adapterRegistry: BotPlatformAdapterRegistryService,
     private readonly userResolverService: BotUserResolverService,
     private readonly generationService: BotGenerationService,
   ) {
     this.settingsUrl = `${this.configService.get('APP_URL')}/settings/api-keys#telegram-integration`;
-    // Register adapters
-    this.adapters = new Map();
-    this.adapters.set(CredentialPlatform.DISCORD, this.discordAdapter);
-    this.adapters.set(CredentialPlatform.SLACK, this.slackAdapter);
-    this.adapters.set(CredentialPlatform.TELEGRAM, this.telegramAdapter);
   }
 
   /**
    * Get adapter for a platform
    */
   getAdapter(platform: CredentialPlatform): IBotPlatformAdapter | undefined {
-    return this.adapters.get(platform);
+    return this.adapterRegistry.getAdapter(platform);
   }
 
   /**
@@ -286,93 +275,6 @@ export class BotGatewayService {
       message: `**Account Status**\n\nCredits: ${balance}\nActive Brand: ${currentBrand?.name || 'Unknown'}\n\n**Available Brands:**\n${brandList}`,
       type: 'text',
     };
-  }
-
-  /**
-   * Send follow-up response after generation completes
-   * Called by webhook handlers when generation finishes
-   */
-  async sendCompletionResponse(
-    ingredientId: string,
-    resultUrl: string,
-    mediaType: 'image' | 'video',
-  ): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const context =
-      await this.generationService.getCallbackContext(ingredientId);
-    if (!context) {
-      return;
-    }
-
-    const adapter = this.getAdapter(context.platform);
-    if (!adapter) {
-      this.loggerService.error(`${url} no adapter for platform`, {
-        platform: context.platform,
-      });
-      return;
-    }
-
-    try {
-      await adapter.sendFollowupMedia(
-        context.applicationId,
-        context.interactionToken,
-        resultUrl,
-        mediaType,
-        `Here's your generated ${mediaType}!`,
-      );
-
-      this.loggerService.log(`${url} sent completion response`, {
-        ingredientId,
-        mediaType,
-      });
-
-      // Clean up context
-      await this.generationService.removeCallbackContext(ingredientId);
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed to send completion`, error);
-    }
-  }
-
-  /**
-   * Send error response for failed generation
-   */
-  async sendErrorResponse(
-    ingredientId: string,
-    errorMessage: string,
-  ): Promise<void> {
-    const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const context =
-      await this.generationService.getCallbackContext(ingredientId);
-    if (!context) {
-      return;
-    }
-
-    const adapter = this.getAdapter(context.platform);
-    if (!adapter) {
-      this.loggerService.error(`${url} no adapter for platform`, {
-        platform: context.platform,
-      });
-      return;
-    }
-
-    try {
-      await adapter.sendFollowupMessage(
-        context.applicationId,
-        context.interactionToken,
-        `Generation failed: ${errorMessage}`,
-      );
-
-      this.loggerService.log(`${url} sent error response`, {
-        ingredientId,
-      });
-
-      // Clean up context
-      await this.generationService.removeCallbackContext(ingredientId);
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed to send error response`, error);
-    }
   }
 
   private getPlatformLabel(platform: CredentialPlatform): string {

@@ -3,6 +3,7 @@ import { SlackBotAdapter } from '@api/services/bot-gateway/adapters/slack-bot.ad
 import { TelegramBotAdapter } from '@api/services/bot-gateway/adapters/telegram-bot.adapter';
 import { BotGatewayService } from '@api/services/bot-gateway/bot-gateway.service';
 import { BotGenerationService } from '@api/services/bot-gateway/services/bot-generation.service';
+import { BotPlatformAdapterRegistryService } from '@api/services/bot-gateway/services/bot-platform-adapter-registry.service';
 import { BotUserResolverService } from '@api/services/bot-gateway/services/bot-user-resolver.service';
 import {
   BotCommandType,
@@ -10,7 +11,6 @@ import {
   CredentialPlatform,
 } from '@genfeedai/contracts';
 import type {
-  IBotCallbackContext,
   IBotMessage,
   IBotPlatformAdapter,
   IBotResolvedUser,
@@ -42,22 +42,19 @@ interface MockUserResolver {
 
 interface MockGenerationService {
   checkCredits: ReturnType<typeof vi.fn>;
-  getCallbackContext: ReturnType<typeof vi.fn>;
-  removeCallbackContext: ReturnType<typeof vi.fn>;
   triggerGeneration: ReturnType<typeof vi.fn>;
 }
 
 describe('BotGatewayService', () => {
   let service: BotGatewayService;
   let discordAdapter: MockAdapter;
-  let telegramAdapter: MockAdapter;
   let userResolverService: MockUserResolver;
   let generationService: MockGenerationService;
 
   beforeEach(async () => {
     discordAdapter = createMockAdapter();
     const slackAdapter = createMockAdapter();
-    telegramAdapter = createMockAdapter();
+    const telegramAdapter = createMockAdapter();
 
     const mockUserResolver: MockUserResolver = {
       getUserBrands: vi.fn().mockResolvedValue([]),
@@ -67,8 +64,6 @@ describe('BotGatewayService', () => {
 
     const mockGeneration: MockGenerationService = {
       checkCredits: vi.fn(),
-      getCallbackContext: vi.fn().mockResolvedValue(undefined),
-      removeCallbackContext: vi.fn().mockResolvedValue(undefined),
       triggerGeneration: vi.fn(),
     };
 
@@ -88,9 +83,14 @@ describe('BotGatewayService', () => {
             warn: vi.fn(),
           },
         },
-        { provide: DiscordBotAdapter, useValue: discordAdapter },
-        { provide: SlackBotAdapter, useValue: slackAdapter },
-        { provide: TelegramBotAdapter, useValue: telegramAdapter },
+        {
+          provide: BotPlatformAdapterRegistryService,
+          useValue: new BotPlatformAdapterRegistryService(
+            discordAdapter as unknown as DiscordBotAdapter,
+            slackAdapter as unknown as SlackBotAdapter,
+            telegramAdapter as unknown as TelegramBotAdapter,
+          ),
+        },
         {
           provide: BotUserResolverService,
           useValue: mockUserResolver,
@@ -336,74 +336,6 @@ describe('BotGatewayService', () => {
 
       expect(result.type).toBe('error');
       expect(result.message).toContain('Failed to start generation');
-    });
-  });
-
-  // ── sendCompletionResponse ───────────────────────────────────────────
-
-  describe('sendCompletionResponse', () => {
-    it('does nothing when no callback context exists', async () => {
-      generationService.getCallbackContext.mockResolvedValue(undefined);
-
-      await service.sendCompletionResponse(
-        'ing-missing',
-        'https://cdn.example.com/img.png',
-        'image',
-      );
-
-      expect(discordAdapter.sendFollowupMedia).not.toHaveBeenCalled();
-    });
-
-    it('sends media and cleans up context on success', async () => {
-      const ctx: IBotCallbackContext = {
-        applicationId: 'app-1',
-        chatId: 'ch-1',
-        interactionToken: 'tok-1',
-        platform: CredentialPlatform.DISCORD,
-      };
-      generationService.getCallbackContext.mockResolvedValue(ctx);
-
-      await service.sendCompletionResponse(
-        'ing-1',
-        'https://cdn.example.com/video.mp4',
-        'video',
-      );
-
-      expect(discordAdapter.sendFollowupMedia).toHaveBeenCalledWith(
-        'app-1',
-        'tok-1',
-        'https://cdn.example.com/video.mp4',
-        'video',
-        "Here's your generated video!",
-      );
-      expect(generationService.removeCallbackContext).toHaveBeenCalledWith(
-        'ing-1',
-      );
-    });
-  });
-
-  // ── sendErrorResponse ────────────────────────────────────────────────
-
-  describe('sendErrorResponse', () => {
-    it('sends error followup and cleans up context', async () => {
-      const ctx: IBotCallbackContext = {
-        applicationId: 'app-1',
-        chatId: 'ch-1',
-        interactionToken: 'tok-1',
-        platform: CredentialPlatform.TELEGRAM,
-      };
-      generationService.getCallbackContext.mockResolvedValue(ctx);
-
-      await service.sendErrorResponse('ing-1', 'Out of memory');
-
-      expect(telegramAdapter.sendFollowupMessage).toHaveBeenCalledWith(
-        'app-1',
-        'tok-1',
-        'Generation failed: Out of memory',
-      );
-      expect(generationService.removeCallbackContext).toHaveBeenCalledWith(
-        'ing-1',
-      );
     });
   });
 });

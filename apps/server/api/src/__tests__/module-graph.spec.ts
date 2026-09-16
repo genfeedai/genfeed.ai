@@ -161,12 +161,14 @@ function countForwardRefs(): number {
  */
 const LEAF_MODULES = [
   'AuthProviderModule',
+  'BotCallbackModule',
   'CredentialsCoreModule',
   'MetadataModule',
   'OrganizationSettingsModule',
   'RolesModule',
   'SettingsModule',
   'TagsModule',
+  'WebhooksMediaModule',
 ];
 
 describe('Module dependency graph', () => {
