@@ -369,6 +369,38 @@ describe('PlansCard', () => {
       expect(retryActionOf(1)).not.toHaveProperty('actionLabel');
     });
 
+    it('waits out the delay the API asked for before retrying', async () => {
+      // A wide margin so a slow setup cannot eat the delay under test.
+      changeSubscriptionPlan.mockRejectedValue(
+        apiError({
+          code: 'billing_provider_unavailable',
+          meta: { isRetryable: true, maxRetries: 1, retryAfterSeconds: 30 },
+        }),
+      );
+      await previewScale();
+
+      fireEvent.click(screen.getByRole('button', { name: /Confirm change/i }));
+      await waitFor(() => expect(notifications.error).toHaveBeenCalledTimes(1));
+
+      vi.useFakeTimers();
+      try {
+        retryActionOf(0).onAction?.();
+
+        await vi.advanceTimersByTimeAsync(20_000);
+        // The API asked us not to come back yet.
+        expect(changeSubscriptionPlan).toHaveBeenCalledTimes(1);
+
+        await vi.advanceTimersByTimeAsync(15_000);
+        expect(changeSubscriptionPlan).toHaveBeenCalledTimes(2);
+        expect(changeSubscriptionPlan).toHaveBeenNthCalledWith(
+          2,
+          'price_scale',
+        );
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
     it('does not submit a cancelled plan change when its retry fires later', async () => {
       changeSubscriptionPlan.mockRejectedValue(transientFailure);
       await previewScale();
