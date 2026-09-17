@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
+import { PermanentExecutionError } from '../../execution/execution-error';
 import {
   buildVideoQaReport,
   createVideoQaExecutor,
@@ -7,6 +8,7 @@ import {
   parseEbur128IntegratedLoudness,
   parseFfprobeStreams,
   parseFreezeDetectLog,
+  shouldBlockCharacterContinuityGate,
 } from './video-qa-executor';
 
 const ctx: ExecutionContext = {
@@ -573,6 +575,260 @@ describe('VideoQaExecutor', () => {
         passed: true,
         video: 'http://in.mp4',
       });
+    });
+
+    it('blocks identity-lock dispatch on character drift and keeps the report', async () => {
+      const processor = vi.fn().mockResolvedValue({
+        contactSheetUrl: 'https://cdn.example/sheet.png',
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: ON_TARGET_LOUDNESS_LOG,
+        probeJson: HEALTHY_PROBE_JSON,
+      });
+      const resolver = vi.fn().mockResolvedValue({
+        finding: {
+          character: {
+            confidence: 0.94,
+            summary: 'Character changed.',
+            verdict: 'drift',
+          },
+          clipId: 'workflow-video',
+          clipIndex: 0,
+          errors: [],
+          evidenceFrames: [
+            { kind: 'contact_sheet', url: 'https://cdn.example/sheet.png' },
+          ],
+          outfit: {
+            confidence: 0.9,
+            summary: 'Outfit changed.',
+            verdict: 'drift',
+          },
+          product: {
+            confidence: null,
+            summary: 'No product.',
+            verdict: 'not_assessed',
+          },
+          videoUrl: 'http://in.mp4',
+        },
+        modelKey: 'openai/gpt-4.1-mini',
+      });
+
+      await expect(
+        createVideoQaExecutor(processor, resolver).execute({
+          context: ctx,
+          inputs: new Map<string, unknown>([['video', 'http://in.mp4']]),
+          node: {
+            config: {
+              characterReferenceUrls: ['https://cdn.example/face.png'],
+              isContinuityCharacterGateEnabled: true,
+              isContinuityQaEnabled: true,
+            },
+            id: '1',
+            inputs: [],
+            label: 'QA',
+            type: 'videoQa',
+          },
+        }),
+      ).rejects.toMatchObject({
+        isRetryable: false,
+        message: 'Character continuity QA is drift.',
+        name: 'PermanentExecutionError',
+        output: expect.objectContaining({
+          continuityQa: expect.objectContaining({
+            clips: [
+              expect.objectContaining({
+                character: expect.objectContaining({ verdict: 'drift' }),
+              }),
+            ],
+          }),
+          passed: true,
+          video: null,
+        }),
+      });
+    });
+
+    it('blocks identity-lock dispatch when the vision model is unavailable', async () => {
+      const processor = vi.fn().mockResolvedValue({
+        contactSheetUrl: 'https://cdn.example/sheet.png',
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: ON_TARGET_LOUDNESS_LOG,
+        probeJson: HEALTHY_PROBE_JSON,
+      });
+      const resolver = vi.fn().mockResolvedValue({
+        skipReason: 'vision_model_unavailable',
+      });
+
+      await expect(
+        createVideoQaExecutor(processor, resolver).execute({
+          context: ctx,
+          inputs: new Map<string, unknown>([['video', 'http://in.mp4']]),
+          node: {
+            config: {
+              characterReferenceUrls: ['https://cdn.example/face.png'],
+              isContinuityCharacterGateEnabled: true,
+              isContinuityQaEnabled: true,
+            },
+            id: '1',
+            inputs: [],
+            label: 'QA',
+            type: 'videoQa',
+          },
+        }),
+      ).rejects.toBeInstanceOf(PermanentExecutionError);
+
+      try {
+        await createVideoQaExecutor(processor, resolver).execute({
+          context: ctx,
+          inputs: new Map<string, unknown>([['video', 'http://in.mp4']]),
+          node: {
+            config: {
+              characterReferenceUrls: ['https://cdn.example/face.png'],
+              isContinuityCharacterGateEnabled: true,
+              isContinuityQaEnabled: true,
+            },
+            id: '1',
+            inputs: [],
+            label: 'QA',
+            type: 'videoQa',
+          },
+        });
+        throw new Error('expected gate to block');
+      } catch (error) {
+        expect(error).toBeInstanceOf(PermanentExecutionError);
+        expect(
+          (error as PermanentExecutionError).output as {
+            continuityQa?: { skipReason?: string; clips?: unknown[] };
+          },
+        ).toMatchObject({
+          continuityQa: {
+            clips: [],
+            skipReason: 'vision_model_unavailable',
+          },
+          video: null,
+        });
+        const output = (error as PermanentExecutionError).output as {
+          continuityQa?: {
+            clips?: Array<{ character?: { verdict?: string } }>;
+          };
+        };
+        expect(
+          output.continuityQa?.clips?.some(
+            (clip) => clip.character?.verdict === 'consistent',
+          ),
+        ).toBeFalsy();
+      }
+    });
+
+    it('does not mark character consistent when canonical refs are missing', async () => {
+      const processor = vi.fn().mockResolvedValue({
+        contactSheetUrl: 'https://cdn.example/sheet.png',
+        decodeOk: true,
+        detectLog: '',
+        loudnessLog: ON_TARGET_LOUDNESS_LOG,
+        probeJson: HEALTHY_PROBE_JSON,
+      });
+      const resolver = vi.fn();
+      const result = await createVideoQaExecutor(processor, resolver).execute({
+        context: ctx,
+        inputs: new Map<string, unknown>([['video', 'http://in.mp4']]),
+        node: {
+          config: {
+            isContinuityQaEnabled: true,
+          },
+          id: '1',
+          inputs: [],
+          label: 'QA',
+          type: 'videoQa',
+        },
+      });
+
+      expect(result.data).toMatchObject({
+        continuityQa: {
+          clips: [],
+          skipReason: 'canonical_references_unavailable',
+          status: 'skipped',
+        },
+        passed: true,
+        video: 'http://in.mp4',
+      });
+      expect(resolver).not.toHaveBeenCalled();
+    });
+  });
+});
+
+describe('shouldBlockCharacterContinuityGate', () => {
+  it('never blocks when the character gate is off', () => {
+    expect(
+      shouldBlockCharacterContinuityGate({
+        continuityQa: {
+          clips: [],
+          completedAt: '2026-09-17T00:00:00.000Z',
+          projectId: 'wf-1',
+          referenceAssetIds: { character: [], product: [] },
+          runId: 'run-1',
+          schemaVersion: 1,
+          skipReason: 'canonical_references_unavailable',
+          status: 'skipped',
+          summary: {
+            assessedClipCount: 0,
+            driftClipCount: 0,
+            errorClipCount: 0,
+            totalClipCount: 0,
+          },
+        },
+        decodePassed: true,
+        isCharacterGateEnabled: false,
+      }),
+    ).toEqual({ blocked: false });
+  });
+
+  it('blocks uncertain and not_assessed verdicts on an identity-lock run', () => {
+    expect(
+      shouldBlockCharacterContinuityGate({
+        continuityQa: {
+          clips: [
+            {
+              character: {
+                confidence: null,
+                summary: 'Unsure.',
+                verdict: 'uncertain',
+              },
+              clipId: 'clip-1',
+              clipIndex: 0,
+              errors: [],
+              evidenceFrames: [],
+              outfit: {
+                confidence: null,
+                summary: 'Unsure.',
+                verdict: 'uncertain',
+              },
+              product: {
+                confidence: null,
+                summary: 'Not assessed.',
+                verdict: 'not_assessed',
+              },
+            },
+          ],
+          completedAt: '2026-09-17T00:00:00.000Z',
+          projectId: 'wf-1',
+          referenceAssetIds: { character: ['face'], product: [] },
+          runId: 'run-1',
+          schemaVersion: 1,
+          status: 'completed',
+          summary: {
+            assessedClipCount: 1,
+            driftClipCount: 0,
+            errorClipCount: 0,
+            totalClipCount: 1,
+          },
+        },
+        decodePassed: true,
+        isCharacterGateEnabled: true,
+      }),
+    ).toEqual({
+      blocked: true,
+      reason: 'Character continuity QA is uncertain.',
     });
   });
 });

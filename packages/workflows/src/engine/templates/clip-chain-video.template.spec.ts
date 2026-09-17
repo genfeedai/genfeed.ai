@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest';
 import { WorkflowEngine } from '../execution/engine';
+import {
+  createVideoQaExecutor,
+  type VideoQaContinuityResolver,
+  type VideoQaProcessor,
+} from '../executors/saas/video-qa-executor';
 import { createVideoStitchExecutor } from '../executors/saas/video-stitch-executor';
 import type { ExecutableWorkflow } from '../types';
 import { DEFAULT_CREDIT_COSTS } from '../utils/credit-calculator';
@@ -47,6 +52,150 @@ function actionParameters(
     : {};
 }
 
+const HEALTHY_QA_PROBE_JSON = JSON.stringify({
+  format: { duration: '8.000000' },
+  streams: [
+    {
+      avg_frame_rate: '30/1',
+      codec_name: 'h264',
+      codec_type: 'video',
+      height: 1080,
+      r_frame_rate: '30/1',
+      width: 1920,
+    },
+    { channels: 2, codec_name: 'aac', codec_type: 'audio' },
+  ],
+});
+
+const ON_TARGET_QA_LOUDNESS_LOG = `
+[Parsed_ebur128_0 @ 0x7fa] Summary:
+
+  Integrated loudness:
+    I:         -16.1 LUFS
+    Threshold: -26.2 LUFS
+`;
+
+function healthyQaProcessor(): VideoQaProcessor {
+  return vi.fn().mockResolvedValue({
+    contactSheetUrl: 'https://cdn.example/sheet.png',
+    decodeOk: true,
+    detectLog: '',
+    loudnessLog: ON_TARGET_QA_LOUDNESS_LOG,
+    probeJson: HEALTHY_QA_PROBE_JSON,
+  });
+}
+
+function passthroughVideoQaOutput(videoUrl: string): Record<string, unknown> {
+  const report = {
+    blackSegments: [],
+    contactSheetUrl: null,
+    decodeOk: true,
+    durationSeconds: 8,
+    failures: [],
+    frameRate: 30,
+    freezeSegments: [],
+    height: 1080,
+    loudnessDeviation: 0,
+    loudnessLufs: -16,
+    loudnessTargetLufs: -16,
+    passed: true,
+    streams: [],
+    width: 1920,
+  };
+  return {
+    ...report,
+    continuityQa: null,
+    report,
+    video: videoUrl,
+  };
+}
+
+function registerPassthroughVideoQa(engine: WorkflowEngine): void {
+  engine.registerExecutor('videoQa', async (_node, inputs) => {
+    const video = inputs.get('video');
+    const videoUrl =
+      typeof video === 'string'
+        ? video
+        : ((video as { videoUrl?: string } | undefined)?.videoUrl ?? '');
+    return passthroughVideoQaOutput(videoUrl);
+  });
+}
+
+function registerContinuityVideoQa(
+  engine: WorkflowEngine,
+  resolver?: VideoQaContinuityResolver,
+): void {
+  const executor = createVideoQaExecutor(healthyQaProcessor(), resolver);
+  engine.registerExecutor('videoQa', async (node, inputs, context) => {
+    const result = await executor.execute({ context, inputs, node });
+    return result.data;
+  });
+}
+
+function consistentFinding(videoUrl: string) {
+  return {
+    character: {
+      confidence: 1,
+      summary: 'Consistent.',
+      verdict: 'consistent' as const,
+    },
+    clipId: videoUrl,
+    clipIndex: 0,
+    errors: [],
+    evidenceFrames: [
+      { kind: 'contact_sheet' as const, url: 'https://cdn.example/sheet.png' },
+    ],
+    outfit: {
+      confidence: 1,
+      summary: 'Consistent.',
+      verdict: 'consistent' as const,
+    },
+    product: {
+      confidence: null,
+      summary: 'Not assessed.',
+      verdict: 'not_assessed' as const,
+    },
+    videoUrl,
+  };
+}
+
+function driftFinding(videoUrl: string) {
+  return {
+    ...consistentFinding(videoUrl),
+    character: {
+      confidence: 0.2,
+      summary: 'A different person.',
+      verdict: 'drift' as const,
+    },
+  };
+}
+
+function characterVerdicts(output: unknown): string[] {
+  if (output === null || typeof output !== 'object' || Array.isArray(output)) {
+    return [];
+  }
+  const continuityQa = (output as { continuityQa?: unknown }).continuityQa;
+  if (
+    continuityQa === null ||
+    typeof continuityQa !== 'object' ||
+    Array.isArray(continuityQa)
+  ) {
+    return [];
+  }
+  const clips = (continuityQa as { clips?: unknown }).clips;
+  if (!Array.isArray(clips)) {
+    return [];
+  }
+  return clips.flatMap((clip) => {
+    if (clip === null || typeof clip !== 'object' || Array.isArray(clip)) {
+      return [];
+    }
+    const verdict = (clip as { character?: { verdict?: unknown } }).character
+      ?.verdict;
+    return typeof verdict === 'string' ? [verdict] : [];
+  });
+}
+
 describe('ClipChainVideoTemplate', () => {
   describe('Template Structure', () => {
     it('should have all required metadata', () => {
@@ -83,17 +232,24 @@ describe('ClipChainVideoTemplate', () => {
   });
 
   describe('Graph', () => {
-    it('chains last-frame extract into the next start-frame handle', () => {
+    it('gates last-frame extract and stitch on per-segment video QA', () => {
       for (
         let index = 1;
         index < DEFAULT_CLIP_CHAIN_SEGMENT_COUNT;
         index += 1
       ) {
-        const videoToExtract = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
+        const videoToQa = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
           (edge) =>
             edge.source === `video-gen-${index}` &&
-            edge.target === `frame-extract-${index}` &&
+            edge.target === `video-qa-${index}` &&
             edge.sourceHandle === 'videoUrl' &&
+            edge.targetHandle === 'video',
+        );
+        const qaToExtract = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
+          (edge) =>
+            edge.source === `video-qa-${index}` &&
+            edge.target === `frame-extract-${index}` &&
+            edge.sourceHandle === 'video' &&
             edge.targetHandle === 'video',
         );
         const extractToNext = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
@@ -104,7 +260,8 @@ describe('ClipChainVideoTemplate', () => {
             edge.targetHandle === 'image',
         );
 
-        expect(videoToExtract).toBeDefined();
+        expect(videoToQa).toBeDefined();
+        expect(qaToExtract).toBeDefined();
         expect(extractToNext).toBeDefined();
       }
     });
@@ -119,7 +276,7 @@ describe('ClipChainVideoTemplate', () => {
       }
     });
 
-    it('routes every videoGen output into videoStitch', () => {
+    it('routes every videoQa output into videoStitch', () => {
       const stitchNode = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.find(
         (node) => node.id === 'video-stitch-1',
       );
@@ -134,15 +291,29 @@ describe('ClipChainVideoTemplate', () => {
       ) {
         const stitchEdge = CLIP_CHAIN_VIDEO_TEMPLATE.edges.find(
           (edge) =>
-            edge.source === `video-gen-${index}` &&
+            edge.source === `video-qa-${index}` &&
             edge.target === 'video-stitch-1' &&
-            edge.sourceHandle === 'videoUrl' &&
-            // videoStitch's closed input contract has one `videos` array
-            // field, not dynamic video-N keys — every segment shares that
-            // handle and the engine merges them into an ordered array.
+            edge.sourceHandle === 'video' &&
             edge.targetHandle === 'videos',
         );
         expect(stitchEdge).toBeDefined();
+      }
+    });
+
+    it('enables continuity QA without a character gate on the catalog original', () => {
+      const qaNodes = CLIP_CHAIN_VIDEO_TEMPLATE.nodes.filter((node) =>
+        isActionNode(node, 'videoQa'),
+      );
+      expect(qaNodes).toHaveLength(DEFAULT_CLIP_CHAIN_SEGMENT_COUNT);
+      for (const qaNode of qaNodes) {
+        expect(actionParameters(qaNode)).toMatchObject({
+          isContactSheetEnabled: true,
+          isContinuityCharacterGateEnabled: false,
+          isContinuityQaEnabled: true,
+        });
+        expect(actionParameters(qaNode)).not.toHaveProperty(
+          'characterReferenceUrls',
+        );
       }
     });
   });
@@ -264,6 +435,23 @@ describe('ClipChainVideoTemplate', () => {
           instance.nodes.find((node) => node.id === 'video-stitch-1'),
         ).brandId,
       ).toBe('brand-1');
+
+      const qaNodes = instance.nodes.filter((node) =>
+        isActionNode(node, 'videoQa'),
+      );
+      expect(qaNodes).toHaveLength(DEFAULT_CLIP_CHAIN_SEGMENT_COUNT);
+      for (const qaNode of qaNodes) {
+        expect(actionParameters(qaNode)).toEqual({
+          characterReferenceUrls: ['character-1'],
+          isContactSheetEnabled: true,
+          isContinuityCharacterGateEnabled: true,
+          isContinuityQaEnabled: true,
+          productReferenceUrls: ['product-1'],
+        });
+      }
+      expect(actionParameters(qaNodes[0]).characterReferenceUrls).not.toBe(
+        actionParameters(qaNodes[1]).characterReferenceUrls,
+      );
     });
 
     it('keeps the last-frame extract as the next start frame, never as an identity ref', () => {
@@ -333,6 +521,7 @@ describe('ClipChainVideoTemplate', () => {
           videoUrl: `https://cdn.example/${node.id}.mp4`,
         };
       });
+      registerPassthroughVideoQa(engine);
       engine.registerExecutor('videoFrameExtract', async (node) => {
         const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
         return {
@@ -383,6 +572,7 @@ describe('ClipChainVideoTemplate', () => {
       );
       expect(expectedCredits).toBe(
         DEFAULT_CLIP_CHAIN_SEGMENT_COUNT * DEFAULT_CREDIT_COSTS.videoGen +
+          DEFAULT_CLIP_CHAIN_SEGMENT_COUNT * DEFAULT_CREDIT_COSTS.videoQa +
           DEFAULT_CLIP_CHAIN_SEGMENT_COUNT *
             DEFAULT_CREDIT_COSTS.videoFrameExtract +
           DEFAULT_CREDIT_COSTS.videoStitch,
@@ -401,6 +591,9 @@ describe('ClipChainVideoTemplate', () => {
 
       expect(
         instance.nodes.filter((node) => isActionNode(node, 'videoGen')),
+      ).toHaveLength(4);
+      expect(
+        instance.nodes.filter((node) => isActionNode(node, 'videoQa')),
       ).toHaveLength(4);
       expect(
         instance.nodes.filter((node) =>
@@ -436,6 +629,7 @@ describe('ClipChainVideoTemplate', () => {
           videoUrl: `https://cdn.example/${node.id}.mp4`,
         };
       });
+      registerPassthroughVideoQa(engine);
       engine.registerExecutor('videoFrameExtract', async (node, inputs) => {
         const source = inputs.get('video');
         const sourceVideo =
@@ -516,6 +710,7 @@ describe('ClipChainVideoTemplate', () => {
           videoUrl: `https://cdn.example/${node.id}.mp4`,
         };
       });
+      registerPassthroughVideoQa(engine);
       engine.registerExecutor('videoFrameExtract', async (node) => {
         const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
         return {
@@ -545,6 +740,196 @@ describe('ClipChainVideoTemplate', () => {
       expect(result.nodeResults.get('video-gen-2')?.status).toBe('failed');
       expect(result.nodeResults.get('video-gen-2')?.retryCount).toBe(0);
       expect(result.nodeResults.has('video-stitch-1')).toBe(false);
+    });
+  });
+
+  describe('Continuity QA gate (#4654)', () => {
+    const identity = {
+      characterIngredientIds: ['character-1'],
+      productIngredientIds: ['product-1'],
+    };
+    const zeroRetry = {
+      backoffMultiplier: 1,
+      baseDelayMs: 0,
+      maxDelayMs: 0,
+      maxRetries: 0,
+    };
+
+    function registerClipChainExecutors(
+      engine: WorkflowEngine,
+      generated: Set<string>,
+      resolver?: VideoQaContinuityResolver,
+    ): void {
+      engine.registerExecutor('videoGen', async (node) => {
+        generated.add(node.id);
+        return {
+          id: node.id,
+          model: 'stub-model',
+          provider: 'stub',
+          status: 'completed',
+          videoUrl: `https://cdn.example/${node.id}.mp4`,
+        };
+      });
+      registerContinuityVideoQa(engine, resolver);
+      engine.registerExecutor('videoFrameExtract', async (node) => {
+        const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
+        return {
+          image: lastFrame,
+          last_frame: lastFrame,
+          sourceVideo: `https://cdn.example/${node.id}-source.mp4`,
+        };
+      });
+      engine.registerExecutor('videoStitch', async () => {
+        throw new Error('stitch should not run after a blocked prefix');
+      });
+    }
+
+    it('does not dispatch segment 3 after character drift on segment 2', async () => {
+      const generated = new Set<string>();
+      const engine = new WorkflowEngine({
+        creditCosts: DEFAULT_CREDIT_COSTS,
+        retryConfig: zeroRetry,
+      });
+      registerClipChainExecutors(engine, generated, async (params) => {
+        if (params.videoUrl.includes('video-gen-2')) {
+          return {
+            finding: driftFinding(params.videoUrl),
+            modelKey: 'openai/vision',
+          };
+        }
+        return {
+          finding: consistentFinding(params.videoUrl),
+          modelKey: 'openai/vision',
+        };
+      });
+
+      const result = await engine.execute(
+        toExecutableWorkflow(
+          createClipChainWorkflowInstance({
+            identity,
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workflowId: 'wf-continuity-drift',
+          }),
+        ),
+      );
+
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('Character continuity QA is drift');
+      expect(generated.has('video-gen-1')).toBe(true);
+      expect(generated.has('video-gen-2')).toBe(true);
+      expect(generated.has('video-gen-3')).toBe(false);
+      expect(result.nodeResults.get('video-qa-1')?.status).toBe('completed');
+      expect(result.nodeResults.get('video-qa-1')?.output).toMatchObject({
+        continuityQa: {
+          clips: [
+            expect.objectContaining({
+              character: expect.objectContaining({ verdict: 'consistent' }),
+            }),
+          ],
+        },
+      });
+      expect(result.nodeResults.get('video-qa-2')?.status).toBe('failed');
+      expect(result.nodeResults.get('video-qa-2')?.output).toMatchObject({
+        continuityQa: {
+          clips: [
+            expect.objectContaining({
+              character: expect.objectContaining({ verdict: 'drift' }),
+            }),
+          ],
+        },
+        video: null,
+      });
+      expect(result.nodeResults.has('video-gen-3')).toBe(false);
+      expect(result.nodeResults.has('video-stitch-1')).toBe(false);
+    });
+
+    it('skips character QA without inventing consistent when no character ids are locked', async () => {
+      const generated = new Set<string>();
+      const resolver = vi.fn();
+      const engine = new WorkflowEngine({
+        creditCosts: DEFAULT_CREDIT_COSTS,
+        retryConfig: zeroRetry,
+      });
+      engine.registerExecutor('videoGen', async (node) => {
+        generated.add(node.id);
+        return {
+          id: node.id,
+          model: 'stub-model',
+          provider: 'stub',
+          status: 'completed',
+          videoUrl: `https://cdn.example/${node.id}.mp4`,
+        };
+      });
+      registerContinuityVideoQa(engine, resolver);
+      engine.registerExecutor('videoFrameExtract', async (node) => {
+        const lastFrame = `https://cdn.example/last-from-${node.id}.jpg`;
+        return {
+          image: lastFrame,
+          last_frame: lastFrame,
+          sourceVideo: `https://cdn.example/${node.id}-source.mp4`,
+        };
+      });
+      engine.registerExecutor('videoStitch', async () => ({
+        video: 'https://cdn.example/clip-chain.mp4',
+        videoUrl: 'https://cdn.example/clip-chain.mp4',
+      }));
+
+      const result = await engine.execute(
+        toExecutableWorkflow(CLIP_CHAIN_VIDEO_TEMPLATE),
+      );
+
+      expect(result.status).toBe('completed');
+      expect(generated).toEqual(
+        new Set(['video-gen-1', 'video-gen-2', 'video-gen-3']),
+      );
+      expect(resolver).not.toHaveBeenCalled();
+      for (const nodeId of ['video-qa-1', 'video-qa-2', 'video-qa-3']) {
+        const output = result.nodeResults.get(nodeId)?.output;
+        expect(output).toMatchObject({
+          continuityQa: {
+            clips: [],
+            skipReason: 'canonical_references_unavailable',
+            status: 'skipped',
+          },
+        });
+        expect(characterVerdicts(output)).not.toContain('consistent');
+      }
+    });
+
+    it('does not treat an identity-lock clip as consistent when the vision model is unavailable', async () => {
+      const generated = new Set<string>();
+      const engine = new WorkflowEngine({
+        creditCosts: DEFAULT_CREDIT_COSTS,
+        retryConfig: zeroRetry,
+      });
+      registerClipChainExecutors(engine, generated, async () => ({
+        skipReason: 'vision_model_unavailable',
+      }));
+
+      const result = await engine.execute(
+        toExecutableWorkflow(
+          createClipChainWorkflowInstance({
+            identity,
+            organizationId: 'org-1',
+            userId: 'user-1',
+            workflowId: 'wf-continuity-vision',
+          }),
+        ),
+      );
+
+      expect(result.status).toBe('failed');
+      expect(result.error).toContain('vision_model_unavailable');
+      expect(generated.has('video-gen-2')).toBe(false);
+      const output = result.nodeResults.get('video-qa-1')?.output;
+      expect(output).toMatchObject({
+        continuityQa: {
+          clips: [],
+          skipReason: 'vision_model_unavailable',
+        },
+        video: null,
+      });
+      expect(characterVerdicts(output)).not.toContain('consistent');
     });
   });
 
