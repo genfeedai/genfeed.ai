@@ -213,7 +213,8 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
       periodStart,
       stripeSubscriptionId: 'sub_stripe_1',
       subscription: monthlySubscription,
-      subscriptionStatus: SubscriptionStatus.ACTIVE,
+      // Lowercase, exactly as the handler forwards it off the Stripe object.
+      subscriptionStatus: 'active',
       trigger: 'customer.subscription.created',
       url: 'test',
     });
@@ -223,6 +224,16 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
     expect(
       creditsUtilsService.addOrganizationCreditsWithExpiration,
     ).toHaveBeenCalledTimes(1);
+    // The second event must be refused as a duplicate grant, not waved away as
+    // an ineligible status — that distinction is the #4824 regression.
+    expect(loggerService.log).toHaveBeenCalledWith(
+      expect.stringContaining('reconciliation skipped'),
+      expect.objectContaining({ outcome: 'existing_grant' }),
+    );
+    expect(loggerService.log).not.toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({ outcome: 'ineligible_status' }),
+    );
   });
 
   it('keeps recurring cycle grants keyed by invoice id', async () => {
@@ -249,6 +260,60 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
     );
   });
 
+  it.each(['active', 'trialing'])(
+    '#4824: grants on a subscription.created event carrying Stripe status %j',
+    async (subscriptionStatus) => {
+      await expect(
+        service.reconcile({
+          billingAccountId: 'ba_1',
+          billingReason: 'subscription_create',
+          periodEnd,
+          periodStart,
+          stripeSubscriptionId: 'sub_stripe_1',
+          subscription: monthlySubscription,
+          subscriptionStatus,
+          trigger: 'customer.subscription.created',
+          url: 'test',
+        }),
+      ).resolves.toBe(true);
+
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).toHaveBeenCalledTimes(1);
+      expect(loggerService.log).not.toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({ outcome: 'ineligible_status' }),
+      );
+    },
+  );
+
+  it.each(['past_due', 'incomplete_expired', 'unpaid', 'paused', 'nonsense'])(
+    '#4824: still refuses a subscription.created event carrying status %j',
+    async (subscriptionStatus) => {
+      await expect(
+        service.reconcile({
+          billingAccountId: 'ba_1',
+          billingReason: 'subscription_create',
+          periodEnd,
+          periodStart,
+          stripeSubscriptionId: 'sub_stripe_1',
+          subscription: monthlySubscription,
+          subscriptionStatus,
+          trigger: 'customer.subscription.created',
+          url: 'test',
+        }),
+      ).resolves.toBe(false);
+
+      expect(
+        creditsUtilsService.addOrganizationCreditsWithExpiration,
+      ).not.toHaveBeenCalled();
+      expect(loggerService.log).toHaveBeenCalledWith(
+        expect.stringContaining('reconciliation skipped'),
+        expect.objectContaining({ outcome: 'ineligible_status' }),
+      );
+    },
+  );
+
   it('does not grant credits for an incomplete subscription.created event', async () => {
     await expect(
       service.reconcile({
@@ -258,7 +323,7 @@ describe('StripeSubscriptionCreditReconcilerService', () => {
         periodStart,
         stripeSubscriptionId: 'sub_stripe_1',
         subscription: monthlySubscription,
-        subscriptionStatus: SubscriptionStatus.INCOMPLETE,
+        subscriptionStatus: 'incomplete',
         trigger: 'customer.subscription.created',
         url: 'test',
       }),
