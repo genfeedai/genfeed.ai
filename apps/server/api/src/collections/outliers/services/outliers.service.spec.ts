@@ -430,15 +430,13 @@ describe('outlier history read authorization', () => {
     const prisma = {
       brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand' }) },
       outlierBaselineSnapshot: {
-        groupBy: vi
-          .fn()
-          .mockResolvedValue([
-            {
-              accountId: 'account',
-              platform: 'twitter',
-              contentType: 'caption',
-            },
-          ]),
+        groupBy: vi.fn().mockResolvedValue([
+          {
+            accountId: 'account',
+            platform: 'twitter',
+            contentType: 'caption',
+          },
+        ]),
         findFirst: vi.fn().mockResolvedValue({ id: 'snapshot' }),
         findMany: vi.fn().mockResolvedValue([snapshot]),
       },

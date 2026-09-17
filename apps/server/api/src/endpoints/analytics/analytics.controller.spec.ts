@@ -411,6 +411,8 @@ describe('AnalyticsController', () => {
         '2025-01-31',
         'brand_1',
         'org_123',
+        undefined,
+        undefined,
       );
       expect(result).toBeDefined();
     });
@@ -488,6 +490,43 @@ describe('AnalyticsController', () => {
         '2025-01-31',
         'brand_1',
         'org-own',
+        undefined,
+        undefined,
+      );
+    });
+
+    it('forwards viral hook outlier and post filters', async () => {
+      analyticsService.getViralHooks.mockResolvedValueOnce({
+        analysis: {
+          hookEffectiveness: [],
+          topHooks: [],
+          topPlatforms: [],
+          totalVideos: 0,
+        },
+        videos: [],
+      } as never);
+
+      const query = {
+        brandId: 'brand_1',
+        endDate: '2025-01-31',
+        minOutlierTier: 'breakout',
+        postId: 'post_1',
+        startDate: '2025-01-01',
+      } as unknown as ViralHooksQueryDto;
+
+      await controller.getViralHooks(
+        mockRequest.user as never,
+        mockRequest,
+        query,
+      );
+
+      expect(analyticsService.getViralHooks).toHaveBeenCalledWith(
+        '2025-01-01',
+        '2025-01-31',
+        'brand_1',
+        'org_123',
+        'breakout',
+        'post_1',
       );
     });
   });

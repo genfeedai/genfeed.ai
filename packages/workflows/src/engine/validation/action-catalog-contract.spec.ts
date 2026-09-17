@@ -12,7 +12,11 @@ import {
  * a red unit test naming every offender at once.
  */
 describe('published action catalog', () => {
-  it('compiles every action contract the engine will register', () => {
+  // Compiles the full published catalog. Adding one action is cheap locally,
+  // but a contended CI runner can exceed the 15s package default.
+  it('compiles every action contract the engine will register', {
+    timeout: 30_000,
+  }, () => {
     const failures: string[] = [];
     for (const action of ALL_ACTIONS) {
       try {
