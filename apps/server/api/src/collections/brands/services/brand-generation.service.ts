@@ -59,6 +59,46 @@ export class BrandGenerationService {
       url: dto.url,
     });
 
+    const contextText = await this.resolveBrandContext(
+      dto,
+      organizationId,
+      findBrand,
+    );
+
+    const prompt = buildBrandProfileAnalysisPrompt(
+      `${contextText}${this.buildSupplementalContext(dto)}`,
+    );
+
+    const completion = await this.llmDispatcherService.chatCompletion(
+      {
+        // The profile contract (12 fields + 6 prompt seeds) truncates at 1200,
+        // leaving unparseable JSON.
+        max_tokens: 2400,
+        messages: [{ content: prompt, role: 'user' }],
+        model: LLM_DEFAULTS.planning,
+        temperature: 0.7,
+      },
+      organizationId,
+    );
+
+    return this.validateBrandVoiceCompletion(
+      completion.choices?.[0]?.message?.content?.trim() ?? '',
+      dto.brandId,
+      organizationId,
+    );
+  }
+
+  /**
+   * Resolves the brand evidence the prompt is grounded in: a live scrape when
+   * the caller supplied a URL, otherwise the stored brand, scraped too when it
+   * has a usable website and always keeping its stored identity as grounding.
+   * Fails with a classified cause when neither source is usable.
+   */
+  private async resolveBrandContext(
+    dto: GenerateBrandVoiceDto,
+    organizationId: string,
+    findBrand: BrandFinder,
+  ): Promise<string> {
     let contextText = '';
 
     if (dto.url) {
@@ -174,6 +214,11 @@ export class BrandGenerationService {
       });
     }
 
+    return contextText;
+  }
+
+  /** The optional steering the caller added to the request, if any. */
+  private buildSupplementalContext(dto: GenerateBrandVoiceDto): string {
     const audienceContext = dto.targetAudience
       ? `\nTarget audience: ${dto.targetAudience}`
       : '';
@@ -190,27 +235,7 @@ export class BrandGenerationService {
         ? `\nExamples or styles to avoid: ${dto.examplesToAvoid.join(' | ')}`
         : '';
 
-    const prompt = buildBrandProfileAnalysisPrompt(
-      `${contextText}${audienceContext}${industryContext}${offeringContext}${emulateContext}${avoidContext}`,
-    );
-
-    const completion = await this.llmDispatcherService.chatCompletion(
-      {
-        // The profile contract (12 fields + 6 prompt seeds) truncates at 1200,
-        // leaving unparseable JSON.
-        max_tokens: 2400,
-        messages: [{ content: prompt, role: 'user' }],
-        model: LLM_DEFAULTS.planning,
-        temperature: 0.7,
-      },
-      organizationId,
-    );
-
-    return this.validateBrandVoiceCompletion(
-      completion.choices?.[0]?.message?.content?.trim() ?? '',
-      dto.brandId,
-      organizationId,
-    );
+    return `${audienceContext}${industryContext}${offeringContext}${emulateContext}${avoidContext}`;
   }
 
   /**
