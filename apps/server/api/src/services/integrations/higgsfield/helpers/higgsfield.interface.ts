@@ -1,7 +1,8 @@
 /**
- * Wire shapes for the Higgsfield platform API (v2), mirroring the official
- * SDK's `src/v2/types.ts`. The platform answers every submit and every status
- * poll with the same envelope, so one interface covers both.
+ * Wire shapes for the documented Higgsfield REST catalog
+ * (`https://api.higgsfield.ai`). Submit and status share one envelope.
+ *
+ * @see https://docs.higgsfield.ai/docs/concepts/requests
  */
 export type HiggsFieldRequestStatus =
   | 'queued'
@@ -30,6 +31,7 @@ export interface HiggsFieldResponse {
   cancel_url?: string;
   images?: HiggsFieldMediaRef[];
   video?: HiggsFieldMediaRef;
+  error?: string;
 }
 
 export interface HiggsFieldCredentials {
@@ -38,36 +40,26 @@ export interface HiggsFieldCredentials {
 }
 
 /**
- * v2 carries the callback as the `hf_webhook` query parameter and sends no
- * shared secret with it — unlike v1, which put `{ url, secret }` in the body.
- * The receiving endpoint is authenticated by the secret configured console
- * side, so there is nothing to pass from here but the URL.
+ * Callback is the `hf_webhook` query parameter. Higgsfield sends no shared
+ * secret with it; the receiving endpoint authenticates on its own.
  */
 export interface HiggsFieldWebhook {
   url: string;
 }
 
-/** `/v1/image2video/dop` */
+/** `POST /higgsfield-ai/dop/{standard|turbo|lite}` */
 export interface HiggsFieldDopInput {
-  model: string;
   prompt: string;
-  input_images: Array<{ type: 'image_url'; image_url: string }>;
-  motions?: Array<{ id: string; strength: number }>;
-  seed?: number;
-  enhance_prompt?: boolean;
+  image_url: string;
 }
 
-/** `/v1/text2image/soul` */
+/** `POST /higgsfield-ai/soul/v2/standard` */
 export interface HiggsFieldSoulInput {
   prompt: string;
-  width_and_height: string;
-  quality: '720p' | '1080p';
+  aspect_ratio: string;
+  resolution: '720p' | '1080p';
   batch_size: 1 | 4;
   style_id?: string;
-  style_strength?: number;
-  custom_reference_id?: string;
-  custom_reference_strength?: number;
-  image_reference?: { type: 'image_url'; image_url: string };
   enhance_prompt?: boolean;
   seed?: number;
 }

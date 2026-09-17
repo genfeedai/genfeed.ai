@@ -14,8 +14,8 @@ import { calculateAspectRatio } from '@genfeedai/helpers';
  * and finalize the ingredient the same way every other `external-id` provider
  * does, with no additional wiring.
  *
- * Soul renders a batch of exactly 1 or 4, so a request for 2 or 3 outputs
- * comes back as 4 and the dispatcher keeps what it needs.
+ * Soul renders a batch of exactly 1 or 4. `request.outputs` is forwarded so a
+ * request for 2 or 3 comes back as 4 and the dispatcher keeps what it needs.
  */
 export class HiggsFieldImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter
@@ -39,9 +39,6 @@ export class HiggsFieldImageGenerationProviderAdapter
           batchSize: request.outputs,
           organizationId: request.organizationId,
           prompt: request.prompt,
-          ...(request.referenceImageUrl
-            ? { referenceImageUrl: request.referenceImageUrl }
-            : {}),
         });
 
         const { imageUrls } =

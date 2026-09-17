@@ -271,11 +271,11 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA).toBe(
         'genfeed-ai/z-image-turbo-lora',
       );
-      expect(MODEL_KEYS.HIGGSFIELD_SOUL).toBe('higgsfield-ai/soul');
-      expect(MODEL_KEYS.HIGGSFIELD_DOP_LITE).toBe('higgsfield-ai/dop-lite');
-      expect(MODEL_KEYS.HIGGSFIELD_DOP_TURBO).toBe('higgsfield-ai/dop-turbo');
+      expect(MODEL_KEYS.HIGGSFIELD_SOUL).toBe('higgsfield-ai/soul/v2/standard');
+      expect(MODEL_KEYS.HIGGSFIELD_DOP_LITE).toBe('higgsfield-ai/dop/lite');
+      expect(MODEL_KEYS.HIGGSFIELD_DOP_TURBO).toBe('higgsfield-ai/dop/turbo');
       expect(MODEL_KEYS.HIGGSFIELD_DOP_STANDARD).toBe(
-        'higgsfield-ai/dop-standard',
+        'higgsfield-ai/dop/standard',
       );
     });
   });

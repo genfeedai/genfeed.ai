@@ -42,10 +42,9 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
         height: 1920,
         model: MODEL_KEYS.HIGGSFIELD_SOUL,
         organizationId: 'org-1',
-        outputs: 4,
+        outputs: 3,
         prompt: 'studio product shot',
         promptId: 'prompt-1',
-        referenceImageUrl: 'https://cdn.test/reference.png',
         width: 1080,
       } as unknown as ImageGenerationProviderRequest);
 
@@ -56,10 +55,9 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
 
       expect(generateTextToImage).toHaveBeenCalledWith({
         aspectRatio: '9:16',
-        batchSize: 4,
+        batchSize: 3,
         organizationId: 'org-1',
         prompt: 'studio product shot',
-        referenceImageUrl: 'https://cdn.test/reference.png',
       });
       expect(waitForImageCompletion).toHaveBeenCalledWith('req-456', {
         organizationId: 'org-1',

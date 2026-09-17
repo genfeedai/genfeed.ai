@@ -8,13 +8,12 @@ import {
   toHiggsFieldProviderError,
 } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import {
-  HIGGSFIELD_DEFAULT_BASE_URL,
-  HIGGSFIELD_ENDPOINTS,
-  type HiggsFieldEndpoint,
+  HIGGSFIELD_API_BASE,
+  HIGGSFIELD_SOUL_ENDPOINT,
   type HiggsFieldSoulQuality,
-  resolveDopVariant,
+  resolveDopEndpoint,
+  toSoulAspectRatio,
   toSoulBatchSize,
-  toSoulSize,
 } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import {
   type HiggsFieldCredentials,
@@ -47,15 +46,12 @@ interface HiggsFieldPollOptions {
 }
 
 /**
- * Client for the Higgsfield platform API (v2).
+ * Client for the documented Higgsfield REST catalog.
  *
- * The platform is asynchronous: a submit returns a `request_id` plus a status
- * of `queued`, and the caller either polls `/requests/{id}/status` or receives
- * a webhook. Outputs arrive on the same envelope as `images[]` or `video`.
+ * Submit posts to `https://api.higgsfield.ai/<endpoint-id>` (Soul 2, DoP),
+ * then polls `GET /requests/{id}/status`. Auth is `Key <id>:<secret>`.
  *
- * Contract verified against the official SDK (`higgsfield-ai/higgsfield-js`,
- * `src/v2/client.ts`), which is the authoritative source for the base URL,
- * the `Key <id>:<secret>` auth scheme, the status path, and the status values.
+ * @see https://docs.higgsfield.ai/docs
  */
 @Injectable()
 export class HiggsFieldService {
@@ -78,8 +74,7 @@ export class HiggsFieldService {
     private readonly pollUntilService: PollUntilService,
   ) {
     this.endpoint = (
-      this.configService.get('HIGGSFIELD_API_BASE_URL') ??
-      HIGGSFIELD_DEFAULT_BASE_URL
+      this.configService.get('HIGGSFIELD_API_BASE_URL') ?? HIGGSFIELD_API_BASE
     ).replace(/\/+$/, '');
     this.apiKey = this.configService.get('HIGGSFIELD_API_KEY') ?? '';
     this.apiSecret = this.configService.get('HIGGSFIELD_API_SECRET') ?? '';
@@ -133,32 +128,39 @@ export class HiggsFieldService {
     };
   }
 
+  private buildSubmitUrl(
+    endpointId: string,
+    webhook?: HiggsFieldWebhook,
+  ): string {
+    const path = endpointId.startsWith('/') ? endpointId : `/${endpointId}`;
+    const url = `${this.endpoint}${path}`;
+    if (!webhook) {
+      return url;
+    }
+    return `${url}?hf_webhook=${encodeURIComponent(webhook.url)}`;
+  }
+
   /** Caps in-flight submissions so a batch cannot exhaust the rate limit. */
   private enqueue<T>(fn: () => Promise<T>): Promise<T> {
     return this.limit(fn);
   }
 
   /**
-   * Submits a job to any platform endpoint. Input is posted verbatim — the
-   * platform takes the parameters at the top level, not wrapped in `input`.
+   * Submits a job to a catalog endpoint id (`higgsfield-ai/soul/v2/standard`).
+   * Input is posted at the top level, not wrapped in `input`.
    */
   async submit<TInput extends object>(
-    endpoint: HiggsFieldEndpoint,
+    endpointId: string,
     input: TInput,
     options: HiggsFieldRequestOptions = {},
   ): Promise<HiggsFieldResponse> {
     const caller = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const credentials = await this.resolveCredentials(options.organizationId);
 
-    // The platform reads the callback off a query param, not the body.
-    const path = options.webhook
-      ? `${endpoint}?hf_webhook=${encodeURIComponent(options.webhook.url)}`
-      : endpoint;
-
     try {
       const response = await firstValueFrom(
         this.httpService.post<HiggsFieldResponse>(
-          `${this.endpoint}${path}`,
+          this.buildSubmitUrl(endpointId, options.webhook),
           input,
           { headers: this.getHeaders(credentials) },
         ),
@@ -166,12 +168,12 @@ export class HiggsFieldService {
 
       const submitted = response.data;
       this.loggerService.log(
-        `${caller} submitted ${endpoint} as ${submitted.request_id}`,
+        `${caller} submitted ${endpointId} as ${submitted.request_id}`,
       );
       return submitted;
     } catch (error: unknown) {
       const mapped = toHiggsFieldProviderError(error);
-      this.loggerService.error(`${caller} failed to submit ${endpoint}`, {
+      this.loggerService.error(`${caller} failed to submit ${endpointId}`, {
         message: mapped.message,
       });
       throw mapped;
@@ -244,7 +246,7 @@ export class HiggsFieldService {
       if (value.status === 'canceled') {
         throw new HiggsFieldProviderError(
           AgentFailureReason.CANCELLED,
-          `Higgsfield job ${requestId} was cancelled.`,
+          `Higgsfield job ${requestId} was canceled.`,
           { isRetryable: false },
         );
       }
@@ -280,32 +282,22 @@ export class HiggsFieldService {
     aspectRatio?: string;
     quality?: HiggsFieldSoulQuality;
     batchSize?: number;
-    referenceImageUrl?: string;
     seed?: number;
     organizationId?: string;
     webhook?: HiggsFieldWebhook;
   }): Promise<{ requestId: string; imageUrls: string[] }> {
     const input: HiggsFieldSoulInput = {
+      aspect_ratio: toSoulAspectRatio(params.aspectRatio),
       batch_size: toSoulBatchSize(params.batchSize),
       prompt: params.prompt,
-      quality: params.quality ?? '1080p',
-      width_and_height: toSoulSize(params.aspectRatio),
-      ...(params.referenceImageUrl
-        ? {
-            image_reference: {
-              image_url: params.referenceImageUrl,
-              type: 'image_url' as const,
-            },
-          }
-        : {}),
+      resolution: params.quality ?? '1080p',
       ...(params.seed === undefined ? {} : { seed: params.seed }),
     };
 
-    const submitted = await this.submit(
-      HIGGSFIELD_ENDPOINTS.SOUL_TEXT_TO_IMAGE,
-      input,
-      { organizationId: params.organizationId, webhook: params.webhook },
-    );
+    const submitted = await this.submit(HIGGSFIELD_SOUL_ENDPOINT, input, {
+      organizationId: params.organizationId,
+      webhook: params.webhook,
+    });
 
     return {
       imageUrls: (submitted.images ?? []).map((image) => image.url),
@@ -335,41 +327,32 @@ export class HiggsFieldService {
   }
 
   /**
-   * DoP image-to-video. The endpoint takes the quality tier as its `model`
-   * field and derives framing and length from the source image, so there is
-   * no aspect-ratio or duration input to pass through.
+   * DoP image-to-video. Framing and length come from the source image; the
+   * documented body is `{ prompt, image_url }` on the model endpoint id.
    */
   async generateImageToVideo(params: {
     modelKey: string;
     imageUrl: string;
     prompt: string;
-    seed?: number;
-    isPromptEnhanced?: boolean;
     organizationId?: string;
     webhook?: HiggsFieldWebhook;
   }): Promise<{ requestId: string; videoUrl?: string }> {
-    const variant = resolveDopVariant(params.modelKey);
-    if (!variant) {
+    const endpointId = resolveDopEndpoint(params.modelKey);
+    if (!endpointId) {
       throw new BadRequestException(
         `Unknown Higgsfield video model: ${params.modelKey}`,
       );
     }
 
     const input: HiggsFieldDopInput = {
-      input_images: [{ image_url: params.imageUrl, type: 'image_url' }],
-      model: variant,
+      image_url: params.imageUrl,
       prompt: params.prompt,
-      ...(params.isPromptEnhanced === undefined
-        ? {}
-        : { enhance_prompt: params.isPromptEnhanced }),
-      ...(params.seed === undefined ? {} : { seed: params.seed }),
     };
 
-    const submitted = await this.submit(
-      HIGGSFIELD_ENDPOINTS.DOP_IMAGE_TO_VIDEO,
-      input,
-      { organizationId: params.organizationId, webhook: params.webhook },
-    );
+    const submitted = await this.submit(endpointId, input, {
+      organizationId: params.organizationId,
+      webhook: params.webhook,
+    });
 
     return {
       requestId: submitted.request_id,

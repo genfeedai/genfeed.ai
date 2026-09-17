@@ -113,6 +113,14 @@ export function toHiggsFieldProviderError(error: unknown): Error {
     );
   }
 
+  if (statusCode === 404) {
+    return new HiggsFieldProviderError(
+      AgentFailureReason.ACTION_NOT_ALLOWED,
+      'Higgsfield could not find that request or model for this account.',
+      { isRetryable: false, statusCode },
+    );
+  }
+
   if (statusCode === 429) {
     return new HiggsFieldProviderError(
       AgentFailureReason.RATE_LIMITED,
@@ -121,9 +129,6 @@ export function toHiggsFieldProviderError(error: unknown): Error {
     );
   }
 
-  // Any other HTTP status still carries its code and the platform's own
-  // `detail`. Falling through to `String(error)` here rendered an Axios-shaped
-  // plain object as "[object Object]", which told an operator nothing.
   if (statusCode !== undefined) {
     return new HiggsFieldProviderError(
       statusCode >= 500

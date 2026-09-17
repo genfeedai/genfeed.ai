@@ -3,7 +3,7 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
-import { resolveDopVariant } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
+import { resolveDopEndpoint } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
 import { BadRequestException } from '@nestjs/common';
 
@@ -23,7 +23,7 @@ export class HiggsFieldVideoGenerationProviderAdapter
   constructor(private readonly higgsFieldService: HiggsFieldService) {}
 
   supports(model: string): boolean {
-    return resolveDopVariant(model) !== undefined;
+    return resolveDopEndpoint(model) !== undefined;
   }
 
   async generate(

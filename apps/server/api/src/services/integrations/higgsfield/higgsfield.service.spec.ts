@@ -11,7 +11,7 @@ import { HttpService } from '@nestjs/axios';
 import { Test, TestingModule } from '@nestjs/testing';
 import { of, throwError } from 'rxjs';
 
-const PLATFORM = 'https://platform.higgsfield.ai';
+const PLATFORM = 'https://api.higgsfield.ai';
 
 describe('HiggsFieldService', () => {
   let service: HiggsFieldService;
@@ -77,12 +77,9 @@ describe('HiggsFieldService', () => {
 
       expect(result.requestId).toBe('req-abc');
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        `${PLATFORM}/v1/image2video/dop`,
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_DOP_TURBO}`,
         {
-          input_images: [
-            { image_url: 'https://example.com/img.png', type: 'image_url' },
-          ],
-          model: 'dop-turbo',
+          image_url: 'https://example.com/img.png',
           prompt: 'Test prompt',
         },
         {
@@ -179,7 +176,7 @@ describe('HiggsFieldService', () => {
       });
 
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        `${PLATFORM}/v1/image2video/dop?hf_webhook=${encodeURIComponent('https://app.test/hook')}`,
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_DOP_TURBO}?hf_webhook=${encodeURIComponent('https://app.test/hook')}`,
         expect.any(Object),
         expect.any(Object),
       );
@@ -187,7 +184,7 @@ describe('HiggsFieldService', () => {
   });
 
   describe('generateTextToImage', () => {
-    it('snaps the aspect ratio onto a supported Soul size', async () => {
+    it('posts Soul 2 with a documented aspect_ratio and resolution', async () => {
       mockHttpService.post.mockReturnValue(
         of({ data: { request_id: 'req-soul', status: 'queued' }, status: 200 }),
       );
@@ -198,18 +195,18 @@ describe('HiggsFieldService', () => {
       });
 
       expect(mockHttpService.post).toHaveBeenCalledWith(
-        `${PLATFORM}/v1/text2image/soul`,
+        `${PLATFORM}/${MODEL_KEYS.HIGGSFIELD_SOUL}`,
         {
+          aspect_ratio: '9:16',
           batch_size: 1,
           prompt: 'A portrait',
-          quality: '1080p',
-          width_and_height: '1152x2048',
+          resolution: '1080p',
         },
         expect.any(Object),
       );
     });
 
-    it('falls back to square for a ratio Soul does not render', async () => {
+    it('falls back to 4:3 for a ratio Soul does not document', async () => {
       mockHttpService.post.mockReturnValue(
         of({ data: { request_id: 'req-soul', status: 'queued' }, status: 200 }),
       );
@@ -221,7 +218,7 @@ describe('HiggsFieldService', () => {
 
       expect(mockHttpService.post).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ width_and_height: '1536x1536' }),
+        expect.objectContaining({ aspect_ratio: '4:3' }),
         expect.any(Object),
       );
     });
@@ -316,13 +313,13 @@ describe('HiggsFieldService', () => {
     it('renders an unmapped status with its code and detail, never [object Object]', async () => {
       mockHttpService.get.mockReturnValue(
         throwError(() => ({
-          response: { data: { detail: 'unknown request' }, status: 404 },
+          response: { data: { detail: 'model blocked' }, status: 423 },
         })),
       );
 
       await expect(
-        service.getRequestStatus('req-gone', { apiKey: 'k', apiSecret: 's' }),
-      ).rejects.toThrow('Higgsfield returned HTTP 404: unknown request.');
+        service.getRequestStatus('req-1', { apiKey: 'k', apiSecret: 's' }),
+      ).rejects.toThrow('Higgsfield returned HTTP 423: model blocked.');
     });
 
     it('surfaces a client error instead of masking it as queued', async () => {
@@ -342,7 +339,11 @@ describe('HiggsFieldService', () => {
 
       await expect(
         service.getRequestStatus('req-gone', { apiKey: 'k', apiSecret: 's' }),
-      ).rejects.toBeDefined();
+      ).rejects.toMatchObject({
+        isRetryable: false,
+        reason: AgentFailureReason.ACTION_NOT_ALLOWED,
+        statusCode: 404,
+      });
     });
   });
 

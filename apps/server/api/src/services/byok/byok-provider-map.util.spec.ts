@@ -56,8 +56,8 @@ describe('byok-provider-map.util', () => {
 
   describe('resolveModelByokProvider', () => {
     it.each([
-      ['higgsfield-ai/soul', ByokProvider.HIGGSFIELD],
-      ['higgsfield-ai/dop-turbo', ByokProvider.HIGGSFIELD],
+      ['higgsfield-ai/soul/v2/standard', ByokProvider.HIGGSFIELD],
+      ['higgsfield-ai/dop/turbo', ByokProvider.HIGGSFIELD],
     ])(
       'prefers the model-key provider for %s over a Replicate catalog fallback',
       (modelKey, expectedProvider) => {

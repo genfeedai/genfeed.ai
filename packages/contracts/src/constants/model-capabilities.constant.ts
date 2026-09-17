@@ -1050,11 +1050,8 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
     },
     /**
-     * DoP image-to-video drives length and framing from the source image, so
-     * the endpoint exposes neither a duration nor an aspect-ratio input, and
-     * `requiresFirstFrame` keeps a text-to-video request from reaching an
-     * adapter that can only reject it. The three rows differ only by the
-     * `model` variant they send.
+     * DoP image-to-video takes `{ prompt, image_url }` and derives length
+     * from the source still. Studio must send a first frame.
      */
     [MODEL_KEYS.HIGGSFIELD_DOP_LITE]: {
       category: ModelCategory.VIDEO,
@@ -1080,14 +1077,14 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxReferences: 1,
       requiresFirstFrame: true,
     },
-    /** Soul renders one of 13 fixed sizes; IMAGEN is the ratio subset we map. */
+    /** Soul 2: documented aspect_ratio + resolution, batch 1 or 4, no image ref. */
     [MODEL_KEYS.HIGGSFIELD_SOUL]: {
       aspectRatios: ASPECT_RATIOS.IMAGEN,
       category: ModelCategory.IMAGE,
-      defaultAspectRatio: '1:1',
+      defaultAspectRatio: '4:3',
       isBatchSupported: true,
       maxOutputs: 4,
-      maxReferences: 1,
+      maxReferences: 0,
     },
 
     [MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]: {
