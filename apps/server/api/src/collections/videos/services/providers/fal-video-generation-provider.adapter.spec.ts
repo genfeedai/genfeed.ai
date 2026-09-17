@@ -159,8 +159,23 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
         resolution: '480P',
       },
     },
+    {
+      endpoint: 'minimax/h3-max/text-to-video',
+      expectedInput: {
+        aspect_ratio: '16:9',
+        duration: 10,
+        enable_safety_checker: true,
+        prompt: 'a silver airship crossing the desert',
+        prompt_expansion_mode: 'balanced',
+        resolution: '1080P',
+      },
+      promptParams: {
+        duration: 10,
+        resolution: '1080P',
+      },
+    },
   ])(
-    'routes MiniMax H3 Max to $endpoint with the published contract',
+    'routes MiniMax H3 Max to $endpoint at $expectedInput.resolution',
     async ({ endpoint, expectedInput, promptParams }) => {
       const falService = {
         generateVideo: vi
@@ -184,6 +199,37 @@ describe('FalVideoGenerationProviderAdapter reviewed contracts', () => {
       expect(falService.generateVideo).toHaveBeenCalledWith(
         endpoint,
         expectedInput,
+      );
+    },
+  );
+
+  it.each(['2K', '1080p', '4k', undefined])(
+    'falls back MiniMax H3 Max unsupported resolution %s to the published 768P default',
+    async (resolution) => {
+      const falService = {
+        generateVideo: vi
+          .fn()
+          .mockResolvedValue({ url: 'https://cdn.test/out.mp4' }),
+      };
+      const adapter = new FalVideoGenerationProviderAdapter(
+        falService as unknown as FalService,
+      );
+
+      await adapter.generate({
+        duration: 5,
+        height: 1080,
+        model: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+        modelEndpoint: 'minimax/h3-max/text-to-video',
+        prompt: 'a silver airship crossing the desert',
+        promptParams: resolution ? { resolution } : {},
+        width: 1920,
+      });
+
+      expect(falService.generateVideo).toHaveBeenCalledWith(
+        'minimax/h3-max/text-to-video',
+        expect.objectContaining({
+          resolution: '768P',
+        }),
       );
     },
   );

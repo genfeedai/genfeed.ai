@@ -125,7 +125,7 @@ export const SELF_HOSTED_MODELS = [
     costPerUnit: 27,
     costTier: CostTier.HIGH,
     description:
-      'MiniMax H3 Max via fal — 5–15 second video with native synchronized audio, 480P/768P output, and optional first/last frames.',
+      'MiniMax H3 Max via fal — 5–15 second video with native synchronized audio, 480P/768P/1080P output, and optional first/last frames.',
     endpoint: 'minimax/h3-max/text-to-video',
     isDefault: false,
     isHighlighted: true,

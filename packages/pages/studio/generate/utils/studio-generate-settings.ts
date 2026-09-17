@@ -38,9 +38,11 @@ export const STUDIO_MAX_OUTPUTS = 8;
 /** Long edge in pixels for each resolution label. */
 const RESOLUTION_LONG_EDGE: Record<string, number> = {
   '360p': 640,
+  '1080P': 1920,
   '1080p': 1920,
   '1K': 1024,
   '2K': 2048,
+  '480P': 854,
   '480p': 854,
   '720p': 1280,
   '768P': 1366,
