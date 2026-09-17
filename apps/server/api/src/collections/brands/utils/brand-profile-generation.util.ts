@@ -1,32 +1,32 @@
-import { BrandProfileGenerationFailureReason } from '@genfeedai/contracts';
-import type {
-  BrandPromptIntent,
-  IBrandAgentPrompting,
-  IBrandPromptSeed,
-  IGeneratedBrandProfile,
+import {
+  type BrandPromptIntent,
+  BrandVoiceFailureCode,
+  type IBrandAgentPrompting,
+  type IBrandPromptSeed,
+  type IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
 
 /**
  * Provider output that does not satisfy the brand-profile contract. Carries
- * the classified reason and the missing field names only — never the raw
+ * the public failure code and the missing field names only — never the raw
  * payload — so callers can map it to a bounded, redacted API error.
  */
-export class BrandProfileValidationError extends Error {
+export class BrandVoiceValidationError extends Error {
   /**
-   * @param reason Classified failure category.
+   * @param code Public classification of what was wrong with the output.
    * @param missingFields Contract field names absent from the output; only
-   *   populated for `MISSING_REQUIRED_FIELDS`.
+   *   populated for `INCOMPLETE_PROFILE`.
    */
   constructor(
-    public readonly reason: BrandProfileGenerationFailureReason,
+    public readonly code: BrandVoiceFailureCode,
     public readonly missingFields: string[] = [],
   ) {
     super(
-      reason === BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS
+      code === BrandVoiceFailureCode.INCOMPLETE_PROFILE
         ? `Brand profile response is missing ${missingFields.join(', ')}.`
-        : `Brand profile response is invalid: ${reason}.`,
+        : `Brand profile response is invalid: ${code}.`,
     );
-    this.name = 'BrandProfileValidationError';
+    this.name = 'BrandVoiceValidationError';
   }
 }
 
@@ -119,9 +119,7 @@ function readStringList(
  */
 function parseJsonObject(content: string): Record<string, unknown> {
   if (!content.trim()) {
-    throw new BrandProfileValidationError(
-      BrandProfileGenerationFailureReason.EMPTY_OUTPUT,
-    );
+    throw new BrandVoiceValidationError(BrandVoiceFailureCode.EMPTY_OUTPUT);
   }
 
   const match = content.match(/\{[\s\S]*\}/);
@@ -129,15 +127,13 @@ function parseJsonObject(content: string): Record<string, unknown> {
   try {
     parsed = JSON.parse(match?.[0] ?? content);
   } catch {
-    throw new BrandProfileValidationError(
-      BrandProfileGenerationFailureReason.MALFORMED_JSON,
-    );
+    throw new BrandVoiceValidationError(BrandVoiceFailureCode.MALFORMED_OUTPUT);
   }
 
   const record = asRecord(parsed);
   if (!record) {
-    throw new BrandProfileValidationError(
-      BrandProfileGenerationFailureReason.NOT_AN_OBJECT,
+    throw new BrandVoiceValidationError(
+      BrandVoiceFailureCode.UNEXPECTED_OUTPUT_SHAPE,
     );
   }
   return record;
@@ -266,7 +262,7 @@ function buildPrompting(
 
 /**
  * Validates raw model output against the brand-profile contract and returns
- * the normalized profile. Throws `BrandProfileValidationError` (classified,
+ * the normalized profile. Throws `BrandVoiceValidationError` (classified,
  * payload-free) for empty, malformed, non-object, or incomplete output.
  */
 export function parseGeneratedBrandProfile(
@@ -288,8 +284,8 @@ export function parseGeneratedBrandProfile(
   ].filter((field): field is string => typeof field === 'string');
 
   if (missingFields.length > 0) {
-    throw new BrandProfileValidationError(
-      BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
+    throw new BrandVoiceValidationError(
+      BrandVoiceFailureCode.INCOMPLETE_PROFILE,
       missingFields,
     );
   }

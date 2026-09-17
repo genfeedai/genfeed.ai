@@ -2371,5 +2371,20 @@
     "revisionLink": "Open immutable revision design.md",
     "scanPersistenceFailed": "Website scan succeeded, but the draft could not be saved as a revision. Your scanned fields are still available below.",
     "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below."
+  },
+  "brandAgentProfile": {
+    "generateErrorTitle": "Generating your brand voice",
+    "generateSuccess": "Brand voice generated and saved",
+    "saveErrorTitle": "Saving your brand voice",
+    "failures": {
+      "brandNotFound": "We could not find this brand. Refresh the page and try again.",
+      "emptyOutput": "The model returned nothing to work with. Try again, or add a website, description, or audience to the brand first.",
+      "generic": "Something went wrong. Please try again.",
+      "incompleteProfile": "The generated profile was missing key details. Try again, or add a website, description, or audience to the brand first.",
+      "malformedOutput": "The model returned a profile we could not read. Try again \u2014 this usually clears on the next attempt.",
+      "saveFailed": "Your changes were not saved. Check your connection and try again.",
+      "sourceRequired": "Add a website URL or brand details before generating.",
+      "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
+    }
   }
 }

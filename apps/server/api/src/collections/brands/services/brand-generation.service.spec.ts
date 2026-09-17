@@ -1,7 +1,4 @@
-import {
-  BRAND_PROFILE_GENERATION_INVALID_CODE,
-  BrandProfileGenerationException,
-} from '@api/collections/brands/exceptions/brand-profile-generation.exception';
+import { BrandVoiceGenerationException } from '@api/collections/brands/exceptions/brand-voice-generation.exception';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
   type BrandFinder,
@@ -9,9 +6,9 @@ import {
 } from '@api/collections/brands/services/brand-generation.service';
 import type { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
-import { BrandProfileGenerationFailureReason } from '@genfeedai/contracts';
+import { BrandVoiceFailureCode } from '@genfeedai/contracts/interfaces';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, HttpStatus } from '@nestjs/common';
+import { HttpStatus } from '@nestjs/common';
 import type { Mock } from 'vitest';
 
 describe('BrandGenerationService', () => {
@@ -70,22 +67,35 @@ describe('BrandGenerationService', () => {
       isValid: false,
     });
 
-    await expect(
+    const error = await captureRejection(
       service.generateBrandVoice({ url: 'invalid' }, organizationId, findBrand),
-    ).rejects.toBeInstanceOf(BadRequestException);
+    );
+
+    expect(error).toBeInstanceOf(BrandVoiceGenerationException);
+    const exception = error as BrandVoiceGenerationException;
+    expect(exception.code).toBe(BrandVoiceFailureCode.SOURCE_URL_INVALID);
+    expect(exception.getStatus()).toBe(HttpStatus.BAD_REQUEST);
+    // The scraper knows why the URL was refused, so its reason wins.
+    expect(exception.message).toBe('Invalid URL');
+    expect(exception.isRetryable).toBe(false);
     expect(brandScraperService.scrapeWebsite).not.toHaveBeenCalled();
   });
 
   it('scopes stored brand lookup to the organization', async () => {
     findBrand.mockResolvedValue(null);
 
-    await expect(
+    const error = await captureRejection(
       service.generateBrandVoice(
         { brandId: 'brand-1' },
         organizationId,
         findBrand,
       ),
-    ).rejects.toThrow('Brand not found');
+    );
+
+    expect(error).toBeInstanceOf(BrandVoiceGenerationException);
+    expect((error as BrandVoiceGenerationException).code).toBe(
+      BrandVoiceFailureCode.BRAND_NOT_FOUND,
+    );
     expect(findBrand).toHaveBeenCalledWith({
       id: 'brand-1',
       isDeleted: false,
@@ -94,9 +104,15 @@ describe('BrandGenerationService', () => {
   });
 
   it('requires either a URL or a stored brand', async () => {
-    await expect(
+    const error = await captureRejection(
       service.generateBrandVoice({}, organizationId, findBrand),
-    ).rejects.toThrow('Either url or brandId must be provided');
+    );
+
+    expect(error).toBeInstanceOf(BrandVoiceGenerationException);
+    expect((error as BrandVoiceGenerationException).code).toBe(
+      BrandVoiceFailureCode.SOURCE_REQUIRED,
+    );
+    expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
   });
 
   it('generates a normalized brand profile from website evidence', async () => {
@@ -159,18 +175,19 @@ describe('BrandGenerationService', () => {
         ),
       );
 
-      expect(error).toBeInstanceOf(BrandProfileGenerationException);
-      const exception = error as BrandProfileGenerationException;
+      expect(error).toBeInstanceOf(BrandVoiceGenerationException);
+      const exception = error as BrandVoiceGenerationException;
       expect(exception.getStatus()).toBe(HttpStatus.UNPROCESSABLE_ENTITY);
       expect(exception.getResponse()).toMatchObject({
-        code: BRAND_PROFILE_GENERATION_INVALID_CODE,
-        title: 'Brand profile generation failed',
+        code: BrandVoiceFailureCode.MALFORMED_OUTPUT,
+        meta: { isRetryable: true },
+        title: 'Brand voice generation failed',
       });
       expect(exception.diagnostics).toEqual({
+        code: BrandVoiceFailureCode.MALFORMED_OUTPUT,
         isRetryable: true,
         missingFields: [],
         outputLength: 'not-json'.length,
-        reason: BrandProfileGenerationFailureReason.MALFORMED_JSON,
       });
     });
 
@@ -185,14 +202,14 @@ describe('BrandGenerationService', () => {
         ),
       );
 
-      expect(error).toBeInstanceOf(BrandProfileGenerationException);
+      expect(error).toBeInstanceOf(BrandVoiceGenerationException);
       expect(
-        (error as BrandProfileGenerationException).diagnostics,
+        (error as BrandVoiceGenerationException).diagnostics,
       ).toMatchObject({
+        code: BrandVoiceFailureCode.INCOMPLETE_PROFILE,
         missingFields: ['style', 'audience', 'topics'],
-        reason: BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
       });
-      expect((error as BrandProfileGenerationException).message).toContain(
+      expect((error as BrandVoiceGenerationException).message).toContain(
         'missing style, audience, topics',
       );
     });
@@ -208,12 +225,12 @@ describe('BrandGenerationService', () => {
         ),
       );
 
-      expect(error).toBeInstanceOf(BrandProfileGenerationException);
+      expect(error).toBeInstanceOf(BrandVoiceGenerationException);
       expect(
-        (error as BrandProfileGenerationException).diagnostics,
+        (error as BrandVoiceGenerationException).diagnostics,
       ).toMatchObject({
+        code: BrandVoiceFailureCode.EMPTY_OUTPUT,
         outputLength: 0,
-        reason: BrandProfileGenerationFailureReason.EMPTY_OUTPUT,
       });
     });
 
@@ -230,20 +247,18 @@ describe('BrandGenerationService', () => {
       );
 
       expect(logger.warn).toHaveBeenCalledWith(
-        'Generated brand profile failed validation',
+        'Brand voice generation failed',
         expect.objectContaining({
           brandId: 'brand-1',
+          code: BrandVoiceFailureCode.MALFORMED_OUTPUT,
           isRetryable: true,
           organizationId,
-          reason: BrandProfileGenerationFailureReason.MALFORMED_JSON,
         }),
       );
       const [, context] = logger.warn.mock.calls[0] as [string, object];
       expect(JSON.stringify(context)).not.toContain(payloadMarker);
       expect(
-        JSON.stringify(
-          (error as BrandProfileGenerationException).getResponse(),
-        ),
+        JSON.stringify((error as BrandVoiceGenerationException).getResponse()),
       ).not.toContain(payloadMarker);
     });
 

@@ -1,5 +1,3 @@
-import type { BrandProfileGenerationFailureReason } from '../../enums/brand-profile-generation.enum';
-
 export type BrandPromptIntent = 'analyze' | 'create' | 'plan';
 
 export interface IBrandPromptSeed {
@@ -37,15 +35,4 @@ export interface IGeneratedBrandProfile {
   taglines: string[];
   tone: string;
   values: string[];
-}
-
-/**
- * Redacted diagnostics for a generated brand profile that failed validation.
- * Bounded by design: never includes the provider payload, only its shape.
- */
-export interface IBrandProfileGenerationDiagnostics {
-  isRetryable: boolean;
-  missingFields: string[];
-  outputLength: number;
-  reason: BrandProfileGenerationFailureReason;
 }
