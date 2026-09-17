@@ -460,11 +460,8 @@ export class WorkflowExecutionRunnerService {
     );
     await this.settleClipChainHoldSafely({
       actorUserId: event.userId,
+      executionId: prepared.executionId,
       organizationId: prepared.organizationId,
-      totalCreditsUsed: await this.executionsService.sumPersistedNodeCredits({
-        executionId: prepared.executionId,
-        organizationId: prepared.organizationId,
-      }),
       workflowId: prepared.workflowId,
     });
     if (!prepared.isSystemAction) {
@@ -655,15 +652,10 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       errorMessage,
     );
-    const totalCreditsUsed =
-      await this.executionsService.sumPersistedNodeCredits({
-        executionId: input.executionId,
-        organizationId: input.organizationId,
-      });
-    await this.settleClipChainHoldSafely({
+    const totalCreditsUsed = await this.settleClipChainHoldSafely({
       actorUserId: input.userId,
+      executionId: input.executionId,
       organizationId: input.organizationId,
-      totalCreditsUsed,
       workflowId: input.workflowId,
     });
     await this.prisma.workflow.update({
@@ -758,15 +750,10 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       input.errorMessage,
     );
-    const totalCreditsUsed =
-      await this.executionsService.sumPersistedNodeCredits({
-        executionId: input.executionId,
-        organizationId: input.organizationId,
-      });
-    await this.settleClipChainHoldSafely({
+    const totalCreditsUsed = await this.settleClipChainHoldSafely({
       actorUserId: input.userId,
+      executionId: input.executionId,
       organizationId: input.organizationId,
-      totalCreditsUsed,
       workflowId: input.workflowId,
     });
     await this.progressService.publishWorkflowTaskUpdate({
@@ -796,17 +783,29 @@ export class WorkflowExecutionRunnerService {
 
   private async settleClipChainHoldSafely(input: {
     actorUserId: string;
+    executionId: string;
     organizationId: string;
-    totalCreditsUsed: number;
     workflowId: string;
-  }): Promise<void> {
+  }): Promise<number> {
     try {
-      await this.finalizer.settleClipChainReservationForWorkflow(input);
+      const totalCreditsUsed =
+        await this.executionsService.sumPersistedNodeCredits({
+          executionId: input.executionId,
+          organizationId: input.organizationId,
+        });
+      await this.finalizer.settleClipChainReservationForWorkflow({
+        actorUserId: input.actorUserId,
+        organizationId: input.organizationId,
+        totalCreditsUsed,
+        workflowId: input.workflowId,
+      });
+      return totalCreditsUsed;
     } catch (error: unknown) {
       this.logger.error(
         `${this.logContext} clip-chain reservation settlement failed`,
         error,
       );
+      return 0;
     }
   }
 }
