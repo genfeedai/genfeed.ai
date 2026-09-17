@@ -49,6 +49,15 @@ export {
   resolveEffectiveMutationPolicy,
   VISUAL_GENERATION_REVIEW_TOOL_NAMES,
 } from './registry/agent-action-class';
+export {
+  getKnowledgeToolActionContract,
+  KNOWLEDGE_RECEIPT_SCHEMA,
+  KNOWLEDGE_RETRIEVAL_CITATION_SCHEMA,
+  KNOWLEDGE_WORKFLOW_MUTATION_ACTION_IDS,
+  KNOWLEDGE_WORKFLOW_PROVENANCE_SCHEMA,
+  KNOWLEDGE_WORKFLOW_READ_ACTION_IDS,
+  SEARCH_KNOWLEDGE_DATA_SCHEMA,
+} from './registry/contracts/knowledge-tool-action-contracts';
 export { REMOTION_COMPOSITION_INPUT_SCHEMA } from './registry/contracts/remotion-action-contracts';
 export type {
   CuratedActionCatalogEntry,

@@ -34,6 +34,7 @@ const PREVIEW_LENGTH = 1500;
 
 type KnowledgeActor = {
   brandId?: string;
+  isWorkflowScoped?: boolean;
   organizationId: string;
   userId: string;
 };
@@ -41,6 +42,7 @@ type KnowledgeActor = {
 function toActor(ctx: ToolExecutionContext): KnowledgeActor {
   return {
     ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
+    ...(ctx.isWorkflowScoped ? { isWorkflowScoped: true } : {}),
     organizationId: ctx.organizationId,
     userId: ctx.userId,
   };
@@ -168,10 +170,26 @@ export class AgentKnowledgeToolHandler {
         success: false,
       };
     }
+    if (Array.isArray(params.sourceIds) && params.sourceIds.length === 0) {
+      return {
+        creditsUsed: 0,
+        data: {
+          message:
+            'No saved Knowledge matched. Capture a source first or broaden the query.',
+          passages: [],
+          query,
+        },
+        success: true,
+      };
+    }
+    const sourceIds = readStringList(params.sourceIds);
+    if (sourceIds && ctx.isWorkflowScoped) {
+      await this.records.assertSourcesInScope(toActor(ctx), sourceIds);
+    }
     const hits = await this.contextsService.retrieveBrandContentMemory({
       brandId: ctx.brandId,
       knowledgePurposes: readPurposes(params.purposes),
-      knowledgeSourceIds: readStringList(params.sourceIds),
+      knowledgeSourceIds: sourceIds,
       limit: readBoundedInt(
         params.limit,
         SEARCH_DEFAULT_LIMIT,
@@ -284,6 +302,39 @@ export class AgentKnowledgeToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const sourceId = readOptionalString(params.sourceId);
+    const actor = toActor(ctx);
+    if (sourceId) {
+      const conflicting = ['title', 'kind', 'referenceUrl', 'text', 'purpose']
+        .filter((key) => params[key] !== undefined)
+        .join(', ');
+      if (conflicting) {
+        return {
+          creditsUsed: 0,
+          error: `Refresh capture forbids ${conflicting}`,
+          success: false,
+        };
+      }
+      const result = await this.capture.refreshExisting(actor, sourceId, {
+        capturedAt: new Date().toISOString(),
+        capturedBy: ctx.isWorkflowScoped ? 'workflow' : 'agent',
+        ...(ctx.threadId ? { threadId: ctx.threadId } : {}),
+      });
+      this.loggerService.log('Agent refreshed knowledge', {
+        organizationId: ctx.organizationId,
+        sourceId: result.source.id,
+      });
+      return {
+        creditsUsed: 0,
+        data: {
+          ...summarizeSource(result.source, result.version),
+          jobId: result.jobId,
+          message:
+            'Source refresh queued; it becomes searchable once ingestion succeeds.',
+        },
+        success: true,
+      };
+    }
     const title = readOptionalString(params.title)?.trim();
     const kind = readOptionalString(params.kind);
     if (!title || !kind) {
@@ -296,15 +347,17 @@ export class AgentKnowledgeToolHandler {
     if (
       kind !== KnowledgeSourceKind.TEXT &&
       kind !== KnowledgeSourceKind.URL &&
-      kind !== KnowledgeSourceKind.DOCUMENT
+      kind !== KnowledgeSourceKind.DOCUMENT &&
+      kind !== KnowledgeSourceKind.RSS &&
+      kind !== KnowledgeSourceKind.AUDIO &&
+      kind !== KnowledgeSourceKind.VIDEO
     ) {
       return {
         creditsUsed: 0,
-        error: 'kind must be TEXT, URL or DOCUMENT',
+        error: 'kind must be TEXT, URL, DOCUMENT, RSS, AUDIO or VIDEO',
         success: false,
       };
     }
-    const actor = toActor(ctx);
     const result = await this.capture.capture(actor, {
       kind,
       purpose:
@@ -316,8 +369,18 @@ export class AgentKnowledgeToolHandler {
       text: readOptionalString(params.text),
       title,
       provenance: {
-        capturedBy: 'agent',
+        capturedBy: ctx.isWorkflowScoped ? 'workflow' : 'agent',
         ...(ctx.threadId ? { threadId: ctx.threadId } : {}),
+        ...(kind === KnowledgeSourceKind.AUDIO ||
+        kind === KnowledgeSourceKind.VIDEO
+          ? {
+              isTranscriptGenerationAllowed:
+                params.isTranscriptGenerationAllowed === true,
+              ...(readOptionalString(params.transcriptUrl)
+                ? { transcriptUrl: readOptionalString(params.transcriptUrl) }
+                : {}),
+            }
+          : {}),
       },
     });
     this.loggerService.log('Agent captured knowledge', {

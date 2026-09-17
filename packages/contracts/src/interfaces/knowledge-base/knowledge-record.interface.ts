@@ -86,6 +86,9 @@ export interface KnowledgeRetrievalCitation {
   kind: KnowledgeSourceKind;
   purpose: KnowledgeSourcePurpose;
   url?: string;
+  mediaUrl?: string;
+  startMs?: number;
+  endMs?: number;
 }
 
 /** Captured content stored on a source version until payload purge. */

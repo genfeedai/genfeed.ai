@@ -96,7 +96,7 @@ describe('extractSourceText', () => {
 
     await expect(
       extractSourceText({
-        category: KnowledgeBaseCategory.VIDEO,
+        category: KnowledgeBaseCategory.FILE,
         fetchImpl,
         referenceUrl: 'https://cdn.example.com/clip.mp4',
       }),

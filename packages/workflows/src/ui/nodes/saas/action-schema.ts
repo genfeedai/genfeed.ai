@@ -133,6 +133,7 @@ const PIPELINE_FIELDS = new Set([
   'input',
   'item',
   'items',
+  'knowledge',
   'media',
   'negativePrompt',
   'negative_prompt',
@@ -212,11 +213,39 @@ function wholeObjectHandle(
   };
 }
 
+function isToolEnvelopeSchema(schema: ActionObjectSchema): boolean {
+  const data = schema.properties.data;
+  if (
+    !data ||
+    !schema.required.has('creditsUsed') ||
+    !schema.required.has('success')
+  ) {
+    return false;
+  }
+  const resolved = unwrapActionSchemaProperty(data);
+  return resolved.type === 'object' && isSchemaRecord(resolved.properties);
+}
+
 function schemaToHandles(
   schema: ActionJsonSchema | undefined,
   direction: 'input' | 'output',
 ): VisualHandleDefinition[] {
   const { properties, required } = readActionObjectSchema(schema);
+  if (
+    direction === 'output' &&
+    isToolEnvelopeSchema({ properties, required })
+  ) {
+    return [
+      {
+        id: 'data',
+        label: 'Data',
+        multiple: false,
+        optional: false,
+        required: false,
+        type: 'object',
+      },
+    ];
+  }
   const entries = Object.entries(properties);
 
   if (entries.length === 0) {

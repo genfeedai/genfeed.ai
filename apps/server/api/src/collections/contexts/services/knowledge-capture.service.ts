@@ -137,6 +137,46 @@ export class KnowledgeCaptureService {
     return { jobId: ingested.jobId, source, version: ingested.version };
   }
 
+  async refreshExisting(
+    actor: KnowledgeActor,
+    sourceId: string,
+    provenance?: KnowledgeSourceCaptureProvenance,
+  ): Promise<KnowledgeCaptureResult> {
+    const source = await this.records.getSource(actor, sourceId);
+    if (
+      source.kind !== KnowledgeSourceKind.URL &&
+      source.kind !== KnowledgeSourceKind.RSS
+    ) {
+      throw new BadRequestException(
+        'Refresh capture is only supported for URL and RSS sources',
+      );
+    }
+    const current = await this.records.getCurrentVersion(actor, sourceId);
+    const payload =
+      current.payload &&
+      typeof current.payload === 'object' &&
+      !Array.isArray(current.payload)
+        ? (current.payload as KnowledgeSourceCapturePayload)
+        : {};
+    const referenceUrl = payload.referenceUrl;
+    if (!referenceUrl) {
+      throw new BadRequestException(
+        'Source has no captured reference URL to refresh',
+      );
+    }
+    this.assertCapturable(source.kind, { referenceUrl });
+    const versionDto = buildCaptureVersion({
+      provenance: {
+        ...(provenance ?? {}),
+        refreshOf: sourceId,
+      },
+      referenceUrl,
+      title: source.title,
+    });
+    const ingested = await this.createVersion(actor, sourceId, versionDto);
+    return { jobId: ingested.jobId, source, version: ingested.version };
+  }
+
   async createVersion(
     actor: KnowledgeActor,
     sourceId: string,

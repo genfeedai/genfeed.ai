@@ -97,6 +97,37 @@ describe('system workflow catalog', () => {
     ).toBe(true);
   });
 
+  it('lists research-to-content as an installable, schedule-disabled entry (#4132)', () => {
+    const entry = getSystemWorkflowCatalogEntry('research-to-content');
+
+    expect(entry).toMatchObject({
+      canonicalId: 'research-to-content',
+      family: 'product',
+      installable: true,
+      isScheduleEnabled: false,
+      sourceIssue: 4132,
+      version: 1,
+    });
+    expect(entry?.nodes.map((node) => node.type)).toEqual([
+      'genfeedAction',
+      'genfeedAction',
+      'genfeedAction',
+    ]);
+  });
+
+  it('lists source-maintenance as an installable, schedule-disabled entry (#4134)', () => {
+    const entry = getSystemWorkflowCatalogEntry('source-maintenance');
+
+    expect(entry).toMatchObject({
+      canonicalId: 'source-maintenance',
+      family: 'product',
+      installable: true,
+      isScheduleEnabled: false,
+      sourceIssue: 4134,
+      version: 1,
+    });
+  });
+
   it('retires the X-only ingestion canonical id (#3537)', () => {
     expect(
       getSystemWorkflowCatalogEntry('x-ads-inspiration-ingestion'),

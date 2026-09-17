@@ -84,9 +84,12 @@ export const KNOWLEDGE_CONTEXT_BASE_TYPE = 'knowledge';
 const FETCHED_CATEGORY_BY_KIND: Partial<
   Record<KnowledgeSourceKind, KnowledgeBaseCategory>
 > = {
+  [KnowledgeSourceKind.AUDIO]: KnowledgeBaseCategory.AUDIO,
   [KnowledgeSourceKind.DOCUMENT]: KnowledgeBaseCategory.DOCUMENT,
   [KnowledgeSourceKind.FILE]: KnowledgeBaseCategory.DOCUMENT,
+  [KnowledgeSourceKind.RSS]: KnowledgeBaseCategory.RSS,
   [KnowledgeSourceKind.URL]: KnowledgeBaseCategory.URL,
+  [KnowledgeSourceKind.VIDEO]: KnowledgeBaseCategory.VIDEO,
 };
 
 export function isIngestibleKnowledgeSourceKind(

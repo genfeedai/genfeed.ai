@@ -1,6 +1,6 @@
 import type { ToolsetName } from './toolset-names';
 
-export type CuratedActionSurface = 'agent' | 'mcp';
+export type CuratedActionSurface = 'agent' | 'mcp' | 'workflow';
 
 export interface CuratedActionCatalogEntry {
   isPublishingApprovalRequired?: true;
@@ -33,12 +33,12 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     name: 'archive_knowledge_source',
-    surfaces: ['agent', 'mcp'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
   {
     name: 'assign_knowledge_purpose',
-    surfaces: ['agent', 'mcp'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
   {
@@ -49,7 +49,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'batch_approve_reject', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'capture_knowledge',
-    surfaces: ['agent', 'mcp'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
   { name: 'capture_memory', surfaces: ['agent'], toolset: 'memory' },
@@ -308,7 +308,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     name: 'list_knowledge_sources',
-    surfaces: ['agent', 'mcp'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
   { name: 'list_meta_ad_accounts', surfaces: ['mcp'], toolset: 'ads' },
@@ -375,7 +375,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'rate_ingredient', surfaces: ['agent'], toolset: 'ui' },
   {
     name: 'read_knowledge_source',
-    surfaces: ['agent', 'mcp'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
   { name: 'reframe_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
@@ -390,7 +390,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'resolve_handle', surfaces: ['agent'], toolset: 'onboarding' },
   {
     name: 'retry_knowledge_ingestion',
-    surfaces: ['agent', 'mcp'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
   { name: 'save_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
@@ -400,7 +400,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'search_articles', surfaces: ['mcp'], toolset: 'content' },
   {
     name: 'search_knowledge',
-    surfaces: ['agent', 'mcp'],
+    surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
   { name: 'search_tools', surfaces: ['mcp'], toolset: 'core' },

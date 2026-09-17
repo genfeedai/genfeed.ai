@@ -76,7 +76,9 @@ export interface ExecutableWorkflow {
   versionId: string;
   organizationId: string;
   userId: string;
+  brandId?: string;
   emitSharedEvents?: boolean;
+  isCustomerWorkflow?: boolean;
   nodes: ExecutableNode[];
   edges: ExecutableEdge[];
   lockedNodeIds: string[];

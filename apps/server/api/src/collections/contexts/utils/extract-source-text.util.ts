@@ -6,8 +6,11 @@ import * as cheerio from 'cheerio';
 export const KNOWLEDGE_SOURCE_MAX_BYTES = 2_000_000;
 
 export const INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES = [
-  KnowledgeBaseCategory.URL,
+  KnowledgeBaseCategory.AUDIO,
   KnowledgeBaseCategory.DOCUMENT,
+  KnowledgeBaseCategory.RSS,
+  KnowledgeBaseCategory.URL,
+  KnowledgeBaseCategory.VIDEO,
 ] as const;
 
 export type IngestibleKnowledgeSourceCategory =
@@ -61,12 +64,57 @@ export function isIngestibleKnowledgeSourceCategory(
 
 export function extractHtmlText(html: string): string {
   const $ = cheerio.load(html);
-  $('script, style, noscript, iframe, svg').remove();
+  $(
+    'script, style, noscript, iframe, svg, nav, header, footer, aside',
+  ).remove();
+  $('[class*="view-count"], [class*="timestamp"], time[datetime]').remove();
   const title = $('title').first().text().trim();
-  const body = ($('body').text() || $.root().text())
+  const article = (
+    $('main, article').first().text() ||
+    $('body').text() ||
+    $.root().text()
+  )
     .replace(/\s+/g, ' ')
     .trim();
-  return [title, body].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+  return [title, article].filter(Boolean).join(' ').replace(/\s+/g, ' ').trim();
+}
+
+export function extractRssText(xml: string): string {
+  const $ = cheerio.load(xml, { xml: true });
+  const isFeed = $('rss, feed, channel').length > 0;
+  if (!isFeed) {
+    throw new Error('Source is not a valid RSS or Atom feed');
+  }
+  const items = $('item, entry').toArray();
+  if (items.length > 200) {
+    throw new Error('Feed exceeds the 200-entry ingest limit');
+  }
+  const feedTitle = (
+    $('channel > title, feed > title').first().text() || ''
+  ).trim();
+  const entries = items.map((item) => {
+    const node = $(item);
+    const identity =
+      node.find('guid, id').first().text().trim() ||
+      node.find('link').first().attr('href') ||
+      node.find('link').first().text().trim();
+    const title = node.find('title').first().text().trim();
+    const summary = (
+      node.find('description, summary, content').first().text() || ''
+    )
+      .replace(/\s+/g, ' ')
+      .trim();
+    return [identity, title, summary].filter(Boolean).join(' ');
+  });
+  const snapshot = [feedTitle, ...entries]
+    .filter(Boolean)
+    .join('\n')
+    .replace(/\s+\n/g, '\n')
+    .trim();
+  if (!snapshot && items.length === 0) {
+    return feedTitle || 'empty-feed';
+  }
+  return snapshot;
 }
 
 function decodePdfLiteral(literal: string): string {
@@ -164,7 +212,20 @@ function decodeTextBytes(bytes: Buffer): string {
   return new TextDecoder('utf-8', { fatal: false }).decode(bytes);
 }
 
-function extractByMimeType(bytes: Buffer, mimeType: string): string {
+function extractByMimeType(
+  bytes: Buffer,
+  mimeType: string,
+  category: KnowledgeBaseCategory,
+): string {
+  if (category === KnowledgeBaseCategory.RSS) {
+    return extractRssText(decodeTextBytes(bytes));
+  }
+  if (
+    category === KnowledgeBaseCategory.AUDIO ||
+    category === KnowledgeBaseCategory.VIDEO
+  ) {
+    throw new Error('No transcript is available for this media source');
+  }
   if (
     mimeType === 'text/html' ||
     mimeType === 'application/xhtml+xml' ||
@@ -224,7 +285,7 @@ export async function extractSourceText(
     input.referenceUrl,
     bytes,
   );
-  const text = extractByMimeType(bytes, mimeType);
+  const text = extractByMimeType(bytes, mimeType, input.category);
   if (!text) {
     throw new Error('Source did not contain extractable text');
   }

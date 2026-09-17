@@ -179,6 +179,32 @@ describe('video localization composition ports', () => {
   });
 });
 
+describe('Knowledge workflow ports', () => {
+  it('exposes Search, List, and Read Knowledge as generated input nodes', () => {
+    expect(ACTION_NODE_DEFINITIONS.search_knowledge).toMatchObject({
+      category: 'input',
+      icon: 'BookOpen',
+      type: 'search_knowledge',
+    });
+    expect(
+      ACTION_NODE_DEFINITIONS.search_knowledge?.inputs.map((input) => input.id),
+    ).toEqual(['query']);
+    expect(
+      ACTION_NODE_DEFINITIONS.search_knowledge?.outputs.map(
+        (output) => output.id,
+      ),
+    ).toEqual(['data']);
+    expect(
+      ACTION_NODE_DEFINITIONS.read_knowledge_source?.inputs.map(
+        (input) => input.id,
+      ),
+    ).toEqual(['sourceId']);
+    expect(
+      ACTION_NODE_DEFINITIONS.postGen?.inputs.map((input) => input.id),
+    ).toEqual(expect.arrayContaining(['knowledge']));
+  });
+});
+
 describe('dialogue separation workflow ports', () => {
   it('accepts existing media and exposes a background audio stem plus review flag', () => {
     const node = ACTION_NODE_DEFINITIONS.separateDialogue;

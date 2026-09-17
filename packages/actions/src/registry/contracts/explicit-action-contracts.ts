@@ -19,6 +19,7 @@ import { getEmailDigestActionContract } from './email-digest-action-contracts';
 import { getEmailProductSignalsActionContract } from './email-product-signals-action-contracts';
 import { getInsightActionContract } from './insight-action-contracts';
 import { getKnowledgeSourceActionContract } from './knowledge-source-action-contracts';
+import { getKnowledgeToolActionContract } from './knowledge-tool-action-contracts';
 import { getLifecycleEmailActionContract } from './lifecycle-email-action-contracts';
 import { getMaintenanceActionContract } from './maintenance-action-contracts';
 import { getNewsletterActionContract } from './newsletter-action-contracts';
@@ -73,6 +74,7 @@ const CONTRACT_RESOLVERS = [
   getLifecycleEmailActionContract,
   getInsightActionContract,
   getKnowledgeSourceActionContract,
+  getKnowledgeToolActionContract,
   getBrandRemixActionContract,
   getWorkspaceTaskActionContract,
   getYoutubeClipActionContract,

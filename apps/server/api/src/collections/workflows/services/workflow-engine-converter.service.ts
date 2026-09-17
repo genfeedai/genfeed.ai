@@ -4,7 +4,10 @@ import type {
   WorkflowVisualNode,
 } from '@api/collections/workflows/schemas/workflow.schema';
 import { VISUAL_TRIGGER_NODE_TYPE_TO_EXECUTOR } from '@api/collections/workflows/services/workflow-executor.constants';
-import { isHiddenSystemWorkflowMetadata } from '@api/collections/workflows/system-workflow.contract';
+import {
+  isHiddenSystemWorkflowMetadata,
+  SYSTEM_WORKFLOW_PRINCIPAL_ID,
+} from '@api/collections/workflows/system-workflow.contract';
 import { isWorkflowInputNodeType } from '@api/collections/workflows/workflow-node-predicates';
 import { isPersistableWorkflowNodeType } from '@api/collections/workflows/workflow-version-definition';
 import { getActionDefinition } from '@genfeedai/actions';
@@ -16,6 +19,10 @@ import type {
 
 export interface WorkflowDocumentShape {
   brandId?: string | null;
+  currentVersion?: {
+    organizationId?: string | null;
+    userId?: string | null;
+  } | null;
   id?: string;
   versionId?: string;
   nodes?: WorkflowVisualNode[];
@@ -91,15 +98,34 @@ export class WorkflowEngineConverterService {
     }));
 
     return {
+      ...(typeof workflowDoc.brandId === 'string' && workflowDoc.brandId
+        ? { brandId: workflowDoc.brandId }
+        : {}),
       edges,
       emitSharedEvents: !isHiddenSystemWorkflowMetadata(workflowDoc.metadata),
       id: workflowDoc.id || '',
+      isCustomerWorkflow: this.resolveIsCustomerWorkflow(workflowDoc),
       lockedNodeIds: workflowDoc.lockedNodeIds || [],
       nodes,
       organizationId: workflowDoc.organizationId ?? '',
       userId: workflowDoc.userId ?? '',
       versionId: workflowDoc.versionId ?? '',
     };
+  }
+
+  private resolveIsCustomerWorkflow(
+    workflowDoc: WorkflowDocumentShape,
+  ): boolean {
+    const versionOrganizationId = workflowDoc.currentVersion?.organizationId;
+    const versionUserId = workflowDoc.currentVersion?.userId;
+    if (
+      versionOrganizationId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+      versionUserId === SYSTEM_WORKFLOW_PRINCIPAL_ID &&
+      isHiddenSystemWorkflowMetadata(workflowDoc.metadata)
+    ) {
+      return false;
+    }
+    return true;
   }
 
   applyRuntimeInputValues(

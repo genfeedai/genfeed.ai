@@ -74,11 +74,15 @@ export class KnowledgeRecordsService {
       isDeleted: false,
       OR: [
         { scope: KnowledgeMemoryScope.ORG, brandId: null },
-        {
-          scope: KnowledgeMemoryScope.PERSONAL,
-          brandId: null,
-          userId: actor.userId,
-        },
+        ...(actor.isWorkflowScoped
+          ? []
+          : [
+              {
+                scope: KnowledgeMemoryScope.PERSONAL,
+                brandId: null,
+                userId: actor.userId,
+              },
+            ]),
         ...(actor.brandId
           ? [
               {
@@ -339,6 +343,25 @@ export class KnowledgeRecordsService {
       limit,
       totalPages: Math.ceil(totalDocs / limit),
     };
+  }
+
+  async assertSourcesInScope(actor: KnowledgeActor, sourceIds: string[]) {
+    if (sourceIds.length === 0) {
+      return;
+    }
+    const uniqueIds = [...new Set(sourceIds)];
+    const found = await this.prisma.knowledgeSource.findMany({
+      select: { id: true },
+      where: {
+        ...this.ownership(actor),
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        id: { in: uniqueIds },
+      },
+    });
+    if (found.length !== uniqueIds.length) {
+      ErrorResponse.notFound('Knowledge source', uniqueIds.join(','));
+    }
   }
 
   async getSource(actor: KnowledgeActor, id: string) {

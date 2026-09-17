@@ -22,7 +22,8 @@ describe('curated action catalog', () => {
       expect(new Set(entry.surfaces).size).toBe(entry.surfaces.length);
       expect(
         entry.surfaces.every(
-          (surface) => surface === 'agent' || surface === 'mcp',
+          (surface) =>
+            surface === 'agent' || surface === 'mcp' || surface === 'workflow',
         ),
       ).toBe(true);
     }
