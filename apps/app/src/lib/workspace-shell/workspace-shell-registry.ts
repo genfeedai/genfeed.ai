@@ -229,6 +229,7 @@ const BREADCRUMB_LEAF_OVERRIDES = Object.freeze({
   '/:orgSlug/~/agent/onboarding/:threadId': 'Onboarding',
   '/:orgSlug/~/library/:type': ':type',
   '/:orgSlug/~/library/shelf/:shelf': ':shelf',
+  '/:orgSlug/~/connect/social': 'Social account',
   '/:orgSlug/~/settings': 'Settings',
   '/:orgSlug/~/settings/general': 'General',
   '/:orgSlug/~/settings/credits': 'Credits',
@@ -499,6 +500,14 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
     productClass: 'control-plane',
     scope: 'organization',
     surfaceKey: 'connect-genfeed',
+    telemetryClass: 'management',
+  }),
+  ...registerRoutes(['/:orgSlug/~/connect/social'], {
+    fallback: '/:orgSlug/~/connect/social',
+    mode: 'canvas',
+    productClass: 'control-plane',
+    scope: 'organization',
+    surfaceKey: 'connect-social',
     telemetryClass: 'management',
   }),
   ...registerRoutes(

@@ -77,6 +77,7 @@ export type WorkspaceShellSurfaceKey =
   | 'brand-settings'
   | 'connect-genfeed'
   | 'connect-genfeed-resolver'
+  | 'connect-social'
   | 'discovery'
   | 'library'
   | 'messages'

@@ -95,7 +95,7 @@ export interface ToolsetSelection {
  * toolset name (`isToolsetName`), regardless of whether that toolset has
  * tools on a particular surface. When `surface` is given, a segment is only
  * "known" if the toolset also has at least one tool on that surface — an
- * agent-only toolset name (e.g. `onboarding`) passed for the `mcp` surface
+ * agent-only toolset name (e.g. `goals`) passed for the `mcp` surface
  * goes into `unknown` instead of silently resolving to core-only.
  */
 export function parseToolsetSelection(

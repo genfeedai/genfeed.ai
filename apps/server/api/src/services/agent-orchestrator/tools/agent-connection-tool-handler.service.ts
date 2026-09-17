@@ -95,7 +95,7 @@ export class AgentConnectionToolHandler {
       const authorizationUrl =
         typeof result.data?.authorizationUrl === 'string'
           ? result.data.authorizationUrl
-          : card.ctas[0]?.href;
+          : card.ctas?.[0]?.href;
       return {
         ...result,
         data: {

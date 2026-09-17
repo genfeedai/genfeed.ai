@@ -1,5 +1,11 @@
+import type { McpMediaToolResult } from '@genfeedai/contracts/interfaces';
 import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import type { ClientService } from '@mcp/services/client.service';
+
+type AccountManagementToolResult = {
+  content: McpMediaToolResult['content'];
+  structuredContent?: McpMediaToolResult['structuredContent'];
+};
 
 export function handleAccountManagementTool(
   client: ClientService,
@@ -8,9 +14,7 @@ export function handleAccountManagementTool(
 ) {
   const handlers: Record<
     string,
-    (args: Record<string, unknown>) => Promise<{
-      content: Array<{ text: string; type: 'text' }>;
-    }>
+    (args: Record<string, unknown>) => Promise<AccountManagementToolResult>
   > = {
     get_account_info: async () => {
       const info = await client.getAccountInfo();
@@ -76,10 +80,14 @@ export function handleAccountManagementTool(
     get_job_status: async (a) => {
       const status = await client.getJobStatus(a.jobId as string);
       const artifact = toMcpMediaToolResult(status);
+      const statusText =
+        artifact.content[0]?.type === 'text'
+          ? artifact.content[0].text
+          : JSON.stringify(status, null, 2);
       return {
         content: [
           {
-            text: `Job Status:\n\n${artifact.content[0]?.text ?? JSON.stringify(status, null, 2)}`,
+            text: `Job Status:\n\n${statusText}`,
             type: 'text' as const,
           },
           ...artifact.content.slice(1),

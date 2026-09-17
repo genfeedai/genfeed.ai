@@ -63,18 +63,18 @@ describe('parseToolsetSelection', () => {
   });
 
   it('without a surface, accepts any declared toolset name regardless of tool presence', () => {
-    // "onboarding" is a real toolset name but has zero MCP-surfaced tools;
+    // "goals" is a real toolset name but has zero MCP-surfaced tools;
     // surface-less parsing only checks `isToolsetName`, not tool presence.
-    expect(parseToolsetSelection('onboarding')).toEqual({
-      toolsets: ['onboarding'],
+    expect(parseToolsetSelection('goals')).toEqual({
+      toolsets: ['goals'],
       unknown: [],
     });
   });
 
   it('with surface "mcp", rejects a toolset name that has no tools on that surface', () => {
-    expect(parseToolsetSelection('onboarding', 'mcp')).toEqual({
+    expect(parseToolsetSelection('goals', 'mcp')).toEqual({
       toolsets: [],
-      unknown: ['onboarding'],
+      unknown: ['goals'],
     });
   });
 
@@ -86,9 +86,9 @@ describe('parseToolsetSelection', () => {
   });
 
   it('with a surface, mixes known-on-surface and unknown-on-surface names correctly', () => {
-    expect(parseToolsetSelection('content,onboarding,bogus', 'mcp')).toEqual({
+    expect(parseToolsetSelection('content,goals,bogus', 'mcp')).toEqual({
       toolsets: ['content'],
-      unknown: ['onboarding', 'bogus'],
+      unknown: ['goals', 'bogus'],
     });
   });
 });

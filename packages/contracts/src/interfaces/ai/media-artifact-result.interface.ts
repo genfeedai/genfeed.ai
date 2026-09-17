@@ -29,13 +29,32 @@ export interface MediaArtifactResult {
   width?: number;
 }
 
-export interface McpMediaContentPart {
-  data?: string;
+export type McpTextContentPart = {
+  text: string;
+  type: 'text';
+};
+
+export type McpImageContentPart = {
+  data: string;
+  mimeType: string;
+  type: 'image';
+};
+
+export type McpResourceLinkContentPart = {
   mimeType?: string;
-  text?: string;
-  type: 'text' | 'image' | 'resource_link';
-  uri?: string;
-}
+  name: string;
+  type: 'resource_link';
+  uri: string;
+};
+
+/**
+ * MCP `tools/call` content blocks. Image parts are base64 (`data`); URL media
+ * must use `resource_link` so results stay assignable to CallToolResult.
+ */
+export type McpMediaContentPart =
+  | McpTextContentPart
+  | McpImageContentPart
+  | McpResourceLinkContentPart;
 
 export interface McpMediaToolResult {
   content: McpMediaContentPart[];

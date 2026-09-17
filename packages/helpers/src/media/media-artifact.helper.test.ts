@@ -4,7 +4,7 @@ import {
 } from './media-artifact.helper';
 
 describe('media artifact helper', () => {
-  it('exposes a native image part plus structured metadata and text fallback', () => {
+  it('exposes a resource link for native image rendering plus structured metadata and text fallback', () => {
     const result = toMcpMediaToolResult({
       id: 'img-1',
       kind: 'image',
@@ -20,7 +20,8 @@ describe('media artifact helper', () => {
     );
     expect(result.content[1]).toEqual({
       mimeType: 'image/png',
-      type: 'image',
+      name: 'img-1',
+      type: 'resource_link',
       uri: 'https://cdn.example.com/images/img-1.png',
     });
     expect(result.structuredContent.artifact).toEqual(
@@ -51,6 +52,7 @@ describe('media artifact helper', () => {
     expect(result.content).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
+          name: 'vid-1',
           type: 'resource_link',
           uri: 'https://cdn.example.com/videos/vid-1.mp4',
         }),

@@ -128,15 +128,10 @@ export function toMcpMediaToolResult(
     },
   ];
 
-  if (artifact?.kind === 'image' && artifact.url) {
+  if (artifact?.url) {
     content.push({
       mimeType: artifact.mimeType,
-      type: 'image',
-      uri: artifact.url,
-    });
-  } else if (artifact?.url) {
-    content.push({
-      mimeType: artifact.mimeType,
+      name: artifact.id,
       type: 'resource_link',
       uri: artifact.url,
     });
