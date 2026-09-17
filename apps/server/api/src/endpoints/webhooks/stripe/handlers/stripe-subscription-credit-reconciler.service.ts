@@ -8,6 +8,7 @@ import {
   ActivitySource,
   SubscriptionPlan,
   SubscriptionStatus,
+  subscriptionStatusFromStripe,
 } from '@genfeedai/contracts';
 import type { ISubscriptionOssReadModel } from '@genfeedai/contracts/interfaces/billing';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -17,7 +18,7 @@ const SUBSCRIPTION_INITIAL_CREDIT_REFERENCE_TYPE =
   'stripe-subscription:initial-grant';
 const SUBSCRIPTION_INVOICE_CREDIT_REFERENCE_TYPE =
   'stripe-invoice:subscription-grant';
-const ACTIVE_SUBSCRIPTION_STATUSES = new Set<string>([
+const ACTIVE_SUBSCRIPTION_STATUSES: ReadonlySet<SubscriptionStatus> = new Set([
   SubscriptionStatus.ACTIVE,
   SubscriptionStatus.TRIALING,
 ]);
@@ -147,6 +148,15 @@ export class StripeSubscriptionCreditReconcilerService {
     return null;
   }
 
+  /**
+   * `subscriptionStatus` arrives as Stripe sends it — lowercase (`active`,
+   * `trialing`) — while the eligible set holds domain enum members, which are
+   * uppercase. Comparing the two directly made every
+   * `customer.subscription.created` event skip as `ineligible_status`, so the
+   * initial grant only ever landed through `invoice.paid` (#4824). Normalize
+   * before comparing; an unrecognized status maps to `INCOMPLETE` and stays
+   * ineligible, so this widens nothing.
+   */
   private isEligibleStatus(
     context: SubscriptionCreditReconciliationInput,
   ): boolean {
@@ -156,7 +166,9 @@ export class StripeSubscriptionCreditReconcilerService {
 
     return Boolean(
       context.subscriptionStatus &&
-        ACTIVE_SUBSCRIPTION_STATUSES.has(context.subscriptionStatus),
+        ACTIVE_SUBSCRIPTION_STATUSES.has(
+          subscriptionStatusFromStripe(context.subscriptionStatus),
+        ),
     );
   }
 
