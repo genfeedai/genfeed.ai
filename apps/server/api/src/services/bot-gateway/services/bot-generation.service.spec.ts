@@ -42,21 +42,17 @@ describe('BotGenerationService', () => {
   >;
   let dispatcher: Mocked<BotMediaGenerationDispatcher>;
   let publisher: {
-    get: ReturnType<typeof vi.fn>;
     setex: ReturnType<typeof vi.fn>;
-    unlink: ReturnType<typeof vi.fn>;
   };
   let redisValues: Map<string, string>;
 
   beforeEach(async () => {
     redisValues = new Map();
     publisher = {
-      get: vi.fn(async (key: string) => redisValues.get(key) ?? null),
       setex: vi.fn(async (key: string, _ttl: number, value: string) => {
         redisValues.set(key, value);
         return 'OK';
       }),
-      unlink: vi.fn(async (key: string) => Number(redisValues.delete(key))),
     };
     creditsUtilsService = {
       getOrganizationCreditsBalance: vi.fn().mockResolvedValue(100),
