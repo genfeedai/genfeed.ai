@@ -1,10 +1,10 @@
+import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import {
   type PendingReviewGateExecution,
   WorkflowExecutionsService,
 } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
-import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@api/collections/workflows/services/workflow-execution-finalizer.service';
@@ -318,6 +318,7 @@ export class WorkflowExecutorService {
         return this.failUnavailablePinnedExecution({
           errorMessage: error.message,
           executionId,
+          organizationId: event.organizationId,
           startedAt: execution.startedAt ?? new Date(),
           userId: event.userId,
           workflowId,
@@ -329,6 +330,7 @@ export class WorkflowExecutorService {
       return this.failUnavailablePinnedExecution({
         errorMessage: `Workflow version ${execution.workflowVersionId} not found for execution ${executionId}`,
         executionId,
+        organizationId: event.organizationId,
         startedAt: execution.startedAt ?? new Date(),
         userId: event.userId,
         workflowId,
@@ -683,6 +685,7 @@ export class WorkflowExecutorService {
   private failUnavailablePinnedExecution(input: {
     errorMessage: string;
     executionId: string;
+    organizationId: string;
     startedAt: Date;
     userId: string;
     workflowId: string;

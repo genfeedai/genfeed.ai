@@ -1,3 +1,4 @@
+import type { WorkflowExecutionDocument } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
@@ -33,6 +34,15 @@ import {
   type WorkflowEtaPlan,
 } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
+
+function readCompletedCreditsUsed(
+  execution: WorkflowExecutionDocument | null | undefined,
+): number {
+  const credits = execution?.creditsUsed;
+  return typeof credits === 'number' && Number.isFinite(credits)
+    ? Math.max(0, credits)
+    : 0;
+}
 
 type PreparedWorkflowExecution = {
   etaPlan: WorkflowEtaPlan;
@@ -86,6 +96,7 @@ export class WorkflowExecutionRunnerService {
       return this.failUnavailablePinnedExecution({
         errorMessage: unavailableMessage,
         executionId,
+        organizationId: jobData.organizationId,
         startedAt: delayedExecution?.startedAt ?? new Date(),
         userId: triggerEvent.userId,
         workflowId,
@@ -457,10 +468,10 @@ export class WorkflowExecutionRunnerService {
       prepared.executionId,
       errorMessage,
     );
-    await this.finalizer.settleClipChainReservationForWorkflow({
+    await this.settleClipChainHoldSafely({
       actorUserId: event.userId,
       organizationId: prepared.organizationId,
-      totalCreditsUsed: 0,
+      totalCreditsUsed: readCompletedCreditsUsed(failedExecution),
       workflowId: prepared.workflowId,
     });
     if (!prepared.isSystemAction) {
@@ -651,10 +662,11 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       errorMessage,
     );
-    await this.finalizer.settleClipChainReservationForWorkflow({
+    const totalCreditsUsed = readCompletedCreditsUsed(failedExecution);
+    await this.settleClipChainHoldSafely({
       actorUserId: input.userId,
       organizationId: input.organizationId,
-      totalCreditsUsed: 0,
+      totalCreditsUsed,
       workflowId: input.workflowId,
     });
     await this.prisma.workflow.update({
@@ -687,7 +699,7 @@ export class WorkflowExecutionRunnerService {
       nodeResults: [],
       startedAt: input.startedAt,
       status: WorkflowExecutionStatus.FAILED,
-      totalCreditsUsed: 0,
+      totalCreditsUsed,
       workflowId: input.workflowId,
     };
   }
@@ -740,6 +752,7 @@ export class WorkflowExecutionRunnerService {
   async failUnavailablePinnedExecution(input: {
     errorMessage: string;
     executionId: string;
+    organizationId: string;
     startedAt: Date;
     userId: string;
     workflowId: string;
@@ -748,6 +761,13 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       input.errorMessage,
     );
+    const totalCreditsUsed = readCompletedCreditsUsed(failedExecution);
+    await this.settleClipChainHoldSafely({
+      actorUserId: input.userId,
+      organizationId: input.organizationId,
+      totalCreditsUsed,
+      workflowId: input.workflowId,
+    });
     await this.progressService.publishWorkflowTaskUpdate({
       error: input.errorMessage,
       eta: this.progressService.extractEtaFromMetadata(
@@ -768,8 +788,24 @@ export class WorkflowExecutionRunnerService {
       nodeResults: [],
       startedAt: input.startedAt,
       status: WorkflowExecutionStatus.FAILED,
-      totalCreditsUsed: 0,
+      totalCreditsUsed,
       workflowId: input.workflowId,
     };
+  }
+
+  private async settleClipChainHoldSafely(input: {
+    actorUserId: string;
+    organizationId: string;
+    totalCreditsUsed: number;
+    workflowId: string;
+  }): Promise<void> {
+    try {
+      await this.finalizer.settleClipChainReservationForWorkflow(input);
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.logContext} clip-chain reservation settlement failed`,
+        error,
+      );
+    }
   }
 }
