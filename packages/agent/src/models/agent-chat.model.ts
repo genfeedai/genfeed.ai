@@ -571,6 +571,8 @@ export interface AgentChatPayload {
   source?: 'agent' | 'proactive' | 'onboarding';
   attachments?: ChatAttachment[];
   pageContext?: AgentPageContext;
+  /** Skills picked from the composer `/` palette for this turn. */
+  requestedSkillSlugs?: string[];
   /** Only meaningful when this turn creates a new thread (#4672). */
   agentMode?: AgentThreadMode;
   brandIds?: string[];

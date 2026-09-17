@@ -80,6 +80,8 @@ export interface ConversationComposerSendOptions {
   generationSettings?: ConversationComposerGenerationSettings;
   /** Knowledge sources, spaces or purposes chosen in the composer. */
   knowledgeSelection?: KnowledgeSelection;
+  /** Skills picked from the `/` palette for this turn. */
+  requestedSkillSlugs?: string[];
   /** Only meaningful when this turn creates a new thread (#4672). */
   agentMode?: AgentThreadMode;
 }

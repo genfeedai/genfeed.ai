@@ -1,8 +1,14 @@
-import type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
+'use client';
+
 import { ButtonVariant } from '@genfeedai/contracts';
+import type {
+  PromptCommand,
+  PromptCommandListProps,
+} from '@genfeedai/props/prompt-bars/prompt-command.props';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { Button } from '@ui/primitives/button';
 import {
+  AudioLines,
   Calendar,
   ChartColumn,
   ChartLine,
@@ -13,9 +19,13 @@ import {
   Image,
   Lightbulb,
   MessageSquareText,
+  Mic,
+  Search,
   Send,
   Sparkles,
   Undo2,
+  Video,
+  Wand,
   Zap,
 } from 'lucide-react';
 import {
@@ -27,45 +37,70 @@ import {
 } from 'react';
 
 const COMMAND_ICONS: Record<string, ReactElement> = {
+  analysis: <ChartColumn className="size-4" />,
+  analytics: <ChartColumn className="size-4" />,
   analyze: <ChartColumn className="size-4" />,
+  audio: <AudioLines className="size-4" />,
   batch: <Copy className="size-4" />,
   caption: <MessageSquareText className="size-4" />,
-  'create-post': <FileText className="size-4" />,
   create: <Sparkles className="size-4" />,
+  'create-post': <FileText className="size-4" />,
+  discover: <FlaskConical className="size-4" />,
+  discovery: <Search className="size-4" />,
+  distribution: <Send className="size-4" />,
   'generate-image': <Image className="size-4" />,
   hashtags: <Hash className="size-4" />,
   ideas: <Lightbulb className="size-4" />,
+  image: <Image className="size-4" />,
+  interview: <Mic className="size-4" />,
+  optimization: <Wand className="size-4" />,
   remix: <Undo2 className="size-4" />,
   reply: <Send className="size-4" />,
-  discover: <FlaskConical className="size-4" />,
   schedule: <Calendar className="size-4" />,
   trends: <Zap className="size-4" />,
+  video: <Video className="size-4" />,
   workflow: <ChartLine className="size-4" />,
+  writing: <FileText className="size-4" />,
 };
 
-interface AgentCommandListHandle {
+export interface PromptCommandListHandle {
   onKeyDown: (props: { event: KeyboardEvent }) => boolean;
 }
 
-interface AgentCommandListProps {
-  items: AgentSlashCommand[];
-  command: (item: AgentSlashCommand) => void;
-  ref?: Ref<AgentCommandListHandle>;
+interface Props extends PromptCommandListProps {
+  ref?: Ref<PromptCommandListHandle>;
 }
 
-export function AgentCommandList({
-  items,
+function commandIcon(item: PromptCommand): ReactElement {
+  return (
+    COMMAND_ICONS[item.name] ??
+    COMMAND_ICONS[item.iconKey ?? ''] ?? <Zap className="size-4" />
+  );
+}
+
+/**
+ * Keyboard-driven `/` palette body. Rendered inside the TipTap suggestion
+ * popup, so it owns selection state but not placement or mounting.
+ */
+export function PromptCommandList({
   command,
+  emptyLabel = 'No commands found',
+  items,
   ref,
-}: AgentCommandListProps): ReactElement {
+}: Props): ReactElement {
   const [selectedIndex, setSelectedIndex] = useState(0);
 
+  // The popup is reused across queries; keep the highlight on a real row
+  // rather than a stale index past the end of a narrower result set.
   useEffect(() => {
     setSelectedIndex(0);
   }, []);
 
   useImperativeHandle(ref, () => ({
     onKeyDown: ({ event }: { event: KeyboardEvent }) => {
+      if (items.length === 0) {
+        return false;
+      }
       if (event.key === 'ArrowUp') {
         setSelectedIndex((prev) => (prev + items.length - 1) % items.length);
         return true;
@@ -75,7 +110,7 @@ export function AgentCommandList({
         return true;
       }
       if (event.key === 'Enter') {
-        const item = items[selectedIndex];
+        const item = items[selectedIndex % items.length];
         if (item) {
           command(item);
         }
@@ -88,28 +123,31 @@ export function AgentCommandList({
   if (items.length === 0) {
     return (
       <div className="border border-foreground/[0.12] bg-background px-3 py-2 text-xs text-muted-foreground shadow-lg">
-        No commands found
+        {emptyLabel}
       </div>
     );
   }
 
   return (
-    <div className="w-80 max-w-[calc(100vw-2rem)] max-h-64 overflow-y-auto border border-foreground/[0.12] bg-background shadow-lg">
+    <div
+      className="w-80 max-w-[calc(100vw-2rem)] max-h-64 overflow-y-auto border border-foreground/[0.12] bg-background shadow-lg"
+      data-testid="prompt-command-list"
+    >
       {items.map((item, index) => (
         <Button
-          variant={ButtonVariant.UNSTYLED}
-          withWrapper={false}
-          key={item.name}
-          onClick={() => command(item)}
           className={cn(
             'flex w-full min-w-0 items-center gap-3 px-3 py-2.5 text-left transition-colors focus:outline-none focus-visible:outline-none focus-visible:ring-0',
-            index === selectedIndex
+            index === selectedIndex % items.length
               ? 'bg-accent text-accent-foreground'
               : 'text-popover-foreground hover:bg-accent/50',
           )}
+          key={item.name}
+          onClick={() => command(item)}
+          variant={ButtonVariant.UNSTYLED}
+          withWrapper={false}
         >
           <span className="flex shrink-0 text-muted-foreground">
-            {COMMAND_ICONS[item.name] ?? <Zap className="size-4" />}
+            {commandIcon(item)}
           </span>
           <div className="min-w-0 flex-1">
             <span className="block truncate text-sm font-medium">

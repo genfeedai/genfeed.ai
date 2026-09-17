@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-24T12:37:57.390Z",
+  "generatedAt": "2026-09-17T07:47:55.952Z",
   "skills": [
     {
       "description": "Create high-converting ad copy for Meta, Google, LinkedIn, TikTok, and X using proven direct response frameworks. Triggers on \"write ad copy\", \"create an ad\", \"write a facebook ad\", \"google ad copy\", \"ad headline\", \"write ad creative\", \"ad variants\".",
@@ -15,6 +15,11 @@
       "description": "Create SEO-optimized blog posts in multiple formats with heading hierarchy, meta descriptions, and internal link strategy. Triggers on \"write a blog post\", \"create a blog article\", \"draft a blog\", \"write an article\", \"blog about\".",
       "path": "skills/blog-content-creator/SKILL.md",
       "slug": "blog-content-creator"
+    },
+    {
+      "description": "Interview an operator to extract their brand voice, audience, and content strategy, then write the answers into the brand profile. Pushes back on vague answers instead of accepting them. Triggers on \"interview me\", \"grill me\", \"brand interview\", \"help me define my voice\", \"what is my brand voice\", \"fill in my brand profile\", \"onboard my brand\", \"my brand profile is empty\".",
+      "path": "skills/brand-interview/SKILL.md",
+      "slug": "brand-interview"
     },
     {
       "description": "Create source-backed Brand OS systems for AI-era brands, including positioning, voice, visual rules, content pillars, launch storytelling, CTA strategy, evidence, and generation checklists. Triggers on Brand OS, brand system, brand operating system, AI-readable brand book, brand kit generator, launch storytelling, Japanese color references, cute studies, and source-backed brand strategy.",
@@ -162,5 +167,5 @@
       "slug": "youtube-warmup"
     }
   ],
-  "total": 32
+  "total": 33
 }

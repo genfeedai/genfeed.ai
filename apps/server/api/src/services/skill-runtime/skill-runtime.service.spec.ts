@@ -174,6 +174,40 @@ describe('SkillRuntimeService.resolveActiveSkills', () => {
     ]);
   });
 
+  it('passes composer-picked skills through as requested slugs', async () => {
+    const resolveBrandSkills = vi.fn().mockResolvedValue(brandSkills);
+    const service = new SkillRuntimeService(
+      { resolveBrandSkills } as never,
+      { warn: vi.fn() } as never,
+    );
+
+    await service.resolveActiveSkills('org-1', 'brand-1', undefined, {
+      requestedSkillSlugs: ['hook-writer'],
+    });
+
+    expect(resolveBrandSkills).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      expect.objectContaining({ requestedSlugs: ['hook-writer'] }),
+    );
+  });
+
+  it('asks for nothing in particular when no skill was picked', async () => {
+    const resolveBrandSkills = vi.fn().mockResolvedValue(brandSkills);
+    const service = new SkillRuntimeService(
+      { resolveBrandSkills } as never,
+      { warn: vi.fn() } as never,
+    );
+
+    await service.resolveActiveSkills('org-1', 'brand-1');
+
+    expect(resolveBrandSkills).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      expect.objectContaining({ requestedSlugs: undefined }),
+    );
+  });
+
   it('uses an explicit strategy skill subset when provided', async () => {
     const service = new SkillRuntimeService(
       { resolveBrandSkills: vi.fn().mockResolvedValue(brandSkills) } as never,

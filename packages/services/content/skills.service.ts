@@ -1,3 +1,4 @@
+import type { SkillSurface } from '@genfeedai/contracts';
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import {
   BaseService,
@@ -39,6 +40,11 @@ export interface SkillInput {
   workflowStage: SkillWorkflowStage;
 }
 
+export interface ListSkillsOptions {
+  /** Narrow the catalog to skills offered on one composer surface. */
+  surface?: SkillSurface;
+}
+
 export interface SkillCustomizeInput {
   description?: string;
   name?: string;
@@ -67,6 +73,8 @@ export class Skill {
   source!: SkillSource;
   sourceListingId?: string;
   status!: SkillStatus;
+  /** Composer surfaces this skill is offered on; derived client-side when absent. */
+  surfaces?: string[];
   systemPromptTemplate?: string;
   toolOverrides?: string[];
   version?: string;
@@ -90,8 +98,10 @@ export class SkillsService extends BaseService<
     return BaseService.getDataServiceInstance(SkillsService, token);
   }
 
-  async listSkills(): Promise<Skill[]> {
-    return this.findAll();
+  async listSkills(options: ListSkillsOptions = {}): Promise<Skill[]> {
+    return this.findAll(
+      options.surface ? { surface: options.surface } : undefined,
+    );
   }
 
   async getSkill(id: string): Promise<Skill> {

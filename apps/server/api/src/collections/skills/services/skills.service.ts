@@ -26,11 +26,17 @@ import { scopedWhere } from '@api/index';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { ByokProvider } from '@genfeedai/contracts';
+import { ByokProvider, type SkillSurface } from '@genfeedai/contracts';
 import type { IBrandEffectiveSkillSelection } from '@genfeedai/contracts/interfaces';
+import { isSkillOnSurface } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+export interface ListSkillsOptions {
+  /** Narrow the catalog to skills offered on one composer surface. */
+  surface?: SkillSurface;
+}
 
 export interface ResolveBrandSkillsOptions {
   agentType?: string;
@@ -378,7 +384,10 @@ export class SkillsService {
     return this.normalizeSkill(updated);
   }
 
-  async listAllForOrg(organizationId: string): Promise<SkillDocument[]> {
+  async listAllForOrg(
+    organizationId: string,
+    options: ListSkillsOptions = {},
+  ): Promise<SkillDocument[]> {
     this.requireOrganizationId(organizationId);
 
     const results = await this.prisma.skill.findMany({
@@ -387,7 +396,14 @@ export class SkillsService {
         organizationId,
       ) as Prisma.SkillWhereInput,
     });
-    return results.map((r) => this.normalizeSkill(r));
+    const docs = results.map((r) => this.normalizeSkill(r));
+    const { surface } = options;
+
+    // `surfaces` lives in the `config` JSON and is derived for rows that
+    // predate it, so the surface filter cannot push down into Prisma.
+    return surface
+      ? docs.filter((doc) => isSkillOnSurface(doc, surface))
+      : docs;
   }
 
   async getAvailableForOrg(organizationId: string): Promise<SkillDocument[]> {

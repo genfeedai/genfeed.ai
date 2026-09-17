@@ -41,6 +41,7 @@ export class SkillRuntimeService {
       channel: context.channel,
       fallbackToDefaultCatalog: true,
       modality: context.modality,
+      requestedSlugs: context.requestedSkillSlugs,
       workflowStage: context.workflowStage,
     };
 

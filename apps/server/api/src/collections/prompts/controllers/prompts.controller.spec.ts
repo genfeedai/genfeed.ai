@@ -29,6 +29,7 @@ import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { PromptCategory } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -80,6 +81,11 @@ describe('PromptsController', () => {
     }),
   };
 
+  const mockSkillRuntimeService = {
+    buildSkillPromptSections: vi.fn(() => '## Skill: Cinematic Prompting'),
+    resolveActiveSkills: vi.fn().mockResolvedValue([{ slug: 'cinematic' }]),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PromptsController],
@@ -115,6 +121,10 @@ describe('PromptsController', () => {
         {
           provide: NotificationsPublisherService,
           useValue: { emit: vi.fn(), publishBackgroundTaskUpdate: vi.fn() },
+        },
+        {
+          provide: SkillRuntimeService,
+          useValue: mockSkillRuntimeService,
         },
       ],
     })
@@ -161,12 +171,91 @@ describe('PromptsController', () => {
       );
 
       expect(service.create).toHaveBeenCalled();
-      expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
-        expect.objectContaining({
-          model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
-        }),
+      // Enhancement is dispatched as a detached chain, so wait for it rather
+      // than assuming it settled within the request's own microtask turn.
+      await vi.waitFor(() =>
+        expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
+          expect.objectContaining({
+            model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+          }),
+        ),
       );
       expect(result).toBeDefined();
+    });
+
+    it('appends picked skill instructions to the enhancement system prompt', async () => {
+      mockPromptsService.create.mockResolvedValue(mockPrompt);
+
+      await controller.create(
+        mockReq,
+        {
+          brandId: mockUser.brandId,
+          category: PromptCategory.MODELS_PROMPT_IMAGE,
+          original: 'a slow dolly in',
+          requestedSkillSlugs: ['cinematic-prompting'],
+        } as CreatePromptDto,
+        mockUser,
+      );
+
+      await vi.waitFor(() =>
+        expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled(),
+      );
+
+      expect(mockSkillRuntimeService.resolveActiveSkills).toHaveBeenCalledWith(
+        mockUser.organizationId,
+        mockUser.brandId,
+        undefined,
+        { requestedSkillSlugs: ['cinematic-prompting'] },
+      );
+
+      const [{ messages }] = mockOpenRouterService.chatCompletion.mock.calls.at(
+        -1,
+      ) ?? [{}];
+      expect(messages[0].content).toContain('## Skill: Cinematic Prompting');
+    });
+
+    it('enhances without skills when none were picked', async () => {
+      mockPromptsService.create.mockResolvedValue(mockPrompt);
+
+      await controller.create(
+        mockReq,
+        {
+          brandId: mockUser.brandId,
+          category: PromptCategory.MODELS_PROMPT_IMAGE,
+          original: 'a slow dolly in',
+        } as CreatePromptDto,
+        mockUser,
+      );
+
+      await vi.waitFor(() =>
+        expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled(),
+      );
+
+      expect(
+        mockSkillRuntimeService.resolveActiveSkills,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('still enhances when skill resolution fails', async () => {
+      mockPromptsService.create.mockResolvedValue(mockPrompt);
+      mockSkillRuntimeService.resolveActiveSkills.mockRejectedValueOnce(
+        new Error('skills unavailable'),
+      );
+
+      await controller.create(
+        mockReq,
+        {
+          brandId: mockUser.brandId,
+          category: PromptCategory.MODELS_PROMPT_IMAGE,
+          original: 'a slow dolly in',
+          requestedSkillSlugs: ['cinematic-prompting'],
+        } as CreatePromptDto,
+        mockUser,
+      );
+
+      await vi.waitFor(() =>
+        expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled(),
+      );
     });
 
     it('stores a skipped prompt as generated without calling the enhancement provider', async () => {

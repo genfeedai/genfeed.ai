@@ -4,6 +4,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { ByokProviderFactoryService } from '@api/services/byok/byok-provider-factory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { SkillSurface } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -174,6 +175,60 @@ describe('SkillsService', () => {
       ['content-writing', true],
       ['hook-writer', false],
     ]);
+  });
+
+  it('narrows the catalog to one composer surface', async () => {
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: {
+          isEnabled: true,
+          modalities: ['image'],
+          name: 'Image Prompt Engineer',
+          slug: 'image-prompt-engineer',
+          source: 'built_in',
+          status: 'published',
+          workflowStage: 'creation',
+        },
+        id: 'skill-image',
+      }),
+      makeSkillRow({
+        config: {
+          isEnabled: true,
+          modalities: ['text'],
+          name: 'Hook Writer',
+          slug: 'hook-writer',
+          source: 'custom',
+          status: 'published',
+          workflowStage: 'creation',
+        },
+      }),
+    ]);
+
+    const docs = await service.listAllForOrg('org-1', {
+      surface: SkillSurface.STUDIO,
+    });
+
+    expect(docs.map((doc) => doc.slug)).toEqual(['image-prompt-engineer']);
+  });
+
+  it('honours a surface persisted on the skill over the inferred one', async () => {
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: {
+          isEnabled: true,
+          modalities: ['image'],
+          name: 'Agent Only',
+          slug: 'agent-only',
+          source: 'custom',
+          status: 'published',
+          surfaces: ['agent'],
+        },
+      }),
+    ]);
+
+    expect(
+      await service.listAllForOrg('org-1', { surface: SkillSurface.STUDIO }),
+    ).toEqual([]);
   });
 
   it('creates an enabled organization-owned custom skill', async () => {

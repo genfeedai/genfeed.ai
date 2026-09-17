@@ -1,23 +1,33 @@
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
-import type { ConversationComposerActionName } from '@genfeedai/agent/models/conversation-composer.model';
+import type { PromptCommand } from '@genfeedai/props/prompt-bars/prompt-command.props';
 
-export interface AgentSlashCommand {
-  description: string;
-  kind: 'action' | 'prompt';
-  label: string;
-  name: string;
-  actionName?: ConversationComposerActionName;
-  promptPrefix?: string;
-}
-
-export const AGENT_SLASH_COMMANDS: AgentSlashCommand[] = [
-  ...CONVERSATION_COMPOSER_ACTIONS.map((action) => ({
-    actionName: action.name,
-    description: action.description,
-    kind: 'action' as const,
-    label: action.label,
-    name: action.name,
-  })),
+/**
+ * Static head of the Agent `/` palette: composer actions that navigate, plus a
+ * few prompt starters. The skill catalog is appended at runtime by
+ * `useSurfaceSkillCommands`, so this list stays small and surface-specific.
+ */
+export const AGENT_SLASH_COMMANDS: PromptCommand[] = [
+  ...CONVERSATION_COMPOSER_ACTIONS.map(
+    (action): PromptCommand => ({
+      actionName: action.name,
+      description: action.description,
+      kind: 'action',
+      label: action.label,
+      name: action.name,
+    }),
+  ),
+  // Named `interview` rather than `brand-interview` so the shortest thing an
+  // operator types finds it. It seeds a prompt as well as picking the skill,
+  // so `/interview` + Enter starts the interview outright.
+  {
+    description: 'Get grilled on your brand voice and content strategy',
+    kind: 'skill',
+    label: 'Interview',
+    name: 'interview',
+    promptPrefix:
+      'Start the brand interview. Grill me on my brand voice, audience, and content strategy, and fill the gaps in my brand profile from my answers.',
+    skillSlug: 'brand-interview',
+  },
   {
     description: 'Create an AI-generated image',
     kind: 'prompt',

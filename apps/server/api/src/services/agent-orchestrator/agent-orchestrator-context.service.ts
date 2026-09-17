@@ -200,6 +200,7 @@ export class AgentOrchestratorContextService {
               agentType: request.agentType,
               channel: policy.platform,
               modality: this.inferSkillModality(request),
+              requestedSkillSlugs: request.requestedSkillSlugs,
             },
           )
         : [];

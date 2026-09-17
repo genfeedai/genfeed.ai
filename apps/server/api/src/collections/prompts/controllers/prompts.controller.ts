@@ -33,6 +33,7 @@ import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
@@ -120,6 +121,8 @@ export class PromptsController {
     @Optional() readonly _templatesService?: TemplatesService,
     @Optional()
     private readonly marketplaceApiClient?: MarketplaceApiClient,
+    @Optional()
+    private readonly skillRuntimeService?: SkillRuntimeService,
   ) {}
 
   @Post()
@@ -196,7 +199,19 @@ export class PromptsController {
           .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
       : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
 
-    systemPromptPromise
+    // Studio's `/` palette offers prompt-shaping skills (image-prompt-engineer,
+    // cinematic-prompting, …). When the operator picked one, its instructions
+    // ride along with the enhancement system prompt.
+    const skillSectionsPromise = this.resolveRequestedSkillSections(
+      user.organizationId,
+      createPromptDto.brandId,
+      createPromptDto.requestedSkillSlugs,
+    );
+
+    Promise.all([systemPromptPromise, skillSectionsPromise])
+      .then(([basePrompt, skillSections]) =>
+        skillSections ? `${basePrompt}\n\n${skillSections}` : basePrompt,
+      )
       .then((systemPrompt) =>
         this.openRouterService.chatCompletion({
           max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
@@ -262,6 +277,44 @@ export class PromptsController {
       });
 
     return serializeSingle(request, PromptSerializer, data);
+  }
+
+  /**
+   * Skill instructions for the slugs the operator picked in the composer.
+   *
+   * Resolution runs through the shared runtime, so a slug the brand has not
+   * enabled resolves to nothing — the palette can ask, the brand decides. A
+   * failure here never fails the enhancement: the base system prompt stands.
+   */
+  private async resolveRequestedSkillSections(
+    organizationId: string,
+    brandId: string | null | undefined,
+    requestedSkillSlugs: string[] | undefined,
+  ): Promise<string> {
+    if (
+      !this.skillRuntimeService ||
+      !requestedSkillSlugs?.length ||
+      !isEntityId(brandId)
+    ) {
+      return '';
+    }
+
+    try {
+      const skills = await this.skillRuntimeService.resolveActiveSkills(
+        organizationId,
+        brandId,
+        undefined,
+        { requestedSkillSlugs },
+      );
+
+      return this.skillRuntimeService.buildSkillPromptSections(skills);
+    } catch (error) {
+      this.loggerService.error(
+        `${this.constructorName} failed to resolve requested skills`,
+        error,
+      );
+      return '';
+    }
   }
 
   private resolveSystemPromptKey(createPromptDto: CreatePromptDto): string {
