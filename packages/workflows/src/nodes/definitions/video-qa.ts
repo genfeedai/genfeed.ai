@@ -18,6 +18,7 @@ export const DEFAULT_VIDEO_QA_DATA: Partial<VideoQaNodeData> = {
   inputVideo: null,
   isContactSheetEnabled: false,
   isContinuityQaEnabled: false,
+  isContinuityCharacterGateEnabled: false,
   characterReferenceUrls: [],
   productReferenceUrls: [],
   jobId: null,

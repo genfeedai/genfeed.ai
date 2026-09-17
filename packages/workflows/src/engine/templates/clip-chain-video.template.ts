@@ -154,18 +154,22 @@ function freezeIdentity(
 }
 
 /**
- * Catalog credit estimate: N * videoGen + N * frameExtract + 1 stitch.
+ * Catalog credit estimate: N * videoGen + N * videoQa + N * frameExtract + 1 stitch.
  * Frame extract has no dedicated cost key; `clip` is the existing extract
  * FFmpeg-pass alias.
  */
 export function estimateClipChainCredits(segmentCount: number): number {
   const videoGenCost = getNodeCreditCost('videoGen');
+  const videoQaCost = getNodeCreditCost('videoQa');
   const frameExtractCost =
     getNodeCreditCost('videoFrameExtract') || getNodeCreditCost('clip');
   const stitchCost = getNodeCreditCost('videoStitch');
 
   return (
-    segmentCount * videoGenCost + segmentCount * frameExtractCost + stitchCost
+    segmentCount * videoGenCost +
+    segmentCount * videoQaCost +
+    segmentCount * frameExtractCost +
+    stitchCost
   );
 }
 
@@ -178,6 +182,29 @@ function resolveSegmentPrompt(
     DEFAULT_SEGMENT_PROMPTS[index] ??
     `Segment ${index + 1} beat.`
   );
+}
+
+function buildClipChainQaParameters(
+  identityReferences: readonly ClipChainIdentityReference[],
+): Record<string, unknown> {
+  const characterReferenceUrls = identityReferences
+    .filter((reference) => reference.role === 'character')
+    .map((reference) => reference.assetId);
+  const productReferenceUrls = identityReferences
+    .filter((reference) => reference.role === 'product')
+    .map((reference) => reference.assetId);
+
+  return {
+    isContactSheetEnabled: true,
+    isContinuityCharacterGateEnabled: characterReferenceUrls.length > 0,
+    isContinuityQaEnabled: true,
+    ...(characterReferenceUrls.length > 0
+      ? { characterReferenceUrls: [...characterReferenceUrls] }
+      : {}),
+    ...(productReferenceUrls.length > 0
+      ? { productReferenceUrls: [...productReferenceUrls] }
+      : {}),
+  };
 }
 
 function buildClipChainNodes(
@@ -231,29 +258,37 @@ function buildClipChainNodes(
 
     nodes.push(
       createExecutableActionNode({
+        actionId: 'videoQa',
+        id: `video-qa-${index}`,
+        inputs: [`video-gen-${index}`],
+        label: `Segment ${index} Continuity QA`,
+        parameters: buildClipChainQaParameters(identityReferences),
+      }),
+    );
+
+    nodes.push(
+      createExecutableActionNode({
         actionId: 'videoFrameExtract',
         id: `frame-extract-${index}`,
-        inputs: [`video-gen-${index}`],
+        inputs: [`video-qa-${index}`],
         label: `Segment ${index} Last Frame`,
         parameters: {
-          // TODO(#3435): a future video QA node can gate this last-frame extract
-          // before the next start-frame handoff.
           selectionMode: 'last',
         },
       }),
     );
   }
 
-  const videoGenIds = Array.from(
+  const qaIds = Array.from(
     { length: segmentCount },
-    (_, index) => `video-gen-${index + 1}`,
+    (_, index) => `video-qa-${index + 1}`,
   );
 
   nodes.push(
     createExecutableActionNode({
       actionId: 'videoStitch',
       id: 'video-stitch-1',
-      inputs: videoGenIds,
+      inputs: qaIds,
       label: 'Concatenate Clips',
       parameters: {
         audioCodec: 'aac',
@@ -274,11 +309,18 @@ function buildClipChainEdges(segmentCount: number): ExecutableEdge[] {
 
   for (let index = 1; index <= segmentCount; index += 1) {
     edges.push({
-      id: `edge-video-extract-${index}`,
+      id: `edge-video-qa-${index}`,
       source: `video-gen-${index}`,
       // videoGen's action output only ever carries a `videoUrl` key
       // (GENERATED_MEDIA_OUTPUT) — there is no `video` key to bind to.
       sourceHandle: 'videoUrl',
+      target: `video-qa-${index}`,
+      targetHandle: 'video',
+    });
+    edges.push({
+      id: `edge-qa-extract-${index}`,
+      source: `video-qa-${index}`,
+      sourceHandle: 'video',
       target: `frame-extract-${index}`,
       targetHandle: 'video',
     });
@@ -294,16 +336,17 @@ function buildClipChainEdges(segmentCount: number): ExecutableEdge[] {
     }
 
     edges.push({
-      id: `edge-video-stitch-${index}`,
-      source: `video-gen-${index}`,
-      sourceHandle: 'videoUrl',
+      id: `edge-qa-stitch-${index}`,
+      source: `video-qa-${index}`,
+      sourceHandle: 'video',
       target: 'video-stitch-1',
       // videoStitch's input contract is a closed schema with a single
       // `videos` array field — it has no dynamic video-N keys. The engine
       // merges multiple edges delivered to the same targetHandle into an
       // array (in edge push order, which follows segment order here), so
-      // routing every segment through the shared `videos` handle both
-      // satisfies the contract and preserves stitch ordering.
+      // routing every passed QA output through the shared `videos` handle
+      // both satisfies the contract and preserves stitch ordering. A blocked
+      // QA node fails the run before stitch can concatenate a drifted prefix.
       targetHandle: 'videos',
     });
   }
@@ -314,8 +357,10 @@ function buildClipChainEdges(segmentCount: number): ExecutableEdge[] {
 /**
  * Clip-chain long-form video system workflow.
  *
- * Graph: for i in 1..N: videoGen_i → frameExtract_i(last) →
- * videoGen_{i+1}.startFrame; all videoGen outputs → videoStitch.
+ * Graph: for i in 1..N: videoGen_i → videoQa_i → frameExtract_i(last) →
+ * videoGen_{i+1}.startFrame; all videoQa outputs → videoStitch. Identity-lock
+ * runs enable the character continuity gate so a drifted clip cannot dispatch
+ * the next generate or stitch.
  *
  * Immutable catalog original. Users inspect/duplicate and parameterize
  * segments; they cannot mutate this template in place.
@@ -356,7 +401,7 @@ export function buildClipChainVideoTemplate(
         'ai-generation',
         ...(identity ? ['identity-lock'] : []),
       ],
-      version: '1.0.0',
+      version: '1.1.0',
     },
     name: 'Clip-Chain Long-Form Video',
     nodes: buildClipChainNodes(

@@ -37,6 +37,7 @@ type InputField =
   | 'avoid'
   | 'backgroundColor'
   | 'bitrate'
+  | 'blackDurationSeconds'
   | 'brand'
   | 'brandId'
   | 'brandLabel'
@@ -69,6 +70,7 @@ type InputField =
   | 'fontWeight'
   | 'format'
   | 'fps'
+  | 'freezeDurationSeconds'
   | 'generateChapters'
   | 'generatePrompt'
   | 'generateTranscript'
@@ -88,6 +90,9 @@ type InputField =
   | 'includeEmojis'
   | 'includeHashtags'
   | 'includeMetadata'
+  | 'isContactSheetEnabled'
+  | 'isContinuityCharacterGateEnabled'
+  | 'isContinuityQaEnabled'
   | 'instructions'
   | 'keywords'
   | 'language'
@@ -273,6 +278,9 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'includeEmojis':
     case 'includeHashtags':
     case 'includeMetadata':
+    case 'isContactSheetEnabled':
+    case 'isContinuityCharacterGateEnabled':
+    case 'isContinuityQaEnabled':
     case 'maintainQuality':
     case 'monetization':
     case 'trackingEnabled':
@@ -297,8 +305,10 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
       return INTEGER_SCHEMA;
     case 'audioVolume':
     case 'bitrate':
+    case 'blackDurationSeconds':
     case 'creditCost':
     case 'fadeIn':
+    case 'freezeDurationSeconds':
     case 'fadeOut':
     case 'fontSize':
     case 'fps':
@@ -1374,7 +1384,12 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     videoQa: {
       inputSchema: inputSchema([
+        'blackDurationSeconds',
         'characterReferenceUrls',
+        'freezeDurationSeconds',
+        'isContactSheetEnabled',
+        'isContinuityCharacterGateEnabled',
+        'isContinuityQaEnabled',
         'productReferenceUrls',
         'references',
         'video',

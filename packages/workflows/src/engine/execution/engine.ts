@@ -37,6 +37,7 @@ import {
   type VideoGenerationGateConfig,
   type VideoGenerationLineage,
 } from '../video-generation-lineage';
+import { WorkflowExecutionError } from './execution-error';
 import { canExecuteNode, planPartialExecution } from './partial-execution';
 import { analyzeForResume, createCacheFromRun } from './resume-handler';
 import { withRetry } from './retry-handler';
@@ -723,6 +724,10 @@ export class WorkflowEngine {
         creditsUsed: 0,
         error: error instanceof Error ? error.message : String(error),
         nodeId: node.id,
+        ...(error instanceof WorkflowExecutionError &&
+        error.output !== undefined
+          ? { output: error.output }
+          : {}),
         retryCount,
         startedAt,
         status: 'failed',
