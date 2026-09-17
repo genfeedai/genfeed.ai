@@ -5,6 +5,7 @@ import {
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
+import { scopedWhere } from '@api/index';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -130,12 +131,9 @@ export class WorkflowExecutionFinalizerService {
     if (!this.videoGenerationCreditsService) {
       return;
     }
-    // tenant-scope-ignore: settlement is keyed by the reservation id stored on
-    // the workflow that this tenant execution already ran; the system-workflow
-    // mirror has no clip-chain hold.
-    const workflow = await this.prisma.workflow.findUnique({
+    const workflow = await this.prisma.workflow.findFirst({
       select: { metadata: true },
-      where: { id: input.workflowId },
+      where: scopedWhere(input.organizationId, { id: input.workflowId }),
     });
     const hold = readClipChainReservationHold(workflow?.metadata);
     if (!hold) {

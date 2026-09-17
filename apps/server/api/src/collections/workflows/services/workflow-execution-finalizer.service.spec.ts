@@ -23,6 +23,7 @@ function failedRunResult(error = 'node exploded'): ExecutionRunResult {
 describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
   const prisma = {
     workflow: {
+      findFirst: vi.fn(),
       findUnique: vi.fn(),
       update: vi.fn(),
     },
@@ -49,6 +50,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     vi.clearAllMocks();
     graphService.findFirstFailedNodeId.mockReturnValue('node-1');
     prisma.workflow.update.mockResolvedValue({});
+    prisma.workflow.findFirst.mockResolvedValue({ label: 'Morning digest' });
     prisma.workflow.findUnique.mockResolvedValue({ label: 'Morning digest' });
     notificationsPublisher.publishNotification.mockResolvedValue(undefined);
     notificationsPublisher.publishWorkflowStatus.mockResolvedValue(undefined);
@@ -183,7 +185,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     const videoGenerationCreditsService = {
       settleClipChainReservation: vi.fn().mockResolvedValue(undefined),
     };
-    prisma.workflow.findUnique.mockResolvedValue({
+    prisma.workflow.findFirst.mockResolvedValue({
       metadata: {
         credits: {
           reservationId: 'reservation-1',
@@ -223,6 +225,14 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
       workflowStatus: WorkflowStatus.COMPLETED,
     });
 
+    expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
+      select: { metadata: true },
+      where: {
+        id: 'wf-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+      },
+    });
     expect(
       videoGenerationCreditsService.settleClipChainReservation,
     ).toHaveBeenCalledWith({
@@ -238,7 +248,7 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     const videoGenerationCreditsService = {
       settleClipChainReservation: vi.fn().mockResolvedValue(undefined),
     };
-    prisma.workflow.findUnique.mockResolvedValue({
+    prisma.workflow.findFirst.mockResolvedValue({
       metadata: {
         credits: {
           reservationId: 'reservation-1',
