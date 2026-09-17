@@ -26,6 +26,7 @@ const CONTEXT: ExecutionContext = {
   runId: 'run-1',
   userId: 'user-1',
   workflowId: 'wf-1',
+  workflowVersionId: 'wf-1-v1',
 };
 
 function node(type: string, config: Record<string, unknown>): ExecutableNode {
@@ -49,6 +50,7 @@ describe('SEO optimization workflow (composed)', () => {
       nodes: [node('seoScore', {}), node('seoRewrite', {})],
       organizationId: 'org-1',
       userId: 'user-1',
+      versionId: 'wf-seo-v1',
     };
 
     const result = validateWorkflow(workflow);
@@ -70,6 +72,7 @@ describe('SEO optimization workflow (composed)', () => {
       nodes: [node('seoScore', {}), node('seoRewrite', {})],
       organizationId: 'org-1',
       userId: 'user-1',
+      versionId: 'wf-cycle-v1',
     };
 
     const result = validateWorkflow(workflow);

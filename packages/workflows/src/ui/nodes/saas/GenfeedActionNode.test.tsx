@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import type { NodeProps } from '@xyflow/react';
 import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
 import { GenfeedActionNode } from './GenfeedActionNode';
@@ -91,15 +92,22 @@ vi.mock('next-intl', () => ({
 
 describe('GenfeedActionNode', () => {
   it('renders primary inputs on the node and keeps a usable minimum size', () => {
-    render(
-      <GenfeedActionNode
-        data={{ actionId: 'socialRead', parameters: { query: 'genfeed' } }}
-        id="node-1"
-        selected={false}
-        type="genfeedAction"
-        {...({} as object)}
-      />,
-    );
+    const nodeProps: NodeProps = {
+      data: { actionId: 'socialRead', parameters: { query: 'genfeed' } },
+      deletable: true,
+      draggable: true,
+      dragging: false,
+      id: 'node-1',
+      isConnectable: true,
+      positionAbsoluteX: 0,
+      positionAbsoluteY: 0,
+      selectable: true,
+      selected: false,
+      type: 'genfeedAction',
+      zIndex: 0,
+    };
+
+    render(<GenfeedActionNode {...nodeProps} />);
 
     expect(screen.getByLabelText('Query')).toHaveValue('genfeed');
     expect(screen.getByLabelText('Username')).toBeTruthy();

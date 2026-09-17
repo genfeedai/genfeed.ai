@@ -7,16 +7,33 @@
     "inlineSources": true,
     "sourceMap": true,
     "jsx": "react-jsx",
+    "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "outDir": "./dist",
+    // `@genfeedai/ui` exports a few client components as source `.tsx` rather
+    // than from `dist`, so type-check follows them into `packages/ui/src` and
+    // has to resolve that package's own imports. Node resolution cannot: the
+    // `props`/`services` export maps are `"./*": "./*"`, and TypeScript reads
+    // the `.props` / `.service` suffix as a file extension, strips it, and then
+    // looks for `<name>.d.props.ts`. These aliases are the same ones
+    // `packages/ui` and `apps/app` already declare for those packages.
+    "paths": {
+      "@genfeedai/props": ["../props/index.ts"],
+      "@genfeedai/props/*": ["../props/*"],
+      "@genfeedai/services": ["../services/index.ts"],
+      "@genfeedai/services/*": ["../services/*"]
+    },
     "resolveJsonModule": true,
     "rootDir": "./src",
     "skipLibCheck": true,
     "strict": true,
     "target": "es2022",
-    "types": ["node"]
+    // Colocated specs are part of the type-checked surface, so the matcher and
+    // global types they rely on belong here. `build:types` compiles from
+    // `tsconfig.types.json`, which excludes every test file.
+    "types": ["node", "vitest/globals", "@testing-library/jest-dom/vitest"]
   },
-  "exclude": ["node_modules", "dist", "**/*.spec.ts", "**/*.test.ts"],
+  "exclude": ["node_modules", "dist"],
   "include": ["src/**/*"]
 }

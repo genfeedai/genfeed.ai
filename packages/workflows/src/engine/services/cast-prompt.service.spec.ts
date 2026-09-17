@@ -5,6 +5,7 @@ import {
 } from '../presets/ugc-presets';
 import {
   type CASTInput,
+  type CameraMovement,
   extractPostProcessingConfig,
   generateCASTPrompt,
   validateCASTInput,
@@ -149,9 +150,12 @@ describe('CASTPromptService', () => {
 
     it('should return correct preset config', () => {
       const result = generateCASTPrompt(validInput);
-      expect(result.preset.colorGrade).toBeDefined();
-      expect(result.preset.filmGrain).toBeDefined();
-      expect(result.preset.lensEffects).toBeDefined();
+      // colorGrade/filmGrain/lensEffects live on the cinematic arm of the
+      // VideoPromptPreset union; read them through the narrowing accessor.
+      const config = extractPostProcessingConfig(result.preset);
+      expect(config.colorGrade).toBeDefined();
+      expect(config.filmGrain).toBeDefined();
+      expect(config.lensEffects).toBeDefined();
     });
 
     it('should count words correctly', () => {
@@ -195,14 +199,17 @@ describe('CASTPromptService', () => {
     });
 
     it('should detect missing camera movement', () => {
-      const input = { ...validInput, cameraMovement: undefined as any };
+      const input = { ...validInput, cameraMovement: undefined };
       const result = validateCASTInput(input);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Camera movement is required');
     });
 
     it('should detect invalid camera movement', () => {
-      const input = { ...validInput, cameraMovement: 'invalid' as any };
+      const input = {
+        ...validInput,
+        cameraMovement: 'invalid' as CameraMovement,
+      };
       const result = validateCASTInput(input);
       expect(result.valid).toBe(false);
       expect(
@@ -225,8 +232,10 @@ describe('CASTPromptService', () => {
     });
 
     it('should detect missing lighting', () => {
-      const input = { ...validInput, lighting: undefined as any };
-      const result = validateCASTInput(input);
+      // `lighting` is required, so drop the key rather than claim it holds
+      // `undefined`; the assertion is the one lie this case is testing.
+      const { lighting: _lighting, ...input } = validInput;
+      const result = validateCASTInput(input as CASTInput);
       expect(result.valid).toBe(false);
       expect(result.errors).toContain('Lighting is required');
     });

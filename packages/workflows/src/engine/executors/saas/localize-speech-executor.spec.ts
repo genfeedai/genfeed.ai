@@ -9,6 +9,7 @@ function input(): ExecutorInput {
       runId: 'run',
       userId: 'user',
       workflowId: 'wf',
+      workflowVersionId: 'wf-v1',
     },
     inputs: new Map<string, unknown>([
       ['video', { id: 'source', videoUrl: 'https://cdn.example.com/ad.mp4' }],

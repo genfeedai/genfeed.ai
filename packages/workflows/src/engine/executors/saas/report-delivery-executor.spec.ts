@@ -13,6 +13,8 @@ describe('ReportDeliveryExecutor', () => {
       node: {
         config: { channel: 'notification', subject: 'Digest' },
         id: 'n1',
+        inputs: [],
+        label: 'Deliver Report',
         type: 'reportDelivery',
       },
     });
@@ -47,6 +49,8 @@ describe('ReportDeliveryExecutor', () => {
           subject: 'Report',
         },
         id: 'n1',
+        inputs: [],
+        label: 'Deliver Report',
         type: 'reportDelivery',
       },
     });
@@ -75,6 +79,8 @@ describe('ReportDeliveryExecutor', () => {
         node: {
           config: { channel: 'notification' },
           id: 'n1',
+          inputs: [],
+          label: 'Deliver Report',
           type: 'reportDelivery',
         },
       }),
@@ -94,6 +100,8 @@ describe('ReportDeliveryExecutor', () => {
         node: {
           config: { channel: 'notification', subject: 'Digest' },
           id: 'n1',
+          inputs: [],
+          label: 'Deliver Report',
           type: 'reportDelivery',
         },
       }),
@@ -115,6 +123,8 @@ describe('ReportDeliveryExecutor', () => {
             subject: 'Digest',
           },
           id: 'n1',
+          inputs: [],
+          label: 'Deliver Report',
           type: 'reportDelivery',
         },
       }),
@@ -132,6 +142,8 @@ describe('ReportDeliveryExecutor', () => {
       node: {
         config: { channel: 'notification' },
         id: 'n1',
+        inputs: [],
+        label: 'Deliver Report',
         type: 'reportDelivery',
       },
     });

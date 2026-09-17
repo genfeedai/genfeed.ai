@@ -8,7 +8,13 @@ describe('SocialReadExecutor', () => {
       executor.execute({
         context: { organizationId: 'org', userId: 'user' } as never,
         inputs: new Map(),
-        node: { config: {}, id: 'n1', type: 'socialRead' },
+        node: {
+          config: {},
+          id: 'n1',
+          inputs: [],
+          label: 'Read Social',
+          type: 'socialRead',
+        },
       }),
     ).rejects.toThrow(/provider not configured/i);
   });
@@ -34,6 +40,8 @@ describe('SocialReadExecutor', () => {
       node: {
         config: { limit: 10, mode: 'timeline', username: 'genfeed' },
         id: 'n1',
+        inputs: [],
+        label: 'Read Social',
         type: 'socialRead',
       },
     });
@@ -63,6 +71,8 @@ describe('SocialReadExecutor', () => {
         node: {
           config: { mode: 'search' },
           id: 'n1',
+          inputs: [],
+          label: 'Read Social',
           type: 'socialRead',
         },
       }),
@@ -82,6 +92,8 @@ describe('SocialReadExecutor', () => {
         node: {
           config: { mode: 'timeline', username: 'genfeed' },
           id: 'n1',
+          inputs: [],
+          label: 'Read Social',
           type: 'socialRead',
         },
       }),
@@ -111,6 +123,8 @@ describe('SocialReadExecutor', () => {
       node: {
         config: { mode: 'mentions', username: 'genfeed' },
         id: 'n1',
+        inputs: [],
+        label: 'Read Social',
         type: 'socialRead',
       },
     });
@@ -145,6 +159,8 @@ describe('SocialReadExecutor', () => {
       node: {
         config: { mode: 'timeline', username: 'genfeed' },
         id: 'n1',
+        inputs: [],
+        label: 'Read Social',
         type: 'socialRead',
       },
     });

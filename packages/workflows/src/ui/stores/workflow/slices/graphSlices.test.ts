@@ -338,10 +338,10 @@ describe('edgeSlice — edge maintenance', () => {
       targetHandle: 'prompt',
     });
 
-    useWorkflowStore.getState().setEdgeStyle('step');
+    useWorkflowStore.getState().setEdgeStyle('smoothstep');
 
-    expect(useWorkflowStore.getState().edgeStyle).toBe('step');
-    expect(useWorkflowStore.getState().edges[0].type).toBe('step');
+    expect(useWorkflowStore.getState().edgeStyle).toBe('smoothstep');
+    expect(useWorkflowStore.getState().edges[0].type).toBe('smoothstep');
   });
 
   it('toggleEdgePause flips the pause flag', () => {

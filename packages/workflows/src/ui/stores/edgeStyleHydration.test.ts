@@ -5,6 +5,7 @@ import type {
   WorkflowFile,
   WorkflowNode,
 } from '@genfeedai/contracts/types';
+import type { Mock } from 'vitest';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   configureEdgeStyleMirror,
@@ -100,14 +101,13 @@ function resetGraph() {
   });
 }
 
-interface MockedPersistence extends WorkflowPersistenceService {
-  create: ReturnType<typeof vi.fn>;
-  delete: ReturnType<typeof vi.fn>;
-  duplicate: ReturnType<typeof vi.fn>;
-  getAll: ReturnType<typeof vi.fn>;
-  getById: ReturnType<typeof vi.fn>;
-  update: ReturnType<typeof vi.fn>;
-}
+/**
+ * Mirrors the real service method-for-method: each method keeps its production
+ * signature so the mock stays assignable to WorkflowPersistenceService.
+ */
+type MockedPersistence = {
+  [K in keyof WorkflowPersistenceService]: Mock<WorkflowPersistenceService[K]>;
+};
 
 function makeService(): MockedPersistence {
   return {

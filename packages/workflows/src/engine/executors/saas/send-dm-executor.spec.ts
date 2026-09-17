@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
 import type { ExecutableNode } from '../../types';
 import type { ExecutorInput } from '../base-executor';
@@ -36,11 +36,11 @@ function makeInput(
 
 describe('SendDmExecutor', () => {
   let executor: SendDmExecutor;
-  let mockSender: DmSender;
+  let mockSender: Mock<DmSender>;
 
   beforeEach(() => {
     executor = new SendDmExecutor();
-    mockSender = vi.fn().mockResolvedValue({ messageId: 'msg-123' });
+    mockSender = vi.fn<DmSender>().mockResolvedValue({ messageId: 'msg-123' });
     executor.setSender(mockSender);
   });
 

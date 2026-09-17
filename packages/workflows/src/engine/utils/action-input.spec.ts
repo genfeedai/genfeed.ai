@@ -24,7 +24,7 @@ describe('buildActionExecutionInput', () => {
           payload: { payloadOnly: true, source: 'payload' },
           source: 'config',
         },
-        new Map([
+        new Map<string, unknown>([
           ['edgeOnly', true],
           ['source', 'edge'],
         ]),
