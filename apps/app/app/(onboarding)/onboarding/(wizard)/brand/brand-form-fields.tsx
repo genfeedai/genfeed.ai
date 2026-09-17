@@ -190,14 +190,16 @@ export default function BrandFormFields({
         onChange={onToneChange}
       />
 
-      {errorMessage ? (
-        <Alert type={AlertCategory.ERROR}>
-          <div className="space-y-1">
-            <div className="font-medium">{translate('errors.title')}</div>
-            <div className="text-xs text-foreground/70">{errorMessage}</div>
-          </div>
-        </Alert>
-      ) : null}
+      <div hidden={!errorMessage}>
+        {errorMessage ? (
+          <Alert type={AlertCategory.ERROR}>
+            <div className="space-y-1">
+              <div className="font-medium">{translate('errors.title')}</div>
+              <div className="text-xs text-foreground/70">{errorMessage}</div>
+            </div>
+          </Alert>
+        ) : null}
+      </div>
 
       {/* Continue button */}
       <div className="step-actions">
