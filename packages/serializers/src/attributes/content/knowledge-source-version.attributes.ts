@@ -20,4 +20,5 @@ export const knowledgeSourceVersionAttributes = createEntityAttributes([
   'supersededByVersionId',
   'isCurrent',
   'isLegalHold',
+  'transcriptState',
 ]);

@@ -6,6 +6,8 @@ import type {
   KnowledgeRetrievalState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  KnowledgeSourceSyncState,
+  KnowledgeTranscriptState,
 } from '../../enums/knowledge-source.enum';
 
 export interface KnowledgeRecordOwnership {
@@ -28,6 +30,20 @@ export interface KnowledgeSourceRecord extends KnowledgeRecord {
   kind: KnowledgeSourceKind;
   purpose: KnowledgeSourcePurpose;
   isVisible: boolean;
+  mediaReferenceKey?: string | null;
+  isRefreshEnabled?: boolean;
+  refreshIntervalMinutes?: number | null;
+  gracePeriodMinutes?: number | null;
+  refreshWorkflowId?: string | null;
+  referenceUrl?: string | null;
+  syncState?: KnowledgeSourceSyncState | null;
+  lastCheckedAt?: string | null;
+  lastSuccessfulSyncAt?: string | null;
+  nextCheckAt?: string | null;
+  firstFailureAt?: string | null;
+  consecutiveFailures?: number;
+  staleAt?: string | null;
+  lastSyncError?: string | null;
 }
 
 /** Minimal receipt identity survives supersession and payload purge. */
@@ -55,6 +71,7 @@ export interface KnowledgeSourceVersionRecord
   purgedAt: string | null;
   supersededByVersionId: string | null;
   isCurrent: boolean;
+  transcriptState?: KnowledgeTranscriptState | null;
   isDeleted: boolean;
   createdAt: string;
   updatedAt: string;
@@ -95,6 +112,11 @@ export interface KnowledgeRetrievalCitation {
 export interface KnowledgeSourceCapturePayload {
   text?: string;
   referenceUrl?: string;
+  contentFingerprint?: string;
+  transcriptUrl?: string;
+  mediaUrl?: string;
+  transcriptState?: KnowledgeTranscriptState;
+  transcriptCues?: Array<{ endMs: number; startMs: number; text: string }>;
 }
 
 /** Where and when a capture happened; cleared on payload purge. */
@@ -109,12 +131,21 @@ export interface KnowledgeSourceCaptureProvenance {
 /** `POST /knowledge-sources` body: metadata plus an optional first capture. */
 export interface KnowledgeSourceCaptureRequest {
   scope: KnowledgeMemoryScope;
-  title: string;
-  kind: KnowledgeSourceKind;
-  purpose: KnowledgeSourcePurpose;
+  title?: string;
+  kind?: KnowledgeSourceKind;
+  purpose?: KnowledgeSourcePurpose;
+  sourceId?: string;
   text?: string;
   referenceUrl?: string;
+  transcriptUrl?: string;
+  isTranscriptGenerationAllowed?: boolean;
   provenance?: Record<string, unknown>;
+}
+
+export interface KnowledgeSourceRefreshPolicyRequest {
+  isEnabled: boolean;
+  intervalMinutes?: number;
+  graceMinutes?: number;
 }
 
 /** `PATCH /knowledge-sources/:id` body. */

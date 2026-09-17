@@ -81,8 +81,13 @@ function buildSourcesController() {
   return {
     controller: new KnowledgeSourcesController(
       records,
-      new KnowledgeCaptureService(records, ingestWorkflow as never),
+      new KnowledgeCaptureService(
+        records,
+        ingestWorkflow as never,
+        { refresh: vi.fn() } as never,
+      ),
       { run: vi.fn() } as never,
+      { refresh: vi.fn(), setPolicy: vi.fn() } as never,
     ),
     ingestWorkflow,
   };

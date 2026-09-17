@@ -51,6 +51,7 @@ export {
 } from './registry/agent-action-class';
 export {
   getKnowledgeToolActionContract,
+  KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
   KNOWLEDGE_RECEIPT_SCHEMA,
   KNOWLEDGE_RETRIEVAL_CITATION_SCHEMA,
   KNOWLEDGE_WORKFLOW_MUTATION_ACTION_IDS,

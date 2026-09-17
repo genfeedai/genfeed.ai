@@ -18,9 +18,13 @@ import {
   KnowledgeBaseCategory,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
+  KnowledgeRefreshRunOutcome,
+  KnowledgeRefreshRunStatus,
   KnowledgeRetentionState,
+  KnowledgeRetrievalState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  KnowledgeSourceSyncState,
 } from '@genfeedai/contracts';
 import type {
   KnowledgeSourceBackfillWorkflowInput,
@@ -58,6 +62,7 @@ export interface KnowledgeSourceIngestVersion {
   isCurrent: boolean;
   referenceUrl?: string;
   text?: string;
+  transcriptUrl?: string;
   version: number;
 }
 
@@ -117,6 +122,11 @@ function readPayload(value: unknown): KnowledgeSourceCapturePayload {
       : {}),
     ...(typeof record.text === 'string' && record.text.trim()
       ? { text: record.text }
+      : typeof record.extractedText === 'string' && record.extractedText.trim()
+        ? { text: record.extractedText }
+        : {}),
+    ...(typeof record.transcriptUrl === 'string' && record.transcriptUrl
+      ? { transcriptUrl: record.transcriptUrl }
       : {}),
   };
 }
@@ -159,9 +169,17 @@ export class KnowledgeSourceIngestService {
         },
       },
     });
+    const isRefreshCandidate = Boolean(
+      row &&
+        !row.isCurrent &&
+        row.retentionState === KnowledgeRetentionState.RETAINED &&
+        (row.processingState === KnowledgeProcessingState.QUEUED ||
+          row.processingState === KnowledgeProcessingState.PROCESSING),
+    );
     if (
-      !row?.isCurrent ||
-      row.retentionState !== KnowledgeRetentionState.RETAINED
+      !row ||
+      row.retentionState !== KnowledgeRetentionState.RETAINED ||
+      (!row.isCurrent && !isRefreshCandidate)
     ) {
       return base;
     }
@@ -256,6 +274,23 @@ export class KnowledgeSourceIngestService {
     if (!category || !state.version.referenceUrl) {
       throw new Error('Source is missing a reference URL');
     }
+    if (state.version.text) {
+      return {
+        ...state,
+        extracted: { mimeType: 'text/plain', text: state.version.text },
+      };
+    }
+    if (
+      (state.source.kind === KnowledgeSourceKind.AUDIO ||
+        state.source.kind === KnowledgeSourceKind.VIDEO) &&
+      state.version.transcriptUrl
+    ) {
+      const extracted = await extractSourceText({
+        category: KnowledgeBaseCategory.DOCUMENT,
+        referenceUrl: state.version.transcriptUrl,
+      });
+      return { ...state, extracted };
+    }
     const extracted = await extractSourceText({
       category,
       referenceUrl: state.version.referenceUrl,
@@ -347,12 +382,70 @@ export class KnowledgeSourceIngestService {
       };
     }
     await this.writeProcessingState(state, KnowledgeProcessingState.READY);
+    if (state.version && !state.version.isCurrent) {
+      await this.promoteRefreshCandidate(state);
+    }
     return {
       chunkCount: state.chunks?.length ?? 0,
       sourceId: state.sourceId,
       status: 'completed',
       versionId: state.versionId,
     };
+  }
+
+  private async promoteRefreshCandidate(
+    state: KnowledgeSourceIngestState,
+  ): Promise<void> {
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.knowledgeSourceVersion.updateMany({
+        where: {
+          id: { not: state.versionId },
+          isCurrent: true,
+          isDeleted: false,
+          organizationId: state.organizationId,
+          sourceId: state.sourceId,
+        },
+        data: {
+          isCurrent: false,
+          retrievalState: KnowledgeRetrievalState.SUPERSEDED,
+          supersededByVersionId: state.versionId,
+        },
+      });
+      await tx.knowledgeSourceVersion.updateMany({
+        where: {
+          id: state.versionId,
+          organizationId: state.organizationId,
+          sourceId: state.sourceId,
+        },
+        data: { isCurrent: true },
+      });
+      await tx.knowledgeSourceRefreshRun.updateMany({
+        where: {
+          candidateVersionId: state.versionId,
+          isDeleted: false,
+          organizationId: state.organizationId,
+          sourceId: state.sourceId,
+        },
+        data: {
+          completedAt: now,
+          outcome: KnowledgeRefreshRunOutcome.CHANGED,
+          status: KnowledgeRefreshRunStatus.COMPLETED,
+        },
+      });
+      await tx.knowledgeSource.updateMany({
+        where: { id: state.sourceId, organizationId: state.organizationId },
+        data: {
+          consecutiveFailures: 0,
+          firstFailureAt: null,
+          lastCheckedAt: now,
+          lastSuccessfulSyncAt: now,
+          lastSyncError: null,
+          staleAt: null,
+          syncState: KnowledgeSourceSyncState.CURRENT,
+        },
+      });
+    });
   }
 
   async scanForBackfill(

@@ -216,7 +216,11 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       { getDefaultModel: vi.fn().mockResolvedValue('test-embed') } as never,
     );
     ingest = new KnowledgeSourceIngestService(prismaService, contexts);
-    capture = new KnowledgeCaptureService(records, workflowStub as never);
+    capture = new KnowledgeCaptureService(
+      records,
+      workflowStub as never,
+      { refresh: vi.fn() } as never,
+    );
     selection = new KnowledgeSelectionService(prismaService);
     legacyBackfill = new KnowledgeLegacyBackfillService(
       prismaService,

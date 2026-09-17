@@ -177,9 +177,10 @@ export class KnowledgeRecordsService {
       data: {
         ...ownership,
         ...(id ? { id } : {}),
-        title: dto.title,
         kind: dto.kind,
         purpose: dto.purpose,
+        referenceUrl: dto.referenceUrl,
+        title: dto.title,
       },
     });
     const inbox = await this.inbox(tx, actor, dto.scope);
@@ -657,6 +658,39 @@ export class KnowledgeRecordsService {
           observedAt: new Date(dto.observedAt),
           expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
           retentionPolicy: dto.retentionPolicy ?? KnowledgeRetentionPolicy.KEEP,
+        },
+      });
+    });
+  }
+
+  async createCandidateVersion(
+    actor: KnowledgeActor,
+    sourceId: string,
+    dto: CreateKnowledgeVersionDto,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockSource(tx, actor, sourceId);
+      const prior = await tx.knowledgeSourceVersion.findFirst({
+        where: {
+          isDeleted: false,
+          organizationId: actor.organizationId,
+          sourceId,
+          source: { is: this.ownership(actor) },
+        },
+        orderBy: { version: 'desc' },
+      });
+      return tx.knowledgeSourceVersion.create({
+        data: {
+          contentHash: dto.contentHash,
+          isCurrent: false,
+          observedAt: new Date(dto.observedAt),
+          organizationId: actor.organizationId,
+          payload: dto.payload,
+          processingState: KnowledgeProcessingState.QUEUED,
+          provenance: dto.provenance,
+          retrievalState: KnowledgeRetrievalState.ACTIVE,
+          sourceId,
+          version: (prior?.version ?? 0) + 1,
         },
       });
     });

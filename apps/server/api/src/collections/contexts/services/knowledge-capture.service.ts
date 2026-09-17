@@ -3,6 +3,7 @@ import type { CreateKnowledgeSourceDto } from '@api/collections/contexts/dto/cre
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
 import { isIngestibleKnowledgeSourceKind } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import {
@@ -77,6 +78,7 @@ export class KnowledgeCaptureService {
   constructor(
     private readonly records: KnowledgeRecordsService,
     private readonly ingestWorkflow: KnowledgeSourceIngestWorkflowService,
+    private readonly refresh: KnowledgeRefreshService,
   ) {}
 
   async capture(
@@ -84,6 +86,9 @@ export class KnowledgeCaptureService {
     dto: CreateKnowledgeSourceDto,
     idempotencyKey?: string,
   ): Promise<KnowledgeCaptureResult> {
+    if (dto.sourceId) {
+      return this.refreshExisting(actor, dto.sourceId, dto.provenance);
+    }
     const hasPayload = Boolean(dto.text || dto.referenceUrl);
     if (hasPayload) {
       this.assertCapturable(dto.kind, dto);
@@ -140,7 +145,7 @@ export class KnowledgeCaptureService {
   async refreshExisting(
     actor: KnowledgeActor,
     sourceId: string,
-    provenance?: KnowledgeSourceCaptureProvenance,
+    _provenance?: KnowledgeSourceCaptureProvenance,
   ): Promise<KnowledgeCaptureResult> {
     const source = await this.records.getSource(actor, sourceId);
     if (
@@ -165,16 +170,16 @@ export class KnowledgeCaptureService {
       );
     }
     this.assertCapturable(source.kind, { referenceUrl });
-    const versionDto = buildCaptureVersion({
-      provenance: {
-        ...(provenance ?? {}),
-        refreshOf: sourceId,
-      },
-      referenceUrl,
-      title: source.title,
-    });
-    const ingested = await this.createVersion(actor, sourceId, versionDto);
-    return { jobId: ingested.jobId, source, version: ingested.version };
+    const tickKey = `manual:${sourceId}:${Date.now()}`;
+    const refreshed = await this.refresh.refresh(actor, sourceId, tickKey);
+    const version = await this.records
+      .getCurrentVersion(actor, sourceId)
+      .catch(() => undefined);
+    return {
+      jobId: refreshed.jobId,
+      source,
+      version,
+    };
   }
 
   async createVersion(

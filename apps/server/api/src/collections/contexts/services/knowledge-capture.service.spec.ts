@@ -36,7 +36,11 @@ function buildService() {
   };
   return {
     records,
-    service: new KnowledgeCaptureService(records as never, workflow as never),
+    service: new KnowledgeCaptureService(
+      records as never,
+      workflow as never,
+      { refresh: vi.fn() } as never,
+    ),
     workflow,
   };
 }
@@ -148,13 +152,6 @@ describe('KnowledgeCaptureService', () => {
   it('rejects captures the workflow cannot ingest before writing anything', async () => {
     const { service, records } = buildService();
 
-    await expect(
-      service.capture(actor, {
-        ...base,
-        kind: KnowledgeSourceKind.VIDEO,
-        referenceUrl: 'https://video.example/clip',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
     await expect(
       service.capture(actor, {
         ...base,

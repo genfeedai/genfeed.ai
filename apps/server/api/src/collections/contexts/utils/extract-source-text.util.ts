@@ -27,7 +27,10 @@ export class UnsupportedKnowledgeSourceError extends Error {
 }
 
 export interface ExtractedSourceText {
+  etag?: string;
+  lastModified?: string;
   mimeType: string;
+  notModified?: boolean;
   text: string;
 }
 
@@ -42,7 +45,9 @@ export type SourceTextFetch = (
 }>;
 
 export interface ExtractSourceTextInput {
+  capturedText?: string;
   category: KnowledgeBaseCategory;
+  conditional?: { etag?: string; lastModified?: string };
   fetchImpl?: SourceTextFetch;
   referenceUrl: string;
 }
@@ -262,12 +267,29 @@ export async function extractSourceText(
   if (!isIngestibleKnowledgeSourceCategory(input.category)) {
     throw new UnsupportedKnowledgeSourceError(input.category);
   }
+  if (input.capturedText) {
+    return { mimeType: 'text/plain', text: input.capturedText };
+  }
 
   const fetchImpl = input.fetchImpl ?? safeFetch;
+  const headers: Record<string, string> = { ...TEXT_FETCH_HEADERS };
+  if (input.conditional?.etag) {
+    headers['If-None-Match'] = input.conditional.etag;
+  }
+  if (input.conditional?.lastModified) {
+    headers['If-Modified-Since'] = input.conditional.lastModified;
+  }
   const response = await fetchImpl(input.referenceUrl, {
-    headers: TEXT_FETCH_HEADERS,
+    headers,
     redirect: 'manual',
   });
+
+  if (response.status === 304) {
+    if (!input.conditional?.etag && !input.conditional?.lastModified) {
+      throw new Error('Unsolicited not-modified response');
+    }
+    return { mimeType: 'text/plain', notModified: true, text: '' };
+  }
 
   if (!response.ok) {
     throw new Error(`Failed to fetch source (${response.status})`);
@@ -290,5 +312,10 @@ export async function extractSourceText(
     throw new Error('Source did not contain extractable text');
   }
 
-  return { mimeType, text };
+  return {
+    etag: response.headers.get('etag') ?? undefined,
+    lastModified: response.headers.get('last-modified') ?? undefined,
+    mimeType,
+    text,
+  };
 }

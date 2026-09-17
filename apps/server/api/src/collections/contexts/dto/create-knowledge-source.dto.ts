@@ -6,6 +6,7 @@ import {
 import type { Prisma } from '@genfeedai/prisma';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsBoolean,
   IsEnum,
   IsNotEmpty,
   IsObject,
@@ -13,18 +14,26 @@ import {
   IsString,
   IsUrl,
   MaxLength,
+  ValidateIf,
 } from 'class-validator';
 
 export const KNOWLEDGE_CAPTURE_TEXT_MAX_LENGTH = 200_000;
 
 export class CreateKnowledgeSourceDto extends KnowledgeScopeDto {
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  sourceId?: string;
+
   @ApiProperty()
+  @ValidateIf((dto: CreateKnowledgeSourceDto) => !dto.sourceId)
   @IsString()
   @IsNotEmpty()
   @MaxLength(500)
   title!: string;
 
   @ApiProperty({ enum: KnowledgeSourceKind, enumName: 'KnowledgeSourceKind' })
+  @ValidateIf((dto: CreateKnowledgeSourceDto) => !dto.sourceId)
   @IsEnum(KnowledgeSourceKind)
   kind!: KnowledgeSourceKind;
 
@@ -32,6 +41,7 @@ export class CreateKnowledgeSourceDto extends KnowledgeScopeDto {
     enum: KnowledgeSourcePurpose,
     enumName: 'KnowledgeSourcePurpose',
   })
+  @ValidateIf((dto: CreateKnowledgeSourceDto) => !dto.sourceId)
   @IsEnum(KnowledgeSourcePurpose)
   purpose!: KnowledgeSourcePurpose;
 
@@ -66,4 +76,19 @@ export class CreateKnowledgeSourceDto extends KnowledgeScopeDto {
   @IsOptional()
   @IsObject()
   provenance?: Prisma.InputJsonObject;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsUrl({
+    protocols: ['http', 'https'],
+    require_protocol: true,
+    require_tld: false,
+  })
+  @MaxLength(2048)
+  transcriptUrl?: string;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsBoolean()
+  isTranscriptGenerationAllowed?: boolean;
 }

@@ -90,6 +90,8 @@ export function buildContextSimilarityQuery(
           AND (v."expiresAt" IS NULL OR v."expiresAt" > NOW())
           AND s."isVisible" = true
           AND s."isDeleted" = false
+          AND (s."syncState" IS DISTINCT FROM 'STALE')
+          AND s."staleAt" IS NULL
         )
       )
       ${sourceFilter}

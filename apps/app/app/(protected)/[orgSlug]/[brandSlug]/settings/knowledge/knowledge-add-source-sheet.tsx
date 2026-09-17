@@ -25,22 +25,29 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@ui/primitives/sheet';
+import { Switch } from '@ui/primitives/switch';
 import { Textarea } from '@ui/primitives/textarea';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
-type CaptureMode = 'text' | 'url' | 'document';
+type CaptureMode = 'audio' | 'document' | 'rss' | 'text' | 'url' | 'video';
 
 const MODE_OPTIONS: Array<{ labelKey: string; value: CaptureMode }> = [
   { labelKey: 'modeText', value: 'text' },
   { labelKey: 'modeUrl', value: 'url' },
   { labelKey: 'modeDocument', value: 'document' },
+  { labelKey: 'modeRss', value: 'rss' },
+  { labelKey: 'modeAudio', value: 'audio' },
+  { labelKey: 'modeVideo', value: 'video' },
 ];
 
 const KIND_BY_MODE: Record<CaptureMode, KnowledgeSourceKind> = {
+  audio: KnowledgeSourceKind.AUDIO,
   document: KnowledgeSourceKind.DOCUMENT,
+  rss: KnowledgeSourceKind.RSS,
   text: KnowledgeSourceKind.TEXT,
   url: KnowledgeSourceKind.URL,
+  video: KnowledgeSourceKind.VIDEO,
 };
 
 /** Keys resolve under `pages.library.knowledge.purpose`. */
@@ -81,8 +88,12 @@ export default function KnowledgeAddSourceSheet({
   );
   const [text, setText] = useState('');
   const [referenceUrl, setReferenceUrl] = useState('');
+  const [transcriptUrl, setTranscriptUrl] = useState('');
+  const [isTranscriptGenerationAllowed, setIsTranscriptGenerationAllowed] =
+    useState(false);
 
   const isTextMode = mode === 'text';
+  const isMediaMode = mode === 'audio' || mode === 'video';
   const hasContent = isTextMode
     ? text.trim().length > 0
     : referenceUrl.trim().length > 0;
@@ -94,6 +105,8 @@ export default function KnowledgeAddSourceSheet({
     setPurpose(KnowledgeSourcePurpose.INSPIRATION);
     setText('');
     setReferenceUrl('');
+    setTranscriptUrl('');
+    setIsTranscriptGenerationAllowed(false);
   };
 
   const handleSubmit = async () => {
@@ -108,6 +121,10 @@ export default function KnowledgeAddSourceSheet({
       ...(isTextMode
         ? { text: text.trim() }
         : { referenceUrl: referenceUrl.trim() }),
+      ...(isMediaMode && transcriptUrl.trim()
+        ? { transcriptUrl: transcriptUrl.trim() }
+        : {}),
+      ...(isMediaMode ? { isTranscriptGenerationAllowed } : {}),
     });
     reset();
   };
@@ -164,12 +181,20 @@ export default function KnowledgeAddSourceSheet({
             </Field>
           ) : (
             <Field
-              label={translate(mode === 'document' ? 'documentUrl' : 'url')}
+              label={translate(
+                mode === 'document'
+                  ? 'documentUrl'
+                  : mode === 'rss'
+                    ? 'rssUrl'
+                    : mode === 'audio'
+                      ? 'audioUrl'
+                      : mode === 'video'
+                        ? 'videoUrl'
+                        : 'url',
+              )}
             >
               <Input
-                aria-label={translate(
-                  mode === 'document' ? 'documentUrl' : 'url',
-                )}
+                aria-label={translate('url')}
                 onChange={(event) => setReferenceUrl(event.target.value)}
                 placeholder={translate('urlPlaceholder')}
                 type="url"
@@ -177,6 +202,29 @@ export default function KnowledgeAddSourceSheet({
               />
             </Field>
           )}
+          {isMediaMode ? (
+            <>
+              <Field label={translate('transcriptUrl')}>
+                <Input
+                  aria-label={translate('transcriptUrl')}
+                  onChange={(event) => setTranscriptUrl(event.target.value)}
+                  placeholder={translate('urlPlaceholder')}
+                  type="url"
+                  value={transcriptUrl}
+                />
+              </Field>
+              <Field label={translate('generateTranscript')}>
+                <Switch
+                  aria-label={translate('generateTranscript')}
+                  checked={isTranscriptGenerationAllowed}
+                  onCheckedChange={setIsTranscriptGenerationAllowed}
+                />
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {translate('generateTranscriptHint')}
+                </p>
+              </Field>
+            </>
+          ) : null}
           <Field label={translate('purposeLabel')}>
             <Select
               onValueChange={(value) =>
