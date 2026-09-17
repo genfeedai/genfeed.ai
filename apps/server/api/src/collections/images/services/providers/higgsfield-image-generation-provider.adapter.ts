@@ -9,10 +9,13 @@ import { calculateAspectRatio } from '@genfeedai/helpers';
 /**
  * Higgsfield Soul text-to-image. `generateTextToImage` queues the job and
  * `waitForImageCompletion` polls it internally, so this adapter blocks on the
- * whole round trip and returns the resolved image URL as `outputUrls` — that
+ * whole round trip and returns the resolved image URLs as `outputUrls` — that
  * makes `ImageGenerationProviderDispatchService.finalizeReturnedOutput` upload
  * and finalize the ingredient the same way every other `external-id` provider
  * does, with no additional wiring.
+ *
+ * Soul renders a batch of exactly 1 or 4, so a request for 2 or 3 outputs
+ * comes back as 4 and the dispatcher keeps what it needs.
  */
 export class HiggsFieldImageGenerationProviderAdapter
   implements ImageGenerationProviderAdapter
@@ -37,7 +40,7 @@ export class HiggsFieldImageGenerationProviderAdapter
           prompt: request.prompt,
         });
 
-        const { imageUrl } =
+        const { imageUrls } =
           await this.higgsFieldService.waitForImageCompletion(requestId, {
             organizationId: request.organizationId,
           });
@@ -45,7 +48,7 @@ export class HiggsFieldImageGenerationProviderAdapter
         return {
           externalId: requestId,
           kind: 'external-id',
-          outputUrls: [imageUrl],
+          outputUrls: imageUrls,
           promptId: request.promptId,
         };
       },

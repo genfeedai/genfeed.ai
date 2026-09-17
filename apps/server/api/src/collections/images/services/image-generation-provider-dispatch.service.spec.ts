@@ -450,7 +450,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       requestId: 'higgsfield-req-1',
     });
     higgsFieldService.waitForImageCompletion.mockResolvedValue({
-      imageUrl: 'https://higgsfield.example.com/generated.png',
+      imageUrls: ['https://higgsfield.example.com/generated.png'],
     });
     const context = buildContext({ model: MODEL_KEYS.HIGGSFIELD_SOUL });
 

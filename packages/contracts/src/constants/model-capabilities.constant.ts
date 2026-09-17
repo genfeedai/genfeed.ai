@@ -1049,24 +1049,40 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
-    [MODEL_KEYS.HIGGSFIELD_KLING_VIDEO]: {
-      aspectRatios: ASPECT_RATIOS.KLING,
+    /**
+     * DoP image-to-video drives length and framing from the source image, so
+     * `/v1/image2video/dop` exposes neither a duration nor an aspect-ratio
+     * input. The three rows differ only by the `model` variant they send.
+     */
+    [MODEL_KEYS.HIGGSFIELD_DOP_LITE]: {
       category: ModelCategory.VIDEO,
-      defaultAspectRatio: '9:16',
-      defaultDuration: 5,
-      durations: [5],
-      hasDurationEditing: true,
+      hasDurationEditing: false,
       isBatchSupported: false,
-      maxOutputs: 4,
+      maxOutputs: 1,
       maxReferences: 1,
     },
-    [MODEL_KEYS.HIGGSFIELD_SOUL]: {
-      aspectRatios: ASPECT_RATIOS.KLING,
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '9:16',
+    [MODEL_KEYS.HIGGSFIELD_DOP_TURBO]: {
+      category: ModelCategory.VIDEO,
+      hasDurationEditing: false,
       isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+    },
+    [MODEL_KEYS.HIGGSFIELD_DOP_STANDARD]: {
+      category: ModelCategory.VIDEO,
+      hasDurationEditing: false,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+    },
+    /** Soul renders one of 13 fixed sizes; IMAGEN is the ratio subset we map. */
+    [MODEL_KEYS.HIGGSFIELD_SOUL]: {
+      aspectRatios: ASPECT_RATIOS.IMAGEN,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '1:1',
+      isBatchSupported: true,
       maxOutputs: 4,
-      maxReferences: 0,
+      maxReferences: 1,
     },
 
     [MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1]: {

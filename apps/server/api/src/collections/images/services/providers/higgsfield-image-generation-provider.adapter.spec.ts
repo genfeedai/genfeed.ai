@@ -30,9 +30,9 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
       const generateTextToImage = vi
         .fn()
         .mockResolvedValue({ requestId: 'req-456' });
-      const waitForImageCompletion = vi
-        .fn()
-        .mockResolvedValue({ imageUrl: 'https://cdn.test/out.png' });
+      const waitForImageCompletion = vi.fn().mockResolvedValue({
+        imageUrls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
+      });
       const adapter = buildAdapter({
         generateTextToImage,
         waitForImageCompletion,
@@ -63,7 +63,7 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
       expect(result).toEqual({
         externalId: 'req-456',
         kind: 'external-id',
-        outputUrls: ['https://cdn.test/out.png'],
+        outputUrls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
         promptId: 'prompt-1',
       });
     });
