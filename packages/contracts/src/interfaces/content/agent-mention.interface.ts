@@ -31,6 +31,11 @@ export interface AgentCharacterMentionsResponse {
   mentions: AgentCharacterMentionItem[];
 }
 
+export interface CharacterHandleResolution {
+  resolvedIngredientIds: readonly string[];
+  unresolvedHandles: readonly string[];
+}
+
 export interface AgentTeamMentionsResponse {
   mentions: AgentTeamMentionItem[];
 }
