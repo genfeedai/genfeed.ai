@@ -179,6 +179,114 @@ describe('WorkflowExecutionFinalizerService scheduled failure notice', () => {
     expect(logger.error).toHaveBeenCalled();
   });
 
+  it('settles a reserved clip-chain run once against completed node credits', async () => {
+    const videoGenerationCreditsService = {
+      settleClipChainReservation: vi.fn().mockResolvedValue(undefined),
+    };
+    prisma.workflow.findUnique.mockResolvedValue({
+      metadata: {
+        credits: {
+          reservationId: 'reservation-1',
+          reservedCredits: 61,
+        },
+        templateId: 'clip-chain-video',
+      },
+    });
+    service = new WorkflowExecutionFinalizerService(
+      prisma as never,
+      executionsService as never,
+      graphService as never,
+      notificationsPublisher as never,
+      logger as never,
+      undefined,
+      videoGenerationCreditsService as never,
+    );
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'exec-clip-complete',
+      organizationId: 'org-1',
+      trigger: WorkflowExecutionTrigger.MANUAL,
+      userId: 'user-1',
+      workflowId: 'wf-1',
+    });
+
+    await service.finalizeExecution({
+      completedAt: new Date('2026-08-14T08:00:00.000Z'),
+      executionId: 'exec-clip-complete',
+      finalStatus: WorkflowExecutionStatus.COMPLETED,
+      result: {
+        ...failedRunResult(),
+        error: undefined,
+        status: 'completed',
+        totalCreditsUsed: 61,
+      },
+      workflowId: 'wf-1',
+      workflowStatus: WorkflowStatus.COMPLETED,
+    });
+
+    expect(
+      videoGenerationCreditsService.settleClipChainReservation,
+    ).toHaveBeenCalledWith({
+      actualCredits: 61,
+      actorUserId: 'user-1',
+      organizationId: 'org-1',
+      reservationId: 'reservation-1',
+      reservedCredits: 61,
+    });
+  });
+
+  it('settles only completed clip-chain segments on a partial failure', async () => {
+    const videoGenerationCreditsService = {
+      settleClipChainReservation: vi.fn().mockResolvedValue(undefined),
+    };
+    prisma.workflow.findUnique.mockResolvedValue({
+      metadata: {
+        credits: {
+          reservationId: 'reservation-1',
+          reservedCredits: 61,
+        },
+        templateId: 'clip-chain-video',
+      },
+    });
+    service = new WorkflowExecutionFinalizerService(
+      prisma as never,
+      executionsService as never,
+      graphService as never,
+      notificationsPublisher as never,
+      logger as never,
+      undefined,
+      videoGenerationCreditsService as never,
+    );
+    executionsService.completeExecution.mockResolvedValue({
+      id: 'exec-clip-partial',
+      organizationId: 'org-1',
+      trigger: WorkflowExecutionTrigger.MANUAL,
+      userId: 'user-1',
+      workflowId: 'wf-1',
+    });
+
+    await service.finalizeExecution({
+      completedAt: new Date('2026-08-14T08:00:00.000Z'),
+      executionId: 'exec-clip-partial',
+      finalStatus: WorkflowExecutionStatus.FAILED,
+      result: {
+        ...failedRunResult('segment 2 failed'),
+        totalCreditsUsed: 12,
+      },
+      workflowId: 'wf-1',
+      workflowStatus: WorkflowStatus.FAILED,
+    });
+
+    expect(
+      videoGenerationCreditsService.settleClipChainReservation,
+    ).toHaveBeenCalledWith({
+      actualCredits: 12,
+      actorUserId: 'user-1',
+      organizationId: 'org-1',
+      reservationId: 'reservation-1',
+      reservedCredits: 61,
+    });
+  });
+
   it('scrubs terminal payloads before queueing terminal artifact cleanup', async () => {
     const artifactLifecycle = {
       applyTerminalRetention: vi.fn().mockResolvedValue(true),

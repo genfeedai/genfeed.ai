@@ -1,3 +1,7 @@
+import {
+  readClipChainReservationHold,
+  VideoGenerationCreditsService,
+} from '@api/collections/videos/services/video-generation-credits.service';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
@@ -23,6 +27,7 @@ export class WorkflowExecutionFinalizerService {
     private readonly notificationsPublisher?: NotificationsPublisherService,
     private readonly logger?: LoggerService,
     private readonly artifactLifecycle?: WorkflowArtifactLifecycleService,
+    private readonly videoGenerationCreditsService?: VideoGenerationCreditsService,
   ) {}
 
   mapRunResultToExecutionStatus(
@@ -63,6 +68,15 @@ export class WorkflowExecutionFinalizerService {
         ...(failedNodeId ? { failedNodeId } : {}),
       },
     );
+
+    if (completedExecution?.organizationId && completedExecution.userId) {
+      await this.settleClipChainReservationForWorkflow({
+        actorUserId: completedExecution.userId,
+        organizationId: completedExecution.organizationId,
+        totalCreditsUsed: input.result.totalCreditsUsed,
+        workflowId: input.workflowId,
+      });
+    }
 
     // System actions share one immutable system-workflow mirror across tenants;
     // stamping terminal state on it would let concurrent tenant runs overwrite
@@ -105,6 +119,43 @@ export class WorkflowExecutionFinalizerService {
     }
 
     return completedExecution;
+  }
+
+  async settleClipChainReservationForWorkflow(input: {
+    actorUserId: string;
+    organizationId: string;
+    totalCreditsUsed: number;
+    workflowId: string;
+  }): Promise<void> {
+    if (!this.videoGenerationCreditsService) {
+      return;
+    }
+    // tenant-scope-ignore: settlement is keyed by the reservation id stored on
+    // the workflow that this tenant execution already ran; the system-workflow
+    // mirror has no clip-chain hold.
+    const workflow = await this.prisma.workflow.findUnique({
+      select: { metadata: true },
+      where: { id: input.workflowId },
+    });
+    const hold = readClipChainReservationHold(workflow?.metadata);
+    if (!hold) {
+      return;
+    }
+    try {
+      await this.videoGenerationCreditsService.settleClipChainReservation({
+        actualCredits: input.totalCreditsUsed,
+        actorUserId: input.actorUserId,
+        organizationId: input.organizationId,
+        reservationId: hold.reservationId,
+        reservedCredits: hold.reservedCredits,
+      });
+    } catch (error: unknown) {
+      this.logger?.error(
+        'Clip-chain credit reservation settlement failed',
+        error,
+        'WorkflowExecutionFinalizerService',
+      );
+    }
   }
 
   private async notifyScheduledFailure(

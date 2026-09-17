@@ -5,11 +5,19 @@ import { VideosClipChainController } from '@api/collections/videos/controllers/t
 import type { WorkflowVisualNodeDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import {
+  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+  CREDITS_KEY,
+} from '@api/helpers/decorators/credits/credits.decorator';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import { ActivitySource, IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { BadRequestException } from '@nestjs/common';
+import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -63,18 +71,23 @@ function createHarness() {
       unresolvedHandles: [],
     }),
   };
+  const videoGenerationCreditsService = {
+    ensureClipChainCredits: vi.fn().mockResolvedValue(undefined),
+  };
   const workflowsService = {
     createWorkflow: vi.fn().mockResolvedValue({ id: 'workflow-1' }),
   };
   const controller = new VideosClipChainController(
     ingredientsService as unknown as IngredientsService,
     personasService as unknown as PersonasService,
+    videoGenerationCreditsService as never,
     workflowsService as unknown as WorkflowsService,
   );
   return {
     controller,
     ingredientsService,
     personasService,
+    videoGenerationCreditsService,
     workflowsService,
   };
 }
@@ -205,16 +218,80 @@ describe('VideosClipChainController', () => {
     expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
   });
 
-  it('guards the route with subscription and model validation', () => {
+  it('guards the route with subscription, credits, and model validation', () => {
     const handler = Object.getOwnPropertyDescriptor(
       VideosClipChainController.prototype,
       'createClipChain',
     )?.value;
 
+    expect(Reflect.getMetadata(CREDITS_KEY, handler)).toEqual({
+      description: 'Clip-chain video',
+      source: ActivitySource.VIDEO_GENERATION,
+    });
+    expect(
+      Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler),
+    ).toBe(true);
     expect(Reflect.getMetadata('__guards__', handler)).toEqual([
       SubscriptionGuard,
+      CreditsGuard,
       ModelsGuard,
     ]);
+    expect(Reflect.getMetadata('__interceptors__', handler)).toEqual([
+      CreditsInterceptor,
+    ]);
+  });
+
+  it('refuses a 10-segment run and creates no workflow when credits are short', async () => {
+    const { controller, videoGenerationCreditsService, workflowsService } =
+      createHarness();
+    videoGenerationCreditsService.ensureClipChainCredits.mockRejectedValue(
+      createInsufficientCreditsException(
+        estimateClipChainCredits(10),
+        estimateClipChainCredits(3),
+      ),
+    );
+
+    const error = await controller
+      .createClipChain({} as Request, user, {
+        characterIngredientIds: ['character-1'],
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        segmentCount: 10,
+      })
+      .catch((caught) => caught);
+
+    expect(error.getStatus()).toBe(HttpStatus.PAYMENT_REQUIRED);
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+    expect(
+      videoGenerationCreditsService.ensureClipChainCredits,
+    ).toHaveBeenCalledWith(
+      10,
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      'org-1',
+      expect.anything(),
+    );
+  });
+
+  it('stores the reservation hold on the workflow so execution can settle it', async () => {
+    const { controller, workflowsService } = createHarness();
+    const request = {
+      creditsConfig: {
+        amount: estimateClipChainCredits(3),
+        deferred: true,
+        reservationId: 'reservation-1',
+      },
+    };
+
+    await controller.createClipChain(request as Request, user, {
+      characterIngredientIds: ['character-1'],
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      segmentPrompts: ['Beat one', 'Beat two', 'Beat three'],
+    });
+
+    const workflowDto = workflowsService.createWorkflow.mock.calls[0][2];
+    expect(workflowDto.metadata.credits).toEqual({
+      reservationId: 'reservation-1',
+      reservedCredits: estimateClipChainCredits(3),
+    });
   });
 
   it('resolves a character handle to the canonical still on every segment', async () => {

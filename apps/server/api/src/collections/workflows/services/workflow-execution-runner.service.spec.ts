@@ -36,6 +36,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
   const finalizer = {
     finalizeExecution: vi.fn(),
     mapRunResultToExecutionStatus: vi.fn(),
+    settleClipChainReservationForWorkflow: vi.fn(),
   };
   const graphRunner = { executeNodeGraph: vi.fn() };
 

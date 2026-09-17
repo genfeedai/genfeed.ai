@@ -457,6 +457,12 @@ export class WorkflowExecutionRunnerService {
       prepared.executionId,
       errorMessage,
     );
+    await this.finalizer.settleClipChainReservationForWorkflow({
+      actorUserId: event.userId,
+      organizationId: prepared.organizationId,
+      totalCreditsUsed: 0,
+      workflowId: prepared.workflowId,
+    });
     if (!prepared.isSystemAction) {
       // Bookkeeping must never replace the failure the caller is about to see:
       // a throw here would surface as the run's error and hide the real cause.
@@ -645,6 +651,12 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       errorMessage,
     );
+    await this.finalizer.settleClipChainReservationForWorkflow({
+      actorUserId: input.userId,
+      organizationId: input.organizationId,
+      totalCreditsUsed: 0,
+      workflowId: input.workflowId,
+    });
     await this.prisma.workflow.update({
       data: { status: WorkflowStatus.FAILED },
       where: scopedWhere(input.organizationId, { id: input.workflowId }),

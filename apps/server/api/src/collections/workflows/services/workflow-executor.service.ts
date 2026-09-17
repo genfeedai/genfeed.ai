@@ -4,6 +4,7 @@ import {
 } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { ReviewGateNotificationService } from '@api/collections/workflows/services/review-gate-notification.service';
+import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import { WorkflowArtifactLifecycleService } from '@api/collections/workflows/services/workflow-artifact-lifecycle.service';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@api/collections/workflows/services/workflow-execution-finalizer.service';
@@ -97,6 +98,8 @@ export class WorkflowExecutorService {
     private readonly artifactLifecycleService?: WorkflowArtifactLifecycleService,
     @Optional()
     private readonly nodeContinuationService?: WorkflowNodeContinuationService,
+    @Optional()
+    private readonly videoGenerationCreditsService?: VideoGenerationCreditsService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -112,6 +115,7 @@ export class WorkflowExecutorService {
       this.websocketService,
       this.logger,
       this.artifactLifecycleService,
+      this.videoGenerationCreditsService,
     );
     this.reviewGateService = new WorkflowReviewGateService(
       this.engineAdapter,
