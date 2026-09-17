@@ -15,6 +15,7 @@ import {
 import {
   getGenerationPreparationRedirect,
   inferPrepareGenerationType,
+  isIdentityGenerationToolName,
   normalizeRequestedAgentToolName,
 } from '@api/services/agent-orchestrator/utils/agent-generation-prepare-redirect.util';
 import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
@@ -734,21 +735,23 @@ export class AgentTurnRoundRunnerService {
     toolParams: Record<string, unknown>,
   ): Record<string, unknown> {
     const generationType = inferPrepareGenerationType(requestedToolName);
-    if (!generationType) {
-      return toolParams;
+    const recovered = generationType
+      ? {
+          ...toolParams,
+          generationType,
+          prompt:
+            (toolParams.prompt as string | undefined) ||
+            (toolParams.description as string | undefined) ||
+            (toolParams.text as string | undefined) ||
+            '',
+        }
+      : toolParams;
+
+    if (!isIdentityGenerationToolName(requestedToolName)) {
+      return recovered;
     }
 
-    const prompt =
-      (toolParams.prompt as string | undefined) ||
-      (toolParams.description as string | undefined) ||
-      (toolParams.text as string | undefined) ||
-      '';
-
-    return {
-      ...toolParams,
-      generationType,
-      prompt,
-    };
+    return { ...recovered, useIdentity: true };
   }
   private recordRiskLevel(
     state: { highestRiskLevel: AgentToolRoundRiskLevel },

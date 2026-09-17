@@ -184,3 +184,34 @@ export function studioHandoffReferenceRole(
 ): StudioGenerateReferenceRole {
   return type === 'video' ? 'startFrame' : 'reference';
 }
+
+/**
+ * #4717: an identity generation that could not snapshot avatar/voice must
+ * say so. Opening Studio with those fields empty otherwise looks like the
+ * operator chose the defaults on purpose.
+ */
+export function resolveHandoffIdentityNotice(
+  payload: AgentStudioHandoffPayload,
+): string | null {
+  const needsIdentity =
+    payload.useIdentity === true ||
+    payload.type === 'avatar' ||
+    payload.type === 'voice';
+  if (!needsIdentity) {
+    return null;
+  }
+
+  const omitted: string[] = [];
+  if (payload.type !== 'voice' && !payload.avatarPhotoUrl) {
+    omitted.push('avatar');
+  }
+  if (!payload.voiceId) {
+    omitted.push('voice');
+  }
+  if (omitted.length === 0) {
+    return null;
+  }
+
+  const labels = omitted.join(' and ');
+  return `The brand identity ${labels} could not be carried into Studio. Continuing with Studio's defaults for ${labels}.`;
+}

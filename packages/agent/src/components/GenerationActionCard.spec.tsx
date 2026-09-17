@@ -251,8 +251,26 @@ const { brandState, orgUrlParams, storeState } = vi.hoisted(() => ({
     organizationId: '',
     // Fallback brand for `useOrgUrl().activeHref` when the route itself
     // carries no brand segment (#4716 P0 — the org-level Agent workspace).
-    selectedBrand: { slug: 'test-brand' },
-    settings: null as { enabledModelIds?: string[] } | null,
+    selectedBrand: {
+      agentConfig: undefined as
+        | {
+            defaultAvatarPhotoUrl?: string | null;
+            defaultVoiceRef?: {
+              externalVoiceId?: string;
+              source: 'catalog' | 'cloned';
+            } | null;
+          }
+        | undefined,
+      slug: 'test-brand',
+    },
+    settings: null as {
+      defaultAvatarPhotoUrl?: string | null;
+      defaultVoiceRef?: {
+        externalVoiceId?: string;
+        source: 'catalog' | 'cloned';
+      } | null;
+      enabledModelIds?: string[];
+    } | null,
     settingsLoading: false,
   },
   // Mutable so a single test can simulate the org-level Agent workspace
@@ -610,7 +628,10 @@ describe('GenerationActionCard', () => {
 
   beforeEach(() => {
     brandState.organizationId = '';
-    brandState.selectedBrand = { slug: 'test-brand' };
+    brandState.selectedBrand = {
+      agentConfig: undefined,
+      slug: 'test-brand',
+    };
     brandState.settings = null;
     brandState.settingsLoading = false;
     orgUrlParams.brandSlug = 'test-brand';
@@ -2191,6 +2212,179 @@ describe('GenerationActionCard', () => {
       );
     });
     expect(onOpenInStudio).not.toHaveBeenCalled();
+  });
+
+  it('carries the brand identity into an identity-generation handoff (#4717)', async () => {
+    brandState.selectedBrand = {
+      agentConfig: {
+        defaultAvatarPhotoUrl: 'https://cdn.test/brand-portrait.png',
+        defaultVoiceRef: {
+          externalVoiceId: 'brand-voice-1',
+          source: 'catalog',
+        },
+      },
+      slug: 'test-brand',
+    };
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockResolvedValue({ id: 'handoff-identity-1' });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Say this as the brand.',
+            useIdentity: true,
+          },
+          generationType: 'video',
+          id: 'action-studio-identity',
+          title: 'Generate Video',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(createStudioHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          avatarPhotoUrl: 'https://cdn.test/brand-portrait.png',
+          prompt: 'Say this as the brand.',
+          type: 'avatar',
+          useIdentity: true,
+          voiceId: 'brand-voice-1',
+        }),
+      );
+    });
+    expect(onOpenInStudio).toHaveBeenCalledTimes(1);
+  });
+
+  it('still opens Studio when identity cannot be resolved, without inventing avatar or voice (#4717)', async () => {
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi
+      .fn()
+      .mockResolvedValue({ id: 'handoff-identity-missing' });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: {
+            prompt: 'Say this as the brand.',
+            useIdentity: true,
+          },
+          generationType: 'video',
+          id: 'action-studio-identity-missing',
+          title: 'Generate Video',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(createStudioHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'Say this as the brand.',
+          type: 'avatar',
+          useIdentity: true,
+        }),
+      );
+    });
+    const [handoffBody] = createStudioHandoff.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
+    expect(handoffBody).not.toHaveProperty('avatarPhotoUrl');
+    expect(handoffBody).not.toHaveProperty('voiceId');
+    expect(onOpenInStudio).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not attach identity to an ordinary image handoff', async () => {
+    brandState.selectedBrand = {
+      agentConfig: {
+        defaultAvatarPhotoUrl: 'https://cdn.test/brand-portrait.png',
+        defaultVoiceRef: {
+          externalVoiceId: 'brand-voice-1',
+          source: 'catalog',
+        },
+      },
+      slug: 'test-brand',
+    };
+    const onOpenInStudio = vi.fn();
+    const createStudioHandoff = vi.fn().mockResolvedValue({ id: 'handoff-1' });
+    const estimateGenerationCredits = vi.fn().mockResolvedValue({
+      credits: 3,
+      isAvailable: true,
+      modelKey: 'provider/nano-banana',
+    });
+
+    renderGenerationActionCard(
+      <GenerationActionCard
+        action={{
+          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationType: 'image',
+          id: 'action-studio-no-identity',
+          title: 'Generate Image',
+          type: 'generation_action_card',
+        }}
+        apiService={createApiServiceMock({
+          createStudioHandoff,
+          estimateGenerationCredits,
+        })}
+        onOpenInStudio={onOpenInStudio}
+      />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: 'Open this generation in Studio',
+      }),
+    );
+
+    await waitFor(() => {
+      expect(createStudioHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({
+          prompt: 'A portrait at golden hour.',
+          type: 'image',
+        }),
+      );
+    });
+    const [handoffBody] = createStudioHandoff.mock.calls[0] as [
+      Record<string, unknown>,
+    ];
+    expect(handoffBody).not.toHaveProperty('avatarPhotoUrl');
+    expect(handoffBody).not.toHaveProperty('useIdentity');
+    expect(handoffBody).not.toHaveProperty('voiceId');
   });
 
   it('offers reuse of generation settings on the completed result once generation finishes', async () => {

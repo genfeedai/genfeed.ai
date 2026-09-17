@@ -4,6 +4,7 @@ import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decora
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { extractRequestContext } from '@api/helpers/utils/auth/auth.util';
 import { AgentStudioHandoffService } from '@api/services/agent-orchestrator/agent-studio-handoff.service';
+import { AgentStudioHandoffIdentityService } from '@api/services/agent-orchestrator/agent-studio-handoff-identity.service';
 import { CreateAgentStudioHandoffDto } from '@api/services/agent-orchestrator/dto/create-agent-studio-handoff.dto';
 import type { AgentStudioHandoffPayload } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -22,6 +23,7 @@ import {
 export class AgentStudioHandoffController {
   constructor(
     private readonly handoffService: AgentStudioHandoffService,
+    private readonly identityService: AgentStudioHandoffIdentityService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -39,26 +41,26 @@ export class AgentStudioHandoffController {
     @CurrentUser() user: User,
   ): Promise<{ id: string }> {
     const { organizationId, userId } = extractRequestContext(user);
-    const id = await this.handoffService.create(
-      { organizationId, userId },
-      {
-        aspectRatio: body.aspectRatio,
-        avatarPhotoUrl: body.avatarPhotoUrl,
-        brandId: body.brandId,
-        duration: body.duration,
-        modelKey: body.modelKey,
-        outputs: body.outputs,
-        prompt: body.prompt,
-        references: body.references,
-        resolution: body.resolution,
-        type: body.type,
-        voiceId: body.voiceId,
-      },
-    );
+    const scope = { organizationId, userId };
+    const payload = await this.identityService.attachIdentity(scope, {
+      aspectRatio: body.aspectRatio,
+      avatarPhotoUrl: body.avatarPhotoUrl,
+      brandId: body.brandId,
+      duration: body.duration,
+      modelKey: body.modelKey,
+      outputs: body.outputs,
+      prompt: body.prompt,
+      references: body.references,
+      resolution: body.resolution,
+      type: body.type,
+      useIdentity: body.useIdentity,
+      voiceId: body.voiceId,
+    });
+    const id = await this.handoffService.create(scope, payload);
 
     this.logger.log('AgentStudioHandoffController create completed', {
       organizationId,
-      type: body.type,
+      type: payload.type,
     });
 
     return { id };

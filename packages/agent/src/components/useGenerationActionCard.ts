@@ -20,6 +20,11 @@ import {
   getPromptCategoryForGenerationType,
 } from '@genfeedai/agent/utils/generation-request';
 import {
+  didGenerationUseIdentity,
+  resolveStudioHandoffIdentityFromSettings,
+  resolveStudioHandoffType,
+} from '@genfeedai/agent/utils/studio-handoff-identity.util';
+import {
   hasReachedVideoPilotRetryCeiling,
   resolveVideoPilotDuration,
   VIDEO_PILOT_PAID_RETRY_CEILING,
@@ -147,7 +152,8 @@ export function useGenerationActionCard({
   onUiAction,
   onOpenInStudio,
 }: UseGenerationActionCardParams) {
-  const { brandId, organizationId, settings, settingsLoading } = useBrand();
+  const { brandId, organizationId, selectedBrand, settings, settingsLoading } =
+    useBrand();
   const { activeHref } = useOrgUrl();
   const generationType = action.generationType ?? 'image';
   const initParams = action.generationParams;
@@ -862,6 +868,20 @@ export function useGenerationActionCard({
   const canOpenInStudio = Boolean(
     onOpenInStudio && prompt.trim() && concreteModelKeyForHandoff && brandId,
   );
+  const usedIdentity = didGenerationUseIdentity({
+    generationType,
+    useIdentity: initParams?.useIdentity,
+  });
+  const identityHandoffFields = useMemo(
+    () =>
+      usedIdentity
+        ? resolveStudioHandoffIdentityFromSettings({
+            brandAgentConfig: selectedBrand?.agentConfig,
+            organizationSettings: settings,
+          })
+        : {},
+    [selectedBrand?.agentConfig, settings, usedIdentity],
+  );
 
   const handleOpenInStudio = useCallback(async () => {
     if (
@@ -889,7 +909,16 @@ export function useGenerationActionCard({
               ? [startFrameId]
               : undefined,
         resolution: resolution || undefined,
-        type: generationType,
+        type: resolveStudioHandoffType({
+          generationType,
+          useIdentity: usedIdentity,
+        }),
+        ...(usedIdentity
+          ? {
+              useIdentity: true,
+              ...identityHandoffFields,
+            }
+          : {}),
       });
       onOpenInStudio(
         activeHref(
@@ -907,6 +936,7 @@ export function useGenerationActionCard({
     concreteModelKeyForHandoff,
     duration,
     generationType,
+    identityHandoffFields,
     onOpenInStudio,
     outputs,
     prompt,
@@ -914,6 +944,7 @@ export function useGenerationActionCard({
     resolution,
     setComposerError,
     startFrameId,
+    usedIdentity,
   ]);
 
   const handleOpenInStudioVoid = useCallback(() => {

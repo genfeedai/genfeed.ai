@@ -241,6 +241,12 @@ export interface AgentUiAction extends AgentUiActionBase {
     endFrame?: string;
     references?: string[];
     resolution?: string;
+    /**
+     * True when this card originated from an identity generation
+     * (`generate_as_identity`). Open in Studio then snapshots the brand
+     * identity's avatar and voice (#4717).
+     */
+    useIdentity?: boolean;
     videoReferences?: string[];
   };
   ingredients?: AgentIngredientItem[];

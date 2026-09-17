@@ -1,5 +1,6 @@
 import { AgentStudioHandoffController } from '@api/services/agent-orchestrator/agent-studio-handoff.controller';
 import type { AgentStudioHandoffService } from '@api/services/agent-orchestrator/agent-studio-handoff.service';
+import type { AgentStudioHandoffIdentityService } from '@api/services/agent-orchestrator/agent-studio-handoff-identity.service';
 import type { CreateAgentStudioHandoffDto } from '@api/services/agent-orchestrator/dto/create-agent-studio-handoff.dto';
 
 describe('AgentStudioHandoffController', () => {
@@ -7,6 +8,7 @@ describe('AgentStudioHandoffController', () => {
     consume: ReturnType<typeof vi.fn>;
     create: ReturnType<typeof vi.fn>;
   };
+  let identityService: { attachIdentity: ReturnType<typeof vi.fn> };
   let controller: AgentStudioHandoffController;
 
   const authenticatedUser = {
@@ -18,8 +20,14 @@ describe('AgentStudioHandoffController', () => {
 
   beforeEach(() => {
     handoffService = { consume: vi.fn(), create: vi.fn() };
+    identityService = {
+      attachIdentity: vi.fn(
+        async (_scope: unknown, payload: unknown) => payload,
+      ),
+    };
     controller = new AgentStudioHandoffController(
       handoffService as unknown as AgentStudioHandoffService,
+      identityService as unknown as AgentStudioHandoffIdentityService,
       { log: vi.fn() } as never,
     );
   });
@@ -45,7 +53,49 @@ describe('AgentStudioHandoffController', () => {
           type: 'image',
         }),
       );
+      expect(identityService.attachIdentity).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1' },
+        expect.objectContaining({
+          brandId: 'brand-1',
+          type: 'image',
+        }),
+      );
       expect(result).toEqual({ id: 'handoff-1' });
+    });
+
+    it('stores the identity-resolved payload, not the raw request body', async () => {
+      identityService.attachIdentity.mockResolvedValue({
+        avatarPhotoUrl: 'https://cdn.test/portrait.png',
+        brandId: 'brand-1',
+        modelKey: 'openai/gpt-image-2',
+        prompt: 'speak as the brand',
+        type: 'avatar',
+        useIdentity: true,
+        voiceId: 'voice-1',
+      });
+      handoffService.create.mockResolvedValue('handoff-identity');
+      const body: CreateAgentStudioHandoffDto = {
+        brandId: 'brand-1',
+        modelKey: 'openai/gpt-image-2',
+        prompt: 'speak as the brand',
+        type: 'video',
+        useIdentity: true,
+      } as CreateAgentStudioHandoffDto;
+
+      await controller.create(body, authenticatedUser as never);
+
+      expect(handoffService.create).toHaveBeenCalledWith(
+        { organizationId: 'org-1', userId: 'user-1' },
+        {
+          avatarPhotoUrl: 'https://cdn.test/portrait.png',
+          brandId: 'brand-1',
+          modelKey: 'openai/gpt-image-2',
+          prompt: 'speak as the brand',
+          type: 'avatar',
+          useIdentity: true,
+          voiceId: 'voice-1',
+        },
+      );
     });
   });
 

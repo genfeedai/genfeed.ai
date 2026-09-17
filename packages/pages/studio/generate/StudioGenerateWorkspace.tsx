@@ -45,6 +45,7 @@ import {
 } from '@pages/studio/generate/utils/studio-generate-asset';
 import {
   buildStudioSettingsPatchFromHandoff,
+  resolveHandoffIdentityNotice,
   resolveHandoffModelKey,
   resolveHandoffSettingsOverrides,
   studioHandoffReferenceRole,
@@ -366,6 +367,11 @@ export default function StudioGenerateWorkspace(): ReactElement {
       handoffPayload.type,
       buildStudioSettingsPatchFromHandoff(handoffPayload),
     );
+
+    const identityNotice = resolveHandoffIdentityNotice(handoffPayload);
+    if (identityNotice) {
+      notificationsService.info(identityNotice);
+    }
   }, [
     applyTypeSettings,
     brandId,
