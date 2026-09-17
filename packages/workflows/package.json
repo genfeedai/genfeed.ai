@@ -140,7 +140,8 @@
     "build:types": "tsc --emitDeclarationOnly -p tsconfig.types.json",
     "dev": "tsup --watch",
     "prepublishOnly": "bun run build",
-    "test": "vitest run"
+    "test": "vitest run",
+    "type-check": "bun run ../../scripts/architecture/check-typecheck-prerequisites.ts && tsc --noEmit"
   },
   "sideEffects": [
     "**/*.css"

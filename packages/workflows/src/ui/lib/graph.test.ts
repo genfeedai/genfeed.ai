@@ -20,7 +20,7 @@ const nodes: WorkflowNode[] = [
     data: { image: 'image-b.png' },
     id: 'image-2',
     position: { x: 200, y: 0 },
-    type: 'image',
+    type: 'imageInput',
   } as WorkflowNode,
 ];
 

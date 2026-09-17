@@ -1,15 +1,38 @@
-import type { WorkflowNode } from '@genfeedai/contracts/types';
+import type {
+  NodeType,
+  WorkflowNode,
+  WorkflowNodeData,
+} from '@genfeedai/contracts/types';
 import type { Connection } from '@xyflow/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { useWorkflowStore } from '../workflowStore';
 
-function actionNode(id: string, actionId: string): WorkflowNode {
+/**
+ * Builds a node for a registered product node type (`genfeedAction`,
+ * `keywordTrigger`). Those live in the node registry but are deliberately not
+ * listed in the shared `NodeType` union, so the fixture widens the same way
+ * `nodeSlice.addNode` does for registry-resolved types.
+ */
+function productNode(
+  type: string,
+  id: string,
+  data: Record<string, unknown>,
+): WorkflowNode {
   return {
-    data: { actionId, label: actionId, parameters: {}, status: 'idle' },
+    data: data as WorkflowNodeData,
     id,
     position: { x: 0, y: 0 },
-    type: 'genfeedAction',
-  } as WorkflowNode;
+    type: type as NodeType,
+  };
+}
+
+function actionNode(id: string, actionId: string): WorkflowNode {
+  return productNode('genfeedAction', id, {
+    actionId,
+    label: actionId,
+    parameters: {},
+    status: 'idle',
+  });
 }
 
 function connect(
@@ -33,12 +56,10 @@ beforeEach(() => {
       actionNode('prompt', 'promptConstructor'),
       actionNode('script-a', 'talkingHeadScript'),
       actionNode('script-b', 'talkingHeadScript'),
-      {
-        data: { label: 'Keyword Trigger', status: 'idle' },
-        id: 'trigger',
-        position: { x: 0, y: 0 },
-        type: 'keywordTrigger',
-      } as WorkflowNode,
+      productNode('keywordTrigger', 'trigger', {
+        label: 'Keyword Trigger',
+        status: 'idle',
+      }),
     ],
   });
 });

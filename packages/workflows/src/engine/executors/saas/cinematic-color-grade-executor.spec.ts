@@ -29,6 +29,7 @@ function makeInput(
     runId: 'run-1',
     userId: 'user-1',
     workflowId: 'wf-1',
+    workflowVersionId: 'wf-1-v1',
   };
   return { context, inputs, node };
 }
@@ -218,6 +219,7 @@ describe('CinematicColorGradeExecutor', () => {
           runId: 'run-1',
           userId: 'user-1',
           workflowId: 'wf-1',
+          workflowVersionId: 'wf-1-v1',
         },
         inputs: new Map(),
         node,

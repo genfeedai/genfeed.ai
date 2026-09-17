@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { ExecutionContext } from '../../execution/engine';
 import type { ExecutableNode } from '../../types';
 import type { ExecutorInput } from '../base-executor';
@@ -36,11 +36,11 @@ function makeInput(
 
 describe('PostReplyExecutor', () => {
   let executor: PostReplyExecutor;
-  let mockPublisher: ReplyPublisher;
+  let mockPublisher: Mock<ReplyPublisher>;
 
   beforeEach(() => {
     executor = new PostReplyExecutor();
-    mockPublisher = vi.fn().mockResolvedValue({
+    mockPublisher = vi.fn<ReplyPublisher>().mockResolvedValue({
       replyId: 'reply-123',
       replyUrl: 'https://x.com/user/status/reply-123',
     });

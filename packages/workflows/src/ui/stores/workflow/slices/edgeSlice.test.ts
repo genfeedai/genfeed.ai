@@ -1,3 +1,4 @@
+import type { WorkflowNode } from '@genfeedai/contracts/types';
 import type { EdgeChange, NodeChange } from '@xyflow/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -36,7 +37,7 @@ describe('edgeSlice onNodesChange dirty semantics', () => {
         position: { x: 120, y: 180 },
         positionAbsolute: { x: 120, y: 180 },
         type: 'position',
-      } as NodeChange,
+      } as NodeChange<WorkflowNode>,
     ]);
 
     const nextState = useWorkflowStore.getState();
@@ -61,7 +62,7 @@ describe('edgeSlice onNodesChange dirty semantics', () => {
     useWorkflowStore.getState().setDirty(false);
     useWorkflowStore
       .getState()
-      .onNodesChange([{ item: node, type: 'add' } as NodeChange]);
+      .onNodesChange([{ item: node, type: 'add' } as NodeChange<WorkflowNode>]);
     expect(useWorkflowStore.getState().isDirty).toBe(true);
   });
 
@@ -78,7 +79,7 @@ describe('edgeSlice onNodesChange dirty semantics', () => {
         dimensions: { height: 42, width: 42 },
         id: nodeId,
         type: 'dimensions',
-      } as NodeChange,
+      } as NodeChange<WorkflowNode>,
     ]);
     expect(useWorkflowStore.getState().isDirty).toBe(false);
   });

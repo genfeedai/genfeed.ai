@@ -1,5 +1,9 @@
 import { getActionDefinition } from '@genfeedai/actions';
-import type { WorkflowNode } from '@genfeedai/contracts/types';
+import type {
+  NodeType,
+  WorkflowNode,
+  WorkflowNodeData,
+} from '@genfeedai/contracts/types';
 import { cleanup, fireEvent, render, screen } from '@testing-library/react';
 import type { ComponentProps } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -43,21 +47,35 @@ vi.mock('@genfeedai/ui/primitives/searchbar', () => ({
   }) => <input aria-label={ariaLabel} onChange={onChange} value={value} />,
 }));
 
+/**
+ * Builds a node for a registered product node type (`genfeedAction`), which
+ * lives in the node registry but is deliberately not listed in the shared
+ * `NodeType` union — the same widening `nodeSlice.addNode` performs for
+ * registry-resolved types.
+ */
+function productNode(
+  type: string,
+  id: string,
+  data: Record<string, unknown>,
+): WorkflowNode {
+  return {
+    data: data as WorkflowNodeData,
+    id,
+    position: { x: 0, y: 0 },
+    type: type as NodeType,
+  };
+}
+
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
   useWorkflowStore.setState({
     edges: [],
     nodes: [
-      {
-        data: {
-          actionId: 'remotion.composition.render',
-          label: 'Render',
-          status: 'idle',
-        },
-        id: 'render',
-        position: { x: 0, y: 0 },
-        type: 'genfeedAction',
-      } as WorkflowNode,
+      productNode('genfeedAction', 'render', {
+        actionId: 'remotion.composition.render',
+        label: 'Render',
+        status: 'idle',
+      }),
     ],
   });
   useUIStore.getState().openConnectionDropMenu({
@@ -111,8 +129,6 @@ describe('connection drop menu', () => {
     render(<ConnectionDropMenu />);
     const action = getActionDefinition('remotion.composition.status');
     expect(screen.queryByRole('button', { name: action?.label })).toBeNull();
-    expect(
-      screen.queryByRole('button', { name: 'Genfeed Action', exact: true }),
-    ).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Genfeed Action' })).toBeNull();
   });
 });

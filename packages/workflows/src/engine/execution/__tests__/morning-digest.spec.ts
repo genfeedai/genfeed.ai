@@ -1,6 +1,9 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import type { INodeExecutor } from '../../executors/base-executor';
-import { ReportDeliveryExecutor } from '../../executors/saas/report-delivery-executor';
+import {
+  ReportDeliveryExecutor,
+  type ReportNotificationSender,
+} from '../../executors/saas/report-delivery-executor';
 import { SocialReadExecutor } from '../../executors/saas/social-read-executor';
 import type {
   ExecutableEdge,
@@ -83,7 +86,7 @@ describe('morning X digest (#2664)', () => {
   let engine: WorkflowEngine;
   let socialRead: SocialReadExecutor;
   let reportDelivery: ReportDeliveryExecutor;
-  let notificationSender: ReturnType<typeof vi.fn>;
+  let notificationSender: Mock<ReportNotificationSender>;
 
   beforeEach(() => {
     engine = new WorkflowEngine({
@@ -109,7 +112,9 @@ describe('morning X digest (#2664)', () => {
       ]),
     );
     reportDelivery = new ReportDeliveryExecutor();
-    notificationSender = vi.fn().mockResolvedValue(undefined);
+    notificationSender = vi
+      .fn<ReportNotificationSender>()
+      .mockResolvedValue(undefined);
     reportDelivery.setNotificationSender(notificationSender);
 
     engine.registerExecutor('socialRead', wrapExecutor(socialRead));

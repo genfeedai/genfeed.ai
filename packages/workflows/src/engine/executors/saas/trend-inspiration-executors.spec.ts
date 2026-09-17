@@ -19,6 +19,7 @@ const ctx: ExecutionContext = {
   runId: 'r',
   userId: 'u',
   workflowId: 'w',
+  workflowVersionId: 'w-v1',
 };
 
 const TREND_INSPIRATION_NODE_TYPES = [

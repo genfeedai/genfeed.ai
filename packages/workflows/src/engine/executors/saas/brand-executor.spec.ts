@@ -7,6 +7,7 @@ const ctx: ExecutionContext = {
   runId: 'r',
   userId: 'u',
   workflowId: 'w',
+  workflowVersionId: 'w-v1',
 };
 const brandData = {
   brandId: 'b-1',

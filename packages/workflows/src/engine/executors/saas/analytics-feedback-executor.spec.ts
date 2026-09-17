@@ -19,6 +19,7 @@ const executionContext: ExecutionContext = {
   runId: 'run-1',
   userId: 'user-1',
   workflowId: 'workflow-1',
+  workflowVersionId: 'workflow-1-v1',
 };
 
 function makeNode(config: Record<string, unknown> = {}): ExecutableNode {

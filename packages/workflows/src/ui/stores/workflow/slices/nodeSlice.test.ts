@@ -14,12 +14,16 @@ describe('nodeSlice global image history', () => {
   });
 
   it('prepends new items with a generated id', () => {
-    useWorkflowStore
-      .getState()
-      .addToGlobalHistory({ image: 'https://asset.test/a.png', prompt: 'a' });
-    useWorkflowStore
-      .getState()
-      .addToGlobalHistory({ image: 'https://asset.test/b.png', prompt: 'b' });
+    useWorkflowStore.getState().addToGlobalHistory({
+      image: 'https://asset.test/a.png',
+      prompt: 'a',
+      timestamp: 1_767_225_600_000,
+    });
+    useWorkflowStore.getState().addToGlobalHistory({
+      image: 'https://asset.test/b.png',
+      prompt: 'b',
+      timestamp: 1_767_225_601_000,
+    });
 
     const history = useWorkflowStore.getState().globalImageHistory;
     expect(history).toHaveLength(2);
@@ -32,9 +36,10 @@ describe('nodeSlice global image history', () => {
 
   it('caps history at 100 items', () => {
     for (let i = 0; i < 105; i++) {
-      useWorkflowStore
-        .getState()
-        .addToGlobalHistory({ image: `https://asset.test/${i}.png` });
+      useWorkflowStore.getState().addToGlobalHistory({
+        image: `https://asset.test/${i}.png`,
+        timestamp: 1_767_225_600_000 + i,
+      });
     }
 
     const history = useWorkflowStore.getState().globalImageHistory;
@@ -45,9 +50,10 @@ describe('nodeSlice global image history', () => {
   });
 
   it('clears history', () => {
-    useWorkflowStore
-      .getState()
-      .addToGlobalHistory({ image: 'https://asset.test/a.png' });
+    useWorkflowStore.getState().addToGlobalHistory({
+      image: 'https://asset.test/a.png',
+      timestamp: 1_767_225_600_000,
+    });
     useWorkflowStore.getState().clearGlobalHistory();
 
     expect(useWorkflowStore.getState().globalImageHistory).toEqual([]);

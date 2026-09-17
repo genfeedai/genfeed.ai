@@ -53,6 +53,7 @@ function makeWorkflow(
     nodes,
     organizationId: 'org-1',
     userId: 'user-1',
+    versionId: 'wf-1-v1',
     ...overrides,
   };
 }

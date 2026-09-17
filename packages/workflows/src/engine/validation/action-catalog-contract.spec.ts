@@ -1,6 +1,9 @@
 import { ALL_ACTIONS, getActionDefinition } from '@genfeedai/actions';
 import { describe, expect, it } from 'vitest';
-import { compileActionContract } from './action-contract';
+import {
+  type ActionContractJsonSchema,
+  compileActionContract,
+} from './action-contract';
 
 /**
  * Every published action is compiled by the engine at API bootstrap, so a single
@@ -14,8 +17,8 @@ describe('published action catalog', () => {
     for (const action of ALL_ACTIONS) {
       try {
         compileActionContract(action.id, {
-          inputSchema: action.inputSchema,
-          outputSchema: action.outputSchema,
+          inputSchema: action.inputSchema as ActionContractJsonSchema,
+          outputSchema: action.outputSchema as ActionContractJsonSchema,
         });
       } catch (error: unknown) {
         failures.push(
@@ -30,8 +33,8 @@ describe('published action catalog', () => {
     const action = getActionDefinition('generate_image');
     expect(action).toBeDefined();
     const contract = compileActionContract('generate_image', {
-      inputSchema: action?.inputSchema ?? {},
-      outputSchema: action?.outputSchema ?? {},
+      inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
+      outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
     });
     const provenance = {
       nodeId: 'execute-tool',
