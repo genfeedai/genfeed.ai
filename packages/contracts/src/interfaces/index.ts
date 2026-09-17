@@ -315,6 +315,7 @@ export * from './ui/module-card.interface';
 export * from './ui/navigation.interface';
 export * from './ui/overview-card.interface';
 export * from './ui/platform-badge-config.interface';
+export * from './ui/provider-brand.interface';
 export * from './ui/quick-actions.interface';
 export * from './ui/quick-actions-submenu.interface';
 export * from './ui/skeleton.interface';

@@ -19,6 +19,7 @@ import {
   VideoTaskModel,
 } from '@genfeedai/contracts';
 import type { GenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import { SentryTraced } from '@sentry/nestjs';
@@ -109,18 +110,22 @@ export class StepExecutorService {
 
     switch (step.model) {
       case VideoTaskModel.HIGGSFIELD: {
+        // DoP sizes the clip from the source image, so the step's
+        // `aspectRatio` / `duration` have no input to map onto.
         const result = await this.higgsFieldService.generateImageToVideo({
-          aspectRatio: step.aspectRatio ?? '9:16',
-          duration: step.duration ?? 5,
           imageUrl,
+          modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
           organizationId: context.organizationId,
           prompt,
         });
-        const completed = await this.higgsFieldService.waitForCompletion(
-          result.requestId,
-          { organizationId: context.organizationId },
-        );
-        return { contentType: 'video/mp4', url: completed.videoUrl };
+        const { videoUrl } =
+          await this.higgsFieldService.waitForVideoCompletion(
+            result.requestId,
+            {
+              organizationId: context.organizationId,
+            },
+          );
+        return { contentType: 'video/mp4', url: videoUrl };
       }
 
       case VideoTaskModel.FAL: {

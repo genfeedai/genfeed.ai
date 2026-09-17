@@ -220,7 +220,7 @@ describe('VideoGenerationCreditsService', () => {
     ).not.toHaveBeenCalled();
   });
 
-  it('charges credits when only Replicate BYOK is active for Higgsfield Kling', async () => {
+  it('charges credits when only Replicate BYOK is active for Higgsfield DoP', async () => {
     modelsService.findOne.mockResolvedValue({
       cost: 10,
       provider: ModelProvider.REPLICATE,
@@ -233,7 +233,7 @@ describe('VideoGenerationCreditsService', () => {
 
     await service.ensureDeferredCredits(
       { duration: 5 } as never,
-      MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
       'org-1',
       request as never,
     );
@@ -248,7 +248,7 @@ describe('VideoGenerationCreditsService', () => {
     expect(request.creditsConfig).not.toHaveProperty('isByokBypass');
   });
 
-  it('uses Higgsfield BYOK for Kling without charging platform credits', async () => {
+  it('uses Higgsfield BYOK for DoP without charging platform credits', async () => {
     modelsService.findOne.mockResolvedValue({
       cost: 10,
       provider: ModelProvider.REPLICATE,
@@ -261,7 +261,7 @@ describe('VideoGenerationCreditsService', () => {
 
     await service.ensureDeferredCredits(
       { duration: 5 } as never,
-      MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
       'org-1',
       request as never,
     );

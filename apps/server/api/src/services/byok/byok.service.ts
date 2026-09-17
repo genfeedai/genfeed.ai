@@ -1,5 +1,9 @@
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { encodeJwtToken } from '@api/helpers/utils/jwt/jwt.util';
+import {
+  HIGGSFIELD_API_BASE,
+  HIGGSFIELD_CREDENTIAL_PROBE_PATH,
+} from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import { OPENROUTER_FIRST_PARTY_PROVIDER_POLICY } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ByokBillingStatus, ByokProvider } from '@genfeedai/contracts';
@@ -779,9 +783,12 @@ export class ByokService {
 
     try {
       await firstValueFrom(
-        this.httpService.get('https://platform.higgsfield.ai/models', {
-          headers: { Authorization: `Key ${apiKey}:${apiSecret}` },
-        }),
+        this.httpService.get(
+          `${HIGGSFIELD_API_BASE}${HIGGSFIELD_CREDENTIAL_PROBE_PATH}`,
+          {
+            headers: { Authorization: `Key ${apiKey}:${apiSecret}` },
+          },
+        ),
       );
       return { isValid: true };
     } catch {

@@ -3,14 +3,13 @@ import type {
   VideoGenerationProviderAdapter,
   VideoGenerationProviderResult,
 } from '@api/collections/videos/services/video-generation.types';
+import { resolveDopEndpoint } from '@api/services/integrations/higgsfield/helpers/higgsfield.catalog';
 import { HiggsFieldService } from '@api/services/integrations/higgsfield/higgsfield.service';
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { calculateAspectRatio } from '@genfeedai/helpers';
 import { BadRequestException } from '@nestjs/common';
 
 /**
- * Higgsfield video is image-to-video only. `HiggsFieldService.generateImageToVideo`
- * queues the job and `waitForCompletion` polls it internally, so this adapter
+ * Higgsfield video is image-to-video only (DoP). `HiggsFieldService.generateImageToVideo`
+ * queues the job and `waitForVideoCompletion` polls it, so this adapter
  * blocks on the whole round trip and returns the resolved video URL directly —
  * the same synchronous "remote-output" pattern used by
  * {@link FalVideoGenerationProviderAdapter} for Fal, since `VideoGenerationExecutionService.dispatch`
@@ -24,7 +23,7 @@ export class HiggsFieldVideoGenerationProviderAdapter
   constructor(private readonly higgsFieldService: HiggsFieldService) {}
 
   supports(model: string): boolean {
-    return model === MODEL_KEYS.HIGGSFIELD_KLING_VIDEO;
+    return resolveDopEndpoint(model) !== undefined;
   }
 
   async generate(
@@ -36,16 +35,16 @@ export class HiggsFieldVideoGenerationProviderAdapter
       );
     }
 
+    // DoP derives framing and length from the source image, so `width`,
+    // `height` and `duration` have no input to map onto.
     const { requestId } = await this.higgsFieldService.generateImageToVideo({
-      aspectRatio: calculateAspectRatio(params.width, params.height),
-      duration: params.duration,
       imageUrl: params.imageUrl,
-      modelId: params.model,
+      modelKey: params.model,
       organizationId: params.organizationId,
       prompt: params.prompt,
     });
 
-    const { videoUrl } = await this.higgsFieldService.waitForCompletion(
+    const { videoUrl } = await this.higgsFieldService.waitForVideoCompletion(
       requestId,
       { organizationId: params.organizationId },
     );

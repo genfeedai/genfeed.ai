@@ -85,12 +85,26 @@ export const COST_TIER_DISPLAY: Record<
  */
 const MODEL_KEY_BRAND_ALIASES: Record<string, string> = {
   'klingai-v2': 'kwaivgi',
-  'kling-video/v3/pro/image-to-video': 'higgsfield-ai',
 };
 
 const FALLBACK_BRAND_LABELS: Record<string, string> = {
   leonardoai: 'Leonardo',
+  mureka: 'Mureka',
+  nateraw: 'Nateraw',
+  pixverse: 'PixVerse',
+  'recraft-ai': 'Recraft',
   sdxl: 'SDXL',
+  vidu: 'Vidu',
+};
+
+/**
+ * The catalog spells a few vendors two ways — `fal/…` alongside `fal-ai/…`,
+ * `xai/…` alongside `x-ai/…`. Without this the same vendor renders as two
+ * separate brands wherever the catalog is grouped.
+ */
+const BRAND_SLUG_ALIASES: Record<string, string> = {
+  fal: 'fal-ai',
+  xai: 'x-ai',
 };
 
 export function extractBrandFromKey(modelKey: string): string {
@@ -105,10 +119,11 @@ export function extractBrandFromKey(modelKey: string): string {
 
   const slashIndex = modelKey.indexOf('/');
   if (slashIndex > 0) {
-    return modelKey.substring(0, slashIndex);
+    const prefix = modelKey.substring(0, slashIndex);
+    return BRAND_SLUG_ALIASES[prefix] ?? prefix;
   }
 
-  return modelKey;
+  return BRAND_SLUG_ALIASES[modelKey] ?? modelKey;
 }
 
 export function getBrandConfig(brandSlug: string): ModelBrandConfig {

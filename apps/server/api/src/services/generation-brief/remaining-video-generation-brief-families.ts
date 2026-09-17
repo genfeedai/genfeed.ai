@@ -253,10 +253,25 @@ export const REMAINING_VIDEO_GENERATION_BRIEF_FAMILIES: readonly RemainingVideoG
           nativeFields: ['start_image'],
         }),
         profile(
-          'higgsfield-kling-video-capability',
-          MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+          'higgsfield-dop-lite-capability',
+          MODEL_KEYS.HIGGSFIELD_DOP_LITE,
           {
-            defaultAspectRatio: '9:16',
+            nativeFields: ['start_image'],
+            requireImageToVideo: true,
+          },
+        ),
+        profile(
+          'higgsfield-dop-turbo-capability',
+          MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
+          {
+            nativeFields: ['start_image'],
+            requireImageToVideo: true,
+          },
+        ),
+        profile(
+          'higgsfield-dop-standard-capability',
+          MODEL_KEYS.HIGGSFIELD_DOP_STANDARD,
+          {
             nativeFields: ['start_image'],
             requireImageToVideo: true,
           },

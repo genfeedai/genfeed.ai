@@ -16,6 +16,7 @@ export * from './module-card.interface';
 export * from './navigation.interface';
 export * from './overview-card.interface';
 export * from './platform-badge-config.interface';
+export * from './provider-brand.interface';
 export * from './quick-actions.interface';
 export * from './quick-actions-submenu.interface';
 export * from './skeleton.interface';

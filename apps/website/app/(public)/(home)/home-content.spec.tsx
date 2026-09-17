@@ -16,6 +16,10 @@ vi.mock('@web-components/home/_product', () => ({
   default: () => <section data-testid="home-product">Product</section>,
 }));
 
+vi.mock('@web-components/home/_providers', () => ({
+  default: () => <section data-testid="home-providers">Providers</section>,
+}));
+
 vi.mock('@web-components/home/_asks', () => ({
   default: () => <section data-testid="home-asks">Asks</section>,
 }));
@@ -63,8 +67,18 @@ describe('HomeContent', () => {
 
     expect(sections[2]).toBe(screen.getByTestId('home-winners'));
     expect(sections[3]).toBe(screen.getByTestId('home-distribution-loop'));
-    expect(sections[4]).toBe(screen.getByTestId('home-asks'));
-    expect(sections[5]).toBe(screen.getByTestId('home-cta'));
+  });
+
+  // The providers wall is supporting depth, not part of the opening claim, so
+  // it follows the explanation rather than separating the product from its
+  // proof.
+  it('places the providers wall after the explanation', () => {
+    render(<HomeContent />);
+    const sections = Array.from(screen.getByTestId('home-reveal').children);
+
+    expect(sections[4]).toBe(screen.getByTestId('home-providers'));
+    expect(sections[5]).toBe(screen.getByTestId('home-asks'));
+    expect(sections[6]).toBe(screen.getByTestId('home-cta'));
   });
 
   it('drops the sections that moved to pricing and the FAQ page', () => {

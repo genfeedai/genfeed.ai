@@ -1049,22 +1049,40 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 4,
       maxReferences: 1,
     },
-    [MODEL_KEYS.HIGGSFIELD_KLING_VIDEO]: {
-      aspectRatios: ASPECT_RATIOS.KLING,
+    /**
+     * DoP image-to-video takes `{ prompt, image_url }` and derives length
+     * from the source still. Studio must send a first frame.
+     */
+    [MODEL_KEYS.HIGGSFIELD_DOP_LITE]: {
       category: ModelCategory.VIDEO,
-      defaultAspectRatio: '9:16',
-      defaultDuration: 5,
-      durations: [5],
-      hasDurationEditing: true,
+      hasDurationEditing: false,
       isBatchSupported: false,
-      maxOutputs: 4,
+      maxOutputs: 1,
       maxReferences: 1,
+      requiresFirstFrame: true,
     },
-    [MODEL_KEYS.HIGGSFIELD_SOUL]: {
-      aspectRatios: ASPECT_RATIOS.KLING,
-      category: ModelCategory.IMAGE,
-      defaultAspectRatio: '9:16',
+    [MODEL_KEYS.HIGGSFIELD_DOP_TURBO]: {
+      category: ModelCategory.VIDEO,
+      hasDurationEditing: false,
       isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+      requiresFirstFrame: true,
+    },
+    [MODEL_KEYS.HIGGSFIELD_DOP_STANDARD]: {
+      category: ModelCategory.VIDEO,
+      hasDurationEditing: false,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 1,
+      requiresFirstFrame: true,
+    },
+    /** Soul 2: documented aspect_ratio + resolution, batch 1 or 4, no image ref. */
+    [MODEL_KEYS.HIGGSFIELD_SOUL]: {
+      aspectRatios: ASPECT_RATIOS.IMAGEN,
+      category: ModelCategory.IMAGE,
+      defaultAspectRatio: '4:3',
+      isBatchSupported: true,
       maxOutputs: 4,
       maxReferences: 0,
     },

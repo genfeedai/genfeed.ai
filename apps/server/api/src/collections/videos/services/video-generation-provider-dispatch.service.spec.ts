@@ -20,7 +20,7 @@ describe('VideoGenerationProviderDispatchService', () => {
   };
   const higgsFieldService = {
     generateImageToVideo: vi.fn(),
-    waitForCompletion: vi.fn(),
+    waitForVideoCompletion: vi.fn(),
   };
 
   const service = new VideoGenerationProviderDispatchService(
@@ -170,15 +170,15 @@ describe('VideoGenerationProviderDispatchService', () => {
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
   });
 
-  it('routes Higgsfield Kling video and resolves the polled video URL', async () => {
+  it('routes Higgsfield DoP video and resolves the polled video URL', async () => {
     higgsFieldService.generateImageToVideo.mockResolvedValue({
       requestId: 'higgsfield-req-1',
     });
-    higgsFieldService.waitForCompletion.mockResolvedValue({
+    higgsFieldService.waitForVideoCompletion.mockResolvedValue({
       videoUrl: 'https://higgsfield.example.com/video.mp4',
     });
     const params = buildParams({
-      model: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      model: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
       organizationId: 'org-1',
     });
 
@@ -189,14 +189,12 @@ describe('VideoGenerationProviderDispatchService', () => {
     });
 
     expect(higgsFieldService.generateImageToVideo).toHaveBeenCalledWith({
-      aspectRatio: '16:9',
-      duration: 8,
       imageUrl: 'https://cdn.example.com/reference.png',
-      modelId: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
       organizationId: 'org-1',
       prompt: 'A cinematic sunrise',
     });
-    expect(higgsFieldService.waitForCompletion).toHaveBeenCalledWith(
+    expect(higgsFieldService.waitForVideoCompletion).toHaveBeenCalledWith(
       'higgsfield-req-1',
       { organizationId: 'org-1' },
     );
