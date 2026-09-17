@@ -1,7 +1,7 @@
 import { AnalyticsProvider } from '@contexts/analytics/analytics-context';
 import AnalyticsOutliers from '@pages/analytics/outliers/analytics-outliers';
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   getService: vi.fn(),
   listPosts: vi.fn(),
   href: vi.fn((path: string) => `/org/brand${path}`),
+  openRemix: vi.fn(),
   organizationId: 'org-1',
   brandId: 'brand-1' as string | undefined,
   pageScope: 'brand' as 'brand' | 'org',
@@ -32,6 +33,10 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 
 vi.mock('@hooks/navigation/use-org-url', () => ({
   useOrgUrl: () => ({ href: mocks.href }),
+}));
+
+vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+  useOptionalDiscoveryRemix: () => ({ openRemix: mocks.openRemix }),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -93,6 +98,7 @@ vi.mock('@ui/display/table/Table', () => ({
 describe('AnalyticsOutliers', () => {
   beforeEach(() => {
     mocks.listPosts.mockReset();
+    mocks.openRemix.mockReset();
     mocks.getService.mockResolvedValue({ listPosts: mocks.listPosts });
     mocks.brandId = 'brand-1';
     mocks.pageScope = 'brand';
@@ -134,10 +140,11 @@ describe('AnalyticsOutliers', () => {
       'href',
       '/org/brand/analytics/hooks?postId=post-1',
     );
-    expect(screen.getByRole('link', { name: 'Remix' })).toHaveAttribute(
-      'href',
-      '/org/brand/publishing/remix?platform=tiktok&postId=post-1',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+    expect(mocks.openRemix).toHaveBeenCalledWith({
+      kind: 'owned_post',
+      postId: 'post-1',
+    });
     expect(mocks.listPosts).toHaveBeenCalledWith(
       expect.objectContaining({ brandId: 'brand-1', limit: 50 }),
       expect.any(AbortSignal),

@@ -14,6 +14,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import type { AnalyticsOutliersProps } from '@props/analytics/analytics-outliers.props';
 import type { TableColumn } from '@props/ui/display/table.props';
 import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
@@ -60,6 +61,7 @@ export default function AnalyticsOutliers({
   const scope = useCollectionScope();
   const brandId = propBrandId || scope.brandId;
   const { href } = useOrgUrl();
+  const remix = useOptionalDiscoveryRemix();
   const getService = useAuthedService((token: string) =>
     OutlierBaselinesService.getInstance(token),
   );
@@ -216,22 +218,12 @@ export default function AnalyticsOutliers({
           const hookHref = post.postId
             ? href(`${APP_ROUTES.ANALYTICS.HOOKS}?postId=${post.postId}`)
             : null;
-          const remixHref =
-            post.platform && (post.postId || post.sourcePostId)
-              ? href(
-                  `${APP_ROUTES.PUBLISHING.REMIX}?platform=${post.platform}${
-                    post.postId
-                      ? `&postId=${post.postId}`
-                      : `&sourcePostId=${post.sourcePostId}`
-                  }`,
-                )
-              : null;
+          const canRemix = Boolean(remix && (post.postId || post.sourcePostId));
           return (
             <div className="flex flex-wrap gap-2">
               {hookHref ? (
                 <Button
                   asChild
-                  label="Analyze hook"
                   size={ButtonSize.SM}
                   variant={ButtonVariant.OUTLINE}
                   withWrapper={false}
@@ -239,23 +231,36 @@ export default function AnalyticsOutliers({
                   <Link href={hookHref}>Analyze hook</Link>
                 </Button>
               ) : null}
-              {remixHref ? (
+              {canRemix ? (
                 <Button
-                  asChild
                   label="Remix"
                   size={ButtonSize.SM}
                   variant={ButtonVariant.OUTLINE}
                   withWrapper={false}
-                >
-                  <Link href={remixHref}>Remix</Link>
-                </Button>
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    if (post.postId) {
+                      void remix?.openRemix({
+                        kind: 'owned_post',
+                        postId: post.postId,
+                      });
+                      return;
+                    }
+                    if (post.sourcePostId) {
+                      void remix?.openRemix({
+                        kind: 'source_post',
+                        sourcePostId: post.sourcePostId,
+                      });
+                    }
+                  }}
+                />
               ) : null}
             </div>
           );
         },
       },
     ],
-    [href],
+    [href, remix],
   );
 
   return (

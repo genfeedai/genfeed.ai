@@ -28,14 +28,36 @@ test.describe('Analytics — Outliers → Hooks → Remix', () => {
     }
 
     await assertRouteRenders(authenticatedPage, `${BRAND}/analytics/outliers`);
-    const remixLink = authenticatedPage.getByRole('link', { name: 'Remix' });
-    if (await remixLink.count()) {
-      await remixLink.first().click();
-      await expect(authenticatedPage).toHaveURL(/publishing\/remix/);
+    await authenticatedPage.route(
+      '**/content-runs/remixes**',
+      async (route) => {
+        await route.fulfill({
+          contentType: 'application/json',
+          status: 201,
+          body: JSON.stringify({
+            data: {
+              attributes: {
+                id: 'run-outlier-1',
+                revision: 1,
+                readiness: { state: 'ready' },
+              },
+              id: 'run-outlier-1',
+              type: 'content-runs',
+            },
+          }),
+        });
+      },
+    );
+    const remixButton = authenticatedPage.getByRole('button', {
+      name: 'Remix',
+    });
+    if (await remixButton.count()) {
+      await remixButton.first().click();
+      await expect(authenticatedPage).toHaveURL(/studio\/generate\?run=/);
     } else {
       await assertRouteRenders(
         authenticatedPage,
-        `${BRAND}/publishing/remix?platform=tiktok&sourcePostId=mock-source`,
+        `${BRAND}/studio/generate?run=run-outlier-1`,
       );
     }
 
