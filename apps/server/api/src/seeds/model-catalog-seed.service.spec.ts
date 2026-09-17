@@ -298,9 +298,11 @@ describe('ModelCatalogSeedService', () => {
       },
     );
 
+    // The two shapes an operator demotion takes: the hide flag, or a row the
+    // operator already moved to RETIRED.
     it.each([
-      { isDeprecated: true, isLegacy: true },
-      { isDeprecated: true, isLegacy: false },
+      { isLegacy: true, lifecycle: ModelLifecycle.LEGACY },
+      { isLegacy: false, lifecycle: ModelLifecycle.RETIRED },
     ])(
       'keeps an operator demotion %j when the catalog still says AVAILABLE',
       async (flags) => {
@@ -316,7 +318,6 @@ describe('ModelCatalogSeedService', () => {
         const call = callForKey(entry.key);
         expect(call?.update).not.toHaveProperty('lifecycle');
         expect(call?.update).not.toHaveProperty('isLegacy');
-        expect(call?.update).not.toHaveProperty('isDeprecated');
         expect(call?.create).toMatchObject({
           lifecycle: ModelLifecycle.AVAILABLE,
         });
@@ -332,8 +333,8 @@ describe('ModelCatalogSeedService', () => {
       prisma.model.findUnique.mockResolvedValue({
         cost: entry.cost,
         id: 'existing',
-        isDeprecated: true,
         isLegacy: true,
+        lifecycle: ModelLifecycle.LEGACY,
       });
 
       await service.reconcileCatalog([entry]);
@@ -352,8 +353,8 @@ describe('ModelCatalogSeedService', () => {
       prisma.model.findUnique.mockResolvedValue({
         cost: entry.cost,
         id: 'existing',
-        isDeprecated: false,
         isLegacy: false,
+        lifecycle: ModelLifecycle.AVAILABLE,
       });
 
       await service.reconcileCatalog([entry]);

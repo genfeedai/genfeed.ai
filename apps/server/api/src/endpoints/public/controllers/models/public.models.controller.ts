@@ -33,8 +33,11 @@ export class PublicModelsController {
    * - `isPublic` — the operator flag that opts a row into this surface
    * - `isActive` — excludes discovery drafts, which land inactive and stay
    *   inactive until an operator approves them
-   * - `isLegacy` — retired keys stay out of the catalog even while their rows
-   *   remain for historical generations
+   * - `isLegacy` — the operator's "hide this row" flag. It is not a restatement
+   *   of the lifecycle: the catalog seeds it false on every row, so a curated
+   *   LEGACY model such as GPT Image 1.5 stays listed here, while a row an
+   *   operator transitions to LEGACY is hidden. Retired rows are excluded by
+   *   `isActive`, which `transitionLifecycle` clears for them.
    * - `organizationId: null` — platform models only; org-private rows
    *   (customer trainings, BYO models) never leak
    *

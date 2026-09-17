@@ -125,7 +125,9 @@ type PublicModelCatalogFilters = {
 };
 
 type RegistryReviewPatch = Partial<UpdateModelDto> & {
-  deprecatedAt?: Date;
+  // Off the public create/update contract: `createModel` derives it from the
+  // lifecycle, `transitionLifecycle` owns it, review approval clears it here.
+  isLegacy?: boolean;
   lastSyncedAt?: Date;
   rejectionReason?: string;
   reviewedAt?: Date;
@@ -507,7 +509,6 @@ export class ModelsService extends BaseService<
       lifecycle === ModelLifecycle.RECOMMENDED
         ? (createDto.isDefault ?? false)
         : false;
-    data.isDeprecated = isLegacy || isRetired;
     data.isLegacy = isLegacy;
     data.succeededBy = isLegacy || isRetired ? successorKey : null;
     if (!this.readString(data.endpoint)) {
@@ -678,11 +679,9 @@ export class ModelsService extends BaseService<
       !existing.isDiscovered || existing.reviewStatus === 'approved';
 
     return this.patch(modelId, {
-      deprecatedAt: isLegacy || isRetired ? new Date() : null,
       isActive: !isRetired && reviewAllowsExecution,
       isDefault:
         lifecycle === ModelLifecycle.RECOMMENDED ? existing.isDefault : false,
-      isDeprecated: isLegacy || isRetired,
       isLegacy,
       lifecycle,
       succeededBy: isLegacy || isRetired ? successorKey : null,

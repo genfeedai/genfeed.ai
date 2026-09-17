@@ -3640,10 +3640,8 @@ model Model {
   isHighlighted Boolean        @default(false)
   isLegacy      Boolean        @default(false)
   isPublic      Boolean        @default(true)
-  isDeprecated  Boolean        @default(false)
   isFree        Boolean        @default(false)
 
-  deprecatedAt    DateTime?
   discoveredAt    DateTime?
   lastSyncedAt    DateTime?
   reviewedAt      DateTime?

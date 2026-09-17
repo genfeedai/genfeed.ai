@@ -202,15 +202,26 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
     return activeDefault.key === entry.key;
   }
 
+  /**
+   * An operator demotion is `isLegacy` (the "hide this row" flag only
+   * `ModelsService.transitionLifecycle` sets — the catalog always seeds it
+   * false, so a curated LEGACY row stays selectable) or a row already sitting
+   * at RETIRED. That pair is exactly what the dropped `isDeprecated` column
+   * used to spell, since it was only ever written as `isLegacy || isRetired`.
+   */
+  // `lifecycle` arrives as Prisma's generated enum, a nominally distinct type
+  // from the domain `ModelLifecycle` even though the enum rule keeps both
+  // label sets identical. Typing the row's column as the persisted string and
+  // comparing against a domain member keeps the two in step without a cast.
   private isLifecyclePinnedByOperator(
-    existingRow: { isDeprecated: boolean; isLegacy: boolean } | null,
+    existingRow: { isLegacy: boolean; lifecycle: string } | null,
     entry: ModelCatalogSeedEntry,
   ): boolean {
     if (!existingRow) {
       return false;
     }
     const hasOperatorDemotion =
-      existingRow.isLegacy || existingRow.isDeprecated;
+      existingRow.isLegacy || existingRow.lifecycle === ModelLifecycle.RETIRED;
     const isCatalogDemotion =
       entry.lifecycle === ModelLifecycle.LEGACY ||
       entry.lifecycle === ModelLifecycle.RETIRED;
@@ -250,7 +261,7 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
 
     // tenant-scope-ignore: platform registry has no organizationId; `key` is its only unique index
     const existingRow = await this.prisma.model.findUnique({
-      select: { cost: true, id: true, isDeprecated: true, isLegacy: true },
+      select: { cost: true, id: true, isLegacy: true, lifecycle: true },
       where: { key: entry.key },
     });
 
@@ -259,11 +270,11 @@ export class ModelCatalogSeedService implements OnApplicationBootstrap {
       ...(entry.endpoint ? { endpoint: entry.endpoint } : {}),
       // The catalog propagates its lifecycle so a key it later demotes picks
       // that up on the next boot. An operator demotion is the exception:
-      // `ModelsService.transitionLifecycle` writes `isLegacy`/`isDeprecated`
-      // with the lifecycle, and a catalog that still says AVAILABLE or
-      // RECOMMENDED must not resurrect that row and leave its sibling flags
-      // half-transitioned. The catalog may still move such a row further
-      // down to LEGACY or RETIRED.
+      // `ModelsService.transitionLifecycle` writes `isLegacy` with the
+      // lifecycle, and a catalog that still says AVAILABLE or RECOMMENDED must
+      // not resurrect that row and leave its sibling flags half-transitioned.
+      // The catalog may still move such a row further down to LEGACY or
+      // RETIRED.
       ...(this.isLifecyclePinnedByOperator(existingRow, entry)
         ? {}
         : { lifecycle: entry.lifecycle }),

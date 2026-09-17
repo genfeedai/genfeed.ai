@@ -1,6 +1,7 @@
 import {
   CostTier,
   ModelCategory,
+  ModelLifecycle,
   ModelProvider,
   QualityTier,
   SpeedTier,
@@ -237,6 +238,45 @@ function createOption(
     sourceGroupResolver,
   )[0];
 }
+
+describe('legacy marking', () => {
+  // #4834 dropped the `isDeprecated` column, which was only ever written as
+  // `isLegacy || lifecycle === RETIRED`. The pill must still light up for
+  // every shape that column used to cover, and stay off otherwise.
+  it.each([
+    { lifecycle: ModelLifecycle.LEGACY },
+    { lifecycle: ModelLifecycle.RETIRED },
+    { isLegacy: true, lifecycle: ModelLifecycle.AVAILABLE },
+  ])('marks %j as legacy', (overrides) => {
+    expect(
+      createOption({ ...overrides, key: 'openai/old', label: 'Old' })
+        ?.isDeprecated,
+    ).toBe(true);
+  });
+
+  it.each([
+    { lifecycle: ModelLifecycle.AVAILABLE },
+    { lifecycle: ModelLifecycle.RECOMMENDED },
+  ])('leaves %j unmarked', (overrides) => {
+    expect(
+      createOption({ ...overrides, key: 'openai/new', label: 'New' })
+        ?.isDeprecated,
+    ).toBe(false);
+  });
+
+  // A curated legacy row keeps `isLegacy: false` so it stays selectable in the
+  // public catalog (#4725); it still earns the pill from its lifecycle alone.
+  it('marks a curated legacy row that is not hidden', () => {
+    const option = createOption({
+      isLegacy: false,
+      key: 'openai/gpt-image-1.5',
+      label: 'GPT Image 1.5',
+      lifecycle: ModelLifecycle.LEGACY,
+    });
+
+    expect(option?.isDeprecated).toBe(true);
+  });
+});
 
 describe('getModelRowCapabilities', () => {
   it('reports audio for speech and for a toggleable audio track', () => {

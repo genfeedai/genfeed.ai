@@ -170,15 +170,6 @@ export class CreateModelDto {
   @IsBoolean()
   @ApiProperty({
     default: false,
-    description: 'Whether this record represents a legacy seeded model',
-    required: false,
-  })
-  readonly isLegacy?: boolean;
-
-  @IsOptional()
-  @IsBoolean()
-  @ApiProperty({
-    default: false,
     description: 'Whether this record was discovered from a provider API',
     required: false,
   })
