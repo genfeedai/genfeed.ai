@@ -9,6 +9,7 @@ import { ImportBrandKitAssetsDto } from '@api/collections/brands/dto/import-bran
 import { ManualBrandKitDto } from '@api/collections/brands/dto/manual-brand-kit.dto';
 import { ToggleBrandSkillDto } from '@api/collections/brands/dto/toggle-brand-skill.dto';
 import { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
+import { BrandVoiceGenerationExceptionFilter } from '@api/collections/brands/exceptions/brand-voice-generation-exception.filter';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -44,6 +45,7 @@ import {
   Patch,
   Post,
   Req,
+  UseFilters,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -256,6 +258,9 @@ export class BrandsAgentConfigController {
   })
   @UseGuards(CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
+  // The global filter rewrites `code` to the numeric status and drops `meta`,
+  // so a classified failure needs this one to keep them for the client.
+  @UseFilters(BrandVoiceGenerationExceptionFilter)
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async generateBrandVoice(
     @CurrentUser() user: User,

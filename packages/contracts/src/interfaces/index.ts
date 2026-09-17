@@ -225,6 +225,7 @@ export * from './organization/brand-kit.interface';
 export * from './organization/brand-os-export.interface';
 export * from './organization/brand-os-revision.interface';
 export * from './organization/brand-profile.interface';
+export * from './organization/brand-voice-failure.interface';
 export * from './organization/byok-key-entry.interface';
 export * from './organization/byok-provider-status.interface';
 export * from './organization/byok-resolution-result.interface';

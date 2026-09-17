@@ -1,9 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { BrandsAgentConfigController } from '@api/collections/brands/controllers/brands-agent-config.controller';
-import {
-  BRAND_PROFILE_GENERATION_INVALID_CODE,
-  BrandProfileGenerationException,
-} from '@api/collections/brands/exceptions/brand-profile-generation.exception';
+import { BrandVoiceGenerationException } from '@api/collections/brands/exceptions/brand-voice-generation.exception';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
@@ -12,7 +9,7 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
-import { BrandProfileGenerationFailureReason } from '@genfeedai/contracts';
+import { BrandVoiceFailureCode } from '@genfeedai/contracts/interfaces';
 import { BrandSerializer } from '@genfeedai/serializers';
 import { testId } from '@helpers/testing/test-id.helper';
 import type { INestApplication } from '@nestjs/common';
@@ -359,11 +356,10 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
 
     it('returns the classified 422 for invalid provider output without persisting', async () => {
       generateBrandVoice.mockRejectedValue(
-        new BrandProfileGenerationException({
-          isRetryable: true,
+        new BrandVoiceGenerationException({
+          code: BrandVoiceFailureCode.INCOMPLETE_PROFILE,
           missingFields: ['style'],
           outputLength: 12,
-          reason: BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
         }),
       );
 
@@ -372,17 +368,56 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
         .send({})
         .expect(422);
 
-      expect(response.body).toMatchObject({
-        code: BRAND_PROFILE_GENERATION_INVALID_CODE,
-        detail: expect.stringContaining('missing style'),
-        meta: {
-          isRetryable: true,
-          missingFields: ['style'],
-          reason: BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
-        },
-        title: 'Brand profile generation failed',
+      // The route's own filter keeps `code` and `meta`; the global filter
+      // would have rewritten `code` to "422" and dropped `meta` entirely.
+      expect(response.body).toEqual({
+        errors: [
+          {
+            code: BrandVoiceFailureCode.INCOMPLETE_PROFILE,
+            detail: expect.stringContaining('missing style'),
+            meta: { isRetryable: true },
+            status: '422',
+            title: 'Brand voice generation failed',
+          },
+        ],
       });
       expect(updateAgentConfig).not.toHaveBeenCalled();
+    });
+
+    it('returns a rejected input as a 400 with its own code', async () => {
+      generateBrandVoice.mockRejectedValue(
+        new BrandVoiceGenerationException({
+          code: BrandVoiceFailureCode.SOURCE_URL_INVALID,
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({})
+        .expect(400);
+
+      expect(response.body.errors[0]).toMatchObject({
+        code: BrandVoiceFailureCode.SOURCE_URL_INVALID,
+        meta: { isRetryable: false },
+        status: '400',
+      });
+    });
+
+    it('never puts the redacted diagnostics on the wire', async () => {
+      generateBrandVoice.mockRejectedValue(
+        new BrandVoiceGenerationException({
+          code: BrandVoiceFailureCode.MALFORMED_OUTPUT,
+          outputLength: 4096,
+        }),
+      );
+
+      const response = await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({})
+        .expect(422);
+
+      expect(JSON.stringify(response.body)).not.toContain('outputLength');
+      expect(JSON.stringify(response.body)).not.toContain('4096');
     });
   });
 });

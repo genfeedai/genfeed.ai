@@ -1,8 +1,8 @@
 import {
-  BrandProfileValidationError,
+  BrandVoiceValidationError,
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
-import { BrandProfileGenerationFailureReason } from '@genfeedai/contracts';
+import { BrandVoiceFailureCode } from '@genfeedai/contracts/interfaces';
 
 const response = {
   audience: ['founders', 'operators'],
@@ -74,11 +74,9 @@ describe('brand profile generation', () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(BrandProfileValidationError);
-    const validationError = caught as BrandProfileValidationError;
-    expect(validationError.reason).toBe(
-      BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
-    );
+    expect(caught).toBeInstanceOf(BrandVoiceValidationError);
+    const validationError = caught as BrandVoiceValidationError;
+    expect(validationError.code).toBe(BrandVoiceFailureCode.INCOMPLETE_PROFILE);
     expect(validationError.missingFields).toEqual([
       'style',
       'audience',
@@ -90,12 +88,12 @@ describe('brand profile generation', () => {
   });
 
   it.each([
-    ['', BrandProfileGenerationFailureReason.EMPTY_OUTPUT],
-    ['   ', BrandProfileGenerationFailureReason.EMPTY_OUTPUT],
-    ['not-json', BrandProfileGenerationFailureReason.MALFORMED_JSON],
-    ['{"tone": ', BrandProfileGenerationFailureReason.MALFORMED_JSON],
-    ['["tone"]', BrandProfileGenerationFailureReason.NOT_AN_OBJECT],
-    ['"confident"', BrandProfileGenerationFailureReason.NOT_AN_OBJECT],
+    ['', BrandVoiceFailureCode.EMPTY_OUTPUT],
+    ['   ', BrandVoiceFailureCode.EMPTY_OUTPUT],
+    ['not-json', BrandVoiceFailureCode.MALFORMED_OUTPUT],
+    ['{"tone": ', BrandVoiceFailureCode.MALFORMED_OUTPUT],
+    ['["tone"]', BrandVoiceFailureCode.UNEXPECTED_OUTPUT_SHAPE],
+    ['"confident"', BrandVoiceFailureCode.UNEXPECTED_OUTPUT_SHAPE],
   ])('classifies unparseable output %j as %s', (content, reason) => {
     let caught: unknown;
     try {
@@ -104,9 +102,9 @@ describe('brand profile generation', () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(BrandProfileValidationError);
-    expect((caught as BrandProfileValidationError).reason).toBe(reason);
-    expect((caught as BrandProfileValidationError).missingFields).toEqual([]);
+    expect(caught).toBeInstanceOf(BrandVoiceValidationError);
+    expect((caught as BrandVoiceValidationError).code).toBe(reason);
+    expect((caught as BrandVoiceValidationError).missingFields).toEqual([]);
   });
 
   it('recovers a profile object wrapped in fences or a single-element array', () => {
@@ -125,9 +123,9 @@ describe('brand profile generation', () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(BrandProfileValidationError);
-    expect((caught as BrandProfileValidationError).reason).toBe(
-      BrandProfileGenerationFailureReason.MISSING_REQUIRED_FIELDS,
+    expect(caught).toBeInstanceOf(BrandVoiceValidationError);
+    expect((caught as BrandVoiceValidationError).code).toBe(
+      BrandVoiceFailureCode.INCOMPLETE_PROFILE,
     );
   });
 
@@ -140,12 +138,10 @@ describe('brand profile generation', () => {
       caught = error;
     }
 
-    expect(caught).toBeInstanceOf(BrandProfileValidationError);
-    expect((caught as BrandProfileValidationError).message).not.toContain(
-      secret,
-    );
+    expect(caught).toBeInstanceOf(BrandVoiceValidationError);
+    expect((caught as BrandVoiceValidationError).message).not.toContain(secret);
     expect(
-      (caught as BrandProfileValidationError).missingFields.join(','),
+      (caught as BrandVoiceValidationError).missingFields.join(','),
     ).not.toContain(secret);
   });
 });

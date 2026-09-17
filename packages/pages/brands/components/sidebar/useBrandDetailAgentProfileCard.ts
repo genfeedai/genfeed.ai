@@ -20,7 +20,10 @@ import type {
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { BrandsService } from '@services/social/brands.service';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+import { getBrandVoiceFailureView } from './brand-voice-failure.util';
 
 export const AUTO_MODEL_SELECT_VALUE = '__auto__';
 export const PLATFORM_OPTIONS = [
@@ -315,6 +318,7 @@ export function useBrandDetailAgentProfileCard({
   onRefreshBrand,
 }: BrandDetailAgentProfileCardProps) {
   const notifications = NotificationsService.getInstance();
+  const translate = useTranslations('pages.brandAgentProfile');
   const { refreshBrands } = useBrand();
   const { settings } = useOrganization();
   const [form, setForm] = useState<AgentProfileFormState>(() =>
@@ -365,7 +369,9 @@ export function useBrandDetailAgentProfileCard({
           formRef.current = previousForm;
           setForm(previousForm);
           logger.error('Failed to save brand agent profile field', error);
-          notifications.error('Failed to save brand voice');
+          notifications.error(translate('saveErrorTitle'), {
+            description: translate('failures.saveFailed'),
+          });
           throw error;
         }
       }),
@@ -376,6 +382,7 @@ export function useBrandDetailAgentProfileCard({
       notifications,
       onRefreshBrand,
       refreshBrands,
+      translate,
     ],
   );
 
@@ -485,10 +492,15 @@ export function useBrandDetailAgentProfileCard({
       );
       await refreshBrands();
       await onRefreshBrand();
-      notifications.success('Brand voice generated and saved');
+      notifications.success(translate('generateSuccess'));
     } catch (error) {
       logger.error('Failed to generate brand voice', error);
-      notifications.error('Failed to generate brand voice');
+      // One notification naming the cause the API classified. The card's own
+      // Generate button is the retry, so a retryable failure does not add a
+      // toast action that would spend a second generation credit.
+      notifications.error(translate('generateErrorTitle'), {
+        description: translate(getBrandVoiceFailureView(error).messageKey),
+      });
     } finally {
       setIsGenerating(false);
     }
@@ -499,6 +511,7 @@ export function useBrandDetailAgentProfileCard({
     notifications,
     onRefreshBrand,
     refreshBrands,
+    translate,
     waitForIdle,
   ]);
 

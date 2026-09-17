@@ -7,11 +7,11 @@ import {
   FASTLANE_FORMATS,
   type GenerateFastlaneIdeasDto,
 } from '@api/collections/brands/dto/generate-fastlane-ideas.dto';
-import { BrandProfileGenerationException } from '@api/collections/brands/exceptions/brand-profile-generation.exception';
+import { BrandVoiceGenerationException } from '@api/collections/brands/exceptions/brand-voice-generation.exception';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { buildPromptBrandingFromBrand } from '@api/collections/brands/utils/brand-context.util';
 import {
-  BrandProfileValidationError,
+  BrandVoiceValidationError,
   buildBrandProfileAnalysisPrompt,
   parseGeneratedBrandProfile,
 } from '@api/collections/brands/utils/brand-profile-generation.util';
@@ -21,10 +21,10 @@ import { BrandScraperService } from '@api/services/brand-scraper/brand-scraper.s
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LinkCategory } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
-import type {
-  FastlaneFormat,
-  FastlaneIdea,
-  IBrandProfileGenerationDiagnostics,
+import {
+  BrandVoiceFailureCode,
+  type FastlaneFormat,
+  type FastlaneIdea,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -64,7 +64,14 @@ export class BrandGenerationService {
     if (dto.url) {
       const validation = this.brandScraperService.validateUrl(dto.url);
       if (!validation.isValid) {
-        throw new BadRequestException(validation.error ?? 'Invalid URL');
+        this.failBrandVoice({
+          brandId: dto.brandId,
+          code: BrandVoiceFailureCode.SOURCE_URL_INVALID,
+          organizationId,
+          ...(validation.error === undefined
+            ? {}
+            : { detail: validation.error }),
+        });
       }
 
       const scraped = await this.brandScraperService.scrapeWebsite(dto.url);
@@ -82,7 +89,11 @@ export class BrandGenerationService {
         scopedWhere(organizationId, { id: dto.brandId }),
       );
       if (!brand) {
-        throw new BadRequestException('Brand not found');
+        this.failBrandVoice({
+          brandId: dto.brandId,
+          code: BrandVoiceFailureCode.BRAND_NOT_FOUND,
+          organizationId,
+        });
       }
 
       // Prefer a live website scrape when we can resolve a URL (client may pass
@@ -156,7 +167,11 @@ export class BrandGenerationService {
         }
       }
     } else {
-      throw new BadRequestException('Either url or brandId must be provided');
+      this.failBrandVoice({
+        brandId: dto.brandId,
+        code: BrandVoiceFailureCode.SOURCE_REQUIRED,
+        organizationId,
+      });
     }
 
     const audienceContext = dto.targetAudience
@@ -217,27 +232,55 @@ export class BrandGenerationService {
     try {
       return parseGeneratedBrandProfile(rawContent);
     } catch (error: unknown) {
-      if (!(error instanceof BrandProfileValidationError)) {
+      if (!(error instanceof BrandVoiceValidationError)) {
         throw error;
       }
 
-      const diagnostics: IBrandProfileGenerationDiagnostics = {
-        isRetryable: true,
-        missingFields: error.missingFields,
-        outputLength: rawContent.length,
-        reason: error.reason,
-      };
-
-      this.logger.warn('Generated brand profile failed validation', {
-        ...diagnostics,
+      this.failBrandVoice({
         brandId,
-        operation: 'generateBrandVoice',
+        code: error.code,
+        missingFields: error.missingFields,
         organizationId,
-        service: this.constructorName,
+        outputLength: rawContent.length,
       });
-
-      throw new BrandProfileGenerationException(diagnostics);
     }
+  }
+
+  /**
+   * Logs one classified failure with the brand and organization it happened
+   * for, then throws it. Every generate-voice failure goes through here, so a
+   * cause is recorded exactly once, with full context, and the response shape
+   * is decided in a single place. `BrandVoiceGenerationExceptionFilter` only
+   * serializes what this built.
+   */
+  private failBrandVoice(input: {
+    brandId: string | undefined;
+    code: BrandVoiceFailureCode;
+    detail?: string;
+    missingFields?: string[];
+    organizationId: string;
+    outputLength?: number;
+  }): never {
+    const exception = new BrandVoiceGenerationException({
+      code: input.code,
+      ...(input.detail === undefined ? {} : { detail: input.detail }),
+      ...(input.missingFields === undefined
+        ? {}
+        : { missingFields: input.missingFields }),
+      ...(input.outputLength === undefined
+        ? {}
+        : { outputLength: input.outputLength }),
+    });
+
+    this.logger.warn('Brand voice generation failed', {
+      ...exception.diagnostics,
+      brandId: input.brandId,
+      operation: 'generateBrandVoice',
+      organizationId: input.organizationId,
+      service: this.constructorName,
+    });
+
+    throw exception;
   }
 
   /**

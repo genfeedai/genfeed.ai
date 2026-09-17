@@ -20,6 +20,12 @@ const {
   updateAgentConfigMock: vi.fn().mockResolvedValue(undefined),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({
     refreshBrands: refreshBrandsMock,
@@ -259,7 +265,10 @@ describe('BrandDetailAgentProfileCard', () => {
         'steady',
       ),
     );
-    expect(errorMock).toHaveBeenCalledWith('Failed to save brand voice');
+    expect(errorMock).toHaveBeenCalledWith('Saving your brand voice', {
+      description:
+        'Your changes were not saved. Check your connection and try again.',
+    });
     expect(refreshBrandsMock).not.toHaveBeenCalled();
     expect(onRefreshBrand).not.toHaveBeenCalled();
   });
@@ -358,5 +367,95 @@ describe('BrandDetailAgentProfileCard', () => {
       'plainspoken',
     );
     expect(successMock).toHaveBeenCalledWith('Brand voice generated and saved');
+  });
+
+  /**
+   * `NotificationsService.error` renders `${message} failed`, so the first
+   * argument has to stay a title. Asserting it here is what keeps the toast
+   * from reading "Failed to generate brand voice failed" again.
+   */
+  it('reports the classified cause of a failed generation in one toast', async () => {
+    const user = userEvent.setup();
+    generateBrandVoiceMock.mockRejectedValueOnce({
+      response: {
+        data: {
+          errors: [
+            {
+              code: 'incomplete_profile',
+              detail: 'The generated brand profile is missing style.',
+              meta: { isRetryable: true },
+              status: '422',
+              title: 'Brand voice generation failed',
+            },
+          ],
+        },
+      },
+    });
+
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
+
+    await waitFor(() => expect(errorMock).toHaveBeenCalledTimes(1));
+    expect(errorMock).toHaveBeenCalledWith('Generating your brand voice', {
+      description:
+        'The generated profile was missing key details. Try again, or add a website, description, or audience to the brand first.',
+    });
+    expect(successMock).not.toHaveBeenCalled();
+    expect(updateAgentConfigMock).not.toHaveBeenCalled();
+  });
+
+  it('falls back to the generic message when the failure carries no code', async () => {
+    const user = userEvent.setup();
+    generateBrandVoiceMock.mockRejectedValueOnce(new Error('Network Error'));
+
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
+
+    await waitFor(() => expect(errorMock).toHaveBeenCalledTimes(1));
+    expect(errorMock).toHaveBeenCalledWith('Generating your brand voice', {
+      description: 'Something went wrong. Please try again.',
+    });
+  });
+
+  it('never renders the server prose in the toast', async () => {
+    const user = userEvent.setup();
+    generateBrandVoiceMock.mockRejectedValueOnce({
+      response: {
+        data: {
+          errors: [
+            { code: 'malformed_output', detail: 'raw-provider-prose-marker' },
+          ],
+        },
+      },
+    });
+
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
+
+    await waitFor(() => expect(errorMock).toHaveBeenCalledTimes(1));
+    expect(JSON.stringify(errorMock.mock.calls[0])).not.toContain(
+      'raw-provider-prose-marker',
+    );
   });
 });

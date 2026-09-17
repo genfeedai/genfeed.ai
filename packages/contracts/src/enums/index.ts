@@ -30,7 +30,6 @@ export * from './bot-command.enum';
 export * from './bot-response.enum';
 export * from './brand-interview.enum';
 export * from './brand-os-revision.enum';
-export * from './brand-profile-generation.enum';
 export * from './button.enum';
 export * from './byok-provider.enum';
 export * from './campaign.enum';
