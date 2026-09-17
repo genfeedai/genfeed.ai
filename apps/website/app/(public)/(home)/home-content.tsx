@@ -13,9 +13,9 @@ export default function HomeContent() {
     <HomeReveal>
       <HomeHero />
       <HomeProduct />
-      <HomeProviders />
       <ProofWinners />
       <HomeHow />
+      <HomeProviders />
       <HomeAsks />
       <HomeCTA />
       <HomeFooter />
