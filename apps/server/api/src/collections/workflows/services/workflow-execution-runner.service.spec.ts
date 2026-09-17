@@ -1,8 +1,16 @@
+import { sumPersistedNodeCredits } from '@api/collections/workflow-executions/services/workflow-node-credits';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionRunnerService } from '@api/collections/workflows/services/workflow-execution-runner.service';
 import type { DelayResumeJobData } from '@api/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock(
+  '@api/collections/workflow-executions/services/workflow-node-credits',
+  () => ({
+    sumPersistedNodeCredits: vi.fn(),
+  }),
+);
 
 describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a running execution (#4307)', () => {
   const prisma = { workflow: { update: vi.fn() } };
@@ -20,7 +28,6 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     completeExecution: vi.fn(),
     findOne: vi.fn(),
     getRuntimeState: vi.fn(),
-    sumPersistedNodeCredits: vi.fn(),
   };
   const documentService = {
     findPinnedWorkflow: vi.fn(),
@@ -73,7 +80,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     executionsService.completeExecution.mockResolvedValue({
       metadata: undefined,
     });
-    executionsService.sumPersistedNodeCredits.mockResolvedValue(12);
+    vi.mocked(sumPersistedNodeCredits).mockResolvedValue(12);
     documentService.findPinnedWorkflow.mockResolvedValue({ brandId: null });
     documentService.getWorkflowLabel.mockReturnValue('Test workflow');
     engineAdapter.convertToExecutableWorkflow.mockReturnValue({
@@ -139,10 +146,11 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     expect(progressService.publishWorkflowTaskUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ executionId: 'execution-1', status: 'failed' }),
     );
-    expect(executionsService.sumPersistedNodeCredits).toHaveBeenCalledWith({
-      executionId: 'execution-1',
-      organizationId: 'org-1',
-    });
+    expect(sumPersistedNodeCredits).toHaveBeenCalledWith(
+      prisma,
+      'execution-1',
+      'org-1',
+    );
     expect(
       finalizer.settleClipChainReservationForWorkflow,
     ).toHaveBeenCalledWith({

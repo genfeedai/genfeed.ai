@@ -1,5 +1,6 @@
 import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { sumPersistedNodeCredits } from '@api/collections/workflow-executions/services/workflow-node-credits';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@api/collections/workflows/services/workflow-execution-finalizer.service';
@@ -788,11 +789,11 @@ export class WorkflowExecutionRunnerService {
     workflowId: string;
   }): Promise<number> {
     try {
-      const totalCreditsUsed =
-        await this.executionsService.sumPersistedNodeCredits({
-          executionId: input.executionId,
-          organizationId: input.organizationId,
-        });
+      const totalCreditsUsed = await sumPersistedNodeCredits(
+        this.prisma,
+        input.executionId,
+        input.organizationId,
+      );
       await this.finalizer.settleClipChainReservationForWorkflow({
         actorUserId: input.actorUserId,
         organizationId: input.organizationId,
