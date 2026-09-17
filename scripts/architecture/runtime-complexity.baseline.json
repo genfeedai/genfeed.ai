@@ -60,7 +60,7 @@
     "symbol": "ListeningTopicAnalysisService.persistAnalysis"
   },
   {
-    "actual": 1057,
+    "actual": 1056,
     "file": "apps/server/api/src/collections/models/services/models.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/collections/models/services/models.service.ts"

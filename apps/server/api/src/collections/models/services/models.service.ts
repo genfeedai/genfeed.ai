@@ -125,11 +125,8 @@ type PublicModelCatalogFilters = {
 };
 
 type RegistryReviewPatch = Partial<UpdateModelDto> & {
-  // `isLegacy` is no longer part of the public create/update contract: it is
-  // derived from the lifecycle by `createModel` and owned by
-  // `transitionLifecycle`, so letting a plain PATCH set it is what let the
-  // flag drift from `lifecycle` in the first place. Review approval still
-  // clears it internally.
+  // Off the public create/update contract: `createModel` derives it from the
+  // lifecycle, `transitionLifecycle` owns it, review approval clears it here.
   isLegacy?: boolean;
   lastSyncedAt?: Date;
   rejectionReason?: string;
