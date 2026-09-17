@@ -14,7 +14,11 @@ import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
-import { ActivitySource, IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
 import { BadRequestException, HttpStatus } from '@nestjs/common';
@@ -281,7 +285,7 @@ describe('VideosClipChainController', () => {
       },
     };
 
-    await controller.createClipChain(request as Request, user, {
+    await controller.createClipChain(request as unknown as Request, user, {
       characterIngredientIds: ['character-1'],
       model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
       segmentPrompts: ['Beat one', 'Beat two', 'Beat three'],

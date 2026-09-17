@@ -1,5 +1,9 @@
 import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
-import { ActivitySource, ByokProvider, ModelProvider } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  ByokProvider,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
 import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
