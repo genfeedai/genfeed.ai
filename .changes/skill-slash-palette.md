@@ -1,4 +1,4 @@
-packages: agent, client, helpers, hooks, pages, props, services
+packages: agent, client, contracts, helpers, hooks, pages, props, services, ui
 
 Expose first-party and org skills in the shared `/` composer palette.
 

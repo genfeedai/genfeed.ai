@@ -82,8 +82,7 @@ describe('PromptsController', () => {
   };
 
   const mockSkillRuntimeService = {
-    buildSkillPromptSections: vi.fn(() => '## Skill: Cinematic Prompting'),
-    resolveActiveSkills: vi.fn().mockResolvedValue([{ slug: 'cinematic' }]),
+    resolveRequestedSkillPromptSections: vi.fn().mockResolvedValue(''),
   };
 
   beforeEach(async () => {
@@ -185,6 +184,9 @@ describe('PromptsController', () => {
 
     it('appends picked skill instructions to the enhancement system prompt', async () => {
       mockPromptsService.create.mockResolvedValue(mockPrompt);
+      mockSkillRuntimeService.resolveRequestedSkillPromptSections.mockResolvedValueOnce(
+        '## Skill: Cinematic Prompting',
+      );
 
       await controller.create(
         mockReq,
@@ -201,12 +203,11 @@ describe('PromptsController', () => {
         expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled(),
       );
 
-      expect(mockSkillRuntimeService.resolveActiveSkills).toHaveBeenCalledWith(
-        mockUser.organizationId,
-        mockUser.brandId,
-        undefined,
-        { requestedSkillSlugs: ['cinematic-prompting'] },
-      );
+      expect(
+        mockSkillRuntimeService.resolveRequestedSkillPromptSections,
+      ).toHaveBeenCalledWith(mockUser.organizationId, mockUser.brandId, [
+        'cinematic-prompting',
+      ]);
 
       const [{ messages }] = mockOpenRouterService.chatCompletion.mock.calls.at(
         -1,
@@ -232,14 +233,23 @@ describe('PromptsController', () => {
       );
 
       expect(
-        mockSkillRuntimeService.resolveActiveSkills,
-      ).not.toHaveBeenCalled();
+        mockSkillRuntimeService.resolveRequestedSkillPromptSections,
+      ).toHaveBeenCalledWith(
+        mockUser.organizationId,
+        mockUser.brandId,
+        undefined,
+      );
+
+      const [{ messages }] = mockOpenRouterService.chatCompletion.mock.calls.at(
+        -1,
+      ) ?? [{}];
+      expect(messages[0].content).not.toContain('## Skill:');
     });
 
     it('still enhances when skill resolution fails', async () => {
       mockPromptsService.create.mockResolvedValue(mockPrompt);
-      mockSkillRuntimeService.resolveActiveSkills.mockRejectedValueOnce(
-        new Error('skills unavailable'),
+      mockSkillRuntimeService.resolveRequestedSkillPromptSections.mockResolvedValueOnce(
+        '',
       );
 
       await controller.create(

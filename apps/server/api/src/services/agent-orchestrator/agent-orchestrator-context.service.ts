@@ -190,23 +190,12 @@ export class AgentOrchestratorContextService {
           agentTypeConfig?.defaultModel,
       );
 
-    const resolvedSkills =
-      this.skillRuntimeService && policy.brandId
-        ? await this.skillRuntimeService.resolveActiveSkills(
-            context.organizationId,
-            policy.brandId,
-            strategy?.skillSlugs,
-            {
-              agentType: request.agentType,
-              channel: policy.platform,
-              modality: this.inferSkillModality(request),
-              requestedSkillSlugs: request.requestedSkillSlugs,
-            },
-          )
-        : [];
-    const skillPromptSuffix = this.skillRuntimeService
-      ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills)
-      : '';
+    const { resolvedSkills, skillPromptSuffix } = await this.resolveTurnSkills(
+      request,
+      context.organizationId,
+      policy,
+      strategy?.skillSlugs,
+    );
     const generationModePrompt = buildGenerationModePrompt(
       request.generationMode,
     );
@@ -658,6 +647,38 @@ export class AgentOrchestratorContextService {
     }
 
     return 'generic';
+  }
+
+  private async resolveTurnSkills(
+    request: AgentChatRequest,
+    organizationId: string,
+    policy: ResolvedAgentExecutionPolicy,
+    strategySkillSlugs: string[] | undefined,
+  ): Promise<{
+    resolvedSkills: ResolvedRuntimeSkill[];
+    skillPromptSuffix: string;
+  }> {
+    const resolvedSkills =
+      this.skillRuntimeService && policy.brandId
+        ? await this.skillRuntimeService.resolveActiveSkills(
+            organizationId,
+            policy.brandId,
+            strategySkillSlugs,
+            {
+              agentType: request.agentType,
+              channel: policy.platform,
+              modality: this.inferSkillModality(request),
+              requestedSkillSlugs: request.requestedSkillSlugs,
+            },
+          )
+        : [];
+
+    return {
+      resolvedSkills,
+      skillPromptSuffix: this.skillRuntimeService
+        ? this.skillRuntimeService.buildSkillPromptSections(resolvedSkills)
+        : '',
+    };
   }
 
   private inferSkillModality(request: AgentChatRequest): string | undefined {

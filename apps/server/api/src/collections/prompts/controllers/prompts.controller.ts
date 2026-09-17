@@ -198,15 +198,12 @@ export class PromptsController {
           .getRenderedPrompt(systemPromptKey, {}, user.organizationId)
           .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
       : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
-
-    // Studio's `/` palette offers prompt-shaping skills (image-prompt-engineer,
-    // cinematic-prompting, …). When the operator picked one, its instructions
-    // ride along with the enhancement system prompt.
-    const skillSectionsPromise = this.resolveRequestedSkillSections(
-      user.organizationId,
-      createPromptDto.brandId,
-      createPromptDto.requestedSkillSlugs,
-    );
+    const skillSectionsPromise =
+      this.skillRuntimeService?.resolveRequestedSkillPromptSections(
+        user.organizationId,
+        createPromptDto.brandId,
+        createPromptDto.requestedSkillSlugs,
+      ) ?? Promise.resolve('');
 
     Promise.all([systemPromptPromise, skillSectionsPromise])
       .then(([basePrompt, skillSections]) =>
@@ -277,44 +274,6 @@ export class PromptsController {
       });
 
     return serializeSingle(request, PromptSerializer, data);
-  }
-
-  /**
-   * Skill instructions for the slugs the operator picked in the composer.
-   *
-   * Resolution runs through the shared runtime, so a slug the brand has not
-   * enabled resolves to nothing — the palette can ask, the brand decides. A
-   * failure here never fails the enhancement: the base system prompt stands.
-   */
-  private async resolveRequestedSkillSections(
-    organizationId: string,
-    brandId: string | null | undefined,
-    requestedSkillSlugs: string[] | undefined,
-  ): Promise<string> {
-    if (
-      !this.skillRuntimeService ||
-      !requestedSkillSlugs?.length ||
-      !isEntityId(brandId)
-    ) {
-      return '';
-    }
-
-    try {
-      const skills = await this.skillRuntimeService.resolveActiveSkills(
-        organizationId,
-        brandId,
-        undefined,
-        { requestedSkillSlugs },
-      );
-
-      return this.skillRuntimeService.buildSkillPromptSections(skills);
-    } catch (error) {
-      this.loggerService.error(
-        `${this.constructorName} failed to resolve requested skills`,
-        error,
-      );
-      return '';
-    }
   }
 
   private resolveSystemPromptKey(createPromptDto: CreatePromptDto): string {

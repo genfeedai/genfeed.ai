@@ -4,6 +4,7 @@ import {
   type ResolvedBrandSkill,
   SkillsService,
 } from '@api/collections/skills/services/skills.service';
+import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   sanitizeAgentUntrustedInput,
   UNTRUSTED_ORG_SKILL_FRAMING,
@@ -58,6 +59,38 @@ export class SkillRuntimeService {
     const filtered = this.applyStrategyFilter(brandSkills, strategySkillSlugs);
 
     return filtered.map((resolved) => this.toRuntimeSkill(resolved));
+  }
+
+  /**
+   * Skill instructions for slugs the operator picked in a composer.
+   *
+   * A slug the brand has not enabled resolves to nothing. Failures return an
+   * empty string so the caller can keep its base system prompt.
+   */
+  async resolveRequestedSkillPromptSections(
+    organizationId: string,
+    brandId: string | null | undefined,
+    requestedSkillSlugs: string[] | undefined,
+  ): Promise<string> {
+    if (!requestedSkillSlugs?.length || !isEntityId(brandId)) {
+      return '';
+    }
+
+    try {
+      const skills = await this.resolveActiveSkills(
+        organizationId,
+        brandId,
+        undefined,
+        { requestedSkillSlugs },
+      );
+      return this.buildSkillPromptSections(skills);
+    } catch (error) {
+      this.logger.error(
+        'Failed to resolve requested skill prompt sections',
+        error,
+      );
+      return '';
+    }
   }
 
   /**
