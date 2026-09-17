@@ -54,7 +54,14 @@ export function ViralVideoLeaderboard({
     );
   }
 
-  const sortedVideos = videos.toSorted((a, b) => b.viralScore - a.viralScore);
+  const platforms = new Set(videos.map((video) => video.platform));
+  const canSortByRatio = platforms.size === 1;
+  const sortedVideos = videos.toSorted((a, b) => {
+    if (canSortByRatio) {
+      return (b.outlierRatio ?? -1) - (a.outlierRatio ?? -1);
+    }
+    return b.viralScore - a.viralScore;
+  });
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -169,6 +176,32 @@ export function ViralVideoLeaderboard({
             render: (video) => (
               <span className="font-semibold tabular-nums">
                 {formatCompactNumber(video.views || video.viewCount || 0)}
+              </span>
+            ),
+          },
+          {
+            className: 'min-w-28',
+            header: 'Median',
+            key: 'medianViews',
+            render: (video) => (
+              <span className="tabular-nums">
+                {video.medianViews == null
+                  ? '—'
+                  : `${formatCompactNumber(video.medianViews)}${
+                      video.sampleSize ? ` (${video.sampleSize})` : ''
+                    }`}
+              </span>
+            ),
+          },
+          {
+            className: 'min-w-20',
+            header: 'Ratio',
+            key: 'outlierRatio',
+            render: (video) => (
+              <span className="font-semibold tabular-nums">
+                {video.outlierRatio == null
+                  ? '—'
+                  : `${video.outlierRatio.toFixed(video.outlierRatio >= 10 ? 0 : 1)}x`}
               </span>
             ),
           },

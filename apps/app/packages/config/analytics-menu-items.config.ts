@@ -9,6 +9,7 @@ import {
   FlaskConical,
   Magnet,
   Repeat,
+  ScanSearch,
   Sparkles,
   TrendingUp,
 } from 'lucide-react';
@@ -91,6 +92,15 @@ export const ANALYTICS_MENU_ITEMS: MenuItemConfig[] = [
     matchPaths: [APP_ROUTES.ANALYTICS.HOOKS],
     outline: Magnet,
     solid: Magnet,
+  },
+  {
+    group: 'Intelligence',
+    href: APP_ROUTES.ANALYTICS.OUTLIERS,
+    hrefScope: 'organization',
+    label: 'Outliers',
+    matchPaths: [APP_ROUTES.ANALYTICS.OUTLIERS],
+    outline: ScanSearch,
+    solid: ScanSearch,
   },
   {
     // Pattern mining (hook/CTA/structure formulas) sits with Hooks / Insights.

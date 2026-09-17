@@ -5,6 +5,8 @@ export interface ICreatorWatchlist {
   displayName: string;
   followers: number;
   avgViews: number;
+  medianViews?: number;
+  sampleSize?: number;
   avgEngagementRate: number;
   growthRate: number;
   postingCadence: string;

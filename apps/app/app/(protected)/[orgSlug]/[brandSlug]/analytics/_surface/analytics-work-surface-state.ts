@@ -108,10 +108,20 @@ function resolveDescriptor(route: string): AnalyticsSurfaceDescriptor {
   if (route === '/analytics/hooks') {
     return {
       cacheMinutes: 15,
-      filterKeys: [],
+      filterKeys: ['postId'],
       label: 'Hook performance',
       maxVisibleResults: 100,
       metrics: ['views', 'likes', 'comments', 'shares', 'engagementRate'],
+      source: 'genfeed-analytics-api',
+    };
+  }
+  if (route === '/analytics/outliers') {
+    return {
+      cacheMinutes: 15,
+      filterKeys: ['platform'],
+      label: 'Outliers',
+      maxVisibleResults: 50,
+      metrics: ['views'],
       source: 'genfeed-analytics-api',
     };
   }

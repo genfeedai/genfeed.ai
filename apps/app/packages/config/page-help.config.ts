@@ -34,6 +34,7 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
   { key: 'analyticsStreaks', prefix: APP_ROUTES.ANALYTICS.STREAKS },
   { key: 'analyticsInsights', prefix: APP_ROUTES.ANALYTICS.INSIGHTS },
   { key: 'analyticsHooks', prefix: APP_ROUTES.ANALYTICS.HOOKS },
+  { key: 'analyticsOutliers', prefix: APP_ROUTES.ANALYTICS.OUTLIERS },
   {
     key: 'analyticsPerformanceLab',
     prefix: APP_ROUTES.ANALYTICS.PERFORMANCE_LAB,

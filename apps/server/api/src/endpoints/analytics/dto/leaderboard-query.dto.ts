@@ -287,4 +287,21 @@ export class ViralHooksQueryDto extends AnalyticsDateRangeDto {
   @IsOptional()
   @IsEntityId()
   declare brandId?: string;
+
+  @ApiProperty({
+    description: 'Restrict analysis to posts at or above this outlier tier',
+    enum: ['outlier', 'breakout'],
+    required: false,
+  })
+  @IsOptional()
+  @IsIn(['outlier', 'breakout'])
+  minOutlierTier?: 'outlier' | 'breakout';
+
+  @ApiProperty({
+    description: 'Restrict analysis to a single published post',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  postId?: string;
 }

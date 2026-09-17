@@ -32,6 +32,23 @@ describe('outlier serializer boundary', () => {
     expect(result.data.attributes).not.toHaveProperty('raw');
     expect(result.data.attributes).not.toHaveProperty('credential');
   });
+  it('exposes denormalized snapshot ranking fields', () => {
+    const result = OutlierPostPerformanceSerializer.serialize({
+      id: 'p',
+      outlierRatio: 10,
+      medianViews: 30000,
+      sampleSize: 20,
+      windowSize: 20,
+      snapshotStatus: 'ready',
+      snapshotComputedAt: '2026-09-17T00:00:00.000Z',
+    }) as Document;
+    expect(result.data.attributes).toMatchObject({
+      outlierRatio: 10,
+      medianViews: 30000,
+      sampleSize: 20,
+      snapshotStatus: 'ready',
+    });
+  });
   it('exposes historical options but not persistence hashes', () => {
     const result = OutlierBaselineSnapshotSerializer.serialize({
       id: 's',

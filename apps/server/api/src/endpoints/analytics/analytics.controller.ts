@@ -486,6 +486,8 @@ export class AnalyticsController {
         req.query?.startDate || 'default',
         req.query?.endDate || 'default',
         req.query?.brandId || '',
+        req.query?.minOutlierTier || '',
+        req.query?.postId || '',
       ]),
     tags: ['analytics', 'hooks'],
     ttl: 300,
@@ -508,6 +510,8 @@ export class AnalyticsController {
       query.endDate,
       query.brandId,
       organizationId,
+      query.minOutlierTier,
+      query.postId,
     );
     return serializeSingle(req, AnalyticsHooksSerializer, data);
   }

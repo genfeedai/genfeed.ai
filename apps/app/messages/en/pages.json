@@ -2110,6 +2110,10 @@
       "title": "Hooks",
       "body": "How opening lines perform. Compare hook styles to learn what stops the scroll for your audience."
     },
+    "analyticsOutliers": {
+      "title": "Outliers",
+      "body": "Posts ranked by how far they beat their own account baseline, with the median and sample size beside raw views."
+    },
     "analyticsPerformanceLab": {
       "title": "Performance Lab",
       "body": "Experiments and comparisons across variants. Set up a test, then read the results here."

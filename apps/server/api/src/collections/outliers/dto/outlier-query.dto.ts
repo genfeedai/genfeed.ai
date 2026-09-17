@@ -51,3 +51,40 @@ export class OutlierQueryDto extends OutlierPaginationDto {
   @IsNotEmpty()
   contentType?: string;
 }
+export class OutlierRankedQueryDto extends OutlierPaginationDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  brandId?: string;
+  @ApiProperty({ required: false, enum: ['credential', 'social_source'] })
+  @IsOptional()
+  @IsIn(['credential', 'social_source'])
+  accountType?: OutlierAccountType;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  accountId?: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  platform?: string;
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @IsNotEmpty()
+  contentType?: string;
+  @ApiProperty({ required: false, enum: ['outlier', 'breakout'] })
+  @IsOptional()
+  @IsIn(['outlier', 'breakout'])
+  tier?: 'outlier' | 'breakout';
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(5)
+  @Max(50)
+  windowSize?: number;
+}

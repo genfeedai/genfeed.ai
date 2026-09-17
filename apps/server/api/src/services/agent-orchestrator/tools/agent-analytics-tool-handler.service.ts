@@ -1,6 +1,7 @@
 import { ArticleAnalyticsService } from '@api/collections/articles/services/article-analytics.service';
 import { ArticlesService } from '@api/collections/articles/services/articles.service';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { OutliersService } from '@api/collections/outliers/services/outliers.service';
 import { PostAnalyticsService } from '@api/collections/posts/services/post-analytics.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AnalyticsService } from '@api/endpoints/analytics/analytics.service';
@@ -38,6 +39,8 @@ export class AgentAnalyticsToolHandler {
     private readonly articlesService?: ArticlesService,
     @Optional()
     private readonly articleAnalyticsService?: ArticleAnalyticsService,
+    @Optional()
+    private readonly outliersService?: OutliersService,
   ) {}
   private async resolveIngredientForContent(
     contentId: string,
@@ -485,6 +488,60 @@ export class AgentAnalyticsToolHandler {
           type: 'analytics_snapshot_card',
         },
       ],
+      success: true,
+    };
+  }
+  async listOutlierPosts(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (!this.outliersService) {
+      return {
+        creditsUsed: 0,
+        error: 'Outlier baselines are unavailable',
+        success: false,
+      };
+    }
+    const limitRaw = params.limit;
+    const limit =
+      typeof limitRaw === 'number' && Number.isInteger(limitRaw)
+        ? Math.min(50, Math.max(1, limitRaw))
+        : 20;
+    const tier =
+      params.tier === 'outlier' || params.tier === 'breakout'
+        ? params.tier
+        : undefined;
+    const accountType =
+      params.accountType === 'credential' ||
+      params.accountType === 'social_source'
+        ? params.accountType
+        : undefined;
+    const result = await this.outliersService.listLatestPerformances(
+      ctx.organizationId,
+      {
+        accountId: readOptionalString(params.accountId),
+        accountType,
+        brandId: readOptionalString(params.brandId) ?? ctx.brandId,
+        limit,
+        platform: readOptionalString(params.platform),
+        tier,
+      },
+    );
+    return {
+      creditsUsed: 0,
+      data: {
+        posts: result.docs.map((post) => ({
+          baselineSnapshotId: post.baselineSnapshotId,
+          medianViews: post.medianViews ?? null,
+          outlierRatio: post.outlierRatio,
+          outlierTier: post.outlierTier,
+          platform: post.platform,
+          postId: post.postId,
+          sampleSize: post.sampleSize ?? null,
+          views: post.views,
+        })),
+        total: result.total,
+      },
       success: true,
     };
   }

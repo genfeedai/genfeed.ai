@@ -19,9 +19,17 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { format } from 'date-fns';
 import { Clock, Video } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import HookAnalysisSection from './HookAnalysisSection';
@@ -53,7 +61,12 @@ export default function AnalyticsHooks({
 }: AnalyticsHooksProps) {
   const { brandId: contextBrandId, organizationId } = useBrand();
   const { dateRange } = useAnalyticsContext();
+  const searchParams = useSearchParams();
   const brandId = propBrandId || contextBrandId;
+  const postId = searchParams.get('postId')?.trim() || undefined;
+  const [minOutlierTier, setMinOutlierTier] = useState<
+    'all' | 'outlier' | 'breakout'
+  >('all');
 
   const getAnalyticsService = useAuthedService((token: string) =>
     AnalyticsService.getInstance(token),
@@ -65,45 +78,60 @@ export default function AnalyticsHooks({
 
   const isLoading = videos === null;
 
-  const fetchHookData = useCallback(async () => {
-    setVideos(null);
-    const url = 'GET /analytics/hooks';
+  const fetchHookData = useCallback(
+    async (signal: AbortSignal) => {
+      setVideos(null);
+      const url = 'GET /analytics/hooks';
 
-    try {
-      const service = await getAnalyticsService();
-      const query: IQueryParams = {
-        endDate: dateRange.endDate
-          ? format(dateRange.endDate, 'yyyy-MM-dd')
-          : undefined,
-        startDate: dateRange.startDate
-          ? format(dateRange.startDate, 'yyyy-MM-dd')
-          : undefined,
-      };
+      try {
+        const service = await getAnalyticsService();
+        const query: IQueryParams = {
+          endDate: dateRange.endDate
+            ? format(dateRange.endDate, 'yyyy-MM-dd')
+            : undefined,
+          startDate: dateRange.startDate
+            ? format(dateRange.startDate, 'yyyy-MM-dd')
+            : undefined,
+        };
 
-      if (brandId) {
-        query.brand = brandId;
+        if (brandId) {
+          query.brand = brandId;
+          query.brandId = brandId;
+        }
+        if (minOutlierTier !== 'all') {
+          query.minOutlierTier = minOutlierTier;
+        }
+        if (postId) {
+          query.postId = postId;
+        }
+
+        const response = await service.getViralHooks(query);
+        if (signal.aborted) return;
+        setVideos(response.videos ?? []);
+        setAnalysisData(response.analysis ?? createDefaultAnalysis());
+        logger.info(`${url} success`, response);
+      } catch (error) {
+        if (signal.aborted) return;
+        logger.error(`${url} failed`, error);
+        setVideos([]);
+        setAnalysisData(createDefaultAnalysis());
       }
-
-      const response = await service.getViralHooks(query);
-      setVideos(response.videos ?? []);
-      setAnalysisData(response.analysis ?? createDefaultAnalysis());
-      logger.info(`${url} success`, response);
-    } catch (error) {
-      logger.error(`${url} failed`, error);
-      setVideos([]);
-      setAnalysisData(createDefaultAnalysis());
-    }
-  }, [brandId, dateRange, getAnalyticsService]);
+    },
+    [brandId, dateRange, getAnalyticsService, minOutlierTier, postId],
+  );
 
   useEffect(() => {
     if (!organizationId) {
       return;
     }
-    fetchHookData();
+    const controller = new AbortController();
+    void fetchHookData(controller.signal);
+    return () => controller.abort();
   }, [organizationId, fetchHookData]);
 
   const handleRefresh = () => {
-    fetchHookData();
+    const controller = new AbortController();
+    void fetchHookData(controller.signal);
   };
 
   const aggregatedPlatformData = useMemo(() => {
@@ -163,6 +191,21 @@ export default function AnalyticsHooks({
       icon={Video}
     >
       <div className="flex justify-end gap-2 pb-4">
+        <Select
+          value={minOutlierTier}
+          onValueChange={(value) =>
+            setMinOutlierTier(value as 'all' | 'outlier' | 'breakout')
+          }
+        >
+          <SelectTrigger className="w-48" aria-label="Outlier filter">
+            <SelectValue placeholder="Outliers first" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All posts</SelectItem>
+            <SelectItem value="outlier">Outliers first</SelectItem>
+            <SelectItem value="breakout">Breakouts only</SelectItem>
+          </SelectContent>
+        </Select>
         <ButtonRefresh onClick={handleRefresh} isRefreshing={isLoading} />
       </div>
 

@@ -315,6 +315,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'list_meta_ad_creatives', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_meta_campaigns', surfaces: ['mcp'], toolset: 'ads' },
   { name: 'list_music', surfaces: ['mcp'], toolset: 'generation' },
+  {
+    name: 'list_outlier_posts',
+    surfaces: ['agent'],
+    toolset: 'analytics',
+  },
   { name: 'list_posts', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'list_review_queue', surfaces: ['agent'], toolset: 'content' },
   {

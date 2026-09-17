@@ -610,6 +610,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDateStr?: string,
     brandId?: string,
     organizationId?: string,
+    minOutlierTier?: 'outlier' | 'breakout',
+    postId?: string,
   ): Promise<ViralHooksResult> {
     const { startDate, endDate } = DateRangeUtil.parseDateRange(
       startDateStr,
@@ -633,6 +635,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       endDate,
       brandFilter,
       orgFilter,
+      minOutlierTier,
+      postId,
     );
     // Platform aggregation
     const topPlatformsRaw = await this.fetchViralHookPlatforms(
@@ -650,7 +654,33 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
     endDate: Date,
     brandFilter: PrismaSql,
     orgFilter: PrismaSql,
+    minOutlierTier?: 'outlier' | 'breakout',
+    postId?: string,
   ): Promise<RawAnalyticsRow[]> {
+    const tiers =
+      minOutlierTier === 'breakout'
+        ? [Prisma.sql`'breakout'`]
+        : minOutlierTier === 'outlier'
+          ? [Prisma.sql`'outlier'`, Prisma.sql`'breakout'`]
+          : [];
+    const outlierFilter = minOutlierTier
+      ? Prisma.sql`AND EXISTS (
+          SELECT 1
+          FROM "outlier_post_performances" opp
+          INNER JOIN "outlier_baseline_snapshots" obs
+            ON obs.id = opp."baselineSnapshotId"
+           AND obs."organizationId" = opp."organizationId"
+          WHERE opp."postId" = pa."postId"
+            AND opp."organizationId" = pa."organizationId"
+            AND opp."isDeleted" = false
+            AND obs."isDeleted" = false
+            AND obs.status = 'ready'
+            AND opp."outlierTier" IN (${Prisma.join(tiers)})
+        )`
+      : Prisma.empty;
+    const postFilter = postId
+      ? Prisma.sql`AND pa."postId" = ${postId}`
+      : Prisma.empty;
     // Get top performing posts with description data
     const videos = await this.prisma.$queryRaw<RawAnalyticsRow[]>`
       SELECT
@@ -665,6 +695,8 @@ export class AnalyticsService extends BaseService<Record<string, unknown>> {
       WHERE pa."date" >= ${startDate} AND pa."date" <= ${endDate}
         ${brandFilter}
         ${orgFilter}
+        ${outlierFilter}
+        ${postFilter}
       GROUP BY pa."postId", p.description, p.label
       ORDER BY total_engagement DESC
       LIMIT 50
