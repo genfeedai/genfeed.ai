@@ -5,6 +5,7 @@ import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/cr
 import type { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
+import { buildKnowledgeMediaReferenceKey } from '@api/collections/contexts/utils/knowledge-media-identity.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -181,6 +182,19 @@ export class KnowledgeRecordsService {
         purpose: dto.purpose,
         referenceUrl: dto.referenceUrl,
         title: dto.title,
+        ...(dto.referenceUrl &&
+        (dto.kind === KnowledgeSourceKind.AUDIO ||
+          dto.kind === KnowledgeSourceKind.VIDEO)
+          ? {
+              mediaReferenceKey: buildKnowledgeMediaReferenceKey({
+                brandId: actor.brandId,
+                kind: dto.kind,
+                referenceUrl: dto.referenceUrl,
+                scope: dto.scope,
+                userId: actor.userId,
+              }),
+            }
+          : {}),
       },
     });
     const inbox = await this.inbox(tx, actor, dto.scope);
