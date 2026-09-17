@@ -29,6 +29,7 @@ describe('CacheService', () => {
       expire: vi.fn(),
       flushdb: vi.fn(),
       get: vi.fn(),
+      getdel: vi.fn(),
       incrby: vi.fn(),
       mget: vi.fn(),
       multi: vi.fn(() => ({
@@ -85,6 +86,30 @@ describe('CacheService', () => {
     it('handles client errors', async () => {
       mockRedisClient.get.mockRejectedValue(new Error('boom'));
       await expect(service.get('test:key')).resolves.toBeNull();
+      expect(loggerService.error).toHaveBeenCalled();
+    });
+  });
+
+  describe('getdel', () => {
+    it('returns the parsed value from a single GETDEL', async () => {
+      mockRedisClient.getdel.mockResolvedValue(JSON.stringify({ token: 't1' }));
+
+      await expect(service.getdel('single-use:key')).resolves.toEqual({
+        token: 't1',
+      });
+      expect(mockRedisClient.getdel).toHaveBeenCalledWith('single-use:key');
+      expect(mockRedisClient.get).not.toHaveBeenCalled();
+      expect(mockRedisClient.del).not.toHaveBeenCalled();
+    });
+
+    it('returns null when the key is already gone', async () => {
+      mockRedisClient.getdel.mockResolvedValue(null);
+      await expect(service.getdel('single-use:key')).resolves.toBeNull();
+    });
+
+    it('handles client errors as a miss', async () => {
+      mockRedisClient.getdel.mockRejectedValue(new Error('boom'));
+      await expect(service.getdel('single-use:key')).resolves.toBeNull();
       expect(loggerService.error).toHaveBeenCalled();
     });
   });
@@ -235,6 +260,11 @@ describe('CacheService', () => {
     it('reports a cache miss without issuing a read', async () => {
       await expect(service.get('key')).resolves.toBeNull();
       expect(mockRedisClient.get).not.toHaveBeenCalled();
+    });
+
+    it('reports a getdel miss without issuing GETDEL', async () => {
+      await expect(service.getdel('single-use:key')).resolves.toBeNull();
+      expect(mockRedisClient.getdel).not.toHaveBeenCalled();
     });
 
     it('reports a failed write without issuing one', async () => {

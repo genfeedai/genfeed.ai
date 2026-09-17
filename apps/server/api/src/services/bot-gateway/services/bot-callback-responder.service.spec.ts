@@ -10,10 +10,16 @@ import type {
   IBotPlatformAdapter,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
+import { RedisService } from '@libs/redis/redis.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 type MockAdapter = {
   [K in keyof IBotPlatformAdapter]: ReturnType<typeof vi.fn>;
+};
+
+type StoredRedisValue = {
+  expiresAtMs: number;
+  value: string;
 };
 
 const createMockAdapter = (): MockAdapter => ({
@@ -26,33 +32,91 @@ const createMockAdapter = (): MockAdapter => ({
   validateSignature: vi.fn().mockResolvedValue(true),
 });
 
-interface MockCallbackContextService {
-  get: ReturnType<typeof vi.fn>;
-  remove: ReturnType<typeof vi.fn>;
-  store: ReturnType<typeof vi.fn>;
+function createPublisher(store: Map<string, StoredRedisValue>) {
+  return {
+    eval: vi.fn(async (_script: string, _numKeys: number, key: string) => {
+      const entry = store.get(key);
+      if (!entry) {
+        return null;
+      }
+
+      const remainingTtlMs = Number.isFinite(entry.expiresAtMs)
+        ? Math.max(0, entry.expiresAtMs - Date.now())
+        : -1;
+      store.delete(key);
+      return [entry.value, remainingTtlMs];
+    }),
+    get: vi.fn(async (key: string) => store.get(key)?.value ?? null),
+    set: vi.fn(
+      async (
+        key: string,
+        value: string,
+        mode?: string,
+        ttl?: number,
+        nx?: string,
+      ) => {
+        const isNx = mode === 'NX' || nx === 'NX';
+        if (isNx && store.has(key)) {
+          return null;
+        }
+
+        let expiresAtMs = Number.POSITIVE_INFINITY;
+        if (mode === 'PX' && typeof ttl === 'number') {
+          expiresAtMs = Date.now() + ttl;
+        }
+
+        store.set(key, { expiresAtMs, value });
+        return 'OK';
+      },
+    ),
+    setex: vi.fn(async (key: string, ttl: number, value: string) => {
+      store.set(key, {
+        expiresAtMs: Date.now() + ttl * 1000,
+        value,
+      });
+      return 'OK';
+    }),
+  };
 }
 
 describe('BotCallbackResponderService', () => {
+  const ingredientId = 'ing-1';
+  const resultUrl = 'https://cdn.example.com/video.mp4';
+  const discordContext: IBotCallbackContext = {
+    applicationId: 'app-1',
+    chatId: 'ch-1',
+    interactionToken: 'tok-1',
+    platform: CredentialPlatform.DISCORD,
+  };
+  const telegramContext: IBotCallbackContext = {
+    applicationId: 'app-1',
+    chatId: 'ch-1',
+    interactionToken: 'tok-1',
+    platform: CredentialPlatform.TELEGRAM,
+  };
+
   let service: BotCallbackResponderService;
   let discordAdapter: MockAdapter;
   let telegramAdapter: MockAdapter;
-  let callbackContextService: MockCallbackContextService;
-  let loggerService: { error: ReturnType<typeof vi.fn> };
+  let adapterRegistry: BotPlatformAdapterRegistryService;
+  let callbackContextService: BotCallbackContextService;
+  let loggerService: {
+    error: ReturnType<typeof vi.fn>;
+    warn: ReturnType<typeof vi.fn>;
+  };
+  let publisher: ReturnType<typeof createPublisher>;
 
   beforeEach(async () => {
     discordAdapter = createMockAdapter();
     const slackAdapter = createMockAdapter();
     telegramAdapter = createMockAdapter();
-    callbackContextService = {
-      get: vi.fn().mockResolvedValue(undefined),
-      remove: vi.fn().mockResolvedValue(undefined),
-      store: vi.fn().mockResolvedValue(undefined),
-    };
-    loggerService = { error: vi.fn() };
+    publisher = createPublisher(new Map());
+    loggerService = { error: vi.fn(), warn: vi.fn() };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         BotCallbackResponderService,
+        BotCallbackContextService,
         {
           provide: BotPlatformAdapterRegistryService,
           useValue: new BotPlatformAdapterRegistryService(
@@ -62,116 +126,129 @@ describe('BotCallbackResponderService', () => {
           ),
         },
         {
-          provide: BotCallbackContextService,
-          useValue: callbackContextService,
+          provide: RedisService,
+          useValue: { getPublisher: vi.fn(() => publisher) },
         },
         {
           provide: LoggerService,
-          useValue: { ...loggerService, log: vi.fn(), warn: vi.fn() },
+          useValue: { ...loggerService, log: vi.fn() },
         },
       ],
     }).compile();
 
     service = module.get(BotCallbackResponderService);
+    adapterRegistry = module.get(BotPlatformAdapterRegistryService);
+    callbackContextService = module.get(BotCallbackContextService);
     loggerService = module.get(LoggerService);
   });
 
   describe('sendCompletionResponse', () => {
     it('does nothing when no callback context exists', async () => {
-      await service.sendCompletionResponse(
-        'ing-missing',
-        'https://cdn.example.com/img.png',
-        'image',
-      );
+      await service.sendCompletionResponse(ingredientId, resultUrl, 'image');
 
       expect(discordAdapter.sendFollowupMedia).not.toHaveBeenCalled();
-      expect(callbackContextService.remove).not.toHaveBeenCalled();
     });
 
-    it('sends media and cleans up context on success', async () => {
-      const ctx: IBotCallbackContext = {
-        applicationId: 'app-1',
-        chatId: 'ch-1',
-        interactionToken: 'tok-1',
-        platform: CredentialPlatform.DISCORD,
-      };
-      callbackContextService.get.mockResolvedValue(ctx);
+    it('sends media and consumes the context on success', async () => {
+      await callbackContextService.store(ingredientId, discordContext);
 
-      await service.sendCompletionResponse(
-        'ing-1',
-        'https://cdn.example.com/video.mp4',
-        'video',
-      );
+      await service.sendCompletionResponse(ingredientId, resultUrl, 'video');
 
       expect(discordAdapter.sendFollowupMedia).toHaveBeenCalledWith(
         'app-1',
         'tok-1',
-        'https://cdn.example.com/video.mp4',
+        resultUrl,
         'video',
         "Here's your generated video!",
       );
-      expect(callbackContextService.remove).toHaveBeenCalledWith('ing-1');
+      await expect(
+        callbackContextService.get(ingredientId),
+      ).resolves.toBeUndefined();
     });
 
-    it('keeps the context and logs when the adapter fails', async () => {
-      const ctx: IBotCallbackContext = {
-        applicationId: 'app-1',
-        chatId: 'ch-1',
-        interactionToken: 'tok-1',
-        platform: CredentialPlatform.DISCORD,
-      };
-      callbackContextService.get.mockResolvedValue(ctx);
+    it('restores the context when the adapter fails before the platform accepts', async () => {
+      await callbackContextService.store(ingredientId, discordContext);
       discordAdapter.sendFollowupMedia.mockRejectedValue(new Error('boom'));
 
-      await service.sendCompletionResponse(
-        'ing-1',
-        'https://cdn.example.com/video.mp4',
-        'video',
-      );
+      await service.sendCompletionResponse(ingredientId, resultUrl, 'video');
 
-      expect(callbackContextService.remove).not.toHaveBeenCalled();
+      await expect(callbackContextService.get(ingredientId)).resolves.toEqual({
+        ...discordContext,
+        ingredientId,
+      });
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('failed to send completion'),
         expect.any(Error),
       );
+      expect(loggerService.warn).toHaveBeenCalledWith(
+        expect.stringContaining(
+          'restoring callback context after failed delivery',
+        ),
+        { ingredientId },
+      );
+    });
+
+    it('delivers exactly one follow-up when two completions race', async () => {
+      await callbackContextService.store(ingredientId, discordContext);
+
+      await Promise.all([
+        service.sendCompletionResponse(ingredientId, resultUrl, 'image'),
+        service.sendCompletionResponse(ingredientId, resultUrl, 'image'),
+      ]);
+
+      expect(discordAdapter.sendFollowupMedia).toHaveBeenCalledTimes(1);
+      await expect(
+        callbackContextService.get(ingredientId),
+      ).resolves.toBeUndefined();
     });
   });
 
   describe('sendErrorResponse', () => {
-    it('sends error followup and cleans up context', async () => {
-      const ctx: IBotCallbackContext = {
-        applicationId: 'app-1',
-        chatId: 'ch-1',
-        interactionToken: 'tok-1',
-        platform: CredentialPlatform.TELEGRAM,
-      };
-      callbackContextService.get.mockResolvedValue(ctx);
+    it('sends error followup and consumes the context', async () => {
+      await callbackContextService.store(ingredientId, telegramContext);
 
-      await service.sendErrorResponse('ing-1', 'Out of memory');
+      await service.sendErrorResponse(ingredientId, 'Out of memory');
 
       expect(telegramAdapter.sendFollowupMessage).toHaveBeenCalledWith(
         'app-1',
         'tok-1',
         'Generation failed: Out of memory',
       );
-      expect(callbackContextService.remove).toHaveBeenCalledWith('ing-1');
+      await expect(
+        callbackContextService.get(ingredientId),
+      ).resolves.toBeUndefined();
     });
 
-    it('logs and returns when the platform has no adapter', async () => {
-      callbackContextService.get.mockResolvedValue({
-        applicationId: 'app-1',
-        chatId: 'ch-1',
-        interactionToken: 'tok-1',
-        platform: 'whatsapp' as unknown as CredentialPlatform,
-      });
+    it('logs, restores, and returns when the platform has no adapter', async () => {
+      await callbackContextService.store(ingredientId, discordContext);
+      vi.spyOn(adapterRegistry, 'getAdapter').mockReturnValue(undefined);
 
-      await service.sendErrorResponse('ing-1', 'Out of memory');
+      await service.sendErrorResponse(ingredientId, 'Out of memory');
 
       expect(telegramAdapter.sendFollowupMessage).not.toHaveBeenCalled();
+      expect(discordAdapter.sendFollowupMessage).not.toHaveBeenCalled();
       expect(loggerService.error).toHaveBeenCalledWith(
         expect.stringContaining('no adapter for platform'),
-        { platform: 'whatsapp' },
+        { platform: CredentialPlatform.DISCORD },
       );
+      await expect(callbackContextService.get(ingredientId)).resolves.toEqual({
+        ...discordContext,
+        ingredientId,
+      });
+    });
+
+    it('delivers exactly one message when two failures race', async () => {
+      await callbackContextService.store(ingredientId, telegramContext);
+
+      await Promise.all([
+        service.sendErrorResponse(ingredientId, 'Out of memory'),
+        service.sendErrorResponse(ingredientId, 'Out of memory'),
+      ]);
+
+      expect(telegramAdapter.sendFollowupMessage).toHaveBeenCalledTimes(1);
+      await expect(
+        callbackContextService.get(ingredientId),
+      ).resolves.toBeUndefined();
     });
   });
 });

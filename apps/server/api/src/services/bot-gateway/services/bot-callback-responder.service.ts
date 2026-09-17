@@ -1,8 +1,17 @@
-import { BotCallbackContextService } from '@api/services/bot-gateway/services/bot-callback-context.service';
+import {
+  BotCallbackContextService,
+  type ClaimedBotCallbackContext,
+} from '@api/services/bot-gateway/services/bot-callback-context.service';
 import { BotPlatformAdapterRegistryService } from '@api/services/bot-gateway/services/bot-platform-adapter-registry.service';
+import type { IBotPlatformAdapter } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
+
+type ClaimedDelivery = {
+  adapter: IBotPlatformAdapter;
+  claimed: ClaimedBotCallbackContext;
+};
 
 /**
  * Answers a bot interaction once its generation finishes. Called by the
@@ -29,24 +38,15 @@ export class BotCallbackResponderService {
     mediaType: 'image' | 'video',
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const context = await this.callbackContextService.get(ingredientId);
-    if (!context) {
-      return;
-    }
-
-    const adapter = this.adapterRegistry.getAdapter(context.platform);
-    if (!adapter) {
-      this.loggerService.error(`${url} no adapter for platform`, {
-        platform: context.platform,
-      });
+    const delivery = await this.claimDelivery(ingredientId, url);
+    if (!delivery) {
       return;
     }
 
     try {
-      await adapter.sendFollowupMedia(
-        context.applicationId,
-        context.interactionToken,
+      await delivery.adapter.sendFollowupMedia(
+        delivery.claimed.context.applicationId,
+        delivery.claimed.context.interactionToken,
         resultUrl,
         mediaType,
         `Here's your generated ${mediaType}!`,
@@ -56,11 +56,9 @@ export class BotCallbackResponderService {
         ingredientId,
         mediaType,
       });
-
-      // Clean up context
-      await this.callbackContextService.remove(ingredientId);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to send completion`, error);
+      await this.restoreClaimed(url, ingredientId, delivery.claimed);
     }
   }
 
@@ -72,35 +70,86 @@ export class BotCallbackResponderService {
     errorMessage: string,
   ): Promise<void> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
-
-    const context = await this.callbackContextService.get(ingredientId);
-    if (!context) {
-      return;
-    }
-
-    const adapter = this.adapterRegistry.getAdapter(context.platform);
-    if (!adapter) {
-      this.loggerService.error(`${url} no adapter for platform`, {
-        platform: context.platform,
-      });
+    const delivery = await this.claimDelivery(ingredientId, url);
+    if (!delivery) {
       return;
     }
 
     try {
-      await adapter.sendFollowupMessage(
-        context.applicationId,
-        context.interactionToken,
+      await delivery.adapter.sendFollowupMessage(
+        delivery.claimed.context.applicationId,
+        delivery.claimed.context.interactionToken,
         `Generation failed: ${errorMessage}`,
       );
 
       this.loggerService.log(`${url} sent error response`, {
         ingredientId,
       });
-
-      // Clean up context
-      await this.callbackContextService.remove(ingredientId);
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed to send error response`, error);
+      await this.restoreClaimed(url, ingredientId, delivery.claimed);
+    }
+  }
+
+  /**
+   * Claim first: the platform lives on the record, so adapter resolution
+   * cannot precede consume. A missing adapter never reached the platform and
+   * restores; two racers still cannot both deliver.
+   */
+  private async claimDelivery(
+    ingredientId: string,
+    url: string,
+  ): Promise<ClaimedDelivery | undefined> {
+    const claimed = await this.callbackContextService.claim(ingredientId);
+    if (!claimed) {
+      return undefined;
+    }
+
+    const adapter = this.adapterRegistry.getAdapter(claimed.context.platform);
+    if (!adapter) {
+      this.loggerService.error(`${url} no adapter for platform`, {
+        platform: claimed.context.platform,
+      });
+      await this.restoreClaimed(url, ingredientId, claimed);
+      return undefined;
+    }
+
+    return { adapter, claimed };
+  }
+
+  private async restoreClaimed(
+    url: string,
+    ingredientId: string,
+    claimed: ClaimedBotCallbackContext,
+  ): Promise<void> {
+    try {
+      if (claimed.remainingTtlMs !== -1 && claimed.remainingTtlMs < 1) {
+        this.loggerService.warn(
+          `${url} not restoring expired callback context`,
+          { ingredientId },
+        );
+        return;
+      }
+
+      this.loggerService.warn(
+        `${url} restoring callback context after failed delivery`,
+        { ingredientId },
+      );
+
+      const restored = await this.callbackContextService.restore(
+        ingredientId,
+        claimed,
+      );
+      if (!restored) {
+        this.loggerService.warn(`${url} abandoned callback context restore`, {
+          ingredientId,
+        });
+      }
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed to restore callback context`, {
+        error,
+        ingredientId,
+      });
     }
   }
 }
