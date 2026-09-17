@@ -204,15 +204,28 @@ export class WorkspaceClient {
     return this.base.request(
       'getting job status',
       async (http) => {
-        // A "job" is an ingredient generation artifact; its status lives on the
-        // ingredient metadata (`@Controller('ingredients')` +
-        // `@Get(':ingredientId/metadata')`). There is no bare ingredient read,
-        // so metadata is the status surface.
-        const response = await http.get(`/ingredients/${jobId}/metadata`);
-        const data = response.data?.data;
+        const response = await http.get(
+          `/ingredients/batch?ids=${encodeURIComponent(jobId)}`,
+        );
+        const collection = response.data?.data;
+        const row = Array.isArray(collection) ? collection[0] : collection;
+        const attributes =
+          row && typeof row === 'object' && 'attributes' in row
+            ? ((row as { attributes?: Record<string, unknown> }).attributes ??
+              {})
+            : ((row as Record<string, unknown> | undefined) ?? {});
+        const id =
+          (row && typeof row === 'object' && 'id' in row
+            ? String((row as { id?: unknown }).id ?? jobId)
+            : jobId) || jobId;
+        const url =
+          (typeof attributes.cdnUrl === 'string' && attributes.cdnUrl) ||
+          (typeof attributes.url === 'string' && attributes.url) ||
+          undefined;
         return {
-          id: data?.id,
-          ...(data?.attributes || data || {}),
+          id,
+          ...attributes,
+          ...(url ? { url } : {}),
         };
       },
       this.base.failWith('Failed to get job status'),

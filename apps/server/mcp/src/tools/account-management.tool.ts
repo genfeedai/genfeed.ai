@@ -1,3 +1,4 @@
+import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import type { ClientService } from '@mcp/services/client.service';
 
 export function handleAccountManagementTool(
@@ -74,13 +75,16 @@ export function handleAccountManagementTool(
     },
     get_job_status: async (a) => {
       const status = await client.getJobStatus(a.jobId as string);
+      const artifact = toMcpMediaToolResult(status);
       return {
         content: [
           {
-            text: `Job Status:\n\n${JSON.stringify(status, null, 2)}`,
+            text: `Job Status:\n\n${artifact.content[0]?.text ?? JSON.stringify(status, null, 2)}`,
             type: 'text' as const,
           },
+          ...artifact.content.slice(1),
         ],
+        structuredContent: artifact.structuredContent,
       };
     },
     list_brands: async () => {
