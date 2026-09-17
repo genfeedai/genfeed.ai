@@ -1,3 +1,4 @@
+import type { AgentGenerationActionParams } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
 import {
   didGenerationUseIdentity,
@@ -12,6 +13,24 @@ describe('didGenerationUseIdentity', () => {
       didGenerationUseIdentity({ generationType: 'video', useIdentity: true }),
     ).toBe(true);
     expect(didGenerationUseIdentity({ generationType: 'avatar' })).toBe(true);
+  });
+
+  it('reads identity fields the generation-action payload already sends', () => {
+    const params: AgentGenerationActionParams = {
+      avatarPhotoUrl: 'https://cdn.test/brand.png',
+      prompt: 'Say this as the brand.',
+      useIdentity: true,
+      voiceId: 'brand-voice-1',
+    };
+
+    expect(
+      didGenerationUseIdentity({
+        generationType: 'video',
+        useIdentity: params.useIdentity,
+      }),
+    ).toBe(true);
+    expect(params.avatarPhotoUrl).toBe('https://cdn.test/brand.png');
+    expect(params.voiceId).toBe('brand-voice-1');
   });
 });
 
