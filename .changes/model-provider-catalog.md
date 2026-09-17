@@ -1,4 +1,4 @@
-packages: helpers, contracts
+packages: helpers, contracts, config
 
 Add `getProviderBrands`, which groups the model catalog by brand so a surface
 can render the providers behind it without maintaining a second list. Adds the
@@ -17,3 +17,5 @@ Higgsfield `MODEL_KEYS` now match documented REST endpoint ids on
 - Kling-on-Higgsfield (`HIGGSFIELD_KLING_VIDEO`) is removed; DoP is the
   Higgsfield video path
 
+`@genfeedai/config` gains `HIGGSFIELD_API_BASE_URL`, which overrides the
+documented host. Unset, the client posts to `https://api.higgsfield.ai`.
