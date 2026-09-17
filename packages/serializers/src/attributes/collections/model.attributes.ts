@@ -45,8 +45,6 @@ export const modelAttributes = createEntityAttributes([
   // Lifecycle fields
   'succeededBy',
   'predecessorOf',
-  'isDeprecated',
-  'deprecatedAt',
   // Dynamic registry ownership fields
   'organizationId',
   'parentModelId',

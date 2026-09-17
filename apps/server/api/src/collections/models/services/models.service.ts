@@ -125,7 +125,12 @@ type PublicModelCatalogFilters = {
 };
 
 type RegistryReviewPatch = Partial<UpdateModelDto> & {
-  deprecatedAt?: Date;
+  // `isLegacy` is no longer part of the public create/update contract: it is
+  // derived from the lifecycle by `createModel` and owned by
+  // `transitionLifecycle`, so letting a plain PATCH set it is what let the
+  // flag drift from `lifecycle` in the first place. Review approval still
+  // clears it internally.
+  isLegacy?: boolean;
   lastSyncedAt?: Date;
   rejectionReason?: string;
   reviewedAt?: Date;
@@ -507,7 +512,6 @@ export class ModelsService extends BaseService<
       lifecycle === ModelLifecycle.RECOMMENDED
         ? (createDto.isDefault ?? false)
         : false;
-    data.isDeprecated = isLegacy || isRetired;
     data.isLegacy = isLegacy;
     data.succeededBy = isLegacy || isRetired ? successorKey : null;
     if (!this.readString(data.endpoint)) {
@@ -678,11 +682,9 @@ export class ModelsService extends BaseService<
       !existing.isDiscovered || existing.reviewStatus === 'approved';
 
     return this.patch(modelId, {
-      deprecatedAt: isLegacy || isRetired ? new Date() : null,
       isActive: !isRetired && reviewAllowsExecution,
       isDefault:
         lifecycle === ModelLifecycle.RECOMMENDED ? existing.isDefault : false,
-      isDeprecated: isLegacy || isRetired,
       isLegacy,
       lifecycle,
       succeededBy: isLegacy || isRetired ? successorKey : null,

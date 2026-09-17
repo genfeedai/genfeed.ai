@@ -17,11 +17,6 @@ import type {
 } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import { Film, Images, Layers, Volume2, Wand2, Zap } from 'lucide-react';
 
-type ModelWithLifecycle = IModel & {
-  deprecatedAt?: string | Date;
-  isDeprecated?: boolean;
-};
-
 const KNOWN_VARIANT_SUFFIXES = new Set([
   'avatar',
   'base',
@@ -183,10 +178,13 @@ export function transformModelsToOptions(
       costTier: model.costTier as CostTier | undefined,
       familyKey: family.familyKey,
       familyLabel: family.familyLabel,
+      // `isLegacy` is the operator's "hide this row" flag, not a restatement of
+      // the lifecycle: a curated LEGACY row keeps `isLegacy: false` so it stays
+      // selectable. Both still earn the Legacy pill, as does a retired row.
       isDeprecated:
         model.lifecycle === ModelLifecycle.LEGACY ||
-        model.isLegacy === true ||
-        (model as ModelWithLifecycle).isDeprecated === true,
+        model.lifecycle === ModelLifecycle.RETIRED ||
+        model.isLegacy === true,
       isFavorite: favoritesSet.has(model.key),
       model,
       lifecycle:

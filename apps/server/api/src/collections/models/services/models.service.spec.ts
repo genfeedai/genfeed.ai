@@ -125,7 +125,6 @@ describe('ModelsService', () => {
         cost: 5,
         isActive: true,
         isDefault: false,
-        isDeprecated: false,
         isDiscovered: true,
         isLegacy: false,
         lifecycle: ModelLifecycle.AVAILABLE,
@@ -170,7 +169,6 @@ describe('ModelsService', () => {
       data: expect.objectContaining({
         isActive: true,
         isDefault: false,
-        isDeprecated: true,
         isLegacy: true,
         lifecycle: ModelLifecycle.LEGACY,
         succeededBy: 'google/imagen-5',
@@ -210,7 +208,6 @@ describe('ModelsService', () => {
     modelDelegate.findUnique.mockResolvedValue(current);
     modelDelegate.update.mockResolvedValue(
       makeModel({
-        isDeprecated: true,
         isLegacy: true,
         lifecycle: ModelLifecycle.LEGACY,
         succeededBy: successor.key,
@@ -227,7 +224,6 @@ describe('ModelsService', () => {
       data: expect.objectContaining({
         isActive: true,
         isDefault: false,
-        isDeprecated: true,
         isLegacy: true,
         lifecycle: ModelLifecycle.LEGACY,
         succeededBy: successor.key,
