@@ -13,16 +13,31 @@
  * file a new issue every red push. Title-prefix fallback plus a separate
  * addLabels call keeps the canonical tracker (#3798) as the only open one.
  * Native issue Priority P0 via the shared board triage.
- * Success path: close every open tracker — labeled or unlabeled title-prefix —
- * with a green comment so a recovered trunk cannot keep a stale P0 on the board.
+ * Success path: close every open Tests Gate tracker — labeled or unlabeled
+ * title-prefix — with a green comment so a recovered trunk cannot keep a
+ * stale P0 on the board. Auto-close is scoped to this workflow: a nightly
+ * Playwright tracker that also carries `master-ci-failure` (#4579 / #4689)
+ * must stay open until its own scheduled recovery path closes it.
  */
 
 import { applyTrackerLabel } from './ci-tracker-labels.mjs';
+import { COVERAGE_FAILURE_LABEL } from './coverage-failure-reporter.mjs';
 import { triageCiFailureOnProject } from './genfeed-project-board.mjs';
+import { NIGHTLY_E2E_FAILURE_LABEL } from './nightly-e2e-failure-reporter.mjs';
+import { NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL } from './nightly-playwright-full-failure-reporter.mjs';
+import { RELEASE_E2E_FAILURE_LABEL } from './release-e2e-failure-reporter.mjs';
+import { SCHEDULED_FAILURE_MARKER } from './scheduled-failure-tracker.mjs';
 
 export const MASTER_CI_FAILURE_LABEL = 'master-ci-failure';
 export const MASTER_CI_FAILURE_TITLE_PREFIX =
   '🚨 Tests Gate failed on master push';
+
+export const FOREIGN_MASTER_CI_TRACKER_LABELS = [
+  COVERAGE_FAILURE_LABEL,
+  NIGHTLY_E2E_FAILURE_LABEL,
+  NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL,
+  RELEASE_E2E_FAILURE_LABEL,
+];
 
 function issueLabelNames(issue) {
   return (issue.labels ?? []).map((entry) =>
@@ -33,6 +48,20 @@ function issueLabelNames(issue) {
 function hasMasterCiFailureTitle(issue) {
   const title = typeof issue.title === 'string' ? issue.title : '';
   return title.startsWith(MASTER_CI_FAILURE_TITLE_PREFIX);
+}
+
+function issueBody(issue) {
+  return typeof issue?.body === 'string' ? issue.body : '';
+}
+
+export function isForeignWorkflowTracker(issue) {
+  const labels = issueLabelNames(issue);
+  if (
+    FOREIGN_MASTER_CI_TRACKER_LABELS.some((label) => labels.includes(label))
+  ) {
+    return true;
+  }
+  return issueBody(issue).includes(SCHEDULED_FAILURE_MARKER);
 }
 
 async function listLabeledTrackerIssues(github, { owner, repo, state }) {
@@ -58,10 +87,27 @@ async function listOpenIssues(github, { owner, repo, state }) {
   });
 }
 
+function mergeTrackerIssue(existing, incoming) {
+  if (!existing) {
+    return incoming;
+  }
+  const labels = [
+    ...new Set([...issueLabelNames(existing), ...issueLabelNames(incoming)]),
+  ].map((name) => ({ name }));
+  return {
+    ...existing,
+    ...incoming,
+    labels,
+    body: issueBody(incoming) || issueBody(existing) || incoming.body,
+    title: incoming.title || existing.title,
+  };
+}
+
 /**
  * Open Tests Gate trackers: labeled `master-ci-failure` and/or titled with
  * `🚨 Tests Gate failed on master push`. Sorted by issue number so resolve
- * and canonical-pick are deterministic.
+ * and canonical-pick are deterministic. Trackers owned by another workflow
+ * are excluded even when they also carry this label.
  *
  * @returns {Promise<Array<{ issue: object, isLabeled: boolean }>>}
  */
@@ -74,7 +120,11 @@ async function listTrackerIssues(github, { owner, repo, state }) {
   const byNumber = new Map();
 
   for (const issue of openIssues) {
-    if (issue.pull_request || !hasMasterCiFailureTitle(issue)) {
+    if (
+      issue.pull_request ||
+      !hasMasterCiFailureTitle(issue) ||
+      isForeignWorkflowTracker(issue)
+    ) {
       continue;
     }
     byNumber.set(issue.number, {
@@ -91,8 +141,13 @@ async function listTrackerIssues(github, { owner, repo, state }) {
       continue;
     }
     const existing = byNumber.get(issue.number);
+    const merged = mergeTrackerIssue(existing?.issue, issue);
+    if (isForeignWorkflowTracker(merged)) {
+      byNumber.delete(issue.number);
+      continue;
+    }
     byNumber.set(issue.number, {
-      issue: existing?.issue ?? issue,
+      issue: merged,
       isLabeled: true,
     });
   }
