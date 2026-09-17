@@ -279,10 +279,7 @@ test('release failure step separates repository writes from project credentials'
   )[1];
   assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
   assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/u);
-  assert.match(
-    step,
-    /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/u,
-  );
+  assert.match(step, /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/u);
   assert.match(step, /projectGithub: github/u);
   assert.doesNotMatch(step, /continue-on-error:/u);
 });

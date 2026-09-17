@@ -688,9 +688,9 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
   );
   assert.match(workflow, /^ {2}nightly-recovery-report:/m);
   assert.match(workflow, /resolveNightlyE2eFailures/);
-  const report = workflow.split('  nightly-failure-report:')[1].split(
-    '  nightly-recovery-report:',
-  )[0];
+  const report = workflow
+    .split('  nightly-failure-report:')[1]
+    .split('  nightly-recovery-report:')[0];
   const step = report.split(
     '- name: Create or update bounded nightly-failure trackers',
   )[1];
