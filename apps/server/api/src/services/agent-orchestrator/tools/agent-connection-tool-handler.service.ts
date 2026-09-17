@@ -1,4 +1,5 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import type {
   AgentToolResult,
@@ -15,12 +16,29 @@ export class AgentConnectionToolHandler {
   constructor(
     @Optional()
     private readonly credentialsService?: CredentialsService,
+    @Optional()
+    private readonly connectionRequests?: AgentConnectionRequestService,
   ) {}
 
   async getConnectionStatus(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (this.connectionRequests && (params.connectionId || params.platform)) {
+      const result = await this.connectionRequests.status(params, ctx);
+      if (!result.success) {
+        return result;
+      }
+      const platform = String(result.data?.platform ?? params.platform ?? '');
+      const isAuthorized = result.data?.state === 'authorized';
+      return {
+        ...result,
+        nextActions: isAuthorized
+          ? []
+          : [this.buildOAuthConnectCard(platform, '/agent', 'status')],
+      };
+    }
+
     if (!this.credentialsService) {
       return {
         creditsUsed: 0,
@@ -56,13 +74,43 @@ export class AgentConnectionToolHandler {
 
   async initiateOAuthConnect(
     params: Record<string, unknown>,
-    _ctx: ToolExecutionContext,
+    ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const platform = String(params.platform || '')
       .trim()
       .toLowerCase();
     const isOnboarding = Boolean(params.isOnboarding);
     const returnTo = isOnboarding ? '/agent/onboarding' : '/agent';
+
+    if (platform && this.connectionRequests) {
+      const result = await this.connectionRequests.start(params, ctx);
+      const card = this.buildOAuthConnectCard(platform, returnTo, 'init');
+      if (!result.success) {
+        return {
+          ...result,
+          nextActions:
+            result.data?.recoveryAction === 'select_brand' ? [] : [card],
+        };
+      }
+      const authorizationUrl =
+        typeof result.data?.authorizationUrl === 'string'
+          ? result.data.authorizationUrl
+          : card.ctas[0]?.href;
+      return {
+        ...result,
+        data: {
+          ...result.data,
+          platform,
+          returnTo,
+        },
+        nextActions: [
+          {
+            ...card,
+            ctas: [{ href: authorizationUrl, label: `Connect ${platform}` }],
+          },
+        ],
+      };
+    }
 
     return {
       creditsUsed: 0,
@@ -73,6 +121,13 @@ export class AgentConnectionToolHandler {
       nextActions: [this.buildOAuthConnectCard(platform, returnTo, 'init')],
       success: true,
     };
+  }
+
+  async connectSocialAccount(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return this.initiateOAuthConnect(params, ctx);
   }
 
   async resolveHandle(

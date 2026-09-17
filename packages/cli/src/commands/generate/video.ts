@@ -20,6 +20,10 @@ export const videoCommand = new Command('video')
   .option('-d, --duration <seconds>', 'Video duration in seconds', parsePositiveInteger)
   .option('-r, --resolution <res>', 'Video resolution (720p, 1080p, 4k)')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
+  .option(
+    '--context <text>',
+    'Transient task context prepended to this prompt only. It is not saved as Knowledge.'
+  )
   .option('-o, --output <path>', 'Download video to file')
   .option('--no-wait', 'Do not wait for generation to complete')
   .option('--json', 'Output as JSON')
@@ -38,7 +42,7 @@ export const videoCommand = new Command('video')
         duration: options.duration,
         model,
         resolution: options.resolution,
-        text: prompt,
+        text: options.context ? `Task context:\n${options.context}\n\n${prompt}` : prompt,
       });
 
       if (!options.wait) {

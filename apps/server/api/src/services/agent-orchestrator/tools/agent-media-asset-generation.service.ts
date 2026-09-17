@@ -6,6 +6,7 @@ import {
   type AgentGenerationPrincipal,
   type IAgentGenerationGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
 import {
   readMediaAssetUrl,
   readMediaResponseString,
@@ -60,6 +61,8 @@ export class AgentMediaAssetGenerationService {
     private readonly moduleRef?: ModuleRef,
     @Optional()
     private readonly personasService?: PersonasService,
+    @Optional()
+    private readonly scopeService?: AgentGenerationScopeService,
   ) {}
 
   /**
@@ -75,10 +78,23 @@ export class AgentMediaAssetGenerationService {
   }
 
   private async resolveMediaBrandContext(
+    params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<{ context: ToolExecutionContext } | { error: AgentToolResult }> {
-    if (ctx.brandId) {
-      return { context: ctx };
+    if (this.scopeService) {
+      const resolved = await this.scopeService.resolveBrand(params, ctx);
+      if ('error' in resolved) {
+        return { error: resolved.error };
+      }
+      return { context: { ...ctx, brandId: resolved.brandId } };
+    }
+
+    const explicitId =
+      typeof params.brandId === 'string' && params.brandId.trim().length > 0
+        ? params.brandId.trim()
+        : ctx.brandId;
+    if (explicitId) {
+      return { context: { ...ctx, brandId: explicitId } };
     }
 
     const selectedBrand = await this.brandsService.findOne({
@@ -87,19 +103,13 @@ export class AgentMediaAssetGenerationService {
       organizationId: ctx.organizationId,
       userId: ctx.userId,
     });
-    const organizationBrand =
-      selectedBrand ??
-      (await this.brandsService.findOne({
-        isDeleted: false,
-        organizationId: ctx.organizationId,
-      }));
-    const brandId = organizationBrand?.id;
-
+    const brandId = selectedBrand?.id;
     if (typeof brandId !== 'string' || brandId.length === 0) {
       return {
         error: {
           creditsUsed: 0,
-          error: 'Create a brand before generating organization media.',
+          error:
+            'Select a brand before generating. Pass brandId from list_brands; the first organization brand is not used automatically.',
           success: false,
         },
       };
@@ -206,7 +216,7 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const resolvedContext = await this.resolveMediaBrandContext(ctx);
+    const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
     if ('error' in resolvedContext) {
       return resolvedContext.error;
     }
@@ -217,10 +227,20 @@ export class AgentMediaAssetGenerationService {
       (params.description as string | undefined) ??
       (params.text as string | undefined) ??
       '';
+    const scopedPrompt = this.scopeService
+      ? await this.scopeService.applySelectedContext({
+          ctx,
+          params,
+          prompt: rawPrompt,
+        })
+      : { prompt: rawPrompt, receipt: undefined };
+    if ('error' in scopedPrompt) {
+      return scopedPrompt.error;
+    }
     const prompt = await this.applyBrandHarnessToPrompt({
       contentType: 'image',
       ctx,
-      prompt: rawPrompt,
+      prompt: scopedPrompt.prompt,
       topic: rawPrompt.slice(0, 120),
     });
     const dimensions = resolveAgentGenerationDimensions(
@@ -345,12 +365,13 @@ export class AgentMediaAssetGenerationService {
     const onboardingNextActions = cdnUrl
       ? (await this.onboardingHandler.checkOnboardingStatus(ctx)).nextActions
       : undefined;
-    return this.buildImageGenerationResult(
+    const result = this.buildImageGenerationResult(
       id,
       cdnUrl,
       promptPreview,
       onboardingNextActions,
     );
+    return this.withGenerationReceipt(result, scopedPrompt.receipt, 'image');
   }
 
   private buildImageGenerationResult(
@@ -478,7 +499,7 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const resolvedContext = await this.resolveMediaBrandContext(ctx);
+    const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
     if ('error' in resolvedContext) {
       return resolvedContext.error;
     }
@@ -507,10 +528,20 @@ export class AgentMediaAssetGenerationService {
     }
     const audioUrl = params.audioUrl as string | undefined;
     const rawPrompt = String(params.prompt ?? '');
+    const scopedPrompt = this.scopeService
+      ? await this.scopeService.applySelectedContext({
+          ctx,
+          params,
+          prompt: rawPrompt,
+        })
+      : { prompt: rawPrompt, receipt: undefined };
+    if ('error' in scopedPrompt) {
+      return scopedPrompt.error;
+    }
     const prompt = await this.applyBrandHarnessToPrompt({
       contentType: 'video',
       ctx,
-      prompt: rawPrompt,
+      prompt: scopedPrompt.prompt,
       topic: rawPrompt.slice(0, 120),
     });
     const body = this.buildVideoBody({
@@ -584,31 +615,35 @@ export class AgentMediaAssetGenerationService {
       : undefined;
     const status = cdnUrl ? Status.GENERATED : Status.PROCESSING;
 
-    return {
-      creditsUsed: 0,
-      data: buildMediaAssetData(id, status, cdnUrl),
-      isBillingDelegated: true,
-      nextActions: [
-        {
-          ctas: [
-            {
-              href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
-              label: 'View in Library',
-            },
-          ],
-          assetId: id,
-          assetKind: 'video',
-          description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
-          id: `video-gen-${id}`,
-          status: cdnUrl ? 'completed' : 'processing',
-          title: cdnUrl ? 'Video generated' : 'Video generating',
-          type: 'content_preview_card',
-          videos: cdnUrl ? [cdnUrl] : [],
-        },
-        ...(onboardingNextActions ?? []),
-      ],
-      success: true,
-    };
+    return this.withGenerationReceipt(
+      {
+        creditsUsed: 0,
+        data: buildMediaAssetData(id, status, cdnUrl),
+        isBillingDelegated: true,
+        nextActions: [
+          {
+            ctas: [
+              {
+                href: createLibraryAssetRoute(IngredientCategory.VIDEO, id),
+                label: 'View in Library',
+              },
+            ],
+            assetId: id,
+            assetKind: 'video',
+            description: `Video ${cdnUrl ? 'generated' : 'is generating'} from: "${promptPreview}"`,
+            id: `video-gen-${id}`,
+            status: cdnUrl ? 'completed' : 'processing',
+            title: cdnUrl ? 'Video generated' : 'Video generating',
+            type: 'content_preview_card',
+            videos: cdnUrl ? [cdnUrl] : [],
+          },
+          ...(onboardingNextActions ?? []),
+        ],
+        success: true,
+      },
+      scopedPrompt.receipt,
+      'video',
+    );
   }
 
   async generateMusic(
@@ -920,6 +955,23 @@ export class AgentMediaAssetGenerationService {
         },
       ],
       success: false,
+    };
+  }
+
+  private withGenerationReceipt(
+    result: AgentToolResult,
+    receipt:
+      | { brandId: string; isPersisted: false; sources: unknown[] }
+      | undefined,
+    kind: 'image' | 'video',
+  ): AgentToolResult {
+    return {
+      ...result,
+      data: {
+        ...(result.data ?? {}),
+        kind,
+        ...(receipt ? { contextReceipt: receipt } : {}),
+      },
     };
   }
 

@@ -14,10 +14,17 @@ export const MCP_SOCIAL_TOOLS: SourceTool[] = [
   },
   {
     creditCost: 0,
-    description: 'Get details of the currently active brand',
+    description:
+      'Get details of a selected brand. When an organization has more than one brand, pass brandId; the first brand is never chosen automatically.',
     name: 'get_brand',
     parameters: {
-      properties: {},
+      properties: {
+        brandId: {
+          description:
+            'Brand to inspect. Required when more than one brand exists.',
+          type: 'string',
+        },
+      },
       type: 'object',
     },
     requiredRole: 'user',

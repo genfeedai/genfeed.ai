@@ -609,7 +609,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         return this.onboardingHandler.completeOnboarding(ctx);
 
       case 'connect_social_account':
-        return this.onboardingHandler.connectSocialAccount(params, ctx);
+        return this.connectionHandler.connectSocialAccount(params, ctx);
 
       case 'generate_onboarding_content':
         return this.onboardingHandler.generateOnboardingContent(params, ctx);

@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
 import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
+import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
@@ -545,14 +546,7 @@ export class ToolRegistryService implements OnModuleInit {
     }
 
     const payload = result.data ?? {};
-    return {
-      content: [
-        {
-          text: JSON.stringify(payload, null, 2),
-          type: 'text',
-        },
-      ],
-    };
+    return toMcpMediaToolResult(payload);
   }
 
   private async handleLegacyTool(name: string, args: Record<string, unknown>) {

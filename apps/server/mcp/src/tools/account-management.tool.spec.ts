@@ -76,14 +76,24 @@ describe('handleAccountManagementTool', () => {
     expect(result.content[0].text).toBe('No brands found.');
   });
 
-  it('returns the first brand as the active brand', async () => {
+  it('asks for an explicit brand when more than one exists', async () => {
     const client = buildClient();
 
     const result = await call(client, 'get_brand', {});
 
-    expect(result.content[0].text).toContain('Active Brand');
+    expect(result.content[0].text).toContain('Select a brand');
     expect(result.content[0].text).toContain('brand-1');
-    expect(result.content[0].text).not.toContain('brand-2');
+    expect(result.content[0].text).toContain('brand-2');
+  });
+
+  it('returns the requested brand rather than the first organization brand', async () => {
+    const client = buildClient();
+
+    const result = await call(client, 'get_brand', { brandId: 'brand-2' });
+
+    expect(result.content[0].text).toContain('Selected Brand');
+    expect(result.content[0].text).toContain('brand-2');
+    expect(result.content[0].text).not.toContain('brand-1');
   });
 
   it('unwraps a single brand object returned instead of a list', async () => {

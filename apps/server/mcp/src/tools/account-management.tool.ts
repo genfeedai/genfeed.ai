@@ -22,9 +22,45 @@ export function handleAccountManagementTool(
         ],
       };
     },
-    get_brand: async () => {
+    get_brand: async (a) => {
       const brands = await client.listBrands();
-      const brand = Array.isArray(brands) ? brands[0] : brands;
+      const brandList = Array.isArray(brands) ? brands : brands ? [brands] : [];
+      const requestedId =
+        typeof a.brandId === 'string' && a.brandId.trim().length > 0
+          ? a.brandId.trim()
+          : undefined;
+      if (requestedId) {
+        const brand = brandList.find(
+          (entry) =>
+            entry &&
+            typeof entry === 'object' &&
+            'id' in entry &&
+            String((entry as { id?: unknown }).id) === requestedId,
+        );
+        return {
+          content: [
+            {
+              text: brand
+                ? `Selected Brand:\n\n${JSON.stringify(brand, null, 2)}`
+                : 'Brand was not found in this organization.',
+              type: 'text' as const,
+            },
+          ],
+        };
+      }
+      if (brandList.length > 1) {
+        return {
+          content: [
+            {
+              text:
+                'Select a brand before continuing. Pass brandId from list_brands; the first organization brand is not used automatically.\n\n' +
+                JSON.stringify(brandList, null, 2),
+              type: 'text' as const,
+            },
+          ],
+        };
+      }
+      const brand = brandList[0];
       return {
         content: [
           {

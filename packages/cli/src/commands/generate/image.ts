@@ -41,6 +41,10 @@ export const imageCommand = new Command('image')
   .option('--prompt-template <key>', 'Prompt template key')
   .option('--no-template', 'Disable prompt templates')
   .option('-b, --brand <id>', 'Brand ID (overrides active brand)')
+  .option(
+    '--context <text>',
+    'Transient task context prepended to this prompt only. It is not saved as Knowledge.'
+  )
   .option('-o, --output <path>', 'Download image to file')
   .option('--no-wait', 'Do not wait for generation to complete')
   .option('--json', 'Output as JSON')
@@ -78,7 +82,7 @@ export const imageCommand = new Command('image')
         seed: options.seed,
         style: options.style,
         tags: options.tag,
-        text: prompt,
+        text: options.context ? `Task context:\n${options.context}\n\n${prompt}` : prompt,
         useTemplate: options.template,
         width: options.width,
       });
