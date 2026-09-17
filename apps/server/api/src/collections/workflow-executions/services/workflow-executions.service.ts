@@ -790,6 +790,24 @@ export class WorkflowExecutionsService extends BaseService<
     });
   }
 
+  @HandleErrors('sum persisted node credits', 'workflow-executions')
+  async sumPersistedNodeCredits(params: {
+    executionId: string;
+    organizationId: string;
+  }): Promise<number> {
+    const result = await this.prisma.workflowExecutionNodeResult.aggregate({
+      _sum: { creditsUsed: true },
+      where: {
+        executionId: params.executionId,
+        organizationId: params.organizationId,
+      },
+    });
+    const total = result._sum.creditsUsed;
+    return typeof total === 'number' && Number.isFinite(total)
+      ? Math.max(0, total)
+      : 0;
+  }
+
   /**
    * Atomically claim the pending review gate for `nodeId`. Both the human
    * approval endpoint and the timeout sweep resolve gates through this claim:

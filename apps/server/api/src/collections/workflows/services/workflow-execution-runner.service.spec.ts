@@ -20,6 +20,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     completeExecution: vi.fn(),
     findOne: vi.fn(),
     getRuntimeState: vi.fn(),
+    sumPersistedNodeCredits: vi.fn(),
   };
   const documentService = {
     findPinnedWorkflow: vi.fn(),
@@ -70,9 +71,9 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
       startedAt: new Date('2026-01-01T00:00:00.000Z'),
     });
     executionsService.completeExecution.mockResolvedValue({
-      creditsUsed: 12,
       metadata: undefined,
     });
+    executionsService.sumPersistedNodeCredits.mockResolvedValue(12);
     documentService.findPinnedWorkflow.mockResolvedValue({ brandId: null });
     documentService.getWorkflowLabel.mockReturnValue('Test workflow');
     engineAdapter.convertToExecutableWorkflow.mockReturnValue({
@@ -138,6 +139,10 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     expect(progressService.publishWorkflowTaskUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ executionId: 'execution-1', status: 'failed' }),
     );
+    expect(executionsService.sumPersistedNodeCredits).toHaveBeenCalledWith({
+      executionId: 'execution-1',
+      organizationId: 'org-1',
+    });
     expect(
       finalizer.settleClipChainReservationForWorkflow,
     ).toHaveBeenCalledWith({

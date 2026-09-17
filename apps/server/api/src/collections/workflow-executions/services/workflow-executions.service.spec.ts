@@ -41,6 +41,10 @@ describe('WorkflowExecutionsService', () => {
       upsert: vi.fn().mockResolvedValue({ id: 'execution-idempotent' }),
     };
 
+    const workflowExecutionNodeResult = {
+      aggregate: vi.fn().mockResolvedValue({ _sum: { creditsUsed: null } }),
+    };
+
     const prisma = {
       $executeRaw: vi.fn().mockResolvedValue(0),
       $queryRaw: vi.fn().mockResolvedValue([]),
@@ -48,6 +52,7 @@ describe('WorkflowExecutionsService', () => {
         callback(prisma),
       ),
       workflowExecution,
+      workflowExecutionNodeResult,
     };
 
     const workflowEventWebhookService = {
@@ -1098,4 +1103,25 @@ describe('WorkflowExecutionsService', () => {
       ).toHaveBeenCalledWith('delivery-1');
     },
   );
+
+  it('sums persisted node-result credits for a tenant execution', async () => {
+    const { prisma, service } = makeService();
+    prisma.workflowExecutionNodeResult.aggregate.mockResolvedValue({
+      _sum: { creditsUsed: 12 },
+    });
+
+    await expect(
+      service.sumPersistedNodeCredits({
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+      }),
+    ).resolves.toBe(12);
+    expect(prisma.workflowExecutionNodeResult.aggregate).toHaveBeenCalledWith({
+      _sum: { creditsUsed: true },
+      where: {
+        executionId: 'execution-1',
+        organizationId: 'org-1',
+      },
+    });
+  });
 });

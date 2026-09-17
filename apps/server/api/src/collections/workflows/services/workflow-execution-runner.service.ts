@@ -1,4 +1,3 @@
-import type { WorkflowExecutionDocument } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
 import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
@@ -34,15 +33,6 @@ import {
   type WorkflowEtaPlan,
 } from '@helpers/generation-eta.helper';
 import { LoggerService } from '@libs/logger/logger.service';
-
-function readCompletedCreditsUsed(
-  execution: WorkflowExecutionDocument | null | undefined,
-): number {
-  const credits = execution?.creditsUsed;
-  return typeof credits === 'number' && Number.isFinite(credits)
-    ? Math.max(0, credits)
-    : 0;
-}
 
 type PreparedWorkflowExecution = {
   etaPlan: WorkflowEtaPlan;
@@ -471,7 +461,10 @@ export class WorkflowExecutionRunnerService {
     await this.settleClipChainHoldSafely({
       actorUserId: event.userId,
       organizationId: prepared.organizationId,
-      totalCreditsUsed: readCompletedCreditsUsed(failedExecution),
+      totalCreditsUsed: await this.executionsService.sumPersistedNodeCredits({
+        executionId: prepared.executionId,
+        organizationId: prepared.organizationId,
+      }),
       workflowId: prepared.workflowId,
     });
     if (!prepared.isSystemAction) {
@@ -662,7 +655,11 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       errorMessage,
     );
-    const totalCreditsUsed = readCompletedCreditsUsed(failedExecution);
+    const totalCreditsUsed =
+      await this.executionsService.sumPersistedNodeCredits({
+        executionId: input.executionId,
+        organizationId: input.organizationId,
+      });
     await this.settleClipChainHoldSafely({
       actorUserId: input.userId,
       organizationId: input.organizationId,
@@ -761,7 +758,11 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       input.errorMessage,
     );
-    const totalCreditsUsed = readCompletedCreditsUsed(failedExecution);
+    const totalCreditsUsed =
+      await this.executionsService.sumPersistedNodeCredits({
+        executionId: input.executionId,
+        organizationId: input.organizationId,
+      });
     await this.settleClipChainHoldSafely({
       actorUserId: input.userId,
       organizationId: input.organizationId,
