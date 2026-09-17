@@ -77,6 +77,7 @@ test('Playwright full-tier nightly workflow exists as a standalone reporter', ()
   assert.match(workflow, /reportNightlyPlaywrightFullFailure/);
   assert.match(workflow, /resolveNightlyPlaywrightFullFailures/);
   assert.match(workflow, /^ {2}nightly-recovery-report:/m);
+  assert.match(workflow, /REPOSITORY_TOKEN: \$\{\{ github\.token \}\}/);
   assert.match(
     workflow,
     /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,

@@ -123,6 +123,26 @@ test('buildReleaseE2eFailureBody names Priority as native issue metadata', () =>
   assert.doesNotMatch(body, /P0 status/);
 });
 
+test('repository credentials label new and existing trackers while project credentials triage', async () => {
+  for (const openIssues of [[], [{ number: 42 }]]) {
+    const repository = createGithubMock({ openIssues });
+    const project = createGithubMock();
+    await reportReleaseE2eFailure({
+      github: repository.github,
+      projectGithub: project.github,
+      owner: 'genfeedai',
+      repo: 'genfeed.ai',
+      body: 'Failure',
+      date: '2026-09-17',
+      core: { info() {}, warning() {} },
+    });
+    assert.equal(repository.labelCalls.length, openIssues.length === 0 ? 1 : 0);
+    assert.equal(project.labelCalls.length, 0);
+    assert.equal(repository.graphqlCalls.length, 0);
+    assert.ok(project.graphqlCalls.length > 0);
+  }
+});
+
 test('reportReleaseE2eFailure comments existing open tracker and re-asserts P0', async () => {
   const { github, comments, created, graphqlCalls } = createGithubMock({
     openIssues: [{ number: 2079, pull_request: undefined }],
@@ -253,11 +273,15 @@ const RELEASE_E2E_WORKFLOW = readFileSync(
   'utf8',
 );
 
-test('release failure triage uses the existing PAT for issue metadata and Project membership writes', () => {
-  assert.match(
-    RELEASE_E2E_WORKFLOW,
-    /Open or update tracking issue \(Priority P0\)[\s\S]*?github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
-  );
+test('release failure step separates repository writes from project credentials', () => {
+  const step = RELEASE_E2E_WORKFLOW.split(
+    '- name: Open or update tracking issue (Priority P0)',
+  )[1];
+  assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
+  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/u);
+  assert.match(step, /github: getOctokit\(process\.env\.REPOSITORY_TOKEN\)/u);
+  assert.match(step, /projectGithub: github/u);
+  assert.doesNotMatch(step, /continue-on-error:/u);
 });
 
 test('resolveReleaseE2eFailure closes all open trackers', async () => {

@@ -467,9 +467,9 @@ jobs:
           persist-credentials: false
 
       - name: Create, update, or recover bounded coverage trackers
-        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          REPOSITORY_TOKEN: ${{ github.token }}
           SOURCE_SHA: ${{ github.sha }}
           RUN_ID: ${{ github.run_id }}
           RUN_ATTEMPT: ${{ github.run_attempt }}
@@ -477,6 +477,7 @@ jobs:
         with:
           github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
+            const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
             const {
@@ -492,8 +493,8 @@ jobs:
               ).href,
             );
             const { owner, repo } = context.repo;
-            const jobs = await github.paginate(
-              github.rest.actions.listJobsForWorkflowRun,
+            const jobs = await repositoryGithub.paginate(
+              repositoryGithub.rest.actions.listJobsForWorkflowRun,
               {
                 owner,
                 repo,
@@ -507,7 +508,7 @@ jobs:
             );
             if (failedJobs.length === 0) {
               await resolveCoverageFailures({
-                github,
+                github: repositoryGithub,
                 owner,
                 repo,
                 sha: process.env.SOURCE_SHA,
@@ -537,14 +538,15 @@ jobs:
               };
             });
             const failures = await collectScheduledRunFailures({
-              github,
+              github: repositoryGithub,
               owner,
               repo,
               jobs: jobsForTracking,
               core,
             });
             await reportCoverageFailures({
-              github,
+              github: repositoryGithub,
+              projectGithub: github,
               owner,
               repo,
               failures,

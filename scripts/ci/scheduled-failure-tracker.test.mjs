@@ -1,12 +1,14 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
+import { reportCoverageFailures as reportCoverageFailureBatch } from './coverage-failure-reporter.mjs';
 import {
   AREA_INFRA,
   BLAST_RADIUS_INFRA,
   ISSUE_TYPE_BUG,
   PRIORITY_P0,
 } from './genfeed-project-board.mjs';
+import { reportNightlyE2eFailure as reportNightlyE2eFailureBatch } from './nightly-e2e-failure-reporter.mjs';
 import { reportNightlyPlaywrightFullFailure } from './nightly-playwright-full-failure-reporter.mjs';
 import {
   buildScheduledFailureBody,
@@ -20,6 +22,42 @@ import {
   recordScheduledWorkflowGreen,
   reportScheduledFailure,
 } from './scheduled-failure-tracker.mjs';
+
+function batchedScheduledFailureInput(input) {
+  return {
+    github: input.github,
+    projectGithub: input.projectGithub,
+    owner: input.owner,
+    repo: input.repo,
+    failures: [
+      {
+        failedJob: input.failedJob,
+        excerpt: input.excerpt,
+        identitySignature: input.identitySignature,
+      },
+    ],
+    sha: input.sha,
+    runId: input.runId,
+    runAttempt: input.runAttempt,
+    runUrl: input.runUrl,
+    occurredAt: input.occurredAt,
+    core: input.core,
+  };
+}
+
+async function reportNightlyE2eFailure(input) {
+  const [result] = await reportNightlyE2eFailureBatch(
+    batchedScheduledFailureInput(input),
+  );
+  return result;
+}
+
+async function reportCoverageFailures(input) {
+  const [result] = await reportCoverageFailureBatch(
+    batchedScheduledFailureInput(input),
+  );
+  return result;
+}
 
 function githubFixture({ rejectLabels = false } = {}) {
   const issues = [];
@@ -594,6 +632,8 @@ test('concurrent creates converge on the oldest canonical tracker', async () => 
 for (const reporter of [
   reportScheduledFailure,
   reportNightlyPlaywrightFullFailure,
+  reportNightlyE2eFailure,
+  reportCoverageFailures,
 ]) {
   test(`${reporter.name} routes creation and recurrence through distinct clients`, async () => {
     const repository = githubFixture();

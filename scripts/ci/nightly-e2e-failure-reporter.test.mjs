@@ -38,9 +38,56 @@ test('nightly E2E reporter derives actionable scenarios from failed source-job l
   assert.match(WORKFLOW, /actions: read/u);
   assert.match(WORKFLOW, /contents: read/u);
   assert.match(WORKFLOW, /issues: write/u);
-  assert.match(WORKFLOW, /github\.rest\.actions\.listJobsForWorkflowRun/u);
+  assert.match(
+    WORKFLOW,
+    /repositoryGithub\.rest\.actions\.listJobsForWorkflowRun/u,
+  );
   assert.match(WORKFLOW, /collectScheduledRunFailures/u);
   assert.match(WORKFLOW, /trackerJob/u);
+});
+
+test('nightly E2E failure step separates repository and project credentials', () => {
+  const report = WORKFLOW.split('  nightly-failure-report:')[1].split(
+    '  nightly-recovery-report:',
+  )[0];
+  const step = report.split(
+    '- name: Create or update bounded nightly-failure trackers',
+  )[1];
+  assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
+  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/u);
+  assert.match(
+    step,
+    /const repositoryGithub = getOctokit\(process.env.REPOSITORY_TOKEN\)/u,
+  );
+  assert.match(
+    step,
+    /collectScheduledRunFailures\(\{\s*github: repositoryGithub,/u,
+  );
+  assert.match(
+    step,
+    /reportNightlyE2eFailure\(\{\s*github: repositoryGithub,\s*projectGithub: github,/u,
+  );
+  assert.match(report, /github.event_name == 'schedule'/u);
+  assert.match(
+    report,
+    /permissions:\s*actions: read\s*contents: read\s*issues: write/u,
+  );
+  assert.match(
+    report,
+    /group: nightly-e2e-failure-reporter\s*cancel-in-progress: false/u,
+  );
+  assert.match(report, /persist-credentials: false/u);
+});
+
+test('nightly E2E tracker failures stay visible', () => {
+  const report = WORKFLOW.split('  nightly-failure-report:')[1].split(
+    '  nightly-recovery-report:',
+  )[0];
+  const step = report.split(
+    '- name: Create or update bounded nightly-failure trackers',
+  )[1];
+  assert.doesNotMatch(step, /continue-on-error:/u);
+  assert.doesNotMatch(step, /catch\s*\(/u);
 });
 
 for (const workflowName of ['e2e.yml', 'playwright-full-nightly.yml']) {
