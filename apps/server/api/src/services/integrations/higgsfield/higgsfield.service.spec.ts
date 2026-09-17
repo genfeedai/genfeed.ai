@@ -241,6 +241,41 @@ describe('HiggsFieldService', () => {
     });
   });
 
+  describe('credentials', () => {
+    it('fails closed when neither platform credentials nor BYOK are configured', async () => {
+      const bare: TestingModule = await Test.createTestingModule({
+        providers: [
+          HiggsFieldService,
+          { provide: ConfigService, useValue: { get: vi.fn(() => undefined) } },
+          { provide: LoggerService, useValue: mockLogger },
+          { provide: HttpService, useValue: mockHttpService },
+          { provide: SERVER_TOKENS.byok, useValue: mockByokService },
+          { provide: PollUntilService, useValue: mockPollUntilService },
+        ],
+      }).compile();
+
+      await expect(
+        bare.get(HiggsFieldService).generateTextToImage({ prompt: 'x' }),
+      ).rejects.toMatchObject({
+        reason: AgentFailureReason.PROVIDER_CONFIGURATION,
+      });
+
+      // Never send `Authorization: Key :` and let the platform 401 instead.
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+
+    it('rejects a BYOK credential that carries no secret', async () => {
+      mockByokService.resolveApiKey.mockResolvedValue({ apiKey: 'org-key' });
+
+      await expect(
+        service.generateTextToImage({ organizationId: 'org-1', prompt: 'x' }),
+      ).rejects.toMatchObject({
+        reason: AgentFailureReason.PROVIDER_CONFIGURATION,
+      });
+      expect(mockHttpService.post).not.toHaveBeenCalled();
+    });
+  });
+
   describe('getRequestStatus', () => {
     it('reads the documented status path', async () => {
       mockHttpService.get.mockReturnValue(
@@ -276,6 +311,18 @@ describe('HiggsFieldService', () => {
       });
 
       expect(status).toEqual({ request_id: 'req-1', status: 'queued' });
+    });
+
+    it('renders an unmapped status with its code and detail, never [object Object]', async () => {
+      mockHttpService.get.mockReturnValue(
+        throwError(() => ({
+          response: { data: { detail: 'unknown request' }, status: 404 },
+        })),
+      );
+
+      await expect(
+        service.getRequestStatus('req-gone', { apiKey: 'k', apiSecret: 's' }),
+      ).rejects.toThrow('Higgsfield returned HTTP 404: unknown request.');
     });
 
     it('surfaces a client error instead of masking it as queued', async () => {
@@ -337,6 +384,19 @@ describe('HiggsFieldService', () => {
       ).rejects.toMatchObject({
         isRetryable: true,
         reason: AgentFailureReason.PROVIDER_UNAVAILABLE,
+      });
+    });
+
+    it('stops on a cancelled job instead of polling to the timeout', async () => {
+      mockPollUntilService.poll.mockResolvedValue({
+        value: { request_id: 'req-1', status: 'canceled' },
+      });
+
+      await expect(
+        service.waitForVideoCompletion('req-1'),
+      ).rejects.toMatchObject({
+        isRetryable: false,
+        reason: AgentFailureReason.CANCELLED,
       });
     });
 

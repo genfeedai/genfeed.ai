@@ -7,6 +7,12 @@ import { MODEL_KEYS } from '@genfeedai/contracts/constants';
  *
  * @see https://github.com/higgsfield-ai/higgsfield-js `src/v2/types.ts`
  */
+/**
+ * Overridable with `HIGGSFIELD_API_BASE_URL` so a host change is configuration
+ * rather than a code change.
+ */
+export const HIGGSFIELD_DEFAULT_BASE_URL = 'https://platform.higgsfield.ai';
+
 export const HIGGSFIELD_ENDPOINTS = {
   DOP_IMAGE_TO_VIDEO: '/v1/image2video/dop',
   SOUL_TEXT_TO_IMAGE: '/v1/text2image/soul',

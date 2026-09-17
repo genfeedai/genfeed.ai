@@ -42,8 +42,10 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
         height: 1920,
         model: MODEL_KEYS.HIGGSFIELD_SOUL,
         organizationId: 'org-1',
+        outputs: 4,
         prompt: 'studio product shot',
         promptId: 'prompt-1',
+        referenceImageUrl: 'https://cdn.test/reference.png',
         width: 1080,
       } as unknown as ImageGenerationProviderRequest);
 
@@ -54,8 +56,10 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
 
       expect(generateTextToImage).toHaveBeenCalledWith({
         aspectRatio: '9:16',
+        batchSize: 4,
         organizationId: 'org-1',
         prompt: 'studio product shot',
+        referenceImageUrl: 'https://cdn.test/reference.png',
       });
       expect(waitForImageCompletion).toHaveBeenCalledWith('req-456', {
         organizationId: 'org-1',
@@ -65,6 +69,39 @@ describe('HiggsFieldImageGenerationProviderAdapter', () => {
         kind: 'external-id',
         outputUrls: ['https://cdn.test/a.png', 'https://cdn.test/b.png'],
         promptId: 'prompt-1',
+      });
+    });
+
+    it('omits the reference image when the request carries none', async () => {
+      const generateTextToImage = vi
+        .fn()
+        .mockResolvedValue({ requestId: 'req-789' });
+      const waitForImageCompletion = vi
+        .fn()
+        .mockResolvedValue({ imageUrls: ['https://cdn.test/a.png'] });
+      const adapter = buildAdapter({
+        generateTextToImage,
+        waitForImageCompletion,
+      });
+
+      const provider = await adapter.prepare({
+        height: 1024,
+        model: MODEL_KEYS.HIGGSFIELD_SOUL,
+        organizationId: 'org-1',
+        outputs: 1,
+        prompt: 'a plain render',
+        promptId: 'prompt-2',
+        referenceImageUrl: null,
+        width: 1024,
+      } as unknown as ImageGenerationProviderRequest);
+
+      await provider.generate();
+
+      expect(generateTextToImage).toHaveBeenCalledWith({
+        aspectRatio: '1:1',
+        batchSize: 1,
+        organizationId: 'org-1',
+        prompt: 'a plain render',
       });
     });
   });

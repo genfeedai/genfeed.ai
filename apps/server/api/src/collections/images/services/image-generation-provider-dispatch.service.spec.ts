@@ -457,10 +457,14 @@ describe('ImageGenerationProviderDispatchService', () => {
     const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
+    // The dispatch context carries a reference image and an output count, and
+    // both have to reach Soul — dropping them silently rendered the wrong thing.
     expect(higgsFieldService.generateTextToImage).toHaveBeenCalledWith({
       aspectRatio: '16:9',
+      batchSize: 1,
       organizationId: 'organization-1',
       prompt: 'A cinematic sunrise',
+      referenceImageUrl: 'https://cdn.example.com/reference.png',
     });
     expect(higgsFieldService.waitForImageCompletion).toHaveBeenCalledWith(
       'higgsfield-req-1',

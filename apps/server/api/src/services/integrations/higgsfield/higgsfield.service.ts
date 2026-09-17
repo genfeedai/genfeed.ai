@@ -8,6 +8,7 @@ import {
   toHiggsFieldProviderError,
 } from '@api/services/integrations/higgsfield/errors/higgsfield-provider.error';
 import {
+  HIGGSFIELD_DEFAULT_BASE_URL,
   HIGGSFIELD_ENDPOINTS,
   type HiggsFieldEndpoint,
   type HiggsFieldSoulQuality,
@@ -59,7 +60,7 @@ interface HiggsFieldPollOptions {
 @Injectable()
 export class HiggsFieldService {
   private readonly constructorName: string = String(this.constructor.name);
-  private readonly endpoint = 'https://platform.higgsfield.ai';
+  private readonly endpoint: string;
   private readonly apiKey: string;
   private readonly apiSecret: string;
   private readonly limit = createConcurrencyLimit(3);
@@ -76,6 +77,10 @@ export class HiggsFieldService {
     private readonly byokService: ServerByokResolver,
     private readonly pollUntilService: PollUntilService,
   ) {
+    this.endpoint = (
+      this.configService.get('HIGGSFIELD_API_BASE_URL') ??
+      HIGGSFIELD_DEFAULT_BASE_URL
+    ).replace(/\/+$/, '');
     this.apiKey = this.configService.get('HIGGSFIELD_API_KEY') ?? '';
     this.apiSecret = this.configService.get('HIGGSFIELD_API_SECRET') ?? '';
   }
@@ -93,11 +98,25 @@ export class HiggsFieldService {
         ByokProvider.HIGGSFIELD,
       );
       if (byokKey?.apiKey) {
-        return {
-          apiKey: byokKey.apiKey,
-          apiSecret: byokKey.apiSecret ?? '',
-        };
+        if (!byokKey.apiSecret) {
+          throw new HiggsFieldProviderError(
+            AgentFailureReason.PROVIDER_CONFIGURATION,
+            'The Higgsfield BYOK credential for this organization has no API secret. Higgsfield authenticates with a key id and secret pair.',
+            { isRetryable: false },
+          );
+        }
+        return { apiKey: byokKey.apiKey, apiSecret: byokKey.apiSecret };
       }
+    }
+
+    if (!this.apiKey || !this.apiSecret) {
+      // Sending `Authorization: Key :` earns a 401 that reads like a rejected
+      // credential rather than an unconfigured one. Fail closed and say so.
+      throw new HiggsFieldProviderError(
+        AgentFailureReason.PROVIDER_CONFIGURATION,
+        'Higgsfield credentials are not configured: set HIGGSFIELD_API_KEY and HIGGSFIELD_API_SECRET, or configure Higgsfield BYOK for this organization.',
+        { isRetryable: false },
+      );
     }
 
     return { apiKey: this.apiKey, apiSecret: this.apiSecret };
@@ -216,6 +235,14 @@ export class HiggsFieldService {
         throw new HiggsFieldProviderError(
           AgentFailureReason.ACTION_NOT_ALLOWED,
           `Higgsfield job ${requestId} was rejected by the safety filter.`,
+          { isRetryable: false },
+        );
+      }
+
+      if (value.status === 'canceled') {
+        throw new HiggsFieldProviderError(
+          AgentFailureReason.CANCELLED,
+          `Higgsfield job ${requestId} was cancelled.`,
           { isRetryable: false },
         );
       }

@@ -8,11 +8,16 @@ export type HiggsFieldRequestStatus =
   | 'in_progress'
   | 'completed'
   | 'failed'
-  | 'nsfw';
+  | 'nsfw'
+  | 'canceled';
 
-/** Statuses the platform never moves away from — polling stops on these. */
+/**
+ * Statuses the platform never moves away from — polling stops on these.
+ * `canceled` is terminal too: a job cancelled through `/requests/{id}/cancel`
+ * never reaches `completed`, so omitting it polls until the timeout.
+ */
 export const HIGGSFIELD_TERMINAL_STATUSES: readonly HiggsFieldRequestStatus[] =
-  ['completed', 'failed', 'nsfw'];
+  ['completed', 'failed', 'nsfw', 'canceled'];
 
 export interface HiggsFieldMediaRef {
   url: string;

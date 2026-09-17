@@ -46,6 +46,38 @@ export function readHttpStatusCode(error: unknown): number | undefined {
 }
 
 /**
+ * Renders the platform's `detail` payload, which is either a string or FastAPI's
+ * array of validation objects, into something an operator can read.
+ */
+function formatDetail(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return '';
+  }
+
+  const response = (error as { response?: { data?: unknown } }).response;
+  const data =
+    response && typeof response === 'object' ? response.data : undefined;
+  const detail =
+    data && typeof data === 'object'
+      ? (data as { detail?: unknown }).detail
+      : data;
+
+  if (detail === undefined || detail === null) {
+    return '';
+  }
+
+  if (typeof detail === 'string') {
+    return `: ${detail}`;
+  }
+
+  try {
+    return `: ${JSON.stringify(detail)}`;
+  } catch {
+    return '';
+  }
+}
+
+/**
  * Maps a transport error onto a typed provider error. The status codes follow
  * the official SDK's interceptor: 401 invalid credentials, 403 out of credit,
  * 400/422 bad input, 429 rate limited.
@@ -89,5 +121,20 @@ export function toHiggsFieldProviderError(error: unknown): Error {
     );
   }
 
-  return error instanceof Error ? error : new Error(String(error));
+  // Any other HTTP status still carries its code and the platform's own
+  // `detail`. Falling through to `String(error)` here rendered an Axios-shaped
+  // plain object as "[object Object]", which told an operator nothing.
+  if (statusCode !== undefined) {
+    return new HiggsFieldProviderError(
+      statusCode >= 500
+        ? AgentFailureReason.PROVIDER_UNAVAILABLE
+        : AgentFailureReason.PROVIDER_CONFIGURATION,
+      `Higgsfield returned HTTP ${statusCode}${formatDetail(error)}.`,
+      { isRetryable: statusCode >= 500, statusCode },
+    );
+  }
+
+  return error instanceof Error
+    ? error
+    : new Error(`Higgsfield request failed${formatDetail(error)}.`);
 }

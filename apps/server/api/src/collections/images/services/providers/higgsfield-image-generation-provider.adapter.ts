@@ -36,8 +36,12 @@ export class HiggsFieldImageGenerationProviderAdapter
       generate: async () => {
         const { requestId } = await this.higgsFieldService.generateTextToImage({
           aspectRatio: calculateAspectRatio(request.width, request.height),
+          batchSize: request.outputs,
           organizationId: request.organizationId,
           prompt: request.prompt,
+          ...(request.referenceImageUrl
+            ? { referenceImageUrl: request.referenceImageUrl }
+            : {}),
         });
 
         const { imageUrls } =
