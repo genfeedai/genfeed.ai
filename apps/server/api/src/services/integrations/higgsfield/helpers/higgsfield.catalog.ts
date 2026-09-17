@@ -44,6 +44,10 @@ export const HIGGSFIELD_DOP_MODELS: Readonly<
   [MODEL_KEYS.HIGGSFIELD_DOP_TURBO]: HIGGSFIELD_DOP_VARIANTS.TURBO,
 };
 
+/**
+ * Returns the DoP tier a catalog model key selects, or `undefined` when the key
+ * is not a DoP model — which is how the video adapter decides what it supports.
+ */
 export function resolveDopVariant(
   modelKey: string,
 ): HiggsFieldDopVariant | undefined {

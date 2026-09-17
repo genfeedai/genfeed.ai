@@ -122,6 +122,7 @@ export class HiggsFieldService {
     return { apiKey: this.apiKey, apiSecret: this.apiSecret };
   }
 
+  /** Higgsfield authenticates with a key id and secret pair on one header. */
   private getHeaders(credentials: HiggsFieldCredentials): {
     Authorization: string;
     'Content-Type': string;
@@ -132,6 +133,7 @@ export class HiggsFieldService {
     };
   }
 
+  /** Caps in-flight submissions so a batch cannot exhaust the rate limit. */
   private enqueue<T>(fn: () => Promise<T>): Promise<T> {
     return this.limit(fn);
   }

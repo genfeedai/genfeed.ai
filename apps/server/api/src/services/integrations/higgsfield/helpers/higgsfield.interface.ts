@@ -72,6 +72,7 @@ export interface HiggsFieldSoulInput {
   seed?: number;
 }
 
+/** True once the platform will not move the request to another status. */
 export function isTerminalStatus(status: HiggsFieldRequestStatus): boolean {
   return HIGGSFIELD_TERMINAL_STATUSES.includes(status);
 }
