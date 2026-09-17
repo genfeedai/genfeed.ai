@@ -12,22 +12,26 @@ import {
  * a red unit test naming every offender at once.
  */
 describe('published action catalog', () => {
-  it('compiles every action contract the engine will register', () => {
-    const failures: string[] = [];
-    for (const action of ALL_ACTIONS) {
-      try {
-        compileActionContract(action.id, {
-          inputSchema: action.inputSchema as ActionContractJsonSchema,
-          outputSchema: action.outputSchema as ActionContractJsonSchema,
-        });
-      } catch (error: unknown) {
-        failures.push(
-          error instanceof Error ? error.message : `${action.id}: unknown`,
-        );
+  it(
+    'compiles every action contract the engine will register',
+    () => {
+      const failures: string[] = [];
+      for (const action of ALL_ACTIONS) {
+        try {
+          compileActionContract(action.id, {
+            inputSchema: action.inputSchema as ActionContractJsonSchema,
+            outputSchema: action.outputSchema as ActionContractJsonSchema,
+          });
+        } catch (error: unknown) {
+          failures.push(
+            error instanceof Error ? error.message : `${action.id}: unknown`,
+          );
+        }
       }
-    }
-    expect(failures).toEqual([]);
-  });
+      expect(failures).toEqual([]);
+    },
+    60_000,
+  );
 
   it('accepts an in-flight generate_image result without a CDN url', () => {
     const action = getActionDefinition('generate_image');

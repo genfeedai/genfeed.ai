@@ -14,9 +14,9 @@ const CATALOG_PATH = 'packages/actions/src/registry/curated-action-catalog.ts';
  * without caring where the line breaks or trailing commas land.
  */
 const ENTRY_PATTERN =
-  /^\{ (?:isPublishingApprovalRequired: true, )?name: '([a-z][a-z0-9_]*)', surfaces: \[((?:'(?:agent|mcp)'(?:, )?)*)\](?:, toolset: '([a-z][a-z0-9-]*)')?,? \},?$/u;
+  /^\{ (?:isPublishingApprovalRequired: true, )?name: '([a-z][a-z0-9_]*)', surfaces: \[((?:'(?:agent|mcp|workflow)'(?:, )?)*)\](?:, toolset: '([a-z][a-z0-9-]*)')?,? \},?$/u;
 
-export type CatalogSurface = 'agent' | 'mcp';
+export type CatalogSurface = 'agent' | 'mcp' | 'workflow';
 
 export interface ParsedCatalogAction {
   line: number;
@@ -126,7 +126,7 @@ export function parseCatalogSource(
     if (!name || surfaceText === undefined) {
       throw new Error(`${fileName}:${entryLine} has an invalid catalog entry`);
     }
-    const surfaces = [...surfaceText.matchAll(/'(agent|mcp)'/gu)].map(
+    const surfaces = [...surfaceText.matchAll(/'(agent|mcp|workflow)'/gu)].map(
       (surface) => surface[1] as CatalogSurface,
     );
     if (surfaces.length === 0 || new Set(surfaces).size !== surfaces.length) {

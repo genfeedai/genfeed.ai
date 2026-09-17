@@ -266,11 +266,15 @@ export class AgentToolExecutorService implements OnModuleInit {
               input,
               scopedContext,
             );
+            const nodeId = provenance.nodeId;
+            if (!nodeId) {
+              throw new Error('Knowledge workflow nodes require a node id');
+            }
             return assertKnowledgeWorkflowSuccess(
               attachKnowledgeWorkflowProvenance(
                 result,
                 workflowContext,
-                provenance.nodeId,
+                nodeId,
               ),
               toolName,
             );

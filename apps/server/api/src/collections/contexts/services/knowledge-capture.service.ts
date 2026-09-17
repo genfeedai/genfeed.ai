@@ -87,7 +87,7 @@ export class KnowledgeCaptureService {
     idempotencyKey?: string,
   ): Promise<KnowledgeCaptureResult> {
     if (dto.sourceId) {
-      return this.refreshExisting(actor, dto.sourceId, dto.provenance);
+      return this.refreshExisting(actor, dto.sourceId);
     }
     const hasPayload = Boolean(dto.text || dto.referenceUrl);
     if (hasPayload) {
@@ -148,10 +148,13 @@ export class KnowledgeCaptureService {
     _provenance?: KnowledgeSourceCaptureProvenance,
   ): Promise<KnowledgeCaptureResult> {
     const source = await this.records.getSource(actor, sourceId);
-    if (
-      source.kind !== KnowledgeSourceKind.URL &&
-      source.kind !== KnowledgeSourceKind.RSS
-    ) {
+    const kind =
+      source.kind === KnowledgeSourceKind.RSS
+        ? KnowledgeSourceKind.RSS
+        : source.kind === KnowledgeSourceKind.URL
+          ? KnowledgeSourceKind.URL
+          : null;
+    if (!kind) {
       throw new BadRequestException(
         'Refresh capture is only supported for URL and RSS sources',
       );
@@ -169,7 +172,7 @@ export class KnowledgeCaptureService {
         'Source has no captured reference URL to refresh',
       );
     }
-    this.assertCapturable(source.kind, { referenceUrl });
+    this.assertCapturable(kind, { referenceUrl });
     const tickKey = `manual:${sourceId}:${Date.now()}`;
     const refreshed = await this.refresh.refresh(actor, sourceId, tickKey);
     const version = await this.records

@@ -100,6 +100,26 @@ describe('curated action catalog change reporter', () => {
     ]);
   });
 
+  it('parses a workflow surface alongside agent and mcp', () => {
+    expect(
+      parseCatalogSource(
+        catalog(
+          `{
+            name: 'workflow_action',
+            surfaces: ['agent', 'mcp', 'workflow'],
+            toolset: 'knowledge',
+          }`,
+        ),
+      ),
+    ).toEqual([
+      expect.objectContaining({
+        name: 'workflow_action',
+        surfaces: ['agent', 'mcp', 'workflow'],
+        toolset: 'knowledge',
+      }),
+    ]);
+  });
+
   it('parses a multi-line entry reflowed by Biome once the toolset field is added', () => {
     expect(
       parseCatalogSource(

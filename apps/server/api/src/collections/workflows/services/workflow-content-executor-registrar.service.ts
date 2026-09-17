@@ -14,11 +14,11 @@ import {
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
   fromPrismaCredentialPlatform,
-  type KnowledgeReceipt,
   PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import {
   buildActionExecutionInput,
   CastPromptExecutor,

@@ -9,7 +9,6 @@ import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import { BadRequestException } from '@nestjs/common';
 
 const actor = { organizationId: 'org-1', userId: 'user-1', brandId: 'brand-1' };
 const base = {

@@ -76,13 +76,16 @@ export class KnowledgeRefreshService {
     policy: KnowledgeSourceRefreshPolicyRequest,
   ) {
     const source = await this.records.getSource(actor, sourceId);
-    if (
-      source.kind !== KnowledgeSourceKind.URL &&
-      source.kind !== KnowledgeSourceKind.RSS
-    ) {
+    const kind =
+      source.kind === KnowledgeSourceKind.RSS
+        ? KnowledgeSourceKind.RSS
+        : source.kind === KnowledgeSourceKind.URL
+          ? KnowledgeSourceKind.URL
+          : null;
+    if (!kind) {
       throw new BadRequestException('Refresh policy is only for URL and RSS');
     }
-    const defaults = this.defaultPolicy(source.kind);
+    const defaults = this.defaultPolicy(kind);
     const intervalMinutes =
       policy.intervalMinutes ??
       source.refreshIntervalMinutes ??

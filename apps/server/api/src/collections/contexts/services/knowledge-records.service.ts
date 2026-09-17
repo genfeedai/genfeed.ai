@@ -14,6 +14,7 @@ import {
   KnowledgeRetentionPolicy,
   KnowledgeRetentionState,
   KnowledgeRetrievalState,
+  KnowledgeSourceKind,
   MemberRole,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';

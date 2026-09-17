@@ -2,12 +2,12 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
-  type KnowledgeReceipt,
   KnowledgeRetentionState,
   KnowledgeRetrievalState,
   type KnowledgeSourceKind,
   type KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
+import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 const SEARCH_MAX_PASSAGES = 12;
