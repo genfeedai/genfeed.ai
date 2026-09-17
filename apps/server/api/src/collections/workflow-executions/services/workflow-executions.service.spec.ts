@@ -1121,6 +1121,9 @@ describe('WorkflowExecutionsService', () => {
       where: {
         executionId: 'execution-1',
         organizationId: 'org-1',
+        status: {
+          in: [SharedWorkflowExecutionStatus.COMPLETED, 'completed'],
+        },
       },
     });
   });

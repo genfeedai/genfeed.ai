@@ -800,6 +800,9 @@ export class WorkflowExecutionsService extends BaseService<
       where: {
         executionId: params.executionId,
         organizationId: params.organizationId,
+        status: {
+          in: [SharedWorkflowExecutionStatus.COMPLETED, 'completed'],
+        },
       },
     });
     const total = result._sum.creditsUsed;
