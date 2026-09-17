@@ -11,6 +11,7 @@ export const COVERAGE_WORKFLOW_IDENTITY = '.github/workflows/coverage.yml';
 
 export async function reportCoverageFailures({
   github,
+  projectGithub = github,
   owner,
   repo,
   failures,
@@ -26,6 +27,7 @@ export async function reportCoverageFailures({
     results.push(
       await reportScheduledFailure({
         github,
+        projectGithub,
         owner,
         repo,
         trackerLabel: COVERAGE_FAILURE_LABEL,

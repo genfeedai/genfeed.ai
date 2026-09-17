@@ -686,9 +686,9 @@ jobs:
           persist-credentials: false
 
       - name: Create or update bounded nightly-failure trackers
-        continue-on-error: true
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          REPOSITORY_TOKEN: ${{ github.token }}
           GATE_RESULT: ${{ needs.e2e-gate.result }}
           AUTHED_RESULT: ${{ needs.e2e-frontend-authed.result }}
           API_FULL_RESULT: ${{ needs.e2e-api-full.result }}
@@ -700,6 +700,7 @@ jobs:
         with:
           github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
+            const repositoryGithub = getOctokit(process.env.REPOSITORY_TOKEN);
             const path = require('node:path');
             const { pathToFileURL } = require('node:url');
             const {
@@ -714,8 +715,8 @@ jobs:
               ).href,
             );
             const { owner, repo } = context.repo;
-            const jobs = await github.paginate(
-              github.rest.actions.listJobsForWorkflowRun,
+            const jobs = await repositoryGithub.paginate(
+              repositoryGithub.rest.actions.listJobsForWorkflowRun,
               {
                 owner,
                 repo,
@@ -744,7 +745,7 @@ jobs:
               return 'e2e-gate';
             };
             const failures = await collectScheduledRunFailures({
-              github,
+              github: repositoryGithub,
               owner,
               repo,
               jobs: selectedJobs.map((job) => ({
@@ -758,7 +759,8 @@ jobs:
               core,
             });
             await reportNightlyE2eFailure({
-              github,
+              github: repositoryGithub,
+              projectGithub: github,
               owner,
               repo,
               failures,

@@ -688,11 +688,15 @@ test('keeps E2E workflow concurrency while queueing the full reporter job', () =
   );
   assert.match(workflow, /^ {2}nightly-recovery-report:/m);
   assert.match(workflow, /resolveNightlyE2eFailures/);
-  assert.match(workflow, /continue-on-error: true/);
-  assert.match(
-    workflow,
-    /github-token: \$\{\{ secrets\.CONSOLE_DEPLOY_TOKEN \}\}/,
-  );
+  const report = workflow.split('  nightly-failure-report:')[1].split(
+    '  nightly-recovery-report:',
+  )[0];
+  const step = report.split(
+    '- name: Create or update bounded nightly-failure trackers',
+  )[1];
+  assert.match(step, /REPOSITORY_TOKEN: \$\{\{ github.token \}\}/u);
+  assert.match(step, /github-token: \$\{\{ secrets.CONSOLE_DEPLOY_TOKEN \}\}/u);
+  assert.doesNotMatch(step, /continue-on-error:/u);
 });
 
 test('serializes reusable build verification without cancelling another caller', () => {

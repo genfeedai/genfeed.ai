@@ -12,6 +12,7 @@ export const NIGHTLY_E2E_WORKFLOW_IDENTITY = '.github/workflows/e2e.yml';
 
 export async function reportNightlyE2eFailure({
   github,
+  projectGithub = github,
   owner,
   repo,
   failures,
@@ -27,6 +28,7 @@ export async function reportNightlyE2eFailure({
     results.push(
       await reportScheduledFailure({
         github,
+        projectGithub,
         owner,
         repo,
         trackerLabel: NIGHTLY_E2E_FAILURE_LABEL,

@@ -285,12 +285,14 @@ jobs:
       - name: Open or update tracking issue (Priority P0)
         uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9.0.0
         env:
+          REPOSITORY_TOKEN: ${{ github.token }}
           IMAGE_TAG: ${{ needs.release-e2e.outputs.image_tag }}
           RELEASE_TAG: ${{ needs.release-e2e.outputs.release_tag }}
           FAILURE_CLASS: ${{ needs.release-e2e.outputs.failure_class }}
         with:
-          # Reuse the existing maintainer PAT. Unlike the repository-scoped
-          # GITHUB_TOKEN, it can be granted organization Projects write access.
+          # This trusted release job reuses the existing maintainer PAT so
+          # Native org issue-field and Project #12 writes are possible;
+          # GITHUB_TOKEN is repository-scoped and owns issue lifecycle writes.
           github-token: ${{ secrets.CONSOLE_DEPLOY_TOKEN }}
           script: |
             const path = require('node:path');
@@ -321,7 +323,8 @@ jobs:
             });
 
             const result = await reportReleaseE2eFailure({
-              github,
+              github: getOctokit(process.env.REPOSITORY_TOKEN),
+              projectGithub: github,
               owner: context.repo.owner,
               repo: context.repo.repo,
               body,

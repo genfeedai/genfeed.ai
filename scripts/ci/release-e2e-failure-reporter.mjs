@@ -76,6 +76,7 @@ export function buildReleaseE2eFailureBody({
 
 export async function reportReleaseE2eFailure({
   github,
+  projectGithub = github,
   owner,
   repo,
   body,
@@ -101,7 +102,7 @@ export async function reportReleaseE2eFailure({
       body,
     });
     // Re-assert P0 every red run so backlog drift cannot deprioritize it.
-    await triageCiFailureOnProject(github, {
+    await triageCiFailureOnProject(projectGithub, {
       owner,
       repo,
       issueNumber: number,
@@ -126,7 +127,7 @@ export async function reportReleaseE2eFailure({
     label: RELEASE_E2E_FAILURE_LABEL,
   });
 
-  await triageCiFailureOnProject(github, {
+  await triageCiFailureOnProject(projectGithub, {
     owner,
     repo,
     issueNumber: created.data.number,
