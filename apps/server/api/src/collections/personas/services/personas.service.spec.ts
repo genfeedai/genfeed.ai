@@ -8,7 +8,10 @@ import { Test, type TestingModule } from '@nestjs/testing';
 describe('PersonasService', () => {
   let service: PersonasService;
   let prisma: {
-    persona: { create: ReturnType<typeof vi.fn> };
+    persona: {
+      create: ReturnType<typeof vi.fn>;
+      findMany: ReturnType<typeof vi.fn>;
+    };
     ingredient: { findFirst: ReturnType<typeof vi.fn> };
   };
 
@@ -17,6 +20,7 @@ describe('PersonasService', () => {
       ingredient: { findFirst: vi.fn() },
       persona: {
         create: vi.fn(),
+        findMany: vi.fn(),
       },
     };
 
@@ -118,5 +122,49 @@ describe('PersonasService', () => {
       }),
     ).rejects.toBeInstanceOf(ValidationException);
     expect(create).not.toHaveBeenCalled();
+  });
+
+  it('resolves brand-scoped character handles to canonical stills', async () => {
+    prisma.persona.findMany.mockResolvedValue([
+      { avatarIngredientId: 'character-1', handle: 'anna' },
+    ]);
+
+    await expect(
+      service.resolveCharacterHandles({
+        brandId: 'brand-1',
+        handles: ['Anna', 'anna'],
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      resolvedIngredientIds: ['character-1'],
+      unresolvedHandles: [],
+    });
+    expect(prisma.persona.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          brandId: 'brand-1',
+          handle: { in: ['anna'] },
+          isDeleted: false,
+          organizationId: 'org-1',
+        }),
+      }),
+    );
+  });
+
+  it('names handles that are missing or have no canonical still', async () => {
+    prisma.persona.findMany.mockResolvedValue([
+      { avatarIngredientId: null, handle: 'blank' },
+    ]);
+
+    await expect(
+      service.resolveCharacterHandles({
+        brandId: 'brand-1',
+        handles: ['blank', 'ghost'],
+        organizationId: 'org-1',
+      }),
+    ).resolves.toEqual({
+      resolvedIngredientIds: [],
+      unresolvedHandles: ['blank', 'ghost'],
+    });
   });
 });

@@ -18,22 +18,38 @@ export const CLIP_CHAIN_MAX_SEGMENTS = 30;
 export const CLIP_CHAIN_MAX_IDENTITY_REFERENCES = 10;
 
 /**
- * Creates an identity-locked clip-chain run (#4653). The character ids are
- * required for the identity path; product and environment stills are optional.
- * All ids are resolved once here and reused verbatim on every segment.
+ * Creates an identity-locked clip-chain run (#4653). Character stills come
+ * from ingredient ids, character handles, or both; product and environment
+ * stills are optional. Handles resolve to canonical stills before the run
+ * exists. All ids are then reused verbatim on every segment.
  */
 export class VideoClipChainDto {
+  @IsOptional()
   @IsArray()
-  @ArrayMinSize(1)
   @ArrayMaxSize(CLIP_CHAIN_MAX_IDENTITY_REFERENCES)
   @IsEntityId({ each: true })
   @ApiProperty({
     description:
-      'Canonical character still ingredient ids (avatar / character sheet) attached to every segment as identity refs',
+      'Canonical character still ingredient ids (avatar / character sheet) attached to every segment as identity refs. Optional when `characterHandles` is supplied.',
     isArray: true,
+    required: false,
     type: String,
   })
-  readonly characterIngredientIds!: string[];
+  readonly characterIngredientIds?: string[];
+
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(CLIP_CHAIN_MAX_IDENTITY_REFERENCES)
+  @IsString({ each: true })
+  @MinLength(1, { each: true })
+  @ApiProperty({
+    description:
+      'Brand character handles resolved to canonical stills before the run is created. Merged with `characterIngredientIds`. Prompt `@handle` scanning is not performed.',
+    isArray: true,
+    required: false,
+    type: String,
+  })
+  readonly characterHandles?: string[];
 
   @IsOptional()
   @IsArray()
