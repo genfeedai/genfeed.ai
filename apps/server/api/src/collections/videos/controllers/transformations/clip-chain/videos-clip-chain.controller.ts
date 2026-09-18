@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { VideoClipChainDto } from '@api/collections/videos/dto/video-clip-chain.dto';
 import type { CreateWorkflowDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
@@ -69,6 +70,7 @@ function uniqueIds(ids: readonly string[] | undefined): string[] {
 export class VideosClipChainController {
   constructor(
     private readonly ingredientsService: IngredientsService,
+    private readonly personasService: PersonasService,
     private readonly workflowsService: WorkflowsService,
   ) {}
 
@@ -175,8 +177,26 @@ export class VideosClipChainController {
     organizationId: string,
     brandId: string,
   ): Promise<ClipChainIdentityIngredientIds> {
+    const handles = uniqueIds(dto.characterHandles);
+    const resolvedHandles =
+      handles.length > 0
+        ? await this.personasService.resolveCharacterHandles({
+            brandId,
+            handles,
+            organizationId,
+          })
+        : { resolvedIngredientIds: [], unresolvedHandles: [] };
+    if (resolvedHandles.unresolvedHandles.length > 0) {
+      throw new BadRequestException(
+        `Unresolved character handles: ${resolvedHandles.unresolvedHandles.join(', ')}`,
+      );
+    }
+
     const identity: ClipChainIdentityIngredientIds = {
-      characterIngredientIds: uniqueIds(dto.characterIngredientIds),
+      characterIngredientIds: uniqueIds([
+        ...resolvedHandles.resolvedIngredientIds,
+        ...(dto.characterIngredientIds ?? []),
+      ]),
       ...(dto.productIngredientIds
         ? { productIngredientIds: uniqueIds(dto.productIngredientIds) }
         : {}),

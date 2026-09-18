@@ -7,6 +7,7 @@ import type {
 } from '../../types';
 import { createExecutableActionNode } from '../../utils/action-node';
 import { type NodeExecutor, WorkflowEngine } from '../engine';
+import { PermanentExecutionError } from '../execution-error';
 
 // Real @genfeedai/actions output contracts are closed schemas
 // (`additionalProperties: false`), so mock executors must return
@@ -478,6 +479,30 @@ describe('WorkflowEngine', () => {
       expect(result.status).toBe('failed');
       expect(result.error).toContain('generation failed');
       expect(result.nodeResults.get('n1')?.status).toBe('failed');
+      expect(result.nodeResults.has('n2')).toBe(false);
+    });
+
+    it('preserves WorkflowExecutionError output on a failed node', async () => {
+      const failureEngine = createTestEngine();
+      failureEngine.registerExecutor('imageGen', async () => {
+        throw new PermanentExecutionError('character continuity QA is drift', {
+          output: { continuityQa: { status: 'completed' }, video: null },
+        });
+      });
+      failureEngine.registerExecutor('upscale', vi.fn());
+
+      const result = await failureEngine.execute(
+        makeWorkflow(
+          [makeNode('n1', 'imageGen'), makeNode('n2', 'upscale')],
+          [makeEdge('n1', 'n2')],
+        ),
+      );
+
+      expect(result.status).toBe('failed');
+      expect(result.nodeResults.get('n1')?.output).toEqual({
+        continuityQa: { status: 'completed' },
+        video: null,
+      });
       expect(result.nodeResults.has('n2')).toBe(false);
     });
 

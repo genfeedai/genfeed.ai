@@ -1,5 +1,6 @@
 'use client';
 
+import { logger } from '@services/core/logger.service';
 import type { RefObject } from 'react';
 import { useEffect, useRef } from 'react';
 
@@ -43,6 +44,65 @@ export function prefersReducedMotion(): boolean {
   }
 
   return window.matchMedia(REDUCED_MOTION_QUERY).matches;
+}
+
+type GsapContextHandle = {
+  revert: () => void;
+};
+
+function isMountedHost(node: EventTarget | null | undefined): node is Element {
+  return node instanceof Element && node.isConnected;
+}
+
+function queryMountedElements(container: Element, selector: string): Element[] {
+  return Array.from(container.querySelectorAll(selector)).filter(
+    (element) => element.isConnected && container.contains(element),
+  );
+}
+
+function isDomInsertionRace(error: unknown): boolean {
+  if (typeof DOMException !== 'undefined' && error instanceof DOMException) {
+    if (error.name === 'NotFoundError') {
+      return true;
+    }
+  }
+
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  return (
+    error.name === 'NotFoundError' ||
+    /insertBefore/.test(error.message) ||
+    /not a child of this node/i.test(error.message)
+  );
+}
+
+function runMountedInsertion(run: () => void): boolean {
+  try {
+    run();
+    return true;
+  } catch (error) {
+    if (isDomInsertionRace(error)) {
+      return false;
+    }
+
+    throw error;
+  }
+}
+
+function revertGsapContext(ctx: GsapContextHandle | null): void {
+  if (!ctx) {
+    return;
+  }
+
+  try {
+    ctx.revert();
+  } catch (error) {
+    if (!isDomInsertionRace(error)) {
+      logger.error('Failed to revert GSAP context', error);
+    }
+  }
 }
 
 /**
@@ -98,28 +158,40 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
       return;
     }
 
-    let ctx: { revert: () => void } | null = null;
+    let ctx: GsapContextHandle | null = null;
     let isCancelled = false;
 
     const initGsap = async () => {
+      let gsap: typeof import('gsap').default;
+      let ScrollTrigger: typeof import('gsap/ScrollTrigger').ScrollTrigger;
+
       try {
         const [gsapModule, scrollTriggerModule] = await Promise.all([
           import('gsap'),
           import('gsap/ScrollTrigger'),
         ]);
-        if (isCancelled) return;
+        gsap = gsapModule.default;
+        ScrollTrigger = scrollTriggerModule.ScrollTrigger;
+      } catch {
+        return;
+      }
 
-        const gsap = gsapModule.default;
-        const { ScrollTrigger } = scrollTriggerModule;
+      const container = containerRef.current;
+      if (isCancelled || !isMountedHost(container)) {
+        return;
+      }
 
-        gsap.registerPlugin(ScrollTrigger);
+      gsap.registerPlugin(ScrollTrigger);
 
+      try {
         ctx = gsap.context(() => {
           for (const anim of animations) {
-            const elements = containerRef.current?.querySelectorAll(
-              anim.selector,
-            );
-            if (!elements || elements.length === 0) continue;
+            if (!isMountedHost(container)) {
+              return;
+            }
+
+            const elements = queryMountedElements(container, anim.selector);
+            if (elements.length === 0) continue;
 
             const fromVars: Record<string, unknown> = { ...anim.from };
             const toVars: Record<string, unknown> = {
@@ -138,19 +210,37 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
             const start = anim.scrollTrigger?.start ?? 'top 85%';
 
             if (anim.scrollTrigger?.batch) {
-              const pending = Array.from(elements).filter(
-                (element) => !isInViewport(element),
+              const pending = elements.filter(
+                (element) =>
+                  element.isConnected &&
+                  container.contains(element) &&
+                  !isInViewport(element),
               );
               if (pending.length === 0) continue;
 
-              gsap.set(pending, fromVars);
-              ScrollTrigger.batch(pending, {
-                onEnter: (batch) => {
-                  gsap.to(batch, toVars);
-                },
-                once: true,
-                start,
-              });
+              if (
+                !runMountedInsertion(() => {
+                  gsap.set(pending, fromVars);
+                  ScrollTrigger.batch(pending, {
+                    onEnter: (batch) => {
+                      const mountedBatch = Array.from(batch).filter(
+                        (element) =>
+                          element.isConnected && container.contains(element),
+                      );
+                      if (mountedBatch.length === 0) {
+                        return;
+                      }
+                      runMountedInsertion(() => {
+                        gsap.to(mountedBatch, toVars);
+                      });
+                    },
+                    once: true,
+                    start,
+                  });
+                })
+              ) {
+                continue;
+              }
               continue;
             }
 
@@ -163,27 +253,37 @@ export function useGsapEntrance<T extends HTMLElement = HTMLDivElement>(
               // animated element keeps the reveal tied to the content.
               const triggerSelector =
                 anim.scrollTrigger.trigger ?? anim.selector;
+              const trigger =
+                queryMountedElements(container, triggerSelector)[0] ??
+                elements[0];
+              if (!isMountedHost(trigger) || !container.contains(trigger)) {
+                continue;
+              }
               toVars.scrollTrigger = {
                 start,
-                trigger:
-                  containerRef.current?.querySelector(triggerSelector) ??
-                  elements[0],
+                trigger,
               };
             }
 
-            gsap.fromTo(elements, fromVars, toVars);
+            runMountedInsertion(() => {
+              gsap.fromTo(elements, fromVars, toVars);
+            });
           }
-        }, containerRef);
-      } catch {
-        // GSAP not available, fail silently
+        }, container);
+      } catch (error) {
+        if (isDomInsertionRace(error)) {
+          return;
+        }
+
+        logger.error('Failed to start GSAP entrance animation', error);
       }
     };
 
-    initGsap();
+    void initGsap();
 
     return () => {
       isCancelled = true;
-      ctx?.revert();
+      revertGsapContext(ctx);
     };
   }, [animations, enabled]);
 
@@ -228,24 +328,35 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
       return;
     }
 
-    let ctx: { revert: () => void } | null = null;
+    let ctx: GsapContextHandle | null = null;
     let isCancelled = false;
 
     const initGsap = async () => {
+      let gsap: typeof import('gsap').default;
+
       try {
         const gsapModule = await import('gsap');
-        if (isCancelled) return;
+        gsap = gsapModule.default;
+      } catch {
+        return;
+      }
 
-        const gsap = gsapModule.default;
+      const container = containerRef.current;
+      if (isCancelled || !isMountedHost(container)) {
+        return;
+      }
 
+      try {
         ctx = gsap.context(() => {
           const tl = gsap.timeline();
 
           for (const step of steps) {
-            const elements = containerRef.current?.querySelectorAll(
-              step.selector,
-            );
-            if (!elements || elements.length === 0) continue;
+            if (!isMountedHost(container)) {
+              return;
+            }
+
+            const elements = queryMountedElements(container, step.selector);
+            if (elements.length === 0) continue;
 
             const fromVars: Record<string, unknown> = { ...step.from };
             const toVars: Record<string, unknown> = {
@@ -260,19 +371,25 @@ export function useGsapTimeline<T extends HTMLElement = HTMLDivElement>(
               toVars.stagger = step.stagger;
             }
 
-            tl.fromTo(step.selector, fromVars, toVars, step.offset);
+            runMountedInsertion(() => {
+              tl.fromTo(elements, fromVars, toVars, step.offset);
+            });
           }
-        }, containerRef);
-      } catch {
-        // GSAP not available
+        }, container);
+      } catch (error) {
+        if (isDomInsertionRace(error)) {
+          return;
+        }
+
+        logger.error('Failed to start GSAP timeline animation', error);
       }
     };
 
-    initGsap();
+    void initGsap();
 
     return () => {
       isCancelled = true;
-      ctx?.revert();
+      revertGsapContext(ctx);
     };
   }, [steps, enabled]);
 

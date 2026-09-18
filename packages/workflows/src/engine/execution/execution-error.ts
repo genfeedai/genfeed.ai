@@ -1,9 +1,12 @@
 export abstract class WorkflowExecutionError extends Error {
   abstract readonly isRetryable: boolean;
+  readonly output?: unknown;
 
-  constructor(message: string, options?: ErrorOptions) {
-    super(message, options);
+  constructor(message: string, options?: ErrorOptions & { output?: unknown }) {
+    const { output, ...errorOptions } = options ?? {};
+    super(message, errorOptions);
     this.name = new.target.name;
+    this.output = output;
   }
 }
 

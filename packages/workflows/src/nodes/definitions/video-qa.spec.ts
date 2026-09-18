@@ -21,6 +21,9 @@ describe('video-qa node', () => {
 
     it('should default advisory continuity QA off with no references', () => {
       expect(DEFAULT_VIDEO_QA_DATA.isContinuityQaEnabled).toBe(false);
+      expect(DEFAULT_VIDEO_QA_DATA.isContinuityCharacterGateEnabled).toBe(
+        false,
+      );
       expect(DEFAULT_VIDEO_QA_DATA.characterReferenceUrls).toEqual([]);
       expect(DEFAULT_VIDEO_QA_DATA.productReferenceUrls).toEqual([]);
     });

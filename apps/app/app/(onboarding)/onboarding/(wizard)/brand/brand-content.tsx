@@ -472,8 +472,10 @@ function BrandContentContent() {
 
 export default function BrandContent() {
   return (
-    <Suspense fallback={null}>
-      <BrandContentContent />
-    </Suspense>
+    <div>
+      <Suspense fallback={null}>
+        <BrandContentContent />
+      </Suspense>
+    </div>
   );
 }
