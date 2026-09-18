@@ -189,6 +189,7 @@ export interface VideoQaNodeData extends BaseNodeData {
   blackDurationSeconds: number;
   isContactSheetEnabled: boolean;
   isContinuityQaEnabled: boolean;
+  isContinuityCharacterGateEnabled: boolean;
   characterReferenceUrls: string[];
   productReferenceUrls: string[];
   expectedDurationSeconds: number | null;
