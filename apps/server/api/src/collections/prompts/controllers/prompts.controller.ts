@@ -198,15 +198,13 @@ export class PromptsController {
           .getRenderedPrompt(systemPromptKey, {}, user.organizationId)
           .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
       : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
-    const skillSectionsPromise: Promise<string> = this.skillRuntimeService
-      ? this.skillRuntimeService.resolveRequestedSkillPromptSections(
-          user.organizationId,
-          createPromptDto.brandId,
-          createPromptDto.requestedSkillSlugs,
-        )
-      : Promise.resolve('');
+    const skillSectionsPromise =
+      this.skillRuntimeService?.resolveRequestedSkillPromptSections(
+        user.organizationId,
+        createPromptDto.brandId,
+        createPromptDto.requestedSkillSlugs,
+      ) ?? Promise.resolve('');
 
-    // Enhancement is intentionally detached from the HTTP response.
     void Promise.all([systemPromptPromise, skillSectionsPromise])
       .then(([basePrompt, skillSections]) =>
         skillSections ? `${basePrompt}\n\n${skillSections}` : basePrompt,
