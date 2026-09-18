@@ -3,6 +3,7 @@ import { AUTO_MODEL_OPTION_VALUE } from '@ui/dropdowns/model-selector/model-sele
 import { describe, expect, it } from 'vitest';
 import {
   buildStudioSettingsPatchFromHandoff,
+  resolveHandoffIdentityNotice,
   resolveHandoffModelKey,
   studioHandoffReferenceRole,
 } from './studio-generate-handoff';
@@ -63,6 +64,23 @@ describe('buildStudioSettingsPatchFromHandoff', () => {
     expect(patch).toEqual({
       avatarPhotoUrl: 'https://cdn.test/portrait.png',
       modelKey: 'provider/model-x',
+    });
+  });
+
+  it('maps an identity avatar handoff to both portrait and voice', () => {
+    const patch = buildStudioSettingsPatchFromHandoff(
+      handoff({
+        avatarPhotoUrl: 'https://cdn.test/portrait.png',
+        type: 'avatar',
+        useIdentity: true,
+        voiceId: 'voice-1',
+      }),
+    );
+
+    expect(patch).toEqual({
+      avatarPhotoUrl: 'https://cdn.test/portrait.png',
+      modelKey: 'provider/model-x',
+      voiceId: 'voice-1',
     });
   });
 
@@ -132,6 +150,44 @@ describe('resolveHandoffModelKey', () => {
       isFallback: false,
       modelKey: 'provider/model-z',
     });
+  });
+});
+
+describe('resolveHandoffIdentityNotice', () => {
+  it('is silent when identity was not requested', () => {
+    expect(resolveHandoffIdentityNotice(handoff({ type: 'image' }))).toBeNull();
+  });
+
+  it('is silent when an identity handoff carried both fields', () => {
+    expect(
+      resolveHandoffIdentityNotice(
+        handoff({
+          avatarPhotoUrl: 'https://cdn.test/portrait.png',
+          type: 'avatar',
+          useIdentity: true,
+          voiceId: 'voice-1',
+        }),
+      ),
+    ).toBeNull();
+  });
+
+  it('names the omitted identity fields so Studio does not look deliberate', () => {
+    expect(
+      resolveHandoffIdentityNotice(
+        handoff({ type: 'avatar', useIdentity: true }),
+      ),
+    ).toContain('avatar and voice');
+  });
+
+  it('does not require an avatar on a voice-only handoff', () => {
+    expect(
+      resolveHandoffIdentityNotice(
+        handoff({ type: 'voice', voiceId: 'voice-1' }),
+      ),
+    ).toBeNull();
+    expect(resolveHandoffIdentityNotice(handoff({ type: 'voice' }))).toContain(
+      'voice',
+    );
   });
 });
 

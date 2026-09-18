@@ -466,10 +466,12 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           enum: [
             '360p',
             '480p',
+            '480P',
             '720p',
             '768p',
             '768P',
             '1080p',
+            '1080P',
             '2K',
             'standard',
             'pro',

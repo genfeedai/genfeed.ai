@@ -112,6 +112,12 @@ describe('model-helpers.constant', () => {
         false,
       );
     });
+
+    it('requires a source still for every Higgsfield DoP tier', () => {
+      expect(requiresFirstFrame(MODEL_KEYS.HIGGSFIELD_DOP_LITE)).toBe(true);
+      expect(requiresFirstFrame(MODEL_KEYS.HIGGSFIELD_DOP_TURBO)).toBe(true);
+      expect(requiresFirstFrame(MODEL_KEYS.HIGGSFIELD_DOP_STANDARD)).toBe(true);
+    });
   });
 
   describe('hasSpeech', () => {

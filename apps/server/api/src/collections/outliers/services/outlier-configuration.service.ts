@@ -32,19 +32,38 @@ export class OutlierConfigurationService {
       ...input,
     });
     if (!result.success) throw new BadRequestException(result.error.flatten());
+    // tenant-scope-ignore: revive the unique org row even if it was soft-deleted
     const row = await this.prisma.outlierConfiguration.findFirst({
-      where: { organizationId, isDeleted: false },
+      where: { organizationId },
       select: { id: true },
     });
     if (row) {
+      // tenant-scope-ignore: revive the unique org row even if it was soft-deleted
       await this.prisma.outlierConfiguration.updateMany({
-        where: { id: row.id, organizationId, isDeleted: false },
-        data: result.data,
+        where: { id: row.id, organizationId },
+        data: { ...result.data, isDeleted: false },
       });
     } else {
-      await this.prisma.outlierConfiguration.create({
-        data: { organizationId, ...result.data },
-      });
+      try {
+        await this.prisma.outlierConfiguration.create({
+          data: { organizationId, ...result.data },
+        });
+      } catch (error) {
+        if (
+          typeof error === 'object' &&
+          error !== null &&
+          'code' in error &&
+          error.code === 'P2002'
+        ) {
+          // tenant-scope-ignore: P2002 recovery updates the unique org row including a soft-deleted one
+          await this.prisma.outlierConfiguration.updateMany({
+            where: { organizationId },
+            data: { ...result.data, isDeleted: false },
+          });
+        } else {
+          throw error;
+        }
+      }
     }
     return this.resolve(organizationId);
   }

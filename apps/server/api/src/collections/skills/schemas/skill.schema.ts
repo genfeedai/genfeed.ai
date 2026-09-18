@@ -30,6 +30,8 @@ export const SKILL_WORKFLOW_STAGES = [
   'analysis',
 ] as const;
 
+export const SKILL_SURFACES = ['agent', 'studio'] as const;
+
 export const SKILL_SOURCES = [
   'built_in',
   'imported',
@@ -48,6 +50,8 @@ export interface SkillDocument extends Skill {
   reviewDefaults?: Record<string, unknown>;
   slug?: string;
   sourceListingId?: string;
+  /** Composer surfaces this skill is offered on; derived when absent. */
+  surfaces?: string[];
   version?: string;
   workflowStage?: string;
   [key: string]: unknown;

@@ -15,6 +15,7 @@ const imagePrompt: FirstPartySkillDefinition = {
   modalities: ['image'],
   name: 'Image Prompt Engineer',
   slug: 'image-prompt-engineer',
+  surfaces: ['agent', 'studio'],
   version: '1.0.0',
   workflowStage: 'creation',
 };
@@ -28,6 +29,7 @@ const geo: FirstPartySkillDefinition = {
   modalities: ['text'],
   name: 'Content GEO Optimizer',
   slug: ORIGINAL_BUILT_IN_SKILL_CATALOG[0].slug,
+  surfaces: ['agent'],
   version: '1.0.0',
   workflowStage: 'review',
 };
@@ -139,6 +141,7 @@ describe('SkillCatalogSeedService', () => {
         name: imagePrompt.name,
         slug: imagePrompt.slug,
         source: 'built_in',
+        surfaces: imagePrompt.surfaces,
         systemPromptTemplate: imagePrompt.instructions,
         version: imagePrompt.version,
       },
@@ -154,6 +157,37 @@ describe('SkillCatalogSeedService', () => {
     expect(second).toEqual({ inserted: 0, skipped: 1, updated: 0 });
     expect(prisma.skill.create).not.toHaveBeenCalled();
     expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
+
+  it('backfills surfaces onto a row provisioned before they existed', async () => {
+    prisma.skill.findUnique.mockResolvedValue({
+      config: {
+        defaultInstructions: imagePrompt.instructions,
+        description: imagePrompt.description,
+        isBuiltIn: true,
+        name: imagePrompt.name,
+        slug: imagePrompt.slug,
+        source: 'built_in',
+        systemPromptTemplate: imagePrompt.instructions,
+        version: imagePrompt.version,
+      },
+      id: imagePrompt.id,
+      isDeleted: false,
+      organizationId: null,
+    });
+
+    expect(await service.reconcileCatalog([imagePrompt])).toEqual({
+      inserted: 0,
+      skipped: 0,
+      updated: 1,
+    });
+    expect(prisma.skill.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          config: expect.objectContaining({ surfaces: ['agent', 'studio'] }),
+        }),
+      }),
+    );
   });
 
   it('preserves original five identities when seeding content-geo-optimizer', async () => {

@@ -420,4 +420,32 @@ describe('BrandContent behavior', () => {
       screen.getByRole('button', { name: 'Skip Onboarding' }),
     ).toBeEnabled();
   });
+
+  it('survives rapid remount while brand prefill is in flight', async () => {
+    let resolveBrands: (value: Array<{ id: string; label: string }>) => void =
+      () => {
+        /* assigned when the pending prefill starts */
+      };
+    findMeBrandsMock.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          resolveBrands = resolve;
+        }),
+    );
+
+    const first = render(<BrandContent />);
+    await waitFor(() => expect(findMeBrandsMock).toHaveBeenCalledTimes(1));
+    first.unmount();
+    render(<BrandContent />);
+    await waitFor(() => expect(findMeBrandsMock).toHaveBeenCalledTimes(2));
+
+    expect(screen.getByRole('button', { name: 'Continue' })).toBeDisabled();
+
+    resolveBrands([{ id: 'brand_1', label: 'Acme' }]);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Continue' })).toBeEnabled();
+    });
+    expect(screen.getAllByDisplayValue('Acme').length).toBeGreaterThan(0);
+  });
 });

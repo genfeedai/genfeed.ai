@@ -59,6 +59,7 @@ export const API_ENDPOINTS = {
   ONBOARDING: '/onboarding',
   OPTIMIZERS: '/optimizers',
   ORGANIZATIONS: '/organizations',
+  OUTLIER_BASELINES: '/outlier-baselines',
   PERSONAS: '/personas',
   POSTS: '/posts',
   POST_GROUPS: '/post-groups',

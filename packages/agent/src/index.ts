@@ -55,7 +55,6 @@ export { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailP
 export { WorkflowTriggerCard } from '@genfeedai/agent/components/WorkflowTriggerCard';
 // Constants
 export { AGENT_PANEL_ICON_STRIP_WIDTH } from '@genfeedai/agent/constants/agent-panel.constant';
-export type { AgentSlashCommand } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 export { AGENT_SLASH_COMMANDS } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 export {
   CONVERSATION_COMPOSER_ACTIONS,

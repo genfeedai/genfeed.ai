@@ -5,6 +5,8 @@ import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/cr
 import type { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
+import { captureIdempotentKnowledgeSource } from '@api/collections/contexts/utils/knowledge-idempotent-capture';
+import { buildKnowledgeMediaReferenceKey } from '@api/collections/contexts/utils/knowledge-media-identity.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -13,6 +15,7 @@ import {
   KnowledgeRetentionPolicy,
   KnowledgeRetentionState,
   KnowledgeRetrievalState,
+  KnowledgeSourceKind,
   MemberRole,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
@@ -74,11 +77,15 @@ export class KnowledgeRecordsService {
       isDeleted: false,
       OR: [
         { scope: KnowledgeMemoryScope.ORG, brandId: null },
-        {
-          scope: KnowledgeMemoryScope.PERSONAL,
-          brandId: null,
-          userId: actor.userId,
-        },
+        ...(actor.isWorkflowScoped
+          ? []
+          : [
+              {
+                scope: KnowledgeMemoryScope.PERSONAL,
+                brandId: null,
+                userId: actor.userId,
+              },
+            ]),
         ...(actor.brandId
           ? [
               {
@@ -173,9 +180,23 @@ export class KnowledgeRecordsService {
       data: {
         ...ownership,
         ...(id ? { id } : {}),
-        title: dto.title,
         kind: dto.kind,
         purpose: dto.purpose,
+        referenceUrl: dto.referenceUrl,
+        title: dto.title,
+        ...(dto.referenceUrl &&
+        (dto.kind === KnowledgeSourceKind.AUDIO ||
+          dto.kind === KnowledgeSourceKind.VIDEO)
+          ? {
+              mediaReferenceKey: buildKnowledgeMediaReferenceKey({
+                brandId: actor.brandId,
+                kind: dto.kind,
+                referenceUrl: dto.referenceUrl,
+                scope: dto.scope,
+                userId: actor.userId,
+              }),
+            }
+          : {}),
       },
     });
     const inbox = await this.inbox(tx, actor, dto.scope);
@@ -209,66 +230,26 @@ export class KnowledgeRecordsService {
       .digest('hex')
       .slice(0, 32);
     const sourceId = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20)}`;
+    const hashedKey = createHash('sha256').update(lockKey).digest('hex');
     return this.prisma
-      .$transaction(async (tx) => {
-        await this.creationScope(tx, actor, dto.scope);
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
-        const existing = await tx.knowledgeSource.findFirst({
-          where: {
-            ...this.ownership(actor),
-            organizationId: actor.organizationId,
-            userId: actor.userId,
-            isDeleted: false,
-            id: sourceId,
-          },
-        });
-        if (existing) {
-          const version = await tx.knowledgeSourceVersion.findFirst({
-            where: {
-              organizationId: actor.organizationId,
-              isDeleted: false,
-              sourceId,
-              version: 1,
-              source: { is: this.ownership(actor) },
-            },
-          });
-          const provenance = version?.provenance;
-          if (
-            !version ||
-            !provenance ||
-            typeof provenance !== 'object' ||
-            Array.isArray(provenance) ||
-            provenance.captureRequestHash !== requestHash
-          ) {
-            throw new ConflictException(
-              'This capture key was already used for different or purged content. Start a new capture.',
-            );
-          }
-          return { source: existing, version };
-        }
-        const source = await this.createSourceInTransaction(
-          tx,
+      .$transaction((tx) =>
+        captureIdempotentKnowledgeSource(tx, {
           actor,
           dto,
-          sourceId,
-        );
-        const version = await tx.knowledgeSourceVersion.create({
-          data: {
-            sourceId,
-            organizationId: actor.organizationId,
-            version: 1,
-            contentHash: versionDto.contentHash,
-            provenance: {
-              ...versionDto.provenance,
-              captureRequestHash: requestHash,
-            },
-            payload: versionDto.payload,
-            observedAt: new Date(versionDto.observedAt),
-            retentionPolicy: KnowledgeRetentionPolicy.KEEP,
+          hashedKey,
+          helpers: {
+            createSource: (innerTx, innerActor, innerDto, id) =>
+              this.createSourceInTransaction(innerTx, innerActor, innerDto, id),
+            ownership: (innerActor) => this.ownership(innerActor),
+            prepareScope: (innerTx, innerActor, scope) =>
+              this.creationScope(innerTx, innerActor, scope),
           },
-        });
-        return { source, version };
-      })
+          lockKey,
+          requestHash,
+          sourceId,
+          versionDto,
+        }),
+      )
       .catch((error: unknown) => {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&
@@ -339,6 +320,25 @@ export class KnowledgeRecordsService {
       limit,
       totalPages: Math.ceil(totalDocs / limit),
     };
+  }
+
+  async assertSourcesInScope(actor: KnowledgeActor, sourceIds: string[]) {
+    if (sourceIds.length === 0) {
+      return;
+    }
+    const uniqueIds = [...new Set(sourceIds)];
+    const found = await this.prisma.knowledgeSource.findMany({
+      select: { id: true },
+      where: {
+        ...this.ownership(actor),
+        organizationId: actor.organizationId,
+        isDeleted: false,
+        id: { in: uniqueIds },
+      },
+    });
+    if (found.length !== uniqueIds.length) {
+      ErrorResponse.notFound('Knowledge source', uniqueIds.join(','));
+    }
   }
 
   async getSource(actor: KnowledgeActor, id: string) {
@@ -634,6 +634,39 @@ export class KnowledgeRecordsService {
           observedAt: new Date(dto.observedAt),
           expiresAt: dto.expiresAt ? new Date(dto.expiresAt) : null,
           retentionPolicy: dto.retentionPolicy ?? KnowledgeRetentionPolicy.KEEP,
+        },
+      });
+    });
+  }
+
+  async createCandidateVersion(
+    actor: KnowledgeActor,
+    sourceId: string,
+    dto: CreateKnowledgeVersionDto,
+  ) {
+    return this.prisma.$transaction(async (tx) => {
+      await this.lockSource(tx, actor, sourceId);
+      const prior = await tx.knowledgeSourceVersion.findFirst({
+        where: {
+          isDeleted: false,
+          organizationId: actor.organizationId,
+          sourceId,
+          source: { is: this.ownership(actor) },
+        },
+        orderBy: { version: 'desc' },
+      });
+      return tx.knowledgeSourceVersion.create({
+        data: {
+          contentHash: dto.contentHash,
+          isCurrent: false,
+          observedAt: new Date(dto.observedAt),
+          organizationId: actor.organizationId,
+          payload: dto.payload,
+          processingState: KnowledgeProcessingState.QUEUED,
+          provenance: dto.provenance,
+          retrievalState: KnowledgeRetrievalState.ACTIVE,
+          sourceId,
+          version: (prior?.version ?? 0) + 1,
         },
       });
     });

@@ -365,7 +365,7 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
     };
     const { service } = createService({ prisma, workflowExecutorService });
 
-    await service.executeScheduledWorkflow('wf-1');
+    await service.executeScheduledWorkflow('wf-1', 'fire-1');
 
     expect(prisma.workflow.findFirst).toHaveBeenCalledWith({
       select: EXECUTABLE_WORKFLOW_SELECT,
@@ -384,7 +384,10 @@ describe('WorkflowSchedulerService — scheduled fire execution', () => {
       'user-1',
       'org-1',
       {},
-      { triggeredBy: 'schedule' },
+      {
+        scheduledFireJobId: 'fire-1',
+        triggeredBy: 'schedule',
+      },
       WorkflowExecutionTrigger.SCHEDULED,
     );
   });

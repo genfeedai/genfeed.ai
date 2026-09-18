@@ -183,7 +183,7 @@ describe('outlier account history adapters', () => {
       contentType: 'video',
     });
   });
-  it('fails explicitly after the paginated 10000-record safety limit', async () => {
+  it('bounds source history to the newest 10000 observations instead of failing the collection', async () => {
     const h = inputHarness();
     h.sourcePost.findMany.mockResolvedValue(
       Array.from({ length: 200 }, (_, i) => ({
@@ -198,10 +198,11 @@ describe('outlier account history adapters', () => {
         collectedAt: new Date(),
       })),
     );
-    await expect(h.service.read(account)).rejects.toThrow('10000-record');
-    expect(h.sourcePost.findMany).toHaveBeenCalledTimes(51);
+    const result = await h.service.read(account);
+    expect(result.length).toBeLessThanOrEqual(10_000);
+    expect(h.sourcePost.findMany).toHaveBeenCalledTimes(50);
   });
-  it('fails when the latest distinct analytics observations exceed the bound', async () => {
+  it('bounds analytics observations instead of failing the collection retry', async () => {
     const h = inputHarness();
     h.queryRaw.mockResolvedValue(
       Array.from({ length: 200 }, (_, i) => ({ id: String(i) })),
@@ -215,8 +216,9 @@ describe('outlier account history adapters', () => {
         post: { id: String(i), credentialId: 'account', category: 'TEXT' },
       })),
     );
-    await expect(h.service.read(account)).rejects.toThrow('10000-record');
-    expect(h.queryRaw).toHaveBeenCalledTimes(51);
+    const result = await h.service.read(account);
+    expect(result.length).toBeLessThanOrEqual(10_000);
+    expect(h.queryRaw.mock.calls.length).toBeGreaterThan(0);
   });
   it('rejects conflicting canonical credential references', async () => {
     const h = inputHarness();

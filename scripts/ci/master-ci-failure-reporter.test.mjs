@@ -11,10 +11,14 @@ import {
 } from './genfeed-project-board.mjs';
 import {
   buildMasterCiFailureBody,
+  FOREIGN_MASTER_CI_TRACKER_LABELS,
+  isForeignWorkflowTracker,
   MASTER_CI_FAILURE_LABEL,
   reportMasterCiFailure,
   resolveMasterCiFailure,
 } from './master-ci-failure-reporter.mjs';
+import { NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL } from './nightly-playwright-full-failure-reporter.mjs';
+import { SCHEDULED_FAILURE_MARKER } from './scheduled-failure-tracker.mjs';
 
 const UNLABELED_TRACKER_TITLE =
   '🚨 Tests Gate failed on master push — 2026-08-27';
@@ -490,6 +494,154 @@ test('resolveMasterCiFailure closes unlabeled title-prefix trackers', async () =
 
 test('resolveMasterCiFailure is a noop when nothing is open', async () => {
   const { github, comments, updates } = createGithubMock({ openIssues: [] });
+
+  const result = await resolveMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'green again',
+    core: { info: () => {}, warning: () => {} },
+  });
+
+  assert.equal(result.action, 'noop');
+  assert.deepEqual(result.closed, []);
+  assert.equal(comments.length, 0);
+  assert.equal(updates.length, 0);
+});
+
+test('foreign tracker labels include the nightly Playwright full-tier label', () => {
+  assert.ok(
+    FOREIGN_MASTER_CI_TRACKER_LABELS.includes(
+      NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL,
+    ),
+  );
+  assert.equal(
+    isForeignWorkflowTracker({
+      title: 'Fix six app-core regressions in Nightly Playwright',
+      labels: [
+        { name: MASTER_CI_FAILURE_LABEL },
+        { name: NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL },
+      ],
+    }),
+    true,
+  );
+  assert.equal(
+    isForeignWorkflowTracker({
+      title: UNLABELED_TRACKER_TITLE,
+      labels: [{ name: MASTER_CI_FAILURE_LABEL }],
+    }),
+    false,
+  );
+});
+
+test('resolveMasterCiFailure does not close a nightly Playwright tracker that also carries master-ci-failure', async () => {
+  // #4579 was labeled both `master-ci-failure` and
+  // `nightly-playwright-full-failure`. A green Tests Gate then closed it
+  // while the nightly full tier was still red (#4689).
+  const { github, comments, updates } = createGithubMock({
+    openIssues: [
+      {
+        number: 4579,
+        title: 'Fix six app-core regressions in Nightly Playwright',
+        labels: [
+          { name: MASTER_CI_FAILURE_LABEL },
+          { name: NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL },
+        ],
+      },
+    ],
+  });
+
+  const result = await resolveMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'Tests Gate is green on master',
+    core: { info: () => {}, warning: () => {} },
+  });
+
+  assert.equal(result.action, 'noop');
+  assert.deepEqual(result.closed, []);
+  assert.equal(comments.length, 0);
+  assert.equal(updates.length, 0);
+});
+
+test('resolveMasterCiFailure still closes Tests Gate trackers when a nightly tracker is also labeled', async () => {
+  const { github, comments, updates } = createGithubMock({
+    openIssues: [
+      {
+        number: 2600,
+        title: UNLABELED_TRACKER_TITLE,
+        labels: [{ name: MASTER_CI_FAILURE_LABEL }],
+      },
+      {
+        number: 4579,
+        title: 'Fix six app-core regressions in Nightly Playwright',
+        labels: [
+          { name: MASTER_CI_FAILURE_LABEL },
+          { name: NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL },
+        ],
+      },
+    ],
+  });
+
+  const result = await resolveMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'green again',
+    core: { info: () => {}, warning: () => {} },
+  });
+
+  assert.equal(result.action, 'closed');
+  assert.deepEqual(result.closed, [2600]);
+  assert.equal(comments.length, 1);
+  assert.equal(comments[0].issue_number, 2600);
+  assert.equal(updates.length, 1);
+  assert.equal(updates[0].issue_number, 2600);
+});
+
+test('reportMasterCiFailure files a new Tests Gate tracker instead of commenting on a nightly issue', async () => {
+  const { github, comments, created } = createGithubMock({
+    openIssues: [
+      {
+        number: 4579,
+        title: 'Fix six app-core regressions in Nightly Playwright',
+        labels: [
+          { name: MASTER_CI_FAILURE_LABEL },
+          { name: NIGHTLY_PLAYWRIGHT_FULL_FAILURE_LABEL },
+        ],
+      },
+    ],
+  });
+
+  const result = await reportMasterCiFailure({
+    github,
+    owner: 'genfeedai',
+    repo: 'genfeed.ai',
+    body: 'Tests Gate failed on a master push',
+    date: '2026-09-08',
+    core: { info: () => {}, warning: () => {} },
+  });
+
+  assert.equal(result.action, 'created');
+  assert.equal(result.issueNumber, 99);
+  assert.equal(comments.length, 0);
+  assert.equal(created.length, 1);
+  assert.match(created[0].title, /^🚨 Tests Gate failed on master push/);
+});
+
+test('resolveMasterCiFailure does not close a scheduled-failure tracker that only has the Tests Gate label', async () => {
+  const { github, comments, updates } = createGithubMock({
+    openIssues: [
+      {
+        number: 4544,
+        title:
+          '[Scheduled failure] .github/workflows/playwright-full-nightly.yml / e2e-frontend-full / test-assertion',
+        labels: [{ name: MASTER_CI_FAILURE_LABEL }],
+        body: `<!-- ${SCHEDULED_FAILURE_MARKER}:eyJ3b3JrZmxvd0lkZW50aXR5IjoicGxheXdyaWdodC1mdWxsLW5pZ2h0bHkifQ -->\nNightly full tier failed.`,
+      },
+    ],
+  });
 
   const result = await resolveMasterCiFailure({
     github,

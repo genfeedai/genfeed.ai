@@ -23,32 +23,31 @@ const postConnect = vi.fn(async () => ({
   url: 'https://oauth.example/connect',
 }));
 const servicesPlatform = vi.fn();
-const listBrandAccountHealth = vi.fn(async () => [
-  {
-    assessedAt: '2026-06-30T10:00:00.000Z',
-    credentialId: 'credential-1',
-    holdPublishing: true,
-    holdReason: 'twitter publishing is held because account warmup is warming.',
-    label: 'X Account',
-    override: { isActive: false },
-    platform: CredentialPlatform.TWITTER,
-    riskLevel: 'medium',
-    score: 56,
-    signals: {
-      connectedDays: 1,
-      profileSignals: 2,
-      publishedPosts: 0,
-      recentFailures: 0,
-    },
-    state: 'warming',
-    thresholds: {
-      maxRecentFailures: 0,
-      minConnectedDays: 10,
-      minProfileSignals: 2,
-      minPublishedPosts: 4,
-    },
+const warmingAccountHealth = {
+  assessedAt: '2026-06-30T10:00:00.000Z',
+  credentialId: 'credential-1',
+  holdPublishing: true,
+  holdReason: 'twitter publishing is held because account warmup is warming.',
+  label: 'X Account',
+  override: { isActive: false },
+  platform: CredentialPlatform.TWITTER,
+  riskLevel: 'medium',
+  score: 56,
+  signals: {
+    connectedDays: 1,
+    profileSignals: 2,
+    publishedPosts: 0,
+    recentFailures: 0,
   },
-]);
+  state: 'warming' as const,
+  thresholds: {
+    maxRecentFailures: 0,
+    minConnectedDays: 10,
+    minProfileSignals: 2,
+    minPublishedPosts: 4,
+  },
+};
+const listBrandAccountHealth = vi.fn(async () => [warmingAccountHealth]);
 const overrideAccountHealth = vi.fn(async () => ({
   assessedAt: '2026-06-30T10:00:00.000Z',
   credentialId: 'credential-1',
@@ -761,8 +760,11 @@ describe('BrandDetailSocialMediaCard', () => {
         brandId="brand-1"
         connections={[
           {
+            accountHealth: warmingAccountHealth,
             credentialId: 'credential-1',
+            externalId: 'ext-1',
             handle: 'genfeed',
+            isConnected: true,
             platform: CredentialPlatform.TWITTER,
             url: 'https://x.com/genfeed',
           },
@@ -772,8 +774,8 @@ describe('BrandDetailSocialMediaCard', () => {
     );
 
     expect(await screen.findByText('Account health')).toBeInTheDocument();
-    expect(screen.getByText('Warming')).toBeInTheDocument();
-    expect(screen.getByText(/score 56/i)).toBeInTheDocument();
+    expect(await screen.findByText('Warming')).toBeInTheDocument();
+    expect(await screen.findByText(/score 56/i)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: /override 24h/i }));
     fireEvent.click(screen.getByRole('button', { name: /confirm override/i }));

@@ -1,14 +1,27 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
+import type { PersonasService } from '@api/collections/personas/services/personas.service';
 import { VideosClipChainController } from '@api/collections/videos/controllers/transformations/clip-chain/videos-clip-chain.controller';
 import type { WorkflowVisualNodeDto } from '@api/collections/workflows/dto/create-workflow.dto';
 import type { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import {
+  CREDITS_DEFER_MODEL_RESOLUTION_KEY,
+  CREDITS_KEY,
+} from '@api/helpers/decorators/credits/credits.decorator';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { ModelsGuard } from '@api/helpers/guards/models/models.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import {
+  ActivitySource,
+  IngredientCategory,
+  IngredientStatus,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
-import { BadRequestException } from '@nestjs/common';
+import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
+import { BadRequestException, HttpStatus } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -56,14 +69,31 @@ function createHarness() {
   const ingredientsService = {
     findOne: vi.fn(async (where: { id: string }) => stills[where.id] ?? null),
   };
+  const personasService = {
+    resolveCharacterHandles: vi.fn().mockResolvedValue({
+      resolvedIngredientIds: [],
+      unresolvedHandles: [],
+    }),
+  };
+  const videoGenerationCreditsService = {
+    ensureClipChainCredits: vi.fn().mockResolvedValue(undefined),
+  };
   const workflowsService = {
     createWorkflow: vi.fn().mockResolvedValue({ id: 'workflow-1' }),
   };
   const controller = new VideosClipChainController(
     ingredientsService as unknown as IngredientsService,
+    personasService as unknown as PersonasService,
+    videoGenerationCreditsService as never,
     workflowsService as unknown as WorkflowsService,
   );
-  return { controller, ingredientsService, workflowsService };
+  return {
+    controller,
+    ingredientsService,
+    personasService,
+    videoGenerationCreditsService,
+    workflowsService,
+  };
 }
 
 function videoGenNodes(nodes: WorkflowVisualNodeDto[]) {
@@ -192,15 +222,152 @@ describe('VideosClipChainController', () => {
     expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
   });
 
-  it('guards the route with subscription and model validation', () => {
+  it('guards the route with subscription, credits, and model validation', () => {
     const handler = Object.getOwnPropertyDescriptor(
       VideosClipChainController.prototype,
       'createClipChain',
     )?.value;
 
+    expect(Reflect.getMetadata(CREDITS_KEY, handler)).toEqual({
+      description: 'Clip-chain video',
+      source: ActivitySource.VIDEO_GENERATION,
+    });
+    expect(
+      Reflect.getMetadata(CREDITS_DEFER_MODEL_RESOLUTION_KEY, handler),
+    ).toBe(true);
     expect(Reflect.getMetadata('__guards__', handler)).toEqual([
       SubscriptionGuard,
+      CreditsGuard,
       ModelsGuard,
+    ]);
+    expect(Reflect.getMetadata('__interceptors__', handler)).toEqual([
+      CreditsInterceptor,
+    ]);
+  });
+
+  it('refuses a 10-segment run and creates no workflow when credits are short', async () => {
+    const { controller, videoGenerationCreditsService, workflowsService } =
+      createHarness();
+    videoGenerationCreditsService.ensureClipChainCredits.mockRejectedValue(
+      createInsufficientCreditsException(
+        estimateClipChainCredits(10),
+        estimateClipChainCredits(3),
+      ),
+    );
+
+    const error = await controller
+      .createClipChain({} as Request, user, {
+        characterIngredientIds: ['character-1'],
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+        segmentCount: 10,
+      })
+      .catch((caught) => caught);
+
+    expect(error.getStatus()).toBe(HttpStatus.PAYMENT_REQUIRED);
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+    expect(
+      videoGenerationCreditsService.ensureClipChainCredits,
+    ).toHaveBeenCalledWith(
+      10,
+      MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      'org-1',
+      expect.anything(),
+    );
+  });
+
+  it('stores the reservation hold on the workflow so execution can settle it', async () => {
+    const { controller, workflowsService } = createHarness();
+    const request = {
+      creditsConfig: {
+        amount: estimateClipChainCredits(3),
+        deferred: true,
+        reservationId: 'reservation-1',
+      },
+    };
+
+    await controller.createClipChain(request as unknown as Request, user, {
+      characterIngredientIds: ['character-1'],
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      segmentPrompts: ['Beat one', 'Beat two', 'Beat three'],
+    });
+
+    const workflowDto = workflowsService.createWorkflow.mock.calls[0][2];
+    expect(workflowDto.metadata.credits).toEqual({
+      reservationId: 'reservation-1',
+      reservedCredits: estimateClipChainCredits(3),
+    });
+  });
+
+  it('resolves a character handle to the canonical still on every segment', async () => {
+    const { controller, personasService, workflowsService } = createHarness();
+    personasService.resolveCharacterHandles.mockResolvedValue({
+      resolvedIngredientIds: ['character-1'],
+      unresolvedHandles: [],
+    });
+
+    await controller.createClipChain({} as Request, user, {
+      characterHandles: ['anna'],
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      segmentPrompts: ['Beat one', 'Beat two'],
+    });
+
+    expect(personasService.resolveCharacterHandles).toHaveBeenCalledWith({
+      brandId: 'brand-1',
+      handles: ['anna'],
+      organizationId: 'org-1',
+    });
+    const workflowDto = workflowsService.createWorkflow.mock.calls[0][2];
+    expect(workflowDto.metadata.identity.characterIngredientIds).toEqual([
+      'character-1',
+    ]);
+    for (const segment of videoGenNodes(workflowDto.nodes)) {
+      expect(segment.data?.config).toMatchObject({
+        parameters: {
+          identityReferences: [{ assetId: 'character-1', role: 'character' }],
+        },
+      });
+    }
+  });
+
+  it('rejects an unresolved handle before a workflow exists', async () => {
+    const { controller, personasService, workflowsService } = createHarness();
+    personasService.resolveCharacterHandles.mockResolvedValue({
+      resolvedIngredientIds: [],
+      unresolvedHandles: ['ghost'],
+    });
+
+    await expect(
+      controller.createClipChain({} as Request, user, {
+        characterHandles: ['ghost'],
+        model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      }),
+    ).rejects.toThrow('Unresolved character handles: ghost');
+    expect(workflowsService.createWorkflow).not.toHaveBeenCalled();
+  });
+
+  it('merges a handle and the same explicit ingredient id into one still', async () => {
+    const {
+      controller,
+      ingredientsService,
+      personasService,
+      workflowsService,
+    } = createHarness();
+    personasService.resolveCharacterHandles.mockResolvedValue({
+      resolvedIngredientIds: ['character-1'],
+      unresolvedHandles: [],
+    });
+
+    await controller.createClipChain({} as Request, user, {
+      characterHandles: ['anna'],
+      characterIngredientIds: ['character-1'],
+      model: MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDANCE_2_5,
+      segmentPrompts: ['Beat one', 'Beat two'],
+    });
+
+    expect(ingredientsService.findOne).toHaveBeenCalledTimes(1);
+    const workflowDto = workflowsService.createWorkflow.mock.calls[0][2];
+    expect(workflowDto.metadata.identity.characterIngredientIds).toEqual([
+      'character-1',
     ]);
   });
 });

@@ -28,5 +28,11 @@ export interface ResolveActiveSkillsContext {
   agentType?: string;
   channel?: string;
   modality?: string;
+  /**
+   * Skills the operator picked explicitly for this turn from the composer's
+   * `/` palette. Narrowed to the brand's enabled set — asking for a skill the
+   * brand has switched off does not switch it back on.
+   */
+  requestedSkillSlugs?: string[];
   workflowStage?: string;
 }

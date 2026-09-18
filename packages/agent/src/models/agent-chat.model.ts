@@ -10,6 +10,7 @@ import type {
   AgentArtifactReference,
   AgentClipRunIdentity,
   AgentDashboardOperation,
+  AgentGenerationActionParams,
   AgentPublishTargetProposal,
   AgentTransferPresentation,
   AgentUIBlock,
@@ -241,18 +242,7 @@ export interface AgentUiAction {
   outcomeBullets?: string[];
   outputVariants?: AgentUiActionOutputVariant[];
   generationType?: 'image' | 'video';
-  generationParams?: {
-    prompt?: string;
-    model?: string;
-    aspectRatio?: string;
-    duration?: number;
-    outputs?: number;
-    prioritize?: string;
-    references?: string[];
-    resolution?: string;
-    endFrame?: string;
-    videoReferences?: string[];
-  };
+  generationParams?: AgentGenerationActionParams;
   ingredients?: AgentIngredientItem[];
   workflows?: {
     id: string;
@@ -581,6 +571,8 @@ export interface AgentChatPayload {
   source?: 'agent' | 'proactive' | 'onboarding';
   attachments?: ChatAttachment[];
   pageContext?: AgentPageContext;
+  /** Skills picked from the composer `/` palette for this turn. */
+  requestedSkillSlugs?: string[];
   /** Only meaningful when this turn creates a new thread (#4672). */
   agentMode?: AgentThreadMode;
   brandIds?: string[];

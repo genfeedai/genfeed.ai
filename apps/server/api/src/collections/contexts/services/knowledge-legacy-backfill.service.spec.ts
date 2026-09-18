@@ -24,6 +24,8 @@ const migrations = [
   '20260904230000_knowledge_source_space_contracts',
   '20260906210000_knowledge_chunks_link_versions',
   '20260910180000_knowledge_version_legal_hold',
+  '20260917180000_knowledge_refresh_and_transcripts',
+  '20260918120000_knowledge_capture_request_hash',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -188,14 +190,15 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
       }),
     ).toMatchObject({ knowledgeSourceId: null });
 
-    // Unsupported legacy kind fails safely with a reason instead of queueing.
+    // VIDEO is ingestible: queue the candidate version instead of failing it.
     const video = await prisma.knowledgeSource.findFirstOrThrow({
       include: { versions: true },
       where: { organizationId: 'org-a', title: 'Launch video' },
     });
+    expect(video).toMatchObject({ kind: KnowledgeSourceKind.VIDEO });
     expect(video.versions[0]).toMatchObject({
-      processingError: 'VIDEO sources are not ingested yet',
-      processingState: KnowledgeProcessingState.FAILED,
+      processingError: null,
+      processingState: KnowledgeProcessingState.QUEUED,
     });
 
     // Bookmarks: brand ones in the folder space, personal one personal.
@@ -234,7 +237,12 @@ describePostgres('KnowledgeLegacyBackfillService with PostgreSQL', () => {
       scope: KnowledgeMemoryScope.PERSONAL,
       userId: 'member-a',
     });
-    expect(enqueueIngest).toHaveBeenCalledTimes(3);
+    expect(enqueueIngest).toHaveBeenCalledTimes(4);
+    expect(enqueueIngest).toHaveBeenCalledWith({
+      organizationId: 'org-a',
+      sourceId: video.id,
+      versionId: video.versions[0]?.id,
+    });
     expect(enqueueIngest).toHaveBeenCalledWith({
       organizationId: 'org-a',
       sourceId: thread.id,

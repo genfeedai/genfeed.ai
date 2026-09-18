@@ -14,6 +14,7 @@ import type {
   VideoQaSegment,
   VideoQaStreamInfo,
 } from '@genfeedai/contracts/types';
+import { PermanentExecutionError } from '../../execution/execution-error';
 import type { ExecutableNode } from '../../types';
 import { isRecord } from '../../utils/record';
 import {
@@ -48,9 +49,58 @@ export interface VideoQaContract {
 }
 
 export interface VideoQaExecutorOutput extends VideoQaReport {
-  continuityQa?: VideoContinuityQaReport;
+  continuityQa?: VideoContinuityQaReport | null;
   report: VideoQaReport;
   video: string | null;
+}
+
+export type CharacterContinuityGateDecision =
+  | { blocked: false }
+  | { blocked: true; reason: string };
+
+/**
+ * Identity-lock clip-chain gates the next generate and stitch on character
+ * continuity. Outfit/product findings stay advisory. Non-identity runs leave
+ * the gate off so a missing sheet cannot fake a pass or block the chain.
+ */
+export function shouldBlockCharacterContinuityGate(args: {
+  continuityQa: VideoContinuityQaReport | null | undefined;
+  decodePassed: boolean;
+  isCharacterGateEnabled: boolean;
+}): CharacterContinuityGateDecision {
+  if (!args.isCharacterGateEnabled) {
+    return { blocked: false };
+  }
+  if (!args.decodePassed) {
+    return {
+      blocked: true,
+      reason: 'Video decode QA failed before character continuity could pass.',
+    };
+  }
+
+  const report = args.continuityQa;
+  if (!report) {
+    return {
+      blocked: true,
+      reason: 'Character continuity QA did not produce a report.',
+    };
+  }
+  if (report.skipReason) {
+    return {
+      blocked: true,
+      reason: `Character continuity QA skipped (${report.skipReason}).`,
+    };
+  }
+
+  const verdict = report.clips[0]?.character.verdict;
+  if (verdict === 'consistent') {
+    return { blocked: false };
+  }
+
+  return {
+    blocked: true,
+    reason: `Character continuity QA is ${verdict ?? 'not_assessed'}.`,
+  };
 }
 
 export type VideoQaProcessor = (params: {
@@ -587,14 +637,28 @@ export class VideoQaExecutor extends BaseExecutor {
           runId: context.runId,
           videoUrl,
         })
-      : undefined;
+      : null;
+    const isCharacterGateEnabled = this.getOptionalConfig<boolean>(
+      node.config,
+      'isContinuityCharacterGateEnabled',
+      false,
+    );
+    const gate = shouldBlockCharacterContinuityGate({
+      continuityQa,
+      decodePassed: report.passed,
+      isCharacterGateEnabled,
+    });
 
     const output: VideoQaExecutorOutput = {
       ...report,
-      ...(continuityQa ? { continuityQa } : {}),
+      continuityQa,
       report,
-      video: report.passed ? videoUrl : null,
+      video: report.passed && !gate.blocked ? videoUrl : null,
     };
+
+    if (gate.blocked) {
+      throw new PermanentExecutionError(gate.reason, { output });
+    }
 
     return {
       data: output,

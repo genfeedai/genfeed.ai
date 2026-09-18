@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SkillSurface } from '@genfeedai/contracts';
 import { GUARDS_METADATA, PATH_METADATA } from '@nestjs/common/constants';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
@@ -141,7 +142,37 @@ describe('SkillsController', () => {
 
     await controller.listSkills(mockReq, mockUser);
 
-    expect(mockService.listAllForOrg).toHaveBeenCalledWith('org-1');
+    expect(mockService.listAllForOrg).toHaveBeenCalledWith('org-1', {
+      surface: undefined,
+    });
+  });
+
+  it('narrows the catalog to a composer surface', async () => {
+    mockService.listAllForOrg.mockResolvedValue([]);
+
+    await controller.listSkills(mockReq, mockUser, 'studio');
+
+    expect(mockService.listAllForOrg).toHaveBeenCalledWith('org-1', {
+      surface: SkillSurface.STUDIO,
+    });
+  });
+
+  it('treats an empty surface as no filter', async () => {
+    mockService.listAllForOrg.mockResolvedValue([]);
+
+    await controller.listSkills(mockReq, mockUser, '');
+
+    expect(mockService.listAllForOrg).toHaveBeenCalledWith('org-1', {
+      surface: undefined,
+    });
+  });
+
+  it('rejects an unknown surface rather than returning the whole catalog', async () => {
+    await expect(
+      controller.listSkills(mockReq, mockUser, 'publishing'),
+    ).rejects.toMatchObject({ status: 400 });
+
+    expect(mockService.listAllForOrg).not.toHaveBeenCalled();
   });
 
   it('gets a skill by id or slug', async () => {

@@ -65,6 +65,8 @@ export interface AgentChatRequest {
   /** Explicit Knowledge selection for content generated in this turn. */
   knowledgeSelection?: KnowledgeSelection;
   pageContext?: AgentPageContext;
+  /** Skills the operator picked from the composer `/` palette for this turn. */
+  requestedSkillSlugs?: string[];
   /** #4672 per-thread agent mode. Only meaningful when creating a thread —
    * an existing thread keeps its own persisted mode regardless. */
   agentMode?: AgentThreadMode;

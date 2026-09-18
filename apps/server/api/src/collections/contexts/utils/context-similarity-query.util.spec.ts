@@ -74,6 +74,8 @@ describe('context similarity query', () => {
       'v."expiresAt" IS NULL OR v."expiresAt" > NOW()',
       's."isVisible" = true',
       's."isDeleted" = false',
+      `s."syncState" IS DISTINCT FROM 'STALE'`,
+      's."staleAt" IS NULL',
     ]) {
       expect(query.sql).toContain(clause);
     }

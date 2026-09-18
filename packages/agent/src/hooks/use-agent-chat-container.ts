@@ -444,6 +444,7 @@ export function useAgentChatContainer({
           generationMode: item.options?.generationMode,
           generationSettings: item.options?.generationSettings,
           knowledgeSelection: item.options?.knowledgeSelection,
+          requestedSkillSlugs: item.options?.requestedSkillSlugs,
           agentMode: item.options?.agentMode,
         });
         return true;
@@ -506,6 +507,7 @@ export function useAgentChatContainer({
             generationMode: options?.generationMode,
             generationSettings: options?.generationSettings,
             knowledgeSelection: options?.knowledgeSelection,
+            requestedSkillSlugs: options?.requestedSkillSlugs,
             agentMode: options?.agentMode ?? sendAgentMode,
           },
         });
@@ -522,6 +524,7 @@ export function useAgentChatContainer({
         generationMode: options?.generationMode,
         generationSettings: options?.generationSettings,
         knowledgeSelection: options?.knowledgeSelection,
+        requestedSkillSlugs: options?.requestedSkillSlugs,
         agentMode: options?.agentMode ?? sendAgentMode,
       });
       return true;

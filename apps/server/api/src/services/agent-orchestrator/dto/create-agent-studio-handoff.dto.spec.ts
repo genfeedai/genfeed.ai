@@ -32,9 +32,19 @@ describe('CreateAgentStudioHandoffDto', () => {
       prompt: 'p'.repeat(8000),
       references: Array.from({ length: 20 }, () => VALID_ID),
       resolution: '1080p',
+      useIdentity: true,
       voiceId: 'v'.repeat(200),
     });
     await expect(validate(dto)).resolves.toEqual([]);
+  });
+
+  it('rejects a non-boolean useIdentity flag', async () => {
+    const dto = plainToInstance(CreateAgentStudioHandoffDto, {
+      ...basePayload(),
+      useIdentity: 'yes',
+    });
+    const errors = await validate(dto);
+    expect(errors.some((error) => error.property === 'useIdentity')).toBe(true);
   });
 
   // #4716 re-review P3: an unbounded prompt/reference list would otherwise

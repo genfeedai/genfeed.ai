@@ -177,6 +177,7 @@ export class AgentOrchestratorController {
       model: body.model,
       pageContext,
       agentMode: body.agentMode,
+      requestedSkillSlugs: body.requestedSkillSlugs,
       source: body.source,
       threadId: routeThreadId ?? body.threadId,
     };

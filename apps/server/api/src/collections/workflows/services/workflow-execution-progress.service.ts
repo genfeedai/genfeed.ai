@@ -72,6 +72,7 @@ export class WorkflowExecutionProgressService {
       error?: string;
       startedAt?: Date;
       completedAt?: Date;
+      creditsUsed?: number;
     },
   ): Promise<Awaited<
     ReturnType<WorkflowExecutionsService['updateNodeResult']>
@@ -79,6 +80,7 @@ export class WorkflowExecutionProgressService {
     try {
       const nodeResult = {
         completedAt: updates.completedAt,
+        creditsUsed: updates.creditsUsed,
         error: updates.error,
         nodeId,
         nodeType,

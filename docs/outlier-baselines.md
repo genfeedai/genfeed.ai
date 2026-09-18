@@ -36,10 +36,11 @@ posts do not contribute but can receive ratios. Unknown provider flags stay unkn
 missing or unavailable views stay null. Impressions and reach are not substitutes
 for views. Provider APIs that do not expose views therefore have no view ratio.
 
-Reads are paginated at 200 observations, with a hard 10,000-observation account limit.
+Reads are paginated at 200 observations, with a hard 10,000-observation account bound.
 PostgreSQL selects one latest daily observation per post before pagination; historical
 daily rows do not count toward this limit. Collected source-post observations do count.
-Exceeding it fails before any new snapshot is written. Calculation is O(M*N),
+Accounts above the bound keep the newest 10,000 unique observations rather than failing
+the collection retry. Calculation is O(M*N),
 N<=50, with per-post provenance across M tracked posts. The first backfill reads
 only active records. Later refreshes compare the latest tracked IDs with current
 active inputs and record disappeared IDs as soft-deleted without fetching content.
@@ -53,8 +54,12 @@ old snapshots. Thresholds must be finite, positive and increasing. Maturity over
 keys are canonical platforms and values are nonnegative safe integer hours.
 
 GET `/` requires brandId, accountType and accountId; platform/contentType are optional.
-GET `/:id` returns one authorized snapshot. GET `/:id/posts` returns its attributed
-measurements. Lists default to 20 rows and cap at 100. Refresh returns every current
+GET `/posts` returns the latest ready snapshot's measurements ranked by `outlierRatio`
+descending. Optional filters: brandId, accountType, accountId, platform, contentType,
+tier (`outlier` includes breakout; `breakout` is breakout only), and windowSize.
+When platform is omitted, results are ordered by platform then ratio so rankings never
+merge across platforms. GET `/:id` returns one authorized snapshot. GET `/:id/posts`
+returns its attributed measurements. Lists default to 20 rows and cap at 100. Refresh returns every current
 or previously tracked content-type bucket, including newly empty buckets. Responses
 use dedicated serializers and expose no raw provider payloads or credentials.
 

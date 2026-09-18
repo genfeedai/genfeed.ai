@@ -4,6 +4,7 @@ import HomeFooter from '@web-components/home/_footer';
 import HomeHero from '@web-components/home/_hero';
 import HomeHow from '@web-components/home/_how';
 import HomeProduct from '@web-components/home/_product';
+import HomeProviders from '@web-components/home/_providers';
 import HomeReveal from '@web-components/home/_reveal';
 import ProofWinners from '@web-components/proof/ProofWinners';
 
@@ -14,6 +15,7 @@ export default function HomeContent() {
       <HomeProduct />
       <ProofWinners />
       <HomeHow />
+      <HomeProviders />
       <HomeAsks />
       <HomeCTA />
       <HomeFooter />

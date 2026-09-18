@@ -14,6 +14,7 @@ export type DeferredCreditsConfig = {
   modelKey?: string;
   pricingMetadata?: CreditsPricingMetadata;
   provider?: ByokProvider;
+  reservationId?: string;
 };
 
 export type DeferredCreditsRequest = {

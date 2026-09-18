@@ -17,6 +17,7 @@ import {
 } from '@genfeedai/contracts';
 import type {
   AgentCharacterMentionItem,
+  CharacterHandleResolution,
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -249,6 +250,73 @@ export class PersonasService extends BaseService<
         },
       ];
     });
+  }
+
+  async resolveCharacterHandles(params: {
+    brandId?: string | null;
+    handles: readonly string[];
+    organizationId: string;
+  }): Promise<CharacterHandleResolution> {
+    const requested = params.handles
+      .map((handle) => handle.trim())
+      .filter((handle) => handle.length > 0);
+    if (requested.length === 0) {
+      return { resolvedIngredientIds: [], unresolvedHandles: [] };
+    }
+
+    const uniqueNormalized: string[] = [];
+    const seenNormalized = new Set<string>();
+    for (const handle of requested) {
+      const normalized = handle.toLowerCase();
+      if (seenNormalized.has(normalized)) {
+        continue;
+      }
+      seenNormalized.add(normalized);
+      uniqueNormalized.push(normalized);
+    }
+
+    const rows = await this.prisma.persona.findMany({
+      select: {
+        avatarIngredientId: true,
+        handle: true,
+      },
+      where: scopedWhere(params.organizationId, {
+        handle: { in: uniqueNormalized },
+        status: PersonaStatus.ACTIVE,
+        ...(params.brandId ? { brandId: params.brandId } : {}),
+      }),
+    });
+
+    const byHandle = new Map<string, string | null>();
+    for (const row of rows) {
+      if (!row.handle) {
+        continue;
+      }
+      byHandle.set(row.handle.toLowerCase(), row.avatarIngredientId);
+    }
+
+    const resolvedIngredientIds: string[] = [];
+    const unresolvedHandles: string[] = [];
+    const seenIds = new Set<string>();
+    const seenUnresolved = new Set<string>();
+    for (const handle of requested) {
+      const normalized = handle.toLowerCase();
+      const ingredientId = byHandle.get(normalized);
+      if (!ingredientId) {
+        if (!seenUnresolved.has(normalized)) {
+          seenUnresolved.add(normalized);
+          unresolvedHandles.push(handle);
+        }
+        continue;
+      }
+      if (seenIds.has(ingredientId)) {
+        continue;
+      }
+      seenIds.add(ingredientId);
+      resolvedIngredientIds.push(ingredientId);
+    }
+
+    return { resolvedIngredientIds, unresolvedHandles };
   }
 
   async createFromApprovedSheet(params: {

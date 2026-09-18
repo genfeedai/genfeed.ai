@@ -411,9 +411,12 @@ describe('StudioGenerateWorkspace', () => {
       extraExtensions?: unknown;
       onPromptChange: (value: string) => void;
     };
-    expect(initialProps.extraExtensions).toBe(
-      characterMentionMocks.extraExtensions,
-    );
+    // The composer runs the character-mention extensions alongside the shared
+    // `/` command palette.
+    expect(initialProps.extraExtensions).toEqual([
+      ...characterMentionMocks.extraExtensions,
+      expect.objectContaining({ name: 'promptCommands' }),
+    ]);
     act(() => initialProps.onPromptChange('Use this composition'));
 
     const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {
@@ -812,6 +815,65 @@ describe('StudioGenerateWorkspace', () => {
     expect(mocks.notify).toHaveBeenCalledWith(
       expect.stringContaining('aspect ratio, duration, output count'),
     );
+  });
+
+  it('prefills avatar and voice from an identity handoff (#4717)', async () => {
+    mocks.type.value = 'avatar';
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        avatarPhotoUrl: 'https://cdn.test/portrait.png',
+        brandId: 'brand-1',
+        modelKey: 'heygen/avatar',
+        prompt: 'Say this as the brand',
+        type: 'avatar',
+        useIdentity: true,
+        voiceId: 'voice-1',
+      },
+    };
+
+    render(<StudioGenerateWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'avatar',
+        expect.objectContaining({
+          avatarPhotoUrl: 'https://cdn.test/portrait.png',
+          voiceId: 'voice-1',
+        }),
+      );
+    });
+    expect(screen.getByText('Say this as the brand')).toBeVisible();
+    expect(mocks.notify).not.toHaveBeenCalled();
+  });
+
+  it('keeps the rest of the prefill and notices when identity could not be carried (#4717)', async () => {
+    mocks.type.value = 'avatar';
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        modelKey: 'heygen/avatar',
+        prompt: 'Say this as the brand',
+        type: 'avatar',
+        useIdentity: true,
+      },
+    };
+
+    render(<StudioGenerateWorkspace />);
+
+    await waitFor(() => {
+      expect(mocks.applyTypeSettings).toHaveBeenCalledWith(
+        'avatar',
+        expect.objectContaining({ modelKey: 'heygen/avatar' }),
+      );
+    });
+    expect(screen.getByText('Say this as the brand')).toBeVisible();
+    await waitFor(() => {
+      expect(mocks.notify).toHaveBeenCalledWith(
+        expect.stringContaining('avatar and voice'),
+      );
+    });
   });
 
   it('attaches the resolved reference exactly once under React StrictMode double-invoke (#4716 re-review P3)', async () => {

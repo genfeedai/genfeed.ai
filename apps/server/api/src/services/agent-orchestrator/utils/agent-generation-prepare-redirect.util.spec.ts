@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import {
   getGenerationPreparationRedirect,
   inferPrepareGenerationType,
+  isIdentityGenerationToolName,
   normalizeRequestedAgentToolName,
 } from './agent-generation-prepare-redirect.util';
 
@@ -23,6 +24,20 @@ describe('normalizeRequestedAgentToolName', () => {
     expect(normalizeRequestedAgentToolName('generate_image')).toBe(
       'generate_image',
     );
+  });
+});
+
+describe('isIdentityGenerationToolName', () => {
+  it('recognizes generate_as_identity, including vendor prefixes', () => {
+    expect(isIdentityGenerationToolName('generate_as_identity')).toBe(true);
+    expect(
+      isIdentityGenerationToolName('default_api.generate_as_identity'),
+    ).toBe(true);
+  });
+
+  it('does not treat ordinary image or video generation as identity', () => {
+    expect(isIdentityGenerationToolName('generate_image')).toBe(false);
+    expect(isIdentityGenerationToolName('generate_video')).toBe(false);
   });
 });
 

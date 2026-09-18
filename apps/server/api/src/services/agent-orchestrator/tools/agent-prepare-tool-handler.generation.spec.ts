@@ -46,6 +46,31 @@ describe('AgentPrepareToolHandler.prepareGeneration', () => {
         type: 'generation_action_card',
       }),
     );
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({
+        generationParams: expect.not.objectContaining({ useIdentity: true }),
+      }),
+    );
+  });
+
+  it('marks a generation card when the source used brand identity', async () => {
+    const result = await createHandler().prepareGeneration(
+      {
+        generationType: 'video',
+        prompt: 'Say this as the brand identity',
+        useIdentity: true,
+      },
+      ctx,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({
+        generationParams: expect.objectContaining({ useIdentity: true }),
+        generationType: 'video',
+        type: 'generation_action_card',
+      }),
+    );
   });
 
   it('refuses video in an image conversation', async () => {

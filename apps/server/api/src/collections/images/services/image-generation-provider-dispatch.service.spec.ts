@@ -450,15 +450,18 @@ describe('ImageGenerationProviderDispatchService', () => {
       requestId: 'higgsfield-req-1',
     });
     higgsFieldService.waitForImageCompletion.mockResolvedValue({
-      imageUrl: 'https://higgsfield.example.com/generated.png',
+      imageUrls: ['https://higgsfield.example.com/generated.png'],
     });
     const context = buildContext({ model: MODEL_KEYS.HIGGSFIELD_SOUL });
 
     const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
+    // Soul 2 has no documented image_reference field. Output count still has
+    // to reach the adapter so a batch request is not silently collapsed to 1.
     expect(higgsFieldService.generateTextToImage).toHaveBeenCalledWith({
       aspectRatio: '16:9',
+      batchSize: 1,
       organizationId: 'organization-1',
       prompt: 'A cinematic sunrise',
     });

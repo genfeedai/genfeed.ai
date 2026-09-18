@@ -201,6 +201,33 @@ export interface AgentClipRunIdentity {
   voiceProvider?: string;
 }
 
+/**
+ * Payload on a `generation_action_card`. Identity fields match the Agent →
+ * Studio handoff (`AgentStudioHandoffPayload`): `useIdentity` marks a
+ * `generate_as_identity` card, and `avatarPhotoUrl` / `voiceId` carry a
+ * snapshot when the sender already resolved them.
+ */
+export interface AgentGenerationActionParams {
+  aspectRatio?: string;
+  avatarPhotoUrl?: string;
+  duration?: number;
+  endFrame?: string;
+  model?: string;
+  outputs?: number;
+  prioritize?: string;
+  prompt?: string;
+  references?: string[];
+  resolution?: string;
+  /**
+   * True when this card originated from an identity generation
+   * (`generate_as_identity`). Open in Studio then snapshots the brand
+   * identity's avatar and voice (#4717).
+   */
+  useIdentity?: boolean;
+  videoReferences?: string[];
+  voiceId?: string;
+}
+
 export interface AgentUiAction extends AgentUiActionBase {
   assetId?: string;
   assetKind?: 'image' | 'video' | 'voice';
@@ -233,16 +260,7 @@ export interface AgentUiAction extends AgentUiActionBase {
     previewUrl?: string;
   }>;
   generationType?: 'image' | 'video';
-  generationParams?: {
-    prompt?: string;
-    model?: string;
-    aspectRatio?: string;
-    duration?: number;
-    endFrame?: string;
-    references?: string[];
-    resolution?: string;
-    videoReferences?: string[];
-  };
+  generationParams?: AgentGenerationActionParams;
   ingredients?: AgentIngredientItem[];
   workflows?: {
     id: string;

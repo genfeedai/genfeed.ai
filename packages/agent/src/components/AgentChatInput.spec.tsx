@@ -443,6 +443,7 @@ describe('AgentChatInput', () => {
     fireEvent.click(
       await screen.findByRole('menuitem', { name: /\/publish/i }),
     );
+    expect(await screen.findByRole('textbox')).toHaveTextContent('/publish');
     fireEvent.click(await screen.findByLabelText('Send message'));
 
     await waitFor(() => {
@@ -455,7 +456,7 @@ describe('AgentChatInput', () => {
     expect(onSend).not.toHaveBeenCalled();
     expect(screen.getByRole('textbox')).toHaveTextContent('/publish');
     expect(
-      screen.getByText(
+      await screen.findByText(
         'Opened Publishing. Explicit approval is still required.',
       ),
     ).toBeInTheDocument();

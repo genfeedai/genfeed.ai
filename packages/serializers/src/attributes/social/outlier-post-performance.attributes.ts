@@ -20,4 +20,9 @@ export const outlierPostPerformanceAttributes = createEntityAttributes([
   'exclusionReasons',
   'isPinnedUnknown',
   'isPromotedUnknown',
+  'medianViews',
+  'sampleSize',
+  'windowSize',
+  'snapshotStatus',
+  'snapshotComputedAt',
 ]);

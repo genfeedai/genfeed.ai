@@ -770,7 +770,7 @@ export class FacebookService {
         reach: engagedUsers || undefined,
         reactions: Object.keys(reactions).length > 0 ? reactions : undefined,
         shares: data.shares?.count || 0,
-        views: videoViews || impressions || 0,
+        views: videoViews || 0,
       };
     } catch (error: unknown) {
       this.loggerService.error(`${url} failed`, error);

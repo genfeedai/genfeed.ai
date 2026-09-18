@@ -9,10 +9,10 @@ import {
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { CredentialMentionList } from '@genfeedai/agent/components/CredentialMentionList';
 import { TeamMentionList } from '@genfeedai/agent/components/TeamMentionList';
+import { AGENT_SLASH_COMMANDS } from '@genfeedai/agent/constants/agent-slash-commands.constant';
 import { parseConversationComposerCommand } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import { CharacterMention } from '@genfeedai/agent/extensions/character-mention.extension';
 import { CredentialMention } from '@genfeedai/agent/extensions/credential-mention.extension';
-import { SlashCommands } from '@genfeedai/agent/extensions/slash-commands.extension';
 import { TeamMention } from '@genfeedai/agent/extensions/team-mention.extension';
 import { useCharacterMentions } from '@genfeedai/agent/hooks/use-character-mentions';
 import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions';
@@ -42,6 +42,7 @@ import {
   AgentGenerationMode,
   isExplicitAgentMediaGenerationMode,
   resolveAgentTurnGenerationMode,
+  SkillSurface,
 } from '@genfeedai/contracts';
 import type {
   AgentArtifactReference,
@@ -53,12 +54,19 @@ import type {
   DragHandlers,
   DragState,
 } from '@genfeedai/props/ui/attachments.props';
+import { extractRequestedSkillSlugs } from '@helpers/content/prompt-command.helper';
+import { useSurfaceSkillCommands } from '@hooks/data/skills/use-surface-skill-commands';
 import type { Editor, JSONContent } from '@tiptap/core';
 import Placeholder from '@tiptap/extension-placeholder';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import { applyPromptEditorPasteText } from '@ui/prompt-editor/apply-prompt-editor-paste';
 import { normalizePromptEditorPasteText } from '@ui/prompt-editor/normalize-prompt-editor-paste';
+import {
+  filterPromptCommands,
+  insertPromptCommandText,
+  PromptCommands,
+} from '@ui/prompt-editor/prompt-commands.extension';
 import { useTranslations } from 'next-intl';
 import {
   type ClipboardEvent,
@@ -254,6 +262,29 @@ export function useAgentChatInput({
   const { isLoading: isContentLibraryLoading, mentions: contentLibraryItems } =
     useContentMentions(apiService ?? null);
 
+  // `/` palette: the Agent's own actions, then every skill the catalog offers
+  // on this surface. The extension reads the list through a ref so a catalog
+  // that lands after mount does not force the editor to be rebuilt.
+  const { commands: promptCommands, skillSlugs } = useSurfaceSkillCommands({
+    baseCommands: AGENT_SLASH_COMMANDS,
+    surface: SkillSurface.AGENT,
+  });
+  const promptCommandsRef = useRef(promptCommands);
+  promptCommandsRef.current = promptCommands;
+  const skillSlugsRef = useRef(skillSlugs);
+  skillSlugsRef.current = skillSlugs;
+  const promptCommandsExtension = useMemo(
+    () =>
+      PromptCommands.configure({
+        getItems: (query) =>
+          filterPromptCommands(promptCommandsRef.current, query),
+        // A picked skill stays visible as a `/slug` token in the prompt, so
+        // deleting the text un-picks it. `handleSend` parses it back out.
+        onSelect: insertPromptCommandText,
+      }),
+    [],
+  );
+
   const initialContentReferences = useMemo(
     () =>
       migrateLegacyContentMentions(
@@ -264,6 +295,7 @@ export function useAgentChatInput({
   );
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const lastEditorTextRef = useRef(restoredDraft.plainText);
   const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
   // Live prompt text for the generation-setup recommendation debounce — the
   // toolbar has no other way to see what the operator is typing.
@@ -481,7 +513,7 @@ export function useAgentChatInput({
           }),
         },
       }),
-      SlashCommands,
+      promptCommandsExtension,
     ],
     immediatelyRender: false,
   });
@@ -492,8 +524,9 @@ export function useAgentChatInput({
       return;
     }
     const updateHandler = () => {
+      const nextText = editor.getText();
       setIsEmpty(editor.isEmpty);
-      setPromptText(editor.getText());
+      setPromptText(nextText);
       const document = editor.getJSON();
       const nextReferences = mapMentionsToReferences(extractMentions(document));
       // Editor fires on every keystroke; only promote mention state when the
@@ -503,12 +536,13 @@ export function useAgentChatInput({
           ? current
           : nextReferences,
       );
-      writeConversationComposerDocument(
-        draftScopeKey,
-        document,
-        editor.getText(),
-      );
-      setActionFeedback(null);
+      writeConversationComposerDocument(draftScopeKey, document, nextText);
+      // Slash-command decorations and same-text plugin updates must not
+      // dismiss dispatch feedback for an unchanged draft.
+      if (nextText !== lastEditorTextRef.current) {
+        lastEditorTextRef.current = nextText;
+        setActionFeedback(null);
+      }
     };
     editor.on('update', updateHandler);
     return () => {
@@ -607,8 +641,19 @@ export function useAgentChatInput({
       return;
     }
     const text = editor.getText().trim();
-    const canSend = Boolean(text) || hasCompletedAttachments;
+    // Skills picked from `/` live as leading `/slug` tokens in the prompt.
+    // They come off before the action parser runs, which would otherwise
+    // reject a skill slug as an unknown composer action.
+    const { content: promptContent, skillSlugs: requestedSkillSlugs } =
+      extractRequestedSkillSlugs(text, skillSlugsRef.current);
+    const canSend = Boolean(promptContent) || hasCompletedAttachments;
     if (!canSend) {
+      if (requestedSkillSlugs.length > 0) {
+        setActionFeedback(
+          `Add a prompt for /${requestedSkillSlugs[0]} before sending.`,
+        );
+        return;
+      }
       if (hasQueuedFollowUps) {
         onPromoteQueuedFollowUp?.();
       }
@@ -624,7 +669,7 @@ export function useAgentChatInput({
       setActionFeedback(translate('uploadInProgress'));
       return;
     }
-    const parsedCommand = parseConversationComposerCommand(text);
+    const parsedCommand = parseConversationComposerCommand(promptContent);
     if (parsedCommand.kind === 'unknown') {
       setActionFeedback(
         `Unknown command /${parsedCommand.command.command}. Choose a trusted action from the Actions menu.`,
@@ -660,10 +705,10 @@ export function useAgentChatInput({
     const completed = getCompletedAttachments?.();
     const sendMode = resolveAgentTurnGenerationMode({
       generationMode,
-      prompt: text,
+      prompt: promptContent,
     });
     const accepted = await onSend(
-      text,
+      promptContent,
       mentionData.length > 0 ? mentionData : undefined,
       completed && completed.length > 0 ? completed : undefined,
       {
@@ -682,6 +727,7 @@ export function useAgentChatInput({
         ...(hasKnowledgeSelection(knowledgeSelection)
           ? { knowledgeSelection }
           : {}),
+        ...(requestedSkillSlugs.length > 0 ? { requestedSkillSlugs } : {}),
       },
     );
     if (accepted === false) {

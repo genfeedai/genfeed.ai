@@ -9,6 +9,7 @@ import { CreditsModule } from '@api/collections/credits/credits.module';
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { ModelsModule } from '@api/collections/models/models.module';
+import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { VideosClipChainController } from '@api/collections/videos/controllers/transformations/clip-chain/videos-clip-chain.controller';
 import { VideosEditsController } from '@api/collections/videos/controllers/transformations/edits/videos-edits.controller';
@@ -62,6 +63,7 @@ import { Module } from '@nestjs/common';
     MetadataModule,
     ModelsModule,
     NotificationsPublisherModule,
+    PersonasCoreModule,
     PromptBuilderModule,
     PromptsModule,
     ReplicateModule,

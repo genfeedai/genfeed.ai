@@ -1,4 +1,5 @@
 import { KnowledgeSelectionDto } from '@api/collections/contexts/dto/knowledge-selection.dto';
+import { MAX_SKILL_SLUG_LENGTH } from '@api/collections/skills/constants/skill-validation.constant';
 import type {
   AgentChatAttachment,
   AgentPageContext,
@@ -12,6 +13,7 @@ import type { AgentArtifactReference } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -26,6 +28,12 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+
+/**
+ * A turn packs a handful of skills at most; the palette lets an operator pick
+ * one, so this only has to stop a scripted client flooding the resolver.
+ */
+const MAX_REQUESTED_SKILL_SLUGS = 8;
 
 export class AgentGenerationSettingsDto {
   @IsString()
@@ -219,4 +227,17 @@ export class AgentChatBodyDto {
   @IsOptional()
   @ApiProperty({ description: 'Ingredient attachments', required: false })
   attachments?: AgentChatAttachment[];
+
+  @IsArray()
+  @IsString({ each: true })
+  @MaxLength(MAX_SKILL_SLUG_LENGTH, { each: true })
+  @ArrayMaxSize(MAX_REQUESTED_SKILL_SLUGS)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Skill slugs picked from the composer `/` palette; intersected server-side with the brand’s enabled skills',
+    required: false,
+    type: 'array',
+  })
+  requestedSkillSlugs?: string[];
 }

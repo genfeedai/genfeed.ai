@@ -1,5 +1,6 @@
 import { captureWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { WorkflowExecutionsService } from '@api/collections/workflow-executions/services/workflow-executions.service';
+import { sumPersistedNodeCredits } from '@api/collections/workflow-executions/services/workflow-node-credits';
 import type { WorkflowDocument } from '@api/collections/workflows/schemas/workflow.schema';
 import { WorkflowEngineAdapterService } from '@api/collections/workflows/services/workflow-engine-adapter.service';
 import { WorkflowExecutionFinalizerService } from '@api/collections/workflows/services/workflow-execution-finalizer.service';
@@ -86,6 +87,7 @@ export class WorkflowExecutionRunnerService {
       return this.failUnavailablePinnedExecution({
         errorMessage: unavailableMessage,
         executionId,
+        organizationId: jobData.organizationId,
         startedAt: delayedExecution?.startedAt ?? new Date(),
         userId: triggerEvent.userId,
         workflowId,
@@ -245,6 +247,12 @@ export class WorkflowExecutionRunnerService {
       executableWorkflow,
       input.event.data,
     );
+    if (typeof input.metadata?.scheduledFireJobId === 'string') {
+      executableWorkflow = {
+        ...executableWorkflow,
+        scheduledFireJobId: input.metadata.scheduledFireJobId,
+      };
+    }
     const etaPlan = precomputeWorkflowEtaPlan(
       executableWorkflow.nodes,
       executableWorkflow.edges,
@@ -457,6 +465,12 @@ export class WorkflowExecutionRunnerService {
       prepared.executionId,
       errorMessage,
     );
+    await this.settleClipChainHoldSafely({
+      actorUserId: event.userId,
+      executionId: prepared.executionId,
+      organizationId: prepared.organizationId,
+      workflowId: prepared.workflowId,
+    });
     if (!prepared.isSystemAction) {
       // Bookkeeping must never replace the failure the caller is about to see:
       // a throw here would surface as the run's error and hide the real cause.
@@ -645,6 +659,12 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       errorMessage,
     );
+    const totalCreditsUsed = await this.settleClipChainHoldSafely({
+      actorUserId: input.userId,
+      executionId: input.executionId,
+      organizationId: input.organizationId,
+      workflowId: input.workflowId,
+    });
     await this.prisma.workflow.update({
       data: { status: WorkflowStatus.FAILED },
       where: scopedWhere(input.organizationId, { id: input.workflowId }),
@@ -675,7 +695,7 @@ export class WorkflowExecutionRunnerService {
       nodeResults: [],
       startedAt: input.startedAt,
       status: WorkflowExecutionStatus.FAILED,
-      totalCreditsUsed: 0,
+      totalCreditsUsed,
       workflowId: input.workflowId,
     };
   }
@@ -728,6 +748,7 @@ export class WorkflowExecutionRunnerService {
   async failUnavailablePinnedExecution(input: {
     errorMessage: string;
     executionId: string;
+    organizationId: string;
     startedAt: Date;
     userId: string;
     workflowId: string;
@@ -736,6 +757,12 @@ export class WorkflowExecutionRunnerService {
       input.executionId,
       input.errorMessage,
     );
+    const totalCreditsUsed = await this.settleClipChainHoldSafely({
+      actorUserId: input.userId,
+      executionId: input.executionId,
+      organizationId: input.organizationId,
+      workflowId: input.workflowId,
+    });
     await this.progressService.publishWorkflowTaskUpdate({
       error: input.errorMessage,
       eta: this.progressService.extractEtaFromMetadata(
@@ -756,8 +783,36 @@ export class WorkflowExecutionRunnerService {
       nodeResults: [],
       startedAt: input.startedAt,
       status: WorkflowExecutionStatus.FAILED,
-      totalCreditsUsed: 0,
+      totalCreditsUsed,
       workflowId: input.workflowId,
     };
+  }
+
+  private async settleClipChainHoldSafely(input: {
+    actorUserId: string;
+    executionId: string;
+    organizationId: string;
+    workflowId: string;
+  }): Promise<number> {
+    try {
+      const totalCreditsUsed = await sumPersistedNodeCredits(
+        this.prisma,
+        input.executionId,
+        input.organizationId,
+      );
+      await this.finalizer.settleClipChainReservationForWorkflow({
+        actorUserId: input.actorUserId,
+        organizationId: input.organizationId,
+        totalCreditsUsed,
+        workflowId: input.workflowId,
+      });
+      return totalCreditsUsed;
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.logContext} clip-chain reservation settlement failed`,
+        error,
+      );
+      return 0;
+    }
   }
 }

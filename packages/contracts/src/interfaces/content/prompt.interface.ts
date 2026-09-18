@@ -38,6 +38,8 @@ export interface IPrompt extends IBaseEntity {
   fps?: number;
   ingredients?: IIngredient[];
   isSkipEnhancement: boolean;
+  /** Skills picked from the composer `/` palette to steer enhancement. */
+  requestedSkillSlugs?: string[];
   systemPromptKey?: string;
   scope?: AssetScope;
   isFavorite?: boolean;

@@ -2,11 +2,15 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 
-type CharacterMentionLookup = {
-  listCharacterMentions: (input: {
-    brandId?: string;
+type CharacterHandleLookup = {
+  resolveCharacterHandles: (input: {
+    brandId?: string | null;
+    handles: readonly string[];
     organizationId: string;
-  }) => Promise<Array<{ avatarIngredientId?: string; handle: string }>>;
+  }) => Promise<{
+    resolvedIngredientIds: readonly string[];
+    unresolvedHandles: readonly string[];
+  }>;
 };
 
 export function readMediaReferenceStrings(
@@ -46,7 +50,7 @@ export async function resolveGenerationReferences(params: {
   explicitReferences?: unknown;
   handles?: unknown;
   modelKey?: string;
-  personasService?: CharacterMentionLookup;
+  personasService?: CharacterHandleLookup;
 }): Promise<{ error?: AgentToolResult; references: string[] }> {
   const handles = readMediaReferenceStrings(params.handles, 4);
   const explicit = readMediaReferenceStrings(params.explicitReferences, 8);
@@ -64,21 +68,14 @@ export async function resolveGenerationReferences(params: {
         references: [],
       };
     }
-    const characters = await params.personasService.listCharacterMentions({
-      brandId: params.ctx.brandId,
-      organizationId: params.ctx.organizationId,
-    });
-    const byHandle = new Map(
-      characters.map((character) => [character.handle, character]),
-    );
-    for (const handle of handles) {
-      const character = byHandle.get(handle.toLowerCase());
-      if (!character?.avatarIngredientId) {
-        unresolved.push(handle);
-        continue;
-      }
-      resolved.push(character.avatarIngredientId);
-    }
+    const resolvedHandles =
+      await params.personasService.resolveCharacterHandles({
+        brandId: params.ctx.brandId,
+        handles,
+        organizationId: params.ctx.organizationId,
+      });
+    unresolved.push(...resolvedHandles.unresolvedHandles);
+    resolved.push(...resolvedHandles.resolvedIngredientIds);
   }
 
   if (unresolved.length > 0) {

@@ -1,8 +1,16 @@
+import { sumPersistedNodeCredits } from '@api/collections/workflow-executions/services/workflow-node-credits';
 import { WorkflowExecutionGraphService } from '@api/collections/workflows/services/workflow-execution-graph.service';
 import { WorkflowExecutionRunnerService } from '@api/collections/workflows/services/workflow-execution-runner.service';
 import type { DelayResumeJobData } from '@api/collections/workflows/services/workflow-executor.types';
 import { WorkflowExecutionStatus, WorkflowStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+vi.mock(
+  '@api/collections/workflow-executions/services/workflow-node-credits',
+  () => ({
+    sumPersistedNodeCredits: vi.fn(),
+  }),
+);
 
 describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a running execution (#4307)', () => {
   const prisma = { workflow: { update: vi.fn() } };
@@ -36,6 +44,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
   const finalizer = {
     finalizeExecution: vi.fn(),
     mapRunResultToExecutionStatus: vi.fn(),
+    settleClipChainReservationForWorkflow: vi.fn(),
   };
   const graphRunner = { executeNodeGraph: vi.fn() };
 
@@ -71,6 +80,7 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     executionsService.completeExecution.mockResolvedValue({
       metadata: undefined,
     });
+    vi.mocked(sumPersistedNodeCredits).mockResolvedValue(12);
     documentService.findPinnedWorkflow.mockResolvedValue({ brandId: null });
     documentService.getWorkflowLabel.mockReturnValue('Test workflow');
     engineAdapter.convertToExecutableWorkflow.mockReturnValue({
@@ -136,6 +146,37 @@ describe('WorkflowExecutionRunnerService.resumeAfterDelay — never strands a ru
     expect(progressService.publishWorkflowTaskUpdate).toHaveBeenCalledWith(
       expect.objectContaining({ executionId: 'execution-1', status: 'failed' }),
     );
+    expect(sumPersistedNodeCredits).toHaveBeenCalledWith(
+      prisma,
+      'execution-1',
+      'org-1',
+    );
+    expect(
+      finalizer.settleClipChainReservationForWorkflow,
+    ).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      organizationId: 'org-1',
+      totalCreditsUsed: 12,
+      workflowId: 'workflow-1',
+    });
+    expect(result.totalCreditsUsed).toBe(12);
+  });
+
+  it('settles completed clip-chain credits when a delayed pinned workflow is gone', async () => {
+    documentService.findPinnedWorkflow.mockResolvedValue(null);
+
+    const result = await runner.resumeAfterDelay(jobData);
+
+    expect(result.status).toBe(WorkflowExecutionStatus.FAILED);
+    expect(
+      finalizer.settleClipChainReservationForWorkflow,
+    ).toHaveBeenCalledWith({
+      actorUserId: 'user-1',
+      organizationId: 'org-1',
+      totalCreditsUsed: 12,
+      workflowId: 'workflow-1',
+    });
+    expect(result.totalCreditsUsed).toBe(12);
   });
 
   it('still returns the finalized result when the resumed graph pass succeeds', async () => {

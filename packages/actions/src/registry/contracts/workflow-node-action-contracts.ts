@@ -1,6 +1,10 @@
 import type { ActionJsonSchema } from '../../interfaces/action-definition.interface';
 import type { ActionContractSchemas } from './action-contract.interface';
 import {
+  KNOWLEDGE_RECEIPT_SCHEMA,
+  SEARCH_KNOWLEDGE_DATA_SCHEMA,
+} from './knowledge-tool-action-contracts';
+import {
   arraySchema,
   BOOLEAN_SCHEMA,
   closedObjectSchema,
@@ -37,6 +41,7 @@ type InputField =
   | 'avoid'
   | 'backgroundColor'
   | 'bitrate'
+  | 'blackDurationSeconds'
   | 'brand'
   | 'brandId'
   | 'brandLabel'
@@ -69,6 +74,7 @@ type InputField =
   | 'fontWeight'
   | 'format'
   | 'fps'
+  | 'freezeDurationSeconds'
   | 'generateChapters'
   | 'generatePrompt'
   | 'generateTranscript'
@@ -88,8 +94,12 @@ type InputField =
   | 'includeEmojis'
   | 'includeHashtags'
   | 'includeMetadata'
+  | 'isContactSheetEnabled'
+  | 'isContinuityCharacterGateEnabled'
+  | 'isContinuityQaEnabled'
   | 'instructions'
   | 'keywords'
+  | 'knowledge'
   | 'language'
   | 'languages'
   | 'lastFrame'
@@ -273,6 +283,9 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
     case 'includeEmojis':
     case 'includeHashtags':
     case 'includeMetadata':
+    case 'isContactSheetEnabled':
+    case 'isContinuityCharacterGateEnabled':
+    case 'isContinuityQaEnabled':
     case 'maintainQuality':
     case 'monetization':
     case 'trackingEnabled':
@@ -297,8 +310,10 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
       return INTEGER_SCHEMA;
     case 'audioVolume':
     case 'bitrate':
+    case 'blackDurationSeconds':
     case 'creditCost':
     case 'fadeIn':
+    case 'freezeDurationSeconds':
     case 'fadeOut':
     case 'fontSize':
     case 'fps':
@@ -329,6 +344,8 @@ function inputFieldSchema(field: InputField): ActionJsonSchema {
       return enumSchema(['full', 'draft'] as const);
     case 'transitionType':
       return enumSchema(['cut', 'crossfade', 'wipe', 'fade'] as const);
+    case 'knowledge':
+      return SEARCH_KNOWLEDGE_DATA_SCHEMA;
     case 'avoid':
     case 'hooks':
     case 'keywords':
@@ -871,6 +888,7 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'brandLabel',
         'content',
         'credentialId',
+        'knowledge',
         'platform',
         'prompt',
         'schedule',
@@ -878,19 +896,31 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
         'timezone',
         'topic',
       ]),
-      outputSchema: objectOutput({
-        description: STRING_SCHEMA,
-        groupId: STRING_SCHEMA,
-        id: STRING_SCHEMA,
-        platform: STRING_SCHEMA,
-        post: objectOutput({
+      outputSchema: objectOutput(
+        {
+          description: STRING_SCHEMA,
+          groupId: STRING_SCHEMA,
           id: STRING_SCHEMA,
-          label: STRING_SCHEMA,
+          knowledgeReceipts: arraySchema(KNOWLEDGE_RECEIPT_SCHEMA),
+          platform: STRING_SCHEMA,
+          post: objectOutput({
+            id: STRING_SCHEMA,
+            label: STRING_SCHEMA,
+            status: STRING_SCHEMA,
+          }),
+          postIds: arraySchema(STRING_SCHEMA),
           status: STRING_SCHEMA,
-        }),
-        postIds: arraySchema(STRING_SCHEMA),
-        status: STRING_SCHEMA,
-      }),
+        },
+        [
+          'description',
+          'groupId',
+          'id',
+          'platform',
+          'post',
+          'postIds',
+          'status',
+        ],
+      ),
     },
     postReply: {
       inputSchema: inputSchema([
@@ -1374,7 +1404,12 @@ const WORKFLOW_NODE_CONTRACTS: Readonly<Record<string, ActionContractSchemas>> =
     },
     videoQa: {
       inputSchema: inputSchema([
+        'blackDurationSeconds',
         'characterReferenceUrls',
+        'freezeDurationSeconds',
+        'isContactSheetEnabled',
+        'isContinuityCharacterGateEnabled',
+        'isContinuityQaEnabled',
         'productReferenceUrls',
         'references',
         'video',

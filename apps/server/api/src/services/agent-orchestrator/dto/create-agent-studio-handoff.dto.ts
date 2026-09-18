@@ -3,6 +3,7 @@ import type { StudioGenerateType } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
+  IsBoolean,
   IsIn,
   IsNotEmpty,
   IsNumber,
@@ -107,4 +108,13 @@ export class CreateAgentStudioHandoffDto {
     required: false,
   })
   readonly voiceId?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'True when the source generation used the brand identity. The server then snapshots that identity at create time.',
+    required: false,
+  })
+  readonly useIdentity?: boolean;
 }

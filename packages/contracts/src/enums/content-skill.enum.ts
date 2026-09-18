@@ -21,3 +21,14 @@ export enum ContentRunSource {
   HOSTED = 'hosted',
   MANAGED = 'managed',
 }
+
+/**
+ * Composer surface a skill can be offered on via the `/` command palette.
+ *
+ * A skill is not owned by one surface: `resolveSkillSurfaces` derives the set
+ * from the persisted taxonomy so custom and imported skills participate too.
+ */
+export enum SkillSurface {
+  AGENT = 'agent',
+  STUDIO = 'studio',
+}

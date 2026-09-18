@@ -3,6 +3,7 @@ import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-train
 import { AssetScope, PromptCategory, PromptStatus } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -10,6 +11,9 @@ import {
   IsOptional,
   IsString,
 } from 'class-validator';
+
+/** A prompt enhancement packs a handful of skills at most. */
+const MAX_REQUESTED_SKILL_SLUGS = 8;
 
 export class CreatePromptDto {
   @IsEntityId()
@@ -179,4 +183,16 @@ export class CreatePromptDto {
     required: false,
   })
   readonly speech?: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @ArrayMaxSize(MAX_REQUESTED_SKILL_SLUGS)
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Skill slugs picked from the Studio composer `/` palette; their instructions are appended to the enhancement system prompt',
+    required: false,
+    type: 'array',
+  })
+  readonly requestedSkillSlugs?: string[];
 }

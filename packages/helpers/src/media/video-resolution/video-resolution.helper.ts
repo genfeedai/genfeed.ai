@@ -33,6 +33,7 @@ export const videoModelResolutions: VideoModelResolution[] = [
     resolutions: [
       { label: '480P', value: '480P' },
       { label: '768P', value: '768P' },
+      { label: '1080P', value: '1080P' },
     ],
   },
   {

@@ -656,4 +656,38 @@ describe('Genfeed action registry', () => {
       workflowIcon: 'Navigation',
     });
   });
+
+  it('derives Knowledge workflow visibility from the curated catalog', () => {
+    const knowledgeWorkflowActions = ALL_ACTIONS.filter(
+      (action) =>
+        action.visibility === 'workflow' &&
+        (action.id.endsWith('_knowledge') ||
+          action.id.includes('knowledge_source') ||
+          action.id.includes('knowledge_ingestion') ||
+          action.id.includes('knowledge_purpose')),
+    );
+
+    expect(knowledgeWorkflowActions.map((action) => action.id).sort()).toEqual([
+      'archive_knowledge_source',
+      'assign_knowledge_purpose',
+      'capture_knowledge',
+      'list_knowledge_sources',
+      'read_knowledge_source',
+      'retry_knowledge_ingestion',
+      'search_knowledge',
+    ]);
+    expect(
+      knowledgeWorkflowActions.every(
+        (action) =>
+          action.workflowCategory === 'input' &&
+          action.workflowIcon === 'BookOpen',
+      ),
+    ).toBe(true);
+    expect(getActionDefinition('search_knowledge')?.visibility).toBe(
+      'workflow',
+    );
+    expect(getActionDefinition('create_post')?.visibility === 'workflow').toBe(
+      false,
+    );
+  });
 });

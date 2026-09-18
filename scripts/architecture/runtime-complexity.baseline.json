@@ -114,7 +114,7 @@
     "symbol": "apps/server/api/src/endpoints/ads-research/ads-research.service.ts"
   },
   {
-    "actual": 514,
+    "actual": 513,
     "file": "apps/server/api/src/endpoints/analytics/analytics.controller.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/endpoints/analytics/analytics.controller.ts"
@@ -174,7 +174,7 @@
     "symbol": "AgentOrchestratorBatchService.tryHandleBatchGenerationTurnStream"
   },
   {
-    "actual": 246,
+    "actual": 236,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-context.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorContextService.resolveSystemPromptAndModel"
@@ -258,7 +258,7 @@
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 315,
+    "actual": 314,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "method-lines",
     "symbol": "AgentToolExecutorService.dispatch"

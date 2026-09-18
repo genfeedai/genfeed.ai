@@ -113,6 +113,7 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     expect(labelsInGroup('Intelligence')).toEqual([
       'Insights',
       'Hooks',
+      'Outliers',
       'Performance Lab',
       'Trends',
       'Trend Turnover',
@@ -168,11 +169,16 @@ describe('ANALYTICS_MENU_ITEMS', () => {
     expect(orgItems.map((item) => item.label)).toEqual([
       'Overview',
       'Accounts',
+      'Outliers',
     ]);
     expect(orgItems.some((item) => item.href === '/analytics/posts')).toBe(
       false,
     );
-    expect(orgItems.every((item) => !item.group)).toBe(true);
+    expect(
+      orgItems
+        .filter((item) => item.label !== 'Outliers')
+        .every((item) => !item.group),
+    ).toBe(true);
 
     const brandItems = getAnalyticsMenuItemsForScope('default');
     expect(brandItems.length).toBe(ANALYTICS_MENU_ITEMS.length);

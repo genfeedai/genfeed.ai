@@ -100,14 +100,19 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Save a page, document or pasted text into the brand Knowledge library and start ingestion. Default purpose is INSPIRATION; pass BRAND_TRUTH only for material the brand owns and vouches for.',
+      'Save a page, document, feed, media or pasted text into the brand Knowledge library and start ingestion. Pass sourceId to refresh an existing URL or RSS source. Default purpose is INSPIRATION; pass BRAND_TRUTH only for material the brand owns and vouches for.',
     name: 'capture_knowledge',
     parameters: {
       properties: {
+        isTranscriptGenerationAllowed: {
+          description:
+            'When true, AUDIO/VIDEO capture may generate a transcript for one credit',
+          type: 'boolean',
+        },
         kind: {
           description:
-            'TEXT for pasted text, URL for a web page, DOCUMENT for a PDF or file URL',
-          enum: ['TEXT', 'URL', 'DOCUMENT'],
+            'TEXT for pasted text, URL for a web page, DOCUMENT for a PDF or file URL, RSS for a feed, AUDIO or VIDEO for media',
+          enum: ['AUDIO', 'DOCUMENT', 'RSS', 'TEXT', 'URL', 'VIDEO'],
           type: 'string',
         },
         purpose: {
@@ -116,7 +121,13 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
           type: 'string',
         },
         referenceUrl: {
-          description: 'HTTP(S) location for URL and DOCUMENT sources',
+          description:
+            'HTTP(S) location for URL, DOCUMENT, RSS, AUDIO and VIDEO sources',
+          type: 'string',
+        },
+        sourceId: {
+          description:
+            'Existing Knowledge source to refresh. Forbids conflicting title/kind/referenceUrl/text/purpose.',
           type: 'string',
         },
         text: { description: 'Captured text for TEXT sources', type: 'string' },
@@ -124,8 +135,11 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
           description: 'Short human title for the source',
           type: 'string',
         },
+        transcriptUrl: {
+          description: 'Public WebVTT or SRT transcript URL for AUDIO/VIDEO',
+          type: 'string',
+        },
       },
-      required: ['kind', 'title'],
       type: 'object',
     },
     requiredRole: 'user',

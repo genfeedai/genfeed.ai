@@ -8,6 +8,7 @@ import { render, renderHook, waitFor } from '@testing-library/react';
 import { createElement } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
+const timelineFromTo = vi.fn();
 const gsapMock = {
   context: vi.fn((fn: (self?: unknown) => void, _ref?: unknown) => {
     fn();
@@ -16,7 +17,7 @@ const gsapMock = {
   fromTo: vi.fn(),
   registerPlugin: vi.fn(),
   set: vi.fn(),
-  timeline: vi.fn(() => ({ fromTo: vi.fn() })),
+  timeline: vi.fn(() => ({ fromTo: timelineFromTo })),
   to: vi.fn(),
 };
 
@@ -53,9 +54,37 @@ function RevealList({
   );
 }
 
+function TimelineHost({
+  steps = [{ from: { opacity: 0, y: 20 }, selector: '.step' }],
+}: {
+  steps?: Parameters<typeof useGsapTimeline>[0]['steps'];
+}) {
+  const ref = useGsapTimeline({ steps });
+  return createElement(
+    'div',
+    { ref },
+    createElement('p', { className: 'step' }, 'one'),
+    createElement('p', { className: 'step' }, 'two'),
+  );
+}
+
+function createInsertBeforeError(): DOMException {
+  return new DOMException(
+    "Failed to execute 'insertBefore' on 'Node': The node before which the new node is to be inserted is not a child of this node.",
+    'NotFoundError',
+  );
+}
+
 afterEach(() => {
   vi.unstubAllGlobals();
   vi.clearAllMocks();
+  timelineFromTo.mockReset();
+  gsapMock.context.mockImplementation(
+    (fn: (self?: unknown) => void, _ref?: unknown) => {
+      fn();
+      return { revert: vi.fn() };
+    },
+  );
 });
 
 describe('useGsapEntrance', () => {
@@ -135,6 +164,18 @@ describe('useGsapEntrance batch reveals', () => {
     expect(gsapMock.set).not.toHaveBeenCalled();
   });
 
+  it('skips reveal targets a third party removed from the container', async () => {
+    const { container } = render(
+      createElement(RevealList, {
+        animations: [gsapPresets.revealEach('.item')],
+      }),
+    );
+    container.querySelector('.item')?.remove();
+
+    await waitFor(() => expect(scrollTriggerMock.batch).toHaveBeenCalled());
+    expect(scrollTriggerMock.batch.mock.calls[0][0]).toHaveLength(1);
+  });
+
   it('keeps shared-trigger animations on a single tween', async () => {
     render(
       createElement(RevealList, {
@@ -189,6 +230,79 @@ describe('useGsapTimeline', () => {
       }),
     );
     expect(result.current).toHaveProperty('current');
+  });
+
+  it('animates only mounted nodes owned by the React container', async () => {
+    render(createElement(TimelineHost));
+
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalled());
+
+    const [elements] = timelineFromTo.mock.calls[0];
+    expect(elements).toHaveLength(2);
+    expect(
+      elements.every(
+        (element: Element) =>
+          element.isConnected && element.classList.contains('step'),
+      ),
+    ).toBe(true);
+    expect(gsapMock.context.mock.calls[0][1]).toBeInstanceOf(HTMLElement);
+  });
+
+  it('does nothing when unmounted before GSAP finishes loading', async () => {
+    const { unmount } = render(createElement(TimelineHost));
+    unmount();
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(gsapMock.context).not.toHaveBeenCalled();
+    expect(timelineFromTo).not.toHaveBeenCalled();
+  });
+
+  it('cancels the first insertion and recomputes on rapid remount', async () => {
+    const first = render(createElement(TimelineHost));
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalledTimes(1));
+    const firstTargets = timelineFromTo.mock.calls[0][0] as Element[];
+    expect(firstTargets).toHaveLength(2);
+
+    first.unmount();
+    timelineFromTo.mockClear();
+    gsapMock.context.mockClear();
+
+    render(createElement(TimelineHost));
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalledTimes(1));
+    const secondTargets = timelineFromTo.mock.calls[0][0] as Element[];
+    expect(secondTargets).toHaveLength(2);
+    expect(secondTargets[0]).not.toBe(firstTargets[0]);
+    expect(secondTargets.every((element) => element.isConnected)).toBe(true);
+  });
+
+  it('skips targets a third party removed from the container', async () => {
+    const { container } = render(createElement(TimelineHost));
+    container.querySelector('.step')?.remove();
+
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalled());
+    expect(timelineFromTo.mock.calls[0][0]).toHaveLength(1);
+  });
+
+  it('degrades when insertBefore races with a detached target', async () => {
+    timelineFromTo.mockImplementation(() => {
+      throw createInsertBeforeError();
+    });
+
+    expect(() => render(createElement(TimelineHost))).not.toThrow();
+
+    await waitFor(() => expect(timelineFromTo).toHaveBeenCalled());
+    expect(gsapMock.context).toHaveBeenCalled();
+  });
+
+  it('degrades when context creation hits an insertBefore race', async () => {
+    gsapMock.context.mockImplementation(() => {
+      throw createInsertBeforeError();
+    });
+
+    expect(() => render(createElement(TimelineHost))).not.toThrow();
+
+    await waitFor(() => expect(gsapMock.context).toHaveBeenCalled());
+    expect(timelineFromTo).not.toHaveBeenCalled();
   });
 });
 

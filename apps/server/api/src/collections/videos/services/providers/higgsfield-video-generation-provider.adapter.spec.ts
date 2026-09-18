@@ -9,7 +9,7 @@ function buildParams(
 ): DispatchVideoGenerationParams {
   return {
     height: 1920,
-    model: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+    model: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
     prompt: 'a dog running on the beach',
     promptParams: {
       prompt: 'a dog running on the beach',
@@ -27,9 +27,16 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
   }
 
   describe('supports', () => {
-    it('matches the Higgsfield Kling video model key', () => {
+    it('matches every DoP quality tier', () => {
       const adapter = buildAdapter({});
-      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_KLING_VIDEO)).toBe(true);
+      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_DOP_LITE)).toBe(true);
+      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_DOP_TURBO)).toBe(true);
+      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_DOP_STANDARD)).toBe(true);
+    });
+
+    it('rejects the Soul image model key', () => {
+      const adapter = buildAdapter({});
+      expect(adapter.supports(MODEL_KEYS.HIGGSFIELD_SOUL)).toBe(false);
     });
 
     it('rejects other model keys', () => {
@@ -56,12 +63,12 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       const generateImageToVideo = vi
         .fn()
         .mockResolvedValue({ requestId: 'req-123' });
-      const waitForCompletion = vi
+      const waitForVideoCompletion = vi
         .fn()
         .mockResolvedValue({ videoUrl: 'https://cdn.test/out.mp4' });
       const adapter = buildAdapter({
         generateImageToVideo,
-        waitForCompletion,
+        waitForVideoCompletion,
       });
 
       const result = await adapter.generate(
@@ -73,14 +80,12 @@ describe('HiggsFieldVideoGenerationProviderAdapter', () => {
       );
 
       expect(generateImageToVideo).toHaveBeenCalledWith({
-        aspectRatio: '9:16',
-        duration: 5,
         imageUrl: 'https://cdn.test/start.png',
-        modelId: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+        modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
         organizationId: 'org-1',
         prompt: 'a dog running on the beach',
       });
-      expect(waitForCompletion).toHaveBeenCalledWith('req-123', {
+      expect(waitForVideoCompletion).toHaveBeenCalledWith('req-123', {
         organizationId: 'org-1',
       });
       expect(result).toEqual({

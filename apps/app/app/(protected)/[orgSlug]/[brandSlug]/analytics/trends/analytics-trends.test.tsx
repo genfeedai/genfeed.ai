@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   getTrendingHashtags: vi.fn(),
   getTrendingSounds: vi.fn(),
   getTrendingTopics: vi.fn(),
+  getOutlierService: vi.fn(),
   getTrendsService: vi.fn(),
   getVideosService: vi.fn(),
   loggerError: vi.fn(),
@@ -56,15 +57,21 @@ vi.mock('@helpers/formatting/format/format.helper', () => ({
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: (factory: (token: string) => unknown) => {
     const service = factory('mock-token');
-    return service === 'videos-service'
-      ? mocks.getVideosService
-      : mocks.getTrendsService;
+    if (service === 'videos-service') return mocks.getVideosService;
+    if (service === 'outliers-service') return mocks.getOutlierService;
+    return mocks.getTrendsService;
   },
 }));
 
 vi.mock('@services/ingredients/videos.service', () => ({
   VideosService: {
     getInstance: vi.fn(() => 'videos-service'),
+  },
+}));
+
+vi.mock('@services/analytics/outlier-baselines.service', () => ({
+  OutlierBaselinesService: {
+    getInstance: vi.fn(() => 'outliers-service'),
   },
 }));
 
@@ -421,6 +428,9 @@ describe('AnalyticsTrends', () => {
     });
     mocks.getVideosService.mockResolvedValue({
       findAll: mocks.findAllVideos,
+    });
+    mocks.getOutlierService.mockResolvedValue({
+      listPosts: vi.fn().mockResolvedValue({ docs: [], total: 0 }),
     });
   });
 

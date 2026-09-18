@@ -23,6 +23,7 @@ import type {
   TrendCorpusFreshnessHealth,
   TrendItem,
 } from '@props/trends/trends-page.props';
+import { OutlierBaselinesService } from '@services/analytics/outlier-baselines.service';
 import { logger } from '@services/core/logger.service';
 import { VideosService } from '@services/ingredients/videos.service';
 import { TrendsService } from '@services/social/trends.service';
@@ -90,6 +91,9 @@ export function useAnalyticsTrends() {
   );
   const getVideosService = useAuthedService((token: string) =>
     VideosService.getInstance(token),
+  );
+  const getOutlierService = useAuthedService((token: string) =>
+    OutlierBaselinesService.getInstance(token),
   );
 
   const [tiktokTrends, setTiktokTrends] = useState<ITrend[]>([]);
@@ -182,14 +186,41 @@ export function useAnalyticsTrends() {
     retry: false,
     staleTime: TRENDS_CACHE_TTL,
   });
+  const { data: outlierPosts = [] } = useQuery({
+    enabled: isBrandReady,
+    queryFn: async ({ signal }) => {
+      const service = await getOutlierService();
+      const page = await service.listPosts({ brandId, limit: 50 }, signal);
+      return page.docs;
+    },
+    queryKey: ['analytics-trends-outliers', brandId],
+    retry: false,
+    staleTime: TRENDS_CACHE_TTL,
+  });
   const viralVideos = useMemo(() => {
     const cutoff = Date.now() - VIDEO_TIMEFRAME_MS[videoTimeframe];
+    const byPostId = new Map(
+      outlierPosts
+        .filter((post) => post.postId)
+        .map((post) => [post.postId as string, post]),
+    );
 
-    return analyticsVideos.filter((video) => {
-      const publishedAt = new Date(video.publishedAt ?? 0).getTime();
-      return Number.isFinite(publishedAt) && publishedAt >= cutoff;
-    });
-  }, [analyticsVideos, videoTimeframe]);
+    return analyticsVideos
+      .filter((video) => {
+        const publishedAt = new Date(video.publishedAt ?? 0).getTime();
+        return Number.isFinite(publishedAt) && publishedAt >= cutoff;
+      })
+      .map((video) => {
+        const match = byPostId.get(video.id);
+        if (!match) return video;
+        return {
+          ...video,
+          medianViews: match.medianViews,
+          outlierRatio: match.outlierRatio,
+          sampleSize: match.sampleSize,
+        };
+      });
+  }, [analyticsVideos, outlierPosts, videoTimeframe]);
 
   // Fetch trending topics from our TrendsService
   useEffect(() => {

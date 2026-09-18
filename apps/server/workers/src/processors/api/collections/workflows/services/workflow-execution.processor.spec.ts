@@ -702,6 +702,7 @@ describe('WorkflowExecutionProcessor', () => {
 
       expect(mockScheduler.executeScheduledWorkflow).toHaveBeenCalledWith(
         'wf-1',
+        'job-1',
       );
       expect(result).toEqual({ workflowId: 'wf-1' });
     });

@@ -3,6 +3,7 @@ import { OutliersController } from '@api/collections/outliers/controllers/outlie
 import {
   OutlierAccountDto,
   OutlierPaginationDto,
+  OutlierRankedQueryDto,
 } from '@api/collections/outliers/dto/outlier-query.dto';
 import { ROLES_KEY } from '@api/helpers/decorators/roles/roles.decorator';
 import { MemberRole } from '@genfeedai/contracts';
@@ -33,6 +34,25 @@ describe('outlier HTTP contracts', () => {
   });
   it('requires account and brand identity', async () =>
     expect((await validate(new OutlierAccountDto())).length).toBe(3));
+  it('accepts optional ranked-list filters', async () => {
+    const query = await new ValidationPipe({ transform: true }).transform(
+      { brandId: 'brand', tier: 'breakout', windowSize: '10' },
+      { type: 'query', metatype: OutlierRankedQueryDto },
+    );
+    expect(query).toMatchObject({
+      brandId: 'brand',
+      tier: 'breakout',
+      windowSize: 10,
+    });
+  });
+  it('rejects invalid ranked-list tiers', async () =>
+    expect(
+      (
+        await validate(
+          plainToInstance(OutlierRankedQueryDto, { tier: 'winner' }),
+        )
+      ).length,
+    ).toBeGreaterThan(0));
   it.each(['refresh', 'patchConfiguration'] as const)(
     'restricts %s to owner/admin',
     (method) =>
