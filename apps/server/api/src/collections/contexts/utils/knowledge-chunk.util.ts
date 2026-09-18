@@ -2,6 +2,7 @@ import { scopedWhere } from '@api/index';
 import { Prisma } from '@genfeedai/prisma';
 
 export interface KnowledgeChunkFilter {
+  exceptVersionId?: string;
   sourceId?: string;
   versionId?: string;
 }
@@ -20,27 +21,29 @@ export async function softDeleteKnowledgeChunks(
   if (!filter.sourceId && !filter.versionId) {
     throw new Error('A knowledge source or version id is required');
   }
+  const versionWhere = filter.exceptVersionId
+    ? { knowledgeSourceVersionId: { not: filter.exceptVersionId } }
+    : filter.versionId
+      ? { knowledgeSourceVersionId: filter.versionId }
+      : {};
+  const where = scopedWhere(organizationId, {
+    ...(filter.sourceId ? { knowledgeSourceId: filter.sourceId } : {}),
+    ...versionWhere,
+  });
   const perBase = await prisma.contextEntry.groupBy({
     by: ['contextBaseId'],
-    where: scopedWhere(organizationId, {
-      ...(filter.sourceId ? { knowledgeSourceId: filter.sourceId } : {}),
-      ...(filter.versionId
-        ? { knowledgeSourceVersionId: filter.versionId }
-        : {}),
-    }),
+    where,
     _count: { _all: true },
   });
   if (perBase.length === 0) {
     return 0;
   }
   const removed = await prisma.contextEntry.updateMany({
+    data: { isDeleted: true },
     where: scopedWhere(organizationId, {
       ...(filter.sourceId ? { knowledgeSourceId: filter.sourceId } : {}),
-      ...(filter.versionId
-        ? { knowledgeSourceVersionId: filter.versionId }
-        : {}),
+      ...versionWhere,
     }),
-    data: { isDeleted: true },
   });
   for (const group of perBase) {
     await prisma.$executeRaw(Prisma.sql`

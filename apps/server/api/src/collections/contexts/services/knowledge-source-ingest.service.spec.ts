@@ -193,7 +193,6 @@ describe('KnowledgeSourceIngestService', () => {
           organizationId: 'org-1',
           isDeleted: false,
           knowledgeSourceId: 'source-1',
-          knowledgeSourceVersionId: 'version-1',
         },
       }),
     );
@@ -252,7 +251,6 @@ describe('KnowledgeSourceIngestService', () => {
         organizationId: 'org-1',
         isDeleted: false,
         knowledgeSourceId: 'source-1',
-        knowledgeSourceVersionId: 'version-1',
       },
       data: { isDeleted: true },
     });
@@ -263,6 +261,35 @@ describe('KnowledgeSourceIngestService', () => {
     expect(decrement.sql).toContain('jsonb_set');
     expect(decrement.values).toEqual(
       expect.arrayContaining([3, 'org-1', 'base-existing']),
+    );
+  });
+
+  it('keeps live source chunks when replacing a candidate version', async () => {
+    const { service, contextBase, contextEntry } = buildService(
+      versionRow({
+        isCurrent: false,
+        processingState: KnowledgeProcessingState.QUEUED,
+      }),
+    );
+    contextBase.findFirst.mockResolvedValue({ id: 'base-existing' });
+    contextEntry.groupBy.mockResolvedValue([]);
+
+    const state: KnowledgeSourceIngestState = {
+      ...(await service.loadSource(request)),
+      chunks: ['candidate'],
+      extracted: { text: 'candidate' },
+    };
+    await service.replaceChunks(state);
+
+    expect(contextEntry.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+          knowledgeSourceId: 'source-1',
+          knowledgeSourceVersionId: 'version-1',
+        },
+      }),
     );
   });
 

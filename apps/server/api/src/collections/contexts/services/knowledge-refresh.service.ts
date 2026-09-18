@@ -4,6 +4,7 @@ import { hashKnowledgeContent } from '@api/collections/contexts/services/knowled
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
+import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { scopedWhere } from '@api/index';
@@ -358,6 +359,10 @@ export class KnowledgeRefreshService {
           processingState: KnowledgeProcessingState.READY,
           retrievalState: KnowledgeRetrievalState.ACTIVE,
         },
+      });
+      await softDeleteKnowledgeChunks(tx, input.organizationId, {
+        exceptVersionId: input.versionId,
+        sourceId: input.sourceId,
       });
       await tx.knowledgeSourceRefreshRun.updateMany({
         where: scopedWhere(input.organizationId, {

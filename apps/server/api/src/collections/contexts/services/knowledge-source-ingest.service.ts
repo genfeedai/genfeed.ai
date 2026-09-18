@@ -378,7 +378,7 @@ export class KnowledgeSourceIngestService {
     );
     await softDeleteKnowledgeChunks(this.prisma, state.organizationId, {
       sourceId: state.source.id,
-      versionId: state.version.id,
+      ...(state.version.isCurrent ? {} : { versionId: state.version.id }),
     });
     for (const [chunkIndex, content] of state.chunks.entries()) {
       const cue = state.extractedCues?.[chunkIndex];
@@ -524,6 +524,10 @@ export class KnowledgeSourceIngestService {
           sourceId: state.sourceId,
         }),
         data: { isCurrent: true },
+      });
+      await softDeleteKnowledgeChunks(tx, state.organizationId, {
+        exceptVersionId: state.versionId,
+        sourceId: state.sourceId,
       });
       await tx.knowledgeSourceRefreshRun.updateMany({
         where: scopedWhere(state.organizationId, {

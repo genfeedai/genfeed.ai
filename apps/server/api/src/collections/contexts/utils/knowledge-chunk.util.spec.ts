@@ -75,4 +75,27 @@ describe('softDeleteKnowledgeChunks', () => {
       expect.arrayContaining([5, 'org-1', 'base-b']),
     );
   });
+
+  it('soft-deletes every source chunk except the promoted version', async () => {
+    const { tx, contextEntry } = buildTx([
+      { contextBaseId: 'base-a', count: 1 },
+    ]);
+
+    await expect(
+      softDeleteKnowledgeChunks(tx as never, 'org-1', {
+        exceptVersionId: 'v-2',
+        sourceId: 's-1',
+      }),
+    ).resolves.toBe(1);
+
+    expect(contextEntry.updateMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        knowledgeSourceId: 's-1',
+        knowledgeSourceVersionId: { not: 'v-2' },
+      },
+      data: { isDeleted: true },
+    });
+  });
 });
