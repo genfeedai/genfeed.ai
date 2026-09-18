@@ -422,8 +422,7 @@ export const SELF_HOSTED_MODELS = [
    * (official direct API, ~$0.045/song per published prepaid-credit tiers).
    * Direct integration (`MurekaService`, not fal/Replicate) configured via
    * `MUREKA_API_KEY` / `MUREKA_API_BASE_URL` / `MUREKA_MODEL`. Seeded
-   * inactive: the field-level contract (request/response shape) should be
-   * confirmed against a live Mureka account before activation.
+   * inactive until an operator verifies one paid generation per endpoint.
    */
   {
     category: ModelCategory.MUSIC,
