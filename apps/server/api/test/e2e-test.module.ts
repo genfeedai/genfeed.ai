@@ -441,6 +441,7 @@ export class TestDatabaseHelper {
     'orgIntegration',
     'task',
     'creditTransaction',
+    'liveSession',
     'creditReservation',
     'creditBalance',
     'billingAccountOrganization',

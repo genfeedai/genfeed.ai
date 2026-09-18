@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
+import { VideosLiveSessionsController } from '@api/collections/videos/controllers/live-sessions/videos-live-sessions.controller';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
@@ -71,6 +72,7 @@ describe('Videos split controllers', () => {
       VideosCaptionsController,
       VideosProvenanceController,
       VideosController,
+      VideosLiveSessionsController,
       VideosRelationshipsController,
       VideosMergeController,
       VideosUploadController,

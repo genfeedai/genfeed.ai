@@ -18,6 +18,7 @@ describe('CreditReservationService', () => {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     creditTransaction: { updateMany: vi.fn() },
+    liveSession: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
   };
   const logger = { error: vi.fn(), log: vi.fn() };
   const creditBalanceService = {
@@ -53,6 +54,7 @@ describe('CreditReservationService', () => {
       .mockReset()
       .mockResolvedValue({ count: 1 });
     prisma.creditTransaction.updateMany.mockReset();
+    prisma.liveSession.updateMany.mockReset().mockResolvedValue({ count: 1 });
     logger.error.mockReset();
     logger.log.mockReset();
     creditBalanceService.applyDelta.mockReset();
@@ -307,6 +309,42 @@ describe('CreditReservationService', () => {
         organizationId: 'org_2',
       },
     });
+  });
+
+  it('settles a due live-session reservation at the reserved ceiling', async () => {
+    const reserved = {
+      actorUserId: 'user_1',
+      amount: 24300,
+      billingAccountId: 'ba_1',
+      id: 'res_live',
+      organizationId: 'org_1',
+      status: CreditReservationStatus.RESERVED,
+      workloadType: 'live-session',
+    };
+    prisma.creditReservation.findMany.mockResolvedValue([reserved]);
+    prisma.creditReservation.findFirst.mockResolvedValue(reserved);
+    const settle = vi.spyOn(service, 'settle').mockResolvedValue({} as never);
+
+    await expect(service.expireDue()).resolves.toBe(1);
+    expect(settle).toHaveBeenCalledWith(
+      expect.objectContaining({
+        actualAmount: 24300,
+        reservationId: 'res_live',
+      }),
+    );
+    expect(prisma.liveSession.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          settledCredits: 24300,
+          status: 'TERMINATED',
+          terminateReason: 'ceiling',
+        }),
+        where: expect.objectContaining({
+          organizationId: 'org_1',
+          reservationId: 'res_live',
+        }),
+      }),
+    );
   });
 
   it('releases an expired reservation exactly once', async () => {

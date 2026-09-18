@@ -53,6 +53,19 @@ describe('getVideoResolutionsByModel', () => {
     );
   });
 
+  it('returns Director resolutions including the 1080P band', () => {
+    expect(
+      getVideoResolutionsByModel(MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR),
+    ).toEqual([
+      { isDraft: true, label: '480P · Draft', value: '480P' },
+      { label: '768P', value: '768P' },
+      { label: '1080P', value: '1080P' },
+    ]);
+    expect(
+      getDefaultVideoResolution(MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR),
+    ).toBe('768P');
+  });
+
   it('returns the official MiniMax H3 Max fal resolution values', () => {
     expect(getVideoResolutionsByModel(MODEL_KEYS.FAL_MINIMAX_H3_MAX)).toEqual([
       { isDraft: true, label: '480P · Draft', value: '480P' },

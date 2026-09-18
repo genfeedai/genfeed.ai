@@ -138,6 +138,29 @@ export const SELF_HOSTED_MODELS = [
     providerCostUsd: 0.08,
   },
   /**
+   * Realtime Director route. Fal list price is $0.08/s with a 60-second
+   * session minimum ($1.20 → applyMargin(1.20) = 400) and 1080p at 2×.
+   * The reserved quantity is the user-declared ceiling, not a plan tier.
+   */
+  {
+    category: ModelCategory.VIDEO,
+    cost: 400,
+    costPerUnit: 27,
+    costTier: CostTier.HIGH,
+    description:
+      'MiniMax H3 Max Director — realtime steered video billed per elapsed second, including idle time, with a 60-second session minimum.',
+    endpoint: 'minimax/h3-max/director',
+    isDefault: false,
+    isHighlighted: false,
+    key: MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR,
+    label: 'H3 Max Director',
+    minCost: 400,
+    pricingType: PricingType.PER_SECOND,
+    provider: ModelProvider.FAL,
+    providerConfig: { name: 'h3-max/director', owner: 'minimax' },
+    providerCostUsd: 0.08,
+  },
+  /**
    * Premium long-form video. providerCostUsd is **per second**
    * (720p-safe ~$0.24/s). 5s → applyMargin(1.20) ≈ 400 credits.
    */

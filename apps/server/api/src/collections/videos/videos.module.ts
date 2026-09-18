@@ -19,11 +19,13 @@ import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { PromptsModule } from '@api/collections/prompts/prompts.module';
 import { TemplatesModule } from '@api/collections/templates/templates.module';
 import { VideosCaptionsController } from '@api/collections/videos/controllers/captions/videos-captions.controller';
+import { VideosLiveSessionsController } from '@api/collections/videos/controllers/live-sessions/videos-live-sessions.controller';
 import { VideosProvenanceController } from '@api/collections/videos/controllers/provenance/videos-provenance.controller';
 import { VideosMergeController } from '@api/collections/videos/controllers/relationships/videos-merge.controller';
 import { VideosRelationshipsController } from '@api/collections/videos/controllers/relationships/videos-relationships.controller';
 import { VideosUploadController } from '@api/collections/videos/controllers/upload/videos-upload.controller';
 import { VideosController } from '@api/collections/videos/controllers/videos.controller';
+import { LiveSessionCreditsService } from '@api/collections/videos/services/live-session-credits.service';
 import { FalVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/fal-video-generation-provider.adapter';
 import { HiggsFieldVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/higgsfield-video-generation-provider.adapter';
 import { KlingAiVideoGenerationProviderAdapter } from '@api/collections/videos/services/providers/klingai-video-generation-provider.adapter';
@@ -67,11 +69,13 @@ import { Module } from '@nestjs/common';
     VideosProvenanceController,
     // Core controllers only - transformations and generation in sub-modules
     VideosController,
+    VideosLiveSessionsController,
     VideosRelationshipsController,
     VideosMergeController,
     VideosUploadController,
   ],
   exports: [
+    LiveSessionCreditsService,
     VideoGenerationCreditsService,
     VideoGenerationService,
     VideoProvenanceService,
@@ -123,6 +127,7 @@ import { Module } from '@nestjs/common';
         new HiggsFieldVideoGenerationProviderAdapter(higgsFieldService),
     },
     KlingAiVideoGenerationProviderAdapter,
+    LiveSessionCreditsService,
     ModelRegistrationService,
     ModelsGuard,
     ReplicateVideoGenerationProviderAdapter,

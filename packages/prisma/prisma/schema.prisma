@@ -448,6 +448,11 @@ enum CreditReservationStatus {
   EXPIRED
 }
 
+enum LiveSessionStatus {
+  OPEN
+  TERMINATED
+}
+
 enum ReferralStatus {
   ACTIVE
   BLOCKED
@@ -842,6 +847,7 @@ model Organization {
   creditTransactions            CreditTransaction[]
   billingAccountLinks           BillingAccountOrganization[]
   creditReservations            CreditReservation[]
+  liveSessions                  LiveSession[]
   referralCodesRewardTarget     ReferralCode[]                 @relation("referral_code_reward_organization")
   referralsAsReferrer           Referral[]                     @relation("referral_referrer_organization")
   referralsAsReferred           Referral[]                     @relation("referral_referred_organization")
@@ -3341,6 +3347,37 @@ model CreditReservation {
   @@index([organizationId, status, isDeleted])
   @@index([status, expiresAt])
   @@map("credit_reservations")
+}
+
+/// Director live session (#4611). Credits reserve against a declared ceiling
+/// before connect; termination settles elapsed wall-clock and releases the rest.
+model LiveSession {
+  id               String                @id @default(cuid())
+  organizationId   String
+  organization     Organization          @relation(fields: [organizationId], references: [id])
+  brandId          String?
+  userId           String
+  modelKey         String
+  resolution       String?
+  ceilingSeconds   Int
+  reservedCredits  Float
+  reservationId    String?
+  startedAt        DateTime              @default(now())
+  ceilingEndsAt    DateTime
+  terminatedAt     DateTime?
+  elapsedSeconds   Int?
+  settledCredits   Float?
+  terminateReason  String?
+  status           LiveSessionStatus     @default(OPEN)
+  isByokBypass     Boolean               @default(false)
+  isDeleted        Boolean               @default(false)
+  createdAt        DateTime              @default(now())
+  updatedAt        DateTime              @updatedAt
+
+  @@index([organizationId, isDeleted, status])
+  @@index([organizationId, reservationId, isDeleted])
+  @@index([status, ceilingEndsAt])
+  @@map("live_sessions")
 }
 
 /// Per-completion LLM vendor cost (#2361). Micro-USD integers; BYOK rows

@@ -253,6 +253,27 @@ describe('UNIFIED_MODEL_CATALOG', () => {
     expect(row).not.toHaveProperty('hasResolutionOptions');
   });
 
+  it('activates MiniMax H3 Max Director with per-second list price and session minimum', () => {
+    const row = UNIFIED_MODEL_CATALOG.find(
+      (entry) => entry.key === MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR,
+    );
+
+    expect(row).toMatchObject({
+      defaultDuration: 900,
+      durations: [60, 120, 180, 300, 600, 900],
+      endpoint: 'minimax/h3-max/director',
+      hasResolutionOptions: true,
+      isActive: true,
+      key: 'fal/minimax/h3-max/director',
+      label: 'H3 Max Director',
+      minCost: 400,
+      pricingType: 'per-second',
+      provider: ModelProvider.FAL,
+      providerCostUsd: 0.08,
+    });
+    expect(row?.costPerUnit).toBe(27);
+  });
+
   it('activates MiniMax H3 Max with its exact fal endpoint and list price', () => {
     const row = UNIFIED_MODEL_CATALOG.find(
       (entry) => entry.key === MODEL_KEYS.FAL_MINIMAX_H3_MAX,

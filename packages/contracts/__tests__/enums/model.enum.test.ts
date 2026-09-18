@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 126 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(126);
+    it('should have 127 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(127);
     });
 
     it('should have correct values', () => {
@@ -44,6 +44,9 @@ describe('model.enum', () => {
       );
       expect(MODEL_KEYS.FAL_MINIMAX_H3_MAX).toBe(
         'fal/minimax/h3-max/text-to-video',
+      );
+      expect(MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR).toBe(
+        'fal/minimax/h3-max/director',
       );
       expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_2).toBe('google/veo-2');
       expect(MODEL_KEYS.REPLICATE_GOOGLE_VEO_3).toBe('google/veo-3');
