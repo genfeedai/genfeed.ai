@@ -2,6 +2,7 @@ import { OAUTH_STATE_TTL_MS } from '@genfeedai/contracts/constants';
 import {
   EXTERNAL_CONNECTION_DENIED_STATE,
   EXTERNAL_CONNECTION_FAILED_STATE,
+  isReservedExternalConnectionOAuthState,
   oauthCallbackErrorState,
   resolveExternalConnectionState,
   serializeExternalConnectionRequest,
@@ -75,5 +76,13 @@ describe('external connection request helper', () => {
     expect(oauthCallbackErrorState('access_denied')).toBe('denied');
     expect(oauthCallbackErrorState('user_denied')).toBe('denied');
     expect(oauthCallbackErrorState('server_error')).toBe('failed');
+  });
+
+  it('treats outcome sentinels as reserved so they cannot be used as OAuth nonces', () => {
+    expect(isReservedExternalConnectionOAuthState('denied')).toBe(true);
+    expect(isReservedExternalConnectionOAuthState('FAILED')).toBe(true);
+    expect(isReservedExternalConnectionOAuthState('opaque-oauth-state')).toBe(
+      false,
+    );
   });
 });

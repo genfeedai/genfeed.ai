@@ -20,6 +20,11 @@ export function oauthCallbackErrorState(
   return PROVIDER_DENIED_ERROR_CODES.has(code) ? 'denied' : 'failed';
 }
 
+export function isReservedExternalConnectionOAuthState(state: string): boolean {
+  const value = state.trim().toLowerCase();
+  return value === DENIED_OAUTH_STATE || value === FAILED_OAUTH_STATE;
+}
+
 export function resolveExternalConnectionState(input: {
   createdAt: Date | string;
   isConnected: boolean;

@@ -26,6 +26,7 @@ import {
   fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integrations/external-connection-request.helper';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -612,11 +613,16 @@ export class CredentialsService
     platform: CredentialPlatform,
     scope?: Partial<OAuthCredentialScope>,
   ): Promise<PendingOAuthCredential | null> {
-    if (typeof state !== 'string' || !state.trim()) {
+    if (
+      typeof state !== 'string' ||
+      !state.trim() ||
+      isReservedExternalConnectionOAuthState(state)
+    ) {
       return null;
     }
 
     const credential = await this.findOne({
+      isConnected: false,
       oauthState: state,
       platform,
       updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },

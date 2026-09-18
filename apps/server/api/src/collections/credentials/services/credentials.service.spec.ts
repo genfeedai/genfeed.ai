@@ -1295,6 +1295,7 @@ describe('CredentialsService', () => {
 
       expect(prisma.credential.findFirst).toHaveBeenCalledWith({
         where: {
+          isConnected: false,
           isDeleted: false,
           oauthState: 'opaque-state',
           organizationId: orgId,
@@ -1313,6 +1314,25 @@ describe('CredentialsService', () => {
         service.findPendingOAuthCredential('  ', 'twitter' as never, {
           organizationId: orgId,
         }),
+      ).resolves.toBeNull();
+
+      expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects reserved denied/failed sentinels so they cannot resume OAuth', async () => {
+      await expect(
+        service.findPendingOAuthCredential('denied', 'twitter' as never, {
+          organizationId: orgId,
+        }),
+      ).resolves.toBeNull();
+      await expect(
+        service.findPendingOAuthCredential(
+          'failed',
+          CredentialPlatform.FACEBOOK,
+          {
+            organizationId: orgId,
+          },
+        ),
       ).resolves.toBeNull();
 
       expect(prisma.credential.findFirst).not.toHaveBeenCalled();
