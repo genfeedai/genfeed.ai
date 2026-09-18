@@ -7,10 +7,10 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { CreatePromptDto } from '@api/collections/prompts/dto/create-prompt.dto';
 import { PromptQueryDto } from '@api/collections/prompts/dto/prompt-query.dto';
 import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto';
+import { enhanceCreatedPrompt } from '@api/collections/prompts/enhance-created-prompt';
 import { type PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -28,7 +28,6 @@ import {
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
-import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -39,10 +38,9 @@ import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ActivitySource,
   PromptStatus,
-  Status,
   SystemPromptKey,
 } from '@genfeedai/contracts';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
@@ -96,10 +94,6 @@ function toMarketplacePromptTitle(prompt: PromptDocument): string {
 
   return promptText.length > 80 ? `${promptText.slice(0, 77)}...` : promptText;
 }
-
-const PROMPT_ENHANCEMENT_MODEL = AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE;
-const DEFAULT_TEXT_SYSTEM_PROMPT =
-  'You are an expert AI assistant. Follow the instructions carefully and provide high-quality responses.';
 
 @AutoSwagger()
 @Controller('prompts')
@@ -192,99 +186,30 @@ export class PromptsController {
     const userPrompt = createPromptDto.original;
 
     const systemPromptKey = this.resolveSystemPromptKey(createPromptDto);
-    void this.enhanceCreatedPrompt(
-      data.id,
-      userPrompt,
-      systemPromptKey,
-      user.organizationId,
-      createPromptDto.brandId,
-      createPromptDto.requestedSkillSlugs,
-      chargedCredits,
-      url,
-      user.userId ?? user.id,
+    void enhanceCreatedPrompt(
+      {
+        creditsUtilsService: this.creditsUtilsService,
+        loggerService: this.loggerService,
+        openRouterService: this.openRouterService,
+        promptsService: this.promptsService,
+        skillRuntimeService: this.skillRuntimeService,
+        templatesService: this._templatesService,
+        websocketService: this.websocketService,
+      },
+      {
+        brandId: createPromptDto.brandId,
+        chargedCredits,
+        organizationId: user.organizationId,
+        promptId: data.id,
+        requestedSkillSlugs: createPromptDto.requestedSkillSlugs,
+        systemPromptKey,
+        url,
+        userId: user.userId ?? user.id,
+        userPrompt,
+      },
     );
 
     return serializeSingle(request, PromptSerializer, data);
-  }
-
-  private async enhanceCreatedPrompt(
-    promptId: string,
-    userPrompt: string,
-    systemPromptKey: string,
-    organizationId: string,
-    brandId: string | null | undefined,
-    requestedSkillSlugs: string[] | undefined,
-    chargedCredits: number,
-    url: string,
-    userId: string,
-  ): Promise<void> {
-    try {
-      const systemPromptPromise = this._templatesService
-        ? this._templatesService
-            .getRenderedPrompt(systemPromptKey, {}, organizationId)
-            .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
-        : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
-      const skillSections =
-        (await this.skillRuntimeService?.resolveRequestedSkillPromptSections(
-          organizationId,
-          brandId,
-          requestedSkillSlugs,
-        )) ?? '';
-      const basePrompt = await systemPromptPromise;
-      const systemPrompt = skillSections
-        ? `${basePrompt}\n\n${skillSections}`
-        : basePrompt;
-      const response = await this.openRouterService.chatCompletion({
-        max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
-        messages: [
-          { content: systemPrompt, role: 'system' },
-          { content: userPrompt, role: 'user' },
-        ],
-        model: PROMPT_ENHANCEMENT_MODEL,
-        temperature: 0.8,
-      });
-      const result = response.choices[0]?.message?.content?.trim() ?? '';
-      this.loggerService.log(`${url} succeeded`, { result });
-      await this.promptsService.patch(promptId, {
-        enhanced: result,
-        status: PromptStatus.GENERATED,
-      });
-      await this.websocketService.emit(WebSocketPaths.prompt(promptId), {
-        result,
-        status: Status.COMPLETED,
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(`${url} failed`, error);
-      try {
-        const refundExpiresAt = new Date();
-        refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1);
-        await this.creditsUtilsService.refundOrganizationCredits(
-          organizationId,
-          chargedCredits,
-          'prompt-creation-refund',
-          'Prompt creation failed - credit refund',
-          refundExpiresAt,
-        );
-        this.loggerService.log('Credits refunded successfully', {
-          amount: chargedCredits,
-          organizationId,
-          userId,
-        });
-      } catch (refundError: unknown) {
-        this.loggerService.error('Failed to refund credits', {
-          error: refundError,
-          organizationId,
-          userId,
-        });
-      }
-      await this.promptsService.patch(promptId, {
-        status: PromptStatus.FAILED,
-      });
-      await this.websocketService.emit(WebSocketPaths.prompt(promptId), {
-        error: (error as Error)?.message || 'An error occurred',
-        status: Status.FAILED,
-      });
-    }
   }
 
   private resolveSystemPromptKey(createPromptDto: CreatePromptDto): string {
