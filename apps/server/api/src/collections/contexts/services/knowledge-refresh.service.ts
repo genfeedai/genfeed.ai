@@ -122,26 +122,64 @@ export class KnowledgeRefreshService {
         'Scheduled refresh requires a brand-scoped Knowledge source',
       );
     }
+    const latest = await this.records.getSource(actor, sourceId);
     const refreshWorkflowId = await this.syncRefreshWorkflow(
       actor,
       sourceId,
-      source.title,
-      source.refreshWorkflowId,
+      latest.title,
+      latest.refreshWorkflowId,
       policy.isEnabled,
     );
-    await this.prisma.knowledgeSource.updateMany({
-      where: scopedWhere(actor.organizationId, { id: sourceId }),
-      data: {
-        gracePeriodMinutes: graceMinutes,
-        isRefreshEnabled: policy.isEnabled,
-        nextCheckAt: policy.isEnabled
-          ? new Date(Date.now() + intervalMinutes * 60_000)
-          : null,
-        referenceUrl,
-        refreshIntervalMinutes: intervalMinutes,
-        refreshWorkflowId,
-      },
+    const written = await this.prisma.$transaction(async (tx) => {
+      const lockKey = JSON.stringify([
+        'knowledge-refresh-policy',
+        actor.organizationId,
+        sourceId,
+      ]);
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
+      const locked = await tx.knowledgeSource.findFirst({
+        where: scopedWhere(actor.organizationId, { id: sourceId }),
+        select: { refreshWorkflowId: true },
+      });
+      if (
+        locked?.refreshWorkflowId &&
+        refreshWorkflowId &&
+        locked.refreshWorkflowId !== refreshWorkflowId
+      ) {
+        return { count: 0, winnerId: locked.refreshWorkflowId };
+      }
+      const result = await tx.knowledgeSource.updateMany({
+        where: scopedWhere(actor.organizationId, { id: sourceId }),
+        data: {
+          gracePeriodMinutes: graceMinutes,
+          isRefreshEnabled: policy.isEnabled,
+          nextCheckAt: policy.isEnabled
+            ? new Date(Date.now() + intervalMinutes * 60_000)
+            : null,
+          referenceUrl,
+          refreshIntervalMinutes: intervalMinutes,
+          refreshWorkflowId: locked?.refreshWorkflowId ?? refreshWorkflowId,
+        },
+      });
+      return {
+        count: result.count,
+        winnerId: locked?.refreshWorkflowId ?? refreshWorkflowId,
+      };
     });
+    if (
+      written.count > 0 &&
+      refreshWorkflowId &&
+      written.winnerId &&
+      written.winnerId !== refreshWorkflowId
+    ) {
+      await this.syncRefreshWorkflow(
+        actor,
+        sourceId,
+        latest.title,
+        refreshWorkflowId,
+        false,
+      );
+    }
     return this.records.getSource(actor, sourceId);
   }
 
@@ -181,8 +219,10 @@ export class KnowledgeRefreshService {
     }
     if (
       !options.force &&
-      source.nextCheckAt &&
-      source.nextCheckAt.getTime() > Date.now()
+      (source.isRefreshEnabled !== true ||
+        (source.nextCheckAt !== null &&
+          source.nextCheckAt !== undefined &&
+          source.nextCheckAt.getTime() > Date.now()))
     ) {
       return this.skipRun(actor, sourceId, tickKey);
     }
@@ -361,7 +401,26 @@ export class KnowledgeRefreshService {
       }),
     });
     if (existing) {
-      return { runId: existing.id };
+      if (this.canReclaimRun(existing)) {
+        await this.prisma.knowledgeSourceRefreshRun.updateMany({
+          where: scopedWhere(actor.organizationId, {
+            id: existing.id,
+            sourceId: source.id,
+          }),
+          data: {
+            attemptCount: { increment: 1 },
+            leaseExpiresAt: new Date(Date.now() + LEASE_MS),
+            leaseToken: randomUUID(),
+            startedAt: new Date(),
+            status: KnowledgeRefreshRunStatus.PROCESSING,
+          },
+        });
+        return { runId: existing.id };
+      }
+      return {
+        existingJobId: existing.candidateVersionId ?? existing.id,
+        runId: existing.id,
+      };
     }
     const unfinished = await this.prisma.knowledgeSourceRefreshRun.findFirst({
       where: scopedWhere(actor.organizationId, {
@@ -375,7 +434,19 @@ export class KnowledgeRefreshService {
       }),
     });
     if (unfinished) {
-      return { runId: unfinished.id };
+      if (this.canReclaimRun(unfinished)) {
+        await this.failRun(
+          unfinished.id,
+          actor.organizationId,
+          source.id,
+          new Error('Refresh lease expired'),
+        );
+      } else {
+        return {
+          existingJobId: unfinished.candidateVersionId ?? unfinished.id,
+          runId: unfinished.id,
+        };
+      }
     }
     const created = await this.prisma.knowledgeSourceRefreshRun.create({
       data: {
@@ -493,20 +564,20 @@ export class KnowledgeRefreshService {
     const existing = await this.prisma.knowledgeSourceRefreshRun.findFirst({
       where: scopedWhere(actor.organizationId, { sourceId, tickKey }),
     });
-    if (existing) {
-      return { refreshRunId: existing.id, sourceId };
+    return { refreshRunId: existing?.id ?? sourceId, sourceId };
+  }
+
+  private canReclaimRun(run: {
+    leaseExpiresAt?: Date | null;
+    status: string;
+  }): boolean {
+    if (
+      run.status !== KnowledgeRefreshRunStatus.QUEUED &&
+      run.status !== KnowledgeRefreshRunStatus.PROCESSING
+    ) {
+      return false;
     }
-    const created = await this.prisma.knowledgeSourceRefreshRun.create({
-      data: {
-        completedAt: new Date(),
-        organizationId: actor.organizationId,
-        outcome: KnowledgeRefreshRunOutcome.SKIPPED,
-        sourceId,
-        status: KnowledgeRefreshRunStatus.COMPLETED,
-        tickKey,
-      },
-    });
-    return { refreshRunId: created.id, sourceId };
+    return !run.leaseExpiresAt || run.leaseExpiresAt.getTime() <= Date.now();
   }
 
   private nextCheckAtFrom(

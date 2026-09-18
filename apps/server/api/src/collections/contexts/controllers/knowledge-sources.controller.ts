@@ -302,7 +302,9 @@ export class KnowledgeSourcesController {
       );
     }
     const actor = resolveKnowledgeActor(user, brandId);
-    const result = await this.refresh.refresh(actor, id, idempotencyKey);
+    const result = await this.refresh.refresh(actor, id, idempotencyKey, {
+      force: true,
+    });
     const source = await this.records.getSource(actor, id);
     return {
       ...serializeSingle(request, KnowledgeSourceSerializer, source),

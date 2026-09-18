@@ -20,6 +20,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivitySource,
+  CreditReservationStatus,
   KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
   KNOWLEDGE_TRANSCRIPT_GENERATION_LEASE_MS,
   KnowledgeProcessingState,
@@ -42,6 +43,7 @@ export interface KnowledgeTranscriptResolution {
 }
 
 interface TranscriptGenerationClaim {
+  attempt?: number;
   leaseExpiresAt: string;
   reservationId?: string;
 }
@@ -89,6 +91,9 @@ function readPayload(value: unknown): KnowledgeSourceCapturePayload & {
     ...(typeof claim?.leaseExpiresAt === 'string'
       ? {
           transcriptGeneration: {
+            ...(typeof claim.attempt === 'number'
+              ? { attempt: claim.attempt }
+              : {}),
             leaseExpiresAt: claim.leaseExpiresAt,
             ...(typeof claim.reservationId === 'string'
               ? { reservationId: claim.reservationId }
@@ -118,6 +123,19 @@ function cuesToText(cues: TranscriptCue[]): string {
     .join(' ')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+function mediaFilename(mimeType: string): string {
+  if (mimeType === 'audio/mpeg') return 'knowledge-media.mp3';
+  if (mimeType === 'audio/wav' || mimeType === 'audio/x-wav') {
+    return 'knowledge-media.wav';
+  }
+  if (mimeType === 'audio/ogg') return 'knowledge-media.ogg';
+  if (mimeType === 'audio/flac') return 'knowledge-media.flac';
+  if (mimeType === 'video/webm' || mimeType === 'audio/webm') {
+    return 'knowledge-media.webm';
+  }
+  return 'knowledge-media.mp4';
 }
 
 @Injectable()
@@ -191,7 +209,7 @@ export class KnowledgeTranscriptIngestService {
         );
       }
       return this.generateFromMedia(
-        input,
+        { ...input, payload },
         fetched.bytes,
         fetched.finalUrl,
         fetched.mimeType,
@@ -236,7 +254,7 @@ export class KnowledgeTranscriptIngestService {
       );
     }
     return this.generateFromMedia(
-      input,
+      { ...input, payload },
       media.bytes,
       media.finalUrl,
       media.mimeType,
@@ -303,24 +321,20 @@ export class KnowledgeTranscriptIngestService {
       );
     }
 
-    const idempotencyKey = `knowledge-transcript:${input.organizationId}:${input.versionId}`;
+    const attempt =
+      typeof existingClaim?.attempt === 'number'
+        ? existingClaim.attempt + 1
+        : 0;
     let reservationId: string | undefined;
     try {
-      const reservation = await this.credits.reserveCredits({
-        actorUserId: input.userId,
-        amount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
-        idempotencyKey,
-        organizationId: input.organizationId,
-        workloadId: input.versionId,
-        workloadType: 'knowledge-transcript',
-      });
+      const reservation = await this.reserveTranscriptCredits(input, attempt);
       reservationId = reservation.id;
-      await this.writeGenerationClaim(input, reservation.id);
+      await this.writeGenerationClaim(input, reservation.id, attempt);
 
       const result = await this.replicate.transcribeAudio({
         audio: {
           data: bytes,
-          filename: mediaUrl.split('/').pop() || 'media.mp3',
+          filename: mediaFilename(mimeType),
           type: 'buffer',
         },
       });
@@ -334,6 +348,14 @@ export class KnowledgeTranscriptIngestService {
       if (cues.length === 0) {
         throw new Error('Generated transcript has no timestamped cues');
       }
+      await this.credits.settleReservation({
+        actualAmount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
+        actorUserId: input.userId,
+        description: 'Knowledge transcript generation',
+        organizationId: input.organizationId,
+        reservationId,
+        source: ActivitySource.SCRIPT,
+      });
       const resolution: KnowledgeTranscriptResolution = {
         cues,
         mediaUrl,
@@ -343,13 +365,14 @@ export class KnowledgeTranscriptIngestService {
         transcriptState: KnowledgeTranscriptState.GENERATED,
       };
       await this.checkpoint(input, resolution);
-      await this.credits.settleReservation({
-        actualAmount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
-        actorUserId: input.userId,
-        description: 'Knowledge transcript generation',
-        organizationId: input.organizationId,
-        reservationId,
-        source: ActivitySource.VOICE_GENERATION,
+      await this.prisma.knowledgeCaptureRequest.updateMany({
+        where: {
+          isDeleted: false,
+          organizationId: input.organizationId,
+          sourceId: input.sourceId,
+          status: 'queued',
+        },
+        data: { reservationId, status: 'completed' },
       });
       return resolution;
     } catch (error: unknown) {
@@ -369,6 +392,38 @@ export class KnowledgeTranscriptIngestService {
       }
       throw error;
     }
+  }
+
+  private async reserveTranscriptCredits(
+    input: {
+      organizationId: string;
+      userId: string;
+      versionId: string;
+    },
+    attempt: number,
+  ) {
+    const reservation = await this.credits.reserveCredits({
+      actorUserId: input.userId,
+      amount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
+      idempotencyKey: `knowledge-transcript:${input.organizationId}:${input.versionId}:${attempt}`,
+      organizationId: input.organizationId,
+      workloadId: input.versionId,
+      workloadType: 'knowledge-transcript',
+    });
+    if (
+      (reservation.status === CreditReservationStatus.RELEASED ||
+        reservation.status === CreditReservationStatus.EXPIRED) &&
+      attempt < 5
+    ) {
+      return this.reserveTranscriptCredits(input, attempt + 1);
+    }
+    if (reservation.status === CreditReservationStatus.SETTLED) {
+      throw this.unavailable(
+        'Transcript generation was already billed for this version',
+        KnowledgeTranscriptState.UNAVAILABLE,
+      );
+    }
+    return reservation;
   }
 
   private async fetchPageOrMedia(referenceUrl: string) {
@@ -423,6 +478,7 @@ export class KnowledgeTranscriptIngestService {
   private async writeGenerationClaim(
     input: { organizationId: string; sourceId: string; versionId: string },
     reservationId: string,
+    attempt: number,
   ): Promise<void> {
     const version = await this.prisma.knowledgeSourceVersion.findFirst({
       select: { payload: true },
@@ -433,6 +489,7 @@ export class KnowledgeTranscriptIngestService {
     });
     const payload = isRecord(version?.payload) ? { ...version.payload } : {};
     payload.transcriptGeneration = {
+      attempt,
       leaseExpiresAt: new Date(
         Date.now() + KNOWLEDGE_TRANSCRIPT_GENERATION_LEASE_MS,
       ).toISOString(),

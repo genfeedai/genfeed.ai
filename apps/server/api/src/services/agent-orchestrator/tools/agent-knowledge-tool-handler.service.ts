@@ -423,7 +423,11 @@ export class AgentKnowledgeToolHandler {
         success: false,
       };
     }
-    const source = await this.records.updateSource(toActor(ctx), sourceId, {
+    const actor = toActor(ctx);
+    if (isVisible === false) {
+      await this.capture.unscheduleRefresh(actor, sourceId);
+    }
+    const source = await this.records.updateSource(actor, sourceId, {
       ...(purpose ? { purpose } : {}),
       ...(isVisible !== undefined ? { isVisible } : {}),
     });

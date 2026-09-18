@@ -289,7 +289,11 @@ export class KnowledgeSourceIngestService {
     if (!category || !state.version.referenceUrl) {
       throw new Error('Source is missing a reference URL');
     }
-    if (state.version.text) {
+    if (
+      state.version.text &&
+      state.source.kind !== KnowledgeSourceKind.AUDIO &&
+      state.source.kind !== KnowledgeSourceKind.VIDEO
+    ) {
       return {
         ...state,
         extracted: { mimeType: 'text/plain', text: state.version.text },
@@ -374,6 +378,7 @@ export class KnowledgeSourceIngestService {
     );
     await softDeleteKnowledgeChunks(this.prisma, state.organizationId, {
       sourceId: state.source.id,
+      versionId: state.version.id,
     });
     for (const [chunkIndex, content] of state.chunks.entries()) {
       const cue = state.extractedCues?.[chunkIndex];
@@ -442,6 +447,9 @@ export class KnowledgeSourceIngestService {
         KnowledgeProcessingState.FAILED,
         toSafeFailureReason(error),
       );
+      if (state.version && !state.version.isCurrent) {
+        await this.failRefreshCandidate(state, toSafeFailureReason(error));
+      }
       return {
         chunkCount: 0,
         sourceId: state.sourceId,
@@ -466,6 +474,36 @@ export class KnowledgeSourceIngestService {
   ): Promise<void> {
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
+      const run = await tx.knowledgeSourceRefreshRun.findFirst({
+        where: scopedWhere(state.organizationId, {
+          candidateVersionId: state.versionId,
+          sourceId: state.sourceId,
+          status: KnowledgeRefreshRunStatus.PROCESSING,
+        }),
+      });
+      if (!run) {
+        return;
+      }
+      const current = await tx.knowledgeSourceVersion.findFirst({
+        where: scopedWhere(state.organizationId, {
+          isCurrent: true,
+          sourceId: state.sourceId,
+        }),
+        select: { id: true },
+      });
+      if (
+        run.expectedCurrentVersionId &&
+        current &&
+        current.id !== run.expectedCurrentVersionId
+      ) {
+        await this.writeFailedRefreshRun(
+          tx,
+          state,
+          now,
+          'Source changed during refresh',
+        );
+        return;
+      }
       await tx.knowledgeSourceVersion.updateMany({
         where: {
           id: { not: state.versionId },
@@ -489,7 +527,7 @@ export class KnowledgeSourceIngestService {
       });
       await tx.knowledgeSourceRefreshRun.updateMany({
         where: scopedWhere(state.organizationId, {
-          candidateVersionId: state.versionId,
+          id: run.id,
           sourceId: state.sourceId,
         }),
         data: {
@@ -498,25 +536,111 @@ export class KnowledgeSourceIngestService {
           status: KnowledgeRefreshRunStatus.COMPLETED,
         },
       });
-      const source = await tx.knowledgeSource.findFirst({
-        where: scopedWhere(state.organizationId, { id: state.sourceId }),
+      await this.writeSuccessfulRefreshSource(tx, state, now);
+      await tx.knowledgeCaptureRequest.updateMany({
+        where: scopedWhere(state.organizationId, {
+          sourceId: state.sourceId,
+          status: 'queued',
+        }),
+        data: { status: 'completed' },
       });
-      const intervalMinutes =
-        source?.refreshIntervalMinutes ??
-        (source?.kind === KnowledgeSourceKind.RSS ? 60 : 1_440);
-      await tx.knowledgeSource.updateMany({
-        where: scopedWhere(state.organizationId, { id: state.sourceId }),
-        data: {
-          consecutiveFailures: 0,
-          firstFailureAt: null,
-          lastCheckedAt: now,
-          lastSuccessfulSyncAt: now,
-          lastSyncError: null,
-          nextCheckAt: new Date(now.getTime() + intervalMinutes * 60_000),
-          staleAt: null,
-          syncState: KnowledgeSourceSyncState.CURRENT,
+    });
+  }
+
+  private async failRefreshCandidate(
+    state: KnowledgeSourceIngestState,
+    error: string,
+  ): Promise<void> {
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await this.writeFailedRefreshRun(tx, state, now, error);
+      await tx.knowledgeCaptureRequest.updateMany({
+        where: scopedWhere(state.organizationId, {
+          sourceId: state.sourceId,
+          status: 'queued',
+        }),
+        data: { error, status: 'failed' },
+      });
+    });
+  }
+
+  private async writeSuccessfulRefreshSource(
+    tx: Prisma.TransactionClient,
+    state: KnowledgeSourceIngestState,
+    now: Date,
+  ): Promise<void> {
+    const source = await tx.knowledgeSource.findFirst({
+      where: scopedWhere(state.organizationId, { id: state.sourceId }),
+    });
+    const intervalMinutes =
+      source?.refreshIntervalMinutes ??
+      (source?.kind === KnowledgeSourceKind.RSS ? 60 : 1_440);
+    await tx.knowledgeSource.updateMany({
+      where: scopedWhere(state.organizationId, { id: state.sourceId }),
+      data: {
+        consecutiveFailures: 0,
+        firstFailureAt: null,
+        lastCheckedAt: now,
+        lastSuccessfulSyncAt: now,
+        lastSyncError: null,
+        nextCheckAt: new Date(now.getTime() + intervalMinutes * 60_000),
+        staleAt: null,
+        syncState: KnowledgeSourceSyncState.CURRENT,
+      },
+    });
+  }
+
+  private async writeFailedRefreshRun(
+    tx: Prisma.TransactionClient,
+    state: KnowledgeSourceIngestState,
+    now: Date,
+    error: string,
+  ): Promise<void> {
+    const source = await tx.knowledgeSource.findFirst({
+      where: scopedWhere(state.organizationId, { id: state.sourceId }),
+    });
+    const consecutiveFailures = (source?.consecutiveFailures ?? 0) + 1;
+    const firstFailureAt = source?.firstFailureAt ?? now;
+    const graceMinutes = source?.gracePeriodMinutes ?? 10_080;
+    const isStale =
+      consecutiveFailures >= 2 &&
+      now.getTime() - firstFailureAt.getTime() >= graceMinutes * 60_000;
+    const backoffMinutes = Math.min(
+      [15, 30, 60, 120][Math.min(consecutiveFailures - 1, 3)] ?? 120,
+      source?.refreshIntervalMinutes ??
+        (source?.kind === KnowledgeSourceKind.RSS ? 60 : 1_440),
+    );
+    await tx.knowledgeSourceRefreshRun.updateMany({
+      where: scopedWhere(state.organizationId, {
+        candidateVersionId: state.versionId,
+        sourceId: state.sourceId,
+        status: {
+          in: [
+            KnowledgeRefreshRunStatus.QUEUED,
+            KnowledgeRefreshRunStatus.PROCESSING,
+          ],
         },
-      });
+      }),
+      data: {
+        completedAt: now,
+        error,
+        nextAttemptAt: new Date(now.getTime() + backoffMinutes * 60_000),
+        status: KnowledgeRefreshRunStatus.FAILED,
+      },
+    });
+    await tx.knowledgeSource.updateMany({
+      where: scopedWhere(state.organizationId, { id: state.sourceId }),
+      data: {
+        consecutiveFailures,
+        firstFailureAt,
+        lastCheckedAt: now,
+        lastSyncError: error,
+        nextCheckAt: new Date(now.getTime() + backoffMinutes * 60_000),
+        staleAt: isStale ? now : source?.staleAt,
+        syncState: isStale
+          ? KnowledgeSourceSyncState.STALE
+          : KnowledgeSourceSyncState.FAILED,
+      },
     });
   }
 

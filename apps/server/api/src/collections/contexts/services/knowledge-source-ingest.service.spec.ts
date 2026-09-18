@@ -17,6 +17,7 @@ import { extractSourceText } from '@api/collections/contexts/utils/extract-sourc
 import {
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
+  KnowledgeRefreshRunStatus,
   KnowledgeRetentionState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
@@ -73,12 +74,25 @@ function buildService(
     }),
     updateMany: vi.fn().mockResolvedValue({ count: 1 }),
   };
+  const knowledgeSourceRefreshRun = {
+    findFirst: vi.fn().mockResolvedValue({
+      expectedCurrentVersionId: 'version-1',
+      id: 'run-1',
+    }),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  };
+  const knowledgeCaptureRequest = {
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  };
   const tx = {
     $executeRaw: executeRaw,
     $queryRaw: queryRaw,
     contextBase,
     contextEntry,
+    knowledgeCaptureRequest,
     knowledgeSource,
+    knowledgeSourceRefreshRun,
+    knowledgeSourceVersion,
   };
   const prisma = {
     ...tx,
@@ -179,6 +193,7 @@ describe('KnowledgeSourceIngestService', () => {
           organizationId: 'org-1',
           isDeleted: false,
           knowledgeSourceId: 'source-1',
+          knowledgeSourceVersionId: 'version-1',
         },
       }),
     );
@@ -237,6 +252,7 @@ describe('KnowledgeSourceIngestService', () => {
         organizationId: 'org-1',
         isDeleted: false,
         knowledgeSourceId: 'source-1',
+        knowledgeSourceVersionId: 'version-1',
       },
       data: { isDeleted: true },
     });
@@ -361,6 +377,27 @@ describe('KnowledgeSourceIngestService', () => {
               KnowledgeProcessingState.FAILED,
             ],
           },
+        }),
+      }),
+    );
+  });
+
+  it('fails the refresh run when a candidate version ingest throws', async () => {
+    const { service, prisma } = buildService(
+      versionRow({
+        isCurrent: false,
+        processingState: KnowledgeProcessingState.QUEUED,
+        retentionState: KnowledgeRetentionState.RETAINED,
+      }),
+    );
+    const state = await service.loadSource(request);
+    await expect(
+      service.finalizeSource(state, 'Failed to fetch source (503)'),
+    ).resolves.toMatchObject({ status: 'failed' });
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          status: KnowledgeRefreshRunStatus.FAILED,
         }),
       }),
     );
