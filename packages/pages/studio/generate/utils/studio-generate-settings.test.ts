@@ -109,6 +109,11 @@ describe('option lists', () => {
         (option) => option.value,
       ),
     ).toEqual(['480p', '720p']);
+    expect(
+      getStudioResolutions('video', 'fal/minimax/h3-max/text-to-video').map(
+        (option) => option.value,
+      ),
+    ).toEqual(['480P', '768P', '1080P']);
     expect(getStudioResolutions('voice')).toEqual([]);
   });
 
