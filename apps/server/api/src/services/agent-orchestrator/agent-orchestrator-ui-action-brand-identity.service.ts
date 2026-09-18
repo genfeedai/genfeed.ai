@@ -13,11 +13,13 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { CacheService } from '@api/services/cache/cache.service';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { AgentMessageRole } from '@genfeedai/contracts';
 import {
   type AgentToolResult,
   type ValidatedAgentScope,
 } from '@genfeedai/contracts/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -52,6 +54,7 @@ export class AgentOrchestratorUiActionBrandIdentityService {
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly cacheService: CacheService,
     private readonly finalizer: AgentOrchestratorUiActionFinalizerService,
+    private readonly prisma: PrismaService,
   ) {}
 
   readRequiredSourceActionId(payload?: Record<string, unknown>): string {
@@ -112,13 +115,13 @@ export class AgentOrchestratorUiActionBrandIdentityService {
       context: confirmed.context,
     });
     await this.consumeProposal({
-      contextVersion: confirmed.scope.contextVersion,
+      scope: confirmed.scope,
       messageId: proposal.messageId,
-      metadata: proposal.metadata,
       operation,
       organizationId: params.context.organizationId,
       sourceActionId,
       threadId: params.threadId,
+      userId: params.context.userId,
     });
     return { result: finalized, scope: confirmed.scope };
   }
@@ -553,42 +556,100 @@ export class AgentOrchestratorUiActionBrandIdentityService {
   }
 
   private async consumeProposal(input: {
-    contextVersion: number;
+    scope: ValidatedAgentScope;
     messageId: string;
-    metadata: Record<string, unknown>;
     operation: BrandIdentityOperation;
     organizationId: string;
     sourceActionId: string;
     threadId: string;
+    userId: string;
   }): Promise<void> {
-    const consumed = this.readRecord(
-      input.metadata.consumedBrandIdentityActions,
-    );
-    const result = await this.agentMessagesService.patchAll(
-      {
-        id: input.messageId,
-        organizationId: input.organizationId,
-        threadId: input.threadId,
-      },
-      {
-        metadata: {
-          ...input.metadata,
-          consumedBrandIdentityActions: {
-            ...consumed,
-            [input.sourceActionId]: {
-              consumedAt: new Date().toISOString(),
-              contextVersion: input.contextVersion,
-              operation: input.operation,
-            },
-          },
+    await this.prisma.$transaction(async (transaction) => {
+      const key = JSON.stringify([
+        'agent-generation-decision',
+        input.organizationId,
+        input.userId,
+        input.threadId,
+      ]);
+      await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+      const thread = await transaction.agentThread.findFirst({
+        where: {
+          id: input.threadId,
+          organizationId: input.organizationId,
+          userId: input.userId,
+          isDeleted: false,
+          status: 'active',
         },
-      },
-    );
-    if (result.modifiedCount !== 1) {
-      throw new InternalServerErrorException(
-        'Unable to consume the persisted brand identity proposal.',
-      );
-    }
+      });
+      if (
+        !thread ||
+        thread.contextVersion !== input.scope.contextVersion ||
+        (thread.brandId ?? null) !== (input.scope.brandId ?? null)
+      ) {
+        throw new ConflictException(
+          'The active brand identity thread or confirmed scope is unavailable.',
+        );
+      }
+      const message = await transaction.agentMessage.findFirst({
+        where: {
+          id: input.messageId,
+          organizationId: input.organizationId,
+          threadId: input.threadId,
+          isDeleted: false,
+          role: 'assistant',
+        },
+        select: { id: true, metadata: true },
+      });
+      if (!message)
+        throw new ConflictException(
+          'The original brand identity proposal is unavailable.',
+        );
+      const metadata = this.readRecord(message.metadata);
+      const actions = Array.isArray(metadata.uiActions)
+        ? metadata.uiActions
+        : [];
+      const action = actions
+        .map((candidate) => this.readRecord(candidate))
+        .find((candidate) => candidate.id === input.sourceActionId);
+      const data = this.readRecord(action?.data);
+      if (
+        action?.type !== 'brand_identity_confirmation_card' ||
+        data.operation !== input.operation ||
+        data.sourceActionId !== input.sourceActionId
+      ) {
+        throw new BadRequestException(
+          'Brand identity proposal does not match this confirmation.',
+        );
+      }
+      const consumed = this.readRecord(metadata.consumedBrandIdentityActions);
+      if (Object.hasOwn(consumed, input.sourceActionId)) return;
+      const result = await transaction.agentMessage.updateMany({
+        where: {
+          id: input.messageId,
+          organizationId: input.organizationId,
+          threadId: input.threadId,
+          isDeleted: false,
+        },
+        data: {
+          metadata: toPrismaJson({
+            ...metadata,
+            consumedBrandIdentityActions: {
+              ...consumed,
+              [input.sourceActionId]: {
+                consumedAt: new Date().toISOString(),
+                contextVersion: input.scope.contextVersion,
+                operation: input.operation,
+              },
+            },
+          }),
+        },
+      });
+      if (result.count !== 1) {
+        throw new InternalServerErrorException(
+          'Unable to consume the persisted brand identity proposal.',
+        );
+      }
+    });
   }
 
   private readRecord(value: unknown): Record<string, unknown> {
