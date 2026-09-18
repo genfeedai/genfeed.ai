@@ -14,7 +14,6 @@ WHERE "organizationId" IS NOT NULL
     'ad-copy-creator',
     'ad-performance-analyzer',
     'blog-content-creator',
-    'brand-interview',
     'brand-os-architect',
     'cinematic-prompting',
     'competitor-analyzer',

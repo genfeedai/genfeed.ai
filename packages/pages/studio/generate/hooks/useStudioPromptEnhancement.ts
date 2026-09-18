@@ -152,7 +152,12 @@ export function useStudioPromptEnhancement({
   resolveRequestedSkillsRef.current = resolveRequestedSkills;
 
   const enhancePrompt = useCallback(async () => {
-    const raw = promptRef.current.trim();
+    // The composer still holds any `/slug` tokens; `text` is what we send for
+    // enhancement with those stripped. Staleness and undo compare against what
+    // the operator can actually see, or a picked skill would make every
+    // enhancement look like a concurrent edit and get discarded.
+    const originalPrompt = promptRef.current;
+    const raw = originalPrompt.trim();
     const resolved = resolveRequestedSkillsRef.current?.(raw);
     const text = resolved?.content.trim() ?? raw;
     const requestedSkillSlugs = resolved?.skillSlugs ?? [];
@@ -217,8 +222,8 @@ export function useStudioPromptEnhancement({
             // Only replace the prompt if the operator has not edited it
             // since the request was sent — never clobber a live edit with a
             // stale enhancement result.
-            if (promptRef.current === text) {
-              setPreviousPrompt(text);
+            if (promptRef.current === originalPrompt) {
+              setPreviousPrompt(originalPrompt);
               onPromptChange(result);
               clearUndoTimeout();
               undoTimeoutRef.current = setTimeout(() => {

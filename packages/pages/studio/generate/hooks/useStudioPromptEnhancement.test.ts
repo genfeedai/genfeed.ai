@@ -207,6 +207,51 @@ describe('useStudioPromptEnhancement', () => {
     expect(result.current.isEnhancing).toBe(false);
   });
 
+  it('applies the result when a skill token was stripped from the prompt', async () => {
+    // Regression: staleness used to compare the live composer (which still
+    // holds `/brand-interview`) against the stripped text sent for
+    // enhancement, so every picked-skill enhancement was discarded as if the
+    // operator had edited it mid-flight.
+    const onPromptChange = vi.fn();
+    const { result } = renderHook(() =>
+      useStudioPromptEnhancement({
+        brandId: 'brand-1',
+        modelKey: 'openai/dall-e-3',
+        onPromptChange,
+        prompt: '/cinematic-prompting a founder at a desk',
+        resolveRequestedSkills: (value: string) => ({
+          content: value.replace('/cinematic-prompting ', ''),
+          skillSlugs: ['cinematic-prompting'],
+        }),
+      }),
+    );
+
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+
+    // The token is stripped from what we send, and the slug rides along.
+    expect(mockPromptsPost).toHaveBeenCalledWith(
+      expect.objectContaining({
+        original: 'a founder at a desk',
+        requestedSkillSlugs: ['cinematic-prompting'],
+      }),
+    );
+
+    act(() => {
+      getSubscribedHandler().onCompleted('A cinematic, brand-aware prompt');
+    });
+
+    expect(onPromptChange).toHaveBeenCalledWith(
+      'A cinematic, brand-aware prompt',
+    );
+    expect(mockNotificationsInfo).not.toHaveBeenCalled();
+    // Undo restores what the operator actually had, token included.
+    expect(result.current.previousPrompt).toBe(
+      '/cinematic-prompting a founder at a desk',
+    );
+  });
+
   it('restores the previous prompt on undo', async () => {
     const onPromptChange = vi.fn();
     const { result } = renderHook(() =>

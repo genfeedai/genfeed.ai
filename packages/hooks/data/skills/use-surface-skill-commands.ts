@@ -95,8 +95,9 @@ export function useSurfaceSkillCommands({
         if (signal.aborted || requestId !== requestIdRef.current) {
           return;
         }
-        // The palette still works without skills — the static commands stay.
-        setSkills([]);
+        // Keep the last catalog that loaded rather than clearing it: a token
+        // already inserted from the palette has to stay recognisable at submit,
+        // or it reaches the model as literal text and its skill is dropped.
         setError(
           caught instanceof Error ? caught.message : 'Failed to load skills',
         );
@@ -111,7 +112,11 @@ export function useSurfaceSkillCommands({
 
   useEffect(() => {
     if (!isEnabled) {
+      // Aborting below skips the `finally`, so clear the request state here or
+      // a composer disabled mid-fetch stays "loading" forever.
       setSkills([]);
+      setIsLoading(false);
+      setError(null);
       return;
     }
 
@@ -128,8 +133,10 @@ export function useSurfaceSkillCommands({
   const baseSkillSlugs = useMemo(
     () =>
       baseCommands
-        .map((command) => command.skillSlug)
-        .filter((slug): slug is string => Boolean(slug)),
+        .filter((command) => command.kind === 'skill')
+        // Mirrors `promptCommandText`, which inserts `skillSlug ?? name`. A
+        // mismatch here would leave the inserted token in the sent prompt.
+        .map((command) => command.skillSlug ?? command.name),
     [baseCommands],
   );
 

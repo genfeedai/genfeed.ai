@@ -170,6 +170,67 @@ describe('useSurfaceSkillCommands', () => {
     expect(result.current.commands.map((c) => c.name)).toEqual(['interview']);
   });
 
+  it('keeps the last loaded catalog when a later fetch fails', async () => {
+    // A token already inserted from the palette has to stay strippable at
+    // submit; clearing the slugs would send it to the model as literal text.
+    listSkillsMock.mockResolvedValue([makeSkill()]);
+
+    const { rerender, result } = renderHook(
+      ({ surface }) => useSurfaceSkillCommands({ surface }),
+      { initialProps: { surface: SkillSurface.AGENT } },
+    );
+
+    await waitFor(() =>
+      expect(result.current.skillSlugs).toEqual(['hook-writer']),
+    );
+
+    listSkillsMock.mockRejectedValue(new Error('offline'));
+    rerender({ surface: SkillSurface.STUDIO });
+
+    await waitFor(() => expect(result.current.error).toBe('offline'));
+    expect(result.current.skillSlugs).toEqual(['hook-writer']);
+  });
+
+  it('claims a base skill command that carries no explicit slug', async () => {
+    // `promptCommandText` inserts `skillSlug ?? name`, so the name has to be
+    // recognised at submit or the token survives into the sent prompt.
+    listSkillsMock.mockResolvedValue([]);
+
+    const { result } = renderHook(() =>
+      useSurfaceSkillCommands({
+        baseCommands: [
+          {
+            description: 'No slug of its own',
+            kind: 'skill',
+            label: 'Loose',
+            name: 'loose-skill',
+          },
+        ],
+        surface: SkillSurface.AGENT,
+      }),
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.skillSlugs).toEqual(['loose-skill']);
+  });
+
+  it('clears loading and error state when it becomes disabled', async () => {
+    listSkillsMock.mockRejectedValue(new Error('offline'));
+
+    const { rerender, result } = renderHook(
+      ({ isEnabled }) =>
+        useSurfaceSkillCommands({ isEnabled, surface: SkillSurface.AGENT }),
+      { initialProps: { isEnabled: true } },
+    );
+
+    await waitFor(() => expect(result.current.error).toBe('offline'));
+
+    rerender({ isEnabled: false });
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.error).toBeNull();
+  });
+
   it('does not call the API while disabled', async () => {
     const { result } = renderHook(() =>
       useSurfaceSkillCommands({

@@ -635,6 +635,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
     if (isUploading || isListening || isTranscribing) {
       return;
     }
+    // Skills picked from `/` are literal tokens in the prompt. They steer the
+    // enhancement pass, never the generator, so they come off before either
+    // path — a remix stores the prompt as its objective, so a token left in
+    // here would reach generation the same way.
+    const { content } = resolvePromptCommands(prompt);
+
     if (remixRun) {
       if (
         remixRun.draft.output.kind === 'copy' ||
@@ -645,7 +651,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         void startRemixRun(
           buildStudioRemixRunEdits(
             remixRun,
-            prompt,
+            content,
             settings,
             type,
             contentReferences.map((reference) => reference.item.id),
@@ -654,9 +660,6 @@ export default function StudioGenerateWorkspace(): ReactElement {
       }
       return;
     }
-    // Skills picked from `/` are literal tokens in the prompt. They steer the
-    // enhancement pass, never the generator, so they come off here.
-    const { content } = resolvePromptCommands(prompt);
     const prepared = resolveCharacterMentions({
       document: promptDocumentRef.current,
       existingReferenceIds: resolvedReferences.imageReferenceIds,

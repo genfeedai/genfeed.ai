@@ -125,6 +125,7 @@ export class SkillsService {
       source: payload['source'],
       sourceListingId: payload['sourceListingId'],
       status: payload['status'],
+      surfaces: payload['surfaces'],
       systemPromptTemplate: payload['systemPromptTemplate'],
       title: payload['title'],
       toolOverrides: payload['toolOverrides'],
