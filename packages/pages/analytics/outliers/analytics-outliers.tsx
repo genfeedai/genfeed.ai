@@ -32,23 +32,20 @@ import {
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import OutlierBaselineDrawer from './outlier-baseline-drawer';
 
-const PLATFORM_OPTIONS = [
-  { label: 'All platforms', value: 'all' },
-  { label: 'Instagram', value: 'instagram' },
-  { label: 'TikTok', value: 'tiktok' },
-  { label: 'YouTube', value: 'youtube' },
-  { label: 'Twitter', value: 'twitter' },
-  { label: 'Facebook', value: 'facebook' },
+const PLATFORM_VALUES = [
+  'all',
+  'instagram',
+  'tiktok',
+  'youtube',
+  'twitter',
+  'facebook',
 ] as const;
 
-const TIER_OPTIONS = [
-  { label: 'All tiers', value: 'all' },
-  { label: 'Outlier (3x+)', value: 'outlier' },
-  { label: 'Breakout (10x+)', value: 'breakout' },
-] as const;
+const TIER_VALUES = ['all', 'outlier', 'breakout'] as const;
 
 function formatOutlierRatio(value: number | null | undefined): string {
   if (value == null || !Number.isFinite(value)) return '—';
@@ -62,6 +59,7 @@ export default function AnalyticsOutliers({
   const brandId = propBrandId || scope.brandId;
   const { href } = useOrgUrl();
   const remix = useOptionalDiscoveryRemix();
+  const translate = useTranslations('pages.analytics.outliers');
   const getService = useAuthedService((token: string) =>
     OutlierBaselinesService.getInstance(token),
   );
@@ -154,14 +152,14 @@ export default function AnalyticsOutliers({
     posts.length === 0 &&
     (snapshot?.status === 'insufficient_data' || false);
   const emptyLabel = isInsufficient
-    ? 'Insufficient data — this account needs at least 5 eligible posts'
-    : 'No outlier posts for these filters';
+    ? translate('insufficient')
+    : translate('empty');
 
   const columns = useMemo<TableColumn<OutlierPerformanceResponse>[]>(
     () => [
       {
         className: 'min-w-40',
-        header: 'Post',
+        header: translate('post'),
         key: 'logicalPostId',
         render: (post) => (
           <span className="font-semibold">{post.logicalPostId}</span>
@@ -169,20 +167,20 @@ export default function AnalyticsOutliers({
       },
       {
         className: 'min-w-24',
-        header: 'Platform',
+        header: translate('platform'),
         key: 'platform',
         render: (post) => post.platform,
       },
       {
         className: 'min-w-24',
-        header: 'Views',
+        header: translate('views'),
         key: 'views',
         render: (post) =>
           post.views == null ? '—' : formatCompactNumber(post.views),
       },
       {
         className: 'min-w-28',
-        header: 'Baseline',
+        header: translate('baseline'),
         key: 'medianViews',
         render: (post) =>
           post.medianViews == null
@@ -191,7 +189,7 @@ export default function AnalyticsOutliers({
       },
       {
         className: 'min-w-24',
-        header: 'Ratio',
+        header: translate('ratio'),
         key: 'outlierRatio',
         render: (post) => (
           <span className="font-semibold">
@@ -201,7 +199,7 @@ export default function AnalyticsOutliers({
       },
       {
         className: 'min-w-24',
-        header: 'Tier',
+        header: translate('tier'),
         key: 'outlierTier',
         render: (post) =>
           post.outlierTier ? (
@@ -212,7 +210,7 @@ export default function AnalyticsOutliers({
       },
       {
         className: 'min-w-48',
-        header: 'Actions',
+        header: translate('actions'),
         key: 'actions',
         render: (post) => {
           const hookHref = post.postId
@@ -228,12 +226,12 @@ export default function AnalyticsOutliers({
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
-                  <Link href={hookHref}>Analyze hook</Link>
+                  <Link href={hookHref}>{translate('analyzeHook')}</Link>
                 </Button>
               ) : null}
               {canRemix ? (
                 <Button
-                  label="Remix"
+                  label={translate('remix')}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
@@ -260,39 +258,42 @@ export default function AnalyticsOutliers({
         },
       },
     ],
-    [href, remix],
+    [href, remix, translate],
   );
 
   return (
     <div className="space-y-6 pb-12">
       <div className="flex flex-col gap-2">
-        <Heading size="xl">Outliers</Heading>
+        <Heading size="xl">{translate('heading')}</Heading>
         <Text as="p" size="sm" color="subtle-60">
-          Posts ranked by how far they beat their account baseline, not by raw
-          views.
+          {translate('description')}
         </Text>
       </div>
       <div className="flex flex-wrap gap-3">
         <Select value={platform} onValueChange={setPlatform}>
-          <SelectTrigger className="w-44" aria-label="Platform">
-            <SelectValue placeholder="Platform" />
+          <SelectTrigger className="w-44" aria-label={translate('platform')}>
+            <SelectValue placeholder={translate('platform')} />
           </SelectTrigger>
           <SelectContent>
-            {PLATFORM_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+            {PLATFORM_VALUES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {translate(value === 'all' ? 'allPlatforms' : value)}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <Select value={tier} onValueChange={setTier}>
-          <SelectTrigger className="w-44" aria-label="Tier">
-            <SelectValue placeholder="Tier" />
+          <SelectTrigger className="w-44" aria-label={translate('tier')}>
+            <SelectValue placeholder={translate('tier')} />
           </SelectTrigger>
           <SelectContent>
-            {TIER_OPTIONS.map((option) => (
-              <SelectItem key={option.value} value={option.value}>
-                {option.label}
+            {TIER_VALUES.map((value) => (
+              <SelectItem key={value} value={value}>
+                {value === 'all'
+                  ? translate('allTiers')
+                  : value === 'outlier'
+                    ? translate('outlierTier')
+                    : translate('breakoutTier')}
               </SelectItem>
             ))}
           </SelectContent>

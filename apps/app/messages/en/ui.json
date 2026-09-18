@@ -1,4 +1,8 @@
 {
+  "analyticsTrends": {
+    "median": "Median",
+    "ratio": "Ratio"
+  },
   "dateRangePicker": {
     "quickRanges": "Quick date ranges"
   },

@@ -389,12 +389,14 @@ export class OutliersService {
         ] as const);
     const [rows, total, snapshots] = await Promise.all([
       this.prisma.outlierPostPerformance.findMany({
-        where,
+        where: scopedWhere(organizationId, where),
         orderBy: [...orderBy],
         skip: (page - 1) * limit,
         take: limit,
       }),
-      this.prisma.outlierPostPerformance.count({ where }),
+      this.prisma.outlierPostPerformance.count({
+        where: scopedWhere(organizationId, where),
+      }),
       this.prisma.outlierBaselineSnapshot.findMany({
         where: {
           organizationId,

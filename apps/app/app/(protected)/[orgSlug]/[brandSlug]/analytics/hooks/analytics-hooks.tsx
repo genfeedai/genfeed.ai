@@ -30,6 +30,7 @@ import { PLATFORM_CONFIGS_ARRAY as PLATFORM_CONFIGS } from '@ui-constants/platfo
 import { format } from 'date-fns';
 import { Clock, Video } from 'lucide-react';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import HookAnalysisSection from './HookAnalysisSection';
@@ -62,6 +63,7 @@ export default function AnalyticsHooks({
   const { brandId: contextBrandId, organizationId } = useBrand();
   const { dateRange } = useAnalyticsContext();
   const searchParams = useSearchParams();
+  const translateFilter = useTranslations('pages.analytics.hooksOutlierFilter');
   const brandId = propBrandId || contextBrandId;
   const postId = searchParams.get('postId')?.trim() || undefined;
   const [minOutlierTier, setMinOutlierTier] = useState<
@@ -197,13 +199,17 @@ export default function AnalyticsHooks({
             setMinOutlierTier(value as 'all' | 'outlier' | 'breakout')
           }
         >
-          <SelectTrigger className="w-48" aria-label="Outlier filter">
-            <SelectValue placeholder="Outliers first" />
+          <SelectTrigger className="w-48" aria-label={translateFilter('label')}>
+            <SelectValue placeholder={translateFilter('outliersFirst')} />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All posts</SelectItem>
-            <SelectItem value="outlier">Outliers first</SelectItem>
-            <SelectItem value="breakout">Breakouts only</SelectItem>
+            <SelectItem value="all">{translateFilter('allPosts')}</SelectItem>
+            <SelectItem value="outlier">
+              {translateFilter('outliersFirst')}
+            </SelectItem>
+            <SelectItem value="breakout">
+              {translateFilter('breakoutsOnly')}
+            </SelectItem>
           </SelectContent>
         </Select>
         <ButtonRefresh onClick={handleRefresh} isRefreshing={isLoading} />

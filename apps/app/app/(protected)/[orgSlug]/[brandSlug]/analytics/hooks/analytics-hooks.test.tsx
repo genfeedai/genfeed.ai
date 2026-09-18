@@ -54,6 +54,10 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => new URLSearchParams(),
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock('@ui/primitives/select', () => ({
   Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
   SelectContent: ({ children }: { children: ReactNode }) => (

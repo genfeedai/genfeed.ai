@@ -515,16 +515,12 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'get_workflow_inputs':
         return this.workflowHandler.getWorkflowInputs(params, ctx);
-
       case 'get_analytics':
         return this.analyticsHandler.getAnalytics(params, ctx);
-
       case 'list_outlier_posts':
         return this.analyticsHandler.listOutlierPosts(params, ctx);
-
       case 'get_connection_status':
         return this.connectionHandler.getConnectionStatus(params, ctx);
-
       case 'initiate_oauth_connect':
         return this.connectionHandler.initiateOAuthConnect(params, ctx);
 

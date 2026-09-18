@@ -43,6 +43,10 @@ vi.mock('@services/core/logger.service', () => ({
   logger: { error: vi.fn(), info: vi.fn() },
 }));
 
+vi.mock('next-intl', () => ({
+  useTranslations: () => (key: string) => key,
+}));
+
 vi.mock('next/link', () => ({
   default: ({ children, href }: { children: ReactNode; href: string }) => (
     <a href={href}>{children}</a>
@@ -136,11 +140,11 @@ describe('AnalyticsOutliers', () => {
     );
     expect(screen.getByText('10x')).toBeInTheDocument();
     expect(screen.getByText('breakout')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Analyze hook' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'analyzeHook' })).toHaveAttribute(
       'href',
       '/org/brand/analytics/hooks?postId=post-1',
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+    fireEvent.click(screen.getByRole('button', { name: 'remix' }));
     expect(mocks.openRemix).toHaveBeenCalledWith({
       kind: 'owned_post',
       postId: 'post-1',
@@ -158,10 +162,6 @@ describe('AnalyticsOutliers', () => {
         <AnalyticsOutliers />
       </AnalyticsProvider>,
     );
-    await waitFor(() =>
-      expect(
-        screen.getByText('No outlier posts for these filters'),
-      ).toBeInTheDocument(),
-    );
+    await waitFor(() => expect(screen.getByText('empty')).toBeInTheDocument());
   });
 });

@@ -32,11 +32,13 @@ export class OutlierConfigurationService {
       ...input,
     });
     if (!result.success) throw new BadRequestException(result.error.flatten());
+    // tenant-scope-ignore: revive the unique org row even if it was soft-deleted
     const row = await this.prisma.outlierConfiguration.findFirst({
       where: { organizationId },
       select: { id: true },
     });
     if (row) {
+      // tenant-scope-ignore: revive the unique org row even if it was soft-deleted
       await this.prisma.outlierConfiguration.updateMany({
         where: { id: row.id, organizationId },
         data: { ...result.data, isDeleted: false },
@@ -53,6 +55,7 @@ export class OutlierConfigurationService {
           'code' in error &&
           error.code === 'P2002'
         ) {
+          // tenant-scope-ignore: P2002 recovery updates the unique org row including a soft-deleted one
           await this.prisma.outlierConfiguration.updateMany({
             where: { organizationId },
             data: { ...result.data, isDeleted: false },

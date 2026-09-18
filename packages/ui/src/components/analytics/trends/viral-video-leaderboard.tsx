@@ -11,6 +11,7 @@ import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 const TIMEFRAME_OPTIONS = [
   { label: '24 hours', value: Timeframe.H24 },
@@ -26,6 +27,7 @@ export function ViralVideoLeaderboard({
   onVideoClick,
   className = '',
 }: ViralVideoLeaderboardProps) {
+  const translate = useTranslations('ui.analyticsTrends');
   if (isLoading) {
     return (
       <div className={`space-y-4 ${className}`}>
@@ -181,7 +183,7 @@ export function ViralVideoLeaderboard({
           },
           {
             className: 'min-w-28',
-            header: 'Median',
+            header: translate('median'),
             key: 'medianViews',
             render: (video) => (
               <span className="tabular-nums">
@@ -195,7 +197,7 @@ export function ViralVideoLeaderboard({
           },
           {
             className: 'min-w-20',
-            header: 'Ratio',
+            header: translate('ratio'),
             key: 'outlierRatio',
             render: (video) => (
               <span className="font-semibold tabular-nums">
