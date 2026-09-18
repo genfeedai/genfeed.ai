@@ -225,7 +225,7 @@ export default function AnalyticsOutliers({
                 <Button
                   asChild
                   size={ButtonSize.SM}
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                 >
                   <Link href={hookHref}>Analyze hook</Link>
@@ -235,7 +235,7 @@ export default function AnalyticsOutliers({
                 <Button
                   label="Remix"
                   size={ButtonSize.SM}
-                  variant={ButtonVariant.OUTLINE}
+                  variant={ButtonVariant.SECONDARY}
                   withWrapper={false}
                   onClick={(event) => {
                     event.stopPropagation();
