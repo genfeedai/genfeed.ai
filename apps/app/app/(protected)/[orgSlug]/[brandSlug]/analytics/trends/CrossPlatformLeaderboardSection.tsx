@@ -182,7 +182,9 @@ export default function CrossPlatformLeaderboardSection({
                       {formatCompactNumber(brand.followers)} followers
                     </p>
                     <p className="font-semibold text-foreground">
-                      {formatCompactNumber(brand.avgViews)} avg views
+                      {formatCompactNumber(brand.medianViews ?? brand.avgViews)}{' '}
+                      median views
+                      {brand.sampleSize ? ` (${brand.sampleSize})` : ''}
                     </p>
                     <p className="font-semibold text-foreground">
                       {brand.avgEngagementRate.toFixed(1)}% ER

@@ -103,7 +103,6 @@ export class OutlierInputsService {
   async read(scope: OutlierResolvedAccount): Promise<OutlierObservation[]> {
     const { organizationId, brandId, platform } = scope;
     const scopeWhere = { organizationId, brandId, isDeleted: false };
-    let recordCount = 0;
     const observations: OutlierObservation[] = [];
     const sources = await this.prisma.socialSource.findMany({
       select: { id: true },
@@ -117,12 +116,10 @@ export class OutlierInputsService {
             }
           : { id: scope.accountId, sourceType: SocialSourceType.ACCOUNT }),
       }),
-      take: 10001,
+      take: 10_000,
       orderBy: { id: 'asc' },
     });
-    if (sources.length > 10000)
-      throw new Error('Outlier history exceeds the 10000-record safety limit');
-    for (let skip = 0; ; skip += 200) {
+    for (let skip = 0; observations.length < 10_000; skip += 200) {
       const rows = await this.prisma.sourcePost.findMany({
         where: {
           ...scopeWhere,
@@ -140,16 +137,13 @@ export class OutlierInputsService {
           collectedAt: true,
           updatedAt: true,
         },
-        orderBy: { id: 'asc' },
+        orderBy: [{ publishedAt: 'desc' }, { id: 'desc' }],
         skip,
         take: 200,
       });
-      recordCount += rows.length;
-      if (recordCount > 10000)
-        throw new Error(
-          'Outlier history exceeds the 10000-record safety limit',
-        );
-      for (const row of rows)
+      if (!rows.length) break;
+      for (const row of rows) {
+        if (observations.length >= 10_000) break;
         observations.push({
           ...scope,
           id: `${platform}:${row.externalId}`,
@@ -174,11 +168,14 @@ export class OutlierInputsService {
           measuredAt: row.updatedAt,
           sourceIdentity: `source:${row.sourceId}:${row.id}`,
         });
+      }
       if (rows.length < 200) break;
     }
     if (scope.accountType === 'credential')
-      observations.push(...(await this.readAnalytics(scope, recordCount)));
-    return this.selectLatest(observations);
+      observations.push(
+        ...(await this.readAnalytics(scope, observations.length)),
+      );
+    return this.selectLatest(observations).slice(0, 10_000);
   }
   private async readAnalytics(
     scope: OutlierResolvedAccount,
@@ -223,10 +220,7 @@ export class OutlierInputsService {
         take: 200,
       });
       recordCount += rows.length;
-      if (recordCount > 10000)
-        throw new Error(
-          'Outlier history exceeds the 10000-record safety limit',
-        );
+      if (recordCount > 10_000) break;
       for (const row of rows) {
         if (
           row.credentialId &&

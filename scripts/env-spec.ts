@@ -72,6 +72,7 @@ const frontendSharedKeys = [
 
 const backendSharedKeys = [
   'BETTER_AUTH_ENABLED',
+  'BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION',
   'BETTER_AUTH_SECRET',
   'BETTER_AUTH_TRUSTED_ORIGINS',
   'BETTER_AUTH_URL',
@@ -548,6 +549,7 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
     title: 'Shared Auth And Edition',
     keys: [
       'BETTER_AUTH_ENABLED',
+      'BETTER_AUTH_REQUIRE_EMAIL_VERIFICATION',
       'BETTER_AUTH_SECRET',
       'BETTER_AUTH_TRUSTED_ORIGINS',
       'BETTER_AUTH_URL',

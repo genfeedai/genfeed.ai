@@ -7225,5 +7225,7 @@ model OutlierPostPerformance {
   updatedAt DateTime @updatedAt
   @@unique([baselineSnapshotId, logicalPostId])
   @@index([organizationId, baselineSnapshotId, isDeleted, logicalPostId])
+  @@index([organizationId, brandId, isDeleted, outlierRatio], map: "outlier_post_performances_org_brand_ratio_idx")
+  @@index([organizationId, platform, accountId, outlierTier, isDeleted], map: "outlier_post_performances_org_platform_account_tier_idx")
   @@map("outlier_post_performances")
 }

@@ -82,7 +82,7 @@ describe('MediaGenerationCostService', () => {
   it('does not record Higgsfield usage as Replicate BYOK', async () => {
     modelsService.findOne.mockResolvedValue({
       ...videoModel,
-      key: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      key: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
     });
     byokService.isByokActiveForProvider.mockImplementation(
       (_organizationId: string, provider: ByokProvider) =>
@@ -93,7 +93,7 @@ describe('MediaGenerationCostService', () => {
       category: 'video',
       durationSeconds: 5,
       ingredientId: 'ing-higgsfield',
-      modelKey: MODEL_KEYS.HIGGSFIELD_KLING_VIDEO,
+      modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
       organizationId: 'org-1',
     });
 

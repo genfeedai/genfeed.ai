@@ -81,6 +81,13 @@ describe('generation credit calculator', () => {
       expect(
         applyVideoResolutionCreditMultiplier(10, 'provider/model', '720p'),
       ).toBe(10);
+      expect(
+        applyVideoResolutionCreditMultiplier(
+          10,
+          'fal/minimax/h3-max/text-to-video',
+          '1080P',
+        ),
+      ).toBe(20);
     });
 
     it('multiplies non-batch video outputs and leaves batch models unscaled', () => {

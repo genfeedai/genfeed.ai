@@ -262,7 +262,7 @@ export class TwitterResponseMapper {
       mediaType,
       quotes: metrics.quote_count || 0,
       retweets: metrics.retweet_count || 0,
-      views: views || impressions || 0,
+      views: views || 0,
     };
   }
 

@@ -11,6 +11,7 @@ import { Button } from '@ui/primitives/button';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { Flame, Play } from 'lucide-react';
 import Image from 'next/image';
+import { useTranslations } from 'next-intl';
 
 const TIMEFRAME_OPTIONS = [
   { label: '24 hours', value: Timeframe.H24 },
@@ -26,6 +27,7 @@ export function ViralVideoLeaderboard({
   onVideoClick,
   className = '',
 }: ViralVideoLeaderboardProps) {
+  const translate = useTranslations('ui.analyticsTrends');
   if (isLoading) {
     return (
       <div className={`space-y-4 ${className}`}>
@@ -54,7 +56,14 @@ export function ViralVideoLeaderboard({
     );
   }
 
-  const sortedVideos = videos.toSorted((a, b) => b.viralScore - a.viralScore);
+  const platforms = new Set(videos.map((video) => video.platform));
+  const canSortByRatio = platforms.size === 1;
+  const sortedVideos = videos.toSorted((a, b) => {
+    if (canSortByRatio) {
+      return (b.outlierRatio ?? -1) - (a.outlierRatio ?? -1);
+    }
+    return b.viralScore - a.viralScore;
+  });
 
   return (
     <div className={`space-y-4 ${className}`}>
@@ -169,6 +178,32 @@ export function ViralVideoLeaderboard({
             render: (video) => (
               <span className="font-semibold tabular-nums">
                 {formatCompactNumber(video.views || video.viewCount || 0)}
+              </span>
+            ),
+          },
+          {
+            className: 'min-w-28',
+            header: translate('median'),
+            key: 'medianViews',
+            render: (video) => (
+              <span className="tabular-nums">
+                {video.medianViews == null
+                  ? '—'
+                  : `${formatCompactNumber(video.medianViews)}${
+                      video.sampleSize ? ` (${video.sampleSize})` : ''
+                    }`}
+              </span>
+            ),
+          },
+          {
+            className: 'min-w-20',
+            header: translate('ratio'),
+            key: 'outlierRatio',
+            render: (video) => (
+              <span className="font-semibold tabular-nums">
+                {video.outlierRatio == null
+                  ? '—'
+                  : `${video.outlierRatio.toFixed(video.outlierRatio >= 10 ? 0 : 1)}x`}
               </span>
             ),
           },

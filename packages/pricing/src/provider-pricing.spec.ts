@@ -125,6 +125,21 @@ describe('PRICING constants', () => {
     expect(quote('2K')).toBeGreaterThan(quote('768P'));
   });
 
+  it('quotes MiniMax H3 Max 1080P above its published 768P band', () => {
+    const quote = (resolution: string) =>
+      quoteVideoGenerationCredits({
+        cost: 134,
+        costPerUnit: 27,
+        duration: 5,
+        modelKey: 'fal/minimax/h3-max/text-to-video',
+        pricingType: 'per-second',
+        resolution,
+      });
+
+    expect(quote('1080P')).toBeGreaterThan(quote('768P'));
+    expect(quote('1080P')).toBe(quote('768P') * 2);
+  });
+
   it('charges a fabricated extension for the continuation and stitch only', () => {
     const input = {
       cost: 10,

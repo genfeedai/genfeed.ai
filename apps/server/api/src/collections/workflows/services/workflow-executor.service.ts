@@ -1,3 +1,4 @@
+import { VideoGenerationCreditsService } from '@api/collections/videos/services/video-generation-credits.service';
 import {
   type PendingReviewGateExecution,
   WorkflowExecutionsService,
@@ -97,6 +98,8 @@ export class WorkflowExecutorService {
     private readonly artifactLifecycleService?: WorkflowArtifactLifecycleService,
     @Optional()
     private readonly nodeContinuationService?: WorkflowNodeContinuationService,
+    @Optional()
+    private readonly videoGenerationCreditsService?: VideoGenerationCreditsService,
   ) {
     this.documentService = new WorkflowExecutorDocumentService(this.prisma);
     this.graphService = new WorkflowExecutionGraphService();
@@ -112,6 +115,7 @@ export class WorkflowExecutorService {
       this.websocketService,
       this.logger,
       this.artifactLifecycleService,
+      this.videoGenerationCreditsService,
     );
     this.reviewGateService = new WorkflowReviewGateService(
       this.engineAdapter,
@@ -314,6 +318,7 @@ export class WorkflowExecutorService {
         return this.failUnavailablePinnedExecution({
           errorMessage: error.message,
           executionId,
+          organizationId: event.organizationId,
           startedAt: execution.startedAt ?? new Date(),
           userId: event.userId,
           workflowId,
@@ -325,6 +330,7 @@ export class WorkflowExecutorService {
       return this.failUnavailablePinnedExecution({
         errorMessage: `Workflow version ${execution.workflowVersionId} not found for execution ${executionId}`,
         executionId,
+        organizationId: event.organizationId,
         startedAt: execution.startedAt ?? new Date(),
         userId: event.userId,
         workflowId,
@@ -679,6 +685,7 @@ export class WorkflowExecutorService {
   private failUnavailablePinnedExecution(input: {
     errorMessage: string;
     executionId: string;
+    organizationId: string;
     startedAt: Date;
     userId: string;
     workflowId: string;

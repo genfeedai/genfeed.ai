@@ -23,7 +23,6 @@ export function modelProviderToByokProvider(
  */
 const AUTHORITATIVE_MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [
   ['higgsfield-ai/', ByokProvider.HIGGSFIELD],
-  ['kling-video/', ByokProvider.HIGGSFIELD],
 ];
 
 const MODEL_KEY_PREFIX_TO_BYOK: Array<[string, ByokProvider]> = [

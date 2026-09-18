@@ -538,7 +538,9 @@ export class WorkflowNodeGraphRunnerService {
         settled.inlineContinuationId,
       );
       state.nodeResults.set(node.id, settled.nodeResult);
-      state.totalCreditsUsed += settled.nodeResult.creditsUsed;
+      if (settled.nodeResult.status === 'completed') {
+        state.totalCreditsUsed += settled.nodeResult.creditsUsed;
+      }
       return settled.nodeResult.status === 'completed'
         ? this.applyCompletedNode(state, node, settled.nodeResult)
         : this.applyFailedNode(state, node, settled.nodeResult);

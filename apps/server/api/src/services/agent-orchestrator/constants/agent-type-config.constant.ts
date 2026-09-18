@@ -46,6 +46,7 @@ const SHARED_READ_TOOLS: CuratedActionName[] = [
   'get_trends',
   'list_brands',
   'list_characters',
+  'list_outlier_posts',
   'list_posts',
   'list_review_queue',
   'get_connection_status',

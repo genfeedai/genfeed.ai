@@ -11,6 +11,7 @@ import {
   MusicTaskModel,
   VideoTaskModel,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('StepExecutorService', () => {
@@ -41,7 +42,7 @@ describe('StepExecutorService', () => {
     };
     mockHiggsFieldService = {
       generateImageToVideo: vi.fn(),
-      waitForCompletion: vi.fn(),
+      waitForVideoCompletion: vi.fn(),
     };
     mockElevenLabsService = {
       textToSpeech: vi.fn(),
@@ -125,7 +126,7 @@ describe('StepExecutorService', () => {
       mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
         requestId: 'req-1',
       });
-      mockHiggsFieldService.waitForCompletion.mockResolvedValue({
+      mockHiggsFieldService.waitForVideoCompletion.mockResolvedValue({
         videoUrl: 'https://hf.ai/video.mp4',
       });
 
@@ -143,7 +144,7 @@ describe('StepExecutorService', () => {
         url: 'https://hf.ai/video.mp4',
       });
       expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalled();
-      expect(mockHiggsFieldService.waitForCompletion).toHaveBeenCalledWith(
+      expect(mockHiggsFieldService.waitForVideoCompletion).toHaveBeenCalledWith(
         'req-1',
         { organizationId: 'org-123' },
       );
@@ -153,7 +154,7 @@ describe('StepExecutorService', () => {
       mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
         requestId: 'req-2',
       });
-      mockHiggsFieldService.waitForCompletion.mockResolvedValue({
+      mockHiggsFieldService.waitForVideoCompletion.mockResolvedValue({
         videoUrl: 'https://hf.ai/v2.mp4',
       });
 
@@ -465,41 +466,17 @@ describe('StepExecutorService', () => {
   });
 
   describe('image-to-video - configuration options', () => {
-    it('should use custom aspectRatio', async () => {
+    it('sends the DoP model key and ignores step sizing the endpoint cannot take', async () => {
       mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
         requestId: 'req-1',
       });
-      mockHiggsFieldService.waitForCompletion.mockResolvedValue({
+      mockHiggsFieldService.waitForVideoCompletion.mockResolvedValue({
         videoUrl: 'https://hf.ai/video.mp4',
       });
 
       await service.execute(
         {
           aspectRatio: '16:9',
-          imageUrl: 'https://example.com/img.png',
-          model: VideoTaskModel.HIGGSFIELD,
-          type: 'image-to-video',
-        },
-        baseContext,
-      );
-
-      expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          aspectRatio: '16:9',
-        }),
-      );
-    });
-
-    it('should use custom duration', async () => {
-      mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
-        requestId: 'req-1',
-      });
-      mockHiggsFieldService.waitForCompletion.mockResolvedValue({
-        videoUrl: 'https://hf.ai/video.mp4',
-      });
-
-      await service.execute(
-        {
           duration: 10,
           imageUrl: 'https://example.com/img.png',
           model: VideoTaskModel.HIGGSFIELD,
@@ -508,36 +485,13 @@ describe('StepExecutorService', () => {
         baseContext,
       );
 
-      expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          duration: 10,
-        }),
-      );
-    });
-
-    it('should default to 9:16 aspectRatio and 5 duration', async () => {
-      mockHiggsFieldService.generateImageToVideo.mockResolvedValue({
-        requestId: 'req-1',
+      // DoP sizes the clip from the source image, so neither value is sent.
+      expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalledWith({
+        imageUrl: 'https://example.com/img.png',
+        modelKey: MODEL_KEYS.HIGGSFIELD_DOP_TURBO,
+        organizationId: 'org-123',
+        prompt: 'a beautiful sunset',
       });
-      mockHiggsFieldService.waitForCompletion.mockResolvedValue({
-        videoUrl: 'https://hf.ai/video.mp4',
-      });
-
-      await service.execute(
-        {
-          imageUrl: 'https://example.com/img.png',
-          model: VideoTaskModel.HIGGSFIELD,
-          type: 'image-to-video',
-        },
-        baseContext,
-      );
-
-      expect(mockHiggsFieldService.generateImageToVideo).toHaveBeenCalledWith(
-        expect.objectContaining({
-          aspectRatio: '9:16',
-          duration: 5,
-        }),
-      );
     });
   });
 

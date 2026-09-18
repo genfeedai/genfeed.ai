@@ -156,21 +156,14 @@ export class AgentMediaAssetGenerationService {
           references: [],
         };
       }
-      const characters = await this.personasService.listCharacterMentions({
-        brandId: params.ctx.brandId,
-        organizationId: params.ctx.organizationId,
-      });
-      const byHandle = new Map(
-        characters.map((character) => [character.handle, character]),
-      );
-      for (const handle of handles) {
-        const character = byHandle.get(handle.toLowerCase());
-        if (!character?.avatarIngredientId) {
-          unresolved.push(handle);
-          continue;
-        }
-        resolved.push(character.avatarIngredientId);
-      }
+      const resolvedHandles =
+        await this.personasService.resolveCharacterHandles({
+          brandId: params.ctx.brandId,
+          handles,
+          organizationId: params.ctx.organizationId,
+        });
+      unresolved.push(...resolvedHandles.unresolvedHandles);
+      resolved.push(...resolvedHandles.resolvedIngredientIds);
     }
 
     if (unresolved.length > 0) {

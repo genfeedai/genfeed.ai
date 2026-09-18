@@ -3,6 +3,7 @@ import {
   OutlierAccountDto,
   OutlierPaginationDto,
   OutlierQueryDto,
+  OutlierRankedQueryDto,
 } from '@api/collections/outliers/dto/outlier-query.dto';
 import { OutlierConfigurationService } from '@api/collections/outliers/services/outlier-configuration.service';
 import { OutliersService } from '@api/collections/outliers/services/outliers.service';
@@ -104,6 +105,18 @@ export class OutliersController {
         },
         query,
       ),
+    );
+  }
+  @Get('posts') async rankedPosts(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Query(new ValidationPipe({ transform: true }))
+    query: OutlierRankedQueryDto,
+  ) {
+    return serializeCollection(
+      request,
+      OutlierPostPerformanceSerializer,
+      await this.service.listLatestPerformances(this.organization(user), query),
     );
   }
   @Get(':id') async findOne(

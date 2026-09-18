@@ -158,6 +158,8 @@ export interface IEnvConfig {
   // === Higgsfield ===
   HIGGSFIELD_API_KEY?: string;
   HIGGSFIELD_API_SECRET?: string;
+  /** Overrides the documented host `https://api.higgsfield.ai`. */
+  HIGGSFIELD_API_BASE_URL?: string;
 
   // === Fleet (self-hosted GPU) ===
   FLEET_COMFYUI_URL?: string;

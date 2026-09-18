@@ -418,7 +418,29 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
           videoUrl: params.videoUrl,
         }),
       continuityResolver
-        ? (params) => continuityResolver.resolve(params)
+        ? async (params) => {
+            const characterReferenceUrls =
+              await this.resolveContinuityReferenceUrls(
+                params.characterReferenceUrls,
+                params.organizationId,
+              );
+            const productReferenceUrls =
+              await this.resolveContinuityReferenceUrls(
+                params.productReferenceUrls,
+                params.organizationId,
+              );
+            if (
+              characterReferenceUrls.length === 0 &&
+              productReferenceUrls.length === 0
+            ) {
+              return { skipReason: 'canonical_references_unavailable' };
+            }
+            return continuityResolver.resolve({
+              ...params,
+              characterReferenceUrls,
+              productReferenceUrls,
+            });
+          }
         : undefined,
     );
 
@@ -426,6 +448,54 @@ export class WorkflowMediaProcessingExecutorRegistrarService {
       'videoQa',
       this.helper.wrapEngineExecutor(executor),
     );
+  }
+
+  /**
+   * Continuity QA compares pixels, so ingredient ids must become reachable
+   * image URLs. Already-absolute URLs pass through; unresolvable ids are
+   * dropped so the executor can skip with canonical_references_unavailable
+   * instead of inventing a pass.
+   */
+  private async resolveContinuityReferenceUrls(
+    values: readonly string[],
+    organizationId: string,
+  ): Promise<string[]> {
+    const filesClientService = this.filesClientService;
+    const resolved: string[] = [];
+
+    for (const value of values) {
+      const trimmed = value.trim();
+      if (trimmed.length === 0) {
+        continue;
+      }
+      if (/^https?:\/\//i.test(trimmed)) {
+        resolved.push(trimmed);
+        continue;
+      }
+      try {
+        const asset = await this.helper.requireMediaAsset(
+          trimmed,
+          organizationId,
+          [IngredientCategory.IMAGE, IngredientCategory.AVATAR],
+        );
+        if (!filesClientService) {
+          resolved.push(
+            this.helper.buildMediaIngredientUrl(asset.id, asset.category),
+          );
+          continue;
+        }
+        resolved.push(
+          await filesClientService.getPresignedDownloadUrl(
+            asset.storageKey,
+            asset.storageType,
+          ),
+        );
+      } catch {
+        // Omit the ref; empty results skip rather than fake consistent.
+      }
+    }
+
+    return resolved;
   }
 
   private registerVideoFrameExtractExecutor(engine: WorkflowEngine): void {

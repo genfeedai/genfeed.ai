@@ -729,4 +729,33 @@ describe('compileRemainingVideoGenerationBrief', () => {
       seed: 42,
     });
   });
+
+  it('forwards MiniMax H3 Max 1080P from the published contract', () => {
+    const brief = videoGenerationBriefSchema.parse({
+      constraints: [],
+      fidelityMode: 'guided',
+      intent: { objective: 'an airship crossing a desert at sunset' },
+      mediaKind: 'video',
+      output: {
+        aspectRatio: '16:9',
+        durationSeconds: 8,
+        resolution: '1080P',
+      },
+      references: [],
+      version: 1,
+    });
+
+    const result = compileRemainingVideoGenerationBrief({
+      brief,
+      family: familyFor(MODEL_KEYS.FAL_MINIMAX_H3_MAX),
+      modelKey: MODEL_KEYS.FAL_MINIMAX_H3_MAX,
+    });
+
+    expect(result.dispatch).toMatchObject({
+      aspect_ratio: '16:9',
+      duration: 8,
+      prompt: 'an airship crossing a desert at sunset',
+      resolution: '1080P',
+    });
+  });
 });

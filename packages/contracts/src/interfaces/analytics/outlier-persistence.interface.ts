@@ -82,6 +82,11 @@ export interface OutlierPerformanceResponse extends OutlierResolvedAccount {
   exclusionReasons: string[];
   isPinnedUnknown: boolean;
   isPromotedUnknown: boolean;
+  medianViews?: number | null;
+  sampleSize?: number;
+  windowSize?: number;
+  snapshotStatus?: 'ready' | 'insufficient_data' | 'zero_baseline';
+  snapshotComputedAt?: string;
 }
 export interface OutlierConfigurationResponse
   extends OutlierConfigurationValues {
@@ -100,6 +105,17 @@ export interface OutlierEligibilityFlags {
 export interface OutlierListQuery {
   platform?: string;
   contentType?: string;
+  page?: number;
+  limit?: number;
+}
+export interface OutlierRankedPostsQuery {
+  brandId?: string;
+  accountType?: OutlierAccountType;
+  accountId?: string;
+  platform?: string;
+  contentType?: string;
+  tier?: 'outlier' | 'breakout';
+  windowSize?: number;
   page?: number;
   limit?: number;
 }

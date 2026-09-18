@@ -37,6 +37,7 @@ export const TOOL_LABELS: Record<string, string> = {
   get_trends: 'Trends',
   initiate_oauth_connect: 'Connect Account',
   list_brands: 'List Brands',
+  list_outlier_posts: 'Outlier Posts',
   list_posts: 'List Posts',
   list_review_queue: 'Review Queue',
   list_workflows: 'List Workflows',

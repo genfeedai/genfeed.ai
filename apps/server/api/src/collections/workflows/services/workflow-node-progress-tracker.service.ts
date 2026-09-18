@@ -139,6 +139,7 @@ export class WorkflowNodeProgressTrackerService {
       getExecutableNodeOperationId(input.node),
       {
         completedAt: new Date(),
+        creditsUsed: input.nodeResult.creditsUsed,
         output: input.nodeResult.output as Record<string, unknown> | undefined,
         status: WorkflowExecutionStatus.COMPLETED,
       },

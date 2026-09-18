@@ -16,14 +16,47 @@ import {
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
-import type { ByokProvider } from '@genfeedai/contracts';
+import { ActivitySource, type ByokProvider } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   buildPricingAuditStamp,
   calculateVideoGenerationCredits,
   FABRICATED_VIDEO_EXTENSION_STITCH_CREDITS,
 } from '@genfeedai/pricing';
+import { estimateClipChainCredits } from '@genfeedai/workflows/engine';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+
+type ClipChainReservationHold = {
+  reservationId: string;
+  reservedCredits: number;
+};
+
+export function readClipChainReservationHold(
+  metadata: unknown,
+): ClipChainReservationHold | undefined {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) {
+    return undefined;
+  }
+  const credits = (metadata as Record<string, unknown>).credits;
+  if (!credits || typeof credits !== 'object' || Array.isArray(credits)) {
+    return undefined;
+  }
+  const hold = credits as Record<string, unknown>;
+  const reservationId =
+    typeof hold.reservationId === 'string' ? hold.reservationId.trim() : '';
+  const reservedCredits =
+    typeof hold.reservedCredits === 'number'
+      ? hold.reservedCredits
+      : Number.NaN;
+  if (
+    !reservationId ||
+    !Number.isFinite(reservedCredits) ||
+    reservedCredits < 0
+  ) {
+    return undefined;
+  }
+  return { reservationId, reservedCredits };
+}
 
 @Injectable()
 export class VideoGenerationCreditsService {
@@ -154,6 +187,96 @@ export class VideoGenerationCreditsService {
 
     reqWithCredits.creditsConfig = { ...config, amount: requiredCredits };
     await this.reserveResolvedCredits(requiredCredits, organization, request);
+  }
+
+  /**
+   * Quote the catalog N-segment + stitch cost and hold it before a clip-chain
+   * workflow exists. Amount stays `deferred` so the HTTP interceptor does not
+   * settle on create — execution settles the hold against completed nodes.
+   */
+  async ensureClipChainCredits(
+    segmentCount: number,
+    model: string,
+    organization: string,
+    request: Request,
+  ): Promise<void> {
+    const reqWithCredits = request as unknown as DeferredCreditsRequest;
+    if (!isDeferredCreditsRequest(reqWithCredits)) {
+      return;
+    }
+
+    const requiredCredits = estimateClipChainCredits(segmentCount);
+    const resolvedModelDoc = await this.modelsService.findOne({
+      key: baseModelKey(model),
+    });
+    const byokProvider = await this.resolveActiveByokProvider(
+      organization,
+      model,
+      resolvedModelDoc?.provider,
+    );
+    reqWithCredits.creditsConfig = {
+      ...reqWithCredits.creditsConfig,
+      amount: requiredCredits,
+      deferred: true,
+      modelKey: model,
+    };
+    if (byokProvider) {
+      reqWithCredits.creditsConfig = {
+        ...reqWithCredits.creditsConfig,
+        isByokBypass: true,
+        provider: byokProvider,
+      };
+      return;
+    }
+    if (
+      !hasGenerationSourceActionId(request) &&
+      !(await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        organization,
+        requiredCredits,
+      ))
+    ) {
+      const balance =
+        await this.creditsUtilsService.getOrganizationCreditsBalance(
+          organization,
+        );
+      throw createInsufficientCreditsException(requiredCredits, balance);
+    }
+    await this.reserveResolvedCredits(requiredCredits, organization, request);
+  }
+
+  /**
+   * Settle completed clip-chain work against the pre-run hold. Nodes do not
+   * deduct separately — `actualCredits` is the engine's completed-node total.
+   */
+  async settleClipChainReservation(params: {
+    actualCredits: number;
+    actorUserId: string;
+    organizationId: string;
+    reservationId: string;
+    reservedCredits: number;
+  }): Promise<void> {
+    const actualCredits = Number.isFinite(params.actualCredits)
+      ? Math.max(0, params.actualCredits)
+      : 0;
+    const reservedCredits = Number.isFinite(params.reservedCredits)
+      ? Math.max(0, params.reservedCredits)
+      : 0;
+    const settledCredits = Math.min(actualCredits, reservedCredits);
+    if (settledCredits <= 0) {
+      await this.creditsUtilsService.releaseReservation({
+        organizationId: params.organizationId,
+        reservationId: params.reservationId,
+      });
+      return;
+    }
+    await this.creditsUtilsService.settleReservation({
+      actualAmount: settledCredits,
+      actorUserId: params.actorUserId,
+      description: 'Clip-chain video reservation settlement',
+      organizationId: params.organizationId,
+      reservationId: params.reservationId,
+      source: ActivitySource.VIDEO_GENERATION,
+    });
   }
 
   private async reserveResolvedCredits(

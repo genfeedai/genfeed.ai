@@ -73,7 +73,9 @@ export class WorkflowNodeGraphRuntimeService {
         }
         if (isFailed || !nodeResults.has(nodeId)) {
           const creditsUsed =
-            typeof row.creditsUsed === 'number' ? row.creditsUsed : 0;
+            isCompleted && typeof row.creditsUsed === 'number'
+              ? row.creditsUsed
+              : 0;
           hydratedCredits += creditsUsed;
           nodeResults.set(nodeId, {
             completedAt: new Date(),

@@ -11,8 +11,8 @@ import {
 
 describe('model.enum', () => {
   describe('ModelKey', () => {
-    it('should have 124 members', () => {
-      expect(Object.values(MODEL_KEYS)).toHaveLength(124);
+    it('should have 126 members', () => {
+      expect(Object.values(MODEL_KEYS)).toHaveLength(126);
     });
 
     it('should have correct values', () => {
@@ -271,9 +271,11 @@ describe('model.enum', () => {
       expect(MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA).toBe(
         'genfeed-ai/z-image-turbo-lora',
       );
-      expect(MODEL_KEYS.HIGGSFIELD_SOUL).toBe('higgsfield-ai/soul/standard');
-      expect(MODEL_KEYS.HIGGSFIELD_KLING_VIDEO).toBe(
-        'kling-video/v3/pro/image-to-video',
+      expect(MODEL_KEYS.HIGGSFIELD_SOUL).toBe('higgsfield-ai/soul/v2/standard');
+      expect(MODEL_KEYS.HIGGSFIELD_DOP_LITE).toBe('higgsfield-ai/dop/lite');
+      expect(MODEL_KEYS.HIGGSFIELD_DOP_TURBO).toBe('higgsfield-ai/dop/turbo');
+      expect(MODEL_KEYS.HIGGSFIELD_DOP_STANDARD).toBe(
+        'higgsfield-ai/dop/standard',
       );
     });
   });

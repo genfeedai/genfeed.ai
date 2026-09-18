@@ -485,7 +485,7 @@ export class AnalyticsController {
       buildOwnedAnalyticsCacheKey('hooks', req, [
         req.query?.startDate || 'default',
         req.query?.endDate || 'default',
-        req.query?.brandId || '',
+        `${req.query?.brandId || ''}:${req.query?.minOutlierTier || ''}:${req.query?.postId || ''}`,
       ]),
     tags: ['analytics', 'hooks'],
     ttl: 300,
@@ -498,16 +498,15 @@ export class AnalyticsController {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     const organizationId = this.getOwnedOrganizationId(user, req);
     this.loggerService.log(url, { query });
-    await this.analyticsService.assertBrandInScope(
-      query.brandId,
-      organizationId,
-    );
-
+    // biome-ignore format: keep file-lines at the complexity ratchet
+    await this.analyticsService.assertBrandInScope(query.brandId, organizationId);
     const data = await this.analyticsService.getViralHooks(
       query.startDate,
       query.endDate,
       query.brandId,
       organizationId,
+      query.minOutlierTier,
+      query.postId,
     );
     return serializeSingle(req, AnalyticsHooksSerializer, data);
   }

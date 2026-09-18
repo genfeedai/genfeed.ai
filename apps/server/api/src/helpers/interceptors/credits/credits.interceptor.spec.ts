@@ -20,7 +20,10 @@ describe('CreditsInterceptor', () => {
 
   const mockRequest: {
     body?: { sourceActionId?: string };
-    creditsConfig?: CreditsConfig & { reservationId?: string };
+    creditsConfig?: CreditsConfig & {
+      deferred?: boolean;
+      reservationId?: string;
+    };
     user?: {
       id: string;
       organizationId: string;
@@ -387,6 +390,42 @@ describe('CreditsInterceptor', () => {
               });
               expect(
                 creditDeductionQueueService.queueDeduction,
+              ).not.toHaveBeenCalled();
+              resolve();
+            }, 10);
+          },
+        });
+      });
+    });
+
+    it('keeps a deferred clip-chain reservation held on HTTP success', async () => {
+      mockRequest.creditsConfig = {
+        amount: 61,
+        deferred: true,
+        description: 'Clip-chain video',
+        reservationId: 'reservation-clip-chain',
+        source: ActivitySource.VIDEO_GENERATION,
+      };
+      mockRequest.user = {
+        id: 'user_123',
+        organizationId,
+        userId,
+      };
+
+      const result = interceptor.intercept(mockContext, mockHandler);
+
+      await new Promise<void>((resolve) => {
+        result.subscribe({
+          next: () => {
+            setTimeout(() => {
+              expect(
+                creditDeductionQueueService.queueDeduction,
+              ).not.toHaveBeenCalled();
+              expect(
+                creditDeductionQueueService.queueByokUsage,
+              ).not.toHaveBeenCalled();
+              expect(
+                creditsUtilsService.releaseReservation,
               ).not.toHaveBeenCalled();
               resolve();
             }, 10);

@@ -148,7 +148,9 @@ export class FalVideoGenerationProviderAdapter
       ? requestedAspectRatio
       : '16:9';
     const requestedResolution = optionalString(params.promptParams.resolution);
-    const resolution = ['480P', '768P'].includes(requestedResolution ?? '')
+    const resolution = ['480P', '768P', '1080P'].includes(
+      requestedResolution ?? '',
+    )
       ? requestedResolution
       : '768P';
     const requestedExpansionMode = optionalString(

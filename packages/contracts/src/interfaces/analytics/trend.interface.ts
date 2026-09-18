@@ -43,6 +43,9 @@ export interface ITrendVideo {
   engagementRate: number;
   velocity: number;
   viralScore: number;
+  outlierRatio?: number | null;
+  medianViews?: number | null;
+  sampleSize?: number;
   publishedAt?: string;
   hashtags?: string[];
   soundId?: string;
