@@ -25,6 +25,16 @@ const user = {
   userId: 'user-1',
 };
 
+function deferredCreditsRequest() {
+  return {
+    creditsConfig: {
+      deferred: true,
+      description: 'Live session',
+    },
+    user,
+  };
+}
+
 function openSessionRow(overrides: Record<string, unknown> = {}) {
   return {
     brandId: 'brand-1',
@@ -109,7 +119,7 @@ describe('LiveSessionCreditsService', () => {
   });
 
   it('reserves ceiling credits before persisting a session', async () => {
-    const request = { creditsConfig: { deferred: true }, user };
+    const request = deferredCreditsRequest();
 
     const session = await service.openSession({
       dto: {
@@ -147,7 +157,7 @@ describe('LiveSessionCreditsService', () => {
   });
 
   it('applies the 1080P resolution multiplier to the reserved ceiling', async () => {
-    const request = { creditsConfig: { deferred: true }, user };
+    const request = deferredCreditsRequest();
 
     await service.openSession({
       dto: {
@@ -170,7 +180,7 @@ describe('LiveSessionCreditsService', () => {
       false,
     );
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(10);
-    const request = { creditsConfig: { deferred: true }, user };
+    const request = deferredCreditsRequest();
 
     const error = await service
       .openSession({
@@ -198,7 +208,7 @@ describe('LiveSessionCreditsService', () => {
       ),
     );
     creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(1);
-    const request = { creditsConfig: { deferred: true }, user };
+    const request = deferredCreditsRequest();
 
     const error = await service
       .openSession({

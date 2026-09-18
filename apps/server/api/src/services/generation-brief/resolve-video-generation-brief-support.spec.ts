@@ -64,9 +64,13 @@ describe('resolveVideoGenerationBriefSupport', () => {
     },
   );
 
-  it('covers every catalog video model key with compile support', () => {
+  it('covers every catalog video model key with compile or enumerated exempt support', () => {
     for (const modelKey of VIDEO_MODEL_KEYS) {
-      expect(resolveVideoGenerationBriefSupport(modelKey).kind).toBe('compile');
+      const support = resolveVideoGenerationBriefSupport(modelKey);
+      expect(['compile', 'exempt']).toContain(support.kind);
+      if (support.kind === 'exempt') {
+        expect(support.reason).not.toBe('unregistered_model');
+      }
     }
   });
 
@@ -78,6 +82,17 @@ describe('resolveVideoGenerationBriefSupport', () => {
     ).toMatchObject({
       kind: 'exempt',
       reason: 'non_generative_transform',
+    });
+  });
+
+  it('exempts realtime live-session director models', () => {
+    expect(
+      resolveVideoGenerationBriefSupport(
+        MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR,
+      ),
+    ).toMatchObject({
+      kind: 'exempt',
+      reason: 'interactive_session',
     });
   });
 
