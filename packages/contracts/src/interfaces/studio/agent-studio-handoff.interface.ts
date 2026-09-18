@@ -6,8 +6,8 @@ import type { StudioGenerateType } from './studio-generate.interface';
  * router picked) so Studio generate can open pre-filled for precise editing
  * without spending credits or re-prompting.
  *
- * Scoped to the image/video review and result cards for now — avatar/voice/
- * music handoff trigger points do not exist yet on the Agent surface.
+ * Identity (`avatarPhotoUrl`, `voiceId`) is snapshotted at create time from
+ * the brand's current identity (#4717), never re-resolved at consume.
  */
 export interface AgentStudioHandoffPayload {
   aspectRatio?: string;
@@ -23,6 +23,12 @@ export interface AgentStudioHandoffPayload {
   references?: string[];
   resolution?: string;
   type: StudioGenerateType;
+  /**
+   * True when the source generation used the brand identity. Studio uses this
+   * (with `type`) to notice an omitted avatar/voice rather than looking like
+   * the operator chose Studio's defaults on purpose.
+   */
+  useIdentity?: boolean;
   /** Provider voice id, for an avatar or voice handoff. */
   voiceId?: string;
 }

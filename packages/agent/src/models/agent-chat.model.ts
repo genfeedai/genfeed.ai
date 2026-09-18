@@ -10,6 +10,7 @@ import type {
   AgentArtifactReference,
   AgentClipRunIdentity,
   AgentDashboardOperation,
+  AgentGenerationActionParams,
   AgentPublishTargetProposal,
   AgentTransferPresentation,
   AgentUIBlock,
@@ -241,18 +242,7 @@ export interface AgentUiAction {
   outcomeBullets?: string[];
   outputVariants?: AgentUiActionOutputVariant[];
   generationType?: 'image' | 'video';
-  generationParams?: {
-    prompt?: string;
-    model?: string;
-    aspectRatio?: string;
-    duration?: number;
-    outputs?: number;
-    prioritize?: string;
-    references?: string[];
-    resolution?: string;
-    endFrame?: string;
-    videoReferences?: string[];
-  };
+  generationParams?: AgentGenerationActionParams;
   ingredients?: AgentIngredientItem[];
   workflows?: {
     id: string;

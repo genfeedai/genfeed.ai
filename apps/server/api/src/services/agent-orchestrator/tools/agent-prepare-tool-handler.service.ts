@@ -73,6 +73,7 @@ export class AgentPrepareToolHandler {
     const model = params.model as string | undefined;
     const aspectRatio = params.aspectRatio as string | undefined;
     const duration = params.duration as number | undefined;
+    const useIdentity = params.useIdentity === true;
 
     if (!isExplicitAgentMediaGenerationMode(generationType) || !prompt) {
       return {
@@ -110,6 +111,7 @@ export class AgentPrepareToolHandler {
             duration: generationType === 'video' ? duration || 5 : undefined,
             model,
             prompt,
+            ...(useIdentity ? { useIdentity: true } : {}),
           },
           generationType,
           id: `gen-card-${Date.now()}`,

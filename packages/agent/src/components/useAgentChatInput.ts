@@ -264,6 +264,7 @@ export function useAgentChatInput({
   );
 
   const [actionFeedback, setActionFeedback] = useState<string | null>(null);
+  const lastEditorTextRef = useRef(restoredDraft.plainText);
   const [isEmpty, setIsEmpty] = useState(!restoredDraft.plainText.trim());
   // Live prompt text for the generation-setup recommendation debounce — the
   // toolbar has no other way to see what the operator is typing.
@@ -492,8 +493,9 @@ export function useAgentChatInput({
       return;
     }
     const updateHandler = () => {
+      const nextText = editor.getText();
       setIsEmpty(editor.isEmpty);
-      setPromptText(editor.getText());
+      setPromptText(nextText);
       const document = editor.getJSON();
       const nextReferences = mapMentionsToReferences(extractMentions(document));
       // Editor fires on every keystroke; only promote mention state when the
@@ -503,12 +505,13 @@ export function useAgentChatInput({
           ? current
           : nextReferences,
       );
-      writeConversationComposerDocument(
-        draftScopeKey,
-        document,
-        editor.getText(),
-      );
-      setActionFeedback(null);
+      writeConversationComposerDocument(draftScopeKey, document, nextText);
+      // Slash-command decorations and same-text plugin updates must not
+      // dismiss dispatch feedback for an unchanged draft.
+      if (nextText !== lastEditorTextRef.current) {
+        lastEditorTextRef.current = nextText;
+        setActionFeedback(null);
+      }
     };
     editor.on('update', updateHandler);
     return () => {

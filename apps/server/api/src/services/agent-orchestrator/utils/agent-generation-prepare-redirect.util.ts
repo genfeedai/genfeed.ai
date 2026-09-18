@@ -92,6 +92,14 @@ function isVisualGenerateLike(normalizedName: string): boolean {
   return hasGenerateIntent && hasVisualSurface;
 }
 
+export function isIdentityGenerationToolName(toolName: string): boolean {
+  const normalized = normalizeRequestedAgentToolName(toolName);
+  if (normalized === 'generate_as_identity') {
+    return true;
+  }
+  return compactToolName(normalized).includes('identity');
+}
+
 export function inferPrepareGenerationType(
   toolName: string,
 ): AgentGenerationMode.IMAGE | AgentGenerationMode.VIDEO | undefined {
