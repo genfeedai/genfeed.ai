@@ -235,6 +235,34 @@ describe('OAuthPlatformForm', () => {
     expect(mocks.getServicesService).toHaveBeenCalledTimes(2);
   });
 
+  it('persists a provider denial through verify instead of exchanging a code', async () => {
+    mocks.searchParams = new URLSearchParams({
+      error: 'access_denied',
+      return_to: '/settings/publishing',
+      state: 'state-1',
+    });
+    mocks.postVerify.mockRejectedValueOnce(new Error('Authorization denied'));
+
+    render(<OAuthPlatformForm platform="twitter" />);
+
+    await waitFor(() => {
+      expect(mocks.postVerify).toHaveBeenCalledWith({
+        error: 'access_denied',
+        state: 'state-1',
+      });
+    });
+    expect(screen.getByText('Connection Failed')).toBeVisible();
+    expect(
+      screen.getByText(
+        'Authorization was denied. You can try connecting again.',
+      ),
+    ).toBeVisible();
+    expect(
+      screen.queryByRole('button', { name: 'Try again' }),
+    ).not.toBeInTheDocument();
+    expect(mocks.push).not.toHaveBeenCalled();
+  });
+
   it('renders failure state and default back link when verification fails', async () => {
     mocks.searchParams = new URLSearchParams({ code: 'bad-code' });
     mocks.postVerify.mockRejectedValueOnce(new Error('verify failed'));

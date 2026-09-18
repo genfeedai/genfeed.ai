@@ -8,6 +8,7 @@ import {
   CredentialsService,
   extractReconnectCredentialIdFromWarmupSignals,
 } from '@api/collections/credentials/services/credentials.service';
+import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -197,6 +198,12 @@ export class InstagramController {
     let failureStage = 'request_validation';
 
     try {
+      await throwIfOAuthCallbackError(
+        this.credentialsService,
+        createCredentialVerifyDto,
+        CredentialPlatform.INSTAGRAM,
+      );
+
       const { code, state } = createCredentialVerifyDto;
 
       if (!code || !state) {

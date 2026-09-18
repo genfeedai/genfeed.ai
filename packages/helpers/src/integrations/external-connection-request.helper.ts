@@ -6,8 +6,19 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 
 const DENIED_OAUTH_STATE = 'denied';
+const FAILED_OAUTH_STATE = 'failed';
+
+const PROVIDER_DENIED_ERROR_CODES = new Set(['access_denied', 'user_denied']);
 
 export const EXTERNAL_CONNECTION_DENIED_STATE = DENIED_OAUTH_STATE;
+export const EXTERNAL_CONNECTION_FAILED_STATE = FAILED_OAUTH_STATE;
+
+export function oauthCallbackErrorState(
+  error: string,
+): Extract<ExternalConnectionState, 'denied' | 'failed'> {
+  const code = error.trim().toLowerCase();
+  return PROVIDER_DENIED_ERROR_CODES.has(code) ? 'denied' : 'failed';
+}
 
 export function resolveExternalConnectionState(input: {
   createdAt: Date | string;
@@ -20,6 +31,9 @@ export function resolveExternalConnectionState(input: {
   }
   if (input.oauthState === DENIED_OAUTH_STATE) {
     return 'denied';
+  }
+  if (input.oauthState === FAILED_OAUTH_STATE) {
+    return 'failed';
   }
   const createdAt = new Date(input.createdAt);
   const now = input.now ?? new Date();

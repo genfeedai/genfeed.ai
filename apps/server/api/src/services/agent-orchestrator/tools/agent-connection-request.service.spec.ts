@@ -130,4 +130,22 @@ describe('AgentConnectionRequestService', () => {
     expect(result.data?.state).toBe('authorized');
     expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
   });
+
+  it('reports provider denial from the persisted oauth sentinel', async () => {
+    const { credentialsService, service } = createService();
+    credentialsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      createdAt: new Date(),
+      id: 'cred-1',
+      isConnected: false,
+      oauthState: 'denied',
+      platform: 'TWITTER',
+    });
+
+    const result = await service.status({ connectionId: 'cred-1' }, ctx);
+
+    expect(result.success).toBe(true);
+    expect(result.data?.state).toBe('denied');
+    expect(result.data?.recoveryAction).toBe('retry');
+  });
 });

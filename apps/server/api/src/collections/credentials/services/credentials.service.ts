@@ -36,17 +36,7 @@ function hashOAuthRequestToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-/**
- * Reconnect intent (the existing credential a fresh OAuth attempt should
- * settle back into) is carried on the pending credential's own
- * `warmupSignals` JSON column under this key, never in the OAuth `state`
- * parameter. `state` round-trips through the provider's authorization URL,
- * browser history, and referrer headers — embedding a credential id in it
- * would leak that internal identifier to the provider and to anything that
- * can read those. `warmupSignals` is already a free-form per-credential JSON
- * bag with several independent top-level keys (see `mergeWarmupSignals`), so
- * this reuses an existing column instead of adding one.
- */
+/** Reconnect intent lives on warmupSignals, never in the OAuth state nonce. */
 const OAUTH_CONNECT_INTENT_STORAGE_KEY = 'oauthConnectIntent';
 
 function readPlainRecord(value: unknown): Record<string, unknown> {

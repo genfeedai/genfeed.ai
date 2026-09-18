@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -120,6 +121,12 @@ export class LinkedInController {
     const { code, state } = createCredentialVerifyDto;
 
     try {
+      await throwIfOAuthCallbackError(
+        this.credentialsService,
+        createCredentialVerifyDto,
+        CredentialPlatform.LINKEDIN,
+      );
+
       if (!code || !state) {
         return returnBadRequest({
           detail: 'Missing code or identifiers',

@@ -8,6 +8,10 @@ import {
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
 import {
+  readMediaReferenceStrings,
+  resolveGenerationReferences,
+} from '@api/services/agent-orchestrator/tools/agent-media-generation-references';
+import {
   readMediaAssetUrl,
   readMediaResponseString,
   readUsableCdnAssetUrl,
@@ -27,7 +31,6 @@ import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_ASPECT_RATIO,
   DEFAULT_AGENT_VIDEO_DURATION_SECONDS,
-  MODEL_OUTPUT_CAPABILITIES,
   resolveAgentGenerationDimensions,
 } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
@@ -52,7 +55,7 @@ export class AgentMediaAssetGenerationService {
     private readonly generationGateway: IAgentGenerationGateway,
     private readonly onboardingHandler: AgentOnboardingToolHandler,
     @Inject('AGENT_BRANDS_SERVICE')
-    private readonly brandsService: AgentBrandsServiceLike,
+    readonly _brandsService: AgentBrandsServiceLike,
     @Optional()
     private readonly contentQualityScorerService?: ContentQualityScorerService,
     @Optional()
@@ -93,18 +96,7 @@ export class AgentMediaAssetGenerationService {
       typeof params.brandId === 'string' && params.brandId.trim().length > 0
         ? params.brandId.trim()
         : ctx.brandId;
-    if (explicitId) {
-      return { context: { ...ctx, brandId: explicitId } };
-    }
-
-    const selectedBrand = await this.brandsService.findOne({
-      isDeleted: false,
-      isSelected: true,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-    const brandId = selectedBrand?.id;
-    if (typeof brandId !== 'string' || brandId.length === 0) {
+    if (!explicitId) {
       return {
         error: {
           creditsUsed: 0,
@@ -115,101 +107,19 @@ export class AgentMediaAssetGenerationService {
       };
     }
 
-    return { context: { ...ctx, brandId } };
+    return { context: { ...ctx, brandId: explicitId } };
   }
 
-  private readStringArray(value: unknown, max: number): string[] {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-    return value
-      .filter((entry): entry is string => typeof entry === 'string')
-      .map((entry) => entry.trim())
-      .filter((entry) => entry.length > 0)
-      .slice(0, max);
-  }
-
-  private capReferences(references: string[], modelKey?: string): string[] {
-    const catalogLimit =
-      modelKey && modelKey in MODEL_OUTPUT_CAPABILITIES
-        ? MODEL_OUTPUT_CAPABILITIES[
-            modelKey as keyof typeof MODEL_OUTPUT_CAPABILITIES
-          ].maxReferences
-        : undefined;
-    const cap =
-      typeof catalogLimit === 'number' && catalogLimit > 0
-        ? Math.min(8, catalogLimit)
-        : 8;
-    return references.slice(0, cap);
-  }
-
-  async resolveGenerationReferences(params: {
-    attachmentFallback?: string;
-    ctx: ToolExecutionContext;
-    explicitReferences?: unknown;
-    handles?: unknown;
-    modelKey?: string;
-  }): Promise<{ error?: AgentToolResult; references: string[] }> {
-    const handles = this.readStringArray(params.handles, 4);
-    const explicit = this.readStringArray(params.explicitReferences, 8);
-    const unresolved: string[] = [];
-    const resolved: string[] = [];
-
-    if (handles.length > 0) {
-      if (!this.personasService) {
-        return {
-          error: {
-            creditsUsed: 0,
-            error: `Unresolved character handles: ${handles.join(', ')}`,
-            success: false,
-          },
-          references: [],
-        };
-      }
-      const characters = await this.personasService.listCharacterMentions({
-        brandId: params.ctx.brandId,
-        organizationId: params.ctx.organizationId,
-      });
-      const byHandle = new Map(
-        characters.map((character) => [character.handle, character]),
-      );
-      for (const handle of handles) {
-        const character = byHandle.get(handle.toLowerCase());
-        if (!character?.avatarIngredientId) {
-          unresolved.push(handle);
-          continue;
-        }
-        resolved.push(character.avatarIngredientId);
-      }
-    }
-
-    if (unresolved.length > 0) {
-      return {
-        error: {
-          creditsUsed: 0,
-          data: { unresolvedHandles: unresolved },
-          error: `Unresolved character handles: ${unresolved.join(', ')}`,
-          success: false,
-        },
-        references: [],
-      };
-    }
-
-    const merged: string[] = [];
-    const seen = new Set<string>();
-    for (const id of [
-      ...resolved,
-      ...explicit,
-      ...(params.attachmentFallback ? [params.attachmentFallback] : []),
-    ]) {
-      if (seen.has(id)) {
-        continue;
-      }
-      seen.add(id);
-      merged.push(id);
-    }
-
-    return { references: this.capReferences(merged, params.modelKey) };
+  private readRequestedModel(
+    ctx: ToolExecutionContext,
+    params: Record<string, unknown>,
+  ): string | undefined {
+    return (
+      ctx.generationSettings?.model ??
+      (typeof params.model === 'string' && params.model.trim().length > 0
+        ? params.model.trim()
+        : (ctx.generationModelOverride ?? undefined))
+    );
   }
 
   async generateImage(
@@ -243,15 +153,10 @@ export class AgentMediaAssetGenerationService {
       prompt: scopedPrompt.prompt,
       topic: rawPrompt.slice(0, 120),
     });
-    const dimensions = resolveAgentGenerationDimensions(
-      ctx.generationSettings?.aspectRatio ||
-        (params.aspectRatio as string) ||
-        DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-    );
     const promptPreview = rawPrompt.substring(0, 80);
     const imageUrl =
       (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
-    const resolvedReferences = await this.resolveGenerationReferences({
+    const resolvedReferences = await resolveGenerationReferences({
       attachmentFallback: imageUrl,
       ctx,
       explicitReferences: params.references,
@@ -261,44 +166,17 @@ export class AgentMediaAssetGenerationService {
         (typeof params.model === 'string' ? params.model : undefined) ??
         ctx.generationModelOverride ??
         undefined,
+      personasService: this.personasService,
     });
     if (resolvedReferences.error) {
       return resolvedReferences.error;
     }
-    const rawRequestedOutputs =
-      ctx.generationSettings?.outputs ?? params.outputs;
-    const requestedOutputs =
-      typeof rawRequestedOutputs === 'number' &&
-      Number.isFinite(rawRequestedOutputs)
-        ? Math.min(8, Math.max(1, Math.round(rawRequestedOutputs)))
-        : undefined;
-    const body: Record<string, unknown> = {
-      height: dimensions.height,
+    const body = this.buildImageGenerationBody({
+      ctx,
+      params,
       prompt,
-      text: prompt,
-      waitForCompletion: false,
-      width: dimensions.width,
-      ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
-      ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
-      ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
-      ...(ctx.sourceActionId ? { sourceActionId: ctx.sourceActionId } : {}),
-      ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-      ...(resolvedReferences.references.length > 0
-        ? { references: resolvedReferences.references }
-        : {}),
-    };
-
-    const requestedModel =
-      ctx.generationSettings?.model ??
-      (typeof params.model === 'string' && params.model.trim().length > 0
-        ? params.model.trim()
-        : ctx.generationModelOverride);
-    if (requestedModel) {
-      body.model = requestedModel;
-    } else {
-      body.autoSelectModel = true;
-      body.prioritize = ctx.generationPriority || RouterPriority.QUALITY;
-    }
+      references: resolvedReferences.references,
+    });
 
     let response: Record<string, unknown>;
     try {
@@ -372,6 +250,56 @@ export class AgentMediaAssetGenerationService {
       onboardingNextActions,
     );
     return this.withGenerationReceipt(result, scopedPrompt.receipt, 'image');
+  }
+
+  private buildImageGenerationBody(input: {
+    ctx: ToolExecutionContext;
+    params: Record<string, unknown>;
+    prompt: string;
+    references: string[];
+  }): Record<string, unknown> {
+    const dimensions = resolveAgentGenerationDimensions(
+      input.ctx.generationSettings?.aspectRatio ||
+        (input.params.aspectRatio as string) ||
+        DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+    );
+    const rawRequestedOutputs =
+      input.ctx.generationSettings?.outputs ?? input.params.outputs;
+    const requestedOutputs =
+      typeof rawRequestedOutputs === 'number' &&
+      Number.isFinite(rawRequestedOutputs)
+        ? Math.min(8, Math.max(1, Math.round(rawRequestedOutputs)))
+        : undefined;
+    const body: Record<string, unknown> = {
+      height: dimensions.height,
+      prompt: input.prompt,
+      text: input.prompt,
+      waitForCompletion: false,
+      width: dimensions.width,
+      ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
+      ...(input.ctx.brandId ? { brandId: input.ctx.brandId } : {}),
+      ...(input.ctx.runId ? { workflowExecutionId: input.ctx.runId } : {}),
+      ...(input.ctx.sourceActionId
+        ? { sourceActionId: input.ctx.sourceActionId }
+        : {}),
+      ...(input.ctx.strategyId
+        ? { agentStrategyId: input.ctx.strategyId }
+        : {}),
+      ...(input.references.length > 0 ? { references: input.references } : {}),
+    };
+    const requestedModel =
+      input.ctx.generationSettings?.model ??
+      (typeof input.params.model === 'string' &&
+      input.params.model.trim().length > 0
+        ? input.params.model.trim()
+        : input.ctx.generationModelOverride);
+    if (requestedModel) {
+      body.model = requestedModel;
+    } else {
+      body.autoSelectModel = true;
+      body.prioritize = input.ctx.generationPriority || RouterPriority.QUALITY;
+    }
+    return body;
   }
 
   private buildImageGenerationResult(
@@ -505,11 +433,7 @@ export class AgentMediaAssetGenerationService {
     }
     ctx = resolvedContext.context;
 
-    const requestedModel =
-      ctx.generationSettings?.model ??
-      (typeof params.model === 'string' && params.model.trim().length > 0
-        ? params.model.trim()
-        : (ctx.generationModelOverride ?? undefined));
+    const requestedModel = this.readRequestedModel(ctx, params);
     const dimensions = resolveAgentGenerationDimensions(
       ctx.generationSettings?.aspectRatio ||
         (params.aspectRatio as string) ||
@@ -517,11 +441,12 @@ export class AgentMediaAssetGenerationService {
     );
     const imageUrl =
       (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
-    const resolvedReferences = await this.resolveGenerationReferences({
+    const resolvedReferences = await resolveGenerationReferences({
       ctx,
       explicitReferences: params.references,
       handles: params.characterHandles,
       modelKey: requestedModel,
+      personasService: this.personasService,
     });
     if (resolvedReferences.error) {
       return resolvedReferences.error;
@@ -560,7 +485,7 @@ export class AgentMediaAssetGenerationService {
       prompt,
       resolution:
         typeof params.resolution === 'string' ? params.resolution : undefined,
-      videoReferences: this.readStringArray(params.videoReferences, 10),
+      videoReferences: readMediaReferenceStrings(params.videoReferences, 10),
     });
     const promptPreview = rawPrompt.substring(0, 80);
     let response: Record<string, unknown>;

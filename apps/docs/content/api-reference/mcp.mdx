@@ -109,8 +109,10 @@ Use `list_brands` then pass `brandId` into generation and connection tools. Genf
 does not silently pick the first organization brand.
 
 `connect_social_account` returns a `connectionId` and a browser authorization URL.
-Poll `get_connection_status` with that id. Replay the same id after a client
-restart; it does not create another credential.
+Poll `get_connection_status` with that id. Provider denial or failure is stored
+on that row immediately (`denied` / `failed`); do not wait for the 15-minute
+expiry. Replay the same id after a client restart; it does not create another
+credential.
 
 `generate_image` returns structured artifact metadata plus a native image part when
 the client supports it, with a text fallback. Video results are downloadable files

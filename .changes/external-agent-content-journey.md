@@ -13,4 +13,6 @@ Existing `gf gen` and `gf status` flags are unchanged.
 
 `@genfeedai/helpers` exports generation-context, external-connection-request,
 and media-artifact helpers. They shape connection state, task-context receipts,
-and MCP image/file parts. No existing helper signatures changed.
+and MCP image/file parts. Provider callback errors map onto durable `denied`
+and `failed` sentinels so status polling does not wait for TTL expiry. No
+existing helper signatures changed.

@@ -21,7 +21,9 @@ never claims inline playback.
 - Connection start, replay, tenant isolation, unconfigured provider:
   `agent-connection-request.service.spec.ts`
 - Pending credential resume without a duplicate row:
-  `base-integration.controller.spec.ts`
+  `credentials.service.spec.ts` (`beginOAuthForBrand` reuses the pending id)
+- Provider denial persisted before TTL expiry:
+  `oauth-callback-error.util.spec.ts`
 - Explicit brand selection and unauthorized knowledge sources:
   `agent-generation-scope.service.spec.ts`
 - MCP `get_brand` no longer returns the first of two brands:

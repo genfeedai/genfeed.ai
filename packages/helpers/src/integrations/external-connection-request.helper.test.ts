@@ -1,6 +1,8 @@
 import { OAUTH_STATE_TTL_MS } from '@genfeedai/contracts/constants';
 import {
   EXTERNAL_CONNECTION_DENIED_STATE,
+  EXTERNAL_CONNECTION_FAILED_STATE,
+  oauthCallbackErrorState,
   resolveExternalConnectionState,
   serializeExternalConnectionRequest,
 } from './external-connection-request.helper';
@@ -49,8 +51,29 @@ describe('external connection request helper', () => {
       resolveExternalConnectionState({
         createdAt,
         isConnected: false,
+        oauthState: EXTERNAL_CONNECTION_FAILED_STATE,
+      }),
+    ).toBe('failed');
+    expect(
+      resolveExternalConnectionState({
+        createdAt,
+        isConnected: false,
+        now: new Date(createdAt.getTime() + OAUTH_STATE_TTL_MS + 1),
+        oauthState: EXTERNAL_CONNECTION_DENIED_STATE,
+      }),
+    ).toBe('denied');
+    expect(
+      resolveExternalConnectionState({
+        createdAt,
+        isConnected: false,
         now: new Date(createdAt.getTime() + OAUTH_STATE_TTL_MS + 1),
       }),
     ).toBe('expired');
+  });
+
+  it('maps provider callback error codes onto durable denied or failed sentinels', () => {
+    expect(oauthCallbackErrorState('access_denied')).toBe('denied');
+    expect(oauthCallbackErrorState('user_denied')).toBe('denied');
+    expect(oauthCallbackErrorState('server_error')).toBe('failed');
   });
 });
