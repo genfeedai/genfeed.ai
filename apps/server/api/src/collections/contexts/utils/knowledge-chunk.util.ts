@@ -39,8 +39,11 @@ export async function softDeleteKnowledgeChunks(
     return 0;
   }
   const removed = await prisma.contextEntry.updateMany({
-    where,
     data: { isDeleted: true },
+    where: scopedWhere(organizationId, {
+      ...(filter.sourceId ? { knowledgeSourceId: filter.sourceId } : {}),
+      ...versionWhere,
+    }),
   });
   for (const group of perBase) {
     await prisma.$executeRaw(Prisma.sql`

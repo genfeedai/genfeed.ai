@@ -215,13 +215,12 @@ export class LiveSessionCreditsService {
         terminateReason: reason,
         terminatedAt: now,
       },
-      where: { id: session.id },
+      where: scopedWhere(params.organizationId, { id: session.id }),
     });
   }
 
   async terminateDue(now = new Date()): Promise<number> {
-    // tenant-scope-ignore: platform maintenance sweep — each row carries its
-    // organizationId and terminateSession re-scopes before mutating the wallet
+    // tenant-scope-ignore: platform sweep; terminateSession re-scopes each row
     const due = await this.prisma.liveSession.findMany({
       take: 100,
       where: {
