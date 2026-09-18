@@ -192,88 +192,99 @@ export class PromptsController {
     const userPrompt = createPromptDto.original;
 
     const systemPromptKey = this.resolveSystemPromptKey(createPromptDto);
-
-    const systemPromptPromise = this._templatesService
-      ? this._templatesService
-          .getRenderedPrompt(systemPromptKey, {}, user.organizationId)
-          .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
-      : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
-    const skillSectionsPromise =
-      this.skillRuntimeService?.resolveRequestedSkillPromptSections(
-        user.organizationId,
-        createPromptDto.brandId,
-        createPromptDto.requestedSkillSlugs,
-      ) ?? Promise.resolve('');
-
-    void Promise.all([systemPromptPromise, skillSectionsPromise])
-      .then(([basePrompt, skillSections]) =>
-        skillSections ? `${basePrompt}\n\n${skillSections}` : basePrompt,
-      )
-      .then((systemPrompt) =>
-        this.openRouterService.chatCompletion({
-          max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
-          messages: [
-            { content: systemPrompt, role: 'system' },
-            { content: userPrompt, role: 'user' },
-          ],
-          model: PROMPT_ENHANCEMENT_MODEL,
-          temperature: 0.8,
-        }),
-      )
-      .then((response) => response.choices[0]?.message?.content?.trim() ?? '')
-      .then(async (result) => {
-        this.loggerService.log(`${url} succeeded`, { result });
-
-        await this.promptsService.patch(data.id, {
-          enhanced: result,
-          status: PromptStatus.GENERATED,
-        });
-
-        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
-          result,
-          status: Status.COMPLETED,
-        });
-      })
-      .catch(async (error: unknown) => {
-        this.loggerService.error(`${url} failed`, error);
-
-        // Refund credits since AI call failed
-        try {
-          const refundExpiresAt = new Date();
-          refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1); // Expire in 1 year
-
-          await this.creditsUtilsService.refundOrganizationCredits(
-            user.organizationId,
-            chargedCredits,
-            'prompt-creation-refund',
-            'Prompt creation failed - credit refund',
-            refundExpiresAt,
-          );
-
-          this.loggerService.log('Credits refunded successfully', {
-            amount: chargedCredits,
-            organizationId: user.organizationId,
-            userId: user.userId ?? user.id,
-          });
-        } catch (error: unknown) {
-          this.loggerService.error('Failed to refund credits', {
-            error,
-            organizationId: user.organizationId,
-            userId: user.userId ?? user.id,
-          });
-        }
-
-        await this.promptsService.patch(data.id, {
-          status: PromptStatus.FAILED,
-        });
-
-        await this.websocketService.emit(WebSocketPaths.prompt(data.id), {
-          error: (error as Error)?.message || 'An error occurred',
-          status: Status.FAILED,
-        });
-      });
+    void this.enhanceCreatedPrompt(
+      data.id,
+      userPrompt,
+      systemPromptKey,
+      user.organizationId,
+      createPromptDto.brandId,
+      createPromptDto.requestedSkillSlugs,
+      chargedCredits,
+      url,
+      user.userId ?? user.id,
+    );
 
     return serializeSingle(request, PromptSerializer, data);
+  }
+
+  private async enhanceCreatedPrompt(
+    promptId: string,
+    userPrompt: string,
+    systemPromptKey: string,
+    organizationId: string,
+    brandId: string | null | undefined,
+    requestedSkillSlugs: string[] | undefined,
+    chargedCredits: number,
+    url: string,
+    userId: string,
+  ): Promise<void> {
+    try {
+      const systemPromptPromise = this._templatesService
+        ? this._templatesService
+            .getRenderedPrompt(systemPromptKey, {}, organizationId)
+            .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
+        : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
+      const skillSections =
+        (await this.skillRuntimeService?.resolveRequestedSkillPromptSections(
+          organizationId,
+          brandId,
+          requestedSkillSlugs,
+        )) ?? '';
+      const basePrompt = await systemPromptPromise;
+      const systemPrompt = skillSections
+        ? `${basePrompt}\n\n${skillSections}`
+        : basePrompt;
+      const response = await this.openRouterService.chatCompletion({
+        max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
+        messages: [
+          { content: systemPrompt, role: 'system' },
+          { content: userPrompt, role: 'user' },
+        ],
+        model: PROMPT_ENHANCEMENT_MODEL,
+        temperature: 0.8,
+      });
+      const result = response.choices[0]?.message?.content?.trim() ?? '';
+      this.loggerService.log(`${url} succeeded`, { result });
+      await this.promptsService.patch(promptId, {
+        enhanced: result,
+        status: PromptStatus.GENERATED,
+      });
+      await this.websocketService.emit(WebSocketPaths.prompt(promptId), {
+        result,
+        status: Status.COMPLETED,
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(`${url} failed`, error);
+      try {
+        const refundExpiresAt = new Date();
+        refundExpiresAt.setFullYear(refundExpiresAt.getFullYear() + 1);
+        await this.creditsUtilsService.refundOrganizationCredits(
+          organizationId,
+          chargedCredits,
+          'prompt-creation-refund',
+          'Prompt creation failed - credit refund',
+          refundExpiresAt,
+        );
+        this.loggerService.log('Credits refunded successfully', {
+          amount: chargedCredits,
+          organizationId,
+          userId,
+        });
+      } catch (refundError: unknown) {
+        this.loggerService.error('Failed to refund credits', {
+          error: refundError,
+          organizationId,
+          userId,
+        });
+      }
+      await this.promptsService.patch(promptId, {
+        status: PromptStatus.FAILED,
+      });
+      await this.websocketService.emit(WebSocketPaths.prompt(promptId), {
+        error: (error as Error)?.message || 'An error occurred',
+        status: Status.FAILED,
+      });
+    }
   }
 
   private resolveSystemPromptKey(createPromptDto: CreatePromptDto): string {
