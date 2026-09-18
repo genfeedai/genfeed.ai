@@ -22,6 +22,7 @@ import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import {
   buildActionExecutionInput,
   CastPromptExecutor,
+  type ExecutionContext,
   HookGeneratorExecutor,
   PromptConstructorExecutor,
   TalkingHeadScriptExecutor,
@@ -249,6 +250,8 @@ export class WorkflowContentExecutorRegistrarService {
     const credentialsService = this.credentialsService;
     const fanoutService = this.postAccountFanoutService;
     const openRouterService = this.openRouterService;
+    const knowledgeGrounding = this.knowledgeGrounding;
+    const helper = this.helper;
 
     if (
       !postsService ||
@@ -259,143 +262,19 @@ export class WorkflowContentExecutorRegistrarService {
       return;
     }
 
-    engine.registerExecutor('postGen', async (node, inputs, context) => {
-      const configuredBrandId = this.helper.readConfigString(
-        node.config,
-        'brandId',
-      );
-      const knowledge = readKnowledgeInput(inputs, node.config);
-      const brandId = knowledge ? context.brandId : configuredBrandId;
-      const prompt =
-        readTextInput(inputs, ['prompt', 'content', 'text']) ??
-        this.helper.readConfigString(node.config, 'prompt');
-
-      if (!brandId || !prompt) {
-        throw new Error('postGen requires brandId and prompt');
-      }
-      if (knowledge && configuredBrandId && configuredBrandId !== brandId) {
-        throw new Error('postGen brand does not match the workflow brand');
-      }
-
-      const credentialId = this.helper.readConfigString(
-        node.config,
-        'credentialId',
-      );
-      const platform = this.helper.readConfigString(node.config, 'platform');
-      const brandLabel =
-        this.helper.readConfigString(node.config, 'brandLabel') ?? 'the brand';
-      const timezone =
-        this.helper.readConfigString(node.config, 'timezone') ?? 'UTC';
-
-      if (!credentialId && !platform) {
-        throw new Error('postGen requires credentialId or platform');
-      }
-
-      let grounded: { query: string; receipts: KnowledgeReceipt[] } | undefined;
-      if (knowledge) {
-        if (!this.knowledgeGrounding) {
-          throw new Error('Knowledge-grounded generation is unavailable');
-        }
-        grounded = await this.knowledgeGrounding.hydrateReceipts({
-          brandId,
-          knowledge,
-          organizationId: context.organizationId,
-        });
-      }
-
-      const placeholderCaption = `Daily post draft for ${brandLabel}`;
-      if (knowledge) {
-        const preflightTargets = credentialId
-          ? await resolveSingleAccountTarget({
-              brandId,
-              credentialId,
-              credentialsService,
-              description: placeholderCaption,
-              organizationId: context.organizationId,
-            })
-          : await fanoutService.resolveTargets({
-              brandId,
-              caption: placeholderCaption,
-              organizationId: context.organizationId,
-              platforms: [platform as string],
-            });
-        if (preflightTargets.length === 0) {
-          throw new Error('postGen found no connected target credential');
-        }
-      }
-
-      const completion = await openRouterService.chatCompletion({
-        max_tokens: 500,
-        messages: buildPostGenMessages(brandLabel, prompt, grounded),
-        model: POST_GEN_MODEL,
-        temperature: POST_GEN_TEMPERATURE,
-      });
-
-      const description =
-        completion.choices?.[0]?.message?.content?.trim() ?? placeholderCaption;
-
-      const targets = credentialId
-        ? await resolveSingleAccountTarget({
-            brandId,
-            credentialId,
-            credentialsService,
-            description,
-            organizationId: context.organizationId,
-          })
-        : await fanoutService.resolveTargets({
-            brandId,
-            caption: description,
-            organizationId: context.organizationId,
-            platforms: [platform as string],
-          });
-
-      if (targets.length === 0) {
-        throw new Error('postGen found no connected target credential');
-      }
-
-      const groupId = randomUUID();
-      const posts = [];
-
-      for (const target of targets) {
-        const post = await postsService.create({
-          brandId: brandId,
-          category: PostCategory.TEXT,
-          credentialId: target.credentialId,
-          description: target.caption,
-          groupId,
-          ingredients: [],
-          ...(grounded ? { knowledgeReceipts: grounded.receipts } : {}),
-          label: this.helper.buildPostLabel(target.caption),
-          organizationId: context.organizationId,
-          platform: target.platform,
-          source: 'workflow-post-generator',
-          sourceWorkflowId: context.workflowId,
-          targetExecutionState: TargetExecutionState.DRAFT,
-          timezone,
-          userId: context.userId,
-          workflowExecutionId: context.executionId ?? context.runId,
-        });
-
-        posts.push(post);
-      }
-
-      const primary = posts[0];
-
-      return {
-        description: primary.description,
-        groupId,
-        id: primary.id.toString(),
-        ...(grounded ? { knowledgeReceipts: grounded.receipts } : {}),
-        platform: primary.platform,
-        post: {
-          id: primary.id.toString(),
-          label: primary.label,
-          status: primary.status,
-        },
-        postIds: posts.map((post) => post.id.toString()),
-        status: primary.status,
-      };
-    });
+    engine.registerExecutor('postGen', async (node, inputs, context) =>
+      executePostGen({
+        context,
+        credentialsService,
+        fanoutService,
+        helper,
+        inputs,
+        knowledgeGrounding,
+        node,
+        openRouterService,
+        postsService,
+      }),
+    );
   }
 
   private registerNewsletterExecutor(engine: WorkflowEngine): void {
@@ -533,6 +412,158 @@ export class WorkflowContentExecutorRegistrarService {
       },
     );
   }
+}
+
+async function executePostGen(params: {
+  context: ExecutionContext;
+  credentialsService: CredentialsService;
+  fanoutService: PostAccountFanoutService;
+  helper: WorkflowEngineExecutorHelperService;
+  inputs: Map<string, unknown>;
+  knowledgeGrounding?: WorkflowKnowledgeGroundingService;
+  node: { config: Record<string, unknown> };
+  openRouterService: OpenRouterService;
+  postsService: PostsService;
+}) {
+  const configuredBrandId = params.helper.readConfigString(
+    params.node.config,
+    'brandId',
+  );
+  const knowledge = readKnowledgeInput(params.inputs, params.node.config);
+  const brandId = knowledge ? params.context.brandId : configuredBrandId;
+  const prompt =
+    readTextInput(params.inputs, ['prompt', 'content', 'text']) ??
+    params.helper.readConfigString(params.node.config, 'prompt');
+
+  if (!brandId || !prompt) {
+    throw new Error('postGen requires brandId and prompt');
+  }
+  if (knowledge && configuredBrandId && configuredBrandId !== brandId) {
+    throw new Error('postGen brand does not match the workflow brand');
+  }
+
+  const credentialId = params.helper.readConfigString(
+    params.node.config,
+    'credentialId',
+  );
+  const platform = params.helper.readConfigString(
+    params.node.config,
+    'platform',
+  );
+  const brandLabel =
+    params.helper.readConfigString(params.node.config, 'brandLabel') ??
+    'the brand';
+  const timezone =
+    params.helper.readConfigString(params.node.config, 'timezone') ?? 'UTC';
+
+  if (!credentialId && !platform) {
+    throw new Error('postGen requires credentialId or platform');
+  }
+
+  let grounded: { query: string; receipts: KnowledgeReceipt[] } | undefined;
+  if (knowledge) {
+    if (!params.knowledgeGrounding) {
+      throw new Error('Knowledge-grounded generation is unavailable');
+    }
+    grounded = await params.knowledgeGrounding.hydrateReceipts({
+      brandId,
+      knowledge,
+      organizationId: params.context.organizationId,
+    });
+  }
+
+  const placeholderCaption = `Daily post draft for ${brandLabel}`;
+  if (knowledge) {
+    const preflightTargets = credentialId
+      ? await resolveSingleAccountTarget({
+          brandId,
+          credentialId,
+          credentialsService: params.credentialsService,
+          description: placeholderCaption,
+          organizationId: params.context.organizationId,
+        })
+      : await params.fanoutService.resolveTargets({
+          brandId,
+          caption: placeholderCaption,
+          organizationId: params.context.organizationId,
+          platforms: [platform as string],
+        });
+    if (preflightTargets.length === 0) {
+      throw new Error('postGen found no connected target credential');
+    }
+  }
+
+  const completion = await params.openRouterService.chatCompletion({
+    max_tokens: 500,
+    messages: buildPostGenMessages(brandLabel, prompt, grounded),
+    model: POST_GEN_MODEL,
+    temperature: POST_GEN_TEMPERATURE,
+  });
+
+  const description =
+    completion.choices?.[0]?.message?.content?.trim() ?? placeholderCaption;
+
+  const targets = credentialId
+    ? await resolveSingleAccountTarget({
+        brandId,
+        credentialId,
+        credentialsService: params.credentialsService,
+        description,
+        organizationId: params.context.organizationId,
+      })
+    : await params.fanoutService.resolveTargets({
+        brandId,
+        caption: description,
+        organizationId: params.context.organizationId,
+        platforms: [platform as string],
+      });
+
+  if (targets.length === 0) {
+    throw new Error('postGen found no connected target credential');
+  }
+
+  const groupId = randomUUID();
+  const posts = [];
+
+  for (const target of targets) {
+    const post = await params.postsService.create({
+      brandId: brandId,
+      category: PostCategory.TEXT,
+      credentialId: target.credentialId,
+      description: target.caption,
+      groupId,
+      ingredients: [],
+      ...(grounded ? { knowledgeReceipts: grounded.receipts } : {}),
+      label: params.helper.buildPostLabel(target.caption),
+      organizationId: params.context.organizationId,
+      platform: target.platform,
+      source: 'workflow-post-generator',
+      sourceWorkflowId: params.context.workflowId,
+      targetExecutionState: TargetExecutionState.DRAFT,
+      timezone,
+      userId: params.context.userId,
+      workflowExecutionId: params.context.executionId ?? params.context.runId,
+    });
+
+    posts.push(post);
+  }
+
+  const primary = posts[0];
+
+  return {
+    description: primary.description,
+    groupId,
+    id: primary.id.toString(),
+    ...(grounded ? { knowledgeReceipts: grounded.receipts } : {}),
+    platform: primary.platform,
+    post: {
+      id: primary.id.toString(),
+      label: primary.label,
+      status: primary.status,
+    },
+    postIds: posts.map((post) => post.id.toString()),
+    status: primary.status,
+  };
 }
 
 function clampNumber(value: number, min: number, max: number): number {

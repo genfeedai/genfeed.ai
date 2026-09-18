@@ -15,6 +15,7 @@ import {
   type TranscriptCue,
 } from '@api/collections/contexts/utils/knowledge-transcript.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -425,12 +426,10 @@ export class KnowledgeTranscriptIngestService {
   ): Promise<void> {
     const version = await this.prisma.knowledgeSourceVersion.findFirst({
       select: { payload: true },
-      where: {
+      where: scopedWhere(input.organizationId, {
         id: input.versionId,
-        isDeleted: false,
-        organizationId: input.organizationId,
         sourceId: input.sourceId,
-      },
+      }),
     });
     const payload = isRecord(version?.payload) ? { ...version.payload } : {};
     payload.transcriptGeneration = {
@@ -440,11 +439,10 @@ export class KnowledgeTranscriptIngestService {
       reservationId,
     };
     await this.prisma.knowledgeSourceVersion.updateMany({
-      where: {
+      where: scopedWhere(input.organizationId, {
         id: input.versionId,
-        organizationId: input.organizationId,
         sourceId: input.sourceId,
-      },
+      }),
       data: { payload },
     });
   }
@@ -455,12 +453,10 @@ export class KnowledgeTranscriptIngestService {
   ): Promise<void> {
     const version = await this.prisma.knowledgeSourceVersion.findFirst({
       select: { payload: true, provenance: true },
-      where: {
+      where: scopedWhere(input.organizationId, {
         id: input.versionId,
-        isDeleted: false,
-        organizationId: input.organizationId,
         sourceId: input.sourceId,
-      },
+      }),
     });
     const payload = isRecord(version?.payload) ? { ...version.payload } : {};
     const provenance = isRecord(version?.provenance)
@@ -468,9 +464,8 @@ export class KnowledgeTranscriptIngestService {
       : {};
     delete payload.transcriptGeneration;
     await this.prisma.knowledgeSourceVersion.updateMany({
-      where: {
+      where: scopedWhere(input.organizationId, {
         id: input.versionId,
-        organizationId: input.organizationId,
         processingState: {
           in: [
             KnowledgeProcessingState.QUEUED,
@@ -478,7 +473,7 @@ export class KnowledgeTranscriptIngestService {
           ],
         },
         sourceId: input.sourceId,
-      },
+      }),
       data: {
         payload: toPrismaJson({
           ...payload,

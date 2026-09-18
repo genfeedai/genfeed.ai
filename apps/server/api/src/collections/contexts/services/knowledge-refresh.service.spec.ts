@@ -37,16 +37,19 @@ function buildService() {
     knowledgeSource: {
       findFirst: vi.fn(),
       update: vi.fn().mockResolvedValue({}),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     knowledgeSourceRefreshRun: {
       create: vi.fn().mockResolvedValue({ id: 'run-1' }),
       findFirst: vi.fn().mockResolvedValue(null),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     knowledgeSourceVersion: { findFirst: vi.fn() },
     workflow: {
       findFirst: vi.fn().mockResolvedValue(null),
       update: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     $transaction: vi.fn(async (ops: unknown) => {
       if (Array.isArray(ops)) {

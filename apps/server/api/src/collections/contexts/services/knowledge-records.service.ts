@@ -5,6 +5,7 @@ import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/cr
 import type { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
+import { captureIdempotentKnowledgeSource } from '@api/collections/contexts/utils/knowledge-idempotent-capture';
 import { buildKnowledgeMediaReferenceKey } from '@api/collections/contexts/utils/knowledge-media-identity.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -229,182 +230,26 @@ export class KnowledgeRecordsService {
       .digest('hex')
       .slice(0, 32);
     const sourceId = `${hash.slice(0, 8)}-${hash.slice(8, 12)}-5${hash.slice(13, 16)}-a${hash.slice(17, 20)}-${hash.slice(20)}`;
+    const hashedKey = createHash('sha256').update(lockKey).digest('hex');
     return this.prisma
-      .$transaction(async (tx) => {
-        await this.creationScope(tx, actor, dto.scope);
-        await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lockKey}, 0))::text`;
-        const existing = await tx.knowledgeSource.findFirst({
-          where: {
-            ...this.ownership(actor),
-            organizationId: actor.organizationId,
-            userId: actor.userId,
-            isDeleted: false,
-            id: sourceId,
-          },
-        });
-        const hashedKey = createHash('sha256').update(lockKey).digest('hex');
-        const ledger = await tx.knowledgeCaptureRequest.findFirst({
-          where: {
-            id: sourceId,
-            isDeleted: false,
-            organizationId: actor.organizationId,
-          },
-        });
-        if (ledger) {
-          if (ledger.requestHash && ledger.requestHash !== requestHash) {
-            throw new ConflictException(
-              'This capture key was already used for different or purged content. Start a new capture.',
-            );
-          }
-          if (!ledger.sourceId) {
-            throw new ConflictException(
-              'This capture key belongs to a removed source. Start a new capture.',
-            );
-          }
-          const existingSource = await tx.knowledgeSource.findFirst({
-            where: {
-              ...this.ownership(actor),
-              id: ledger.sourceId,
-              isDeleted: false,
-              organizationId: actor.organizationId,
-            },
-          });
-          const version = await tx.knowledgeSourceVersion.findFirst({
-            where: {
-              isCurrent: true,
-              isDeleted: false,
-              organizationId: actor.organizationId,
-              sourceId: ledger.sourceId,
-            },
-          });
-          if (!existingSource || !version) {
-            throw new ConflictException(
-              'This capture key belongs to a removed source. Start a new capture.',
-            );
-          }
-          return { source: existingSource, version };
-        }
-        if (existing) {
-          const version = await tx.knowledgeSourceVersion.findFirst({
-            where: {
-              organizationId: actor.organizationId,
-              isDeleted: false,
-              sourceId,
-              version: 1,
-              source: { is: this.ownership(actor) },
-            },
-          });
-          const provenance = version?.provenance;
-          if (
-            !version ||
-            !provenance ||
-            typeof provenance !== 'object' ||
-            Array.isArray(provenance) ||
-            provenance.captureRequestHash !== requestHash
-          ) {
-            throw new ConflictException(
-              'This capture key was already used for different or purged content. Start a new capture.',
-            );
-          }
-          await tx.knowledgeCaptureRequest.create({
-            data: {
-              id: sourceId,
-              idempotencyKey: hashedKey,
-              kind: dto.kind,
-              organizationId: actor.organizationId,
-              requestHash,
-              sourceId,
-              status: 'completed',
-            },
-          });
-          return { source: existing, version };
-        }
-        const mediaKey =
-          dto.referenceUrl &&
-          (dto.kind === KnowledgeSourceKind.AUDIO ||
-            dto.kind === KnowledgeSourceKind.VIDEO)
-            ? buildKnowledgeMediaReferenceKey({
-                brandId: actor.brandId,
-                kind: dto.kind,
-                referenceUrl: dto.referenceUrl,
-                scope: dto.scope,
-                userId: actor.userId,
-              })
-            : undefined;
-        if (mediaKey) {
-          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`knowledge-media:${actor.organizationId}:${mediaKey}`}, 0))::text`;
-          const mediaMatch = await tx.knowledgeSource.findFirst({
-            where: {
-              ...this.ownership(actor),
-              isDeleted: false,
-              mediaReferenceKey: mediaKey,
-              organizationId: actor.organizationId,
-            },
-          });
-          if (mediaMatch) {
-            const version = await tx.knowledgeSourceVersion.findFirst({
-              where: {
-                isCurrent: true,
-                isDeleted: false,
-                organizationId: actor.organizationId,
-                sourceId: mediaMatch.id,
-              },
-            });
-            if (!version) {
-              throw new ConflictException(
-                'This capture key belongs to a removed source. Start a new capture.',
-              );
-            }
-            await tx.knowledgeCaptureRequest.create({
-              data: {
-                id: sourceId,
-                idempotencyKey: hashedKey,
-                kind: dto.kind,
-                mediaReferenceKey: mediaKey,
-                organizationId: actor.organizationId,
-                requestHash,
-                sourceId: mediaMatch.id,
-                status: 'completed',
-              },
-            });
-            return { source: mediaMatch, version };
-          }
-        }
-        const source = await this.createSourceInTransaction(
-          tx,
+      .$transaction((tx) =>
+        captureIdempotentKnowledgeSource(tx, {
           actor,
           dto,
+          hashedKey,
+          helpers: {
+            createSource: (innerTx, innerActor, innerDto, id) =>
+              this.createSourceInTransaction(innerTx, innerActor, innerDto, id),
+            ownership: (innerActor) => this.ownership(innerActor),
+            prepareScope: (innerTx, innerActor, scope) =>
+              this.creationScope(innerTx, innerActor, scope),
+          },
+          lockKey,
+          requestHash,
           sourceId,
-        );
-        const version = await tx.knowledgeSourceVersion.create({
-          data: {
-            sourceId,
-            organizationId: actor.organizationId,
-            version: 1,
-            contentHash: versionDto.contentHash,
-            provenance: {
-              ...versionDto.provenance,
-              captureRequestHash: requestHash,
-            },
-            payload: versionDto.payload,
-            observedAt: new Date(versionDto.observedAt),
-            retentionPolicy: KnowledgeRetentionPolicy.KEEP,
-          },
-        });
-        await tx.knowledgeCaptureRequest.create({
-          data: {
-            id: sourceId,
-            idempotencyKey: hashedKey,
-            kind: dto.kind,
-            mediaReferenceKey: mediaKey,
-            organizationId: actor.organizationId,
-            requestHash,
-            sourceId,
-            status: 'queued',
-          },
-        });
-        return { source, version };
-      })
+          versionDto,
+        }),
+      )
       .catch((error: unknown) => {
         if (
           error instanceof Prisma.PrismaClientKnownRequestError &&

@@ -6,6 +6,7 @@ import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/
 import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   KNOWLEDGE_REFRESH_GRACE_MAX,
@@ -128,8 +129,8 @@ export class KnowledgeRefreshService {
       source.refreshWorkflowId,
       policy.isEnabled,
     );
-    return this.prisma.knowledgeSource.update({
-      where: { id: sourceId },
+    await this.prisma.knowledgeSource.updateMany({
+      where: scopedWhere(actor.organizationId, { id: sourceId }),
       data: {
         gracePeriodMinutes: graceMinutes,
         isRefreshEnabled: policy.isEnabled,
@@ -141,6 +142,7 @@ export class KnowledgeRefreshService {
         refreshWorkflowId,
       },
     });
+    return this.records.getSource(actor, sourceId);
   }
 
   async unscheduleSource(
@@ -158,8 +160,8 @@ export class KnowledgeRefreshService {
       source.refreshWorkflowId,
       false,
     );
-    await this.prisma.knowledgeSource.update({
-      where: { id: sourceId },
+    await this.prisma.knowledgeSource.updateMany({
+      where: scopedWhere(actor.organizationId, { id: sourceId }),
       data: { isRefreshEnabled: false },
     });
   }
@@ -262,8 +264,8 @@ export class KnowledgeRefreshService {
         },
       },
     );
-    await this.prisma.knowledgeSourceRefreshRun.update({
-      where: { id: runId },
+    await this.prisma.knowledgeSourceRefreshRun.updateMany({
+      where: scopedWhere(actor.organizationId, { id: runId, sourceId }),
       data: {
         candidateVersionId: candidate.id,
         expectedCurrentVersionId: current.id,
@@ -284,12 +286,10 @@ export class KnowledgeRefreshService {
     versionId: string;
   }): Promise<void> {
     const run = await this.prisma.knowledgeSourceRefreshRun.findFirst({
-      where: {
+      where: scopedWhere(input.organizationId, {
         candidateVersionId: input.versionId,
-        isDeleted: false,
-        organizationId: input.organizationId,
         sourceId: input.sourceId,
-      },
+      }),
     });
     if (!run) {
       return;
@@ -297,13 +297,11 @@ export class KnowledgeRefreshService {
     const now = new Date();
     await this.prisma.$transaction(async (tx) => {
       await tx.knowledgeSourceVersion.updateMany({
-        where: {
+        where: scopedWhere(input.organizationId, {
           id: { not: input.versionId },
           isCurrent: true,
-          isDeleted: false,
-          organizationId: input.organizationId,
           sourceId: input.sourceId,
-        },
+        }),
         data: {
           isCurrent: false,
           retrievalState: KnowledgeRetrievalState.SUPERSEDED,
@@ -311,19 +309,21 @@ export class KnowledgeRefreshService {
         },
       });
       await tx.knowledgeSourceVersion.updateMany({
-        where: {
+        where: scopedWhere(input.organizationId, {
           id: input.versionId,
-          organizationId: input.organizationId,
           sourceId: input.sourceId,
-        },
+        }),
         data: {
           isCurrent: true,
           processingState: KnowledgeProcessingState.READY,
           retrievalState: KnowledgeRetrievalState.ACTIVE,
         },
       });
-      await tx.knowledgeSourceRefreshRun.update({
-        where: { id: run.id },
+      await tx.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(input.organizationId, {
+          id: run.id,
+          sourceId: input.sourceId,
+        }),
         data: {
           completedAt: now,
           outcome: KnowledgeRefreshRunOutcome.CHANGED,
@@ -331,14 +331,10 @@ export class KnowledgeRefreshService {
         },
       });
       const source = await tx.knowledgeSource.findFirst({
-        where: {
-          id: input.sourceId,
-          organizationId: input.organizationId,
-          isDeleted: false,
-        },
+        where: scopedWhere(input.organizationId, { id: input.sourceId }),
       });
-      await tx.knowledgeSource.update({
-        where: { id: input.sourceId },
+      await tx.knowledgeSource.updateMany({
+        where: scopedWhere(input.organizationId, { id: input.sourceId }),
         data: {
           consecutiveFailures: 0,
           firstFailureAt: null,
@@ -359,20 +355,16 @@ export class KnowledgeRefreshService {
     tickKey: string,
   ): Promise<{ existingJobId?: string; runId: string }> {
     const existing = await this.prisma.knowledgeSourceRefreshRun.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId: actor.organizationId,
+      where: scopedWhere(actor.organizationId, {
         sourceId: source.id,
         tickKey,
-      },
+      }),
     });
     if (existing) {
       return { runId: existing.id };
     }
     const unfinished = await this.prisma.knowledgeSourceRefreshRun.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId: actor.organizationId,
+      where: scopedWhere(actor.organizationId, {
         sourceId: source.id,
         status: {
           in: [
@@ -380,7 +372,7 @@ export class KnowledgeRefreshService {
             KnowledgeRefreshRunStatus.PROCESSING,
           ],
         },
-      },
+      }),
     });
     if (unfinished) {
       return { runId: unfinished.id };
@@ -397,8 +389,8 @@ export class KnowledgeRefreshService {
         tickKey,
       },
     });
-    await this.prisma.knowledgeSource.update({
-      where: { id: source.id },
+    await this.prisma.knowledgeSource.updateMany({
+      where: scopedWhere(actor.organizationId, { id: source.id }),
       data: { syncState: KnowledgeSourceSyncState.CHECKING },
     });
     return { runId: created.id };
@@ -412,19 +404,19 @@ export class KnowledgeRefreshService {
   ): Promise<void> {
     const now = new Date();
     const source = await this.prisma.knowledgeSource.findFirst({
-      where: { id: sourceId, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: sourceId }),
     });
     await this.prisma.$transaction([
-      this.prisma.knowledgeSourceRefreshRun.update({
-        where: { id: runId },
+      this.prisma.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(organizationId, { id: runId, sourceId }),
         data: {
           completedAt: now,
           outcome: KnowledgeRefreshRunOutcome.UNCHANGED,
           status: KnowledgeRefreshRunStatus.COMPLETED,
         },
       }),
-      this.prisma.knowledgeSource.update({
-        where: { id: sourceId },
+      this.prisma.knowledgeSource.updateMany({
+        where: scopedWhere(organizationId, { id: sourceId }),
         data: {
           consecutiveFailures: 0,
           etag: validators?.etag,
@@ -454,7 +446,7 @@ export class KnowledgeRefreshService {
   ): Promise<void> {
     const message = this.toSafeError(error);
     const source = await this.prisma.knowledgeSource.findFirst({
-      where: { id: sourceId, organizationId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: sourceId }),
     });
     const consecutiveFailures = (source?.consecutiveFailures ?? 0) + 1;
     const firstFailureAt = source?.firstFailureAt ?? new Date();
@@ -467,8 +459,8 @@ export class KnowledgeRefreshService {
         Math.min(consecutiveFailures - 1, BACKOFF_MINUTES.length - 1)
       ] ?? 120;
     await this.prisma.$transaction([
-      this.prisma.knowledgeSourceRefreshRun.update({
-        where: { id: runId },
+      this.prisma.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(organizationId, { id: runId, sourceId }),
         data: {
           completedAt: new Date(),
           error: message,
@@ -476,8 +468,8 @@ export class KnowledgeRefreshService {
           status: KnowledgeRefreshRunStatus.FAILED,
         },
       }),
-      this.prisma.knowledgeSource.update({
-        where: { id: sourceId },
+      this.prisma.knowledgeSource.updateMany({
+        where: scopedWhere(organizationId, { id: sourceId }),
         data: {
           consecutiveFailures,
           firstFailureAt,
@@ -499,12 +491,7 @@ export class KnowledgeRefreshService {
     tickKey: string,
   ): Promise<KnowledgeRefreshResult> {
     const existing = await this.prisma.knowledgeSourceRefreshRun.findFirst({
-      where: {
-        isDeleted: false,
-        organizationId: actor.organizationId,
-        sourceId,
-        tickKey,
-      },
+      where: scopedWhere(actor.organizationId, { sourceId, tickKey }),
     });
     if (existing) {
       return { refreshRunId: existing.id, sourceId };
@@ -552,15 +539,11 @@ export class KnowledgeRefreshService {
   ): Promise<string | null> {
     if (existingWorkflowId) {
       const existing = await this.prisma.workflow.findFirst({
-        where: {
-          id: existingWorkflowId,
-          isDeleted: false,
-          organizationId: actor.organizationId,
-        },
+        where: scopedWhere(actor.organizationId, { id: existingWorkflowId }),
       });
       if (existing) {
-        await this.prisma.workflow.update({
-          where: { id: existing.id },
+        await this.prisma.workflow.updateMany({
+          where: scopedWhere(actor.organizationId, { id: existing.id }),
           data: {
             isScheduleEnabled: isEnabled,
             schedule: KNOWLEDGE_REFRESH_SCHEDULE_CRON,
@@ -645,12 +628,10 @@ export class KnowledgeRefreshService {
     organizationId: string,
   ): Promise<string | null> {
     const version = await this.prisma.knowledgeSourceVersion.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         isCurrent: true,
-        isDeleted: false,
-        organizationId,
         sourceId,
-      },
+      }),
     });
     return (
       this.readPayloadUrl(version?.payload) ??

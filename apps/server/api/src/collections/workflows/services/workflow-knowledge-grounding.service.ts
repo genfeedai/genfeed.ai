@@ -1,3 +1,4 @@
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   KnowledgeMemoryScope,
@@ -108,35 +109,22 @@ export class WorkflowKnowledgeGroundingService {
         ? input.passage.citation.endMs
         : undefined;
 
-    const chunk = await this.prisma.contextEntry.findFirst({
-      include: {
-        knowledgeSourceVersion: {
-          include: {
-            source: true,
-          },
-        },
-      },
-      where: {
-        organizationId: input.organizationId,
-        isDeleted: false,
-        knowledgeSourceId: sourceId,
-        knowledgeSourceVersionId: versionId,
-        data: {
-          path: ['content'],
-          equals: content,
-        },
-        knowledgeSourceVersion: {
-          isDeleted: false,
-          isCurrent: true,
-          processingState: KnowledgeProcessingState.READY,
-          retrievalState: KnowledgeRetrievalState.ACTIVE,
-          retentionState: KnowledgeRetentionState.RETAINED,
-          organizationId: input.organizationId,
-          OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
-          source: {
-            isDeleted: false,
+    const version = await this.prisma.knowledgeSourceVersion.findFirst({
+      where: scopedWhere(input.organizationId, {
+        id: versionId,
+        isCurrent: true,
+        processingState: KnowledgeProcessingState.READY,
+        retrievalState: KnowledgeRetrievalState.ACTIVE,
+        retentionState: KnowledgeRetentionState.RETAINED,
+        sourceId,
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      }),
+    });
+    const source = version
+      ? await this.prisma.knowledgeSource.findFirst({
+          where: scopedWhere(input.organizationId, {
+            id: sourceId,
             isVisible: true,
-            organizationId: input.organizationId,
             OR: [
               {
                 scope: KnowledgeMemoryScope.ORG,
@@ -147,13 +135,21 @@ export class WorkflowKnowledgeGroundingService {
                 brandId: input.brandId,
               },
             ],
-          },
-        },
-      },
-    });
-
-    const version = chunk?.knowledgeSourceVersion;
-    const source = version?.source;
+          }),
+        })
+      : null;
+    const chunk = version
+      ? await this.prisma.contextEntry.findFirst({
+          where: scopedWhere(input.organizationId, {
+            data: {
+              path: ['content'],
+              equals: content,
+            },
+            knowledgeSourceId: sourceId,
+            knowledgeSourceVersionId: versionId,
+          }),
+        })
+      : null;
     if (!chunk || !version || !source) {
       throw new Error('Knowledge citation is invalid');
     }

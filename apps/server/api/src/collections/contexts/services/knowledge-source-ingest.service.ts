@@ -333,11 +333,10 @@ export class KnowledgeSourceIngestService {
             ? error.transcriptState
             : KnowledgeTranscriptState.UNAVAILABLE;
         await this.prisma.knowledgeSourceVersion.updateMany({
-          where: {
+          where: scopedWhere(state.organizationId, {
             id: state.versionId,
-            organizationId: state.organizationId,
             sourceId: state.sourceId,
-          },
+          }),
           data: { transcriptState },
         });
         throw error;
@@ -482,20 +481,17 @@ export class KnowledgeSourceIngestService {
         },
       });
       await tx.knowledgeSourceVersion.updateMany({
-        where: {
+        where: scopedWhere(state.organizationId, {
           id: state.versionId,
-          organizationId: state.organizationId,
           sourceId: state.sourceId,
-        },
+        }),
         data: { isCurrent: true },
       });
       await tx.knowledgeSourceRefreshRun.updateMany({
-        where: {
+        where: scopedWhere(state.organizationId, {
           candidateVersionId: state.versionId,
-          isDeleted: false,
-          organizationId: state.organizationId,
           sourceId: state.sourceId,
-        },
+        }),
         data: {
           completedAt: now,
           outcome: KnowledgeRefreshRunOutcome.CHANGED,
@@ -503,13 +499,13 @@ export class KnowledgeSourceIngestService {
         },
       });
       const source = await tx.knowledgeSource.findFirst({
-        where: { id: state.sourceId, organizationId: state.organizationId },
+        where: scopedWhere(state.organizationId, { id: state.sourceId }),
       });
       const intervalMinutes =
         source?.refreshIntervalMinutes ??
         (source?.kind === KnowledgeSourceKind.RSS ? 60 : 1_440);
       await tx.knowledgeSource.updateMany({
-        where: { id: state.sourceId, organizationId: state.organizationId },
+        where: scopedWhere(state.organizationId, { id: state.sourceId }),
         data: {
           consecutiveFailures: 0,
           firstFailureAt: null,
