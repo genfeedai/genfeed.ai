@@ -36,6 +36,7 @@ describe('composeContentHarnessBrief', () => {
     const brief = await composeContentHarnessBrief(registry, BASE_INPUT);
 
     expect(brief.packs).toEqual([]);
+    expect(brief.appliedPacks).toEqual([]);
     expect(brief.systemDirectives).toEqual([]);
     expect(brief.styleDirectives).toEqual([]);
     expect(brief.guardrails).toEqual([]);
@@ -62,6 +63,23 @@ describe('composeContentHarnessBrief', () => {
 
     expect(brief.packs).toEqual(['inert', 'active']);
     expect(brief.systemDirectives).toEqual(['Directive.']);
+  });
+
+  it('lists only packs that contributed content as applied', async () => {
+    const registry = new ContentHarnessRegistry();
+    registry.registerPack(buildPack('inert'));
+    registry.registerPack(buildPack('empty', { guardrails: ['  '] }));
+    registry.registerPack(
+      buildPack('sourced', {
+        sources: [{ content: 'a', id: 'src-1', kind: 'brand_voice' }],
+      }),
+    );
+    registry.registerPack(buildPack('active', { styleDirectives: ['Style.'] }));
+
+    const brief = await composeContentHarnessBrief(registry, BASE_INPUT);
+
+    expect(brief.packs).toEqual(['inert', 'empty', 'sourced', 'active']);
+    expect(brief.appliedPacks).toEqual(['sourced', 'active']);
   });
 
   it('merges contributions from multiple packs with trimming and dedupe', async () => {

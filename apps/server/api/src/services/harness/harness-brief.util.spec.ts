@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 function brief(sources: ContentHarnessBrief['sources']): ContentHarnessBrief {
   return {
+    appliedPacks: [],
     evaluationCriteria: [],
     guardrails: [],
     metadata: { contentType: 'post', objective: 'engagement' },
