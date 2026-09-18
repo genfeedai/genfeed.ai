@@ -209,18 +209,18 @@ export class WorkspaceClient {
         );
         const collection = response.data?.data;
         const row = Array.isArray(collection) ? collection[0] : collection;
-        if (!row) {
+        if (!row || typeof row !== 'object') {
           throw new Error(`Job ${jobId} was not found`);
         }
+        const record = row as Record<string, unknown>;
+        const rawAttributes = record.attributes;
         const attributes =
-          row && typeof row === 'object' && 'attributes' in row
-            ? ((row as { attributes?: Record<string, unknown> }).attributes ??
-              {})
-            : ((row as Record<string, unknown> | undefined) ?? {});
-        const id =
-          (row && typeof row === 'object' && 'id' in row
-            ? String((row as { id?: unknown }).id ?? jobId)
-            : jobId) || jobId;
+          rawAttributes &&
+          typeof rawAttributes === 'object' &&
+          !Array.isArray(rawAttributes)
+            ? (rawAttributes as Record<string, unknown>)
+            : record;
+        const id = String(record.id ?? jobId) || jobId;
         const url =
           (typeof attributes.cdnUrl === 'string' && attributes.cdnUrl) ||
           (typeof attributes.url === 'string' && attributes.url) ||
