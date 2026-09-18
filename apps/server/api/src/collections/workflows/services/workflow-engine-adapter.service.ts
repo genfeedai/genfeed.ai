@@ -17,7 +17,10 @@ import type {
   NodeExecutionResult,
   NodeExecutor,
 } from '@genfeedai/workflows/engine';
-import { WorkflowEngine } from '@genfeedai/workflows/engine';
+import {
+  DEFAULT_CREDIT_COSTS,
+  WorkflowEngine,
+} from '@genfeedai/workflows/engine';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -38,7 +41,10 @@ export class WorkflowEngineAdapterService {
     registry: WorkflowEngineExecutorRegistryService,
     private readonly trendPublishRegistrar: WorkflowTrendPublishExecutorRegistrarService,
   ) {
-    this.engine = new WorkflowEngine({ maxConcurrency: 3 });
+    this.engine = new WorkflowEngine({
+      creditCosts: DEFAULT_CREDIT_COSTS,
+      maxConcurrency: 3,
+    });
     registry.register(this.engine);
   }
 

@@ -166,7 +166,7 @@ export class WorkflowNodeContinuationCoordinatorService {
     });
     await this.executions.updateNodeResult(settlement.executionId, {
       completedAt: new Date(),
-      creditsUsed: settlement.creditsUsed,
+      creditsUsed: 0,
       error: settlement.error,
       nodeId: settlement.nodeId,
       nodeType: settlement.actionId,

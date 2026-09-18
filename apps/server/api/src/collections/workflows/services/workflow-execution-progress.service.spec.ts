@@ -128,12 +128,14 @@ describe('WorkflowExecutionProgressService', () => {
     const { executionsService, service } = makeService();
 
     await service.trackNodeResult('execution-1', 'image', 'ai-generate-image', {
+      creditsUsed: 10,
       status: WorkflowExecutionStatus.COMPLETED,
     });
 
     expect(executionsService.updateNodeResult).toHaveBeenCalledWith(
       'execution-1',
       expect.objectContaining({
+        creditsUsed: 10,
         nodeId: 'image',
         nodeType: 'ai-generate-image',
         status: WorkflowExecutionStatus.COMPLETED,
