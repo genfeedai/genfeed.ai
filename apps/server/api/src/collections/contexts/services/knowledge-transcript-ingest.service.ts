@@ -28,6 +28,7 @@ import {
   KnowledgeTranscriptState,
 } from '@genfeedai/contracts';
 import type { KnowledgeSourceCapturePayload } from '@genfeedai/contracts/interfaces';
+import type { ICreditReservation } from '@genfeedai/contracts/interfaces/billing';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -401,7 +402,7 @@ export class KnowledgeTranscriptIngestService {
       versionId: string;
     },
     attempt: number,
-  ) {
+  ): Promise<ICreditReservation> {
     const reservation = await this.credits.reserveCredits({
       actorUserId: input.userId,
       amount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
