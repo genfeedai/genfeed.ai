@@ -1,6 +1,8 @@
 import { KnowledgeSourceKind } from '@genfeedai/contracts';
 import * as cheerio from 'cheerio';
 
+type KnowledgeHtmlElement = Parameters<cheerio.CheerioAPI>[0];
+
 export const KNOWLEDGE_AUDIO_MIME_TYPES = new Set([
   'audio/flac',
   'audio/mpeg',
@@ -56,7 +58,7 @@ function isProhibitedRobots(html: string): boolean {
 
 function pickCaptionUrl(
   $: cheerio.CheerioAPI,
-  element: cheerio.Element,
+  element: KnowledgeHtmlElement,
   pageUrl: string,
 ): string | undefined {
   const tracks = $(element)
@@ -76,7 +78,7 @@ function pickCaptionUrl(
 
 function mediaSrc(
   $: cheerio.CheerioAPI,
-  element: cheerio.Element,
+  element: KnowledgeHtmlElement,
   pageUrl: string,
 ): string | undefined {
   const own = resolveAgainst(pageUrl, $(element).attr('src'));

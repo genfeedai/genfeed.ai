@@ -45,7 +45,12 @@ export function hashKnowledgeContent(content: string): string {
 export function buildCaptureVersion(
   dto: Pick<
     CreateKnowledgeSourceDto,
-    'provenance' | 'referenceUrl' | 'text' | 'title'
+    | 'isTranscriptGenerationAllowed'
+    | 'provenance'
+    | 'referenceUrl'
+    | 'text'
+    | 'title'
+    | 'transcriptUrl'
   >,
   observedAt = new Date(),
 ): CreateKnowledgeVersionDto {

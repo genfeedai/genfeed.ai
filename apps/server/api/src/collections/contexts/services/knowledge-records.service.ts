@@ -242,9 +242,7 @@ export class KnowledgeRecordsService {
             id: sourceId,
           },
         });
-        const hashedKey = createHash('sha256')
-          .update(`${actor.organizationId}:${key}`)
-          .digest('hex');
+        const hashedKey = createHash('sha256').update(lockKey).digest('hex');
         const ledger = await tx.knowledgeCaptureRequest.findFirst({
           where: {
             id: sourceId,

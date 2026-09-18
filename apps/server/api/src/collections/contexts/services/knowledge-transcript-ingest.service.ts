@@ -26,6 +26,7 @@ import {
   KnowledgeTranscriptState,
 } from '@genfeedai/contracts';
 import type { KnowledgeSourceCapturePayload } from '@genfeedai/contracts/interfaces';
+import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -465,18 +466,7 @@ export class KnowledgeTranscriptIngestService {
     const provenance = isRecord(version?.provenance)
       ? { ...version.provenance }
       : {};
-    payload.mediaUrl = resolution.mediaUrl;
-    payload.text = resolution.text;
-    payload.transcriptCues = resolution.cues;
-    payload.transcriptState = resolution.transcriptState;
-    if (resolution.transcriptUrl) {
-      payload.transcriptUrl = resolution.transcriptUrl;
-    }
     delete payload.transcriptGeneration;
-    provenance.transcriptProvider =
-      resolution.transcriptState === KnowledgeTranscriptState.GENERATED
-        ? 'replicate-whisper'
-        : 'published-caption';
     await this.prisma.knowledgeSourceVersion.updateMany({
       where: {
         id: input.versionId,
@@ -490,8 +480,23 @@ export class KnowledgeTranscriptIngestService {
         sourceId: input.sourceId,
       },
       data: {
-        payload,
-        provenance,
+        payload: toPrismaJson({
+          ...payload,
+          mediaUrl: resolution.mediaUrl,
+          text: resolution.text,
+          transcriptCues: resolution.cues,
+          transcriptState: resolution.transcriptState,
+          ...(resolution.transcriptUrl
+            ? { transcriptUrl: resolution.transcriptUrl }
+            : {}),
+        }),
+        provenance: toPrismaJson({
+          ...provenance,
+          transcriptProvider:
+            resolution.transcriptState === KnowledgeTranscriptState.GENERATED
+              ? 'replicate-whisper'
+              : 'published-caption',
+        }),
         transcriptState: resolution.transcriptState,
       },
     });

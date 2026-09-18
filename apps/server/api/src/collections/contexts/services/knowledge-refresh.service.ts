@@ -524,8 +524,8 @@ export class KnowledgeRefreshService {
 
   private nextCheckAtFrom(
     source: {
+      kind?: string | null;
       refreshIntervalMinutes?: number | null;
-      kind?: KnowledgeSourceKind;
     } | null,
     now: Date,
     isFailure: boolean,
