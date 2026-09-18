@@ -27,6 +27,7 @@ function buildService() {
     }),
     getSource: vi.fn().mockResolvedValue({
       id: 'source-1',
+      isRefreshEnabled: true,
       kind: KnowledgeSourceKind.URL,
       purpose: KnowledgeSourcePurpose.RESEARCH,
       referenceUrl: 'https://ex.com',
@@ -51,6 +52,7 @@ function buildService() {
       update: vi.fn(),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
+    $queryRaw: vi.fn().mockResolvedValue([{ '?column?': '1' }]),
     $transaction: vi.fn(async (ops: unknown) => {
       if (Array.isArray(ops)) {
         return Promise.all(ops as Promise<unknown>[]);
@@ -90,9 +92,36 @@ describe('KnowledgeRefreshService', () => {
         };
       }
     ).prisma;
-    prisma.knowledgeSourceRefreshRun.create.mockResolvedValue({ id: 'skip-1' });
     const result = await service.refresh(actor, 'source-1', 'fire-1');
-    expect(result.refreshRunId).toBe('skip-1');
+    expect(result.refreshRunId).toBe('source-1');
+    expect(prisma.knowledgeSourceRefreshRun.create).not.toHaveBeenCalled();
+  });
+
+  it('skips a scheduled tick when refresh is disabled', async () => {
+    const { service, records } = buildService();
+    records.getSource.mockResolvedValueOnce({
+      id: 'source-1',
+      isRefreshEnabled: false,
+      kind: KnowledgeSourceKind.URL,
+      nextCheckAt: new Date(Date.now() - 60_000),
+    });
+    const result = await service.refresh(actor, 'source-1', 'fire-2');
+    expect(result.refreshRunId).toBe('source-1');
+  });
+
+  it('forces a due check even when the next check is in the future', async () => {
+    const { service, records } = buildService();
+    records.getSource.mockResolvedValue({
+      id: 'source-1',
+      isRefreshEnabled: false,
+      kind: KnowledgeSourceKind.URL,
+      nextCheckAt: new Date(Date.now() + 60_000),
+      referenceUrl: 'https://ex.com',
+    });
+    const result = await service.refresh(actor, 'source-1', 'manual-1', {
+      force: true,
+    });
+    expect(result.refreshRunId).toBe('run-1');
   });
 
   it('creates a 15-minute source-maintenance workflow when refresh is enabled', async () => {
@@ -154,5 +183,28 @@ describe('KnowledgeRefreshService', () => {
     });
     const result = await service.refresh(actor, 'source-1', 'tick-2');
     expect(result.refreshRunId).toBe('run-existing');
+  });
+
+  it('does not re-execute a live leased refresh run', async () => {
+    const { service } = buildService();
+    const prisma = (
+      service as unknown as {
+        prisma: {
+          knowledgeSourceRefreshRun: { findFirst: ReturnType<typeof vi.fn> };
+        };
+      }
+    ).prisma;
+    prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValueOnce({
+      candidateVersionId: 'candidate-1',
+      id: 'run-live',
+      leaseExpiresAt: new Date(Date.now() + 60_000),
+      status: KnowledgeRefreshRunStatus.PROCESSING,
+    });
+    const result = await service.refresh(actor, 'source-1', 'tick-live');
+    expect(result).toEqual({
+      jobId: 'candidate-1',
+      refreshRunId: 'run-live',
+      sourceId: 'source-1',
+    });
   });
 });

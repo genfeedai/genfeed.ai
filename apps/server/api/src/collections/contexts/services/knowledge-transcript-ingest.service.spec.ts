@@ -1,5 +1,6 @@
 import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
 import {
+  CreditReservationStatus,
   KnowledgeSourceKind,
   KnowledgeTranscriptState,
 } from '@genfeedai/contracts';
@@ -18,6 +19,9 @@ const fetchMock = vi.mocked(fetchKnowledgeBytes);
 
 function buildService() {
   const prisma = {
+    knowledgeCaptureRequest: {
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+    },
     knowledgeSourceVersion: {
       findFirst: vi.fn().mockResolvedValue({ payload: {}, provenance: {} }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
@@ -31,7 +35,10 @@ function buildService() {
   };
   const credits = {
     releaseReservation: vi.fn().mockResolvedValue({}),
-    reserveCredits: vi.fn().mockResolvedValue({ id: 'res-1' }),
+    reserveCredits: vi.fn().mockResolvedValue({
+      id: 'res-1',
+      status: CreditReservationStatus.RESERVED,
+    }),
     settleReservation: vi.fn().mockResolvedValue({}),
   };
   const logger = { log: vi.fn() };
@@ -101,7 +108,11 @@ describe('KnowledgeTranscriptIngestService', () => {
         workloadType: 'knowledge-transcript',
       }),
     );
-    expect(replicate.transcribeAudio).toHaveBeenCalled();
+    expect(replicate.transcribeAudio).toHaveBeenCalledWith(
+      expect.objectContaining({
+        audio: expect.objectContaining({ filename: 'knowledge-media.mp3' }),
+      }),
+    );
     expect(credits.settleReservation).toHaveBeenCalledWith(
       expect.objectContaining({ actualAmount: 1, reservationId: 'res-1' }),
     );
@@ -130,5 +141,80 @@ describe('KnowledgeTranscriptIngestService', () => {
       transcriptState: KnowledgeTranscriptState.UNAVAILABLE,
     });
     expect(credits.reserveCredits).not.toHaveBeenCalled();
+  });
+
+  it('does not start a second Whisper job while the generation lease is live', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, replicate, service } = buildService();
+    const prisma = (
+      service as unknown as {
+        prisma: {
+          knowledgeSourceVersion: { findFirst: ReturnType<typeof vi.fn> };
+        };
+      }
+    ).prisma;
+    prisma.knowledgeSourceVersion.findFirst.mockResolvedValue({
+      payload: {
+        isTranscriptGenerationAllowed: true,
+        transcriptGeneration: {
+          attempt: 0,
+          leaseExpiresAt: new Date(Date.now() + 60_000).toISOString(),
+          reservationId: 'res-live',
+        },
+      },
+      transcriptState: null,
+    });
+    await expect(
+      service.resolve({
+        kind: KnowledgeSourceKind.AUDIO,
+        organizationId: 'org-1',
+        payload: { isTranscriptGenerationAllowed: true },
+        referenceUrl: 'https://cdn.example.com/ep.mp3',
+        sourceId: 'source-1',
+        userId: 'user-1',
+        versionId: 'version-1',
+      }),
+    ).rejects.toMatchObject({
+      message: expect.stringMatching(/already in progress/i),
+    });
+    expect(replicate.transcribeAudio).not.toHaveBeenCalled();
+    expect(credits.reserveCredits).not.toHaveBeenCalled();
+  });
+
+  it('opens a new reservation after a released prior attempt', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, service } = buildService();
+    credits.reserveCredits
+      .mockResolvedValueOnce({
+        id: 'res-old',
+        status: CreditReservationStatus.RELEASED,
+      })
+      .mockResolvedValueOnce({
+        id: 'res-2',
+        status: CreditReservationStatus.RESERVED,
+      });
+    await service.resolve({
+      kind: KnowledgeSourceKind.AUDIO,
+      organizationId: 'org-1',
+      payload: { isTranscriptGenerationAllowed: true },
+      referenceUrl: 'https://cdn.example.com/ep.mp3',
+      sourceId: 'source-1',
+      userId: 'user-1',
+      versionId: 'version-1',
+    });
+    expect(credits.reserveCredits).toHaveBeenCalledTimes(2);
+    expect(credits.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ reservationId: 'res-2' }),
+    );
   });
 });
