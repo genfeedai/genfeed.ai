@@ -155,7 +155,7 @@ export class InstagramController {
         oauthToken: undefined,
         oauthTokenSecret: undefined,
       },
-      reconnectCredentialId,
+      createCredentialDto.credentialId ?? reconnectCredentialId,
     );
 
     this.loggerService.log(`${url} - Generating OAuth URL`, {

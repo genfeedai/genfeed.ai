@@ -650,6 +650,11 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
+    if ('error' in resolvedContext) {
+      return resolvedContext.error;
+    }
+    ctx = resolvedContext.context;
     const response = toMediaResponseRecord(
       await this.generationGateway.generateMusic({
         body: {
@@ -677,6 +682,11 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
+    if ('error' in resolvedContext) {
+      return resolvedContext.error;
+    }
+    ctx = resolvedContext.context;
     const response = toMediaResponseRecord(
       await this.generationGateway.generateVoice({
         body: {

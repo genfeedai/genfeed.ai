@@ -79,6 +79,7 @@ export class FanvueController {
         oauthToken: codeVerifier,
         oauthTokenSecret: undefined,
       },
+      createCredentialDto.credentialId,
     );
 
     this.loggerService.log(`${url} - Generating OAuth URL with PKCE`);

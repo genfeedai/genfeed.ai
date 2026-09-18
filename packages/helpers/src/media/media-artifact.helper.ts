@@ -31,9 +31,14 @@ export function inferMediaArtifactKind(
   payload: Record<string, unknown>,
 ): MediaArtifactKind | undefined {
   const explicit =
-    readString(payload, 'kind') ?? readString(payload, 'assetKind');
+    readString(payload, 'kind') ??
+    readString(payload, 'assetKind') ??
+    readString(payload, 'category')?.toLowerCase();
   if (explicit === 'image' || explicit === 'video' || explicit === 'audio') {
     return explicit;
+  }
+  if (explicit === 'music' || explicit === 'voice') {
+    return 'audio';
   }
   const url = readString(payload, 'url') ?? readString(payload, 'cdnUrl');
   if (!url) {
@@ -73,7 +78,7 @@ export function serializeMediaArtifact(
       height: readNumber(payload, 'height'),
       id,
       kind,
-      mimeType: 'image/png',
+      mimeType: inferImageMimeType(url),
       renderMode: url ? 'native_image' : 'open_url',
       status,
       url,
@@ -97,6 +102,25 @@ export function serializeMediaArtifact(
     status,
     url,
   };
+}
+
+function inferImageMimeType(url: string | undefined): string {
+  if (!url) {
+    return 'image/png';
+  }
+  if (/\.jpe?g(\?|$)/i.test(url)) {
+    return 'image/jpeg';
+  }
+  if (/\.webp(\?|$)/i.test(url)) {
+    return 'image/webp';
+  }
+  if (/\.gif(\?|$)/i.test(url)) {
+    return 'image/gif';
+  }
+  if (/\.avif(\?|$)/i.test(url)) {
+    return 'image/avif';
+  }
+  return 'image/png';
 }
 
 function textFallback(artifact: MediaArtifactResult): string {

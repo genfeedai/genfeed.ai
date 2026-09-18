@@ -25,6 +25,28 @@ const ctx = {
 };
 
 describe('AgentGenerationScopeService', () => {
+  it('does not use isSelected when two brands exist and none was chosen', async () => {
+    const { brandsService, service } = createService();
+    brandsService.findOne.mockResolvedValue({
+      id: 'brand-selected',
+      isSelected: true,
+      label: 'Selected',
+    });
+    brandsService.findAll.mockResolvedValue({
+      docs: [
+        { id: 'brand-1', label: 'First' },
+        { id: 'brand-2', label: 'Second' },
+      ],
+    });
+
+    const result = await service.resolveBrand({}, ctx);
+
+    expect('error' in result).toBe(true);
+    if ('error' in result) {
+      expect(result.error.error).toMatch(/Select a brand/);
+    }
+  });
+
   it('does not silently pick the first of two brands', async () => {
     const { brandsService, service } = createService();
     brandsService.findOne.mockResolvedValue(null);

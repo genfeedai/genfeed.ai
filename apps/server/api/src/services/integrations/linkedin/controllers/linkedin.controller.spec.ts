@@ -131,6 +131,7 @@ describe('LinkedInController', () => {
         userId,
         'linkedin',
         { isConnected: false },
+        undefined,
       );
       expect(mockLinkedInService.generateAuthUrl).toHaveBeenCalledWith(
         'opaque-oauth-state',

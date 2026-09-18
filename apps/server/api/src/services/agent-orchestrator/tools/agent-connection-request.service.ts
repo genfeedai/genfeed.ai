@@ -80,7 +80,7 @@ export class AgentConnectionRequestService {
       return brand.error;
     }
 
-    const credential = await this.credentialsService.createPendingForBrand(
+    const { credential } = await this.credentialsService.beginOAuthForBrand(
       {
         id: brand.id,
         organizationId: ctx.organizationId,
@@ -146,7 +146,8 @@ export class AgentConnectionRequestService {
           connected: false,
           credentialId: null,
           platform,
-          state: 'pending',
+          recoveryAction: 'retry',
+          state: 'failed',
         },
         success: true,
       };

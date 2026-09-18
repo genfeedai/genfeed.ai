@@ -169,6 +169,7 @@ describe('FanvueController', () => {
           isConnected: false,
           oauthToken: 'test-verifier',
         }),
+        undefined,
       );
       expect(fanvueService.buildAuthUrl).toHaveBeenCalledWith(
         'opaque-oauth-state',

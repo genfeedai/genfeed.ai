@@ -85,6 +85,7 @@ export class LinkedInController {
         {
           isConnected: false,
         },
+        createCredentialDto.credentialId,
       );
 
       const authUrl = this.linkedInService.generateAuthUrl(state);

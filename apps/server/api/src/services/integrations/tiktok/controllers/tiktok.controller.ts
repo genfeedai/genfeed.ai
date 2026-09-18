@@ -97,6 +97,7 @@ export class TiktokController {
         oauthToken: undefined,
         oauthTokenSecret: undefined,
       },
+      createCredentialDto.credentialId,
     );
 
     const clientKey = this.configService.get('TIKTOK_CLIENT_KEY');

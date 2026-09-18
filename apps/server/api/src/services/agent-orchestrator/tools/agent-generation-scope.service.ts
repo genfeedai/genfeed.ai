@@ -52,19 +52,16 @@ export class AgentGenerationScopeService {
         isDeleted: false,
         organizationId: ctx.organizationId,
       });
-      if (contextBrand?.id) {
-        return { brandId: String(contextBrand.id) };
+      if (!contextBrand?.id) {
+        return {
+          error: {
+            creditsUsed: 0,
+            error: 'Brand was not found in this organization.',
+            success: false,
+          },
+        };
       }
-    }
-
-    const selectedBrand = await this.brandsService.findOne({
-      isDeleted: false,
-      isSelected: true,
-      organizationId: ctx.organizationId,
-      userId: ctx.userId,
-    });
-    if (selectedBrand?.id) {
-      return { brandId: String(selectedBrand.id) };
+      return { brandId: String(contextBrand.id) };
     }
 
     const brands = await this.listOrganizationBrands(ctx.organizationId);

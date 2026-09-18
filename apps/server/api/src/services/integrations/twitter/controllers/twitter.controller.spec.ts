@@ -162,6 +162,7 @@ describe('TwitterController', () => {
         'test-object-id',
         'twitter',
         { isConnected: false },
+        undefined,
       );
       expect(mockGenerateOAuth2AuthLink).toHaveBeenCalledWith('test-val', {
         scope: [

@@ -531,6 +531,34 @@ export class CredentialsService
     reconnectCredentialId?: string,
   ): Promise<{ credential: CredentialDocument; state: string }> {
     const state = randomBytes(32).toString('base64url');
+    const brandId = requireCredentialRelationId(brand.id, 'brandId');
+    const organizationId = requireCredentialRelationId(
+      brand.organizationId,
+      'organizationId',
+    );
+    const credentialUserId = requireCredentialRelationId(userId, 'userId');
+
+    if (reconnectCredentialId) {
+      const existing = await this.findOne({
+        brandId,
+        id: reconnectCredentialId,
+        isDeleted: false,
+        organizationId,
+        platform,
+        userId: credentialUserId,
+      });
+      if (existing && !existing.isConnected) {
+        await this.patch(existing.id, {
+          ...fields,
+          oauthState: state,
+        });
+        return {
+          credential: { ...existing, oauthState: state },
+          state,
+        };
+      }
+    }
+
     const credential = await this.createPendingForBrand(
       brand,
       userId,

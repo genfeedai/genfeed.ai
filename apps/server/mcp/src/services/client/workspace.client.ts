@@ -209,6 +209,9 @@ export class WorkspaceClient {
         );
         const collection = response.data?.data;
         const row = Array.isArray(collection) ? collection[0] : collection;
+        if (!row) {
+          throw new Error(`Job ${jobId} was not found`);
+        }
         const attributes =
           row && typeof row === 'object' && 'attributes' in row
             ? ((row as { attributes?: Record<string, unknown> }).attributes ??

@@ -78,6 +78,7 @@ export class FacebookController {
       {
         isConnected: false,
       },
+      createCredentialDto.credentialId,
     );
 
     const authUrl = this.facebookService.generateAuthUrl(state);

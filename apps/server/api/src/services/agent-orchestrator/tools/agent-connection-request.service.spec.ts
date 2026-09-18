@@ -4,6 +4,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 function createService() {
   const credentialsService = {
+    beginOAuthForBrand: vi.fn(),
     createPendingForBrand: vi.fn(),
     findOne: vi.fn(),
   };
@@ -48,12 +49,15 @@ describe('AgentConnectionRequestService', () => {
   it('starts a pending connection with a token-free browser URL', async () => {
     const { brandsService, credentialsService, service } = createService();
     brandsService.findOne.mockResolvedValue({ id: 'brand-1', label: 'Acme' });
-    credentialsService.createPendingForBrand.mockResolvedValue({
-      brandId: 'brand-1',
-      createdAt: new Date(),
-      id: 'cred-1',
-      isConnected: false,
-      platform: 'TWITTER',
+    credentialsService.beginOAuthForBrand.mockResolvedValue({
+      credential: {
+        brandId: 'brand-1',
+        createdAt: new Date(),
+        id: 'cred-1',
+        isConnected: false,
+        platform: 'TWITTER',
+      },
+      state: 'csrf-state',
     });
 
     const result = await service.start(
@@ -89,7 +93,7 @@ describe('AgentConnectionRequestService', () => {
 
     expect(result.success).toBe(false);
     expect(result.data?.state).toBe('failed');
-    expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
+    expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
   });
 
   it('denies another tenant connection id', async () => {
@@ -124,6 +128,6 @@ describe('AgentConnectionRequestService', () => {
 
     expect(result.success).toBe(true);
     expect(result.data?.state).toBe('authorized');
-    expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
+    expect(credentialsService.beginOAuthForBrand).not.toHaveBeenCalled();
   });
 });

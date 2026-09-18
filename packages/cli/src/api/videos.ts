@@ -1,4 +1,5 @@
 import type { IngredientStatus } from '@genfeedai/contracts';
+import { withPublicMediaUrl } from '@/utils/media-status';
 import { get, post } from './client';
 import { flattenSingle, type JsonApiSingleResponse } from './json-api';
 
@@ -17,6 +18,7 @@ export interface Video {
   duration?: number;
   resolution?: string;
   url?: string;
+  cdnUrl?: string;
   error?: string;
   createdAt: string;
   updatedAt: string;
@@ -41,10 +43,10 @@ export async function createVideo(
   const response = signal
     ? await post<JsonApiSingleResponse>('/videos', request, { signal })
     : await post<JsonApiSingleResponse>('/videos', request);
-  return flattenSingle<Video>(response);
+  return withPublicMediaUrl(flattenSingle<Video>(response));
 }
 
 export async function getVideo(id: string, signal?: AbortSignal): Promise<Video> {
   const response = await get<JsonApiSingleResponse>(`/videos/${id}`, { signal });
-  return flattenSingle<Video>(response);
+  return withPublicMediaUrl(flattenSingle<Video>(response));
 }

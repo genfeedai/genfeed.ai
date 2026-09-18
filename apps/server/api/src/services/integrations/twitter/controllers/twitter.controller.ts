@@ -92,6 +92,7 @@ export class TwitterController {
           user.userId ?? user.id,
           CredentialPlatform.TWITTER,
           { isConnected: false },
+          createCredentialDto.credentialId,
         );
 
       const client = new TwitterApi({

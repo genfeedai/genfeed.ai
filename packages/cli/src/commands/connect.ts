@@ -79,7 +79,9 @@ export const connectCommand = new Command('connect')
       await openExternalUrl(authorizationUrl);
 
       if (!options.wait) {
-        print(formatLabel('Status', `gf connect ${platform} --brand ${brandId}`));
+        print(
+          formatLabel('Status', `Poll get_connection_status with connectionId ${connectionId}`)
+        );
         return;
       }
 

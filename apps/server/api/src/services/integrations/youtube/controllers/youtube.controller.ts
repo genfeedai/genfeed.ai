@@ -91,6 +91,7 @@ export class YoutubeController {
         user.userId ?? user.id,
         CredentialPlatform.YOUTUBE,
         { isConnected: false },
+        createCredentialDto.credentialId,
       );
 
       const authUrl = this.youtubeService.generateAuthUrl({
