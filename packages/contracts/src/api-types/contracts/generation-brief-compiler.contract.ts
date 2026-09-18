@@ -26,6 +26,7 @@ export const generationBriefExemptionReasonValues = [
   'legacy_prompt_builder',
   'non_generative_transform',
   'model_training_operation',
+  'interactive_session',
   'unregistered_model',
 ] as const;
 

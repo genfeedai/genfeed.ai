@@ -10,8 +10,11 @@ import {
   ActivitySource,
   CreditReservationStatus,
   CreditTransactionCategory,
+  LiveSessionStatus,
+  LiveSessionTerminateReason,
   parseCreditReservationStatus,
 } from '@genfeedai/contracts';
+import { LIVE_SESSION_WORKLOAD_TYPE } from '@genfeedai/contracts/constants';
 import type {
   ICreditReservation,
   ICreditWalletSnapshot,
@@ -275,11 +278,15 @@ export class CreditReservationService {
     let expired = 0;
     for (const reservation of due) {
       try {
-        await this.release({
-          organizationId: reservation.organizationId,
-          reason: 'expiry',
-          reservationId: reservation.id,
-        });
+        if (reservation.workloadType === LIVE_SESSION_WORKLOAD_TYPE) {
+          await this.settleLiveSessionCeiling(reservation, now);
+        } else {
+          await this.release({
+            organizationId: reservation.organizationId,
+            reason: 'expiry',
+            reservationId: reservation.id,
+          });
+        }
         expired += 1;
       } catch (error: unknown) {
         this.logger.error('Credit reservation expiry failed', error, {
@@ -291,6 +298,37 @@ export class CreditReservationService {
 
     this.logger.log('Expired credit reservations', { expired });
     return expired;
+  }
+
+  private async settleLiveSessionCeiling(
+    reservation: {
+      actorUserId: string | null;
+      amount: number;
+      id: string;
+      organizationId: string;
+    },
+    now: Date,
+  ): Promise<void> {
+    await this.settle({
+      actorUserId: reservation.actorUserId ?? reservation.organizationId,
+      actualAmount: reservation.amount,
+      description: 'Live session ceiling',
+      organizationId: reservation.organizationId,
+      reservationId: reservation.id,
+      source: ActivitySource.VIDEO_GENERATION,
+    });
+    await this.prisma.liveSession.updateMany({
+      data: {
+        settledCredits: reservation.amount,
+        status: LiveSessionStatus.TERMINATED,
+        terminateReason: LiveSessionTerminateReason.CEILING,
+        terminatedAt: now,
+      },
+      where: scopedWhere(reservation.organizationId, {
+        reservationId: reservation.id,
+        status: LiveSessionStatus.OPEN,
+      }),
+    });
   }
 
   private async findReservation(

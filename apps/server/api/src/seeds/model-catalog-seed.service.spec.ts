@@ -464,6 +464,15 @@ describe('ModelCatalogSeedService', () => {
       },
       update: { endpoint: 'minimax/h3-max/text-to-video' },
     });
+    expect(callForKey('fal/minimax/h3-max/director')).toMatchObject({
+      create: {
+        endpoint: 'minimax/h3-max/director',
+        minCost: 400,
+        pricingType: 'per-second',
+        providerCostUsd: 0.08,
+      },
+      update: { endpoint: 'minimax/h3-max/director' },
+    });
   });
 
   it('preserves an operator endpoint when a catalog entry omits one', async () => {

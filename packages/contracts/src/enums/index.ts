@@ -77,6 +77,7 @@ export * from './knowledge-base.enum';
 export * from './knowledge-source.enum';
 export * from './library-shelf.enum';
 export * from './link.enum';
+export * from './live-session.enum';
 export * from './marketplace.enum';
 export * from './mcp.enum';
 export * from './media-type.enum';

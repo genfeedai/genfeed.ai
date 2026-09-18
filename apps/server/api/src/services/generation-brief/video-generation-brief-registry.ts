@@ -119,6 +119,9 @@ const VIDEO_GENERATION_BRIEF_EXEMPTION_ENTRIES: ReadonlyArray<
   [MODEL_KEYS.REPLICATE_TOPAZ_VIDEO_UPSCALE, 'non_generative_transform'],
   [MODEL_KEYS.REPLICATE_BYTEDANCE_VIDEO_UPSCALER, 'non_generative_transform'],
   [MODEL_KEYS.REPLICATE_KWAIVGI_KLING_O1, 'non_generative_transform'],
+  // Realtime director sessions are billed against a ceiling, not compiled as
+  // one-shot briefs (capability duration is capped at 300s; sessions go to 900s).
+  [MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR, 'interactive_session'],
 ];
 
 export const VIDEO_GENERATION_BRIEF_EXEMPTIONS: ReadonlyMap<

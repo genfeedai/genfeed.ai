@@ -66,6 +66,21 @@ describe('model-capabilities.constant', () => {
     expect(capability).not.toHaveProperty('hasVideoReferences');
   });
 
+  it('advertises the fal-published MiniMax H3 Max Director ceiling controls', () => {
+    expect(
+      MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.FAL_MINIMAX_H3_MAX_DIRECTOR],
+    ).toMatchObject({
+      aspectRatios: ['16:9', '9:16', '1:1'],
+      category: ModelCategory.VIDEO,
+      defaultDuration: 900,
+      durations: [60, 120, 180, 300, 600, 900],
+      hasDurationEditing: true,
+      hasResolutionOptions: true,
+      isBatchSupported: false,
+      maxOutputs: 1,
+    });
+  });
+
   it('advertises the fal-published MiniMax H3 Max controls', () => {
     expect(
       MODEL_OUTPUT_CAPABILITIES[MODEL_KEYS.FAL_MINIMAX_H3_MAX],
