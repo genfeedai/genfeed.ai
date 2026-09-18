@@ -15,7 +15,7 @@ describe('published action catalog', () => {
   // Compiles the full published catalog. Adding one action is cheap locally,
   // but a contended CI runner can exceed the 15s package default.
   it('compiles every action contract the engine will register', {
-    timeout: 30_000,
+    timeout: 60_000,
   }, () => {
     const failures: string[] = [];
     for (const action of ALL_ACTIONS) {
@@ -31,7 +31,7 @@ describe('published action catalog', () => {
       }
     }
     expect(failures).toEqual([]);
-  }, 60_000);
+  });
 
   it('accepts an in-flight generate_image result without a CDN url', () => {
     const action = getActionDefinition('generate_image');
