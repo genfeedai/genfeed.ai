@@ -79,6 +79,7 @@ export interface ExecutableWorkflow {
   brandId?: string;
   emitSharedEvents?: boolean;
   isCustomerWorkflow?: boolean;
+  scheduledFireJobId?: string;
   nodes: ExecutableNode[];
   edges: ExecutableEdge[];
   lockedNodeIds: string[];

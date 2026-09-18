@@ -111,6 +111,8 @@ export interface ToolExecutionContext {
   brandId?: string;
   /** Internal Knowledge workflow entry: exclude personal rows. Never from HTTP. */
   isWorkflowScoped?: boolean;
+  /** BullMQ scheduled-fire job id, used as the Knowledge refresh tick key. */
+  scheduledFireJobId?: string;
   platform?: string;
   /** Owning workflow execution id, used for content attribution */
   runId?: string;

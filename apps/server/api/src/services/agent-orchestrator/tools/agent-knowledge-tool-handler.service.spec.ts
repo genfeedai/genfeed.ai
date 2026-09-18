@@ -70,6 +70,7 @@ function buildHandler() {
       jobId: 'job-2',
       version: { ...version, processingState: KnowledgeProcessingState.QUEUED },
     }),
+    unscheduleRefresh: vi.fn().mockResolvedValue(undefined),
   };
   const contexts = {
     retrieveBrandContentMemory: vi.fn().mockResolvedValue([

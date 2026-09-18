@@ -117,6 +117,7 @@ export interface KnowledgeSourceCapturePayload {
   mediaUrl?: string;
   transcriptState?: KnowledgeTranscriptState;
   transcriptCues?: Array<{ endMs: number; startMs: number; text: string }>;
+  isTranscriptGenerationAllowed?: boolean;
 }
 
 /** Where and when a capture happened; cleared on payload purge. */

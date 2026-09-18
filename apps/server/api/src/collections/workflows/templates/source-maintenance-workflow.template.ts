@@ -9,6 +9,9 @@ export const SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE: WorkflowTemplate = {
     'Read a Knowledge source, recapture it when refresh is enabled, then read the resulting version. Archive is off by default. Schedule stays disabled until a source and policy are configured.',
   icon: 'refresh-cw',
   id: 'source-maintenance',
+  isScheduleEnabled: false,
+  schedule: '*/15 * * * *',
+  timezone: 'UTC',
   inputVariables: [
     {
       description: 'Knowledge source to refresh.',
@@ -18,7 +21,6 @@ export const SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE: WorkflowTemplate = {
       type: 'text',
     },
   ],
-  isScheduleEnabled: false,
   name: 'Source Maintenance',
   version: 1,
   nodes: [

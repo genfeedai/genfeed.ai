@@ -66,11 +66,19 @@ function buildService(
   };
   const executeRaw = vi.fn().mockResolvedValue(1);
   const queryRaw = vi.fn().mockResolvedValue([]);
+  const knowledgeSource = {
+    findFirst: vi.fn().mockResolvedValue({
+      kind: KnowledgeSourceKind.URL,
+      refreshIntervalMinutes: 1440,
+    }),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  };
   const tx = {
     $executeRaw: executeRaw,
     $queryRaw: queryRaw,
     contextBase,
     contextEntry,
+    knowledgeSource,
   };
   const prisma = {
     ...tx,

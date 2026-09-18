@@ -74,6 +74,7 @@ export function toWorkflowToolExecutionContext(context: ExecutionContext): {
   isWorkflowScoped: true;
   organizationId: string;
   runId: string;
+  scheduledFireJobId?: string;
   userId: string;
 } {
   const brandId = context.brandId;
@@ -93,6 +94,9 @@ export function toWorkflowToolExecutionContext(context: ExecutionContext): {
     isWorkflowScoped: true,
     organizationId: context.organizationId,
     runId: context.executionId ?? context.runId,
+    ...(context.scheduledFireJobId
+      ? { scheduledFireJobId: context.scheduledFireJobId }
+      : {}),
     userId: context.userId,
   };
 }

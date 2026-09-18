@@ -242,6 +242,50 @@ export class KnowledgeRecordsService {
             id: sourceId,
           },
         });
+        const hashedKey = createHash('sha256')
+          .update(`${actor.organizationId}:${key}`)
+          .digest('hex');
+        const ledger = await tx.knowledgeCaptureRequest.findFirst({
+          where: {
+            id: sourceId,
+            isDeleted: false,
+            organizationId: actor.organizationId,
+          },
+        });
+        if (ledger) {
+          if (ledger.requestHash && ledger.requestHash !== requestHash) {
+            throw new ConflictException(
+              'This capture key was already used for different or purged content. Start a new capture.',
+            );
+          }
+          if (!ledger.sourceId) {
+            throw new ConflictException(
+              'This capture key belongs to a removed source. Start a new capture.',
+            );
+          }
+          const existingSource = await tx.knowledgeSource.findFirst({
+            where: {
+              ...this.ownership(actor),
+              id: ledger.sourceId,
+              isDeleted: false,
+              organizationId: actor.organizationId,
+            },
+          });
+          const version = await tx.knowledgeSourceVersion.findFirst({
+            where: {
+              isCurrent: true,
+              isDeleted: false,
+              organizationId: actor.organizationId,
+              sourceId: ledger.sourceId,
+            },
+          });
+          if (!existingSource || !version) {
+            throw new ConflictException(
+              'This capture key belongs to a removed source. Start a new capture.',
+            );
+          }
+          return { source: existingSource, version };
+        }
         if (existing) {
           const version = await tx.knowledgeSourceVersion.findFirst({
             where: {
@@ -264,7 +308,69 @@ export class KnowledgeRecordsService {
               'This capture key was already used for different or purged content. Start a new capture.',
             );
           }
+          await tx.knowledgeCaptureRequest.create({
+            data: {
+              id: sourceId,
+              idempotencyKey: hashedKey,
+              kind: dto.kind,
+              organizationId: actor.organizationId,
+              requestHash,
+              sourceId,
+              status: 'completed',
+            },
+          });
           return { source: existing, version };
+        }
+        const mediaKey =
+          dto.referenceUrl &&
+          (dto.kind === KnowledgeSourceKind.AUDIO ||
+            dto.kind === KnowledgeSourceKind.VIDEO)
+            ? buildKnowledgeMediaReferenceKey({
+                brandId: actor.brandId,
+                kind: dto.kind,
+                referenceUrl: dto.referenceUrl,
+                scope: dto.scope,
+                userId: actor.userId,
+              })
+            : undefined;
+        if (mediaKey) {
+          await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`knowledge-media:${actor.organizationId}:${mediaKey}`}, 0))::text`;
+          const mediaMatch = await tx.knowledgeSource.findFirst({
+            where: {
+              ...this.ownership(actor),
+              isDeleted: false,
+              mediaReferenceKey: mediaKey,
+              organizationId: actor.organizationId,
+            },
+          });
+          if (mediaMatch) {
+            const version = await tx.knowledgeSourceVersion.findFirst({
+              where: {
+                isCurrent: true,
+                isDeleted: false,
+                organizationId: actor.organizationId,
+                sourceId: mediaMatch.id,
+              },
+            });
+            if (!version) {
+              throw new ConflictException(
+                'This capture key belongs to a removed source. Start a new capture.',
+              );
+            }
+            await tx.knowledgeCaptureRequest.create({
+              data: {
+                id: sourceId,
+                idempotencyKey: hashedKey,
+                kind: dto.kind,
+                mediaReferenceKey: mediaKey,
+                organizationId: actor.organizationId,
+                requestHash,
+                sourceId: mediaMatch.id,
+                status: 'completed',
+              },
+            });
+            return { source: mediaMatch, version };
+          }
         }
         const source = await this.createSourceInTransaction(
           tx,
@@ -285,6 +391,18 @@ export class KnowledgeRecordsService {
             payload: versionDto.payload,
             observedAt: new Date(versionDto.observedAt),
             retentionPolicy: KnowledgeRetentionPolicy.KEEP,
+          },
+        });
+        await tx.knowledgeCaptureRequest.create({
+          data: {
+            id: sourceId,
+            idempotencyKey: hashedKey,
+            kind: dto.kind,
+            mediaReferenceKey: mediaKey,
+            organizationId: actor.organizationId,
+            requestHash,
+            sourceId,
+            status: 'queued',
           },
         });
         return { source, version };

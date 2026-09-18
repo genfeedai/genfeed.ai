@@ -245,6 +245,12 @@ export class WorkflowExecutionRunnerService {
       executableWorkflow,
       input.event.data,
     );
+    if (typeof input.metadata?.scheduledFireJobId === 'string') {
+      executableWorkflow = {
+        ...executableWorkflow,
+        scheduledFireJobId: input.metadata.scheduledFireJobId,
+      };
+    }
     const etaPlan = precomputeWorkflowEtaPlan(
       executableWorkflow.nodes,
       executableWorkflow.edges,

@@ -44,6 +44,10 @@ function buildService() {
       update: vi.fn(),
     },
     knowledgeSourceVersion: { findFirst: vi.fn() },
+    workflow: {
+      findFirst: vi.fn().mockResolvedValue(null),
+      update: vi.fn(),
+    },
     $transaction: vi.fn(async (ops: unknown) => {
       if (Array.isArray(ops)) {
         return Promise.all(ops as Promise<unknown>[]);
@@ -59,11 +63,61 @@ function buildService() {
       records as never,
       ingestWorkflow as never,
       logger as never,
+      { createWorkflow: vi.fn() } as never,
+      { syncWorkflowScheduler: vi.fn() } as never,
     ),
   };
 }
 
 describe('KnowledgeRefreshService', () => {
+  it('skips a scheduled tick when nextCheckAt is still in the future', async () => {
+    const { service, records } = buildService();
+    records.getSource.mockResolvedValueOnce({
+      id: 'source-1',
+      kind: KnowledgeSourceKind.URL,
+      nextCheckAt: new Date(Date.now() + 60_000),
+    });
+    const prisma = (
+      service as unknown as {
+        prisma: {
+          knowledgeSourceRefreshRun: {
+            create: ReturnType<typeof vi.fn>;
+            findFirst: ReturnType<typeof vi.fn>;
+          };
+        };
+      }
+    ).prisma;
+    prisma.knowledgeSourceRefreshRun.create.mockResolvedValue({ id: 'skip-1' });
+    const result = await service.refresh(actor, 'source-1', 'fire-1');
+    expect(result.refreshRunId).toBe('skip-1');
+  });
+
+  it('creates a 15-minute source-maintenance workflow when refresh is enabled', async () => {
+    const { service, records } = buildService();
+    const workflows = (
+      service as unknown as {
+        workflows: { createWorkflow: ReturnType<typeof vi.fn> };
+      }
+    ).workflows;
+    workflows.createWorkflow.mockResolvedValue({ id: 'wf-refresh' });
+    records.getSource.mockResolvedValueOnce({
+      id: 'source-1',
+      kind: KnowledgeSourceKind.URL,
+      referenceUrl: 'https://ex.com',
+      title: 'Docs',
+    });
+    await service.setPolicy(actor, 'source-1', { isEnabled: true });
+    expect(workflows.createWorkflow).toHaveBeenCalledWith(
+      actor.userId,
+      actor.organizationId,
+      expect.objectContaining({
+        isScheduleEnabled: true,
+        schedule: '*/15 * * * *',
+        templateId: 'source-maintenance',
+      }),
+    );
+  });
+
   it('rejects policy on unsupported kinds', async () => {
     const { service, records } = buildService();
     records.getSource.mockResolvedValueOnce({

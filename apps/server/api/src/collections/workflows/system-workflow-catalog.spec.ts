@@ -123,6 +123,7 @@ describe('system workflow catalog', () => {
       family: 'product',
       installable: true,
       isScheduleEnabled: false,
+      schedule: '*/15 * * * *',
       sourceIssue: 4134,
       version: 1,
     });

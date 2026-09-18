@@ -190,15 +190,12 @@ export class KnowledgeSourcesController {
     @Body() dto: UpdateKnowledgeSourceDto,
     @Query('brandId') brandId?: string,
   ) {
-    return serializeSingle(
-      request,
-      KnowledgeSourceSerializer,
-      await this.records.updateSource(
-        resolveKnowledgeActor(user, brandId),
-        id,
-        dto,
-      ),
-    );
+    const actor = resolveKnowledgeActor(user, brandId);
+    const source = await this.records.updateSource(actor, id, dto);
+    if (dto.isVisible === false) {
+      await this.refresh.unscheduleSource(actor, id);
+    }
+    return serializeSingle(request, KnowledgeSourceSerializer, source);
   }
 
   @Delete(':sourceId')
@@ -215,10 +212,12 @@ export class KnowledgeSourcesController {
     @Param('sourceId') id: string,
     @Query('brandId') brandId?: string,
   ) {
+    const actor = resolveKnowledgeActor(user, brandId);
+    await this.refresh.unscheduleSource(actor, id);
     return serializeSingle(
       request,
       KnowledgeSourceSerializer,
-      await this.records.deleteSource(resolveKnowledgeActor(user, brandId), id),
+      await this.records.deleteSource(actor, id),
     );
   }
 

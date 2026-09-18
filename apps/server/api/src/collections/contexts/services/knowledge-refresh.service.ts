@@ -4,12 +4,15 @@ import { hashKnowledgeContent } from '@api/collections/contexts/services/knowled
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
+import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
+import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   KNOWLEDGE_REFRESH_GRACE_MAX,
   KNOWLEDGE_REFRESH_GRACE_MIN,
   KNOWLEDGE_REFRESH_INTERVAL_MAX,
   KNOWLEDGE_REFRESH_INTERVAL_MIN,
+  KNOWLEDGE_REFRESH_SCHEDULE_CRON,
   KNOWLEDGE_RSS_REFRESH_GRACE_MINUTES,
   KNOWLEDGE_RSS_REFRESH_INTERVAL_MINUTES,
   KNOWLEDGE_URL_REFRESH_GRACE_MINUTES,
@@ -21,10 +24,11 @@ import {
   KnowledgeRetrievalState,
   KnowledgeSourceKind,
   KnowledgeSourceSyncState,
+  WorkflowStatus,
 } from '@genfeedai/contracts';
 import type { KnowledgeSourceRefreshPolicyRequest } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const LEASE_MS = 5 * 60 * 1000;
 const BACKOFF_MINUTES = [15, 30, 60, 120];
@@ -52,6 +56,8 @@ export class KnowledgeRefreshService {
     private readonly records: KnowledgeRecordsService,
     private readonly ingestWorkflow: KnowledgeSourceIngestWorkflowService,
     private readonly logger: LoggerService,
+    @Optional() private readonly workflows?: WorkflowsService,
+    @Optional() private readonly workflowQueue?: WorkflowExecutionQueueService,
   ) {}
 
   defaultPolicy(kind: KnowledgeSourceKind): {
@@ -110,6 +116,18 @@ export class KnowledgeRefreshService {
     if (policy.isEnabled && !referenceUrl) {
       throw new BadRequestException('Source has no captured reference URL');
     }
+    if (policy.isEnabled && !actor.brandId) {
+      throw new BadRequestException(
+        'Scheduled refresh requires a brand-scoped Knowledge source',
+      );
+    }
+    const refreshWorkflowId = await this.syncRefreshWorkflow(
+      actor,
+      sourceId,
+      source.title,
+      source.refreshWorkflowId,
+      policy.isEnabled,
+    );
     return this.prisma.knowledgeSource.update({
       where: { id: sourceId },
       data: {
@@ -120,7 +138,29 @@ export class KnowledgeRefreshService {
           : null,
         referenceUrl,
         refreshIntervalMinutes: intervalMinutes,
+        refreshWorkflowId,
       },
+    });
+  }
+
+  async unscheduleSource(
+    actor: KnowledgeActor,
+    sourceId: string,
+  ): Promise<void> {
+    const source = await this.records.getSource(actor, sourceId);
+    if (!source.refreshWorkflowId) {
+      return;
+    }
+    await this.syncRefreshWorkflow(
+      actor,
+      sourceId,
+      source.title,
+      source.refreshWorkflowId,
+      false,
+    );
+    await this.prisma.knowledgeSource.update({
+      where: { id: sourceId },
+      data: { isRefreshEnabled: false },
     });
   }
 
@@ -128,6 +168,7 @@ export class KnowledgeRefreshService {
     actor: KnowledgeActor,
     sourceId: string,
     tickKey: string,
+    options: { force?: boolean } = {},
   ): Promise<KnowledgeRefreshResult> {
     const source = await this.records.getSource(actor, sourceId);
     if (
@@ -135,6 +176,13 @@ export class KnowledgeRefreshService {
       source.kind !== KnowledgeSourceKind.RSS
     ) {
       throw new BadRequestException('Refresh is only for URL and RSS');
+    }
+    if (
+      !options.force &&
+      source.nextCheckAt &&
+      source.nextCheckAt.getTime() > Date.now()
+    ) {
+      return this.skipRun(actor, sourceId, tickKey);
     }
     const claimed = await this.claimRun(actor, source, tickKey);
     if (claimed.existingJobId) {
@@ -282,6 +330,13 @@ export class KnowledgeRefreshService {
           status: KnowledgeRefreshRunStatus.COMPLETED,
         },
       });
+      const source = await tx.knowledgeSource.findFirst({
+        where: {
+          id: input.sourceId,
+          organizationId: input.organizationId,
+          isDeleted: false,
+        },
+      });
       await tx.knowledgeSource.update({
         where: { id: input.sourceId },
         data: {
@@ -290,6 +345,7 @@ export class KnowledgeRefreshService {
           lastCheckedAt: now,
           lastSuccessfulSyncAt: now,
           lastSyncError: null,
+          nextCheckAt: this.nextCheckAtFrom(source, now, false),
           staleAt: null,
           syncState: KnowledgeSourceSyncState.CURRENT,
         },
@@ -355,6 +411,9 @@ export class KnowledgeRefreshService {
     validators?: { etag?: string; lastModified?: string },
   ): Promise<void> {
     const now = new Date();
+    const source = await this.prisma.knowledgeSource.findFirst({
+      where: { id: sourceId, organizationId, isDeleted: false },
+    });
     await this.prisma.$transaction([
       this.prisma.knowledgeSourceRefreshRun.update({
         where: { id: runId },
@@ -374,6 +433,7 @@ export class KnowledgeRefreshService {
           lastModified: validators?.lastModified,
           lastSuccessfulSyncAt: now,
           lastSyncError: null,
+          nextCheckAt: this.nextCheckAtFrom(source, now, false),
           staleAt: null,
           syncState: KnowledgeSourceSyncState.CURRENT,
         },
@@ -423,6 +483,7 @@ export class KnowledgeRefreshService {
           firstFailureAt,
           lastCheckedAt: new Date(),
           lastSyncError: message,
+          nextCheckAt: this.nextCheckAtFrom(source, new Date(), true, backoff),
           staleAt: isStale ? new Date() : source?.staleAt,
           syncState: isStale
             ? KnowledgeSourceSyncState.STALE
@@ -430,6 +491,123 @@ export class KnowledgeRefreshService {
         },
       }),
     ]);
+  }
+
+  private async skipRun(
+    actor: KnowledgeActor,
+    sourceId: string,
+    tickKey: string,
+  ): Promise<KnowledgeRefreshResult> {
+    const existing = await this.prisma.knowledgeSourceRefreshRun.findFirst({
+      where: {
+        isDeleted: false,
+        organizationId: actor.organizationId,
+        sourceId,
+        tickKey,
+      },
+    });
+    if (existing) {
+      return { refreshRunId: existing.id, sourceId };
+    }
+    const created = await this.prisma.knowledgeSourceRefreshRun.create({
+      data: {
+        completedAt: new Date(),
+        organizationId: actor.organizationId,
+        outcome: KnowledgeRefreshRunOutcome.SKIPPED,
+        sourceId,
+        status: KnowledgeRefreshRunStatus.COMPLETED,
+        tickKey,
+      },
+    });
+    return { refreshRunId: created.id, sourceId };
+  }
+
+  private nextCheckAtFrom(
+    source: {
+      refreshIntervalMinutes?: number | null;
+      kind?: KnowledgeSourceKind;
+    } | null,
+    now: Date,
+    isFailure: boolean,
+    backoffMinutes?: number,
+  ): Date {
+    const defaults = this.defaultPolicy(
+      source?.kind === KnowledgeSourceKind.RSS
+        ? KnowledgeSourceKind.RSS
+        : KnowledgeSourceKind.URL,
+    );
+    const interval = source?.refreshIntervalMinutes ?? defaults.intervalMinutes;
+    const minutes = isFailure
+      ? Math.min(backoffMinutes ?? 15, interval)
+      : interval;
+    return new Date(now.getTime() + minutes * 60_000);
+  }
+
+  private async syncRefreshWorkflow(
+    actor: KnowledgeActor,
+    sourceId: string,
+    title: string,
+    existingWorkflowId: string | null | undefined,
+    isEnabled: boolean,
+  ): Promise<string | null> {
+    if (existingWorkflowId) {
+      const existing = await this.prisma.workflow.findFirst({
+        where: {
+          id: existingWorkflowId,
+          isDeleted: false,
+          organizationId: actor.organizationId,
+        },
+      });
+      if (existing) {
+        await this.prisma.workflow.update({
+          where: { id: existing.id },
+          data: {
+            isScheduleEnabled: isEnabled,
+            schedule: KNOWLEDGE_REFRESH_SCHEDULE_CRON,
+            timezone: 'UTC',
+          },
+        });
+        await this.workflowQueue?.syncWorkflowScheduler({
+          id: existing.id,
+          isDeleted: false,
+          isScheduleEnabled: isEnabled,
+          schedule: KNOWLEDGE_REFRESH_SCHEDULE_CRON,
+          status: WorkflowStatus.ACTIVE,
+          timezone: 'UTC',
+        });
+        return existing.id;
+      }
+    }
+    if (!isEnabled || !this.workflows || !actor.brandId) {
+      return existingWorkflowId ?? null;
+    }
+    const created = await this.workflows.createWorkflow(
+      actor.userId,
+      actor.organizationId,
+      {
+        brandId: actor.brandId,
+        inputVariables: [
+          {
+            defaultValue: sourceId,
+            description: 'Knowledge source to refresh.',
+            key: 'sourceId',
+            label: 'Source ID',
+            required: true,
+            type: 'text',
+          },
+        ],
+        isScheduleEnabled: true,
+        label: `Refresh ${title}`,
+        metadata: {
+          knowledgeSourceId: sourceId,
+          sourceTemplateId: 'source-maintenance',
+        },
+        schedule: KNOWLEDGE_REFRESH_SCHEDULE_CRON,
+        templateId: 'source-maintenance',
+        timezone: 'UTC',
+      },
+    );
+    return created.id;
   }
 
   private toSafeError(error: unknown): string {

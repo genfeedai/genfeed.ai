@@ -56,6 +56,7 @@ export interface ExecutionContext {
   userId: string;
   brandId?: string;
   isCustomerWorkflow?: boolean;
+  scheduledFireJobId?: string;
   executionId?: string;
   abortSignal?: AbortSignal;
   videoGenerationLineage?: VideoGenerationLineage;
@@ -195,6 +196,7 @@ export class WorkflowEngine {
       isCustomerWorkflow: workflow.isCustomerWorkflow,
       organizationId: workflow.organizationId,
       runId,
+      scheduledFireJobId: workflow.scheduledFireJobId,
       userId: workflow.userId,
       videoGenerationLineage: options.videoGenerationLineage,
       videoPilotAcceptance: options.videoPilotAcceptance,
@@ -583,6 +585,7 @@ export class WorkflowEngine {
       | 'id'
       | 'isCustomerWorkflow'
       | 'organizationId'
+      | 'scheduledFireJobId'
       | 'userId'
       | 'versionId'
     >,
@@ -596,6 +599,7 @@ export class WorkflowEngine {
       isCustomerWorkflow: workflow.isCustomerWorkflow,
       organizationId: workflow.organizationId,
       runId: options.executionId ?? uuidv4(),
+      scheduledFireJobId: workflow.scheduledFireJobId,
       userId: workflow.userId,
       videoGenerationLineage: options.videoGenerationLineage,
       videoPilotAcceptance: options.videoPilotAcceptance,

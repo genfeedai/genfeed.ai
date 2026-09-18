@@ -52,6 +52,10 @@ export function buildCaptureVersion(
   const payload: KnowledgeSourceCapturePayload = {
     ...(dto.referenceUrl ? { referenceUrl: dto.referenceUrl } : {}),
     ...(dto.text ? { text: dto.text } : {}),
+    ...(dto.transcriptUrl ? { transcriptUrl: dto.transcriptUrl } : {}),
+    ...(dto.isTranscriptGenerationAllowed
+      ? { isTranscriptGenerationAllowed: true }
+      : {}),
   };
   const provenance: KnowledgeSourceCaptureProvenance = {
     capturedAt: observedAt.toISOString(),
@@ -142,10 +146,18 @@ export class KnowledgeCaptureService {
     return { jobId: ingested.jobId, source, version: ingested.version };
   }
 
+  async unscheduleRefresh(
+    actor: KnowledgeActor,
+    sourceId: string,
+  ): Promise<void> {
+    await this.refresh.unscheduleSource(actor, sourceId);
+  }
+
   async refreshExisting(
     actor: KnowledgeActor,
     sourceId: string,
     _provenance?: KnowledgeSourceCaptureProvenance,
+    tickKey?: string,
   ): Promise<KnowledgeCaptureResult> {
     const source = await this.records.getSource(actor, sourceId);
     const kind =
@@ -173,8 +185,13 @@ export class KnowledgeCaptureService {
       );
     }
     this.assertCapturable(kind, { referenceUrl });
-    const tickKey = `manual:${sourceId}:${Date.now()}`;
-    const refreshed = await this.refresh.refresh(actor, sourceId, tickKey);
+    const resolvedTickKey = tickKey ?? `manual:${sourceId}:${Date.now()}`;
+    const refreshed = await this.refresh.refresh(
+      actor,
+      sourceId,
+      resolvedTickKey,
+      { force: !tickKey },
+    );
     const version = await this.records
       .getCurrentVersion(actor, sourceId)
       .catch(() => undefined);

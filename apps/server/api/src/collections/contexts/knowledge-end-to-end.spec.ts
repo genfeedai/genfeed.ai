@@ -51,6 +51,7 @@ const migrations = [
   '20260906210000_knowledge_chunks_link_versions',
   '20260910180000_knowledge_version_legal_hold',
   '20260917180000_knowledge_refresh_and_transcripts',
+  '20260918120000_knowledge_capture_request_hash',
 ].map((name) =>
   readFileSync(
     new URL(

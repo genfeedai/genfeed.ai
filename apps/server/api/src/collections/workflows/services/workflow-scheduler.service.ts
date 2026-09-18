@@ -170,7 +170,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
    * processor — BullMQ already guarantees a single fire per tick, so no
    * cross-replica locking is needed here.
    */
-  async executeScheduledWorkflow(workflowId: string): Promise<void> {
+  async executeScheduledWorkflow(
+    workflowId: string,
+    scheduledFireJobId?: string,
+  ): Promise<void> {
     try {
       const workflow = await this.prisma.workflow.findFirst({
         select: EXECUTABLE_WORKFLOW_SELECT,
@@ -243,7 +246,10 @@ export class WorkflowSchedulerService implements OnModuleInit {
           wUserId,
           wOrgId,
           defaultInputValues,
-          { triggeredBy: 'schedule' },
+          {
+            scheduledFireJobId,
+            triggeredBy: 'schedule',
+          },
           WorkflowExecutionTrigger.SCHEDULED,
         );
 

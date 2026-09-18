@@ -315,11 +315,16 @@ export class AgentKnowledgeToolHandler {
           success: false,
         };
       }
-      const result = await this.capture.refreshExisting(actor, sourceId, {
-        capturedAt: new Date().toISOString(),
-        capturedBy: ctx.isWorkflowScoped ? 'workflow' : 'agent',
-        ...(ctx.threadId ? { threadId: ctx.threadId } : {}),
-      });
+      const result = await this.capture.refreshExisting(
+        actor,
+        sourceId,
+        {
+          capturedAt: new Date().toISOString(),
+          capturedBy: ctx.isWorkflowScoped ? 'workflow' : 'agent',
+          ...(ctx.threadId ? { threadId: ctx.threadId } : {}),
+        },
+        ctx.scheduledFireJobId,
+      );
       this.loggerService.log('Agent refreshed knowledge', {
         organizationId: ctx.organizationId,
         sourceId: result.source.id,
@@ -437,7 +442,9 @@ export class AgentKnowledgeToolHandler {
     if (!sourceId) {
       return { creditsUsed: 0, error: 'sourceId is required', success: false };
     }
-    const source = await this.records.deleteSource(toActor(ctx), sourceId);
+    const actor = toActor(ctx);
+    await this.capture.unscheduleRefresh(actor, sourceId);
+    const source = await this.records.deleteSource(actor, sourceId);
     return {
       creditsUsed: 0,
       data: { ...summarizeSource(source), message: 'Source archived.' },

@@ -6949,6 +6949,7 @@ model KnowledgeCaptureRequest {
   organizationId   String
   sourceId         String?
   idempotencyKey   String
+  requestHash      String?
   kind             KnowledgeSourceKind
   mediaReferenceKey String?
   reservationId    String?

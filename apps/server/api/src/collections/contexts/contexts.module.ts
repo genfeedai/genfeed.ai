@@ -14,6 +14,8 @@ import { KnowledgeRefreshService } from '@api/collections/contexts/services/know
 import { KnowledgeSelectionService } from '@api/collections/contexts/services/knowledge-selection.service';
 import { KnowledgeSourceIngestService } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
+import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
+import { CreditsModule } from '@api/collections/credits/credits.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { ByokModule } from '@api/services/byok/byok.module';
@@ -38,10 +40,12 @@ import { Module } from '@nestjs/common';
     KnowledgeRefreshService,
     KnowledgeSelectionService,
     KnowledgeLegacyBackfillService,
+    KnowledgeTranscriptIngestService,
   ],
   imports: [
     ByokModule,
     ConfigModule,
+    CreditsModule,
     MembersModule,
     ReplicateModule,
     RouterModule,
@@ -56,6 +60,7 @@ import { Module } from '@nestjs/common';
     KnowledgeRefreshService,
     KnowledgeSelectionService,
     KnowledgeLegacyBackfillService,
+    KnowledgeTranscriptIngestService,
   ],
 })
 export class ContextsModule {}
