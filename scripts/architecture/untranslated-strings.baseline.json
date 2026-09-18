@@ -306,7 +306,6 @@
     "packages/agent/src/components/AgentChatMessage.tsx": 2,
     "packages/agent/src/components/AgentChatMessageFooter.tsx": 6,
     "packages/agent/src/components/AgentCliTerminal.tsx": 12,
-    "packages/agent/src/components/AgentCommandList.tsx": 1,
     "packages/agent/src/components/AgentCompletionSummaryCard.tsx": 9,
     "packages/agent/src/components/AgentComposerStatusStack.tsx": 3,
     "packages/agent/src/components/AgentConversationTurnNavigator.tsx": 1,

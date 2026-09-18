@@ -29,6 +29,8 @@ export interface SendStreamMessageOptions {
   generationMode?: ConversationComposerGenerationMode;
   generationSettings?: ConversationComposerGenerationSettings;
   knowledgeSelection?: KnowledgeSelection;
+  /** Skills picked from the `/` palette for this turn. */
+  requestedSkillSlugs?: string[];
   /** Only meaningful when this turn creates a new thread (#4672). */
   agentMode?: AgentThreadMode;
 }

@@ -1,8 +1,8 @@
 import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInput';
 import type { AgentChatReferenceItem } from '@genfeedai/agent/components/AgentChatInputAttachmentTray';
-import { createSuggestionPopupRenderer } from '@genfeedai/agent/utils/suggestion-popup.util';
 import type { JSONContent } from '@tiptap/core';
 import { SendOnEnter } from '@ui/prompt-editor/send-on-enter.extension';
+import { createSuggestionPopupRenderer } from '@ui/prompt-editor/suggestion-popup.util';
 import type { ComponentType } from 'react';
 
 export { SendOnEnter };

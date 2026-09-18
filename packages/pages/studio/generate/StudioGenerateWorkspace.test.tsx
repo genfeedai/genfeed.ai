@@ -411,9 +411,12 @@ describe('StudioGenerateWorkspace', () => {
       extraExtensions?: unknown;
       onPromptChange: (value: string) => void;
     };
-    expect(initialProps.extraExtensions).toBe(
-      characterMentionMocks.extraExtensions,
-    );
+    // The composer runs the character-mention extensions alongside the shared
+    // `/` command palette.
+    expect(initialProps.extraExtensions).toEqual([
+      ...characterMentionMocks.extraExtensions,
+      expect.objectContaining({ name: 'promptCommands' }),
+    ]);
     act(() => initialProps.onPromptChange('Use this composition'));
 
     const currentProps = mocks.composer.mock.calls.at(-1)?.[0] as {

@@ -3,7 +3,8 @@ import {
   SKILL_MODALITIES,
   SKILL_WORKFLOW_STAGES,
 } from '@api/collections/skills/schemas/skill.schema';
-import { ContentSkillCategory } from '@genfeedai/contracts';
+import { ContentSkillCategory, type SkillSurface } from '@genfeedai/contracts';
+import { resolveSkillSurfaces } from '@genfeedai/helpers';
 
 import type { FirstPartySkillMetadata } from './first-party-skill.types';
 
@@ -15,6 +16,7 @@ export type FirstPartySkillTaxonomy = {
   category: ContentSkillCategory;
   channels: SkillChannel[];
   modalities: SkillModality[];
+  surfaces: SkillSurface[];
   workflowStage: SkillWorkflowStage;
 };
 
@@ -67,6 +69,10 @@ function inferModalities(
   const haystack = [slug, ...(metadata.tags ?? []), ...mediaOutputs]
     .join(' ')
     .toLowerCase();
+  // "brand voice" is how a brand writes, not something Studio renders. Drop
+  // that sense before the audio test so a voice-and-tone skill is not filed
+  // as an audio generator.
+  const audioHaystack = haystack.replace(/brand[\s-]?voice/g, '');
 
   const modalities: SkillModality[] = [];
 
@@ -82,7 +88,7 @@ function inferModalities(
     modalities.push('video');
   }
 
-  if (haystack.includes('audio') || haystack.includes('voice')) {
+  if (audioHaystack.includes('audio') || audioHaystack.includes('voice')) {
     modalities.push('audio');
   }
 
@@ -143,6 +149,7 @@ function inferWorkflowStage(slug: string): SkillWorkflowStage {
 
   if (
     slug.includes('onboarding') ||
+    slug.includes('interview') ||
     slug.includes('brand-os') ||
     slug.includes('visual-brand') ||
     slug.includes('workflow') ||
@@ -214,6 +221,9 @@ export function inferFirstPartySkillTaxonomy(
     category,
     channels,
     modalities,
+    // Shared with the client so a custom skill and a first-party one resolve
+    // to the same composer surfaces.
+    surfaces: resolveSkillSurfaces({ category, modalities, workflowStage }),
     workflowStage,
   };
 }

@@ -130,6 +130,31 @@ VALUES
     CURRENT_TIMESTAMP
   ),
   (
+    'cskillbuiltinbrandinterview',
+    NULL,
+    'Brand Interview',
+    jsonb_build_object(
+      'category', 'writing',
+      'channels', jsonb_build_array(),
+      'defaultInstructions', 'Interview an operator to extract their brand voice, audience, and content strategy, then write the answers into the brand profile. Pushes back on vague answers instead of accepting them. Triggers on "interview me", "grill me", "brand interview", "help me define my voice", "what is my brand voice", "fill in my brand profile", "onboard my brand", "my brand profile is empty".',
+      'description', 'Interview an operator to extract their brand voice, audience, and content strategy, then write the answers into the brand profile. Pushes back on vague answers instead of accepting them. Triggers on "interview me", "grill me", "brand interview", "help me define my voice", "what is my brand voice", "fill in my brand profile", "onboard my brand", "my brand profile is empty".',
+      'isBuiltIn', true,
+      'isEnabled', true,
+      'modalities', jsonb_build_array('text'),
+      'name', 'Brand Interview',
+      'requiredProviders', jsonb_build_array(),
+      'slug', 'brand-interview',
+      'source', 'built_in',
+      'status', 'published',
+      'toolOverrides', jsonb_build_array(),
+      'version', '1.0.0',
+      'workflowStage', 'planning'
+    ),
+    false,
+    CURRENT_TIMESTAMP,
+    CURRENT_TIMESTAMP
+  ),
+  (
     'cskillbuiltinbrandosarchitect',
     NULL,
     'Brand OS Architect',

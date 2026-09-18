@@ -1,0 +1,30 @@
+{
+  "name": "brand-interview",
+  "version": "1.0.0",
+  "description": "Interview an operator to extract their brand voice, audience, and content strategy, then write the answers into the brand profile",
+  "author": "genfeedai",
+  "license": "MIT",
+  "triggers": [
+    "interview me",
+    "grill me",
+    "brand interview",
+    "help me define my voice",
+    "what is my brand voice",
+    "fill in my brand profile",
+    "onboard my brand",
+    "my brand profile is empty",
+    "define my content strategy",
+    "my content sounds generic"
+  ],
+  "references": {},
+  "outputs": ["text"],
+  "tags": [
+    "brand",
+    "voice",
+    "interview",
+    "onboarding",
+    "strategy",
+    "context",
+    "content-strategy"
+  ]
+}

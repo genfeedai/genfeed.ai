@@ -12,6 +12,8 @@ import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
+import type { SkillSurface } from '@genfeedai/contracts';
+import { parseSkillSurface } from '@genfeedai/helpers';
 import { SkillSerializer } from '@genfeedai/serializers';
 import {
   Body,
@@ -22,6 +24,7 @@ import {
   Param,
   Patch,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -33,10 +36,16 @@ export class SkillsController {
   constructor(private readonly skillsService: SkillsService) {}
 
   @Get('skills')
-  async listSkills(@Req() req: Request, @CurrentUser() user: User) {
+  async listSkills(
+    @Req() req: Request,
+    @CurrentUser() user: User,
+    @Query('surface') surface?: string,
+  ) {
     const organization = this.requireOrganizationId(user);
 
-    const docs = await this.skillsService.listAllForOrg(organization);
+    const docs = await this.skillsService.listAllForOrg(organization, {
+      surface: this.parseSurfaceFilter(surface),
+    });
 
     return serializeCollection(req, SkillSerializer, { docs });
   }
@@ -106,6 +115,30 @@ export class SkillsController {
     const data = await this.skillsService.updateSkill(organization, id, body);
 
     return serializeSingle(req, SkillSerializer, data);
+  }
+
+  /**
+   * An unknown `?surface=` is rejected rather than ignored: silently returning
+   * the whole catalog would look like a surface with no skills of its own.
+   */
+  private parseSurfaceFilter(surface?: string): SkillSurface | undefined {
+    if (surface === undefined || surface === '') {
+      return undefined;
+    }
+
+    const parsed = parseSkillSurface(surface);
+
+    if (!parsed) {
+      throw new HttpException(
+        {
+          detail: `Unknown skill surface "${surface}"`,
+          title: 'Bad Request',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+
+    return parsed;
   }
 
   private requireOrganizationId(user: User): string {

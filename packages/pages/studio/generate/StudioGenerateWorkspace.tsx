@@ -7,7 +7,12 @@ import { useContentMentions } from '@genfeedai/agent/hooks/use-content-mentions'
 import { useMicrophoneInput } from '@genfeedai/agent/hooks/use-microphone-input';
 import { useStudioCharacterMentions } from '@genfeedai/agent/hooks/use-studio-character-mentions';
 import type { ContentMentionItem } from '@genfeedai/agent/types/mention.types';
-import { AlertCategory, ComponentSize, ViewType } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  ComponentSize,
+  SkillSurface,
+  ViewType,
+} from '@genfeedai/contracts';
 import {
   getModelMaxVideoReferences,
   hasEndFrame,
@@ -69,6 +74,7 @@ import PromptBarContainer from '@ui/layout/prompt-bar-container/PromptBarContain
 import SectionTopbar from '@ui/layout/section-topbar/SectionTopbar';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
 import Searchbar from '@ui/primitives/searchbar';
+import { usePromptCommandExtension } from '@ui/prompt-editor/use-prompt-command-extension';
 import { LayoutGrid, Rows3 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import {
@@ -101,8 +107,20 @@ export default function StudioGenerateWorkspace(): ReactElement {
     settings: organizationSettings,
   } = useBrand();
   const agentApiService = useAgentApiService();
-  const { extraExtensions, resolveSubmit: resolveCharacterMentions } =
-    useStudioCharacterMentions(agentApiService);
+  const {
+    extraExtensions: characterMentionExtensions,
+    resolveSubmit: resolveCharacterMentions,
+  } = useStudioCharacterMentions(agentApiService);
+  // Studio's `/` palette: navigation-free, so it carries only the skills the
+  // catalog offers on this surface (prompt engineering, model selection, …).
+  const {
+    extraExtensions: promptCommandExtensions,
+    resolveSubmit: resolvePromptCommands,
+  } = usePromptCommandExtension({ surface: SkillSurface.STUDIO });
+  const extraExtensions = useMemo(
+    () => [...characterMentionExtensions, ...promptCommandExtensions],
+    [characterMentionExtensions, promptCommandExtensions],
+  );
   // #4716 review P1: the Agent context service (`agentApiService`) is only
   // mounted on the `/agent` route tree — the same wiring gap the P0 handoff
   // fix already worked around. Reference resolution needs a Studio-native
@@ -133,6 +151,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     modelKey: settings.modelKey,
     onPromptChange: setPrompt,
     prompt,
+    resolveRequestedSkills: resolvePromptCommands,
   });
   const [search, setSearch] = useState('');
   const [resultsView, setResultsView] = useState<ViewType.GRID | ViewType.LIST>(
@@ -616,6 +635,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
     if (isUploading || isListening || isTranscribing) {
       return;
     }
+    // Skills picked from `/` are literal tokens in the prompt. They steer the
+    // enhancement pass, never the generator, so they come off before either
+    // path — a remix stores the prompt as its objective, so a token left in
+    // here would reach generation the same way.
+    const { content } = resolvePromptCommands(prompt);
+
     if (remixRun) {
       if (
         remixRun.draft.output.kind === 'copy' ||
@@ -626,7 +651,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
         void startRemixRun(
           buildStudioRemixRunEdits(
             remixRun,
-            prompt,
+            content,
             settings,
             type,
             contentReferences.map((reference) => reference.item.id),
@@ -638,7 +663,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     const prepared = resolveCharacterMentions({
       document: promptDocumentRef.current,
       existingReferenceIds: resolvedReferences.imageReferenceIds,
-      text: prompt,
+      text: content,
     });
     for (const notice of prepared.notices) {
       notificationsService.warning(notice);
@@ -656,6 +681,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     contentReferences,
     resolvedReferences,
     resolveCharacterMentions,
+    resolvePromptCommands,
     remixRun,
     settings,
     startRemixRun,

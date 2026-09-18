@@ -39,6 +39,15 @@ export interface UseStudioPromptEnhancementParams {
   modelKey: string;
   onPromptChange: (text: string) => void;
   prompt: string;
+  /**
+   * Splits `/slug` tokens off the prompt. The enhancement request carries the
+   * slugs so the picked skills' instructions shape the rewrite, while the text
+   * sent for enhancement is the prompt the operator actually wrote.
+   */
+  resolveRequestedSkills?: (prompt: string) => {
+    content: string;
+    skillSlugs: string[];
+  };
 }
 
 export interface UseStudioPromptEnhancementResult {
@@ -76,6 +85,7 @@ export function useStudioPromptEnhancement({
   modelKey,
   onPromptChange,
   prompt,
+  resolveRequestedSkills,
 }: UseStudioPromptEnhancementParams): UseStudioPromptEnhancementResult {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [previousPrompt, setPreviousPrompt] = useState<string | null>(null);
@@ -138,8 +148,19 @@ export function useStudioPromptEnhancement({
     notificationsService.info('Prompt restored');
   }, [clearUndoTimeout, notificationsService, onPromptChange, previousPrompt]);
 
+  const resolveRequestedSkillsRef = useRef(resolveRequestedSkills);
+  resolveRequestedSkillsRef.current = resolveRequestedSkills;
+
   const enhancePrompt = useCallback(async () => {
-    const text = promptRef.current.trim();
+    // The composer still holds any `/slug` tokens; `text` is what we send for
+    // enhancement with those stripped. Staleness and undo compare against what
+    // the operator can actually see, or a picked skill would make every
+    // enhancement look like a concurrent edit and get discarded.
+    const originalPrompt = promptRef.current;
+    const raw = originalPrompt.trim();
+    const resolved = resolveRequestedSkillsRef.current?.(raw);
+    const text = resolved?.content.trim() ?? raw;
+    const requestedSkillSlugs = resolved?.skillSlugs ?? [];
     if (!text || isEnhancing) {
       return;
     }
@@ -169,6 +190,7 @@ export function useStudioPromptEnhancement({
           isSkipEnhancement: false,
           model: modelKey || undefined,
           original: text,
+          ...(requestedSkillSlugs.length > 0 ? { requestedSkillSlugs } : {}),
         }),
       );
       if (isStale()) {
@@ -200,8 +222,8 @@ export function useStudioPromptEnhancement({
             // Only replace the prompt if the operator has not edited it
             // since the request was sent — never clobber a live edit with a
             // stale enhancement result.
-            if (promptRef.current === text) {
-              setPreviousPrompt(text);
+            if (promptRef.current === originalPrompt) {
+              setPreviousPrompt(originalPrompt);
               onPromptChange(result);
               clearUndoTimeout();
               undoTimeoutRef.current = setTimeout(() => {

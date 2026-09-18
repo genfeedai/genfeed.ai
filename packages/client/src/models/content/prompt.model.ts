@@ -28,6 +28,7 @@ export class Prompt extends BaseEntity implements IPrompt {
   declare public fps?: number;
   declare public ingredients?: IIngredient[];
   declare public isSkipEnhancement: boolean;
+  declare public requestedSkillSlugs?: string[];
   declare public systemPromptKey?: string;
   declare public scope?: AssetScope;
   declare public isFavorite?: boolean;

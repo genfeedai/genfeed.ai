@@ -7,6 +7,7 @@ export interface FirstPartySkillDefinition extends BuiltInSkillIdentity {
   instructions: string;
   modalities: string[];
   name: string;
+  surfaces: string[];
   version: string;
   workflowStage: string;
 }

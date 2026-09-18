@@ -581,6 +581,7 @@ export function useAgentChatStream(
               generationSettings: sendOptions?.generationSettings,
               knowledgeSelection: sendOptions?.knowledgeSelection,
               model: resolvedModel,
+              requestedSkillSlugs: sendOptions?.requestedSkillSlugs,
               pageContext: requestPageContext,
               agentMode: sendOptions?.agentMode,
               source: sendOptions?.source,
