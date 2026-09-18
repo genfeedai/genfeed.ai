@@ -6,7 +6,6 @@
  *
  * Usage:
  *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts
- *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --live
  *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --organizationId=<id> --live
  *
  * Packs load order:
@@ -229,6 +228,11 @@ function loadPackSeeds(): HarnessPackSeed[] {
 
 async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
+  // Packs match brands by slug/label, so an unscoped live run would copy
+  // private brand voice into any tenant that reuses the same brand name.
+  if (!args.dryRun && !args.organizationId) {
+    throw new Error('--live requires --organizationId=<id>');
+  }
   loadEnvFile(args.env);
 
   const { NestFactory } = await import('@nestjs/core');
