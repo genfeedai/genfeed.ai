@@ -3,6 +3,7 @@
 import {
   ButtonVariant,
   KnowledgeProcessingState,
+  KnowledgeSourceKind,
   type KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
 import { formatDate } from '@helpers/formatting/date/date.helper';
@@ -49,8 +50,10 @@ export default function KnowledgeSourceDetailSheet({
   onArchive,
   onClose,
   onMoveToSpace,
+  onRefresh,
   onRetry,
   onUpdate,
+  onUpdateRefreshPolicy,
   row,
   spaces,
 }: KnowledgeSourceDetailSheetProps) {
@@ -63,6 +66,9 @@ export default function KnowledgeSourceDetailSheet({
   const text = version ? readText(version.payload) : null;
   const url = version ? readUrl(version.payload, version.provenance) : null;
   const isFailed = version?.processingState === KnowledgeProcessingState.FAILED;
+  const canRefresh =
+    source.kind === KnowledgeSourceKind.URL ||
+    source.kind === KnowledgeSourceKind.RSS;
   const availableSpaces = spaces.filter(
     (space) => !spaceIds.includes(space.id),
   );
@@ -100,6 +106,21 @@ export default function KnowledgeSourceDetailSheet({
               </span>
             ) : null}
           </div>
+          {source.syncState ? (
+            <p className="text-xs text-muted-foreground">
+              {translate('sync', { state: source.syncState.toLowerCase() })}
+              {source.lastSyncError ? ` · ${source.lastSyncError}` : ''}
+            </p>
+          ) : (
+            <p className="text-xs text-muted-foreground">
+              {translate('notChecked')}
+            </p>
+          )}
+          {version?.transcriptState ? (
+            <p className="text-xs text-muted-foreground">
+              {translate('transcript', { state: version.transcriptState })}
+            </p>
+          ) : null}
           {url ? (
             <a
               className="truncate text-sm text-primary underline"
@@ -146,6 +167,26 @@ export default function KnowledgeSourceDetailSheet({
               }}
             />
           </Field>
+          {canRefresh ? (
+            <Field label={translate('refreshEnabled')}>
+              <Switch
+                aria-label={translate('refreshEnabled')}
+                checked={source.isRefreshEnabled === true}
+                onCheckedChange={(checked) => {
+                  void onUpdateRefreshPolicy?.(source, { isEnabled: checked });
+                }}
+              />
+              <div className="mt-2">
+                <Button
+                  label={translate('refreshNow')}
+                  onClick={() => {
+                    void onRefresh?.(source);
+                  }}
+                  variant={ButtonVariant.SECONDARY}
+                />
+              </div>
+            </Field>
+          ) : null}
           <Field label={translate('spaces')}>
             <div className="flex flex-wrap gap-2">
               {spaceIds.length === 0 ? (

@@ -65,10 +65,7 @@ export class GenfeedActionExecutor extends BaseExecutor {
     const result = await this.executor({
       context: {
         actionId,
-        brandId:
-          typeof node.config.brandId === 'string'
-            ? node.config.brandId
-            : undefined,
+        brandId: context.brandId,
         ...(idempotencyKey ? { idempotencyKey } : {}),
         nodeId: node.id,
         organizationId: context.organizationId,

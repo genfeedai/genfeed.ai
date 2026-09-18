@@ -14,6 +14,8 @@ import { LIVESTREAM_BOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/te
 import { OUTREACH_CAMPAIGN_DISPATCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/outreach-campaign-dispatch-workflows.template';
 import { PAID_CREATIVE_RESEARCH_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/paid-creative-research-workflows.template';
 import { REPLY_POLLING_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/reply-polling-workflows.template';
+import { RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/research-to-content-workflow.template';
+import { SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/source-maintenance-workflow.template';
 import { TREND_NOTIFICATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/trend-notification-workflows.template';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
 
@@ -71,6 +73,18 @@ const CATALOG_TEMPLATE_SOURCES: readonly CatalogTemplateSource[] = [
     installable: true,
     sourceIssue: SYSTEM_WORKFLOW_PRODUCTIZATION_ISSUE,
     templates: [DAILY_TRENDS_DIGEST_TEMPLATE],
+  },
+  {
+    family: 'product',
+    installable: true,
+    sourceIssue: 4132,
+    templates: [RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE],
+  },
+  {
+    family: 'product',
+    installable: true,
+    sourceIssue: 4134,
+    templates: [SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE],
   },
   {
     family: 'ad-automation',

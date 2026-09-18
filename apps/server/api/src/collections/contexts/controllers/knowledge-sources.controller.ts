@@ -7,10 +7,12 @@ import {
   KnowledgeVerificationDto,
 } from '@api/collections/contexts/dto/knowledge-lifecycle.dto';
 import { KnowledgeListDto } from '@api/collections/contexts/dto/knowledge-list.dto';
+import { KnowledgeRefreshPolicyDto } from '@api/collections/contexts/dto/knowledge-refresh-policy.dto';
 import { UpdateKnowledgeSourceDto } from '@api/collections/contexts/dto/update-knowledge-source.dto';
 import { KnowledgeCaptureService } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeLegacyBackfillService } from '@api/collections/contexts/services/knowledge-legacy-backfill.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
 import { resolveKnowledgeActor } from '@api/collections/contexts/utils/knowledge-actor.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -23,6 +25,7 @@ import {
   KnowledgeSourceVersionSerializer,
 } from '@genfeedai/serializers';
 import {
+  BadRequestException,
   Body,
   Controller,
   Delete,
@@ -45,6 +48,7 @@ export class KnowledgeSourcesController {
     private readonly records: KnowledgeRecordsService,
     private readonly capture: KnowledgeCaptureService,
     private readonly legacyBackfill: KnowledgeLegacyBackfillService,
+    private readonly refresh: KnowledgeRefreshService,
   ) {}
 
   /**
@@ -186,15 +190,12 @@ export class KnowledgeSourcesController {
     @Body() dto: UpdateKnowledgeSourceDto,
     @Query('brandId') brandId?: string,
   ) {
-    return serializeSingle(
-      request,
-      KnowledgeSourceSerializer,
-      await this.records.updateSource(
-        resolveKnowledgeActor(user, brandId),
-        id,
-        dto,
-      ),
-    );
+    const actor = resolveKnowledgeActor(user, brandId);
+    const source = await this.records.updateSource(actor, id, dto);
+    if (dto.isVisible === false) {
+      await this.refresh.unscheduleSource(actor, id);
+    }
+    return serializeSingle(request, KnowledgeSourceSerializer, source);
   }
 
   @Delete(':sourceId')
@@ -211,10 +212,12 @@ export class KnowledgeSourcesController {
     @Param('sourceId') id: string,
     @Query('brandId') brandId?: string,
   ) {
+    const actor = resolveKnowledgeActor(user, brandId);
+    await this.refresh.unscheduleSource(actor, id);
     return serializeSingle(
       request,
       KnowledgeSourceSerializer,
-      await this.records.deleteSource(resolveKnowledgeActor(user, brandId), id),
+      await this.records.deleteSource(actor, id),
     );
   }
 
@@ -249,6 +252,65 @@ export class KnowledgeSourcesController {
   }
 
   /** Requeue the current version after a failure without creating duplicates. */
+  @Patch(':sourceId/refresh-policy')
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+  })
+  async refreshPolicy(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sourceId') id: string,
+    @Body() dto: KnowledgeRefreshPolicyDto,
+    @Query('brandId') brandId?: string,
+  ) {
+    return serializeSingle(
+      request,
+      KnowledgeSourceSerializer,
+      await this.refresh.setPolicy(
+        resolveKnowledgeActor(user, brandId),
+        id,
+        dto,
+      ),
+    );
+  }
+
+  @Post(':sourceId/refresh')
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: true,
+  })
+  @ApiQuery({
+    name: 'brandId',
+    required: false,
+    type: String,
+  })
+  async refreshNow(
+    @Req() request: Request,
+    @CurrentUser() user: AuthenticatedUser,
+    @Param('sourceId') id: string,
+    @Query('brandId') brandId?: string,
+    @Headers('idempotency-key') idempotencyKey?: string,
+  ) {
+    if (
+      !idempotencyKey ||
+      !/^[A-Za-z0-9][A-Za-z0-9._:-]{7,127}$/.test(idempotencyKey)
+    ) {
+      throw new BadRequestException(
+        'Idempotency-Key must contain 8–128 letters, digits, dots, colons, underscores or hyphens',
+      );
+    }
+    const actor = resolveKnowledgeActor(user, brandId);
+    const result = await this.refresh.refresh(actor, id, idempotencyKey);
+    const source = await this.records.getSource(actor, id);
+    return {
+      ...serializeSingle(request, KnowledgeSourceSerializer, source),
+      jobId: result.jobId,
+      refreshRunId: result.refreshRunId,
+    };
+  }
+
   @Post(':sourceId/retry')
   @ApiQuery({
     name: 'brandId',

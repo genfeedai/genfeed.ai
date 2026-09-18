@@ -115,6 +115,39 @@ export default function KnowledgeSourcesList({
     [brandId, getSourcesService, notifications, refresh, translate],
   );
 
+  const refreshNow = useCallback(
+    async (source: KnowledgeSource) => {
+      try {
+        const service = await getSourcesService();
+        await service.refresh(
+          source.id,
+          brandId,
+          `refresh-${source.id}-${Date.now()}`,
+        );
+        notifications.success(translate('refreshSuccess'));
+        await refresh();
+      } catch (refreshError) {
+        logger.error('Failed to refresh knowledge source', refreshError);
+        notifications.error(translate('refreshError'));
+      }
+    },
+    [brandId, getSourcesService, notifications, refresh, translate],
+  );
+
+  const updateRefreshPolicy = useCallback(
+    async (source: KnowledgeSource, policy: { isEnabled: boolean }) => {
+      try {
+        const service = await getSourcesService();
+        await service.setRefreshPolicy(source.id, policy, brandId);
+        await refresh();
+      } catch (policyError) {
+        logger.error('Failed to update knowledge refresh policy', policyError);
+        notifications.error(translate('updateError'));
+      }
+    },
+    [brandId, getSourcesService, notifications, refresh, translate],
+  );
+
   const update = useCallback(
     async (source: KnowledgeSource, body: KnowledgeSourceUpdateRequest) => {
       try {
@@ -296,7 +329,9 @@ export default function KnowledgeSourcesList({
         onArchive={archive}
         onClose={() => setSelectedSourceId(null)}
         onMoveToSpace={moveToSpace}
+        onRefresh={refreshNow}
         onRetry={retry}
+        onUpdateRefreshPolicy={updateRefreshPolicy}
         onUpdate={update}
         row={selectedRow}
         spaces={spaces}

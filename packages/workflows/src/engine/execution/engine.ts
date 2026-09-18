@@ -55,6 +55,9 @@ export interface ExecutionContext {
   runId: string;
   organizationId: string;
   userId: string;
+  brandId?: string;
+  isCustomerWorkflow?: boolean;
+  scheduledFireJobId?: string;
   executionId?: string;
   abortSignal?: AbortSignal;
   videoGenerationLineage?: VideoGenerationLineage;
@@ -188,10 +191,13 @@ export class WorkflowEngine {
 
     const context: ExecutionContext = {
       abortSignal: options.abortSignal,
+      brandId: workflow.brandId,
       evaluateVideoPilot: options.evaluateVideoPilot,
       executionId: options.executionId,
+      isCustomerWorkflow: workflow.isCustomerWorkflow,
       organizationId: workflow.organizationId,
       runId,
+      scheduledFireJobId: workflow.scheduledFireJobId,
       userId: workflow.userId,
       videoGenerationLineage: options.videoGenerationLineage,
       videoPilotAcceptance: options.videoPilotAcceptance,
@@ -576,16 +582,25 @@ export class WorkflowEngine {
     inputs: Map<string, unknown>,
     workflow: Pick<
       ExecutableWorkflow,
-      'id' | 'organizationId' | 'userId' | 'versionId'
+      | 'brandId'
+      | 'id'
+      | 'isCustomerWorkflow'
+      | 'organizationId'
+      | 'scheduledFireJobId'
+      | 'userId'
+      | 'versionId'
     >,
     options: EngineExecutionOptions = {},
   ): Promise<NodeExecutionResult> {
     const context: ExecutionContext = {
       abortSignal: options.abortSignal,
+      brandId: workflow.brandId,
       evaluateVideoPilot: options.evaluateVideoPilot,
       executionId: options.executionId,
+      isCustomerWorkflow: workflow.isCustomerWorkflow,
       organizationId: workflow.organizationId,
       runId: options.executionId ?? uuidv4(),
+      scheduledFireJobId: workflow.scheduledFireJobId,
       userId: workflow.userId,
       videoGenerationLineage: options.videoGenerationLineage,
       videoPilotAcceptance: options.videoPilotAcceptance,

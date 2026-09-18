@@ -4,6 +4,8 @@ import { DAILY_TRENDS_DIGEST_TEMPLATE } from '@api/collections/workflows/templat
 import { DYNAMIC_VIDEO_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/dynamic-video-workflows.template';
 import { GENERATION_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/generation-templates';
 import { PRODUCTIZED_DAILY_ROUTINE_TEMPLATES } from '@api/collections/workflows/templates/productized-routines.template';
+import { RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/research-to-content-workflow.template';
+import { SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/source-maintenance-workflow.template';
 import { createTemplateActionNode } from '@api/collections/workflows/templates/template-action-node';
 import { WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE } from '@api/collections/workflows/templates/weekly-brand-content-workflow.template';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
@@ -107,6 +109,8 @@ export const WORKFLOW_TEMPLATES: Record<string, WorkflowTemplate> = {
   'content-loop': CONTENT_LOOP_TEMPLATE,
   'daily-trends-digest': DAILY_TRENDS_DIGEST_TEMPLATE,
   'weekly-brand-ai-content-loop': WEEKLY_BRAND_CONTENT_WORKFLOW_TEMPLATE,
+  'research-to-content': RESEARCH_TO_CONTENT_WORKFLOW_TEMPLATE,
+  'source-maintenance': SOURCE_MAINTENANCE_WORKFLOW_TEMPLATE,
   'instagram-remix-review': {
     category: 'social',
     description:

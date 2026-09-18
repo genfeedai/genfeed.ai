@@ -9,7 +9,6 @@ import {
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
 } from '@genfeedai/contracts';
-import { BadRequestException } from '@nestjs/common';
 
 const actor = { organizationId: 'org-1', userId: 'user-1', brandId: 'brand-1' };
 const base = {
@@ -25,6 +24,7 @@ function buildService() {
     createSource: vi.fn().mockResolvedValue({ id: 'source-1' }),
     createVersion: vi.fn().mockResolvedValue({ id: 'version-1', version: 1 }),
     getCurrentVersion: vi.fn(),
+    getSource: vi.fn(),
     setProcessing: vi.fn().mockResolvedValue({
       id: 'version-1',
       processingState: KnowledgeProcessingState.QUEUED,
@@ -34,9 +34,21 @@ function buildService() {
     enqueueBackfill: vi.fn().mockResolvedValue('backfill-job'),
     enqueueIngest: vi.fn().mockResolvedValue('ingest-job'),
   };
+  const refresh = {
+    refresh: vi.fn().mockResolvedValue({
+      jobId: 'refresh-job',
+      refreshRunId: 'run-1',
+    }),
+    unscheduleSource: vi.fn(),
+  };
   return {
     records,
-    service: new KnowledgeCaptureService(records as never, workflow as never),
+    refresh,
+    service: new KnowledgeCaptureService(
+      records as never,
+      workflow as never,
+      refresh as never,
+    ),
     workflow,
   };
 }
@@ -151,13 +163,6 @@ describe('KnowledgeCaptureService', () => {
     await expect(
       service.capture(actor, {
         ...base,
-        kind: KnowledgeSourceKind.VIDEO,
-        referenceUrl: 'https://video.example/clip',
-      }),
-    ).rejects.toBeInstanceOf(BadRequestException);
-    await expect(
-      service.capture(actor, {
-        ...base,
         kind: KnowledgeSourceKind.URL,
         text: 'no url',
       }),
@@ -194,6 +199,21 @@ describe('KnowledgeCaptureService', () => {
       },
     });
     expect(version.contentHash).toMatch(/^sha256:[a-f0-9]{64}$/);
+  });
+
+  it('uses the scheduled fire id as the refresh tick and does not force a due check', async () => {
+    const { service, records, refresh } = buildService();
+    records.getSource.mockResolvedValue({
+      id: 'source-1',
+      kind: KnowledgeSourceKind.URL,
+    });
+    records.getCurrentVersion.mockResolvedValue({
+      payload: { referenceUrl: 'https://ex.com' },
+    });
+    await service.refreshExisting(actor, 'source-1', undefined, 'fire-9');
+    expect(refresh.refresh).toHaveBeenCalledWith(actor, 'source-1', 'fire-9', {
+      force: false,
+    });
   });
 
   it('requeues only failed or queued current versions and reuses their identity', async () => {

@@ -138,10 +138,13 @@ const HEADER_PROMPT_STATE = closedObjectSchema(
 const KNOWLEDGE_RECEIPT = closedObjectSchema(
   {
     excerpt: STRING_SCHEMA,
+    endMs: INTEGER_SCHEMA,
     kind: STRING_SCHEMA,
+    mediaUrl: STRING_SCHEMA,
     purpose: STRING_SCHEMA,
     relevance: NUMBER_SCHEMA,
     sourceId: STRING_SCHEMA,
+    startMs: INTEGER_SCHEMA,
     title: STRING_SCHEMA,
     url: STRING_SCHEMA,
     version: NUMBER_SCHEMA,

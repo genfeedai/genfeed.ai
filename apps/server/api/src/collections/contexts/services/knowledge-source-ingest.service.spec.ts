@@ -66,11 +66,19 @@ function buildService(
   };
   const executeRaw = vi.fn().mockResolvedValue(1);
   const queryRaw = vi.fn().mockResolvedValue([]);
+  const knowledgeSource = {
+    findFirst: vi.fn().mockResolvedValue({
+      kind: KnowledgeSourceKind.URL,
+      refreshIntervalMinutes: 1440,
+    }),
+    updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+  };
   const tx = {
     $executeRaw: executeRaw,
     $queryRaw: queryRaw,
     contextBase,
     contextEntry,
+    knowledgeSource,
   };
   const prisma = {
     ...tx,
@@ -286,27 +294,7 @@ describe('KnowledgeSourceIngestService', () => {
     ).resolves.toMatchObject({ status: 'skipped', chunkCount: 0 });
   });
 
-  it('marks unsupported kinds and empty captures as failed with a safe reason', async () => {
-    const video = buildService(
-      versionRow({
-        source: { ...versionRow().source, kind: KnowledgeSourceKind.VIDEO },
-      }),
-    );
-    const unsupported = await video.service.loadSource(request);
-    expect(unsupported.status).toBe('unsupported');
-    await video.service.markSource(unsupported);
-    expect(video.knowledgeSourceVersion.updateMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        data: {
-          processingState: KnowledgeProcessingState.FAILED,
-          processingError: 'VIDEO sources are not ingested yet',
-        },
-      }),
-    );
-    await expect(
-      video.service.finalizeSource(unsupported),
-    ).resolves.toMatchObject({ status: 'unsupported' });
-
+  it('marks empty captures as failed with a safe reason', async () => {
     const empty = buildService(versionRow({ payload: {} }));
     const failed = await empty.service.loadSource(request);
     expect(failed).toMatchObject({

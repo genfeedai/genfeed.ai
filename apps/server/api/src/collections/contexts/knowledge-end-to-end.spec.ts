@@ -50,6 +50,8 @@ const migrations = [
   '20260904230000_knowledge_source_space_contracts',
   '20260906210000_knowledge_chunks_link_versions',
   '20260910180000_knowledge_version_legal_hold',
+  '20260917180000_knowledge_refresh_and_transcripts',
+  '20260918120000_knowledge_capture_request_hash',
 ].map((name) =>
   readFileSync(
     new URL(
@@ -216,7 +218,11 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       { getDefaultModel: vi.fn().mockResolvedValue('test-embed') } as never,
     );
     ingest = new KnowledgeSourceIngestService(prismaService, contexts);
-    capture = new KnowledgeCaptureService(records, workflowStub as never);
+    capture = new KnowledgeCaptureService(
+      records,
+      workflowStub as never,
+      { refresh: vi.fn() } as never,
+    );
     selection = new KnowledgeSelectionService(prismaService);
     legacyBackfill = new KnowledgeLegacyBackfillService(
       prismaService,

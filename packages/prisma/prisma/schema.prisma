@@ -703,6 +703,8 @@ model Organization {
   brandOsPublications BrandOsPublication[]
   knowledgeSources KnowledgeSource[]
   knowledgeSpaces KnowledgeSpace[]
+  knowledgeSourceRefreshRuns KnowledgeSourceRefreshRun[]
+  knowledgeCaptureRequests KnowledgeCaptureRequest[]
   id                        String                @id @default(cuid())
   authProviderLogoUrl       String?
   userId                    String
@@ -6770,27 +6772,67 @@ enum KnowledgeRetentionPolicy {
   UNTIL_EXPIRY
 }
 
+enum KnowledgeSourceSyncState {
+  CURRENT
+  CHECKING
+  STALE
+  FAILED
+}
+
+enum KnowledgeRefreshRunStatus {
+  QUEUED
+  PROCESSING
+  COMPLETED
+  FAILED
+}
+
+enum KnowledgeRefreshRunOutcome {
+  CHANGED
+  UNCHANGED
+  SKIPPED
+}
+
 model KnowledgeSource {
-  id             String                     @id @default(uuid())
-  organizationId String
-  brandId        String?
-  userId         String
-  scope          String
-  title          String
-  kind           KnowledgeSourceKind
-  purpose        KnowledgeSourcePurpose
-  isVisible      Boolean                    @default(true)
-  isDeleted      Boolean                    @default(false)
-  createdAt      DateTime                   @default(now())
-  updatedAt      DateTime                   @updatedAt
-  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  brand          Brand?                     @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
-  user           User                       @relation(fields: [userId], references: [id], onDelete: Restrict)
-  versions       KnowledgeSourceVersion[]
-  memberships    KnowledgeSpaceMembership[]
+  id                       String                      @id @default(uuid())
+  organizationId           String
+  brandId                  String?
+  userId                   String
+  scope                    String
+  title                    String
+  kind                     KnowledgeSourceKind
+  purpose                  KnowledgeSourcePurpose
+  isVisible                Boolean                     @default(true)
+  isDeleted                Boolean                     @default(false)
+  mediaReferenceKey        String?
+  isRefreshEnabled         Boolean                     @default(false)
+  refreshIntervalMinutes   Int?
+  gracePeriodMinutes       Int?
+  refreshWorkflowId        String?
+  referenceUrl             String?
+  syncState                KnowledgeSourceSyncState?
+  lastCheckedAt            DateTime?
+  lastSuccessfulSyncAt     DateTime?
+  nextCheckAt              DateTime?
+  firstFailureAt           DateTime?
+  consecutiveFailures      Int                         @default(0)
+  staleAt                  DateTime?
+  lastSyncError            String?
+  etag                     String?
+  lastModified             String?
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  organization             Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  brand                    Brand?                      @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  user                     User                        @relation(fields: [userId], references: [id], onDelete: Restrict)
+  versions                 KnowledgeSourceVersion[]
+  memberships              KnowledgeSpaceMembership[]
+  refreshRuns              KnowledgeSourceRefreshRun[]
+  captureRequests          KnowledgeCaptureRequest[]
 
   @@unique([id, organizationId])
   @@index([organizationId, isDeleted, scope, brandId])
+  @@index([organizationId, mediaReferenceKey, isDeleted])
+  @@index([organizationId, isRefreshEnabled, nextCheckAt, isDeleted])
   @@map("knowledge_sources")
 }
 
@@ -6816,6 +6858,8 @@ model KnowledgeSourceVersion {
   supersededByVersionId String?
   isCurrent             Boolean                  @default(true)
   isLegalHold           Boolean                  @default(false)
+  /// Null = pending or not a media source. CHECK restricts to resolved/generated/unavailable/prohibited.
+  transcriptState       String?
   isDeleted             Boolean                  @default(false)
   createdAt             DateTime                 @default(now())
   updatedAt             DateTime                 @updatedAt
@@ -6824,6 +6868,7 @@ model KnowledgeSourceVersion {
   supersededByVersion KnowledgeSourceVersion? @relation("KnowledgeVersionSupersession", fields: [supersededByVersionId, sourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "knowledge_version_supersession_fkey")
   supersedesVersions KnowledgeSourceVersion[] @relation("KnowledgeVersionSupersession")
   chunks             ContextEntry[]
+  candidateRefreshRuns KnowledgeSourceRefreshRun[]
   @@unique([sourceId, version])
   @@unique([id, sourceId, organizationId])
   @@index([organizationId, sourceId, isDeleted, isCurrent], map: "knowledge_source_versions_scope_current_idx")
@@ -6865,6 +6910,60 @@ model KnowledgeSpaceMembership {
   @@unique([spaceId, sourceId])
   @@index([organizationId, sourceId, isDeleted], map: "knowledge_memberships_scope_source_idx")
   @@map("knowledge_space_memberships")
+}
+
+model KnowledgeSourceRefreshRun {
+  id                       String                      @id @default(uuid())
+  organizationId           String
+  sourceId                 String
+  tickKey                  String
+  status                   KnowledgeRefreshRunStatus   @default(QUEUED)
+  outcome                  KnowledgeRefreshRunOutcome?
+  attemptCount             Int                         @default(0)
+  leaseToken               String?
+  leaseExpiresAt           DateTime?
+  candidateVersionId       String?
+  expectedCurrentVersionId String?
+  error                    String?
+  requestedAt              DateTime                    @default(now())
+  startedAt                DateTime?
+  completedAt              DateTime?
+  nextAttemptAt            DateTime?
+  isDeleted                Boolean                     @default(false)
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+  organization             Organization                @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  source                   KnowledgeSource             @relation(fields: [sourceId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  candidateVersion         KnowledgeSourceVersion?     @relation(fields: [candidateVersionId, sourceId, organizationId], references: [id, sourceId, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, sourceId, tickKey])
+  @@unique([id, organizationId])
+  @@unique([candidateVersionId])
+  @@index([organizationId, sourceId, status, isDeleted])
+  @@index([organizationId, nextAttemptAt, isDeleted])
+  @@map("knowledge_source_refresh_runs")
+}
+
+model KnowledgeCaptureRequest {
+  id               String           @id @default(uuid())
+  organizationId   String
+  sourceId         String?
+  idempotencyKey   String
+  requestHash      String?
+  kind             KnowledgeSourceKind
+  mediaReferenceKey String?
+  reservationId    String?
+  status           String           @default("queued")
+  error            String?
+  isDeleted        Boolean          @default(false)
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  organization     Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  source           KnowledgeSource? @relation(fields: [sourceId, organizationId], references: [id, organizationId], onDelete: Restrict)
+
+  @@unique([organizationId, idempotencyKey])
+  @@index([organizationId, sourceId, isDeleted])
+  @@map("knowledge_capture_requests")
 }
 
 // Successful one-time data upgrades. Written in the same transaction as the repair.

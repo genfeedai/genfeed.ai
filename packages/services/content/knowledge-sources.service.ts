@@ -100,6 +100,59 @@ export class KnowledgeSourcesService extends BaseService<
     );
   }
 
+  public setRefreshPolicy(
+    id: string,
+    body: {
+      isEnabled: boolean;
+      intervalMinutes?: number;
+      graceMinutes?: number;
+    },
+    brandId?: string,
+  ): Promise<KnowledgeSource> {
+    return this.executeWithErrorHandling(
+      `PATCH ${this.baseURL}/${id}/refresh-policy`,
+      this.instance
+        .patch<JsonApiResponseDocument>(
+          `/${id}/refresh-policy`,
+          BaseService.cleanBody(body),
+          { params: BaseService.cleanBody({ brandId }) },
+        )
+        .then(async (res) => await this.mapOne(res.data)),
+    );
+  }
+
+  public refresh(
+    id: string,
+    brandId?: string,
+    idempotencyKey?: string,
+  ): Promise<{
+    jobId?: string;
+    refreshRunId?: string;
+    source: KnowledgeSource;
+  }> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/${id}/refresh`,
+      this.instance
+        .post<
+          JsonApiResponseDocument & { jobId?: string; refreshRunId?: string }
+        >(
+          `/${id}/refresh`,
+          {},
+          {
+            headers: idempotencyKey
+              ? { 'Idempotency-Key': idempotencyKey }
+              : undefined,
+            params: BaseService.cleanBody({ brandId }),
+          },
+        )
+        .then(async (res) => ({
+          jobId: res.data.jobId,
+          refreshRunId: res.data.refreshRunId,
+          source: await this.mapOne(res.data),
+        })),
+    );
+  }
+
   public retry(
     id: string,
     brandId?: string,

@@ -45,6 +45,14 @@ import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/a
 import { AgentWorkflowToolHandler } from '@api/services/agent-orchestrator/tools/agent-workflow-tool-handler.service';
 import { AgentWorkspaceToolHandler } from '@api/services/agent-orchestrator/tools/agent-workspace-tool-handler.service';
 import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools/agent-x-actions-tool-handler.service';
+import {
+  assertKnowledgeWorkflowScopeParameters,
+  assertKnowledgeWorkflowSuccess,
+  attachKnowledgeWorkflowProvenance,
+  isKnowledgeWorkflowAction,
+  shouldUseKnowledgeWorkflowEntry,
+  toWorkflowToolExecutionContext,
+} from '@api/services/agent-orchestrator/tools/knowledge-workflow-execution.util';
 import type {
   AgentThreadModeValue,
   CuratedActionName,
@@ -101,6 +109,10 @@ export interface ToolExecutionContext {
     agentDailyCreditCap?: number | null;
   };
   brandId?: string;
+  /** Internal Knowledge workflow entry: exclude personal rows. Never from HTTP. */
+  isWorkflowScoped?: boolean;
+  /** BullMQ scheduled-fire job id, used as the Knowledge refresh tick key. */
+  scheduledFireJobId?: string;
   platform?: string;
   /** Owning workflow execution id, used for content attribution */
   runId?: string;
@@ -226,13 +238,51 @@ export class AgentToolExecutorService implements OnModuleInit {
       }
       runner.registerAction(
         toolName,
-        async ({ context: workflowContext, input, runtimeContext }) => {
+        async ({
+          context: workflowContext,
+          input,
+          provenance,
+          runtimeContext,
+        }) => {
           const liveContext =
             runtimeContext &&
             typeof runtimeContext === 'object' &&
             !Array.isArray(runtimeContext)
               ? (runtimeContext as ToolExecutionContext)
               : undefined;
+          const useKnowledgeWorkflowEntry = shouldUseKnowledgeWorkflowEntry({
+            hasAgentRuntimeContext: Boolean(liveContext),
+            isCustomerWorkflow: workflowContext.isCustomerWorkflow,
+          });
+
+          if (useKnowledgeWorkflowEntry) {
+            if (!isKnowledgeWorkflowAction(toolName)) {
+              throw new Error(
+                `Agent tool ${toolName} requires its authenticated runtime context`,
+              );
+            }
+            assertKnowledgeWorkflowScopeParameters(input, workflowContext);
+            const scopedContext =
+              toWorkflowToolExecutionContext(workflowContext);
+            const result = await this.executeToolWithActionOrigin(
+              toolName,
+              input,
+              scopedContext,
+            );
+            const nodeId = provenance.nodeId;
+            if (!nodeId) {
+              throw new Error('Knowledge workflow nodes require a node id');
+            }
+            return assertKnowledgeWorkflowSuccess(
+              attachKnowledgeWorkflowProvenance(
+                result,
+                workflowContext,
+                nodeId,
+              ),
+              toolName,
+            );
+          }
+
           if (!liveContext) {
             throw new Error(
               `Agent tool ${toolName} requires its authenticated runtime context`,

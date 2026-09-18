@@ -1,4 +1,5 @@
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
+import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
 import {
   extractSourceText,
   KNOWLEDGE_SOURCE_MAX_BYTES,
@@ -11,6 +12,7 @@ import {
   KNOWLEDGE_BASE_PURPOSE,
   KNOWLEDGE_SOURCE_CHUNK_KIND,
 } from '@api/collections/contexts/utils/knowledge-source.util';
+import { chunkTranscriptCues } from '@api/collections/contexts/utils/knowledge-transcript.util';
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -18,9 +20,14 @@ import {
   KnowledgeBaseCategory,
   KnowledgeMemoryScope,
   KnowledgeProcessingState,
+  KnowledgeRefreshRunOutcome,
+  KnowledgeRefreshRunStatus,
   KnowledgeRetentionState,
+  KnowledgeRetrievalState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  KnowledgeSourceSyncState,
+  KnowledgeTranscriptState,
 } from '@genfeedai/contracts';
 import type {
   KnowledgeSourceBackfillWorkflowInput,
@@ -28,7 +35,7 @@ import type {
   KnowledgeSourceIngestWorkflowInput,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 
 export type KnowledgeSourceIngestStatus =
   | 'completed'
@@ -56,14 +63,23 @@ export interface KnowledgeSourceIngestSource {
 export interface KnowledgeSourceIngestVersion {
   id: string;
   isCurrent: boolean;
+  isTranscriptGenerationAllowed?: boolean;
   referenceUrl?: string;
   text?: string;
+  transcriptUrl?: string;
   version: number;
 }
 
 export interface KnowledgeSourceIngestState {
   chunks?: string[];
-  extracted?: { mimeType?: string; text: string };
+  extracted?: {
+    endMs?: number;
+    mediaUrl?: string;
+    mimeType?: string;
+    startMs?: number;
+    text: string;
+  };
+  extractedCues?: Array<{ endMs: number; startMs: number; text: string }>;
   /** Safe reason recorded when the version cannot be ingested. */
   failure?: string;
   organizationId: string;
@@ -84,9 +100,12 @@ export const KNOWLEDGE_CONTEXT_BASE_TYPE = 'knowledge';
 const FETCHED_CATEGORY_BY_KIND: Partial<
   Record<KnowledgeSourceKind, KnowledgeBaseCategory>
 > = {
+  [KnowledgeSourceKind.AUDIO]: KnowledgeBaseCategory.AUDIO,
   [KnowledgeSourceKind.DOCUMENT]: KnowledgeBaseCategory.DOCUMENT,
   [KnowledgeSourceKind.FILE]: KnowledgeBaseCategory.DOCUMENT,
+  [KnowledgeSourceKind.RSS]: KnowledgeBaseCategory.RSS,
   [KnowledgeSourceKind.URL]: KnowledgeBaseCategory.URL,
+  [KnowledgeSourceKind.VIDEO]: KnowledgeBaseCategory.VIDEO,
 };
 
 export function isIngestibleKnowledgeSourceKind(
@@ -114,6 +133,14 @@ function readPayload(value: unknown): KnowledgeSourceCapturePayload {
       : {}),
     ...(typeof record.text === 'string' && record.text.trim()
       ? { text: record.text }
+      : typeof record.extractedText === 'string' && record.extractedText.trim()
+        ? { text: record.extractedText }
+        : {}),
+    ...(typeof record.transcriptUrl === 'string' && record.transcriptUrl
+      ? { transcriptUrl: record.transcriptUrl }
+      : {}),
+    ...(record.isTranscriptGenerationAllowed === true
+      ? { isTranscriptGenerationAllowed: true }
       : {}),
   };
 }
@@ -123,6 +150,7 @@ export class KnowledgeSourceIngestService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly contextsService: ContextsService,
+    @Optional() private readonly transcripts?: KnowledgeTranscriptIngestService,
   ) {}
 
   async loadSource(
@@ -156,9 +184,17 @@ export class KnowledgeSourceIngestService {
         },
       },
     });
+    const isRefreshCandidate = Boolean(
+      row &&
+        !row.isCurrent &&
+        row.retentionState === KnowledgeRetentionState.RETAINED &&
+        (row.processingState === KnowledgeProcessingState.QUEUED ||
+          row.processingState === KnowledgeProcessingState.PROCESSING),
+    );
     if (
-      !row?.isCurrent ||
-      row.retentionState !== KnowledgeRetentionState.RETAINED
+      !row ||
+      row.retentionState !== KnowledgeRetentionState.RETAINED ||
+      (!row.isCurrent && !isRefreshCandidate)
     ) {
       return base;
     }
@@ -253,6 +289,59 @@ export class KnowledgeSourceIngestService {
     if (!category || !state.version.referenceUrl) {
       throw new Error('Source is missing a reference URL');
     }
+    if (state.version.text) {
+      return {
+        ...state,
+        extracted: { mimeType: 'text/plain', text: state.version.text },
+      };
+    }
+    if (
+      (state.source.kind === KnowledgeSourceKind.AUDIO ||
+        state.source.kind === KnowledgeSourceKind.VIDEO) &&
+      this.transcripts
+    ) {
+      try {
+        const transcript = await this.transcripts.resolve({
+          kind: state.source.kind,
+          organizationId: state.organizationId,
+          payload: {
+            isTranscriptGenerationAllowed:
+              state.version.isTranscriptGenerationAllowed,
+            referenceUrl: state.version.referenceUrl,
+            transcriptUrl: state.version.transcriptUrl,
+          },
+          referenceUrl: state.version.referenceUrl,
+          sourceId: state.source.id,
+          userId: state.source.userId,
+          versionId: state.version.id,
+        });
+        return {
+          ...state,
+          extracted: {
+            mediaUrl: transcript.mediaUrl,
+            mimeType: transcript.mimeType,
+            text: transcript.text,
+          },
+          extractedCues: transcript.cues,
+        };
+      } catch (error: unknown) {
+        const transcriptState =
+          error &&
+          typeof error === 'object' &&
+          'transcriptState' in error &&
+          typeof error.transcriptState === 'string'
+            ? error.transcriptState
+            : KnowledgeTranscriptState.UNAVAILABLE;
+        await this.prisma.knowledgeSourceVersion.updateMany({
+          where: scopedWhere(state.organizationId, {
+            id: state.versionId,
+            sourceId: state.sourceId,
+          }),
+          data: { transcriptState },
+        });
+        throw error;
+      }
+    }
     const extracted = await extractSourceText({
       category,
       referenceUrl: state.version.referenceUrl,
@@ -262,6 +351,14 @@ export class KnowledgeSourceIngestService {
 
   chunkSource(state: KnowledgeSourceIngestState): KnowledgeSourceIngestState {
     if (!state.extracted) return state;
+    if (state.extractedCues && state.extractedCues.length > 0) {
+      const chunks = chunkTranscriptCues(state.extractedCues, chunkText);
+      return {
+        ...state,
+        chunks: chunks.map((chunk) => chunk.text),
+        extractedCues: chunks,
+      };
+    }
     return { ...state, chunks: chunkText(state.extracted.text) };
   }
 
@@ -279,6 +376,7 @@ export class KnowledgeSourceIngestService {
       sourceId: state.source.id,
     });
     for (const [chunkIndex, content] of state.chunks.entries()) {
+      const cue = state.extractedCues?.[chunkIndex];
       await this.contextsService.addEntry(
         contextBaseId,
         {
@@ -292,6 +390,14 @@ export class KnowledgeSourceIngestService {
             purpose: state.source.purpose,
             ...(state.version.referenceUrl
               ? { referenceUrl: state.version.referenceUrl }
+              : {}),
+            ...(cue
+              ? {
+                  endMs: cue.endMs,
+                  mediaUrl:
+                    state.extracted.mediaUrl ?? state.version.referenceUrl,
+                  startMs: cue.startMs,
+                }
               : {}),
             source: 'knowledge-source',
             sourceId: state.source.id,
@@ -344,12 +450,74 @@ export class KnowledgeSourceIngestService {
       };
     }
     await this.writeProcessingState(state, KnowledgeProcessingState.READY);
+    if (state.version && !state.version.isCurrent) {
+      await this.promoteRefreshCandidate(state);
+    }
     return {
       chunkCount: state.chunks?.length ?? 0,
       sourceId: state.sourceId,
       status: 'completed',
       versionId: state.versionId,
     };
+  }
+
+  private async promoteRefreshCandidate(
+    state: KnowledgeSourceIngestState,
+  ): Promise<void> {
+    const now = new Date();
+    await this.prisma.$transaction(async (tx) => {
+      await tx.knowledgeSourceVersion.updateMany({
+        where: {
+          id: { not: state.versionId },
+          isCurrent: true,
+          isDeleted: false,
+          organizationId: state.organizationId,
+          sourceId: state.sourceId,
+        },
+        data: {
+          isCurrent: false,
+          retrievalState: KnowledgeRetrievalState.SUPERSEDED,
+          supersededByVersionId: state.versionId,
+        },
+      });
+      await tx.knowledgeSourceVersion.updateMany({
+        where: scopedWhere(state.organizationId, {
+          id: state.versionId,
+          sourceId: state.sourceId,
+        }),
+        data: { isCurrent: true },
+      });
+      await tx.knowledgeSourceRefreshRun.updateMany({
+        where: scopedWhere(state.organizationId, {
+          candidateVersionId: state.versionId,
+          sourceId: state.sourceId,
+        }),
+        data: {
+          completedAt: now,
+          outcome: KnowledgeRefreshRunOutcome.CHANGED,
+          status: KnowledgeRefreshRunStatus.COMPLETED,
+        },
+      });
+      const source = await tx.knowledgeSource.findFirst({
+        where: scopedWhere(state.organizationId, { id: state.sourceId }),
+      });
+      const intervalMinutes =
+        source?.refreshIntervalMinutes ??
+        (source?.kind === KnowledgeSourceKind.RSS ? 60 : 1_440);
+      await tx.knowledgeSource.updateMany({
+        where: scopedWhere(state.organizationId, { id: state.sourceId }),
+        data: {
+          consecutiveFailures: 0,
+          firstFailureAt: null,
+          lastCheckedAt: now,
+          lastSuccessfulSyncAt: now,
+          lastSyncError: null,
+          nextCheckAt: new Date(now.getTime() + intervalMinutes * 60_000),
+          staleAt: null,
+          syncState: KnowledgeSourceSyncState.CURRENT,
+        },
+      });
+    });
   }
 
   async scanForBackfill(

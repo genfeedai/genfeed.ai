@@ -70,6 +70,7 @@ function buildHandler() {
       jobId: 'job-2',
       version: { ...version, processingState: KnowledgeProcessingState.QUEUED },
     }),
+    unscheduleRefresh: vi.fn().mockResolvedValue(undefined),
   };
   const contexts = {
     retrieveBrandContentMemory: vi.fn().mockResolvedValue([
@@ -212,9 +213,8 @@ describe('AgentKnowledgeToolHandler', () => {
     });
     expect(result.data).toMatchObject({ id: 'source-1', jobId: 'job-1' });
     expect(
-      (await handler.captureKnowledge({ kind: 'VIDEO', title: 'x' }, ctx))
-        .error,
-    ).toContain('TEXT, URL or DOCUMENT');
+      (await handler.captureKnowledge({ kind: 'FILE', title: 'x' }, ctx)).error,
+    ).toContain('TEXT, URL, DOCUMENT, RSS, AUDIO or VIDEO');
   });
 
   it('routes purpose changes, archive and retry to the records and capture services', async () => {

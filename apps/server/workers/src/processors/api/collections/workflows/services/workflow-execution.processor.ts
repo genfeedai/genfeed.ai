@@ -425,7 +425,7 @@ export class WorkflowExecutionProcessor extends WorkerHost {
       throw new Error('Scheduled fire job missing workflowId data');
     }
 
-    await this.schedulerService.executeScheduledWorkflow(workflowId);
+    await this.schedulerService.executeScheduledWorkflow(workflowId, job.id);
 
     this.logger.log(`${this.logContext} scheduled fire processed`, {
       jobId: job.id,

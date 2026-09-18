@@ -7,12 +7,21 @@ import type {
 } from '../interfaces/action-definition.interface';
 import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
 import { getExplicitActionContract } from './contracts/explicit-action-contracts';
+import { getKnowledgeToolActionContract } from './contracts/knowledge-tool-action-contracts';
 import {
   closeObjectSchemas,
   materializeJsonDocumentSchema,
 } from './contracts/schema-builders';
 import { TOOL_ACTION_OUTPUT_SCHEMA } from './contracts/tool-action-contract';
+import {
+  CURATED_ACTION_CATALOG,
+  isActionOnSurface,
+} from './curated-action-catalog';
 import { ALL_TOOLS } from './tool-registry';
+
+const CURATED_ACTIONS_BY_NAME = new Map(
+  CURATED_ACTION_CATALOG.map((entry) => [entry.name, entry]),
+);
 
 // Every tool action shares one materialized envelope: the recursive JSON
 // document marker has to become a real `$defs` reference before the engine
@@ -68,6 +77,11 @@ function internalAction(
 }
 
 function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
+  const catalogEntry = CURATED_ACTIONS_BY_NAME.get(tool.name);
+  const isWorkflowVisible = Boolean(
+    catalogEntry && isActionOnSurface(catalogEntry, 'workflow'),
+  );
+  const knowledgeContract = getKnowledgeToolActionContract(tool.name);
   return {
     approval: tool.mutationPolicy === 'approval-required' ? 'required' : 'none',
     authorization: tool.requiredRole,
@@ -83,8 +97,16 @@ function toolAction(tool: CanonicalToolDefinition): GenfeedActionDefinition {
       .split('_')
       .map((part) => `${part.charAt(0).toUpperCase()}${part.slice(1)}`)
       .join(' '),
-    outputSchema: MATERIALIZED_TOOL_ACTION_OUTPUT_SCHEMA,
-    visibility: 'tool',
+    outputSchema: knowledgeContract
+      ? materializeJsonDocumentSchema(knowledgeContract.outputSchema)
+      : MATERIALIZED_TOOL_ACTION_OUTPUT_SCHEMA,
+    visibility: isWorkflowVisible ? 'workflow' : 'tool',
+    ...(isWorkflowVisible
+      ? {
+          workflowCategory: 'input' as const,
+          workflowIcon: 'BookOpen',
+        }
+      : {}),
   };
 }
 

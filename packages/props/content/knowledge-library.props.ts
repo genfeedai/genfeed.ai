@@ -40,7 +40,12 @@ export interface KnowledgeSourceDetailSheetProps {
   onArchive: (source: KnowledgeSource) => Promise<void>;
   onClose: () => void;
   onMoveToSpace: (source: KnowledgeSource, spaceId: string) => Promise<void>;
+  onRefresh?: (source: KnowledgeSource) => Promise<void>;
   onRetry: (source: KnowledgeSource) => Promise<void>;
+  onUpdateRefreshPolicy?: (
+    source: KnowledgeSource,
+    policy: { isEnabled: boolean },
+  ) => Promise<void>;
   onUpdate: (
     source: KnowledgeSource,
     update: KnowledgeSourceUpdateRequest,

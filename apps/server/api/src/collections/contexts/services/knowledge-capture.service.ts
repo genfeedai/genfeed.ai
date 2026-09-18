@@ -3,6 +3,7 @@ import type { CreateKnowledgeSourceDto } from '@api/collections/contexts/dto/cre
 import type { CreateKnowledgeVersionDto } from '@api/collections/contexts/dto/create-knowledge-version.dto';
 import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowledge-actor.interface';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
+import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
 import { isIngestibleKnowledgeSourceKind } from '@api/collections/contexts/services/knowledge-source-ingest.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
 import {
@@ -44,13 +45,22 @@ export function hashKnowledgeContent(content: string): string {
 export function buildCaptureVersion(
   dto: Pick<
     CreateKnowledgeSourceDto,
-    'provenance' | 'referenceUrl' | 'text' | 'title'
+    | 'isTranscriptGenerationAllowed'
+    | 'provenance'
+    | 'referenceUrl'
+    | 'text'
+    | 'title'
+    | 'transcriptUrl'
   >,
   observedAt = new Date(),
 ): CreateKnowledgeVersionDto {
   const payload: KnowledgeSourceCapturePayload = {
     ...(dto.referenceUrl ? { referenceUrl: dto.referenceUrl } : {}),
     ...(dto.text ? { text: dto.text } : {}),
+    ...(dto.transcriptUrl ? { transcriptUrl: dto.transcriptUrl } : {}),
+    ...(dto.isTranscriptGenerationAllowed
+      ? { isTranscriptGenerationAllowed: true }
+      : {}),
   };
   const provenance: KnowledgeSourceCaptureProvenance = {
     capturedAt: observedAt.toISOString(),
@@ -77,6 +87,7 @@ export class KnowledgeCaptureService {
   constructor(
     private readonly records: KnowledgeRecordsService,
     private readonly ingestWorkflow: KnowledgeSourceIngestWorkflowService,
+    private readonly refresh: KnowledgeRefreshService,
   ) {}
 
   async capture(
@@ -84,6 +95,9 @@ export class KnowledgeCaptureService {
     dto: CreateKnowledgeSourceDto,
     idempotencyKey?: string,
   ): Promise<KnowledgeCaptureResult> {
+    if (dto.sourceId) {
+      return this.refreshExisting(actor, dto.sourceId);
+    }
     const hasPayload = Boolean(dto.text || dto.referenceUrl);
     if (hasPayload) {
       this.assertCapturable(dto.kind, dto);
@@ -135,6 +149,62 @@ export class KnowledgeCaptureService {
       buildCaptureVersion(dto),
     );
     return { jobId: ingested.jobId, source, version: ingested.version };
+  }
+
+  async unscheduleRefresh(
+    actor: KnowledgeActor,
+    sourceId: string,
+  ): Promise<void> {
+    await this.refresh.unscheduleSource(actor, sourceId);
+  }
+
+  async refreshExisting(
+    actor: KnowledgeActor,
+    sourceId: string,
+    _provenance?: KnowledgeSourceCaptureProvenance,
+    tickKey?: string,
+  ): Promise<KnowledgeCaptureResult> {
+    const source = await this.records.getSource(actor, sourceId);
+    const kind =
+      source.kind === KnowledgeSourceKind.RSS
+        ? KnowledgeSourceKind.RSS
+        : source.kind === KnowledgeSourceKind.URL
+          ? KnowledgeSourceKind.URL
+          : null;
+    if (!kind) {
+      throw new BadRequestException(
+        'Refresh capture is only supported for URL and RSS sources',
+      );
+    }
+    const current = await this.records.getCurrentVersion(actor, sourceId);
+    const payload =
+      current.payload &&
+      typeof current.payload === 'object' &&
+      !Array.isArray(current.payload)
+        ? (current.payload as KnowledgeSourceCapturePayload)
+        : {};
+    const referenceUrl = payload.referenceUrl;
+    if (!referenceUrl) {
+      throw new BadRequestException(
+        'Source has no captured reference URL to refresh',
+      );
+    }
+    this.assertCapturable(kind, { referenceUrl });
+    const resolvedTickKey = tickKey ?? `manual:${sourceId}:${Date.now()}`;
+    const refreshed = await this.refresh.refresh(
+      actor,
+      sourceId,
+      resolvedTickKey,
+      { force: !tickKey },
+    );
+    const version = await this.records
+      .getCurrentVersion(actor, sourceId)
+      .catch(() => undefined);
+    return {
+      jobId: refreshed.jobId,
+      source,
+      version,
+    };
   }
 
   async createVersion(

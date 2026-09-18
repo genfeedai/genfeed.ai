@@ -1297,6 +1297,15 @@
         "modeText": "Paste text",
         "modeUrl": "Web page URL",
         "modeDocument": "PDF or document URL",
+        "modeRss": "RSS or Atom feed",
+        "modeAudio": "Audio URL",
+        "modeVideo": "Video URL",
+        "rssUrl": "Feed URL",
+        "audioUrl": "Audio URL",
+        "videoUrl": "Video URL",
+        "transcriptUrl": "Caption file URL (optional)",
+        "generateTranscript": "Generate transcript (1 credit)",
+        "generateTranscriptHint": "Uses one credit when the page has no captions. Disabled sources fail instead of generating.",
         "sourceType": "Source type",
         "titleLabel": "Title",
         "titlePlaceholder": "Pricing page",
@@ -1322,7 +1331,12 @@
         "addToSpace": "Add to space",
         "retry": "Retry ingestion",
         "archive": "Archive",
-        "inbox": "Inbox"
+        "inbox": "Inbox",
+        "sync": "Sync {state}",
+        "notChecked": "Not checked",
+        "transcript": "Transcript {state}",
+        "refreshEnabled": "Scheduled refresh",
+        "refreshNow": "Check now"
       },
       "list": {
         "source": "Source",
@@ -1335,7 +1349,7 @@
         "retry": "Retry",
         "retryIngestion": "Retry ingestion",
         "emptyTitle": "No knowledge sources yet",
-        "emptyDescription": "Add a web page, a document or pasted text and Genfeed will cite it in generations.",
+        "emptyDescription": "Add a web page, feed, media, document or pasted text and Genfeed will cite it in generations.",
         "loadError": "Knowledge could not be loaded.",
         "retrySuccess": "Ingestion requeued",
         "retryError": "Failed to retry ingestion",
@@ -1344,7 +1358,9 @@
         "archiveError": "Failed to archive source",
         "moveError": "Failed to move source",
         "addSuccess": "Source added; ingestion started",
-        "addError": "Failed to add source"
+        "addError": "Failed to add source",
+        "refreshSuccess": "Refresh queued",
+        "refreshError": "Failed to refresh source"
       },
       "picker": {
         "label": "Knowledge",

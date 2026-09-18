@@ -7,6 +7,8 @@ import type {
   KnowledgeRetrievalState,
   KnowledgeSourceKind,
   KnowledgeSourcePurpose,
+  KnowledgeSourceSyncState,
+  KnowledgeTranscriptState,
 } from '@genfeedai/contracts';
 import type {
   KnowledgeSourceRecord,
@@ -27,6 +29,20 @@ export class KnowledgeSource
   declare public kind: KnowledgeSourceKind;
   declare public purpose: KnowledgeSourcePurpose;
   declare public isVisible: boolean;
+  declare public mediaReferenceKey: string | null;
+  declare public isRefreshEnabled: boolean;
+  declare public refreshIntervalMinutes: number | null;
+  declare public gracePeriodMinutes: number | null;
+  declare public refreshWorkflowId: string | null;
+  declare public referenceUrl: string | null;
+  declare public syncState: KnowledgeSourceSyncState | null;
+  declare public lastCheckedAt: string | null;
+  declare public lastSuccessfulSyncAt: string | null;
+  declare public nextCheckAt: string | null;
+  declare public firstFailureAt: string | null;
+  declare public consecutiveFailures: number;
+  declare public staleAt: string | null;
+  declare public lastSyncError: string | null;
 
   constructor(data: Partial<KnowledgeSourceRecord> = {}) {
     super(data);
@@ -55,6 +71,7 @@ export class KnowledgeSourceVersion
   declare public purgedAt: string | null;
   declare public supersededByVersionId: string | null;
   declare public isCurrent: boolean;
+  declare public transcriptState: KnowledgeTranscriptState | null;
 
   constructor(data: Partial<KnowledgeSourceVersionRecord> = {}) {
     super(data);
