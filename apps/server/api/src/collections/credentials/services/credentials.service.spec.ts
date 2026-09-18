@@ -1215,6 +1215,35 @@ describe('CredentialsService', () => {
       ).toBe('reconnect-credential-1');
     });
 
+    it('reuses a pending connection id instead of creating another credential', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        brandId,
+        id: 'pending-1',
+        isConnected: false,
+        organizationId: orgId,
+        platform: 'TWITTER',
+        userId: 'u1',
+      });
+      prisma.credential.update.mockResolvedValue({
+        brandId,
+        id: 'pending-1',
+        isConnected: false,
+        oauthState: 'new-state',
+      });
+
+      const result = await service.beginOAuthForBrand(
+        { id: brandId, organizationId: orgId },
+        'u1',
+        CredentialPlatform.TWITTER,
+        { isConnected: false },
+        'pending-1',
+      );
+
+      expect(prisma.credential.create).not.toHaveBeenCalled();
+      expect(result.credential.id).toBe('pending-1');
+      expect(result.state).toMatch(/^[A-Za-z0-9_-]{43}$/);
+    });
+
     it('omits the intent entirely when no reconnect credential is given', async () => {
       await service.beginOAuthForBrand(
         { id: brandId, organizationId: orgId },
@@ -1266,6 +1295,7 @@ describe('CredentialsService', () => {
 
       expect(prisma.credential.findFirst).toHaveBeenCalledWith({
         where: {
+          isConnected: false,
           isDeleted: false,
           oauthState: 'opaque-state',
           organizationId: orgId,
@@ -1284,6 +1314,25 @@ describe('CredentialsService', () => {
         service.findPendingOAuthCredential('  ', 'twitter' as never, {
           organizationId: orgId,
         }),
+      ).resolves.toBeNull();
+
+      expect(prisma.credential.findFirst).not.toHaveBeenCalled();
+    });
+
+    it('rejects reserved denied/failed sentinels so they cannot resume OAuth', async () => {
+      await expect(
+        service.findPendingOAuthCredential('denied', 'twitter' as never, {
+          organizationId: orgId,
+        }),
+      ).resolves.toBeNull();
+      await expect(
+        service.findPendingOAuthCredential(
+          'failed',
+          CredentialPlatform.FACEBOOK,
+          {
+            organizationId: orgId,
+          },
+        ),
       ).resolves.toBeNull();
 
       expect(prisma.credential.findFirst).not.toHaveBeenCalled();

@@ -162,6 +162,7 @@ describe('TwitterController', () => {
         'test-object-id',
         'twitter',
         { isConnected: false },
+        undefined,
       );
       expect(mockGenerateOAuth2AuthLink).toHaveBeenCalledWith('test-val', {
         scope: [
@@ -301,6 +302,28 @@ describe('TwitterController', () => {
       });
 
       expect(result.data).toEqual({ id: 'cred', isConnected: true });
+    });
+
+    it('persists access_denied onto the pending credential', async () => {
+      mockCredentialsService.findPendingOAuthCredential.mockResolvedValue({
+        id: 'cred',
+        isConnected: false,
+      });
+
+      await expect(
+        controller.verify({} as Request, {
+          error: 'access_denied',
+          state: 'opaque-oauth-state',
+        }),
+      ).rejects.toBeInstanceOf(HttpException);
+
+      expect(
+        mockCredentialsService.findPendingOAuthCredential,
+      ).toHaveBeenCalledWith('opaque-oauth-state', 'twitter');
+      expect(mockCredentialsService.patch).toHaveBeenCalledWith('cred', {
+        oauthState: 'denied',
+      });
+      expect(mockLoginWithOAuth2).not.toHaveBeenCalled();
     });
 
     it('should throw BAD_REQUEST when code or state is missing', async () => {

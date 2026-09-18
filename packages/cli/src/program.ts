@@ -5,6 +5,7 @@ import { batchCommand } from '@/commands/batch';
 import { brandsCommand } from '@/commands/brands';
 import { chatCommand } from '@/commands/chat';
 import { configCommand } from '@/commands/config';
+import { connectCommand } from '@/commands/connect';
 import { creditsCommand } from '@/commands/credits';
 import { generateCommand } from '@/commands/generate/index';
 import { insightsCommand } from '@/commands/insights';
@@ -73,6 +74,7 @@ export function createProgram(): Command {
     .addCommand(scheduleCommand)
     .addCommand(performanceCommand)
     .addCommand(postsCommand)
+    .addCommand(connectCommand)
     .addCommand(configCommand)
     .addCommand(toolsCommand);
 }

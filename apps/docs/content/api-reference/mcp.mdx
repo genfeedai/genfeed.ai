@@ -103,6 +103,26 @@ configuration. Codex reads the named environment variable. Do not paste credenti
 into chats, commits, or shared logs. Inspect and update an existing Genfeed server
 entry before switching authentication methods; preserve unrelated servers.
 
+## Social accounts, brand scope, and media
+
+Use `list_brands` then pass `brandId` into generation and connection tools. Genfeed
+does not silently pick the first organization brand.
+
+`connect_social_account` returns a `connectionId` and a browser authorization URL.
+Poll `get_connection_status` with that id. Provider denial or failure is stored
+on that row immediately (`denied` / `failed`); do not wait for the 15-minute
+expiry. Replay the same id after a client restart; it does not create another
+credential.
+
+`generate_image` returns structured artifact metadata plus a native image part when
+the client supports it, with a text fallback. Video results are downloadable files
+or open links — they do not claim inline playback. `selectedContext` is task-only
+and is not saved as Knowledge.
+
+The CLI equivalents are `gf connect <platform>`, `gf gen image --brand --context`,
+and `gf status <id>`. Client evidence lives in the repository file
+`docs/external-agent-content-journey.md`.
+
 ## Tools
 
 Each call uses the permissions on the authorized token or manual key.

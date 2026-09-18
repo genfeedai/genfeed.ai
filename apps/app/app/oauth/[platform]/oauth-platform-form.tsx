@@ -32,6 +32,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const translate = useTranslations('common.oauth.platformCallback');
   const searchParams = useSearchParams();
   const code = searchParams.get('code');
+  const providerError = searchParams.get('error');
   const oauthToken = searchParams.get('oauth_token');
   const oauthVerifier = searchParams.get('oauth_verifier');
   const returnToParam = searchParams.get('return_to');
@@ -103,10 +104,15 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
               oauthToken,
               oauthVerifier,
             }
-          : {
-              code,
-              state,
-            };
+          : providerError
+            ? {
+                error: providerError,
+                state,
+              }
+            : {
+                code,
+                state,
+              };
 
         callbackSubmitted = true;
         const credential = await service.postVerify(body);
@@ -126,10 +132,14 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
         completeSuccess();
       } catch (error) {
         logger.error(`${url} failed`, error);
+        const denied =
+          providerError === 'access_denied' || providerError === 'user_denied';
         setResult({
           canRetry: !callbackSubmitted,
           status: 'error',
-          errorMessage: translate('error.description'),
+          errorMessage: providerError
+            ? translate(denied ? 'error.denied' : 'error.failed')
+            : translate('error.description'),
         });
       }
     },
@@ -140,6 +150,7 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
       oauthToken,
       oauthVerifier,
       platform,
+      providerError,
       state,
       translate,
     ],

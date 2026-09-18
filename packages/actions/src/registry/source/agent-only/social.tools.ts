@@ -148,10 +148,19 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Start connecting a social account and return a connect button for the user.',
+      'Start connecting a social account and return a durable connection request plus a connect button.',
     name: 'initiate_oauth_connect',
     parameters: {
       properties: {
+        brandId: {
+          description:
+            'Brand to attach the account to. Required when the organization has more than one brand.',
+          type: 'string',
+        },
+        connectionId: {
+          description: 'Existing connection request to replay.',
+          type: 'string',
+        },
         platform: {
           description: 'Platform to connect',
           enum: [
@@ -185,10 +194,20 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Ask the user to connect a social account with a connect button for that platform.',
+      'Start a resumable social-account connection. Returns a connectionId and browser authorization URL. Poll get_connection_status until authorized.',
     name: 'connect_social_account',
     parameters: {
       properties: {
+        brandId: {
+          description:
+            'Brand to attach the account to. Required when the organization has more than one brand.',
+          type: 'string',
+        },
+        connectionId: {
+          description:
+            'Existing connection request to replay without creating another credential.',
+          type: 'string',
+        },
         platform: {
           description: 'Platform to connect',
           enum: [

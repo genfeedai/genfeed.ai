@@ -37,10 +37,15 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Get connection status for a social platform (connected/disconnected) for the current organization.',
+      'Get connection status for a social platform or a durable connection request id. Safe to poll.',
     name: 'get_connection_status',
     parameters: {
       properties: {
+        connectionId: {
+          description:
+            'Durable connection request id from connect_social_account.',
+          type: 'string',
+        },
         platform: {
           description: 'Platform name to check',
           enum: [
@@ -55,7 +60,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
           type: 'string',
         },
       },
-      required: ['platform'],
+      required: [],
       type: 'object',
     },
     requiredRole: 'user',

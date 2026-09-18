@@ -1917,6 +1917,18 @@
     "verifyConnection": "Verify MCP connection",
     "verifyInClient": "Verify in client"
   },
+  "connectSocial": {
+    "authorize": "Authorize account",
+    "connecting": "Opening provider…",
+    "description": "Authorize this publishing account in your browser, then return to the agent or CLI that started the connection.",
+    "failed": "Could not start provider authorization.",
+    "failedTitle": "Connection failed",
+    "missingAuth": "Sign in before connecting an account.",
+    "missingScope": "A brand and platform are required to continue.",
+    "platformLabel": "Platform",
+    "returnHint": "After you approve access, return to your original client. The pending task resumes from this connection id.",
+    "title": "Connect a publishing account"
+  },
   "agentFailures": {
     "title": "Agent Failures",
     "description": "Failed agent runs across all organizations, with recovery guidance.",

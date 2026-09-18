@@ -8,6 +8,10 @@ import {
 } from '@genfeedai/actions';
 import { formatAgentError } from '@genfeedai/agent/server';
 import { type AgentToolResult } from '@genfeedai/contracts/interfaces';
+import {
+  serializeMediaArtifact,
+  toMcpMediaToolResult,
+} from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
@@ -545,6 +549,9 @@ export class ToolRegistryService implements OnModuleInit {
     }
 
     const payload = result.data ?? {};
+    if (serializeMediaArtifact(payload)) {
+      return toMcpMediaToolResult(payload);
+    }
     return {
       content: [
         {

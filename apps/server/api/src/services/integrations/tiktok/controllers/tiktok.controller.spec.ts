@@ -174,6 +174,7 @@ describe('TiktokController', () => {
         userId,
         'tiktok',
         expect.objectContaining({ isConnected: false }),
+        undefined,
       );
     });
 

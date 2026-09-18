@@ -199,6 +199,7 @@ describe('YoutubeController', () => {
         userId,
         'youtube',
         { isConnected: false },
+        undefined,
       );
     });
 

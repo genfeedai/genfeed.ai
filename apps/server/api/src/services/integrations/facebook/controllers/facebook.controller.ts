@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -78,6 +79,7 @@ export class FacebookController {
       {
         isConnected: false,
       },
+      createCredentialDto.credentialId,
     );
 
     const authUrl = this.facebookService.generateAuthUrl(state);
@@ -96,6 +98,12 @@ export class FacebookController {
     this.loggerService.log(`${url} started`);
 
     try {
+      await throwIfOAuthCallbackError(
+        this.credentialsService,
+        body,
+        CredentialPlatform.FACEBOOK,
+      );
+
       if (!body.code || !body.state) {
         throw new HttpException(
           {

@@ -236,6 +236,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           description: 'Aspect ratio of the generated image',
           type: 'string',
         },
+        brandId: {
+          description:
+            'Brand that owns this generation. Required when the organization has more than one brand.',
+          type: 'string',
+        },
         characterHandles: {
           description:
             'Brand character handles resolved into reference images. Max 4; unresolvable handles fail the call.',
@@ -259,6 +264,29 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           items: { type: 'string' },
           maxItems: 8,
           type: 'array',
+        },
+        selectedContext: {
+          description:
+            'Transient task context for this generation only. Not saved as Knowledge unless capture_knowledge is used.',
+          properties: {
+            persist: {
+              description:
+                'Must stay false. Persistent save is a separate action.',
+              type: 'boolean',
+            },
+            sourceIds: {
+              description:
+                'Authorized Knowledge source ids to apply to this task.',
+              items: { type: 'string' },
+              maxItems: 8,
+              type: 'array',
+            },
+            text: {
+              description: 'Task-only context text. Max 8000 characters.',
+              type: 'string',
+            },
+          },
+          type: 'object',
         },
         quality: {
           default: 'standard',
@@ -364,6 +392,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           enum: ['16:9', '9:16', '1:1'],
           type: 'string',
         },
+        brandId: {
+          description:
+            'Brand that owns this generation. Required when the organization has more than one brand.',
+          type: 'string',
+        },
         audioUrl: {
           description:
             'Audio URL for avatar generation; with imageUrl, lip-syncs via Kling Avatar V2.',
@@ -397,6 +430,29 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         prompt: {
           description: 'Description of the video to generate',
           type: 'string',
+        },
+        selectedContext: {
+          description:
+            'Transient task context for this generation only. Not saved as Knowledge unless capture_knowledge is used.',
+          properties: {
+            persist: {
+              description:
+                'Must stay false. Persistent save is a separate action.',
+              type: 'boolean',
+            },
+            sourceIds: {
+              description:
+                'Authorized Knowledge source ids to apply to this task.',
+              items: { type: 'string' },
+              maxItems: 8,
+              type: 'array',
+            },
+            text: {
+              description: 'Task-only context text. Max 8000 characters.',
+              type: 'string',
+            },
+          },
+          type: 'object',
         },
         references: {
           description:

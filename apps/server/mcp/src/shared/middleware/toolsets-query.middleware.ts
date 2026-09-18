@@ -12,7 +12,7 @@ const MAX_ECHOED_UNKNOWN_TOOLSETS = 5;
 
 /**
  * Parse `req.query.toolsets` into a validated selection scoped to the `mcp`
- * surface, so an agent-only toolset name (e.g. `onboarding`) is rejected the
+ * surface, so an agent-only toolset name (e.g. `goals`) is rejected the
  * same way as a name that does not exist at all. Exported standalone (not
  * just embedded in the middleware) so both the raw `/mcp` transport
  * (`main.ts`) and the REST mirror (`GET /v1/tools`) resolve the same

@@ -68,7 +68,7 @@ export const CURATED_ACTION_CATALOG = [
   },
   {
     name: 'connect_social_account',
-    surfaces: ['agent'],
+    surfaces: ['agent', 'mcp'],
     toolset: 'onboarding',
   },
   {
@@ -180,7 +180,11 @@ export const CURATED_ACTION_CATALOG = [
   },
   { name: 'get_clip_highlights', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'get_clip_project', surfaces: ['mcp'], toolset: 'clips' },
-  { name: 'get_connection_status', surfaces: ['agent'], toolset: 'onboarding' },
+  {
+    name: 'get_connection_status',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'onboarding',
+  },
   { name: 'get_content_analytics', surfaces: ['mcp'], toolset: 'analytics' },
   {
     name: 'get_content_calendar',
@@ -255,7 +259,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'ingest_source_media', surfaces: ['agent'], toolset: 'ui' },
   {
     name: 'initiate_oauth_connect',
-    surfaces: ['agent'],
+    surfaces: ['agent', 'mcp'],
     toolset: 'onboarding',
   },
   {

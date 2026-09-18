@@ -57,7 +57,7 @@ class TestIntegrationController extends BaseIntegrationController {
   // Expose protected methods for testing
   async testHandleConnect(
     user: User,
-    dto: { brandId?: string },
+    dto: { brandId?: string; credentialId?: string },
   ): Promise<OAuthUrlResult> {
     return this.handleConnect(user, dto as never);
   }
@@ -284,6 +284,21 @@ describe('BaseIntegrationController', () => {
           oauthTokenSecret: 'request-secret',
         }),
       );
+    });
+
+    it('resumes a pending connection id without creating another credential', async () => {
+      credentialsService.findOne.mockResolvedValue({
+        brandId: brandId.toString(),
+        id: 'cred-pending',
+        isConnected: false,
+      });
+
+      await controller.testHandleConnect(mockUser, {
+        brandId: brandId.toString(),
+        credentialId: 'cred-pending',
+      });
+
+      expect(credentialsService.createPendingForBrand).not.toHaveBeenCalled();
     });
 
     it('should throw BAD_REQUEST when brand ID is missing', async () => {

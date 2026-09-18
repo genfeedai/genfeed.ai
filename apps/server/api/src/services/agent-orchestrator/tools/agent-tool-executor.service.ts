@@ -142,6 +142,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'analyze_performance',
   'check_goal_progress',
   'check_onboarding_status',
+  'connect_social_account',
   'create_brand',
   'get_ad_research_detail',
   'get_analytics',
@@ -173,6 +174,7 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'request_input',
   'present_work_object',
   'ingest_source_media',
+  'initiate_oauth_connect',
   'resolve_handle',
   'suggest_next_steps',
   'transfer_agent_conversation',
@@ -659,7 +661,7 @@ export class AgentToolExecutorService implements OnModuleInit {
         return this.onboardingHandler.completeOnboarding(ctx);
 
       case 'connect_social_account':
-        return this.onboardingHandler.connectSocialAccount(params, ctx);
+        return this.connectionHandler.connectSocialAccount(params, ctx);
 
       case 'generate_onboarding_content':
         return this.onboardingHandler.generateOnboardingContent(params, ctx);

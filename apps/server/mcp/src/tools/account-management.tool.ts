@@ -1,4 +1,11 @@
+import type { McpMediaToolResult } from '@genfeedai/contracts/interfaces';
+import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import type { ClientService } from '@mcp/services/client.service';
+
+type AccountManagementToolResult = {
+  content: McpMediaToolResult['content'];
+  structuredContent?: McpMediaToolResult['structuredContent'];
+};
 
 export function handleAccountManagementTool(
   client: ClientService,
@@ -7,9 +14,7 @@ export function handleAccountManagementTool(
 ) {
   const handlers: Record<
     string,
-    (args: Record<string, unknown>) => Promise<{
-      content: Array<{ text: string; type: 'text' }>;
-    }>
+    (args: Record<string, unknown>) => Promise<AccountManagementToolResult>
   > = {
     get_account_info: async () => {
       const info = await client.getAccountInfo();
@@ -22,9 +27,45 @@ export function handleAccountManagementTool(
         ],
       };
     },
-    get_brand: async () => {
+    get_brand: async (a) => {
       const brands = await client.listBrands();
-      const brand = Array.isArray(brands) ? brands[0] : brands;
+      const brandList = Array.isArray(brands) ? brands : brands ? [brands] : [];
+      const requestedId =
+        typeof a.brandId === 'string' && a.brandId.trim().length > 0
+          ? a.brandId.trim()
+          : undefined;
+      if (requestedId) {
+        const brand = brandList.find(
+          (entry) =>
+            entry &&
+            typeof entry === 'object' &&
+            'id' in entry &&
+            String((entry as { id?: unknown }).id) === requestedId,
+        );
+        return {
+          content: [
+            {
+              text: brand
+                ? `Selected Brand:\n\n${JSON.stringify(brand, null, 2)}`
+                : 'Brand was not found in this organization.',
+              type: 'text' as const,
+            },
+          ],
+        };
+      }
+      if (brandList.length > 1) {
+        return {
+          content: [
+            {
+              text:
+                'Select a brand before continuing. Pass brandId from list_brands; the first organization brand is not used automatically.\n\n' +
+                JSON.stringify(brandList, null, 2),
+              type: 'text' as const,
+            },
+          ],
+        };
+      }
+      const brand = brandList[0];
       return {
         content: [
           {
@@ -38,13 +79,20 @@ export function handleAccountManagementTool(
     },
     get_job_status: async (a) => {
       const status = await client.getJobStatus(a.jobId as string);
+      const artifact = toMcpMediaToolResult(status);
+      const statusText =
+        artifact.content[0]?.type === 'text'
+          ? artifact.content[0].text
+          : JSON.stringify(status, null, 2);
       return {
         content: [
           {
-            text: `Job Status:\n\n${JSON.stringify(status, null, 2)}`,
+            text: `Job Status:\n\n${statusText}`,
             type: 'text' as const,
           },
+          ...artifact.content.slice(1),
         ],
+        structuredContent: artifact.structuredContent,
       };
     },
     list_brands: async () => {

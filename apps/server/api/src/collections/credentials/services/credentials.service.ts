@@ -26,6 +26,7 @@ import {
   fromPrismaCredentialPlatform,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integrations/external-connection-request.helper';
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -36,17 +37,7 @@ function hashOAuthRequestToken(token: string): string {
   return createHash('sha256').update(token).digest('hex');
 }
 
-/**
- * Reconnect intent (the existing credential a fresh OAuth attempt should
- * settle back into) is carried on the pending credential's own
- * `warmupSignals` JSON column under this key, never in the OAuth `state`
- * parameter. `state` round-trips through the provider's authorization URL,
- * browser history, and referrer headers — embedding a credential id in it
- * would leak that internal identifier to the provider and to anything that
- * can read those. `warmupSignals` is already a free-form per-credential JSON
- * bag with several independent top-level keys (see `mergeWarmupSignals`), so
- * this reuses an existing column instead of adding one.
- */
+/** Reconnect intent lives on warmupSignals, never in the OAuth state nonce. */
 const OAUTH_CONNECT_INTENT_STORAGE_KEY = 'oauthConnectIntent';
 
 function readPlainRecord(value: unknown): Record<string, unknown> {
@@ -531,6 +522,34 @@ export class CredentialsService
     reconnectCredentialId?: string,
   ): Promise<{ credential: CredentialDocument; state: string }> {
     const state = randomBytes(32).toString('base64url');
+    const brandId = requireCredentialRelationId(brand.id, 'brandId');
+    const organizationId = requireCredentialRelationId(
+      brand.organizationId,
+      'organizationId',
+    );
+    const credentialUserId = requireCredentialRelationId(userId, 'userId');
+
+    if (reconnectCredentialId) {
+      const existing = await this.findOne({
+        brandId,
+        id: reconnectCredentialId,
+        isDeleted: false,
+        organizationId,
+        platform,
+        userId: credentialUserId,
+      });
+      if (existing && !existing.isConnected) {
+        await this.patch(existing.id, {
+          ...fields,
+          oauthState: state,
+        });
+        return {
+          credential: { ...existing, oauthState: state },
+          state,
+        };
+      }
+    }
+
     const credential = await this.createPendingForBrand(
       brand,
       userId,
@@ -594,11 +613,16 @@ export class CredentialsService
     platform: CredentialPlatform,
     scope?: Partial<OAuthCredentialScope>,
   ): Promise<PendingOAuthCredential | null> {
-    if (typeof state !== 'string' || !state.trim()) {
+    if (
+      typeof state !== 'string' ||
+      !state.trim() ||
+      isReservedExternalConnectionOAuthState(state)
+    ) {
       return null;
     }
 
     const credential = await this.findOne({
+      isConnected: false,
       oauthState: state,
       platform,
       updatedAt: { gte: new Date(Date.now() - OAUTH_STATE_TTL_MS) },

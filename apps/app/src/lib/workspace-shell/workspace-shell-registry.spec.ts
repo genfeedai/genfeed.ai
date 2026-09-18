@@ -465,6 +465,13 @@ describe('workspace shell trusted registry', () => {
       scope: 'organization',
       surfaceKey: 'connect-genfeed',
     });
+    expect(resolveWorkspaceShellRoute('/acme/~/connect/social')).toMatchObject({
+      accessPolicy: 'organization-member',
+      canonicalUrl: '/:orgSlug/~/connect/social',
+      safeFallback: '/:orgSlug/~/connect/social',
+      scope: 'organization',
+      surfaceKey: 'connect-social',
+    });
   });
 
   it('does not treat reserved application prefixes as scoped routes', () => {

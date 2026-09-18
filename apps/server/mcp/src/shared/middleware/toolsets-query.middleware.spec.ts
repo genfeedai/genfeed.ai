@@ -46,15 +46,15 @@ describe('resolveRequestToolsets', () => {
   });
 
   it('rejects an agent-only toolset name on the mcp surface', () => {
-    // `onboarding` is a real declared toolset name (isToolsetName is true),
+    // `goals` is a real declared toolset name (isToolsetName is true),
     // but it has no tools on the `mcp` surface — resolveRequestToolsets must
     // scope validity to `mcp` (parseToolsetSelection(raw, 'mcp')) so this is
     // rejected the same way a made-up name would be, instead of silently
     // resolving to "core only".
-    const selection = resolveRequestToolsets({ toolsets: 'onboarding' });
+    const selection = resolveRequestToolsets({ toolsets: 'goals' });
 
     expect(selection.toolsets).toEqual([]);
-    expect(selection.unknown).toEqual(['onboarding']);
+    expect(selection.unknown).toEqual(['goals']);
   });
 });
 

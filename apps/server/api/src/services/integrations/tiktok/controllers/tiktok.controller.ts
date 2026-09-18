@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { throwIfOAuthCallbackError } from '@api/collections/credentials/utils/oauth-callback-error.util';
 import { SocialSourceHistoryImportService } from '@api/collections/social-sources/services/social-source-history-import.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -97,6 +98,7 @@ export class TiktokController {
         oauthToken: undefined,
         oauthTokenSecret: undefined,
       },
+      createCredentialDto.credentialId,
     );
 
     const clientKey = this.configService.get('TIKTOK_CLIENT_KEY');
@@ -122,6 +124,12 @@ export class TiktokController {
     this.loggerService.log(url, createCredentialVerifyDto);
 
     try {
+      await throwIfOAuthCallbackError(
+        this.credentialsService,
+        createCredentialVerifyDto,
+        CredentialPlatform.TIKTOK,
+      );
+
       const { code, state } = createCredentialVerifyDto;
 
       if (!code || !state) {

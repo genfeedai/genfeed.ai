@@ -24,6 +24,15 @@ export class CreateCredentialVerifyDto {
 
   @IsString()
   @IsOptional()
+  @ApiProperty({
+    description:
+      'Provider OAuth error code from the callback (for example access_denied).',
+    required: false,
+  })
+  readonly error?: string;
+
+  @IsString()
+  @IsOptional()
   @ApiProperty({ required: false })
   readonly oauthToken?: string;
 

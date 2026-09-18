@@ -1,5 +1,13 @@
+import type { McpMediaContentPart } from '@genfeedai/contracts/interfaces';
 import type { ClientService } from '@mcp/services/client.service';
 import { handleAccountManagementTool } from '@mcp/tools/account-management.tool';
+
+function textOf(part: McpMediaContentPart | undefined): string {
+  if (part?.type !== 'text') {
+    throw new Error('expected a text content part');
+  }
+  return part.text;
+}
 
 function buildClient() {
   return {
@@ -35,8 +43,8 @@ describe('handleAccountManagementTool', () => {
     const result = await call(client, 'get_account_info', {});
 
     expect(client.getAccountInfo).toHaveBeenCalled();
-    expect(result.content[0].text).toContain('Account Info');
-    expect(result.content[0].text).toContain('owner@example.com');
+    expect(textOf(result.content[0])).toContain('Account Info');
+    expect(textOf(result.content[0])).toContain('owner@example.com');
   });
 
   it('reports the job status for a job id', async () => {
@@ -45,8 +53,8 @@ describe('handleAccountManagementTool', () => {
     const result = await call(client, 'get_job_status', { jobId: 'job-1' });
 
     expect(client.getJobStatus).toHaveBeenCalledWith('job-1');
-    expect(result.content[0].text).toContain('Job Status');
-    expect(result.content[0].text).toContain('COMPLETED');
+    expect(textOf(result.content[0])).toContain('Job Status');
+    expect(textOf(result.content[0])).toContain('COMPLETED');
   });
 
   it('lists every brand', async () => {
@@ -54,8 +62,8 @@ describe('handleAccountManagementTool', () => {
 
     const result = await call(client, 'list_brands', {});
 
-    expect(result.content[0].text).toContain('Found 2 brands');
-    expect(result.content[0].text).toContain('brand-2');
+    expect(textOf(result.content[0])).toContain('Found 2 brands');
+    expect(textOf(result.content[0])).toContain('brand-2');
   });
 
   it('reports an empty brand list', async () => {
@@ -64,7 +72,7 @@ describe('handleAccountManagementTool', () => {
 
     const result = await call(client, 'list_brands', {});
 
-    expect(result.content[0].text).toBe('No brands found.');
+    expect(textOf(result.content[0])).toBe('No brands found.');
   });
 
   it('treats a non-array brand payload as an empty list', async () => {
@@ -73,17 +81,27 @@ describe('handleAccountManagementTool', () => {
 
     const result = await call(client, 'list_brands', {});
 
-    expect(result.content[0].text).toBe('No brands found.');
+    expect(textOf(result.content[0])).toBe('No brands found.');
   });
 
-  it('returns the first brand as the active brand', async () => {
+  it('asks for an explicit brand when more than one exists', async () => {
     const client = buildClient();
 
     const result = await call(client, 'get_brand', {});
 
-    expect(result.content[0].text).toContain('Active Brand');
-    expect(result.content[0].text).toContain('brand-1');
-    expect(result.content[0].text).not.toContain('brand-2');
+    expect(textOf(result.content[0])).toContain('Select a brand');
+    expect(textOf(result.content[0])).toContain('brand-1');
+    expect(textOf(result.content[0])).toContain('brand-2');
+  });
+
+  it('returns the requested brand rather than the first organization brand', async () => {
+    const client = buildClient();
+
+    const result = await call(client, 'get_brand', { brandId: 'brand-2' });
+
+    expect(textOf(result.content[0])).toContain('Selected Brand');
+    expect(textOf(result.content[0])).toContain('brand-2');
+    expect(textOf(result.content[0])).not.toContain('brand-1');
   });
 
   it('unwraps a single brand object returned instead of a list', async () => {
@@ -92,8 +110,8 @@ describe('handleAccountManagementTool', () => {
 
     const result = await call(client, 'get_brand', {});
 
-    expect(result.content[0].text).toContain('Active Brand');
-    expect(result.content[0].text).toContain('brand-9');
+    expect(textOf(result.content[0])).toContain('Active Brand');
+    expect(textOf(result.content[0])).toContain('brand-9');
   });
 
   it('reports no active brand when the list is empty', async () => {
@@ -102,7 +120,7 @@ describe('handleAccountManagementTool', () => {
 
     const result = await call(client, 'get_brand', {});
 
-    expect(result.content[0].text).toBe('No active brand found.');
+    expect(textOf(result.content[0])).toBe('No active brand found.');
   });
 
   it('rejects an unknown account management tool name', () => {

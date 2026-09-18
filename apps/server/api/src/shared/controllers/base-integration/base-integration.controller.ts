@@ -180,6 +180,41 @@ export abstract class BaseIntegrationController {
   }
 
   /**
+   * Resume an in-flight pending credential instead of inserting another row.
+   * Connected accounts stay untouched — reconnect still provisions a new pending
+   * row so identity can be settled after the provider callback.
+   */
+  protected async resumePendingCredential(input: {
+    brandId: string;
+    credentialId?: string;
+    organizationId: string;
+    pendingTokens: Record<string, unknown>;
+    userId: string;
+  }): Promise<boolean> {
+    if (!input.credentialId) {
+      return false;
+    }
+
+    const existing = await this.credentialsService.findOne({
+      brandId: input.brandId,
+      id: input.credentialId,
+      isDeleted: false,
+      organizationId: input.organizationId,
+      userId: input.userId,
+    });
+
+    if (!existing || existing.isConnected) {
+      return false;
+    }
+
+    if (Object.keys(input.pendingTokens).length > 0) {
+      await this.credentialsService.patch(existing.id, input.pendingTokens);
+    }
+
+    return true;
+  }
+
+  /**
    * Handle the connect flow with standard validation and error handling
    *
    * @param user - authenticated user
@@ -219,17 +254,24 @@ export abstract class BaseIntegrationController {
       // trace of the real cause.
       this.assertOAuthUrlIsConfigured(oauthResult.url);
 
-      // Save credential with OAuth tokens if provided
-      await this.createPendingCredential(
-        brand,
-        user.userId ?? user.id,
+      const userId = user.userId ?? user.id;
+      const pendingTokens =
         oauthResult.oauthToken || oauthResult.oauthTokenSecret
           ? {
               oauthToken: oauthResult.oauthToken,
               oauthTokenSecret: oauthResult.oauthTokenSecret,
             }
-          : {},
-      );
+          : {};
+      const resumed = await this.resumePendingCredential({
+        brandId: brand.id,
+        credentialId: createCredentialDto.credentialId,
+        organizationId: user.organizationId,
+        pendingTokens,
+        userId,
+      });
+      if (!resumed) {
+        await this.createPendingCredential(brand, userId, pendingTokens);
+      }
 
       return oauthResult;
     } catch (error: unknown) {

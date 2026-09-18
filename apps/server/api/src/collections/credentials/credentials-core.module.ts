@@ -29,6 +29,7 @@ const SERVER_CREDENTIAL_STORE_PROVIDER = {
     CredentialPostingTimesService,
     CredentialPublishingReadinessService,
     CredentialsService,
+    PublishingProviderSetupModule,
     SERVER_CREDENTIAL_STORE_PROVIDER,
   ],
   imports: [FilesClientModule, PublishingProviderSetupModule],

@@ -100,7 +100,9 @@
       },
       "connecting": "Connecting your {platform} account\u2026",
       "error": {
+        "denied": "Authorization was denied. You can try connecting again.",
         "description": "Failed to verify your account. Please try again.",
+        "failed": "The provider rejected this authorization. Please try again.",
         "title": "Connection Failed"
       },
       "success": {

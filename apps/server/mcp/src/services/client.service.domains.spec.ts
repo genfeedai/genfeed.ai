@@ -616,19 +616,32 @@ describe('ClientService (MCP) domain clients', () => {
       });
     });
 
-    it('reads job status from ingredient metadata', async () => {
+    it('reads job status from the ingredient batch, not metadata', async () => {
       (mockAxiosInstance.get as Mock).mockResolvedValue({
         data: {
-          data: { attributes: { status: 'PROCESSING' }, id: 'ingredient-1' },
+          data: [
+            {
+              attributes: {
+                cdnUrl: 'https://cdn.example.com/img.png',
+                status: 'GENERATED',
+              },
+              id: 'ingredient-1',
+            },
+          ],
         },
       });
 
       const result = await service.getJobStatus('ingredient-1');
 
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
-        '/ingredients/ingredient-1/metadata',
+        '/ingredients/batch?ids=ingredient-1',
       );
-      expect(result).toEqual({ id: 'ingredient-1', status: 'PROCESSING' });
+      expect(result).toEqual({
+        cdnUrl: 'https://cdn.example.com/img.png',
+        id: 'ingredient-1',
+        status: 'GENERATED',
+        url: 'https://cdn.example.com/img.png',
+      });
     });
 
     it('creates an agent chat thread', async () => {

@@ -5279,6 +5279,7 @@ describe('AgentToolExecutorService', () => {
       'generate_voice',
       { text: 'Read this in the brand voice', voiceId: 'voice-default' },
       {
+        brandId: testId('brand'),
         organizationId: testId('org2'),
         userId: testId('user'),
       },
