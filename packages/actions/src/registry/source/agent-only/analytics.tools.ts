@@ -56,4 +56,43 @@ export const AGENT_ANALYTICS_TOOLS: SourceTool[] = [
     },
     requiredRole: 'user',
   },
+  {
+    creditCost: 0,
+    description:
+      'List posts that beat their account baseline, with outlier ratio, tier, and snapshot provenance. Ratios are comparable only within one platform.',
+    name: 'list_outlier_posts',
+    parameters: {
+      properties: {
+        accountId: {
+          description: 'Credential or social-source account id',
+          type: 'string',
+        },
+        accountType: {
+          description: 'Account identity type',
+          enum: ['credential', 'social_source'],
+          type: 'string',
+        },
+        brandId: {
+          description: 'Limit results to one brand',
+          type: 'string',
+        },
+        limit: {
+          description: 'Maximum posts to return (default 20, max 50)',
+          type: 'number',
+        },
+        platform: {
+          description: 'Limit ranking to one platform',
+          type: 'string',
+        },
+        tier: {
+          description: 'Minimum outlier tier to include',
+          enum: ['outlier', 'breakout'],
+          type: 'string',
+        },
+      },
+      required: [],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
 ];

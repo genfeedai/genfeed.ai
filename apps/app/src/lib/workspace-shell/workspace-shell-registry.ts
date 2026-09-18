@@ -557,6 +557,7 @@ const ORGANIZATION_ROUTE_REGISTRATIONS = [
       '/:orgSlug/~/analytics/overview',
       '/:orgSlug/~/analytics/accounts',
       '/:orgSlug/~/analytics/accounts/:id',
+      '/:orgSlug/~/analytics/outliers',
       '/:orgSlug/~/analytics/brands/:id',
     ],
     {
@@ -950,6 +951,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/analytics/brands/:id/platforms/:platform',
       '/:orgSlug/:brandSlug/analytics/insights',
       '/:orgSlug/:brandSlug/analytics/hooks',
+      '/:orgSlug/:brandSlug/analytics/outliers',
       '/:orgSlug/:brandSlug/analytics/performance-lab',
       '/:orgSlug/:brandSlug/analytics/trends',
       '/:orgSlug/:brandSlug/analytics/trends/detail/:id',

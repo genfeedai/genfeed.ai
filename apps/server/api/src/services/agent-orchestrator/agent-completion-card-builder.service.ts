@@ -67,6 +67,7 @@ const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
   'get_top_ingredients',
   'resolve_handle',
   'get_analytics',
+  'list_outlier_posts',
   'analyze_performance',
   'get_outreach_sequence_analytics',
   'get_trends',

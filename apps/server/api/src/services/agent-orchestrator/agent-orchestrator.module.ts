@@ -24,6 +24,7 @@ import { McpApprovalsModule } from '@api/collections/mcp-approvals/mcp-approvals
 import { NewslettersModule } from '@api/collections/newsletters/newsletters.module';
 import { OrganizationSettingsModule } from '@api/collections/organization-settings/organization-settings.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
+import { OutliersCoreModule } from '@api/collections/outliers/outliers-core.module';
 import { OutreachCampaignsModule } from '@api/collections/outreach-campaigns/outreach-campaigns.module';
 import { PersonasCoreModule } from '@api/collections/personas/personas-core.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
@@ -175,6 +176,7 @@ import { Module } from '@nestjs/common';
     NewslettersModule,
     OrganizationSettingsModule,
     OrganizationsCoreModule,
+    OutliersCoreModule,
     PersonasCoreModule,
     PostGroupsModule,
     PostsModule,

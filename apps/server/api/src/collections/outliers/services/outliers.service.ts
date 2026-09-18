@@ -9,6 +9,7 @@ import type {
   OutlierConfigurationValues,
   OutlierListQuery,
   OutlierObservation,
+  OutlierRankedPostsQuery,
   OutlierResolvedAccount,
 } from '@genfeedai/contracts/interfaces';
 import { computeOutlierBaseline } from '@genfeedai/helpers';
@@ -212,40 +213,43 @@ export class OutliersService {
     baseline: ReturnType<typeof computeOutlierBaseline>,
     data: Prisma.OutlierBaselineSnapshotUncheckedCreateInput,
   ): Promise<OutlierBaselineSnapshot> {
-    return this.prisma.$transaction(async (tx) => {
-      const snapshot = await tx.outlierBaselineSnapshot.create({ data });
-      if (posts.length)
-        await tx.outlierPostPerformance.createMany({
-          data: posts.map((post, index) => {
-            const result = baseline.posts[index];
-            return {
-              ...account,
-              contentType,
-              baselineSnapshotId: snapshot.id,
-              logicalPostId: post.id,
-              postId: post.postId,
-              sourcePostId: post.sourcePostId,
-              measuredAt: post.measuredAt,
-              publishedAt: Number.isFinite(post.publishedAtMs)
-                ? new Date(post.publishedAtMs)
-                : null,
-              views: post.views,
-              outlierRatio: result.ratio,
-              outlierTier: result.tier,
-              isContributor: result.isContributor,
-              eligibility: result.reasons.length
-                ? 'excluded'
-                : result.isPinnedUnknown || result.isPromotedUnknown
-                  ? 'unknown'
-                  : 'eligible',
-              exclusionReasons: result.reasons,
-              isPinnedUnknown: result.isPinnedUnknown,
-              isPromotedUnknown: result.isPromotedUnknown,
-            };
-          }),
-        });
-      return snapshot;
-    });
+    return this.prisma.$transaction(
+      async (tx) => {
+        const snapshot = await tx.outlierBaselineSnapshot.create({ data });
+        if (posts.length)
+          await tx.outlierPostPerformance.createMany({
+            data: posts.map((post, index) => {
+              const result = baseline.posts[index];
+              return {
+                ...account,
+                contentType,
+                baselineSnapshotId: snapshot.id,
+                logicalPostId: post.id,
+                postId: post.postId,
+                sourcePostId: post.sourcePostId,
+                measuredAt: post.measuredAt,
+                publishedAt: Number.isFinite(post.publishedAtMs)
+                  ? new Date(post.publishedAtMs)
+                  : null,
+                views: post.views,
+                outlierRatio: result.ratio,
+                outlierTier: result.tier,
+                isContributor: result.isContributor,
+                eligibility: result.reasons.length
+                  ? 'excluded'
+                  : result.isPinnedUnknown || result.isPromotedUnknown
+                    ? 'unknown'
+                    : 'eligible',
+                exclusionReasons: result.reasons,
+                isPinnedUnknown: result.isPinnedUnknown,
+                isPromotedUnknown: result.isPromotedUnknown,
+              };
+            }),
+          });
+        return snapshot;
+      },
+      { maxWait: 10_000, timeout: 60_000 },
+    );
   }
   async findOne(organizationId: string, id: string) {
     const snapshot = await this.prisma.outlierBaselineSnapshot.findFirst({
@@ -283,6 +287,146 @@ export class OutliersService {
         where: scopedWhere(account.organizationId, where),
       }),
     ]);
+    return {
+      docs,
+      totalDocs: total,
+      totalPages: Math.ceil(total / limit),
+      total,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    };
+  }
+  async listLatestPerformances(
+    organizationId: string,
+    query: OutlierRankedPostsQuery,
+  ) {
+    const { page, limit } = this.pagination(query.page, query.limit);
+    if (query.accountId || query.accountType) {
+      if (!query.brandId || !query.accountId || !query.accountType) {
+        throw new BadRequestException(
+          'Account filters require brandId, accountType, and accountId',
+        );
+      }
+      await this.inputs.authorize({
+        organizationId,
+        brandId: query.brandId,
+        accountType: query.accountType,
+        accountId: query.accountId,
+      });
+    } else if (query.brandId) {
+      const brand = await this.prisma.brand.findFirst({
+        select: { id: true },
+        where: {
+          id: query.brandId,
+          organizationId,
+          isDeleted: false,
+        },
+      });
+      if (!brand) throw new NotFoundException('Outlier account');
+    }
+    const snapshotWhere = {
+      organizationId,
+      isDeleted: false,
+      status: 'ready',
+      ...(query.brandId ? { brandId: query.brandId } : {}),
+      ...(query.accountType ? { accountType: query.accountType } : {}),
+      ...(query.accountId ? { accountId: query.accountId } : {}),
+      ...(query.platform ? { platform: query.platform } : {}),
+      ...(query.contentType ? { contentType: query.contentType } : {}),
+      ...(query.windowSize ? { windowSize: query.windowSize } : {}),
+    };
+    const groups = await this.prisma.outlierBaselineSnapshot.groupBy({
+      by: ['accountId', 'platform', 'contentType'],
+      where: scopedWhere(organizationId, snapshotWhere),
+    });
+    const latestIds: string[] = [];
+    for (const group of groups) {
+      const latest = await this.prisma.outlierBaselineSnapshot.findFirst({
+        where: scopedWhere(organizationId, {
+          ...snapshotWhere,
+          accountId: group.accountId,
+          platform: group.platform,
+          contentType: group.contentType,
+        }),
+        orderBy: [{ computedAt: 'desc' }, { id: 'desc' }],
+        select: { id: true },
+      });
+      if (latest) latestIds.push(latest.id);
+    }
+    if (!latestIds.length) {
+      return {
+        docs: [],
+        totalDocs: 0,
+        totalPages: 0,
+        total: 0,
+        page,
+        limit,
+        pages: 0,
+      };
+    }
+    const where = {
+      organizationId,
+      isDeleted: false,
+      baselineSnapshotId: { in: latestIds },
+      outlierRatio: { not: null },
+      ...(query.platform ? { platform: query.platform } : {}),
+      ...(query.tier
+        ? query.tier === 'breakout'
+          ? { outlierTier: 'breakout' }
+          : { outlierTier: { in: ['outlier', 'breakout'] } }
+        : {}),
+    };
+    const orderBy = query.platform
+      ? ([
+          { outlierRatio: { sort: 'desc', nulls: 'last' } },
+          { id: 'asc' },
+        ] as const)
+      : ([
+          { platform: 'asc' },
+          { outlierRatio: { sort: 'desc', nulls: 'last' } },
+          { id: 'asc' },
+        ] as const);
+    const [rows, total, snapshots] = await Promise.all([
+      this.prisma.outlierPostPerformance.findMany({
+        where: scopedWhere(organizationId, where),
+        orderBy: [...orderBy],
+        skip: (page - 1) * limit,
+        take: limit,
+      }),
+      this.prisma.outlierPostPerformance.count({
+        where: scopedWhere(organizationId, where),
+      }),
+      this.prisma.outlierBaselineSnapshot.findMany({
+        where: {
+          organizationId,
+          isDeleted: false,
+          id: { in: latestIds },
+        },
+        select: {
+          id: true,
+          medianViews: true,
+          sampleSize: true,
+          windowSize: true,
+          status: true,
+          computedAt: true,
+        },
+      }),
+    ]);
+    const snapshotById = new Map(
+      snapshots.map((snapshot) => [snapshot.id, snapshot]),
+    );
+    const docs = rows.map((row) => {
+      const snapshot = snapshotById.get(row.baselineSnapshotId);
+      return {
+        ...row,
+        medianViews: snapshot?.medianViews ?? null,
+        sampleSize: snapshot?.sampleSize,
+        windowSize: snapshot?.windowSize,
+        snapshotStatus: snapshot?.status,
+        snapshotComputedAt: snapshot?.computedAt.toISOString(),
+      };
+    });
     return {
       docs,
       totalDocs: total,

@@ -238,6 +238,20 @@ describe('immutable outlier persistence', () => {
     vi.setSystemTime(now.getTime() + 3600000);
     expect((await h.service.refresh(scope))[0].status).toBe('ready');
   });
+  it('persists caption and video buckets independently', async () => {
+    const h = harness([
+      ...[1, 2, 3, 4, 5].map((i) => observation(`caption${i}`, 30000)),
+      ...[1, 2, 3, 4, 5].map((i) =>
+        observation(`video${i}`, 40000, { contentType: 'video' }),
+      ),
+    ]);
+    const snapshots = await h.service.refresh(scope);
+    expect(snapshots.map((s) => s.contentType).sort()).toEqual([
+      'caption',
+      'video',
+    ]);
+    expect(snapshots.map((s) => s.medianViews).sort()).toEqual([30000, 40000]);
+  });
   it('returns the committed snapshot after a concurrent duplicate-key transaction', async () => {
     const h = harness(
       [1, 2, 3, 4, 5].map((i) => observation(String(i), 30000)),
@@ -390,6 +404,93 @@ describe('outlier history read authorization', () => {
       where: { organizationId: 'foreign', id: 'snapshot', isDeleted: false },
     });
     expect(h.authorize).not.toHaveBeenCalled();
+  });
+  it('ranks latest ready performances by ratio within a platform', async () => {
+    const snapshot = {
+      ...scope,
+      id: 'snapshot',
+      contentType: 'caption',
+      medianViews: 30000,
+      sampleSize: 20,
+      windowSize: 20,
+      status: 'ready',
+      computedAt: now,
+    };
+    const authorize = vi.fn().mockResolvedValue(scope);
+    const performanceFind = vi.fn().mockResolvedValue([
+      {
+        id: 'p1',
+        baselineSnapshotId: 'snapshot',
+        logicalPostId: 'breakout',
+        outlierRatio: 10,
+        outlierTier: 'breakout',
+        platform: 'twitter',
+      },
+    ]);
+    const prisma = {
+      brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand' }) },
+      outlierBaselineSnapshot: {
+        groupBy: vi.fn().mockResolvedValue([
+          {
+            accountId: 'account',
+            platform: 'twitter',
+            contentType: 'caption',
+          },
+        ]),
+        findFirst: vi.fn().mockResolvedValue({ id: 'snapshot' }),
+        findMany: vi.fn().mockResolvedValue([snapshot]),
+      },
+      outlierPostPerformance: {
+        findMany: performanceFind,
+        count: vi.fn().mockResolvedValue(1),
+      },
+    };
+    const service = new OutliersService(
+      prisma as unknown as PrismaService,
+      { authorize } as unknown as OutlierInputsService,
+      {} as OutlierConfigurationService,
+    );
+    const result = await service.listLatestPerformances('org', {
+      brandId: 'brand',
+      platform: 'twitter',
+      tier: 'outlier',
+    });
+    expect(result.docs[0]).toMatchObject({
+      outlierRatio: 10,
+      medianViews: 30000,
+      sampleSize: 20,
+      snapshotStatus: 'ready',
+    });
+    expect(performanceFind).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org',
+          isDeleted: false,
+          outlierTier: { in: ['outlier', 'breakout'] },
+        }),
+        orderBy: [
+          { outlierRatio: { sort: 'desc', nulls: 'last' } },
+          { id: 'asc' },
+        ],
+      }),
+    );
+  });
+  it('rejects a foreign-organization ranked list without reading performances', async () => {
+    const authorize = vi.fn();
+    const prisma = {
+      brand: { findFirst: vi.fn().mockResolvedValue(null) },
+      outlierBaselineSnapshot: { groupBy: vi.fn(), findFirst: vi.fn() },
+      outlierPostPerformance: { findMany: vi.fn(), count: vi.fn() },
+    };
+    const service = new OutliersService(
+      prisma as unknown as PrismaService,
+      { authorize } as unknown as OutlierInputsService,
+      {} as OutlierConfigurationService,
+    );
+    await expect(
+      service.listLatestPerformances('org', { brandId: 'foreign' }),
+    ).rejects.toThrow('not found');
+    expect(prisma.outlierPostPerformance.findMany).not.toHaveBeenCalled();
   });
   it('reauthorizes historical account reads and never fetches measurements for deleted accounts', async () => {
     const h = readHarness();

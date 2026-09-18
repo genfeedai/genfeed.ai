@@ -83,6 +83,7 @@ export const APP_ROUTES = {
      * is a complete path (same pattern as workspace/overview).
      */
     OVERVIEW: '/analytics/overview',
+    OUTLIERS: '/analytics/outliers',
     ACCOUNTS: '/analytics/accounts',
     PERFORMANCE_LAB: '/analytics/performance-lab',
     POSTS: '/analytics/posts',
