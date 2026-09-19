@@ -153,4 +153,75 @@ describe('IngredientDownloadButton', () => {
     expect(trigger.className).toContain('focus-visible:bg-hover');
     expect(trigger.className).not.toContain('ring-ring');
   });
+
+  describe('canDownloadOriginal entitlement gate', () => {
+    it('disables the standalone Original button and never calls the callback', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+          canDownloadOriginal={false}
+        />,
+      );
+      const trigger = screen.getByRole('button', { name: 'original' });
+      expect(trigger).toBeDisabled();
+      fireEvent.click(trigger);
+      await Promise.resolve();
+      expect(original).not.toHaveBeenCalled();
+    });
+
+    it('disables the Original menu item in the split dropdown', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+          canDownloadOriginal={false}
+        />,
+      );
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+        button: 0,
+      });
+      const item = await screen.findByRole('menuitem', { name: /original/i });
+      expect(item).toHaveAttribute('aria-disabled', 'true');
+      fireEvent.click(item);
+      await Promise.resolve();
+      expect(original).not.toHaveBeenCalled();
+    });
+
+    it('disables the Original menu item in compact mode', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+          canDownloadOriginal={false}
+          isCompact
+        />,
+      );
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+        button: 0,
+      });
+      const item = await screen.findByRole('menuitem', { name: /original/i });
+      expect(item).toHaveAttribute('aria-disabled', 'true');
+      fireEvent.click(item);
+      await Promise.resolve();
+      expect(original).not.toHaveBeenCalled();
+    });
+
+    it('keeps the original action enabled when canDownloadOriginal is omitted (default true)', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+        />,
+      );
+      const trigger = screen.getByRole('button', { name: 'original' });
+      expect(trigger).toBeEnabled();
+      fireEvent.click(trigger);
+      await waitFor(() => expect(original).toHaveBeenCalledOnce());
+    });
+  });
 });

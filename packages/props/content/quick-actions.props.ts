@@ -30,4 +30,11 @@ export interface IngredientDownloadButtonProps {
   disabled?: boolean;
   onDownloadOriginal: () => unknown;
   isCompact?: boolean;
+  /**
+   * Whether this organization may download the clean (unwatermarked)
+   * original. Defaults to true (self-hosted, and any caller that has not
+   * opted into the SaaS clean-export gate, stay unrestricted). SaaS free
+   * tiers pass `false` to lock the option behind an upgrade prompt.
+   */
+  canDownloadOriginal?: boolean;
 }

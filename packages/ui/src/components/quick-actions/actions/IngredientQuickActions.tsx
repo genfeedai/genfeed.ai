@@ -1,5 +1,7 @@
 'use client';
 
+import { isSelfHostedDeployment } from '@genfeedai/config/deployment';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ComponentSize,
   IngredientCategory,
@@ -12,6 +14,7 @@ import {
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useQuickActions } from '@genfeedai/hooks/ui/use-quick-actions/use-quick-actions';
+import { hasCleanExportAccess } from '@genfeedai/pricing';
 import type { StudioQuickActionsProps } from '@genfeedai/props/studio/studio.props';
 import SaveAsCharacter from '@ui/characters/SaveAsCharacter';
 import QuickActionButton from '@ui/quick-actions/button/QuickActionButton';
@@ -77,6 +80,11 @@ function IngredientQuickActionsContent(
   } = props;
 
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+
+  const { settings } = useBrand();
+  const canDownloadOriginal =
+    isSelfHostedDeployment() ||
+    hasCleanExportAccess(settings?.subscriptionTier);
 
   const isVideo = selectedIngredient?.category === IngredientCategory.VIDEO;
 
@@ -323,6 +331,7 @@ function IngredientQuickActionsContent(
         disabled={downloadAction.isDisabled || downloadAction.isLoading}
         onDownloadOriginal={() => onDownload(selectedIngredient)}
         isCompact={isMasonryCompact}
+        canDownloadOriginal={canDownloadOriginal}
       />
     ) : null;
   const visibleActions = (items: IQuickAction[]) =>
