@@ -1,17 +1,74 @@
+import { OrganizationCategory } from '..';
 import { APP_ROUTES, createOrganizationAppRoute } from './routes.constant';
 
 /**
- * Ordered onboarding step keys — used by the wizard, guard, and resume logic.
+ * Ordered onboarding gate steps — used by the wizard, guard, and resume logic.
+ * Every account type completes these; the Expert Path inserts its own steps
+ * between `brand` and `providers` (see `EXPERT_ONBOARDING_STEPS`).
  */
 export const ONBOARDING_STEPS = ['brand', 'providers', 'summary'] as const;
 
-export type OnboardingStepKey = (typeof ONBOARDING_STEPS)[number];
+/**
+ * Expert Path wizard order: positioning interview and corpus ingest run right
+ * after brand setup, then the shared gate steps.
+ */
+export const EXPERT_ONBOARDING_STEPS = [
+  'brand',
+  'positioning',
+  'corpus',
+  'providers',
+  'summary',
+] as const;
+
+export type OnboardingStepKey = (typeof EXPERT_ONBOARDING_STEPS)[number];
+
+/** Steps an expert may skip; skipped steps resurface as workspace tasks. */
+export const EXPERT_SKIPPABLE_ONBOARDING_STEPS = [
+  'positioning',
+  'corpus',
+] as const satisfies readonly OnboardingStepKey[];
 
 export const ONBOARDING_STEP_LABELS: Record<OnboardingStepKey, string> = {
   brand: 'Brand',
+  corpus: 'Corpus',
+  positioning: 'Positioning',
   providers: 'Providers',
   summary: 'Summary',
 };
+
+export function isExpertAccountType(
+  accountType?: OrganizationCategory | string | null,
+): boolean {
+  return accountType === OrganizationCategory.EXPERT;
+}
+
+/**
+ * Wizard steps for an account type on the current surface. Agent-first
+ * surfaces (Cloud, Community) never render the provider/summary steps, so the
+ * Expert Path there is `brand → positioning → corpus → first-system`.
+ */
+export function resolveOnboardingSteps(input: {
+  accountType?: OrganizationCategory | string | null;
+  hasAgentFirstOnboarding: boolean;
+}): readonly OnboardingStepKey[] {
+  if (isExpertAccountType(input.accountType)) {
+    return input.hasAgentFirstOnboarding
+      ? EXPERT_ONBOARDING_STEPS.slice(0, 3)
+      : EXPERT_ONBOARDING_STEPS;
+  }
+
+  return input.hasAgentFirstOnboarding
+    ? ONBOARDING_STEPS.slice(0, 1)
+    : ONBOARDING_STEPS;
+}
+
+export function isOnboardingStepKey(
+  value: string | null | undefined,
+): value is OnboardingStepKey {
+  return (
+    !!value && (EXPERT_ONBOARDING_STEPS as readonly string[]).includes(value)
+  );
+}
 
 /**
  * `/onboarding/brand` is the shared brand-setup step for every surface
@@ -38,12 +95,13 @@ export function hasCompletedBrandOnboardingStep(
  */
 export function getResumeStep(
   completedSteps?: readonly string[],
+  steps: readonly OnboardingStepKey[] = ONBOARDING_STEPS,
 ): OnboardingStepKey {
   if (!completedSteps || completedSteps.length === 0) {
     return 'brand';
   }
 
-  for (const step of ONBOARDING_STEPS) {
+  for (const step of steps) {
     if (!completedSteps.includes(step)) {
       return step;
     }
@@ -51,7 +109,7 @@ export function getResumeStep(
 
   // When all steps are completed but completion metadata is stale,
   // resume at the final step instead of restarting from brand.
-  return 'summary';
+  return steps[steps.length - 1] ?? 'summary';
 }
 
 export function buildOnboardingResumeHref(
@@ -77,18 +135,29 @@ function resolveAgentOnboardingHref(orgSlug?: string | null): string {
  * Desktop continues the classic wizard so both surfaces share one brand page.
  */
 export function resolveOnboardingContinueHref(input: {
+  accountType?: OrganizationCategory | string | null;
   completedStep: OnboardingStepKey;
   hasAgentFirstOnboarding: boolean;
   orgSlug?: string | null;
 }): string {
-  if (input.completedStep === 'brand' && input.hasAgentFirstOnboarding) {
+  const isExpert = isExpertAccountType(input.accountType);
+  if (
+    !isExpert &&
+    input.completedStep === 'brand' &&
+    input.hasAgentFirstOnboarding
+  ) {
     return resolveAgentOnboardingHref(input.orgSlug);
   }
 
-  const stepIndex = ONBOARDING_STEPS.indexOf(input.completedStep);
-  if (stepIndex >= 0 && stepIndex < ONBOARDING_STEPS.length - 1) {
-    const nextStep = ONBOARDING_STEPS[stepIndex + 1];
+  const steps = resolveOnboardingSteps(input);
+  const stepIndex = steps.indexOf(input.completedStep);
+  if (stepIndex >= 0 && stepIndex < steps.length - 1) {
+    const nextStep = steps[stepIndex + 1];
     return `${APP_ROUTES.ONBOARDING.ROOT}/${nextStep}`;
+  }
+
+  if (isExpert) {
+    return APP_ROUTES.ONBOARDING.FIRST_SYSTEM;
   }
 
   return APP_ROUTES.ROOT;
@@ -100,11 +169,25 @@ export function resolveOnboardingContinueHref(input: {
  * themselves (journey card, `/onboarding` replay).
  */
 export function resolveForcedOnboardingHref(input: {
+  accountType?: OrganizationCategory | string | null;
   brandDomain?: string | null;
   completedSteps?: readonly string[] | null;
   hasAgentFirstOnboarding: boolean;
   orgSlug?: string | null;
 }): string {
+  if (isExpertAccountType(input.accountType)) {
+    const steps = resolveOnboardingSteps(input);
+    const completedSteps = input.completedSteps ?? [];
+    if (steps.every((step) => completedSteps.includes(step))) {
+      return APP_ROUTES.ONBOARDING.FIRST_SYSTEM;
+    }
+
+    return buildOnboardingResumeHref(
+      getResumeStep(completedSteps, steps),
+      input.brandDomain,
+    );
+  }
+
   if (input.hasAgentFirstOnboarding) {
     if (hasCompletedBrandOnboardingStep(input.completedSteps)) {
       return resolveAgentOnboardingHref(input.orgSlug);
@@ -136,7 +219,33 @@ export const SETUP_CARD_STEPS = [
   },
 ] as const;
 
-export type SetupCardStepKey = (typeof SETUP_CARD_STEPS)[number]['key'];
+/**
+ * Expert Path workspace tasks. They lead the setup card for `EXPERT`
+ * organizations until the underlying state exists, so a skipped onboarding
+ * step (or a failed first-system generation) is the first thing the expert
+ * sees in the workspace.
+ */
+export const EXPERT_SETUP_CARD_STEPS = [
+  {
+    description: 'Answer the positioning interview',
+    key: 'positioning',
+    label: 'Positioning',
+  },
+  {
+    description: 'Add talks, newsletters, or call notes',
+    key: 'corpus',
+    label: 'Corpus',
+  },
+  {
+    description: 'Generate and review your first content plan',
+    key: 'first-system',
+    label: 'First content system',
+  },
+] as const;
+
+export type SetupCardStepKey =
+  | (typeof SETUP_CARD_STEPS)[number]['key']
+  | (typeof EXPERT_SETUP_CARD_STEPS)[number]['key'];
 
 /**
  * Personal email domains that require manual brand URL input.

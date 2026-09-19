@@ -1,4 +1,5 @@
 import type { ContentPlanStatus } from '@genfeedai/contracts';
+import type { IContentPlanProvenance } from '@genfeedai/contracts/interfaces';
 import type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
 
 export type { ContentPlan as PrismaContentPlan } from '@genfeedai/prisma';
@@ -20,6 +21,7 @@ export interface ContentPlanConfig {
   periodEnd?: Date | string | null;
   periodStart?: Date | string | null;
   seeds?: ContentPlanSeedsRecord | null;
+  provenance?: IContentPlanProvenance | null;
   status?: ContentPlanStatus;
   [key: string]: unknown;
 }

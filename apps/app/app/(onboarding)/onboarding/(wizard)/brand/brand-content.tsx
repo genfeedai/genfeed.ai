@@ -2,7 +2,7 @@
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { LinkCategory, type OrganizationCategory } from '@genfeedai/contracts';
+import { LinkCategory, OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -66,6 +66,17 @@ function normalizeWebsiteUrl(url: string): string | null {
   return trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`;
 }
 
+function readRequestedAccountType(
+  value: string | null,
+): OrganizationCategory | null {
+  const normalized = value?.trim().toUpperCase();
+  return (
+    Object.values(OrganizationCategory).find(
+      (category) => category === normalized,
+    ) ?? null
+  );
+}
+
 function isPlaceholderName(value?: string | null): boolean {
   return !value?.trim() || value.trim() === DEFAULT_ORGANIZATION_LABEL;
 }
@@ -96,7 +107,8 @@ function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuthIdentity();
   const { push } = useRouter();
-  const { handleStepComplete } = useOnboarding();
+  const { handleStepComplete, setAccountType: setOnboardingAccountType } =
+    useOnboarding();
   const translate = useTranslations('pages.onboarding.brand');
   const searchParams = useSearchParams();
   const isAutoRequested = searchParams.get('auto') === 'true';
@@ -180,10 +192,25 @@ function BrandContentContent() {
           setWebsiteUrl((prev) => prev || websiteLink.url || '');
         }
 
-        if (org?.accountType || org?.category) {
+        const requestedAccountType = readRequestedAccountType(
+          searchParams.get('accountType'),
+        );
+        if (requestedAccountType && org?.id) {
+          // A signup CTA preselected the account type (e.g. the Expert landing
+          // page). Persist it so the wizard routes the matching steps.
+          setAccountType(requestedAccountType);
+          setOnboardingAccountType(requestedAccountType);
+          await OrganizationsService.getInstance(token).updateAccountType(
+            org.id,
+            requestedAccountType,
+          );
+        } else if (org?.accountType || org?.category) {
           setAccountType(
             (prev) => prev ?? (org.accountType || org.category || null),
           );
+          if (org.accountType) {
+            setOnboardingAccountType(org.accountType);
+          }
         }
       } catch (error) {
         logger.error('Failed to prefill onboarding data', error);
@@ -198,7 +225,7 @@ function BrandContentContent() {
     return () => {
       controller.abort();
     };
-  }, [getToken, translate]);
+  }, [getToken, searchParams, setOnboardingAccountType, translate]);
 
   const resolveBrandId = useCallback(
     async (token: string): Promise<string | null> => {
@@ -230,6 +257,7 @@ function BrandContentContent() {
   const handleAccountTypeSelect = useCallback(
     async (category: OrganizationCategory) => {
       setAccountType(category);
+      setOnboardingAccountType(category);
       setErrorMessage(null);
       try {
         const token = await resolveAuthToken(getToken);
@@ -249,7 +277,7 @@ function BrandContentContent() {
         setErrorMessage(translate('errors.accountType'));
       }
     },
-    [getToken, resolveOrgId, translate],
+    [getToken, resolveOrgId, setOnboardingAccountType, translate],
   );
 
   const handleContinue = useCallback(

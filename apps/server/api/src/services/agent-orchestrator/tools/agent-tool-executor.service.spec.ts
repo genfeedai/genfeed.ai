@@ -6533,6 +6533,7 @@ describe('AgentToolExecutorService', () => {
     expect(brandInterviewService.skipField).toHaveBeenCalledWith(
       'interview-1',
       CTX.organizationId,
+      CTX.userId,
     );
     expect(result.data).toEqual(
       expect.objectContaining({

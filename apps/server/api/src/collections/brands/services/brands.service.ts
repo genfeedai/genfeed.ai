@@ -47,6 +47,8 @@ import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { OrganizationCategory } from '@genfeedai/contracts';
+import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constants';
 import type {
   FastlaneIdea,
   IBrandKitApplyResult,
@@ -188,6 +190,10 @@ export class BrandsService extends BaseService<
         initialAgentConfig.enabledSkills,
       );
     }
+    const agentConfig = await this.withExpertCreationDefaults(
+      resolvedOrganizationId,
+      initialAgentConfig,
+    );
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
@@ -222,7 +228,7 @@ export class BrandsService extends BaseService<
         brand = await super.create(
           omitUndefinedFields({
             ...sanitizedBrandFields,
-            ...(initialAgentConfig ? { agentConfig: initialAgentConfig } : {}),
+            ...(agentConfig ? { agentConfig } : {}),
             slug: candidate,
             organizationId: resolvedOrganizationId,
             ...(resolvedUserId ? { userId: resolvedUserId } : {}),
@@ -282,6 +288,28 @@ export class BrandsService extends BaseService<
     return brand;
   }
 
+  /**
+   * Expert Path: brands created inside an expert organization start with
+   * publish approval on, unless the caller already enabled auto-publish.
+   */
+  private async withExpertCreationDefaults(
+    organizationId: string,
+    agentConfig: BrandCreateInput['agentConfig'],
+  ): Promise<BrandCreateInput['agentConfig']> {
+    const organization = await this.prisma.organization.findFirst({
+      select: { accountType: true },
+      where: { id: organizationId, isDeleted: false },
+    });
+    if (organization?.accountType !== OrganizationCategory.EXPERT) {
+      return agentConfig;
+    }
+
+    return {
+      ...agentConfig,
+      autoPublish: applyExpertPublishApprovalDefault(agentConfig?.autoPublish),
+    };
+  }
+
   async findForOrganization(
     organizationId: string,
     options: {
@@ -298,6 +326,7 @@ export class BrandsService extends BaseService<
       include: {
         organization: {
           select: {
+            accountType: true,
             slug: true,
           },
         },

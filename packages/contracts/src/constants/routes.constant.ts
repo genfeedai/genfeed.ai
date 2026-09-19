@@ -213,6 +213,9 @@ export const APP_ROUTES = {
   },
   ONBOARDING: {
     BRAND: '/onboarding/brand',
+    CORPUS: '/onboarding/corpus',
+    FIRST_SYSTEM: '/onboarding/first-system',
+    POSITIONING: '/onboarding/positioning',
     POST_SIGNUP: '/onboarding/post-signup',
     PROACTIVE: '/onboarding/proactive',
     PROVIDERS: '/onboarding/providers',

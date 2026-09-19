@@ -7,21 +7,30 @@ import {
   nextSlugCandidate,
   slugAllocationBase,
 } from '@api/collections/shared/slug-allocation.util';
+import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
+import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { Prisma } from '@genfeedai/prisma';
+import { OrganizationCategory } from '@genfeedai/contracts';
+import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constants';
+import type { IBrandAgentAutoPublish } from '@genfeedai/contracts/interfaces';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Optional,
 } from '@nestjs/common';
 
 const PRISMA_ORGANIZATION_CATEGORIES = new Set([
   'CREATOR',
   'BUSINESS',
   'AGENCY',
+  'EXPERT',
 ]);
 
 function normalizeOrganizationCategory(value: unknown): unknown {
@@ -102,6 +111,10 @@ export class OrganizationsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    @Optional()
+    private readonly cacheInvalidationService?: CacheInvalidationService,
+    @Optional()
+    private readonly accessBootstrapCacheService?: AccessBootstrapCacheService,
   ) {
     super(prisma, 'organization', logger);
   }
@@ -235,7 +248,59 @@ export class OrganizationsService extends BaseService<
       updateDto as Record<string, unknown>,
     ) as Partial<UpdateOrganizationDto>;
 
-    return super.patch(id, normalizedDto, this.populate);
+    const organization = await super.patch(id, normalizedDto, this.populate);
+
+    if (normalizedDto.accountType !== undefined) {
+      if (normalizedDto.accountType === OrganizationCategory.EXPERT) {
+        await this.applyExpertBrandDefaults(id);
+      }
+      // The bootstrap brand list carries `organization.accountType`, which the
+      // proxy reads to route Expert Path onboarding.
+      await this.accessBootstrapCacheService?.invalidateForOrganization(id);
+    }
+
+    return organization;
+  }
+
+  /**
+   * Expert Path: publish approval is on by default for every brand of an
+   * expert organization, unless the operator already enabled auto-publish.
+   */
+  private async applyExpertBrandDefaults(organizationId: string) {
+    const brands = await this.prisma.brand.findMany({
+      select: { agentConfig: true, id: true },
+      where: scopedWhere(organizationId),
+    });
+
+    for (const brand of brands) {
+      const agentConfig =
+        brand.agentConfig &&
+        typeof brand.agentConfig === 'object' &&
+        !Array.isArray(brand.agentConfig)
+          ? (brand.agentConfig as Record<string, unknown>)
+          : {};
+      const autoPublish = (agentConfig.autoPublish ?? undefined) as
+        | IBrandAgentAutoPublish
+        | undefined;
+      const nextAutoPublish = applyExpertPublishApprovalDefault(autoPublish);
+      if (nextAutoPublish === autoPublish) {
+        continue;
+      }
+
+      await this.prisma.brand.update({
+        data: {
+          agentConfig: toPrismaJson({
+            ...agentConfig,
+            autoPublish: nextAutoPublish,
+          }),
+        },
+        where: scopedWhere(organizationId, { id: brand.id }),
+      });
+      await this.cacheInvalidationService?.invalidate(
+        CACHE_PATTERNS.BRANDS_SINGLE(brand.id),
+        CACHE_PATTERNS.BRANDS_LIST(organizationId),
+      );
+    }
   }
 
   /**

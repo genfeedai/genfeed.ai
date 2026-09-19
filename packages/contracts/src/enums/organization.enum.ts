@@ -6,4 +6,5 @@ export enum OrganizationCategory {
   CREATOR = 'CREATOR',
   BUSINESS = 'BUSINESS',
   AGENCY = 'AGENCY',
+  EXPERT = 'EXPERT',
 }

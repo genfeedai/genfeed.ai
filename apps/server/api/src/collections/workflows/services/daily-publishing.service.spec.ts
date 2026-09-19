@@ -23,6 +23,7 @@ function setup() {
   const actions = new Map<string, SystemWorkflowActionExecutor>();
   const prisma = {
     agentStrategy: { findFirst: vi.fn() },
+    brand: { findFirst: vi.fn().mockResolvedValue(null) },
     credential: { findFirst: vi.fn().mockResolvedValue({ id: 'account' }) },
     post: {
       findFirst: vi.fn(),
@@ -103,6 +104,24 @@ describe('daily account publishing', () => {
     });
     expect(await invoke('daily-publishing.schedule', { state })).toMatchObject({
       outcome: 'review-draft',
+    });
+    expect(posts.batchSchedule).not.toHaveBeenCalled();
+  });
+  it('keeps an approval-required brand in review even when autoPublish is requested', async () => {
+    const { prisma, posts, state, invoke } = setup();
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: {
+        autoPublish: { enabled: false, isApprovalRequired: true },
+      },
+    });
+    expect(
+      await invoke('daily-publishing.schedule', {
+        state: { ...state, request: { brandId: 'brand', autoPublish: true } },
+      }),
+    ).toMatchObject({ outcome: 'review-draft' });
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith({
+      select: { agentConfig: true },
+      where: { id: 'brand', isDeleted: false, organizationId: 'org' },
     });
     expect(posts.batchSchedule).not.toHaveBeenCalled();
   });

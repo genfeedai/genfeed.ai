@@ -35,6 +35,7 @@ export enum ActivitySource {
   VOICE_GENERATION = 'voice-generate',
   TREND_SCAN = 'trend-scan',
   BRAND_INTERVIEW = 'brand-interview',
+  EXPERT_FIRST_SYSTEM = 'expert-first-system',
   BRAND_RELOCATION = 'brand-relocation',
   REFERRAL = 'credits-referral',
 }

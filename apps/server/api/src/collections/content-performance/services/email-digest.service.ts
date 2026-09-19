@@ -1,7 +1,14 @@
 import {
+  buildRecordNextPrompt,
+  derivePatternText,
+  resolveWeakestPositioningDimension,
+} from '@api/collections/content-performance/services/email-digest-expert.util';
+import {
   PerformanceSummaryService,
   type WeeklySummary,
 } from '@api/collections/content-performance/services/performance-summary.service';
+import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { DateRangeUtil } from '@api/helpers/utils/date-range/date-range.util';
 import {
   SERVER_TOKENS,
@@ -9,6 +16,8 @@ import {
   type ServerPrisma,
 } from '@api/server.dependencies';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
+import { OrganizationCategory } from '@genfeedai/contracts';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
@@ -32,11 +41,31 @@ export interface EmailDigestOptions {
   endDate?: Date | string;
 }
 
+export interface EmailDigestExpertWinner {
+  content: string;
+  platform: string;
+  engagementRate: number;
+}
+
+/**
+ * Expert Path "What won" / "Record next" digest sections. `isExpert: false`
+ * for non-EXPERT organizations, and rendering skips the sections entirely in
+ * that case — see {@link EmailDigestService.buildDigestHtml}.
+ */
+export interface EmailDigestExpertData {
+  isExpert: boolean;
+  winners: EmailDigestExpertWinner[];
+  patternText: string | null;
+  recordNextPrompt: string;
+  corpusUrl: string;
+}
+
 export interface EmailDigestPrepared {
   options: EmailDigestOptions;
   organizationName: string;
   destinationUrl: string;
   summary: WeeklySummary;
+  expert: EmailDigestExpertData;
 }
 
 export interface EmailDigestDelivery {
@@ -69,6 +98,9 @@ export class EmailDigestService {
     @Inject(SERVER_TOKENS.prisma) private readonly prisma: ServerPrisma,
     @Inject(SERVER_TOKENS.logger) private readonly logger: ServerLogger,
     private readonly config: ConfigService,
+    private readonly harnessWinnerPromotion: HarnessWinnerPromotionService,
+    private readonly creativePatterns: CreativePatternsService,
+    private readonly harnessProfiles: HarnessProfilesService,
   ) {}
 
   normalizeOptions<T extends EmailDigestOptions>(
@@ -105,7 +137,7 @@ export class EmailDigestService {
     const [organization, brand] = await Promise.all([
       this.prisma.organization.findFirst({
         where: { id: options.organizationId, isDeleted: false },
-        select: { label: true, slug: true },
+        select: { label: true, slug: true, accountType: true },
       }),
       this.prisma.brand.findFirst({
         where: {
@@ -124,16 +156,91 @@ export class EmailDigestService {
       this.config.get('GENFEEDAI_APP_URL') ?? 'https://app.genfeed.ai'
     ).replace(/\/$/, '');
     const destinationUrl = `${appUrl}/${encodeURIComponent(organization.slug)}/${encodeURIComponent(brand.slug)}/library/assets`;
+    const corpusUrl = `${appUrl}/${encodeURIComponent(organization.slug)}/${encodeURIComponent(brand.slug)}/settings/knowledge`;
     const summary = await this.performanceSummaryService.getWeeklySummary(
       options.organizationId,
       options.brandId,
       normalized,
     );
+    const expert =
+      organization.accountType === OrganizationCategory.EXPERT
+        ? await this.buildExpertDigestData({
+            brandId: options.brandId,
+            corpusUrl,
+            from: new Date(normalized.startDate),
+            organizationId: options.organizationId,
+            to: new Date(normalized.endDate),
+          })
+        : {
+            corpusUrl,
+            isExpert: false,
+            patternText: null,
+            recordNextPrompt: '',
+            winners: [],
+          };
     return {
       options: normalized,
       organizationName: organization.label ?? 'Your Organization',
       destinationUrl,
       summary,
+      expert,
+    };
+  }
+
+  /**
+   * Assembles the Expert Path "What won" / "Record next" digest data for one
+   * brand + window. Only called for organizations whose `accountType` is
+   * `OrganizationCategory.EXPERT` — see {@link prepareDigest}.
+   */
+  private async buildExpertDigestData(params: {
+    organizationId: string;
+    brandId: string;
+    from: Date;
+    to: Date;
+    corpusUrl: string;
+  }): Promise<EmailDigestExpertData> {
+    const [winners, patterns, profile] = await Promise.all([
+      this.harnessWinnerPromotion.listPromotedWinners({
+        brandId: params.brandId,
+        from: params.from,
+        limit: 5,
+        organizationId: params.organizationId,
+        to: params.to,
+      }),
+      this.creativePatterns.findTopForBrand(
+        params.organizationId,
+        params.brandId,
+        { limit: 1 },
+      ),
+      this.harnessProfiles.getActiveForBrand(
+        params.organizationId,
+        params.brandId,
+      ),
+    ]);
+
+    const topWinner = winners[0]
+      ? { content: winners[0].content, platform: winners[0].platform }
+      : null;
+    const patternText = derivePatternText(patterns[0] ?? null, topWinner);
+    const weakestDimension = resolveWeakestPositioningDimension(
+      profile?.positioning?.weakestDimension,
+    );
+    const recordNextPrompt = buildRecordNextPrompt({
+      hasWinners: winners.length > 0,
+      patternText,
+      weakestDimension,
+    });
+
+    return {
+      corpusUrl: params.corpusUrl,
+      isExpert: true,
+      patternText,
+      recordNextPrompt,
+      winners: winners.map((winner) => ({
+        content: winner.content,
+        engagementRate: winner.engagementRate ?? 0,
+        platform: winner.platform ?? 'unknown',
+      })),
     };
   }
 
@@ -157,6 +264,7 @@ export class EmailDigestService {
       state.summary,
       state.organizationName,
       state.destinationUrl,
+      state.expert,
     );
     const subject = `Weekly Performance Digest - ${state.organizationName}`;
     return {
@@ -272,6 +380,7 @@ export class EmailDigestService {
     summary: WeeklySummary,
     orgName: string,
     destinationUrl?: string,
+    expert?: EmailDigestExpertData,
   ): string {
     const trend = summary.weekOverWeekTrend;
     const trendLabel =
@@ -321,6 +430,10 @@ export class EmailDigestService {
         return `<li style="margin:0 0 8px;">${displayHour}:00 ${period} (${t.avgEngagementRate.toFixed(2)}% avg engagement, ${t.postCount} posts)</li>`;
       })
       .join('');
+
+    const expertHtml = expert?.isExpert
+      ? this.buildExpertDigestSectionsHtml(expert)
+      : '';
 
     const bodyHtml = `
   <p style="color:#A1A1A1;font-size:15px;line-height:24px;margin:0 0 18px;">Report for <strong style="color:#EDEDED;">${this.escapeHtml(orgName)}</strong></p>
@@ -379,7 +492,7 @@ export class EmailDigestService {
     ${summary.topHooks.map((h) => `<li>"${this.escapeHtml(h.substring(0, 80))}"</li>`).join('')}
   </ol>`
       : ''
-  }`;
+  }${expertHtml ? `\n  ${expertHtml}` : ''}`;
 
     const html = buildSystemEmailHtml({
       bodyHtml,
@@ -396,6 +509,49 @@ export class EmailDigestService {
           '{{emailActionUrl}}',
         )
       : html;
+  }
+
+  /**
+   * Renders the Expert Path "What won" and "Record next" sections. Only
+   * invoked when `expert.isExpert` is true, so non-EXPERT digests never call
+   * this and keep their existing HTML byte-for-byte.
+   */
+  private buildExpertDigestSectionsHtml(expert: EmailDigestExpertData): string {
+    const winnersHtml =
+      expert.winners.length > 0
+        ? `<table style="border-collapse:collapse;font-size:13px;width:100%;">
+    <thead>
+      <tr>
+        <th style="color:#949494;font-weight:700;padding:8px;text-align:left;">Content</th>
+        <th style="color:#949494;font-weight:700;padding:8px;text-align:left;">Platform</th>
+        <th style="color:#949494;font-weight:700;padding:8px;text-align:left;">Score</th>
+      </tr>
+    </thead>
+    <tbody>${expert.winners
+      .map(
+        (winner) => `
+        <tr>
+          <td style="border-bottom:1px solid #333333;color:#EDEDED;padding:8px;">${this.escapeHtml(winner.content).substring(0, 120)}</td>
+          <td style="border-bottom:1px solid #333333;color:#A1A1A1;padding:8px;">${this.escapeHtml(winner.platform)}</td>
+          <td style="border-bottom:1px solid #333333;color:#A1A1A1;padding:8px;">${winner.engagementRate.toFixed(2)}%</td>
+        </tr>`,
+      )
+      .join('')}</tbody>
+  </table>
+  ${
+    expert.patternText
+      ? `<p style="margin:12px 0 0;color:#A1A1A1;font-size:14px;line-height:22px;">The pattern behind it: ${this.escapeHtml(expert.patternText)}</p>`
+      : ''
+  }`
+        : '<p style="color:#949494;margin:0 0 16px;">No ideas were promoted this week.</p>';
+
+    return `
+  <h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">What won</h2>
+  ${winnersHtml}
+
+  <h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Record next</h2>
+  <p style="margin:0 0 8px;color:#A1A1A1;font-size:14px;line-height:22px;">${this.escapeHtml(expert.recordNextPrompt)}</p>
+  <p style="margin:0;font-size:14px;line-height:22px;"><a href="${this.escapeHtml(expert.corpusUrl)}" style="color:#EDEDED;text-decoration:underline;">Add to your knowledge corpus</a></p>`;
   }
 
   private escapeHtml(text: string): string {

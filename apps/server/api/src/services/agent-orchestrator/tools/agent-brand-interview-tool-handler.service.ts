@@ -163,6 +163,7 @@ export class AgentBrandInterviewToolHandler {
     const result = await this.brandInterviewService.skipField(
       interviewId,
       ctx.organizationId,
+      ctx.userId,
     );
 
     return {

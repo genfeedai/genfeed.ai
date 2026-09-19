@@ -1,7 +1,10 @@
 import { EmailDigestService } from '@api/collections/content-performance/services/email-digest.service';
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
+import { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import { ConfigService } from '@libs/config/config.service';
 import { BadRequestException } from '@nestjs/common';
 import { Test } from '@nestjs/testing';
@@ -42,6 +45,9 @@ describe('EmailDigestService durable delivery', () => {
   };
   const queueEmail = vi.fn();
   const getWeeklySummary = vi.fn();
+  const listPromotedWinners = vi.fn();
+  const findTopForBrand = vi.fn();
+  const getActiveForBrand = vi.fn();
   let service: EmailDigestService;
   beforeEach(async () => {
     vi.clearAllMocks();
@@ -54,6 +60,9 @@ describe('EmailDigestService durable delivery', () => {
     prisma.member.findFirst.mockResolvedValue({ userId: 'owner-1' });
     queueEmail.mockResolvedValue('delivery-1');
     getWeeklySummary.mockResolvedValue(summary);
+    listPromotedWinners.mockResolvedValue([]);
+    findTopForBrand.mockResolvedValue([]);
+    getActiveForBrand.mockResolvedValue(null);
     const module = await Test.createTestingModule({
       providers: [
         EmailDigestService,
@@ -65,6 +74,12 @@ describe('EmailDigestService durable delivery', () => {
           provide: ConfigService,
           useValue: { get: vi.fn(() => 'https://app.genfeed.ai') },
         },
+        {
+          provide: HarnessWinnerPromotionService,
+          useValue: { listPromotedWinners },
+        },
+        { provide: CreativePatternsService, useValue: { findTopForBrand } },
+        { provide: HarnessProfilesService, useValue: { getActiveForBrand } },
       ],
     }).compile();
     service = module.get(EmailDigestService);
@@ -189,5 +204,123 @@ describe('EmailDigestService durable delivery', () => {
     expect(() =>
       service.normalizeOptions({ ...options, startDate: '2025-01-01' }),
     ).toThrow(BadRequestException);
+  });
+
+  describe('Expert Path "What won" / "Record next" digest sections', () => {
+    it('adds a "What won" table, the pattern, and a "Record next" prompt for an EXPERT organization', async () => {
+      prisma.organization.findFirst.mockResolvedValue({
+        accountType: 'EXPERT',
+        label: 'Test org',
+        slug: 'test-org',
+        userId: 'owner-1',
+      });
+      listPromotedWinners.mockResolvedValue([
+        {
+          content:
+            'Winning post on tiktok (9.10% engagement): Stop chasing virality.',
+          engagementRate: 9.1,
+          platform: 'tiktok',
+          postId: 'post-1',
+          promotedAt: '2026-08-05T00:00:00.000Z',
+        },
+      ]);
+      findTopForBrand.mockResolvedValue([
+        {
+          description: 'Open with a contrarian claim, then prove it fast.',
+          label: 'Contrarian opener',
+        },
+      ]);
+      getActiveForBrand.mockResolvedValue({
+        positioning: { weakestDimension: 'authoritySignals' },
+      });
+
+      const rendered = service.renderDigest(
+        await service.discoverDigestRecipients(
+          await service.prepareDigest(options),
+        ),
+      );
+      const html = rendered.deliveries[0].html;
+
+      expect(html).toContain('What won');
+      expect(html).toContain('tiktok');
+      expect(html).toContain('9.10%');
+      expect(html).toContain(
+        'Open with a contrarian claim, then prove it fast.',
+      );
+      expect(html).toContain('Record next');
+      expect(html).toContain('authority signals');
+      expect(html).toContain(
+        'https://app.genfeed.ai/test-org/test-brand/settings/knowledge',
+      );
+    });
+
+    it('prompts for a corpus addition instead of "What won" when no winners were promoted', async () => {
+      prisma.organization.findFirst.mockResolvedValue({
+        accountType: 'EXPERT',
+        label: 'Test org',
+        slug: 'test-org',
+        userId: 'owner-1',
+      });
+      listPromotedWinners.mockResolvedValue([]);
+      findTopForBrand.mockResolvedValue([]);
+      getActiveForBrand.mockResolvedValue(null);
+
+      const rendered = service.renderDigest(
+        await service.discoverDigestRecipients(
+          await service.prepareDigest(options),
+        ),
+      );
+      const html = rendered.deliveries[0].html;
+
+      expect(html).toContain('No ideas were promoted this week');
+      expect(html).toContain(
+        'https://app.genfeed.ai/test-org/test-brand/settings/knowledge',
+      );
+    });
+
+    it('leaves the digest unchanged for a non-EXPERT organization', async () => {
+      prisma.organization.findFirst.mockResolvedValue({
+        accountType: 'CREATOR',
+        label: 'Test org',
+        slug: 'test-org',
+        userId: 'owner-1',
+      });
+
+      const rendered = service.renderDigest(
+        await service.discoverDigestRecipients(
+          await service.prepareDigest(options),
+        ),
+      );
+      const html = rendered.deliveries[0].html;
+
+      expect(html).not.toContain('What won');
+      expect(html).not.toContain('Record next');
+      expect(listPromotedWinners).not.toHaveBeenCalled();
+      expect(findTopForBrand).not.toHaveBeenCalled();
+      expect(getActiveForBrand).not.toHaveBeenCalled();
+    });
+
+    it('renders byte-for-byte identical HTML whether a non-expert `expert` object is passed or omitted', () => {
+      const withoutExpertArg = service.buildDigestHtml(
+        summary,
+        'Test org',
+        'https://app.genfeed.ai/test-org/test-brand/library/assets',
+      );
+      const withNonExpertData = service.buildDigestHtml(
+        summary,
+        'Test org',
+        'https://app.genfeed.ai/test-org/test-brand/library/assets',
+        {
+          corpusUrl:
+            'https://app.genfeed.ai/test-org/test-brand/settings/knowledge',
+          isExpert: false,
+          patternText: null,
+          recordNextPrompt: '',
+          winners: [],
+        },
+      );
+
+      expect(withNonExpertData).toBe(withoutExpertArg);
+    });
   });
 });

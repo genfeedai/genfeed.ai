@@ -31,6 +31,15 @@ describe('website sitemap', () => {
     expect(urls.has('https://genfeed.ai/contact')).toBe(true);
   });
 
+  it('lists the expert landing page', async () => {
+    findAllPublicArticles.mockRejectedValue(new Error('API unavailable'));
+
+    const routes = await sitemap();
+    const urls = new Set(routes.map((route) => route.url));
+
+    expect(urls.has('https://genfeed.ai/experts')).toBe(true);
+  });
+
   it('merges API articles with launch fallbacks without duplicate URLs', async () => {
     findAllPublicArticles.mockResolvedValue([
       {

@@ -5,7 +5,11 @@ import type {
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import type { Prisma } from '@genfeedai/prisma';
+import {
+  type Prisma,
+  type BrandMemory as PrismaBrandMemory,
+  toPrismaJson,
+} from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -30,6 +34,16 @@ export interface BrandMemoryMetricsInput {
   avgEngagementRate?: number;
   topPerformingFormat?: string;
   topPerformingTime?: string;
+}
+
+/**
+ * One durable row per `(organizationId, brandId, type)` — e.g. an Expert Path
+ * positioning answer stored as `positioning.originStory`.
+ */
+export interface BrandMemoryTypedEntryInput {
+  type: string;
+  content: string;
+  metadata?: Record<string, unknown>;
 }
 
 export interface BrandMemoryDateRange {
@@ -214,6 +228,59 @@ export class BrandMemoryService extends BaseService<
         organizationId,
       },
     }) as Promise<BrandMemoryDocument>;
+  }
+
+  /**
+   * Upsert a typed memory row on the model's own `type`/`content`/`metadata`
+   * columns. Re-answering overwrites the same row instead of appending.
+   */
+  async upsertTypedEntry(
+    organizationId: string,
+    brandId: string,
+    entry: BrandMemoryTypedEntryInput,
+  ): Promise<PrismaBrandMemory> {
+    const existing = await this.prisma.brandMemory.findFirst({
+      orderBy: { updatedAt: 'desc' },
+      where: scopedWhere(organizationId, { brandId, type: entry.type }),
+    });
+
+    const data = {
+      content: entry.content,
+      date: new Date(),
+      ...(entry.metadata ? { metadata: toPrismaJson(entry.metadata) } : {}),
+    };
+
+    if (existing) {
+      return this.prisma.brandMemory.update({
+        data,
+        where: scopedWhere(organizationId, { id: existing.id }),
+      });
+    }
+
+    return this.prisma.brandMemory.create({
+      data: {
+        ...data,
+        brandId,
+        isDeleted: false,
+        organizationId,
+        type: entry.type,
+      },
+    });
+  }
+
+  /** Typed rows whose `type` starts with `typePrefix`, newest first. */
+  listTypedEntries(
+    organizationId: string,
+    brandId: string,
+    typePrefix: string,
+  ): Promise<PrismaBrandMemory[]> {
+    return this.prisma.brandMemory.findMany({
+      orderBy: { updatedAt: 'desc' },
+      where: scopedWhere(organizationId, {
+        brandId,
+        type: { startsWith: typePrefix },
+      }),
+    });
   }
 
   getMemory(

@@ -10,6 +10,8 @@ export * from './carousel.constant';
 export * from './context-embedding.constant';
 export * from './empty-states.constant';
 export * from './error-messages.constant';
+export * from './expert-path.constant';
+export * from './expert-positioning.constant';
 export * from './feature-flags.constant';
 export * from './gallery.constant';
 export * from './generation-dimensions.constant';

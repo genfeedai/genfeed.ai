@@ -221,4 +221,84 @@ describe('HarnessWinnerPromotionService', () => {
       'org-1',
     );
   });
+
+  describe('listPromotedWinners', () => {
+    it('returns [] without creating a context base when the brand has no winners history', async () => {
+      prisma.contextBase.findFirst.mockResolvedValue(null);
+
+      const result = await service.listPromotedWinners({
+        brandId: 'brand-1',
+        from: new Date('2026-08-01T00:00:00.000Z'),
+        organizationId: 'org-1',
+        to: new Date('2026-08-07T23:59:59.999Z'),
+      });
+
+      expect(result).toEqual([]);
+      expect(prisma.contextBase.create).not.toHaveBeenCalled();
+      expect(prisma.contextEntry.findMany).not.toHaveBeenCalled();
+    });
+
+    it('scopes the read by organization and returns only entries inside the window, sorted by engagement', async () => {
+      prisma.contextBase.findFirst.mockResolvedValue({ id: 'ctx-1' });
+      prisma.contextEntry.findMany.mockResolvedValue([
+        {
+          data: {
+            content:
+              'Winning post on twitter (4.20% engagement): In window, lower score',
+            metadata: {
+              engagementRate: 4.2,
+              platform: 'twitter',
+              postId: 'post-1',
+              promotedAt: '2026-08-03T00:00:00.000Z',
+            },
+          },
+        },
+        {
+          data: {
+            content:
+              'Winning post on tiktok (9.10% engagement): In window, higher score',
+            metadata: {
+              engagementRate: 9.1,
+              platform: 'tiktok',
+              postId: 'post-2',
+              promotedAt: '2026-08-05T00:00:00.000Z',
+            },
+          },
+        },
+        {
+          data: {
+            content:
+              'Winning post on instagram (7.00% engagement): Outside the window',
+            metadata: {
+              engagementRate: 7,
+              platform: 'instagram',
+              postId: 'post-3',
+              promotedAt: '2026-07-01T00:00:00.000Z',
+            },
+          },
+        },
+      ]);
+
+      const result = await service.listPromotedWinners({
+        brandId: 'brand-1',
+        from: new Date('2026-08-01T00:00:00.000Z'),
+        organizationId: 'org-1',
+        to: new Date('2026-08-07T23:59:59.999Z'),
+      });
+
+      expect(prisma.contextEntry.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            contextBaseId: 'ctx-1',
+            isDeleted: false,
+            organizationId: 'org-1',
+          }),
+        }),
+      );
+      expect(result).toEqual([
+        expect.objectContaining({ platform: 'tiktok', postId: 'post-2' }),
+        expect.objectContaining({ platform: 'twitter', postId: 'post-1' }),
+      ]);
+    });
+  });
 });

@@ -1,0 +1,1 @@
+ALTER TYPE "OrganizationCategory" ADD VALUE IF NOT EXISTS 'EXPERT';

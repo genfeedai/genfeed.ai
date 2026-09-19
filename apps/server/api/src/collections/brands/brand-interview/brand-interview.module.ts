@@ -10,6 +10,7 @@ import { BrandInterviewController } from '@api/collections/brands/brand-intervie
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { CreditsModule } from '@api/collections/credits/credits.module';
+import { ExpertPositioningModule } from '@api/services/expert-path/expert-positioning.module';
 import { Module } from '@nestjs/common';
 
 @Module({
@@ -19,6 +20,8 @@ import { Module } from '@nestjs/common';
     BrandsCoreModule,
     // CreditsUtilsService — swapped to OSS no-op in community mode
     CreditsModule,
+    // Expert Path positioning answers, scoring, and harness profile drafts
+    ExpertPositioningModule,
     // PrismaService, CacheInvalidationService, and LoggerService are all @Global
     // (PrismaModule, CacheModule, LoggerModule) so no local import needed.
   ],

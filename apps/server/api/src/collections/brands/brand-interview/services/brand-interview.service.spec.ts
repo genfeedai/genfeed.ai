@@ -17,6 +17,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import type { ExpertPositioningService } from '@api/services/expert-path/services/expert-positioning.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BrandInterviewStatus } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -25,7 +26,9 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   BRAND_INTERVIEW_CREDIT_COST,
+  EXPERT_INTERVIEW_FIELD_KEYS,
   IN_SCOPE_FIELD_KEYS,
+  resolveInterviewFieldKeys,
 } from '../constants/brand-interview-question-catalog.constant';
 
 // ── Helpers ────────────────────────────────────────────────────────────────
@@ -53,6 +56,7 @@ function makeSession(
     completenessAfter: number | null;
     creditsCharged: number;
     isDeleted: boolean;
+    isExpertPositioning: boolean;
   }> = {},
 ) {
   return {
@@ -68,6 +72,7 @@ function makeSession(
     completenessAfter: null,
     creditsCharged: BRAND_INTERVIEW_CREDIT_COST,
     isDeleted: false,
+    isExpertPositioning: false,
     createdAt: new Date(),
     updatedAt: new Date(),
     ...overrides,
@@ -102,6 +107,11 @@ describe('BrandInterviewService', () => {
   let cacheService: { invalidate: ReturnType<typeof vi.fn> };
   let logger: LoggerService;
   let brandsService: { updateAgentConfig: ReturnType<typeof vi.fn> };
+  let organizationDelegate: { findFirst: ReturnType<typeof vi.fn> };
+  let expertPositioningService: {
+    generateDraft: ReturnType<typeof vi.fn>;
+    saveAnswer: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(() => {
     brandDelegate = {
@@ -127,9 +137,18 @@ describe('BrandInterviewService', () => {
       updateAgentConfig: vi.fn().mockResolvedValue(makeEmptyBrand()),
     };
 
+    organizationDelegate = {
+      findFirst: vi.fn().mockResolvedValue({ accountType: 'CREATOR' }),
+    };
+    expertPositioningService = {
+      generateDraft: vi.fn(),
+      saveAnswer: vi.fn().mockResolvedValue({ id: 'memory-1' }),
+    };
+
     const prisma = {
       brand: brandDelegate,
       brandInterview: interviewDelegate,
+      organization: organizationDelegate,
     } as unknown as PrismaService;
 
     service = new BrandInterviewService(
@@ -138,6 +157,7 @@ describe('BrandInterviewService', () => {
       cacheService as unknown as CacheInvalidationService,
       logger,
       brandsService as unknown as BrandsService,
+      expertPositioningService as unknown as ExpertPositioningService,
     );
   });
 
@@ -564,6 +584,223 @@ describe('BrandInterviewService', () => {
       const result = await service.getActiveForBrand('brand-1', 'org-1');
 
       expect(result?.currentQuestion).toBeNull();
+    });
+  });
+
+  // ── Expert Path positioning ───────────────────────────────────────────────
+
+  describe('Expert Path positioning', () => {
+    const SCORE = {
+      dimensions: [],
+      rating: 'needs_work',
+      scoredAt: '2026-09-19T00:00:00.000Z',
+      totalScore: 61,
+      version: 1,
+      weakestDimension: 'bigDomino',
+    };
+
+    it('orders the expert section before brand gaps only for expert sessions', () => {
+      expect(resolveInterviewFieldKeys(false)).toEqual(IN_SCOPE_FIELD_KEYS);
+      expect(resolveInterviewFieldKeys(true)).toEqual([
+        ...EXPERT_INTERVIEW_FIELD_KEYS,
+        ...IN_SCOPE_FIELD_KEYS,
+      ]);
+      expect(EXPERT_INTERVIEW_FIELD_KEYS).toEqual([
+        'originStory',
+        'bigDomino',
+        'newOpportunity',
+        'authoritySignals',
+        'contrarianBeliefs',
+        'transformation',
+        'notForWho',
+      ]);
+    });
+
+    it('starts an expert session on the positioning section without charging the first run', async () => {
+      organizationDelegate.findFirst.mockResolvedValue({
+        accountType: 'EXPERT',
+      });
+      brandDelegate.findFirst.mockResolvedValue(makeEmptyBrand());
+      interviewDelegate.findFirst
+        .mockResolvedValueOnce(null) // no active session
+        .mockResolvedValueOnce(null); // no prior expert session
+      interviewDelegate.create.mockImplementation(({ data }) =>
+        Promise.resolve(makeSession({ ...data, id: 'expert-1' })),
+      );
+
+      const result = await service.start('brand-1', 'org-1', 'user-1');
+
+      expect(interviewDelegate.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          creditsCharged: 0,
+          currentFieldKey: 'originStory',
+          isExpertPositioning: true,
+        }),
+      });
+      expect(
+        creditsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(
+        creditsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+      expect(result.creditsCharged).toBe(0);
+      expect(result.isExpertPositioning).toBe(true);
+      expect(result.progress.totalFields).toBe(
+        EXPERT_INTERVIEW_FIELD_KEYS.length + IN_SCOPE_FIELD_KEYS.length,
+      );
+    });
+
+    it('charges a replay once the brand already had an expert session', async () => {
+      organizationDelegate.findFirst.mockResolvedValue({
+        accountType: 'EXPERT',
+      });
+      brandDelegate.findFirst.mockResolvedValue(makeEmptyBrand());
+      interviewDelegate.findFirst
+        .mockResolvedValueOnce(null)
+        .mockResolvedValueOnce({ id: 'earlier-expert-session' });
+      interviewDelegate.create.mockImplementation(({ data }) =>
+        Promise.resolve(makeSession({ ...data })),
+      );
+
+      const result = await service.start('brand-1', 'org-1', 'user-1');
+
+      expect(
+        creditsService.deductCreditsFromOrganization,
+      ).toHaveBeenCalledOnce();
+      expect(result.creditsCharged).toBe(BRAND_INTERVIEW_CREDIT_COST);
+    });
+
+    it('persists a positioning answer to brand memory instead of the brand row', async () => {
+      const session = makeSession({
+        currentFieldKey: 'originStory',
+        isExpertPositioning: true,
+      });
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      brandDelegate.findFirst.mockResolvedValue(makeEmptyBrand());
+      interviewDelegate.update.mockImplementation(({ data }) =>
+        Promise.resolve({ ...session, ...data }),
+      );
+
+      const result = await service.submitAnswer(
+        'interview-1',
+        'org-1',
+        'user-1',
+        'I used to run finance at a startup.',
+      );
+
+      expect(expertPositioningService.saveAnswer).toHaveBeenCalledWith({
+        answer: 'I used to run finance at a startup.',
+        brandId: 'brand-1',
+        fieldKey: 'originStory',
+        interviewId: 'interview-1',
+        organizationId: 'org-1',
+      });
+      expect(brandDelegate.updateMany).not.toHaveBeenCalled();
+      expect(brandsService.updateAgentConfig).not.toHaveBeenCalled();
+      expect(result.nextQuestion?.fieldKey).toBe('bigDomino');
+    });
+
+    it('re-saving a positioning answer upserts the same memory entry', async () => {
+      const session = makeSession({
+        answeredFields: { originStory: 'First version' },
+        currentFieldKey: 'bigDomino',
+        isExpertPositioning: true,
+      });
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      interviewDelegate.update.mockImplementation(({ data }) =>
+        Promise.resolve({ ...session, ...data }),
+      );
+
+      await service.submitAnswer(
+        'interview-1',
+        'org-1',
+        'user-1',
+        'Second version',
+        'originStory',
+      );
+
+      expect(expertPositioningService.saveAnswer).toHaveBeenCalledWith(
+        expect.objectContaining({
+          answer: 'Second version',
+          fieldKey: 'originStory',
+        }),
+      );
+      expect(expertPositioningService.generateDraft).not.toHaveBeenCalled();
+    });
+
+    it('completes after the positioning section and returns the generated scorecard', async () => {
+      const session = makeSession({
+        answeredFields: Object.fromEntries(
+          EXPERT_INTERVIEW_FIELD_KEYS.map((key) => [key, `${key} answer`]),
+        ),
+        currentFieldKey: 'description',
+        isExpertPositioning: true,
+      });
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      brandDelegate.findFirst.mockResolvedValue(makeEmptyBrand());
+      interviewDelegate.update.mockImplementation(({ data }) =>
+        Promise.resolve({ ...session, ...data }),
+      );
+      expertPositioningService.generateDraft.mockResolvedValue({
+        profile: { id: 'profile-1' },
+        score: SCORE,
+      });
+
+      const result = await service.complete('interview-1', 'org-1', 'user-1');
+
+      expect(interviewDelegate.update).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            currentFieldKey: null,
+            status: BrandInterviewStatus.COMPLETED,
+          }),
+        }),
+      );
+      expect(expertPositioningService.generateDraft).toHaveBeenCalledWith({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+      expect(result.isComplete).toBe(true);
+      expect(result.positioningScore).toEqual(SCORE);
+    });
+
+    it('refuses to complete before every positioning question is handled', async () => {
+      interviewDelegate.findFirst.mockResolvedValue(
+        makeSession({
+          answeredFields: { originStory: 'Story' },
+          currentFieldKey: 'bigDomino',
+          isExpertPositioning: true,
+        }),
+      );
+
+      await expect(
+        service.complete('interview-1', 'org-1', 'user-1'),
+      ).rejects.toBeInstanceOf(BadRequestException);
+    });
+
+    it('keeps the completed answer when draft generation fails', async () => {
+      const session = makeSession({
+        answeredFields: Object.fromEntries(
+          EXPERT_INTERVIEW_FIELD_KEYS.map((key) => [key, `${key} answer`]),
+        ),
+        currentFieldKey: 'description',
+        isExpertPositioning: true,
+      });
+      interviewDelegate.findFirst.mockResolvedValue(session);
+      brandDelegate.findFirst.mockResolvedValue(makeEmptyBrand());
+      interviewDelegate.update.mockImplementation(({ data }) =>
+        Promise.resolve({ ...session, ...data }),
+      );
+      expertPositioningService.generateDraft.mockRejectedValue(
+        new Error('scoring unavailable'),
+      );
+
+      const result = await service.complete('interview-1', 'org-1', 'user-1');
+
+      expect(result.isComplete).toBe(true);
+      expect(result.positioningScore).toBeUndefined();
+      expect(logger.error).toHaveBeenCalled();
     });
   });
 

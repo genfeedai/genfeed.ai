@@ -178,4 +178,18 @@ describe('Brand OS identity receipts', () => {
     );
     expect(brief.receipts).toEqual({ brandOs: 'none' });
   });
+
+  it('records the harness profile that contributed to the brief', async () => {
+    const brief = await composeContentHarnessBrief(
+      new ContentHarnessRegistry(),
+      {
+        harnessProfileId: 'profile-7',
+        intent: { contentType: 'post', objective: 'engagement' },
+      },
+    );
+    expect(brief.receipts).toEqual({
+      brandOs: 'none',
+      harnessProfileId: 'profile-7',
+    });
+  });
 });

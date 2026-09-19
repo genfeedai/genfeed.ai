@@ -114,9 +114,17 @@ export async function composeContentHarnessBrief(
       platform: input.intent.platform,
     },
     packs: packs.map((pack) => pack.id),
-    receipts: input.brandOsRevisionId
-      ? { brandOs: 'approved', brandOsRevisionId: input.brandOsRevisionId }
-      : { brandOs: 'none' },
+    receipts: {
+      ...(input.brandOsRevisionId
+        ? {
+            brandOs: 'approved' as const,
+            brandOsRevisionId: input.brandOsRevisionId,
+          }
+        : { brandOs: 'none' as const }),
+      ...(input.harnessProfileId
+        ? { harnessProfileId: input.harnessProfileId }
+        : {}),
+    },
     providerHints: aggregate.providerHints ?? [],
     sources: aggregate.sources ?? [],
     styleDirectives: aggregate.styleDirectives ?? [],

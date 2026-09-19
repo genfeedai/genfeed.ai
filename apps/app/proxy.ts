@@ -10,10 +10,12 @@ import {
   APP_ROUTES,
   createBrandAppRoute,
   hasCompletedBrandOnboardingStep,
+  isExpertAccountType,
   isPersonalSettingsPath,
   isSharedBrandOnboardingPath,
   ONBOARDING_STEPS,
   parseScopedAppPath,
+  resolveForcedOnboardingHref,
 } from '@genfeedai/contracts/constants';
 import { DESKTOP_HTTP_HEADERS } from '@genfeedai/contracts/desktop';
 import { type NextRequest, NextResponse } from 'next/server';
@@ -21,6 +23,7 @@ import { type NextRequest, NextResponse } from 'next/server';
 type BootstrapBrandSummary = {
   id: string;
   organization?: {
+    accountType?: string | null;
     slug?: string;
   };
   slug?: string;
@@ -744,6 +747,7 @@ async function resolveActiveWorkspaceSlugs(
 }
 
 type OnboardingRedirectState = {
+  accountType?: string | null;
   completedSteps: string[];
   shouldRedirect: boolean;
 };
@@ -778,11 +782,30 @@ async function readOnboardingRedirectState(
   }
 
   return {
+    accountType: bootstrap.brands?.[0]?.organization?.accountType ?? null,
     completedSteps,
     shouldRedirect: !ONBOARDING_STEPS.every((step) =>
       completedSteps.includes(step),
     ),
   };
+}
+
+/**
+ * Incomplete Expert Path users resume on their own wizard steps instead of
+ * the agent onboarding handoff every other agent-first account type takes.
+ */
+function resolveExpertOnboardingRedirectPath(
+  onboardingState: OnboardingRedirectState,
+): string | null {
+  if (!isExpertAccountType(onboardingState.accountType)) {
+    return null;
+  }
+
+  return resolveForcedOnboardingHref({
+    accountType: onboardingState.accountType,
+    completedSteps: onboardingState.completedSteps,
+    hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+  });
 }
 
 // Matches the org-scoped agent onboarding surface and its threaded children,
@@ -827,11 +850,15 @@ function getAgentOnboardingOrgSlug(pathname: string): string | null {
 }
 
 // Wizard routes that stay reachable in every mode. `post-signup` owns the
-// provisioning handoff (including the managed-checkout return), and `proactive`
-// is a standalone prompt surface rather than a step of the classic journey.
+// provisioning handoff (including the managed-checkout return), `proactive`
+// is a standalone prompt surface rather than a step of the classic journey,
+// and the Expert Path steps run on every surface.
 const MODE_AGNOSTIC_ONBOARDING_PATHS = [
   APP_ROUTES.ONBOARDING.POST_SIGNUP,
   APP_ROUTES.ONBOARDING.PROACTIVE,
+  APP_ROUTES.ONBOARDING.POSITIONING,
+  APP_ROUTES.ONBOARDING.CORPUS,
+  APP_ROUTES.ONBOARDING.FIRST_SYSTEM,
 ] as const;
 
 /**
@@ -877,6 +904,13 @@ async function redirectSignedInUserToAgentOnboarding(
       return null;
     }
     return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
+  }
+
+  const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
+  if (expertPath) {
+    return onboardingState.shouldRedirect
+      ? redirectDroppingSearch(req, expertPath)
+      : null;
   }
 
   const agentOnboarding = await resolveAgentOnboardingRedirect(
@@ -1157,6 +1191,11 @@ async function redirectSignedInUserToDefaultRoute(
         return redirectDroppingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
       }
 
+      const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
+      if (expertPath) {
+        return redirectDroppingSearch(req, expertPath);
+      }
+
       const agentOnboarding = await resolveAgentOnboardingRedirect(
         token,
         cacheKey,
@@ -1365,6 +1404,11 @@ async function routeBetterAuthRequest(
 
       if (!hasBrand) {
         return redirectPreservingSearch(req, APP_ROUTES.ONBOARDING.BRAND);
+      }
+
+      const expertPath = resolveExpertOnboardingRedirectPath(onboardingState);
+      if (expertPath) {
+        return redirectPreservingSearch(req, expertPath);
       }
 
       // The agent onboarding surface is itself a protected route — stay there

@@ -17,6 +17,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import { ContentPlanStatus } from '@genfeedai/contracts';
+import type { IContentPlanProvenance } from '@genfeedai/contracts/interfaces';
 import {
   Prisma,
   type ContentPlan as PrismaContentPlan,
@@ -41,6 +42,7 @@ export interface CreateContentPlanInternal {
 
 interface ContentPlanConfigInput {
   description?: string;
+  provenance?: IContentPlanProvenance;
   executedCount?: number;
   itemCount?: number;
   name?: string;
@@ -163,6 +165,32 @@ export class ContentPlansService extends BaseService<
     return this.toDocument(updated);
   }
 
+  /** Record what generated a plan and what shaped it (profile, receipts). */
+  async recordProvenance(
+    organizationId: string,
+    planId: string,
+    provenance: IContentPlanProvenance,
+  ): Promise<ContentPlanDocument> {
+    const existing = (await this.delegate.findFirst({
+      where: scopedWhere(organizationId, { id: planId }),
+    })) as PrismaContentPlan | null;
+
+    if (!existing) {
+      throw new NotFoundException('ContentPlan', planId);
+    }
+
+    const updated = (await this.delegate.update({
+      data: {
+        config: toPrismaJson(
+          this.buildConfigPayload({ provenance }, existing.config),
+        ),
+      },
+      where: scopedWhere(organizationId, { id: planId }),
+    })) as PrismaContentPlan;
+
+    return this.toDocument(updated);
+  }
+
   async updateStatus(
     organizationId: string,
     planId: string,
@@ -248,6 +276,8 @@ export class ContentPlansService extends BaseService<
       organization: doc.organizationId,
       periodEnd: asDate(config.periodEnd),
       periodStart: asDate(config.periodStart),
+      provenance:
+        (config.provenance as IContentPlanProvenance | undefined) ?? null,
       seeds: (config.seeds as ContentPlanSeedsRecord | undefined) ?? null,
       status: asString(config.status) ?? ContentPlanStatus.DRAFT,
     });
@@ -289,6 +319,10 @@ export class ContentPlansService extends BaseService<
 
     if (data.seeds !== undefined) {
       payload.seeds = data.seeds;
+    }
+
+    if (data.provenance !== undefined) {
+      payload.provenance = data.provenance;
     }
 
     return payload;
