@@ -328,6 +328,52 @@ describe('ScheduledPostDeliveryService', () => {
     );
   });
 
+  it('gates the assets of immediate thread children too', async () => {
+    mockSuccessfulPublisher(mocks);
+    const post = createScheduledPost({
+      children: [
+        {
+          id: 'child-1',
+          ingredients: [{ id: 'child-asset-1' }],
+          order: 0,
+          threadDelayMinutes: 0,
+        },
+      ],
+      ingredients: [{ id: 'asset-1' }],
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.mediaReadinessService.evaluatePublishReadiness,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetIds: ['asset-1', 'child-asset-1'],
+      }),
+    );
+  });
+
+  it('leaves a delayed thread child to its own delivery gate', async () => {
+    mockSuccessfulPublisher(mocks);
+    const post = createScheduledPost({
+      children: [
+        {
+          id: 'child-1',
+          ingredients: [{ id: 'child-asset-1' }],
+          order: 0,
+          threadDelayMinutes: 30,
+        },
+      ],
+      ingredients: [{ id: 'asset-1' }],
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.mediaReadinessService.evaluatePublishReadiness,
+    ).toHaveBeenCalledWith(expect.objectContaining({ assetIds: ['asset-1'] }));
+  });
+
   it('skips the media gate for a post with no attached assets', async () => {
     mockSuccessfulPublisher(mocks);
 

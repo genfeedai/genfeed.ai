@@ -24,6 +24,12 @@ export interface IMediaReadinessAsset {
 export interface IMediaReadinessEvaluationInput {
   assets: readonly IMediaReadinessAsset[];
   platforms: readonly CredentialPlatform[];
+  /**
+   * Attached ids the tenant-scoped lookup did not return. They are reported as
+   * blocking `asset` diagnostics so an id the gate never examined cannot read
+   * as a clean result.
+   */
+  unresolvedAssetIds?: readonly string[];
 }
 
 /** Input to the service: asset ids it resolves and probes itself. */

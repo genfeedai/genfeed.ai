@@ -45,6 +45,15 @@ describe('PLATFORM_MEDIA_SPECS', () => {
       expect(spec.sourcedAt).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     });
 
+    it('keeps the file-size range coherent when both ends are set', () => {
+      if (
+        spec.minFileSizeBytes !== undefined &&
+        spec.maxFileSizeBytes !== undefined
+      ) {
+        expect(spec.minFileSizeBytes).toBeLessThan(spec.maxFileSizeBytes);
+      }
+    });
+
     it('carries at least one constraint worth checking', () => {
       const hasConstraint = [
         spec.maxDurationSeconds,
@@ -111,6 +120,32 @@ describe('PLATFORM_MEDIA_SPECS', () => {
     expect(
       getPlatformMediaSpec(CredentialPlatform.SLACK, 'video'),
     ).toBeUndefined();
+  });
+
+  it('rejects a spec entry whose provenance date is not an ISO date', () => {
+    const [seed] = PLATFORM_MEDIA_SPECS;
+    expect(
+      platformMediaSpecSchema.safeParse({ ...seed, sourcedAt: 'unknown' })
+        .success,
+    ).toBe(false);
+  });
+
+  it('enforces both ends of a documented file-size range', () => {
+    const linkedin = getPlatformMediaSpec(CredentialPlatform.LINKEDIN, 'video');
+    expect(linkedin?.minFileSizeBytes).toBe(75 * 1024);
+    expect(linkedin?.maxFileSizeBytes).toBe(500 * 1024 * 1024);
+  });
+
+  it('keeps container lists to the documented formats', () => {
+    expect(
+      getPlatformMediaSpec(CredentialPlatform.INSTAGRAM, 'image')?.containers,
+    ).not.toContain('png_pipe');
+    expect(
+      getPlatformMediaSpec(CredentialPlatform.TIKTOK, 'video')?.containers,
+    ).not.toContain('matroska');
+    expect(
+      getPlatformMediaSpec(CredentialPlatform.LINKEDIN, 'video')?.containers,
+    ).toEqual(['mp4']);
   });
 
   it('blocks an over-length video at the documented platform ceiling', () => {

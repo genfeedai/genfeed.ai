@@ -1173,4 +1173,124 @@ describe('PublishApprovalsService', () => {
       expect.objectContaining({ mediaReadinessWarnings: [warning] }),
     );
   });
+
+  it("returns this attempt's media warnings when an identical approval is reused", async () => {
+    const post = makePost({
+      ingredients: [{ id: 'asset-1' }],
+      publishApprovalId: 'approval-1',
+    });
+    const existing = makeApproval({
+      provenance: {
+        mediaReadinessWarnings: [{ code: 'stale_from_first_approval' }],
+        source: 'typed-publish-approval',
+      },
+      scopeDigest: scopeDigest(),
+      status: PublishApprovalStatus.APPROVED,
+    });
+    const publishApproval = {
+      create: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(existing),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(),
+      post: {
+        findFirst: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      publishApproval,
+    };
+    const warning = {
+      actual: '4:1',
+      assetId: 'asset-1',
+      code: 'media_aspect_ratio_out_of_tolerance',
+      kind: 'image',
+      limit: '16:9 (±10%)',
+      message: 'twitter: Aspect ratio 4:1 is outside the accepted ratios.',
+      platform: CredentialPlatform.TWITTER,
+      property: 'aspectRatio',
+      severity: 'warning',
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      {
+        createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+      } as unknown as AgentArtifactReferenceService,
+      { log: vi.fn(), warn: vi.fn() } as never,
+      {
+        evaluatePublishReadiness: vi.fn().mockResolvedValue({
+          checkedAt: '2026-09-19T10:00:00.000Z',
+          diagnostics: [warning],
+          isBlocked: false,
+        }),
+      },
+    );
+
+    const approval = await service.createForCurrentPost({
+      actorUserId: 'user-1',
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'post-1',
+    });
+
+    expect(publishApproval.create).not.toHaveBeenCalled();
+    expect(approval.provenance.mediaReadinessWarnings).toEqual([warning]);
+  });
+
+  it('drops stored media warnings from a reused approval when this attempt is clean', async () => {
+    const post = makePost({
+      ingredients: [{ id: 'asset-1' }],
+      publishApprovalId: 'approval-1',
+    });
+    const existing = makeApproval({
+      provenance: {
+        mediaReadinessWarnings: [{ code: 'stale_from_first_approval' }],
+        source: 'typed-publish-approval',
+      },
+      scopeDigest: scopeDigest(),
+      status: PublishApprovalStatus.APPROVED,
+    });
+    const publishApproval = {
+      create: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(existing),
+      findMany: vi.fn().mockResolvedValue([]),
+      update: vi.fn(),
+      updateMany: vi.fn(),
+    };
+    const prisma = {
+      $transaction: vi.fn(),
+      post: {
+        findFirst: vi.fn().mockResolvedValue(post),
+        update: vi.fn().mockResolvedValue(post),
+        updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      },
+      publishApproval,
+    };
+    const service = new PublishApprovalsService(
+      prisma as never,
+      {
+        createOrReuseVersionPin: vi.fn().mockResolvedValue({ id: 'pin-1' }),
+      } as unknown as AgentArtifactReferenceService,
+      { log: vi.fn(), warn: vi.fn() } as never,
+      {
+        evaluatePublishReadiness: vi.fn().mockResolvedValue({
+          checkedAt: '2026-09-19T10:00:00.000Z',
+          diagnostics: [],
+          isBlocked: false,
+        }),
+      },
+    );
+
+    const approval = await service.createForCurrentPost({
+      actorUserId: 'user-1',
+      mode: 'scheduled',
+      organizationId: 'org-1',
+      postId: 'post-1',
+    });
+
+    expect(approval.provenance.mediaReadinessWarnings).toBeUndefined();
+  });
 });

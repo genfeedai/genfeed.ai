@@ -155,6 +155,41 @@ describe('FilesClientService', () => {
     );
   });
 
+  it('rejects booleans and empty values instead of coercing them to numbers', async () => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(
+      of({
+        data: {
+          format: { duration: '', format_name: 'mp4', size: null },
+          streams: [
+            {
+              codec_name: 'h264',
+              codec_type: 'video',
+              height: '   ',
+              r_frame_rate: '30/1',
+              width: true,
+            },
+          ],
+        },
+      }),
+    );
+
+    const probe = await service.probeMediaFromUrl(
+      'https://cdn.test/clip.mp4',
+      'video',
+    );
+
+    // `Number(true)` is 1 and `Number(null)` is 0; neither is a measurement.
+    expect(probe).toEqual(
+      expect.objectContaining({
+        durationSeconds: null,
+        height: null,
+        sizeBytes: null,
+        width: null,
+      }),
+    );
+  });
+
   it('falls back to the local files service when no url is configured', async () => {
     const { post, service } = createHarness(null);
     post.mockReturnValue(of({ data: { data: '' } }));

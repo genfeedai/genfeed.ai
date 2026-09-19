@@ -194,6 +194,88 @@ describe('evaluateMediaReadiness', () => {
     );
   });
 
+  it('blocks a video under the documented LinkedIn file-size floor', () => {
+    const report = evaluateMediaReadiness({
+      assets: [
+        asset('video', {
+          container: 'mp4',
+          durationSeconds: 30,
+          sizeBytes: 40 * 1024,
+        }),
+      ],
+      platforms: [CredentialPlatform.LINKEDIN],
+    });
+
+    expect(readBlockingDiagnostics(report)).toContainEqual(
+      expect.objectContaining({
+        code: 'media_fileSize_below_minimum',
+        property: 'fileSize',
+        severity: 'error',
+      }),
+    );
+  });
+
+  it('reports a constrained property with no measured value instead of passing it', () => {
+    const report = evaluateMediaReadiness({
+      assets: [asset('video', { durationSeconds: null })],
+      platforms: [CredentialPlatform.TIKTOK],
+    });
+
+    expect(report.isBlocked).toBe(false);
+    expect(readWarningDiagnostics(report)).toContainEqual(
+      expect.objectContaining({
+        actual: 'unknown',
+        code: 'media_duration_not_measured',
+        property: 'probe',
+        severity: 'warning',
+      }),
+    );
+  });
+
+  it('stays silent about a property the platform does not constrain', () => {
+    // Instagram's image spec sets no duration or frame-rate limits, and a
+    // still image measures neither.
+    const report = evaluateMediaReadiness({
+      assets: [asset('image')],
+      platforms: [CredentialPlatform.INSTAGRAM],
+    });
+
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  it('blocks an attached id that did not resolve, once per target platform', () => {
+    const report = evaluateMediaReadiness({
+      assets: [],
+      platforms: [CredentialPlatform.TIKTOK, CredentialPlatform.TWITTER],
+      unresolvedAssetIds: ['asset-missing'],
+    });
+
+    const blockers = readBlockingDiagnostics(report);
+    expect(report.isBlocked).toBe(true);
+    expect(blockers).toHaveLength(2);
+    expect(blockers[0]).toEqual(
+      expect.objectContaining({
+        assetId: 'asset-missing',
+        code: 'media_asset_unresolved',
+        kind: null,
+        property: 'asset',
+        severity: 'error',
+      }),
+    );
+  });
+
+  it('keeps the unresolved-asset message free of existence detail', () => {
+    const report = evaluateMediaReadiness({
+      assets: [],
+      platforms: [CredentialPlatform.TIKTOK],
+      unresolvedAssetIds: ['asset-from-another-org'],
+    });
+
+    expect(report.diagnostics[0]?.message).not.toMatch(
+      /organization|deleted|exists/i,
+    );
+  });
+
   it('stays silent for a platform and kind with no seeded spec', () => {
     const report = evaluateMediaReadiness({
       assets: [asset('audio')],

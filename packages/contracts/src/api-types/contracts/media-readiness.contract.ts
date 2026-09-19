@@ -24,11 +24,14 @@ import { publishingDiagnosticSeveritySchema } from './publishing-readiness.contr
 export const mediaReadinessKindValues = ['audio', 'image', 'video'] as const;
 
 /**
- * Asset properties a spec can constrain. `probe` is the meta-property raised
- * when an asset carries no probe metadata at all and none could be produced.
+ * Asset properties a spec can constrain, plus two meta-properties: `probe`,
+ * raised when a property the spec constrains has no measured value, and
+ * `asset`, raised when an attached asset id does not resolve inside the
+ * organization at all.
  */
 export const mediaReadinessPropertyValues = [
   'aspectRatio',
+  'asset',
   'audioCodec',
   'container',
   'duration',
@@ -56,6 +59,10 @@ export const mediaAspectRatioSchema = z.object({
  * Per-property severity overrides. A property left unset falls back to the
  * spec entry's `defaultSeverity`, so a seed entry only names the properties
  * that deviate from its default.
+ *
+ * `asset` is deliberately absent: an attached id that does not resolve inside
+ * the organization is a request-integrity failure, not a platform limit, so no
+ * spec entry may soften it.
  */
 export const mediaReadinessSeverityOverridesSchema = z
   .object({
@@ -96,13 +103,15 @@ export const platformMediaSpecSchema = z.object({
   maxHeight: z.number().int().positive().optional(),
   maxWidth: z.number().int().positive().optional(),
   minDurationSeconds: z.number().positive().optional(),
+  /** Providers that reject a too-small upload document a floor as well. */
+  minFileSizeBytes: z.number().int().positive().optional(),
   minFrameRate: z.number().positive().optional(),
   minHeight: z.number().int().positive().optional(),
   minWidth: z.number().int().positive().optional(),
   platform: z.nativeEnum(CredentialPlatform),
   severities: mediaReadinessSeverityOverridesSchema,
   /** ISO date the entry was last checked against `documentationUrl`. */
-  sourcedAt: z.string().min(1),
+  sourcedAt: z.iso.date(),
   /** Accepted video codec names, lowercase as ffprobe reports them. */
   videoCodecs: z.array(z.string().min(1)),
 });
@@ -129,7 +138,8 @@ export const mediaReadinessDiagnosticSchema = z.object({
   actual: z.string().min(1),
   assetId: z.string().min(1),
   code: z.string().min(1),
-  kind: mediaReadinessKindSchema,
+  /** Null when the asset could not be resolved, so its kind is unknown. */
+  kind: mediaReadinessKindSchema.nullable(),
   /** The platform limit that was violated, rendered for display. */
   limit: z.string().min(1),
   message: z.string().min(1),
@@ -153,6 +163,12 @@ export type MediaAspectRatio = z.infer<typeof mediaAspectRatioSchema>;
 export type MediaReadinessSeverityOverrides = z.infer<
   typeof mediaReadinessSeverityOverridesSchema
 >;
+/**
+ * The properties a spec entry governs — every `MediaReadinessProperty` whose
+ * severity a seed entry can set. `asset` is excluded by design; see
+ * `mediaReadinessSeverityOverridesSchema`.
+ */
+export type MediaReadinessSpecProperty = keyof MediaReadinessSeverityOverrides;
 export type PlatformMediaSpec = z.infer<typeof platformMediaSpecSchema>;
 export type MediaProbe = z.infer<typeof mediaProbeSchema>;
 export type MediaReadinessDiagnostic = z.infer<

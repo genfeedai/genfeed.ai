@@ -579,8 +579,17 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     platform: Platform,
     url: string,
   ): Promise<PublishResult | null> {
-    const assetIds = (this.toValidationMedia(post) ?? []).flatMap((item) =>
-      item.id ? [item.id] : [],
+    // Immediate thread children ride along in the same provider operation, so
+    // their assets have to clear the gate before the parent is dispatched.
+    // Delayed children are parked and re-gated when their own delivery runs.
+    const assetIds = Array.from(
+      new Set(
+        [post, ...this.readImmediateThreadChildren(post)].flatMap((candidate) =>
+          (this.toValidationMedia(candidate) ?? []).flatMap((item) =>
+            item.id ? [item.id] : [],
+          ),
+        ),
+      ),
     );
     if (assetIds.length === 0) {
       return null;
@@ -621,7 +630,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
   }
 
   private toValidationMedia(
-    post: PostEntity,
+    post: PostEntity | PostDocument,
   ): ChannelValidationMedia | undefined {
     const ingredients = Array.isArray(post.ingredients)
       ? (post.ingredients as unknown[])
@@ -775,6 +784,36 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
    * thread-comment sweep publishes it once that time arrives, using the same
    * publisher against the parent's provider id.
    */
+  private toPlannedThreadChildren(
+    children: PostDocument[],
+  ): PlannedThreadChild[] {
+    return children.map((child) => ({
+      child,
+      id: child.id.toString(),
+      order: (child as unknown as { order?: number }).order ?? 0,
+      threadDelayMinutes: (
+        child as unknown as { threadDelayMinutes?: number | null }
+      ).threadDelayMinutes,
+    }));
+  }
+
+  /**
+   * The follow-ups that go out with the parent, in the same provider
+   * operation. Immediacy is decided by the configured delays alone, so
+   * planning against the current time gives the same split
+   * `deliverThreadChildren` will make once the parent's publish time is known.
+   */
+  private readImmediateThreadChildren(post: PostEntity): PostDocument[] {
+    const children = (post.children || []) as unknown as PostDocument[];
+    if (children.length === 0) {
+      return [];
+    }
+    return planThreadChildDelivery(
+      this.toPlannedThreadChildren(children),
+      new Date(),
+    ).immediate.map((entry) => entry.child);
+  }
+
   private async deliverThreadChildren(
     post: PostEntity,
     children: PostDocument[],
@@ -788,14 +827,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     const plan = planThreadChildDelivery(
-      children.map((child) => ({
-        child,
-        id: child.id.toString(),
-        order: (child as unknown as { order?: number }).order ?? 0,
-        threadDelayMinutes: (
-          child as unknown as { threadDelayMinutes?: number | null }
-        ).threadDelayMinutes,
-      })),
+      this.toPlannedThreadChildren(children),
       publishedAt,
     );
 

@@ -230,6 +230,87 @@ describe('MediaReadinessService', () => {
     expect(report.diagnostics).toEqual([]);
   });
 
+  it('blocks an attached id the tenant-scoped lookup did not return', async () => {
+    const { service } = makeHarness([]);
+
+    const report = await service.evaluatePublishReadiness({
+      assetIds: ['asset-missing'],
+      organizationId: 'org-1',
+      platforms: [CredentialPlatform.TIKTOK],
+    });
+
+    expect(report.isBlocked).toBe(true);
+    expect(report.diagnostics[0]).toEqual(
+      expect.objectContaining({
+        assetId: 'asset-missing',
+        code: 'media_asset_unresolved',
+        property: 'asset',
+        severity: 'error',
+      }),
+    );
+  });
+
+  it('does not treat a resolved non-media attachment as unresolved', async () => {
+    const { service } = makeHarness([
+      {
+        category: IngredientCategory.TEXT,
+        cdnUrl: 'https://cdn.example.com/body.txt',
+        fileSize: 10,
+        id: 'asset-1',
+        mediaProbe: null,
+      },
+    ]);
+
+    const report = await service.evaluatePublishReadiness({
+      assetIds: ['asset-1'],
+      organizationId: 'org-1',
+      platforms: [CredentialPlatform.TIKTOK],
+    });
+
+    expect(report.isBlocked).toBe(false);
+    expect(report.diagnostics).toEqual([]);
+  });
+
+  it('keeps a successful probe when the cache write fails', async () => {
+    const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
+    const service = new MediaReadinessService(
+      {
+        ingredient: {
+          findMany: vi.fn().mockResolvedValue([
+            {
+              category: IngredientCategory.VIDEO,
+              cdnUrl: 'https://cdn.example.com/clip.mp4',
+              fileSize: null,
+              id: 'asset-1',
+              mediaProbe: null,
+            },
+          ]),
+          updateMany: vi.fn().mockRejectedValue(new Error('write conflict')),
+        },
+      } as unknown as PrismaService,
+      {
+        probeMediaFromUrl: vi
+          .fn()
+          .mockResolvedValue(videoProbe({ durationSeconds: 1200 })),
+      } as unknown as FilesClientService,
+      logger as unknown as LoggerService,
+    );
+
+    const report = await service.evaluatePublishReadiness({
+      assetIds: ['asset-1'],
+      organizationId: 'org-1',
+      platforms: [CredentialPlatform.TIKTOK],
+    });
+
+    expect(logger.warn).toHaveBeenCalled();
+    // The measurement survived the failed cache write, so the duration limit
+    // was still checked rather than degrading to "unprobed".
+    expect(report.isBlocked).toBe(true);
+    expect(report.diagnostics[0]).toEqual(
+      expect.objectContaining({ property: 'duration', severity: 'error' }),
+    );
+  });
+
   it('skips the lookup entirely when no target platform has a seeded spec', async () => {
     const { findMany, service } = makeHarness([]);
 

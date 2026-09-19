@@ -220,9 +220,27 @@ export class FilesClientService {
       : null;
   }
 
-  private readPositiveNumber(value: unknown): number | null {
+  /**
+   * Coerce only what ffprobe actually emits: a JSON number, or the numeric
+   * string it uses for `duration` and `size`. Everything else stays null.
+   * `Number()` alone would turn `true` into 1 and `null` or `''` into 0, which
+   * reads downstream as a measured dimension or a zero-byte file rather than
+   * as missing metadata.
+   */
+  private readFiniteNumber(value: unknown): number | null {
+    if (typeof value === 'number') {
+      return Number.isFinite(value) ? value : null;
+    }
+    if (typeof value !== 'string' || value.trim().length === 0) {
+      return null;
+    }
     const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  private readPositiveNumber(value: unknown): number | null {
+    const parsed = this.readFiniteNumber(value);
+    return parsed !== null && parsed > 0 ? parsed : null;
   }
 
   private readPositiveInteger(value: unknown): number | null {
@@ -231,8 +249,8 @@ export class FilesClientService {
   }
 
   private readNonNegativeInteger(value: unknown): number | null {
-    const parsed = Number(value);
-    return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
+    const parsed = this.readFiniteNumber(value);
+    return parsed !== null && parsed >= 0 ? Math.round(parsed) : null;
   }
 
   /** ffprobe reports frame rate as a `numerator/denominator` string. */

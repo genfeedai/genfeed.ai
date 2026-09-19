@@ -2,8 +2,8 @@ import type { CredentialPlatform } from '@genfeedai/contracts';
 import type {
   MediaProbe,
   MediaReadinessDiagnostic,
-  MediaReadinessProperty,
   MediaReadinessReport,
+  MediaReadinessSpecProperty,
   PlatformMediaSpec,
   PublishingDiagnosticSeverity,
 } from '@genfeedai/contracts/api-types/contracts';
@@ -30,12 +30,12 @@ type DiagnosticDraft = {
   code: string;
   limit: string;
   message: string;
-  property: MediaReadinessProperty;
+  property: MediaReadinessSpecProperty;
 };
 
 function resolveSeverity(
   spec: PlatformMediaSpec,
-  property: MediaReadinessProperty,
+  property: MediaReadinessSpecProperty,
 ): PublishingDiagnosticSeverity {
   return spec.severities[property] ?? spec.defaultSeverity;
 }
@@ -73,7 +73,7 @@ function checkRange(params: {
   max?: number;
   min?: number;
   noun: string;
-  property: MediaReadinessProperty;
+  property: MediaReadinessSpecProperty;
 }): DiagnosticDraft[] {
   const { actual, format, max, min, noun, property } = params;
   if (min !== undefined && actual < min) {
@@ -106,7 +106,7 @@ function checkAllowedValue(params: {
   allowed: readonly string[];
   candidates: readonly string[];
   noun: string;
-  property: MediaReadinessProperty;
+  property: MediaReadinessSpecProperty;
 }): DiagnosticDraft[] {
   const { actual, allowed, candidates, noun, property } = params;
   if (allowed.length === 0) {
@@ -166,107 +166,181 @@ function checkAspectRatio(
   ];
 }
 
+/**
+ * One spec constraint paired with the probe value that satisfies it.
+ *
+ * `isConstrained` false means the platform does not limit this property, so a
+ * missing measurement is not worth reporting. When it is constrained and the
+ * measurement is null, the check cannot run — that is reported as a `probe`
+ * diagnostic rather than silently passing, so incomplete probe data never
+ * reads as a clean bill of health.
+ */
+type MeasuredCheck = {
+  isConstrained: boolean;
+  isMeasured: boolean;
+  noun: string;
+  property: MediaReadinessSpecProperty;
+  run: () => DiagnosticDraft[];
+};
+
+function missingMeasurementDraft(check: MeasuredCheck): DiagnosticDraft {
+  return {
+    actual: 'unknown',
+    code: `media_${check.property}_not_measured`,
+    limit: `${check.noun.toLowerCase()} measurement required`,
+    message: `${check.noun} could not be read from this asset's probe metadata, so the platform limit was not checked.`,
+    property: 'probe',
+  };
+}
+
+function buildChecks(
+  spec: PlatformMediaSpec,
+  probe: MediaProbe,
+): MeasuredCheck[] {
+  return [
+    {
+      isConstrained: spec.maxWidth !== undefined || spec.minWidth !== undefined,
+      isMeasured: probe.width !== null,
+      noun: 'Width',
+      property: 'width',
+      run: () =>
+        checkRange({
+          actual: probe.width ?? 0,
+          format: (value) => `${value}px`,
+          max: spec.maxWidth,
+          min: spec.minWidth,
+          noun: 'Width',
+          property: 'width',
+        }),
+    },
+    {
+      isConstrained:
+        spec.maxHeight !== undefined || spec.minHeight !== undefined,
+      isMeasured: probe.height !== null,
+      noun: 'Height',
+      property: 'height',
+      run: () =>
+        checkRange({
+          actual: probe.height ?? 0,
+          format: (value) => `${value}px`,
+          max: spec.maxHeight,
+          min: spec.minHeight,
+          noun: 'Height',
+          property: 'height',
+        }),
+    },
+    {
+      isConstrained:
+        spec.maxDurationSeconds !== undefined ||
+        spec.minDurationSeconds !== undefined,
+      isMeasured: probe.durationSeconds !== null,
+      noun: 'Duration',
+      property: 'duration',
+      run: () =>
+        checkRange({
+          actual: probe.durationSeconds ?? 0,
+          format: formatSeconds,
+          max: spec.maxDurationSeconds,
+          min: spec.minDurationSeconds,
+          noun: 'Duration',
+          property: 'duration',
+        }),
+    },
+    {
+      isConstrained:
+        spec.maxFileSizeBytes !== undefined ||
+        spec.minFileSizeBytes !== undefined,
+      isMeasured: probe.sizeBytes !== null,
+      noun: 'File size',
+      property: 'fileSize',
+      run: () =>
+        checkRange({
+          actual: probe.sizeBytes ?? 0,
+          format: formatBytes,
+          max: spec.maxFileSizeBytes,
+          min: spec.minFileSizeBytes,
+          noun: 'File size',
+          property: 'fileSize',
+        }),
+    },
+    {
+      isConstrained:
+        spec.maxFrameRate !== undefined || spec.minFrameRate !== undefined,
+      isMeasured: probe.frameRate !== null,
+      noun: 'Frame rate',
+      property: 'frameRate',
+      run: () =>
+        checkRange({
+          actual: probe.frameRate ?? 0,
+          format: (value) => `${Math.round(value * 100) / 100}fps`,
+          max: spec.maxFrameRate,
+          min: spec.minFrameRate,
+          noun: 'Frame rate',
+          property: 'frameRate',
+        }),
+    },
+    {
+      isConstrained: spec.containers.length > 0,
+      isMeasured: probe.container !== null,
+      noun: 'Container',
+      property: 'container',
+      run: () =>
+        checkAllowedValue({
+          actual: probe.container ?? '',
+          allowed: spec.containers,
+          candidates: readContainerNames(probe.container ?? ''),
+          noun: 'Container',
+          property: 'container',
+        }),
+    },
+    {
+      isConstrained: spec.videoCodecs.length > 0,
+      isMeasured: probe.videoCodec !== null,
+      noun: 'Video codec',
+      property: 'videoCodec',
+      run: () =>
+        checkAllowedValue({
+          actual: probe.videoCodec ?? '',
+          allowed: spec.videoCodecs,
+          candidates: [(probe.videoCodec ?? '').toLowerCase()],
+          noun: 'Video codec',
+          property: 'videoCodec',
+        }),
+    },
+    {
+      isConstrained: spec.audioCodecs.length > 0,
+      isMeasured: probe.audioCodec !== null,
+      noun: 'Audio codec',
+      property: 'audioCodec',
+      run: () =>
+        checkAllowedValue({
+          actual: probe.audioCodec ?? '',
+          allowed: spec.audioCodecs,
+          candidates: [(probe.audioCodec ?? '').toLowerCase()],
+          noun: 'Audio codec',
+          property: 'audioCodec',
+        }),
+    },
+    {
+      isConstrained: spec.aspectRatios.length > 0,
+      isMeasured: probe.width !== null && probe.height !== null,
+      noun: 'Aspect ratio',
+      property: 'aspectRatio',
+      run: () => checkAspectRatio(spec, probe),
+    },
+  ];
+}
+
 function collectDrafts(
   spec: PlatformMediaSpec,
   probe: MediaProbe,
 ): DiagnosticDraft[] {
-  const drafts: DiagnosticDraft[] = [];
-
-  if (probe.width !== null) {
-    drafts.push(
-      ...checkRange({
-        actual: probe.width,
-        format: (value) => `${value}px`,
-        max: spec.maxWidth,
-        min: spec.minWidth,
-        noun: 'Width',
-        property: 'width',
-      }),
-    );
-  }
-  if (probe.height !== null) {
-    drafts.push(
-      ...checkRange({
-        actual: probe.height,
-        format: (value) => `${value}px`,
-        max: spec.maxHeight,
-        min: spec.minHeight,
-        noun: 'Height',
-        property: 'height',
-      }),
-    );
-  }
-  if (probe.durationSeconds !== null) {
-    drafts.push(
-      ...checkRange({
-        actual: probe.durationSeconds,
-        format: formatSeconds,
-        max: spec.maxDurationSeconds,
-        min: spec.minDurationSeconds,
-        noun: 'Duration',
-        property: 'duration',
-      }),
-    );
-  }
-  if (probe.sizeBytes !== null) {
-    drafts.push(
-      ...checkRange({
-        actual: probe.sizeBytes,
-        format: formatBytes,
-        max: spec.maxFileSizeBytes,
-        noun: 'File size',
-        property: 'fileSize',
-      }),
-    );
-  }
-  if (probe.frameRate !== null) {
-    drafts.push(
-      ...checkRange({
-        actual: probe.frameRate,
-        format: (value) => `${Math.round(value * 100) / 100}fps`,
-        max: spec.maxFrameRate,
-        min: spec.minFrameRate,
-        noun: 'Frame rate',
-        property: 'frameRate',
-      }),
-    );
-  }
-  if (probe.container !== null) {
-    drafts.push(
-      ...checkAllowedValue({
-        actual: probe.container,
-        allowed: spec.containers,
-        candidates: readContainerNames(probe.container),
-        noun: 'Container',
-        property: 'container',
-      }),
-    );
-  }
-  if (probe.videoCodec !== null) {
-    drafts.push(
-      ...checkAllowedValue({
-        actual: probe.videoCodec,
-        allowed: spec.videoCodecs,
-        candidates: [probe.videoCodec.toLowerCase()],
-        noun: 'Video codec',
-        property: 'videoCodec',
-      }),
-    );
-  }
-  if (probe.audioCodec !== null) {
-    drafts.push(
-      ...checkAllowedValue({
-        actual: probe.audioCodec,
-        allowed: spec.audioCodecs,
-        candidates: [probe.audioCodec.toLowerCase()],
-        noun: 'Audio codec',
-        property: 'audioCodec',
-      }),
-    );
-  }
-  drafts.push(...checkAspectRatio(spec, probe));
-
-  return drafts;
+  return buildChecks(spec, probe).flatMap((check) => {
+    if (!check.isConstrained) {
+      return [];
+    }
+    return check.isMeasured ? check.run() : [missingMeasurementDraft(check)];
+  });
 }
 
 function toDiagnostics(params: {
@@ -330,14 +404,46 @@ export function hasPlatformMediaSpecs(platform: CredentialPlatform): boolean {
   return getPlatformMediaSpecs(platform).length > 0;
 }
 
+/**
+ * An attached id the tenant-scoped lookup did not return — missing, soft
+ * deleted, or owned by another organization. The publish paths still hand that
+ * id to the provider, so reporting nothing would let an unchecked asset read
+ * as a clean result.
+ *
+ * Severity is fixed at `error` here rather than taken from a spec entry: this
+ * is a request-integrity failure, not a platform limit, and the message stays
+ * generic so it never discloses whether a cross-organization asset exists.
+ */
+function unresolvedAssetDiagnostics(
+  assetId: string,
+  platforms: readonly CredentialPlatform[],
+): MediaReadinessDiagnostic[] {
+  return platforms.map((platform) => ({
+    actual: 'unresolved',
+    assetId,
+    code: 'media_asset_unresolved',
+    kind: null,
+    limit: 'asset must exist in this organization',
+    message: `${platform}: Attached asset "${assetId}" could not be resolved, so its media limits could not be checked.`,
+    platform,
+    property: 'asset',
+    severity: 'error',
+  }));
+}
+
 export function evaluateMediaReadiness(
   input: IMediaReadinessEvaluationInput,
 ): MediaReadinessReport {
-  const diagnostics = input.assets.flatMap((asset) =>
-    input.platforms.flatMap((platform) =>
-      evaluateAssetForPlatform(asset, platform),
+  const diagnostics = [
+    ...input.assets.flatMap((asset) =>
+      input.platforms.flatMap((platform) =>
+        evaluateAssetForPlatform(asset, platform),
+      ),
     ),
-  );
+    ...(input.unresolvedAssetIds ?? []).flatMap((assetId) =>
+      unresolvedAssetDiagnostics(assetId, input.platforms),
+    ),
+  ];
 
   return {
     checkedAt: new Date().toISOString(),

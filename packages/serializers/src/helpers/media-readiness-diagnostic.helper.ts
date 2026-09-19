@@ -10,7 +10,8 @@ export interface MediaReadinessDiagnosticInput {
   actual: string;
   assetId: string;
   code: string;
-  kind: string;
+  /** Null when the asset could not be resolved, so its kind is unknown. */
+  kind: string | null;
   limit: string;
   message: string;
   platform: string;

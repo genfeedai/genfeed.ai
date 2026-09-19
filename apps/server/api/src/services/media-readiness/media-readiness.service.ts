@@ -56,6 +56,11 @@ const MEDIA_KIND_BY_CATEGORY: Partial<
   [IngredientCategory.VOICE]: 'audio',
 };
 
+type LoadedAssets = {
+  candidates: ProbeableAsset[];
+  unresolvedAssetIds: string[];
+};
+
 type ProbeableAsset = {
   assetId: string;
   fileSize: number | null;
@@ -92,9 +97,9 @@ export class MediaReadinessService implements IMediaReadinessGate {
       return { ...EMPTY_REPORT, checkedAt: new Date().toISOString() };
     }
 
-    const candidates = await this.loadAssets(request.organizationId, assetIds);
+    const loaded = await this.loadAssets(request.organizationId, assetIds);
     const assets: IMediaReadinessAsset[] = [];
-    for (const candidate of candidates) {
+    for (const candidate of loaded.candidates) {
       assets.push({
         assetId: candidate.assetId,
         kind: candidate.kind,
@@ -102,13 +107,17 @@ export class MediaReadinessService implements IMediaReadinessGate {
       });
     }
 
-    return evaluateMediaReadiness({ assets, platforms });
+    return evaluateMediaReadiness({
+      assets,
+      platforms,
+      unresolvedAssetIds: loaded.unresolvedAssetIds,
+    });
   }
 
   private async loadAssets(
     organizationId: string,
     assetIds: readonly string[],
-  ): Promise<ProbeableAsset[]> {
+  ): Promise<LoadedAssets> {
     const rows = await this.prisma.ingredient.findMany({
       select: {
         category: true,
@@ -120,7 +129,12 @@ export class MediaReadinessService implements IMediaReadinessGate {
       where: scopedWhere(organizationId, { id: { in: [...assetIds] } }),
     });
 
-    return rows.flatMap((row) => {
+    // An id the tenant-scoped query did not return is unresolved. Rows it did
+    // return but whose category carries no measurable media (text, source) are
+    // resolved and simply have nothing to check — the two must not be
+    // conflated, or a text attachment would block its own publish.
+    const resolvedIds = new Set(rows.map((row) => row.id));
+    const candidates = rows.flatMap((row) => {
       const kind = MEDIA_KIND_BY_CATEGORY[row.category as IngredientCategory];
       if (!kind) {
         return [];
@@ -135,6 +149,13 @@ export class MediaReadinessService implements IMediaReadinessGate {
         },
       ];
     });
+
+    return {
+      candidates,
+      unresolvedAssetIds: assetIds.filter(
+        (assetId) => !resolvedIds.has(assetId),
+      ),
+    };
   }
 
   private parsePersistedProbe(
@@ -170,6 +191,7 @@ export class MediaReadinessService implements IMediaReadinessGate {
       return null;
     }
 
+    let probe: MediaProbe;
     try {
       const probed = await this.filesClientService.probeMediaFromUrl(
         asset.url,
@@ -177,12 +199,10 @@ export class MediaReadinessService implements IMediaReadinessGate {
       );
       // ffprobe reports the size of what it downloaded; fall back to the
       // recorded upload size when the transport did not expose one.
-      const probe: MediaProbe = {
+      probe = {
         ...probed,
         sizeBytes: probed.sizeBytes ?? asset.fileSize,
       };
-      await this.persistProbe(organizationId, asset.assetId, probe);
-      return probe;
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName} failed to probe asset media`,
@@ -197,6 +217,24 @@ export class MediaReadinessService implements IMediaReadinessGate {
       );
       return null;
     }
+
+    // Persistence is a cache write. Losing it costs a re-probe next time; it
+    // must not downgrade a measurement we already hold into "unprobed".
+    try {
+      await this.persistProbe(organizationId, asset.assetId, probe);
+    } catch (error: unknown) {
+      this.loggerService.warn(
+        `${this.constructorName} failed to persist asset media probe`,
+        {
+          assetId: asset.assetId,
+          reason: getErrorMessage(error, {
+            fallback: String,
+            messageSource: 'error-instance',
+          }),
+        },
+      );
+    }
+    return probe;
   }
 
   private async persistProbe(

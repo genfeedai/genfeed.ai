@@ -253,7 +253,13 @@ export class PublishApprovalsService {
         'matched',
         post.organizationId,
       );
-      return this.contractCodec.toInterface(existing);
+      // The stored approval carries the warnings from when its scope was first
+      // approved. This attempt re-evaluated the same assets, so return the
+      // current diagnostics rather than a stale snapshot of them.
+      return this.withMediaWarnings(
+        this.contractCodec.toInterface(existing),
+        mediaWarnings,
+      );
     }
 
     const id = randomUUID();
@@ -1005,6 +1011,24 @@ export class PublishApprovalsService {
     }
 
     return readWarningDiagnostics(report);
+  }
+
+  private withMediaWarnings(
+    approval: IPublishApproval,
+    mediaWarnings: readonly MediaReadinessDiagnostic[],
+  ): IPublishApproval {
+    if (mediaWarnings.length === 0) {
+      const { mediaReadinessWarnings: _stale, ...provenance } =
+        approval.provenance;
+      return { ...approval, provenance };
+    }
+    return {
+      ...approval,
+      provenance: {
+        ...approval.provenance,
+        mediaReadinessWarnings: mediaWarnings,
+      },
+    };
   }
 
   private async getPostOrThrow(

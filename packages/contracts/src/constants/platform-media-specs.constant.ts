@@ -48,18 +48,22 @@ const RATIO_LANDSCAPE_1_91_1: MediaAspectRatio = {
   width: 1.91,
 };
 
-const MEGABYTE = 1024 * 1024;
+const KILOBYTE = 1024;
+const MEGABYTE = 1024 * KILOBYTE;
 const GIGABYTE = 1024 * MEGABYTE;
 
 export const PLATFORM_MEDIA_SPECS: readonly PlatformMediaSpec[] = [
   // Instagram image posts.
   // https://developers.facebook.com/docs/instagram-platform/content-publishing
   // JPEG only, 8 MB ceiling, 320–1440 px width, 4:5 through 1.91:1.
+  // Container stays a warning rather than a block: the documented list has not
+  // had a live docs pass, and a PNG the provider would still accept should not
+  // be refused before dispatch.
   {
     aspectRatios: [RATIO_PORTRAIT_4_5, RATIO_SQUARE, RATIO_LANDSCAPE_1_91_1],
     aspectRatioTolerance: 0.05,
     audioCodecs: [],
-    containers: ['image2', 'jpeg', 'jpg', 'mjpeg', 'png_pipe', 'webp_pipe'],
+    containers: ['image2', 'jpeg', 'jpg', 'mjpeg'],
     defaultSeverity: 'error',
     documentationUrl:
       'https://developers.facebook.com/docs/instagram-platform/content-publishing',
@@ -172,11 +176,12 @@ export const PLATFORM_MEDIA_SPECS: readonly PlatformMediaSpec[] = [
   // TikTok video posts.
   // https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide/
   // MP4/WebM/MOV, 4 GB ceiling, 3 s–10 min, 23–60 FPS, 360 px minimum side.
+  // `webm` covers the ffprobe matroska,webm family without accepting MKV.
   {
     aspectRatios: [RATIO_VERTICAL_9_16],
     aspectRatioTolerance: 0.1,
     audioCodecs: ['aac', 'mp3', 'opus'],
-    containers: ['matroska', 'mov', 'mp4', 'webm'],
+    containers: ['mov', 'mp4', 'webm'],
     defaultSeverity: 'error',
     documentationUrl:
       'https://developers.tiktok.com/doc/content-posting-api-media-transfer-guide/',
@@ -309,12 +314,12 @@ export const PLATFORM_MEDIA_SPECS: readonly PlatformMediaSpec[] = [
   // LinkedIn videos.
   // https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api
   // MP4, 75 KB–500 MB, 3 s–30 min, 256×144 up to 4096×2304, 10–60 FPS,
-  // 1:2.4 through 2.4:1.
+  // 1:2.4 through 2.4:1. Both ends of the file-size range are enforced.
   {
     aspectRatios: [RATIO_LANDSCAPE_16_9, RATIO_SQUARE, RATIO_VERTICAL_9_16],
     aspectRatioTolerance: 0.1,
     audioCodecs: ['aac', 'mp3'],
-    containers: ['mov', 'mp4'],
+    containers: ['mp4'],
     defaultSeverity: 'error',
     documentationUrl:
       'https://learn.microsoft.com/en-us/linkedin/marketing/community-management/shares/videos-api',
@@ -325,6 +330,7 @@ export const PLATFORM_MEDIA_SPECS: readonly PlatformMediaSpec[] = [
     maxHeight: 2304,
     maxWidth: 4096,
     minDurationSeconds: 3,
+    minFileSizeBytes: 75 * KILOBYTE,
     minFrameRate: 10,
     minHeight: 144,
     minWidth: 256,
