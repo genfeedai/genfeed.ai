@@ -208,6 +208,34 @@ describe('BrandRelocationService', () => {
     },
   );
 
+  it('rejects preview and relocation while the brand has an open live session', async () => {
+    primeBrand();
+    getDelegate('liveSession').findFirst.mockResolvedValue({ id: 'live-1' });
+    const actor = { isSuperAdmin: true, userId: USER_ID };
+
+    await expect(
+      service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+    ).rejects.toThrow(/open live session/);
+    await expect(
+      service.relocateToOrganization(
+        BRAND_ID,
+        { organizationId: DEST_ORG },
+        actor,
+      ),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(getDelegate('liveSession').findFirst).toHaveBeenCalledWith({
+      where: {
+        brandId: BRAND_ID,
+        isDeleted: false,
+        organizationId: SOURCE_ORG,
+        status: 'OPEN',
+      },
+      select: { id: true },
+    });
+    expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+    expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+  });
+
   it('does not relocate (or open a transaction) when the org is unchanged', async () => {
     getDelegate('brand').findFirst.mockResolvedValue({
       id: BRAND_ID,

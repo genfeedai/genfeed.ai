@@ -13,7 +13,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { MemberRole } from '@genfeedai/contracts';
+import { LiveSessionStatus, MemberRole } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -358,6 +358,7 @@ export class BrandRelocationService {
         reconcileResult = await this.prisma.$transaction(
           async (tx) => {
             await this.assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
+            await this.assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
@@ -452,6 +453,7 @@ export class BrandRelocationService {
 
     if (sourceOrgId !== destOrgId) {
       await this.assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
+      await this.assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
     }
 
     const impact = await this.classifyRelocationImpact(
@@ -492,6 +494,30 @@ export class BrandRelocationService {
     if (source || space) {
       throw new ConflictException(
         'Cannot move a brand with Knowledge history. Knowledge sources and spaces, including deleted records, must remain in their original organization.',
+      );
+    }
+  }
+
+  /**
+   * An open live session holds its ceiling credits on the source organization.
+   * Moving the session row would make its settlement look up that hold in the
+   * destination organization and fail, so the session must end first.
+   */
+  private async assertNoOpenLiveSessions(
+    client: Prisma.TransactionClient,
+    brandId: string,
+    organizationId: string,
+  ): Promise<void> {
+    const session = await client.liveSession.findFirst({
+      where: scopedWhere(organizationId, {
+        brandId,
+        status: LiveSessionStatus.OPEN,
+      }),
+      select: { id: true },
+    });
+    if (session) {
+      throw new ConflictException(
+        'Cannot move a brand with an open live session. End the session first; its credit hold belongs to the current organization.',
       );
     }
   }
