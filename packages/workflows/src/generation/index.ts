@@ -4,6 +4,7 @@ import {
   type WorkflowGeneration,
   workflowGenerationSchema,
 } from '@genfeedai/contracts/api-types/contracts';
+import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ENGINE_NATIVE_NODE_TYPES } from '../engine/utils/action-node';
 import { getNodeDefinition } from '../nodes/registry/merged-registry';
 
@@ -94,19 +95,14 @@ export function buildWorkflowGenerationMessages({
  *
  * The prompt no longer forbids markdown fences — an enforcing route has no
  * need of that instruction — so a local provider may well wrap its answer in
- * one. That fence is transport, not content: unwrapping it keeps the payload
- * intact so the schema, rather than a regex, decides whether the graph is
+ * one, in any of the forms CommonMark allows. `unwrapFencedJson` takes the
+ * wrapper off; the schema, rather than a regex, decides whether the graph is
  * usable. Enforcing routes never call this.
  */
 export function parseUnenforcedWorkflowGeneration(
   raw: string,
 ): WorkflowGeneration {
-  const trimmed = raw.trim();
-  const fenced = trimmed.match(/^```(?:json)?\s*\n([\s\S]*?)\n?```$/i);
-
-  return workflowGenerationSchema.parse(
-    JSON.parse(fenced?.[1]?.trim() ?? trimmed),
-  );
+  return workflowGenerationSchema.parse(JSON.parse(unwrapFencedJson(raw)));
 }
 
 export type { WorkflowGeneration };

@@ -8,6 +8,7 @@ export * from './brand-completeness.helper';
 export * from './brand-kit-contract.helper';
 export * from './business/tier-models/tier-models.helper';
 export * from './content/character-mention.util';
+export * from './content/fenced-json.helper';
 export * from './content/prompt-command.helper';
 export * from './content/schema-org.helper';
 export * from './content/skill-surface.helper';

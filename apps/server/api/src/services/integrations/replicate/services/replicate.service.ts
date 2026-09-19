@@ -8,6 +8,7 @@ import {
   isCloudDeployment,
 } from '@genfeedai/config';
 import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
+import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
@@ -38,18 +39,6 @@ function resolvePredictionTarget(
   return modelIdentifier.includes('/')
     ? { model: modelIdentifier }
     : { version: modelIdentifier };
-}
-
-/**
- * Replicate proxies chat models that habitually wrap their answer in a
- * markdown code block. That fence is transport, not content: unwrapping it
- * here keeps the payload intact so the zod schema — not a regex — decides
- * whether the answer is usable. Enforcing routes never reach this.
- */
-function unwrapFencedJson(output: string): string {
-  const fenced = output.trim().match(/^```(?:json)?\s*\n([\s\S]*?)\n?```$/i);
-
-  return fenced?.[1]?.trim() ?? output;
 }
 
 @Injectable()
@@ -439,6 +428,9 @@ export class ReplicateService {
           apiKeyOverride,
         );
         await onAttempt?.(attemptInput, output);
+
+        // Replicate proxies chat models that habitually fence their answer;
+        // the wrapper is transport, and the schema still decides the content.
         return unwrapFencedJson(output);
       },
       schema: schema as ZodType<TResult>,
