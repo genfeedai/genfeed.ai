@@ -245,6 +245,7 @@ export * from './organization/watermark-export.interface';
 export * from './providers/providers.interface';
 export * from './publisher/credential-token-publishing-readiness-input.interface';
 export * from './publisher/granted-oauth-scopes.interface';
+export * from './publisher/media-readiness.interface';
 export * from './publisher/publish-approval.interface';
 export * from './publisher/publisher.interface';
 export * from './publisher/publishing-readiness.interface';

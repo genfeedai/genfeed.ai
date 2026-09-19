@@ -36,6 +36,7 @@ export * from './organization-context.constant';
 export * from './pagination.constant';
 export * from './platform-colors';
 export * from './platform-limits.constant';
+export * from './platform-media-specs.constant';
 export * from './platform-publish-scopes.constant';
 export * from './platform-settings.constant';
 export * from './platforms.constant';
