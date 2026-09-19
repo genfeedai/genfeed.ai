@@ -442,9 +442,24 @@ export class KnowledgeRefreshService {
           new Error('Refresh lease expired'),
         );
       } else {
+        // Another caller holds this run, or just took it over and started a
+        // fresh one: report whichever run is live now, not the expired one.
+        const live =
+          (await this.prisma.knowledgeSourceRefreshRun.findFirst({
+            where: scopedWhere(actor.organizationId, {
+              sourceId: source.id,
+              status: {
+                in: [
+                  KnowledgeRefreshRunStatus.QUEUED,
+                  KnowledgeRefreshRunStatus.PROCESSING,
+                ],
+              },
+            }),
+            orderBy: { createdAt: 'desc' },
+          })) ?? unfinished;
         return {
-          existingJobId: unfinished.candidateVersionId ?? unfinished.id,
-          runId: unfinished.id,
+          existingJobId: live.candidateVersionId ?? live.id,
+          runId: live.id,
         };
       }
     }

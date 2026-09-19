@@ -448,8 +448,12 @@ export class KnowledgeSourceIngestService {
         versionId: state?.versionId ?? '',
       };
     }
+    // Only a run whose version is still current owns the capture ledger; a
+    // run superseded mid-flight leaves it to the version that replaced it.
+    const isStillCurrent =
+      state.version?.isCurrent === true && (await this.isVersionCurrent(state));
     if (state.status !== 'ready') {
-      if (state.version?.isCurrent) {
+      if (isStillCurrent) {
         await this.settleCaptureRequests(
           state,
           'failed',
@@ -471,7 +475,7 @@ export class KnowledgeSourceIngestService {
       );
       if (state.version && !state.version.isCurrent) {
         await this.failRefreshCandidate(state, toSafeFailureReason(error));
-      } else {
+      } else if (isStillCurrent) {
         await this.settleCaptureRequests(
           state,
           'failed',
@@ -488,7 +492,7 @@ export class KnowledgeSourceIngestService {
     await this.writeProcessingState(state, KnowledgeProcessingState.READY);
     if (state.version && !state.version.isCurrent) {
       await this.promoteRefreshCandidate(state);
-    } else {
+    } else if (isStillCurrent) {
       await this.settleCaptureRequests(state, 'completed');
     }
     return {
@@ -771,6 +775,19 @@ export class KnowledgeSourceIngestService {
       });
       return created.id;
     });
+  }
+
+  private async isVersionCurrent(
+    state: KnowledgeSourceIngestState,
+  ): Promise<boolean> {
+    const live = await this.prisma.knowledgeSourceVersion.findFirst({
+      where: scopedWhere(state.organizationId, {
+        id: state.versionId,
+        sourceId: state.sourceId,
+      }),
+      select: { isCurrent: true },
+    });
+    return live?.isCurrent === true;
   }
 
   /**

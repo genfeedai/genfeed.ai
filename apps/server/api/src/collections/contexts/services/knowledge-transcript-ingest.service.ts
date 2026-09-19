@@ -56,6 +56,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function readPayload(value: unknown): KnowledgeSourceCapturePayload & {
   isTranscriptGenerationAllowed?: boolean;
   transcriptGeneration?: TranscriptGenerationClaim;
+  transcriptReservationId?: string;
 } {
   if (!isRecord(value)) {
     return {};
@@ -89,6 +90,9 @@ function readPayload(value: unknown): KnowledgeSourceCapturePayload & {
       ? { transcriptState: value.transcriptState }
       : {}),
     isTranscriptGenerationAllowed: value.isTranscriptGenerationAllowed === true,
+    ...(typeof value.transcriptReservationId === 'string'
+      ? { transcriptReservationId: value.transcriptReservationId }
+      : {}),
     ...(typeof claim?.leaseExpiresAt === 'string'
       ? {
           transcriptGeneration: {
@@ -181,6 +185,33 @@ export class KnowledgeTranscriptIngestService {
       (payload.transcriptState === KnowledgeTranscriptState.RESOLVED ||
         payload.transcriptState === KnowledgeTranscriptState.GENERATED)
     ) {
+      if (
+        payload.transcriptState === KnowledgeTranscriptState.GENERATED &&
+        payload.transcriptReservationId
+      ) {
+        // A saved generated transcript is billed exactly once: settlement is
+        // idempotent, so this completes a charge an earlier run saved the
+        // transcript for but did not finish settling.
+        await this.settleTranscriptCredit(
+          input,
+          payload.transcriptReservationId,
+        ).catch((error: unknown) => {
+          // An expired or released hold can no longer be charged; the saved
+          // transcript is still served rather than failing ingest forever.
+          if (
+            error instanceof Error &&
+            /cannot be settled/.test(error.message)
+          ) {
+            this.logger.log('Knowledge transcript hold expired before settle', {
+              organizationId: input.organizationId,
+              reservationId: payload.transcriptReservationId,
+              versionId: input.versionId,
+            });
+            return;
+          }
+          throw error;
+        });
+      }
       return {
         cues: payload.transcriptCues,
         mediaUrl: payload.mediaUrl,
@@ -327,6 +358,7 @@ export class KnowledgeTranscriptIngestService {
         ? existingClaim.attempt + 1
         : 0;
     let reservationId: string | undefined;
+    let isCheckpointed = false;
     try {
       const reservation = await this.reserveTranscriptCredits(input, attempt);
       reservationId = reservation.id;
@@ -359,16 +391,10 @@ export class KnowledgeTranscriptIngestService {
       };
       // Persist the transcript before charging for it. A failure before this
       // point releases the hold; settling first would leave a paid transcript
-      // unsaved, and a retry after the lease reserves under a new attempt key.
+      // unsaved, and a retry after the lease would reserve under a new key.
       await this.checkpoint(input, resolution);
-      await this.credits.settleReservation({
-        actualAmount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
-        actorUserId: input.userId,
-        description: 'Knowledge transcript generation',
-        organizationId: input.organizationId,
-        reservationId,
-        source: ActivitySource.SCRIPT,
-      });
+      isCheckpointed = true;
+      await this.settleTranscriptCredit(input, reservationId);
       await this.prisma.knowledgeCaptureRequest.updateMany({
         where: {
           isDeleted: false,
@@ -380,7 +406,9 @@ export class KnowledgeTranscriptIngestService {
       });
       return resolution;
     } catch (error: unknown) {
-      if (reservationId) {
+      // Once the transcript is saved the hold is owed: a retry settles it from
+      // the checkpoint instead of generating (and reserving) again.
+      if (reservationId && !isCheckpointed) {
         await this.credits
           .releaseReservation({
             organizationId: input.organizationId,
@@ -396,6 +424,20 @@ export class KnowledgeTranscriptIngestService {
       }
       throw error;
     }
+  }
+
+  private async settleTranscriptCredit(
+    input: { organizationId: string; userId: string },
+    reservationId: string,
+  ): Promise<void> {
+    await this.credits.settleReservation({
+      actualAmount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
+      actorUserId: input.userId,
+      description: 'Knowledge transcript generation',
+      organizationId: input.organizationId,
+      reservationId,
+      source: ActivitySource.SCRIPT,
+    });
   }
 
   private async reserveTranscriptCredits(
@@ -544,6 +586,9 @@ export class KnowledgeTranscriptIngestService {
           transcriptState: resolution.transcriptState,
           ...(resolution.transcriptUrl
             ? { transcriptUrl: resolution.transcriptUrl }
+            : {}),
+          ...(resolution.reservationId
+            ? { transcriptReservationId: resolution.reservationId }
             : {}),
         }),
         provenance: toPrismaJson({

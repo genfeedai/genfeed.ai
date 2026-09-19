@@ -328,4 +328,44 @@ describe('KnowledgeRefreshService', () => {
       expect.objectContaining({ id: 'wf-loser', isScheduleEnabled: false }),
     );
   });
+
+  it('reports the live run, not the expired one, when another caller took it over', async () => {
+    const { service } = buildService();
+    const prisma = (
+      service as unknown as {
+        prisma: {
+          knowledgeSourceRefreshRun: {
+            findFirst: ReturnType<typeof vi.fn>;
+            updateMany: ReturnType<typeof vi.fn>;
+          };
+        };
+      }
+    ).prisma;
+    prisma.knowledgeSourceRefreshRun.findFirst
+      // No run for this tick yet.
+      .mockResolvedValueOnce(null)
+      // An expired unfinished run from an earlier tick.
+      .mockResolvedValueOnce({
+        id: 'run-expired',
+        leaseExpiresAt: new Date(Date.now() - 60_000),
+        status: KnowledgeRefreshRunStatus.PROCESSING,
+      })
+      // The run the winning caller started after taking it over.
+      .mockResolvedValueOnce({
+        candidateVersionId: 'candidate-new',
+        id: 'run-new',
+        status: KnowledgeRefreshRunStatus.PROCESSING,
+      });
+    prisma.knowledgeSourceRefreshRun.updateMany.mockResolvedValueOnce({
+      count: 0,
+    });
+
+    const result = await service.refresh(actor, 'source-1', 'tick-dup');
+
+    expect(result).toEqual({
+      jobId: 'candidate-new',
+      refreshRunId: 'run-new',
+      sourceId: 'source-1',
+    });
+  });
 });

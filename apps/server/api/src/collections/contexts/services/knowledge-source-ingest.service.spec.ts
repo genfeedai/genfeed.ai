@@ -498,4 +498,15 @@ describe('KnowledgeSourceIngestService', () => {
     });
     expect(prisma.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
   });
+
+  it('leaves the capture ledger alone when a newer version superseded the run', async () => {
+    const { service, prisma, knowledgeSourceVersion } = buildService();
+    const state = await service.loadSource(request);
+    knowledgeSourceVersion.findFirst.mockResolvedValue({ isCurrent: false });
+
+    await service.finalizeSource(state, 'Failed to fetch source (503)');
+
+    expect(prisma.knowledgeCaptureRequest.updateMany).not.toHaveBeenCalled();
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
+  });
 });
