@@ -9,6 +9,8 @@
   "watermarkDownload": {
     "options": "Download options",
     "original": "Download original",
+    "originalLocked": "Clean, unwatermarked exports are available on paid plans. Upgrade to Pro to download originals.",
+    "upgradeHint": "Upgrade to Pro",
     "branded": "Download with brand watermark",
     "error": "Could not download. Please try again.",
     "watermarkError": "Could not create the watermarked download. Configure watermark text or a logo in Brand Settings → Brand Kit, then try again.",
