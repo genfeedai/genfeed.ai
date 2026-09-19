@@ -19,7 +19,6 @@ import type { Request } from 'express';
 
 interface AuthenticatedRequest extends Omit<Request, 'user'> {
   user?: User;
-  body?: { watermark?: boolean };
 }
 
 /**
@@ -44,7 +43,8 @@ export class CleanExportAccessGuard implements CanActivate {
 
     // Watermarked/branded exports are not a paid entitlement — only the
     // unwatermarked ("clean") export path is gated.
-    if (request.body?.watermark !== false) {
+    const body = request.body as { watermark?: boolean } | undefined;
+    if (body?.watermark !== false) {
       return true;
     }
 
