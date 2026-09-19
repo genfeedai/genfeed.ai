@@ -41,6 +41,7 @@ export * from './seo-qualitative-scoring.contract';
 export * from './social-warmup-blueprint.contract';
 export * from './social-warmup-capability.contract';
 export * from './social-warmup-journey.contract';
+export * from './task-decomposition.contract';
 export * from './tiktok-authorized-signals.contract';
 export * from './twitter-authorized-signals.contract';
 export * from './video-generation-brief-compiler.contract';
