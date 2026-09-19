@@ -210,6 +210,53 @@ describe('IngredientDownloadButton', () => {
       expect(original).not.toHaveBeenCalled();
     });
 
+    it('shows the upgrade tooltip from a focusable wrapper around the locked button', async () => {
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={vi.fn()}
+          canDownloadOriginal={false}
+        />,
+      );
+      const wrapper = screen.getByRole('button', { name: 'originalLocked' });
+      expect(wrapper).toHaveAttribute('tabIndex', '0');
+      expect(wrapper).not.toHaveAttribute('disabled');
+      expect(wrapper).toContainElement(
+        screen.getByRole('button', { name: 'original' }),
+      );
+      fireEvent.focus(wrapper);
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(
+        'originalLocked',
+      );
+    });
+
+    it('shows an upgrade hint on the locked Original menu item', async () => {
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={vi.fn()}
+          canDownloadOriginal={false}
+        />,
+      );
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+        button: 0,
+      });
+      const item = await screen.findByRole('menuitem', { name: /original/i });
+      expect(item).toHaveTextContent('upgradeHint');
+    });
+
+    it('renders no locked wrapper when the original is available', () => {
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={vi.fn()}
+        />,
+      );
+      expect(
+        screen.queryByRole('button', { name: 'originalLocked' }),
+      ).not.toBeInTheDocument();
+    });
+
     it('keeps the original action enabled when canDownloadOriginal is omitted (default true)', async () => {
       const original = vi.fn();
       render(

@@ -66,6 +66,11 @@ export default function IngredientDownloadButton({
         <Lock aria-hidden="true" className="size-3.5" />
       )}
       {translate('original')}
+      {canDownloadOriginal ? null : (
+        <span className="ml-auto pl-3 text-xs text-muted-foreground">
+          {translate('upgradeHint')}
+        </span>
+      )}
     </DropdownMenuItem>
   );
 
@@ -103,33 +108,48 @@ export default function IngredientDownloadButton({
     );
   }
 
+  const originalButton = (
+    <Button
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+      className="rounded-r-none"
+      ariaLabel={translate('original')}
+      tooltip={canDownloadOriginal ? translate('original') : undefined}
+      isDisabled={disabled || isDownloading || !canDownloadOriginal}
+      isLoading={isDownloading}
+      onClick={() => void download(false)}
+    >
+      {canDownloadOriginal ? (
+        <Download className="size-4" />
+      ) : (
+        <Lock className="size-4" />
+      )}
+    </Button>
+  );
+
   return (
     <div
       className="flex items-center"
       role="group"
       aria-label={translate('options')}
     >
-      <SimpleTooltip
-        label={translate('originalLocked')}
-        isDisabled={canDownloadOriginal}
-      >
-        <Button
-          variant={ButtonVariant.GHOST}
-          withWrapper={false}
-          className="rounded-r-none"
-          ariaLabel={translate('original')}
-          tooltip={canDownloadOriginal ? translate('original') : undefined}
-          isDisabled={disabled || isDownloading || !canDownloadOriginal}
-          isLoading={isDownloading}
-          onClick={() => void download(false)}
-        >
-          {canDownloadOriginal ? (
-            <Download className="size-4" />
-          ) : (
-            <Lock className="size-4" />
-          )}
-        </Button>
-      </SimpleTooltip>
+      {canDownloadOriginal ? (
+        originalButton
+      ) : (
+        // A disabled button emits no pointer events, so the focusable wrapper
+        // is the tooltip trigger that explains the lock.
+        <SimpleTooltip label={translate('originalLocked')}>
+          <span
+            aria-disabled="true"
+            aria-label={translate('originalLocked')}
+            className="inline-flex rounded-l-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            role="button"
+            tabIndex={0}
+          >
+            {originalButton}
+          </span>
+        </SimpleTooltip>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
