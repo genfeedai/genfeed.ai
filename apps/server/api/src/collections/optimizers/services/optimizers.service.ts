@@ -10,14 +10,28 @@ import { OptimizeContentDto } from '@api/collections/optimizers/dto/optimize.dto
 import { GenerateVariantsDto } from '@api/collections/optimizers/dto/variants.dto';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import {
+  CONTENT_ANALYSIS_SCHEMA_NAME,
+  CONTENT_OPTIMIZATION_SCHEMA_NAME,
+  CONTENT_VARIANTS_SCHEMA_NAME,
+  contentAnalysisSchema,
+  contentOptimizationSchema,
+  contentVariantsSchema,
+  GENERATED_PROMPTS_SCHEMA_NAME,
+  generatedPromptsSchema,
+  HASHTAG_SUGGESTIONS_SCHEMA_NAME,
+  hashtagSuggestionsSchema,
+  POSTING_TIME_RECOMMENDATIONS_SCHEMA_NAME,
+  postingTimeRecommendationsSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type { ZodType } from 'zod';
 
 type ScoreBreakdown = {
   clarity: number;
@@ -48,50 +62,6 @@ type ContentChange = {
   optimized: string;
   original: string;
   reason: string;
-};
-
-type HashtagSuggestionResult = {
-  optimal?: string[];
-  score?: number;
-  suggested?: string[];
-  trending?: string[];
-};
-
-type GeneratedVariant = {
-  content: string;
-  description: string;
-  type: string;
-};
-
-type GenerateVariantsResult = {
-  variants?: GeneratedVariant[];
-};
-
-type PromptGenerationResult = {
-  prompts?: Array<Omit<GeneratedPromptConfig, 'id'>>;
-};
-
-type PostingTimeRecommendation = {
-  confidence: number;
-  day: string;
-  reason: string;
-  time: string;
-};
-
-type PostingTimesResult = {
-  recommendedTimes?: PostingTimeRecommendation[];
-};
-
-type AIAnalysisResult = {
-  breakdown?: ScoreBreakdown;
-  overallScore?: number;
-  suggestions?: OptimizationSuggestion[];
-};
-
-type AIOptimizationResult = {
-  changes?: ContentChange[];
-  improvementScore?: number;
-  optimized?: string;
 };
 
 @Injectable()
@@ -257,31 +227,19 @@ export class OptimizersService {
         strategy,
       );
 
-      const input = {
-        max_completion_tokens: 1024,
+      const result = await this.completeStructured(
         prompt,
-      };
-      const response = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
-      );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-      const result = JsonParserUtil.parseAIResponse<HashtagSuggestionResult>(
-        response,
-        {},
+        1024,
+        hashtagSuggestionsSchema,
+        HASHTAG_SUGGESTIONS_SCHEMA_NAME,
+        onBilling,
       );
 
       this.logger.debug('Hashtags suggested successfully', {
-        count: result.suggested?.length,
+        count: result.suggested.length,
       });
 
-      return {
-        optimal: result.optimal || [],
-        score: result.score || 0,
-        suggested: result.suggested || [],
-        trending: result.trending || [],
-      };
+      return result;
     } catch (error: unknown) {
       this.logger.error('Failed to suggest hashtags', { error });
       throw error;
@@ -323,28 +281,21 @@ export class OptimizersService {
         count,
       );
 
-      const input = {
-        max_completion_tokens: 2048,
+      const result = await this.completeStructured(
         prompt,
-      };
-      const response = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
-      );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-      const result = JsonParserUtil.parseAIResponse<GenerateVariantsResult>(
-        response,
-        {},
+        2048,
+        contentVariantsSchema,
+        CONTENT_VARIANTS_SCHEMA_NAME,
+        onBilling,
       );
 
       this.logger.debug('Variants generated successfully', {
-        count: result.variants?.length,
+        count: result.variants.length,
       });
 
       return {
         original: dto.content,
-        variants: result.variants || [],
+        variants: result.variants,
       };
     } catch (error: unknown) {
       this.logger.error('Failed to generate variants', { error });
@@ -370,33 +321,28 @@ export class OptimizersService {
 
       const prompt = this.buildPromptGeneratorPrompt(dto);
 
-      const input = {
-        max_completion_tokens: 2048,
+      const result = await this.completeStructured(
         prompt,
-      };
-      const response = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
-      );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-      const result = JsonParserUtil.parseAIResponse<PromptGenerationResult>(
-        response,
-        {},
+        2048,
+        generatedPromptsSchema,
+        GENERATED_PROMPTS_SCHEMA_NAME,
+        onBilling,
       );
 
-      // Add unique IDs to each prompt
-      const prompts: GeneratedPromptConfig[] = (result.prompts || []).map(
-        (p: Omit<GeneratedPromptConfig, 'id'>, index: number) => ({
-          camera: p.camera || 'medium shot',
+      // Ids are ours to mint — the model never sees them.
+      const prompts: GeneratedPromptConfig[] = result.prompts.map(
+        (generated, index) => ({
+          camera: generated.camera,
           cameraMovement:
-            dto.targetMedia === 'video' ? p.cameraMovement : undefined,
-          format: p.format || 'portrait',
+            dto.targetMedia === 'video'
+              ? (generated.cameraMovement ?? undefined)
+              : undefined,
+          format: generated.format,
           id: `prompt-${Date.now()}-${index}`,
-          lighting: p.lighting || 'natural',
-          mood: p.mood || 'dramatic',
-          style: p.style || 'cinematic',
-          text: p.text || '',
+          lighting: generated.lighting,
+          mood: generated.mood,
+          style: generated.style,
+          text: generated.text,
         }),
       );
 
@@ -438,30 +384,18 @@ export class OptimizersService {
       // Get AI recommendations for posting times
       const prompt = `Based on ${platform} best practices and audience engagement patterns, provide the best posting times in ${timezone} timezone.
 
-Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
-{
-  "recommendedTimes": [
-    { "day": "Monday", "time": "09:00 AM", "confidence": 85, "reason": "Peak morning engagement" }
-  ]
-}`;
+Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason it works.`;
 
-      const input = {
-        max_completion_tokens: 1024,
+      const result = await this.completeStructured(
         prompt,
-      };
-      const response = await this.replicateService.generateTextCompletionSync(
-        DEFAULT_TEXT_MODEL,
-        input,
-      );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-      const result = JsonParserUtil.parseAIResponse<PostingTimesResult>(
-        response,
-        {},
+        1024,
+        postingTimeRecommendationsSchema,
+        POSTING_TIME_RECOMMENDATIONS_SCHEMA_NAME,
+        onBilling,
       );
 
       return {
-        recommendedTimes: result.recommendedTimes || [],
+        recommendedTimes: result.recommendedTimes,
         timezone,
       };
     } catch (error: unknown) {
@@ -506,32 +440,13 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
       goals,
     );
 
-    const input = {
-      max_completion_tokens: 2048,
+    return this.completeStructured(
       prompt,
-    };
-    const response = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
-      input,
+      2048,
+      contentAnalysisSchema,
+      CONTENT_ANALYSIS_SCHEMA_NAME,
+      onBilling,
     );
-    onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-    const result = JsonParserUtil.parseAIResponse<AIAnalysisResult>(
-      response,
-      {},
-    );
-
-    return {
-      breakdown: result.breakdown || {
-        clarity: 0,
-        engagement: 0,
-        platformOptimization: 0,
-        readability: 0,
-        viralPotential: 0,
-      },
-      overallScore: result.overallScore || 0,
-      suggestions: result.suggestions || [],
-    };
   }
 
   /**
@@ -555,26 +470,13 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
       goals,
     );
 
-    const input = {
-      max_completion_tokens: 2048,
+    return this.completeStructured(
       prompt,
-    };
-    const response = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
-      input,
+      2048,
+      contentOptimizationSchema,
+      CONTENT_OPTIMIZATION_SCHEMA_NAME,
+      onBilling,
     );
-    onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-    const result = JsonParserUtil.parseAIResponse<AIOptimizationResult>(
-      response,
-      {},
-    );
-
-    return {
-      changes: result.changes || [],
-      improvementScore: result.improvementScore || 0,
-      optimized: result.optimized || content,
-    };
   }
 
   /**
@@ -593,28 +495,9 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
 
 Content: "${content}"
 
-Provide a detailed analysis in JSON format:
-{
-  "overallScore": 75,
-  "breakdown": {
-    "engagement": 80,
-    "clarity": 70,
-    "viralPotential": 65,
-    "platformOptimization": 75,
-    "readability": 85
-  },
-  "suggestions": [
-    {
-      "type": "improvement",
-      "category": "engagement",
-      "message": "Add a strong call-to-action at the end",
-      "suggestedText": "What do you think? Comment below!",
-      "priority": "high"
-    }
-  ]
-}
-
-Score each aspect 0-100. Provide actionable suggestions with priority.`;
+Score each aspect 0-100. Provide actionable suggestions with a category,
+a type, a priority, and — where you are rewriting a line — the original and
+suggested text.`;
   }
 
   /**
@@ -633,21 +516,9 @@ Score each aspect 0-100. Provide actionable suggestions with priority.`;
 
 Original: "${content}"
 
-Return JSON:
-{
-  "optimized": "Improved version here",
-  "changes": [
-    {
-      "field": "call-to-action",
-      "original": "Thanks for reading",
-      "optimized": "What's your take? Drop a comment!",
-      "reason": "More engaging CTA"
-    }
-  ],
-  "improvementScore": 25
-}
-
-Make it more engaging, clear, and optimized for the platform.`;
+Make it more engaging, clear, and optimized for the platform. List each
+change you made with the field it touches, the original and optimized text,
+and why, and score the overall improvement.`;
   }
 
   /**
@@ -666,13 +537,8 @@ Make it more engaging, clear, and optimized for the platform.`;
 
 Content: "${content}"
 
-Return JSON:
-{
-  "suggested": ["#hashtag1", "#hashtag2"],
-  "trending": ["#trending1"],
-  "optimal": ["#best1", "#best2"],
-  "score": 85
-}
+Return the suggested tags, the ones currently trending, the optimal subset to
+post, and a 0-100 score for how well they fit.
 
 Strategy:
 - trending: Focus on viral/trending hashtags
@@ -704,16 +570,8 @@ Variation type: ${variationType}
 - cta: Different calls-to-action
 - style: Different writing styles
 
-Return JSON:
-{
-  "variants": [
-    {
-      "content": "Variant text here",
-      "type": "Professional Tone",
-      "description": "More formal and authoritative"
-    }
-  ]
-}`;
+Give each variant its text, a short type label like "Professional Tone", and
+a one-line description of what makes it different.`;
   }
 
   /**
@@ -741,22 +599,7 @@ For each prompt, provide complete configuration:
 - mood: emotional tone (e.g., "dramatic", "serene", "energetic", "mysterious", "romantic", "melancholic", "triumphant")
 - camera: camera angle (e.g., "close-up", "wide shot", "bird's eye view", "low angle", "dutch angle", "over-the-shoulder")
 ${dto.targetMedia === 'video' ? '- cameraMovement: camera motion (e.g., "slow pan right", "tracking shot", "static", "dolly zoom", "crane up", "orbit around subject")' : ''}
-- lighting: lighting description (e.g., "golden hour", "dramatic rim lighting", "soft diffused", "neon glow", "chiaroscuro", "backlit silhouette")
-
-Return JSON format:
-{
-  "prompts": [
-    {
-      "text": "...",
-      "format": "portrait",
-      "style": "...",
-      "mood": "...",
-      "camera": "...",
-      ${dto.targetMedia === 'video' ? '"cameraMovement": "...",' : ''}
-      "lighting": "..."
-    }
-  ]
-}`;
+- lighting: lighting description (e.g., "golden hour", "dramatic rim lighting", "soft diffused", "neon glow", "chiaroscuro", "backlit silhouette")`;
     } else {
       return `You are an expert AI prompt engineer. Generate ${dto.count} creative variations of this ${mediaType} prompt: "${dto.input}"${styleHintText}
 
@@ -766,22 +609,8 @@ REQUIREMENTS:
 - Modify style, mood, camera angle, lighting, or perspective
 - Maintain or improve upon the original's quality and detail level
 
-For each variation, provide complete configuration with the same fields as the original but reimagined.
-
-Return JSON format:
-{
-  "prompts": [
-    {
-      "text": "...",
-      "format": "portrait" | "landscape" | "square",
-      "style": "...",
-      "mood": "...",
-      "camera": "...",
-      ${dto.targetMedia === 'video' ? '"cameraMovement": "...",' : ''}
-      "lighting": "..."
-    }
-  ]
-}`;
+For each variation, provide complete configuration with the same fields as the original but reimagined:
+text, format (portrait, landscape or square), style, mood, camera${dto.targetMedia === 'video' ? ', cameraMovement' : ''} and lighting.`;
     }
   }
 
@@ -816,6 +645,37 @@ Return JSON format:
       hashtagCount: hashtags.length,
       wordCount: words.length,
     };
+  }
+
+  /**
+   * One schema-validated text completion on the default Replicate text model.
+   *
+   * Replicate cannot enforce a JSON Schema, so the adapter carries it in the
+   * prompt and validates the answer, repairing once before raising the typed
+   * error. Every attempt is billed through `onBilling`, repair included —
+   * a retry is a second prediction we paid for.
+   */
+  private async completeStructured<TResult>(
+    prompt: string,
+    maxCompletionTokens: number,
+    schema: ZodType<TResult>,
+    schemaName: string,
+    onBilling?: (amount: number) => void,
+  ): Promise<TResult> {
+    return this.replicateService.generateStructuredTextSync(
+      DEFAULT_TEXT_MODEL,
+      {
+        input: { max_completion_tokens: maxCompletionTokens },
+        onAttempt: async (attemptInput, output) => {
+          onBilling?.(
+            await this.calculateDefaultTextCharge(attemptInput, output),
+          );
+        },
+        prompt,
+        schema,
+        schemaName,
+      },
+    );
   }
 
   private async calculateDefaultTextCharge(

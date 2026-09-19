@@ -17,6 +17,7 @@ export * from './channel-capabilities.contract';
 export * from './channel-repurpose.contract';
 export * from './content-geo-optimization.contract';
 export * from './content-intelligence-generation.contract';
+export * from './content-optimizer.contract';
 export * from './content-pattern-extraction.contract';
 export * from './content-plan-generation.contract';
 export * from './content-quality-scoring.contract';
