@@ -597,4 +597,68 @@ describe('AnthropicService', () => {
       );
     });
   });
+
+  describe('structured output', () => {
+    const structuredParams: OpenRouterChatCompletionParams = {
+      messages: [{ content: 'Plan it', role: 'user' }],
+      model: 'anthropic/claude-sonnet-5',
+      response_format: {
+        json_schema: {
+          name: 'content_plan',
+          schema: { properties: { name: { type: 'string' } }, type: 'object' },
+          strict: true,
+        },
+        type: 'json_schema',
+      },
+    };
+
+    it('translates response_format into a forced tool call', async () => {
+      mockCreate.mockResolvedValue({
+        content: [
+          {
+            id: 'tool-1',
+            input: { name: 'Q1' },
+            name: 'content_plan',
+            type: 'tool_use',
+          },
+        ],
+        id: 'msg-1',
+        stop_reason: 'tool_use',
+        usage: { input_tokens: 10, output_tokens: 5 },
+      });
+
+      await service.chatCompletion(structuredParams);
+
+      const [sent] = mockCreate.mock.calls[0] as [Record<string, unknown>];
+      expect(sent.tools).toEqual([
+        expect.objectContaining({
+          input_schema: structuredParams.response_format?.json_schema.schema,
+          name: 'content_plan',
+        }),
+      ]);
+      expect(sent.tool_choice).toEqual({ name: 'content_plan', type: 'tool' });
+    });
+
+    it('surfaces the tool input as message content so callers see JSON text', async () => {
+      mockCreate.mockResolvedValue({
+        content: [
+          {
+            id: 'tool-1',
+            input: { name: 'Q1' },
+            name: 'content_plan',
+            type: 'tool_use',
+          },
+        ],
+        id: 'msg-1',
+        stop_reason: 'tool_use',
+        usage: { input_tokens: 10, output_tokens: 5 },
+      });
+
+      const result = await service.chatCompletion(structuredParams);
+
+      expect(result.choices[0].message.content).toBe('{"name":"Q1"}');
+      expect(result.choices[0].message.tool_calls).toBeUndefined();
+      expect(result.choices[0].finish_reason).toBe('stop');
+    });
+  });
 });

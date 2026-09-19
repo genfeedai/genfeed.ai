@@ -1,3 +1,7 @@
+import {
+  runStructuredCompletion,
+  toStructuredJsonSchema,
+} from '@api/services/integrations/llm/structured-output.util';
 import { toReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import {
   canReceiveProviderWebhooks,
@@ -9,6 +13,9 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import Replicate from 'replicate';
+import type { ZodType } from 'zod';
+
+import type { ReplicateStructuredTextParams } from '../dto/replicate-structured-text.dto';
 
 type ReplicatePredictionTarget = { model: string } | { version: string };
 
@@ -31,6 +38,18 @@ function resolvePredictionTarget(
   return modelIdentifier.includes('/')
     ? { model: modelIdentifier }
     : { version: modelIdentifier };
+}
+
+/**
+ * Replicate proxies chat models that habitually wrap their answer in a
+ * markdown code block. That fence is transport, not content: unwrapping it
+ * here keeps the payload intact so the zod schema — not a regex — decides
+ * whether the answer is usable. Enforcing routes never reach this.
+ */
+function unwrapFencedJson(output: string): string {
+  const fenced = output.trim().match(/^```(?:json)?\s*\n([\s\S]*?)\n?```$/i);
+
+  return fenced?.[1]?.trim() ?? output;
 }
 
 @Injectable()
@@ -378,6 +397,53 @@ export class ReplicateService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  /**
+   * Schema-validated text completion.
+   *
+   * Replicate proxies other vendors' text models and exposes no schema
+   * enforcement, so the JSON Schema rides in the prompt and the answer is
+   * validated with zod. Behaviour then matches every enforcing route: one
+   * repair retry, then `LlmStructuredOutputError` with the failing fields.
+   * `onAttempt` fires once per model call so callers keep billing every
+   * completion they paid for, repair included.
+   */
+  public async generateStructuredTextSync<TResult>(
+    modelIdentifier: string,
+    params: ReplicateStructuredTextParams<TResult>,
+    apiKeyOverride?: string,
+  ): Promise<TResult> {
+    const { input, onAttempt, prompt, schema, schemaName } = params;
+    const schemaPrompt = [
+      prompt,
+      `Answer with a single JSON document matching this JSON Schema named "${schemaName}":`,
+      JSON.stringify(toStructuredJsonSchema(schema)),
+    ].join('\n\n');
+
+    return runStructuredCompletion({
+      attempt: async (repair) => {
+        const attemptInput = {
+          ...input,
+          prompt: repair
+            ? [
+                schemaPrompt,
+                `Your previous answer:\n${repair.previousRaw}`,
+                repair.instruction,
+              ].join('\n\n')
+            : schemaPrompt,
+        };
+        const output = await this.generateTextCompletionSync(
+          modelIdentifier,
+          attemptInput,
+          apiKeyOverride,
+        );
+        await onAttempt?.(attemptInput, output);
+        return unwrapFencedJson(output);
+      },
+      schema: schema as ZodType<TResult>,
+      schemaName,
+    });
   }
 
   private isNumberVector(value: unknown): value is number[] {

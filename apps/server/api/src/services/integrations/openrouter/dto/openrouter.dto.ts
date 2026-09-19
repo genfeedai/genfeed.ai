@@ -64,6 +64,23 @@ export const OPENROUTER_FIRST_PARTY_PROVIDER_POLICY = {
   zdr: true,
 } as const satisfies OpenRouterProviderPreferences;
 
+/**
+ * JSON-schema response format shared by every OpenAI-compatible route
+ * (OpenRouter, native OpenAI, and the `local/` vLLM server, which uses it to
+ * drive guided decoding). Anthropic has no `response_format`; its adapter
+ * translates the same spec into a forced tool call.
+ */
+export interface OpenRouterJsonSchemaSpec {
+  name: string;
+  schema: Record<string, unknown>;
+  strict?: boolean;
+}
+
+export interface OpenRouterResponseFormat {
+  type: 'json_schema';
+  json_schema: OpenRouterJsonSchemaSpec;
+}
+
 export interface OpenRouterChatCompletionParams {
   model: string;
   messages: OpenRouterMessage[];
@@ -72,6 +89,7 @@ export interface OpenRouterChatCompletionParams {
   plugins?: OpenRouterPlugin[];
   session_id?: string;
   provider?: OpenRouterProviderPreferences;
+  response_format?: OpenRouterResponseFormat;
   stream?: boolean;
   tools?: OpenRouterTool[];
   tool_choice?:

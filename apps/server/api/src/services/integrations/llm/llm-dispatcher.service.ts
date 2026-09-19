@@ -1,12 +1,19 @@
 import { ByokService } from '@api/services/byok/byok.service';
 import { AnthropicService } from '@api/services/integrations/anthropic/services/anthropic.service';
+import type { LlmStructuredCompletionParams } from '@api/services/integrations/llm/dto/llm-structured-output.dto';
 import { LlmCompletionTelemetryService } from '@api/services/integrations/llm/llm-completion-telemetry.service';
 import { LlmInstanceService } from '@api/services/integrations/llm/llm-instance.service';
+import {
+  buildStructuredResponseFormat,
+  runStructuredCompletion,
+  toStructuredJsonSchema,
+} from '@api/services/integrations/llm/structured-output.util';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
 import { OpenAiOAuthService } from '@api/services/integrations/openai-llm/services/openai-oauth.service';
 import type {
   OpenRouterChatCompletionParams,
   OpenRouterChatCompletionResponse,
+  OpenRouterMessage,
   OpenRouterStreamTokenHandler,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -231,6 +238,54 @@ export class LlmDispatcherService {
       }
       throw error;
     }
+  }
+
+  /**
+   * Schema-enforced completion: the provider is handed the JSON Schema for
+   * `params.schema` and the answer is validated with zod before it is
+   * returned.
+   *
+   * Enforcement is per route — OpenRouter and native OpenAI take
+   * `response_format`, the `local/` vLLM server turns it into guided decoding,
+   * and the Anthropic adapter translates it into a forced tool call. Where a
+   * route cannot enforce anything (an OpenRouter upstream that ignores the
+   * field, a self-hosted build without guided decoding) validation still runs,
+   * so the contract is the same everywhere: one repair retry, then a typed
+   * {@link LlmStructuredOutputError} carrying the zod issues. There is no
+   * silent fallback — an unusable answer is the caller's decision to make.
+   */
+  async completeStructured<TResult>(
+    params: LlmStructuredCompletionParams<TResult>,
+    organizationId?: string,
+    callContext?: ILlmCompletionCallContext,
+  ): Promise<TResult> {
+    const { schema, schemaName, ...completionParams } = params;
+    const responseFormat = buildStructuredResponseFormat(
+      schemaName,
+      toStructuredJsonSchema(schema),
+    );
+
+    return runStructuredCompletion({
+      attempt: async (repair) => {
+        const messages: OpenRouterMessage[] = repair
+          ? [
+              ...completionParams.messages,
+              { content: repair.previousRaw, role: 'assistant' },
+              { content: repair.instruction, role: 'user' },
+            ]
+          : completionParams.messages;
+
+        const response = await this.chatCompletion(
+          { ...completionParams, messages, response_format: responseFormat },
+          organizationId,
+          callContext,
+        );
+
+        return response.choices?.[0]?.message?.content ?? null;
+      },
+      schema,
+      schemaName,
+    });
   }
 
   /**
