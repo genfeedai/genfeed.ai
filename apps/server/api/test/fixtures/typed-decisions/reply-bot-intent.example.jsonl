@@ -1,0 +1,4 @@
+{"question":"What is this comment?","options":["spam","question","praise","complaint"],"state":{"comment":"Buy 10k followers cheap, link in bio 🔥🔥"},"expected":"spam","source":"example"}
+{"question":"What is this comment?","options":["spam","question","praise","complaint"],"state":{"comment":"which lens did you shoot this on?"},"expected":"question","source":"example"}
+{"question":"What is this comment?","options":["spam","question","praise","complaint"],"state":{"comment":"this edit is unreal, been watching since day one"},"expected":"praise","source":"example"}
+{"question":"What is this comment?","options":["spam","question","praise","complaint"],"state":{"comment":"third order that arrived late, support never replied"},"expected":"complaint","source":"example"}
