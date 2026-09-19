@@ -731,6 +731,7 @@
       "name": "@genfeedai/config",
       "version": "1.0.0",
       "dependencies": {
+        "@genfeedai/helpers": "workspace:*",
         "@genfeedai/pricing": "workspace:*",
         "dotenv": "17.4.2",
         "joi": "18.2.8",
