@@ -22,11 +22,14 @@ import {
 } from '@nestjs/common';
 import type { OAuthAuthorizeDecisionDto } from '../dto/authorize-decision.dto';
 import type { OAuthAuthorizeRequestDto } from '../dto/authorize-request.dto';
-import type { OAuthTokenExchangeDto } from '../dto/token-exchange.dto';
+import type { OAuthAuthorizationCodeGrant } from '../dto/token-exchange.dto';
 import { OAuthClientService } from './oauth-client.service';
+import {
+  MCP_OAUTH_SESSION_TTL_MS,
+  OAuthRefreshTokenService,
+} from './oauth-refresh-token.service';
 
 const MCP_OAUTH_CODE_TTL_MS = 60_000;
-const MCP_OAUTH_SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 type McpOAuthAuthCodeRecord = {
   clientId: string;
@@ -48,15 +51,28 @@ function oauthError(error: string, description: string): BadRequestException {
   });
 }
 
+/**
+ * Append redirect parameters, skipping any that were not supplied. `state`
+ * is echoed only when the client sent one (RFC 6749 §4.1.2); an absent value
+ * must never surface as `state=undefined` or an empty `state=`.
+ */
 function appendRedirectParams(
   redirectUri: string,
-  params: Record<string, string>,
+  params: Record<string, string | undefined>,
 ): string {
   const url = new URL(redirectUri);
   for (const [key, value] of Object.entries(params)) {
+    if (value === undefined) {
+      continue;
+    }
     url.searchParams.set(key, value);
   }
   return url.toString();
+}
+
+/** A supplied `state` is echoed unchanged; a missing or empty one is absent. */
+function suppliedState(state: string | undefined): string | undefined {
+  return state ? state : undefined;
 }
 
 @Injectable()
@@ -66,6 +82,7 @@ export class OAuthAuthorizeService {
     private readonly clientService: OAuthClientService,
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
+    private readonly refreshTokenService: OAuthRefreshTokenService,
   ) {}
 
   async buildAuthorizeRedirect(dto: OAuthAuthorizeRequestDto): Promise<string> {
@@ -96,12 +113,13 @@ export class OAuthAuthorizeService {
   ): Promise<{ redirectUrl: string }> {
     await this.clientService.requireClient(dto.client_id, dto.redirect_uri);
     this.assertResource(dto.resource);
+    const state = suppliedState(dto.state);
 
     if (!dto.approved) {
       return {
         redirectUrl: appendRedirectParams(dto.redirect_uri, {
           error: 'access_denied',
-          state: dto.state,
+          state,
         }),
       };
     }
@@ -134,7 +152,7 @@ export class OAuthAuthorizeService {
         redirectUri: new URL(dto.redirect_uri).toString(),
         resource: dto.resource,
         scopes,
-        stateHash: hashToken(dto.state),
+        stateHash: state ? hashToken(state) : null,
         userEmail: user.emailAddresses?.[0]?.emailAddress || undefined,
         userId,
         userName: userName || undefined,
@@ -144,12 +162,12 @@ export class OAuthAuthorizeService {
     return {
       redirectUrl: appendRedirectParams(dto.redirect_uri, {
         code,
-        state: dto.state,
+        state,
       }),
     };
   }
 
-  async exchangeToken(dto: OAuthTokenExchangeDto) {
+  async exchangeToken(dto: OAuthAuthorizationCodeGrant) {
     await this.clientService.requireClient(dto.client_id);
     this.assertResource(dto.resource);
 
@@ -206,6 +224,14 @@ export class OAuthAuthorizeService {
       ActionOrigin.MCP,
     );
     const persistedExpiry = apiKey.expiresAt ?? expiresAt;
+    const { refreshToken } = await this.refreshTokenService.issue({
+      apiKeyId: apiKey.id,
+      clientId: record.clientId,
+      organizationId: record.organizationId,
+      resource: record.resource,
+      scopes: record.scopes,
+      userId: record.userId,
+    });
 
     return {
       access_token: plainKey,
@@ -213,6 +239,7 @@ export class OAuthAuthorizeService {
         0,
         Math.floor((persistedExpiry.getTime() - Date.now()) / 1000),
       ),
+      refresh_token: refreshToken,
       scope: record.scopes.join(' '),
       token_type: 'Bearer',
     };

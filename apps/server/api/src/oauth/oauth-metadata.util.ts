@@ -1,4 +1,5 @@
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { resolveMcpResourceIdentifier } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import type { ConfigService } from '@libs/config/config.service';
 
 const DEFAULT_API_URL = 'http://localhost:3010';
@@ -39,15 +40,18 @@ export function resolveOAuthAppUrl(
   return readUrl(configService, ['GENFEEDAI_APP_URL'], DEFAULT_APP_URL);
 }
 
+/**
+ * The protected-resource identifier the token endpoint enforces. Derived by
+ * the same shared rule the MCP server advertises (#4553), so every spelling
+ * of the configured URL yields one identifier.
+ */
 export function resolveMcpResourceUrl(
   configService: Pick<ConfigService, 'get'>,
 ): string {
-  const configured = readUrl(
-    configService,
-    ['GENFEEDAI_MCP_PUBLIC_URL', 'GENFEEDAI_MICROSERVICES_MCP_URL'],
-    DEFAULT_MCP_URL,
-  );
-  return configured.endsWith('/mcp') ? configured : `${configured}/mcp`;
+  return resolveMcpResourceIdentifier((key) => {
+    const value = configService.get(key);
+    return typeof value === 'string' ? value : undefined;
+  }, DEFAULT_MCP_URL).identifier;
 }
 
 export function buildOAuthAuthorizationServerMetadata(
@@ -78,11 +82,13 @@ export function buildOAuthAuthorizationServerMetadata(
     },
     authorization_endpoint: `${issuer}/v1/oauth/authorize`,
     code_challenge_methods_supported: ['S256'],
-    grant_types_supported: ['authorization_code'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
     issuer,
     protected_resources: protectedResources,
     registration_endpoint: `${issuer}/v1/oauth/register`,
     response_types_supported: ['code'],
+    revocation_endpoint: `${issuer}/v1/oauth/revoke`,
+    revocation_endpoint_auth_methods_supported: ['none'],
     scopes_supported: [...API_KEY_SCOPE_PRESETS.mcp],
     token_endpoint: `${issuer}/v1/oauth/token`,
     token_endpoint_auth_methods_supported: ['none'],

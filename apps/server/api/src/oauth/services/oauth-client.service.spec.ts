@@ -35,7 +35,7 @@ describe('OAuthClientService', () => {
     expect(result).not.toHaveProperty('client_secret');
     expect(result).toMatchObject({
       client_name: 'Claude',
-      grant_types: ['authorization_code'],
+      grant_types: ['authorization_code', 'refresh_token'],
       redirect_uris: ['https://claude.ai/oauth/callback'],
       response_types: ['code'],
       token_endpoint_auth_method: 'none',

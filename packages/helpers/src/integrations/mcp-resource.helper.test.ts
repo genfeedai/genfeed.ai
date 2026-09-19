@@ -36,13 +36,18 @@ describe('deriveMcpResourceIdentifier', () => {
 
   it('rejects relative and malformed values naming the source key', () => {
     expect(() =>
-      deriveMcpResourceIdentifier('mcp.genfeed.ai/mcp', 'GENFEEDAI_MCP_PUBLIC_URL'),
+      deriveMcpResourceIdentifier(
+        'mcp.genfeed.ai/mcp',
+        'GENFEEDAI_MCP_PUBLIC_URL',
+      ),
     ).toThrow(/GENFEEDAI_MCP_PUBLIC_URL/);
   });
 
   it('rejects query strings and fragments', () => {
     expect(() =>
-      deriveMcpResourceIdentifier('https://mcp.genfeed.ai/mcp?toolsets=content'),
+      deriveMcpResourceIdentifier(
+        'https://mcp.genfeed.ai/mcp?toolsets=content',
+      ),
     ).toThrow(McpResourceConfigurationError);
     expect(() =>
       deriveMcpResourceIdentifier('https://mcp.genfeed.ai/mcp#x'),
@@ -109,8 +114,8 @@ describe('buildProtectedResourceMetadataPaths', () => {
   });
 
   it('serves only the bare location for a root resource', () => {
-    expect(buildProtectedResourceMetadataPaths('https://mcp.genfeed.ai/')).toEqual([
-      '/.well-known/oauth-protected-resource',
-    ]);
+    expect(
+      buildProtectedResourceMetadataPaths('https://mcp.genfeed.ai/'),
+    ).toEqual(['/.well-known/oauth-protected-resource']);
   });
 });
