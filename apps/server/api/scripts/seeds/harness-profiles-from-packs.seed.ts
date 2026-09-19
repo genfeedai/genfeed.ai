@@ -1,38 +1,66 @@
 /**
- * Seed harness profiles from private (or fixture) content harness packs.
+ * Seed harness profiles from private (or fixture) brand seeds.
  *
- * Maps pack seeds → DB harness profiles by brandId / slug / label.
- * TODO examples are dropped. Existing profile examples are merged, not wiped.
+ * Writes org-scoped DB harness profiles, so private brand voice reaches the
+ * runtime without shipping a private package in the server image.
+ *
+ * Scope is resolved from the owner, never from brand names: `--ownerEmail`
+ * selects the organizations that user owns, and packs are matched only to
+ * brands inside them (by brand id, then slug, then label). A brand that happens
+ * to share a name in another tenant is never considered.
  *
  * Usage:
- *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts
- *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --live
- *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --organizationId=<id> --live
+ *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --ownerEmail=<email>
+ *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --env=production --ownerEmail=<email> --packs=@genfeedai/private-harness
+ *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --env=production --ownerEmail=<email> --organizationId=<id> --packs=<path-or-package> --live
  *
- * Packs load order:
- * 1. CONTENT_HARNESS_PACKAGES module(s) if resolvable (e.g. @genfeedai/private-harness)
- * 2. Built-in fixture packs under this script (genfeed-shaped demo only)
+ * Seed sources, in order:
+ * 1. `--packs=<package-or-path>`: a module exporting `PRIVATE_HARNESS_SEEDS`.
+ * 2. `HARNESS_SEED_*` env vars: one JSON seed each, optionally `gz:`-prefixed
+ *    base64 gzip. The hosted `harness-profile-seed` ECS task injects them from
+ *    the `harness_seed_ssm_path` SSM parameters, so private voice never enters
+ *    the public image.
+ * 3. The genfeed-shaped fixture seed, for local development only.
  */
 
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import process from 'node:process';
+import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
+import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import {
   type HarnessPackSeed,
   packSeedMatchesBrand,
 } from '@api/services/harness/harness-profile-seed.util';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { isEntityId } from '@genfeedai/contracts/api-types/helpers/entity-id';
+import { PrismaClient } from '@genfeedai/prisma';
+import type { LoggerService } from '@libs/logger/logger.service';
+import {
+  createPrismaPgConfig,
+  POSTGRES_CA_FILE_ENV_KEYS,
+} from '@libs/prisma/prisma-pg-config';
 import { Logger } from '@nestjs/common';
+import { PrismaPg } from '@prisma/adapter-pg';
 
 type SeedArgs = {
   dryRun: boolean;
   env?: string;
   organizationId?: string;
+  ownerEmail?: string;
+  packs?: string;
+  validateRuntime: boolean;
 };
 
 const logger = new Logger('HarnessProfilePackSeed');
+const LOCAL_DATABASE_HOSTS = ['0.0.0.0', '127.0.0.1', '::1', 'localhost'];
+const SEED_ENV_PREFIX = 'HARNESS_SEED_';
+const GZIP_SEED_PREFIX = 'gz:';
+const scriptDir = fileURLToPath(new URL('.', import.meta.url));
 
-const FIXTURE_PACKS: HarnessPackSeed[] = [
+const FIXTURE_SEEDS: HarnessPackSeed[] = [
   {
     brandName: 'genfeed.ai',
     brandSlugs: ['genfeed', 'genfeedai'],
@@ -57,223 +85,217 @@ const FIXTURE_PACKS: HarnessPackSeed[] = [
   },
 ];
 
-function parseArgs(argv: string[]): SeedArgs {
-  const args: SeedArgs = { dryRun: true };
-  for (const arg of argv) {
-    if (arg === '--live') {
-      args.dryRun = false;
-    } else if (arg.startsWith('--organizationId=')) {
-      args.organizationId = arg.slice('--organizationId='.length);
-    } else if (arg.startsWith('--env=')) {
-      args.env = arg.slice('--env='.length);
-    }
-  }
-  return args;
+function readArg(args: readonly string[], name: string): string | undefined {
+  const value = args
+    .find((arg) => arg.startsWith(`--${name}=`))
+    ?.slice(name.length + 3)
+    .trim();
+  return value ? value : undefined;
 }
 
-function loadEnvFile(envName?: string): void {
-  const candidates = [
-    envName ? resolve(process.cwd(), `.env.${envName}`) : null,
-    resolve(process.cwd(), '.env'),
-    resolve(process.cwd(), 'apps/server/api/.env'),
-  ].filter(Boolean) as string[];
-
-  for (const path of candidates) {
-    try {
-      const raw = readFileSync(path, 'utf8');
-      for (const line of raw.split('\n')) {
-        const trimmed = line.trim();
-        if (!trimmed || trimmed.startsWith('#')) {
-          continue;
-        }
-        const eq = trimmed.indexOf('=');
-        if (eq <= 0) {
-          continue;
-        }
-        const key = trimmed.slice(0, eq).trim();
-        let value = trimmed.slice(eq + 1).trim();
-        if (
-          (value.startsWith('"') && value.endsWith('"')) ||
-          (value.startsWith("'") && value.endsWith("'"))
-        ) {
-          value = value.slice(1, -1);
-        }
-        if (process.env[key] === undefined) {
-          process.env[key] = value;
-        }
-      }
-      return;
-    } catch {
-      // try next
-    }
-  }
-}
-
-function extractSeedsFromModule(
-  mod: Record<string, unknown>,
-): HarnessPackSeed[] {
-  const seeds: HarnessPackSeed[] = [];
-  const pack =
-    (mod.CONTENT_HARNESS_PACK as { contribute?: unknown } | undefined) ??
-    (mod.default as { contribute?: unknown } | undefined);
-
-  // Prefer named PRIVATE_PACKS export from private harness.
-  const privatePacks = mod.PRIVATE_PACKS;
-  if (Array.isArray(privatePacks)) {
-    for (const item of privatePacks) {
-      const seed = coercePackToSeed(item);
-      if (seed) {
-        seeds.push(seed);
-      }
-    }
-  }
-
-  if (seeds.length === 0 && pack) {
-    const seed = coercePackToSeed(pack);
-    if (seed) {
-      seeds.push(seed);
-    }
-  }
-
-  return seeds;
-}
-
-function coercePackToSeed(pack: unknown): HarnessPackSeed | null {
-  if (!pack || typeof pack !== 'object') {
-    return null;
-  }
-  const record = pack as Record<string, unknown>;
-  const id = typeof record.id === 'string' ? record.id : null;
-  if (!id) {
-    return null;
-  }
-
-  // Private packs store seed data only via contribute(input) with brand match.
-  // Probe with a synthetic brandName from description or id.
-  const description =
-    typeof record.description === 'string' ? record.description : '';
-  const brandNameMatch = description.match(/for\s+(.+?)\.?$/i);
-  const brandName =
-    brandNameMatch?.[1]?.trim() || id.replace(/-brand$/, '').replace(/-/g, ' ');
-
-  // If contribute is a function, invoke with matching brandName to extract.
-  if (typeof record.contribute === 'function') {
-    try {
-      const contribution = record.contribute({
-        brandName,
-        intent: { contentType: 'post', objective: 'engagement' },
-      }) as {
-        evaluationCriteria?: string[];
-        guardrails?: string[];
-        sources?: Array<{ content?: string; kind?: string }>;
-        styleDirectives?: string[];
-        systemDirectives?: string[];
-      };
-      const examples =
-        contribution.sources
-          ?.filter((source) => source.kind === 'brand_example')
-          .map((source) => source.content)
-          .filter((content): content is string => Boolean(content)) ?? [];
-      const antiExamples =
-        contribution.sources
-          ?.filter((source) => source.kind === 'anti_example')
-          .map((source) => source.content)
-          .filter((content): content is string => Boolean(content)) ?? [];
-      return {
-        antiExamples,
-        brandName,
-        brandSlugs: [id.replace(/-brand$/, ''), brandName.toLowerCase()],
-        evaluationCriteria: contribution.evaluationCriteria,
-        examples,
-        guardrails: contribution.guardrails,
-        id,
-        styleDirectives: contribution.styleDirectives,
-        systemDirectives: contribution.systemDirectives,
-      };
-    } catch {
-      return {
-        brandName,
-        id,
-      };
-    }
-  }
-
+export function parseHarnessSeedArgs(args: readonly string[]): SeedArgs {
   return {
-    brandName,
-    id,
+    dryRun: !args.includes('--live'),
+    env: readArg(args, 'env'),
+    organizationId: readArg(args, 'organizationId'),
+    ownerEmail: readArg(args, 'ownerEmail'),
+    packs: readArg(args, 'packs'),
+    validateRuntime: args.includes('--validate-runtime'),
   };
 }
 
-function loadPackSeeds(): HarnessPackSeed[] {
-  const seeds: HarnessPackSeed[] = [...FIXTURE_PACKS];
-  const packagesEnv = process.env.CONTENT_HARNESS_PACKAGES ?? '';
-  const requireFn = createRequire(import.meta.url);
+/**
+ * `--env=<name>` overrides values Bun already auto-loaded from `.env` /
+ * `.env.local`; otherwise a "production" run would silently hit the local DB.
+ */
+function loadEnvFile(envArg?: string): void {
+  const envSuffix = envArg || 'local';
+  const envPath = resolve(scriptDir, '..', '..', `.env.${envSuffix}`);
 
-  for (const specifier of packagesEnv
-    .split(',')
-    .map((item) => item.trim())
-    .filter(Boolean)) {
-    try {
-      const mod = requireFn(specifier) as Record<string, unknown>;
-      seeds.push(...extractSeedsFromModule(mod));
-      logger.log(`Loaded harness pack module ${specifier}`);
-    } catch (error: unknown) {
-      logger.warn(
-        `Could not load ${specifier}: ${error instanceof Error ? error.message : 'unknown'}`,
-      );
+  try {
+    const content = readFileSync(envPath, 'utf-8');
+    for (const line of content.split('\n')) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith('#')) {
+        continue;
+      }
+      const eqIndex = trimmed.indexOf('=');
+      if (eqIndex === -1) {
+        continue;
+      }
+      const key = trimmed.slice(0, eqIndex).trim();
+      const value = trimmed
+        .slice(eqIndex + 1)
+        .trim()
+        .replace(/^['"]|['"]$/g, '');
+      if (envArg || !process.env[key]) {
+        process.env[key] = value;
+      }
     }
+    logger.log(`Loaded env from .env.${envSuffix}`);
+  } catch {
+    logger.log(`No .env.${envSuffix} found, using process env`);
+  }
+}
+
+export function isLocalDatabaseUrl(databaseUrl: string): boolean {
+  try {
+    const hostname = new URL(databaseUrl).hostname.replace(/^\[|\]$/g, '');
+    return LOCAL_DATABASE_HOSTS.includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
+function createPrismaClient(envName?: string): PrismaClient {
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error('DATABASE_URL environment variable is not set');
+  }
+  const target = new URL(connectionString);
+  logger.log(`Target database: ${target.hostname}${target.pathname}`);
+  if (envName === 'production' && isLocalDatabaseUrl(connectionString)) {
+    throw new Error(
+      '.env.production points at a local database; refusing to report a local run as production',
+    );
+  }
+  return new PrismaClient({
+    adapter: new PrismaPg(
+      createPrismaPgConfig(connectionString, {
+        caFilePaths: POSTGRES_CA_FILE_ENV_KEYS.map((key) => process.env[key]),
+      }),
+    ),
+  });
+}
+
+function isHarnessPackSeed(value: unknown): value is HarnessPackSeed {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as Partial<HarnessPackSeed>;
+  return (
+    typeof candidate.id === 'string' && typeof candidate.brandName === 'string'
+  );
+}
+
+function parseSeedValue(name: string, raw: string): HarnessPackSeed {
+  const json = raw.startsWith(GZIP_SEED_PREFIX)
+    ? gunzipSync(
+        Buffer.from(raw.slice(GZIP_SEED_PREFIX.length), 'base64'),
+      ).toString('utf8')
+    : raw;
+  const value: unknown = JSON.parse(json);
+  if (!isHarnessPackSeed(value)) {
+    throw new Error(`${name} is not a harness seed (needs id and brandName)`);
+  }
+  return value;
+}
+
+export function loadEnvSeeds(env: NodeJS.ProcessEnv): HarnessPackSeed[] {
+  return Object.keys(env)
+    .filter((name) => name.startsWith(SEED_ENV_PREFIX) && env[name])
+    .sort()
+    .map((name) => parseSeedValue(name, env[name] as string));
+}
+
+export function loadSeeds(
+  specifier?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): HarnessPackSeed[] {
+  if (!specifier) {
+    const envSeeds = loadEnvSeeds(env);
+    return envSeeds.length > 0 ? envSeeds : FIXTURE_SEEDS;
   }
 
+  const requireFn = createRequire(resolve(process.cwd(), 'package.json'));
+  const mod = requireFn(specifier) as { PRIVATE_HARNESS_SEEDS?: unknown };
+  const seeds = Array.isArray(mod.PRIVATE_HARNESS_SEEDS)
+    ? mod.PRIVATE_HARNESS_SEEDS.filter(isHarnessPackSeed)
+    : [];
+  if (seeds.length === 0) {
+    throw new Error(`${specifier} exports no PRIVATE_HARNESS_SEEDS`);
+  }
   return seeds;
 }
 
-async function main(): Promise<void> {
-  const args = parseArgs(process.argv.slice(2));
+async function resolveOwnerOrganizations(params: {
+  organizationId?: string;
+  ownerEmail: string;
+  prisma: PrismaClient;
+}): Promise<Array<{ id: string; label: string; ownerUserId: string }>> {
+  const owner = await params.prisma.user.findFirst({
+    select: { id: true },
+    where: { email: params.ownerEmail, isDeleted: false },
+  });
+  if (!owner) {
+    throw new Error(`No active user found for email ${params.ownerEmail}`);
+  }
+
+  const organizations = await params.prisma.organization.findMany({
+    orderBy: { createdAt: 'asc' },
+    select: { id: true, label: true },
+    where: {
+      isDeleted: false,
+      userId: owner.id,
+      ...(params.organizationId ? { id: params.organizationId } : {}),
+    },
+  });
+  if (organizations.length === 0) {
+    throw new Error(
+      `${params.ownerEmail} owns no matching organization${params.organizationId ? ` with id ${params.organizationId}` : ''}`,
+    );
+  }
+
+  return organizations.map((organization) => ({
+    ...organization,
+    ownerUserId: owner.id,
+  }));
+}
+
+export async function runHarnessProfileSeed(): Promise<void> {
+  const args = parseHarnessSeedArgs(process.argv.slice(2));
+  if (args.validateRuntime) {
+    logger.log('Harness profile seed runtime OK');
+    return;
+  }
   loadEnvFile(args.env);
 
-  const { NestFactory } = await import('@nestjs/core');
-  const { AppModule } = await import('../../src/app.module');
-  const { PrismaService } = await import(
-    '../../src/shared/modules/prisma/prisma.service'
+  if (!args.ownerEmail) {
+    throw new Error(
+      'Pass --ownerEmail=<email>: packs are matched only inside that owner’s organizations',
+    );
+  }
+  if (args.organizationId && !isEntityId(args.organizationId)) {
+    throw new Error(`Invalid organization id: ${args.organizationId}`);
+  }
+  const seeds = loadSeeds(args.packs);
+  if (args.env === 'production' && seeds === FIXTURE_SEEDS) {
+    throw new Error(
+      'A production run needs private seeds: pass --packs=<package-or-path> or inject HARNESS_SEED_* from SSM',
+    );
+  }
+  const prisma = createPrismaClient(args.env);
+  const harnessProfiles = new HarnessProfilesService(
+    prisma as unknown as PrismaService,
+    logger as unknown as LoggerService,
   );
-  const { HarnessProfilesService } = await import(
-    '../../src/collections/harness-profiles/services/harness-profiles.service'
-  );
-
-  const app = await NestFactory.createApplicationContext(AppModule, {
-    logger: ['error', 'warn', 'log'],
-  });
 
   try {
-    const prisma = app.get(PrismaService);
-    const harnessProfiles = app.get(HarnessProfilesService);
-    const seeds = loadPackSeeds();
-
-    const orgs = await prisma.organization.findMany({
-      select: { id: true, label: true },
-      where: {
-        isDeleted: false,
-        ...(args.organizationId ? { id: args.organizationId } : {}),
-      },
+    const organizations = await resolveOwnerOrganizations({
+      organizationId: args.organizationId,
+      ownerEmail: args.ownerEmail,
+      prisma,
     });
 
     let matched = 0;
     let written = 0;
+    const unmatched = new Set(seeds.map((seed) => seed.id));
 
-    for (const org of orgs) {
+    for (const organization of organizations) {
       const brands = await prisma.brand.findMany({
         select: { id: true, label: true, slug: true },
-        where: { isDeleted: false, organizationId: org.id },
+        where: { isDeleted: false, organizationId: organization.id },
       });
-
-      const owner = await prisma.member.findFirst({
-        orderBy: { createdAt: 'asc' },
-        select: { userId: true },
-        where: { isDeleted: false, organizationId: org.id },
-      });
-      if (!owner?.userId) {
-        continue;
-      }
 
       for (const brand of brands) {
         for (const seed of seeds) {
@@ -281,32 +303,39 @@ async function main(): Promise<void> {
             continue;
           }
           matched += 1;
+          unmatched.delete(seed.id);
           logger.log(
-            `${args.dryRun ? '[dry-run] ' : ''}Match pack ${seed.id} → brand ${brand.label} (${brand.id}) org ${org.id}`,
+            `${args.dryRun ? '[dry-run] ' : ''}Match ${seed.id} → brand ${brand.label} (${brand.id}) org ${organization.label} (${organization.id})`,
           );
           if (args.dryRun) {
             continue;
           }
           await harnessProfiles.upsertSeedForBrand({
             brandId: brand.id,
-            organizationId: org.id,
+            organizationId: organization.id,
             seed,
-            userId: owner.userId,
+            userId: organization.ownerUserId,
           });
           written += 1;
         }
       }
     }
 
+    for (const seedId of unmatched) {
+      logger.warn(`No brand matched ${seedId} in the owner's organizations`);
+    }
+
     logger.log(
-      `Harness profile seed complete. packs=${seeds.length} matches=${matched} written=${written} dryRun=${args.dryRun}`,
+      `Harness profile seed complete. orgs=${organizations.length} seeds=${seeds.length} matches=${matched} written=${written} dryRun=${args.dryRun}`,
     );
   } finally {
-    await app.close();
+    await prisma.$disconnect();
   }
 }
 
-void main().catch((error: unknown) => {
-  logger.error(error);
-  process.exitCode = 1;
-});
+if (import.meta.main) {
+  void runHarnessProfileSeed().catch((error: unknown) => {
+    logger.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}

@@ -123,6 +123,22 @@ variable "organization_label" {
   description = "Organization label passed to the articles-seed one-off task."
 }
 
+variable "harness_seed_ssm_path" {
+  type        = string
+  default     = ""
+  description = <<-EOT
+    SSM path holding private brand harness seeds (one SecureString per seed,
+    named HARNESS_SEED_<ID>). Injected only into the harness-profile-seed
+    one-off task. Must sit outside ssm_path, which every service receives.
+    Empty disables the task.
+  EOT
+
+  validation {
+    condition     = var.harness_seed_ssm_path == "" || !startswith(var.harness_seed_ssm_path, "${var.ssm_path}/")
+    error_message = "harness_seed_ssm_path must not be under ssm_path; every service would receive the seeds."
+  }
+}
+
 variable "cdn_bucket" {
   type        = string
   description = "S3 bucket name the task role may read/write for published media."

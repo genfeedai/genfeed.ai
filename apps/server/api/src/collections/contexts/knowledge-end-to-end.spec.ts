@@ -283,6 +283,7 @@ describePostgres('Brand Knowledge end to end (PostgreSQL + pgvector)', () => {
       }),
     ]);
     const brief = formatHarnessBrief({
+      appliedPacks: [],
       evaluationCriteria: [],
       guardrails: [],
       metadata: { contentType: 'post', objective: 'engagement' },

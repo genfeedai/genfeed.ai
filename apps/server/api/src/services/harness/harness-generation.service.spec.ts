@@ -13,6 +13,7 @@ const BRAND = {
 };
 
 const EMPTY_BRIEF: ContentHarnessBrief = {
+  appliedPacks: [],
   evaluationCriteria: [],
   guardrails: [],
   metadata: {
@@ -38,7 +39,7 @@ function createService(overrides?: {
   const contentHarnessService = overrides?.contentHarnessService ?? {
     composeBrief: vi.fn().mockResolvedValue(EMPTY_BRIEF),
   };
-  const logger = { warn: vi.fn() };
+  const logger = { log: vi.fn(), warn: vi.fn() };
   const brandsService = overrides?.brandsService ?? {
     findOne: vi.fn().mockResolvedValue(BRAND),
   };
@@ -99,6 +100,34 @@ describe('HarnessGenerationService#resolveBrief', () => {
     });
 
     expect(brief).toBeNull();
+  });
+
+  it('logs an operator receipt with the packs that contributed', async () => {
+    const { service, logger } = createService({
+      contentHarnessService: {
+        composeBrief: vi.fn().mockResolvedValue({
+          ...EMPTY_BRIEF,
+          appliedPacks: ['core-baseline', 'acme-tone'],
+          packs: ['core-baseline', 'platform-x', 'acme-tone'],
+        }),
+      },
+    });
+
+    await service.resolveBrief({
+      brandId: 'brand-1',
+      contentType: 'image',
+      organizationId: 'org-1',
+    });
+
+    expect(logger.log).toHaveBeenCalledWith(
+      'HarnessGenerationService applied content harness packs',
+      {
+        appliedPacks: ['core-baseline', 'acme-tone'],
+        brandId: 'brand-1',
+        contentType: 'image',
+        organizationId: 'org-1',
+      },
+    );
   });
 
   it('passes the persona through to composeBrief (parity with the old direct-call path)', async () => {

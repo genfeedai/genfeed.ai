@@ -97,6 +97,29 @@ describe('ContentHarnessService', () => {
     expect(runtimeRequire).toHaveBeenCalledTimes(1);
     expect(runtimeRequire).toHaveBeenCalledWith('/virtual/acme/dist/index.js');
     expect(logger.warn).not.toHaveBeenCalled();
+    await expect(service.getActivationReport()).resolves.toEqual({
+      builtInPackIds: [
+        'core-baseline',
+        'platform-x',
+        'brand-fidelity',
+        'viral-psychology',
+      ],
+      external: [
+        {
+          packId: 'acme-tone',
+          packVersion: '1.0.0',
+          specifier: EXTERNAL_PACK_SPECIFIER,
+          state: 'loaded',
+        },
+      ],
+      loadedPackIds: [
+        'core-baseline',
+        'platform-x',
+        'brand-fidelity',
+        'viral-psychology',
+        'acme-tone',
+      ],
+    });
   });
 
   it('warns and skips a resolved pack that fails while loading', async () => {
@@ -120,10 +143,15 @@ describe('ContentHarnessService', () => {
       'viral-psychology',
     ]);
     expect(logger.warn).toHaveBeenCalledWith(
-      'ContentHarnessService failed to load content harness pack',
+      'ContentHarnessService external content harness packs not activated',
       {
-        error: "Cannot find module 'transitive-package'",
-        specifier: EXTERNAL_PACK_SPECIFIER,
+        external: [
+          {
+            error: "Cannot find module 'transitive-package'",
+            specifier: EXTERNAL_PACK_SPECIFIER,
+            state: 'load_failed',
+          },
+        ],
       },
     );
   });
@@ -151,11 +179,29 @@ describe('ContentHarnessService', () => {
       'viral-psychology',
     ]);
     expect(logger.warn).toHaveBeenCalledWith(
-      'ContentHarnessService failed to load content harness pack',
+      'ContentHarnessService external content harness packs not activated',
       {
-        error: "Cannot find module '@acme/missing-pack'",
-        specifier: '@acme/missing-pack',
+        external: [{ specifier: '@acme/missing-pack', state: 'unresolvable' }],
       },
     );
+    expect(runtimeRequire).not.toHaveBeenCalled();
+  });
+
+  it('reports a module without a valid pack export as invalid', async () => {
+    const { service } = createService(EXTERNAL_PACK_SPECIFIER);
+    injectRuntimeRequire(
+      service,
+      createRuntimeRequire(
+        () => ({ default: { id: 'not-a-pack' } }),
+        () => '/virtual/acme/dist/index.js',
+      ),
+    );
+
+    const report = await service.getActivationReport();
+
+    expect(report.external).toEqual([
+      { specifier: EXTERNAL_PACK_SPECIFIER, state: 'invalid' },
+    ]);
+    expect(report.loadedPackIds).not.toContain('not-a-pack');
   });
 });

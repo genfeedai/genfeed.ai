@@ -76,6 +76,19 @@ function mergeContribution(
   return next;
 }
 
+function hasContribution(contribution: ContentHarnessContribution): boolean {
+  return (
+    [
+      contribution.systemDirectives,
+      contribution.styleDirectives,
+      contribution.guardrails,
+      contribution.evaluationCriteria,
+      contribution.providerHints,
+    ].some((values) => values?.some((value) => value.trim().length > 0)) ||
+    (contribution.sources?.length ?? 0) > 0
+  );
+}
+
 export async function composeContentHarnessBrief(
   registry: HarnessPackRegistry<ContentHarnessPack>,
   input: ContentHarnessInput,
@@ -94,16 +107,21 @@ export async function composeContentHarnessBrief(
   }
 
   const packs = registry.list();
+  const appliedPacks: string[] = [];
   for (const pack of packs) {
     if (!pack.contribute) {
       continue;
     }
 
     const contribution = await pack.contribute(input);
+    if (hasContribution(contribution)) {
+      appliedPacks.push(pack.id);
+    }
     aggregate = mergeContribution(aggregate, contribution);
   }
 
   return {
+    appliedPacks,
     evaluationCriteria: aggregate.evaluationCriteria ?? [],
     guardrails: aggregate.guardrails ?? [],
     metadata: {

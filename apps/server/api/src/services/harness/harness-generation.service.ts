@@ -137,7 +137,7 @@ export class HarnessGenerationService {
             })
           : [];
 
-      return await this.contentHarnessService.composeBrief(
+      const brief = await this.contentHarnessService.composeBrief(
         buildHarnessInput({
           additionalSources: [
             ...(params.additionalSources ?? []),
@@ -156,6 +156,14 @@ export class HarnessGenerationService {
           profileContribution: profileContribution ?? undefined,
         }),
       );
+      // Operator-only receipt: pack IDs and versions, never pack contents.
+      this.logger.log(`${this.constructorName} applied content harness packs`, {
+        appliedPacks: brief.appliedPacks,
+        brandId: params.brandId,
+        contentType: params.contentType,
+        organizationId: params.organizationId,
+      });
+      return brief;
     } catch (error: unknown) {
       this.logger.warn(
         `${this.constructorName} failed to resolve harness brief`,

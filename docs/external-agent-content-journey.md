@@ -9,9 +9,9 @@ reproducible substitute until those live rows pass.
 | Client | Version recorded | Auth | Brand | Context | Generate | Reconnect | Image | Video | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Genfeed CLI | `gf` workspace | Browser OAuth login | `gf brand` / `--brand` | `--context` (transient) | `gf gen image` / `gf gen video` | `gf status <id>` | File download | File download | Automated: connect, brand, wait recovery |
-| Codex | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | `get_job_status` / tool reconnect | Native image + text | File/open link | Blocked: live Codex session not run in this change |
-| Claude Code | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Native image + text | File/open link | Blocked: live Claude Code session not run in this change |
-| Claude Desktop | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Native image + text | File/open link | Blocked: live Claude Desktop session not run in this change |
+| Codex | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | `get_job_status` / tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Codex session not run in this change |
+| Claude Code | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Claude Code session not run in this change |
+| Claude Desktop | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Claude Desktop session not run in this change |
 
 A fallback can pass only when it is the documented supported behavior. Video
 never claims inline playback.
@@ -28,15 +28,27 @@ never claims inline playback.
   `agent-generation-scope.service.spec.ts`
 - MCP `get_brand` no longer returns the first of two brands:
   `account-management.tool.spec.ts`
-- MCP image native part + video file link:
+- MCP image/video `resource_link` + structured artifact + text fallback:
   `packages/helpers/src/media/media-artifact.helper.test.ts`
 - CLI media wait catch-up: `packages/cli/tests/commands/media-wait-recovery.test.ts`
 - CLI connect browser URL: `packages/cli/tests/commands/connect.test.ts`
 
 ## Private harness
 
-Configured pack activation remains in private tracking. Public receipts must
-contain only sanitized IDs and package versions.
+Configured pack activation is tracked privately. Public receipts contain only
+sanitized pack IDs and versions.
+
+The runtime reports each `CONTENT_HARNESS_PACKAGES` specifier as `loaded`,
+`unresolvable`, `invalid`, or `load_failed`
+(`ContentHarnessService.getActivationReport`). Any state other than `loaded`
+logs `external content harness packs not activated`. Built-in packs never count
+as an activated external pack. Every brief records `appliedPacks`, the packs
+that actually contributed. `HarnessGenerationService` logs them as an
+operator-only receipt without pack contents.
+
+Status: blocked. The hosted server image (`docker/Dockerfile.server`) is built
+from this repository alone, so an external private pack cannot resolve in it
+until a distribution path installs a built pack module in the image.
 
 ## Closing rule
 

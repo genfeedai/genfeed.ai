@@ -28,6 +28,7 @@
         "$TURBO_ROOT$/apps/server/dist/apps/api/**",
         "$TURBO_ROOT$/apps/server/dist/apps/api-credential-backfill/**",
         "$TURBO_ROOT$/apps/server/dist/apps/api-articles-seed/**",
+        "$TURBO_ROOT$/apps/server/dist/apps/api-harness-profile-seed/**",
         "$TURBO_ROOT$/apps/server/dist/server/api/**"
       ]
     }

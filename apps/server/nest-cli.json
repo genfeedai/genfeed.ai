@@ -46,6 +46,21 @@
       "sourceRoot": "api/src",
       "type": "application"
     },
+    "api-harness-profile-seed": {
+      "compilerOptions": {
+        "builder": {
+          "options": {
+            "configPath": "api/harness-profile-seed.webpack.config.cjs"
+          },
+          "type": "webpack"
+        },
+        "tsConfigPath": "api/tsconfig.app.json"
+      },
+      "entryFile": "seeds/harness-profile-seed.entrypoint",
+      "root": "api",
+      "sourceRoot": "api/src",
+      "type": "application"
+    },
     "api-credential-backfill": {
       "compilerOptions": {
         "builder": {

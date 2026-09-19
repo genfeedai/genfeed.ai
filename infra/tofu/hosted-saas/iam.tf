@@ -28,6 +28,15 @@ data "aws_iam_policy_document" "execution_secrets" {
     actions   = ["ssm:GetParameters", "ssm:GetParameter", "ssm:GetParametersByPath"]
     resources = ["arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter${var.ssm_path}/*"]
   }
+  dynamic "statement" {
+    for_each = var.harness_seed_ssm_path == "" ? [] : [var.harness_seed_ssm_path]
+    content {
+      sid       = "ReadHarnessSeedSsm"
+      effect    = "Allow"
+      actions   = ["ssm:GetParameters", "ssm:GetParameter"]
+      resources = ["arn:aws:ssm:${data.aws_region.current.name}:${data.aws_caller_identity.current.account_id}:parameter${statement.value}/*"]
+    }
+  }
   statement {
     sid       = "DecryptSsm"
     effect    = "Allow"

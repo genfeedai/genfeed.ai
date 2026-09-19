@@ -95,9 +95,36 @@ export type ContentHarnessReceipts =
   | { brandOs: 'none' }
   | { brandOs: 'approved'; brandOsRevisionId: string };
 
+/**
+ * Lifecycle of a configured external pack specifier. Only `loaded` counts as
+ * activated; every other state means the runtime fell back to built-in packs.
+ */
+export type ContentHarnessPackActivationState =
+  | 'invalid'
+  | 'load_failed'
+  | 'loaded'
+  | 'unresolvable';
+
+export interface ContentHarnessPackActivation {
+  specifier: string;
+  state: ContentHarnessPackActivationState;
+  packId?: string;
+  packVersion?: string;
+  error?: string;
+}
+
+export interface ContentHarnessActivationReport {
+  builtInPackIds: string[];
+  external: ContentHarnessPackActivation[];
+  loadedPackIds: string[];
+}
+
 export interface ContentHarnessBrief {
   receipts?: ContentHarnessReceipts;
+  /** Every registered pack, whether or not it contributed to this brief. */
   packs: string[];
+  /** Packs whose contribution added at least one directive or source. */
+  appliedPacks: string[];
   systemDirectives: string[];
   styleDirectives: string[];
   guardrails: string[];

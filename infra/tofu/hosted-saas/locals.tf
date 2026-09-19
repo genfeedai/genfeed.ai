@@ -72,6 +72,14 @@ locals {
   }]
   service_task_secrets = concat(local.task_secrets, local.redis_task_secrets)
 
+  # Env var name = last path segment, e.g. <path>/HARNESS_SEED_GENFEED_BRAND.
+  harness_seed_task_secrets = var.harness_seed_ssm_path == "" ? [] : [
+    for i, name in data.aws_ssm_parameters_by_path.harness_seeds[0].names : {
+      name      = element(reverse(split("/", name)), 0)
+      valueFrom = data.aws_ssm_parameters_by_path.harness_seeds[0].arns[i]
+    } if startswith(element(reverse(split("/", name)), 0), "HARNESS_SEED_")
+  ]
+
   # Internet-facing ALB services must not receive the recursive production SSM
   # set (DATABASE_URL, TOKEN_ENCRYPTION_KEY, Stripe, AWS keys, …). Allowlists
   # follow each service's config schema; REDIS_PASSWORD is appended separately.
