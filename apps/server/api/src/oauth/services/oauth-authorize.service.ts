@@ -224,14 +224,24 @@ export class OAuthAuthorizeService {
       ActionOrigin.MCP,
     );
     const persistedExpiry = apiKey.expiresAt ?? expiresAt;
-    const { refreshToken } = await this.refreshTokenService.issue({
-      apiKeyId: apiKey.id,
-      clientId: record.clientId,
-      organizationId: record.organizationId,
-      resource: record.resource,
-      scopes: record.scopes,
-      userId: record.userId,
-    });
+
+    // The authorization code is already consumed, so a failure here would
+    // strand a live key the client can never renew and cannot re-obtain
+    // without a second consent. Revoke it instead of returning it.
+    let refreshToken: string;
+    try {
+      ({ refreshToken } = await this.refreshTokenService.issue({
+        apiKeyId: apiKey.id,
+        clientId: record.clientId,
+        organizationId: record.organizationId,
+        resource: record.resource,
+        scopes: record.scopes,
+        userId: record.userId,
+      }));
+    } catch (error) {
+      await this.refreshTokenService.revokeIssuedApiKey(apiKey.id);
+      throw error;
+    }
 
     return {
       access_token: plainKey,

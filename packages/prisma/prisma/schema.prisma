@@ -1896,6 +1896,7 @@ model McpOAuthRefreshToken {
   expiresAt      DateTime
   consumedAt     DateTime?
   revokedAt      DateTime?
+  compromisedAt  DateTime?
   replacedById   String?
   createdAt      DateTime  @default(now())
   updatedAt      DateTime  @updatedAt

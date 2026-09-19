@@ -269,5 +269,7 @@ https://mcp.genfeed.ai/mcp
 ## Troubleshooting
 
 - **Discovery fails:** use exactly `https://mcp.genfeed.ai/mcp` and a Streamable HTTP client.
-- **401 errors:** repeat browser authorization; in manual mode, check the key and its scopes.
+- **401 errors:** an OAuth client should present its refresh token first and
+  restart browser authorization only if that fails; in manual mode, check the
+  key and its scopes.
 - **Wrong endpoint:** check `/v1/config` on the MCP host.

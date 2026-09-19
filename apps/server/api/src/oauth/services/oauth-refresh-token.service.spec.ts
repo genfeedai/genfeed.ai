@@ -25,6 +25,7 @@ const grantedScopes = ['videos:read', 'images:read'];
 type RefreshTokenRow = {
   apiKeyId: string;
   clientId: string;
+  compromisedAt: Date | null;
   consumedAt: Date | null;
   expiresAt: Date;
   id: string;
@@ -83,6 +84,7 @@ function buildHarness() {
     const row: RefreshTokenRow = {
       apiKeyId: 'key-1',
       clientId,
+      compromisedAt: null,
       consumedAt: null,
       expiresAt: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000),
       id: `refresh-${refreshSequence}`,
@@ -157,13 +159,17 @@ function buildHarness() {
   const clientService = {
     requireClient: vi.fn().mockResolvedValue(client),
   } as unknown as OAuthClientService;
-  const logger = { warn: vi.fn() } as unknown as LoggerService;
+  const logger = {
+    error: vi.fn(),
+    warn: vi.fn(),
+  } as unknown as LoggerService;
 
   const prisma = {
     mcpOAuthRefreshToken: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
         refreshSequence += 1;
         const row = {
+          compromisedAt: null,
           consumedAt: null,
           replacedById: null,
           revokedAt: null,
@@ -366,6 +372,126 @@ describe('OAuthRefreshTokenService', () => {
       service.refresh(refreshGrant(rotated.refresh_token)),
     ).rejects.toMatchObject(invalidGrant);
     expect(apiKeysService.rotateWithKey).toHaveBeenCalledTimes(1);
+  });
+
+  it('burns the family when two requests redeem the same token concurrently', async () => {
+    const {
+      apiKeys,
+      logger,
+      prisma,
+      refreshTokens,
+      seedApiKey,
+      seedRefreshToken,
+      service,
+    } = buildHarness();
+    const original = seedApiKey();
+    const row = seedRefreshToken('refresh-plain-token-race', {
+      apiKeyId: original.id,
+    });
+
+    // The winner already consumed the row and linked its replacement; this
+    // request read the row beforehand, so only the guarded claim reveals the
+    // race. Losing it must burn the family, not merely fail this request.
+    const replacementKey = seedApiKey();
+    const replacementRow = seedRefreshToken('refresh-plain-token-winner', {
+      apiKeyId: replacementKey.id,
+    });
+    const consume = vi
+      .spyOn(prisma.mcpOAuthRefreshToken, 'updateMany')
+      .getMockImplementation();
+    let hasClaimed = false;
+    vi.spyOn(prisma.mcpOAuthRefreshToken, 'updateMany').mockImplementation(
+      async (args) => {
+        const data = (args as { data: Record<string, unknown> }).data;
+        if (!hasClaimed && 'consumedAt' in data) {
+          hasClaimed = true;
+          row.consumedAt = new Date();
+          row.replacedById = replacementRow.id;
+          return { count: 0 };
+        }
+        return consume?.(args) ?? { count: 0 };
+      },
+    );
+
+    await expect(
+      service.refresh(refreshGrant('refresh-plain-token-race')),
+    ).rejects.toMatchObject(invalidGrant);
+
+    expect(refreshTokens.get(row.tokenHash)?.compromisedAt).toBeInstanceOf(
+      Date,
+    );
+    expect(apiKeys.get(original.id)?.isRevoked).toBe(true);
+    expect(apiKeys.get(replacementKey.id)?.isRevoked).toBe(true);
+    expect(
+      refreshTokens.get(replacementRow.tokenHash)?.revokedAt,
+    ).toBeInstanceOf(Date);
+    expect(logger.warn).toHaveBeenCalledWith(
+      'MCP OAuth refresh token reuse detected',
+      expect.not.objectContaining({ tokenHash: expect.anything() }),
+    );
+  });
+
+  it('revokes what it issued when the family is compromised mid-rotation', async () => {
+    const {
+      apiKeys,
+      prisma,
+      refreshTokens,
+      seedApiKey,
+      seedRefreshToken,
+      service,
+    } = buildHarness();
+    const original = seedApiKey();
+    const row = seedRefreshToken('refresh-plain-token-midflight', {
+      apiKeyId: original.id,
+    });
+
+    // A concurrent loser marks the family compromised after this request
+    // linked its replacement but before it re-reads the row.
+    const inner = vi
+      .spyOn(prisma.mcpOAuthRefreshToken, 'updateMany')
+      .getMockImplementation();
+    vi.spyOn(prisma.mcpOAuthRefreshToken, 'updateMany').mockImplementation(
+      async (args) => {
+        const result = await (inner?.(args) ?? { count: 0 });
+        if (
+          'replacedById' in (args as { data: Record<string, unknown> }).data
+        ) {
+          row.compromisedAt = new Date();
+        }
+        return result;
+      },
+    );
+
+    await expect(
+      service.refresh(refreshGrant('refresh-plain-token-midflight')),
+    ).rejects.toMatchObject(invalidGrant);
+
+    const replacement = Array.from(refreshTokens.values()).find(
+      (candidate) => candidate.id === row.replacedById,
+    );
+    expect(replacement?.revokedAt).toBeInstanceOf(Date);
+    expect(apiKeys.get(original.id)?.isRevoked).toBe(true);
+    expect(apiKeys.get('key-2')?.isRevoked).toBe(true);
+  });
+
+  it('revokes the rotated key when the replacement token cannot be stored', async () => {
+    const { apiKeys, prisma, seedApiKey, seedRefreshToken, service } =
+      buildHarness();
+    const original = seedApiKey();
+    seedRefreshToken('refresh-plain-token-storage', { apiKeyId: original.id });
+
+    vi.spyOn(prisma.mcpOAuthRefreshToken, 'create').mockRejectedValueOnce(
+      new Error('persistence unavailable'),
+    );
+
+    await expect(
+      service.refresh(refreshGrant('refresh-plain-token-storage')),
+    ).rejects.toThrow('persistence unavailable');
+
+    // The previous key was already revoked by the rotation, so the new one
+    // must not survive as a credential the client can never renew.
+    expect(apiKeys.get(original.id)?.isRevoked).toBe(true);
+    expect(apiKeys.get('key-2')?.isRevoked).toBe(true);
   });
 
   it('rejects a refresh token presented by a different client', async () => {

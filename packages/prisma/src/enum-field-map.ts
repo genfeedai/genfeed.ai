@@ -3503,6 +3503,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'apiKeyId',
       'client',
       'clientId',
+      'compromisedAt',
       'consumedAt',
       'createdAt',
       'expiresAt',

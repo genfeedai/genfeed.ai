@@ -115,7 +115,7 @@ export class OAuthRefreshTokenService {
       throw invalidGrant();
     }
     if (record.consumedAt) {
-      await this.revokeReplacementChain(record);
+      await this.markFamilyCompromised(record);
       throw invalidGrant();
     }
     if (record.revokedAt || record.expiresAt <= new Date()) {
@@ -135,6 +135,10 @@ export class OAuthRefreshTokenService {
       throw invalidGrant();
     }
 
+    // Single-use claim. Losing this race means another request presented the
+    // same token concurrently, which is the same compromise the `consumedAt`
+    // check above catches sequentially — the only difference is that both
+    // requests read the row before either consumed it.
     const consumed = await this.prisma.mcpOAuthRefreshToken.updateMany({
       data: { consumedAt: new Date() },
       where: {
@@ -147,6 +151,7 @@ export class OAuthRefreshTokenService {
       },
     });
     if (consumed.count !== 1) {
+      await this.markFamilyCompromised(record);
       throw invalidGrant();
     }
 
@@ -170,16 +175,30 @@ export class OAuthRefreshTokenService {
       ActionOrigin.MCP,
     );
 
-    // The grant itself is unchanged by a narrowed access-token request
-    // (RFC 6749 §6), so the replacement stays bound to the consented scopes.
-    const replacement = await this.issue({
-      apiKeyId: rotated.apiKey.id,
-      clientId: record.clientId,
-      organizationId: record.organizationId,
-      resource: record.resource,
-      scopes: record.scopes,
-      userId: record.userId,
-    });
+    // From here the previous key is already revoked, so a failure would leave
+    // a live key the client cannot renew. Compensate by revoking what was just
+    // issued rather than returning a credential with no refresh path.
+    let replacement: IssuedRefreshToken;
+    try {
+      // The grant itself is unchanged by a narrowed access-token request
+      // (RFC 6749 §6), so the replacement stays bound to the consented scopes.
+      replacement = await this.issue({
+        apiKeyId: rotated.apiKey.id,
+        clientId: record.clientId,
+        organizationId: record.organizationId,
+        resource: record.resource,
+        scopes: record.scopes,
+        userId: record.userId,
+      });
+    } catch (error) {
+      await this.revokeIssuedApiKey(rotated.apiKey.id);
+      throw error;
+    }
+
+    // Link before re-reading: a concurrent loser that walks the chain after
+    // this sees the replacement and revokes it, and one that marks the family
+    // compromised before this read is caught by the check below. Between them
+    // no interleaving lets a compromised family keep a live credential.
     await this.prisma.mcpOAuthRefreshToken.updateMany({
       data: { replacedById: replacement.id },
       where: {
@@ -188,6 +207,22 @@ export class OAuthRefreshTokenService {
         userId: record.userId,
       },
     });
+
+    const settled = await this.prisma.mcpOAuthRefreshToken.findFirst({
+      where: {
+        id: record.id,
+        organizationId: record.organizationId,
+        userId: record.userId,
+      },
+    });
+    if (settled?.compromisedAt || settled?.revokedAt) {
+      await this.revokeRefreshTokenById(
+        replacement.id,
+        record.organizationId,
+        record.userId,
+      );
+      throw invalidGrant();
+    }
 
     return buildTokenResponse(
       rotated.plainKey,
@@ -271,12 +306,46 @@ export class OAuthRefreshTokenService {
     }
   }
 
+  /** Revoke one refresh token row and its API key, ignoring a missing row. */
+  private async revokeRefreshTokenById(
+    id: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<void> {
+    const row = await this.prisma.mcpOAuthRefreshToken.findFirst({
+      where: { id, organizationId, userId },
+    });
+    if (row) {
+      await this.revokeRecord(row);
+    }
+  }
+
   /**
-   * A consumed refresh token was presented again. Either the legitimate
-   * client replayed it or the token leaked; revoke the token it was rotated
-   * into and that token's API key so neither party keeps access.
+   * Best-effort revocation of a session key that was issued but could not be
+   * paired with a refresh token. Used by the compensating path here and in
+   * the authorization-code exchange; never throws over the original failure.
    */
-  private async revokeReplacementChain(
+  async revokeIssuedApiKey(apiKeyId: string): Promise<void> {
+    try {
+      await this.apiKeysService.revoke(apiKeyId);
+    } catch (error) {
+      this.logger.error('Failed to revoke an orphaned MCP OAuth session key', {
+        apiKeyId,
+        error,
+      });
+    }
+  }
+
+  /**
+   * A refresh token was presented twice. Either the legitimate client
+   * replayed it or the token leaked, and the two are indistinguishable, so
+   * the whole rotation family is burned (RFC 6819 §5.2.2.3).
+   *
+   * `compromisedAt` is written before the chain is walked so that a
+   * concurrent winner still mid-rotation observes it when it re-reads this
+   * row after linking its replacement, and revokes what it issued.
+   */
+  private async markFamilyCompromised(
     record: McpOAuthRefreshToken,
   ): Promise<void> {
     this.logger.warn('MCP OAuth refresh token reuse detected', {
@@ -286,7 +355,25 @@ export class OAuthRefreshTokenService {
       userId: record.userId,
     });
 
-    let nextId = record.replacedById;
+    await this.prisma.mcpOAuthRefreshToken.updateMany({
+      data: { compromisedAt: new Date() },
+      where: {
+        compromisedAt: null,
+        id: record.id,
+        organizationId: record.organizationId,
+        userId: record.userId,
+      },
+    });
+    await this.revokeRecord(record);
+
+    const current = await this.prisma.mcpOAuthRefreshToken.findFirst({
+      where: {
+        id: record.id,
+        organizationId: record.organizationId,
+        userId: record.userId,
+      },
+    });
+    let nextId = current?.replacedById ?? record.replacedById;
     for (let depth = 0; nextId && depth < MAX_REFRESH_CHAIN_DEPTH; depth += 1) {
       const next = await this.prisma.mcpOAuthRefreshToken.findFirst({
         where: {

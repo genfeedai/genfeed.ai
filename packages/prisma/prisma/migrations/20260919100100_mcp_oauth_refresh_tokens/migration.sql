@@ -11,6 +11,7 @@ CREATE TABLE "mcp_oauth_refresh_tokens" (
     "expiresAt" TIMESTAMP(3) NOT NULL,
     "consumedAt" TIMESTAMP(3),
     "revokedAt" TIMESTAMP(3),
+    "compromisedAt" TIMESTAMP(3),
     "replacedById" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
