@@ -70,7 +70,7 @@ vi.mock('@/components/ui/card', () => ({
   CardContent: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }));
 
-function oauthParams() {
+function oauthParams(overrides: Record<string, string> = {}) {
   return new URLSearchParams({
     client_id: 'oauth_client',
     client_name: 'Claude',
@@ -80,7 +80,25 @@ function oauthParams() {
     resource: 'https://mcp.genfeed.ai/mcp',
     scope: 'videos:read images:create',
     state: 'oauth-state-1234567890',
+    ...overrides,
   });
+}
+
+function mockDecisionResponse(): void {
+  globalThis.fetch = vi.fn(async () => {
+    return new Response(
+      JSON.stringify({
+        redirectUrl: 'https://claude.ai/oauth/callback?code=one-time',
+      }),
+      { headers: { 'content-type': 'application/json' }, status: 200 },
+    );
+  }) as typeof fetch;
+}
+
+function lastDecisionBody(): Record<string, unknown> {
+  const call = vi.mocked(globalThis.fetch).mock.calls.at(-1);
+  const init = call?.[1] as RequestInit | undefined;
+  return JSON.parse(String(init?.body)) as Record<string, unknown>;
 }
 
 describe('OAuthConsentPage', () => {
@@ -139,14 +157,7 @@ describe('OAuthConsentPage', () => {
   ])(
     'posts the %s decision and performs a full redirect',
     async (label, approved) => {
-      globalThis.fetch = vi.fn(async () => {
-        return new Response(
-          JSON.stringify({
-            redirectUrl: 'https://claude.ai/oauth/callback?code=one-time',
-          }),
-          { headers: { 'content-type': 'application/json' }, status: 200 },
-        );
-      }) as typeof fetch;
+      mockDecisionResponse();
 
       render(<OAuthConsentPage />);
       fireEvent.click(screen.getByRole('button', { name: label }));
@@ -168,4 +179,57 @@ describe('OAuthConsentPage', () => {
       });
     },
   );
+
+  it('renders and submits a PKCE-only request that omits state', async () => {
+    const params = oauthParams();
+    params.delete('state');
+    useSearchParamsMock.mockReturnValue(params);
+    mockDecisionResponse();
+
+    render(<OAuthConsentPage />);
+
+    expect(
+      screen.queryByText('Invalid authorization request'),
+    ).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Authorize' }));
+
+    await waitFor(() => {
+      expect(redirectMock).toHaveBeenCalledWith(
+        'https://claude.ai/oauth/callback?code=one-time',
+      );
+    });
+    const body = lastDecisionBody();
+    expect(body).not.toHaveProperty('state');
+    expect(body).toMatchObject({
+      approved: true,
+      code_challenge_method: 'S256',
+      resource: 'https://mcp.genfeed.ai/mcp',
+    });
+  });
+
+  it('forwards a supplied state unchanged', async () => {
+    const state = 'short:state/with?reserved=chars';
+    useSearchParamsMock.mockReturnValue(oauthParams({ state }));
+    mockDecisionResponse();
+
+    render(<OAuthConsentPage />);
+    fireEvent.click(screen.getByRole('button', { name: 'Deny' }));
+
+    await waitFor(() => {
+      expect(redirectMock).toHaveBeenCalled();
+    });
+    expect(lastDecisionBody()).toMatchObject({ approved: false, state });
+  });
+
+  it('still rejects a request missing a PKCE challenge', () => {
+    const params = oauthParams();
+    params.delete('code_challenge');
+    useSearchParamsMock.mockReturnValue(params);
+
+    render(<OAuthConsentPage />);
+
+    expect(
+      screen.getByText('Invalid authorization request'),
+    ).toBeInTheDocument();
+  });
 });

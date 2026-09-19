@@ -1850,7 +1850,8 @@ model OAuthClient {
   createdAt               DateTime @default(now())
   updatedAt               DateTime @updatedAt
 
-  authCodes McpOAuthAuthCode[]
+  authCodes     McpOAuthAuthCode[]
+  refreshTokens McpOAuthRefreshToken[]
 
   @@index([createdAt])
   @@map("oauth_clients")
@@ -1861,7 +1862,7 @@ model McpOAuthAuthCode {
   codeHash            String    @unique
   codeChallenge       String
   codeChallengeMethod String    @default("S256")
-  stateHash           String
+  stateHash           String?
   clientId            String
   redirectUri         String
   resource            String
@@ -1881,6 +1882,32 @@ model McpOAuthAuthCode {
   @@index([userId, organizationId])
   @@index([clientId])
   @@map("mcp_oauth_auth_codes")
+}
+
+model McpOAuthRefreshToken {
+  id             String    @id @default(cuid())
+  tokenHash      String    @unique
+  clientId       String
+  apiKeyId       String
+  userId         String
+  organizationId String
+  resource       String
+  scopes         String[]  @default([])
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  revokedAt      DateTime?
+  compromisedAt  DateTime?
+  replacedById   String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  client OAuthClient @relation(fields: [clientId], references: [clientId])
+
+  @@index([userId, organizationId])
+  @@index([apiKeyId])
+  @@index([clientId])
+  @@index([expiresAt])
+  @@map("mcp_oauth_refresh_tokens")
 }
 
 model OrgIntegration {

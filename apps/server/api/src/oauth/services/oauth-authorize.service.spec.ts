@@ -1,14 +1,20 @@
+import 'reflect-metadata';
+
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { buildCodeChallenge } from '@api/auth/shared/pkce.util';
 import type { ApiKeysService } from '@api/collections/api-keys/services/api-keys.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
-import type { OAuthAuthorizeDecisionDto } from '../dto/authorize-decision.dto';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { OAuthAuthorizeDecisionDto } from '../dto/authorize-decision.dto';
+import { OAuthAuthorizeRequestDto } from '../dto/authorize-request.dto';
 import { OAuthAuthorizeService } from './oauth-authorize.service';
 import type {
   OAuthClientRecord,
   OAuthClientService,
 } from './oauth-client.service';
+import type { OAuthRefreshTokenService } from './oauth-refresh-token.service';
 
 const clientId = 'oauth_client_123';
 const redirectUri = 'https://claude.ai/oauth/callback';
@@ -99,6 +105,12 @@ function buildHarness() {
     },
   } as unknown as PrismaService;
 
+  const refreshTokenService = {
+    issue: vi
+      .fn()
+      .mockResolvedValue({ id: 'refresh-1', refreshToken: 'refresh-plain' }),
+  } as unknown as OAuthRefreshTokenService;
+
   return {
     apiKeysService,
     prisma,
@@ -107,6 +119,7 @@ function buildHarness() {
       clientService,
       configService,
       prisma,
+      refreshTokenService,
     ),
   };
 }
@@ -300,5 +313,158 @@ describe('OAuthAuthorizeService', () => {
 
     expect(result.redirectUrl).toContain('error=access_denied');
     expect(prisma.mcpOAuthAuthCode.create).not.toHaveBeenCalled();
+  });
+
+  describe('optional state (#4553)', () => {
+    it('completes consent without state and redirects with no state param', async () => {
+      const { prisma, service } = buildHarness();
+
+      const consentTarget = await service.buildAuthorizeRedirect({
+        client_id: clientId,
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        redirect_uri: redirectUri,
+        resource,
+        response_type: 'code',
+      });
+      expect(new URL(consentTarget).searchParams.has('state')).toBe(false);
+
+      const authorization = await service.decideAuthorization(
+        makeUser(),
+        decision({ state: undefined }),
+      );
+      const redirect = new URL(authorization.redirectUrl);
+      expect(redirect.searchParams.get('code')).toBeTruthy();
+      expect(redirect.searchParams.has('state')).toBe(false);
+      expect(authorization.redirectUrl).not.toContain('undefined');
+      expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ stateHash: null }),
+      });
+
+      const token = await service.exchangeToken({
+        client_id: clientId,
+        code: redirect.searchParams.get('code') as string,
+        code_verifier: verifier,
+        grant_type: 'authorization_code',
+        redirect_uri: redirectUri,
+        resource,
+      });
+      expect(token.access_token).toBe('gf_live_oauth');
+    });
+
+    it('treats an empty state as absent', async () => {
+      const { service } = buildHarness();
+      const authorization = await service.decideAuthorization(
+        makeUser(),
+        decision({ state: '' }),
+      );
+
+      expect(new URL(authorization.redirectUrl).searchParams.has('state')).toBe(
+        false,
+      );
+    });
+
+    it('echoes a supplied state unchanged on both the code and the denial redirect', async () => {
+      const { prisma, service } = buildHarness();
+      const state = 'short:state/with?reserved=chars&and spaces';
+
+      const approved = await service.decideAuthorization(
+        makeUser(),
+        decision({ state }),
+      );
+      const approvedRedirect = new URL(approved.redirectUrl);
+      expect(approvedRedirect.searchParams.get('state')).toBe(state);
+      expect(approvedRedirect.searchParams.get('code')).toBeTruthy();
+      expect(prisma.mcpOAuthAuthCode.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({ stateHash: expect.any(String) }),
+      });
+
+      const denied = await service.decideAuthorization(
+        makeUser(),
+        decision({ approved: false, state }),
+      );
+      const deniedRedirect = new URL(denied.redirectUrl);
+      expect(deniedRedirect.searchParams.get('error')).toBe('access_denied');
+      expect(deniedRedirect.searchParams.get('state')).toBe(state);
+    });
+  });
+
+  describe('request validation (#4553)', () => {
+    function authorizeQuery(overrides: Record<string, unknown> = {}) {
+      return {
+        client_id: clientId,
+        code_challenge: challenge,
+        code_challenge_method: 'S256',
+        redirect_uri: redirectUri,
+        resource,
+        response_type: 'code',
+        ...overrides,
+      };
+    }
+
+    it('accepts an authorize request that omits state', async () => {
+      const dto = plainToInstance(OAuthAuthorizeRequestDto, authorizeQuery());
+      await expect(validate(dto)).resolves.toEqual([]);
+    });
+
+    it('accepts a short state (no RFC 6749 length floor)', async () => {
+      const dto = plainToInstance(
+        OAuthAuthorizeRequestDto,
+        authorizeQuery({ state: 'xyz' }),
+      );
+      await expect(validate(dto)).resolves.toEqual([]);
+    });
+
+    it('caps state at 512 characters', async () => {
+      const dto = plainToInstance(
+        OAuthAuthorizeRequestDto,
+        authorizeQuery({ state: 's'.repeat(513) }),
+      );
+      const errors = await validate(dto);
+      expect(errors.map((error) => error.property)).toEqual(['state']);
+    });
+
+    it.each(['plain', 'sha256', ''])(
+      'still rejects code_challenge_method=%j',
+      async (method) => {
+        const dto = plainToInstance(
+          OAuthAuthorizeRequestDto,
+          authorizeQuery({ code_challenge_method: method }),
+        );
+        const errors = await validate(dto);
+        expect(errors.map((error) => error.property)).toEqual([
+          'code_challenge_method',
+        ]);
+      },
+    );
+
+    it('still requires a code_challenge alongside S256', async () => {
+      const dto = plainToInstance(
+        OAuthAuthorizeRequestDto,
+        authorizeQuery({ code_challenge: undefined }),
+      );
+      const errors = await validate(dto);
+      expect(errors.map((error) => error.property)).toEqual(['code_challenge']);
+    });
+
+    it('accepts a decision that omits state and still requires S256', async () => {
+      const withoutState = plainToInstance(OAuthAuthorizeDecisionDto, {
+        ...authorizeQuery({ response_type: undefined }),
+        approved: true,
+      });
+      await expect(validate(withoutState)).resolves.toEqual([]);
+
+      const plainMethod = plainToInstance(OAuthAuthorizeDecisionDto, {
+        ...authorizeQuery({
+          code_challenge_method: 'plain',
+          response_type: undefined,
+        }),
+        approved: true,
+      });
+      const errors = await validate(plainMethod);
+      expect(errors.map((error) => error.property)).toEqual([
+        'code_challenge_method',
+      ]);
+    });
   });
 });

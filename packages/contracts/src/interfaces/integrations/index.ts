@@ -8,5 +8,6 @@ export * from './google-search-console.interface';
 export * from './heygen.interface';
 export * from './instagram.interface';
 export * from './integration.interface';
+export * from './mcp-resource.interface';
 export * from './news.interface';
 export * from './social-api.interface';

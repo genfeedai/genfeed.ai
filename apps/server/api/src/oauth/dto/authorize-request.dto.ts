@@ -5,7 +5,6 @@ import {
   Length,
   Matches,
   MaxLength,
-  MinLength,
 } from 'class-validator';
 
 export class OAuthAuthorizeRequestDto {
@@ -30,10 +29,15 @@ export class OAuthAuthorizeRequestDto {
   @IsIn(['S256'])
   code_challenge_method!: 'S256';
 
+  /**
+   * RFC 6749 §4.1.1 makes `state` RECOMMENDED, not required, and sets no
+   * length floor. PKCE `S256` (mandatory above) is the CSRF protection, so
+   * PKCE-only clients may omit it (#4553).
+   */
+  @IsOptional()
   @IsString()
-  @MinLength(16)
   @MaxLength(512)
-  state!: string;
+  state?: string;
 
   @IsOptional()
   @IsString()

@@ -23,7 +23,7 @@ export class RegisterOAuthClientDto {
   @IsOptional()
   @IsArray()
   @ArrayNotEmpty()
-  @IsIn(['authorization_code'], { each: true })
+  @IsIn(['authorization_code', 'refresh_token'], { each: true })
   grant_types?: string[];
 
   @IsOptional()

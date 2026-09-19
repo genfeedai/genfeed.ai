@@ -1,7 +1,37 @@
+import {
+  deriveMcpResourceIdentifier,
+  type MCP_RESOURCE_URL_ENV_KEYS,
+  McpResourceConfigurationError,
+} from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import Joi from 'joi';
 
 import { isSelfHostedDeployment } from '../deployment';
 import { conditionalRequired } from '../helpers';
+
+type McpResourceUrlKey = (typeof MCP_RESOURCE_URL_ENV_KEYS)[number];
+
+/**
+ * The MCP URL must yield the protected-resource identifier both the MCP
+ * server (advertises) and the API (enforces) derive with the shared rule.
+ * A value the rule rejects fails config validation at startup, naming the
+ * variable, instead of surfacing as `invalid_target` at a user's token
+ * exchange (#4553).
+ */
+function mcpResourceUrl(key: McpResourceUrlKey): Joi.StringSchema {
+  return Joi.string()
+    .uri()
+    .custom((value: string, helpers) => {
+      try {
+        deriveMcpResourceIdentifier(value, key);
+      } catch (error: unknown) {
+        if (error instanceof McpResourceConfigurationError) {
+          return helpers.message({ custom: error.message });
+        }
+        throw error;
+      }
+      return value;
+    }, 'MCP resource identifier validation');
+}
 
 /**
  * Genfeed internal URLs and services
@@ -11,7 +41,9 @@ export const genfeedaiUrlsSchema = {
   GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_APP_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_CDN_URL: conditionalRequired(Joi.string().uri()),
-  GENFEEDAI_MCP_PUBLIC_URL: conditionalRequired(Joi.string().uri()),
+  GENFEEDAI_MCP_PUBLIC_URL: conditionalRequired(
+    mcpResourceUrl('GENFEEDAI_MCP_PUBLIC_URL'),
+  ),
   GENFEEDAI_WEBHOOKS_URL: conditionalRequired(Joi.string().uri()),
 };
 
@@ -23,8 +55,10 @@ export const microservicesSchema = {
     ? Joi.string().default('http://localhost:3012')
     : Joi.string().uri().optional(),
   GENFEEDAI_MICROSERVICES_MCP_URL: isSelfHostedDeployment()
-    ? Joi.string().default('http://localhost:3014')
-    : Joi.string().uri().optional(),
+    ? mcpResourceUrl('GENFEEDAI_MICROSERVICES_MCP_URL').default(
+        'http://localhost:3014',
+      )
+    : mcpResourceUrl('GENFEEDAI_MICROSERVICES_MCP_URL').optional(),
   GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL: isSelfHostedDeployment()
     ? Joi.string().default('http://localhost:3011')
     : Joi.string().uri().optional(),
@@ -65,5 +99,7 @@ export const internalAuthSchema = {
 export const genfeedaiMinimalSchema = {
   GENFEEDAI_API_PUBLIC_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
-  GENFEEDAI_MCP_PUBLIC_URL: conditionalRequired(Joi.string().uri()),
+  GENFEEDAI_MCP_PUBLIC_URL: conditionalRequired(
+    mcpResourceUrl('GENFEEDAI_MCP_PUBLIC_URL'),
+  ),
 };

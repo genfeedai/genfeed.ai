@@ -1,4 +1,6 @@
 import { getToolsets } from '@genfeedai/actions';
+import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import { McpResourceConfigurationError } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import {
   getMcpProtectedResourceMetadata,
   getMcpServerCard,
@@ -6,6 +8,8 @@ import {
   getPublicMcpResourceMetadataUrl,
   getPublicMcpUrl,
   renderSetupPage,
+  resolvePublicMcpResource,
+  toInlineScriptStringLiteral,
 } from '@mcp/mcp/setup-page';
 
 /**
@@ -60,6 +64,7 @@ describe('MCP setup page', () => {
   beforeEach(() => {
     vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', '');
     vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', '');
+    vi.stubEnv('GENFEEDAI_MICROSERVICES_MCP_URL', '');
     vi.stubEnv('POSTHOG_HOST', '');
     vi.stubEnv('POSTHOG_PROJECT_API_KEY', '');
   });
@@ -119,8 +124,10 @@ describe('MCP setup page', () => {
   });
 
   it('uses the production MCP endpoint by default', () => {
-    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', '');
-
+    expect(resolvePublicMcpResource()).toEqual({
+      identifier: 'https://mcp.genfeed.ai/mcp',
+      sourceKey: null,
+    });
     expect(getPublicMcpUrl()).toBe('https://mcp.genfeed.ai/mcp');
 
     const html = renderSetupPage();
@@ -187,6 +194,79 @@ describe('MCP setup page', () => {
     );
   });
 
+  describe('shared protected-resource identifier (#4553 defect 1)', () => {
+    it.each([
+      'https://mcp.genfeed.ai/mcp',
+      'https://mcp.genfeed.ai',
+      'https://mcp.genfeed.ai/',
+      'https://mcp.genfeed.ai/mcp/',
+    ])(
+      'derives one identifier from GENFEEDAI_MCP_PUBLIC_URL=%s on every surface',
+      (spelling) => {
+        vi.stubEnv('GENFEEDAI_API_PUBLIC_URL', 'https://api.genfeed.ai');
+        vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', spelling);
+
+        const identifier = 'https://mcp.genfeed.ai/mcp';
+
+        expect(resolvePublicMcpResource()).toEqual({
+          identifier,
+          sourceKey: 'GENFEEDAI_MCP_PUBLIC_URL',
+        });
+        expect(getPublicMcpUrl()).toBe(identifier);
+        expect(getMcpProtectedResourceMetadata().resource).toBe(identifier);
+        expect(getMcpServerCard().transport.endpoint).toBe(identifier);
+        expect(getPublicMcpResourceMetadataUrl()).toBe(
+          'https://mcp.genfeed.ai/.well-known/oauth-protected-resource',
+        );
+        expect(getMcpWwwAuthenticateHeader()).toBe(
+          `Bearer resource_metadata="https://mcp.genfeed.ai/.well-known/oauth-protected-resource", scope="${API_KEY_SCOPE_PRESETS.mcp.join(' ')}"`,
+        );
+
+        const html = renderSetupPage();
+        expect(html).toContain(`id="mcp-url">${identifier}<`);
+        expect(html).toContain(`data-copy="${identifier}"`);
+        expect(html).toContain(`Endpoint: ${identifier}`);
+        expect(html).toContain(
+          `claude mcp add --transport http genfeed --scope user ${identifier}`,
+        );
+        expect(html).toContain(`codex mcp add genfeed --url ${identifier}`);
+        expect(html).toContain(`var baseMcpUrl = "${identifier}";`);
+        expect(html).not.toContain(`${identifier}/`);
+      },
+    );
+
+    it('falls through to GENFEEDAI_MICROSERVICES_MCP_URL when the public URL is unset', () => {
+      vi.stubEnv('GENFEEDAI_MICROSERVICES_MCP_URL', 'http://mcp:3014');
+
+      expect(resolvePublicMcpResource()).toEqual({
+        identifier: 'http://mcp:3014/mcp',
+        sourceKey: 'GENFEEDAI_MICROSERVICES_MCP_URL',
+      });
+    });
+
+    it.each([
+      ['a relative value', 'mcp.genfeed.ai/mcp'],
+      ['a malformed value', 'not a url %%'],
+      // Concatenated so biome does not misread the scheme token.
+      ['a non-http scheme', ['java', 'script:alert(1)'].join('')],
+      ['a query string', 'https://mcp.genfeed.ai/mcp?toolsets=content'],
+      ['a fragment', 'https://mcp.genfeed.ai/mcp#x'],
+    ])(
+      'refuses %s in GENFEEDAI_MCP_PUBLIC_URL, naming the variable',
+      (_label, value) => {
+        vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', value);
+
+        expect(() => resolvePublicMcpResource()).toThrow(
+          McpResourceConfigurationError,
+        );
+        expect(() => getPublicMcpUrl()).toThrow(/GENFEEDAI_MCP_PUBLIC_URL/);
+        expect(() => getMcpProtectedResourceMetadata()).toThrow(
+          /GENFEEDAI_MCP_PUBLIC_URL/,
+        );
+      },
+    );
+  });
+
   it('renders a copyable agent prompt that configures MCP without embedding a key', () => {
     const html = renderSetupPage();
     const promptStart = html.indexOf('id="agent-setup-prompt"');
@@ -248,61 +328,55 @@ describe('MCP setup page', () => {
   });
 
   it('escapes an overridden endpoint before rendering it into HTML', () => {
+    // `'` survives the WHATWG path percent-encoding the resolver applies, so
+    // it is the character that still reaches `escapeHtml` from configuration.
     vi.stubEnv(
-      'GENFEED_MCP_RESOURCE_URL',
-      'https://preview-mcp.genfeed.ai/mcp?x=<script>',
+      'GENFEEDAI_MCP_PUBLIC_URL',
+      "https://preview-mcp.genfeed.ai/o'reilly/mcp",
     );
 
     const html = renderSetupPage();
 
     expect(html).toContain(
-      'https://preview-mcp.genfeed.ai/mcp?x=&lt;script&gt;',
+      'id="mcp-url">https://preview-mcp.genfeed.ai/o&#39;reilly/mcp<',
     );
     expect(html).toContain(
-      'Endpoint: https://preview-mcp.genfeed.ai/mcp?x=&lt;script&gt;',
+      'data-copy="https://preview-mcp.genfeed.ai/o&#39;reilly/mcp"',
     );
-    expect(html).not.toContain('x=<script>');
-  });
-
-  it('falls back to the default when override scheme is not http/https', () => {
-    // Concatenate to prevent biome from misinterpreting the scheme token.
-    const dangerousScheme = ['java', 'script:alert(1)'].join('');
-    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', dangerousScheme);
-
-    expect(getPublicMcpUrl()).toBe('https://mcp.genfeed.ai/mcp');
-
-    const html = renderSetupPage();
-    expect(html).toContain('https://mcp.genfeed.ai/mcp');
-    expect(html).not.toContain(dangerousScheme);
-  });
-
-  it('falls back to the default URL when override is malformed', () => {
-    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', 'not a url %%');
-
-    expect(getPublicMcpUrl()).toBe('https://mcp.genfeed.ai/mcp');
-  });
-
-  it('escapes U+2028/U+2029 line/paragraph separators in the inline script string literal', () => {
-    vi.stubEnv(
-      'GENFEED_MCP_RESOURCE_URL',
-      'https://preview-mcp.genfeed.ai/mcp?x=  ',
+    expect(html).toContain(
+      'Endpoint: https://preview-mcp.genfeed.ai/o&#39;reilly/mcp',
     );
+    expect(html).not.toContain('data-copy="https://preview-mcp.genfeed.ai/o\'');
+  });
 
-    const html = renderSetupPage();
-    const baseMcpUrlStart = html.indexOf('var baseMcpUrl = ');
-    const baseMcpUrlEnd = html.indexOf(';', baseMcpUrlStart);
-    const baseMcpUrlStatement = html.slice(baseMcpUrlStart, baseMcpUrlEnd);
+  describe('toInlineScriptStringLiteral', () => {
+    // The resolver percent-encodes `<` and non-ASCII code points in the
+    // path, so no accepted configuration reaches these branches any more;
+    // the escaper is kept as defence in depth and tested directly.
+    it('escapes every "<" so a "</script>" sequence cannot close the script element', () => {
+      expect(
+        toInlineScriptStringLiteral(
+          'https://x.test/mcp?x=</script><script>alert(1)</script>',
+        ),
+      ).toBe(
+        '"https://x.test/mcp?x=\\u003C/script>\\u003Cscript>alert(1)\\u003C/script>"',
+      );
+    });
 
-    // Both characters must be escaped specifically where the endpoint is
-    // embedded as a JS string literal for the picker script -- a raw one
-    // left in that script source is a line terminator to some tooling or
-    // older engines. Elsewhere on the page (the visible Endpoint text, the
-    // agent prompt) the raw characters are harmless HTML text content and
-    // are expected to still appear, so the assertion is scoped to the JS
-    // string literal statement rather than the whole page.
-    expect(baseMcpUrlStatement).toContain('\\u2028');
-    expect(baseMcpUrlStatement).toContain('\\u2029');
-    expect(baseMcpUrlStatement).not.toContain('mcp?x=  ');
+    it('escapes U+2028/U+2029 line/paragraph separators', () => {
+      // A raw one left in script source is a line terminator to some
+      // tooling or older engines.
+      expect(toInlineScriptStringLiteral('a\u2028b\u2029c')).toBe(
+        '"a\\u2028b\\u2029c"',
+      );
+    });
+
+    it('is otherwise a JSON string literal', () => {
+      expect(toInlineScriptStringLiteral('https://mcp.genfeed.ai/mcp')).toBe(
+        '"https://mcp.genfeed.ai/mcp"',
+      );
+      expect(toInlineScriptStringLiteral('a"b\\c')).toBe('"a\\"b\\\\c"');
+    });
   });
 
   describe('toolset picker', () => {
@@ -355,24 +429,10 @@ describe('MCP setup page', () => {
       expect(html).toContain('id="agent-setup-prompt"');
     });
 
-    it('joins the toolsets query with "&" when the base URL already has a query string', () => {
-      const html = renderSetupPage();
-      const joinToolsetsUrl = loadPickerFunction<
-        (baseUrl: string, selected: string[]) => string
-      >(html, 'joinToolsetsUrl');
-
-      expect(
-        joinToolsetsUrl('https://mcp.genfeed.ai/mcp?x=1', ['content']),
-      ).toBe('https://mcp.genfeed.ai/mcp?x=1&toolsets=content');
-      expect(
-        joinToolsetsUrl('https://mcp.genfeed.ai/mcp?x=1', [
-          'content',
-          'generation',
-        ]),
-      ).toBe('https://mcp.genfeed.ai/mcp?x=1&toolsets=content,generation');
-    });
-
-    it('joins the toolsets query with "?" (and leaves the URL alone for an empty selection)', () => {
+    it('appends the toolsets query with "?" (and leaves the URL alone for an empty selection)', () => {
+      // The base is always the resolved identifier, which the shared
+      // resolver guarantees carries no query string, so "?" is the only
+      // separator the picker ever needs.
       const html = renderSetupPage();
       const joinToolsetsUrl = loadPickerFunction<
         (baseUrl: string, selected: string[]) => string
@@ -381,6 +441,12 @@ describe('MCP setup page', () => {
       expect(joinToolsetsUrl('https://mcp.genfeed.ai/mcp', ['content'])).toBe(
         'https://mcp.genfeed.ai/mcp?toolsets=content',
       );
+      expect(
+        joinToolsetsUrl('https://mcp.genfeed.ai/mcp', [
+          'content',
+          'generation',
+        ]),
+      ).toBe('https://mcp.genfeed.ai/mcp?toolsets=content,generation');
       expect(joinToolsetsUrl('https://mcp.genfeed.ai/mcp', [])).toBe(
         'https://mcp.genfeed.ai/mcp',
       );
@@ -428,23 +494,25 @@ describe('MCP setup page', () => {
     });
 
     it('keeps a malicious endpoint override from breaking out of the inline toolset script', () => {
+      // A query string is rejected outright by the resolver; the closest an
+      // accepted value can get is a hostile path segment, which the WHATWG
+      // parse percent-encodes before it reaches any renderer.
       vi.stubEnv(
-        'GENFEED_MCP_RESOURCE_URL',
-        'https://preview-mcp.genfeed.ai/mcp?x=</script><script>alert(1)</script>',
+        'GENFEEDAI_MCP_PUBLIC_URL',
+        'https://preview-mcp.genfeed.ai/</script><script>alert(1)</script>/mcp',
+      );
+
+      expect(getPublicMcpUrl()).toBe(
+        'https://preview-mcp.genfeed.ai/%3C/script%3E%3Cscript%3Ealert(1)%3C/script%3E/mcp',
       );
 
       const html = renderSetupPage();
 
-      // The dangerous literal sequence must never appear verbatim (the page
-      // has other legitimate `</script>` closing tags, so only the exact
-      // injected sequence is asserted, not every occurrence of the tag)...
+      // The page has other legitimate `</script>` closing tags, so only the
+      // exact injected sequence is asserted, not every occurrence of the tag.
       expect(html).not.toContain('</script><script>alert(1)</script>');
-      // ...but the escaped form still carries the same string content (only
-      // `<` needs escaping to break up the `</script` sequence — a lone `>`
-      // is never special to the HTML tokenizer), so a real browser
-      // reconstructs the original URL for the picker's own use.
       expect(html).toContain(
-        '\\u003C/script>\\u003Cscript>alert(1)\\u003C/script>',
+        'var baseMcpUrl = "https://preview-mcp.genfeed.ai/%3C/script%3E%3Cscript%3Ealert(1)%3C/script%3E/mcp";',
       );
     });
   });

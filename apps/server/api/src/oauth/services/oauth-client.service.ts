@@ -71,7 +71,7 @@ export class OAuthClientService {
       data: {
         clientId,
         clientName: dto.client_name,
-        grantTypes: ['authorization_code'],
+        grantTypes: ['authorization_code', 'refresh_token'],
         redirectUris,
         responseTypes: ['code'],
         tokenEndpointAuthMethod: 'none',

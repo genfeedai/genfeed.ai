@@ -6,7 +6,6 @@ import {
   Length,
   Matches,
   MaxLength,
-  MinLength,
 } from 'class-validator';
 
 export class OAuthAuthorizeDecisionDto {
@@ -27,10 +26,11 @@ export class OAuthAuthorizeDecisionDto {
   @IsIn(['S256'])
   code_challenge_method!: 'S256';
 
+  /** Optional, mirroring `OAuthAuthorizeRequestDto.state` (#4553). */
+  @IsOptional()
   @IsString()
-  @MinLength(16)
   @MaxLength(512)
-  state!: string;
+  state?: string;
 
   @IsOptional()
   @IsString()

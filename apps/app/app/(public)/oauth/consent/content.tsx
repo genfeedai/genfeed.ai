@@ -60,12 +60,12 @@ export default function OAuthConsentContent() {
     () => getRequestedScopeLabels(searchParams.get('scope')),
     [searchParams],
   );
+  // `state` is optional (RFC 6749 §4.1.1); PKCE is the CSRF protection.
   const requiredParams = [
     'client_id',
     'redirect_uri',
     'code_challenge',
     'code_challenge_method',
-    'state',
     'resource',
   ];
   const hasRequiredParams = requiredParams.every((key) =>
@@ -102,7 +102,8 @@ export default function OAuthConsentContent() {
             redirect_uri: redirectUri,
             resource: searchParams.get('resource'),
             scope: searchParams.get('scope') || undefined,
-            state: searchParams.get('state'),
+            // Forwarded unchanged when the client supplied one; omitted otherwise.
+            state: searchParams.get('state') || undefined,
           }),
           headers: {
             Authorization: `Bearer ${token}`,

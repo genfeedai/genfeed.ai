@@ -9,6 +9,10 @@ import type {
   ConnectGenfeedVerificationFailureResult,
   ConnectGenfeedVerificationResult,
 } from '@genfeedai/contracts/interfaces';
+import {
+  deriveMcpResourceIdentifier,
+  McpResourceConfigurationError,
+} from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -277,18 +281,18 @@ export class McpConnectionVerificationService {
       return null;
     }
 
-    const normalized = baseUrl.replace(/\/+$/, '');
-    const endpoint = normalized.endsWith('/mcp')
-      ? normalized
-      : `${normalized}/mcp`;
-
+    // Same derivation rule as the OAuth resource identifier (#4553): the
+    // internal service URL is accepted with or without `/mcp`.
     try {
-      const url = new URL(endpoint);
-      return url.protocol === 'http:' || url.protocol === 'https:'
-        ? endpoint
-        : null;
-    } catch {
-      return null;
+      return deriveMcpResourceIdentifier(
+        baseUrl,
+        'GENFEEDAI_MICROSERVICES_MCP_URL',
+      );
+    } catch (error: unknown) {
+      if (error instanceof McpResourceConfigurationError) {
+        return null;
+      }
+      throw error;
     }
   }
 
