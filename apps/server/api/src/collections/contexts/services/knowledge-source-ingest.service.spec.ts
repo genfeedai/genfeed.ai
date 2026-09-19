@@ -173,7 +173,9 @@ describe('KnowledgeSourceIngestService', () => {
     expect(chunked.chunks).toEqual(['Plans start at $29 per month.']);
 
     await service.replaceChunks(chunked);
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    // One transaction creates the scope base, one locks the source to scope
+    // the chunk delete.
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(contextBase.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
@@ -245,7 +247,11 @@ describe('KnowledgeSourceIngestService', () => {
     };
     await service.replaceChunks(state);
 
-    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(contextBase.create).not.toHaveBeenCalled();
+    expect(prisma.knowledgeSource.updateMany).toHaveBeenCalledWith({
+      where: { organizationId: 'org-1', isDeleted: false, id: 'source-1' },
+      data: { updatedAt: expect.any(Date) },
+    });
     expect(contextEntry.updateMany).toHaveBeenCalledWith({
       where: {
         organizationId: 'org-1',
@@ -279,6 +285,33 @@ describe('KnowledgeSourceIngestService', () => {
       chunks: ['candidate'],
       extracted: { text: 'candidate' },
     };
+    await service.replaceChunks(state);
+
+    expect(contextEntry.groupBy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 'org-1',
+          isDeleted: false,
+          knowledgeSourceId: 'source-1',
+          knowledgeSourceVersionId: 'version-1',
+        },
+      }),
+    );
+  });
+
+  it('scopes the delete to its own version once a newer version became current', async () => {
+    const { service, contextBase, contextEntry, knowledgeSourceVersion } =
+      buildService();
+    contextBase.findFirst.mockResolvedValue({ id: 'base-existing' });
+    const state: KnowledgeSourceIngestState = {
+      ...(await service.loadSource(request)),
+      chunks: ['stale'],
+      extracted: { text: 'stale' },
+    };
+    expect(state.version?.isCurrent).toBe(true);
+    // A new version superseded this one while the run was extracting.
+    knowledgeSourceVersion.findFirst.mockResolvedValue({ isCurrent: false });
+
     await service.replaceChunks(state);
 
     expect(contextEntry.groupBy).toHaveBeenCalledWith(
@@ -428,5 +461,52 @@ describe('KnowledgeSourceIngestService', () => {
         }),
       }),
     );
+  });
+
+  it('completes the capture requests when the current version ingests', async () => {
+    const { service, prisma } = buildService();
+    const state = await service.loadSource(request);
+
+    await expect(service.finalizeSource(state)).resolves.toMatchObject({
+      status: 'completed',
+    });
+    expect(prisma.knowledgeCaptureRequest.updateMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        sourceId: 'source-1',
+        status: 'queued',
+      },
+      data: { status: 'completed' },
+    });
+  });
+
+  it('fails the capture requests when the current version cannot ingest', async () => {
+    const { service, prisma } = buildService();
+    const state = await service.loadSource(request);
+
+    await service.finalizeSource(state, 'Failed to fetch source (503)');
+
+    expect(prisma.knowledgeCaptureRequest.updateMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        sourceId: 'source-1',
+        status: 'queued',
+      },
+      data: { error: 'Failed to fetch source (503)', status: 'failed' },
+    });
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
+  });
+
+  it('leaves the capture ledger alone when a newer version superseded the run', async () => {
+    const { service, prisma, knowledgeSourceVersion } = buildService();
+    const state = await service.loadSource(request);
+    knowledgeSourceVersion.findFirst.mockResolvedValue({ isCurrent: false });
+
+    await service.finalizeSource(state, 'Failed to fetch source (503)');
+
+    expect(prisma.knowledgeCaptureRequest.updateMany).not.toHaveBeenCalled();
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).not.toHaveBeenCalled();
   });
 });

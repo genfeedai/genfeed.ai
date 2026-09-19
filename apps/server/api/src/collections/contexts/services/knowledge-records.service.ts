@@ -8,6 +8,7 @@ import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowl
 import { captureIdempotentKnowledgeSource } from '@api/collections/contexts/utils/knowledge-idempotent-capture';
 import { buildKnowledgeMediaReferenceKey } from '@api/collections/contexts/utils/knowledge-media-identity.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   KnowledgeMemoryScope,
@@ -16,6 +17,7 @@ import {
   KnowledgeRetentionState,
   KnowledgeRetrievalState,
   KnowledgeSourceKind,
+  type KnowledgeSourcePurpose,
   MemberRole,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
@@ -274,12 +276,29 @@ export class KnowledgeRecordsService {
     );
   }
 
-  async listSources(actor: KnowledgeActor, page = 1, limit = 25) {
-    const where = {
+  async listSources(
+    actor: KnowledgeActor,
+    page = 1,
+    limit = 25,
+    filters: {
+      processingState?: KnowledgeProcessingState;
+      purpose?: KnowledgeSourcePurpose;
+    } = {},
+  ) {
+    const where = scopedWhere(actor.organizationId, {
       ...this.ownership(actor),
-      organizationId: actor.organizationId,
-      isDeleted: false,
-    };
+      ...(filters.purpose ? { purpose: filters.purpose } : {}),
+      ...(filters.processingState
+        ? {
+            versions: {
+              some: scopedWhere(actor.organizationId, {
+                isCurrent: true,
+                processingState: filters.processingState,
+              }),
+            },
+          }
+        : {}),
+    });
     const [docs, totalDocs] = await this.prisma.$transaction([
       this.prisma.knowledgeSource.findMany({
         where,

@@ -57,6 +57,17 @@ function readPurpose(value: unknown): KnowledgeSourcePurpose | undefined {
     : undefined;
 }
 
+function readProcessingState(
+  value: unknown,
+): KnowledgeProcessingState | undefined {
+  return typeof value === 'string' &&
+    Object.values(KnowledgeProcessingState).includes(
+      value as KnowledgeProcessingState,
+    )
+    ? (value as KnowledgeProcessingState)
+    : undefined;
+}
+
 function readPurposes(value: unknown): KnowledgeSourcePurpose[] | undefined {
   if (!Array.isArray(value)) {
     return undefined;
@@ -231,24 +242,18 @@ export class AgentKnowledgeToolHandler {
       LIST_DEFAULT_LIMIT,
       LIST_MAX_LIMIT,
     );
-    const purpose = readPurpose(params.purpose);
-    const processingState = readOptionalString(params.processingState);
-    const result = await this.records.listSources(actor, page, limit);
-    const rows = await Promise.all(
+    const result = await this.records.listSources(actor, page, limit, {
+      processingState: readProcessingState(params.processingState),
+      purpose: readPurpose(params.purpose),
+    });
+    const sources = await Promise.all(
       result.docs.map(async (source) => {
         const version = await this.records
           .getCurrentVersion(actor, source.id)
           .catch(() => null);
-        return { source, version };
+        return summarizeSource(source, version);
       }),
     );
-    const sources = rows
-      .filter(({ source }) => !purpose || source.purpose === purpose)
-      .filter(
-        ({ version }) =>
-          !processingState || version?.processingState === processingState,
-      )
-      .map(({ source, version }) => summarizeSource(source, version));
     return {
       creditsUsed: 0,
       data: {
@@ -363,6 +368,13 @@ export class AgentKnowledgeToolHandler {
         success: false,
       };
     }
+    const isMedia =
+      kind === KnowledgeSourceKind.AUDIO || kind === KnowledgeSourceKind.VIDEO;
+    const transcriptUrl = isMedia
+      ? readOptionalString(params.transcriptUrl)
+      : undefined;
+    // Ingest reads transcript settings from the version payload, which is
+    // built from these top-level DTO fields — never from provenance.
     const result = await this.capture.capture(actor, {
       kind,
       purpose:
@@ -373,19 +385,13 @@ export class AgentKnowledgeToolHandler {
         : KnowledgeMemoryScope.PERSONAL,
       text: readOptionalString(params.text),
       title,
+      ...(isMedia && params.isTranscriptGenerationAllowed === true
+        ? { isTranscriptGenerationAllowed: true }
+        : {}),
+      ...(transcriptUrl ? { transcriptUrl } : {}),
       provenance: {
         capturedBy: ctx.isWorkflowScoped ? 'workflow' : 'agent',
         ...(ctx.threadId ? { threadId: ctx.threadId } : {}),
-        ...(kind === KnowledgeSourceKind.AUDIO ||
-        kind === KnowledgeSourceKind.VIDEO
-          ? {
-              isTranscriptGenerationAllowed:
-                params.isTranscriptGenerationAllowed === true,
-              ...(readOptionalString(params.transcriptUrl)
-                ? { transcriptUrl: readOptionalString(params.transcriptUrl) }
-                : {}),
-            }
-          : {}),
       },
     });
     this.loggerService.log('Agent captured knowledge', {
