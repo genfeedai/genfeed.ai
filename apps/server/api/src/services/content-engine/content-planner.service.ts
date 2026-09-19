@@ -126,7 +126,12 @@ export class ContentPlannerService {
       (item) => ({
         brandId,
         organizationId,
-        pipelineSteps: item.pipelineSteps ?? undefined,
+        pipelineSteps: item.pipelineSteps?.map((step) => ({
+          aspectRatio: step.aspectRatio ?? undefined,
+          model: step.model,
+          prompt: step.prompt ?? undefined,
+          type: step.type,
+        })),
         planId,
         platforms: item.platforms ?? dto.platforms ?? [],
         prompt: item.prompt,

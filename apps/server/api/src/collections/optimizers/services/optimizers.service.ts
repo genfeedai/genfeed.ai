@@ -18,7 +18,9 @@ import {
   CONTENT_ANALYSIS_SCHEMA_NAME,
   CONTENT_OPTIMIZATION_SCHEMA_NAME,
   CONTENT_VARIANTS_SCHEMA_NAME,
+  type ContentAnalysis,
   contentAnalysisSchema,
+  type ContentOptimization,
   contentOptimizationSchema,
   contentVariantsSchema,
   GENERATED_PROMPTS_SCHEMA_NAME,
@@ -32,37 +34,6 @@ import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 import type { ZodType } from 'zod';
-
-type ScoreBreakdown = {
-  clarity: number;
-  engagement: number;
-  platformOptimization: number;
-  readability: number;
-  viralPotential: number;
-};
-
-type OptimizationSuggestion = {
-  category:
-    | 'readability'
-    | 'engagement'
-    | 'seo'
-    | 'style'
-    | 'tone'
-    | 'hashtags';
-  impact?: 'high' | 'medium' | 'low';
-  message: string;
-  originalText?: string;
-  priority?: 'high' | 'medium' | 'low';
-  suggestedText?: string;
-  type: 'improvement' | 'warning' | 'critical';
-};
-
-type ContentChange = {
-  field: string;
-  optimized: string;
-  original: string;
-  reason: string;
-};
 
 @Injectable()
 export class OptimizersService {
@@ -135,12 +106,7 @@ export class OptimizersService {
     organizationId: string,
     userId?: string,
     onBilling?: (amount: number) => void,
-  ): Promise<{
-    original: string;
-    optimized: string;
-    changes: ContentChange[];
-    improvementScore: number;
-  }> {
+  ): Promise<ContentOptimization & { original: string }> {
     try {
       this.logger.debug('Optimizing content', {
         contentType: dto.contentType,
@@ -428,11 +394,7 @@ Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason 
     platform?: string,
     goals?: string[],
     onBilling?: (amount: number) => void,
-  ): Promise<{
-    overallScore: number;
-    breakdown: ScoreBreakdown;
-    suggestions: OptimizationSuggestion[];
-  }> {
+  ): Promise<ContentAnalysis> {
     const prompt = this.buildAnalysisPrompt(
       content,
       contentType,
@@ -458,11 +420,7 @@ Give each slot a day, a time like "09:00 AM", a 0-100 confidence and the reason 
     platform?: string,
     goals?: string[],
     onBilling?: (amount: number) => void,
-  ): Promise<{
-    optimized: string;
-    changes: ContentChange[];
-    improvementScore: number;
-  }> {
+  ): Promise<ContentOptimization> {
     const prompt = this.buildOptimizationPrompt(
       content,
       contentType,
