@@ -6,6 +6,11 @@ import {
   type SkillHandler,
 } from '@api/services/skill-executor/interfaces/skill-executor.interfaces';
 import {
+  CONTENT_GEO_OPTIMIZATION_SCHEMA_NAME,
+  type ContentGeoOptimization,
+  contentGeoOptimizationSchema,
+} from '@genfeedai/contracts/api-types/contracts';
+import {
   buildArticleJsonLd,
   buildFaqJsonLd,
   buildHowToJsonLd,
@@ -37,11 +42,6 @@ interface GeoScorecard {
   schemaTypes: string[];
   score: number;
   suggestions: string[];
-}
-
-interface GeoLlmResult {
-  rewrittenContent?: string;
-  suggestions?: string[];
 }
 
 interface FaqParam {
@@ -131,15 +131,15 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
     params: Record<string, unknown>,
     sourceContent: string,
     scorecard: GeoScorecard,
-  ): Promise<GeoLlmResult | null> {
+  ): Promise<ContentGeoOptimization | null> {
     try {
-      const response = await this.llmDispatcherService.chatCompletion(
+      return await this.llmDispatcherService.completeStructured(
         {
           max_tokens: 1400,
           messages: [
             {
               content:
-                'You optimize long-form content for generative answer engines. Return only JSON.',
+                'You optimize long-form content for generative answer engines.',
               role: 'system',
             },
             {
@@ -148,26 +148,12 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
             },
           ],
           model: await this.resolveModel(params.model),
+          schema: contentGeoOptimizationSchema,
+          schemaName: CONTENT_GEO_OPTIMIZATION_SCHEMA_NAME,
           temperature: 0.3,
         },
         context.organizationId,
       );
-
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        return null;
-      }
-
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (!jsonMatch) {
-        return null;
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]) as GeoLlmResult;
-      return {
-        rewrittenContent: this.getString(parsed.rewrittenContent),
-        suggestions: this.getStringArray(parsed.suggestions),
-      };
     } catch (error: unknown) {
       this.loggerService.warn(
         `${GEO_SKILL_SLUG} LLM call failed, using fallback`,
@@ -191,7 +177,6 @@ export class ContentGeoOptimizerHandler implements SkillHandler {
 
     return [
       'Rewrite the content so ChatGPT, Perplexity, Claude, Google AI Overviews, and other answer engines can extract and cite it.',
-      'Return this exact JSON shape: {"rewrittenContent":"...","suggestions":["..."]}',
       'Rules:',
       '- Start with a direct answer block.',
       '- Use question-led headings where natural.',

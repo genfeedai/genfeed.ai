@@ -1,5 +1,6 @@
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
@@ -9,7 +10,7 @@ describe('ContentGeoOptimizerHandler', () => {
   let handler: ContentGeoOptimizerHandler;
 
   const mockLlmDispatcherService = {
-    chatCompletion: vi.fn(),
+    completeStructured: vi.fn(),
   };
 
   const mockLoggerService = {
@@ -47,19 +48,10 @@ describe('ContentGeoOptimizerHandler', () => {
   });
 
   it('returns a GEO scorecard and FAQ JSON-LD with LLM rewrite output', async () => {
-    mockLlmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: JSON.stringify({
-              rewrittenContent:
-                '## Direct answer\n\nGEO-ready content gives answer engines short, source-backed answer blocks.',
-              suggestions: ['Add author credentials.'],
-            }),
-            role: 'assistant',
-          },
-        },
-      ],
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      rewrittenContent:
+        '## Direct answer\n\nGEO-ready content gives answer engines short, source-backed answer blocks.',
+      suggestions: ['Add author credentials.'],
     });
 
     const result = await handler.execute(baseContext, {
@@ -98,7 +90,7 @@ describe('ContentGeoOptimizerHandler', () => {
   });
 
   it('falls back deterministically and emits Article JSON-LD when the LLM fails', async () => {
-    mockLlmDispatcherService.chatCompletion.mockRejectedValue(
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
       new Error('provider unavailable'),
     );
 
@@ -124,8 +116,9 @@ describe('ContentGeoOptimizerHandler', () => {
   });
 
   it('emits HowTo JSON-LD for step-based GEO output', async () => {
-    mockLlmDispatcherService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: '{}', role: 'assistant' } }],
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      rewrittenContent: 'Step-by-step answer engine optimization, rewritten.',
+      suggestions: [],
     });
 
     const result = await handler.execute(baseContext, {
@@ -145,6 +138,44 @@ describe('ContentGeoOptimizerHandler', () => {
         expect.objectContaining({ position: 2, text: 'Add JSON-LD.' }),
       ],
     });
+  });
+
+  it('asks the dispatcher for the GEO schema instead of prompting for JSON', async () => {
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      rewrittenContent: '## Direct answer\n\nRewritten.',
+      suggestions: [],
+    });
+
+    await handler.execute(baseContext, { content: 'Some GEO content.' });
+
+    expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalledWith(
+      expect.objectContaining({ schemaName: 'content_geo_optimization' }),
+      'org-id',
+    );
+    const [params] = mockLlmDispatcherService.completeStructured.mock
+      .calls[0] as [{ messages: Array<{ content: string }> }];
+    expect(params.messages[0].content).not.toContain('Return only JSON');
+    expect(params.messages[1].content).not.toContain('exact JSON shape');
+  });
+
+  it('keeps the source content when the model misses the schema twice', async () => {
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
+      new LlmStructuredOutputError('content_geo_optimization', [
+        {
+          code: 'too_small',
+          message: 'expected >= 1',
+          path: 'rewrittenContent',
+        },
+      ]),
+    );
+
+    const result = await handler.execute(baseContext, {
+      content: 'GEO content should answer the user clearly.',
+      title: 'GEO Content',
+    });
+
+    expect(result.metadata.llmApplied).toBe(false);
+    expect(mockLoggerService.warn).toHaveBeenCalled();
   });
 
   it('requires source content', async () => {

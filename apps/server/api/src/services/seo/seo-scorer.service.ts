@@ -1,13 +1,14 @@
 import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
-import type {
-  OpenRouterChatCompletionParams,
-  OpenRouterChatCompletionResponse,
-} from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { paginatedQueryCacheTag } from '@api/shared/utils/query-cache/query-cache.util';
+import {
+  SEO_QUALITATIVE_SCORING_SCHEMA_NAME,
+  type SeoQualitativeScoring,
+  seoQualitativeScoringSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -15,7 +16,6 @@ import { Injectable, Optional } from '@nestjs/common';
 import {
   type ScoreContentOptions,
   type SeoCheck,
-  type SeoQualitativeLlmResult,
   type SeoScorableContent,
   type SeoScorableType,
   type SeoScorecard,
@@ -29,7 +29,7 @@ import {
 } from './seo-text.util';
 
 /** Qualitative checks the LLM layer is allowed to refine, keyed by check id. */
-const QUALITATIVE_LLM_FIELDS: Record<string, keyof SeoQualitativeLlmResult> = {
+const QUALITATIVE_LLM_FIELDS: Record<string, keyof SeoQualitativeScoring> = {
   active_voice: 'activeVoicePoints',
   conclusion_cta: 'conclusionCtaPoints',
   faq_section: 'faqPoints',
@@ -57,7 +57,7 @@ export class SeoScorerService {
     @Optional()
     private readonly cacheService?: CacheService,
     @Optional()
-    private readonly openRouterService?: OpenRouterService,
+    private readonly llmDispatcherService?: LlmDispatcherService,
   ) {
     this.defaultModel = LLM_DEFAULTS.background;
   }
@@ -76,7 +76,7 @@ export class SeoScorerService {
     let llmApplied = false;
     let llmSuggestions: string[] = [];
 
-    if (options?.useLlm !== false && this.openRouterService) {
+    if (options?.useLlm !== false && this.llmDispatcherService) {
       const llm = await this.runQualitativeLlm(input);
       if (llm) {
         this.applyQualitativeScores(checks, llm);
@@ -219,7 +219,7 @@ export class SeoScorerService {
 
   private applyQualitativeScores(
     checks: SeoCheck[],
-    llm: SeoQualitativeLlmResult,
+    llm: SeoQualitativeScoring,
   ): void {
     for (const check of checks) {
       const field = QUALITATIVE_LLM_FIELDS[check.id];
@@ -235,8 +235,8 @@ export class SeoScorerService {
 
   private async runQualitativeLlm(
     input: SeoScorableContent,
-  ): Promise<SeoQualitativeLlmResult | null> {
-    if (!this.openRouterService) {
+  ): Promise<SeoQualitativeScoring | null> {
+    if (!this.llmDispatcherService) {
       return null;
     }
     const plainText = (input.content ?? '')
@@ -252,15 +252,14 @@ export class SeoScorerService {
     const prompt = buildQualitativePrompt(input, plainText);
 
     try {
-      const params: OpenRouterChatCompletionParams = {
+      return await this.llmDispatcherService.completeStructured({
         max_tokens: 1024,
         messages: [{ content: prompt, role: 'user' }],
         model: this.defaultModel,
+        schema: seoQualitativeScoringSchema,
+        schemaName: SEO_QUALITATIVE_SCORING_SCHEMA_NAME,
         temperature: 0.2,
-      };
-      const response: OpenRouterChatCompletionResponse =
-        await this.openRouterService.chatCompletion(params);
-      return this.parseQualitativeResponse(response);
+      });
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
@@ -269,44 +268,6 @@ export class SeoScorerService {
       return null;
     }
   }
-
-  private parseQualitativeResponse(
-    response: OpenRouterChatCompletionResponse,
-  ): SeoQualitativeLlmResult | null {
-    const content = response.choices?.[0]?.message?.content;
-    if (!content) {
-      return null;
-    }
-    const jsonMatch = content.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) {
-      return null;
-    }
-    try {
-      const parsed = JSON.parse(jsonMatch[0]) as SeoQualitativeLlmResult;
-      return {
-        activeVoicePoints: clampNumber(parsed.activeVoicePoints, 0, 3),
-        conclusionCtaPoints: clampNumber(parsed.conclusionCtaPoints, 0, 1),
-        faqPoints: clampNumber(parsed.faqPoints, 0, 3),
-        jargonPoints: clampNumber(parsed.jargonPoints, 0, 2),
-        suggestions: Array.isArray(parsed.suggestions)
-          ? parsed.suggestions.filter((s): s is string => typeof s === 'string')
-          : [],
-      };
-    } catch {
-      return null;
-    }
-  }
-}
-
-function clampNumber(
-  value: number | undefined,
-  min: number,
-  max: number,
-): number | undefined {
-  if (typeof value !== 'number' || !Number.isFinite(value)) {
-    return undefined;
-  }
-  return Math.max(min, Math.min(max, value));
 }
 
 function dedupe(values: string[]): string[] {
@@ -317,10 +278,7 @@ function buildQualitativePrompt(
   input: SeoScorableContent,
   plainText: string,
 ): string {
-  return `You are an expert SEO analyst. Score ONLY the four qualitative criteria below for the content. Return ONLY valid JSON with no markdown.
-
-Return this exact shape:
-{ "faqPoints": <0-3>, "conclusionCtaPoints": <0-1>, "activeVoicePoints": <0-3>, "jargonPoints": <0-2>, "suggestions": ["..."] }
+  return `You are an expert SEO analyst. Score ONLY the four qualitative criteria below for the content.
 
 Criteria:
 - faqPoints (0-3): Does the content include an FAQ section answering likely "People Also Ask" questions?

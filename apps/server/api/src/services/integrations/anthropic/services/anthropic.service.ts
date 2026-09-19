@@ -149,6 +149,59 @@ export class AnthropicService {
   /**
    * Convert OpenRouter tool format to Anthropic tool format.
    */
+  /**
+   * Anthropic has no `response_format`. Its structured-output equivalent is a
+   * forced tool call whose input schema is the JSON Schema, so the requested
+   * format is translated into exactly that.
+   */
+  private toStructuredOutputTool(
+    responseFormat: NonNullable<
+      OpenRouterChatCompletionParams['response_format']
+    >,
+  ): Tool {
+    return {
+      description: `Return the ${responseFormat.json_schema.name} result.`,
+      input_schema: responseFormat.json_schema
+        .schema as unknown as Tool['input_schema'],
+      name: responseFormat.json_schema.name,
+    };
+  }
+
+  /**
+   * Re-shape a forced structured-output tool call back into the
+   * OpenAI-compatible form every caller expects: the JSON document lands in
+   * `message.content`, exactly where `response_format` would have put it.
+   */
+  private unwrapStructuredOutput(
+    response: OpenRouterChatCompletionResponse,
+    toolName: string,
+  ): OpenRouterChatCompletionResponse {
+    const choice = response.choices[0];
+    const structuredCall = choice?.message.tool_calls?.find(
+      (toolCall) => toolCall.function.name === toolName,
+    );
+
+    if (!structuredCall) {
+      return response;
+    }
+
+    return {
+      ...response,
+      choices: [
+        {
+          ...choice,
+          finish_reason: 'stop',
+          message: {
+            ...choice.message,
+            content: structuredCall.function.arguments,
+            tool_calls: undefined,
+          },
+        },
+        ...response.choices.slice(1),
+      ],
+    };
+  }
+
   private convertTools(tools: OpenRouterTool[]): Tool[] {
     return tools.map((tool) => ({
       description: tool.function.description,
@@ -255,7 +308,17 @@ export class AnthropicService {
         requestParams.system = system;
       }
 
-      if (params.tools && params.tools.length > 0) {
+      const structuredOutputName = params.response_format?.json_schema.name;
+
+      if (params.response_format && !params.tools?.length) {
+        requestParams.tools = [
+          this.toStructuredOutputTool(params.response_format),
+        ];
+        requestParams.tool_choice = {
+          name: params.response_format.json_schema.name,
+          type: 'tool',
+        };
+      } else if (params.tools && params.tools.length > 0) {
         requestParams.tools = this.convertTools(params.tools);
 
         if (params.tool_choice === 'auto') {
@@ -275,8 +338,11 @@ export class AnthropicService {
       }
 
       const response = await client.messages.create(requestParams);
+      const converted = this.convertResponse(response as Message, model);
 
-      return this.convertResponse(response as Message, model);
+      return structuredOutputName
+        ? this.unwrapStructuredOutput(converted, structuredOutputName)
+        : converted;
     } catch (error: unknown) {
       this.loggerService.error(
         `${this.constructorName}.chatCompletion failed`,

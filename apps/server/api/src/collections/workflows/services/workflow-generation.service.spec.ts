@@ -1,7 +1,8 @@
 import { WorkflowFormatConverterService } from '@api/collections/workflows/services/workflow-format-converter.service';
 import { WorkflowGenerationService } from '@api/collections/workflows/services/workflow-generation.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { HttpException, HttpStatus } from '@nestjs/common';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
+import { HttpStatus } from '@nestjs/common';
 import { Test, type TestingModule } from '@nestjs/testing';
 
 vi.mock('@api/services/integrations/openrouter/dto/openrouter.dto', () => ({
@@ -9,14 +10,15 @@ vi.mock('@api/services/integrations/openrouter/dto/openrouter.dto', () => ({
   OpenRouterModelTier: { STANDARD: 'standard' },
 }));
 
-const makeOpenRouterResponse = (content: string, tokens = 500) => ({
-  choices: [{ message: { content } }],
-  usage: { total_tokens: tokens },
+const usage = (tokens: number) => ({
+  choices: [],
+  id: 'gen-1',
+  usage: { completion_tokens: 0, prompt_tokens: 0, total_tokens: tokens },
 });
 
 describe('WorkflowGenerationService', () => {
   let service: WorkflowGenerationService;
-  let openRouterService: vi.Mocked<Pick<OpenRouterService, 'chatCompletion'>>;
+  let llmDispatcherService: { completeStructured: ReturnType<typeof vi.fn> };
 
   const validWorkflow = {
     description: 'Generates short-form video',
@@ -40,20 +42,31 @@ describe('WorkflowGenerationService', () => {
     ],
   };
 
+  /**
+   * The real helper reports each provider response through `onAttempt`; the
+   * fake replays that so the token total stays under test.
+   */
+  function completeStructuredFake(tokensPerAttempt: number[]) {
+    return async (params: {
+      onAttempt?: (response: ReturnType<typeof usage>) => Promise<void> | void;
+    }) => {
+      for (const tokens of tokensPerAttempt) {
+        await params.onAttempt?.(usage(tokens));
+      }
+      return validWorkflow;
+    };
+  }
+
   beforeEach(async () => {
-    openRouterService = {
-      chatCompletion: vi
-        .fn()
-        .mockResolvedValue(
-          makeOpenRouterResponse(JSON.stringify(validWorkflow)),
-        ),
+    llmDispatcherService = {
+      completeStructured: vi.fn(completeStructuredFake([500])),
     };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         WorkflowGenerationService,
         WorkflowFormatConverterService,
-        { provide: OpenRouterService, useValue: openRouterService },
+        { provide: LlmDispatcherService, useValue: llmDispatcherService },
       ],
     }).compile();
 
@@ -89,18 +102,12 @@ describe('WorkflowGenerationService', () => {
       });
     });
 
-    it('returns token count from LLM response', async () => {
-      const result = await service.generateWorkflowFromDescription({
-        description: 'Generate some content',
-      });
-      expect(result.tokensUsed).toBe(500);
-    });
-
-    it('calls openRouter with system + user messages', async () => {
+    it('asks the dispatcher for the workflow schema', async () => {
       await service.generateWorkflowFromDescription({
         description: 'A cool workflow',
       });
-      expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+
+      expect(llmDispatcherService.completeStructured).toHaveBeenCalledWith(
         expect.objectContaining({
           messages: expect.arrayContaining([
             expect.objectContaining({ role: 'system' }),
@@ -109,8 +116,28 @@ describe('WorkflowGenerationService', () => {
               role: 'user',
             }),
           ]),
+          schemaName: 'workflow_generation',
         }),
       );
+    });
+
+    it('returns the token count reported by the provider', async () => {
+      const result = await service.generateWorkflowFromDescription({
+        description: 'Generate some content',
+      });
+      expect(result.tokensUsed).toBe(500);
+    });
+
+    it('counts the repair turn as the second billed call', async () => {
+      llmDispatcherService.completeStructured.mockImplementation(
+        completeStructuredFake([500, 320]),
+      );
+
+      const result = await service.generateWorkflowFromDescription({
+        description: 'Generate some content',
+      });
+
+      expect(result.tokensUsed).toBe(820);
     });
 
     it('includes platform constraint in system prompt when platforms provided', async () => {
@@ -118,7 +145,7 @@ describe('WorkflowGenerationService', () => {
         description: 'TikTok workflow',
         targetPlatforms: ['tiktok', 'instagram'],
       });
-      const call = openRouterService.chatCompletion.mock.calls[0][0];
+      const call = llmDispatcherService.completeStructured.mock.calls[0][0];
       const systemMsg = call.messages.find(
         (m: { role: string }) => m.role === 'system',
       );
@@ -130,50 +157,52 @@ describe('WorkflowGenerationService', () => {
       await service.generateWorkflowFromDescription({
         description: 'Any workflow',
       });
-      const call = openRouterService.chatCompletion.mock.calls[0][0];
+      const call = llmDispatcherService.completeStructured.mock.calls[0][0];
       const systemMsg = call.messages.find(
         (m: { role: string }) => m.role === 'system',
       );
       expect(systemMsg?.content).not.toContain('disabled_node');
     });
 
-    it('throws HttpException when LLM returns invalid JSON', async () => {
-      openRouterService.chatCompletion.mockResolvedValue(
-        makeOpenRouterResponse('not valid json {{ broken'),
+    it('stops instructing the model to return bare JSON', async () => {
+      await service.generateWorkflowFromDescription({
+        description: 'Any workflow',
+      });
+      const call = llmDispatcherService.completeStructured.mock.calls[0][0];
+      const systemMsg = call.messages.find(
+        (m: { role: string }) => m.role === 'system',
       );
+      expect(systemMsg?.content).not.toContain('Return ONLY the JSON object');
+    });
+
+    it('surfaces the typed error when the model misses the schema twice', async () => {
+      const error = new LlmStructuredOutputError('workflow_generation', [
+        { code: 'too_small', message: 'expected >= 1', path: 'nodes' },
+      ]);
+      llmDispatcherService.completeStructured.mockRejectedValue(error);
+
       await expect(
         service.generateWorkflowFromDescription({ description: 'test' }),
-      ).rejects.toThrow(HttpException);
+      ).rejects.toBe(error);
     });
 
-    it('throws HttpException with UNPROCESSABLE_ENTITY status on parse failure', async () => {
-      openRouterService.chatCompletion.mockResolvedValue(
-        makeOpenRouterResponse('{{invalid}}'),
-      );
-      await expect(
-        service.generateWorkflowFromDescription({ description: 'test' }),
-      ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
-    });
-
-    it('returns 0 tokens when usage is missing', async () => {
-      openRouterService.chatCompletion.mockResolvedValue({
-        choices: [{ message: { content: JSON.stringify(validWorkflow) } }],
-        usage: undefined,
+    it('throws UNPROCESSABLE_ENTITY when a node names an action we do not have', async () => {
+      // The schema pins the graph's shape; it cannot know which action ids
+      // the registry actually serves, so the converter is still a real gate.
+      llmDispatcherService.completeStructured.mockResolvedValue({
+        ...validWorkflow,
+        nodes: [
+          {
+            data: { config: { actionId: 'not-a-real-action' }, label: 'X' },
+            id: 'n1',
+            position: { x: 0, y: 0 },
+            type: 'genfeedAction',
+          },
+        ],
       });
-      const result = await service.generateWorkflowFromDescription({
-        description: 'test',
-      });
-      expect(result.tokensUsed).toBe(0);
-    });
 
-    it('rejects an LLM response without a workflow graph', async () => {
-      openRouterService.chatCompletion.mockResolvedValue(
-        makeOpenRouterResponse('{}'),
-      );
       await expect(
-        service.generateWorkflowFromDescription({
-          description: 'edge case',
-        }),
+        service.generateWorkflowFromDescription({ description: 'edge case' }),
       ).rejects.toMatchObject({ status: HttpStatus.UNPROCESSABLE_ENTITY });
     });
   });

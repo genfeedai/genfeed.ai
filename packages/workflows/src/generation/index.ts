@@ -1,4 +1,10 @@
 import { ALL_ACTIONS } from '@genfeedai/actions';
+import {
+  WORKFLOW_GENERATION_SCHEMA_NAME,
+  type WorkflowGeneration,
+  workflowGenerationSchema,
+} from '@genfeedai/contracts/api-types/contracts';
+import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ENGINE_NATIVE_NODE_TYPES } from '../engine/utils/action-node';
 import { getNodeDefinition } from '../nodes/registry/merged-registry';
 
@@ -15,28 +21,6 @@ export interface BuildWorkflowGenerationPromptParams {
   availableNodeTypes: WorkflowGenerationNodeType[];
   description: string;
   targetPlatforms?: string[];
-}
-
-export interface GeneratedWorkflowShape {
-  description: string;
-  edges: Array<{
-    id: string;
-    source: string;
-    sourceHandle: string;
-    target: string;
-    targetHandle: string;
-  }>;
-  name: string;
-  nodes: Array<{
-    data: Record<string, unknown>;
-    id: string;
-    position: { x: number; y: number };
-    type: string;
-  }>;
-}
-
-export interface ParsedWorkflowGeneration {
-  workflow: Record<string, unknown>;
 }
 
 export function buildWorkflowGenerationNodeTypes(): WorkflowGenerationNodeType[] {
@@ -91,20 +75,12 @@ export function buildWorkflowGenerationMessages({
     'Available node types:',
     JSON.stringify(availableNodeTypes, null, 2),
     '',
-    'Output a JSON object with this structure:',
-    '{',
-    '  "name": "string - workflow name",',
-    '  "description": "string - workflow description",',
-    '  "nodes": [{ "id": "string", "type": "string (from available types)", "position": { "x": number, "y": number }, "data": { "label": "string", "config": {} } }],',
-    '  "edges": [{ "id": "string", "source": "node-id", "target": "node-id", "sourceHandle": "output-key", "targetHandle": "input-key" }]',
-    '}',
-    '',
     'Rules:',
     '- Only use node types from the available list above.',
     '- For an entry with workflowActionId, set node.type to "genfeedAction" and data.config to { "actionId": workflowActionId, "parameters": { ...action parameters } }.',
+    '- Give each node a data.label.',
     '- Connect nodes via edges using valid input/output handles.',
     '- Position nodes in a left-to-right flow with ~250px horizontal spacing.',
-    '- Return ONLY the JSON object, no markdown fences or explanation.',
     platformConstraint,
   ].join('\n');
 
@@ -114,10 +90,26 @@ export function buildWorkflowGenerationMessages({
   ];
 }
 
-export function parseWorkflowGenerationResponse(
+/**
+ * Validate a graph from a provider that cannot be told to answer in JSON.
+ *
+ * The prompt no longer forbids markdown fences — an enforcing route has no
+ * need of that instruction — so a local provider may well wrap its answer in
+ * one, in any of the forms CommonMark allows. `unwrapFencedJson` takes the
+ * wrapper off; the schema, rather than a regex, decides whether the graph is
+ * usable. Enforcing routes never call this.
+ */
+export function parseUnenforcedWorkflowGeneration(
   raw: string,
-): ParsedWorkflowGeneration {
-  const workflow = JSON.parse(raw || '{}') as Record<string, unknown>;
-
-  return { workflow };
+): WorkflowGeneration {
+  return workflowGenerationSchema.parse(JSON.parse(unwrapFencedJson(raw)));
 }
+
+export type { WorkflowGeneration };
+/**
+ * The generated graph's schema, re-exported beside the prompt builder so a
+ * caller never has to keep the two in step by hand. Routes that can enforce a
+ * JSON Schema hand this to the provider; routes that cannot go through
+ * {@link parseUnenforcedWorkflowGeneration} instead.
+ */
+export { WORKFLOW_GENERATION_SCHEMA_NAME, workflowGenerationSchema };

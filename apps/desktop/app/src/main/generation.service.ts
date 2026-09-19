@@ -14,7 +14,7 @@ import { sleep } from '@genfeedai/helpers';
 import {
   buildWorkflowGenerationMessages,
   buildWorkflowGenerationNodeTypes,
-  parseWorkflowGenerationResponse,
+  parseUnenforcedWorkflowGeneration,
 } from '@genfeedai/workflows/generation';
 import type { DesktopConfigService } from './config.service';
 import {
@@ -305,9 +305,14 @@ export class DesktopGenerationService {
     });
     const raw = await this.providerService.requestCompletion(config, messages);
 
+    // A desktop provider is whatever the user pointed at, so there is no
+    // schema enforcement to lean on and no JSON mode to ask for: the answer
+    // may arrive inside a markdown fence. It is validated against the same
+    // schema the cloud route hands the provider, and a graph that does not
+    // match throws rather than reaching the canvas half-formed.
     return {
       tokensUsed: 0,
-      workflow: parseWorkflowGenerationResponse(raw).workflow,
+      workflow: parseUnenforcedWorkflowGeneration(raw),
     };
   }
 

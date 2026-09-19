@@ -2,6 +2,7 @@ import { INSIGHT_GENERATION_ACTION_IDS } from '@api/collections/insights/service
 import { InsightsService } from '@api/collections/insights/services/insights.service';
 import type { ModelsService } from '@api/collections/models/services/models.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -23,7 +24,7 @@ describe('InsightsService', () => {
   let delegate: MockInsightDelegate;
   let forecastDelegate: { findMany: ReturnType<typeof vi.fn> };
   let llmDispatcherService: {
-    chatCompletion: ReturnType<typeof vi.fn>;
+    completeStructured: ReturnType<typeof vi.fn>;
   };
   let logger: {
     debug: ReturnType<typeof vi.fn>;
@@ -61,24 +62,16 @@ describe('InsightsService', () => {
       })),
     };
     llmDispatcherService = {
-      chatCompletion: vi.fn().mockResolvedValue({
-        choices: [
+      completeStructured: vi.fn().mockResolvedValue({
+        insights: [
           {
-            message: {
-              content: JSON.stringify({
-                insights: [
-                  {
-                    actionableSteps: ['Publish the follow-up'],
-                    confidence: 82,
-                    description: 'The current series is gaining momentum.',
-                    impact: 'high',
-                    relatedMetrics: ['reach'],
-                    title: 'Continue the series',
-                    type: 'opportunity',
-                  },
-                ],
-              }),
-            },
+            actionableSteps: ['Publish the follow-up'],
+            confidence: 82,
+            description: 'The current series is gaining momentum.',
+            impact: 'high',
+            relatedMetrics: ['reach'],
+            title: 'Continue the series',
+            type: 'opportunity',
           },
         ],
       }),
@@ -148,7 +141,7 @@ describe('InsightsService', () => {
           organizationId: 'org-1',
         }),
       });
-      expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+      expect(llmDispatcherService.completeStructured).not.toHaveBeenCalled();
       expect(result).toHaveLength(1);
       expect(result[0]).toMatchObject({
         category: 'opportunity',
@@ -159,7 +152,7 @@ describe('InsightsService', () => {
 
     it('returns an empty recoverable read when nothing is stored', async () => {
       await expect(service.getInsights('org-1', 5)).resolves.toEqual([]);
-      expect(llmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+      expect(llmDispatcherService.completeStructured).not.toHaveBeenCalled();
     });
   });
 
@@ -405,6 +398,97 @@ describe('InsightsService', () => {
       ).rejects.toThrow(
         'Insufficient data: real value for metric "engagement"',
       );
+    });
+  });
+
+  describe('structured output', () => {
+    const generate = () =>
+      workflowActions.get(INSIGHT_GENERATION_ACTION_IDS.GENERATE);
+
+    it('asks for the insight schema and maps the validated drafts', async () => {
+      await expect(
+        generate()?.({
+          input: {
+            plan: {
+              existingIds: [],
+              missingCount: 1,
+              organizationId: 'org-1',
+            },
+          },
+        }),
+      ).resolves.toEqual({
+        drafts: [
+          {
+            actionableSteps: ['Publish the follow-up'],
+            category: 'opportunity',
+            confidence: 82,
+            description: 'The current series is gaining momentum.',
+            impact: 'high',
+            isDismissed: false,
+            isRead: false,
+            relatedMetrics: ['reach'],
+            title: 'Continue the series',
+          },
+        ],
+      });
+
+      expect(llmDispatcherService.completeStructured).toHaveBeenCalledWith(
+        expect.objectContaining({ schemaName: 'generated_insights' }),
+        'org-1',
+      );
+    });
+
+    it('stops telling the model to return only JSON', async () => {
+      await generate()?.({
+        input: {
+          plan: { existingIds: [], missingCount: 1, organizationId: 'org-1' },
+        },
+      });
+
+      const [params] = llmDispatcherService.completeStructured.mock
+        .calls[0] as [{ messages: Array<{ content: string }> }];
+      expect(params.messages[0].content).not.toContain('valid JSON');
+    });
+
+    it('surfaces the typed error rather than reporting a provider outage', async () => {
+      const error = new LlmStructuredOutputError('generated_insights', [
+        {
+          code: 'invalid_value',
+          message: 'Invalid option',
+          path: 'insights.0.impact',
+        },
+      ]);
+      llmDispatcherService.completeStructured.mockRejectedValue(error);
+
+      await expect(
+        generate()?.({
+          input: {
+            plan: {
+              existingIds: [],
+              missingCount: 1,
+              organizationId: 'org-1',
+            },
+          },
+        }),
+      ).rejects.toBe(error);
+    });
+
+    it('reports a provider failure as a 503 the caller can retry', async () => {
+      llmDispatcherService.completeStructured.mockRejectedValue(
+        new Error('gateway timeout'),
+      );
+
+      await expect(
+        generate()?.({
+          input: {
+            plan: {
+              existingIds: [],
+              missingCount: 1,
+              organizationId: 'org-1',
+            },
+          },
+        }),
+      ).rejects.toMatchObject({ status: 503 });
     });
   });
 });

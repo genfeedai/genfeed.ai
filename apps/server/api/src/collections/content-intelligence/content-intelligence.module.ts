@@ -20,7 +20,7 @@ import { PersonasCoreModule } from '@api/collections/personas/personas-core.modu
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { ApifyModule } from '@api/services/integrations/apify/apify.module';
-import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { HttpModule } from '@nestjs/axios';
 import { Module } from '@nestjs/common';
 
@@ -46,7 +46,7 @@ import { Module } from '@nestjs/common';
     ContentPerformanceModule,
     ContentHarnessModule,
     HttpModule,
-    OpenRouterModule,
+    LlmDispatcherModule,
     PersonasCoreModule,
   ],
   providers: [

@@ -494,7 +494,14 @@ describe('DesktopGenerationService', () => {
                   description: 'Local workflow',
                   edges: [],
                   name: 'Local Workflow',
-                  nodes: [],
+                  nodes: [
+                    {
+                      data: { label: 'Start' },
+                      id: 'n1',
+                      position: { x: 0, y: 0 },
+                      type: 'workflowInput',
+                    },
+                  ],
                 }),
               },
             },
@@ -515,9 +522,40 @@ describe('DesktopGenerationService', () => {
         description: 'Local workflow',
         edges: [],
         name: 'Local Workflow',
-        nodes: [],
+        nodes: [
+          {
+            data: { label: 'Start' },
+            id: 'n1',
+            position: { x: 0, y: 0 },
+            type: 'workflowInput',
+          },
+        ],
       },
     });
+  });
+
+  it('refuses a local-provider graph that does not match the workflow schema', async () => {
+    const database = createDatabaseMock();
+    const service = new DesktopGenerationService(
+      database as unknown as DesktopGenerationStore,
+      providerTimeoutConfig,
+    );
+
+    await service.saveProviderConfig(providerConfig);
+
+    globalThis.fetch = (async () =>
+      new Response(
+        JSON.stringify({
+          choices: [
+            { message: { content: JSON.stringify({ name: 'Half a graph' }) } },
+          ],
+        }),
+        { headers: { 'content-type': 'application/json' }, status: 200 },
+      )) as typeof fetch;
+
+    await expect(
+      service.generateWorkflow({ description: 'Make a local workflow' }),
+    ).rejects.toThrow();
   });
 
   it('runs generation through Replicate model predictions with a provider API key', async () => {

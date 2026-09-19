@@ -7,13 +7,17 @@ import {
   type CreatePatternDto,
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
   ContentPatternType,
   CreatorAnalysisStatus,
 } from '@genfeedai/contracts';
+import {
+  CONTENT_PATTERN_EXTRACTION_SCHEMA_NAME,
+  contentPatternExtractionSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -38,7 +42,7 @@ export class PatternAnalyzerService {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly openRouterService: OpenRouterService,
+    private readonly llmDispatcherService: LlmDispatcherService,
     private readonly contentIntelligenceService: ContentIntelligenceService,
     private readonly creatorScraperService: CreatorScraperService,
     private readonly patternStoreService: PatternStoreService,
@@ -141,7 +145,10 @@ export class PatternAnalyzerService {
     // Extract hooks from high-performing posts with per-post error handling
     for (const post of topPosts) {
       try {
-        const hookPatterns = await this.extractHookPatterns(post);
+        const hookPatterns = await this.extractHookPatterns(
+          post,
+          organizationId,
+        );
 
         for (const pattern of hookPatterns) {
           patterns.push({
@@ -184,6 +191,7 @@ export class PatternAnalyzerService {
 
   private async extractHookPatterns(
     post: ScrapedPost,
+    organizationId: string,
   ): Promise<ExtractedPattern[]> {
     const text = post.text;
     if (!text || text.length < 20) {
@@ -192,7 +200,7 @@ export class PatternAnalyzerService {
 
     // Try to use LLM for extraction, fall back to rule-based
     try {
-      return await this.extractPatternsWithLLM(text);
+      return await this.extractPatternsWithLLM(text, organizationId);
     } catch {
       return this.extractPatternsRuleBased(text);
     }
@@ -200,23 +208,35 @@ export class PatternAnalyzerService {
 
   private async extractPatternsWithLLM(
     text: string,
+    organizationId: string,
   ): Promise<ExtractedPattern[]> {
-    const prompt = this.buildExtractionPrompt(text);
-
     try {
-      const response = await this.openRouterService.chatCompletion({
-        max_tokens: 1500,
-        messages: [{ content: prompt, role: 'user' }],
-        model: this.defaultModel,
-        temperature: 0.3,
-      });
+      const extraction = await this.llmDispatcherService.completeStructured(
+        {
+          max_tokens: 1500,
+          messages: [
+            { content: this.buildExtractionPrompt(text), role: 'user' },
+          ],
+          model: this.defaultModel,
+          schema: contentPatternExtractionSchema,
+          schemaName: CONTENT_PATTERN_EXTRACTION_SCHEMA_NAME,
+          temperature: 0.3,
+        },
+        organizationId,
+      );
 
-      const content = response.choices[0]?.message?.content;
-      if (!content) {
-        return [];
-      }
-
-      return this.parseLLMResponse(content, text);
+      // `patternType` and `templateCategory` stay coerced: they are the two
+      // enum labels a sibling issue in epic #4863 moves onto a typed decision.
+      return extraction.patterns.map((pattern) => ({
+        description: pattern.description,
+        extractedFormula: pattern.extractedFormula,
+        patternType: this.validatePatternType(pattern.patternType),
+        placeholders: pattern.placeholders,
+        rawExample: text,
+        templateCategory: this.validateTemplateCategory(
+          pattern.templateCategory,
+        ),
+      }));
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName}: LLM extraction failed`,
@@ -239,47 +259,14 @@ Identify:
 2. Template structure (story, list, contrarian, case study, etc.)
 3. CTA patterns (call to action phrases)
 
-For each pattern found, respond in JSON format:
-[{
-  "patternType": "hook" | "template" | "cta" | "structure",
-  "templateCategory": "story" | "contrarian" | "case_study" | "list" | "curation" | "question" | "thread" | null,
-  "extractedFormula": "The reusable formula with [PLACEHOLDER] markers",
-  "description": "Brief description of why this works",
-  "placeholders": ["PLACEHOLDER1", "PLACEHOLDER2"]
-}]
+For each pattern, give:
+- patternType: one of hook, template, cta, structure
+- templateCategory: one of story, contrarian, case_study, list, curation, question, thread — or null
+- extractedFormula: the reusable formula with [PLACEHOLDER] markers
+- description: why this works, in one line
+- placeholders: the placeholder names used in the formula
 
-Return ONLY the JSON array. If no patterns found, return [].`;
-  }
-
-  private parseLLMResponse(
-    content: string,
-    originalText: string,
-  ): ExtractedPattern[] {
-    try {
-      let jsonStr = content.trim();
-      if (jsonStr.startsWith('```json')) {
-        jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.replace(/```\n?/g, '');
-      }
-
-      const patterns = JSON.parse(jsonStr) as ExtractedPattern[];
-
-      if (!Array.isArray(patterns)) {
-        return [];
-      }
-
-      return patterns.map((p) => ({
-        description: p.description || 'Extracted pattern',
-        extractedFormula: p.extractedFormula || originalText.slice(0, 100),
-        patternType: this.validatePatternType(p.patternType),
-        placeholders: Array.isArray(p.placeholders) ? p.placeholders : [],
-        rawExample: originalText,
-        templateCategory: this.validateTemplateCategory(p.templateCategory),
-      }));
-    } catch {
-      return [];
-    }
+If no patterns are worth reusing, return an empty list.`;
   }
 
   private extractPatternsRuleBased(text: string): ExtractedPattern[] {
