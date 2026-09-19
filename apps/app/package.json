@@ -5,6 +5,7 @@
     "@genfeedai/auth-client": "*",
     "@genfeedai/client": "*",
     "@genfeedai/config": "*",
+    "@genfeedai/harness": "*",
     "@genfeedai/helpers": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/pricing": "*",

@@ -160,6 +160,89 @@ describe('EvaluationsOperationsService', () => {
         ),
       ).rejects.toThrow(ExternalServiceException);
     });
+
+    it('normalizes a complete persuasion result onto the stored scores', async () => {
+      const mockAiResponse = {
+        overallScore: 85,
+        scores: {
+          brand: { overall: 80 },
+          engagement: { overall: 90 },
+          persuasion: {
+            ctaNaturalness: 60,
+            demandFit: 80,
+            hookStrength: 100,
+            openLoopIntegrity: 40,
+            overall: 1,
+          },
+          technical: { overall: 85 },
+        },
+        strengths: [],
+        suggestions: [],
+        weaknesses: [],
+      };
+
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'built prompt' },
+        templateUsed: null,
+        templateVersion: null,
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify(mockAiResponse),
+      );
+
+      const result = await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        {},
+        organizationId,
+      );
+
+      expect(result.scores.persuasion).toEqual({
+        ctaNaturalness: 60,
+        demandFit: 80,
+        hookStrength: 100,
+        openLoopIntegrity: 40,
+        overall: 70,
+      });
+    });
+
+    it('drops an incomplete persuasion result without touching the other scores', async () => {
+      const mockAiResponse = {
+        overallScore: 85,
+        scores: {
+          brand: { overall: 80 },
+          engagement: { overall: 90 },
+          persuasion: {
+            ctaNaturalness: 60,
+            demandFit: 80,
+            // hookStrength and openLoopIntegrity missing -- incomplete
+          },
+          technical: { overall: 85 },
+        },
+        strengths: [],
+        suggestions: [],
+        weaknesses: [],
+      };
+
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'built prompt' },
+        templateUsed: null,
+        templateVersion: null,
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify(mockAiResponse),
+      );
+
+      const result = await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        {},
+        organizationId,
+      );
+
+      expect(result.scores.persuasion).toBeUndefined();
+      expect(result.scores.brand).toEqual({ overall: 80 });
+      expect(result.scores.engagement).toEqual({ overall: 90 });
+      expect(result.scores.technical).toEqual({ overall: 85 });
+    });
   });
 
   describe('evaluateImage', () => {

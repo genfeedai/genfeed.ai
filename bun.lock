@@ -173,6 +173,7 @@
         "@genfeedai/client": "*",
         "@genfeedai/config": "*",
         "@genfeedai/contracts": "workspace:*",
+        "@genfeedai/harness": "*",
         "@genfeedai/helpers": "*",
         "@genfeedai/next-config": "*",
         "@genfeedai/pricing": "*",

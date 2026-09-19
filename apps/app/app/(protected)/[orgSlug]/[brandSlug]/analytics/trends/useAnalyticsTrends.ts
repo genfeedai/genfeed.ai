@@ -31,6 +31,8 @@ import { useQuery } from '@tanstack/react-query';
 import { PLATFORM_CONFIGS } from '@ui-constants/platform.constant';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 
+import { getPersuasionHighlight } from './persuasion-highlight.util';
+
 const TRENDS_PLATFORMS: ITrendPlatformConfig[] = [
   PLATFORM_CONFIGS.tiktok,
   PLATFORM_CONFIGS.youtube,
@@ -64,6 +66,9 @@ export function normalizeAnalyticsVideo(video: Video): ITrendVideo {
     description: video.metadataDescription || undefined,
     engagementRate: actualPerformance?.engagementRate ?? 0,
     id: video.id || '',
+    persuasionHighlight: getPersuasionHighlight(
+      evaluationData?.scores?.persuasion,
+    ),
     platform:
       evaluationData?.externalContent?.platform ||
       ingredient.provider ||

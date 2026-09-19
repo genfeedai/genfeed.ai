@@ -19,6 +19,12 @@ export interface ITrend {
   mentions: number;
 }
 
+export interface ITrendVideoPersuasionHighlight {
+  id: string;
+  label: string;
+  score: number;
+}
+
 export interface ITrendVideo {
   id: string;
   externalId?: string;
@@ -52,6 +58,12 @@ export interface ITrendVideo {
   soundName?: string;
   hook?: string;
   isCurrent?: boolean;
+  /**
+   * Top-scoring persuasion layer for this video's evaluation, if one exists
+   * -- the "why it works" mechanism surfaced on the Trends leaderboard.
+   * Undefined when the video has no evaluation or no persuasion scores.
+   */
+  persuasionHighlight?: ITrendVideoPersuasionHighlight;
 }
 
 export interface ITrendAccount {
