@@ -136,6 +136,8 @@ function createPrismaClient(): PrismaClient {
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
+  const target = new URL(connectionString);
+  logger.log(`Target database: ${target.hostname}${target.pathname}`);
   return new PrismaClient({
     adapter: new PrismaPg(
       createPrismaPgConfig(connectionString, {
