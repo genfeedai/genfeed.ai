@@ -173,7 +173,9 @@ describe('KnowledgeSourceIngestService', () => {
     expect(chunked.chunks).toEqual(['Plans start at $29 per month.']);
 
     await service.replaceChunks(chunked);
-    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    // One transaction creates the scope base, one locks the source to scope
+    // the chunk delete.
+    expect(prisma.$transaction).toHaveBeenCalledTimes(2);
     expect(contextBase.create).toHaveBeenCalledWith(
       expect.objectContaining({
         data: expect.objectContaining({
