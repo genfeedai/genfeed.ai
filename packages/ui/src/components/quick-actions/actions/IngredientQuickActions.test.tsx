@@ -1,6 +1,10 @@
 import type { SaveAsCharacterProps } from '@genfeedai/props/characters/save-as-character.props';
 import '@testing-library/jest-dom/vitest';
-import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
+import {
+  IngredientCategory,
+  IngredientStatus,
+  SubscriptionTier,
+} from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
 import { fireEvent, render, screen } from '@testing-library/react';
 import IngredientQuickActions from '@ui/quick-actions/actions/IngredientQuickActions';
@@ -112,7 +116,7 @@ describe('IngredientQuickActions', () => {
     it('is unrestricted on self-hosted deployments regardless of tier', () => {
       mocks.isSelfHostedDeployment.mockReturnValue(true);
       mocks.useBrand.mockReturnValue({
-        settings: { subscriptionTier: 'FREE' },
+        settings: { subscriptionTier: SubscriptionTier.FREE },
       });
       render(
         <IngredientQuickActions
@@ -129,7 +133,7 @@ describe('IngredientQuickActions', () => {
     it('locks the original download for SaaS free-tier organizations', () => {
       mocks.isSelfHostedDeployment.mockReturnValue(false);
       mocks.useBrand.mockReturnValue({
-        settings: { subscriptionTier: 'FREE' },
+        settings: { subscriptionTier: SubscriptionTier.FREE },
       });
       render(
         <IngredientQuickActions
@@ -145,7 +149,9 @@ describe('IngredientQuickActions', () => {
 
     it('unlocks the original download for SaaS paid-tier organizations', () => {
       mocks.isSelfHostedDeployment.mockReturnValue(false);
-      mocks.useBrand.mockReturnValue({ settings: { subscriptionTier: 'PRO' } });
+      mocks.useBrand.mockReturnValue({
+        settings: { subscriptionTier: SubscriptionTier.PRO },
+      });
       render(
         <IngredientQuickActions
           selectedIngredient={ingredient}
