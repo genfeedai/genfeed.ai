@@ -26,6 +26,7 @@ export * from './generation-brief-compiler.contract';
 export * from './generation-capability-profile.contract';
 export * from './generation-capability-profile-remaining.contract';
 export * from './generation-webhook-events.contract';
+export * from './grok-trend-extraction.contract';
 export * from './ingredients.contract';
 export * from './instagram-authorized-signals.contract';
 export * from './linkedin-authorized-signals.contract';
