@@ -14,9 +14,13 @@
  *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --env=production --ownerEmail=<email> --packs=@genfeedai/private-harness
  *   bun run apps/server/api/scripts/seeds/harness-profiles-from-packs.seed.ts --env=production --ownerEmail=<email> --organizationId=<id> --packs=<path-or-package> --live
  *
- * Seeds load from `--packs=<package-or-path>` (a module exporting
- * `PRIVATE_HARNESS_SEEDS`). Without it, the genfeed-shaped fixture seed is used
- * for local development only.
+ * Seed sources, in order:
+ * 1. `--packs=<package-or-path>`: a module exporting `PRIVATE_HARNESS_SEEDS`.
+ * 2. `HARNESS_SEED_*` env vars: one JSON seed each, optionally `gz:`-prefixed
+ *    base64 gzip. The hosted `harness-profile-seed` ECS task injects them from
+ *    the `harness_seed_ssm_path` SSM parameters, so private voice never enters
+ *    the public image.
+ * 3. The genfeed-shaped fixture seed, for local development only.
  */
 
 import { readFileSync } from 'node:fs';
@@ -24,6 +28,7 @@ import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import process from 'node:process';
 import { fileURLToPath } from 'node:url';
+import { gunzipSync } from 'node:zlib';
 import { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import {
   type HarnessPackSeed,
@@ -46,10 +51,13 @@ type SeedArgs = {
   organizationId?: string;
   ownerEmail?: string;
   packs?: string;
+  validateRuntime: boolean;
 };
 
 const logger = new Logger('HarnessProfilePackSeed');
 const LOCAL_DATABASE_HOSTS = ['0.0.0.0', '127.0.0.1', '::1', 'localhost'];
+const SEED_ENV_PREFIX = 'HARNESS_SEED_';
+const GZIP_SEED_PREFIX = 'gz:';
 const scriptDir = fileURLToPath(new URL('.', import.meta.url));
 
 const FIXTURE_SEEDS: HarnessPackSeed[] = [
@@ -92,6 +100,7 @@ export function parseHarnessSeedArgs(args: readonly string[]): SeedArgs {
     organizationId: readArg(args, 'organizationId'),
     ownerEmail: readArg(args, 'ownerEmail'),
     packs: readArg(args, 'packs'),
+    validateRuntime: args.includes('--validate-runtime'),
   };
 }
 
@@ -125,9 +134,6 @@ function loadEnvFile(envArg?: string): void {
     }
     logger.log(`Loaded env from .env.${envSuffix}`);
   } catch {
-    if (envArg) {
-      throw new Error(`Missing .env.${envSuffix} next to the api package`);
-    }
     logger.log(`No .env.${envSuffix} found, using process env`);
   }
 }
@@ -172,9 +178,33 @@ function isHarnessPackSeed(value: unknown): value is HarnessPackSeed {
   );
 }
 
-export function loadSeeds(specifier?: string): HarnessPackSeed[] {
+function parseSeedValue(name: string, raw: string): HarnessPackSeed {
+  const json = raw.startsWith(GZIP_SEED_PREFIX)
+    ? gunzipSync(
+        Buffer.from(raw.slice(GZIP_SEED_PREFIX.length), 'base64'),
+      ).toString('utf8')
+    : raw;
+  const value: unknown = JSON.parse(json);
+  if (!isHarnessPackSeed(value)) {
+    throw new Error(`${name} is not a harness seed (needs id and brandName)`);
+  }
+  return value;
+}
+
+export function loadEnvSeeds(env: NodeJS.ProcessEnv): HarnessPackSeed[] {
+  return Object.keys(env)
+    .filter((name) => name.startsWith(SEED_ENV_PREFIX) && env[name])
+    .sort()
+    .map((name) => parseSeedValue(name, env[name] as string));
+}
+
+export function loadSeeds(
+  specifier?: string,
+  env: NodeJS.ProcessEnv = process.env,
+): HarnessPackSeed[] {
   if (!specifier) {
-    return FIXTURE_SEEDS;
+    const envSeeds = loadEnvSeeds(env);
+    return envSeeds.length > 0 ? envSeeds : FIXTURE_SEEDS;
   }
 
   const requireFn = createRequire(resolve(process.cwd(), 'package.json'));
@@ -222,8 +252,12 @@ async function resolveOwnerOrganizations(params: {
   }));
 }
 
-async function main(): Promise<void> {
+export async function runHarnessProfileSeed(): Promise<void> {
   const args = parseHarnessSeedArgs(process.argv.slice(2));
+  if (args.validateRuntime) {
+    logger.log('Harness profile seed runtime OK');
+    return;
+  }
   loadEnvFile(args.env);
 
   if (!args.ownerEmail) {
@@ -234,13 +268,12 @@ async function main(): Promise<void> {
   if (args.organizationId && !isEntityId(args.organizationId)) {
     throw new Error(`Invalid organization id: ${args.organizationId}`);
   }
-  if (args.env === 'production' && !args.packs) {
+  const seeds = loadSeeds(args.packs);
+  if (args.env === 'production' && seeds === FIXTURE_SEEDS) {
     throw new Error(
-      'A production run must name its seeds: pass --packs=<package-or-path>',
+      'A production run needs private seeds: pass --packs=<package-or-path> or inject HARNESS_SEED_* from SSM',
     );
   }
-
-  const seeds = loadSeeds(args.packs);
   const prisma = createPrismaClient(args.env);
   const harnessProfiles = new HarnessProfilesService(
     prisma as unknown as PrismaService,
@@ -301,7 +334,7 @@ async function main(): Promise<void> {
 }
 
 if (import.meta.main) {
-  void main().catch((error: unknown) => {
+  void runHarnessProfileSeed().catch((error: unknown) => {
     logger.error(error instanceof Error ? error.message : error);
     process.exitCode = 1;
   });

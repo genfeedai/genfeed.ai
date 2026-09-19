@@ -199,6 +199,55 @@ resource "aws_ecs_task_definition" "articles_seed" {
   }])
 }
 
+# ── One-off harness profile seed ────────────────────────────────────────────
+# Writes private brand harness profiles into the owner's organizations. The
+# seeds come from harness_seed_ssm_path at run time, never from the public
+# image. The default command is a dry run pinned to owner_email; pass --live
+# (and optionally --organizationId=<id>) as a command override to write.
+resource "aws_cloudwatch_log_group" "harness_profile_seed" {
+  count             = var.harness_seed_ssm_path == "" ? 0 : 1
+  name              = "/ecs/${local.name_prefix}/harness-profile-seed"
+  retention_in_days = 7
+}
+
+resource "aws_ecs_task_definition" "harness_profile_seed" {
+  count                    = var.harness_seed_ssm_path == "" ? 0 : 1
+  family                   = "${local.name_prefix}-harness-profile-seed"
+  network_mode             = "awsvpc"
+  requires_compatibilities = ["FARGATE"]
+  cpu                      = local.services.api.cpu
+  memory                   = local.services.api.mem
+  execution_role_arn       = aws_iam_role.execution.arn
+  task_role_arn            = aws_iam_role.task.arn
+
+  container_definitions = jsonencode([{
+    name      = "harness-profile-seed"
+    image     = local.image
+    essential = true
+    command = [
+      "node",
+      "-r",
+      "tsconfig-paths/register",
+      "apps/server/dist/apps/api-harness-profile-seed/main",
+      "--env=production",
+      "--ownerEmail=${var.owner_email}",
+    ]
+    secrets = concat(local.service_task_secrets, local.harness_seed_task_secrets)
+    environment = concat(local.internal_env, [
+      { name = "PORT", value = tostring(local.services.api.port) },
+      { name = "SERVICE_NAME", value = "harness-profile-seed" },
+    ])
+    logConfiguration = {
+      logDriver = "awslogs"
+      options = {
+        "awslogs-group"         = aws_cloudwatch_log_group.harness_profile_seed[0].name
+        "awslogs-region"        = var.region
+        "awslogs-stream-prefix" = "harness-profile-seed"
+      }
+    }
+  }])
+}
+
 # ── One-off boot smoke (run via `aws ecs run-task` BEFORE services roll) ─
 # Starts the production api command and requires localhost /v1/health to answer.
 # This catches both crash-on-boot bugs and "loads but never binds the port"

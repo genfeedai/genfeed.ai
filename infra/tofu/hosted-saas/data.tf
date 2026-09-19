@@ -23,3 +23,12 @@ data "aws_ssm_parameters_by_path" "prod" {
   recursive       = true
   with_decryption = false
 }
+
+# ── Private harness seeds (names + ARNs only) ─────────────────────────
+# Kept outside ssm_path so only the harness-profile-seed task receives them.
+data "aws_ssm_parameters_by_path" "harness_seeds" {
+  count           = var.harness_seed_ssm_path == "" ? 0 : 1
+  path            = var.harness_seed_ssm_path
+  recursive       = false
+  with_decryption = false
+}

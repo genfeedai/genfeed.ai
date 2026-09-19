@@ -249,7 +249,7 @@ RUN set -e; \
 # size gate in build-verify.yml. `test -f` alone passes a 0-byte file.
 RUN echo "Checking build outputs..." && \
     ls -la apps/server/dist/apps/ 2>/dev/null || echo "dist/apps/ directory missing!" && \
-    for svc in api workers files mcp notifications telegram discord slack api-articles-seed; do \
+    for svc in api workers files mcp notifications telegram discord slack api-articles-seed api-harness-profile-seed; do \
       if ! test -f "apps/server/dist/apps/$svc/main.js"; then \
         echo "❌ $svc bundle MISSING" && exit 1; \
       fi; \
@@ -265,6 +265,9 @@ RUN echo "Checking build outputs..." && \
 # entrypoint rather than merely leaving a non-empty file on disk.
 RUN node -r tsconfig-paths/register \
       apps/server/dist/apps/api-articles-seed/main \
+      --validate-runtime
+RUN node -r tsconfig-paths/register \
+      apps/server/dist/apps/api-harness-profile-seed/main \
       --validate-runtime
 
 # ==================================================

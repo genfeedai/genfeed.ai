@@ -1,8 +1,11 @@
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { gzipSync } from 'node:zlib';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
+  isLocalDatabaseUrl,
+  loadEnvSeeds,
   loadSeeds,
   parseHarnessSeedArgs,
 } from './harness-profiles-from-packs.seed';
@@ -38,14 +41,52 @@ describe('harness profile seed', () => {
       organizationId: 'org_1',
       ownerEmail: 'owner@example.com',
       packs: '@acme/private-harness',
+      validateRuntime: false,
     });
     expect(parseHarnessSeedArgs(['--live']).dryRun).toBe(false);
   });
 
-  it('uses the fixture seed only when no pack module is named', () => {
-    expect(loadSeeds().map((seed) => seed.id)).toEqual([
+  it('uses the fixture seed only when no module or env seeds exist', () => {
+    expect(loadSeeds(undefined, {}).map((seed) => seed.id)).toEqual([
       'fixture-genfeed-brand',
     ]);
+  });
+
+  it('reads plain and gzip HARNESS_SEED_* env values, ignoring others', () => {
+    const gz = gzipSync(
+      JSON.stringify({ brandName: 'Beta', id: 'beta-brand' }),
+    ).toString('base64');
+
+    expect(
+      loadEnvSeeds({
+        DATABASE_URL: 'postgres://db',
+        HARNESS_SEED_ALPHA: JSON.stringify({ brandName: 'Alpha', id: 'alpha' }),
+        HARNESS_SEED_BETA: `gz:${gz}`,
+      }).map((seed) => seed.id),
+    ).toEqual(['alpha', 'beta-brand']);
+  });
+
+  it('rejects a malformed env seed instead of skipping it', () => {
+    expect(() =>
+      loadEnvSeeds({ HARNESS_SEED_BAD: JSON.stringify({ id: 'x' }) }),
+    ).toThrow('HARNESS_SEED_BAD is not a harness seed');
+  });
+
+  it('prefers env seeds over the fixture', () => {
+    expect(
+      loadSeeds(undefined, {
+        HARNESS_SEED_ALPHA: JSON.stringify({ brandName: 'Alpha', id: 'alpha' }),
+      }).map((seed) => seed.id),
+    ).toEqual(['alpha']);
+  });
+
+  it('detects local database hosts', () => {
+    expect(isLocalDatabaseUrl('postgres://u:p@localhost:5432/genfeed')).toBe(
+      true,
+    );
+    expect(
+      isLocalDatabaseUrl('postgres://u:p@db.example.rds.amazonaws.com/genfeed'),
+    ).toBe(false);
   });
 
   it('loads valid PRIVATE_HARNESS_SEEDS and drops malformed entries', () => {
