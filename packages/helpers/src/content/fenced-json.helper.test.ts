@@ -23,6 +23,8 @@ describe('unwrapFencedJson', () => {
     ['prose around the fence', 'Here you go:\n```json\n{BODY}\n```\nEnjoy!'],
     ['indented fence', '  ```json\n{BODY}\n  ```'],
     ['crlf line endings', '```json\r\n{BODY}\r\n```'],
+    ['close longer than the open', '```json\n{BODY}\n````'],
+    ['tilde close longer than the open', '~~~json\n{BODY}\n~~~~~'],
   ])('unwraps a %s', (_name, template) => {
     expect(unwrapFencedJson(template.replace('{BODY}', body))).toBe(body);
   });
@@ -31,6 +33,12 @@ describe('unwrapFencedJson', () => {
     const nested = '````\n```\n{"a":1}\n```\n````';
 
     expect(unwrapFencedJson(nested)).toBe('```\n{"a":1}\n```');
+  });
+
+  it('does not let one fence character close the other', () => {
+    const mismatched = '```json\n{"a":1}\n~~~';
+
+    expect(unwrapFencedJson(mismatched)).toBe(mismatched);
   });
 
   it('leaves text alone when the fence is never closed', () => {
