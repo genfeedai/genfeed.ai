@@ -41,17 +41,42 @@ describe('toStructuredJsonSchema', () => {
 });
 
 describe('buildStructuredResponseFormat', () => {
-  it('wraps the schema in a strict json_schema response format', () => {
-    const format = buildStructuredResponseFormat('quality', { type: 'object' });
+  it('wraps a closed schema in a strict json_schema response format', () => {
+    const jsonSchema = toStructuredJsonSchema(schema);
+    const format = buildStructuredResponseFormat('quality', jsonSchema);
 
     expect(format).toEqual({
-      json_schema: {
-        name: 'quality',
-        schema: { type: 'object' },
-        strict: true,
-      },
+      json_schema: { name: 'quality', schema: jsonSchema, strict: true },
       type: 'json_schema',
     });
+  });
+
+  it('drops strict when the schema holds an open record', () => {
+    const open = z.object({
+      config: z.record(z.string(), z.unknown()),
+      id: z.string(),
+    });
+
+    const format = buildStructuredResponseFormat(
+      'node',
+      toStructuredJsonSchema(open),
+    );
+
+    // OpenAI's strict mode rejects an object with no `properties`, so the
+    // schema still goes to the provider — just not as a hard constraint.
+    expect(format.json_schema.strict).toBe(false);
+    expect(format.json_schema.schema).toMatchObject({
+      properties: { config: { type: 'object' } },
+    });
+  });
+
+  it('still refuses an answer the non-strict schema does not match', () => {
+    const open = z.object({
+      config: z.record(z.string(), z.unknown()),
+      id: z.string(),
+    });
+
+    expect(open.safeParse({ config: {}, id: 7 }).success).toBe(false);
   });
 });
 

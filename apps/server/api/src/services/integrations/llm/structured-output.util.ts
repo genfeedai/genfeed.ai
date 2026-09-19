@@ -74,6 +74,32 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Whether a provider can be asked to enforce this schema *strictly*.
+ *
+ * OpenAI's strict structured outputs only accept closed objects — every one
+ * needs `properties` and `additionalProperties: false`. A schema with an open
+ * record in it (a workflow node's `data`, a brand profile section) has neither
+ * and is rejected outright, so those go out non-strict: the provider still
+ * gets the full JSON Schema to steer on, and zod plus the repair retry decide
+ * whether the answer is usable.
+ */
+function isStrictEnforceable(node: unknown): boolean {
+  if (Array.isArray(node)) {
+    return node.every(isStrictEnforceable);
+  }
+
+  if (!isRecord(node)) {
+    return true;
+  }
+
+  if (node.type === 'object' && !isRecord(node.properties)) {
+    return false;
+  }
+
+  return Object.values(node).every(isStrictEnforceable);
+}
+
 export function buildStructuredResponseFormat(
   schemaName: string,
   jsonSchema: Record<string, unknown>,
@@ -81,7 +107,7 @@ export function buildStructuredResponseFormat(
   const spec: OpenRouterJsonSchemaSpec = {
     name: schemaName,
     schema: jsonSchema,
-    strict: true,
+    strict: isStrictEnforceable(jsonSchema),
   };
 
   return { json_schema: spec, type: 'json_schema' };
