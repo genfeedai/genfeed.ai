@@ -151,6 +151,38 @@ export class ExpertFirstSystemService {
     };
   }
 
+  /** The plan recorded by the latest successful first-system generation. */
+  async getCurrentPlan(
+    organizationId: string,
+    brandId: string,
+  ): Promise<{
+    items: ContentPlanItemDocument[];
+    plan: ContentPlanDocument;
+  } | null> {
+    const record = await this.readRecord(organizationId, brandId);
+    if (!record.planId) {
+      return null;
+    }
+
+    try {
+      const plan = await this.contentPlansService.getByIdOrFail(
+        organizationId,
+        record.planId,
+        brandId,
+      );
+      const items = await this.contentPlanItemsService.listByPlan(
+        organizationId,
+        record.planId,
+      );
+      return { items, plan };
+    } catch (error: unknown) {
+      if (error instanceof NotFoundException) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
   async generate(params: {
     brandId: string;
     organizationId: string;
@@ -224,7 +256,7 @@ export class ExpertFirstSystemService {
     prompt?: string;
     topic?: string;
     userId: string;
-  }): Promise<{ item: ContentPlanItemDocument; result?: unknown }> {
+  }): Promise<{ item: ContentPlanItemDocument }> {
     const { organizationId } = params;
     const plan = await this.contentPlansService.getByIdOrFail(
       organizationId,
@@ -280,9 +312,7 @@ export class ExpertFirstSystemService {
       };
     }
 
-    const { result } = await this.systemWorkflowRunner.runWorkflow<
-      Record<string, unknown>
-    >({
+    await this.systemWorkflowRunner.runWorkflow<Record<string, unknown>>({
       actionType: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_ITEM,
       canonicalId: AUTOMATION_WORKFLOW_IDS.CONTENT_ENGINE_ITEM,
       inputValues: {
@@ -301,7 +331,6 @@ export class ExpertFirstSystemService {
         organizationId,
         params.itemId,
       ),
-      result,
     };
   }
 

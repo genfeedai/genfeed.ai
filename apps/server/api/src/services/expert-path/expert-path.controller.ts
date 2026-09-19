@@ -1,11 +1,19 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import {
+  serializeCollection,
+  serializeSingle,
+} from '@api/helpers/utils/response/response.util';
 import { ReviewFirstSystemItemDto } from '@api/services/expert-path/dto/review-first-system-item.dto';
 import { ExpertFirstSystemService } from '@api/services/expert-path/services/expert-first-system.service';
 import { ExpertPathService } from '@api/services/expert-path/services/expert-path.service';
 import { ExpertPositioningService } from '@api/services/expert-path/services/expert-positioning.service';
 import type { IExpertPathStatus } from '@genfeedai/contracts/interfaces';
+import {
+  ContentPlanItemSerializer,
+  ContentPlanSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
@@ -14,7 +22,9 @@ import {
   Param,
   Patch,
   Post,
+  Req,
 } from '@nestjs/common';
+import type { Request } from 'express';
 
 /**
  * Expert Path surface for a brand: status, positioning regeneration, and the
@@ -53,26 +63,58 @@ export class ExpertPathController {
   }
 
   @Post('first-system')
-  generateFirstSystem(
+  async generateFirstSystem(
+    @Req() req: Request,
     @Param('brandId') brandId: string,
     @CurrentUser() user: User,
   ) {
-    return this.expertFirstSystemService.generate({
+    const { items, plan, provenance } =
+      await this.expertFirstSystemService.generate({
+        brandId,
+        organizationId: this.requireOrg(user),
+        userId: this.requireUser(user),
+      });
+    return {
+      items: serializeCollection(req, ContentPlanItemSerializer, {
+        docs: items,
+      }),
+      plan: serializeSingle(req, ContentPlanSerializer, plan),
+      provenance,
+    };
+  }
+
+  /** The current first content system plan and its items, for review. */
+  @Get('first-system')
+  async getFirstSystem(
+    @Req() req: Request,
+    @Param('brandId') brandId: string,
+    @CurrentUser() user: User,
+  ) {
+    const result = await this.expertFirstSystemService.getCurrentPlan(
+      this.requireOrg(user),
       brandId,
-      organizationId: this.requireOrg(user),
-      userId: this.requireUser(user),
-    });
+    );
+    if (!result) {
+      return { items: null, plan: null };
+    }
+    return {
+      items: serializeCollection(req, ContentPlanItemSerializer, {
+        docs: result.items,
+      }),
+      plan: serializeSingle(req, ContentPlanSerializer, result.plan),
+    };
   }
 
   @Patch('first-system/:planId/items/:itemId')
-  reviewFirstSystemItem(
+  async reviewFirstSystemItem(
+    @Req() req: Request,
     @Param('brandId') brandId: string,
     @Param('planId') planId: string,
     @Param('itemId') itemId: string,
     @Body() dto: ReviewFirstSystemItemDto,
     @CurrentUser() user: User,
   ) {
-    return this.expertFirstSystemService.applyItemAction({
+    const { item } = await this.expertFirstSystemService.applyItemAction({
       action: dto.action,
       brandId,
       itemId,
@@ -82,6 +124,7 @@ export class ExpertPathController {
       ...(dto.topic !== undefined ? { topic: dto.topic } : {}),
       userId: this.requireUser(user),
     });
+    return serializeSingle(req, ContentPlanItemSerializer, item);
   }
 
   private requireOrg(user: User): string {
