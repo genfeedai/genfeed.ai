@@ -7,7 +7,8 @@ vi.mock('@api/shared/modules/prisma/prisma.service', () => ({
 }));
 
 import type { CacheService } from '@api/services/cache/cache.service';
-import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 
@@ -267,7 +268,7 @@ describe('assembleScorecard', () => {
 describe('SeoScorerService', () => {
   let logger: LoggerService;
   let cacheService: { invalidateByTags: ReturnType<typeof vi.fn> };
-  let openRouter: { chatCompletion: ReturnType<typeof vi.fn> };
+  let llmDispatcher: { completeStructured: ReturnType<typeof vi.fn> };
   let prisma: {
     article: {
       findFirst: ReturnType<typeof vi.fn>;
@@ -299,7 +300,7 @@ describe('SeoScorerService', () => {
       warn: vi.fn(),
     } as unknown as LoggerService;
     cacheService = { invalidateByTags: vi.fn().mockResolvedValue(0) };
-    openRouter = { chatCompletion: vi.fn() };
+    llmDispatcher = { completeStructured: vi.fn() };
     prisma = {
       article: { findFirst: vi.fn(), update: vi.fn() },
       post: { findFirst: vi.fn(), update: vi.fn() },
@@ -308,7 +309,7 @@ describe('SeoScorerService', () => {
       logger,
       prisma as unknown as PrismaService,
       cacheService as unknown as CacheService,
-      openRouter as unknown as OpenRouterService,
+      llmDispatcher as unknown as LlmDispatcherService,
     );
   });
 
@@ -317,7 +318,7 @@ describe('SeoScorerService', () => {
     const b = await service.scoreContent(goodInput, { useLlm: false });
     expect(a.score).toBe(b.score);
     expect(a.breakdown).toEqual(b.breakdown);
-    expect(openRouter.chatCompletion).not.toHaveBeenCalled();
+    expect(llmDispatcher.completeStructured).not.toHaveBeenCalled();
     expect(a.meta.llmApplied).toBe(false);
   });
 
@@ -327,22 +328,12 @@ describe('SeoScorerService', () => {
       (c) => c.id === 'title_length',
     )?.points;
 
-    openRouter.chatCompletion.mockResolvedValue({
-      choices: [
-        {
-          finish_reason: 'stop',
-          message: {
-            content: JSON.stringify({
-              activeVoicePoints: 3,
-              conclusionCtaPoints: 1,
-              faqPoints: 3,
-              jargonPoints: 2,
-              suggestions: ['Add an author bio for E-E-A-T.'],
-            }),
-            role: 'assistant',
-          },
-        },
-      ],
+    llmDispatcher.completeStructured.mockResolvedValue({
+      activeVoicePoints: 3,
+      conclusionCtaPoints: 1,
+      faqPoints: 3,
+      jargonPoints: 2,
+      suggestions: ['Add an author bio for E-E-A-T.'],
     });
 
     const withLlm = await service.scoreContent(goodInput);
@@ -358,10 +349,41 @@ describe('SeoScorerService', () => {
   });
 
   it('falls back to deterministic-only when the LLM call fails', async () => {
-    openRouter.chatCompletion.mockRejectedValue(new Error('boom'));
+    llmDispatcher.completeStructured.mockRejectedValue(new Error('boom'));
     const result = await service.scoreContent(goodInput);
     expect(result.meta.llmApplied).toBe(false);
     expect(result.score).toBeGreaterThan(0);
+    expect(logger.error).toHaveBeenCalled();
+  });
+
+  it('asks for the qualitative schema instead of prompting for JSON', async () => {
+    llmDispatcher.completeStructured.mockResolvedValue({
+      activeVoicePoints: 3,
+      conclusionCtaPoints: 1,
+      faqPoints: 3,
+      jargonPoints: 2,
+      suggestions: [],
+    });
+
+    await service.scoreContent(goodInput);
+
+    const [params] = llmDispatcher.completeStructured.mock.calls[0] as [
+      { messages: Array<{ content: string }>; schemaName: string },
+    ];
+    expect(params.schemaName).toBe('seo_qualitative_scoring');
+    expect(params.messages[0].content).not.toContain('valid JSON');
+  });
+
+  it('keeps the deterministic scorecard when the model misses the schema twice', async () => {
+    llmDispatcher.completeStructured.mockRejectedValue(
+      new LlmStructuredOutputError('seo_qualitative_scoring', [
+        { code: 'too_big', message: 'expected <= 3', path: 'faqPoints' },
+      ]),
+    );
+
+    const result = await service.scoreContent(goodInput);
+
+    expect(result.meta.llmApplied).toBe(false);
     expect(logger.error).toHaveBeenCalled();
   });
 
