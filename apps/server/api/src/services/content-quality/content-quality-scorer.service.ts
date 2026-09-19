@@ -2,12 +2,14 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import type {
-  OpenRouterChatCompletionParams,
-  OpenRouterChatCompletionResponse,
-} from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { QualityStatus } from '@genfeedai/contracts';
+import {
+  CONTENT_QUALITY_SCORING_SCHEMA_NAME,
+  type ContentQualityScoring,
+  contentQualityScoringSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, Optional } from '@nestjs/common';
@@ -29,17 +31,10 @@ export interface QualityScoreResult {
   status: QualityStatus;
 }
 
-interface ScoringLlmResponse {
-  score: number;
-  feedback: string[];
-  suggestions: string[];
-}
-
 // ─── Constants ───────────────────────────────────────────────────────
 
 const IMAGE_SCORING_PROMPT = `You are a professional social media content quality analyst.
-Rate this image content quality 1-10 for social media use.
-Return ONLY valid JSON with no markdown: { "score": <number>, "feedback": ["..."], "suggestions": ["..."] }
+Rate this image content quality 1-10 for social media use, with short feedback notes and concrete suggestions.
 
 Criteria:
 - Composition & framing (rule of thirds, balance, focal point)
@@ -50,8 +45,7 @@ Criteria:
 - Color harmony & contrast`;
 
 const VIDEO_SCORING_PROMPT = `You are a professional social media content quality analyst.
-Rate this video content quality 1-10 for social media use.
-Return ONLY valid JSON with no markdown: { "score": <number>, "feedback": ["..."], "suggestions": ["..."] }
+Rate this video content quality 1-10 for social media use, with short feedback notes and concrete suggestions.
 
 Criteria:
 - Visual quality & resolution
@@ -62,8 +56,7 @@ Criteria:
 - Audio quality (if applicable)`;
 
 const TEXT_SCORING_PROMPT = `You are a professional social media content quality analyst.
-Rate this social media post 1-10.
-Return ONLY valid JSON with no markdown: { "score": <number>, "feedback": ["..."], "suggestions": ["..."] }
+Rate this social media post 1-10, with short feedback notes and concrete suggestions.
 
 Criteria:
 - Hook strength (first line grabs attention)
@@ -82,7 +75,7 @@ export class ContentQualityScorerService {
 
   constructor(
     private readonly logger: LoggerService,
-    private readonly openRouterService: OpenRouterService,
+    private readonly llmDispatcherService: LlmDispatcherService,
     @Optional()
     private readonly ingredientsService: IngredientsService,
     @Optional()
@@ -353,64 +346,49 @@ export class ContentQualityScorerService {
   private async callVisionModel(
     imageUrl: string,
     prompt: string,
-  ): Promise<ScoringLlmResponse> {
-    try {
-      const params: OpenRouterChatCompletionParams = {
-        max_tokens: 1024,
-        messages: [
-          {
-            content: prompt,
-            role: 'system',
-          },
-          {
-            content: `Analyze this content: ${imageUrl}`,
-            role: 'user',
-          },
-        ],
-        model: LLM_DEFAULTS.fastText,
-        temperature: 0.3,
-      };
-
-      const response: OpenRouterChatCompletionResponse =
-        await this.openRouterService.chatCompletion(params);
-
-      return this.parseLlmResponse(response);
-    } catch (error: unknown) {
-      const errorMessage =
-        error instanceof Error ? error.message : 'Unknown error';
-      this.logger.error(
-        `${this.constructorName} vision model call failed: ${errorMessage}`,
-      );
-      return { feedback: ['Analysis failed'], score: 5, suggestions: [] };
-    }
+  ): Promise<ContentQualityScoring> {
+    return this.score(LLM_DEFAULTS.fastText, 'vision', [
+      { content: prompt, role: 'system' },
+      { content: `Analyze this content: ${imageUrl}`, role: 'user' },
+    ]);
   }
 
   /**
    * Call text model for post/article scoring.
    */
-  private async callTextModel(prompt: string): Promise<ScoringLlmResponse> {
+  private async callTextModel(prompt: string): Promise<ContentQualityScoring> {
+    return this.score(this.defaultModel, 'text', [
+      { content: prompt, role: 'user' },
+    ]);
+  }
+
+  /**
+   * One schema-enforced scoring call.
+   *
+   * A provider outage or an answer that misses the rubric twice degrades to
+   * the neutral 5 rather than failing the ingredient — scoring is a
+   * fire-and-forget tag on the generation path, and `scoreAndTag` persists
+   * whatever comes back. The reason is logged either way.
+   */
+  private async score(
+    model: string,
+    label: string,
+    messages: OpenRouterMessage[],
+  ): Promise<ContentQualityScoring> {
     try {
-      const params: OpenRouterChatCompletionParams = {
+      return await this.llmDispatcherService.completeStructured({
         max_tokens: 1024,
-        messages: [
-          {
-            content: prompt,
-            role: 'user',
-          },
-        ],
-        model: this.defaultModel,
+        messages,
+        model,
+        schema: contentQualityScoringSchema,
+        schemaName: CONTENT_QUALITY_SCORING_SCHEMA_NAME,
         temperature: 0.3,
-      };
-
-      const response: OpenRouterChatCompletionResponse =
-        await this.openRouterService.chatCompletion(params);
-
-      return this.parseLlmResponse(response);
+      });
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
       this.logger.error(
-        `${this.constructorName} text model call failed: ${errorMessage}`,
+        `${this.constructorName} ${label} model call failed: ${errorMessage}`,
       );
       return { feedback: ['Analysis failed'], score: 5, suggestions: [] };
     }
@@ -466,50 +444,6 @@ export class ContentQualityScorerService {
 
   // ─── Helpers ────────────────────────────────────────────────────────
 
-  private parseLlmResponse(
-    response: OpenRouterChatCompletionResponse,
-  ): ScoringLlmResponse {
-    const content = response.choices?.[0]?.message?.content;
-
-    if (!content) {
-      return {
-        feedback: ['No response from quality analysis'],
-        score: 5,
-        suggestions: [],
-      };
-    }
-
-    try {
-      // Try to extract JSON from the response (handle markdown code blocks)
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-
-      if (!jsonMatch) {
-        return {
-          feedback: ['Could not parse quality analysis response'],
-          score: 5,
-          suggestions: [],
-        };
-      }
-
-      const parsed = JSON.parse(jsonMatch[0]) as ScoringLlmResponse;
-      const score = Math.max(1, Math.min(10, Math.round(parsed.score || 5)));
-
-      return {
-        feedback: Array.isArray(parsed.feedback) ? parsed.feedback : [],
-        score,
-        suggestions: Array.isArray(parsed.suggestions)
-          ? parsed.suggestions
-          : [],
-      };
-    } catch {
-      return {
-        feedback: ['Could not parse quality analysis response'],
-        score: 5,
-        suggestions: [],
-      };
-    }
-  }
-
   /**
    * Map a numeric score to a category label.
    */
@@ -529,7 +463,7 @@ export class ContentQualityScorerService {
   }
 
   private buildResult(
-    llmResult: ScoringLlmResponse,
+    llmResult: ContentQualityScoring,
     contentType: string,
   ): ContentQualityResult {
     return {

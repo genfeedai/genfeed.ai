@@ -1,7 +1,7 @@
 import { IngredientsModule } from '@api/collections/ingredients/ingredients.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
-import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
@@ -11,7 +11,7 @@ import { Module } from '@nestjs/common';
   imports: [
     ConfigModule,
     LoggerModule,
-    OpenRouterModule,
+    LlmDispatcherModule,
     IngredientsModule,
     PostsCoreModule,
   ],

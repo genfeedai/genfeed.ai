@@ -1,4 +1,5 @@
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { QualityStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -16,19 +17,11 @@ function createMocks() {
       log: vi.fn(),
       warn: vi.fn(),
     },
-    openRouterService: {
-      chatCompletion: vi.fn().mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                feedback: ['Good composition'],
-                score: 7,
-                suggestions: ['Try better lighting'],
-              }),
-            },
-          },
-        ],
+    llmDispatcherService: {
+      completeStructured: vi.fn().mockResolvedValue({
+        feedback: ['Good composition'],
+        score: 7,
+        suggestions: ['Try better lighting'],
       }),
     },
     postsService: {
@@ -45,7 +38,7 @@ describe('ContentQualityScorerService', () => {
     mocks = createMocks();
     service = new ContentQualityScorerService(
       mocks.logger as never,
-      mocks.openRouterService as never,
+      mocks.llmDispatcherService as never,
       mocks.ingredientsService as never,
       mocks.postsService as never,
     );
@@ -69,18 +62,10 @@ describe('ContentQualityScorerService', () => {
     });
 
     it('should set qualityStatus to GOOD when score >= 6', async () => {
-      mocks.openRouterService.chatCompletion.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                feedback: ['Looks good'],
-                score: 7,
-                suggestions: [],
-              }),
-            },
-          },
-        ],
+      mocks.llmDispatcherService.completeStructured.mockResolvedValue({
+        feedback: ['Looks good'],
+        score: 7,
+        suggestions: [],
       });
 
       const result = await service.scoreAndTag('ingredient-456', 'image');
@@ -93,18 +78,10 @@ describe('ContentQualityScorerService', () => {
     });
 
     it('should set qualityStatus to NEEDS_REVIEW when score < 6', async () => {
-      mocks.openRouterService.chatCompletion.mockResolvedValue({
-        choices: [
-          {
-            message: {
-              content: JSON.stringify({
-                feedback: ['Low contrast', 'Blurry edges'],
-                score: 4,
-                suggestions: ['Increase resolution'],
-              }),
-            },
-          },
-        ],
+      mocks.llmDispatcherService.completeStructured.mockResolvedValue({
+        feedback: ['Low contrast', 'Blurry edges'],
+        score: 4,
+        suggestions: ['Increase resolution'],
       });
 
       const result = await service.scoreAndTag('ingredient-789', 'image');
@@ -123,7 +100,7 @@ describe('ContentQualityScorerService', () => {
     it('should not throw when ingredientsService is not available', async () => {
       const serviceWithoutIngredients = new ContentQualityScorerService(
         mocks.logger as never,
-        mocks.openRouterService as never,
+        mocks.llmDispatcherService as never,
         undefined as never,
         undefined as never,
       );
@@ -167,7 +144,7 @@ describe('ContentQualityScorerService', () => {
   describe('fire-and-forget pattern', () => {
     it('should not block when called without await in catch pattern', async () => {
       const errors: unknown[] = [];
-      mocks.openRouterService.chatCompletion.mockRejectedValue(
+      mocks.llmDispatcherService.completeStructured.mockRejectedValue(
         new Error('Network timeout'),
       );
 
@@ -198,6 +175,35 @@ describe('ContentQualityScorerService', () => {
         ContentQualityScorerService.resolveStatus(score);
       expect(status).toBe(QualityStatus.NEEDS_REVIEW);
       expect(score).toBeLessThan(6);
+    });
+  });
+
+  describe('structured output', () => {
+    it('asks the dispatcher for the scoring schema, not for JSON prose', async () => {
+      await service.scoreAndTag('ingredient-123', 'image');
+
+      expect(
+        mocks.llmDispatcherService.completeStructured,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({ schemaName: 'content_quality_scoring' }),
+      );
+      const [params] = mocks.llmDispatcherService.completeStructured.mock
+        .calls[0] as [{ messages: Array<{ content: string }> }];
+      expect(params.messages[0].content).not.toContain('valid JSON');
+    });
+
+    it('scores neutral when the model misses the schema twice', async () => {
+      mocks.llmDispatcherService.completeStructured.mockRejectedValue(
+        new LlmStructuredOutputError('content_quality_scoring', [
+          { code: 'invalid_type', message: 'expected number', path: 'score' },
+        ]),
+      );
+
+      const result = await service.scoreAndTag('ingredient-bad', 'image');
+
+      expect(result.score).toBe(5);
+      expect(result.status).toBe(QualityStatus.NEEDS_REVIEW);
+      expect(mocks.logger.error).toHaveBeenCalled();
     });
   });
 });
