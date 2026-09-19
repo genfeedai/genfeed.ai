@@ -48,6 +48,7 @@ export * from './social-warmup-journey.contract';
 export * from './task-decomposition.contract';
 export * from './tiktok-authorized-signals.contract';
 export * from './twitter-authorized-signals.contract';
+export * from './twitter-opportunities.contract';
 export * from './video-generation-brief-compiler.contract';
 export * from './video-generation-capability-profile.contract';
 export * from './video-generation-capability-profile-remaining.contract';
