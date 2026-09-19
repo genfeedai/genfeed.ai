@@ -22,11 +22,6 @@ import {
   TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/index';
-import {
-  formatMediaReadinessBlockers,
-  readBlockingDiagnostics,
-  readWarningDiagnostics,
-} from '@api/services/media-readiness/media-readiness.evaluator';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
@@ -35,13 +30,11 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
   Platform,
-  PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import {
   resolveChannelTargetSettings,
-  type ValidateChannelTargetSettingsInput,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -62,6 +55,13 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
+import {
+  collectMediaGateAssetIds,
+  type PlannedThreadChild,
+  readMediaGateOutcome,
+  toPlannedThreadChildren,
+  toValidationMedia,
+} from '@workers/services/scheduled-post-media-gate.util';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
@@ -89,18 +89,6 @@ type PreparedPostDelivery = {
 type DeliveryLoad<T> =
   | { ok: true; value: T }
   | { ok: false; result: PublishResult };
-
-type ChannelValidationMedia = NonNullable<
-  ValidateChannelTargetSettingsInput['media']
->;
-
-/** A thread child paired with the scheduling fields the planner reads. */
-type PlannedThreadChild = {
-  child: PostDocument;
-  id: string;
-  order: number;
-  threadDelayMinutes?: number | null;
-};
 
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
@@ -502,7 +490,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const targetValidation = validateChannelTargetSettings({
       caption: post.description,
       credentialId: ids.credentialId ?? undefined,
-      media: this.toValidationMedia(post),
+      media: toValidationMedia(post),
       platform,
       publishMode: 'publish_now',
       settings: resolvedSettings,
@@ -579,78 +567,40 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     platform: Platform,
     url: string,
   ): Promise<PublishResult | null> {
-    // Immediate thread children ride along in the same provider operation, so
-    // their assets have to clear the gate before the parent is dispatched.
-    // Delayed children are parked and re-gated when their own delivery runs.
-    const assetIds = Array.from(
-      new Set(
-        [post, ...this.readImmediateThreadChildren(post)].flatMap((candidate) =>
-          (this.toValidationMedia(candidate) ?? []).flatMap((item) =>
-            item.id ? [item.id] : [],
-          ),
-        ),
-      ),
-    );
+    const assetIds = collectMediaGateAssetIds(post);
     if (assetIds.length === 0) {
       return null;
     }
 
-    const report = await this.mediaReadinessService.evaluatePublishReadiness({
-      assetIds,
-      organizationId: ids.organizationId ?? '',
-      platforms: [platform],
-    });
-    const warnings = readWarningDiagnostics(report);
-    if (warnings.length > 0) {
+    const outcome = readMediaGateOutcome(
+      await this.mediaReadinessService.evaluatePublishReadiness({
+        assetIds,
+        organizationId: ids.organizationId ?? '',
+        platforms: [platform],
+      }),
+    );
+    const context = { platform, postId: post.id };
+    if (outcome.warnings.length > 0) {
       this.logger.warn(`${url} media readiness warnings`, {
-        diagnostics: warnings,
-        platform,
-        postId: post.id,
+        ...context,
+        diagnostics: outcome.warnings,
       });
     }
-
-    const blockers = readBlockingDiagnostics(report);
-    if (blockers.length === 0) {
+    if (outcome.blockers.length === 0) {
       return null;
     }
 
-    const message = formatMediaReadinessBlockers(blockers);
     this.logger.error(`${url} media readiness blocked publish`, {
-      diagnostics: blockers,
-      platform,
-      postId: post.id,
+      ...context,
+      diagnostics: outcome.blockers,
     });
     return this.failChannel(
       post,
       platform,
-      blockers[0]?.code ?? 'media_not_ready',
-      message,
+      outcome.code,
+      outcome.message,
       false,
     );
-  }
-
-  private toValidationMedia(
-    post: PostEntity | PostDocument,
-  ): ChannelValidationMedia | undefined {
-    const ingredients = Array.isArray(post.ingredients)
-      ? (post.ingredients as unknown[])
-      : [];
-    const kind: ChannelValidationMedia[number]['kind'] =
-      post.category === PostCategory.VIDEO ||
-      post.category === PostCategory.REEL
-        ? 'video'
-        : 'image';
-    const media = ingredients.flatMap((ingredient) => {
-      const id =
-        typeof ingredient === 'string'
-          ? ingredient
-          : ingredient && typeof ingredient === 'object' && 'id' in ingredient
-            ? ingredient.id
-            : undefined;
-      return typeof id === 'string' && id.length > 0 ? [{ id, kind }] : [];
-    });
-
-    return media.length > 0 ? media : undefined;
   }
 
   private async executeProviderPublish(
@@ -784,36 +734,6 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
    * thread-comment sweep publishes it once that time arrives, using the same
    * publisher against the parent's provider id.
    */
-  private toPlannedThreadChildren(
-    children: PostDocument[],
-  ): PlannedThreadChild[] {
-    return children.map((child) => ({
-      child,
-      id: child.id.toString(),
-      order: (child as unknown as { order?: number }).order ?? 0,
-      threadDelayMinutes: (
-        child as unknown as { threadDelayMinutes?: number | null }
-      ).threadDelayMinutes,
-    }));
-  }
-
-  /**
-   * The follow-ups that go out with the parent, in the same provider
-   * operation. Immediacy is decided by the configured delays alone, so
-   * planning against the current time gives the same split
-   * `deliverThreadChildren` will make once the parent's publish time is known.
-   */
-  private readImmediateThreadChildren(post: PostEntity): PostDocument[] {
-    const children = (post.children || []) as unknown as PostDocument[];
-    if (children.length === 0) {
-      return [];
-    }
-    return planThreadChildDelivery(
-      this.toPlannedThreadChildren(children),
-      new Date(),
-    ).immediate.map((entry) => entry.child);
-  }
-
   private async deliverThreadChildren(
     post: PostEntity,
     children: PostDocument[],
@@ -827,7 +747,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     const plan = planThreadChildDelivery(
-      this.toPlannedThreadChildren(children),
+      toPlannedThreadChildren(children),
       publishedAt,
     );
 

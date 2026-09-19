@@ -150,7 +150,7 @@
     "symbol": "WebhooksService.finalizeWebhookMedia"
   },
   {
-    "actual": 191,
+    "actual": 206,
     "file": "apps/server/api/src/publish-approvals/publish-approvals.service.ts",
     "metric": "method-lines",
     "symbol": "PublishApprovalsService.createForPost"
@@ -234,7 +234,7 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1239,
+    "actual": 1256,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
@@ -246,7 +246,7 @@
     "symbol": "AgentPublishToolHandler.createPost"
   },
   {
-    "actual": 243,
+    "actual": 255,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentPublishToolHandler.publishConfirmedContent"
@@ -408,7 +408,7 @@
     "symbol": "PlatformSchedulesProcessor.constructor"
   },
   {
-    "actual": 1212,
+    "actual": 1231,
     "file": "apps/server/workers/src/services/scheduled-post-delivery.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/workers/src/services/scheduled-post-delivery.service.ts"

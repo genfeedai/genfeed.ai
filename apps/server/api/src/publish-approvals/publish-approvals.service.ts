@@ -10,12 +10,12 @@ import {
   type PublishApprovalRow,
 } from '@api/publish-approvals/publish-approval-contract.codec';
 import { digestPublishApprovalValue } from '@api/publish-approvals/publish-approval-integrity';
-import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import {
-  formatMediaReadinessBlockers,
-  readBlockingDiagnostics,
-  readWarningDiagnostics,
-} from '@api/services/media-readiness/media-readiness.evaluator';
+  assertApprovalMediaReady,
+  withMediaWarningProvenance,
+  withMediaWarnings,
+} from '@api/publish-approvals/publish-approval-media-gate';
+import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   PersistedReviewDecision,
@@ -23,7 +23,6 @@ import {
   PublishApprovalStatus,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
-import type { MediaReadinessDiagnostic } from '@genfeedai/contracts/api-types/contracts';
 import { canTransitionPublishApprovalStatus } from '@genfeedai/contracts/api-types/contracts';
 import type {
   ClaimPublishExecutionParams,
@@ -32,7 +31,6 @@ import type {
   CreatePostPublishApprovalParams,
   IMediaReadinessGate,
   IPublishApproval,
-  IPublishApprovalDestination,
   IPublishScheduleIntent,
   PublishExecutionClaim,
 } from '@genfeedai/contracts/interfaces';
@@ -62,28 +60,6 @@ class PublishApprovalNotFoundException extends HttpException {
         title: 'Resource Not Found',
       },
       HttpStatus.NOT_FOUND,
-    );
-    this.message = detail;
-  }
-}
-
-/**
- * Raised when an attached asset breaks the target platform's published media
- * spec. Mirrors the not-found exception above in restating `detail` as the
- * exception message so the reason survives logging and client surfaces.
- */
-class PublishApprovalMediaNotReadyException extends HttpException {
-  constructor(
-    detail: string,
-    diagnostics: readonly MediaReadinessDiagnostic[],
-  ) {
-    super(
-      {
-        detail,
-        diagnostics,
-        title: 'Attached media does not meet the platform media spec',
-      },
-      HttpStatus.BAD_REQUEST,
     );
     this.message = detail;
   }
@@ -225,7 +201,12 @@ export class PublishApprovalsService {
       });
 
     const destinations = this.contractCodec.canonicalDestinations(post);
-    const mediaWarnings = await this.assertMediaReady(post, destinations);
+    const mediaWarnings = await assertApprovalMediaReady({
+      destinations,
+      gate: this.mediaReadinessGate,
+      logger: this.logger,
+      post,
+    });
     const scope = {
       actorUserId: params.actorUserId,
       artifactVersionPinId: versionPin.id,
@@ -256,7 +237,7 @@ export class PublishApprovalsService {
       // The stored approval carries the warnings from when its scope was first
       // approved. This attempt re-evaluated the same assets, so return the
       // current diagnostics rather than a stale snapshot of them.
-      return this.withMediaWarnings(
+      return withMediaWarnings(
         this.contractCodec.toInterface(existing),
         mediaWarnings,
       );
@@ -333,12 +314,7 @@ export class PublishApprovalsService {
             postId: post.id,
             provenance: this.contractCodec.toJson(
               buildApprovalProvenance(
-                {
-                  ...(params.provenance ?? {}),
-                  ...(mediaWarnings.length > 0
-                    ? { mediaReadinessWarnings: mediaWarnings }
-                    : {}),
-                },
+                withMediaWarningProvenance(params.provenance, mediaWarnings),
                 params.actorUserId,
               ),
             ),
@@ -971,64 +947,6 @@ export class PublishApprovalsService {
         'The matching approval is no longer eligible for activation.',
       );
     }
-  }
-
-  /**
-   * Deterministic media readiness gate (#4878).
-   *
-   * Runs before the approval exists, so an asset that breaks a platform's
-   * published media spec never reaches provider dispatch. `error` diagnostics
-   * reject the approval; `warning` diagnostics ride along on the approval's
-   * provenance so the publish card can surface them without blocking.
-   *
-   * The gate is optional: callers that construct this service without one
-   * (self-host wiring, specs) keep the previous behaviour.
-   */
-  private async assertMediaReady(
-    post: ApprovalPost,
-    destinations: readonly IPublishApprovalDestination[],
-  ): Promise<MediaReadinessDiagnostic[]> {
-    const assetIds = post.ingredients.map((ingredient) => ingredient.id);
-    if (!this.mediaReadinessGate || assetIds.length === 0) {
-      return [];
-    }
-
-    const report = await this.mediaReadinessGate.evaluatePublishReadiness({
-      assetIds,
-      organizationId: post.organizationId,
-      platforms: destinations.map((destination) => destination.platform),
-    });
-    const blockers = readBlockingDiagnostics(report);
-    if (blockers.length > 0) {
-      this.logger?.warn('Publish approval blocked by media readiness', {
-        diagnostics: blockers,
-        postId: post.id,
-      });
-      throw new PublishApprovalMediaNotReadyException(
-        formatMediaReadinessBlockers(blockers),
-        blockers,
-      );
-    }
-
-    return readWarningDiagnostics(report);
-  }
-
-  private withMediaWarnings(
-    approval: IPublishApproval,
-    mediaWarnings: readonly MediaReadinessDiagnostic[],
-  ): IPublishApproval {
-    if (mediaWarnings.length === 0) {
-      const { mediaReadinessWarnings: _stale, ...provenance } =
-        approval.provenance;
-      return { ...approval, provenance };
-    }
-    return {
-      ...approval,
-      provenance: {
-        ...approval.provenance,
-        mediaReadinessWarnings: mediaWarnings,
-      },
-    };
   }
 
   private async getPostOrThrow(

@@ -8,7 +8,7 @@ import { PostRepurposeService } from '@api/collections/posts/services/post-repur
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService } from '@api/index';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
-import { resolveAgentPublishMediaReadiness } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
+import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
@@ -249,19 +249,15 @@ export class AgentPublishToolHandler {
       };
     }
 
-    const mediaReadiness = await resolveAgentPublishMediaReadiness({
-      assetIds: media.flatMap((item) => (item.id ? [item.id] : [])),
+    const mediaGate = await resolveAgentPublishMediaGate({
+      contentId,
       gate: this.mediaReadinessService,
+      media,
       organizationId: ctx.organizationId,
       platforms: createdPlatforms,
     });
-    if (mediaReadiness.blockers.length > 0) {
-      return {
-        creditsUsed: 0,
-        data: { contentId, mediaDiagnostics: mediaReadiness.blockers },
-        error: mediaReadiness.error,
-        success: false,
-      };
+    if (mediaGate.blockedResult) {
+      return mediaGate.blockedResult;
     }
 
     const autoPublishPolicy = evaluateAgentAutoPublishPolicies({
@@ -381,9 +377,7 @@ export class AgentPublishToolHandler {
         autoPublishPolicyId: autoPublishPolicy.policyId,
         contentId,
         createdPlatforms,
-        ...(mediaReadiness.warnings.length > 0
-          ? { mediaDiagnostics: mediaReadiness.warnings }
-          : {}),
+        ...mediaGate.cardData,
         missingPlatforms,
         ...(postingSetId ? { postingSetId } : {}),
         postIds,
