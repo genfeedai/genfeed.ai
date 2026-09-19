@@ -41,6 +41,20 @@ const MUREKA_DEFAULT_MODEL = 'mureka-9';
 // Mureka bills per output and defaults to two; Genfeed consumes one choice.
 const MUREKA_OUTPUTS_PER_REQUEST = 1;
 const MUREKA_POLL_INTERVAL_MS = 3_000;
+const MUREKA_PROMPT_MAX_LENGTH = 1024;
+const MUREKA_EASY_PROMPT_MAX_LENGTH = 2000;
+
+/**
+ * Longest prompt the endpoint chosen for this request accepts: lyrics-to-song
+ * and instrumental cap it at 1024 characters, prompt-only songs at 2000.
+ */
+export function murekaPromptMaxLength(
+  input: Pick<MurekaGenerateSongInput, 'instrumental' | 'lyrics'>,
+): number {
+  return !input.instrumental && !input.lyrics?.trim()
+    ? MUREKA_EASY_PROMPT_MAX_LENGTH
+    : MUREKA_PROMPT_MAX_LENGTH;
+}
 const MUREKA_POLL_TIMEOUT_MS = 180_000;
 
 /**
@@ -158,6 +172,12 @@ export class MurekaService {
     input: MurekaGenerateSongInput,
     model: string,
   ): MurekaSubmission {
+    const maxLength = murekaPromptMaxLength(input);
+    if (input.prompt.length > maxLength) {
+      throw new Error(
+        `Mureka prompt exceeds ${maxLength} characters for this request`,
+      );
+    }
     if (input.instrumental) {
       return {
         body: { model, n: MUREKA_OUTPUTS_PER_REQUEST, prompt: input.prompt },

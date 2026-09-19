@@ -235,6 +235,18 @@ describe('MurekaService', () => {
       );
     });
 
+    it('refuses an over-long prompt before any HTTP call', async () => {
+      const { post, service } = createHarness();
+
+      await expect(
+        service.generateSong({
+          lyrics: '[Verse] hi',
+          prompt: 'a'.repeat(1025),
+        }),
+      ).rejects.toThrow('Mureka prompt exceeds 1024 characters');
+      expect(post).not.toHaveBeenCalled();
+    });
+
     it('throws when the generate response has no task id', async () => {
       const { post, service } = createHarness();
       post.mockReturnValue(of({ data: {} }));

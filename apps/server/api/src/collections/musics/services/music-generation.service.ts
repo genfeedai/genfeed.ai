@@ -173,6 +173,12 @@ export class MusicGenerationService {
       lyrics: normalized.lyrics?.trim() || undefined,
     };
 
+    this.musicProviderRegistry.assertSupported(model, modelDocument.provider, {
+      instrumental: normalizedDto.instrumental === true,
+      lyrics: normalizedDto.lyrics,
+      prompt: effectiveText,
+    });
+
     const promptData = await this.promptsService.create(
       new PromptEntity({
         brandId,

@@ -1,4 +1,5 @@
 import type {
+  MusicGenerationPreflightRequest,
   MusicGenerationProvider,
   MusicGenerationProviderAdapter,
   MusicGenerationProviderRequest,
@@ -39,6 +40,16 @@ export class MusicGenerationProviderRegistryService {
       this.adapters.find((candidate) => candidate.supports(model, provider))
         ?.provider ?? null
     );
+  }
+
+  assertSupported(
+    model: string,
+    provider: ModelProvider | string | undefined,
+    request: MusicGenerationPreflightRequest,
+  ): void {
+    this.adapters
+      .find((candidate) => candidate.supports(model, provider))
+      ?.assertSupported?.(request);
   }
 
   async generate(
