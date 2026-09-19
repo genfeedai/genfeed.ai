@@ -6,6 +6,9 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, TestingModule } from '@nestjs/testing';
+import type { Mock } from 'vitest';
+
+type TextCompletion = ReplicateService['generateTextCompletionSync'];
 
 vi.mock('replicate', () => ({
   default: class Replicate {
@@ -127,7 +130,7 @@ describe('OptimizersService structured output', () => {
   } as never;
 
   let service: OptimizersService;
-  let completion: ReturnType<typeof vi.fn>;
+  let completion: Mock<TextCompletion>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -162,7 +165,7 @@ describe('OptimizersService structured output', () => {
     }).compile();
 
     service = module.get<OptimizersService>(OptimizersService);
-    completion = vi.fn();
+    completion = vi.fn<TextCompletion>();
     module.get<ReplicateService>(ReplicateService).generateTextCompletionSync =
       completion;
   });

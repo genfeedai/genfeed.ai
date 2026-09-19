@@ -3,7 +3,7 @@ import { ReplicateService } from '@api/services/integrations/replicate/services/
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, type Mock, vi } from 'vitest';
 import { z } from 'zod';
 
 vi.mock('replicate', () => ({
@@ -13,6 +13,8 @@ vi.mock('replicate', () => ({
   },
 }));
 
+type TextCompletion = ReplicateService['generateTextCompletionSync'];
+
 const schema = z.object({
   score: z.number(),
   suggested: z.array(z.string()),
@@ -20,7 +22,7 @@ const schema = z.object({
 
 describe('ReplicateService.generateStructuredTextSync', () => {
   let service: ReplicateService;
-  let completion: ReturnType<typeof vi.fn>;
+  let completion: Mock<TextCompletion>;
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
@@ -43,7 +45,7 @@ describe('ReplicateService.generateStructuredTextSync', () => {
     }).compile();
 
     service = module.get(ReplicateService);
-    completion = vi.fn();
+    completion = vi.fn<TextCompletion>();
     service.generateTextCompletionSync = completion;
   });
 

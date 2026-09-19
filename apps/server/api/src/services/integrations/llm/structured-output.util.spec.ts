@@ -127,15 +127,15 @@ describe('runStructuredCompletion', () => {
 
   it('carries the failing paths on the thrown error', async () => {
     const attempt = vi.fn().mockResolvedValue('{"feedback":[],"score":"high"}');
+    expect.assertions(2);
 
-    const error = await runStructuredCompletion({
-      attempt,
-      schema,
-      schemaName: 'quality',
-    }).catch((thrown: unknown) => thrown as LlmStructuredOutputError);
-
-    expect(error.schemaName).toBe('quality');
-    expect(error.issues.map((issue) => issue.path)).toEqual(['score']);
+    try {
+      await runStructuredCompletion({ attempt, schema, schemaName: 'quality' });
+    } catch (thrown: unknown) {
+      const error = thrown as LlmStructuredOutputError;
+      expect(error.schemaName).toBe('quality');
+      expect(error.issues.map((issue) => issue.path)).toEqual(['score']);
+    }
   });
 
   it('treats non-JSON text as a validation failure', async () => {
