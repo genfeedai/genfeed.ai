@@ -3,6 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -190,11 +191,11 @@ describe('EvaluationsOperationsService', () => {
         JSON.stringify(mockAiResponse),
       );
 
-      const result = await service.evaluateVideo(
+      const result = (await service.evaluateVideo(
         'https://example.com/video.mp4',
         {},
         organizationId,
-      );
+      )) as { scores: IEvaluationScores };
 
       expect(result.scores.persuasion).toEqual({
         ctaNaturalness: 60,
@@ -232,11 +233,11 @@ describe('EvaluationsOperationsService', () => {
         JSON.stringify(mockAiResponse),
       );
 
-      const result = await service.evaluateVideo(
+      const result = (await service.evaluateVideo(
         'https://example.com/video.mp4',
         {},
         organizationId,
-      );
+      )) as { scores: IEvaluationScores };
 
       expect(result.scores.persuasion).toBeUndefined();
       expect(result.scores.brand).toEqual({ overall: 80 });
