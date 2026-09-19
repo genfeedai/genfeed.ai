@@ -6,6 +6,10 @@ import {
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
+  assertNoKnowledgeHistory,
+  assertNoOpenLiveSessions,
+} from '@api/collections/brands/utils/brand-relocation-guards.util';
+import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
@@ -13,7 +17,7 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { LiveSessionStatus, MemberRole } from '@genfeedai/contracts';
+import { MemberRole } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -357,8 +361,8 @@ export class BrandRelocationService {
       try {
         reconcileResult = await this.prisma.$transaction(
           async (tx) => {
-            await this.assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
-            await this.assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
+            await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
+            await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
@@ -452,8 +456,8 @@ export class BrandRelocationService {
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
 
     if (sourceOrgId !== destOrgId) {
-      await this.assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
-      await this.assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
+      await assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
+      await assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
     }
 
     const impact = await this.classifyRelocationImpact(
@@ -474,52 +478,6 @@ export class BrandRelocationService {
       },
       movingResources,
     };
-  }
-
-  private async assertNoKnowledgeHistory(
-    client: Prisma.TransactionClient,
-    brandId: string,
-    organizationId: string,
-  ): Promise<void> {
-    // tenant-scope-ignore: organization and brand are pinned; deleted Knowledge sources still preserve immutable ownership history.
-    const source = await client.knowledgeSource.findFirst({
-      where: { organizationId, brandId },
-      select: { id: true },
-    });
-    // tenant-scope-ignore: organization and brand are pinned; deleted Knowledge spaces still preserve immutable ownership history.
-    const space = await client.knowledgeSpace.findFirst({
-      where: { organizationId, brandId },
-      select: { id: true },
-    });
-    if (source || space) {
-      throw new ConflictException(
-        'Cannot move a brand with Knowledge history. Knowledge sources and spaces, including deleted records, must remain in their original organization.',
-      );
-    }
-  }
-
-  /**
-   * An open live session holds its ceiling credits on the source organization.
-   * Moving the session row would make its settlement look up that hold in the
-   * destination organization and fail, so the session must end first.
-   */
-  private async assertNoOpenLiveSessions(
-    client: Prisma.TransactionClient,
-    brandId: string,
-    organizationId: string,
-  ): Promise<void> {
-    const session = await client.liveSession.findFirst({
-      where: scopedWhere(organizationId, {
-        brandId,
-        status: LiveSessionStatus.OPEN,
-      }),
-      select: { id: true },
-    });
-    if (session) {
-      throw new ConflictException(
-        'Cannot move a brand with an open live session. End the session first; its credit hold belongs to the current organization.',
-      );
-    }
   }
 
   private async countRelocationMovingResources(
