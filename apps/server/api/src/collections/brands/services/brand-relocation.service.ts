@@ -6,6 +6,10 @@ import {
 import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dto';
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import {
+  assertNoKnowledgeHistory,
+  assertNoOpenLiveSessions,
+} from '@api/collections/brands/utils/brand-relocation-guards.util';
+import {
   CACHE_PATTERNS,
   CACHE_TAGS,
 } from '@api/common/constants/cache-patterns.constants';
@@ -357,7 +361,8 @@ export class BrandRelocationService {
       try {
         reconcileResult = await this.prisma.$transaction(
           async (tx) => {
-            await this.assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
+            await assertNoKnowledgeHistory(tx, brandId, sourceOrgId);
+            await assertNoOpenLiveSessions(tx, brandId, sourceOrgId);
             const result = await this.runBrandOrgCascade(
               tx,
               brandId,
@@ -451,7 +456,8 @@ export class BrandRelocationService {
     await this.assertCanRelocate(actingUser, sourceOrgId, destOrgId);
 
     if (sourceOrgId !== destOrgId) {
-      await this.assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
+      await assertNoKnowledgeHistory(this.prisma, brandId, sourceOrgId);
+      await assertNoOpenLiveSessions(this.prisma, brandId, sourceOrgId);
     }
 
     const impact = await this.classifyRelocationImpact(
@@ -472,28 +478,6 @@ export class BrandRelocationService {
       },
       movingResources,
     };
-  }
-
-  private async assertNoKnowledgeHistory(
-    client: Prisma.TransactionClient,
-    brandId: string,
-    organizationId: string,
-  ): Promise<void> {
-    // tenant-scope-ignore: organization and brand are pinned; deleted Knowledge sources still preserve immutable ownership history.
-    const source = await client.knowledgeSource.findFirst({
-      where: { organizationId, brandId },
-      select: { id: true },
-    });
-    // tenant-scope-ignore: organization and brand are pinned; deleted Knowledge spaces still preserve immutable ownership history.
-    const space = await client.knowledgeSpace.findFirst({
-      where: { organizationId, brandId },
-      select: { id: true },
-    });
-    if (source || space) {
-      throw new ConflictException(
-        'Cannot move a brand with Knowledge history. Knowledge sources and spaces, including deleted records, must remain in their original organization.',
-      );
-    }
   }
 
   private async countRelocationMovingResources(
