@@ -42,7 +42,11 @@ describe('toStructuredJsonSchema', () => {
 
 describe('buildStructuredResponseFormat', () => {
   it('wraps a closed schema in a strict json_schema response format', () => {
-    const jsonSchema = toStructuredJsonSchema(schema);
+    const plain = z.object({
+      feedback: z.array(z.string()),
+      score: z.number(),
+    });
+    const jsonSchema = toStructuredJsonSchema(plain);
     const format = buildStructuredResponseFormat('quality', jsonSchema);
 
     expect(format).toEqual({
@@ -68,6 +72,71 @@ describe('buildStructuredResponseFormat', () => {
     expect(format.json_schema.schema).toMatchObject({
       properties: { config: { type: 'object' } },
     });
+  });
+
+  it('keeps strict by dropping the bounds strict mode rejects', () => {
+    const bounded = z.object({
+      label: z.string().min(1),
+      score: z.number().min(0).max(100),
+      tags: z.array(z.string()).min(1),
+      when: z.iso.datetime({ offset: true }),
+    });
+    const jsonSchema = toStructuredJsonSchema(bounded) as {
+      properties: Record<string, Record<string, unknown>>;
+    };
+
+    expect(jsonSchema.properties.label.minLength).toBeUndefined();
+    expect(jsonSchema.properties.score.minimum).toBeUndefined();
+    expect(jsonSchema.properties.score.maximum).toBeUndefined();
+    expect(jsonSchema.properties.tags.minItems).toBeUndefined();
+    expect(jsonSchema.properties.when.format).toBeUndefined();
+    expect(jsonSchema.properties.when.pattern).toBeUndefined();
+    expect(
+      buildStructuredResponseFormat('bounded', jsonSchema).json_schema.strict,
+    ).toBe(true);
+  });
+
+  it('drops the bounds nested inside arrays and objects too', () => {
+    const nested = z.object({
+      items: z.array(z.object({ score: z.number().max(100) })),
+    });
+
+    const jsonSchema = toStructuredJsonSchema(nested) as {
+      properties: { items: { items: { properties: { score: object } } } };
+    };
+
+    expect(jsonSchema.properties.items.items.properties.score).toEqual({
+      type: 'number',
+    });
+  });
+
+  it('keeps the shape strict mode does enforce', () => {
+    const bounded = z.object({
+      kind: z.enum(['a', 'b']),
+      label: z.string().min(1),
+    });
+
+    expect(toStructuredJsonSchema(bounded)).toMatchObject({
+      additionalProperties: false,
+      properties: { kind: { enum: ['a', 'b'] }, label: { type: 'string' } },
+      required: ['kind', 'label'],
+    });
+  });
+
+  it('leaves a property literally named `pattern` alone', () => {
+    const named = z.object({ pattern: z.string().min(1) });
+
+    const jsonSchema = toStructuredJsonSchema(named) as {
+      properties: Record<string, unknown>;
+    };
+
+    expect(jsonSchema.properties.pattern).toEqual({ type: 'string' });
+  });
+
+  it('still enforces the dropped bounds with zod on the way back', () => {
+    const bounded = z.object({ label: z.string().min(1) });
+
+    expect(bounded.safeParse({ label: '' }).success).toBe(false);
   });
 
   it('still refuses an answer the non-strict schema does not match', () => {

@@ -42,7 +42,43 @@ export function toStructuredJsonSchema(
 
   delete jsonSchema.$schema;
 
-  return requireAllProperties(jsonSchema) as Record<string, unknown>;
+  return requireAllProperties(
+    dropStrictUnsupportedKeywords(jsonSchema),
+  ) as Record<string, unknown>;
+}
+
+function dropStrictUnsupportedKeywords(node: unknown): unknown {
+  if (Array.isArray(node)) {
+    return node.map(dropStrictUnsupportedKeywords);
+  }
+
+  if (!isRecord(node)) {
+    return node;
+  }
+
+  const next: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(node)) {
+    // A schema may legitimately hold a *property* named `pattern` or
+    // `minimum`; only the keyword position is stripped, never the contents of
+    // a `properties` map.
+    if (key === 'properties' && isRecord(value)) {
+      next[key] = Object.fromEntries(
+        Object.entries(value).map(([name, property]) => [
+          name,
+          dropStrictUnsupportedKeywords(property),
+        ]),
+      );
+      continue;
+    }
+
+    if (STRICT_UNSUPPORTED_KEYWORDS.has(key)) {
+      continue;
+    }
+
+    next[key] = dropStrictUnsupportedKeywords(value);
+  }
+
+  return next;
 }
 
 function requireAllProperties(node: unknown): unknown {
@@ -75,14 +111,39 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
+ * JSON Schema keywords OpenAI's strict structured outputs reject.
+ *
+ * `z.toJSONSchema` emits these for the ordinary `.min()` / `.max()` / `.iso`
+ * constraints this repo's contracts are built from, and a strict request
+ * carrying any of them is refused before the model runs.
+ *
+ * They are dropped from the emitted schema rather than used to disqualify it.
+ * Keeping them would cost `strict` on nearly every contract here — and with
+ * it the *guaranteed* adherence to required keys and enum values, which is
+ * the enforcement #4873 is actually after. A bound is the cheap part: zod
+ * re-checks every one on the way back, with the repair retry behind it.
+ */
+const STRICT_UNSUPPORTED_KEYWORDS = new Set([
+  'exclusiveMaximum',
+  'exclusiveMinimum',
+  'format',
+  'maxItems',
+  'maxLength',
+  'maximum',
+  'minItems',
+  'minLength',
+  'minimum',
+  'multipleOf',
+  'pattern',
+]);
+
+/**
  * Whether a provider can be asked to enforce this schema *strictly*.
  *
- * OpenAI's strict structured outputs only accept closed objects — every one
- * needs `properties` and `additionalProperties: false`. A schema with an open
- * record in it (a workflow node's `data`, a brand profile section) has neither
- * and is rejected outright, so those go out non-strict: the provider still
- * gets the full JSON Schema to steer on, and zod plus the repair retry decide
- * whether the answer is usable.
+ * What remains after {@link dropStrictUnsupportedKeywords} is the one thing
+ * strict mode cannot express at all: an open record (a workflow node's
+ * `data`, a brand profile section) has no `properties` and so cannot be a
+ * closed object. Those go out non-strict, schema and all, and zod decides.
  */
 function isStrictEnforceable(node: unknown): boolean {
   if (Array.isArray(node)) {
