@@ -16,6 +16,7 @@ import {
   KnowledgeRetentionState,
   KnowledgeRetrievalState,
   KnowledgeSourceKind,
+  type KnowledgeSourcePurpose,
   MemberRole,
 } from '@genfeedai/contracts';
 import { Prisma } from '@genfeedai/prisma';
@@ -274,11 +275,32 @@ export class KnowledgeRecordsService {
     );
   }
 
-  async listSources(actor: KnowledgeActor, page = 1, limit = 25) {
-    const where = {
+  async listSources(
+    actor: KnowledgeActor,
+    page = 1,
+    limit = 25,
+    filters: {
+      processingState?: KnowledgeProcessingState;
+      purpose?: KnowledgeSourcePurpose;
+    } = {},
+  ) {
+    const where: Prisma.KnowledgeSourceWhereInput = {
       ...this.ownership(actor),
       organizationId: actor.organizationId,
       isDeleted: false,
+      ...(filters.purpose ? { purpose: filters.purpose } : {}),
+      ...(filters.processingState
+        ? {
+            versions: {
+              some: {
+                isCurrent: true,
+                isDeleted: false,
+                organizationId: actor.organizationId,
+                processingState: filters.processingState,
+              },
+            },
+          }
+        : {}),
     };
     const [docs, totalDocs] = await this.prisma.$transaction([
       this.prisma.knowledgeSource.findMany({

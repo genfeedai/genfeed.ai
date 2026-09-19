@@ -376,9 +376,24 @@ export class KnowledgeSourceIngestService {
       state.organizationId,
       state.source,
     );
-    await softDeleteKnowledgeChunks(this.prisma, state.organizationId, {
-      sourceId: state.source.id,
-      ...(state.version.isCurrent ? {} : { versionId: state.version.id }),
+    const sourceId = state.source.id;
+    const versionId = state.version.id;
+    await this.prisma.$transaction(async (tx) => {
+      // Take the same source row lock createVersion holds, then re-read
+      // isCurrent: the flag loaded at the start of this run may be stale, and
+      // a superseded run must only replace its own version's chunks.
+      await tx.knowledgeSource.updateMany({
+        where: scopedWhere(state.organizationId, { id: sourceId }),
+        data: { updatedAt: new Date() },
+      });
+      const live = await tx.knowledgeSourceVersion.findFirst({
+        where: scopedWhere(state.organizationId, { id: versionId, sourceId }),
+        select: { isCurrent: true },
+      });
+      await softDeleteKnowledgeChunks(tx, state.organizationId, {
+        sourceId,
+        ...(live?.isCurrent ? {} : { versionId }),
+      });
     });
     for (const [chunkIndex, content] of state.chunks.entries()) {
       const cue = state.extractedCues?.[chunkIndex];
@@ -434,6 +449,13 @@ export class KnowledgeSourceIngestService {
       };
     }
     if (state.status !== 'ready') {
+      if (state.version?.isCurrent) {
+        await this.settleCaptureRequests(
+          state,
+          'failed',
+          state.failure ?? 'Source cannot be ingested',
+        );
+      }
       return {
         chunkCount: 0,
         sourceId: state.sourceId,
@@ -449,6 +471,12 @@ export class KnowledgeSourceIngestService {
       );
       if (state.version && !state.version.isCurrent) {
         await this.failRefreshCandidate(state, toSafeFailureReason(error));
+      } else {
+        await this.settleCaptureRequests(
+          state,
+          'failed',
+          toSafeFailureReason(error),
+        );
       }
       return {
         chunkCount: 0,
@@ -460,6 +488,8 @@ export class KnowledgeSourceIngestService {
     await this.writeProcessingState(state, KnowledgeProcessingState.READY);
     if (state.version && !state.version.isCurrent) {
       await this.promoteRefreshCandidate(state);
+    } else {
+      await this.settleCaptureRequests(state, 'completed');
     }
     return {
       chunkCount: state.chunks?.length ?? 0,
@@ -740,6 +770,25 @@ export class KnowledgeSourceIngestService {
         select: { id: true },
       });
       return created.id;
+    });
+  }
+
+  /**
+   * Settle the capture requests that led to this current-version ingest, so
+   * only later refresh-mode requests are still queued when a refresh
+   * candidate succeeds or fails.
+   */
+  private async settleCaptureRequests(
+    state: KnowledgeSourceIngestState,
+    status: 'completed' | 'failed',
+    error?: string,
+  ): Promise<void> {
+    await this.prisma.knowledgeCaptureRequest.updateMany({
+      where: scopedWhere(state.organizationId, {
+        sourceId: state.sourceId,
+        status: 'queued',
+      }),
+      data: status === 'failed' ? { error, status } : { status },
     });
   }
 

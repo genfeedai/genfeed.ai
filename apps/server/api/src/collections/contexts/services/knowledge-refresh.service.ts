@@ -167,12 +167,9 @@ export class KnowledgeRefreshService {
         winnerId: locked?.refreshWorkflowId ?? refreshWorkflowId,
       };
     });
-    if (
-      written.count > 0 &&
-      refreshWorkflowId &&
-      written.winnerId &&
-      written.winnerId !== refreshWorkflowId
-    ) {
+    // A concurrent enable may have stored a different workflow first; the
+    // one this call created or reused then must stop firing.
+    if (refreshWorkflowId && written.winnerId !== refreshWorkflowId) {
       await this.syncRefreshWorkflow(
         actor,
         sourceId,
@@ -406,20 +403,14 @@ export class KnowledgeRefreshService {
       }),
     });
     if (existing) {
-      if (this.canReclaimRun(existing)) {
-        await this.prisma.knowledgeSourceRefreshRun.updateMany({
-          where: scopedWhere(actor.organizationId, {
-            id: existing.id,
-            sourceId: source.id,
-          }),
-          data: {
-            attemptCount: { increment: 1 },
-            leaseExpiresAt: new Date(Date.now() + LEASE_MS),
-            leaseToken: randomUUID(),
-            startedAt: new Date(),
-            status: KnowledgeRefreshRunStatus.PROCESSING,
-          },
-        });
+      // A failed run for this tick is retried; a live or completed one is
+      // reported as-is. The claim is compare-and-set, so only one caller
+      // re-executes a given run.
+      if (
+        await this.takeOverRun(actor.organizationId, source.id, existing.id, {
+          isFailedReclaimable: true,
+        })
+      ) {
         return { runId: existing.id };
       }
       return {
@@ -439,7 +430,11 @@ export class KnowledgeRefreshService {
       }),
     });
     if (unfinished) {
-      if (this.canReclaimRun(unfinished)) {
+      if (
+        await this.takeOverRun(actor.organizationId, source.id, unfinished.id, {
+          isFailedReclaimable: false,
+        })
+      ) {
         await this.failRun(
           unfinished.id,
           actor.organizationId,
@@ -572,17 +567,47 @@ export class KnowledgeRefreshService {
     return { refreshRunId: existing?.id ?? sourceId, sourceId };
   }
 
-  private canReclaimRun(run: {
-    leaseExpiresAt?: Date | null;
-    status: string;
-  }): boolean {
-    if (
-      run.status !== KnowledgeRefreshRunStatus.QUEUED &&
-      run.status !== KnowledgeRefreshRunStatus.PROCESSING
-    ) {
-      return false;
-    }
-    return !run.leaseExpiresAt || run.leaseExpiresAt.getTime() <= Date.now();
+  /**
+   * Atomically take over a run whose lease has expired (or, when allowed, a
+   * FAILED run). Returns false when another caller holds or already took it.
+   */
+  private async takeOverRun(
+    organizationId: string,
+    sourceId: string,
+    runId: string,
+    options: { isFailedReclaimable: boolean },
+  ): Promise<boolean> {
+    const now = new Date();
+    const expiredLease = {
+      status: {
+        in: [
+          KnowledgeRefreshRunStatus.QUEUED,
+          KnowledgeRefreshRunStatus.PROCESSING,
+        ],
+      },
+      OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
+    };
+    const taken = await this.prisma.knowledgeSourceRefreshRun.updateMany({
+      where: scopedWhere(organizationId, {
+        id: runId,
+        sourceId,
+        ...(options.isFailedReclaimable
+          ? {
+              OR: [{ status: KnowledgeRefreshRunStatus.FAILED }, expiredLease],
+            }
+          : expiredLease),
+      }),
+      data: {
+        attemptCount: { increment: 1 },
+        completedAt: null,
+        error: null,
+        leaseExpiresAt: new Date(now.getTime() + LEASE_MS),
+        leaseToken: randomUUID(),
+        startedAt: now,
+        status: KnowledgeRefreshRunStatus.PROCESSING,
+      },
+    });
+    return taken.count === 1;
   }
 
   private nextCheckAtFrom(

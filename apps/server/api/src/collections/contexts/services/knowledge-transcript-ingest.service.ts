@@ -349,14 +349,6 @@ export class KnowledgeTranscriptIngestService {
       if (cues.length === 0) {
         throw new Error('Generated transcript has no timestamped cues');
       }
-      await this.credits.settleReservation({
-        actualAmount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
-        actorUserId: input.userId,
-        description: 'Knowledge transcript generation',
-        organizationId: input.organizationId,
-        reservationId,
-        source: ActivitySource.SCRIPT,
-      });
       const resolution: KnowledgeTranscriptResolution = {
         cues,
         mediaUrl,
@@ -365,7 +357,18 @@ export class KnowledgeTranscriptIngestService {
         text: cuesToText(cues),
         transcriptState: KnowledgeTranscriptState.GENERATED,
       };
+      // Persist the transcript before charging for it. A failure before this
+      // point releases the hold; settling first would leave a paid transcript
+      // unsaved, and a retry after the lease reserves under a new attempt key.
       await this.checkpoint(input, resolution);
+      await this.credits.settleReservation({
+        actualAmount: KNOWLEDGE_CAPTURE_TRANSCRIPT_CREDIT,
+        actorUserId: input.userId,
+        description: 'Knowledge transcript generation',
+        organizationId: input.organizationId,
+        reservationId,
+        source: ActivitySource.SCRIPT,
+      });
       await this.prisma.knowledgeCaptureRequest.updateMany({
         where: {
           isDeleted: false,

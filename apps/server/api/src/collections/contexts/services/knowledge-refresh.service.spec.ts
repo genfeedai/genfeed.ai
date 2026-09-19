@@ -190,7 +190,10 @@ describe('KnowledgeRefreshService', () => {
     const prisma = (
       service as unknown as {
         prisma: {
-          knowledgeSourceRefreshRun: { findFirst: ReturnType<typeof vi.fn> };
+          knowledgeSourceRefreshRun: {
+            findFirst: ReturnType<typeof vi.fn>;
+            updateMany: ReturnType<typeof vi.fn>;
+          };
         };
       }
     ).prisma;
@@ -200,11 +203,129 @@ describe('KnowledgeRefreshService', () => {
       leaseExpiresAt: new Date(Date.now() + 60_000),
       status: KnowledgeRefreshRunStatus.PROCESSING,
     });
+    // The compare-and-set take-over matches nothing while the lease is live.
+    prisma.knowledgeSourceRefreshRun.updateMany.mockResolvedValueOnce({
+      count: 0,
+    });
     const result = await service.refresh(actor, 'source-1', 'tick-live');
     expect(result).toEqual({
       jobId: 'candidate-1',
       refreshRunId: 'run-live',
       sourceId: 'source-1',
     });
+  });
+
+  it('takes over a run only through a compare-and-set on status and lease', async () => {
+    const { service } = buildService();
+    const prisma = (
+      service as unknown as {
+        prisma: {
+          knowledgeSourceRefreshRun: {
+            findFirst: ReturnType<typeof vi.fn>;
+            updateMany: ReturnType<typeof vi.fn>;
+          };
+        };
+      }
+    ).prisma;
+    prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValueOnce({
+      id: 'run-failed',
+      status: KnowledgeRefreshRunStatus.FAILED,
+    });
+
+    const result = await service.refresh(actor, 'source-1', 'tick-failed', {
+      force: true,
+    });
+
+    expect(result.refreshRunId).toBe('run-failed');
+    expect(result).not.toHaveProperty('jobId', 'run-failed');
+    const takeOver = prisma.knowledgeSourceRefreshRun.updateMany.mock
+      .calls[0][0] as { data: { status: string }; where: unknown };
+    expect(takeOver.data.status).toBe(KnowledgeRefreshRunStatus.PROCESSING);
+    expect(takeOver.where).toMatchObject({
+      id: 'run-failed',
+      isDeleted: false,
+      organizationId: 'org-1',
+      sourceId: 'source-1',
+      OR: [
+        { status: KnowledgeRefreshRunStatus.FAILED },
+        expect.objectContaining({
+          OR: [
+            { leaseExpiresAt: null },
+            { leaseExpiresAt: { lte: expect.any(Date) } },
+          ],
+        }),
+      ],
+    });
+  });
+
+  it('returns the prior job when another caller already took over the failed run', async () => {
+    const { service } = buildService();
+    const prisma = (
+      service as unknown as {
+        prisma: {
+          knowledgeSourceRefreshRun: {
+            findFirst: ReturnType<typeof vi.fn>;
+            updateMany: ReturnType<typeof vi.fn>;
+          };
+        };
+      }
+    ).prisma;
+    prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValueOnce({
+      candidateVersionId: 'candidate-9',
+      id: 'run-raced',
+      status: KnowledgeRefreshRunStatus.FAILED,
+    });
+    prisma.knowledgeSourceRefreshRun.updateMany.mockResolvedValueOnce({
+      count: 0,
+    });
+
+    const result = await service.refresh(actor, 'source-1', 'tick-raced', {
+      force: true,
+    });
+
+    expect(result).toEqual({
+      jobId: 'candidate-9',
+      refreshRunId: 'run-raced',
+      sourceId: 'source-1',
+    });
+  });
+
+  it('disables the workflow it created when a concurrent enable stored another', async () => {
+    const { service, records } = buildService();
+    const internals = service as unknown as {
+      prisma: {
+        knowledgeSource: { findFirst: ReturnType<typeof vi.fn> };
+        workflow: {
+          findFirst: ReturnType<typeof vi.fn>;
+          updateMany: ReturnType<typeof vi.fn>;
+        };
+      };
+      workflowQueue: { syncWorkflowScheduler: ReturnType<typeof vi.fn> };
+      workflows: { createWorkflow: ReturnType<typeof vi.fn> };
+    };
+    internals.workflows.createWorkflow.mockResolvedValue({ id: 'wf-loser' });
+    records.getSource.mockResolvedValue({
+      id: 'source-1',
+      kind: KnowledgeSourceKind.URL,
+      referenceUrl: 'https://ex.com',
+      title: 'Docs',
+    });
+    // Inside the policy lock, the source already points at the winner.
+    internals.prisma.knowledgeSource.findFirst.mockResolvedValue({
+      refreshWorkflowId: 'wf-winner',
+    });
+    internals.prisma.workflow.findFirst.mockResolvedValue({ id: 'wf-loser' });
+
+    await service.setPolicy(actor, 'source-1', { isEnabled: true });
+
+    expect(internals.prisma.workflow.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ isScheduleEnabled: false }),
+        where: expect.objectContaining({ id: 'wf-loser' }),
+      }),
+    );
+    expect(internals.workflowQueue.syncWorkflowScheduler).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'wf-loser', isScheduleEnabled: false }),
+    );
   });
 });

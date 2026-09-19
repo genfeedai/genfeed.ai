@@ -44,6 +44,7 @@ function buildService() {
   const logger = { log: vi.fn() };
   return {
     credits,
+    prisma,
     replicate,
     service: new KnowledgeTranscriptIngestService(
       prisma as never,
@@ -116,6 +117,63 @@ describe('KnowledgeTranscriptIngestService', () => {
     expect(credits.settleReservation).toHaveBeenCalledWith(
       expect.objectContaining({ actualAmount: 1, reservationId: 'res-1' }),
     );
+  });
+
+  it('saves the transcript before settling and never charges for an unsaved one', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, prisma, service } = buildService();
+    // The first write records the generation claim; the second is the
+    // transcript checkpoint, which fails here.
+    prisma.knowledgeSourceVersion.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockRejectedValueOnce(new Error('connection reset'));
+
+    await expect(
+      service.resolve({
+        kind: KnowledgeSourceKind.AUDIO,
+        organizationId: 'org-1',
+        payload: { isTranscriptGenerationAllowed: true },
+        referenceUrl: 'https://cdn.example.com/ep.mp3',
+        sourceId: 'source-1',
+        userId: 'user-1',
+        versionId: 'version-1',
+      }),
+    ).rejects.toThrow('connection reset');
+    expect(credits.settleReservation).not.toHaveBeenCalled();
+    expect(credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'res-1',
+    });
+  });
+
+  it('settles only after the transcript checkpoint is written', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, prisma, service } = buildService();
+
+    await service.resolve({
+      kind: KnowledgeSourceKind.AUDIO,
+      organizationId: 'org-1',
+      payload: { isTranscriptGenerationAllowed: true },
+      referenceUrl: 'https://cdn.example.com/ep.mp3',
+      sourceId: 'source-1',
+      userId: 'user-1',
+      versionId: 'version-1',
+    });
+
+    const checkpointOrder =
+      prisma.knowledgeSourceVersion.updateMany.mock.invocationCallOrder[1];
+    const settleOrder = credits.settleReservation.mock.invocationCallOrder[0];
+    expect(checkpointOrder).toBeLessThan(settleOrder);
   });
 
   it('does not generate when the operator has not allowed it', async () => {
