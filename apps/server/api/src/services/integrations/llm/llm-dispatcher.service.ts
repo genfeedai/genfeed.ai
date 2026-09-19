@@ -259,7 +259,7 @@ export class LlmDispatcherService {
     organizationId?: string,
     callContext?: ILlmCompletionCallContext,
   ): Promise<TResult> {
-    const { schema, schemaName, ...completionParams } = params;
+    const { onAttempt, schema, schemaName, ...completionParams } = params;
     const responseFormat = buildStructuredResponseFormat(
       schemaName,
       toStructuredJsonSchema(schema),
@@ -280,6 +280,8 @@ export class LlmDispatcherService {
           organizationId,
           callContext,
         );
+
+        await onAttempt?.(response);
 
         return response.choices?.[0]?.message?.content ?? null;
       },
