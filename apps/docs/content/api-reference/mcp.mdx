@@ -60,6 +60,40 @@ availability depend on the client and your plan. If OAuth is unsupported, update
 your client or use the advanced manual-key setup below. No application deep link
 is required.
 
+Genfeed has no client-specific branches in its authorization server. Any client
+that implements the standard discovery, registration, and PKCE flow works
+without Genfeed shipping code for it. Claude Code and Codex are the clients with
+recorded live handshakes; other clients are untested until a handshake is
+recorded.
+
+### Authorization server conformance
+
+What a spec-compliant client can rely on:
+
+- **Discovery (RFC 9728).** Protected-resource metadata is served at both
+  `https://mcp.genfeed.ai/.well-known/oauth-protected-resource` and the
+  path-suffixed `https://mcp.genfeed.ai/.well-known/oauth-protected-resource/mcp`
+  with identical bodies. A `401` from `/mcp` carries a `WWW-Authenticate` header
+  pointing at that metadata. Authorization-server metadata is at
+  `https://api.genfeed.ai/.well-known/oauth-authorization-server`. Both
+  documents are readable cross-origin.
+- **Resource identifier (RFC 8707).** The `resource` is always
+  `https://mcp.genfeed.ai/mcp`. Send it on the authorize and token requests.
+- **Registration (RFC 7591).** `POST /v1/oauth/register` with `redirect_uris`;
+  `token_endpoint_auth_method` is `none`.
+- **Authorization.** `code_challenge_method` must be `S256`. `state` is
+  optional; when supplied it is echoed unchanged on both the success and the
+  `access_denied` redirect.
+- **Tokens.** The token exchange returns an access token and a
+  `refresh_token`. Access tokens expire after 30 days. Present the refresh
+  token with `grant_type=refresh_token` to obtain a new access token without a
+  second consent screen; each refresh rotates the refresh token, and reuse of a
+  consumed refresh token revokes the whole chain. A narrower `scope` may be
+  requested on refresh; a wider one is rejected.
+- **Revocation (RFC 7009).** `POST /v1/oauth/revoke` with the refresh token
+  ends the connection. Revoking the key from Genfeed's API key settings has the
+  same effect.
+
 ### Verify access
 
 Ask your agent: **“List my Genfeed brands.”** A successful scoped read verifies
@@ -221,7 +255,8 @@ The endpoint accepts `POST`, `GET`, and `DELETE`. Authenticated requests include
 Authorization: Bearer <access-token>
 ```
 
-Missing, invalid, or expired tokens return 401 errors.
+Missing, invalid, or expired tokens return 401 errors. An OAuth client should
+use its refresh token on a 401 before restarting browser authorization.
 
 ## Local Self-Hosted Surface
 
