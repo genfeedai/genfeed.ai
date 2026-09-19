@@ -12,6 +12,7 @@ import {
   getUpgradeTierForLimit,
   HIGHER_API_RATE_LIMIT,
   hasApiAccess,
+  hasCleanExportAccess,
   hasTrainingAccess,
   PLAN_LIMIT_UNLIMITED,
   SCALE_API_RATE_LIMIT,
@@ -129,6 +130,22 @@ describe('hasTrainingAccess', () => {
     expect(hasTrainingAccess(SubscriptionTier.PRO)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.SCALE)).toBe(true);
     expect(hasTrainingAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
+  });
+});
+
+describe('hasCleanExportAccess', () => {
+  it('is denied on free tiers and unknown tiers', () => {
+    expect(hasCleanExportAccess(SubscriptionTier.FREE)).toBe(false);
+    expect(hasCleanExportAccess(SubscriptionTier.BYOK)).toBe(false);
+    expect(hasCleanExportAccess('unknown')).toBe(false);
+    expect(hasCleanExportAccess(null)).toBe(false);
+    expect(hasCleanExportAccess(undefined)).toBe(false);
+  });
+
+  it('is granted from Pro upward', () => {
+    expect(hasCleanExportAccess(SubscriptionTier.PRO)).toBe(true);
+    expect(hasCleanExportAccess(SubscriptionTier.SCALE)).toBe(true);
+    expect(hasCleanExportAccess(SubscriptionTier.ENTERPRISE)).toBe(true);
   });
 });
 

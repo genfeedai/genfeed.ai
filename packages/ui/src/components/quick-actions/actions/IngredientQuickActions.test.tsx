@@ -8,6 +8,16 @@ import { describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   useQuickActions: vi.fn(),
+  isSelfHostedDeployment: vi.fn(() => false),
+  useBrand: vi.fn(() => ({ settings: null })),
+}));
+
+vi.mock('@genfeedai/config/deployment', () => ({
+  isSelfHostedDeployment: mocks.isSelfHostedDeployment,
+}));
+
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: mocks.useBrand,
 }));
 
 vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
@@ -57,7 +67,12 @@ vi.mock('@genfeedai/hooks/ui/use-quick-actions/use-quick-actions', () => ({
 }));
 
 vi.mock('@ui/quick-actions/actions/IngredientDownloadButton', () => ({
-  default: () => <div data-testid="watermark-download" />,
+  default: ({ canDownloadOriginal }: { canDownloadOriginal?: boolean }) => (
+    <div
+      data-can-download-original={String(canDownloadOriginal)}
+      data-testid="watermark-download"
+    />
+  ),
 }));
 
 vi.mock('@ui/dropdowns/prompt/DropdownPrompt', () => ({
@@ -87,6 +102,62 @@ describe('IngredientQuickActions', () => {
     id: 'ingredient-1',
     promptText: 'test prompt',
   } as IIngredient;
+
+  beforeEach(() => {
+    mocks.isSelfHostedDeployment.mockReturnValue(false);
+    mocks.useBrand.mockReturnValue({ settings: null });
+  });
+
+  describe('canDownloadOriginal entitlement', () => {
+    it('is unrestricted on self-hosted deployments regardless of tier', () => {
+      mocks.isSelfHostedDeployment.mockReturnValue(true);
+      mocks.useBrand.mockReturnValue({
+        settings: { subscriptionTier: 'FREE' },
+      });
+      render(
+        <IngredientQuickActions
+          selectedIngredient={ingredient}
+          onDownload={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId('watermark-download')).toHaveAttribute(
+        'data-can-download-original',
+        'true',
+      );
+    });
+
+    it('locks the original download for SaaS free-tier organizations', () => {
+      mocks.isSelfHostedDeployment.mockReturnValue(false);
+      mocks.useBrand.mockReturnValue({
+        settings: { subscriptionTier: 'FREE' },
+      });
+      render(
+        <IngredientQuickActions
+          selectedIngredient={ingredient}
+          onDownload={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId('watermark-download')).toHaveAttribute(
+        'data-can-download-original',
+        'false',
+      );
+    });
+
+    it('unlocks the original download for SaaS paid-tier organizations', () => {
+      mocks.isSelfHostedDeployment.mockReturnValue(false);
+      mocks.useBrand.mockReturnValue({ settings: { subscriptionTier: 'PRO' } });
+      render(
+        <IngredientQuickActions
+          selectedIngredient={ingredient}
+          onDownload={vi.fn()}
+        />,
+      );
+      expect(screen.getByTestId('watermark-download')).toHaveAttribute(
+        'data-can-download-original',
+        'true',
+      );
+    });
+  });
 
   it.each([
     IngredientCategory.IMAGE,

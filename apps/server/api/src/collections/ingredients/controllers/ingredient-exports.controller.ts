@@ -3,6 +3,7 @@ import { ExportIngredientDto } from '@api/collections/ingredients/dto/export-ing
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { RequestTimeout } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CleanExportAccessGuard } from '@api/helpers/guards/clean-export-access/clean-export-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
@@ -24,6 +25,7 @@ export class IngredientExportsController {
   @Post(':id/export')
   @RequestTimeout(600_000)
   @RateLimit({ limit: 5, scope: 'user', windowMs: 60_000 })
+  @UseGuards(CleanExportAccessGuard)
   async export(
     @Req() request: Request,
     @CurrentUser() user: AuthenticatedUser,
