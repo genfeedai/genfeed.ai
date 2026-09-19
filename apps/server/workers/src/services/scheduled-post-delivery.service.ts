@@ -22,6 +22,12 @@ import {
   TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/index';
+import {
+  formatMediaReadinessBlockers,
+  readBlockingDiagnostics,
+  readWarningDiagnostics,
+} from '@api/services/media-readiness/media-readiness.evaluator';
+import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
@@ -117,6 +123,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly replyPostWatchService: ReplyPostWatchService,
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
+    private readonly mediaReadinessService: MediaReadinessService,
   ) {}
 
   onModuleInit(): void {
@@ -517,6 +524,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
       };
     }
 
+    const mediaBlock = await this.assertMediaReady(post, ids, platform, url);
+    if (mediaBlock) {
+      return { ok: false, result: mediaBlock };
+    }
+
     const settings =
       source === 'tiktok_app'
         ? {
@@ -551,6 +563,61 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
         publisher,
       },
     };
+  }
+
+  /**
+   * Deterministic media readiness gate (#4878).
+   *
+   * The last check before `executeProviderPublish`, so an asset that breaks
+   * the target platform's published media spec is reported as a channel
+   * failure instead of bouncing back as a provider error. `warning`
+   * diagnostics are recorded and let the publish proceed.
+   */
+  private async assertMediaReady(
+    post: PostEntity,
+    ids: PostDeliveryIds,
+    platform: Platform,
+    url: string,
+  ): Promise<PublishResult | null> {
+    const assetIds = (this.toValidationMedia(post) ?? []).flatMap((item) =>
+      item.id ? [item.id] : [],
+    );
+    if (assetIds.length === 0) {
+      return null;
+    }
+
+    const report = await this.mediaReadinessService.evaluatePublishReadiness({
+      assetIds,
+      organizationId: ids.organizationId ?? '',
+      platforms: [platform],
+    });
+    const warnings = readWarningDiagnostics(report);
+    if (warnings.length > 0) {
+      this.logger.warn(`${url} media readiness warnings`, {
+        diagnostics: warnings,
+        platform,
+        postId: post.id,
+      });
+    }
+
+    const blockers = readBlockingDiagnostics(report);
+    if (blockers.length === 0) {
+      return null;
+    }
+
+    const message = formatMediaReadinessBlockers(blockers);
+    this.logger.error(`${url} media readiness blocked publish`, {
+      diagnostics: blockers,
+      platform,
+      postId: post.id,
+    });
+    return this.failChannel(
+      post,
+      platform,
+      blockers[0]?.code ?? 'media_not_ready',
+      message,
+      false,
+    );
   }
 
   private toValidationMedia(

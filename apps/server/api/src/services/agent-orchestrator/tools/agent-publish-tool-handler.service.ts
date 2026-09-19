@@ -8,6 +8,7 @@ import { PostRepurposeService } from '@api/collections/posts/services/post-repur
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService } from '@api/index';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
+import { resolveAgentPublishMediaReadiness } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
@@ -30,6 +31,7 @@ import {
   verifyPendingToolConfirmation,
 } from '@api/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
 import { CacheService } from '@api/services/cache/cache.service';
+import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import {
   ActivitySource,
   AgentAutonomyMode,
@@ -105,6 +107,9 @@ export class AgentPublishToolHandler {
     @Optional()
     @Inject(CacheService)
     private readonly cacheService?: CacheService,
+    @Optional()
+    @Inject(MediaReadinessService)
+    private readonly mediaReadinessService?: MediaReadinessService,
   ) {}
 
   async scheduleCanonicalPost(
@@ -244,6 +249,21 @@ export class AgentPublishToolHandler {
       };
     }
 
+    const mediaReadiness = await resolveAgentPublishMediaReadiness({
+      assetIds: media.flatMap((item) => (item.id ? [item.id] : [])),
+      gate: this.mediaReadinessService,
+      organizationId: ctx.organizationId,
+      platforms: createdPlatforms,
+    });
+    if (mediaReadiness.blockers.length > 0) {
+      return {
+        creditsUsed: 0,
+        data: { contentId, mediaDiagnostics: mediaReadiness.blockers },
+        error: mediaReadiness.error,
+        success: false,
+      };
+    }
+
     const autoPublishPolicy = evaluateAgentAutoPublishPolicies({
       autonomyMode: ctx.autonomyMode,
       brandAutoPublishEnabled: ctx.confirmationOrigin === 'thread-ui-action',
@@ -361,6 +381,9 @@ export class AgentPublishToolHandler {
         autoPublishPolicyId: autoPublishPolicy.policyId,
         contentId,
         createdPlatforms,
+        ...(mediaReadiness.warnings.length > 0
+          ? { mediaDiagnostics: mediaReadiness.warnings }
+          : {}),
         missingPlatforms,
         ...(postingSetId ? { postingSetId } : {}),
         postIds,

@@ -12,6 +12,7 @@ import {
   SERVER_TOKENS,
 } from '@api/index';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
+import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
@@ -37,6 +38,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => WebhookClientModule),
+    MediaReadinessModule,
     PublishersModule,
     QuotaModule,
     forwardRef(() => ReplyBotModule),

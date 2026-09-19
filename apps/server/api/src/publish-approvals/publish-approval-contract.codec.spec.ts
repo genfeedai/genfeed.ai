@@ -19,6 +19,7 @@ function makePost(overrides: Partial<ApprovalPost> = {}): ApprovalPost {
     brandId: 'brand-1',
     credentialId: 'credential-1',
     id: 'post-1',
+    ingredients: [],
     isDeleted: false,
     organizationId: 'org-1',
     platform: CredentialPlatform.TWITTER,

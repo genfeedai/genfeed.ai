@@ -120,6 +120,7 @@ import { CacheService } from '@api/services/cache/cache.service';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
+import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -176,6 +177,7 @@ import { Module } from '@nestjs/common';
     LlmDispatcherModule,
     MarketplaceIntegrationModule,
     McpApprovalsModule,
+    MediaReadinessModule,
     NewslettersModule,
     OrganizationSettingsModule,
     OrganizationsCoreModule,
