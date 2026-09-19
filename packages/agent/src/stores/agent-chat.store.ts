@@ -18,6 +18,7 @@ import {
 } from '@genfeedai/contracts';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
+  ONBOARDING_JOURNEY_TOTAL_CREDITS,
   ONBOARDING_SIGNUP_GIFT_CREDITS,
   ONBOARDING_TOTAL_VISIBLE_CREDITS,
 } from '@genfeedai/contracts/types/onboarding-journey';
@@ -872,7 +873,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   onboardingEarnedCredits: 0,
   onboardingSignupGiftCredits: ONBOARDING_SIGNUP_GIFT_CREDITS,
   onboardingSteps: DEFAULT_ONBOARDING_STEPS,
-  onboardingTotalJourneyCredits: 100,
+  onboardingTotalJourneyCredits: ONBOARDING_JOURNEY_TOTAL_CREDITS,
   onboardingTotalVisibleCredits: ONBOARDING_TOTAL_VISIBLE_CREDITS,
   overlayActiveIds: [],
   overlayAutoCollapsedAgent: false,
@@ -1092,10 +1093,12 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       onboardingEarnedCredits: payload.earnedCredits ?? 0,
       onboardingSignupGiftCredits: payload.signupGiftCredits ?? 0,
       onboardingSteps: payload.steps,
-      onboardingTotalJourneyCredits: payload.totalJourneyCredits ?? 100,
+      onboardingTotalJourneyCredits:
+        payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS,
       onboardingTotalVisibleCredits:
         payload.totalOnboardingCreditsVisible ??
-        (payload.signupGiftCredits ?? 0) + (payload.totalJourneyCredits ?? 100),
+        (payload.signupGiftCredits ?? 0) +
+          (payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS),
     }),
   setOnboardingStepStatus: (stepId, status) =>
     set((state) => ({
