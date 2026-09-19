@@ -15,6 +15,7 @@ import {
   type TranscriptCue,
 } from '@api/collections/contexts/utils/knowledge-transcript.util';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -51,6 +52,23 @@ interface TranscriptGenerationClaim {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+/**
+ * CreditReservationService rejects settling a RELEASED or EXPIRED hold with a
+ * BusinessLogicException whose reason lives in the response `detail`; its
+ * `message` is only the generic class label.
+ */
+function isUnsettleableHold(error: unknown): boolean {
+  if (!(error instanceof BusinessLogicException)) {
+    return false;
+  }
+  const response = error.getResponse();
+  return (
+    isRecord(response) &&
+    typeof response.detail === 'string' &&
+    response.detail.endsWith('cannot be settled')
+  );
 }
 
 function readPayload(value: unknown): KnowledgeSourceCapturePayload & {
@@ -198,10 +216,7 @@ export class KnowledgeTranscriptIngestService {
         ).catch((error: unknown) => {
           // An expired or released hold can no longer be charged; the saved
           // transcript is still served rather than failing ingest forever.
-          if (
-            error instanceof Error &&
-            /cannot be settled/.test(error.message)
-          ) {
+          if (isUnsettleableHold(error)) {
             this.logger.log('Knowledge transcript hold expired before settle', {
               organizationId: input.organizationId,
               reservationId: payload.transcriptReservationId,

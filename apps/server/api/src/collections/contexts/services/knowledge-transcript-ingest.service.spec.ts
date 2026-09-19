@@ -1,4 +1,5 @@
 import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   CreditReservationStatus,
   KnowledgeSourceKind,
@@ -243,7 +244,7 @@ describe('KnowledgeTranscriptIngestService', () => {
       transcriptState: KnowledgeTranscriptState.GENERATED,
     });
     credits.settleReservation.mockRejectedValueOnce(
-      new Error('Reservation EXPIRED cannot be settled'),
+      new BusinessLogicException('Reservation EXPIRED cannot be settled'),
     );
 
     await expect(
@@ -257,6 +258,33 @@ describe('KnowledgeTranscriptIngestService', () => {
         versionId: 'version-1',
       }),
     ).resolves.toMatchObject({ text: 'Hello world' });
+  });
+
+  it('still fails a reused transcript when settlement fails for another reason', async () => {
+    const { credits, prisma, service } = buildService();
+    prisma.knowledgeSourceVersion.findFirst.mockResolvedValue({
+      payload: {
+        transcriptCues: [{ endMs: 2500, startMs: 0, text: 'Hello world' }],
+        transcriptReservationId: 'res-1',
+        transcriptState: KnowledgeTranscriptState.GENERATED,
+      },
+      transcriptState: KnowledgeTranscriptState.GENERATED,
+    });
+    credits.settleReservation.mockRejectedValueOnce(
+      new BusinessLogicException('Organization not found'),
+    );
+
+    await expect(
+      service.resolve({
+        kind: KnowledgeSourceKind.AUDIO,
+        organizationId: 'org-1',
+        payload: {},
+        referenceUrl: 'https://cdn.example.com/ep.mp3',
+        sourceId: 'source-1',
+        userId: 'user-1',
+        versionId: 'version-1',
+      }),
+    ).rejects.toBeInstanceOf(BusinessLogicException);
   });
 
   it('does not generate when the operator has not allowed it', async () => {
