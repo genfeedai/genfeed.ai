@@ -16,18 +16,25 @@ import {
 } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { collectKnowledgeReceipts } from '@api/services/harness/harness-context-sources.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { createGenfeedActionNode } from '@genfeedai/actions';
 import {
   ContentIntelligencePlatform,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import {
+  CONTENT_INTELLIGENCE_POST_SCHEMA_NAME,
+  CONTENT_INTELLIGENCE_VARIATIONS_SCHEMA_NAME,
+  contentIntelligencePostSchema,
+  contentIntelligenceVariationsSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { extractHashtags } from '@genfeedai/utils/server';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
+import type { ZodType } from 'zod';
 
 export const CONTENT_INTELLIGENCE_GENERATION_ACTION_ID =
   'content-intelligence.generate';
@@ -274,7 +281,7 @@ export class ContentGeneratorService implements OnModuleInit {
   constructor(
     private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
-    private readonly openRouterService: OpenRouterService,
+    private readonly llmDispatcherService: LlmDispatcherService,
     private readonly patternStoreService: PatternStoreService,
     private readonly playbookBuilderService: PlaybookBuilderService,
     @Optional()
@@ -630,15 +637,19 @@ export class ContentGeneratorService implements OnModuleInit {
     const prompt = this.buildGenerationPrompt(dto, pattern, playbookInsights);
 
     try {
-      const response = await this.callLLM(prompt, systemPrompt);
-      const parsed = this.parseGeneratedContent(response);
+      const parsed = await this.callStructuredLLM(
+        prompt,
+        contentIntelligencePostSchema,
+        CONTENT_INTELLIGENCE_POST_SCHEMA_NAME,
+        systemPrompt,
+      );
 
       return {
-        body: parsed.body,
+        body: parsed.body ?? undefined,
         content: parsed.content,
-        cta: parsed.cta,
+        cta: parsed.cta ?? undefined,
         hashtags: dto.hashtags ?? extractHashtags(parsed.content),
-        hook: parsed.hook,
+        hook: parsed.hook ?? undefined,
         patternId: pattern.id?.toString(),
         patternUsed: pattern.extractedFormula ?? 'pattern',
       };
@@ -659,13 +670,17 @@ export class ContentGeneratorService implements OnModuleInit {
     const prompt = this.buildFreeformPrompt(dto, count);
 
     try {
-      const response = await this.callLLM(prompt, systemPrompt);
-      const variations = this.parseFreeformResponse(response);
+      const parsed = await this.callStructuredLLM(
+        prompt,
+        contentIntelligenceVariationsSchema,
+        CONTENT_INTELLIGENCE_VARIATIONS_SCHEMA_NAME,
+        systemPrompt,
+      );
 
-      for (const variation of variations.slice(0, count)) {
+      for (const variation of parsed.variations.slice(0, count)) {
         results.push({
-          content: variation,
-          hashtags: dto.hashtags ?? extractHashtags(variation),
+          content: variation.content,
+          hashtags: dto.hashtags ?? extractHashtags(variation.content),
           patternUsed: 'freeform',
         });
       }
@@ -731,13 +746,8 @@ ${safeContext.join('\n')}`;
 
     prompt += `
 
-RESPOND WITH JSON:
-{
-  "content": "The complete post",
-  "hook": "The opening hook",
-  "body": "The main body",
-  "cta": "Call to action if any"
-}`;
+Return the complete post, plus its opening hook, main body and call to action
+where the post has them.`;
 
     return prompt;
   }
@@ -762,12 +772,7 @@ Requirements:
 
 ${safeContext.length > 0 ? `Context:\n${safeContext.join('\n')}` : ''}
 
-Respond with JSON array:
-[
-  { "content": "Post 1" },
-  { "content": "Post 2" },
-  ...
-]`;
+Return one variation per post.`;
   }
 
   private getPlatformLength(platform: string): string {
@@ -785,11 +790,13 @@ Respond with JSON array:
     }
   }
 
-  private async callLLM(
+  private async callStructuredLLM<TResult>(
     prompt: string,
+    schema: ZodType<TResult>,
+    schemaName: string,
     systemPrompt?: string,
-  ): Promise<string> {
-    const response = await this.openRouterService.chatCompletion({
+  ): Promise<TResult> {
+    return this.llmDispatcherService.completeStructured({
       max_tokens: 2000,
       messages: [
         ...(systemPrompt
@@ -798,59 +805,10 @@ Respond with JSON array:
         { content: prompt, role: 'user' as const },
       ],
       model: this.defaultModel,
+      schema,
+      schemaName,
       temperature: 0.8,
     });
-
-    return response.choices[0]?.message?.content || '';
-  }
-
-  private parseGeneratedContent(response: string): {
-    content: string;
-    hook?: string;
-    body?: string;
-    cta?: string;
-  } {
-    try {
-      let jsonStr = response.trim();
-      if (jsonStr.startsWith('```json')) {
-        jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.replace(/```\n?/g, '');
-      }
-
-      const parsed = JSON.parse(jsonStr);
-      return {
-        body: parsed.body,
-        content: parsed.content || response,
-        cta: parsed.cta,
-        hook: parsed.hook,
-      };
-    } catch {
-      return { content: response };
-    }
-  }
-
-  private parseFreeformResponse(response: string): string[] {
-    try {
-      let jsonStr = response.trim();
-      if (jsonStr.startsWith('```json')) {
-        jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
-      } else if (jsonStr.startsWith('```')) {
-        jsonStr = jsonStr.replace(/```\n?/g, '');
-      }
-
-      const parsed = JSON.parse(jsonStr);
-      if (Array.isArray(parsed)) {
-        return parsed.map((p: unknown) =>
-          typeof p === 'object' && p !== null && 'content' in p
-            ? String((p as { content?: string }).content || '')
-            : String(p),
-        );
-      }
-      return [response];
-    } catch {
-      return [response];
-    }
   }
 
   private fillPatternTemplate(

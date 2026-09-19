@@ -15,6 +15,8 @@ export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
 export * from './channel-capabilities.contract';
 export * from './channel-repurpose.contract';
+export * from './content-intelligence-generation.contract';
+export * from './content-pattern-extraction.contract';
 export * from './content-plan-generation.contract';
 export * from './content-quality-scoring.contract';
 export * from './credential-posting-times.contract';

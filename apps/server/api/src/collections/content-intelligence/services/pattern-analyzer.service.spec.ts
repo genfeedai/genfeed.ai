@@ -5,7 +5,8 @@ import type {
 } from '@api/collections/content-intelligence/services/creator-scraper.service';
 import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import type { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
-import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
@@ -24,8 +25,8 @@ const mockLogger = {
   warn: vi.fn(),
 };
 
-const mockOpenRouterService = {
-  chatCompletion: vi.fn(),
+const mockLlmDispatcherService = {
+  completeStructured: vi.fn(),
 };
 
 const mockContentIntelligenceService = {
@@ -46,7 +47,7 @@ const mockPatternStoreService = {
 function makeService() {
   return new PatternAnalyzerService(
     mockLogger as unknown as LoggerService,
-    mockOpenRouterService as unknown as OpenRouterService,
+    mockLlmDispatcherService as unknown as LlmDispatcherService,
     mockContentIntelligenceService as unknown as ContentIntelligenceService,
     mockCreatorScraperService as unknown as CreatorScraperService,
     mockPatternStoreService as unknown as PatternStoreService,
@@ -142,7 +143,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     });
 
     // LLM returns empty to fall through to rule-based
-    mockOpenRouterService.chatCompletion.mockRejectedValue(
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
       new Error('LLM error'),
     );
     mockPatternStoreService.storeBulkPatterns.mockResolvedValue([
@@ -195,7 +196,7 @@ describe('PatternAnalyzerService.analyzeCreator', () => {
     });
     mockCreatorScraperService.calculateAggregateMetrics.mockReturnValue({});
 
-    mockOpenRouterService.chatCompletion.mockRejectedValue(
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
       new Error('LLM timeout'),
     );
     mockPatternStoreService.storeBulkPatterns.mockResolvedValue([
@@ -223,7 +224,7 @@ describe('PatternAnalyzerService rule-based extraction', () => {
     vi.clearAllMocks();
 
     // Force LLM to fail so rule-based is used
-    mockOpenRouterService.chatCompletion.mockRejectedValue(
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
       new Error('LLM unavailable'),
     );
 
@@ -410,40 +411,48 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       },
     ];
 
-    mockOpenRouterService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: JSON.stringify(llmPatterns) } }],
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: llmPatterns,
     });
 
     await service.analyzeCreator(creatorId);
-    // LLM was called with correct params
-    expect(mockOpenRouterService.chatCompletion).toHaveBeenCalledWith(
+    expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
         max_tokens: 1500,
         model: LLM_DEFAULTS.background,
+        schemaName: 'content_pattern_extraction',
         temperature: 0.3,
       }),
     );
   });
 
-  it('attempts to parse JSON from ```json code block', async () => {
-    const llmPatterns = [
-      {
-        description: 'CTA',
-        extractedFormula: 'Follow [ACCOUNT] for more',
-        patternType: 'cta',
-        placeholders: ['ACCOUNT'],
-      },
-    ];
-    const codeBlockContent =
-      '```json\n' + JSON.stringify(llmPatterns) + '\n```';
+  it('stops asking the model for a bare JSON array', async () => {
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: [],
+    });
 
-    mockOpenRouterService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: codeBlockContent } }],
+    await service.analyzeCreator(creatorId);
+
+    const [params] = mockLlmDispatcherService.completeStructured.mock
+      .calls[0] as [{ messages: Array<{ content: string }> }];
+    expect(params.messages[0].content).not.toContain('ONLY the JSON');
+  });
+
+  it('maps the validated free-text parts onto stored patterns', async () => {
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: [
+        {
+          description: 'CTA',
+          extractedFormula: 'Follow [ACCOUNT] for more',
+          patternType: 'cta',
+          placeholders: ['ACCOUNT'],
+        },
+      ],
     });
 
     const { patterns } = await service.analyzeCreator(creatorId);
 
-    expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled();
+    expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalled();
     expect(patterns).toEqual([
       expect.objectContaining({
         description: 'CTA',
@@ -454,10 +463,12 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     ]);
   });
 
-  it('falls back to rule-based on invalid JSON from LLM', async () => {
-    mockOpenRouterService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: 'not json at all' } }],
-    });
+  it('falls back to rule-based when the model misses the schema twice', async () => {
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
+      new LlmStructuredOutputError('content_pattern_extraction', [
+        { code: 'invalid_format', message: 'not JSON', path: '<root>' },
+      ]),
+    );
 
     // Post that triggers rule-based (question hook)
     mockCreatorScraperService.scrapeCreator.mockResolvedValue({
@@ -470,15 +481,12 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     });
 
     const { patterns } = await service.analyzeCreator(creatorId);
-    // invalid LLM → parseLLMResponse returns [] → extractHookPatterns returns []
-    // because extractPatternsWithLLM succeeded (no throw), rule-based NOT called
-    // Actually parseLLMResponse catches parse error and returns []
-    // So patterns will be empty (LLM path succeeded but returned [])
-    expect(patterns).toHaveLength(0);
+    expect(patterns.length).toBeGreaterThan(0);
+    expect(patterns[0].patternType).toBe(ContentPatternType.HOOK);
   });
 
   it('falls back to rule-based when LLM throws', async () => {
-    mockOpenRouterService.chatCompletion.mockRejectedValue(
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
       new Error('timeout'),
     );
 
@@ -499,18 +507,9 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     expect(story).toBeDefined();
   });
 
-  it('returns empty patterns when LLM response has no content', async () => {
-    mockOpenRouterService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: null } }],
-    });
-
-    const { patterns } = await service.analyzeCreator(creatorId);
-    expect(patterns).toHaveLength(0);
-  });
-
-  it('handles non-array LLM JSON gracefully', async () => {
-    mockOpenRouterService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: '{"pattern": "object not array"}' } }],
+  it('returns no patterns when the model reports none', async () => {
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: [],
     });
 
     const { patterns } = await service.analyzeCreator(creatorId);
@@ -527,8 +526,8 @@ describe('PatternAnalyzerService LLM response parsing', () => {
       },
     ];
 
-    mockOpenRouterService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: JSON.stringify(llmPatterns) } }],
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: llmPatterns,
     });
 
     const { patterns } = await service.analyzeCreator(creatorId);
@@ -555,7 +554,9 @@ describe('PatternAnalyzerService.calculateViralScore (via sourceMetrics)', () =>
     );
 
     // Force LLM fail to use rule-based
-    mockOpenRouterService.chatCompletion.mockRejectedValue(new Error('no'));
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
+      new Error('no'),
+    );
   });
 
   it('calculates viral score and includes it in sourceMetrics', async () => {
@@ -636,7 +637,9 @@ describe('PatternAnalyzerService post sorting and capping', () => {
     mockCreatorScraperService.calculateAggregateMetrics.mockReturnValue({});
 
     // LLM fails → rule-based
-    mockOpenRouterService.chatCompletion.mockRejectedValue(new Error('no'));
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
+      new Error('no'),
+    );
   });
 
   it('processes top 30 posts by engagement rate', async () => {

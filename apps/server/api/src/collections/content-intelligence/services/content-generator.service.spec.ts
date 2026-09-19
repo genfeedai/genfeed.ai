@@ -7,7 +7,8 @@ import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-w
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { BRAND_CONTEXT_CHARACTER_BUDGET } from '@api/services/agent-context-assembly/brand-context-budget.util';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
@@ -33,12 +34,24 @@ const MOCK_PATTERN = {
   templateCategory: 'educational',
 };
 
-const LLM_JSON_RESPONSE = JSON.stringify({
+const LLM_POST = {
   body: 'Main body copy',
   content: 'Full post content',
   cta: 'Follow for more',
   hook: 'Did you know AI can 10x output?',
-});
+};
+
+/**
+ * The generator asks for two different schemas — one post, or N variations —
+ * so the default fake answers by schema name rather than by call order.
+ */
+function completeStructuredFake(params: { schemaName: string }) {
+  return Promise.resolve(
+    params.schemaName === 'content_intelligence_variations'
+      ? { variations: [{ content: LLM_POST.content }] }
+      : LLM_POST,
+  );
+}
 
 // The generation graph branches on a condition node and fans patterns out to a
 // child workflow, so the double walks that shape explicitly instead of
@@ -124,7 +137,7 @@ describe('ContentGeneratorService', () => {
     assembleContext: ReturnType<typeof vi.fn>;
     buildSystemPrompt: ReturnType<typeof vi.fn>;
   };
-  let openRouterService: { chatCompletion: ReturnType<typeof vi.fn> };
+  let llmDispatcherService: { completeStructured: ReturnType<typeof vi.fn> };
   let patternStoreService: {
     findOne: ReturnType<typeof vi.fn>;
     findByOrganization: ReturnType<typeof vi.fn>;
@@ -148,10 +161,8 @@ describe('ContentGeneratorService', () => {
         .fn()
         .mockReturnValue('You are a brand voice assistant.'),
     };
-    openRouterService = {
-      chatCompletion: vi.fn().mockResolvedValue({
-        choices: [{ message: { content: LLM_JSON_RESPONSE } }],
-      }),
+    llmDispatcherService = {
+      completeStructured: vi.fn(completeStructuredFake),
     };
     patternStoreService = {
       findByOrganization: vi.fn().mockResolvedValue([MOCK_PATTERN]),
@@ -174,7 +185,7 @@ describe('ContentGeneratorService', () => {
           useValue: contextAssemblyService,
         },
         { provide: LoggerService, useValue: mockLogger },
-        { provide: OpenRouterService, useValue: openRouterService },
+        { provide: LlmDispatcherService, useValue: llmDispatcherService },
         { provide: PatternStoreService, useValue: patternStoreService },
         { provide: PlaybookBuilderService, useValue: playbookBuilderService },
         { provide: SystemWorkflowRunnerService, useValue: workflowRunner },
@@ -212,16 +223,10 @@ describe('ContentGeneratorService', () => {
 
   it('generates freeform content when no patterns found', async () => {
     patternStoreService.findByOrganization.mockResolvedValue([]);
-    openRouterService.chatCompletion.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: JSON.stringify([
-              { content: 'Freeform post 1' },
-              { content: 'Freeform post 2' },
-            ]),
-          },
-        },
+    llmDispatcherService.completeStructured.mockResolvedValue({
+      variations: [
+        { content: 'Freeform post 1' },
+        { content: 'Freeform post 2' },
       ],
     });
 
@@ -233,7 +238,7 @@ describe('ContentGeneratorService', () => {
   });
 
   it('falls back to template fill when LLM call fails', async () => {
-    openRouterService.chatCompletion.mockRejectedValue(
+    llmDispatcherService.completeStructured.mockRejectedValue(
       new Error('LLM timeout'),
     );
 
@@ -270,9 +275,11 @@ describe('ContentGeneratorService', () => {
   it('returns empty array when patternId given but pattern not found and no fallback patterns', async () => {
     patternStoreService.findOne.mockResolvedValue(null);
     patternStoreService.findByOrganization.mockResolvedValue([]);
-    openRouterService.chatCompletion.mockResolvedValue({
-      choices: [{ message: { content: '[]' } }],
-    });
+    llmDispatcherService.completeStructured.mockRejectedValue(
+      new LlmStructuredOutputError('content_intelligence_variations', [
+        { code: 'too_small', message: 'expected >= 1', path: 'variations' },
+      ]),
+    );
 
     const dto = { ...BASE_DTO, patternId: PATTERN_ID.toString() };
     const results = await service.generateContent(ORG_ID, dto as never);
@@ -314,7 +321,7 @@ describe('ContentGeneratorService', () => {
       expect.anything(),
       { maxBrandContextLength: Number.POSITIVE_INFINITY },
     );
-    expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+    expect(llmDispatcherService.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
         messages: expect.arrayContaining([
           expect.objectContaining({ role: 'system' }),
@@ -337,7 +344,7 @@ describe('ContentGeneratorService', () => {
     await service.generateContent(ORG_ID, BASE_DTO as never);
 
     const systemMessage =
-      openRouterService.chatCompletion.mock.calls[0]?.[0]?.messages?.find(
+      llmDispatcherService.completeStructured.mock.calls[0]?.[0]?.messages?.find(
         (message: { role?: string }) => message.role === 'system',
       );
     expect(systemMessage?.content.length).toBeLessThanOrEqual(
@@ -364,7 +371,7 @@ describe('ContentGeneratorService', () => {
       platform: 'instagram',
       query: BASE_DTO.topic,
     });
-    expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+    expect(llmDispatcherService.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
         messages: expect.arrayContaining([
           expect.objectContaining({
@@ -393,17 +400,9 @@ describe('ContentGeneratorService', () => {
   });
 
   it('extracts hashtags from generated content when none provided in dto', async () => {
-    openRouterService.chatCompletion.mockResolvedValue({
-      choices: [
-        {
-          message: {
-            content: JSON.stringify({
-              content: 'AI tools #marketing #productivity are essential',
-              hook: 'Hook',
-            }),
-          },
-        },
-      ],
+    llmDispatcherService.completeStructured.mockResolvedValue({
+      content: 'AI tools #marketing #productivity are essential',
+      hook: 'Hook',
     });
 
     const dto = { ...BASE_DTO, hashtags: undefined, variationsCount: 1 };
@@ -455,7 +454,7 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
     resolveBrief: ReturnType<typeof vi.fn>;
     formatBrief: ReturnType<typeof vi.fn>;
   };
-  let openRouterService: { chatCompletion: ReturnType<typeof vi.fn> };
+  let llmDispatcherService: { completeStructured: ReturnType<typeof vi.fn> };
   let actionExecutors: Map<string, (request: never) => unknown>;
 
   beforeEach(async () => {
@@ -478,10 +477,8 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
         systemDirectives: ['Stay on brand'],
       }),
     };
-    openRouterService = {
-      chatCompletion: vi.fn().mockResolvedValue({
-        choices: [{ message: { content: LLM_JSON_RESPONSE } }],
-      }),
+    llmDispatcherService = {
+      completeStructured: vi.fn(completeStructuredFake),
     };
 
     const module = await Test.createTestingModule({
@@ -499,7 +496,7 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
           provide: LoggerService,
           useValue: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
         },
-        { provide: OpenRouterService, useValue: openRouterService },
+        { provide: LlmDispatcherService, useValue: llmDispatcherService },
         {
           provide: PatternStoreService,
           useValue: {
@@ -586,7 +583,7 @@ describe('ContentGeneratorService harness prompt via resolveBrief (#3020)', () =
     await service.generateContent(ORG_ID, BASE_DTO as never);
 
     const systemMessage =
-      openRouterService.chatCompletion.mock.calls[0]?.[0]?.messages?.find(
+      llmDispatcherService.completeStructured.mock.calls[0]?.[0]?.messages?.find(
         (message: { role?: string }) => message.role === 'system',
       );
     expect(systemMessage?.content).toContain('SYSTEM DIRECTIVES');
