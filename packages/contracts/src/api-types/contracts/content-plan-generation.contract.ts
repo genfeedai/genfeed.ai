@@ -22,7 +22,9 @@ export const contentPlanGenerationItemSchema = z.object({
   pipelineSteps: z.array(contentPlanPipelineStepSchema).nullish(),
   platforms: z.array(z.string()).nullish(),
   prompt: z.string().min(1),
-  scheduledAt: z.string().nullish(),
+  // Any other string reaches `new Date(...)` as an Invalid Date and is
+  // persisted as the item's schedule.
+  scheduledAt: z.iso.datetime({ offset: true }).nullish(),
   skillSlug: z.string().nullish(),
   topic: z.string().min(1),
   type: z.enum(ContentPlanItemType),

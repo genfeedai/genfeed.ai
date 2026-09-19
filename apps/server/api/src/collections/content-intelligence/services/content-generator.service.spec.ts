@@ -327,6 +327,7 @@ describe('ContentGeneratorService', () => {
           expect.objectContaining({ role: 'system' }),
         ]),
       }),
+      ORG_ID,
     );
   });
 
@@ -382,6 +383,7 @@ describe('ContentGeneratorService', () => {
           }),
         ]),
       }),
+      ORG_ID,
     );
   });
 

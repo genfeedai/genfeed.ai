@@ -31,7 +31,12 @@ export const brandToneAnalysisSchema = z.object({
   ),
 });
 
-const profileSectionSchema = z.record(z.string(), z.unknown()).nullish();
+/**
+ * Present but `null` for a content type the examples do not cover. Allowing
+ * the key to be omitted would let `{}` validate, and `analyzeExamples` would
+ * return four undefined sections as if the model had answered.
+ */
+const profileSectionSchema = z.record(z.string(), z.unknown()).nullable();
 
 export const brandProfileAnalysisSchema = z.object({
   article: profileSectionSchema,

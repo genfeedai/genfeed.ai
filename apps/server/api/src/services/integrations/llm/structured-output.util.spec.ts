@@ -140,17 +140,53 @@ describe('runStructuredCompletion', () => {
 
   it('treats non-JSON text as a validation failure', async () => {
     const attempt = vi.fn().mockResolvedValue('Sure! Here is the plan.');
+    expect.assertions(2);
 
-    await expect(
-      runStructuredCompletion({ attempt, schema, schemaName: 'quality' }),
-    ).rejects.toThrow(/not a JSON document/);
+    try {
+      await runStructuredCompletion({ attempt, schema, schemaName: 'quality' });
+    } catch (thrown: unknown) {
+      const error = thrown as LlmStructuredOutputError;
+      expect(error.issues).toEqual([
+        {
+          code: 'invalid_format',
+          message: 'Model output was not a JSON document',
+          path: '<root>',
+        },
+      ]);
+      expect(error.message).toContain('not a JSON document');
+    }
   });
 
   it('treats empty content as a validation failure', async () => {
     const attempt = vi.fn().mockResolvedValue(null);
+    expect.assertions(2);
 
-    await expect(
-      runStructuredCompletion({ attempt, schema, schemaName: 'quality' }),
-    ).rejects.toThrow(/no content/);
+    try {
+      await runStructuredCompletion({ attempt, schema, schemaName: 'quality' });
+    } catch (thrown: unknown) {
+      const error = thrown as LlmStructuredOutputError;
+      expect(error.issues).toEqual([
+        {
+          code: 'invalid_type',
+          message: 'Model returned no content',
+          path: '<root>',
+        },
+      ]);
+      expect(error.message).toContain('no content');
+    }
+  });
+
+  it('carries the issues to the HTTP response as data, not just prose', async () => {
+    const attempt = vi.fn().mockResolvedValue('{"feedback":[],"score":"high"}');
+    expect.assertions(1);
+
+    try {
+      await runStructuredCompletion({ attempt, schema, schemaName: 'quality' });
+    } catch (thrown: unknown) {
+      const error = thrown as LlmStructuredOutputError;
+      expect(error.getResponse()).toMatchObject({
+        source: { issues: error.issues, schemaName: 'quality' },
+      });
+    }
   });
 });

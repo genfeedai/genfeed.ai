@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildWorkflowGenerationMessages,
   buildWorkflowGenerationNodeTypes,
+  parseUnenforcedWorkflowGeneration,
   workflowGenerationSchema,
 } from '.';
 
@@ -130,5 +131,53 @@ describe('workflow generation shared helpers', () => {
         ],
       }).success,
     ).toBe(false);
+  });
+
+  it('accepts an unfenced graph from a provider that cannot enforce JSON', () => {
+    const graph = {
+      description: 'Posts an image',
+      edges: [],
+      name: 'Workflow',
+      nodes: [
+        {
+          data: { label: 'Generate' },
+          id: 'node-1',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
+    };
+
+    expect(parseUnenforcedWorkflowGeneration(JSON.stringify(graph))).toEqual(
+      graph,
+    );
+  });
+
+  it('unwraps a markdown-fenced graph rather than failing on transport', () => {
+    const graph = {
+      description: 'Posts an image',
+      edges: [],
+      name: 'Workflow',
+      nodes: [
+        {
+          data: { label: 'Generate' },
+          id: 'node-1',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
+    };
+
+    expect(
+      parseUnenforcedWorkflowGeneration(
+        `\`\`\`json\n${JSON.stringify(graph)}\n\`\`\``,
+      ),
+    ).toEqual(graph);
+  });
+
+  it('still refuses a fenced graph that does not match the schema', () => {
+    expect(() =>
+      parseUnenforcedWorkflowGeneration('```json\n{"name":"Half"}\n```'),
+    ).toThrow();
   });
 });

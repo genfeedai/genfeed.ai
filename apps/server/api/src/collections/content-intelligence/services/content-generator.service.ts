@@ -493,6 +493,7 @@ export class ContentGeneratorService implements OnModuleInit {
     const generated = await this.generateFromPattern(
       item.dto,
       item.pattern,
+      item.organizationId,
       item.playbookInsights,
       item.systemPrompt,
     );
@@ -514,6 +515,7 @@ export class ContentGeneratorService implements OnModuleInit {
     const results = await this.generateWithoutPatterns(
       state.dto,
       state.dto.variationsCount ?? 3,
+      state.organizationId,
       state.systemPrompt,
     );
     return results.map((generated) => withKnowledgeReceipts(generated, state));
@@ -631,6 +633,7 @@ export class ContentGeneratorService implements OnModuleInit {
   private async generateFromPattern(
     dto: GenerateContentDto,
     pattern: ContentPatternDocument,
+    organizationId: string,
     playbookInsights?: PlaybookInsightsView,
     systemPrompt?: string,
   ): Promise<GeneratedContent> {
@@ -641,6 +644,7 @@ export class ContentGeneratorService implements OnModuleInit {
         prompt,
         contentIntelligencePostSchema,
         CONTENT_INTELLIGENCE_POST_SCHEMA_NAME,
+        organizationId,
         systemPrompt,
       );
 
@@ -664,6 +668,7 @@ export class ContentGeneratorService implements OnModuleInit {
   private async generateWithoutPatterns(
     dto: GenerateContentDto,
     count: number,
+    organizationId: string,
     systemPrompt?: string,
   ): Promise<GeneratedContent[]> {
     const results: GeneratedContent[] = [];
@@ -674,6 +679,7 @@ export class ContentGeneratorService implements OnModuleInit {
         prompt,
         contentIntelligenceVariationsSchema,
         CONTENT_INTELLIGENCE_VARIATIONS_SCHEMA_NAME,
+        organizationId,
         systemPrompt,
       );
 
@@ -794,21 +800,25 @@ Return one variation per post.`;
     prompt: string,
     schema: ZodType<TResult>,
     schemaName: string,
+    organizationId: string,
     systemPrompt?: string,
   ): Promise<TResult> {
-    return this.llmDispatcherService.completeStructured({
-      max_tokens: 2000,
-      messages: [
-        ...(systemPrompt
-          ? [{ content: systemPrompt, role: 'system' as const }]
-          : []),
-        { content: prompt, role: 'user' as const },
-      ],
-      model: this.defaultModel,
-      schema,
-      schemaName,
-      temperature: 0.8,
-    });
+    return this.llmDispatcherService.completeStructured(
+      {
+        max_tokens: 2000,
+        messages: [
+          ...(systemPrompt
+            ? [{ content: systemPrompt, role: 'system' as const }]
+            : []),
+          { content: prompt, role: 'user' as const },
+        ],
+        model: this.defaultModel,
+        schema,
+        schemaName,
+        temperature: 0.8,
+      },
+      organizationId,
+    );
   }
 
   private fillPatternTemplate(

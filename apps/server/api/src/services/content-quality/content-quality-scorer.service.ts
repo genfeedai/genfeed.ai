@@ -245,7 +245,11 @@ export class ContentQualityScorerService {
       ? `${IMAGE_SCORING_PROMPT}\n\nAdditional context: ${context}`
       : IMAGE_SCORING_PROMPT;
 
-    const llmResult = await this.callVisionModel(imageUrl, prompt);
+    const llmResult = await this.callVisionModel(
+      imageUrl,
+      prompt,
+      organizationId,
+    );
 
     return this.buildResult(llmResult, 'image');
   }
@@ -270,7 +274,11 @@ export class ContentQualityScorerService {
       ? `${VIDEO_SCORING_PROMPT}\n\nAdditional context: ${context}`
       : VIDEO_SCORING_PROMPT;
 
-    const llmResult = await this.callVisionModel(videoUrl, prompt);
+    const llmResult = await this.callVisionModel(
+      videoUrl,
+      prompt,
+      organizationId,
+    );
 
     return this.buildResult(llmResult, 'video');
   }
@@ -295,6 +303,7 @@ export class ContentQualityScorerService {
 
     const llmResult = await this.callTextModel(
       `${prompt}\n\nPost content:\n${postText}`,
+      organizationId,
     );
 
     return this.buildResult(llmResult, 'post');
@@ -319,7 +328,11 @@ export class ContentQualityScorerService {
       const prompt = context
         ? `${IMAGE_SCORING_PROMPT}\n\nAdditional context: ${context}`
         : IMAGE_SCORING_PROMPT;
-      const llmResult = await this.callVisionModel(ingredientUrl, prompt);
+      const llmResult = await this.callVisionModel(
+        ingredientUrl,
+        prompt,
+        organizationId,
+      );
       return this.buildResult(llmResult, contentType);
     }
 
@@ -331,6 +344,7 @@ export class ContentQualityScorerService {
         : TEXT_SCORING_PROMPT;
       const llmResult = await this.callTextModel(
         `${prompt}\n\nContent:\n${postText}`,
+        organizationId,
       );
       return this.buildResult(llmResult, contentType);
     }
@@ -346,20 +360,32 @@ export class ContentQualityScorerService {
   private async callVisionModel(
     imageUrl: string,
     prompt: string,
+    organizationId?: string,
   ): Promise<ContentQualityScoring> {
-    return this.score(LLM_DEFAULTS.fastText, 'vision', [
-      { content: prompt, role: 'system' },
-      { content: `Analyze this content: ${imageUrl}`, role: 'user' },
-    ]);
+    return this.score(
+      LLM_DEFAULTS.fastText,
+      'vision',
+      [
+        { content: prompt, role: 'system' },
+        { content: `Analyze this content: ${imageUrl}`, role: 'user' },
+      ],
+      organizationId,
+    );
   }
 
   /**
    * Call text model for post/article scoring.
    */
-  private async callTextModel(prompt: string): Promise<ContentQualityScoring> {
-    return this.score(this.defaultModel, 'text', [
-      { content: prompt, role: 'user' },
-    ]);
+  private async callTextModel(
+    prompt: string,
+    organizationId?: string,
+  ): Promise<ContentQualityScoring> {
+    return this.score(
+      this.defaultModel,
+      'text',
+      [{ content: prompt, role: 'user' }],
+      organizationId,
+    );
   }
 
   /**
@@ -374,16 +400,20 @@ export class ContentQualityScorerService {
     model: string,
     label: string,
     messages: OpenRouterMessage[],
+    organizationId?: string,
   ): Promise<ContentQualityScoring> {
     try {
-      return await this.llmDispatcherService.completeStructured({
-        max_tokens: 1024,
-        messages,
-        model,
-        schema: contentQualityScoringSchema,
-        schemaName: CONTENT_QUALITY_SCORING_SCHEMA_NAME,
-        temperature: 0.3,
-      });
+      return await this.llmDispatcherService.completeStructured(
+        {
+          max_tokens: 1024,
+          messages,
+          model,
+          schema: contentQualityScoringSchema,
+          schemaName: CONTENT_QUALITY_SCORING_SCHEMA_NAME,
+          temperature: 0.3,
+        },
+        organizationId,
+      );
     } catch (error: unknown) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';

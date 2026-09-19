@@ -1,6 +1,7 @@
 import { ALL_ACTIONS } from '@genfeedai/actions';
 import {
   WORKFLOW_GENERATION_SCHEMA_NAME,
+  type WorkflowGeneration,
   workflowGenerationSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import { ENGINE_NATIVE_NODE_TYPES } from '../engine/utils/action-node';
@@ -88,11 +89,31 @@ export function buildWorkflowGenerationMessages({
   ];
 }
 
-export type { WorkflowGeneration } from '@genfeedai/contracts/api-types/contracts';
+/**
+ * Validate a graph from a provider that cannot be told to answer in JSON.
+ *
+ * The prompt no longer forbids markdown fences — an enforcing route has no
+ * need of that instruction — so a local provider may well wrap its answer in
+ * one. That fence is transport, not content: unwrapping it keeps the payload
+ * intact so the schema, rather than a regex, decides whether the graph is
+ * usable. Enforcing routes never call this.
+ */
+export function parseUnenforcedWorkflowGeneration(
+  raw: string,
+): WorkflowGeneration {
+  const trimmed = raw.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*\n([\s\S]*?)\n?```$/i);
+
+  return workflowGenerationSchema.parse(
+    JSON.parse(fenced?.[1]?.trim() ?? trimmed),
+  );
+}
+
+export type { WorkflowGeneration };
 /**
  * The generated graph's schema, re-exported beside the prompt builder so a
  * caller never has to keep the two in step by hand. Routes that can enforce a
- * JSON Schema hand this to the provider; routes that cannot (a desktop local
- * provider, for instance) validate against the same schema after the fact.
+ * JSON Schema hand this to the provider; routes that cannot go through
+ * {@link parseUnenforcedWorkflowGeneration} instead.
  */
 export { WORKFLOW_GENERATION_SCHEMA_NAME, workflowGenerationSchema };

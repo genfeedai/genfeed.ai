@@ -145,7 +145,10 @@ export class PatternAnalyzerService {
     // Extract hooks from high-performing posts with per-post error handling
     for (const post of topPosts) {
       try {
-        const hookPatterns = await this.extractHookPatterns(post);
+        const hookPatterns = await this.extractHookPatterns(
+          post,
+          organizationId,
+        );
 
         for (const pattern of hookPatterns) {
           patterns.push({
@@ -188,6 +191,7 @@ export class PatternAnalyzerService {
 
   private async extractHookPatterns(
     post: ScrapedPost,
+    organizationId: string,
   ): Promise<ExtractedPattern[]> {
     const text = post.text;
     if (!text || text.length < 20) {
@@ -196,7 +200,7 @@ export class PatternAnalyzerService {
 
     // Try to use LLM for extraction, fall back to rule-based
     try {
-      return await this.extractPatternsWithLLM(text);
+      return await this.extractPatternsWithLLM(text, organizationId);
     } catch {
       return this.extractPatternsRuleBased(text);
     }
@@ -204,16 +208,22 @@ export class PatternAnalyzerService {
 
   private async extractPatternsWithLLM(
     text: string,
+    organizationId: string,
   ): Promise<ExtractedPattern[]> {
     try {
-      const extraction = await this.llmDispatcherService.completeStructured({
-        max_tokens: 1500,
-        messages: [{ content: this.buildExtractionPrompt(text), role: 'user' }],
-        model: this.defaultModel,
-        schema: contentPatternExtractionSchema,
-        schemaName: CONTENT_PATTERN_EXTRACTION_SCHEMA_NAME,
-        temperature: 0.3,
-      });
+      const extraction = await this.llmDispatcherService.completeStructured(
+        {
+          max_tokens: 1500,
+          messages: [
+            { content: this.buildExtractionPrompt(text), role: 'user' },
+          ],
+          model: this.defaultModel,
+          schema: contentPatternExtractionSchema,
+          schemaName: CONTENT_PATTERN_EXTRACTION_SCHEMA_NAME,
+          temperature: 0.3,
+        },
+        organizationId,
+      );
 
       // `patternType` and `templateCategory` stay coerced: they are the two
       // enum labels a sibling issue in epic #4863 moves onto a typed decision.

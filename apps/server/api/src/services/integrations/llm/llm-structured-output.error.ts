@@ -15,11 +15,20 @@ export class LlmStructuredOutputError extends BadRequestException {
     public readonly schemaName: string,
     public readonly issues: ILlmStructuredOutputIssue[],
   ) {
-    super(
-      `Model output did not match schema "${schemaName}" after one repair attempt: ${issues
-        .map((issue) => `${issue.path}: ${issue.message}`)
-        .join('; ')}`,
-    );
+    // `HttpExceptionFilter` forwards `source` verbatim, so the issues reach the
+    // HTTP caller as data rather than only as prose inside `detail`. Carrying
+    // them nowhere would leave an API consumer with "the AI failed" again,
+    // which is the whole failure mode this error exists to end.
+    const title = 'Structured Output Error';
+    const detail = `Model output did not match schema "${schemaName}" after one repair attempt: ${issues
+      .map((issue) => `${issue.path}: ${issue.message}`)
+      .join('; ')}`;
+
+    // `detail` is what the filter puts on the response; `message` is what
+    // `HttpException` exposes as `error.message`, which the services that
+    // catch this error log. Without it Nest derives the message from the
+    // class name and the failing fields never reach the logs.
+    super({ detail, message: detail, source: { issues, schemaName }, title });
     this.name = 'LlmStructuredOutputError';
   }
 }

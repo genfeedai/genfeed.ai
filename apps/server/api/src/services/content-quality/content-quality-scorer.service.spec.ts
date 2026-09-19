@@ -186,6 +186,7 @@ describe('ContentQualityScorerService', () => {
         mocks.llmDispatcherService.completeStructured,
       ).toHaveBeenCalledWith(
         expect.objectContaining({ schemaName: 'content_quality_scoring' }),
+        undefined,
       );
       const [params] = mocks.llmDispatcherService.completeStructured.mock
         .calls[0] as [{ messages: Array<{ content: string }> }];
@@ -204,6 +205,15 @@ describe('ContentQualityScorerService', () => {
       expect(result.score).toBe(5);
       expect(result.status).toBe(QualityStatus.NEEDS_REVIEW);
       expect(mocks.logger.error).toHaveBeenCalled();
+    });
+    it('forwards the organization so BYOK keys resolve', async () => {
+      await service.scoreAndTag('ingredient-123', 'image', {
+        organizationId: 'org-1',
+      });
+
+      expect(
+        mocks.llmDispatcherService.completeStructured,
+      ).toHaveBeenCalledWith(expect.anything(), 'org-1');
     });
   });
 });

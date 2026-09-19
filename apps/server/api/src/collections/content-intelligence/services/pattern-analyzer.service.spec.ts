@@ -423,6 +423,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
         schemaName: 'content_pattern_extraction',
         temperature: 0.3,
       }),
+      orgId,
     );
   });
 
