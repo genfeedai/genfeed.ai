@@ -48,6 +48,148 @@ describe('FilesClientService', () => {
     isSelfHostedDeployment.mockReturnValue(false);
   });
 
+  it('normalises an ffprobe payload into the persisted media probe shape', async () => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(
+      of({
+        data: {
+          format: {
+            duration: '12.5',
+            format_name: 'mov,mp4,m4a,3gp,3g2,mj2',
+            size: '2048',
+          },
+          streams: [
+            {
+              codec_name: 'H264',
+              codec_type: 'video',
+              height: 1920,
+              r_frame_rate: '30000/1001',
+              width: 1080,
+            },
+            { codec_name: 'AAC', codec_type: 'audio' },
+          ],
+        },
+      }),
+    );
+
+    const probe = await service.probeMediaFromUrl(
+      'https://cdn.test/clip.mp4',
+      'video',
+    );
+
+    expect(post).toHaveBeenCalledWith(`${BASE}/v1/files/metadata`, {
+      url: 'https://cdn.test/clip.mp4',
+    });
+    expect(probe).toEqual(
+      expect.objectContaining({
+        audioCodec: 'aac',
+        container: 'mov,mp4,m4a,3gp,3g2,mj2',
+        durationSeconds: 12.5,
+        height: 1920,
+        kind: 'video',
+        sizeBytes: 2048,
+        videoCodec: 'h264',
+        width: 1080,
+      }),
+    );
+    expect(probe.frameRate).toBeCloseTo(29.97, 2);
+    expect(probe.probedAt).toMatch(/^\d{4}-\d{2}-\d{2}T/);
+  });
+
+  it('drops duration and frame rate for a still image', async () => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(
+      of({
+        data: {
+          format: { format_name: 'png_pipe', size: '4096' },
+          streams: [
+            {
+              codec_name: 'png',
+              codec_type: 'video',
+              height: 1350,
+              r_frame_rate: '0/0',
+              width: 1080,
+            },
+          ],
+        },
+      }),
+    );
+
+    const probe = await service.probeMediaFromUrl(
+      'https://cdn.test/card.png',
+      'image',
+    );
+
+    expect(probe).toEqual(
+      expect.objectContaining({
+        audioCodec: null,
+        container: 'png_pipe',
+        durationSeconds: null,
+        frameRate: null,
+        kind: 'image',
+        videoCodec: 'png',
+      }),
+    );
+  });
+
+  it('reports missing probe fields as null rather than zero', async () => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(of({ data: { format: {}, streams: [] } }));
+
+    const probe = await service.probeMediaFromUrl(
+      'https://cdn.test/clip.mp4',
+      'video',
+    );
+
+    expect(probe).toEqual(
+      expect.objectContaining({
+        audioCodec: null,
+        container: null,
+        durationSeconds: null,
+        frameRate: null,
+        height: null,
+        sizeBytes: null,
+        videoCodec: null,
+        width: null,
+      }),
+    );
+  });
+
+  it('rejects booleans and empty values instead of coercing them to numbers', async () => {
+    const { post, service } = createHarness();
+    post.mockReturnValue(
+      of({
+        data: {
+          format: { duration: '', format_name: 'mp4', size: null },
+          streams: [
+            {
+              codec_name: 'h264',
+              codec_type: 'video',
+              height: '   ',
+              r_frame_rate: '30/1',
+              width: true,
+            },
+          ],
+        },
+      }),
+    );
+
+    const probe = await service.probeMediaFromUrl(
+      'https://cdn.test/clip.mp4',
+      'video',
+    );
+
+    // `Number(true)` is 1 and `Number(null)` is 0; neither is a measurement.
+    expect(probe).toEqual(
+      expect.objectContaining({
+        durationSeconds: null,
+        height: null,
+        sizeBytes: null,
+        width: null,
+      }),
+    );
+  });
+
   it('falls back to the local files service when no url is configured', async () => {
     const { post, service } = createHarness(null);
     post.mockReturnValue(of({ data: { data: '' } }));

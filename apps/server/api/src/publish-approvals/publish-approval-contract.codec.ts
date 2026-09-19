@@ -52,6 +52,8 @@ export type ApprovalPost = {
   brandId: string;
   credentialId: string;
   id: string;
+  /** Attached media assets, read by the pre-publish media readiness gate. */
+  ingredients: { id: string }[];
   isDeleted: boolean;
   organizationId: string;
   platform: string;

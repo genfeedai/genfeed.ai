@@ -12,6 +12,8 @@ import {
   SERVER_TOKENS,
 } from '@api/index';
 import { PublishersModule } from '@api/services/integrations/publishers/publishers.module';
+import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
+import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaModule } from '@api/services/quota/quota.module';
 import { ReplyBotModule } from '@api/services/reply-bot/reply-bot.module';
 import { WebhookClientModule } from '@api/services/webhook-client/webhook-client.module';
@@ -37,6 +39,7 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
     forwardRef(() => OrganizationsModule),
     forwardRef(() => PostsModule),
     forwardRef(() => WebhookClientModule),
+    MediaReadinessModule,
     PublishersModule,
     QuotaModule,
     forwardRef(() => ReplyBotModule),
@@ -87,14 +90,28 @@ import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-d
         new AgentScopeContextService(prisma, logger),
     },
     {
-      inject: [PrismaService, AgentArtifactReferenceService, LoggerService],
+      // The media readiness gate belongs on every publish-capable construction,
+      // not just the API module's: this provider backs the scheduled publishing
+      // workflows, which create approvals of their own.
+      inject: [
+        PrismaService,
+        AgentArtifactReferenceService,
+        LoggerService,
+        MediaReadinessService,
+      ],
       provide: PublishApprovalsService,
       useFactory: (
         prisma: PrismaService,
         artifactReferenceService: AgentArtifactReferenceService,
         logger: LoggerService,
+        mediaReadinessService: MediaReadinessService,
       ) =>
-        new PublishApprovalsService(prisma, artifactReferenceService, logger),
+        new PublishApprovalsService(
+          prisma,
+          artifactReferenceService,
+          logger,
+          mediaReadinessService,
+        ),
     },
   ],
 })

@@ -22,6 +22,7 @@ import {
   TIKTOK_APP_HANDOFF_SETTING,
   WORKFLOW_APPROVED_SCHEDULE_SETTING,
 } from '@api/index';
+import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import { QuotaService } from '@api/services/quota/quota.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { PublishEventWebhookService } from '@api/services/webhook-client/publish-event-webhook.service';
@@ -29,13 +30,11 @@ import {
   CredentialPlatform,
   fromPrismaCredentialPlatform,
   Platform,
-  PostCategory,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts';
 import {
   resolveChannelTargetSettings,
-  type ValidateChannelTargetSettingsInput,
   validateChannelTargetSettings,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolvePostVisibility } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -56,6 +55,13 @@ import {
 } from '@workers/crons/posts/post-publish-error.util';
 import { SCHEDULED_POST_RETRY_BACKOFF_SECONDS } from '@workers/services/scheduled-post.constants';
 import { readPostString } from '@workers/services/scheduled-post.utils';
+import {
+  collectMediaGateAssetIds,
+  type PlannedThreadChild,
+  readMediaGateOutcome,
+  toPlannedThreadChildren,
+  toValidationMedia,
+} from '@workers/services/scheduled-post-media-gate.util';
 import {
   SchedulerPublishStateService,
   type SchedulerPublishTargetUpdate,
@@ -84,18 +90,6 @@ type DeliveryLoad<T> =
   | { ok: true; value: T }
   | { ok: false; result: PublishResult };
 
-type ChannelValidationMedia = NonNullable<
-  ValidateChannelTargetSettingsInput['media']
->;
-
-/** A thread child paired with the scheduling fields the planner reads. */
-type PlannedThreadChild = {
-  child: PostDocument;
-  id: string;
-  order: number;
-  threadDelayMinutes?: number | null;
-};
-
 @Injectable()
 export class ScheduledPostDeliveryService implements OnModuleInit {
   private readonly constructorName: string = String(this.constructor.name);
@@ -117,6 +111,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     private readonly replyPostWatchService: ReplyPostWatchService,
     private readonly publishingReadinessService: CredentialPublishingReadinessService,
     private readonly prisma: PrismaService,
+    private readonly mediaReadinessService: MediaReadinessService,
   ) {}
 
   onModuleInit(): void {
@@ -495,7 +490,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     const targetValidation = validateChannelTargetSettings({
       caption: post.description,
       credentialId: ids.credentialId ?? undefined,
-      media: this.toValidationMedia(post),
+      media: toValidationMedia(post),
       platform,
       publishMode: 'publish_now',
       settings: resolvedSettings,
@@ -515,6 +510,11 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
           false,
         ),
       };
+    }
+
+    const mediaBlock = await this.assertMediaReady(post, ids, platform, url);
+    if (mediaBlock) {
+      return { ok: false, result: mediaBlock };
     }
 
     const settings =
@@ -553,28 +553,54 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     };
   }
 
-  private toValidationMedia(
+  /**
+   * Deterministic media readiness gate (#4878).
+   *
+   * The last check before `executeProviderPublish`, so an asset that breaks
+   * the target platform's published media spec is reported as a channel
+   * failure instead of bouncing back as a provider error. `warning`
+   * diagnostics are recorded and let the publish proceed.
+   */
+  private async assertMediaReady(
     post: PostEntity,
-  ): ChannelValidationMedia | undefined {
-    const ingredients = Array.isArray(post.ingredients)
-      ? (post.ingredients as unknown[])
-      : [];
-    const kind: ChannelValidationMedia[number]['kind'] =
-      post.category === PostCategory.VIDEO ||
-      post.category === PostCategory.REEL
-        ? 'video'
-        : 'image';
-    const media = ingredients.flatMap((ingredient) => {
-      const id =
-        typeof ingredient === 'string'
-          ? ingredient
-          : ingredient && typeof ingredient === 'object' && 'id' in ingredient
-            ? ingredient.id
-            : undefined;
-      return typeof id === 'string' && id.length > 0 ? [{ id, kind }] : [];
-    });
+    ids: PostDeliveryIds,
+    platform: Platform,
+    url: string,
+  ): Promise<PublishResult | null> {
+    const assetIds = collectMediaGateAssetIds(post);
+    if (assetIds.length === 0) {
+      return null;
+    }
 
-    return media.length > 0 ? media : undefined;
+    const outcome = readMediaGateOutcome(
+      await this.mediaReadinessService.evaluatePublishReadiness({
+        assetIds,
+        organizationId: ids.organizationId ?? '',
+        platforms: [platform],
+      }),
+    );
+    const context = { platform, postId: post.id };
+    if (outcome.warnings.length > 0) {
+      this.logger.warn(`${url} media readiness warnings`, {
+        ...context,
+        diagnostics: outcome.warnings,
+      });
+    }
+    if (outcome.blockers.length === 0) {
+      return null;
+    }
+
+    this.logger.error(`${url} media readiness blocked publish`, {
+      ...context,
+      diagnostics: outcome.blockers,
+    });
+    return this.failChannel(
+      post,
+      platform,
+      outcome.code,
+      outcome.message,
+      false,
+    );
   }
 
   private async executeProviderPublish(
@@ -721,14 +747,7 @@ export class ScheduledPostDeliveryService implements OnModuleInit {
     }
 
     const plan = planThreadChildDelivery(
-      children.map((child) => ({
-        child,
-        id: child.id.toString(),
-        order: (child as unknown as { order?: number }).order ?? 0,
-        threadDelayMinutes: (
-          child as unknown as { threadDelayMinutes?: number | null }
-        ).threadDelayMinutes,
-      })),
+      toPlannedThreadChildren(children),
       publishedAt,
     );
 

@@ -10,6 +10,11 @@ import {
   type PublishApprovalRow,
 } from '@api/publish-approvals/publish-approval-contract.codec';
 import { digestPublishApprovalValue } from '@api/publish-approvals/publish-approval-integrity';
+import {
+  assertApprovalMediaReady,
+  withMediaWarningProvenance,
+  withMediaWarnings,
+} from '@api/publish-approvals/publish-approval-media-gate';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -24,6 +29,7 @@ import type {
   CompletePublishExecutionParams,
   CreateCurrentPostPublishApprovalParams,
   CreatePostPublishApprovalParams,
+  IMediaReadinessGate,
   IPublishApproval,
   IPublishScheduleIntent,
   PublishExecutionClaim,
@@ -93,6 +99,7 @@ export class PublishApprovalsService {
     >,
     private readonly artifactReferenceService: AgentArtifactReferenceService,
     private readonly logger?: ServerLogger,
+    private readonly mediaReadinessGate?: IMediaReadinessGate,
   ) {}
 
   toPublicInterface(row: unknown): IPublishApproval {
@@ -194,6 +201,12 @@ export class PublishApprovalsService {
       });
 
     const destinations = this.contractCodec.canonicalDestinations(post);
+    const mediaWarnings = await assertApprovalMediaReady({
+      destinations,
+      gate: this.mediaReadinessGate,
+      logger: this.logger,
+      post,
+    });
     const scope = {
       actorUserId: params.actorUserId,
       artifactVersionPinId: versionPin.id,
@@ -221,7 +234,13 @@ export class PublishApprovalsService {
         'matched',
         post.organizationId,
       );
-      return this.contractCodec.toInterface(existing);
+      // The stored approval carries the warnings from when its scope was first
+      // approved. This attempt re-evaluated the same assets, so return the
+      // current diagnostics rather than a stale snapshot of them.
+      return withMediaWarnings(
+        this.contractCodec.toInterface(existing),
+        mediaWarnings,
+      );
     }
 
     const id = randomUUID();
@@ -294,7 +313,10 @@ export class PublishApprovalsService {
             policy: this.contractCodec.toJson(input.policy),
             postId: post.id,
             provenance: this.contractCodec.toJson(
-              buildApprovalProvenance(params.provenance, params.actorUserId),
+              buildApprovalProvenance(
+                withMediaWarningProvenance(params.provenance, mediaWarnings),
+                params.actorUserId,
+              ),
             ),
             scheduleIntent: this.contractCodec.toJson(input.scheduleIntent),
             scopeDigest,
@@ -938,6 +960,7 @@ export class PublishApprovalsService {
         brandId: true,
         credentialId: true,
         id: true,
+        ingredients: { select: { id: true } },
         isDeleted: true,
         organizationId: true,
         platform: true,

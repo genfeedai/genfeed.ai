@@ -103,6 +103,13 @@ function createHandler() {
     ),
     set: vi.fn().mockResolvedValue(true),
   };
+  const mediaReadinessService = {
+    evaluatePublishReadiness: vi.fn().mockResolvedValue({
+      checkedAt: '2026-09-19T10:00:00.000Z',
+      diagnostics: [],
+      isBlocked: false,
+    }),
+  };
   const handler = new AgentPublishToolHandler(
     postGroupsService as never,
     { create: vi.fn(), findOne: vi.fn() } as never,
@@ -115,6 +122,7 @@ function createHandler() {
     agentStrategiesService as never,
     agentPublishAuditsService as never,
     cacheService as never,
+    mediaReadinessService as never,
   );
 
   return {
@@ -125,6 +133,7 @@ function createHandler() {
     credentialsService,
     handler,
     ingredientsService,
+    mediaReadinessService,
     postGroupsService,
   };
 }
@@ -519,6 +528,125 @@ describe('AgentPublishToolHandler per-channel review', () => {
         decision: AgentPublishDecision.PERMITTED,
         postGroupId: 'release-1',
       }),
+    );
+  });
+
+  it('blocks an off-spec asset before the release is created', async () => {
+    const {
+      credentialsService,
+      handler,
+      ingredientsService,
+      mediaReadinessService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.VIDEO,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+    mediaReadinessService.evaluatePublishReadiness.mockResolvedValue({
+      checkedAt: '2026-09-19T10:00:00.000Z',
+      diagnostics: [
+        {
+          actual: '1200s',
+          assetId: 'ingredient-1',
+          code: 'media_duration_above_maximum',
+          kind: 'video',
+          limit: 'maximum 140s',
+          message: 'twitter: Duration 1200s exceeds the maximum of 140s.',
+          platform: CredentialPlatform.TWITTER,
+          property: 'duration',
+          severity: 'error',
+        },
+      ],
+      isBlocked: true,
+    });
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        contentId: 'ingredient-1',
+        sourceActionId: 'action-1',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'twitter',
+            visibility: PostVisibility.PUBLIC,
+          },
+        ],
+      },
+      confirmedContext('brand-1'),
+    );
+
+    expect(mediaReadinessService.evaluatePublishReadiness).toHaveBeenCalledWith(
+      {
+        assetIds: ['ingredient-1'],
+        organizationId: 'org-1',
+        platforms: [CredentialPlatform.TWITTER],
+      },
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('1200s');
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+  });
+
+  it('publishes but surfaces warning diagnostics on the publish card', async () => {
+    const {
+      credentialsService,
+      handler,
+      ingredientsService,
+      mediaReadinessService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+    const warning = {
+      actual: '4:1',
+      assetId: 'ingredient-1',
+      code: 'media_aspect_ratio_out_of_tolerance',
+      kind: 'image',
+      limit: '16:9 (±10%)',
+      message: 'twitter: Aspect ratio 4:1 is outside the accepted ratios.',
+      platform: CredentialPlatform.TWITTER,
+      property: 'aspectRatio',
+      severity: 'warning',
+    };
+    mediaReadinessService.evaluatePublishReadiness.mockResolvedValue({
+      checkedAt: '2026-09-19T10:00:00.000Z',
+      diagnostics: [warning],
+      isBlocked: false,
+    });
+
+    const result = await handler.createPost(
+      {
+        caption: 'Launch post',
+        contentId: 'ingredient-1',
+        sourceActionId: 'action-1',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'twitter',
+            visibility: PostVisibility.PUBLIC,
+          },
+        ],
+      },
+      confirmedContext('brand-1'),
+    );
+
+    expect(result.success).toBe(true);
+    expect(postGroupsService.create).toHaveBeenCalled();
+    expect(result.data).toEqual(
+      expect.objectContaining({ mediaDiagnostics: [warning] }),
     );
   });
 

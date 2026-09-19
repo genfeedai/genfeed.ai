@@ -2002,6 +2002,11 @@ model Ingredient {
   generationCompletedAt DateTime?
   fileSize              Int?
   mimeType              String?
+  // Deterministic media probe (#4878): ffprobe-derived dimensions, duration,
+  // container, codecs and frame rate, written once by the files service and
+  // reused by the pre-publish media readiness gate.
+  mediaProbe            Json?
+  mediaProbedAt         DateTime?
   postedTo              String[]                 @default([])
   qualityScore          Float?
   qualityFeedback       String[]                 @default([])
