@@ -166,18 +166,12 @@ export class MusicGenerationService {
       user.organizationId,
     );
 
-    const normalized = normalizeMusicSettings(model, createMusicDto);
-    const normalizedDto = {
-      ...createMusicDto,
-      ...normalized,
-      lyrics: normalized.lyrics?.trim() || undefined,
-    };
-
-    this.musicProviderRegistry.assertSupported(model, modelDocument.provider, {
-      instrumental: normalizedDto.instrumental === true,
-      lyrics: normalizedDto.lyrics,
-      prompt: effectiveText,
-    });
+    const normalizedDto = this.normalizeForProvider(
+      model,
+      modelDocument,
+      createMusicDto,
+      effectiveText,
+    );
 
     const promptData = await this.promptsService.create(
       new PromptEntity({
@@ -292,6 +286,30 @@ export class MusicGenerationService {
     }
 
     return modelDocument as ModelDocument;
+  }
+
+  /**
+   * Apply the model's music capabilities to the request, then let the
+   * provider reject what it is known to refuse before any document exists.
+   */
+  private normalizeForProvider(
+    model: string,
+    modelDocument: ModelDocument,
+    createMusicDto: CreateMusicDto,
+    prompt: string,
+  ): CreateMusicDto {
+    const normalized = normalizeMusicSettings(model, createMusicDto);
+    const normalizedDto = {
+      ...createMusicDto,
+      ...normalized,
+      lyrics: normalized.lyrics?.trim() || undefined,
+    };
+    this.musicProviderRegistry.assertSupported(model, modelDocument.provider, {
+      instrumental: normalizedDto.instrumental === true,
+      lyrics: normalizedDto.lyrics,
+      prompt,
+    });
+    return normalizedDto;
   }
 
   private buildMusicModelUnavailableException(
