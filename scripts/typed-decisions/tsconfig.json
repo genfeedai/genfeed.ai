@@ -1,0 +1,63 @@
+{
+  "extends": "../../tsconfig.json",
+  "compilerOptions": {
+    "baseUrl": "../..",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "noEmit": true,
+    "paths": {
+      "@api-test/*": ["apps/server/api/test/*"],
+      "@api/*": ["apps/server/api/src/*"],
+      "@config/*": ["packages/config/src/*"],
+      "@files/*": ["apps/server/files/src/*"],
+      "@genfeedai/agent": ["packages/agent/src/index.ts"],
+      "@genfeedai/agent/*": ["packages/agent/src/*"],
+      "@genfeedai/auth-client": ["packages/auth-client/src/index.ts"],
+      "@genfeedai/auth-client/*": ["packages/auth-client/src/*"],
+      "@genfeedai/config": ["packages/config/src/index.ts"],
+      "@genfeedai/config/*": ["packages/config/src/*"],
+      "@genfeedai/contracts": ["packages/contracts/src/index.ts"],
+      "@genfeedai/contracts/*": ["packages/contracts/src/*"],
+      "@genfeedai/contracts/api-types/*": [
+        "packages/contracts/src/api-types/*"
+      ],
+      "@genfeedai/contracts/constants": [
+        "packages/contracts/src/constants/index.ts"
+      ],
+      "@genfeedai/contracts/constants/*": [
+        "packages/contracts/src/constants/*"
+      ],
+      "@genfeedai/contracts/interfaces": [
+        "packages/contracts/src/interfaces/index.ts"
+      ],
+      "@genfeedai/contracts/interfaces/*": [
+        "packages/contracts/src/interfaces/*"
+      ],
+      "@genfeedai/contracts/queue": ["packages/contracts/src/queue/index.ts"],
+      "@genfeedai/contracts/queue/*": ["packages/contracts/src/queue/*"],
+      "@genfeedai/contracts/types": ["packages/contracts/src/types/index.ts"],
+      "@genfeedai/contracts/types/*": ["packages/contracts/src/types/*"],
+      "@genfeedai/harness": ["packages/harness/src/index.ts"],
+      "@genfeedai/harness/*": ["packages/harness/src/*"],
+      "@genfeedai/helpers": ["packages/helpers/src/index.ts"],
+      "@genfeedai/helpers/*": ["packages/helpers/src/*"],
+      "@genfeedai/integrations": ["packages/integrations/src/index.ts"],
+      "@genfeedai/pricing": ["packages/pricing/src/index.ts"],
+      "@genfeedai/pricing/*": ["packages/pricing/src/*"],
+      "@genfeedai/prisma": ["packages/prisma/src/index.ts"],
+      "@genfeedai/prisma/*": ["packages/prisma/src/*"],
+      "@genfeedai/serializers": ["packages/serializers/src/index.ts"],
+      "@genfeedai/serializers/*": ["packages/serializers/src/*"],
+      "@genfeedai/utils": ["packages/utils/index.ts"],
+      "@genfeedai/utils/*": ["packages/utils/*"],
+      "@genfeedai/workflows": ["packages/workflows/src/index.ts"],
+      "@genfeedai/workflows/*": ["packages/workflows/src/*"],
+      "@helpers/*": ["packages/helpers/src/*"],
+      "@libs/*": ["packages/libs/*"],
+      "@serializers/*": ["packages/serializers/src/*"]
+    },
+    "target": "ES2022",
+    "types": ["node"]
+  },
+  "include": ["*.ts"]
+}
