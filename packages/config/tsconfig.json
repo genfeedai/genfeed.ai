@@ -9,6 +9,7 @@
     "paths": {
       "@genfeedai/config": ["./src/index.ts"],
       "@genfeedai/config/*": ["./src/*"],
+      "@genfeedai/helpers/*": ["../helpers/src/*"],
       "@genfeedai/pricing": ["../pricing/src/index.ts"],
       "@genfeedai/pricing/*": ["../pricing/src/*"],
       "@config/*": ["./src/*"]
@@ -21,6 +22,9 @@
   "extends": "../../tsconfig.json",
   "include": ["src/**/*"],
   "references": [
+    {
+      "path": "../helpers/tsconfig.json"
+    },
     {
       "path": "../pricing/tsconfig.json"
     }
