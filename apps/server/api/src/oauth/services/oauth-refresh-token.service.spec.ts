@@ -53,9 +53,28 @@ function matches(row: Record<string, unknown>, where: Record<string, unknown>) {
   return Object.entries(where).every(([key, value]) => row[key] === value);
 }
 
+/**
+ * Interleaving hooks for the concurrency cases. They live on the harness
+ * rather than on a `vi.spyOn` of the Prisma client, because spying the real
+ * method forces the mock to satisfy Prisma's branded `PrismaPromise` return
+ * type, which a plain async function does not.
+ */
+type PersistenceHooks = {
+  /** Short-circuits `updateMany`; returning a count skips the default write. */
+  onUpdateMany?: (
+    data: Record<string, unknown>,
+    where: Record<string, unknown>,
+  ) => { count: number } | undefined;
+  /** Runs after a default `updateMany` write, to model a concurrent writer. */
+  afterUpdateMany?: (data: Record<string, unknown>) => void;
+  /** Fails the next refresh-token insert once. */
+  failNextCreate?: Error;
+};
+
 function buildHarness() {
   const refreshTokens = new Map<string, RefreshTokenRow>();
   const apiKeys = new Map<string, ApiKeyRow>();
+  const hooks: PersistenceHooks = {};
   let keySequence = 0;
   let refreshSequence = 0;
 
@@ -167,6 +186,11 @@ function buildHarness() {
   const prisma = {
     mcpOAuthRefreshToken: {
       create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+        if (hooks.failNextCreate) {
+          const failure = hooks.failNextCreate;
+          hooks.failNextCreate = undefined;
+          throw failure;
+        }
         refreshSequence += 1;
         const row = {
           compromisedAt: null,
@@ -197,10 +221,15 @@ function buildHarness() {
           data: Record<string, unknown>;
           where: Record<string, unknown>;
         }) => {
+          const override = hooks.onUpdateMany?.(data, where);
+          if (override) {
+            return override;
+          }
           const rows = Array.from(refreshTokens.values()).filter((row) =>
             matches(row, where),
           );
           for (const row of rows) Object.assign(row, data);
+          hooks.afterUpdateMany?.(data);
           return { count: rows.length };
         },
       ),
@@ -211,6 +240,7 @@ function buildHarness() {
     apiKeys,
     apiKeysService,
     clientService,
+    hooks,
     logger,
     prisma,
     refreshTokens,
@@ -377,8 +407,8 @@ describe('OAuthRefreshTokenService', () => {
   it('burns the family when two requests redeem the same token concurrently', async () => {
     const {
       apiKeys,
+      hooks,
       logger,
-      prisma,
       refreshTokens,
       seedApiKey,
       seedRefreshToken,
@@ -396,22 +426,16 @@ describe('OAuthRefreshTokenService', () => {
     const replacementRow = seedRefreshToken('refresh-plain-token-winner', {
       apiKeyId: replacementKey.id,
     });
-    const consume = vi
-      .spyOn(prisma.mcpOAuthRefreshToken, 'updateMany')
-      .getMockImplementation();
     let hasClaimed = false;
-    vi.spyOn(prisma.mcpOAuthRefreshToken, 'updateMany').mockImplementation(
-      async (args) => {
-        const data = (args as { data: Record<string, unknown> }).data;
-        if (!hasClaimed && 'consumedAt' in data) {
-          hasClaimed = true;
-          row.consumedAt = new Date();
-          row.replacedById = replacementRow.id;
-          return { count: 0 };
-        }
-        return consume?.(args) ?? { count: 0 };
-      },
-    );
+    hooks.onUpdateMany = (data) => {
+      if (hasClaimed || !('consumedAt' in data)) {
+        return undefined;
+      }
+      hasClaimed = true;
+      row.consumedAt = new Date();
+      row.replacedById = replacementRow.id;
+      return { count: 0 };
+    };
 
     await expect(
       service.refresh(refreshGrant('refresh-plain-token-race')),
@@ -434,7 +458,7 @@ describe('OAuthRefreshTokenService', () => {
   it('revokes what it issued when the family is compromised mid-rotation', async () => {
     const {
       apiKeys,
-      prisma,
+      hooks,
       refreshTokens,
       seedApiKey,
       seedRefreshToken,
@@ -447,20 +471,11 @@ describe('OAuthRefreshTokenService', () => {
 
     // A concurrent loser marks the family compromised after this request
     // linked its replacement but before it re-reads the row.
-    const inner = vi
-      .spyOn(prisma.mcpOAuthRefreshToken, 'updateMany')
-      .getMockImplementation();
-    vi.spyOn(prisma.mcpOAuthRefreshToken, 'updateMany').mockImplementation(
-      async (args) => {
-        const result = await (inner?.(args) ?? { count: 0 });
-        if (
-          'replacedById' in (args as { data: Record<string, unknown> }).data
-        ) {
-          row.compromisedAt = new Date();
-        }
-        return result;
-      },
-    );
+    hooks.afterUpdateMany = (data) => {
+      if ('replacedById' in data) {
+        row.compromisedAt = new Date();
+      }
+    };
 
     await expect(
       service.refresh(refreshGrant('refresh-plain-token-midflight')),
@@ -475,14 +490,12 @@ describe('OAuthRefreshTokenService', () => {
   });
 
   it('revokes the rotated key when the replacement token cannot be stored', async () => {
-    const { apiKeys, prisma, seedApiKey, seedRefreshToken, service } =
+    const { apiKeys, hooks, seedApiKey, seedRefreshToken, service } =
       buildHarness();
     const original = seedApiKey();
     seedRefreshToken('refresh-plain-token-storage', { apiKeyId: original.id });
 
-    vi.spyOn(prisma.mcpOAuthRefreshToken, 'create').mockRejectedValueOnce(
-      new Error('persistence unavailable'),
-    );
+    hooks.failNextCreate = new Error('persistence unavailable');
 
     await expect(
       service.refresh(refreshGrant('refresh-plain-token-storage')),
