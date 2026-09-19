@@ -10,12 +10,15 @@ import type { TemplateDocument } from '@api/collections/templates/schemas/templa
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import {
+  TEMPLATE_RANKING_SCHEMA_NAME,
+  templateRankingSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import type {
   Prisma,
   Template as StoredTemplate,
@@ -697,43 +700,35 @@ Return the modified content only, no explanation.`;
 Templates:
 ${templateList}
 
-Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
-{
-  "rankings": [
-    {
-      "index": 0,
-      "score": 95,
-      "reasons": ["Perfect for viral content", "Proven track record"]
-    }
-  ]
-}
-
-Score 0-100. Include top 5 only.`;
+Give each ranked template its 0-based index in the list above, a 0-100 score
+and the reasons it fits. Include the top 5 only.`;
 
     try {
-      const input = {
-        max_completion_tokens: 1024,
-        prompt,
-      };
-      const response = await this.replicateService.generateTextCompletionSync(
+      const result = await this.replicateService.generateStructuredTextSync(
         DEFAULT_TEXT_MODEL,
-        input,
+        {
+          input: { max_completion_tokens: 1024 },
+          onAttempt: async (attemptInput, output) => {
+            onBilling?.(
+              await this.calculateDefaultTextCharge(attemptInput, output),
+            );
+          },
+          prompt,
+          schema: templateRankingSchema,
+          schemaName: TEMPLATE_RANKING_SCHEMA_NAME,
+        },
       );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
 
-      const result = JsonParserUtil.parseAIResponse<{
-        rankings: Array<{ index: number; score: number; reasons: string[] }>;
-      }>(response, { rankings: [] });
-
-      const rankings = result.rankings;
-
-      return rankings.map(
-        (r: { index: number; score: number; reasons: string[] }) => ({
-          reasons: r.reasons,
-          score: r.score,
-          template: templates[r.index],
-        }),
-      );
+      // The schema pins the index to a non-negative integer; it cannot know
+      // how many templates this call ranked, so out-of-range entries are
+      // dropped rather than shipped pointing at nothing.
+      return result.rankings
+        .filter((ranking) => ranking.index < templates.length)
+        .map((ranking) => ({
+          reasons: ranking.reasons,
+          score: ranking.score,
+          template: templates[ranking.index],
+        }));
     } catch (error: unknown) {
       this.logger.error('AI ranking failed, using fallback', { error });
 

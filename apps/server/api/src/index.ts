@@ -114,7 +114,6 @@ export {
 export { NotFoundException } from './exceptions/not-found.exception';
 export { ValidationException } from './exceptions/validation.exception';
 export type { AggregatePaginateResult } from './helpers/types/aggregate-paginate-result';
-export { JsonParserUtil } from './helpers/utils/json-parser.util';
 export { customLabels } from './helpers/utils/pagination.util';
 export {
   canTransitionPostLifecycle,

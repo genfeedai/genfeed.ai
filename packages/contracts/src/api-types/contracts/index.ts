@@ -10,6 +10,8 @@
 
 export * from './agent-auto-publish.contract';
 export * from './agent-publish-policy.contract';
+export * from './analytics-insights.contract';
+export * from './brand-profile-analysis.contract';
 export * from './brand-remix-run.contract';
 export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
@@ -40,6 +42,7 @@ export * from './publish-webhook-events.contract';
 export * from './publishing-readiness.contract';
 export * from './recurrence-preview.contract';
 export * from './rss-sources.contract';
+export * from './schedule-optimal-time.contract';
 export * from './scheduler.contract';
 export * from './scheduler-analytics-collection.contract';
 export * from './scheduler-analytics-comparison.contract';
@@ -48,6 +51,7 @@ export * from './social-warmup-blueprint.contract';
 export * from './social-warmup-capability.contract';
 export * from './social-warmup-journey.contract';
 export * from './task-decomposition.contract';
+export * from './template-ranking.contract';
 export * from './tiktok-authorized-signals.contract';
 export * from './twitter-authorized-signals.contract';
 export * from './twitter-opportunities.contract';
