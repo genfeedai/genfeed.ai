@@ -8,6 +8,7 @@ import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowl
 import { captureIdempotentKnowledgeSource } from '@api/collections/contexts/utils/knowledge-idempotent-capture';
 import { buildKnowledgeMediaReferenceKey } from '@api/collections/contexts/utils/knowledge-media-identity.util';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
+import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   KnowledgeMemoryScope,
@@ -284,24 +285,20 @@ export class KnowledgeRecordsService {
       purpose?: KnowledgeSourcePurpose;
     } = {},
   ) {
-    const where: Prisma.KnowledgeSourceWhereInput = {
+    const where = scopedWhere(actor.organizationId, {
       ...this.ownership(actor),
-      organizationId: actor.organizationId,
-      isDeleted: false,
       ...(filters.purpose ? { purpose: filters.purpose } : {}),
       ...(filters.processingState
         ? {
             versions: {
-              some: {
+              some: scopedWhere(actor.organizationId, {
                 isCurrent: true,
-                isDeleted: false,
-                organizationId: actor.organizationId,
                 processingState: filters.processingState,
-              },
+              }),
             },
           }
         : {}),
-    };
+    });
     const [docs, totalDocs] = await this.prisma.$transaction([
       this.prisma.knowledgeSource.findMany({
         where,
