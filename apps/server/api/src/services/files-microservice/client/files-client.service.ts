@@ -3,7 +3,12 @@ import type { Readable } from 'node:stream';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { FileInputType } from '@genfeedai/contracts';
 import type {
+  MediaProbe,
+  MediaReadinessKind,
+} from '@genfeedai/contracts/api-types/contracts';
+import type {
   IApiUploadSource,
+  IFFprobeResult,
   IFFprobeStream,
   IFileMetadata,
   IVideoDimensions,
@@ -157,6 +162,100 @@ export class FilesClientService {
       this.loggerService.error('Failed to extract metadata from URL', error);
       throw error;
     }
+  }
+
+  /**
+   * Probe a media URL and normalise the ffprobe payload into the persisted
+   * `MediaProbe` shape used by the pre-publish media readiness gate (#4878).
+   *
+   * `kind` comes from the asset record rather than the probe: ffprobe reports
+   * a still image as a single video stream, so the payload alone cannot tell
+   * an image from a one-frame video.
+   */
+  async probeMediaFromUrl(
+    url: string,
+    kind: MediaReadinessKind,
+  ): Promise<MediaProbe> {
+    const response = await firstValueFrom(
+      this.httpService.post<IFFprobeResult>(
+        `${this.filesServiceUrl}/v1/files/metadata`,
+        { url },
+      ),
+    );
+    return this.toMediaProbe(response.data, kind);
+  }
+
+  private toMediaProbe(
+    probe: IFFprobeResult,
+    kind: MediaReadinessKind,
+  ): MediaProbe {
+    const streams = Array.isArray(probe.streams) ? probe.streams : [];
+    const videoStream = streams.find((stream) => stream.codec_type === 'video');
+    const audioStream = streams.find((stream) => stream.codec_type === 'audio');
+    const durationSeconds = this.readPositiveNumber(probe.format?.duration);
+
+    return {
+      audioCodec: this.readCodecName(audioStream),
+      container: this.readNonEmptyString(probe.format?.format_name),
+      // Still images have no meaningful duration; ffprobe reports either
+      // nothing or a synthetic single-frame duration for them.
+      durationSeconds: kind === 'image' ? null : durationSeconds,
+      frameRate: kind === 'image' ? null : this.readFrameRate(videoStream),
+      height: this.readPositiveInteger(videoStream?.height),
+      kind,
+      probedAt: new Date().toISOString(),
+      sizeBytes: this.readNonNegativeInteger(probe.format?.size),
+      videoCodec: this.readCodecName(videoStream),
+      width: this.readPositiveInteger(videoStream?.width),
+    };
+  }
+
+  private readCodecName(stream: IFFprobeStream | undefined): string | null {
+    return this.readNonEmptyString(stream?.codec_name)?.toLowerCase() ?? null;
+  }
+
+  private readNonEmptyString(value: unknown): string | null {
+    return typeof value === 'string' && value.trim().length > 0
+      ? value.trim()
+      : null;
+  }
+
+  private readPositiveNumber(value: unknown): number | null {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+  }
+
+  private readPositiveInteger(value: unknown): number | null {
+    const parsed = this.readPositiveNumber(value);
+    return parsed === null ? null : Math.round(parsed);
+  }
+
+  private readNonNegativeInteger(value: unknown): number | null {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) && parsed >= 0 ? Math.round(parsed) : null;
+  }
+
+  /** ffprobe reports frame rate as a `numerator/denominator` string. */
+  private readFrameRate(stream: IFFprobeStream | undefined): number | null {
+    const raw =
+      this.readNonEmptyString(stream?.r_frame_rate) ??
+      this.readNonEmptyString(stream?.avg_frame_rate);
+    if (!raw) {
+      return null;
+    }
+    const [numerator, denominator] = raw.split('/');
+    const parsedNumerator = Number(numerator);
+    const parsedDenominator =
+      denominator === undefined ? 1 : Number(denominator);
+    if (
+      !Number.isFinite(parsedNumerator) ||
+      !Number.isFinite(parsedDenominator) ||
+      parsedDenominator === 0 ||
+      parsedNumerator <= 0
+    ) {
+      return null;
+    }
+    return parsedNumerator / parsedDenominator;
   }
 
   async generateThumbnail(
