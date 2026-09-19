@@ -8,12 +8,12 @@ import { of } from 'rxjs';
 
 function createHarness(
   apiKey: string | null = 'env-key',
-  baseUrl = 'https://platform.mureka.ai',
+  baseUrl = 'https://api.mureka.ai',
 ) {
   const configValues: Record<string, string | undefined> = {
     MUREKA_API_BASE_URL: baseUrl,
     MUREKA_API_KEY: apiKey ?? undefined,
-    MUREKA_MODEL: 'V9',
+    MUREKA_MODEL: 'mureka-9',
   };
   const configService = {
     get: vi.fn((key: string) => configValues[key]),
@@ -70,9 +70,9 @@ describe('MurekaService', () => {
   });
 
   describe('generateSong', () => {
-    it('submits the request with Bearer auth and returns the polled audio URL', async () => {
+    it('submits a prompt-only song to easy-generate with Bearer auth and returns the polled audio URL', async () => {
       const { post, poll, service } = createHarness();
-      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
       poll.mockResolvedValue({
         attempts: 1,
         elapsedMs: 1,
@@ -84,16 +84,13 @@ describe('MurekaService', () => {
 
       const result = await service.generateSong({
         instrumental: false,
+        lyrics: '   ',
         prompt: 'a happy song',
       });
 
       expect(post).toHaveBeenCalledWith(
-        'https://platform.mureka.ai/v1/song/generate',
-        expect.objectContaining({
-          instrumental: false,
-          model: 'V9',
-          prompt: 'a happy song',
-        }),
+        'https://api.mureka.ai/v1/song/easy-generate',
+        { model: 'mureka-9', n: 1, prompt: 'a happy song' },
         {
           maxRedirects: 0,
           headers: {
@@ -110,7 +107,7 @@ describe('MurekaService', () => {
 
     it('builds an isDone predicate that throws on a failed status and stops otherwise', async () => {
       const { post, poll, service } = createHarness();
-      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
       poll.mockResolvedValue({
         attempts: 1,
         elapsedMs: 1,
@@ -123,17 +120,17 @@ describe('MurekaService', () => {
       await service.generateSong({ prompt: 'a song' });
 
       const isDone = poll.mock.calls[0][1] as (data: unknown) => boolean;
-      expect(() => isDone({ error: 'boom', status: 'failed' })).toThrow(
+      expect(() => isDone({ failed_reason: 'boom', status: 'failed' })).toThrow(
         'Mureka generation failed: boom',
       );
-      expect(isDone({ status: 'processing' })).toBe(false);
+      expect(isDone({ status: 'running' })).toBe(false);
+      expect(isDone({ status: 'streaming' })).toBe(false);
       expect(isDone({ status: 'succeeded' })).toBe(true);
-      expect(isDone({ status: 'completed' })).toBe(true);
     });
 
     it('treats timeouted and cancelled as terminal failures instead of spinning to the poll timeout', async () => {
       const { post, poll, service } = createHarness();
-      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
       poll.mockResolvedValue({
         attempts: 1,
         elapsedMs: 1,
@@ -156,7 +153,7 @@ describe('MurekaService', () => {
 
     it('routes an instrumental request to the dedicated instrumental endpoint', async () => {
       const { post, poll, service } = createHarness();
-      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
       poll.mockResolvedValue({
         attempts: 1,
         elapsedMs: 1,
@@ -166,11 +163,15 @@ describe('MurekaService', () => {
         },
       });
 
-      await service.generateSong({ instrumental: true, prompt: 'a beat' });
+      await service.generateSong({
+        instrumental: true,
+        lyrics: 'stale lyrics',
+        prompt: 'a beat',
+      });
 
       expect(post).toHaveBeenCalledWith(
-        'https://platform.mureka.ai/v1/instrumental/generate',
-        { model: 'V9', prompt: 'a beat' },
+        'https://api.mureka.ai/v1/instrumental/generate',
+        { model: 'mureka-9', n: 1, prompt: 'a beat' },
         {
           maxRedirects: 0,
           headers: {
@@ -179,6 +180,71 @@ describe('MurekaService', () => {
           },
         },
       );
+    });
+
+    it('polls the instrumental query endpoint for an instrumental task', async () => {
+      const { get, post, poll, service } = createHarness();
+      post.mockReturnValue(of({ data: { id: 'task-9' } }));
+      get.mockReturnValue(
+        of({
+          data: {
+            choices: [{ url: 'https://cdn.example.com/instrumental.mp3' }],
+            status: 'succeeded',
+          },
+        }),
+      );
+      poll.mockImplementation(async (fetch: () => Promise<unknown>) => ({
+        value: await fetch(),
+      }));
+
+      await service.generateSong({ instrumental: true, prompt: 'a beat' });
+
+      expect(get).toHaveBeenCalledWith(
+        'https://api.mureka.ai/v1/instrumental/query/task-9',
+        expect.objectContaining({ maxRedirects: 0 }),
+      );
+    });
+
+    it('submits lyrics to the lyrics-to-song endpoint', async () => {
+      const { post, poll, service } = createHarness();
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
+      poll.mockResolvedValue({
+        attempts: 1,
+        elapsedMs: 1,
+        value: {
+          choices: [{ url: 'https://cdn.example.com/song.mp3' }],
+          status: 'succeeded',
+        },
+      });
+
+      await service.generateSong({
+        lyrics: '  [Verse] hello  ',
+        model: 'mureka-9.5',
+        prompt: 'r&b, slow',
+      });
+
+      expect(post).toHaveBeenCalledWith(
+        'https://api.mureka.ai/v1/song/generate',
+        {
+          lyrics: '[Verse] hello',
+          model: 'mureka-9.5',
+          n: 1,
+          prompt: 'r&b, slow',
+        },
+        expect.objectContaining({ maxRedirects: 0 }),
+      );
+    });
+
+    it('refuses an over-long prompt before any HTTP call', async () => {
+      const { post, service } = createHarness();
+
+      await expect(
+        service.generateSong({
+          lyrics: '[Verse] hi',
+          prompt: 'a'.repeat(1025),
+        }),
+      ).rejects.toThrow('Mureka prompt exceeds 1024 characters');
+      expect(post).not.toHaveBeenCalled();
     });
 
     it('throws when the generate response has no task id', async () => {
@@ -192,7 +258,7 @@ describe('MurekaService', () => {
 
     it('propagates the predicate failure raised while polling', async () => {
       const { post, poll, service } = createHarness();
-      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
       // PollUntilService.poll itself rejects when the isDone predicate throws
       // — see the real service's own failure-status check — so mocking a
       // rejection here exercises the same call-site handling directly.
@@ -205,7 +271,7 @@ describe('MurekaService', () => {
 
     it('maps a poll timeout to a clear error', async () => {
       const { post, poll, service } = createHarness();
-      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
       poll.mockRejectedValue(new PollTimeoutException('timeout', 180_000));
 
       await expect(service.generateSong({ prompt: 'a song' })).rejects.toThrow(
@@ -215,7 +281,7 @@ describe('MurekaService', () => {
 
     it('throws when the completed response has no audio URL', async () => {
       const { post, poll, service } = createHarness();
-      post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+      post.mockReturnValue(of({ data: { id: 'task-1' } }));
       poll.mockResolvedValue({
         attempts: 1,
         elapsedMs: 1,
@@ -254,7 +320,7 @@ describe('Mureka HTTPS transport boundary', () => {
 
   it('captures HTTPS path prefix once and disables submission and polling redirects', async () => {
     const harness = createHarness('env-key', 'https://example.com/music///');
-    harness.post.mockReturnValue(of({ data: { task_id: 'task-1' } }));
+    harness.post.mockReturnValue(of({ data: { id: 'task-1' } }));
     harness.get.mockReturnValue(
       of({
         data: {
@@ -269,7 +335,7 @@ describe('Mureka HTTPS transport boundary', () => {
     });
     await harness.service.generateSong({ prompt: 'music' });
     expect(harness.post).toHaveBeenCalledWith(
-      'https://example.com/music/v1/song/generate',
+      'https://example.com/music/v1/song/easy-generate',
       expect.any(Object),
       expect.objectContaining({ maxRedirects: 0 }),
     );

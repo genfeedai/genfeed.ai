@@ -3,6 +3,7 @@ import type { MusicGenerationProviderRequest } from '@api/collections/musics/ser
 import { MurekaMusicGenerationProviderAdapter } from '@api/collections/musics/services/providers/mureka-music-generation-provider.adapter';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
 
 describe('MurekaMusicGenerationProviderAdapter', () => {
   const buildRequest = (
@@ -129,4 +130,28 @@ describe('MurekaMusicGenerationProviderAdapter', () => {
       expect.objectContaining({ lyrics: undefined }),
     );
   });
+
+  it.each([
+    ['a lyrics request', { instrumental: false, lyrics: '[Verse] hi' }, 1024],
+    ['an instrumental request', { instrumental: true }, 1024],
+    ['a prompt-only song', { instrumental: false, lyrics: '   ' }, 2000],
+  ])(
+    'caps the prompt for %s at %i characters',
+    (_label, settings, maxLength) => {
+      const adapter = new MurekaMusicGenerationProviderAdapter({} as never);
+
+      expect(() =>
+        adapter.assertSupported({
+          ...settings,
+          prompt: 'a'.repeat(maxLength),
+        }),
+      ).not.toThrow();
+      expect(() =>
+        adapter.assertSupported({
+          ...settings,
+          prompt: 'a'.repeat(maxLength + 1),
+        }),
+      ).toThrow(BadRequestException);
+    },
+  );
 });

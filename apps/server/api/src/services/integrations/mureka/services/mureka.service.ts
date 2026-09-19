@@ -20,27 +20,51 @@ export interface MurekaSongResult {
 
 interface MurekaGenerateResponse {
   id?: string;
-  task_id?: string;
 }
 
 interface MurekaQueryResponse {
   status?: string;
-  choices?: Array<{ url?: string; audio_url?: string }>;
-  error?: string;
+  choices?: Array<{ url?: string }>;
+  failed_reason?: string;
 }
 
+type MurekaTaskKind = 'instrumental' | 'song';
+
+interface MurekaSubmission {
+  body: Record<string, unknown>;
+  kind: MurekaTaskKind;
+  path: string;
+}
+
+const MUREKA_DEFAULT_BASE_URL = 'https://api.mureka.ai';
+const MUREKA_DEFAULT_MODEL = 'mureka-9';
+// Mureka bills per output and defaults to two; Genfeed consumes one choice.
+const MUREKA_OUTPUTS_PER_REQUEST = 1;
 const MUREKA_POLL_INTERVAL_MS = 3_000;
+const MUREKA_PROMPT_MAX_LENGTH = 1024;
+const MUREKA_EASY_PROMPT_MAX_LENGTH = 2000;
+
+/**
+ * Longest prompt the endpoint chosen for this request accepts: lyrics-to-song
+ * and instrumental cap it at 1024 characters, prompt-only songs at 2000.
+ */
+export function murekaPromptMaxLength(
+  input: Pick<MurekaGenerateSongInput, 'instrumental' | 'lyrics'>,
+): number {
+  return !input.instrumental && !input.lyrics?.trim()
+    ? MUREKA_EASY_PROMPT_MAX_LENGTH
+    : MUREKA_PROMPT_MAX_LENGTH;
+}
 const MUREKA_POLL_TIMEOUT_MS = 180_000;
 
 /**
- * Mureka V9 direct API integration — not fal/Replicate. Contract per
- * https://platform.mureka.ai/docs/api/operations/post-v1-song-generate.html
- * (POST /v1/song/generate for lyrics-driven songs, POST
- * /v1/instrumental/generate for instrumental-only requests, Bearer auth, GET
- * /v1/song/query/{task_id} to poll). Field names beyond
- * `prompt`/`lyrics`/`instrumental`/`model` should be reconfirmed against a
- * live account before this model is activated in the registry (it seeds
- * `isActive: false`).
+ * Mureka direct API integration — not fal/Replicate. Contract per the
+ * official reference at https://platform.mureka.ai/docs/api/ :
+ * - lyrics → POST /v1/song/generate (`lyrics` is required there)
+ * - prompt-only song → POST /v1/song/easy-generate
+ * - instrumental → POST /v1/instrumental/generate
+ * Each returns a task `id`, polled on /v1/song/query/{id} or
+ * /v1/instrumental/query/{id} respectively. Neither accepts a duration.
  */
 @Injectable()
 export class MurekaService {
@@ -67,8 +91,7 @@ export class MurekaService {
 
   private baseUrl(): string {
     const configured =
-      this.configService.get('MUREKA_API_BASE_URL') ??
-      'https://platform.mureka.ai';
+      this.configService.get('MUREKA_API_BASE_URL') ?? MUREKA_DEFAULT_BASE_URL;
     try {
       const url = new URL(String(configured));
       if (
@@ -100,52 +123,39 @@ export class MurekaService {
     const baseUrl = this.baseUrl();
     this.ensureConfigured();
     const model =
-      input.model || (this.configService.get('MUREKA_MODEL') as string) || 'V9';
+      input.model ||
+      (this.configService.get('MUREKA_MODEL') as string) ||
+      MUREKA_DEFAULT_MODEL;
+    const submission = this.buildSubmission(input, model);
 
     this.loggerService.log(`${this.logContext} generateSong started`, {
-      instrumental: input.instrumental,
+      kind: submission.kind,
       model,
+      path: submission.path,
       prompt: input.prompt?.substring(0, 100),
     });
 
     try {
-      // Mureka publishes a dedicated instrumental endpoint rather than a
-      // flag on /v1/song/generate for instrumental-only output — routing an
-      // instrumental request there instead avoids paying for lyrics-aware
-      // generation the request doesn't want.
-      // @see https://platform.mureka.ai/docs/api/operations/post-v1-instrumental-generate.html
-      const submitRes = input.instrumental
-        ? await firstValueFrom(
-            this.httpService.post<MurekaGenerateResponse>(
-              `${baseUrl}/v1/instrumental/generate`,
-              {
-                model,
-                prompt: input.prompt,
-              },
-              { headers: this.headers(), maxRedirects: 0 },
-            ),
-          )
-        : await firstValueFrom(
-            this.httpService.post<MurekaGenerateResponse>(
-              `${baseUrl}/v1/song/generate`,
-              {
-                instrumental: false,
-                lyrics: input.lyrics,
-                model,
-                prompt: input.prompt,
-              },
-              { headers: this.headers(), maxRedirects: 0 },
-            ),
-          );
+      const submitRes = await firstValueFrom(
+        this.httpService.post<MurekaGenerateResponse>(
+          `${baseUrl}${submission.path}`,
+          submission.body,
+          { headers: this.headers(), maxRedirects: 0 },
+        ),
+      );
 
-      const taskId = submitRes.data?.task_id ?? submitRes.data?.id;
+      const taskId = submitRes.data?.id;
       if (!taskId) {
         throw new Error(
           `Mureka returned no task id: ${JSON.stringify(submitRes.data).substring(0, 200)}`,
         );
       }
 
-      const audioUrl = await this.pollForCompletion(taskId, baseUrl);
+      const audioUrl = await this.pollForCompletion(
+        taskId,
+        baseUrl,
+        submission.kind,
+      );
 
       this.loggerService.log(`${this.logContext} generateSong completed`, {
         taskId,
@@ -158,16 +168,56 @@ export class MurekaService {
     }
   }
 
+  private buildSubmission(
+    input: MurekaGenerateSongInput,
+    model: string,
+  ): MurekaSubmission {
+    const maxLength = murekaPromptMaxLength(input);
+    if (input.prompt.length > maxLength) {
+      throw new Error(
+        `Mureka prompt exceeds ${maxLength} characters for this request`,
+      );
+    }
+    if (input.instrumental) {
+      return {
+        body: { model, n: MUREKA_OUTPUTS_PER_REQUEST, prompt: input.prompt },
+        kind: 'instrumental',
+        path: '/v1/instrumental/generate',
+      };
+    }
+
+    const lyrics = input.lyrics?.trim();
+    if (lyrics) {
+      return {
+        body: {
+          lyrics,
+          model,
+          n: MUREKA_OUTPUTS_PER_REQUEST,
+          prompt: input.prompt,
+        },
+        kind: 'song',
+        path: '/v1/song/generate',
+      };
+    }
+
+    return {
+      body: { model, n: MUREKA_OUTPUTS_PER_REQUEST, prompt: input.prompt },
+      kind: 'song',
+      path: '/v1/song/easy-generate',
+    };
+  }
+
   private async pollForCompletion(
     taskId: string,
     baseUrl: string,
+    kind: MurekaTaskKind,
   ): Promise<string> {
     try {
       const { value } = await this.pollUntilService.poll(
         () =>
           firstValueFrom(
             this.httpService.get<MurekaQueryResponse>(
-              `${baseUrl}/v1/song/query/${taskId}`,
+              `${baseUrl}/v1/${kind}/query/${encodeURIComponent(taskId)}`,
               { headers: this.headers(), maxRedirects: 0 },
             ),
           ).then((res) => res.data),
@@ -179,15 +229,14 @@ export class MurekaService {
           // poll timeout instead of failing fast.
           if (
             status === 'failed' ||
-            status === 'error' ||
             status === 'timeouted' ||
             status === 'cancelled'
           ) {
             throw new Error(
-              `Mureka generation ${status}: ${data?.error || 'Unknown error'}`,
+              `Mureka generation ${status}: ${data?.failed_reason || 'Unknown error'}`,
             );
           }
-          return status === 'succeeded' || status === 'completed';
+          return status === 'succeeded';
         },
         {
           intervalMs: MUREKA_POLL_INTERVAL_MS,
@@ -195,8 +244,7 @@ export class MurekaService {
         },
       );
 
-      const audioUrl =
-        value?.choices?.[0]?.url ?? value?.choices?.[0]?.audio_url;
+      const audioUrl = value?.choices?.[0]?.url;
       if (!audioUrl) {
         throw new Error(
           `Mureka completed with no audio URL: ${JSON.stringify(value).substring(0, 200)}`,

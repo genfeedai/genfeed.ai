@@ -95,6 +95,7 @@ describe('MusicGenerationService', () => {
       findOne: vi.fn().mockResolvedValue(activeMusicModel),
     };
     const musicProviderRegistry = {
+      assertSupported: vi.fn(),
       generate: vi.fn().mockImplementation(() => {
         generationCount += 1;
         return Promise.resolve({ externalId: `generation-${generationCount}` });
@@ -415,6 +416,32 @@ describe('MusicGenerationService', () => {
         expect.objectContaining({ title: 'Music model unavailable' }),
       );
     }
+    expect(created.promptsService.create).not.toHaveBeenCalled();
+    expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(created.musicProviderRegistry.generate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a request its provider refuses before creating any job', async () => {
+    const created = createService();
+    created.musicProviderRegistry.assertSupported.mockImplementation(() => {
+      throw new BadRequestException({ title: 'Prompt too long' });
+    });
+
+    await expect(
+      created.service.generateMusic(
+        user,
+        buildDto({ style: 'lo-fi' }),
+        request,
+      ),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    expect(created.musicProviderRegistry.assertSupported).toHaveBeenCalledWith(
+      expect.any(String),
+      activeMusicModel.provider,
+      expect.objectContaining({
+        instrumental: expect.any(Boolean),
+        prompt: expect.stringContaining('(style: lo-fi)'),
+      }),
+    );
     expect(created.promptsService.create).not.toHaveBeenCalled();
     expect(created.sharedService.createMediaDocuments).not.toHaveBeenCalled();
     expect(created.musicProviderRegistry.generate).not.toHaveBeenCalled();

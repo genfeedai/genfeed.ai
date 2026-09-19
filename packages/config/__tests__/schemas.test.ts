@@ -489,8 +489,8 @@ describe('Config Schemas', () => {
       const schema = Joi.object(murekaSchema);
       const { error, value } = schema.validate({}, { allowUnknown: true });
       expect(error).toBeUndefined();
-      expect(value.MUREKA_API_BASE_URL).toBe('https://platform.mureka.ai');
-      expect(value.MUREKA_MODEL).toBe('V9');
+      expect(value.MUREKA_API_BASE_URL).toBe('https://api.mureka.ai');
+      expect(value.MUREKA_MODEL).toBe('mureka-9');
     });
   });
 

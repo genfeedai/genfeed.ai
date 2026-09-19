@@ -1,12 +1,16 @@
 import type {
+  MusicGenerationPreflightRequest,
   MusicGenerationProviderAdapter,
   MusicGenerationProviderRequest,
   MusicGenerationProviderResult,
 } from '@api/collections/musics/services/music-generation.types';
-import { MurekaService } from '@api/services/integrations/mureka/services/mureka.service';
+import {
+  MurekaService,
+  murekaPromptMaxLength,
+} from '@api/services/integrations/mureka/services/mureka.service';
 import { ModelProvider } from '@genfeedai/contracts';
 import { normalizeMusicSettings } from '@genfeedai/contracts/constants';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Mureka V9 direct API integration (not fal/Replicate). `MurekaService`
@@ -24,6 +28,16 @@ export class MurekaMusicGenerationProviderAdapter
 
   supports(_model: string, provider?: ModelProvider | string): boolean {
     return provider === ModelProvider.MUREKA;
+  }
+
+  assertSupported(request: MusicGenerationPreflightRequest): void {
+    const maxLength = murekaPromptMaxLength(request);
+    if (request.prompt.length > maxLength) {
+      throw new BadRequestException({
+        detail: `Mureka accepts prompts up to ${maxLength} characters for this request (style included); this one has ${request.prompt.length}.`,
+        title: 'Prompt too long',
+      });
+    }
   }
 
   async generate(

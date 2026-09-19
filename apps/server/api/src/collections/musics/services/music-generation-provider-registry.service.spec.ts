@@ -54,6 +54,28 @@ describe('MusicGenerationProviderRegistryService', () => {
     );
   });
 
+  it('runs the supporting adapter preflight and tolerates adapters without one', () => {
+    const murekaAdapter = Object.assign(buildAdapter('mureka', true), {
+      assertSupported: vi.fn(),
+    });
+    const { registry } = buildRegistry({ murekaAdapter });
+    const preflight = { instrumental: false, prompt: 'music' };
+
+    registry.assertSupported('mureka/v9', ModelProvider.MUREKA, preflight);
+    expect(murekaAdapter.assertSupported).toHaveBeenCalledWith(preflight);
+
+    const replicateOnly = buildRegistry({
+      replicateAdapter: buildAdapter('replicate', true),
+    });
+    expect(() =>
+      replicateOnly.registry.assertSupported(
+        'meta/musicgen',
+        ModelProvider.REPLICATE,
+        preflight,
+      ),
+    ).not.toThrow();
+  });
+
   it('dispatches generate() to the adapter that supports the model', async () => {
     const replicateAdapter = buildAdapter('replicate', true);
     replicateAdapter.generate.mockResolvedValue({ externalId: 'generation-1' });
