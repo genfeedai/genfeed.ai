@@ -9,7 +9,10 @@ export type {
   OnboardingJourneyMissionId,
 } from '../interfaces/onboarding/onboarding-journey.interface';
 
-export const ONBOARDING_SIGNUP_GIFT_CREDITS = 100;
+// Kept small on purpose: the ungated grant is what signup farming harvests.
+// Most onboarding value sits behind connecting a real social account and
+// publishing, which a throwaway inbox cannot fake cheaply (#4632).
+export const ONBOARDING_SIGNUP_GIFT_CREDITS = 25;
 
 export const ONBOARDING_JOURNEY_MISSION_ORDER: OnboardingJourneyMissionId[] = [
   'complete_company_info',
@@ -52,7 +55,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Connect your first social account so GenFeed can tailor content to real channels.',
       id: 'connect_social_account',
       label: 'Connect a social account',
-      rewardCredits: 10,
+      rewardCredits: 45,
       // Social connections are brand-scoped, so the flat `/settings/integrations`
       // path has no org-scoped page to canonicalize onto. Send self-hosted
       // operators to the brand list, which is one hop from brand > social.
@@ -79,7 +82,7 @@ export const ONBOARDING_JOURNEY_MISSIONS: IOnboardingJourneyMissionDefinition[] 
         'Publish your first post to complete the journey and claim the final reward.',
       id: 'publish_first_post',
       label: 'Publish your first post',
-      rewardCredits: 30,
+      rewardCredits: 70,
       selfHostedCtaHref: '/agent/onboarding',
       whyItMatters:
         'Publishing closes the loop from setup to real output and proves time-to-value.',

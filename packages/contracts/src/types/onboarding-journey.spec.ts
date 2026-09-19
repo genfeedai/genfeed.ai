@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
+  ONBOARDING_SIGNUP_GIFT_CREDITS,
+  ONBOARDING_TOTAL_VISIBLE_CREDITS,
   resolveMissionCtaHref,
 } from './onboarding-journey';
 
@@ -41,5 +43,28 @@ describe('resolveMissionCtaHref', () => {
         definition.ctaHref,
       );
     }
+  });
+});
+
+describe('onboarding credit economics', () => {
+  const rewardFor = (missionId: string): number =>
+    ONBOARDING_JOURNEY_MISSIONS.find((mission) => mission.id === missionId)
+      ?.rewardCredits ?? 0;
+
+  it('keeps the ungated signup grant small', () => {
+    expect(ONBOARDING_SIGNUP_GIFT_CREDITS).toBe(25);
+  });
+
+  it('puts most onboarding credits behind a real social account and a publish', () => {
+    const provenRewards =
+      rewardFor('connect_social_account') + rewardFor('publish_first_post');
+
+    expect(provenRewards).toBeGreaterThan(
+      ONBOARDING_TOTAL_VISIBLE_CREDITS - provenRewards,
+    );
+  });
+
+  it('keeps the total visible onboarding credits at 200', () => {
+    expect(ONBOARDING_TOTAL_VISIBLE_CREDITS).toBe(200);
   });
 });
