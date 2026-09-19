@@ -49,6 +49,7 @@ type SeedArgs = {
 };
 
 const logger = new Logger('HarnessProfilePackSeed');
+const LOCAL_DATABASE_HOSTS = ['0.0.0.0', '127.0.0.1', '::1', 'localhost'];
 const scriptDir = fileURLToPath(new URL('.', import.meta.url));
 
 const FIXTURE_SEEDS: HarnessPackSeed[] = [
@@ -131,13 +132,27 @@ function loadEnvFile(envArg?: string): void {
   }
 }
 
-function createPrismaClient(): PrismaClient {
+export function isLocalDatabaseUrl(databaseUrl: string): boolean {
+  try {
+    const hostname = new URL(databaseUrl).hostname.replace(/^\[|\]$/g, '');
+    return LOCAL_DATABASE_HOSTS.includes(hostname);
+  } catch {
+    return false;
+  }
+}
+
+function createPrismaClient(envName?: string): PrismaClient {
   const connectionString = process.env.DATABASE_URL;
   if (!connectionString) {
     throw new Error('DATABASE_URL environment variable is not set');
   }
   const target = new URL(connectionString);
   logger.log(`Target database: ${target.hostname}${target.pathname}`);
+  if (envName === 'production' && isLocalDatabaseUrl(connectionString)) {
+    throw new Error(
+      '.env.production points at a local database; refusing to report a local run as production',
+    );
+  }
   return new PrismaClient({
     adapter: new PrismaPg(
       createPrismaPgConfig(connectionString, {
@@ -226,7 +241,7 @@ async function main(): Promise<void> {
   }
 
   const seeds = loadSeeds(args.packs);
-  const prisma = createPrismaClient();
+  const prisma = createPrismaClient(args.env);
   const harnessProfiles = new HarnessProfilesService(
     prisma as unknown as PrismaService,
     logger as unknown as LoggerService,
