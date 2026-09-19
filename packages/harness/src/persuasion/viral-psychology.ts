@@ -1,3 +1,5 @@
+import type { IPersuasionScores } from '@genfeedai/contracts/interfaces/analytics/evaluation.interface';
+
 import type {
   ContentHarnessContribution,
   ContentHarnessInput,
@@ -52,6 +54,89 @@ export type PersuasionLayerId = (typeof PERSUASION_LAYERS)[number]['id'];
 export const PERSUASION_SCORE_KEYS = PERSUASION_LAYERS.map(
   (layer) => layer.scoreKey,
 );
+
+const PERSUASION_SCORE_MIN = 0;
+const PERSUASION_SCORE_MAX = 100;
+
+function clampPersuasionScore(value: number): number {
+  return Math.round(
+    Math.min(PERSUASION_SCORE_MAX, Math.max(PERSUASION_SCORE_MIN, value)),
+  );
+}
+
+/**
+ * `overall` is never requested as an independent judgement call — it is
+ * always derived from the four layer scores so the number persisted can
+ * never disagree with the layers it summarizes. Defined once here and
+ * reused by `normalizePersuasionScores` below (the persistence-boundary
+ * step) and described in the provider hint so evaluators know the contract.
+ */
+function derivePersuasionOverallScore(layerScores: {
+  ctaNaturalness: number;
+  demandFit: number;
+  hookStrength: number;
+  openLoopIntegrity: number;
+}): number {
+  const total = PERSUASION_LAYERS.reduce(
+    (sum, layer) => sum + layerScores[layer.scoreKey],
+    0,
+  );
+
+  return clampPersuasionScore(total / PERSUASION_LAYERS.length);
+}
+
+function readPersuasionLayerScore(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? clampPersuasionScore(value)
+    : undefined;
+}
+
+/**
+ * Deterministic normalize/validate step for persuasion scores, meant to run
+ * at the persistence boundary (before an evaluation result is stored or
+ * rendered). All four layer scores in `PERSUASION_SCORE_KEYS` must be
+ * present and numeric or the whole object is rejected — evaluations never
+ * fabricate a persuasion score the evaluator did not actually produce, so a
+ * missing/invalid rubric leaves the rest of the evaluation untouched.
+ * `overall` is always (re)derived from the four layers via
+ * `derivePersuasionOverallScore`, so it can never drift from the contract
+ * `IPersuasionScores` promises.
+ */
+export function normalizePersuasionScores(
+  value: unknown,
+): IPersuasionScores | undefined {
+  if (!value || typeof value !== 'object') {
+    return undefined;
+  }
+
+  const record = value as Record<string, unknown>;
+  const demandFit = readPersuasionLayerScore(record.demandFit);
+  const hookStrength = readPersuasionLayerScore(record.hookStrength);
+  const openLoopIntegrity = readPersuasionLayerScore(record.openLoopIntegrity);
+  const ctaNaturalness = readPersuasionLayerScore(record.ctaNaturalness);
+
+  if (
+    demandFit === undefined ||
+    hookStrength === undefined ||
+    openLoopIntegrity === undefined ||
+    ctaNaturalness === undefined
+  ) {
+    return undefined;
+  }
+
+  return {
+    ctaNaturalness,
+    demandFit,
+    hookStrength,
+    openLoopIntegrity,
+    overall: derivePersuasionOverallScore({
+      ctaNaturalness,
+      demandFit,
+      hookStrength,
+      openLoopIntegrity,
+    }),
+  };
+}
 
 const SHORT_FORM_CONTENT_KINDS = new Set([
   'ad-creative',
@@ -124,7 +209,7 @@ function buildViralPsychologyContribution(
     evaluationCriteria: PERSUASION_LAYERS.map((layer) => layer.criterion),
     guardrails,
     providerHints: [
-      `Persuasion rubric score keys (0-100 each): ${PERSUASION_SCORE_KEYS.join(', ')}.`,
+      `Persuasion rubric score fields (0-100 each): overall, ${PERSUASION_SCORE_KEYS.join(', ')}. Score overall as the mean of the four layer scores.`,
     ],
     styleDirectives,
     systemDirectives,

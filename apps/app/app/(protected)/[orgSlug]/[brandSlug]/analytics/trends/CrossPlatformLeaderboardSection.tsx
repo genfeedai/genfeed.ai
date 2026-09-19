@@ -127,6 +127,22 @@ export default function CrossPlatformLeaderboardSection({
                   );
                 },
               },
+              {
+                className: 'min-w-40',
+                header: 'Why it works',
+                key: 'persuasionHighlight',
+                render: (video) =>
+                  video.persuasionHighlight ? (
+                    <Badge
+                      value={`${video.persuasionHighlight.label} · ${video.persuasionHighlight.score}`}
+                      className="bg-secondary/10 text-secondary text-xs"
+                    />
+                  ) : (
+                    <span className="text-xs text-foreground/40">
+                      Not evaluated
+                    </span>
+                  ),
+              },
             ]}
             getRowKey={(video) => video.id || video.externalId || ''}
           />

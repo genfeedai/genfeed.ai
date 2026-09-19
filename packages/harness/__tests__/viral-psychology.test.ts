@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  normalizePersuasionScores,
   PERSUASION_LAYERS,
   PERSUASION_SCORE_KEYS,
   VIRAL_PSYCHOLOGY_HARNESS_PACK,
@@ -43,6 +44,18 @@ describe('VIRAL_PSYCHOLOGY_HARNESS_PACK', () => {
     expect(contribution.providerHints?.join(' ')).toContain(
       'demandFit, hookStrength, openLoopIntegrity, ctaNaturalness',
     );
+  });
+
+  it('requests overall together with every layer key from evaluators', () => {
+    const contribution = contribute({
+      intent: { contentType: 'post', objective: 'engagement' },
+    });
+    const hints = contribution.providerHints?.join(' ') ?? '';
+
+    expect(hints).toContain('overall');
+    for (const scoreKey of PERSUASION_SCORE_KEYS) {
+      expect(hints).toContain(scoreKey);
+    }
   });
 
   it('contributes regardless of platform, unlike the X pack', () => {
@@ -98,5 +111,70 @@ describe('VIRAL_PSYCHOLOGY_HARNESS_PACK', () => {
     expect(contribution.styleDirectives?.join(' ')).not.toContain(
       'the self-hosted tier',
     );
+  });
+});
+
+describe('normalizePersuasionScores', () => {
+  it('returns undefined for non-object input', () => {
+    expect(normalizePersuasionScores(undefined)).toBeUndefined();
+    expect(normalizePersuasionScores(null)).toBeUndefined();
+    expect(normalizePersuasionScores('not an object')).toBeUndefined();
+  });
+
+  it('rejects an object missing one of the four layer scores', () => {
+    expect(
+      normalizePersuasionScores({
+        ctaNaturalness: 80,
+        demandFit: 80,
+        hookStrength: 80,
+        // openLoopIntegrity missing
+      }),
+    ).toBeUndefined();
+  });
+
+  it('rejects an object with a non-numeric layer score', () => {
+    expect(
+      normalizePersuasionScores({
+        ctaNaturalness: 80,
+        demandFit: 80,
+        hookStrength: 80,
+        openLoopIntegrity: 'high',
+      }),
+    ).toBeUndefined();
+  });
+
+  it('derives overall as the mean of the four layer scores, ignoring any evaluator-supplied overall', () => {
+    const normalized = normalizePersuasionScores({
+      ctaNaturalness: 100,
+      demandFit: 0,
+      hookStrength: 100,
+      openLoopIntegrity: 0,
+      overall: 999,
+    });
+
+    expect(normalized).toEqual({
+      ctaNaturalness: 100,
+      demandFit: 0,
+      hookStrength: 100,
+      openLoopIntegrity: 0,
+      overall: 50,
+    });
+  });
+
+  it('clamps and rounds out-of-range layer scores', () => {
+    const normalized = normalizePersuasionScores({
+      ctaNaturalness: 50.4,
+      demandFit: -10,
+      hookStrength: 150,
+      openLoopIntegrity: 50.6,
+    });
+
+    expect(normalized).toEqual({
+      ctaNaturalness: 50,
+      demandFit: 0,
+      hookStrength: 100,
+      openLoopIntegrity: 51,
+      overall: 50,
+    });
   });
 });
