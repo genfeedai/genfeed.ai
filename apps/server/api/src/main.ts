@@ -334,7 +334,11 @@ async function main() {
     expressApp.get(
       '/.well-known/oauth-authorization-server',
       (_req: Request, res: Response) => {
+        // Public discovery document fetched cross-origin by browser-based MCP
+        // clients before they hold any credential, so it answers with a
+        // wildcard origin like the MCP server-card routes (#4553 defect 4).
         res
+          .set('Access-Control-Allow-Origin', '*')
           .set('Cache-Control', 'public, max-age=300')
           .status(200)
           .json(buildOAuthAuthorizationServerMetadata(configService));

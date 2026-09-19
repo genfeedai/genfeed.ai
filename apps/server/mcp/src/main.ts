@@ -8,6 +8,7 @@ import '@mcp/instrument';
 bootstrap({ app: 'mcp' });
 
 import process from 'node:process';
+import { McpResourceConfigurationError } from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import { rejectMcpRequestIfApiKeyInUrl } from '@libs/auth/url-credentials';
 import {
   getGenfeedCorsOptions,
@@ -18,12 +19,12 @@ import { AppModule } from '@mcp/app.module';
 import { ConfigService } from '@mcp/config/config.service';
 import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
 import {
-  getMcpProtectedResourceMetadata,
-  getMcpServerCard,
   getMcpWwwAuthenticateHeader,
   getPublicMcpUrl,
   renderSetupPage,
+  resolvePublicMcpResource,
 } from '@mcp/mcp/setup-page';
+import { registerWellKnownRoutes } from '@mcp/mcp/well-known-routes';
 import { AuthService } from '@mcp/services/auth.service';
 import {
   applyRateLimitHeaders,
@@ -60,6 +61,12 @@ const MCP_CORS_EXPOSED_HEADERS = [
 ].join(', ');
 
 async function main(): Promise<void> {
+  // Resolved once, before anything listens: a configured MCP URL the shared
+  // rule rejects throws `McpResourceConfigurationError` naming the variable,
+  // so the deployment fails here instead of at a user's token exchange with
+  // an opaque `invalid_target` (#4553 defect 1).
+  const mcpResource = resolvePublicMcpResource();
+
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     abortOnError: false,
     logger: ['error'],
@@ -163,29 +170,7 @@ async function main(): Promise<void> {
     next();
   };
 
-  expressApp.get(
-    '/.well-known/oauth-protected-resource',
-    (_req: Request, res: Response) => {
-      res
-        .set('Cache-Control', 'public, max-age=300')
-        .status(200)
-        .json(getMcpProtectedResourceMetadata());
-    },
-  );
-
-  for (const path of [
-    '/.well-known/mcp.json',
-    '/.well-known/mcp/server-card.json',
-    '/.well-known/mcp/server-cards.json',
-  ]) {
-    expressApp.get(path, (_req: Request, res: Response) => {
-      res
-        .set('Access-Control-Allow-Origin', '*')
-        .set('Cache-Control', 'public, max-age=3600')
-        .status(200)
-        .json(getMcpServerCard());
-    });
-  }
+  registerWellKnownRoutes(expressApp);
 
   // `toolsetsQueryMiddleware` runs BEFORE authentication so an unknown
   // `?toolsets=` name is rejected the same way for an authenticated caller
@@ -270,11 +255,18 @@ async function main(): Promise<void> {
   logger.debug(
     `Streamable HTTP transport available at /mcp: ${streamableHttpService.isTransportReady()}`,
   );
+  logger.debug(
+    `OAuth protected resource ${mcpResource.identifier} (from ${mcpResource.sourceKey ?? 'the built-in default'})`,
+  );
 }
 
 void main().catch((error: unknown) => {
   const bootstrapLogger = new Logger('McpBootstrap');
-  bootstrapLogger.error('Failed to start MCP service:', error);
+  if (error instanceof McpResourceConfigurationError) {
+    bootstrapLogger.error(`Refusing to start MCP service: ${error.message}`);
+  } else {
+    bootstrapLogger.error('Failed to start MCP service:', error);
+  }
   process.exit(1);
 });
 setupGracefulShutdown();

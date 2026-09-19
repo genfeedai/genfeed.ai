@@ -199,6 +199,7 @@ export * from './integrations/heygen.interface';
 export * from './integrations/instagram.interface';
 export * from './integrations/instagram-inspiration.interface';
 export * from './integrations/integration.interface';
+export * from './integrations/mcp-resource.interface';
 export * from './integrations/news.interface';
 export * from './integrations/replicate.interface';
 export * from './integrations/research-finding-reference.interface';

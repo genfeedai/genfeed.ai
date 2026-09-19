@@ -1,7 +1,12 @@
 import process from 'node:process';
 import { getToolsForRole, TOOLSETS } from '@genfeedai/actions';
 import { API_KEY_SCOPE_PRESETS } from '@genfeedai/contracts/constants';
+import type { McpResourceIdentifierResolution } from '@genfeedai/contracts/interfaces';
 import { buildConnectGenfeedInstructions } from '@genfeedai/helpers/integrations/connect-genfeed.helper';
+import {
+  OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
+  resolveMcpResourceIdentifier,
+} from '@genfeedai/helpers/integrations/mcp-resource.helper';
 import {
   staticSurfaceClassNames,
   staticSurfaceCss,
@@ -34,17 +39,22 @@ function trimTrailingSlash(value: string): string {
  * Safe JS string-literal encoding for a value embedded directly in an inline
  * `<script>` block (the toolset picker below needs the endpoint as data the
  * client can recompute from). `JSON.stringify` does not escape `/`, so a
- * value containing a literal `</script>` — reachable via the
- * `GENFEED_MCP_RESOURCE_URL` override, which is rendered raw (see
- * `readPublicUrl`) — would otherwise close the surrounding script element
- * early. Escaping every `<` neutralizes that regardless of what follows it.
- * U+2028 (LINE SEPARATOR) and U+2029 (PARAGRAPH SEPARATOR) are also escaped:
- * `JSON.stringify` leaves them as literal characters, but they terminate a
- * JS string/statement outside a string literal per the ECMAScript grammar,
- * so an unescaped one in the source text would break the surrounding script
- * (or, depending on where it lands, silently truncate the string value).
+ * value containing a literal `</script>` would otherwise close the
+ * surrounding script element early. Escaping every `<` neutralizes that
+ * regardless of what follows it. U+2028 (LINE SEPARATOR) and U+2029
+ * (PARAGRAPH SEPARATOR) are also escaped: `JSON.stringify` leaves them as
+ * literal characters, but they terminate a JS string/statement outside a
+ * string literal per the ECMAScript grammar, so an unescaped one in the
+ * source text would break the surrounding script (or, depending on where it
+ * lands, silently truncate the string value).
+ *
+ * The endpoint comes from `deriveMcpResourceIdentifier`, whose WHATWG URL
+ * parse percent-encodes `<`, `>` and every non-ASCII code point in the path,
+ * so no accepted configuration can currently reach these branches. The
+ * escaping stays as defence in depth; it is exported so its contract is
+ * unit-tested directly rather than through an environment override.
  */
-function toInlineScriptStringLiteral(value: string): string {
+export function toInlineScriptStringLiteral(value: string): string {
   return JSON.stringify(value)
     .replace(/</g, '\\u003C')
     .replace(/\u2028/g, '\\u2028')
@@ -144,11 +154,21 @@ ${codex.configuration}
 7. Report exactly what changed and any remaining authorization or verification step. If OAuth is unsupported, direct the user to the advanced manual-key path in guided setup.`;
 }
 
+/**
+ * The OAuth protected-resource identifier this server advertises, derived by
+ * the rule the API token endpoint enforces (#4553): the first configured key
+ * in `MCP_RESOURCE_URL_ENV_KEYS` wins and every spelling — with or without
+ * `/mcp`, with or without a trailing slash — normalizes to `<origin>/mcp`.
+ * A configured but invalid value throws `McpResourceConfigurationError`
+ * naming the variable; `main.ts` calls this once at boot so a broken
+ * deployment fails there rather than at a user's token exchange.
+ */
+export function resolvePublicMcpResource(): McpResourceIdentifierResolution {
+  return resolveMcpResourceIdentifier(readEnv, DEFAULT_MCP_URL);
+}
+
 export function getPublicMcpUrl(): string {
-  return readFirstPublicUrl(
-    ['GENFEEDAI_MCP_PUBLIC_URL', 'GENFEED_MCP_RESOURCE_URL'],
-    DEFAULT_MCP_URL,
-  );
+  return resolvePublicMcpResource().identifier;
 }
 
 export function getOAuthIssuerUrl(): string {
@@ -160,7 +180,7 @@ export function getOAuthIssuerUrl(): string {
 
 export function getPublicMcpResourceMetadataUrl(): string {
   return new URL(
-    '/.well-known/oauth-protected-resource',
+    OAUTH_PROTECTED_RESOURCE_WELL_KNOWN_PATH,
     getPublicMcpUrl(),
   ).toString();
 }
@@ -1116,14 +1136,12 @@ ${postHogSnippet}
         : "'" + url.replace(/'/g, "'\\\\''") + "'";
     }
 
-    // Pure URL builder: a base that already carries a query string (e.g. a
-    // GENFEED_MCP_RESOURCE_URL override like ".../mcp?x=1") must gain
-    // "&toolsets=", not a second "?" that would silently drop everything
-    // before it.
+    // Pure URL builder. The base is the protected-resource identifier, which
+    // never carries a query string or fragment (the shared resolver rejects
+    // them), so "?toolsets=" is always the first and only query parameter.
     function joinToolsetsUrl(baseUrl, selected) {
       if (selected.length === 0) return baseUrl;
-      var separator = baseUrl.indexOf('?') === -1 ? '?' : '&';
-      return baseUrl + separator + 'toolsets=' + selected.join(',');
+      return baseUrl + '?toolsets=' + selected.join(',');
     }
 
     var currentUrl = baseMcpUrl;

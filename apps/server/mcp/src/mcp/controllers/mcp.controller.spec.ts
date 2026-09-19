@@ -169,7 +169,8 @@ describe('McpController', () => {
   });
 
   beforeEach(() => {
-    vi.stubEnv('GENFEED_MCP_RESOURCE_URL', '');
+    vi.stubEnv('GENFEEDAI_MCP_PUBLIC_URL', '');
+    vi.stubEnv('GENFEEDAI_MICROSERVICES_MCP_URL', '');
   });
 
   afterEach(() => {
