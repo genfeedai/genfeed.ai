@@ -39,6 +39,7 @@ import { useBrandInterviewDraftStore } from '@/store/brand-interview-draft.store
 const INTERVIEW_CREDIT_COST = 10;
 
 const GROUP_LABELS: Record<BrandInterviewGroup, string> = {
+  expert: 'Positioning',
   identity: 'Identity',
   strategy: 'Strategy',
   voice: 'Voice',
@@ -299,7 +300,13 @@ function InterviewStepsSidebar({
   isDisabled?: boolean;
 }) {
   const groups = useMemo(() => {
-    const order: BrandInterviewGroup[] = ['identity', 'voice', 'strategy'];
+    // Expert Path sessions ask positioning first, mirroring the catalog order.
+    const order: BrandInterviewGroup[] = [
+      'expert',
+      'identity',
+      'voice',
+      'strategy',
+    ];
     return order
       .map((group) => ({
         group,
