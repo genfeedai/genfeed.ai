@@ -18,6 +18,7 @@ import {
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
+import { ONBOARDING_JOURNEY_TOTAL_CREDITS } from '@genfeedai/contracts/types/onboarding-journey';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 function makeMessage(
@@ -665,9 +666,13 @@ describe('agent-chat.store onboarding', () => {
     const state = useAgentChatStore.getState();
     expect(state.onboardingSteps).toEqual([]);
     expect(state.onboardingEarnedCredits).toBe(25);
-    expect(state.onboardingTotalJourneyCredits).toBe(100);
+    expect(state.onboardingTotalJourneyCredits).toBe(
+      ONBOARDING_JOURNEY_TOTAL_CREDITS,
+    );
     expect(state.onboardingSignupGiftCredits).toBe(0);
-    expect(state.onboardingTotalVisibleCredits).toBe(100);
+    expect(state.onboardingTotalVisibleCredits).toBe(
+      ONBOARDING_JOURNEY_TOTAL_CREDITS,
+    );
     expect(state.onboardingCompletionPercent).toBe(0);
   });
 

@@ -16,6 +16,12 @@ import {
   type AgentThreadMode,
   DEFAULT_AGENT_THREAD_MODE,
 } from '@genfeedai/contracts';
+import {
+  ONBOARDING_JOURNEY_MISSIONS,
+  ONBOARDING_JOURNEY_TOTAL_CREDITS,
+  ONBOARDING_SIGNUP_GIFT_CREDITS,
+  ONBOARDING_TOTAL_VISIBLE_CREDITS,
+} from '@genfeedai/contracts/types/onboarding-journey';
 import type {
   OnboardingChecklistStatus,
   OnboardingChecklistStep,
@@ -84,10 +90,6 @@ function persistSessionsByThread(map: TerminalSessionsByThread): void {
   }
 }
 
-// Inlined from @genfeedai/contracts/types to avoid turbopack resolution issues
-const ONBOARDING_SIGNUP_GIFT_CREDITS = 100;
-const ONBOARDING_TOTAL_VISIBLE_CREDITS = 600;
-
 export { AGENT_PANEL_OPEN_KEY };
 
 function readPanelPreference(): boolean {
@@ -129,67 +131,20 @@ export type AgentSocketConnectionState =
   | 'reconnecting'
   | 'offline';
 
-const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] = [
-  {
-    ctaHref: '/onboarding/brand',
-    ctaLabel: 'Continue onboarding',
-    description:
-      'Tell the agent what you create so it can build your brand profile and generate a relevant first image.',
-    id: 'complete_company_info',
-    isClaimed: false,
-    isRecommended: true,
-    rewardCredits: 25,
-    status: 'pending',
-    title: 'Complete company info',
-  },
-  {
-    ctaHref: '/onboarding/providers',
-    ctaLabel: 'Configure providers',
-    description:
-      'Generate your first image right away from the context you just shared.',
-    id: 'generate_first_image',
-    isClaimed: false,
-    isRecommended: false,
-    rewardCredits: 15,
-    status: 'pending',
-    title: 'Generate your first image',
-  },
-  {
-    ctaHref: '/onboarding/providers',
-    ctaLabel: 'Configure providers',
-    description:
-      'Connect your first social account so GenFeed can tailor content to real channels.',
-    id: 'connect_social_account',
-    isClaimed: false,
-    isRecommended: false,
-    rewardCredits: 10,
-    status: 'pending',
-    title: 'Connect a social account',
-  },
-  {
-    ctaHref: '/onboarding/providers',
-    ctaLabel: 'Configure providers',
-    description: 'Generate your first video to unlock richer content creation.',
-    id: 'generate_first_video',
-    isClaimed: false,
-    isRecommended: false,
-    rewardCredits: 20,
-    status: 'pending',
-    title: 'Generate your first video',
-  },
-  {
-    ctaHref: '/onboarding/providers',
-    ctaLabel: 'Configure providers',
-    description:
-      'Publish your first post to complete the journey and claim the final reward.',
-    id: 'publish_first_post',
-    isClaimed: false,
-    isRecommended: false,
-    rewardCredits: 30,
-    status: 'pending',
-    title: 'Publish your first post',
-  },
-];
+const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] =
+  ONBOARDING_JOURNEY_MISSIONS.map(
+    (mission, index): OnboardingChecklistStep => ({
+      ctaHref: mission.ctaHref,
+      ctaLabel: mission.ctaLabel,
+      description: mission.description,
+      id: mission.id,
+      isClaimed: false,
+      isRecommended: index === 0,
+      rewardCredits: mission.rewardCredits,
+      status: 'pending',
+      title: mission.label,
+    }),
+  );
 
 interface AgentStreamState {
   isStreaming: boolean;
@@ -918,7 +873,7 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
   onboardingEarnedCredits: 0,
   onboardingSignupGiftCredits: ONBOARDING_SIGNUP_GIFT_CREDITS,
   onboardingSteps: DEFAULT_ONBOARDING_STEPS,
-  onboardingTotalJourneyCredits: 100,
+  onboardingTotalJourneyCredits: ONBOARDING_JOURNEY_TOTAL_CREDITS,
   onboardingTotalVisibleCredits: ONBOARDING_TOTAL_VISIBLE_CREDITS,
   overlayActiveIds: [],
   overlayAutoCollapsedAgent: false,
@@ -1138,10 +1093,12 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       onboardingEarnedCredits: payload.earnedCredits ?? 0,
       onboardingSignupGiftCredits: payload.signupGiftCredits ?? 0,
       onboardingSteps: payload.steps,
-      onboardingTotalJourneyCredits: payload.totalJourneyCredits ?? 100,
+      onboardingTotalJourneyCredits:
+        payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS,
       onboardingTotalVisibleCredits:
         payload.totalOnboardingCreditsVisible ??
-        (payload.signupGiftCredits ?? 0) + (payload.totalJourneyCredits ?? 100),
+        (payload.signupGiftCredits ?? 0) +
+          (payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS),
     }),
   setOnboardingStepStatus: (stepId, status) =>
     set((state) => ({

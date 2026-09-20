@@ -1,5 +1,6 @@
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import { isCloudDeployment } from '@genfeedai/config/deployment';
+import { ONBOARDING_JOURNEY_TOTAL_CREDITS } from '@genfeedai/contracts/types/onboarding-journey';
 import { ChevronRight, CircleCheck, Rocket } from 'lucide-react';
 import type { ReactElement } from 'react';
 
@@ -22,9 +23,11 @@ export function OnboardingChecklistCard({
   const signupGiftCredits = action.signupGiftCredits ?? 0;
   const journeyEarnedCredits =
     action.journeyEarnedCredits ?? action.earnedCredits ?? 0;
+  const totalJourneyCredits =
+    action.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS;
   const totalVisibleCredits =
     action.totalOnboardingCreditsVisible ??
-    signupGiftCredits + (action.totalJourneyCredits ?? 100);
+    signupGiftCredits + totalJourneyCredits;
 
   return (
     <div className="my-2 border border-border bg-background p-4">
@@ -53,7 +56,7 @@ export function OnboardingChecklistCard({
             <div className="flex items-center justify-between">
               <span>Journey unlocked</span>
               <span className="font-semibold text-foreground">
-                {journeyEarnedCredits}/{action.totalJourneyCredits ?? 100}
+                {journeyEarnedCredits}/{totalJourneyCredits}
               </span>
             </div>
             <div className="flex items-center justify-between">
