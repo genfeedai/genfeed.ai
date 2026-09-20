@@ -13,6 +13,7 @@ import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { ArrowUp, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 const SCORE_THRESHOLDS = [
@@ -46,12 +47,16 @@ const FACTOR_LABELS: Record<string, string> = {
   audioQuality: 'Audio Quality',
   audioSync: 'Audio Sync',
   ctaEffectiveness: 'CTA Effectiveness',
+  ctaNaturalness: 'CTA Naturalness',
+  demandFit: 'Demand Fit',
   emotionalAppeal: 'Emotional Appeal',
   formatting: 'Formatting',
   frameRate: 'Frame Rate',
   hookQuality: 'Hook Quality',
+  hookStrength: 'Hook Strength',
   lengthAppropriateness: 'Length',
   messageAlignment: 'Message Alignment',
+  openLoopIntegrity: 'Open-Loop Integrity',
   platformFit: 'Platform Fit',
   readability: 'Readability',
   resolution: 'Resolution',
@@ -158,6 +163,7 @@ export default function EvaluationCard({
       ...Object.entries(evaluationData.scores.technical ?? {}),
       ...Object.entries(evaluationData.scores.brand ?? {}),
       ...Object.entries(evaluationData.scores.engagement ?? {}),
+      ...Object.entries(evaluationData.scores.persuasion ?? {}),
     ].filter(([key, val]) => key !== 'overall' && typeof val === 'number') as [
       string,
       number,
@@ -288,6 +294,7 @@ function EvaluationCardContent({
   setIsSuggestionsCollapsed,
   onEvaluate,
 }: EvaluationCardContentProps): React.ReactNode {
+  const translate = useTranslations('ui.evaluationCard');
   const evaluationData = evaluation?.data;
 
   if (!evaluation) {
@@ -438,6 +445,11 @@ function EvaluationCardContent({
               title="Engagement Potential"
               scores={scores?.engagement as Record<string, unknown> | undefined}
               overallScore={scores?.engagement?.overall}
+            />
+            <ScoreSection
+              title={translate('persuasion')}
+              scores={scores?.persuasion as Record<string, unknown> | undefined}
+              overallScore={scores?.persuasion?.overall}
             />
           </div>
         )}

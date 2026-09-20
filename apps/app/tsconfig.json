@@ -106,6 +106,10 @@
         "../../packages/contracts/src/constants/*"
       ],
       "@genfeedai/fonts": ["../../packages/fonts/index.ts"],
+      "@genfeedai/harness": ["../../packages/harness/src/index.ts"],
+      "@genfeedai/harness/contracts": [
+        "../../packages/harness/src/contracts/index.ts"
+      ],
       "@genfeedai/helpers": ["../../packages/helpers/src/index.ts"],
       "@genfeedai/helpers/*": ["../../packages/helpers/src/*"],
       "@genfeedai/pricing": ["../../packages/pricing/src/index.ts"],

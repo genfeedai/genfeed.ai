@@ -241,6 +241,9 @@ const UI_TEST_MESSAGES = {
         title: 'Generate Profile Picture',
       },
     },
+    evaluationCard: {
+      persuasion: 'Persuasion',
+    },
     createThread: {
       addPost: 'Add comment / post',
       attachMedia: 'Attach media',

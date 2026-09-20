@@ -3,6 +3,7 @@ import { ModelsService } from '@api/collections/models/services/models.service';
 import { ExternalServiceException } from '@api/helpers/exceptions/external/external-service.exception';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
+import type { IEvaluationScores } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -159,6 +160,89 @@ describe('EvaluationsOperationsService', () => {
           organizationId,
         ),
       ).rejects.toThrow(ExternalServiceException);
+    });
+
+    it('normalizes a complete persuasion result onto the stored scores', async () => {
+      const mockAiResponse = {
+        overallScore: 85,
+        scores: {
+          brand: { overall: 80 },
+          engagement: { overall: 90 },
+          persuasion: {
+            ctaNaturalness: 60,
+            demandFit: 80,
+            hookStrength: 100,
+            openLoopIntegrity: 40,
+            overall: 1,
+          },
+          technical: { overall: 85 },
+        },
+        strengths: [],
+        suggestions: [],
+        weaknesses: [],
+      };
+
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'built prompt' },
+        templateUsed: null,
+        templateVersion: null,
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify(mockAiResponse),
+      );
+
+      const result = (await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        {},
+        organizationId,
+      )) as { scores: IEvaluationScores };
+
+      expect(result.scores.persuasion).toEqual({
+        ctaNaturalness: 60,
+        demandFit: 80,
+        hookStrength: 100,
+        openLoopIntegrity: 40,
+        overall: 70,
+      });
+    });
+
+    it('drops an incomplete persuasion result without touching the other scores', async () => {
+      const mockAiResponse = {
+        overallScore: 85,
+        scores: {
+          brand: { overall: 80 },
+          engagement: { overall: 90 },
+          persuasion: {
+            ctaNaturalness: 60,
+            demandFit: 80,
+            // hookStrength and openLoopIntegrity missing -- incomplete
+          },
+          technical: { overall: 85 },
+        },
+        strengths: [],
+        suggestions: [],
+        weaknesses: [],
+      };
+
+      mockServices.promptBuilderService.buildPrompt.mockResolvedValue({
+        input: { prompt: 'built prompt' },
+        templateUsed: null,
+        templateVersion: null,
+      });
+      mockServices.replicateService.generateTextCompletionSync.mockResolvedValue(
+        JSON.stringify(mockAiResponse),
+      );
+
+      const result = (await service.evaluateVideo(
+        'https://example.com/video.mp4',
+        {},
+        organizationId,
+      )) as { scores: IEvaluationScores };
+
+      expect(result.scores.persuasion).toBeUndefined();
+      expect(result.scores.brand).toEqual({ overall: 80 });
+      expect(result.scores.engagement).toEqual({ overall: 90 });
+      expect(result.scores.technical).toEqual({ overall: 85 });
     });
   });
 

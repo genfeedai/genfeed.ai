@@ -11,6 +11,7 @@ import {
   PromptTemplateKey,
   SystemPromptKey,
 } from '@genfeedai/contracts';
+import { normalizePersuasionScores } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -52,6 +53,12 @@ interface EvaluationResponsePayload {
   scores?: {
     brand?: { overall?: number };
     engagement?: { overall?: number };
+    /**
+     * Raw, unvalidated persuasion object as returned by the evaluator.
+     * Normalized/validated by `normalizePersuasionScores` before it is
+     * allowed into the stored evaluation -- see `formatEvaluationResponse`.
+     */
+    persuasion?: unknown;
     technical?: { overall?: number };
   };
   strengths?: string[];
@@ -310,6 +317,8 @@ Engagement: ${context.previousEvaluation.scores?.engagement?.overall || 'N/A'}
     model: string,
   ): unknown {
     const response = this.toEvaluationResponsePayload(aiResponse);
+    const { persuasion: rawPersuasion, ...otherScores } = response.scores ?? {};
+    const persuasion = normalizePersuasionScores(rawPersuasion);
 
     return {
       analysis: {
@@ -324,11 +333,13 @@ Engagement: ${context.previousEvaluation.scores?.engagement?.overall || 'N/A'}
         severity: 'info',
       },
       overallScore: response.overallScore || 0,
-      scores: response.scores || {
-        brand: { overall: 0 },
-        engagement: { overall: 0 },
-        technical: { overall: 0 },
-      },
+      scores: response.scores
+        ? { ...otherScores, ...(persuasion ? { persuasion } : {}) }
+        : {
+            brand: { overall: 0 },
+            engagement: { overall: 0 },
+            technical: { overall: 0 },
+          },
     };
   }
 }

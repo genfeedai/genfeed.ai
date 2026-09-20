@@ -1,7 +1,9 @@
 {
   "analyticsTrends": {
     "median": "Median",
-    "ratio": "Ratio"
+    "ratio": "Ratio",
+    "whyItWorks": "Why it works",
+    "notEvaluated": "Not evaluated"
   },
   "dateRangePicker": {
     "quickRanges": "Quick date ranges"
@@ -67,5 +69,8 @@
     },
     "cancel": "Cancel",
     "generate": "Generate"
+  },
+  "evaluationCard": {
+    "persuasion": "Persuasion"
   }
 }
