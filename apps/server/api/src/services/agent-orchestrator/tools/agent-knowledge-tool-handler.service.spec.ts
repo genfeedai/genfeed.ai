@@ -151,15 +151,25 @@ describe('AgentKnowledgeToolHandler', () => {
     expect(contexts.retrieveBrandContentMemory).not.toHaveBeenCalled();
   });
 
-  it('lists sources with their current version state and filters by purpose', async () => {
+  it('filters by purpose and processing state in the query, before pagination', async () => {
     const { handler, records } = buildHandler();
+    records.listSources.mockResolvedValue({
+      docs: [
+        { ...source, id: 'source-2', purpose: KnowledgeSourcePurpose.RESEARCH },
+      ],
+      totalDocs: 1,
+      totalPages: 1,
+    });
 
     const result = await handler.listKnowledgeSources(
-      { limit: 500, purpose: 'RESEARCH' },
+      { limit: 500, processingState: 'READY', purpose: 'RESEARCH' },
       ctx,
     );
 
-    expect(records.listSources).toHaveBeenCalledWith(actor, 1, 100);
+    expect(records.listSources).toHaveBeenCalledWith(actor, 1, 100, {
+      processingState: KnowledgeProcessingState.READY,
+      purpose: KnowledgeSourcePurpose.RESEARCH,
+    });
     expect(result.data?.sources).toEqual([
       expect.objectContaining({
         id: 'source-2',
@@ -168,7 +178,21 @@ describe('AgentKnowledgeToolHandler', () => {
         versionId: 'version-1',
       }),
     ]);
-    expect(result.data).toMatchObject({ limit: 100, page: 1, total: 2 });
+    expect(result.data).toMatchObject({ limit: 100, page: 1, total: 1 });
+  });
+
+  it('ignores unknown list filters instead of matching nothing', async () => {
+    const { handler, records } = buildHandler();
+
+    await handler.listKnowledgeSources(
+      { processingState: 'BOGUS', purpose: 'NOPE' },
+      ctx,
+    );
+
+    expect(records.listSources).toHaveBeenCalledWith(actor, 1, 25, {
+      processingState: undefined,
+      purpose: undefined,
+    });
   });
 
   it('reads one source with a bounded preview, provenance and spaces', async () => {
@@ -215,6 +239,52 @@ describe('AgentKnowledgeToolHandler', () => {
     expect(
       (await handler.captureKnowledge({ kind: 'FILE', title: 'x' }, ctx)).error,
     ).toContain('TEXT, URL, DOCUMENT, RSS, AUDIO or VIDEO');
+  });
+
+  it('passes media transcript settings as capture fields that ingest reads', async () => {
+    const { capture, handler } = buildHandler();
+
+    await handler.captureKnowledge(
+      {
+        isTranscriptGenerationAllowed: true,
+        kind: 'VIDEO',
+        referenceUrl: 'https://media.example/talk.mp4',
+        title: 'Talk',
+        transcriptUrl: 'https://media.example/talk.vtt',
+      },
+      ctx,
+    );
+
+    expect(capture.capture).toHaveBeenCalledWith(actor, {
+      isTranscriptGenerationAllowed: true,
+      kind: KnowledgeSourceKind.VIDEO,
+      provenance: { capturedBy: 'agent', threadId: 'thread-1' },
+      purpose: KnowledgeSourcePurpose.INSPIRATION,
+      referenceUrl: 'https://media.example/talk.mp4',
+      scope: KnowledgeMemoryScope.BRAND,
+      text: undefined,
+      title: 'Talk',
+      transcriptUrl: 'https://media.example/talk.vtt',
+    });
+  });
+
+  it('drops transcript settings for non-media kinds', async () => {
+    const { capture, handler } = buildHandler();
+
+    await handler.captureKnowledge(
+      {
+        isTranscriptGenerationAllowed: true,
+        kind: 'URL',
+        referenceUrl: 'https://brand.example/faq',
+        title: 'FAQ',
+        transcriptUrl: 'https://brand.example/faq.vtt',
+      },
+      ctx,
+    );
+
+    const dto = capture.capture.mock.calls[0][1];
+    expect(dto).not.toHaveProperty('isTranscriptGenerationAllowed');
+    expect(dto).not.toHaveProperty('transcriptUrl');
   });
 
   it('routes purpose changes, archive and retry to the records and capture services', async () => {

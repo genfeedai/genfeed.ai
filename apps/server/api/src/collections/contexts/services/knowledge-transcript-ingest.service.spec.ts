@@ -1,4 +1,5 @@
 import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
+import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
 import {
   CreditReservationStatus,
   KnowledgeSourceKind,
@@ -44,6 +45,7 @@ function buildService() {
   const logger = { log: vi.fn() };
   return {
     credits,
+    prisma,
     replicate,
     service: new KnowledgeTranscriptIngestService(
       prisma as never,
@@ -116,6 +118,173 @@ describe('KnowledgeTranscriptIngestService', () => {
     expect(credits.settleReservation).toHaveBeenCalledWith(
       expect.objectContaining({ actualAmount: 1, reservationId: 'res-1' }),
     );
+  });
+
+  it('saves the transcript before settling and never charges for an unsaved one', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, prisma, service } = buildService();
+    // The first write records the generation claim; the second is the
+    // transcript checkpoint, which fails here.
+    prisma.knowledgeSourceVersion.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockRejectedValueOnce(new Error('connection reset'));
+
+    await expect(
+      service.resolve({
+        kind: KnowledgeSourceKind.AUDIO,
+        organizationId: 'org-1',
+        payload: { isTranscriptGenerationAllowed: true },
+        referenceUrl: 'https://cdn.example.com/ep.mp3',
+        sourceId: 'source-1',
+        userId: 'user-1',
+        versionId: 'version-1',
+      }),
+    ).rejects.toThrow('connection reset');
+    expect(credits.settleReservation).not.toHaveBeenCalled();
+    expect(credits.releaseReservation).toHaveBeenCalledWith({
+      organizationId: 'org-1',
+      reservationId: 'res-1',
+    });
+  });
+
+  it('settles only after the transcript checkpoint is written', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, prisma, service } = buildService();
+
+    await service.resolve({
+      kind: KnowledgeSourceKind.AUDIO,
+      organizationId: 'org-1',
+      payload: { isTranscriptGenerationAllowed: true },
+      referenceUrl: 'https://cdn.example.com/ep.mp3',
+      sourceId: 'source-1',
+      userId: 'user-1',
+      versionId: 'version-1',
+    });
+
+    const checkpointOrder =
+      prisma.knowledgeSourceVersion.updateMany.mock.invocationCallOrder[1];
+    const settleOrder = credits.settleReservation.mock.invocationCallOrder[0];
+    expect(checkpointOrder).toBeLessThan(settleOrder);
+  });
+
+  it('keeps the hold for a saved transcript when settlement fails', async () => {
+    fetchMock.mockResolvedValue({
+      bytes: Buffer.from('ID3fake-audio'),
+      finalUrl: 'https://cdn.example.com/ep.mp3',
+      mimeType: 'audio/mpeg',
+      status: 200,
+    });
+    const { credits, prisma, service } = buildService();
+    credits.settleReservation.mockRejectedValueOnce(new Error('db timeout'));
+
+    await expect(
+      service.resolve({
+        kind: KnowledgeSourceKind.AUDIO,
+        organizationId: 'org-1',
+        payload: { isTranscriptGenerationAllowed: true },
+        referenceUrl: 'https://cdn.example.com/ep.mp3',
+        sourceId: 'source-1',
+        userId: 'user-1',
+        versionId: 'version-1',
+      }),
+    ).rejects.toThrow('db timeout');
+    expect(credits.releaseReservation).not.toHaveBeenCalled();
+    const checkpoint = prisma.knowledgeSourceVersion.updateMany.mock
+      .calls[1][0] as { data: { payload: Record<string, unknown> } };
+    expect(checkpoint.data.payload.transcriptReservationId).toBe('res-1');
+  });
+
+  it('settles the recorded hold when a saved generated transcript is reused', async () => {
+    const { credits, prisma, replicate, service } = buildService();
+    prisma.knowledgeSourceVersion.findFirst.mockResolvedValue({
+      payload: {
+        transcriptCues: [{ endMs: 2500, startMs: 0, text: 'Hello world' }],
+        transcriptReservationId: 'res-1',
+        transcriptState: KnowledgeTranscriptState.GENERATED,
+      },
+      transcriptState: KnowledgeTranscriptState.GENERATED,
+    });
+
+    const result = await service.resolve({
+      kind: KnowledgeSourceKind.AUDIO,
+      organizationId: 'org-1',
+      payload: {},
+      referenceUrl: 'https://cdn.example.com/ep.mp3',
+      sourceId: 'source-1',
+      userId: 'user-1',
+      versionId: 'version-1',
+    });
+
+    expect(result.text).toBe('Hello world');
+    expect(replicate.transcribeAudio).not.toHaveBeenCalled();
+    expect(credits.reserveCredits).not.toHaveBeenCalled();
+    expect(credits.settleReservation).toHaveBeenCalledWith(
+      expect.objectContaining({ actualAmount: 1, reservationId: 'res-1' }),
+    );
+  });
+
+  it('serves a saved transcript whose hold expired before it was settled', async () => {
+    const { credits, prisma, service } = buildService();
+    prisma.knowledgeSourceVersion.findFirst.mockResolvedValue({
+      payload: {
+        transcriptCues: [{ endMs: 2500, startMs: 0, text: 'Hello world' }],
+        transcriptReservationId: 'res-1',
+        transcriptState: KnowledgeTranscriptState.GENERATED,
+      },
+      transcriptState: KnowledgeTranscriptState.GENERATED,
+    });
+    credits.settleReservation.mockRejectedValueOnce(
+      new BusinessLogicException('Reservation EXPIRED cannot be settled'),
+    );
+
+    await expect(
+      service.resolve({
+        kind: KnowledgeSourceKind.AUDIO,
+        organizationId: 'org-1',
+        payload: {},
+        referenceUrl: 'https://cdn.example.com/ep.mp3',
+        sourceId: 'source-1',
+        userId: 'user-1',
+        versionId: 'version-1',
+      }),
+    ).resolves.toMatchObject({ text: 'Hello world' });
+  });
+
+  it('still fails a reused transcript when settlement fails for another reason', async () => {
+    const { credits, prisma, service } = buildService();
+    prisma.knowledgeSourceVersion.findFirst.mockResolvedValue({
+      payload: {
+        transcriptCues: [{ endMs: 2500, startMs: 0, text: 'Hello world' }],
+        transcriptReservationId: 'res-1',
+        transcriptState: KnowledgeTranscriptState.GENERATED,
+      },
+      transcriptState: KnowledgeTranscriptState.GENERATED,
+    });
+    credits.settleReservation.mockRejectedValueOnce(
+      new BusinessLogicException('Organization not found'),
+    );
+
+    await expect(
+      service.resolve({
+        kind: KnowledgeSourceKind.AUDIO,
+        organizationId: 'org-1',
+        payload: {},
+        referenceUrl: 'https://cdn.example.com/ep.mp3',
+        sourceId: 'source-1',
+        userId: 'user-1',
+        versionId: 'version-1',
+      }),
+    ).rejects.toBeInstanceOf(BusinessLogicException);
   });
 
   it('does not generate when the operator has not allowed it', async () => {
