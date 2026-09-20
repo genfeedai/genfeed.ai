@@ -35,10 +35,20 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ selectedBrand: { id: 'brand-1' } }),
 }));
 
-vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
-  useAuthedService: (factory: (token: string) => unknown) => async () =>
-    factory('api-token'),
-}));
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => {
+  const cache = new Map<unknown, () => Promise<unknown>>();
+  return {
+    useAuthedService: (factory: (token: string) => unknown) => {
+      const existing = cache.get(factory.toString());
+      if (existing) {
+        return existing;
+      }
+      const resolve = async () => factory('api-token');
+      cache.set(factory.toString(), resolve);
+      return resolve;
+    },
+  };
+});
 
 vi.mock(
   '@app/(onboarding)/onboarding/(wizard)/_expert/use-complete-onboarding.hook',
