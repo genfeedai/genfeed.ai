@@ -7,6 +7,7 @@ import type {
   KnowledgeSourceCaptureRequest,
   KnowledgeSourceCaptureResult,
   KnowledgeSourceUpdateRequest,
+  KnowledgeSourceUploadRequest,
 } from '@genfeedai/contracts/interfaces';
 import {
   KnowledgeSourceSerializer,
@@ -57,6 +58,7 @@ export class KnowledgeSourcesService extends BaseService<
   public async capture(
     body: KnowledgeSourceCaptureRequest,
     brandId?: string,
+    idempotencyKey?: string,
   ): Promise<KnowledgeSourceCaptureResult> {
     return this.executeWithErrorHandling(
       `POST ${this.baseURL}`,
@@ -64,7 +66,51 @@ export class KnowledgeSourcesService extends BaseService<
         .post<JsonApiResponseDocument & { jobId?: string; versionId?: string }>(
           '',
           BaseService.cleanBody(body, { excludeId: true }),
-          { params: BaseService.cleanBody({ brandId }) },
+          {
+            headers: idempotencyKey
+              ? { 'Idempotency-Key': idempotencyKey }
+              : undefined,
+            params: BaseService.cleanBody({ brandId }),
+          },
+        )
+        .then(async (res) => ({
+          jobId: res.data.jobId,
+          source: await this.mapOne(res.data),
+          versionId: res.data.versionId,
+        })),
+    );
+  }
+
+  /**
+   * Upload a PDF, DOCX, TXT or Markdown file; the API extracts its text and
+   * captures it as a TEXT source that runs the normal ingestion workflow.
+   */
+  public async upload(
+    file: File,
+    body: KnowledgeSourceUploadRequest,
+    brandId?: string,
+    idempotencyKey?: string,
+  ): Promise<KnowledgeSourceCaptureResult> {
+    const form = new FormData();
+    form.append('file', file);
+    form.append('purpose', body.purpose);
+    form.append('scope', body.scope);
+    if (body.title) {
+      form.append('title', body.title);
+    }
+
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/files`,
+      this.instance
+        .post<JsonApiResponseDocument & { jobId?: string; versionId?: string }>(
+          '/files',
+          form,
+          {
+            headers: idempotencyKey
+              ? { 'Idempotency-Key': idempotencyKey }
+              : undefined,
+            params: BaseService.cleanBody({ brandId }),
+          },
         )
         .then(async (res) => ({
           jobId: res.data.jobId,

@@ -5,6 +5,7 @@ import {
 import type { AuthCallbackURLOptions } from '@genfeedai/props/auth/auth-callback-url.props';
 import {
   extractBrandDomain,
+  parseOnboardingAccountType,
   parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
@@ -106,9 +107,16 @@ function buildPostSignupCallbackURL(
     searchParams.get('clipToolToken'),
   );
   const referralCode = parseReferralCode(searchParams.get('ref'));
+  const accountType = parseOnboardingAccountType(
+    searchParams.get('accountType'),
+  );
 
   if (selectedPlan) {
     params.set('plan', selectedPlan);
+  }
+
+  if (accountType) {
+    params.set('accountType', accountType);
   }
 
   if (selectedCredits) {

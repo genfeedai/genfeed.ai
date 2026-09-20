@@ -2,7 +2,7 @@
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
-import { LinkCategory, OrganizationCategory } from '@genfeedai/contracts';
+import { LinkCategory, type OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -18,6 +18,7 @@ import {
   deriveBrandNameFromDomain,
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
+  parseOnboardingAccountType,
 } from '@/lib/onboarding/onboarding-access.util';
 import BrandAccountTypeSelector from './brand-account-type-selector';
 import BrandFormFields from './brand-form-fields';
@@ -64,17 +65,6 @@ function normalizeWebsiteUrl(url: string): string | null {
   }
 
   return trimmedUrl.includes('://') ? trimmedUrl : `https://${trimmedUrl}`;
-}
-
-function readRequestedAccountType(
-  value: string | null,
-): OrganizationCategory | null {
-  const normalized = value?.trim().toUpperCase();
-  return (
-    Object.values(OrganizationCategory).find(
-      (category) => category === normalized,
-    ) ?? null
-  );
 }
 
 function isPlaceholderName(value?: string | null): boolean {
@@ -192,8 +182,9 @@ function BrandContentContent() {
           setWebsiteUrl((prev) => prev || websiteLink.url || '');
         }
 
-        const requestedAccountType = readRequestedAccountType(
-          searchParams.get('accountType'),
+        const requestedAccountType = parseOnboardingAccountType(
+          searchParams.get('accountType') ??
+            localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
         );
         if (requestedAccountType && org?.id) {
           // A signup CTA preselected the account type (e.g. the Expert landing
@@ -204,6 +195,7 @@ function BrandContentContent() {
             org.id,
             requestedAccountType,
           );
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accountType);
         } else if (org?.accountType || org?.category) {
           setAccountType(
             (prev) => prev ?? (org.accountType || org.category || null),

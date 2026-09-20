@@ -1,7 +1,7 @@
 import { ButtonVariant, OrganizationCategory } from '@genfeedai/contracts';
 import type { BrandAccountTypeSelectorProps } from '@props/onboarding/brand-account-type-selector.props';
 import { Button } from '@ui/primitives/button';
-import { Briefcase, CircleUser, Users } from 'lucide-react';
+import { Briefcase, CircleUser, GraduationCap, Users } from 'lucide-react';
 
 const ACCOUNT_TYPES = [
   {
@@ -22,6 +22,12 @@ const ACCOUNT_TYPES = [
     icon: Users,
     label: 'Agency',
   },
+  {
+    category: OrganizationCategory.EXPERT,
+    description: 'Consultant, coach, or practitioner with a point of view',
+    icon: GraduationCap,
+    label: 'Expert',
+  },
 ];
 
 export default function BrandAccountTypeSelector({
@@ -29,11 +35,11 @@ export default function BrandAccountTypeSelector({
   onSelect,
 }: BrandAccountTypeSelectorProps) {
   return (
-    <div className="step-form max-w-md mb-8">
+    <div className="step-form max-w-2xl mb-8">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
         I am a…
       </p>
-      <div className="grid grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {ACCOUNT_TYPES.map(({ category, description, icon: Icon, label }) => (
           <Button
             key={category}

@@ -35,6 +35,9 @@ export const ANALYTICS_EVENTS = {
   CONVERSATION_SHELL_SCOPE_CORRECTION: 'conversation_shell_scope_correction',
   CONVERSATION_SHELL_SESSION: 'conversation_shell_session',
   CONVERSATION_SHELL_TRANSITION: 'conversation_shell_transition',
+  EXPERT_FIRST_SYSTEM_GENERATED: 'expert_first_system_generated',
+  EXPERT_FIRST_SYSTEM_ITEM_REVIEWED: 'expert_first_system_item_reviewed',
+  EXPERT_ONBOARDING_STEP: 'expert_onboarding_step',
   FIRST_CREDIT_PURCHASED: 'first_credit_purchase',
   FIRST_SUCCESSFUL_PUBLISH: 'first_successful_publish',
   GENERATION_COMPLETED: 'generation_completed',
@@ -54,6 +57,15 @@ export type AnalyticsEvent =
 
 /** Terminal outcome of a tracked action. */
 export type AnalyticsOutcome = 'failure' | 'success';
+
+/** Expert Path onboarding steps tracked by the funnel. */
+export type ExpertOnboardingAnalyticsStep =
+  | 'positioning'
+  | 'corpus'
+  | 'first-system';
+
+/** Whether an Expert Path step was finished or deferred to a workspace task. */
+export type ExpertOnboardingAnalyticsAction = 'completed' | 'skipped';
 
 export type ClipAnalyticsFlow = 'quick' | 'review';
 export type ClipAnalyticsMode = 'avatar' | 'raw-cut';
@@ -209,6 +221,19 @@ export interface AnalyticsEventProperties {
     readonly handoffSource: Extract<FunnelHandoffSource, 'stripe_return'>;
   };
   [ANALYTICS_EVENTS.ONBOARDING_COMPLETED]: Record<string, never>;
+  [ANALYTICS_EVENTS.EXPERT_ONBOARDING_STEP]: {
+    readonly action: ExpertOnboardingAnalyticsAction;
+    readonly step: ExpertOnboardingAnalyticsStep;
+  };
+  [ANALYTICS_EVENTS.EXPERT_FIRST_SYSTEM_GENERATED]: {
+    readonly outcome: AnalyticsOutcome;
+    /** Item count only; never plan content. */
+    readonly itemCount: number;
+    readonly isUsingInterviewPlatforms: boolean;
+  };
+  [ANALYTICS_EVENTS.EXPERT_FIRST_SYSTEM_ITEM_REVIEWED]: {
+    readonly action: 'approve' | 'edit' | 'reject';
+  };
   [ANALYTICS_EVENTS.CONTENT_WRITE_OPENED]: Record<string, never>;
   [ANALYTICS_EVENTS.CONTENT_WRITE_BLANK_DRAFT_STARTED]: {
     /** Whether the draft was seeded from a preselected ingredient. */

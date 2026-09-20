@@ -1,16 +1,11 @@
 'use client';
 
-import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { useCompleteOnboarding } from '@app/(onboarding)/onboarding/(wizard)/_expert/use-complete-onboarding.hook';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { ButtonVariant } from '@genfeedai/contracts';
-import {
-  APP_ROUTES,
-  createBrandAppRoute,
-} from '@genfeedai/contracts/constants';
 import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
-import { useAuthUser } from '@hooks/auth/use-auth-user/use-auth-user';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
 import { logger } from '@services/core/logger.service';
 import { UsersService } from '@services/organization/users.service';
@@ -25,8 +20,6 @@ import {
 } from 'lucide-react';
 import Image from 'next/image';
 import { useState } from 'react';
-
-import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
 import { ONBOARDING_STORAGE_KEYS } from '@/lib/onboarding/onboarding-access.util';
 
 const CONTENT_TYPES = [
@@ -76,9 +69,8 @@ const TIMELINE_STEPS = [
 
 export default function SuccessContent() {
   const { getToken } = useAuthIdentity();
-  const { user } = useAuthUser();
   const { currentUser } = useCurrentUser();
-  const { selectedBrand } = useBrand();
+  const completeOnboarding = useCompleteOnboarding();
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const [previewUrl] = useState<string | null>(() => {
     if (typeof window === 'undefined') return null;
@@ -114,44 +106,7 @@ export default function SuccessContent() {
       }
     }
 
-    // Mark onboarding complete and refresh the active auth/session cache.
-    // Onboarding completion is a field write on the user resource; the proactive
-    // + cache-invalidation cascade lives behind PATCH /users/me (REST audit #1354).
-    try {
-      const token = await resolveAuthToken(getToken, { forceRefresh: true });
-      if (token) {
-        await UsersService.getInstance(token).patchMe({
-          isOnboardingCompleted: true,
-        });
-        captureAnalyticsEvent(ANALYTICS_EVENTS.ONBOARDING_COMPLETED, {});
-      }
-      await user?.reload();
-    } catch (error) {
-      logger.error('Failed to complete funnel', error);
-    }
-
-    // Clean up localStorage keys
-    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.previewUrl);
-    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
-    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandName);
-    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accessMode);
-    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.source);
-    localStorage.removeItem(ONBOARDING_STORAGE_KEYS.contentType);
-
-    const org = selectedBrand?.organization;
-    const orgSlug =
-      org && typeof org === 'object' && 'slug' in org
-        ? (org as { slug: string }).slug
-        : '';
-    const brandSlug = selectedBrand?.slug ?? '';
-
-    if (orgSlug && brandSlug) {
-      window.location.assign(
-        createBrandAppRoute(orgSlug, brandSlug, '/workspace'),
-      );
-    } else {
-      window.location.assign(APP_ROUTES.WORKSPACE.OVERVIEW);
-    }
+    await completeOnboarding();
   };
 
   return (

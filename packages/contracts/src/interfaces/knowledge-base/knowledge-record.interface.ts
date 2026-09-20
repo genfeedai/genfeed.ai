@@ -143,6 +143,13 @@ export interface KnowledgeSourceCaptureRequest {
   provenance?: Record<string, unknown>;
 }
 
+/** `POST /knowledge-sources/files` multipart fields sent with the file. */
+export interface KnowledgeSourceUploadRequest {
+  scope: KnowledgeMemoryScope;
+  purpose: KnowledgeSourcePurpose;
+  title?: string;
+}
+
 export interface KnowledgeSourceRefreshPolicyRequest {
   isEnabled: boolean;
   intervalMinutes?: number;
