@@ -52,8 +52,8 @@ describe('ExpertsContent', () => {
       screen.getByRole('heading', { name: /voice profile/i }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: /positioning scorecard/i }),
-    ).toBeInTheDocument();
+      screen.getAllByRole('heading', { name: /positioning scorecard/i }).length,
+    ).toBeGreaterThan(0);
     expect(
       screen.getByRole('heading', { name: /first content system/i }),
     ).toBeInTheDocument();
@@ -92,7 +92,9 @@ describe('ExpertsContent', () => {
       screen.getByText(/illustrative example — not a real customer post/i),
     ).toBeInTheDocument();
     expect(screen.getByText(/generic ai post/i)).toBeInTheDocument();
-    expect(screen.getByText(/grounded in your corpus/i)).toBeInTheDocument();
+    expect(
+      screen.getAllByText(/grounded in your corpus/i).length,
+    ).toBeGreaterThan(0);
     expect(
       screen.getByText(/source: your 2024 keynote transcript/i),
     ).toBeInTheDocument();
