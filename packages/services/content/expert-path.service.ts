@@ -14,6 +14,9 @@ import {
   type JsonApiResponseDocument,
 } from '@services/core/json-api';
 
+/** Plan generation runs an LLM pass; it needs more than the shared ceiling. */
+const FIRST_SYSTEM_TIMEOUT_MS = 180_000;
+
 export interface ExpertFirstSystemPlan {
   items: IContentPlanItem[];
   plan: IContentPlan;
@@ -68,7 +71,13 @@ export class ExpertPathService extends HTTPBaseService {
       items: JsonApiResponseDocument;
       plan: JsonApiResponseDocument;
       provenance: IContentPlanProvenance;
-    }>(`/brands/${brandId}/expert-path/first-system`, {});
+    }>(
+      `/brands/${brandId}/expert-path/first-system`,
+      {},
+      // Planning runs a model call for a week of content; the shared 30s
+      // ceiling would abort a request the server then completes anyway.
+      { timeout: FIRST_SYSTEM_TIMEOUT_MS },
+    );
 
     return {
       items: deserializeCollection<IContentPlanItem>(response.data.items),

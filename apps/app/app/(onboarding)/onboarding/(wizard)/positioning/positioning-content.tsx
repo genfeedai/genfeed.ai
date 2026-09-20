@@ -192,14 +192,51 @@ export default function PositioningContent() {
     [runInterviewAction],
   );
 
-  const handleScore = useCallback(
-    () =>
-      runInterviewAction(
-        (service, id) => service.completeInterview(id),
-        'finish',
-      ),
-    [runInterviewAction],
-  );
+  /**
+   * Finish the session and score it. A session that already completed (the
+   * last answer closed it) can no longer be completed again, so fall back to
+   * re-scoring the stored answers.
+   */
+  const handleScore = useCallback(async () => {
+    if (!brandId) {
+      return;
+    }
+    setIsSubmitting(true);
+    setErrorKey(null);
+    try {
+      if (interviewId) {
+        applyResult(
+          await (await getInterviewService()).completeInterview(interviewId),
+        );
+        return;
+      }
+      const { score: regenerated } = await (
+        await getExpertPathService()
+      ).regeneratePositioning(brandId);
+      setScore(regenerated);
+      setPhase('scored');
+    } catch (error) {
+      logger.error('Failed to score the positioning interview', error);
+      try {
+        const { score: regenerated } = await (
+          await getExpertPathService()
+        ).regeneratePositioning(brandId);
+        setScore(regenerated);
+        setPhase('scored');
+      } catch (regenerateError) {
+        logger.error('Failed to rescore stored positioning', regenerateError);
+        setErrorKey('finish');
+      }
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, [
+    applyResult,
+    brandId,
+    getExpertPathService,
+    getInterviewService,
+    interviewId,
+  ]);
 
   const handleKeepGoing = useCallback(async () => {
     if (!brandId) {

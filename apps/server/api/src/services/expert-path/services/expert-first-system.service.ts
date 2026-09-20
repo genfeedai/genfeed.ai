@@ -69,6 +69,26 @@ function readStringList(value: unknown): string[] {
     : [];
 }
 
+function readProvenance(value: unknown): IContentPlanProvenance {
+  const record = readRecord(value);
+  return {
+    connectToSchedulePlatforms: readStringList(
+      record.connectToSchedulePlatforms,
+    ),
+    corpusSourceIds: readStringList(record.corpusSourceIds),
+    knowledgeReceipts: Array.isArray(record.knowledgeReceipts)
+      ? (record.knowledgeReceipts as IContentPlanProvenance['knowledgeReceipts'])
+      : [],
+    source: EXPERT_FIRST_SYSTEM_PLAN_SOURCE,
+    ...(typeof record.harnessProfileId === 'string'
+      ? { harnessProfileId: record.harnessProfileId }
+      : {}),
+    ...(typeof record.brandOsRevisionId === 'string'
+      ? { brandOsRevisionId: record.brandOsRevisionId }
+      : {}),
+  };
+}
+
 function readFirstSystemStatus(value: unknown): ExpertFirstSystemStatus {
   return value === 'generated' || value === 'failed' ? value : 'none';
 }
@@ -189,6 +209,18 @@ export class ExpertFirstSystemService {
     userId: string;
   }): Promise<ExpertFirstSystemResult> {
     const { brandId, organizationId, userId } = params;
+
+    // Generation outlives the client's request ceiling, so a retry after a
+    // timed-out success must return the plan that already exists instead of
+    // billing a second one.
+    const existing = await this.getCurrentPlan(organizationId, brandId);
+    if (existing) {
+      return {
+        ...existing,
+        provenance: readProvenance(existing.plan.provenance),
+      };
+    }
+
     const readiness = await this.getReadiness(organizationId, brandId);
     if (!readiness.isReady) {
       throw new BadRequestException({

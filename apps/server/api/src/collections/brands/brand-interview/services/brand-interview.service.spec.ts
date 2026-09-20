@@ -779,7 +779,7 @@ describe('BrandInterviewService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
-    it('keeps the completed answer when draft generation fails', async () => {
+    it('leaves the session open when scoring fails so Finish stays available', async () => {
       const session = makeSession({
         answeredFields: Object.fromEntries(
           EXPERT_INTERVIEW_FIELD_KEYS.map((key) => [key, `${key} answer`]),
@@ -789,18 +789,14 @@ describe('BrandInterviewService', () => {
       });
       interviewDelegate.findFirst.mockResolvedValue(session);
       brandDelegate.findFirst.mockResolvedValue(makeEmptyBrand());
-      interviewDelegate.update.mockImplementation(({ data }) =>
-        Promise.resolve({ ...session, ...data }),
-      );
       expertPositioningService.generateDraft.mockRejectedValue(
         new Error('scoring unavailable'),
       );
 
-      const result = await service.complete('interview-1', 'org-1', 'user-1');
-
-      expect(result.isComplete).toBe(true);
-      expect(result.positioningScore).toBeUndefined();
-      expect(logger.error).toHaveBeenCalled();
+      await expect(
+        service.complete('interview-1', 'org-1', 'user-1'),
+      ).rejects.toThrow('scoring unavailable');
+      expect(interviewDelegate.update).not.toHaveBeenCalled();
     });
   });
 

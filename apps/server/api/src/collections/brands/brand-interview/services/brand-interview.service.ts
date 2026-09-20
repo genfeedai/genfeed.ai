@@ -351,6 +351,15 @@ export class BrandInterviewService {
       (brand ?? {}) as Parameters<typeof computeBrandCompleteness>[0],
     );
 
+    // Score before completing: a session that completes without a scorecard
+    // can no longer be finished (it is no longer in progress), so the expert
+    // would be stuck on the positioning step.
+    const { score } = await this.expertPositioningService.generateDraft({
+      brandId: session.brandId,
+      organizationId,
+      userId,
+    });
+
     const updated = await this.prisma.brandInterview.update({
       data: {
         completenessAfter: completeness.overallScore,
@@ -360,16 +369,11 @@ export class BrandInterviewService {
       where: scopedWhere(organizationId, { id: interviewId }),
     });
 
-    const positioningScore = await this.generatePositioningDraft(
-      updated,
-      userId,
-    );
-
     return this.buildAnswerResult(updated, {
       completenessScore: completeness.overallScore,
       isComplete: true,
       nextFieldKey: null,
-      positioningScore,
+      positioningScore: score,
       status: BrandInterviewStatus.COMPLETED,
     });
   }

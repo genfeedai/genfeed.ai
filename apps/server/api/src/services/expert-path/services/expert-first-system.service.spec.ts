@@ -154,6 +154,40 @@ describe('ExpertFirstSystemService', () => {
   });
 
   describe('getReadiness', () => {
+    it('returns the existing plan without charging again after a timed-out success', async () => {
+      brandMemoryService.listTypedEntries.mockResolvedValue([
+        {
+          content: 'generated',
+          metadata: { planId: 'plan-1', status: 'generated' },
+          type: 'expert-path.first-system',
+        },
+      ]);
+      contentPlansService.getByIdOrFail.mockResolvedValue({
+        id: 'plan-1',
+        provenance: {
+          connectToSchedulePlatforms: ['linkedin'],
+          corpusSourceIds: ['source-1'],
+          harnessProfileId: 'profile-1',
+          knowledgeReceipts: [],
+          source: 'expert-first-system',
+        },
+      });
+      contentPlanItemsService.listByPlan.mockResolvedValue([{ id: 'item-1' }]);
+
+      const result = await service.generate({
+        brandId: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      expect(String(result.plan.id)).toBe('plan-1');
+      expect(result.provenance.harnessProfileId).toBe('profile-1');
+      expect(contentPlannerService.generatePlan).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.deductCreditsFromOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
     it('reports missing positioning and corpus when neither is ready', async () => {
       harnessProfilesService.getActiveForBrand.mockResolvedValue(null);
       expertCorpusService.summarize.mockResolvedValue({
