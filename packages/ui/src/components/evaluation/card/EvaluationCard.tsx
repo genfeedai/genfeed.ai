@@ -13,6 +13,7 @@ import Card from '@ui/card/Card';
 import ClientDateTime from '@ui/components/time/ClientDateTime';
 import { Button } from '@ui/primitives/button';
 import { ArrowUp, ChevronDown } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 const SCORE_THRESHOLDS = [
@@ -293,6 +294,7 @@ function EvaluationCardContent({
   setIsSuggestionsCollapsed,
   onEvaluate,
 }: EvaluationCardContentProps): React.ReactNode {
+  const translate = useTranslations('ui.evaluationCard');
   const evaluationData = evaluation?.data;
 
   if (!evaluation) {
@@ -445,7 +447,7 @@ function EvaluationCardContent({
               overallScore={scores?.engagement?.overall}
             />
             <ScoreSection
-              title="Persuasion"
+              title={translate('persuasion')}
               scores={scores?.persuasion as Record<string, unknown> | undefined}
               overallScore={scores?.persuasion?.overall}
             />

@@ -1,3 +1,5 @@
+'use client';
+
 import type {
   ICreatorWatchlist,
   ITrendVideo,
@@ -10,12 +12,15 @@ import Badge from '@ui/display/badge/Badge';
 import Table from '@ui/display/table/Table';
 import { Heading } from '@ui/typography/heading';
 import { Text } from '@ui/typography/text';
+import { useTranslations } from 'next-intl';
 
 export default function CrossPlatformLeaderboardSection({
   viralLeaderboard,
   creatorLeaderboard,
   platformConfigLookup,
 }: Props) {
+  const translate = useTranslations('ui.analyticsTrends');
+
   if (viralLeaderboard.length === 0 && creatorLeaderboard.length === 0) {
     return null;
   }
@@ -129,7 +134,7 @@ export default function CrossPlatformLeaderboardSection({
               },
               {
                 className: 'min-w-40',
-                header: 'Why it works',
+                header: translate('whyItWorks'),
                 key: 'persuasionHighlight',
                 render: (video) =>
                   video.persuasionHighlight ? (
@@ -139,7 +144,7 @@ export default function CrossPlatformLeaderboardSection({
                     />
                   ) : (
                     <span className="text-xs text-foreground/40">
-                      Not evaluated
+                      {translate('notEvaluated')}
                     </span>
                   ),
               },
