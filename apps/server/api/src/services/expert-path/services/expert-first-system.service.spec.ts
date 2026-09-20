@@ -281,7 +281,9 @@ describe('ExpertFirstSystemService', () => {
         'org-1',
         'plan-1',
         expect.objectContaining({
-          connectToSchedulePlatforms: [],
+          // Nothing is connected in this fixture, so the plan is built for the
+          // interview platforms and marked "connect to schedule".
+          connectToSchedulePlatforms: ['linkedin'],
           corpusSourceIds: ['source-1'],
           harnessProfileId: 'profile-1',
           source: 'expert-first-system',

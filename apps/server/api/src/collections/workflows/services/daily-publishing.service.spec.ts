@@ -109,6 +109,11 @@ describe('daily account publishing', () => {
   });
   it('keeps an approval-required brand in review even when autoPublish is requested', async () => {
     const { prisma, posts, state, invoke } = setup();
+    prisma.post.findFirst.mockResolvedValue({
+      id: 'post',
+      targetIdempotencyKey: 'daily-publishing:brand:account:2026-09-06',
+      workflowExecutionId: 'execution',
+    });
     prisma.brand.findFirst.mockResolvedValue({
       agentConfig: {
         autoPublish: { enabled: false, isApprovalRequired: true },
