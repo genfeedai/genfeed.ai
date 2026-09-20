@@ -124,36 +124,36 @@ describe('HarnessProfilesService positioning drafts', () => {
   });
 
   it('keeps operator edits, unions lists, and replaces the interview-owned thesis', async () => {
-    profileDelegate.findMany.mockResolvedValue([
-      {
-        data: {
-          audience: ['Operators'],
-          brandId: 'brand-1',
-          guardrails: ['Operator guardrail'],
-          isDefault: true,
-          label: 'Operator label',
-          platforms: ['x'],
-          profileType: 'harness',
-          scope: 'brand',
-          status: 'active',
-          thesis: {
-            beliefs: ['Operator belief'],
-            bigDomino: ['Stale domino'],
-            proofPoints: ['Operator proof'],
-          },
-          voice: {
-            bannedPhrases: ['operator phrase'],
-            stance: 'Operator stance',
-            style: 'Operator style',
-            tone: 'Operator tone',
-            vocabulary: ['operator'],
-          },
+    const existing = {
+      data: {
+        audience: ['Operators'],
+        brandId: 'brand-1',
+        guardrails: ['Operator guardrail'],
+        isDefault: true,
+        label: 'Operator label',
+        platforms: ['x'],
+        profileType: 'harness',
+        scope: 'brand',
+        status: 'active',
+        thesis: {
+          beliefs: ['Operator belief'],
+          bigDomino: ['Stale domino'],
+          proofPoints: ['Operator proof'],
         },
-        id: 'profile-1',
-        isDeleted: false,
-        organizationId: 'org-1',
+        voice: {
+          bannedPhrases: ['operator phrase'],
+          stance: 'Operator stance',
+          style: 'Operator style',
+          tone: 'Operator tone',
+          vocabulary: ['operator'],
+        },
       },
-    ]);
+      id: 'profile-1',
+      isDeleted: false,
+      organizationId: 'org-1',
+    };
+    profileDelegate.findMany.mockResolvedValue([existing]);
+    profileDelegate.findFirst.mockResolvedValue(existing);
 
     const profile = await service.upsertPositioningDraftForBrand({
       draft: buildDraft(),
