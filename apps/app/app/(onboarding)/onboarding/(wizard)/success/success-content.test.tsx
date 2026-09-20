@@ -30,8 +30,6 @@ describe('app/(onboarding)/onboarding/(wizard)/success/success-content.tsx', () 
     expect(completeOnboardingSource).toContain(
       "createBrandAppRoute(orgSlug, brandSlug, '/workspace')",
     );
-    expect(source).toContain(
-      'window.location.assign(APP_ROUTES.WORKSPACE.OVERVIEW)',
-    );
+    expect(completeOnboardingSource).toContain('APP_ROUTES.WORKSPACE.OVERVIEW');
   });
 });
