@@ -72,8 +72,8 @@
   "name": "@genfeedai/api",
   "private": true,
   "scripts": {
-    "build": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed",
-    "build:prod": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed && cd api && (bun run sentry:sourcemaps || true)",
+    "build": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed && nest build api-harness-profile-seed",
+    "build:prod": "cd .. && nest build api && nest build api-credential-backfill && nest build api-articles-seed && nest build api-harness-profile-seed && cd api && (bun run sentry:sourcemaps || true)",
     "backfill:post-status:dry": "bun run scripts/backfill-post-status.ts",
     "backfill:post-status:live": "bun run scripts/backfill-post-status.ts --live",
     "cleanup:orphan-social-oauth:dry": "bun run scripts/cleanup-orphan-social-oauth.ts",

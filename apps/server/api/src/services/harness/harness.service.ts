@@ -5,9 +5,11 @@ import process from 'node:process';
 import {
   BRAND_FIDELITY_HARNESS_PACK,
   CORE_CONTENT_HARNESS_PACK,
+  type ContentHarnessActivationReport,
   type ContentHarnessBrief,
   type ContentHarnessInput,
   type ContentHarnessPack,
+  type ContentHarnessPackActivation,
   ContentHarnessRegistry,
   composeContentHarnessBrief,
   isContentHarnessPack,
@@ -29,6 +31,11 @@ type PackageJsonName = {
 
 type RuntimeRequireContext = {
   require: NodeJS.Require;
+};
+
+type RegistryLoad = {
+  activation: ContentHarnessActivationReport;
+  registry: ContentHarnessRegistry;
 };
 
 const API_PACKAGE_NAME = '@genfeedai/api';
@@ -102,7 +109,7 @@ function resolveModuleSpecifier(
 @Injectable()
 export class ContentHarnessService {
   private readonly constructorName = String(this.constructor.name);
-  private packLoadPromise: Promise<ContentHarnessRegistry> | null = null;
+  private packLoadPromise: Promise<RegistryLoad> | null = null;
   private readonly runtimeRequireContext = createRuntimeRequireContext();
 
   constructor(
@@ -120,7 +127,21 @@ export class ContentHarnessService {
     return registry.list().map((pack) => pack.id);
   }
 
+  /**
+   * Operator diagnostic: which configured external packs actually loaded.
+   * Built-in fallback never counts as an activated external pack.
+   */
+  async getActivationReport(): Promise<ContentHarnessActivationReport> {
+    const { activation } = await this.getRegistryLoad();
+    return activation;
+  }
+
   private async getRegistry(): Promise<ContentHarnessRegistry> {
+    const { registry } = await this.getRegistryLoad();
+    return registry;
+  }
+
+  private async getRegistryLoad(): Promise<RegistryLoad> {
     if (!this.packLoadPromise) {
       this.packLoadPromise = this.loadRegistry();
     }
@@ -128,7 +149,7 @@ export class ContentHarnessService {
     return await this.packLoadPromise;
   }
 
-  private async loadRegistry(): Promise<ContentHarnessRegistry> {
+  private async loadRegistry(): Promise<RegistryLoad> {
     const registry = new ContentHarnessRegistry();
     registry.registerPack(CORE_CONTENT_HARNESS_PACK);
     // X/Twitter craft rules from open-source ranking signals (no-op off-platform).
@@ -137,20 +158,36 @@ export class ContentHarnessService {
     registry.registerPack(BRAND_FIDELITY_HARNESS_PACK);
     // Demand -> hook -> retention -> conversion craft layer (platform-agnostic).
     registry.registerPack(VIRAL_PSYCHOLOGY_HARNESS_PACK);
+    const builtInPackIds = registry.list().map((pack) => pack.id);
 
+    const external: ContentHarnessPackActivation[] = [];
     for (const specifier of this.getExternalPackSpecifiers()) {
-      const pack = await this.loadPackFromModuleSpecifier(specifier);
-      if (!pack) {
-        continue;
+      const result = this.loadPackFromModuleSpecifier(specifier);
+      external.push(result.activation);
+      if (result.pack) {
+        registry.registerPack(result.pack);
       }
-      registry.registerPack(pack);
+    }
+
+    const activation: ContentHarnessActivationReport = {
+      builtInPackIds,
+      external,
+      loadedPackIds: registry.list().map((pack) => pack.id),
+    };
+
+    if (external.some((item) => item.state !== 'loaded')) {
+      this.logger.warn(
+        `${this.constructorName} external content harness packs not activated`,
+        { external },
+      );
     }
 
     this.logger.log(`${this.constructorName} loaded content harness packs`, {
-      packIds: registry.list().map((pack) => pack.id),
+      external,
+      packIds: activation.loadedPackIds,
     });
 
-    return registry;
+    return { activation, registry };
   }
 
   private getExternalPackSpecifiers(): string[] {
@@ -168,43 +205,63 @@ export class ContentHarnessService {
       );
   }
 
-  private async loadPackFromModuleSpecifier(
-    specifier: string,
-  ): Promise<ContentHarnessPack | null> {
+  private loadPackFromModuleSpecifier(specifier: string): {
+    activation: ContentHarnessPackActivation;
+    pack: ContentHarnessPack | null;
+  } {
+    let resolvedSpecifier: string | null;
     try {
-      const imported = this.loadRuntimePackModule(specifier);
+      resolvedSpecifier = resolveModuleSpecifier(
+        this.runtimeRequireContext.require,
+        specifier,
+      );
+    } catch (error: unknown) {
+      return this.failedActivation(specifier, 'load_failed', error);
+    }
+
+    if (!resolvedSpecifier) {
+      return this.failedActivation(specifier, 'unresolvable');
+    }
+
+    try {
+      const imported = runtimeRequireModule(
+        this.runtimeRequireContext.require,
+        resolvedSpecifier,
+      );
       const candidate = imported.default ?? imported.CONTENT_HARNESS_PACK;
 
       if (!isContentHarnessPack(candidate)) {
-        this.logger.warn(
-          `${this.constructorName} ignored invalid content harness pack module`,
-          { specifier },
-        );
-        return null;
+        return this.failedActivation(specifier, 'invalid');
       }
 
-      return candidate;
-    } catch (error: unknown) {
-      this.logger.warn(
-        `${this.constructorName} failed to load content harness pack`,
-        {
-          error: error instanceof Error ? error.message : 'Unknown error',
+      return {
+        activation: {
+          packId: candidate.id,
+          packVersion: candidate.version,
           specifier,
+          state: 'loaded',
         },
-      );
-      return null;
+        pack: candidate,
+      };
+    } catch (error: unknown) {
+      return this.failedActivation(specifier, 'load_failed', error);
     }
   }
 
-  private loadRuntimePackModule(specifier: string): PackModule {
-    const resolvedSpecifier = resolveModuleSpecifier(
-      this.runtimeRequireContext.require,
-      specifier,
-    );
-
-    return runtimeRequireModule(
-      this.runtimeRequireContext.require,
-      resolvedSpecifier ?? specifier,
-    );
+  private failedActivation(
+    specifier: string,
+    state: Exclude<ContentHarnessPackActivation['state'], 'loaded'>,
+    error?: unknown,
+  ): { activation: ContentHarnessPackActivation; pack: null } {
+    return {
+      activation: {
+        ...(error
+          ? { error: error instanceof Error ? error.message : 'Unknown error' }
+          : {}),
+        specifier,
+        state,
+      },
+      pack: null,
+    };
   }
 }

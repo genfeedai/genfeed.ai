@@ -52,6 +52,10 @@ output "articles_seed_task_definition_arn" {
   value = aws_ecs_task_definition.articles_seed.arn
 }
 
+output "harness_profile_seed_task_definition_arn" {
+  value = try(aws_ecs_task_definition.harness_profile_seed[0].arn, null)
+}
+
 output "boot_smoke_task_definition_arn" {
   value = aws_ecs_task_definition.boot_smoke.arn
 }

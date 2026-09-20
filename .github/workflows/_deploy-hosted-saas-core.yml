@@ -70,6 +70,7 @@ env:
   TF_VAR_nat_public_subnet_id: ${{ vars.NAT_PUBLIC_SUBNET_ID }}
   TF_VAR_rds_instance_id: ${{ vars.RDS_INSTANCE_ID }}
   TF_VAR_ssm_path: ${{ vars.SSM_PATH }}
+  TF_VAR_harness_seed_ssm_path: ${{ vars.HARNESS_SEED_SSM_PATH }}
   TF_VAR_owner_email: ${{ vars.HOSTED_OWNER_EMAIL }}
   TF_VAR_organization_label: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
   TF_VAR_cdn_bucket: ${{ vars.CDN_BUCKET }}
@@ -363,7 +364,9 @@ jobs:
             -target=aws_cloudwatch_log_group.credential_backfill \
             -target=aws_ecs_task_definition.credential_backfill \
             -target=aws_cloudwatch_log_group.articles_seed \
-            -target=aws_ecs_task_definition.articles_seed
+            -target=aws_ecs_task_definition.articles_seed \
+            -target=aws_cloudwatch_log_group.harness_profile_seed \
+            -target=aws_ecs_task_definition.harness_profile_seed
 
       - name: Snapshot RDS before migrations (fail-closed)
         env:

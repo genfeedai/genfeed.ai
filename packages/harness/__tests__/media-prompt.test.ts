@@ -9,6 +9,7 @@ function brief(
   partial: Partial<ContentHarnessBrief> & Pick<ContentHarnessBrief, 'metadata'>,
 ): ContentHarnessBrief {
   return {
+    appliedPacks: ['core-baseline'],
     evaluationCriteria: [],
     guardrails: [],
     packs: ['core-baseline'],
