@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -8,7 +10,6 @@ vi.mock('@genfeedai/prisma', async () => {
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('BrandMemoryService typed entries', () => {
   const brandMemory = {

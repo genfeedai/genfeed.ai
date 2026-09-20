@@ -25,6 +25,13 @@ const ZIP_LOCAL_FILE_HEADER = 0x04034b50;
 const ZIP_EOCD_MIN_SIZE = 22;
 const ZIP_MAX_COMMENT_SIZE = 0xffff;
 
+/**
+ * Inflation ceiling for the document body. A 2 MB archive can hold a
+ * highly compressible XML payload that expands into hundreds of megabytes,
+ * so the decompressor is bounded rather than the upload alone.
+ */
+const DOCX_MAX_INFLATED_BYTES = 16 * 1024 * 1024;
+
 const XML_ENTITIES: Record<string, string> = {
   amp: '&',
   apos: "'",
@@ -90,7 +97,15 @@ function readZipEntry(buffer: Buffer, entryPath: string): Buffer {
         return data;
       }
       if (method === 8) {
-        return inflateRawSync(data);
+        try {
+          return inflateRawSync(data, {
+            maxOutputLength: DOCX_MAX_INFLATED_BYTES,
+          });
+        } catch {
+          throw new UnsupportedUploadedDocumentError(
+            'The DOCX file expands to more text than we can ingest. Split it into smaller files.',
+          );
+        }
       }
       throw new UnsupportedUploadedDocumentError(
         `Unsupported DOCX compression method ${method}.`,

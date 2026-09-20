@@ -1,3 +1,5 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
 vi.mock('@genfeedai/prisma', async () => {
   const { canonicalPrismaMock } = await import(
     '@api/shared/testing/prisma-mock'
@@ -10,7 +12,6 @@ import type { ExpertHarnessDraft } from '@api/services/expert-path/utils/expert-
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { IExpertPositioningScore } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const SCORE: IExpertPositioningScore = {
   dimensions: [

@@ -60,6 +60,15 @@ describe('extractDocxText', () => {
     ).toThrow(UnsupportedUploadedDocumentError);
   });
 
+  it('refuses an archive whose body inflates past the ingest ceiling', () => {
+    // ~64 MB of zeros compresses to a few KB — the classic zip-bomb shape.
+    const bomb = buildZip('word/document.xml', '0'.repeat(64 * 1024 * 1024));
+
+    expect(() => extractDocxText(bomb)).toThrow(
+      UnsupportedUploadedDocumentError,
+    );
+  });
+
   it('rejects bytes that are not a ZIP archive', () => {
     expect(() => extractDocxText(Buffer.from('not a zip'))).toThrow(
       UnsupportedUploadedDocumentError,
