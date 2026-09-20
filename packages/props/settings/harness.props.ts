@@ -1,5 +1,6 @@
 import type {
   ICreateHarnessProfilePayload,
+  IExpertPositioningScore,
   IHarnessProfile,
 } from '@genfeedai/contracts/interfaces';
 
@@ -48,4 +49,10 @@ export interface HarnessExamplesTabProps {
   onListChange: HarnessListChange;
   onDraftChange: HarnessDraftChange;
   splitLines: HarnessSplitLines;
+}
+
+export interface HarnessPositioningScorecardProps {
+  positioning: IExpertPositioningScore;
+  /** Brand-scoped href to the positioning interview (`/settings/interview`). */
+  interviewHref: string;
 }

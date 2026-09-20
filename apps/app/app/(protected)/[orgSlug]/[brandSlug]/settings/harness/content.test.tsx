@@ -25,6 +25,12 @@ vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
   }),
 }));
 
+vi.mock('@hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({
+    href: (path: string) => `/acme/moonrise${path}`,
+  }),
+}));
+
 const getHarnessService = async () => ({
   createForBrand: mocks.createForBrand,
   findForBrand: mocks.findForBrand,
@@ -136,6 +142,76 @@ describe('BrandSettingsHarnessPage', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Identity' }));
     expect(await screen.findByLabelText('Label')).toHaveValue('Founder Voice');
+  });
+
+  it('shows the positioning scorecard with the weakest dimension when the profile has been scored', async () => {
+    mocks.findForBrand.mockResolvedValue([
+      {
+        id: 'profile-1',
+        isDefault: true,
+        label: 'Acme Harness',
+        positioning: {
+          dimensions: [
+            {
+              followUpFieldKey: 'originStory',
+              followUpQuestion:
+                'What was the moment you became the person you are now?',
+              key: 'attractiveCharacter',
+              label: 'Attractive character',
+              maxWeightedScore: 20,
+              score: 8,
+              weight: 2,
+              weightedScore: 16,
+            },
+            {
+              followUpFieldKey: 'originStory',
+              followUpQuestion:
+                'Tell the story in five beats: where you were, the wall you hit, what you realized, what you did, and where you are now.',
+              key: 'originStory',
+              label: 'Origin story',
+              maxWeightedScore: 15,
+              score: 3,
+              weight: 1.5,
+              weightedScore: 4.5,
+            },
+          ],
+          rating: 'needs_work',
+          scoredAt: '2026-01-01T00:00:00.000Z',
+          totalScore: 62,
+          version: 1,
+          weakestDimension: 'originStory',
+        },
+        status: 'active',
+      },
+    ]);
+
+    render(<BrandSettingsHarnessPage />);
+
+    expect(
+      await screen.findByText('Positioning scorecard'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Weakest: Origin story')).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        'Tell the story in five beats: where you were, the wall you hit, what you realized, what you did, and where you are now.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('hides the positioning scorecard when the profile has no positioning score', async () => {
+    mocks.findForBrand.mockResolvedValue([
+      {
+        id: 'profile-1',
+        isDefault: true,
+        label: 'Acme Harness',
+        status: 'active',
+      },
+    ]);
+
+    render(<BrandSettingsHarnessPage />);
+
+    await screen.findByLabelText('Label');
+    expect(screen.queryByText('Positioning scorecard')).not.toBeInTheDocument();
   });
 
   it('saves the draft through the harness profiles service', async () => {

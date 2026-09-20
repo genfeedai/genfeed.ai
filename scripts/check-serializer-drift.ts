@@ -227,6 +227,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'label',
     'metadata',
     'platforms',
+    'positioning',
     'profileType',
     'scope',
     'status',

@@ -314,6 +314,14 @@
         "label": "Vocabulary"
       }
     },
+    "positioningScorecard": {
+      "title": "Positioning scorecard",
+      "description": "How strongly your positioning would land with a cold audience.",
+      "scoreValue": "{score}/100",
+      "dimensionScore": "{score}/10",
+      "weakestTitle": "Weakest: {label}",
+      "interviewLink": "Answer this in the interview"
+    },
     "promote": "Promote winners to memory",
     "promoting": "Promoting\u2026",
     "save": "Save harness",
@@ -1385,6 +1393,25 @@
   },
   "onboarding": {
     "brand": {
+      "accountTypes": {
+        "agency": {
+          "description": "Managing content for multiple clients",
+          "label": "Agency"
+        },
+        "business": {
+          "description": "Company, brand, or e-commerce store",
+          "label": "Business"
+        },
+        "creator": {
+          "description": "Individual content creator or influencer",
+          "label": "Creator"
+        },
+        "expert": {
+          "description": "Consultant, coach, or practitioner with a point of view",
+          "label": "Expert"
+        },
+        "title": "I am a\u2026"
+      },
       "actions": {
         "continue": "Continue",
         "skip": "Skip Onboarding"

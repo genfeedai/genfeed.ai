@@ -142,6 +142,9 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
   ...classifyPublicRoutes('app', 'onboarding', [
     '/onboarding',
     '/onboarding/brand',
+    '/onboarding/corpus',
+    '/onboarding/first-system',
+    '/onboarding/positioning',
     '/onboarding/post-signup',
     '/onboarding/proactive',
     '/onboarding/providers',
@@ -173,6 +176,7 @@ export const PUBLIC_ROUTE_CLASSIFICATION_REGISTRY = Object.freeze([
     '/developers',
     '/dfy',
     '/done-for-you',
+    '/experts',
     '/download',
     '/faq',
     '/features',
