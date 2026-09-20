@@ -34,8 +34,20 @@ export interface MusicGenerationProviderResult {
   outputUrl?: string;
 }
 
+/** The provider-facing request shape known before any job is created. */
+export interface MusicGenerationPreflightRequest {
+  instrumental: boolean;
+  lyrics?: string;
+  prompt: string;
+}
+
 export interface MusicGenerationProviderAdapter {
   readonly provider: MusicGenerationProvider;
+  /**
+   * Reject a request the provider is known to refuse, before any prompt or
+   * ingredient document exists. Adapters without extra limits omit it.
+   */
+  assertSupported?(request: MusicGenerationPreflightRequest): void;
   generate(
     request: MusicGenerationProviderRequest,
   ): Promise<MusicGenerationProviderResult>;
