@@ -1,5 +1,8 @@
 import { KnowledgeTranscriptIngestService } from '@api/collections/contexts/services/knowledge-transcript-ingest.service';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  UnsettleableReservationException,
+} from '@api/exceptions/business-logic.exception';
 import {
   CreditReservationStatus,
   KnowledgeSourceKind,
@@ -244,7 +247,7 @@ describe('KnowledgeTranscriptIngestService', () => {
       transcriptState: KnowledgeTranscriptState.GENERATED,
     });
     credits.settleReservation.mockRejectedValueOnce(
-      new BusinessLogicException('Reservation EXPIRED cannot be settled'),
+      new UnsettleableReservationException('EXPIRED'),
     );
 
     await expect(

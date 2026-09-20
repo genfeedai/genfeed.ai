@@ -1,7 +1,10 @@
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  UnsettleableReservationException,
+} from '@api/exceptions/business-logic.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
@@ -133,9 +136,7 @@ export class CreditReservationService {
       }
 
       if (reservation.status !== CreditReservationStatus.RESERVED) {
-        throw new BusinessLogicException(
-          `Reservation ${reservation.status} cannot be settled`,
-        );
+        throw new UnsettleableReservationException(reservation.status);
       }
 
       if (input.actualAmount > reservation.amount) {
@@ -169,9 +170,7 @@ export class CreditReservationService {
         ) {
           return this.walletSnapshot(latest, tx);
         }
-        throw new BusinessLogicException(
-          `Reservation ${latest.status} cannot be settled`,
-        );
+        throw new UnsettleableReservationException(latest.status);
       }
 
       const snapshot = await this.creditBalanceService.applyDelta(
