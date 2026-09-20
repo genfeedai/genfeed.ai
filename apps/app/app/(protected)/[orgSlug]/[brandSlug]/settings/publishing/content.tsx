@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
 import type {
   AccountPublishingContext,
   ICredential,
@@ -23,6 +24,7 @@ import { CredentialsService } from '@services/organization/credentials.service';
 import { BrandsService } from '@services/social/brands.service';
 import Card from '@ui/card/Card';
 import Loading from '@ui/loading/default/Loading';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -34,6 +36,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Switch } from '@ui/primitives/switch';
+import { useTranslations } from 'next-intl';
 import {
   type ChangeEvent,
   type ReactNode,
@@ -233,6 +236,7 @@ function formReducer(state: FormState, action: FormAction): FormState {
 }
 
 export default function BrandSettingsPublishingPage() {
+  const translate = useTranslations('pages.brandPublishingSettings');
   const { brand, brandId, hasBrandId, isLoading, handleRefreshBrand } =
     useBrandDetail();
   const clipboardService = ClipboardService.getInstance();
@@ -271,6 +275,13 @@ export default function BrandSettingsPublishingPage() {
     confidenceThreshold,
     isSaving,
   } = state;
+
+  // Enabling auto-publish always clears the gate, so the note reflects the
+  // live toggle rather than only the last-saved config.
+  const showApprovalGateNote = isPublishApprovalRequired({
+    enabled: isAutoPublishEnabled,
+    isApprovalRequired: publishingConfig?.autoPublish?.isApprovalRequired,
+  });
 
   useEffect(() => {
     dispatch({ type: 'RESET', config: publishingConfig });
@@ -357,6 +368,9 @@ export default function BrandSettingsPublishingPage() {
               ? Number(confidenceThreshold)
               : undefined,
           enabled: isAutoPublishEnabled,
+          // Enabling auto-publish always turns the approval gate off. This
+          // never sends `true` — re-enabling the gate happens elsewhere.
+          ...(isAutoPublishEnabled ? { isApprovalRequired: false } : {}),
         },
         schedule: {
           cronExpression: cronExpression.trim() || undefined,
@@ -556,6 +570,15 @@ export default function BrandSettingsPublishingPage() {
               })
             }
           />
+
+          {showApprovalGateNote ? (
+            <Alert data-testid="publish-approval-gate-note" variant="info">
+              <AlertTitle>{translate('approvalGate.title')}</AlertTitle>
+              <AlertDescription>
+                {translate('approvalGate.description')}
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
           <div className="space-y-1.5">
             <label

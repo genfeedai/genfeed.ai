@@ -2,6 +2,8 @@ export type PublishingConfig = {
   autoPublish?: {
     confidenceThreshold?: number;
     enabled?: boolean;
+    /** Expert Path publish approval gate. Read-only display state here. */
+    isApprovalRequired?: boolean;
   };
   schedule?: {
     cronExpression?: string;

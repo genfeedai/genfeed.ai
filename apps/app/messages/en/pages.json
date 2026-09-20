@@ -2548,6 +2548,12 @@
     "scanPersistenceFailed": "Website scan succeeded, but the draft could not be saved as a revision. Your scanned fields are still available below.",
     "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below."
   },
+  "brandPublishingSettings": {
+    "approvalGate": {
+      "title": "You have the final say",
+      "description": "Nothing publishes without your approval while this gate is on. Turning on Auto-publish removes this gate — approved output publishes automatically."
+    }
+  },
   "brandAgentProfile": {
     "generateErrorTitle": "Generating your brand voice",
     "generateSuccess": "Brand voice generated and saved",

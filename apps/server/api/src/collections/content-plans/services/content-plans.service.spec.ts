@@ -87,3 +87,65 @@ describe('ContentPlansService.incrementExecutedCount', () => {
     });
   });
 });
+
+describe('ContentPlansService.recordProvenance', () => {
+  const organizationId = 'org-1';
+  const planId = 'plan-1';
+  const findFirst = vi.fn();
+  const update = vi.fn();
+  const service = new ContentPlansService(
+    { contentPlan: { findFirst, update } } as unknown as PrismaService,
+    { error: vi.fn(), log: vi.fn(), warn: vi.fn() } as unknown as LoggerService,
+  );
+
+  const provenance = {
+    connectToSchedulePlatforms: ['linkedin'],
+    corpusSourceIds: ['source-1'],
+    harnessProfileId: 'profile-1',
+    knowledgeReceipts: [],
+    source: 'expert-first-system',
+  };
+
+  beforeEach(() => {
+    findFirst.mockReset();
+    update.mockReset();
+  });
+
+  it('merges provenance into the plan config without dropping existing keys', async () => {
+    findFirst.mockResolvedValue({
+      config: { itemCount: 7, name: 'First content system' },
+      id: planId,
+      organizationId,
+    });
+    update.mockImplementation(({ data }) =>
+      Promise.resolve({ config: data.config, id: planId, organizationId }),
+    );
+
+    const plan = await service.recordProvenance(
+      organizationId,
+      planId,
+      provenance,
+    );
+
+    expect(update).toHaveBeenCalledWith({
+      data: {
+        config: {
+          itemCount: 7,
+          name: 'First content system',
+          provenance,
+        },
+      },
+      where: { id: planId, isDeleted: false, organizationId },
+    });
+    expect(plan.provenance).toEqual(provenance);
+  });
+
+  it('refuses to write provenance onto another organization plan', async () => {
+    findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.recordProvenance(organizationId, planId, provenance),
+    ).rejects.toThrow();
+    expect(update).not.toHaveBeenCalled();
+  });
+});
