@@ -1310,6 +1310,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'currentFieldKey',
       'id',
       'isDeleted',
+      'isExpertPositioning',
       'organization',
       'organizationId',
       'status',

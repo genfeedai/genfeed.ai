@@ -24,6 +24,7 @@ import {
 } from '@api/collections/brands/services/brand-relocation.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
+import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -47,8 +48,6 @@ import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { OrganizationCategory } from '@genfeedai/contracts';
-import { applyExpertPublishApprovalDefault } from '@genfeedai/contracts/constants';
 import type {
   FastlaneIdea,
   IBrandKitApplyResult,
@@ -184,13 +183,9 @@ export class BrandsService extends BaseService<
       throw new BadRequestException('Organization context is required');
     }
 
-    if (initialAgentConfig?.enabledSkills !== undefined) {
-      await this.skillsService.assertAccessibleSkillSlugs(
-        resolvedOrganizationId,
-        initialAgentConfig.enabledSkills,
-      );
-    }
-    const agentConfig = await this.withExpertCreationDefaults(
+    const agentConfig = await resolveCreateAgentConfig(
+      this.prisma,
+      this.skillsService,
       resolvedOrganizationId,
       initialAgentConfig,
     );
@@ -286,28 +281,6 @@ export class BrandsService extends BaseService<
     await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
 
     return brand;
-  }
-
-  /**
-   * Expert Path: brands created inside an expert organization start with
-   * publish approval on, unless the caller already enabled auto-publish.
-   */
-  private async withExpertCreationDefaults(
-    organizationId: string,
-    agentConfig: BrandCreateInput['agentConfig'],
-  ): Promise<BrandCreateInput['agentConfig']> {
-    const organization = await this.prisma.organization.findFirst({
-      select: { accountType: true },
-      where: { id: organizationId, isDeleted: false },
-    });
-    if (organization?.accountType !== OrganizationCategory.EXPERT) {
-      return agentConfig;
-    }
-
-    return {
-      ...agentConfig,
-      autoPublish: applyExpertPublishApprovalDefault(agentConfig?.autoPublish),
-    };
   }
 
   async findForOrganization(
