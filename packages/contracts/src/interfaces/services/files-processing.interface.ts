@@ -99,6 +99,20 @@ export interface IFFprobeStream {
   [key: string]: unknown;
 }
 
+export interface IFFprobeFormat {
+  format_name?: string;
+  duration?: string | number;
+  size?: string | number;
+  [key: string]: unknown;
+}
+
+/** Raw `ffprobe -show_streams -show_format` payload as the files service returns it. */
+export interface IFFprobeResult {
+  streams?: IFFprobeStream[];
+  format?: IFFprobeFormat;
+  [key: string]: unknown;
+}
+
 export interface IFileMetadata {
   width?: number;
   height?: number;

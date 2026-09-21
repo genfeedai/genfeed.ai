@@ -71,6 +71,13 @@ function createDeliveryMocks() {
     activitiesService: { create: vi.fn().mockResolvedValue(undefined) },
     credentialsService: { findOne: vi.fn() },
     logger: { error: vi.fn(), log: vi.fn(), warn: vi.fn() },
+    mediaReadinessService: {
+      evaluatePublishReadiness: vi.fn().mockResolvedValue({
+        checkedAt: '2026-09-19T10:00:00.000Z',
+        diagnostics: [],
+        isBlocked: false,
+      }),
+    },
     organizationsService: {
       findOne: vi.fn().mockResolvedValue({ id: 'org-1' }),
     },
@@ -139,6 +146,7 @@ function createDeliveryService(mocks: DeliveryMocks) {
     mocks.replyInboundQueueService as never,
     mocks.publishingReadinessService as never,
     mocks.prisma as never,
+    mocks.mediaReadinessService as never,
   );
   service.onModuleInit();
   return service;
@@ -252,6 +260,128 @@ describe('ScheduledPostDeliveryService', () => {
     ).toBeLessThan(
       mocks.credentialsService.findOne.mock.invocationCallOrder[0],
     );
+  });
+
+  it('blocks an off-spec asset before any provider call', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.mediaReadinessService.evaluatePublishReadiness.mockResolvedValue({
+      checkedAt: '2026-09-19T10:00:00.000Z',
+      diagnostics: [
+        {
+          actual: '1200s',
+          assetId: 'asset-1',
+          code: 'media_duration_above_maximum',
+          kind: 'video',
+          limit: 'maximum 140s',
+          message: 'twitter: Duration 1200s exceeds the maximum of 140s.',
+          platform: CredentialPlatform.TWITTER,
+          property: 'duration',
+          severity: 'error',
+        },
+      ],
+      isBlocked: true,
+    });
+    const post = createScheduledPost({ ingredients: [{ id: 'asset-1' }] });
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.mediaReadinessService.evaluatePublishReadiness,
+    ).toHaveBeenCalledWith({
+      assetIds: ['asset-1'],
+      organizationId: 'org-1',
+      platforms: [CredentialPlatform.TWITTER],
+    });
+    expect(publish).not.toHaveBeenCalled();
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('1200s');
+  });
+
+  it('publishes an asset that only warns and keeps the diagnostics', async () => {
+    const publish = mockSuccessfulPublisher(mocks);
+    mocks.mediaReadinessService.evaluatePublishReadiness.mockResolvedValue({
+      checkedAt: '2026-09-19T10:00:00.000Z',
+      diagnostics: [
+        {
+          actual: '4:1',
+          assetId: 'asset-1',
+          code: 'media_aspect_ratio_out_of_tolerance',
+          kind: 'image',
+          limit: '16:9 (±10%)',
+          message: 'twitter: Aspect ratio 4:1 is outside the accepted ratios.',
+          platform: CredentialPlatform.TWITTER,
+          property: 'aspectRatio',
+          severity: 'warning',
+        },
+      ],
+      isBlocked: false,
+    });
+    const post = createScheduledPost({ ingredients: [{ id: 'asset-1' }] });
+
+    const result = await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(publish).toHaveBeenCalledOnce();
+    expect(result.success).toBe(true);
+    expect(mocks.logger.warn).toHaveBeenCalledWith(
+      expect.stringContaining('media readiness warnings'),
+      expect.objectContaining({ postId: 'post-1' }),
+    );
+  });
+
+  it('gates the assets of immediate thread children too', async () => {
+    mockSuccessfulPublisher(mocks);
+    const post = createScheduledPost({
+      children: [
+        {
+          id: 'child-1',
+          ingredients: [{ id: 'child-asset-1' }],
+          order: 0,
+          threadDelayMinutes: 0,
+        },
+      ],
+      ingredients: [{ id: 'asset-1' }],
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.mediaReadinessService.evaluatePublishReadiness,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        assetIds: ['asset-1', 'child-asset-1'],
+      }),
+    );
+  });
+
+  it('leaves a delayed thread child to its own delivery gate', async () => {
+    mockSuccessfulPublisher(mocks);
+    const post = createScheduledPost({
+      children: [
+        {
+          id: 'child-1',
+          ingredients: [{ id: 'child-asset-1' }],
+          order: 0,
+          threadDelayMinutes: 30,
+        },
+      ],
+      ingredients: [{ id: 'asset-1' }],
+    });
+
+    await executeDelivery(mocks, post, 'scheduled_sweep');
+
+    expect(
+      mocks.mediaReadinessService.evaluatePublishReadiness,
+    ).toHaveBeenCalledWith(expect.objectContaining({ assetIds: ['asset-1'] }));
+  });
+
+  it('skips the media gate for a post with no attached assets', async () => {
+    mockSuccessfulPublisher(mocks);
+
+    await executeDelivery(mocks, createScheduledPost(), 'scheduled_sweep');
+
+    expect(
+      mocks.mediaReadinessService.evaluatePublishReadiness,
+    ).not.toHaveBeenCalled();
   });
 
   it('publishes through the provider and emits the published webhook', async () => {
