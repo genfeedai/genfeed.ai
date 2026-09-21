@@ -364,6 +364,14 @@ export class UpdateBrandAgentAutoPublishDto {
     required: false,
   })
   confidenceThreshold?: number;
+  @IsBoolean()
+  @IsOptional()
+  @ApiProperty({
+    description:
+      'Publish approval gate. Expert Path brands default to true; nothing publishes without approval.',
+    required: false,
+  })
+  isApprovalRequired?: boolean;
 }
 
 export class UpdateBrandAgentPlatformOverrideDto {

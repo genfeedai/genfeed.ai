@@ -28,7 +28,11 @@ export type PrismaIngredientCategoryValue =
  * Prisma UPPERCASE enum values for OrganizationCategory.
  * These string literals must match the Prisma schema exactly.
  */
-export type PrismaOrganizationCategoryValue = 'CREATOR' | 'BUSINESS' | 'AGENCY';
+export type PrismaOrganizationCategoryValue =
+  | 'CREATOR'
+  | 'BUSINESS'
+  | 'AGENCY'
+  | 'EXPERT';
 
 /**
  * Prisma UPPERCASE enum values for AssetScope.
@@ -96,6 +100,7 @@ const APP_TO_PRISMA_ORGANIZATION_CATEGORY: Record<
   [OrganizationCategory.CREATOR]: 'CREATOR',
   [OrganizationCategory.BUSINESS]: 'BUSINESS',
   [OrganizationCategory.AGENCY]: 'AGENCY',
+  [OrganizationCategory.EXPERT]: 'EXPERT',
 };
 
 /**

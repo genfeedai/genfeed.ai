@@ -63,6 +63,7 @@ const PRISMA_ORGANIZATION_CATEGORY_MEMBERS = [
   'CREATOR',
   'BUSINESS',
   'AGENCY',
+  'EXPERT',
 ] as const;
 
 describe('CategoryPrismaUtil', () => {
@@ -206,6 +207,12 @@ describe('CategoryPrismaUtil', () => {
       expect(
         CategoryPrismaUtil.toOrganizationCategory(OrganizationCategory.AGENCY),
       ).toBe('AGENCY');
+    });
+
+    it('maps OrganizationCategory.EXPERT (app-form) to Prisma EXPERT', () => {
+      expect(
+        CategoryPrismaUtil.toOrganizationCategory(OrganizationCategory.EXPERT),
+      ).toBe('EXPERT');
     });
 
     it('passes through an already-Prisma-form value idempotently', () => {

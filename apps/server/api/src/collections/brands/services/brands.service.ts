@@ -24,6 +24,7 @@ import {
 } from '@api/collections/brands/services/brand-relocation.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
+import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import {
   isSlugUniqueConstraintError,
   MAX_SLUG_ALLOCATION_ATTEMPTS,
@@ -182,12 +183,12 @@ export class BrandsService extends BaseService<
       throw new BadRequestException('Organization context is required');
     }
 
-    if (initialAgentConfig?.enabledSkills !== undefined) {
-      await this.skillsService.assertAccessibleSkillSlugs(
-        resolvedOrganizationId,
-        initialAgentConfig.enabledSkills,
-      );
-    }
+    const agentConfig = await resolveCreateAgentConfig(
+      this.prisma,
+      this.skillsService,
+      resolvedOrganizationId,
+      initialAgentConfig,
+    );
     const sanitizedBrandFields = omitUndefinedFields(
       brandFields as Record<string, unknown>,
     );
@@ -222,7 +223,7 @@ export class BrandsService extends BaseService<
         brand = await super.create(
           omitUndefinedFields({
             ...sanitizedBrandFields,
-            ...(initialAgentConfig ? { agentConfig: initialAgentConfig } : {}),
+            ...(agentConfig ? { agentConfig } : {}),
             slug: candidate,
             organizationId: resolvedOrganizationId,
             ...(resolvedUserId ? { userId: resolvedUserId } : {}),
@@ -298,6 +299,7 @@ export class BrandsService extends BaseService<
       include: {
         organization: {
           select: {
+            accountType: true,
             slug: true,
           },
         },

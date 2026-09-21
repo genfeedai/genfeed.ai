@@ -3,8 +3,9 @@
  * and its three driver surfaces (in-app agent, MCP, settings stepper).
  */
 import type { BrandInterviewStatus } from '../..';
+import type { IExpertPositioningScore } from '../ai/expert-positioning.interface';
 
-export type BrandInterviewGroup = 'identity' | 'voice' | 'strategy';
+export type BrandInterviewGroup = 'identity' | 'voice' | 'strategy' | 'expert';
 
 export type BrandInterviewAnswerType = 'text' | 'list' | 'enum';
 
@@ -52,6 +53,8 @@ export type BrandInterviewAnswerValue = string | string[];
 export interface IBrandInterviewStartResult {
   interviewId: string;
   brandId: string;
+  /** True when the session includes the Expert Path positioning section. */
+  isExpertPositioning: boolean;
   status: BrandInterviewStatus;
   currentQuestion: IBrandInterviewQuestion | null;
   progress: IBrandInterviewProgress;
@@ -70,6 +73,11 @@ export interface IBrandInterviewAnswerResult {
   completenessScore: number;
   steps: IBrandInterviewStep[];
   answeredFields: Record<string, BrandInterviewAnswerValue>;
+  /**
+   * Set when this answer completed an Expert Path session: the positioning
+   * scorecard of the harness profile draft generated from the answers.
+   */
+  positioningScore?: IExpertPositioningScore;
 }
 
 export interface IBrandInterviewCompleteness {
@@ -87,6 +95,7 @@ export interface IBrandInterviewCompleteness {
 export interface IActiveBrandInterview {
   id: string;
   brandId: string;
+  isExpertPositioning: boolean;
   status: BrandInterviewStatus;
   currentQuestion: IBrandInterviewQuestion | null;
   completenessScore: number;

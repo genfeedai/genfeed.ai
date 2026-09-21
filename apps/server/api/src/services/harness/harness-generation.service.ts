@@ -117,11 +117,10 @@ export class HarnessGenerationService {
         params.brandId,
       );
 
-      const profileContribution =
-        await harnessProfilesService.buildContributionForBrand(
-          params.organizationId,
-          params.brandId,
-        );
+      const profile = await harnessProfilesService.resolveContributionForBrand(
+        params.organizationId,
+        params.brandId,
+      );
 
       const knowledgeFilters = await this.resolveKnowledgeFilters(params);
       const includeMemory =
@@ -145,6 +144,7 @@ export class HarnessGenerationService {
           ],
           brand,
           brandOsRevision,
+          harnessProfileId: profile?.profileId,
           intent: {
             contentType: params.contentType,
             objective: params.objective ?? 'engagement',
@@ -153,7 +153,7 @@ export class HarnessGenerationService {
           },
           organizationId: params.organizationId,
           persona: params.persona,
-          profileContribution: profileContribution ?? undefined,
+          profileContribution: profile?.contribution,
         }),
       );
       // Operator-only receipt: pack IDs and versions, never pack contents.

@@ -1,5 +1,8 @@
+import type { CreativePatternsService } from '@api/collections/creative-patterns/creative-patterns.service';
+import type { HarnessProfilesService } from '@api/collections/harness-profiles/services/harness-profiles.service';
 import type { ServerLogger, ServerPrisma } from '@api/server.dependencies';
 import type { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
+import type { HarnessWinnerPromotionService } from '@api/services/harness/harness-winner-promotion.service';
 import type { ConfigService } from '@libs/config/config.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { EmailDigestService } from './email-digest.service';
@@ -60,6 +63,15 @@ describe('EmailDigestService workflow actions', () => {
       {
         get: vi.fn(() => 'https://app.genfeed.ai'),
       } as unknown as ConfigService,
+      {
+        listPromotedWinners: vi.fn().mockResolvedValue([]),
+      } as unknown as HarnessWinnerPromotionService,
+      {
+        findTopForBrand: vi.fn().mockResolvedValue([]),
+      } as unknown as CreativePatternsService,
+      {
+        getActiveForBrand: vi.fn().mockResolvedValue(null),
+      } as unknown as HarnessProfilesService,
     );
   });
 

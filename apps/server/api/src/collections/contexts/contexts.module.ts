@@ -4,6 +4,7 @@
  */
 import { ContextsController } from '@api/collections/contexts/controllers/contexts.controller';
 import { KnowledgeSourceGovernanceController } from '@api/collections/contexts/controllers/knowledge-source-governance.controller';
+import { KnowledgeSourceUploadsController } from '@api/collections/contexts/controllers/knowledge-source-uploads.controller';
 import { KnowledgeSourcesController } from '@api/collections/contexts/controllers/knowledge-sources.controller';
 import { KnowledgeSpacesController } from '@api/collections/contexts/controllers/knowledge-spaces.controller';
 import { ContextsService } from '@api/collections/contexts/services/contexts.service';
@@ -28,6 +29,7 @@ import { Module } from '@nestjs/common';
   controllers: [
     ContextsController,
     KnowledgeSourceGovernanceController,
+    KnowledgeSourceUploadsController,
     KnowledgeSourcesController,
     KnowledgeSpacesController,
   ],

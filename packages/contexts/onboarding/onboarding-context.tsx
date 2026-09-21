@@ -3,14 +3,18 @@
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import { clearClientProtectedBootstrapCache } from '@genfeedai/contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { getBrandOrganizationSlug } from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
+import {
+  getBrandOrganizationAccountType,
+  getBrandOrganizationSlug,
+} from '@genfeedai/contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@genfeedai/contexts/user/user-context/user-context';
 import type { OnboardingStepKey } from '@genfeedai/contracts/constants';
 import {
   APP_ROUTES,
+  isOnboardingStepKey,
   ONBOARDING_STEP_LABELS,
-  ONBOARDING_STEPS,
   resolveOnboardingContinueHref,
+  resolveOnboardingSteps,
 } from '@genfeedai/contracts/constants';
 import type { IOnboardingContextValue } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
@@ -49,20 +53,29 @@ export default function OnboardingProvider({
   const { brands, selectedBrand } = useBrand();
   const [saving, setSaving] = useState(false);
   const [initialized, setInitialized] = useState(false);
+  // The brand step changes the account type mid-session, so the selection is
+  // held here instead of waiting for the brand payload to refetch.
+  const [selectedAccountType, setAccountType] = useState<string | null>(null);
+  const accountType =
+    selectedAccountType ??
+    getBrandOrganizationAccountType(selectedBrand ?? brands[0]);
+
+  const steps = useMemo(
+    () =>
+      resolveOnboardingSteps({
+        accountType,
+        hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
+      }),
+    [accountType],
+  );
 
   // Derive current step from URL — success page bypasses step tracking
   const currentStepKey = useMemo<OnboardingStepKey>(() => {
     const segment = pathname.split('/').pop();
-    if (segment && ONBOARDING_STEPS.includes(segment as OnboardingStepKey)) {
-      return segment as OnboardingStepKey;
-    }
-    return 'brand';
+    return isOnboardingStepKey(segment) ? segment : 'brand';
   }, [pathname]);
 
-  const currentStepIndex = Math.max(
-    0,
-    ONBOARDING_STEPS.indexOf(currentStepKey),
-  );
+  const currentStepIndex = Math.max(0, steps.indexOf(currentStepKey));
 
   useEffect(() => {
     if (!isLoading && currentUser) {
@@ -133,6 +146,7 @@ export default function OnboardingProvider({
       // `/${orgSlug}/~/agent/onboarding` route directly. Without it the bare
       // path only resolves through a proxy canonicalization hop.
       const nextHref = resolveOnboardingContinueHref({
+        accountType,
         completedStep: stepKey,
         hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
         orgSlug: agentOnboardingOrgSlug,
@@ -145,7 +159,7 @@ export default function OnboardingProvider({
 
       router.push(nextHref);
     },
-    [agentOnboardingOrgSlug, currentUser, saveProgress, router],
+    [accountType, agentOnboardingOrgSlug, currentUser, saveProgress, router],
   );
 
   const handleSkip = useCallback(
@@ -157,30 +171,31 @@ export default function OnboardingProvider({
 
   const handleBack = useCallback(() => {
     if (currentStepIndex > 0) {
-      const prevStep = ONBOARDING_STEPS[currentStepIndex - 1];
+      const prevStep = steps[currentStepIndex - 1];
       router.push(`/onboarding/${prevStep}`);
     }
-  }, [currentStepIndex, router]);
+  }, [currentStepIndex, router, steps]);
 
   const stepLabels = useMemo(
-    () =>
-      hasAgentFirstOnboarding()
-        ? [ONBOARDING_STEP_LABELS.brand]
-        : ONBOARDING_STEPS.map((key) => ONBOARDING_STEP_LABELS[key]),
-    [],
+    () => steps.map((key) => ONBOARDING_STEP_LABELS[key]),
+    [steps],
   );
 
   const value = useMemo<IOnboardingContextValue>(
     () => ({
+      accountType,
       currentStepIndex,
       currentStepKey,
       handleBack,
       handleSkip,
       handleStepComplete,
       saving,
+      setAccountType,
       stepLabels,
+      steps,
     }),
     [
+      accountType,
       currentStepIndex,
       currentStepKey,
       handleBack,
@@ -188,6 +203,7 @@ export default function OnboardingProvider({
       handleStepComplete,
       saving,
       stepLabels,
+      steps,
     ],
   );
 

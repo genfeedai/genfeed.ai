@@ -25,6 +25,8 @@ import {
   ContentIntelligencePlatform,
   CredentialPlatform,
 } from '@genfeedai/contracts';
+import { isPublishApprovalRequired } from '@genfeedai/contracts/constants';
+import type { IBrandAgentAutoPublish } from '@genfeedai/contracts/interfaces';
 import {
   CredentialPlatform as PrismaCredentialPlatform,
   toPrismaJson,
@@ -660,6 +662,22 @@ export class DailyPublishingService implements OnModuleInit {
       outcome: approved ? 'quality-approved' : 'quality-held',
     };
   }
+  private async isBrandPublishApprovalRequired(
+    organizationId: string,
+    brandId: string,
+  ): Promise<boolean> {
+    const brand = await this.prisma.brand.findFirst({
+      select: { agentConfig: true },
+      where: scopedWhere(organizationId, { id: brandId }),
+    });
+    const agentConfig =
+      brand?.agentConfig &&
+      typeof brand.agentConfig === 'object' &&
+      !Array.isArray(brand.agentConfig)
+        ? (brand.agentConfig as { autoPublish?: IBrandAgentAutoPublish })
+        : undefined;
+    return isPublishApprovalRequired(agentConfig?.autoPublish);
+  }
   private async schedule(
     action: SystemWorkflowActionRequest,
     state: DailyState,
@@ -672,6 +690,15 @@ export class DailyPublishingService implements OnModuleInit {
             ? 'review-draft'
             : 'quality-held',
       };
+    // Expert Path brands keep publish approval on: a workflow-level
+    // `autoPublish` request never bypasses the brand's approval gate.
+    if (
+      await this.isBrandPublishApprovalRequired(
+        action.context.organizationId,
+        state.request.brandId,
+      )
+    )
+      return { ...state, outcome: 'review-draft' };
     const post = await this.prisma.post.findFirstOrThrow({
       where: {
         id: state.postId,

@@ -229,6 +229,9 @@ function buildLlmsIndex(): string {
     `- [Pricing](${BASE_URL}/pricing): ${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel} + PAYG output), ${PLAN_COPY.scale.name} (from ${PLAN_COPY.scale.priceLabel} + PAYG output), ${PLAN_COPY.enterprise.name} (custom)`,
   );
   lines.push(
+    `- [Brand OS for experts](${BASE_URL}/experts): Turn interviews, talks, and call notes into a scored positioning system and a reviewable content plan — nothing publishes without the expert's approval`,
+  );
+  lines.push(
     `- [FAQ](${BASE_URL}/faq): Frequently asked questions about the platform`,
   );
   lines.push(

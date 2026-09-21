@@ -195,6 +195,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: 'weekly',
       lastModified: new Date(),
       priority: 0.8,
+      url: 'https://genfeed.ai/experts',
+    },
+    {
+      changeFrequency: 'weekly',
+      lastModified: new Date(),
+      priority: 0.8,
       url: 'https://genfeed.ai/tools',
     },
     {

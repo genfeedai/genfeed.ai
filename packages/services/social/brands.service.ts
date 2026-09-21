@@ -284,6 +284,11 @@ export class BrandsService extends BaseService<Brand> {
       autoPublish?: {
         enabled?: boolean;
         confidenceThreshold?: number;
+        /**
+         * Expert Path publish approval gate. Enabling auto-publish always
+         * clears it; the client never sets it to `true`.
+         */
+        isApprovalRequired?: boolean;
       };
       platformOverrides?: Record<
         string,

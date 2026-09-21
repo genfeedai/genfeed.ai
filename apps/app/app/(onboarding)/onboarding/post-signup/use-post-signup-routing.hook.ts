@@ -41,6 +41,7 @@ import {
 import {
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
+  parseOnboardingAccountType,
   parseReferralCode,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
@@ -61,6 +62,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedBrandOsTokenParam = searchParams.get('brandOsToken');
   const requestedClipToolTokenParam = searchParams.get('clipToolToken');
   const requestedReferralCodeParam = searchParams.get('ref');
+  const requestedAccountType = parseOnboardingAccountType(
+    searchParams.get('accountType'),
+  );
   const calledRef = useRef(false);
   const [routingAttempt, setRoutingAttempt] = useState(0);
   const [showFallback, setShowFallback] = useState(false);
@@ -150,6 +154,17 @@ export function usePostSignupRouting(): PostSignupRoutingState {
       orgSlug,
     });
   }, [currentUser, resolveActiveOrgSlug]);
+
+  // A signup CTA's account type (e.g. Expert) survives cross-device magic
+  // links through the callback URL; keep it for the brand step.
+  useEffect(() => {
+    if (requestedAccountType) {
+      localStorage.setItem(
+        ONBOARDING_STORAGE_KEYS.accountType,
+        requestedAccountType,
+      );
+    }
+  }, [requestedAccountType]);
 
   useEffect(() => {
     if (isLoading || !currentUser || !hasAuthUser || calledRef.current) {

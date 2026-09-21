@@ -1,40 +1,29 @@
 import { ButtonVariant, OrganizationCategory } from '@genfeedai/contracts';
 import type { BrandAccountTypeSelectorProps } from '@props/onboarding/brand-account-type-selector.props';
 import { Button } from '@ui/primitives/button';
-import { Briefcase, CircleUser, Users } from 'lucide-react';
+import { Briefcase, CircleUser, GraduationCap, Users } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 const ACCOUNT_TYPES = [
-  {
-    category: OrganizationCategory.CREATOR,
-    description: 'Individual content creator or influencer',
-    icon: CircleUser,
-    label: 'Creator',
-  },
-  {
-    category: OrganizationCategory.BUSINESS,
-    description: 'Company, brand, or e-commerce store',
-    icon: Briefcase,
-    label: 'Business',
-  },
-  {
-    category: OrganizationCategory.AGENCY,
-    description: 'Managing content for multiple clients',
-    icon: Users,
-    label: 'Agency',
-  },
-];
+  { category: OrganizationCategory.CREATOR, icon: CircleUser, key: 'creator' },
+  { category: OrganizationCategory.BUSINESS, icon: Briefcase, key: 'business' },
+  { category: OrganizationCategory.AGENCY, icon: Users, key: 'agency' },
+  { category: OrganizationCategory.EXPERT, icon: GraduationCap, key: 'expert' },
+] as const;
 
 export default function BrandAccountTypeSelector({
   accountType,
   onSelect,
 }: BrandAccountTypeSelectorProps) {
+  const translate = useTranslations('pages.onboarding.brand.accountTypes');
+
   return (
-    <div className="step-form max-w-md mb-8">
+    <div className="step-form max-w-2xl mb-8">
       <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-3">
-        I am a…
+        {translate('title')}
       </p>
-      <div className="grid grid-cols-3 gap-3">
-        {ACCOUNT_TYPES.map(({ category, description, icon: Icon, label }) => (
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {ACCOUNT_TYPES.map(({ category, icon: Icon, key }) => (
           <Button
             key={category}
             variant={ButtonVariant.UNSTYLED}
@@ -60,10 +49,10 @@ export default function BrandAccountTypeSelector({
                   : 'text-muted-foreground'
               }`}
             >
-              {label}
+              {translate(`${key}.label`)}
             </span>
             <span className="text-2xs text-gray-800 leading-tight block mt-1">
-              {description}
+              {translate(`${key}.description`)}
             </span>
           </Button>
         ))}

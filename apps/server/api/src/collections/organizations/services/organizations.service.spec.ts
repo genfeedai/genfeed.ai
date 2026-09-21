@@ -21,7 +21,16 @@ describe('OrganizationsService', () => {
     findFirst: vi.fn(),
     update: vi.fn(),
   };
+  const brandDelegate = {
+    findMany: vi.fn(),
+    update: vi.fn(),
+  };
+  const cacheInvalidationService = { invalidate: vi.fn() };
+  const accessBootstrapCacheService = {
+    invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+  };
   const prisma = {
+    brand: brandDelegate,
     organization: organizationDelegate,
   } as unknown as PrismaService;
   const logger = {
@@ -33,7 +42,13 @@ describe('OrganizationsService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    service = new OrganizationsService(prisma, logger);
+    brandDelegate.findMany.mockResolvedValue([]);
+    service = new OrganizationsService(
+      prisma,
+      logger,
+      cacheInvalidationService as never,
+      accessBootstrapCacheService as never,
+    );
   });
 
   it('normalizes app organization category values before create', async () => {
@@ -300,6 +315,70 @@ describe('OrganizationsService', () => {
       await expect(service.generateUniqueSlug('!!')).rejects.toThrow(
         'Label too short to generate a valid slug',
       );
+    });
+  });
+
+  describe('Expert Path defaults', () => {
+    const expertOrganization = {
+      accountType: 'EXPERT',
+      id: 'org_1',
+      label: 'Expert org',
+    };
+
+    it('turns publish approval on for every brand when the org becomes EXPERT', async () => {
+      organizationDelegate.findFirst.mockResolvedValue(expertOrganization);
+      organizationDelegate.update.mockResolvedValue(expertOrganization);
+      brandDelegate.findMany.mockResolvedValue([
+        { agentConfig: { voice: { tone: 'Direct' } }, id: 'brand_1' },
+        {
+          agentConfig: { autoPublish: { enabled: true } },
+          id: 'brand_already_auto',
+        },
+      ]);
+
+      await service.patch('org_1', { accountType: 'EXPERT' } as never);
+
+      expect(brandDelegate.update).toHaveBeenCalledTimes(1);
+      expect(brandDelegate.update).toHaveBeenCalledWith({
+        data: {
+          agentConfig: {
+            autoPublish: { enabled: false, isApprovalRequired: true },
+            voice: { tone: 'Direct' },
+          },
+        },
+        where: { id: 'brand_1', isDeleted: false, organizationId: 'org_1' },
+      });
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+    });
+
+    it('leaves brands alone for other account types', async () => {
+      organizationDelegate.findFirst.mockResolvedValue({
+        accountType: 'CREATOR',
+        id: 'org_1',
+      });
+      organizationDelegate.update.mockResolvedValue({ id: 'org_1' });
+
+      await service.patch('org_1', { accountType: 'CREATOR' } as never);
+
+      expect(brandDelegate.findMany).not.toHaveBeenCalled();
+      expect(brandDelegate.update).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).toHaveBeenCalledWith('org_1');
+    });
+
+    it('does not touch brands or caches when the account type is unchanged', async () => {
+      organizationDelegate.findFirst.mockResolvedValue({ id: 'org_1' });
+      organizationDelegate.update.mockResolvedValue({ id: 'org_1' });
+
+      await service.patch('org_1', { label: 'Renamed' } as never);
+
+      expect(brandDelegate.update).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCacheService.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
     });
   });
 });

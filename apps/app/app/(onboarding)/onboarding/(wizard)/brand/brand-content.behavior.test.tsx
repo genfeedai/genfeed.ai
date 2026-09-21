@@ -18,6 +18,7 @@ const {
   resolveAuthTokenMock,
   scrapeMock,
   searchParamsMock,
+  setOnboardingAccountTypeMock,
   updateAccountTypeMock,
 } = vi.hoisted(() => ({
   findMeBrandsMock: vi.fn(),
@@ -30,12 +31,14 @@ const {
   resolveAuthTokenMock: vi.fn(),
   scrapeMock: vi.fn(),
   searchParamsMock: new URLSearchParams(),
+  setOnboardingAccountTypeMock: vi.fn(),
   updateAccountTypeMock: vi.fn(),
 }));
 
 vi.mock('@contexts/onboarding/onboarding-context', () => ({
   useOnboarding: () => ({
     handleStepComplete: handleStepCompleteMock,
+    setAccountType: setOnboardingAccountTypeMock,
   }),
 }));
 
@@ -173,7 +176,9 @@ describe('BrandContent behavior', () => {
     resolveAuthTokenMock.mockReset();
     scrapeMock.mockReset();
     updateAccountTypeMock.mockReset();
+    setOnboardingAccountTypeMock.mockReset();
     searchParamsMock.delete('auto');
+    searchParamsMock.delete('accountType');
     localStorageMock.clear();
 
     resolveAuthTokenMock.mockResolvedValue('api-token');

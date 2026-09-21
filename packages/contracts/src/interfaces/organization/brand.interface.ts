@@ -115,6 +115,12 @@ export interface IBrandAgentAutoPublish {
   isEnabled?: boolean;
   enabled?: boolean;
   confidenceThreshold?: number;
+  /**
+   * Publish approval gate. Expert Path brands default to `true`: nothing
+   * publishes without the expert's approval, including workflow-driven
+   * auto-publish requests. Cleared when the operator enables auto-publish.
+   */
+  isApprovalRequired?: boolean;
 }
 
 export interface IBrandAgentPlatformOverride {

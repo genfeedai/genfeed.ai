@@ -163,6 +163,39 @@ export class ContentPlanItemsService {
     return this.toDocument(updated);
   }
 
+  /** Operator edit of a pending item's topic or prompt before it runs. */
+  async updateContent(
+    organizationId: string,
+    itemId: string,
+    updates: { prompt?: string; topic?: string },
+  ): Promise<ContentPlanItemDocument> {
+    const existing = await this.prisma.contentPlanItem.findFirst({
+      where: scopedWhere(organizationId, { id: itemId }),
+    });
+
+    if (!existing) {
+      throw new NotFoundException('ContentPlanItem', itemId);
+    }
+
+    const updated = await this.prisma.contentPlanItem.update({
+      data: {
+        data: toPrismaJson(
+          this.buildDataPayload(
+            {
+              // relation-alias-ok: prompt text payload, not a Prompt row id
+              prompt: updates.prompt,
+              topic: updates.topic,
+            },
+            existing.data,
+          ),
+        ),
+      },
+      where: scopedWhere(organizationId, { id: itemId }),
+    });
+
+    return this.toDocument(updated);
+  }
+
   async softDeleteByPlan(
     organizationId: string,
     planId: string,

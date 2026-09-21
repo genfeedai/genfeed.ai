@@ -73,6 +73,8 @@ export interface ContentHarnessInput {
   brandId?: string;
   brandName?: string;
   brandOsRevisionId?: string;
+  /** Harness profile whose contribution shaped this brief, for receipts. */
+  harnessProfileId?: string;
   identityContribution?: ContentHarnessContribution;
   intent: ContentHarnessIntent;
   voiceProfile?: HarnessVoiceProfile;
@@ -91,9 +93,13 @@ export interface ContentHarnessContribution {
   sources?: HarnessSourceRecord[];
 }
 
-export type ContentHarnessReceipts =
+export type ContentHarnessReceipts = (
   | { brandOs: 'none' }
-  | { brandOs: 'approved'; brandOsRevisionId: string };
+  | { brandOs: 'approved'; brandOsRevisionId: string }
+) & {
+  /** Present when a brand harness profile contributed to the brief. */
+  harnessProfileId?: string;
+};
 
 /**
  * Lifecycle of a configured external pack specifier. Only `loaded` counts as

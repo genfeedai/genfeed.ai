@@ -1,4 +1,8 @@
-import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
+import {
+  OrganizationCategory,
+  SubscriptionStatus,
+  SubscriptionTier,
+} from '@genfeedai/contracts';
 import type {
   DashboardPreferences,
   ISetting,
@@ -48,6 +52,7 @@ export function formatSubscriptionStatusLabel(status?: string | null): string {
 
 export const ONBOARDING_STORAGE_KEYS = {
   accessMode: 'gf_onboarding_access_mode',
+  accountType: 'gf_onboarding_account_type',
   brandDomain: 'gf_brand_domain',
   brandName: 'gf_brand_name',
   contentType: 'gf_onboarding_content_type',
@@ -57,6 +62,21 @@ export const ONBOARDING_STORAGE_KEYS = {
   selectedPlan: 'gf_selected_plan',
   source: 'gf_onboarding_source',
 } as const;
+
+/**
+ * Account type preselected by a signup CTA (e.g. `?accountType=EXPERT` from
+ * the website Expert page). Only real `OrganizationCategory` values pass.
+ */
+export function parseOnboardingAccountType(
+  value?: string | null,
+): OrganizationCategory | null {
+  const normalized = value?.trim().toUpperCase();
+  return (
+    Object.values(OrganizationCategory).find(
+      (category) => category === normalized,
+    ) ?? null
+  );
+}
 
 const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;
 
@@ -235,9 +255,14 @@ export function persistOnboardingHandoffParams(
   const accessMode = normalizeOnboardingAccessMode(params.get('accessMode'));
   const source = readTrimmedParam(params, 'source');
   const referralCode = parseReferralCode(params.get('ref'));
+  const accountType = parseOnboardingAccountType(params.get('accountType'));
 
   if (selectedPlan) {
     storage.setItem(ONBOARDING_STORAGE_KEYS.selectedPlan, selectedPlan);
+  }
+
+  if (accountType) {
+    storage.setItem(ONBOARDING_STORAGE_KEYS.accountType, accountType);
   }
 
   if (selectedCredits) {

@@ -18,6 +18,7 @@ import {
   deriveBrandNameFromDomain,
   extractBrandDomain,
   ONBOARDING_STORAGE_KEYS,
+  parseOnboardingAccountType,
 } from '@/lib/onboarding/onboarding-access.util';
 import BrandAccountTypeSelector from './brand-account-type-selector';
 import BrandFormFields from './brand-form-fields';
@@ -96,7 +97,8 @@ function BrandContentContent() {
   const sectionRef = useGsapTimeline<HTMLDivElement>({ steps: TIMELINE_STEPS });
   const { getToken } = useAuthIdentity();
   const { push } = useRouter();
-  const { handleStepComplete } = useOnboarding();
+  const { handleStepComplete, setAccountType: setOnboardingAccountType } =
+    useOnboarding();
   const translate = useTranslations('pages.onboarding.brand');
   const searchParams = useSearchParams();
   const isAutoRequested = searchParams.get('auto') === 'true';
@@ -180,10 +182,27 @@ function BrandContentContent() {
           setWebsiteUrl((prev) => prev || websiteLink.url || '');
         }
 
-        if (org?.accountType || org?.category) {
+        const requestedAccountType = parseOnboardingAccountType(
+          searchParams.get('accountType') ??
+            localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
+        );
+        if (requestedAccountType && org?.id) {
+          // A signup CTA preselected the account type (e.g. the Expert landing
+          // page). Persist it so the wizard routes the matching steps.
+          setAccountType(requestedAccountType);
+          setOnboardingAccountType(requestedAccountType);
+          await OrganizationsService.getInstance(token).updateAccountType(
+            org.id,
+            requestedAccountType,
+          );
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accountType);
+        } else if (org?.accountType || org?.category) {
           setAccountType(
             (prev) => prev ?? (org.accountType || org.category || null),
           );
+          if (org.accountType) {
+            setOnboardingAccountType(org.accountType);
+          }
         }
       } catch (error) {
         logger.error('Failed to prefill onboarding data', error);
@@ -198,7 +217,7 @@ function BrandContentContent() {
     return () => {
       controller.abort();
     };
-  }, [getToken, translate]);
+  }, [getToken, searchParams, setOnboardingAccountType, translate]);
 
   const resolveBrandId = useCallback(
     async (token: string): Promise<string | null> => {
@@ -230,6 +249,7 @@ function BrandContentContent() {
   const handleAccountTypeSelect = useCallback(
     async (category: OrganizationCategory) => {
       setAccountType(category);
+      setOnboardingAccountType(category);
       setErrorMessage(null);
       try {
         const token = await resolveAuthToken(getToken);
@@ -249,7 +269,7 @@ function BrandContentContent() {
         setErrorMessage(translate('errors.accountType'));
       }
     },
-    [getToken, resolveOrgId, translate],
+    [getToken, resolveOrgId, setOnboardingAccountType, translate],
   );
 
   const handleContinue = useCallback(

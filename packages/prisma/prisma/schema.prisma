@@ -27,6 +27,7 @@ enum OrganizationCategory {
   CREATOR
   BUSINESS
   AGENCY
+  EXPERT
 }
 
 enum AssetScope {
@@ -1159,6 +1160,8 @@ model BrandInterview {
   completenessBefore Int                  @default(0)
   completenessAfter  Int?
   creditsCharged     Int                  @default(0)
+  /// Expert Path session: asks the positioning section before brand gaps.
+  isExpertPositioning Boolean             @default(false)
   isDeleted          Boolean              @default(false)
   createdAt          DateTime             @default(now())
   updatedAt          DateTime             @updatedAt

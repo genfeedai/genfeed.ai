@@ -85,6 +85,23 @@ export class BrandInterviewService extends HTTPBaseService {
     return response.data;
   }
 
+  /**
+   * Finish an Expert Path interview after its positioning section; the
+   * response carries the generated positioning scorecard.
+   */
+  public async completeInterview(
+    interviewId: string,
+    signal?: AbortSignal,
+  ): Promise<IBrandInterviewAnswerResult> {
+    const response = await this.instance.post<IBrandInterviewAnswerResult>(
+      `/interview/${interviewId}/complete`,
+      {},
+      { signal },
+    );
+
+    return response.data;
+  }
+
   public async getCompleteness(
     brandId: string,
     signal?: AbortSignal,

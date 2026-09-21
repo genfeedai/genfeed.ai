@@ -3,10 +3,28 @@ import type {
   ContentPlanItemType,
   ContentPlanStatus,
 } from '../..';
+import type { KnowledgeReceipt } from '../knowledge-base/knowledge-retrieval.interface';
 import type {
   IContentPlanSeedSelection,
   IContentPlanSeeds,
 } from './content-plan-seed.interface';
+
+/**
+ * Where a plan came from and what shaped it. The Expert Path first content
+ * system records the harness profile and the authoritative corpus passages
+ * that reached the planner.
+ */
+export interface IContentPlanProvenance {
+  /** Generating surface, e.g. `expert-first-system`. */
+  source: string;
+  harnessProfileId?: string;
+  brandOsRevisionId?: string;
+  knowledgeReceipts: KnowledgeReceipt[];
+  /** Authoritative corpus sources that were ready when the plan was built. */
+  corpusSourceIds: string[];
+  /** Platforms planned from the interview that still need a connection. */
+  connectToSchedulePlatforms: string[];
+}
 
 /**
  * A generated content plan for a brand, produced by `ContentPlannerService`.
@@ -25,6 +43,7 @@ export interface IContentPlan {
   executedCount: number;
   /** Effective seeds this plan was generated from (#4511 Lane F). */
   seeds?: IContentPlanSeeds;
+  provenance?: IContentPlanProvenance;
   createdAt?: string;
   updatedAt?: string;
 }

@@ -8,6 +8,7 @@ import type {
 import { HarnessProfilesService } from '@genfeedai/services/ai/harness-profiles.service';
 import { logger } from '@genfeedai/services/core/logger.service';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { useBrandDetail } from '@hooks/pages/use-brand-detail/use-brand-detail';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
@@ -21,6 +22,7 @@ import { toast } from 'sonner';
 import HarnessDeliveryTab from './harness-delivery-tab';
 import HarnessExamplesTab from './harness-examples-tab';
 import HarnessIdentityTab from './harness-identity-tab';
+import HarnessPositioningScorecard from './harness-positioning-scorecard';
 import HarnessStructureTab from './harness-structure-tab';
 import HarnessThesisTab from './harness-thesis-tab';
 
@@ -119,6 +121,7 @@ function createDraft(
 export default function BrandSettingsHarnessPage() {
   const translate = useTranslations('pages.brandHarnessSettings');
   const { brand, brandId, hasBrandId, isLoading } = useBrandDetail();
+  const { href } = useOrgUrl();
   const getHarnessProfilesService = useAuthedService((token: string) =>
     HarnessProfilesService.getInstance(token),
   );
@@ -332,6 +335,13 @@ export default function BrandSettingsHarnessPage() {
         </div>
       }
     >
+      {draft.positioning ? (
+        <HarnessPositioningScorecard
+          interviewHref={href('/settings/interview')}
+          positioning={draft.positioning}
+        />
+      ) : null}
+
       {activeTab === 'identity' ? (
         <HarnessIdentityTab
           draft={draft}

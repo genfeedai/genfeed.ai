@@ -6,8 +6,14 @@ import { CacheInvalidationService } from '@api/common/services/cache-invalidatio
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import { ExpertPositioningService } from '@api/services/expert-path/services/expert-positioning.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { ActivitySource, BrandInterviewStatus } from '@genfeedai/contracts';
+import {
+  ActivitySource,
+  BrandInterviewStatus,
+  OrganizationCategory,
+} from '@genfeedai/contracts';
+import { isExpertPositioningFieldKey } from '@genfeedai/contracts/constants';
 import type {
   BrandInterviewAnswerValue,
   IActiveBrandInterview,
@@ -17,6 +23,7 @@ import type {
   IBrandInterviewQuestion,
   IBrandInterviewStartResult,
   IBrandInterviewStep,
+  IExpertPositioningScore,
 } from '@genfeedai/contracts/interfaces';
 import { computeBrandCompleteness } from '@genfeedai/helpers';
 import type { BrandInterview, Prisma } from '@genfeedai/prisma';
@@ -25,9 +32,11 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 import {
   BRAND_FIELD_META,
   BRAND_INTERVIEW_CREDIT_COST,
-  BRAND_INTERVIEW_QUESTION_CATALOG,
   CATALOG_BY_FIELD_KEY,
+  EXPERT_INTERVIEW_FIELD_KEYS,
   IN_SCOPE_FIELD_KEYS,
+  resolveInterviewFieldKeys,
+  resolveInterviewQuestionCatalog,
 } from '../constants/brand-interview-question-catalog.constant';
 
 @Injectable()
@@ -40,6 +49,7 @@ export class BrandInterviewService {
     private readonly cacheInvalidationService: CacheInvalidationService,
     private readonly logger: LoggerService,
     private readonly brandsService: BrandsService,
+    private readonly expertPositioningService: ExpertPositioningService,
   ) {}
 
   // ── Public API ─────────────────────────────────────────────────────────────
@@ -86,22 +96,35 @@ export class BrandInterviewService {
       completeness.incompleteFields.map((f) => f.key),
     );
 
+    // Expert organizations get the positioning section first. The first
+    // Expert Path session per brand is the onboarding `positioning` step and
+    // is free; replays from Settings are charged like any interview.
+    const isExpertPositioning = await this.isExpertOrganization(organizationId);
+    const chargedCredits =
+      isExpertPositioning &&
+      !(await this.hasPriorExpertSession(organizationId, brandId))
+        ? 0
+        : creditAmount;
+
     // 4. Determine the first in-scope incomplete field
     const firstFieldKey =
-      IN_SCOPE_FIELD_KEYS.find((k) => incompleteKeys.has(k)) ?? null;
+      resolveInterviewFieldKeys(isExpertPositioning).find((k) =>
+        this.isFieldIncomplete(k, incompleteKeys),
+      ) ?? null;
 
     // 5. Credits preflight
     const hasCredits =
-      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+      chargedCredits === 0 ||
+      (await this.creditsUtilsService.checkOrganizationCreditsAvailable(
         organizationId,
-        creditAmount,
-      );
+        chargedCredits,
+      ));
     if (!hasCredits) {
       const balance =
         await this.creditsUtilsService.getOrganizationCreditsBalance(
           organizationId,
         );
-      throw new InsufficientCreditsException(creditAmount, balance);
+      throw new InsufficientCreditsException(chargedCredits, balance);
     }
 
     // 6. Create session — wrap in try/catch for P2002 (concurrent start race)
@@ -114,9 +137,10 @@ export class BrandInterviewService {
           brandId,
           completenessBefore,
           completenessAfter: null,
-          creditsCharged: creditAmount,
+          creditsCharged: chargedCredits,
           currentFieldKey: firstFieldKey,
           isDeleted: false,
+          isExpertPositioning,
           organizationId,
           status: BrandInterviewStatus.IN_PROGRESS,
           userId,
@@ -138,12 +162,16 @@ export class BrandInterviewService {
       throw error;
     }
 
+    if (chargedCredits === 0) {
+      return this.buildStartResult(session, 0);
+    }
+
     // 7. Deduct credits — compensate (soft-abandon) if deduction fails
     try {
       await this.creditsUtilsService.deductCreditsFromOrganization(
         organizationId,
         userId,
-        creditAmount,
+        chargedCredits,
         'Brand context interview',
         ActivitySource.BRAND_INTERVIEW,
       );
@@ -156,13 +184,13 @@ export class BrandInterviewService {
       throw error;
     }
 
-    return this.buildStartResult(session, creditAmount);
+    return this.buildStartResult(session, chargedCredits);
   }
 
   async submitAnswer(
     interviewId: string,
     organizationId: string,
-    _userId: string,
+    userId: string,
     answer: string,
     fieldKeyOverride?: string,
   ): Promise<IBrandInterviewAnswerResult> {
@@ -200,6 +228,7 @@ export class BrandInterviewService {
       organizationId,
       requestedKey,
       normalized,
+      interviewId,
     );
 
     // Update session state
@@ -248,9 +277,9 @@ export class BrandInterviewService {
     const answeredInSession = new Set(Object.keys(updatedAnsweredFields));
     const askedSet = new Set(askedFieldKeys);
     const nextFieldKey =
-      IN_SCOPE_FIELD_KEYS.find(
+      resolveInterviewFieldKeys(session.isExpertPositioning).find(
         (k) =>
-          incompleteKeys.has(k) &&
+          this.isFieldIncomplete(k, incompleteKeys) &&
           !answeredInSession.has(k) &&
           !askedSet.has(k),
       ) ?? null;
@@ -272,17 +301,87 @@ export class BrandInterviewService {
       where: { id: interviewId },
     });
 
+    const positioningScore = isComplete
+      ? await this.generatePositioningDraft(updated, userId)
+      : undefined;
+
     return this.buildAnswerResult(updated, {
       completenessScore: completeness.overallScore,
       isComplete,
       nextFieldKey,
+      positioningScore,
       status: newStatus,
+    });
+  }
+
+  /**
+   * Finish an Expert Path session once its positioning section is done,
+   * without walking the remaining brand gaps. Generates the scored harness
+   * profile draft.
+   */
+  async complete(
+    interviewId: string,
+    organizationId: string,
+    userId: string,
+  ): Promise<IBrandInterviewAnswerResult> {
+    const session = await this.loadActiveSession(interviewId, organizationId);
+    if (!session.isExpertPositioning) {
+      throw new BadRequestException(
+        'Only Expert Path positioning interviews can be completed early.',
+      );
+    }
+
+    const handledKeys = new Set([
+      ...Object.keys(this.readAnsweredFields(session)),
+      ...(session.askedFieldKeys ?? []),
+    ]);
+    const pendingExpertKey = EXPERT_INTERVIEW_FIELD_KEYS.find(
+      (key) => !handledKeys.has(key),
+    );
+    if (pendingExpertKey) {
+      throw new BadRequestException(
+        'Answer or skip every positioning question before finishing.',
+      );
+    }
+
+    const brand = await this.prisma.brand.findFirst({
+      where: scopedWhere(organizationId, { id: session.brandId }),
+    });
+    const completeness = computeBrandCompleteness(
+      (brand ?? {}) as Parameters<typeof computeBrandCompleteness>[0],
+    );
+
+    // Score before completing: a session that completes without a scorecard
+    // can no longer be finished (it is no longer in progress), so the expert
+    // would be stuck on the positioning step.
+    const { score } = await this.expertPositioningService.generateDraft({
+      brandId: session.brandId,
+      organizationId,
+      userId,
+    });
+
+    const updated = await this.prisma.brandInterview.update({
+      data: {
+        completenessAfter: completeness.overallScore,
+        currentFieldKey: null,
+        status: BrandInterviewStatus.COMPLETED,
+      },
+      where: scopedWhere(organizationId, { id: interviewId }),
+    });
+
+    return this.buildAnswerResult(updated, {
+      completenessScore: completeness.overallScore,
+      isComplete: true,
+      nextFieldKey: null,
+      positioningScore: score,
+      status: BrandInterviewStatus.COMPLETED,
     });
   }
 
   async skipField(
     interviewId: string,
     organizationId: string,
+    userId?: string,
   ): Promise<IBrandInterviewAnswerResult> {
     const session = await this.loadActiveSession(interviewId, organizationId);
 
@@ -298,7 +397,7 @@ export class BrandInterviewService {
 
     // Reload brand completeness to find the next gap
     const brand = await this.prisma.brand.findFirst({
-      where: { id: session.brandId, isDeleted: false },
+      where: scopedWhere(organizationId, { id: session.brandId }),
     });
 
     const completeness = computeBrandCompleteness(
@@ -311,9 +410,9 @@ export class BrandInterviewService {
 
     // Next field: in-scope, incomplete, not already answered or skipped in this session
     const nextFieldKey =
-      IN_SCOPE_FIELD_KEYS.find(
+      resolveInterviewFieldKeys(session.isExpertPositioning).find(
         (k) =>
-          incompleteKeys.has(k) &&
+          this.isFieldIncomplete(k, incompleteKeys) &&
           !answeredInSession.has(k) &&
           !skippedSet.has(k),
       ) ?? null;
@@ -334,10 +433,16 @@ export class BrandInterviewService {
       where: { id: interviewId },
     });
 
+    const positioningScore =
+      isComplete && userId
+        ? await this.generatePositioningDraft(updated, userId)
+        : undefined;
+
     return this.buildAnswerResult(updated, {
       completenessScore: completeness.overallScore,
       isComplete,
       nextFieldKey,
+      positioningScore,
       status: newStatus,
     });
   }
@@ -427,6 +532,74 @@ export class BrandInterviewService {
 
   // ── Private helpers ────────────────────────────────────────────────────────
 
+  private async isExpertOrganization(organizationId: string): Promise<boolean> {
+    const organization = await this.prisma.organization.findFirst({
+      select: { accountType: true },
+      where: { id: organizationId, isDeleted: false },
+    });
+    return organization?.accountType === OrganizationCategory.EXPERT;
+  }
+
+  private async hasPriorExpertSession(
+    organizationId: string,
+    brandId: string,
+  ): Promise<boolean> {
+    const prior = await this.prisma.brandInterview.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, {
+        brandId,
+        isExpertPositioning: true,
+      }),
+    });
+    return Boolean(prior);
+  }
+
+  /**
+   * Positioning questions are always asked in an expert session (re-running
+   * the interview is how an expert revises positioning); brand fields are
+   * only asked while they are gaps.
+   */
+  private isFieldIncomplete(
+    fieldKey: string,
+    incompleteBrandKeys: Set<string>,
+  ): boolean {
+    return (
+      isExpertPositioningFieldKey(fieldKey) || incompleteBrandKeys.has(fieldKey)
+    );
+  }
+
+  /**
+   * Scoring must never fail the answer that completed the interview; the
+   * expert can regenerate from the Expert Path status endpoint.
+   */
+  private async generatePositioningDraft(
+    session: BrandInterview,
+    userId: string,
+  ): Promise<IExpertPositioningScore | undefined> {
+    if (!session.isExpertPositioning) {
+      return undefined;
+    }
+
+    try {
+      const { score } = await this.expertPositioningService.generateDraft({
+        brandId: session.brandId,
+        organizationId: session.organizationId,
+        userId,
+      });
+      return score;
+    } catch (error: unknown) {
+      this.logger.error(
+        `${this.constructorName} failed to generate positioning draft`,
+        {
+          brandId: session.brandId,
+          error: error instanceof Error ? error.message : 'unknown',
+          interviewId: session.id,
+        },
+      );
+      return undefined;
+    }
+  }
+
   private async loadActiveSession(
     interviewId: string,
     organizationId: string,
@@ -491,10 +664,25 @@ export class BrandInterviewService {
     organizationId: string,
     fieldKey: string,
     value: string | string[],
+    interviewId: string,
   ): Promise<void> {
     const meta = BRAND_FIELD_META[fieldKey];
     if (!meta) {
       throw new BadRequestException(`No field metadata for key: ${fieldKey}`);
+    }
+
+    if (meta.storage === 'positioning') {
+      if (!isExpertPositioningFieldKey(fieldKey)) {
+        throw new BadRequestException(`Unknown positioning field: ${fieldKey}`);
+      }
+      await this.expertPositioningService.saveAnswer({
+        answer: Array.isArray(value) ? value.join('\n') : value,
+        brandId,
+        fieldKey,
+        interviewId,
+        organizationId,
+      });
+      return;
     }
 
     if (meta.storage === 'brand') {
@@ -563,42 +751,44 @@ export class BrandInterviewService {
     const askedKeys = new Set(session.askedFieldKeys ?? []);
     const currentKey = session.currentFieldKey;
 
-    return BRAND_INTERVIEW_QUESTION_CATALOG.map((question) => {
-      const isCurrent = question.fieldKey === currentKey;
-      const isAnswered = answeredKeys.has(question.fieldKey);
-      const isSkipped =
-        !isCurrent && !isAnswered && askedKeys.has(question.fieldKey);
+    return resolveInterviewQuestionCatalog(session.isExpertPositioning).map(
+      (question) => {
+        const isCurrent = question.fieldKey === currentKey;
+        const isAnswered = answeredKeys.has(question.fieldKey);
+        const isSkipped =
+          !isCurrent && !isAnswered && askedKeys.has(question.fieldKey);
 
-      let status: IBrandInterviewStep['status'] = 'upcoming';
-      if (isCurrent) {
-        status = 'current';
-      } else if (isAnswered) {
-        status = 'answered';
-      } else if (isSkipped) {
-        status = 'skipped';
-      }
+        let status: IBrandInterviewStep['status'] = 'upcoming';
+        if (isCurrent) {
+          status = 'current';
+        } else if (isAnswered) {
+          status = 'answered';
+        } else if (isSkipped) {
+          status = 'skipped';
+        }
 
-      const answer = answeredFields[question.fieldKey];
-      const answerPreview =
-        answer === undefined
-          ? undefined
-          : this.formatAnswerPreview(answer).slice(0, 120);
+        const answer = answeredFields[question.fieldKey];
+        const answerPreview =
+          answer === undefined
+            ? undefined
+            : this.formatAnswerPreview(answer).slice(0, 120);
 
-      return {
-        answerPreview: answerPreview || undefined,
-        fieldKey: question.fieldKey,
-        group: question.group,
-        isNavigable: isCurrent || isAnswered,
-        label: question.questionText,
-        question,
-        status,
-      };
-    });
+        return {
+          answerPreview: answerPreview || undefined,
+          fieldKey: question.fieldKey,
+          group: question.group,
+          isNavigable: isCurrent || isAnswered,
+          label: question.questionText,
+          question,
+          status,
+        };
+      },
+    );
   }
 
   private buildProgress(session: BrandInterview): IBrandInterviewProgress {
     const answered = Object.keys(this.readAnsweredFields(session)).length;
-    const total = IN_SCOPE_FIELD_KEYS.length;
+    const total = resolveInterviewFieldKeys(session.isExpertPositioning).length;
 
     return {
       answeredFields: answered,
@@ -613,10 +803,14 @@ export class BrandInterviewService {
       completenessScore: number;
       isComplete: boolean;
       nextFieldKey: string | null;
+      positioningScore?: IExpertPositioningScore;
       status: IBrandInterviewAnswerResult['status'];
     },
   ): IBrandInterviewAnswerResult {
     return {
+      ...(opts.positioningScore
+        ? { positioningScore: opts.positioningScore }
+        : {}),
       answeredFields: this.readAnsweredFields(session),
       completenessScore: opts.completenessScore,
       interviewId: session.id,
@@ -648,6 +842,7 @@ export class BrandInterviewService {
       creditsCharged,
       currentQuestion,
       interviewId: session.id,
+      isExpertPositioning: session.isExpertPositioning,
       progress,
       status: session.status as IBrandInterviewStartResult['status'],
       steps: this.buildSteps(session),
@@ -674,9 +869,10 @@ export class BrandInterviewService {
       completenessScore: session.completenessBefore,
       currentQuestion,
       id: session.id,
+      isExpertPositioning: session.isExpertPositioning,
       status: session.status as IActiveBrandInterview['status'],
       steps: this.buildSteps(session),
-      totalCount: IN_SCOPE_FIELD_KEYS.length,
+      totalCount: resolveInterviewFieldKeys(session.isExpertPositioning).length,
     };
   }
 

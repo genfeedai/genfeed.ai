@@ -314,6 +314,14 @@
         "label": "Vocabulary"
       }
     },
+    "positioningScorecard": {
+      "title": "Positioning scorecard",
+      "description": "How strongly your positioning would land with a cold audience.",
+      "scoreValue": "{score}/100",
+      "dimensionScore": "{score}/10",
+      "weakestTitle": "Weakest: {label}",
+      "interviewLink": "Answer this in the interview"
+    },
     "promote": "Promote winners to memory",
     "promoting": "Promoting\u2026",
     "save": "Save harness",
@@ -1385,6 +1393,25 @@
   },
   "onboarding": {
     "brand": {
+      "accountTypes": {
+        "agency": {
+          "description": "Managing content for multiple clients",
+          "label": "Agency"
+        },
+        "business": {
+          "description": "Company, brand, or e-commerce store",
+          "label": "Business"
+        },
+        "creator": {
+          "description": "Individual content creator or influencer",
+          "label": "Creator"
+        },
+        "expert": {
+          "description": "Consultant, coach, or practitioner with a point of view",
+          "label": "Expert"
+        },
+        "title": "I am a\u2026"
+      },
       "actions": {
         "continue": "Continue",
         "skip": "Skip Onboarding"
@@ -1429,6 +1456,104 @@
           "minimal": "Minimal",
           "playful": "Playful",
           "professional": "Professional"
+        }
+      }
+    },
+    "expert": {
+      "common": {
+        "badge": "Expert Path · Step {current} of {total}",
+        "continue": "Continue",
+        "skip": "Skip for now",
+        "skipHint": "You can finish this later — it will be the first task in your workspace.",
+        "errorTitle": "Something went wrong",
+        "retry": "Try again"
+      },
+      "positioning": {
+        "title": "Your positioning, in your words.",
+        "description": "Answer a few questions about what you believe and what you have proven. Every piece of content Genfeed drafts will be held to these answers.",
+        "free": "This interview is free during onboarding.",
+        "questionCounter": "Question {current} of {total}",
+        "answerLabel": "Your answer",
+        "answerPlaceholder": "Write it the way you would say it out loud.",
+        "exampleLabel": "Example",
+        "save": "Save answer",
+        "skipQuestion": "Skip question",
+        "finish": "Score my positioning",
+        "finishHint": "You've covered the positioning questions. Score them now, or keep going to fill brand gaps.",
+        "keepGoing": "Keep going",
+        "loading": "Preparing your interview…",
+        "scoreTitle": "Positioning score",
+        "scoreOutOf": "{score} / 100",
+        "weakestTitle": "Weakest dimension: {label}",
+        "weakestHint": "Strengthen it next — answer this in Settings → Interview, or record it for your corpus:",
+        "dimensionScore": "{score}/10",
+        "errors": {
+          "start": "We couldn't start your positioning interview.",
+          "answer": "We couldn't save that answer. Try again.",
+          "finish": "We couldn't score your positioning. Try again."
+        }
+      },
+      "corpus": {
+        "title": "Bring your corpus.",
+        "description": "Add the material that sounds most like you — talks, newsletters, posts, call notes. Genfeed cites it as your authoritative knowledge.",
+        "modes": {
+          "url": "Link",
+          "text": "Paste text",
+          "file": "Upload file"
+        },
+        "urlLabel": "Public URL",
+        "urlPlaceholder": "https://yoursite.com/talk-transcript",
+        "titleLabel": "Title",
+        "titlePlaceholder": "e.g. 2024 keynote transcript",
+        "textLabel": "Text",
+        "textPlaceholder": "Paste a newsletter, transcript, or call notes.",
+        "fileHint": "PDF, DOCX, TXT, or Markdown up to 2 MB.",
+        "chooseFile": "Choose file",
+        "add": "Add to corpus",
+        "empty": "No sources yet. Add at least one to continue — or skip and add them later.",
+        "readyCount": "{ready} of {total} ready",
+        "retry": "Retry",
+        "states": {
+          "queued": "Queued",
+          "processing": "Processing",
+          "ready": "Ready",
+          "failed": "Failed"
+        },
+        "errors": {
+          "add": "We couldn't add that source.",
+          "load": "We couldn't load your sources.",
+          "retry": "We couldn't retry that source."
+        }
+      },
+      "firstSystem": {
+        "title": "Your first content system.",
+        "description": "Genfeed drafts a week of content from your positioning and your corpus. Nothing publishes without your approval — approved items go to your review queue.",
+        "cost": "Generating uses {credits} credits.",
+        "generate": "Generate my first system",
+        "generating": "Drafting from your positioning and corpus…",
+        "missingTitle": "A couple of things are still missing",
+        "missingPositioning": "Finish your positioning interview",
+        "missingCorpus": "Add at least one ready corpus source",
+        "grounded": "Grounded in {sources} corpus sources and your positioning profile.",
+        "connectToSchedule": "Connect {platforms} to schedule",
+        "approve": "Approve",
+        "edit": "Edit",
+        "reject": "Reject",
+        "save": "Save",
+        "cancel": "Cancel",
+        "topicLabel": "Topic",
+        "status": {
+          "pending": "Needs review",
+          "executing": "Drafting",
+          "completed": "In review queue",
+          "failed": "Failed",
+          "skipped": "Rejected"
+        },
+        "enterWorkspace": "Enter workspace",
+        "errors": {
+          "load": "We couldn't load your Expert Path status.",
+          "generate": "We couldn't generate your first system. Your onboarding is complete — retry from your workspace tasks.",
+          "review": "We couldn't update that item."
         }
       }
     },
@@ -2449,6 +2574,12 @@
     "revisionLink": "Open immutable revision design.md",
     "scanPersistenceFailed": "Website scan succeeded, but the draft could not be saved as a revision. Your scanned fields are still available below.",
     "manualPersistenceFailed": "Manual draft created, but it could not be saved as a revision. Your fields are still available below."
+  },
+  "brandPublishingSettings": {
+    "approvalGate": {
+      "title": "You have the final say",
+      "description": "Nothing publishes without your approval while this gate is on. Turning on Auto-publish removes this gate — approved output publishes automatically."
+    }
   },
   "brandAgentProfile": {
     "generateErrorTitle": "Generating your brand voice",

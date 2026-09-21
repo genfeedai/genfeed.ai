@@ -33,7 +33,7 @@ function createService(overrides?: {
   contentHarnessService?: { composeBrief: ReturnType<typeof vi.fn> };
   contextsService?: { retrieveBrandContentMemory: ReturnType<typeof vi.fn> };
   harnessProfilesService?: {
-    buildContributionForBrand: ReturnType<typeof vi.fn>;
+    resolveContributionForBrand: ReturnType<typeof vi.fn>;
   };
 }) {
   const contentHarnessService = overrides?.contentHarnessService ?? {
@@ -44,7 +44,7 @@ function createService(overrides?: {
     findOne: vi.fn().mockResolvedValue(BRAND),
   };
   const harnessProfilesService = overrides?.harnessProfilesService ?? {
-    buildContributionForBrand: vi.fn().mockResolvedValue(undefined),
+    resolveContributionForBrand: vi.fn().mockResolvedValue(null),
   };
   const contextsService = overrides?.contextsService ?? {
     retrieveBrandContentMemory: vi.fn().mockResolvedValue([]),
@@ -290,7 +290,7 @@ describe('HarnessGenerationService#resolveBrief', () => {
         { warn: vi.fn() } as never,
         { findOne: vi.fn().mockResolvedValue(BRAND) } as never,
         {
-          buildContributionForBrand: vi.fn().mockResolvedValue(undefined),
+          resolveContributionForBrand: vi.fn().mockResolvedValue(null),
         } as never,
         contextsService as never,
         {
@@ -368,7 +368,10 @@ describe('approved Brand OS identity', () => {
           }),
         },
         harnessProfilesService: {
-          buildContributionForBrand: vi.fn().mockResolvedValue(profile),
+          resolveContributionForBrand: vi.fn().mockResolvedValue({
+            contribution: profile,
+            profileId: 'profile-1',
+          }),
         },
       });
     await service.resolveBrief({
@@ -385,6 +388,7 @@ describe('approved Brand OS identity', () => {
       expect.objectContaining({
         brandName: 'Approved name',
         brandOsRevisionId: 'revision-2',
+        harnessProfileId: 'profile-1',
         voiceProfile: expect.objectContaining({ tone: 'Direct' }),
         profileContribution: profile,
         identityContribution: expect.objectContaining({

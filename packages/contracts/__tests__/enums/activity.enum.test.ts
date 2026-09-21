@@ -46,6 +46,7 @@ describe('activity.enum', () => {
         'VOICE_GENERATION',
         'TREND_SCAN',
         'BRAND_INTERVIEW',
+        'EXPERT_FIRST_SYSTEM',
         'BRAND_RELOCATION',
         'REFERRAL',
       ]);
@@ -92,6 +93,7 @@ describe('activity.enum', () => {
       expect(ActivitySource.VOICE_GENERATION).toBe('voice-generate');
       expect(ActivitySource.TREND_SCAN).toBe('trend-scan');
       expect(ActivitySource.BRAND_INTERVIEW).toBe('brand-interview');
+      expect(ActivitySource.EXPERT_FIRST_SYSTEM).toBe('expert-first-system');
       expect(ActivitySource.BRAND_RELOCATION).toBe('brand-relocation');
       expect(ActivitySource.REFERRAL).toBe('credits-referral');
     });

@@ -1,8 +1,10 @@
-import { renderHook } from '@testing-library/react';
+import { renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockUseCurrentUser = vi.fn();
 const mockUseAccessState = vi.fn();
+const mockUseBrand = vi.fn();
+const mockGetStatus = vi.fn();
 
 vi.mock('@genfeedai/contexts/user/user-context/user-context', () => ({
   useCurrentUser: () => mockUseCurrentUser(),
@@ -15,7 +17,35 @@ vi.mock(
   }),
 );
 
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => mockUseBrand(),
+}));
+
+vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => ({ getStatus: mockGetStatus }),
+}));
+
+vi.mock('@genfeedai/services/content/expert-path.service', () => ({
+  ExpertPathService: { getInstance: vi.fn() },
+}));
+
+vi.mock('@genfeedai/services/core/logger.service', () => ({
+  logger: { error: vi.fn(), info: vi.fn() },
+}));
+
 import { useSetupCard } from './use-setup-card';
+
+const NON_EXPERT_BRAND = {
+  brandId: 'brand-1',
+  isReady: true,
+  selectedBrand: { id: 'brand-1', organization: { accountType: 'STARTUP' } },
+};
+
+const EXPERT_BRAND = {
+  brandId: 'brand-1',
+  isReady: true,
+  selectedBrand: { id: 'brand-1', organization: { accountType: 'EXPERT' } },
+};
 
 function setUser(onboardingStepsCompleted: string[] | undefined): void {
   mockUseCurrentUser.mockReturnValue({
@@ -29,6 +59,8 @@ describe('useSetupCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockUseAccessState.mockReturnValue({ hasPaygCredits: false });
+    mockUseBrand.mockReturnValue(NON_EXPERT_BRAND);
+    mockGetStatus.mockResolvedValue(null);
     setUser([]);
   });
 
@@ -84,5 +116,108 @@ describe('useSetupCard', () => {
 
     expect(result.current.completedCount).toBe(0);
     expect(result.current.isVisible).toBe(true);
+  });
+
+  it('does not add Expert Path steps for a non-expert organization', async () => {
+    const { result } = renderHook(() => useSetupCard());
+
+    await waitFor(() => {
+      expect(mockGetStatus).not.toHaveBeenCalled();
+    });
+    expect(result.current.steps.map((step) => step.key)).not.toContain(
+      'positioning',
+    );
+  });
+
+  it('prepends the Expert Path steps for an EXPERT organization with onboarding hrefs', async () => {
+    mockUseBrand.mockReturnValue(EXPERT_BRAND);
+    mockGetStatus.mockResolvedValue({
+      corpus: { isComplete: false, readySourceCount: 0, sourceCount: 0 },
+      firstSystem: {
+        readiness: {
+          creditCost: 0,
+          isReady: false,
+          isUsingInterviewPlatforms: true,
+          missing: [],
+          platforms: [],
+        },
+        status: 'none',
+      },
+      isExpert: true,
+      positioning: { answeredCount: 0, isComplete: false, totalCount: 7 },
+      publishApproval: { isRequired: true },
+      brandId: 'brand-1',
+    });
+
+    const { result } = renderHook(() => useSetupCard());
+
+    await waitFor(() => {
+      expect(mockGetStatus).toHaveBeenCalledWith(
+        'brand-1',
+        expect.any(AbortSignal),
+      );
+    });
+
+    await waitFor(() => {
+      expect(result.current.steps.slice(0, 3).map((step) => step.key)).toEqual([
+        'positioning',
+        'corpus',
+        'first-system',
+      ]);
+    });
+
+    expect(result.current.steps[0]).toMatchObject({
+      href: '/onboarding/positioning',
+      isCompleted: false,
+      key: 'positioning',
+    });
+    expect(result.current.steps[1]).toMatchObject({
+      href: '/onboarding/corpus',
+      isCompleted: false,
+      key: 'corpus',
+    });
+    expect(result.current.steps[2]).toMatchObject({
+      href: '/onboarding/first-system',
+      isCompleted: false,
+      key: 'first-system',
+    });
+  });
+
+  it('marks Expert Path steps complete from the fetched status', async () => {
+    mockUseBrand.mockReturnValue(EXPERT_BRAND);
+    mockGetStatus.mockResolvedValue({
+      corpus: { isComplete: true, readySourceCount: 3, sourceCount: 3 },
+      firstSystem: {
+        readiness: {
+          creditCost: 0,
+          isReady: true,
+          isUsingInterviewPlatforms: false,
+          missing: [],
+          platforms: ['x'],
+        },
+        status: 'generated',
+      },
+      isExpert: true,
+      positioning: { answeredCount: 7, isComplete: true, totalCount: 7 },
+      publishApproval: { isRequired: false },
+      brandId: 'brand-1',
+    });
+
+    const { result } = renderHook(() => useSetupCard());
+
+    await waitFor(() => {
+      const positioning = result.current.steps.find(
+        (step) => step.key === 'positioning',
+      );
+      expect(positioning?.isCompleted).toBe(true);
+    });
+
+    expect(
+      result.current.steps.find((step) => step.key === 'corpus')?.isCompleted,
+    ).toBe(true);
+    expect(
+      result.current.steps.find((step) => step.key === 'first-system')
+        ?.isCompleted,
+    ).toBe(true);
   });
 });

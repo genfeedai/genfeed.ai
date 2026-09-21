@@ -4,7 +4,6 @@ import OnboardingProgress from '@app/(onboarding)/onboarding/components/onboardi
 import OnboardingProvider, {
   useOnboarding,
 } from '@contexts/onboarding/onboarding-context';
-import { ONBOARDING_STEPS } from '@genfeedai/contracts/constants';
 import { useThemeLogo } from '@hooks/ui/use-theme-logo/use-theme-logo';
 import type { LayoutProps } from '@props/layout/layout.props';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -13,14 +12,14 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 function OnboardingLayoutInner({ children }: LayoutProps) {
-  const { currentStepIndex, stepLabels } = useOnboarding();
+  const { currentStepIndex, stepLabels, steps } = useOnboarding();
   const logoUrl = useThemeLogo();
   const pathname = usePathname();
 
   // Hide progress bar on success page (not a counted step)
   const segment = pathname.split('/').pop();
   const isCountedStep =
-    !!segment && (ONBOARDING_STEPS as readonly string[]).includes(segment);
+    !!segment && (steps as readonly string[]).includes(segment);
   const showCloudFooter = isCountedStep && segment !== 'summary';
 
   return (

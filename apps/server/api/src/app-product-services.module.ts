@@ -20,6 +20,7 @@ import { ContentEngineModule } from '@api/services/content-engine/content-engine
 import { ContentGatewayModule } from '@api/services/content-gateway/content-gateway.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { ContentOrchestrationModule } from '@api/services/content-orchestration/content-orchestration.module';
+import { ExpertPathModule } from '@api/services/expert-path/expert-path.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { SeoModule } from '@api/services/seo/seo.module';
@@ -42,6 +43,7 @@ import { Module } from '@nestjs/common';
     SkillWorkflowModule,
     ContentOrchestrationModule,
     ContentOptimizationModule,
+    ExpertPathModule,
     SeoModule,
     HiggsFieldModule,
     AiInfluencerModule,

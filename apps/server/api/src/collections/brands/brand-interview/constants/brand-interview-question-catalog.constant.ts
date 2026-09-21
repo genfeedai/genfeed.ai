@@ -1,3 +1,7 @@
+import {
+  EXPERT_POSITIONING_FIELD_KEYS,
+  type ExpertPositioningFieldKey,
+} from '@genfeedai/contracts/constants';
 import type {
   BrandInterviewAnswerType,
   BrandInterviewGroup,
@@ -7,9 +11,10 @@ import type {
 export const BRAND_INTERVIEW_CREDIT_COST = 10;
 
 /**
- * In-scope storage location for a field: which sub-object on the Brand holds it.
+ * In-scope storage location for a field: which sub-object on the Brand holds
+ * it, or `positioning` for Expert Path answers kept as typed brand memory.
  */
-export type BrandFieldStorage = 'brand' | 'voice' | 'strategy';
+export type BrandFieldStorage = 'brand' | 'voice' | 'strategy' | 'positioning';
 
 export interface BrandFieldMeta {
   group: BrandInterviewGroup;
@@ -40,6 +45,18 @@ export const BRAND_FIELD_META: Record<string, BrandFieldMeta> = {
   contentTypes: { answerType: 'list', group: 'strategy', storage: 'strategy' },
   platforms: { answerType: 'list', group: 'strategy', storage: 'strategy' },
   frequency: { answerType: 'text', group: 'strategy', storage: 'strategy' },
+
+  // expert → brand memory `positioning.<fieldKey>`
+  ...Object.fromEntries(
+    EXPERT_POSITIONING_FIELD_KEYS.map((fieldKey) => [
+      fieldKey,
+      {
+        answerType: 'text' as const,
+        group: 'expert' as const,
+        storage: 'positioning' as const,
+      },
+    ]),
+  ),
 } as const;
 
 /**
@@ -245,16 +262,145 @@ export const BRAND_INTERVIEW_QUESTION_CATALOG: IBrandInterviewQuestion[] = [
 ];
 
 /**
+ * Expert Path positioning section. Asked before the brand gaps for `EXPERT`
+ * organizations; answers persist as typed brand memory and feed the generated
+ * harness profile and its `expert-validator` scorecard.
+ */
+export const EXPERT_INTERVIEW_QUESTION_CATALOG: (IBrandInterviewQuestion & {
+  fieldKey: ExpertPositioningFieldKey;
+})[] = [
+  {
+    answerType: 'text',
+    examples: [
+      'I ran finance at a startup that nearly went bankrupt because nobody could read the numbers. That is when I realized cash flow is designed, not reported. Now I teach founders to run a weekly cash ritual.',
+    ],
+    fieldKey: 'originStory',
+    group: 'expert',
+    hint: 'Where you were, the wall you hit, what you realized, what you did, and where you are now. Specifics beat polish.',
+    isRequired: true,
+    questionText:
+      'What is your origin story? Tell us how you became the person who knows this.',
+    weight: 10,
+  },
+  {
+    answerType: 'text',
+    examples: [
+      'If founders believe cash flow is a design problem, not an accounting problem, every other objection stops mattering.',
+    ],
+    fieldKey: 'bigDomino',
+    group: 'expert',
+    hint: 'One belief. Finish the sentence: "If my audience believed ___, everything else would follow."',
+    isRequired: true,
+    questionText:
+      'What is the one belief your audience must adopt before anything you teach makes sense?',
+    weight: 10,
+  },
+  {
+    answerType: 'text',
+    examples: [
+      'Stop hiring bookkeepers to explain last month. Replace monthly reports with a 20-minute weekly cash ritual.',
+    ],
+    fieldKey: 'newOpportunity',
+    group: 'expert',
+    hint: 'Name the old way you want people to stop, and the new way you replace it with — not a better version of the old one.',
+    isRequired: true,
+    questionText:
+      'What old way are you asking people to leave behind, and what new way do you offer instead?',
+    weight: 9,
+  },
+  {
+    answerType: 'text',
+    examples: [
+      'Helped 140 founders extend runway by 6+ months. Former CFO at two SaaS companies. Featured on the Indie Hackers podcast.',
+    ],
+    fieldKey: 'authoritySignals',
+    group: 'expert',
+    hint: 'Results with numbers, clients or brands, credentials, media, and audience. One per line works well.',
+    isRequired: true,
+    questionText:
+      'What proof do you have? List the results, credentials, and recognition that back you up.',
+    weight: 8,
+  },
+  {
+    answerType: 'text',
+    examples: [
+      'Most founders think a fractional CFO fixes cash flow. It does not — it just documents the problem faster.',
+    ],
+    fieldKey: 'contrarianBeliefs',
+    group: 'expert',
+    hint: 'What would you say on stage that makes half the room nod and the other half argue?',
+    isRequired: false,
+    questionText:
+      'What do most people in your field get wrong? Share the beliefs you disagree with.',
+    weight: 8,
+  },
+  {
+    answerType: 'text',
+    examples: [
+      'Founders go from dreading the bank balance to deciding with it every Monday.',
+    ],
+    fieldKey: 'transformation',
+    group: 'expert',
+    hint: 'Before and after, in the words your clients use.',
+    isRequired: false,
+    questionText:
+      'What transformation do you deliver? Describe where your clients start and where they end up.',
+    weight: 7,
+  },
+  {
+    answerType: 'text',
+    examples: [
+      'Venture-backed teams burning cash on purpose, and anyone who wants a bookkeeper.',
+    ],
+    fieldKey: 'notForWho',
+    group: 'expert',
+    hint: 'Being explicit about who you do not serve makes you more attractive to the people you do.',
+    isRequired: false,
+    questionText: 'Who is your work not for?',
+    weight: 6,
+  },
+];
+
+/**
  * Ordered list of all in-scope fieldKeys in catalog order.
  * Used to determine question sequence efficiently.
  */
 export const IN_SCOPE_FIELD_KEYS: string[] =
   BRAND_INTERVIEW_QUESTION_CATALOG.map((q) => q.fieldKey);
 
+export const EXPERT_INTERVIEW_FIELD_KEYS: string[] =
+  EXPERT_INTERVIEW_QUESTION_CATALOG.map((q) => q.fieldKey);
+
+/**
+ * Question sequence for a session: Expert Path sessions ask the positioning
+ * section first, then the brand gaps.
+ */
+export function resolveInterviewFieldKeys(
+  isExpertPositioning: boolean,
+): string[] {
+  return isExpertPositioning
+    ? [...EXPERT_INTERVIEW_FIELD_KEYS, ...IN_SCOPE_FIELD_KEYS]
+    : IN_SCOPE_FIELD_KEYS;
+}
+
+export function resolveInterviewQuestionCatalog(
+  isExpertPositioning: boolean,
+): IBrandInterviewQuestion[] {
+  return isExpertPositioning
+    ? [
+        ...EXPERT_INTERVIEW_QUESTION_CATALOG,
+        ...BRAND_INTERVIEW_QUESTION_CATALOG,
+      ]
+    : BRAND_INTERVIEW_QUESTION_CATALOG;
+}
+
 /**
  * Quick lookup: fieldKey → IBrandInterviewQuestion
  */
 export const CATALOG_BY_FIELD_KEY: Record<string, IBrandInterviewQuestion> =
   Object.fromEntries(
-    BRAND_INTERVIEW_QUESTION_CATALOG.map((q) => [q.fieldKey, q]),
+    [
+      ...EXPERT_INTERVIEW_QUESTION_CATALOG,
+      ...BRAND_INTERVIEW_QUESTION_CATALOG,
+    ].map((q) => [q.fieldKey, q]),
   );

@@ -36,6 +36,27 @@ export function getBrandOrganizationId(
   return '';
 }
 
+/**
+ * Account type of the brand's organization when the brand payload carries it
+ * (the auth bootstrap brand list selects `organization.accountType`).
+ */
+export function getBrandOrganizationAccountType(
+  brand: IBrand | null | undefined,
+): string | null {
+  const organization = brand?.organization;
+
+  if (
+    organization &&
+    typeof organization === 'object' &&
+    'accountType' in organization &&
+    typeof organization.accountType === 'string'
+  ) {
+    return organization.accountType;
+  }
+
+  return null;
+}
+
 export function getBrandOrganizationSlug(
   brand: IBrand | null | undefined,
 ): string {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getBrandOrganizationAccountType } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -79,6 +80,7 @@ export default function OrgLandingContent() {
   const { orgSlug, orgHref } = useOrgUrl();
   const { replace } = useRouter();
   const primaryBrandSlug = brands[0]?.slug ?? '';
+  const accountType = getBrandOrganizationAccountType(brands[0]);
 
   useEffect(() => {
     if (!isReady || isCurrentUserLoading || !currentUser) {
@@ -93,6 +95,7 @@ export default function OrgLandingContent() {
     if (!hasCompletedOnboarding) {
       replace(
         resolveForcedOnboardingHref({
+          accountType,
           completedSteps,
           hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
           orgSlug,
@@ -110,6 +113,7 @@ export default function OrgLandingContent() {
       replace(createBrandAppRoute(orgSlug, primaryBrandSlug, '/workspace'));
     }
   }, [
+    accountType,
     brands.length,
     currentUser,
     isCurrentUserLoading,

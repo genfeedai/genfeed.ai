@@ -30,6 +30,22 @@ export type WinnerPromotionCandidate = {
   item: PerformanceContentItem;
 };
 
+export type ListPromotedWinnersParams = {
+  organizationId: string;
+  brandId: string;
+  from: Date;
+  to: Date;
+  limit?: number;
+};
+
+export type PromotedWinner = {
+  content: string;
+  platform?: string;
+  engagementRate?: number;
+  postId?: string;
+  promotedAt: string;
+};
+
 /**
  * Promotes high-engagement posts into the brand performance-winners context
  * base. Entries are embedded on write (Postgres pgvector) so generation can
@@ -168,6 +184,86 @@ export class HarnessWinnerPromotionService {
       });
     }
     return { promoted: 1, skipped: 0 };
+  }
+
+  /**
+   * Read-only lookup of winners already promoted into the brand's winners
+   * context base, bounded to a window (e.g. the weekly digest period).
+   * Never creates the context base — a brand with no promotion history yet
+   * simply has no entries to read.
+   */
+  async listPromotedWinners(
+    params: ListPromotedWinnersParams,
+  ): Promise<PromotedWinner[]> {
+    const limit = params.limit ?? 20;
+    const contextBase = await this.prisma.contextBase.findFirst({
+      select: { id: true },
+      where: scopedWhere(params.organizationId, {
+        AND: [
+          { data: { equals: params.brandId, path: ['brandId'] } },
+          {
+            data: {
+              equals: 'harness-performance-winners',
+              path: ['purpose'],
+            },
+          },
+        ],
+      }),
+    });
+    if (!contextBase) return [];
+
+    const entries = await this.prisma.contextEntry.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: { data: true },
+      take: Math.max(limit * 4, 50),
+      where: scopedWhere(params.organizationId, {
+        contextBaseId: contextBase.id,
+        isDeleted: false,
+      }),
+    });
+
+    return entries
+      .map((entry) => this.readPromotedWinner(entry.data))
+      .filter((winner): winner is PromotedWinner => {
+        if (!winner) return false;
+        const promotedAt = new Date(winner.promotedAt);
+        return (
+          !Number.isNaN(promotedAt.getTime()) &&
+          promotedAt >= params.from &&
+          promotedAt <= params.to
+        );
+      })
+      .sort((a, b) => (b.engagementRate ?? 0) - (a.engagementRate ?? 0))
+      .slice(0, limit);
+  }
+
+  private readPromotedWinner(value: unknown): PromotedWinner | null {
+    const data =
+      value && typeof value === 'object' && !Array.isArray(value)
+        ? (value as Record<string, unknown>)
+        : null;
+    if (!data) return null;
+    const metadata =
+      data.metadata &&
+      typeof data.metadata === 'object' &&
+      !Array.isArray(data.metadata)
+        ? (data.metadata as Record<string, unknown>)
+        : {};
+    const content = typeof data.content === 'string' ? data.content : '';
+    const promotedAt =
+      typeof metadata.promotedAt === 'string' ? metadata.promotedAt : '';
+    if (!content || !promotedAt) return null;
+    return {
+      content,
+      engagementRate:
+        typeof metadata.engagementRate === 'number'
+          ? metadata.engagementRate
+          : undefined,
+      platform:
+        typeof metadata.platform === 'string' ? metadata.platform : undefined,
+      postId: typeof metadata.postId === 'string' ? metadata.postId : undefined,
+      promotedAt,
+    };
   }
 
   private async ensureWinnersContextBase(

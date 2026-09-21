@@ -10,6 +10,8 @@ import { OptimizationCycleService } from '@api/collections/content-performance/s
 import { PerformanceSummaryService } from '@api/collections/content-performance/services/performance-summary.service';
 import { VariationGroupScoringService } from '@api/collections/content-performance/services/variation-group-scoring.service';
 import { WinnerPromotionWorkflowService } from '@api/collections/content-performance/services/winner-promotion-workflow.service';
+import { CreativePatternsModule } from '@api/collections/creative-patterns/creative-patterns.module';
+import { HarnessProfilesModule } from '@api/collections/harness-profiles/harness-profiles.module';
 import { OrganizationsCoreModule } from '@api/collections/organizations/organizations-core.module';
 import { AnalyticsCollectionModule } from '@api/collections/posts/analytics-collection.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
@@ -18,6 +20,7 @@ import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.m
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { SERVER_TOKENS } from '@api/server.dependencies';
 import { CacheModule } from '@api/services/cache/cache.module';
+import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaModule } from '@api/shared/modules/prisma/prisma.module';
@@ -45,7 +48,10 @@ import { Module } from '@nestjs/common';
   imports: [
     AnalyticsCollectionModule,
     BrandMemoryModule,
+    ContentHarnessModule,
     ContentPerformanceCoreModule,
+    CreativePatternsModule,
+    HarnessProfilesModule,
     PostsCoreModule,
     NotificationsModule,
     PrismaModule,

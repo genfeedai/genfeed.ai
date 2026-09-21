@@ -12,4 +12,5 @@ export const contentPlanAttributes = createEntityAttributes([
   'itemCount',
   'executedCount',
   'seeds',
+  'provenance',
 ]);

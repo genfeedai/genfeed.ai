@@ -138,7 +138,31 @@ export class BrandInterviewController {
     @CurrentUser() user: User,
   ): Promise<IBrandInterviewAnswerResult> {
     const organizationId = this.requireOrganizationId(user);
-    return this.brandInterviewService.skipField(interviewId, organizationId);
+    const userId = (user.userId ?? user.id)?.toString() ?? '';
+    return this.brandInterviewService.skipField(
+      interviewId,
+      organizationId,
+      userId,
+    );
+  }
+
+  /**
+   * POST /brands/interview/:interviewId/complete
+   * Finish an Expert Path interview after its positioning section and
+   * generate the scored harness profile draft.
+   */
+  @Post('interview/:interviewId/complete')
+  async complete(
+    @Param('interviewId') interviewId: string,
+    @CurrentUser() user: User,
+  ): Promise<IBrandInterviewAnswerResult> {
+    const organizationId = this.requireOrganizationId(user);
+    const userId = (user.userId ?? user.id)?.toString() ?? '';
+    return this.brandInterviewService.complete(
+      interviewId,
+      organizationId,
+      userId,
+    );
   }
 
   /**

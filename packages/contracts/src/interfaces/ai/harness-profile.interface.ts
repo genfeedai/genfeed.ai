@@ -1,4 +1,5 @@
 import type { IBaseEntity } from '../core/base.interface';
+import type { IExpertPositioningScore } from './expert-positioning.interface';
 
 export type HarnessProfileScope = 'brand' | 'channel' | 'company' | 'founder';
 export type HarnessProfileStatus = 'active' | 'draft';
@@ -8,6 +9,16 @@ export interface IHarnessProfileThesis {
   enemies?: string[];
   offers?: string[];
   proofPoints?: string[];
+  /** Expert Path: the Epiphany Bridge origin story. */
+  originStory?: string[];
+  /** Expert Path: the one belief everything ladders to. */
+  bigDomino?: string[];
+  /** Expert Path: the new mechanism framed against the old way. */
+  newOpportunity?: string[];
+  /** Expert Path: the transformation the expert delivers. */
+  transformation?: string[];
+  /** Expert Path: who the expert is explicitly not for. */
+  notFor?: string[];
 }
 
 export interface IHarnessProfileVoice {
@@ -77,6 +88,8 @@ export interface IHarnessProfile extends IBaseEntity {
   avoidFeedback?: IHarnessAvoidFeedbackEntry[];
   guardrails: string[];
   metadata?: Record<string, unknown>;
+  /** Server-computed Expert Path positioning scorecard. Read-only for clients. */
+  positioning?: IExpertPositioningScore;
 }
 
 export type ICreateHarnessProfilePayload = Partial<IHarnessProfile> & {

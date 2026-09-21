@@ -231,7 +231,7 @@ const PRISMA_REQUIRED: Record<string, readonly string[]> = {
     'WAV',
   ],
   OnboardingType: ['CREATOR', 'ORGANIZATION'],
-  OrganizationCategory: ['CREATOR', 'BUSINESS', 'AGENCY'],
+  OrganizationCategory: ['CREATOR', 'BUSINESS', 'AGENCY', 'EXPERT'],
   PersonaStatus: ['ACTIVE', 'INACTIVE', 'ARCHIVED'],
   PlatformRole: ['USER', 'SUPERADMIN'],
   PostCategory: ['ARTICLE', 'VIDEO', 'POST', 'REEL', 'STORY', 'IMAGE', 'TEXT'],

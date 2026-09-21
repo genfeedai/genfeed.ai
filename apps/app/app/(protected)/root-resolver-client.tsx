@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { getBrandOrganizationAccountType } from '@contexts/user/brand-context/brand-context.helpers';
 import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { hasAgentFirstOnboarding } from '@genfeedai/config/deployment';
 import { ButtonVariant } from '@genfeedai/contracts';
@@ -95,6 +96,9 @@ export default function ProtectedRootResolver() {
 
       replace(
         resolveForcedOnboardingHref({
+          accountType: getBrandOrganizationAccountType(
+            selectedBrand ?? brands[0],
+          ),
           completedSteps,
           hasAgentFirstOnboarding: hasAgentFirstOnboarding(),
           orgSlug: agentOrgSlug,

@@ -58,6 +58,7 @@ describe('BrandsService', () => {
   let accessBootstrapCacheService: {
     invalidateForOrganization: ReturnType<typeof vi.fn>;
   };
+  let organizationDelegate: { findFirst: ReturnType<typeof vi.fn> };
   let filesClientService: { uploadToS3: ReturnType<typeof vi.fn> };
   let llmDispatcher: { chatCompletion: ReturnType<typeof vi.fn> };
   let loggerService: LoggerService;
@@ -119,11 +120,15 @@ describe('BrandsService', () => {
     };
 
     queryRaw = vi.fn().mockResolvedValue([]);
+    organizationDelegate = {
+      findFirst: vi.fn().mockResolvedValue({ accountType: 'BUSINESS' }),
+    };
     const prisma = {
       // Brand kit asset relations resolve through a single ranked raw query.
       $queryRaw: queryRaw,
       asset: assetDelegate,
       brand: delegate,
+      organization: organizationDelegate,
     } as unknown as PrismaService;
 
     service = new BrandsService(
@@ -167,6 +172,52 @@ describe('BrandsService', () => {
       secondaryColor: '#FFFFFF',
       slug: 'default-brand',
     };
+
+    it('turns publish approval on by default for a brand in an expert organization', async () => {
+      organizationDelegate.findFirst.mockResolvedValue({
+        accountType: 'EXPERT',
+      });
+      delegate.create.mockResolvedValueOnce({
+        ...createBrandDto,
+        id: 'brand-expert',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      await service.create({
+        ...createBrandDto,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      const createInput = delegate.create.mock.calls[0]?.[0] as {
+        data: { agentConfig?: { autoPublish?: Record<string, unknown> } };
+      };
+      expect(createInput.data.agentConfig?.autoPublish).toEqual({
+        enabled: false,
+        isApprovalRequired: true,
+      });
+    });
+
+    it('leaves the agent config untouched for other account types', async () => {
+      delegate.create.mockResolvedValueOnce({
+        ...createBrandDto,
+        id: 'brand-1',
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      await service.create({
+        ...createBrandDto,
+        organizationId: 'org-1',
+        userId: 'user-1',
+      });
+
+      const createInput = delegate.create.mock.calls[0]?.[0] as {
+        data: { agentConfig?: unknown };
+      };
+      expect(createInput.data.agentConfig).toBeUndefined();
+    });
 
     it('retries with a deterministic suffix when two creates race on the same slug', async () => {
       const collision = {

@@ -49,6 +49,11 @@ const mocks = vi.hoisted(() => ({
   updateAgentConfig: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@hooks/pages/use-brand-detail/use-brand-detail', () => ({
   useBrandDetail: () => mocks.brandDetail,
 }));
@@ -131,6 +136,18 @@ vi.mock('@ui/card/Card', () => ({
 
 vi.mock('@ui/loading/default/Loading', () => ({
   default: () => <div>Loading publishing settings</div>,
+}));
+
+vi.mock('@ui/primitives/alert', () => ({
+  Alert: ({ children }: { children: ReactNode }) => (
+    <div role="alert">{children}</div>
+  ),
+  AlertDescription: ({ children }: { children: ReactNode }) => (
+    <p>{children}</p>
+  ),
+  AlertTitle: ({ children }: { children: ReactNode }) => (
+    <strong>{children}</strong>
+  ),
 }));
 
 vi.mock('@ui/primitives/button', () => ({
@@ -314,6 +331,71 @@ describe('BrandSettingsPublishingPage', () => {
     expect(mocks.success).toHaveBeenCalledWith(
       'Brand publishing defaults saved',
     );
+  });
+
+  it('shows the approval gate note when auto-publish is off and the gate is required', () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {
+          autoPublish: { enabled: false, isApprovalRequired: true },
+        },
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'You have the final say',
+    );
+  });
+
+  it('hides the approval gate note when auto-publish is on or the gate is not required', () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {
+          autoPublish: { enabled: true, isApprovalRequired: true },
+        },
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('sends isApprovalRequired: false when enabling auto-publish', async () => {
+    mocks.brandDetail = {
+      ...mocks.brandDetail,
+      brand: {
+        agentConfig: {
+          autoPublish: { enabled: false, isApprovalRequired: true },
+          schedule: { cronExpression: '', enabled: false, timezone: 'UTC' },
+        },
+      },
+    };
+
+    render(<BrandSettingsPublishingPage />);
+
+    expect(screen.getByRole('alert')).toBeVisible();
+
+    fireEvent.click(screen.getByLabelText('Auto-publish'));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Save defaults'));
+
+    await waitFor(() => {
+      expect(mocks.updateAgentConfig).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          autoPublish: expect.objectContaining({
+            enabled: true,
+            isApprovalRequired: false,
+          }),
+        }),
+      );
+    });
   });
 
   it('renders loading/not-found states and reports save failures', async () => {

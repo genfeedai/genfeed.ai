@@ -3,6 +3,7 @@ import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import type { ExpertHarnessDraft } from '@api/services/expert-path/utils/expert-harness-draft.util';
 import {
   type HarnessPackSeed,
   mergeSeedIntoExistingExamples,
@@ -12,8 +13,12 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { readRecordOrEmpty as readRecord } from '@api/shared/utils/object/read-record-or-empty.util';
 import type {
+  ExpertPositioningDimensionKey,
+  ExpertPositioningRating,
   HarnessProfileScope,
   HarnessProfileStatus,
+  IExpertPositioningDimensionScore,
+  IExpertPositioningScore,
   IHarnessAvoidFeedbackEntry,
   IHarnessProfileExamples,
   IHarnessProfileStructure,
@@ -26,6 +31,46 @@ import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 const HARNESS_PROFILE_TYPE = 'harness';
+
+/**
+ * Thesis keys owned by the Expert Path interview. Re-answering the interview
+ * replaces them; every other thesis list is merged so operator edits survive.
+ */
+const EXPERT_OWNED_THESIS_KEYS = [
+  'bigDomino',
+  'newOpportunity',
+  'notFor',
+  'originStory',
+  'transformation',
+] as const;
+
+const EXPERT_POSITIONING_DIMENSION_KEYS: readonly ExpertPositioningDimensionKey[] =
+  [
+    'attractiveCharacter',
+    'originStory',
+    'bigDomino',
+    'newOpportunity',
+    'authoritySignals',
+    'differentiation',
+  ];
+
+const EXPERT_POSITIONING_RATINGS: readonly ExpertPositioningRating[] = [
+  'expert_positioned',
+  'good_foundation',
+  'needs_work',
+  'commodity_zone',
+  'invisible',
+];
+
+/** Fields only the server writes; never accepted from the HTTP DTOs. */
+export interface HarnessProfileServerFields {
+  positioning?: IExpertPositioningScore;
+}
+
+export interface HarnessProfileContributionResult {
+  contribution: ContentHarnessContribution;
+  profileId: string;
+}
 
 function readString(value: unknown): string | undefined {
   return typeof value === 'string' && value.trim() ? value.trim() : undefined;
@@ -90,6 +135,88 @@ function readAvoidFeedback(value: unknown): IHarnessAvoidFeedbackEntry[] {
     : [];
 }
 
+function readNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : undefined;
+}
+
+function isPositioningDimensionKey(
+  value: unknown,
+): value is ExpertPositioningDimensionKey {
+  return (
+    typeof value === 'string' &&
+    (EXPERT_POSITIONING_DIMENSION_KEYS as readonly string[]).includes(value)
+  );
+}
+
+function readPositioningDimension(
+  value: unknown,
+): IExpertPositioningDimensionScore | undefined {
+  const record = readRecord(value);
+  const score = readNumber(record.score);
+  const weight = readNumber(record.weight);
+  if (
+    !isPositioningDimensionKey(record.key) ||
+    score === undefined ||
+    !weight
+  ) {
+    return undefined;
+  }
+
+  return {
+    followUpFieldKey: readString(record.followUpFieldKey) ?? '',
+    followUpQuestion: readString(record.followUpQuestion) ?? '',
+    key: record.key,
+    label: readString(record.label) ?? record.key,
+    maxWeightedScore: readNumber(record.maxWeightedScore) ?? weight * 10,
+    score,
+    weight,
+    weightedScore: readNumber(record.weightedScore) ?? score * weight,
+  };
+}
+
+/**
+ * The positioning scorecard is server-computed; validate the stored JSON
+ * shape instead of trusting it so a malformed row never reaches the UI.
+ */
+function readPositioning(value: unknown): IExpertPositioningScore | undefined {
+  const record = readRecord(value);
+  const totalScore = readNumber(record.totalScore);
+  const scoredAt = readString(record.scoredAt);
+  const rating = record.rating;
+  if (
+    totalScore === undefined ||
+    !scoredAt ||
+    !isPositioningDimensionKey(record.weakestDimension) ||
+    typeof rating !== 'string' ||
+    !(EXPERT_POSITIONING_RATINGS as readonly string[]).includes(rating)
+  ) {
+    return undefined;
+  }
+
+  const dimensions = Array.isArray(record.dimensions)
+    ? record.dimensions
+        .map((item) => readPositioningDimension(item))
+        .filter((item): item is IExpertPositioningDimensionScore =>
+          Boolean(item),
+        )
+    : [];
+
+  return {
+    dimensions,
+    rating: rating as ExpertPositioningRating,
+    scoredAt,
+    totalScore,
+    version: 1,
+    weakestDimension: record.weakestDimension,
+  };
+}
+
+function mergeUnique(...lists: (string[] | undefined)[]): string[] {
+  return Array.from(new Set(lists.flatMap((list) => list ?? [])));
+}
+
 @Injectable()
 export class HarnessProfilesService {
   constructor(
@@ -101,13 +228,14 @@ export class HarnessProfilesService {
     dto: UpsertHarnessProfileDto,
     organizationId: string,
     userId: string,
+    serverFields: HarnessProfileServerFields = {},
   ): Promise<HarnessProfileDocument> {
     const existingProfiles = await this.findForBrand(
       organizationId,
       dto.brandId,
     );
     const isDefault = dto.isDefault ?? existingProfiles.length === 0;
-    const data = this.normalizePayload(dto, isDefault);
+    const data = this.normalizePayload(dto, isDefault, serverFields);
 
     if (data.isDefault) {
       await this.unsetDefaultForBrand(organizationId, dto.brandId);
@@ -183,6 +311,7 @@ export class HarnessProfilesService {
     id: string,
     dto: UpdateHarnessProfileDto,
     organizationId: string,
+    serverFields: HarnessProfileServerFields = {},
   ): Promise<HarnessProfileDocument> {
     const existing = await this.findOneRaw(id, organizationId);
     const existingProfile = this.normalizeProfile(existing);
@@ -220,6 +349,9 @@ export class HarnessProfilesService {
         },
       },
       dto.isDefault ?? existingProfile.isDefault,
+      {
+        positioning: serverFields.positioning ?? existingProfile.positioning,
+      },
     );
 
     if (data.isDefault && data.brandId) {
@@ -248,13 +380,110 @@ export class HarnessProfilesService {
     organizationId: string,
     brandId: string,
   ): Promise<ContentHarnessContribution | null> {
+    const resolved = await this.resolveContributionForBrand(
+      organizationId,
+      brandId,
+    );
+    return resolved?.contribution ?? null;
+  }
+
+  /**
+   * Contribution plus the id of the profile it came from, so harness briefs
+   * can record which profile shaped a generation.
+   */
+  async resolveContributionForBrand(
+    organizationId: string,
+    brandId: string,
+  ): Promise<HarnessProfileContributionResult | null> {
     const profile = await this.getActiveForBrand(organizationId, brandId);
 
     if (!profile) {
       return null;
     }
 
-    return this.toContribution(profile);
+    return {
+      contribution: this.toContribution(profile),
+      profileId: profile.id,
+    };
+  }
+
+  /**
+   * Create or merge the Expert Path positioning draft into the brand's
+   * default harness profile. Mirrors `upsertSeedForBrand`: operator-set
+   * scalars win, lists merge, and only the interview-owned thesis keys and
+   * the positioning scorecard are replaced.
+   */
+  async upsertPositioningDraftForBrand(params: {
+    draft: ExpertHarnessDraft;
+    organizationId: string;
+    userId: string;
+  }): Promise<HarnessProfileDocument> {
+    const { draft } = params;
+    const existing = await this.getActiveForBrand(
+      params.organizationId,
+      draft.brandId,
+    );
+
+    if (!existing) {
+      return this.create(
+        {
+          ...draft,
+          thesis: { ...draft.thesis },
+          voice: { ...draft.voice },
+        },
+        params.organizationId,
+        params.userId,
+        { positioning: draft.positioning },
+      );
+    }
+
+    const thesis: Record<string, string[]> = {
+      ...Object.fromEntries(
+        Object.entries(existing.thesis ?? {}).map(([key, value]) => [
+          key,
+          value ?? [],
+        ]),
+      ),
+      beliefs: mergeUnique(existing.thesis?.beliefs, draft.thesis.beliefs),
+      enemies: mergeUnique(existing.thesis?.enemies, draft.thesis.enemies),
+      proofPoints: mergeUnique(
+        existing.thesis?.proofPoints,
+        draft.thesis.proofPoints,
+      ),
+    };
+    for (const key of EXPERT_OWNED_THESIS_KEYS) {
+      thesis[key] = draft.thesis[key] ?? [];
+    }
+
+    return this.update(
+      existing.id,
+      {
+        audience: mergeUnique(existing.audience, draft.audience),
+        description: existing.description ?? draft.description,
+        guardrails: mergeUnique(existing.guardrails, draft.guardrails),
+        isDefault: true,
+        label: existing.label || draft.label,
+        metadata: { ...existing.metadata, ...draft.metadata },
+        platforms: mergeUnique(existing.platforms, draft.platforms),
+        thesis,
+        voice: {
+          ...existing.voice,
+          bannedPhrases: mergeUnique(
+            existing.voice?.bannedPhrases,
+            draft.voice.bannedPhrases,
+          ),
+          stance: existing.voice?.stance ?? draft.voice.stance,
+          style: existing.voice?.style ?? draft.voice.style,
+          tone: existing.voice?.tone ?? draft.voice.tone,
+          vocabulary: mergeUnique(
+            existing.voice?.vocabulary,
+            draft.voice.vocabulary,
+          ),
+        },
+      },
+      params.organizationId,
+      { positioning: draft.positioning },
+    );
   }
 
   /**
@@ -399,6 +628,7 @@ export class HarnessProfilesService {
       metadata: readRecord(data.metadata),
       organization: profile.organizationId,
       platforms: readStringArray(data.platforms),
+      positioning: readPositioning(data.positioning),
       profileType: HARNESS_PROFILE_TYPE,
       scope: this.readScope(data.scope),
       status: this.readStatus(data.status),
@@ -426,8 +656,11 @@ export class HarnessProfilesService {
       scope: HarnessProfileScope;
     },
     isDefault: boolean,
+    serverFields: HarnessProfileServerFields = {},
   ) {
+    const positioning = readPositioning(serverFields.positioning);
     return {
+      ...(positioning ? { positioning } : {}),
       audience: readStringArray(dto.audience),
       avoidFeedback: readAvoidFeedback(dto.avoidFeedback),
       brandId: dto.brandId,
@@ -494,6 +727,21 @@ export class HarnessProfilesService {
     ].filter((item): item is string => Boolean(item));
 
     const systemDirectives = [
+      thesis.bigDomino?.length
+        ? `Big Domino — every piece ladders to this belief: ${thesis.bigDomino.join(' | ')}`
+        : undefined,
+      thesis.originStory?.length
+        ? `Origin story (use as lived experience, never embellish): ${thesis.originStory.join(' | ')}`
+        : undefined,
+      thesis.newOpportunity?.length
+        ? `Frame as a new opportunity, not an improvement: ${thesis.newOpportunity.join(' | ')}`
+        : undefined,
+      thesis.transformation?.length
+        ? `Transformation delivered: ${thesis.transformation.join(' | ')}`
+        : undefined,
+      thesis.notFor?.length
+        ? `Not for: ${thesis.notFor.join(' | ')}`
+        : undefined,
       thesis.beliefs?.length
         ? `Core beliefs: ${thesis.beliefs.join(' | ')}.`
         : undefined,
