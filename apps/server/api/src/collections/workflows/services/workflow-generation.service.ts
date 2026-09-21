@@ -2,15 +2,16 @@ import {
   type CoreWorkflowFormat,
   WorkflowFormatConverterService,
 } from '@api/collections/workflows/services/workflow-format-converter.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   getDefaultModel,
   OpenRouterModelTier,
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import {
   buildWorkflowGenerationMessages,
   buildWorkflowGenerationNodeTypes,
-  parseWorkflowGenerationResponse,
+  WORKFLOW_GENERATION_SCHEMA_NAME,
+  workflowGenerationSchema,
 } from '@genfeedai/workflows/generation';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
 
@@ -22,7 +23,7 @@ interface GenerateWorkflowParams {
 @Injectable()
 export class WorkflowGenerationService {
   constructor(
-    private readonly openRouterService: OpenRouterService,
+    private readonly llmDispatcherService: LlmDispatcherService,
     private readonly workflowFormatConverter: WorkflowFormatConverterService,
   ) {}
 
@@ -32,28 +33,27 @@ export class WorkflowGenerationService {
     tokensUsed: number;
     workflow: Record<string, unknown>;
   }> {
-    const availableNodeTypes = buildWorkflowGenerationNodeTypes();
+    // A repair turn is a second billed call, so usage is summed across every
+    // attempt rather than read off the last one.
+    let tokensUsed = 0;
 
-    const model = getDefaultModel(OpenRouterModelTier.STANDARD);
-    const response = await this.openRouterService.chatCompletion({
+    const generated = await this.llmDispatcherService.completeStructured({
       max_tokens: 4000,
       messages: buildWorkflowGenerationMessages({
-        availableNodeTypes,
+        availableNodeTypes: buildWorkflowGenerationNodeTypes(),
         description: params.description,
         targetPlatforms: params.targetPlatforms,
       }),
-      model,
+      model: getDefaultModel(OpenRouterModelTier.STANDARD),
+      onAttempt: (response) => {
+        tokensUsed += response.usage?.total_tokens ?? 0;
+      },
+      schema: workflowGenerationSchema,
+      schemaName: WORKFLOW_GENERATION_SCHEMA_NAME,
       temperature: 0.3,
     });
 
-    const raw = response.choices[0]?.message?.content ?? '{}';
-    const tokensUsed = response.usage?.total_tokens ?? 0;
-
     try {
-      const generated = parseWorkflowGenerationResponse(raw).workflow;
-      if (!Array.isArray(generated.nodes) || !Array.isArray(generated.edges)) {
-        throw new Error('Generated workflow has no graph');
-      }
       const converted = this.workflowFormatConverter.ensureCloudFormat(
         generated as unknown as CoreWorkflowFormat,
       );
@@ -68,7 +68,7 @@ export class WorkflowGenerationService {
       };
     } catch {
       throw new HttpException(
-        'Failed to parse generated workflow JSON',
+        'Generated workflow could not be converted to the cloud format',
         HttpStatus.UNPROCESSABLE_ENTITY,
       );
     }

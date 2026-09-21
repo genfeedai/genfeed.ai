@@ -35,21 +35,9 @@ Rules:
 8. For ad/marketing content, use "ads_script_writer" for video ads and "cta_content" for conversion copy.
 9. When a request spans multiple platforms, create one subtask per platform specialist.
 
-Respond with valid JSON only. No markdown, no explanation.
-
-Schema:
-{
-  "subtasks": [
-    {
-      "agentType": "image_creator",
-      "label": "Create product carousel",
-      "brief": "Generate a 3-slide carousel showing...",
-      "order": 0
-    }
-  ],
-  "routingSummary": "One-sentence summary of the routing decision",
-  "isSingleAgent": true
-}`;
+Give each subtask an \`order\` (lower runs first, equal values run in parallel),
+a short \`label\` for the run, and a \`brief\` the agent can act on.
+Close with a one-sentence \`routingSummary\` of the decision.`;
 
 /**
  * Model used for decomposition — cheap and fast.

@@ -4,7 +4,9 @@ import { ContentPlansService } from '@api/collections/content-plans/services/con
 import { ContentPlannerService } from '@api/services/content-engine/content-planner.service';
 import { PlanPerformanceContextService } from '@api/services/content-engine/plan-performance-context.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { ContentPlanItemType, ContentPlanStatus } from '@genfeedai/contracts';
+import type { ContentPlanGeneration } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -47,7 +49,7 @@ const baseDto = {
   topics: ['AI trends', 'startup life'],
 };
 
-const llmSkillResponse = JSON.stringify({
+const llmPlan: ContentPlanGeneration = {
   items: [
     {
       platforms: ['instagram'],
@@ -55,7 +57,7 @@ const llmSkillResponse = JSON.stringify({
       scheduledAt: '2026-03-01T10:00:00Z',
       skillSlug: 'content-writing',
       topic: 'AI trends',
-      type: 'skill',
+      type: ContentPlanItemType.SKILL,
     },
     {
       pipelineSteps: [
@@ -69,16 +71,13 @@ const llmSkillResponse = JSON.stringify({
       platforms: ['tiktok'],
       prompt: 'Create visual for product launch',
       topic: 'Product launch',
-      type: 'media_pipeline',
+      type: ContentPlanItemType.MEDIA_PIPELINE,
     },
   ],
   name: 'AI Content Plan',
-});
+};
 
 type BrandLookup = Awaited<ReturnType<BrandsService['findOne']>>;
-type ChatCompletion = Awaited<
-  ReturnType<LlmDispatcherService['chatCompletion']>
->;
 type PlanRecord = Awaited<ReturnType<ContentPlansService['createInternal']>>;
 type ItemRecords = Awaited<ReturnType<ContentPlanItemsService['createMany']>>;
 
@@ -86,16 +85,6 @@ function asBrandLookup(
   brand: typeof baseBrand | typeof brandWithoutAgentConfig | null,
 ): BrandLookup {
   return brand as unknown as BrandLookup;
-}
-
-function asChatCompletion(content?: string): ChatCompletion {
-  if (content === undefined) {
-    return { choices: [] } as unknown as ChatCompletion;
-  }
-
-  return {
-    choices: [{ message: { content } }],
-  } as unknown as ChatCompletion;
 }
 
 function asPlan(plan: { _id: string }): PlanRecord {
@@ -117,14 +106,14 @@ describe('ContentPlannerService', () => {
 
   function stubGeneratePlan(options?: {
     brand?: typeof baseBrand | typeof brandWithoutAgentConfig | null;
-    content?: string;
+    generated?: ContentPlanGeneration;
     plan?: { _id: string };
     items?: Array<{ _id?: string; topic?: string }>;
   }) {
     const brand = options && 'brand' in options ? options.brand : baseBrand;
     brandsService.findOne.mockResolvedValue(asBrandLookup(brand ?? null));
-    llmDispatcherService.chatCompletion.mockResolvedValue(
-      asChatCompletion(options?.content ?? llmSkillResponse),
+    llmDispatcherService.completeStructured.mockResolvedValue(
+      options?.generated ?? llmPlan,
     );
     contentPlansService.createInternal.mockResolvedValue(
       asPlan(options?.plan ?? { _id: mockPlanId }),
@@ -145,7 +134,7 @@ describe('ContentPlannerService', () => {
       createMany: vi.fn(),
     } as unknown as vi.Mocked<ContentPlanItemsService>;
     llmDispatcherService = {
-      chatCompletion: vi.fn(),
+      completeStructured: vi.fn(),
     } as unknown as vi.Mocked<LlmDispatcherService>;
     logger = {
       debug: vi.fn(),
@@ -197,7 +186,7 @@ describe('ContentPlannerService', () => {
       brandId: mockBrandId,
       organizationId: mockOrgId,
     });
-    const chatArgs = llmDispatcherService.chatCompletion.mock.calls[0][0];
+    const chatArgs = llmDispatcherService.completeStructured.mock.calls[0][0];
     const userMessage = chatArgs.messages.find(
       (message: { role: string }) => message.role === 'user',
     );
@@ -327,22 +316,35 @@ describe('ContentPlannerService', () => {
     );
   });
 
-  it('should call llmDispatcherService.chatCompletion with correct model and messages', async () => {
+  it('asks the dispatcher for the plan schema with the right model and messages', async () => {
     stubGeneratePlan();
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
-    expect(llmDispatcherService.chatCompletion).toHaveBeenCalledWith(
+    expect(llmDispatcherService.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
         messages: expect.arrayContaining([
           expect.objectContaining({ role: 'system' }),
           expect.objectContaining({ role: 'user' }),
         ]),
         model: LLM_DEFAULTS.planning,
+        schemaName: 'content_plan_generation',
         temperature: 0.7,
       }),
       mockOrgId,
     );
+  });
+
+  it('stops telling the model to return JSON — the schema carries the shape', async () => {
+    stubGeneratePlan();
+
+    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+
+    const chatArgs = llmDispatcherService.completeStructured.mock.calls[0][0];
+    const systemMessage = chatArgs.messages.find(
+      (message: { role: string }) => message.role === 'system',
+    );
+    expect(systemMessage?.content).not.toContain('valid JSON');
   });
 
   it('should include platform-specific format guidance in the user prompt', async () => {
@@ -350,7 +352,7 @@ describe('ContentPlannerService', () => {
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
-    const chatArgs = llmDispatcherService.chatCompletion.mock.calls[0][0];
+    const chatArgs = llmDispatcherService.completeStructured.mock.calls[0][0];
     const userMessage = chatArgs.messages.find(
       (message: { role: string }) => message.role === 'user',
     );
@@ -371,7 +373,7 @@ describe('ContentPlannerService', () => {
       platforms: undefined,
     });
 
-    const chatArgs = llmDispatcherService.chatCompletion.mock.calls[0][0];
+    const chatArgs = llmDispatcherService.completeStructured.mock.calls[0][0];
     const userMessage = chatArgs.messages.find(
       (message: { role: string }) => message.role === 'user',
     );
@@ -494,93 +496,34 @@ describe('ContentPlannerService', () => {
     );
   });
 
-  // ─── LLM fallback behavior ─────────────────────────────────────────────────
+  // ─── unusable model output ─────────────────────────────────────────────────
 
-  it('should use fallback items when LLM response has no JSON', async () => {
-    stubGeneratePlan({ content: 'Sorry, I cannot help.' });
+  it('surfaces the typed error instead of emitting canned template items', async () => {
+    stubGeneratePlan();
+    const error = new LlmStructuredOutputError('content_plan_generation', [
+      { code: 'too_small', message: 'expected >= 1', path: 'items' },
+    ]);
+    llmDispatcherService.completeStructured.mockRejectedValue(error);
 
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+    await expect(
+      service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto),
+    ).rejects.toBe(error);
 
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    expect(createManyArg.length).toBe(baseDto.itemCount);
-    expect(logger.error).toHaveBeenCalled();
+    expect(contentPlansService.createInternal).not.toHaveBeenCalled();
+    expect(contentPlanItemsService.createMany).not.toHaveBeenCalled();
   });
 
-  it('should use fallback items when LLM response is invalid JSON', async () => {
-    stubGeneratePlan({ content: '{ bad json {{' });
-
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
-
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    expect(createManyArg.length).toBe(baseDto.itemCount);
-  });
-
-  it('should use fallback items when LLM JSON is missing items array', async () => {
-    stubGeneratePlan({ content: '{"name":"Plan"}' });
-
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
-
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    expect(createManyArg.length).toBe(baseDto.itemCount);
-  });
-
-  it('should use fallback when LLM response choices is empty', async () => {
-    brandsService.findOne.mockResolvedValue(asBrandLookup(baseBrand));
-    llmDispatcherService.chatCompletion.mockResolvedValue(asChatCompletion());
-    contentPlansService.createInternal.mockResolvedValue(
-      asPlan({ _id: mockPlanId }),
+  it('never persists a plan when the provider call fails', async () => {
+    stubGeneratePlan();
+    llmDispatcherService.completeStructured.mockRejectedValue(
+      new Error('provider down'),
     );
-    contentPlanItemsService.createMany.mockResolvedValue(asItems([]));
 
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+    await expect(
+      service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto),
+    ).rejects.toThrow('provider down');
 
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    expect(createManyArg.length).toBe(baseDto.itemCount);
-  });
-
-  it('fallback items should default to skill type', async () => {
-    stubGeneratePlan({ content: 'no json here' });
-
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
-
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    for (const item of createManyArg) {
-      expect(item.type).toBe(ContentPlanItemType.SKILL);
-    }
-  });
-
-  it('fallback items use content-writing skillSlug', async () => {
-    stubGeneratePlan({ content: 'no json' });
-
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
-
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    for (const item of createManyArg) {
-      expect(item.skillSlug).toBe('content-writing');
-    }
-  });
-
-  it('fallback uses dto.itemCount defaulting to 7 when not set', async () => {
-    stubGeneratePlan({ content: 'no json' });
-
-    const dto = { ...baseDto, itemCount: undefined };
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, dto);
-
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    expect(createManyArg.length).toBe(7);
-  });
-
-  it('fallback cycles through topics for item prompts', async () => {
-    stubGeneratePlan({ content: 'no json' });
-
-    const dto = { ...baseDto, itemCount: 4, topics: ['Topic A', 'Topic B'] };
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, dto);
-
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    expect(createManyArg[0].topic).toBe('Topic A');
-    expect(createManyArg[1].topic).toBe('Topic B');
-    expect(createManyArg[2].topic).toBe('Topic A');
-    expect(createManyArg[3].topic).toBe('Topic B');
+    expect(contentPlanItemsService.createMany).not.toHaveBeenCalled();
   });
 
   // ─── brand without agentConfig ─────────────────────────────────────────────
@@ -595,7 +538,7 @@ describe('ContentPlannerService', () => {
       plan: expect.objectContaining({ _id: expect.any(String) }),
     });
 
-    expect(llmDispatcherService.chatCompletion).toHaveBeenCalledWith(
+    expect(llmDispatcherService.completeStructured).toHaveBeenCalledWith(
       expect.objectContaining({
         messages: expect.arrayContaining([
           expect.objectContaining({
@@ -610,27 +553,19 @@ describe('ContentPlannerService', () => {
 
   // ─── parsed item defaults ─────────────────────────────────────────────────
 
-  it('should default unknown LLM item types to skill', async () => {
-    const weirdResponse = JSON.stringify({
-      items: [
-        { platforms: [], prompt: 'p', topic: 'test', type: 'unknown_type' },
-      ],
-      name: 'Plan',
+  it('should use dto.platforms for items the model left without platforms', async () => {
+    stubGeneratePlan({
+      generated: {
+        items: [
+          {
+            prompt: 'p',
+            topic: 'test',
+            type: ContentPlanItemType.SKILL,
+          },
+        ],
+        name: 'Plan',
+      },
     });
-    stubGeneratePlan({ content: weirdResponse });
-
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
-
-    const createManyArg = contentPlanItemsService.createMany.mock.calls[0][0];
-    expect(createManyArg[0].type).toBe(ContentPlanItemType.SKILL);
-  });
-
-  it('should use dto.platforms for items missing platforms in LLM response', async () => {
-    const noPlatformResponse = JSON.stringify({
-      items: [{ prompt: 'p', topic: 'test', type: 'skill' }],
-      name: 'Plan',
-    });
-    stubGeneratePlan({ content: noPlatformResponse });
 
     await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
 
@@ -648,17 +583,6 @@ describe('ContentPlannerService', () => {
         periodEnd: new Date(baseDto.periodEnd),
         periodStart: new Date(baseDto.periodStart),
       }),
-    );
-  });
-
-  it('should extract JSON embedded in surrounding text in LLM response', async () => {
-    const wrappedJson = `Here is your plan:\n${llmSkillResponse}\nEnjoy!`;
-    stubGeneratePlan({ content: wrappedJson });
-
-    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
-
-    expect(contentPlansService.createInternal).toHaveBeenCalledWith(
-      expect.objectContaining({ itemCount: 2 }),
     );
   });
 });

@@ -15,15 +15,21 @@ import type {
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
+import {
+  BRAND_PROFILE_ANALYSIS_SCHEMA_NAME,
+  BRAND_TONE_ANALYSIS_SCHEMA_NAME,
+  brandProfileAnalysisSchema,
+  brandToneAnalysisSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import type { Prisma, Profile as ProfileRow } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+import type { ZodType } from 'zod';
 
 type Profile = ProfileDocument;
 
@@ -46,47 +52,6 @@ export class ProfilesService {
     return typeof value === 'number' && Number.isFinite(value)
       ? value
       : undefined;
-  }
-
-  private readString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readViolations(value: unknown): Array<{
-    severity: 'high' | 'medium' | 'low';
-    category: string;
-    message: string;
-    suggestion: string;
-  }> {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.flatMap((item) => {
-      const record = this.readObjectRecord(item);
-      const severity = record.severity;
-      const category = this.readString(record.category);
-      const message = this.readString(record.message);
-      const suggestion = this.readString(record.suggestion);
-
-      if (
-        (severity !== 'high' && severity !== 'medium' && severity !== 'low') ||
-        !category ||
-        !message ||
-        !suggestion
-      ) {
-        return [];
-      }
-
-      return [
-        {
-          category,
-          message,
-          severity,
-          suggestion,
-        },
-      ];
-    });
   }
 
   private serializeProfileData(
@@ -506,42 +471,16 @@ Content: "${content}"
 Brand profile for ${contentType}:
 ${profileDetails}
 
-Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
-{
-  "score": 85,
-  "violations": [
-    {
-      "severity": "medium",
-      "category": "tone",
-      "message": "Content uses formal tone instead of conversational",
-      "suggestion": "Use more casual language: 'Hey there!' instead of 'Greetings'"
-    }
-  ],
-  "summary": "Content mostly aligns with brand profile with minor tone adjustments needed"
-}
+Score 0-100 — higher is better. Summarize the fit in one line, and list each
+violation with its severity, category, what is wrong and how to fix it.`;
 
-Score 0-100. Higher is better.`;
-
-    const input = {
-      max_completion_tokens: 1024,
-      prompt: analyzePrompt,
-    };
-    const response = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
-      input,
+    return this.completeStructured(
+      analyzePrompt,
+      1024,
+      brandToneAnalysisSchema,
+      BRAND_TONE_ANALYSIS_SCHEMA_NAME,
+      onBilling,
     );
-    onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-    const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
-      response,
-      {},
-    );
-
-    return {
-      score: this.readNumber(result.score) ?? 0,
-      summary: this.readString(result.summary) ?? 'Analysis complete',
-      violations: this.readViolations(result.violations),
-    };
   }
 
   /**
@@ -572,64 +511,55 @@ Score 0-100. Higher is better.`;
 Examples:
 ${examplesList}
 
-Return ONLY valid JSON with profile definitions for each content type found. Do not include any text before or after the JSON:
-{
-  "image": {
-    "style": "modern",
-    "mood": ["professional", "energetic"],
-    "colorPalette": {
-      "primary": ["#0066FF"],
-      "secondary": ["#00CCFF"],
-      "neutral": ["#FFFFFF"]
-    },
-    "lighting": "dramatic",
-    "composition": ["rule-of-thirds", "dynamic"]
-  },
-  "video": {
-    "pacing": "fast",
-    "energy": "high",
-    "transitions": ["cut", "zoom"],
-    "musicStyle": ["electronic", "upbeat"],
-    "colorGrading": "vibrant",
-    "aspectRatio": ["16:9", "9:16"]
-  },
-  "voice": {
-    "personality": "enthusiastic",
-    "pace": "fast",
-    "emotion": ["excited", "confident"],
-    "speakingStyle": "conversational"
-  },
-  "article": {
-    "writingStyle": "conversational",
-    "formality": "informal",
-    "vocabulary": "moderate",
-    "readingLevel": "high-school"
-  }
-}
+Describe each content type present in the examples, leaving the others null:
+- image: style, mood, colorPalette (primary/secondary/neutral), lighting, composition
+- video: pacing, energy, transitions, musicStyle, colorGrading, aspectRatio
+- voice: personality, pace, emotion, speakingStyle
+- article: writingStyle, formality, vocabulary, readingLevel`;
 
-Only include content types that are present in examples.`;
-
-    const input = {
-      max_completion_tokens: 2048,
+    const result = await this.completeStructured(
       prompt,
-    };
-    const response = await this.replicateService.generateTextCompletionSync(
-      DEFAULT_TEXT_MODEL,
-      input,
-    );
-    onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-    const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
-      response,
-      {},
+      2048,
+      brandProfileAnalysisSchema,
+      BRAND_PROFILE_ANALYSIS_SCHEMA_NAME,
+      onBilling,
     );
 
     return {
-      article: result.article as Record<string, unknown> | undefined,
-      image: result.image as Record<string, unknown> | undefined,
-      video: result.video as Record<string, unknown> | undefined,
-      voice: result.voice as Record<string, unknown> | undefined,
+      article: result.article ?? undefined,
+      image: result.image ?? undefined,
+      video: result.video ?? undefined,
+      voice: result.voice ?? undefined,
     };
+  }
+
+  /**
+   * One schema-validated text completion on the default Replicate text model.
+   * Replicate cannot enforce a schema, so the adapter carries it in the prompt
+   * and validates the answer, repairing once before the typed error. Every
+   * attempt is billed — a repair is a second prediction we paid for.
+   */
+  private async completeStructured<TResult>(
+    prompt: string,
+    maxCompletionTokens: number,
+    schema: ZodType<TResult>,
+    schemaName: string,
+    onBilling?: (amount: number) => void,
+  ): Promise<TResult> {
+    return this.replicateService.generateStructuredTextSync(
+      DEFAULT_TEXT_MODEL,
+      {
+        input: { max_completion_tokens: maxCompletionTokens },
+        onAttempt: async (attemptInput, output) => {
+          onBilling?.(
+            await this.calculateDefaultTextCharge(attemptInput, output),
+          );
+        },
+        prompt,
+        schema,
+        schemaName,
+      },
+    );
   }
 
   private async calculateDefaultTextCharge(

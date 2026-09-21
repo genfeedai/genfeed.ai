@@ -13,12 +13,22 @@ import { WorkflowExecutionQueueService } from '@api/collections/workflows/servic
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Timeframe } from '@genfeedai/contracts';
+import {
+  CONTENT_GAP_ANALYSIS_SCHEMA_NAME,
+  contentGapAnalysisSchema,
+  GENERATED_INSIGHTS_SCHEMA_NAME,
+  generatedInsightsSchema,
+  INSIGHT_POSTING_TIMES_SCHEMA_NAME,
+  insightPostingTimesSchema,
+  VIRAL_PREDICTION_SCHEMA_NAME,
+  viralPredictionSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type { InsightGenerationWorkflowInput } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -29,6 +39,7 @@ import {
   Optional,
   ServiceUnavailableException,
 } from '@nestjs/common';
+import type { ZodType } from 'zod';
 
 /** Brands whose performance grounds an organisation-level insight prompt. */
 const INSIGHT_GROUNDING_BRAND_LIMIT = 3;
@@ -139,125 +150,16 @@ export class InsightsService implements OnModuleInit {
     } as unknown as Insight;
   }
 
+  private readString(value: unknown): string | undefined {
+    return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
   private readObjectRecord(value: unknown): Record<string, unknown> {
     return typeof value === 'object' && value !== null
       ? (value as Record<string, unknown>)
       : {};
   }
 
-  private readNumber(value: unknown): number | undefined {
-    return typeof value === 'number' && Number.isFinite(value)
-      ? value
-      : undefined;
-  }
-
-  private readString(value: unknown): string | undefined {
-    return typeof value === 'string' && value.length > 0 ? value : undefined;
-  }
-
-  private readStringArray(value: unknown): string[] {
-    return Array.isArray(value)
-      ? value.filter((item): item is string => typeof item === 'string')
-      : [];
-  }
-
-  private readEstimatedReach(value: unknown): { min: number; max: number } {
-    const record = this.readObjectRecord(value);
-
-    return {
-      max: this.readNumber(record.max) ?? 0,
-      min: this.readNumber(record.min) ?? 0,
-    };
-  }
-
-  private readFactors(
-    value: unknown,
-  ): Array<{ factor: string; impact: number; description: string }> {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.flatMap((item) => {
-      const record = this.readObjectRecord(item);
-      const factor = this.readString(record.factor);
-      const description = this.readString(record.description);
-
-      if (!factor || !description) {
-        return [];
-      }
-
-      return [
-        {
-          description,
-          factor,
-          impact: this.readNumber(record.impact) ?? 0,
-        },
-      ];
-    });
-  }
-
-  private readOpportunityAreas(value: unknown): Array<{
-    area: string;
-    potential: number;
-    competition: string;
-    recommendations: string[];
-  }> {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.flatMap((item) => {
-      const record = this.readObjectRecord(item);
-      const area = this.readString(record.area);
-      const competition = this.readString(record.competition);
-
-      if (!area || !competition) {
-        return [];
-      }
-
-      return [
-        {
-          area,
-          competition,
-          potential: this.readNumber(record.potential) ?? 0,
-          recommendations: this.readStringArray(record.recommendations),
-        },
-      ];
-    });
-  }
-
-  private readRecommendedTimes(value: unknown): Array<{
-    day: string;
-    time: string;
-    confidence: number;
-    reason: string;
-  }> {
-    if (!Array.isArray(value)) {
-      return [];
-    }
-
-    return value.flatMap((item) => {
-      const record = this.readObjectRecord(item);
-      const day = this.readString(record.day);
-      const time = this.readString(record.time);
-      const reason = this.readString(record.reason);
-
-      if (!day || !time || !reason) {
-        return [];
-      }
-
-      return [
-        {
-          confidence: this.readNumber(record.confidence) ?? 0,
-          day,
-          reason,
-          time,
-        },
-      ];
-    });
-  }
-
-  @HandleErrors('get forecast', 'insights')
   async getForecast(
     dto: GetForecastDto,
     organizationId: string,
@@ -486,49 +388,18 @@ export class InsightsService implements OnModuleInit {
 
 Content: "${dto.content}"
 
-Return JSON:
-{
-  "score": 75,
-  "probability": 12,
-  "estimatedReach": { "min": 10000, "max": 50000 },
-  "factors": [
-    {
-      "factor": "Strong hook",
-      "impact": 25,
-      "description": "Opening line grabs attention immediately"
-    }
-  ],
-  "recommendations": [
-    "Add trending hashtags for broader reach",
-    "Post during peak engagement hours (2-4 PM)"
-  ]
-}
+Score 0-100 for viral potential. Probability is the % chance of going viral
+(>100k views). Estimate the reach range, name the factors driving the score
+with the weight each carries, and give concrete recommendations.`;
 
-Score 0-100 for viral potential.
-Probability is % chance of going viral (>100k views).
-
-Return ONLY valid JSON. Do not include any text before or after the JSON.`;
-
-      const input = { max_completion_tokens: 1024, prompt };
-      const response = await this.generateTextCompletion(
+      return await this.completeStructured(
         prompt,
-        input.max_completion_tokens,
+        1024,
+        viralPredictionSchema,
+        VIRAL_PREDICTION_SCHEMA_NAME,
         organizationId,
+        onBilling,
       );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-      const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
-        response,
-        {},
-      );
-
-      return {
-        estimatedReach: this.readEstimatedReach(result.estimatedReach),
-        factors: this.readFactors(result.factors),
-        probability: this.readNumber(result.probability) ?? 0,
-        recommendations: this.readStringArray(result.recommendations),
-        score: this.readNumber(result.score) ?? 0,
-      };
     } catch (error: unknown) {
       this.logger.error('Failed to predict viral potential', { error });
       throw error;
@@ -553,38 +424,18 @@ Return ONLY valid JSON. Do not include any text before or after the JSON.`;
 
       const prompt = `Analyze content gaps for a content creator.
 
-Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
-{
-  "missingTopics": ["Behind-the-scenes", "Product tutorials"],
-  "opportunityAreas": [
-    {
-      "area": "Educational content",
-      "potential": 85,
-      "competition": "medium",
-      "recommendations": ["Create how-to guides", "Share expert tips"]
-    }
-  ],
-  "underservedAudiences": ["Beginners in your niche", "Advanced users"]
-}`;
+List the topics they are missing, the opportunity areas — each with a 0-100
+potential, the competition level and concrete recommendations — and the
+audiences currently underserved.`;
 
-      const input = { max_completion_tokens: 1024, prompt };
-      const response = await this.generateTextCompletion(
+      return await this.completeStructured(
         prompt,
-        input.max_completion_tokens,
+        1024,
+        contentGapAnalysisSchema,
+        CONTENT_GAP_ANALYSIS_SCHEMA_NAME,
         organizationId,
+        onBilling,
       );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-      const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
-        response,
-        {},
-      );
-
-      return {
-        missingTopics: this.readStringArray(result.missingTopics),
-        opportunityAreas: this.readOpportunityAreas(result.opportunityAreas),
-        underservedAudiences: this.readStringArray(result.underservedAudiences),
-      };
     } catch (error: unknown) {
       this.logger.error('Failed to analyze content gaps', { error });
       throw error;
@@ -615,37 +466,19 @@ Return ONLY valid JSON with this structure. Do not include any text before or af
       const grounding = await this.buildPerformanceGrounding(organizationId);
       const prompt = `Based on ${platform} best practices and audience engagement patterns, provide the best posting times in ${timezone} timezone.
 ${grounding}
-Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
-{
-  "recommendedTimes": [
-    {
-      "day": "Monday",
-      "time": "09:00 AM",
-      "confidence": 85,
-      "reason": "Peak morning engagement for professionals"
-    }
-  ]
-}
+Provide 5-7 optimal time slots, each with a day, a time like "09:00 AM", a
+0-100 confidence and the reason it works.`;
 
-Provide 5-7 optimal time slots.`;
-
-      const input = { max_completion_tokens: 1024, prompt };
-      const response = await this.generateTextCompletion(
+      const result = await this.completeStructured(
         prompt,
-        input.max_completion_tokens,
+        1024,
+        insightPostingTimesSchema,
+        INSIGHT_POSTING_TIMES_SCHEMA_NAME,
         organizationId,
-      );
-      onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-      const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
-        response,
-        {},
+        onBilling,
       );
 
-      return {
-        recommendedTimes: this.readRecommendedTimes(result.recommendedTimes),
-        timezone,
-      };
+      return { recommendedTimes: result.recommendedTimes, timezone };
     } catch (error: unknown) {
       this.logger.error('Failed to get best posting times', { error });
       throw error;
@@ -739,51 +572,29 @@ Provide 5-7 optimal time slots.`;
     const grounding = await this.buildPerformanceGrounding(plan.organizationId);
     const prompt = `Generate ${plan.missingCount} actionable insights for a content creator.
 ${grounding}
-Return ONLY valid JSON with this structure. Do not include any text before or after the JSON:
-{
-  "insights": [
-    {
-      "type": "opportunity",
-      "title": "Leverage trending audio",
-      "description": "Your niche has 3 trending audio tracks with 10M+ uses",
-      "impact": "high",
-      "confidence": 85,
-      "actionableSteps": [
-        "Create content using trending audio #1",
-        "Post within next 48 hours while trending"
-      ],
-      "relatedMetrics": ["engagement", "reach"]
-    }
-  ]
-}
+Give each insight a type (trend, opportunity, warning or tip), a title, a
+description, an impact of high, medium or low, a 0-100 confidence, the steps
+to act on it, and the metrics it relates to.`;
 
-Types: trend, opportunity, warning, tip
-Impact: high, medium, low
-Confidence: 0-100`;
-
-    const input = { max_completion_tokens: 2048, prompt };
-    const response = await this.generateTextCompletion(
+    const result = await this.completeStructured(
       prompt,
-      input.max_completion_tokens,
+      2048,
+      generatedInsightsSchema,
+      GENERATED_INSIGHTS_SCHEMA_NAME,
       plan.organizationId,
     );
 
-    const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
-      response,
-      { insights: [] },
-    );
-    const insights = (result.insights as Record<string, unknown>[]) || [];
     return {
-      drafts: insights.map((insightData) => ({
-        actionableSteps: (insightData.actionableSteps as string[]) || [],
-        category: insightData.type as string,
-        confidence: insightData.confidence as number,
-        description: insightData.description as string,
-        impact: insightData.impact as string,
+      drafts: result.insights.map((insight) => ({
+        actionableSteps: insight.actionableSteps,
+        category: insight.type,
+        confidence: insight.confidence,
+        description: insight.description,
+        impact: insight.impact,
         isDismissed: false,
         isRead: false,
-        relatedMetrics: (insightData.relatedMetrics as string[]) || [],
-        title: insightData.title as string,
+        relatedMetrics: insight.relatedMetrics,
+        title: insight.title,
       })),
     };
   }
@@ -824,24 +635,47 @@ Confidence: 0-100`;
     };
   }
 
-  private async generateTextCompletion(
+  /**
+   * One schema-enforced insight completion.
+   *
+   * A provider that is down is still a 503 the caller can retry; output that
+   * misses its schema twice is not — that is the model's answer, and
+   * `LlmStructuredOutputError` says which fields were wrong rather than
+   * pretending the vendor is unavailable.
+   */
+  private async completeStructured<TResult>(
     prompt: string,
     maxTokens: number,
+    schema: ZodType<TResult>,
+    schemaName: string,
     organizationId: string,
-  ): Promise<string> {
+    onBilling?: (amount: number) => void,
+  ): Promise<TResult> {
     try {
-      const response = await this.llmDispatcherService.chatCompletion(
+      return await this.llmDispatcherService.completeStructured(
         {
           max_tokens: maxTokens,
           messages: [{ content: prompt, role: 'user' }],
           model: INSIGHTS_TEXT_MODEL,
+          onAttempt: async (response) => {
+            onBilling?.(
+              await this.calculateDefaultTextCharge(
+                { max_completion_tokens: maxTokens, prompt },
+                response.choices?.[0]?.message?.content ?? '',
+              ),
+            );
+          },
+          schema,
+          schemaName,
           temperature: 0.2,
         },
         organizationId,
       );
+    } catch (error: unknown) {
+      if (error instanceof LlmStructuredOutputError) {
+        throw error;
+      }
 
-      return response.choices?.[0]?.message?.content?.trim() ?? '';
-    } catch {
       this.logger.warn('Insight generation provider unavailable', {
         organizationId,
         providerStatus: 'unavailable',

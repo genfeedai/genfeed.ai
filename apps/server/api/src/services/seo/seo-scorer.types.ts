@@ -42,14 +42,6 @@ export interface SeoScorableContent {
 }
 
 /** Qualitative sub-scores returned by the LLM layer (each 0..check max). */
-export interface SeoQualitativeLlmResult {
-  faqPoints?: number;
-  conclusionCtaPoints?: number;
-  activeVoicePoints?: number;
-  jargonPoints?: number;
-  suggestions?: string[];
-}
-
 export interface ScoreContentOptions {
   /** Set `false` to skip the LLM layer (deterministic-only). Defaults to true. */
   useLlm?: boolean;

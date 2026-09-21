@@ -1681,30 +1681,6 @@
       "workspace": "api"
     },
     {
-      "code": 2322,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/workflow-generation.service.spec.ts",
-      "fingerprint": "7d5bc98bea8512b81faa",
-      "message": "Type 'undefined' is not assignable to type '{ prompt_tokens: number; completion_tokens: number; total_tokens: number; cost?: number | undefined; cost_source?: \"generation\" | \"usage\" | undefined; is_byok?: boolean | undefined; }'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2345,
-      "count": 3,
-      "file": "apps/server/api/src/collections/workflows/services/workflow-generation.service.spec.ts",
-      "fingerprint": "0a02686bee8b65e8bcd4",
-      "message": "Argument of type '{ choices: { message: { content: string; }; }[]; usage: { total_tokens: number; }; }' is not assignable to parameter of type 'OpenRouterChatCompletionResponse'.   Property 'id' is missing in type '{ choices: { message: { content: string; }; }[]; usage: { total_tokens: number; }; }' but required in type 'OpenRouterChatCompletionResponse'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2741,
-      "count": 1,
-      "file": "apps/server/api/src/collections/workflows/services/workflow-generation.service.spec.ts",
-      "fingerprint": "c1f696e759424a50662c",
-      "message": "Property 'role' is missing in type '{ content: string; }' but required in type '{ role: string; content: string | null; reasoning_content?: string | null | undefined; tool_calls?: OpenRouterToolCallResponse[] | undefined; }'.",
-      "workspace": "api"
-    },
-    {
       "code": 2352,
       "count": 2,
       "file": "apps/server/api/src/collections/workflows/services/workflows.service.spec.ts",

@@ -149,6 +149,12 @@ export class OpenAiLlmService {
         }
       }
 
+      // Structured outputs on OpenAI, and guided decoding on the `local/`
+      // vLLM server, both read the same OpenAI-shaped `response_format`.
+      if (params.response_format) {
+        requestParams.response_format = params.response_format;
+      }
+
       if (tools) {
         requestParams.tools = tools;
 

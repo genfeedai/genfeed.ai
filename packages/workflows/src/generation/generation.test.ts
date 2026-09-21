@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   buildWorkflowGenerationMessages,
   buildWorkflowGenerationNodeTypes,
-  parseWorkflowGenerationResponse,
+  parseUnenforcedWorkflowGeneration,
+  workflowGenerationSchema,
 } from '.';
 
 describe('workflow generation shared helpers', () => {
@@ -61,15 +62,122 @@ describe('workflow generation shared helpers', () => {
     );
   });
 
-  it('parses generated workflow JSON', () => {
-    expect(
-      parseWorkflowGenerationResponse(
-        JSON.stringify({ edges: [], name: 'Workflow', nodes: [] }),
-      ).workflow,
-    ).toEqual({ edges: [], name: 'Workflow', nodes: [] });
+  it('stops instructing the model to return bare JSON', () => {
+    const [systemMessage] = buildWorkflowGenerationMessages({
+      availableNodeTypes: [],
+      description: 'Generate a generic workflow',
+    });
+
+    expect(systemMessage?.content).not.toContain('Return ONLY the JSON object');
+    expect(systemMessage?.content).not.toContain('markdown fences');
   });
 
-  it('parses an empty provider response as an empty workflow', () => {
-    expect(parseWorkflowGenerationResponse('').workflow).toEqual({});
+  it('accepts a complete generated graph', () => {
+    const parsed = workflowGenerationSchema.parse({
+      description: 'Posts an image',
+      edges: [
+        {
+          id: 'edge-1',
+          source: 'node-1',
+          sourceHandle: 'imageUrl',
+          target: 'node-2',
+          targetHandle: 'media',
+        },
+      ],
+      name: 'Workflow',
+      nodes: [
+        {
+          data: { config: { actionId: 'imageGen' }, label: 'Generate' },
+          id: 'node-1',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+        {
+          data: { label: 'Publish' },
+          id: 'node-2',
+          position: { x: 250, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
+    });
+
+    expect(parsed.nodes).toHaveLength(2);
+  });
+
+  it('refuses a graph with no nodes', () => {
+    expect(
+      workflowGenerationSchema.safeParse({
+        description: '',
+        edges: [],
+        name: 'Workflow',
+        nodes: [],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('refuses an edge missing its handles', () => {
+    expect(
+      workflowGenerationSchema.safeParse({
+        description: '',
+        edges: [{ id: 'edge-1', source: 'a', target: 'b' }],
+        name: 'Workflow',
+        nodes: [
+          {
+            data: {},
+            id: 'a',
+            position: { x: 0, y: 0 },
+            type: 'genfeedAction',
+          },
+        ],
+      }).success,
+    ).toBe(false);
+  });
+
+  it('accepts an unfenced graph from a provider that cannot enforce JSON', () => {
+    const graph = {
+      description: 'Posts an image',
+      edges: [],
+      name: 'Workflow',
+      nodes: [
+        {
+          data: { label: 'Generate' },
+          id: 'node-1',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
+    };
+
+    expect(parseUnenforcedWorkflowGeneration(JSON.stringify(graph))).toEqual(
+      graph,
+    );
+  });
+
+  it('unwraps a markdown-fenced graph rather than failing on transport', () => {
+    const graph = {
+      description: 'Posts an image',
+      edges: [],
+      name: 'Workflow',
+      nodes: [
+        {
+          data: { label: 'Generate' },
+          id: 'node-1',
+          position: { x: 0, y: 0 },
+          type: 'genfeedAction',
+        },
+      ],
+    };
+
+    expect(
+      parseUnenforcedWorkflowGeneration(
+        `\`\`\`json\n${JSON.stringify(graph)}\n\`\`\``,
+      ),
+    ).toEqual(graph);
+  });
+
+  it('still refuses a fenced graph that does not match the schema', () => {
+    expect(() =>
+      parseUnenforcedWorkflowGeneration('```json\n{"name":"Half"}\n```'),
+    ).toThrow();
   });
 });

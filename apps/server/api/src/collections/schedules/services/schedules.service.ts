@@ -10,7 +10,6 @@ import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
-import { JsonParserUtil } from '@api/helpers/utils/json-parser.util';
 import { calculateEstimatedTextCredits } from '@api/helpers/utils/text-pricing/text-pricing.util';
 import { scopedWhere } from '@api/index';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -26,6 +25,10 @@ import {
   getChannelCapability as resolveChannelCapability,
   validateChannelTargetSettings as resolveChannelTargetValidation,
 } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
+import {
+  SCHEDULE_OPTIMAL_TIME_SCHEMA_NAME,
+  scheduleOptimalTimeSchema,
+} from '@genfeedai/contracts/api-types/contracts/schedule-optimal-time.contract';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -92,57 +95,26 @@ export class SchedulesService {
 
     const prompt = `Determine the optimal posting time for ${dto.contentType} on ${dto.platform} to maximize ${goal} in ${timezone} timezone.
 
-Return ONLY valid JSON with this exact structure. Do not include any text before or after the JSON:
-{
-  "recommendedTime": "2025-10-09T14:00:00Z",
-  "alternativeTimes": ["2025-10-09T18:00:00Z", "2025-10-10T09:00:00Z"],
-  "confidence": 85,
-  "expectedPerformance": {
-    "estimatedEngagement": 250,
-    "estimatedReach": 5000
-  },
-  "reasoning": [
-    "Peak engagement hours for target audience",
-    "Lower competition during this time slot",
-    "Historical data shows 2x higher reach"
-  ]
-}`;
+Give the recommended slot and a few alternatives as ISO-8601 instants, a
+0-100 confidence, the engagement and reach you expect, and the reasons
+behind the pick.`;
 
-    const input = {
-      max_completion_tokens: 1024,
-      prompt,
-    };
-    const response = await this.replicateService.generateTextCompletionSync(
+    const input = { max_completion_tokens: 1024 };
+
+    return this.replicateService.generateStructuredTextSync(
       DEFAULT_TEXT_MODEL,
-      input,
-    );
-    onBilling?.(await this.calculateDefaultTextCharge(input, response));
-
-    const result = JsonParserUtil.parseAIResponse<Record<string, unknown>>(
-      response,
-      {},
-    ) as {
-      recommendedTime: string;
-      alternativeTimes: string[];
-      confidence: number;
-      expectedPerformance: {
-        estimatedEngagement: number;
-        estimatedReach: number;
-      };
-    };
-
-    return {
-      alternativeTimes: result.alternativeTimes || [],
-      confidence: result.confidence || 70,
-      expectedPerformance: result.expectedPerformance || {
-        estimatedEngagement: 0,
-        estimatedReach: 0,
+      {
+        input,
+        onAttempt: async (attemptInput, output) => {
+          onBilling?.(
+            await this.calculateDefaultTextCharge(attemptInput, output),
+          );
+        },
+        prompt,
+        schema: scheduleOptimalTimeSchema,
+        schemaName: SCHEDULE_OPTIMAL_TIME_SCHEMA_NAME,
       },
-      reasoning:
-        ((result as unknown as Record<string, unknown>)
-          .reasoning as string[]) || [],
-      recommendedTime: result.recommendedTime || new Date().toISOString(),
-    };
+    );
   }
 
   /**

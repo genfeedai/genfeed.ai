@@ -13,9 +13,10 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
+import { z } from 'zod';
 import { LlmCompletionTelemetryService } from './llm-completion-telemetry.service';
 import { LlmDispatcherService } from './llm-dispatcher.service';
+import { LlmStructuredOutputError } from './llm-structured-output.error';
 
 describe('LlmDispatcherService', () => {
   let service: LlmDispatcherService;
@@ -665,6 +666,127 @@ describe('LlmDispatcherService', () => {
           threadId: 'thread-2',
         }),
       );
+    });
+  });
+
+  describe('completeStructured', () => {
+    const planSchema = z.object({
+      items: z.array(z.object({ topic: z.string() })),
+      name: z.string(),
+    });
+
+    const structuredResponse = (
+      content: string | null,
+    ): OpenRouterChatCompletionResponse => ({
+      ...mockResponse,
+      choices: [
+        { finish_reason: 'stop', message: { content, role: 'assistant' } },
+      ],
+    });
+
+    it('sends the json_schema response format and returns validated data', async () => {
+      openRouterService.chatCompletion.mockResolvedValue(
+        structuredResponse('{"items":[{"topic":"Launch"}],"name":"Q1"}'),
+      );
+
+      const result = await service.completeStructured({
+        messages: [{ content: 'Plan it', role: 'user' }],
+        model: 'google/gemini-2.0-flash',
+        schema: planSchema,
+        schemaName: 'content_plan',
+      });
+
+      expect(result).toEqual({ items: [{ topic: 'Launch' }], name: 'Q1' });
+      expect(openRouterService.chatCompletion).toHaveBeenCalledTimes(1);
+      const [sent] = openRouterService.chatCompletion.mock.calls[0] as [
+        OpenRouterChatCompletionParams,
+      ];
+      expect(sent.response_format).toMatchObject({
+        json_schema: { name: 'content_plan', strict: true },
+        type: 'json_schema',
+      });
+    });
+
+    it('repairs once, replaying the bad answer and the failing fields', async () => {
+      openRouterService.chatCompletion
+        .mockResolvedValueOnce(structuredResponse('{"items":[]}'))
+        .mockResolvedValueOnce(
+          structuredResponse('{"items":[{"topic":"Launch"}],"name":"Q1"}'),
+        );
+
+      const result = await service.completeStructured({
+        messages: [{ content: 'Plan it', role: 'user' }],
+        model: 'google/gemini-2.0-flash',
+        schema: planSchema,
+        schemaName: 'content_plan',
+      });
+
+      expect(result).toEqual({ items: [{ topic: 'Launch' }], name: 'Q1' });
+      expect(openRouterService.chatCompletion).toHaveBeenCalledTimes(2);
+      const [repairSent] = openRouterService.chatCompletion.mock.calls[1] as [
+        OpenRouterChatCompletionParams,
+      ];
+      expect(repairSent.messages).toHaveLength(3);
+      expect(repairSent.messages[1]).toEqual({
+        content: '{"items":[]}',
+        role: 'assistant',
+      });
+      expect(String(repairSent.messages[2].content)).toContain('name');
+    });
+
+    it('throws the typed error after a second schema-invalid answer', async () => {
+      openRouterService.chatCompletion.mockResolvedValue(
+        structuredResponse('{"items":[]}'),
+      );
+
+      await expect(
+        service.completeStructured({
+          messages: [{ content: 'Plan it', role: 'user' }],
+          model: 'google/gemini-2.0-flash',
+          schema: planSchema,
+          schemaName: 'content_plan',
+        }),
+      ).rejects.toBeInstanceOf(LlmStructuredOutputError);
+      expect(openRouterService.chatCompletion).toHaveBeenCalledTimes(2);
+    });
+
+    it('keeps enforcing the schema on the anthropic route', async () => {
+      anthropicService.chatCompletion.mockResolvedValue(
+        structuredResponse('{"items":[{"topic":"Launch"}],"name":"Q1"}'),
+      );
+
+      await service.completeStructured({
+        messages: [{ content: 'Plan it', role: 'user' }],
+        model: 'anthropic/claude-sonnet-5',
+        schema: planSchema,
+        schemaName: 'content_plan',
+      });
+
+      const [sent] = anthropicService.chatCompletion.mock.calls[0] as [
+        OpenRouterChatCompletionParams,
+      ];
+      expect(sent.response_format?.json_schema.name).toBe('content_plan');
+    });
+
+    it('keeps enforcing the schema on the local vLLM route', async () => {
+      configService.get.mockImplementation((key: string) =>
+        key === 'GPU_LLM_URL' ? 'http://gpu.internal:8000' : '',
+      );
+      openAiLlmService.chatCompletion.mockResolvedValue(
+        structuredResponse('{"items":[{"topic":"Launch"}],"name":"Q1"}'),
+      );
+
+      await service.completeStructured({
+        messages: [{ content: 'Plan it', role: 'user' }],
+        model: 'local/qwen3',
+        schema: planSchema,
+        schemaName: 'content_plan',
+      });
+
+      const [sent] = openAiLlmService.chatCompletion.mock.calls[0] as [
+        OpenRouterChatCompletionParams,
+      ];
+      expect(sent.response_format?.json_schema.name).toBe('content_plan');
     });
   });
 });

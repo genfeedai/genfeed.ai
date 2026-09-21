@@ -1,13 +1,18 @@
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { toReplyBotCredentialData } from '@api/services/campaign/reply-bot-credential.util';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { BotActionExecutorService } from '@api/services/reply-bot/bot-action-executor.service';
 import {
   CredentialPlatform,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
+import {
+  TWITTER_OPPORTUNITIES_SCHEMA_NAME,
+  type TwitterOpportunities,
+  twitterOpportunitiesSchema,
+} from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import type {
   IReplyBotCredentialData,
@@ -40,7 +45,7 @@ export class TwitterPipelineService implements OnModuleInit {
   constructor(
     private readonly loggerService: LoggerService,
     private readonly twitterService: TwitterService,
-    private readonly openRouterService: OpenRouterService,
+    private readonly llmDispatcherService: LlmDispatcherService,
     private readonly botActionExecutorService: BotActionExecutorService,
     private readonly credentialsService: CredentialsService,
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
@@ -136,7 +141,7 @@ export class TwitterPipelineService implements OnModuleInit {
   }
 
   /**
-   * Draft opportunities using Grok via OpenRouter
+   * Draft opportunities using Grok through the LLM dispatcher
    * Builds a hybrid prompt from real tweet data
    */
   async draft(
@@ -250,9 +255,9 @@ export class TwitterPipelineService implements OnModuleInit {
 
   private async executeDraftGenerationAction(
     input: Record<string, unknown>,
-  ): Promise<{ rawContent: string }> {
+  ): Promise<TwitterOpportunities> {
     const draftContext = this.readRecord(input.draftContext);
-    const response = await this.openRouterService.chatCompletion({
+    return this.llmDispatcherService.completeStructured({
       max_tokens: 4000,
       messages: [
         {
@@ -261,9 +266,10 @@ export class TwitterPipelineService implements OnModuleInit {
         },
       ],
       model: LLM_DEFAULTS.grokFast,
+      schema: twitterOpportunitiesSchema,
+      schemaName: TWITTER_OPPORTUNITIES_SCHEMA_NAME,
       temperature: 0.7,
     });
-    return { rawContent: response.choices?.[0]?.message?.content ?? '' };
   }
 
   private async executeDraftParseAction(
@@ -271,8 +277,8 @@ export class TwitterPipelineService implements OnModuleInit {
   ): Promise<ITwitterOpportunity[]> {
     const draftContext = this.readRecord(input.draftContext);
     const generation = this.readRecord(input.generation);
-    return this.parseOpportunities(
-      this.requiredString(generation.rawContent, 'rawContent', true),
+    return this.enrichOpportunities(
+      twitterOpportunitiesSchema.parse(generation).opportunities,
       this.readSearchResults(draftContext.searchResults),
     );
   }
@@ -401,91 +407,45 @@ Here are the real tweets:
 
 ${tweetList}
 
-Return your response as valid JSON with this exact structure:
-{
-  "opportunities": [
-    {
-      "type": "reply" or "quote",
-      "tweetIndex": 1,
-      "suggestedText": "your suggested response",
-      "reason": "why this is worth engaging with"
-    },
-    {
-      "type": "original",
-      "suggestedText": "original tweet text",
-      "reason": "why this would perform well based on current trends"
-    }
-  ]
-}
-
 Rules:
-- For reply/quote entries, include "tweetIndex" (1-${tweets.length}) matching the tweet number above
+- For reply/quote entries, set "tweetIndex" (1-${tweets.length}) matching the tweet number above; leave it out for original ideas
 - Generate exactly ${tweets.length} reply/quote suggestions (one per tweet) + 2 original ideas = ${tweets.length + 2} total
 - Keep responses under 280 characters
 - Be authentic to the voice, not generic or cringe
-
-Return ONLY the JSON, no markdown fences, no extra text.`;
+- Say in "reason" why each one is worth posting`;
   }
 
   /**
-   * Parse Grok response into typed opportunities,
-   * enriching reply/quote entries with real tweet data
+   * Resolve each validated opportunity against the real search results, so a
+   * reply or quote carries the tweet it answers. `verified` stays false when
+   * the model pointed at a tweet index that is not in this batch.
    */
-  private parseOpportunities(
-    rawContent: string,
+  private enrichOpportunities(
+    opportunities: TwitterOpportunities['opportunities'],
     searchResults: ITwitterSearchResult[],
   ): ITwitterOpportunity[] {
-    try {
-      // Strip markdown fences if present
-      const cleaned = rawContent
-        .replace(/```json\s*/g, '')
-        .replace(/```\s*/g, '')
-        .trim();
+    return opportunities.map((opportunity) => {
+      const isEngagement =
+        opportunity.type === 'reply' || opportunity.type === 'quote';
+      const tweetIndex = (opportunity.tweetIndex ?? 0) - 1;
+      const targetTweet =
+        isEngagement && tweetIndex >= 0 && tweetIndex < searchResults.length
+          ? searchResults[tweetIndex]
+          : undefined;
 
-      const parsed = JSON.parse(cleaned) as {
-        opportunities?: Array<{
-          type?: string;
-          tweetIndex?: number;
-          suggestedText?: string;
-          reason?: string;
-        }>;
+      return {
+        engagement: targetTweet
+          ? { likes: targetTweet.likes, retweets: targetTweet.retweets }
+          : undefined,
+        reason: opportunity.reason,
+        suggestedText: opportunity.suggestedText,
+        targetAuthor: targetTweet?.authorUsername,
+        targetTweet: targetTweet?.text,
+        targetTweetId: targetTweet?.id,
+        type: opportunity.type,
+        verified: isEngagement && Boolean(targetTweet),
       };
-
-      if (!parsed.opportunities || !Array.isArray(parsed.opportunities)) {
-        this.loggerService.warn(
-          `${this.constructorName} parseOpportunities: no opportunities array`,
-        );
-        return [];
-      }
-
-      return parsed.opportunities.map((opp) => {
-        const isEngagement = opp.type === 'reply' || opp.type === 'quote';
-        const tweetIdx = (opp.tweetIndex ?? 0) - 1;
-        const targetTweet =
-          isEngagement && tweetIdx >= 0 && tweetIdx < searchResults.length
-            ? searchResults[tweetIdx]
-            : undefined;
-
-        return {
-          engagement: targetTweet
-            ? { likes: targetTweet.likes, retweets: targetTweet.retweets }
-            : undefined,
-          reason: opp.reason ?? '',
-          suggestedText: opp.suggestedText ?? '',
-          targetAuthor: targetTweet?.authorUsername,
-          targetTweet: targetTweet?.text,
-          targetTweetId: targetTweet?.id,
-          type: (opp.type as 'reply' | 'quote' | 'original') ?? 'original',
-          verified: isEngagement && !!targetTweet,
-        };
-      });
-    } catch (error: unknown) {
-      this.loggerService.error(
-        `${this.constructorName} parseOpportunities failed to parse JSON`,
-        error,
-      );
-      return [];
-    }
+    });
   }
 
   private readPublishRequest(input: Record<string, unknown>): {
