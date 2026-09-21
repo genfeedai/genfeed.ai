@@ -1,6 +1,7 @@
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ModelLifecycle, ModelProvider } from '@genfeedai/contracts';
+import { REASONING_FEATURE } from '@genfeedai/contracts/constants';
 import type { LoggerService } from '@libs/logger/logger.service';
 
 const row = (overrides: Record<string, unknown>) => ({
@@ -15,6 +16,7 @@ const row = (overrides: Record<string, unknown>) => ({
   provider: ModelProvider.OPENROUTER,
   reviewStatus: null,
   succeededBy: null,
+  supportsFeatures: [],
   ...overrides,
 });
 
@@ -87,5 +89,39 @@ describe('AgentChatModelRegistryService', () => {
     await expect(service.getAutoAllowedModelKeys()).resolves.toEqual([
       'recommended',
     ]);
+  });
+
+  it('exposes the same rows behind the Auto allow-list, with reasoning flagged', async () => {
+    const prisma = {
+      model: {
+        findMany: vi.fn().mockResolvedValue([
+          row({
+            cost: 9,
+            key: 'reasoner',
+            lifecycle: ModelLifecycle.RECOMMENDED,
+            supportsFeatures: [REASONING_FEATURE],
+          }),
+          row({ cost: 2, key: 'plain', lifecycle: ModelLifecycle.RECOMMENDED }),
+          row({ key: 'available', lifecycle: ModelLifecycle.AVAILABLE }),
+        ]),
+      },
+    };
+    const service = new AgentChatModelRegistryService(
+      prisma as unknown as PrismaService,
+      { warn: vi.fn() } as unknown as LoggerService,
+    );
+    await service.refresh();
+
+    const candidates = await service.listAutoCandidates();
+
+    expect(candidates.map((candidate) => candidate.key).sort()).toEqual(
+      await service.getAutoAllowedModelKeys(),
+    );
+    expect(
+      candidates.find((candidate) => candidate.key === 'reasoner')?.isReasoning,
+    ).toBe(true);
+    expect(
+      candidates.find((candidate) => candidate.key === 'plain')?.isReasoning,
+    ).toBe(false);
   });
 });

@@ -47,6 +47,7 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
+import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
@@ -123,6 +124,7 @@ import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatch
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
+import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -199,10 +201,12 @@ import { Module } from '@nestjs/common';
     AgentChatModelRegistryModule,
     SeoModule,
     SkillRuntimeModule,
+    TypedDecisionsModule,
   ],
   providers: [
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
+    AgentAutoModelResolverService,
     AgentAnalyticsToolHandler,
     AgentGenerationScopeService,
     AgentMediaAssetGenerationService,

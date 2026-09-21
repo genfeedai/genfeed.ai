@@ -4,6 +4,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { AgentMessageBusService } from '@api/services/agent-campaign/agent-message-bus.service';
+import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentOrchestratorBatchService } from '@api/services/agent-orchestrator/agent-orchestrator-batch.service';
@@ -44,6 +45,7 @@ import type { OpenRouterChatCompletionResponse } from '@api/services/integration
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import type { CuratedActionName } from '@genfeedai/actions';
 import { AgentMessageRole, type RouterPriority } from '@genfeedai/contracts';
+import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
 
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -60,6 +62,7 @@ export class AgentOrchestratorSyncLoopService {
     private readonly contextService: AgentOrchestratorContextService,
     private readonly completionCardBuilder: AgentCompletionCardBuilderService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
+    private readonly autoModelResolver: AgentAutoModelResolverService,
     @Optional()
     private readonly agentMessageBusService?: AgentMessageBusService,
     @Optional()
@@ -174,6 +177,10 @@ export class AgentOrchestratorSyncLoopService {
       );
       const messages = [...history];
       let round = 0;
+      // Auto-routing decision inputs (#4865): the tier depends on how the turn
+      // has behaved so far, not only on the opening message.
+      let hasPreviousRoundUsedTools = false;
+      let latestAutoRouting: AgentAutoRoutingResolution | undefined;
       let terminalContent: string | undefined;
       let latestProviderUsage = {
         completion_tokens: 0,
@@ -187,6 +194,32 @@ export class AgentOrchestratorSyncLoopService {
         round++;
 
         const isTerminalCompletion = Boolean(terminalContent);
+        const defaultModelKey =
+          await this.agentChatModelRegistry.getDefaultModelKey();
+        // A terminal round replays tool-produced content and never reaches the
+        // provider, so it must not pay for a decision; it keeps the previous
+        // round's resolution for the thread metadata.
+        if (!isTerminalCompletion) {
+          latestAutoRouting = await this.autoModelResolver.resolve({
+            brandId: context.scope?.brandId,
+            defaultModelKey,
+            hasPreviousRoundUsedTools,
+            hasToolsAvailable: tools.length > 0,
+            latestUserMessage: request.content,
+            model,
+            organizationId: context.organizationId,
+            prioritize: generationPriority,
+            roundNumber: round,
+            runId: context.executionId,
+            source: request.source,
+            threadId,
+            userId: context.userId,
+          });
+        }
+        // The reservation envelope still comes from the requested key, but the
+        // round settles on what was actually dispatched.
+        const dispatchedModel: string =
+          latestAutoRouting?.dispatchModelKey ?? model;
         const reservedRound: {
           credits: number;
           response: OpenRouterChatCompletionResponse;
@@ -216,14 +249,15 @@ export class AgentOrchestratorSyncLoopService {
               maximumCredits:
                 await this.agentChatModelRegistry.getMaximumRoundCredits(model),
               organizationId: context.organizationId,
-              requestedModel: model,
+              requestedModel: dispatchedModel,
               run: async () =>
                 this.llmDispatcher.chatCompletion(
                   buildAgentChatCompletionParams({
                     autoAllowedModelKeys:
                       await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
-                    defaultModelKey:
-                      await this.agentChatModelRegistry.getDefaultModelKey(),
+                    defaultModelKey,
+                    dispatchModelKey: latestAutoRouting?.dispatchModelKey,
+                    isWebSearchNeeded: latestAutoRouting?.isWebSearchNeeded,
                     messages,
                     model,
                     prompt: request.content,
@@ -268,6 +302,7 @@ export class AgentOrchestratorSyncLoopService {
 
         const assistantMessage = choice.message;
         const toolCalls = assistantMessage.tool_calls;
+        hasPreviousRoundUsedTools = Boolean(toolCalls?.length);
 
         if (!toolCalls || toolCalls.length === 0) {
           const threadEnvelope = extractThreadEnvelope({
@@ -316,6 +351,7 @@ export class AgentOrchestratorSyncLoopService {
             ...artifactMetadata,
             ...buildAgentScopeMetadata(context),
             ...buildAgentRoutingMetadata({
+              autoRouting: latestAutoRouting,
               defaultModelKey:
                 await this.agentChatModelRegistry.getDefaultModelKey(),
               model,
