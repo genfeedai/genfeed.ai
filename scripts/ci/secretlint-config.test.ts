@@ -20,6 +20,9 @@ const secretlintBin = path.join(
   'secretlint.js',
 );
 
+/** Cold secretlint startup runs ~4s; keep headroom over the 5s default. */
+const SCAN_TIMEOUT_MS = 60_000;
+
 afterAll(() => {
   rmSync(fixtureRoot, { force: true, recursive: true });
 });
@@ -38,7 +41,9 @@ function scan(fileName: string, contents: string, homeDirectory: string) {
 }
 
 describe('secretlint no-homedir rule', () => {
-  it('ignores a bare /root match so root-owned scanners stay usable', () => {
+  it('ignores a bare /root match so root-owned scanners stay usable', {
+    timeout: SCAN_TIMEOUT_MS,
+  }, () => {
     // `@secretlint/secretlint-rule-no-homedir` matches the scanning process's
     // own `os.homedir()` as a literal string. Running as root makes that
     // `/root`, which then matches every `/root`-prefixed path segment in the
@@ -61,7 +66,7 @@ describe('secretlint no-homedir rule', () => {
     expect(status).toBe(0);
   });
 
-  it('still reports a real homedir path', () => {
+  it('still reports a real homedir path', { timeout: SCAN_TIMEOUT_MS }, () => {
     // The allowance is scoped to `/root` alone; a personal home directory
     // leaking into a committed file must keep failing the scan.
     const { output, status } = scan(
