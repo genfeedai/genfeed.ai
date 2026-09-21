@@ -149,7 +149,12 @@ export function resolveOnboardingContinueHref(input: {
     return resolveAgentOnboardingHref(input.orgSlug);
   }
 
-  const steps = resolveOnboardingSteps(input);
+  // Agent-first surfaces walk a cloud operator through brand only, but the
+  // wizard tail stays reachable on its own (Desktop, and an operator who comes
+  // back to it). Sequencing the classic path off the resolved list dropped
+  // `providers → summary` there, so only the Expert Path — whose tail is its
+  // own first-system screen — sequences off the resolved steps.
+  const steps = isExpert ? resolveOnboardingSteps(input) : ONBOARDING_STEPS;
   const stepIndex = steps.indexOf(input.completedStep);
   if (stepIndex >= 0 && stepIndex < steps.length - 1) {
     const nextStep = steps[stepIndex + 1];
