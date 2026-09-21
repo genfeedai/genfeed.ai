@@ -672,20 +672,15 @@ export class AgentTurnRoundRunnerService {
         });
       }
 
-      // #4870: the injection gate may withhold an externally authored tool
-      // result from the model context. It only ever tightens this content —
-      // every other outcome hands back exactly what was serialized above.
-      const gated = await this.untrustedContentGateService.evaluateToolResult({
-        brandId: policy.brandId,
-        content: JSON.stringify(modelVisibleResult),
-        context,
-        threadId,
-        toolCallId: toolCall.id,
-        toolName,
-      });
-
       messages.push({
-        content: gated.content,
+        content: await this.gateToolResultContent({
+          context,
+          modelVisibleResult,
+          policy,
+          threadId,
+          toolCall,
+          toolName,
+        }),
         role: 'tool' as const,
         tool_call_id: toolCall.id,
       });
@@ -700,6 +695,34 @@ export class AgentTurnRoundRunnerService {
           }
         : {}),
     };
+  }
+
+  /**
+   * What the model is allowed to see of one tool result (#4870).
+   *
+   * The injection gate only ever tightens this: above its threshold in `live`
+   * mode it returns a withheld notice, and every other outcome — `off`,
+   * `shadow`, a sub-threshold or unavailable decision, a thrown error — hands
+   * back exactly the serialized result.
+   */
+  private async gateToolResultContent(params: {
+    context: AgentChatContext;
+    modelVisibleResult: AgentToolResult;
+    policy: ResolvedAgentExecutionPolicy;
+    threadId: string;
+    toolCall: OpenRouterToolCallResponse;
+    toolName: CuratedActionName;
+  }): Promise<string> {
+    const gated = await this.untrustedContentGateService.evaluateToolResult({
+      brandId: params.policy.brandId,
+      content: JSON.stringify(params.modelVisibleResult),
+      context: params.context,
+      threadId: params.threadId,
+      toolCallId: params.toolCall.id,
+      toolName: params.toolName,
+    });
+
+    return gated.content;
   }
 
   private readCurrentOperatorMessage(

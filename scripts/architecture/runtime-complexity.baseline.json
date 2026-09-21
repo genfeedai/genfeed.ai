@@ -198,7 +198,7 @@
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
   },
   {
-    "actual": 449,
+    "actual": 456,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnRoundRunnerService.executeToolRound"
