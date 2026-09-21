@@ -30,6 +30,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -50,6 +51,7 @@ export default function PlatformSettingsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const translate = useTranslations('pages.platformSettings');
   const notificationsService = NotificationsService.getInstance();
   const getPlatformSettingsService = useAuthedService((token: string) =>
     AdminPlatformSettingsService.getInstance(token),
@@ -174,9 +176,9 @@ export default function PlatformSettingsPage() {
           </Field>
 
           <Field
-            label="Typed-decision provider"
+            label={translate('typedDecisionLabel')}
             htmlFor="platform-typed-decision-provider"
-            helpText="Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy."
+            helpText={translate('typedDecisionHelp')}
           >
             <Select
               value={typedDecisionProvider}
