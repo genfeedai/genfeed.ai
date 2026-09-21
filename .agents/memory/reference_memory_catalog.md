@@ -189,6 +189,7 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 
 - [reference_app_page_map](reference_app_page_map.md) — route/page map for QA
 - [reference_skills_source_repos](reference_skills_source_repos.md) — `genfeedai/skills` + private `skills-pro`
+- [content evals epic #4921](https://github.com/genfeedai/genfeed.ai/issues/4921) — judge calibration, generation ladders, harness/compiler A/B; GitHub is canonical, no local spec
 - [spec-studio-generation-meter](spec-studio-generation-meter.md) · [decisions](decisions-studio-generation-meter.md) — honest Studio credit + queue meter
 
 ## Context (read when relevant)
