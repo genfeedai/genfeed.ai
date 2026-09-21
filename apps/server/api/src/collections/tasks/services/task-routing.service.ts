@@ -1,7 +1,14 @@
 import { type SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
-import { type TaskDocument } from '@api/collections/tasks/schemas/task.schema';
+import {
+  TASK_OUTPUT_TYPES,
+  type TaskDocument,
+  type TaskOutputTypeSource,
+} from '@api/collections/tasks/schemas/task.schema';
+import { resolveTaskRoutingDecisionRollout } from '@api/collections/tasks/services/task-routing-decision.config';
+import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
+import { ConfigService } from '@libs/config/config.service';
 import { Injectable } from '@nestjs/common';
 
 export type TaskRoutingDecision = Pick<
@@ -10,6 +17,8 @@ export type TaskRoutingDecision = Pick<
   | 'chosenProvider'
   | 'executionPathUsed'
   | 'outputType'
+  | 'outputTypeConfidence'
+  | 'outputTypeSource'
   | 'resultPreview'
   | 'reviewState'
   | 'reviewTriggered'
@@ -35,12 +44,25 @@ type CreateTaskDtoExtended = CreateTaskDto & {
   userId?: string;
 };
 
+/** The outputType a request resolved to, and where that answer came from. */
+type OutputTypeResolution = {
+  /** Only set when the typed decision point answered above its threshold. */
+  confidence?: number;
+  outputType: TaskDocument['outputType'];
+  source: TaskOutputTypeSource;
+};
+
 type ExecutionPath = TaskRoutingDecision['executionPathUsed'];
 
 /**
  * Ordered request-keyword → outputType inference table. The first pattern that
  * matches the (lower-cased) request wins; nothing matching falls through to
  * `ingredient`.
+ *
+ * This is the deterministic answer of the `task_routing.output_type` decision
+ * point (#4867): the whole path in `off` mode, the comparison baseline in
+ * `shadow`, and the fallback whenever the provider is unavailable or answers
+ * below TASK_ROUTING_MIN_CONFIDENCE.
  */
 const OUTPUT_TYPE_PATTERNS: ReadonlyArray<
   [RegExp, TaskDocument['outputType']]
@@ -140,22 +162,43 @@ const FALLBACK_DEFAULT: FallbackConfig = {
 };
 
 /**
- * Pure routing-decision engine for tasks. Resolves a request to an
- * outputType + execution path, preferring a matched brand skill and falling
- * back to keyword inference. Extracted out of `TasksService` so the
+ * Stable telemetry key for this decision point. #4874 queries shadow-mode
+ * agreement by it, so it must not change with a refactor.
+ */
+const OUTPUT_TYPE_DECISION_POINT = 'task_routing.output_type';
+
+const OUTPUT_TYPE_DECISION_QUESTION =
+  'Which output type is this content request asking for?';
+
+/**
+ * Routing-decision engine for tasks. Resolves a request to an outputType +
+ * execution path, preferring a matched brand skill and falling back to the
+ * per-outputType fallback config. Extracted out of `TasksService` so the
  * classification logic is testable in isolation and free of persistence.
+ *
+ * The outputType stage is the `task_routing.output_type` decision point
+ * (#4867). Skill selection stays deterministic: `matchesResolutionContext` is
+ * a hard gate, and no decision reaches it — the decided outputType only picks
+ * the modality the gate is asked about.
  */
 @Injectable()
 export class TaskRoutingService {
-  constructor(private readonly skillsService: SkillsService) {}
+  constructor(
+    private readonly skillsService: SkillsService,
+    private readonly typedDecisionService: TypedDecisionService,
+    private readonly configService: ConfigService,
+  ) {}
 
   async buildRoutingDecision(
     createDto: CreateTaskDto,
     taskTitle: string,
   ): Promise<TaskRoutingDecision> {
     const extended = createDto as CreateTaskDtoExtended;
-    const inferredOutputType = this.inferOutputType(createDto);
-    const taskIntent = this.buildTaskIntent(createDto, inferredOutputType);
+    const outputTypeResolution = await this.resolveOutputType(createDto);
+    const taskIntent = this.buildTaskIntent(
+      createDto,
+      outputTypeResolution.outputType,
+    );
     const brandId = extended.brandId;
     const organizationId = extended.organizationId;
 
@@ -175,11 +218,12 @@ export class TaskRoutingService {
           taskIntent,
           matchedSkill,
           taskTitle,
+          outputTypeResolution,
         );
       }
     }
 
-    return this.buildFallbackRoutingDecision(inferredOutputType);
+    return this.buildFallbackRoutingDecision(outputTypeResolution);
   }
 
   private buildTaskIntent(
@@ -216,15 +260,89 @@ export class TaskRoutingService {
     }
   }
 
-  private inferOutputType(
+  /**
+   * Resolve the outputType through the decision point, keeping the keyword
+   * table as the deterministic answer.
+   *
+   * An explicitly requested outputType is not a classification problem, so it
+   * short-circuits before any provider call. Otherwise `null` (unconfigured
+   * provider, timeout, malformed answer) and a sub-threshold confidence are
+   * treated identically: take the keyword answer. No provider outcome can fail
+   * task creation.
+   */
+  private async resolveOutputType(
     createDto: CreateTaskDto,
-  ): TaskDocument['outputType'] {
+  ): Promise<OutputTypeResolution> {
     const extended = createDto as CreateTaskDtoExtended;
     if (extended.outputType) {
-      return extended.outputType;
+      return { outputType: extended.outputType, source: 'explicit' };
     }
 
-    const normalizedRequest = (extended.request ?? '').toLowerCase();
+    const request = extended.request ?? '';
+    const keywordResolution: OutputTypeResolution = {
+      outputType: this.inferOutputTypeFromKeywords(request),
+      source: 'keyword',
+    };
+
+    const { minConfidence, mode } = resolveTaskRoutingDecisionRollout(
+      this.configService,
+    );
+
+    if (mode === 'off' || request.trim().length === 0) {
+      return keywordResolution;
+    }
+
+    const answer = await this.typedDecisionService.choose(
+      {
+        options: TASK_OUTPUT_TYPES,
+        question: OUTPUT_TYPE_DECISION_QUESTION,
+        state: this.buildOutputTypeDecisionState(extended, request),
+      },
+      {
+        brandId: extended.brandId,
+        decisionPoint: OUTPUT_TYPE_DECISION_POINT,
+        // Shadow mode's whole point: the recorded agreement with the keyword
+        // table is what gates the flip to `live`.
+        deterministicAnswer: keywordResolution.outputType,
+        mode,
+        organizationId: extended.organizationId,
+        userId: extended.userId,
+      },
+    );
+
+    if (mode !== 'live' || !answer || answer.confidence < minConfidence) {
+      return keywordResolution;
+    }
+
+    return {
+      confidence: answer.confidence,
+      outputType: answer.value,
+      source: 'decision',
+    };
+  }
+
+  /**
+   * Decision state: the request text plus the structured hints the task
+   * already carries. Sent as data to judge, never as instructions.
+   */
+  private buildOutputTypeDecisionState(
+    extended: CreateTaskDtoExtended,
+    request: string,
+  ): Record<string, unknown> {
+    return {
+      attachmentCount: extended.linkedEntities?.length ?? 0,
+      hasBrand: Boolean(extended.brandId),
+      platforms: (extended.platforms ?? []).map((platform) =>
+        platform.toLowerCase(),
+      ),
+      request,
+    };
+  }
+
+  private inferOutputTypeFromKeywords(
+    request: string,
+  ): TaskDocument['outputType'] {
+    const normalizedRequest = request.toLowerCase();
     const matched = OUTPUT_TYPE_PATTERNS.find(([pattern]) =>
       pattern.test(normalizedRequest),
     );
@@ -237,6 +355,7 @@ export class TaskRoutingService {
       ReturnType<SkillsService['resolveBrandSkills']>
     >[number],
     taskTitle: string,
+    outputTypeResolution: OutputTypeResolution,
   ): TaskRoutingDecision {
     const targetSkill = matchedSkill.targetSkill;
     const requiresApproval = this.skillRequiresApproval(targetSkill);
@@ -247,6 +366,8 @@ export class TaskRoutingService {
       chosenProvider: targetSkill.requiredProviders?.[0] ?? 'genfeed-router',
       executionPathUsed,
       outputType: taskIntent.outputType,
+      outputTypeConfidence: outputTypeResolution.confidence,
+      outputTypeSource: outputTypeResolution.source,
       resultPreview: requiresApproval
         ? `Prepared with ${targetSkill.name}: ${taskTitle}`
         : undefined,
@@ -266,10 +387,11 @@ export class TaskRoutingService {
   }
 
   private buildFallbackRoutingDecision(
-    inferredOutputType: TaskDocument['outputType'],
+    outputTypeResolution: OutputTypeResolution,
   ): TaskRoutingDecision {
+    const resolvedOutputType = outputTypeResolution.outputType;
     const config =
-      (inferredOutputType && FALLBACK_BY_OUTPUT_TYPE[inferredOutputType]) ??
+      (resolvedOutputType && FALLBACK_BY_OUTPUT_TYPE[resolvedOutputType]) ??
       FALLBACK_DEFAULT;
 
     return {
@@ -277,6 +399,8 @@ export class TaskRoutingService {
       chosenProvider: 'genfeed-router',
       executionPathUsed: executionPathForOutputType(config.outputType),
       outputType: config.outputType,
+      outputTypeConfidence: outputTypeResolution.confidence,
+      outputTypeSource: outputTypeResolution.source,
       reviewState: 'none',
       reviewTriggered: config.reviewTriggered,
       routingSummary: config.routingSummary,

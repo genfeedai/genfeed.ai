@@ -183,6 +183,8 @@ export interface IEnvConfig {
   OPENROUTER_API_KEY?: string;
 
   // === Typed decisions (TypeSafe AI / Jev) ===
+  TASK_ROUTING_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  TASK_ROUTING_MIN_CONFIDENCE?: number;
   TYPED_DECISION_PROVIDER?: 'none' | 'jev';
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;

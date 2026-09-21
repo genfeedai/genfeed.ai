@@ -32,6 +32,13 @@ export const generalAiSchema = {
   // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
   // after Joi validation (unknown keys alone are not enough for typed access).
   OPENROUTER_API_KEY: Joi.string().optional().allow(''),
+  // Task-routing output type (#4867). `off` keeps the keyword table, `shadow`
+  // calls the provider and records the disagreement, `live` routes on the
+  // decided output type at or above TASK_ROUTING_MIN_CONFIDENCE.
+  TASK_ROUTING_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  TASK_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // Typed decisions (#4864). `none` binds the null provider so self-hosted
   // installs keep working with no vendor key; `jev` requires TYPESAFE_API_KEY
   // and falls back to the null provider when the key is absent.

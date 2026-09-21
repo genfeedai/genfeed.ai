@@ -82,6 +82,8 @@ const TASK_CONFIG_FIELDS = [
   'linkedEntities',
   'linkedIssueId',
   'outputType',
+  'outputTypeConfidence',
+  'outputTypeSource',
   'platforms',
   'qualityAssessment',
   'request',
