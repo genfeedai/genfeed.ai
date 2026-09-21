@@ -32,6 +32,13 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     success: true,
   });
   const toolExecutorService = { executeTool };
+  // #4870: the gate is `off` by default and hands back what it was given.
+  const untrustedContentGateService = {
+    evaluateToolResult: vi.fn(async ({ content }: { content: string }) => ({
+      content,
+      outcome: 'allowed' as const,
+    })),
+  };
   const cachedPreparations = new Map<string, unknown>();
   const cacheService = {
     get: vi.fn(async (key: string) => cachedPreparations.get(key) ?? null),
@@ -50,6 +57,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
         loggerService as never,
         cacheService as never,
       ),
+      untrustedContentGateService as never,
     );
   });
 
@@ -200,6 +208,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
         loggerService as never,
         cacheService as never,
       ),
+      untrustedContentGateService as never,
     );
 
     await executeCampaignRound({

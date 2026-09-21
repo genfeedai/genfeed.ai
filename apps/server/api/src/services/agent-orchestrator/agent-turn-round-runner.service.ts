@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type {
   AgentChatContext,
@@ -205,6 +206,7 @@ export class AgentTurnRoundRunnerService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
     private readonly toolConfirmationService: AgentToolConfirmationService,
+    private readonly untrustedContentGateService: AgentUntrustedContentGateService,
   ) {}
 
   /**
@@ -670,8 +672,20 @@ export class AgentTurnRoundRunnerService {
         });
       }
 
-      messages.push({
+      // #4870: the injection gate may withhold an externally authored tool
+      // result from the model context. It only ever tightens this content —
+      // every other outcome hands back exactly what was serialized above.
+      const gated = await this.untrustedContentGateService.evaluateToolResult({
+        brandId: policy.brandId,
         content: JSON.stringify(modelVisibleResult),
+        context,
+        threadId,
+        toolCallId: toolCall.id,
+        toolName,
+      });
+
+      messages.push({
+        content: gated.content,
         role: 'tool' as const,
         tool_call_id: toolCall.id,
       });

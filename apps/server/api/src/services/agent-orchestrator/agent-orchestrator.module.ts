@@ -6,6 +6,7 @@ import { AgentPublishAuditsModule } from '@api/collections/agent-publish-audits/
 import { AgentStrategiesModule } from '@api/collections/agent-strategies/agent-strategies.module';
 import { AgentThreadsModule } from '@api/collections/agent-threads/agent-threads.module';
 import { AgentTransfersService } from '@api/collections/agent-transfers/services/agent-transfers.service';
+import { AgentUntrustedContentAuditsModule } from '@api/collections/agent-untrusted-content-audits/agent-untrusted-content-audits.module';
 import { ArticlesModule } from '@api/collections/articles/articles.module';
 import { BotsModule } from '@api/collections/bots/bots.module';
 import { BotsService } from '@api/collections/bots/services/bots.service';
@@ -74,6 +75,7 @@ import { AgentToolsController } from '@api/services/agent-orchestrator/agent-too
 import { AgentTurnAcceptanceService } from '@api/services/agent-orchestrator/agent-turn-acceptance.service';
 import { AgentTurnRoundRunnerService } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AgentTurnWorkflowExecutionService } from '@api/services/agent-orchestrator/agent-turn-workflow-execution.service';
+import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
@@ -123,6 +125,7 @@ import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatch
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
+import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -150,6 +153,7 @@ import { Module } from '@nestjs/common';
     AgentThreadsModule,
     AgentMemoriesModule,
     AgentPublishAuditsModule,
+    AgentUntrustedContentAuditsModule,
     AgentMessageBusModule,
     AgentMessagesModule,
     AgentThreadingCoreModule,
@@ -199,6 +203,7 @@ import { Module } from '@nestjs/common';
     AgentChatModelRegistryModule,
     SeoModule,
     SkillRuntimeModule,
+    TypedDecisionsModule,
   ],
   providers: [
     AgentCompletionCardBuilderService,
@@ -266,6 +271,7 @@ import { Module } from '@nestjs/common';
     },
     AgentTurnRoundRunnerService,
     AgentTurnWorkflowExecutionService,
+    AgentUntrustedContentGateService,
     {
       provide: 'AGENT_BRANDS_SERVICE',
       useExisting: BrandsService,

@@ -186,6 +186,8 @@ export interface IEnvConfig {
   TYPED_DECISION_PROVIDER?: 'none' | 'jev';
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
+  UNTRUSTED_CONTENT_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  UNTRUSTED_CONTENT_MIN_CONFIDENCE?: number;
 
   // === News API ===
   NEWS_API_KEY?: string;
