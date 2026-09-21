@@ -330,19 +330,19 @@
     "symbol": "PromptBuilderService.buildPrompt"
   },
   {
-    "actual": 1077,
+    "actual": 1159,
     "file": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts"
   },
   {
-    "actual": 171,
+    "actual": 175,
     "file": "apps/server/api/src/services/reply-bot/author-reply-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AuthorReplyLoopService.getInbox"
   },
   {
-    "actual": 1077,
+    "actual": 1126,
     "file": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"

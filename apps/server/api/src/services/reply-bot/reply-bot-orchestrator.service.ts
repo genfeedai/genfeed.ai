@@ -52,7 +52,6 @@ import type {
   ReplyIntent,
   ReplyIntentSource,
 } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -122,7 +121,6 @@ type ForEachResult<T> = {
 @Injectable()
 export class ReplyBotOrchestratorService implements OnModuleInit {
   constructor(
-    readonly _configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly socialMonitorService: SocialMonitorService,
     private readonly replyGenerationService: ReplyGenerationService,

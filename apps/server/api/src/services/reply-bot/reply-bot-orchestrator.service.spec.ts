@@ -20,7 +20,6 @@ import {
   ReplyBotType,
 } from '@genfeedai/contracts';
 import type { IReplyIntentClassification } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 
@@ -81,7 +80,6 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
     const module = await Test.createTestingModule({
       providers: [
         ReplyBotOrchestratorService,
-        { provide: ConfigService, useValue: {} },
         { provide: LoggerService, useValue: { error: vi.fn() } },
         { provide: SocialMonitorService, useValue: {} },
         { provide: ReplyGenerationService, useValue: {} },
