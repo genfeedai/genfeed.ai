@@ -49,6 +49,10 @@ export interface AgentAutoRoutingResolution {
 
 /** Thread metadata written for a routed turn, alongside the policy reason. */
 export interface AgentAutoRoutingMetadata {
+  /**
+   * The key the round ran on: the dispatched key in `live`, the tier's
+   * candidate in `shadow`. Absent when the gateway auto-router handled it.
+   */
   routedModelKey?: string;
   routingDecisionMode?: TypedDecisionMode;
   routingTier?: AgentChatRoutingTier;

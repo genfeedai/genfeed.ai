@@ -99,6 +99,25 @@ describe('buildAgentRoutingMetadata', () => {
     });
   });
 
+  it('omits the key when a live candidate was never dispatched', () => {
+    expect(
+      buildAgentRoutingMetadata({
+        ...base,
+        autoRouting: {
+          candidateModelKey: 'vendor/reasoner',
+          mode: 'live',
+          tier: AgentChatRoutingTier.COMPLEX,
+          tierConfidence: 0.41,
+        },
+        prompt: 'rewrite this caption',
+      }),
+    ).toEqual({
+      routingDecisionMode: 'live',
+      routingTier: AgentChatRoutingTier.COMPLEX,
+      routingTierConfidence: 0.41,
+    });
+  });
+
   it('marks a shadow turn so the key on it is not read as dispatched', () => {
     expect(
       buildAgentRoutingMetadata({

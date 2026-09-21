@@ -104,16 +104,22 @@ export function buildAgentRoutingMetadata(params: {
     source: params.source,
   });
   const autoRouting = params.autoRouting;
+  // `routedModelKey` is the key the round ran on. A shadow turn dispatched
+  // nothing, so it records the candidate the tier mapped to and
+  // `routingDecisionMode` is what says it was never sent. A live turn records
+  // only what was dispatched: a candidate that lost the confidence threshold
+  // or the allow-list guard was handled by the gateway auto-router, and
+  // reporting it as routed would misstate the routing and the projected cost.
+  const routedModelKey =
+    autoRouting?.mode === 'shadow'
+      ? autoRouting.candidateModelKey
+      : autoRouting?.dispatchModelKey;
 
   return {
     ...(policy.reason === 'default'
       ? {}
       : { routingPolicy: policy.reason, webSearchEnabled: true }),
-    // `routedModelKey` is the key the tier mapped to. In shadow mode nothing
-    // was dispatched on it — `routingDecisionMode` is what says so.
-    ...(autoRouting?.candidateModelKey === undefined
-      ? {}
-      : { routedModelKey: autoRouting.candidateModelKey }),
+    ...(routedModelKey === undefined ? {} : { routedModelKey }),
     ...(autoRouting === undefined || autoRouting.mode === 'off'
       ? {}
       : { routingDecisionMode: autoRouting.mode }),
