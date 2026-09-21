@@ -153,4 +153,122 @@ describe('IngredientDownloadButton', () => {
     expect(trigger.className).toContain('focus-visible:bg-hover');
     expect(trigger.className).not.toContain('ring-ring');
   });
+
+  describe('canDownloadOriginal entitlement gate', () => {
+    it('disables the standalone Original button and never calls the callback', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+          canDownloadOriginal={false}
+        />,
+      );
+      const trigger = screen.getByRole('button', { name: 'original' });
+      expect(trigger).toBeDisabled();
+      fireEvent.click(trigger);
+      await Promise.resolve();
+      expect(original).not.toHaveBeenCalled();
+    });
+
+    it('disables the Original menu item in the split dropdown', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+          canDownloadOriginal={false}
+        />,
+      );
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+        button: 0,
+      });
+      const item = await screen.findByRole('menuitem', { name: /original/i });
+      expect(item).toHaveAttribute('aria-disabled', 'true');
+      fireEvent.click(item);
+      await Promise.resolve();
+      expect(original).not.toHaveBeenCalled();
+    });
+
+    it('disables the Original menu item in compact mode', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+          canDownloadOriginal={false}
+          isCompact
+        />,
+      );
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+        button: 0,
+      });
+      const item = await screen.findByRole('menuitem', { name: /original/i });
+      expect(item).toHaveAttribute('aria-disabled', 'true');
+      fireEvent.click(item);
+      await Promise.resolve();
+      expect(original).not.toHaveBeenCalled();
+    });
+
+    it('shows the upgrade tooltip from a focusable wrapper around the locked button', async () => {
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={vi.fn()}
+          canDownloadOriginal={false}
+        />,
+      );
+      const wrapper = screen.getByRole('button', { name: 'originalLocked' });
+      expect(wrapper).toHaveAttribute('tabIndex', '0');
+      expect(wrapper).not.toHaveAttribute('disabled');
+      expect(wrapper).toContainElement(
+        screen.getByRole('button', { name: 'original' }),
+      );
+      fireEvent.focus(wrapper);
+      expect(await screen.findByRole('tooltip')).toHaveTextContent(
+        'originalLocked',
+      );
+    });
+
+    it('shows an upgrade hint on the locked Original menu item', async () => {
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={vi.fn()}
+          canDownloadOriginal={false}
+        />,
+      );
+      fireEvent.pointerDown(screen.getByRole('button', { name: 'options' }), {
+        button: 0,
+      });
+      const item = await screen.findByRole('menuitem', { name: /original/i });
+      expect(item).toHaveTextContent('upgradeHint');
+    });
+
+    it('renders no locked wrapper when the original is available', () => {
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={vi.fn()}
+        />,
+      );
+      expect(
+        screen.queryByRole('button', { name: 'originalLocked' }),
+      ).not.toBeInTheDocument();
+    });
+
+    it('keeps the original action enabled when canDownloadOriginal is omitted (default true)', async () => {
+      const original = vi.fn();
+      render(
+        <IngredientDownloadButton
+          ingredientId="image-1"
+          onDownloadOriginal={original}
+        />,
+      );
+      const trigger = screen.getByRole('button', { name: 'original' });
+      expect(trigger).toBeEnabled();
+      fireEvent.click(trigger);
+      await waitFor(() => expect(original).toHaveBeenCalledOnce());
+    });
+  });
 });

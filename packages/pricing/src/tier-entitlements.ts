@@ -41,6 +41,12 @@ export type TierPlanEntitlement = ApiTierEntitlement & {
   brandLimit: TierLimit;
   /** Connected publishing/integration channels. `null` means unlimited. */
   channelLimit: TierLimit;
+  /**
+   * Whether the tier may download clean (unwatermarked) ingredient exports.
+   * Cloud SaaS only; free tiers (PAYG/BYOK) get platform-branded exports.
+   * Self-hosted is not gated by this flag — it is always unrestricted.
+   */
+  cleanExportAccess: boolean;
   /** Owned organizations/workspaces. `null` means unlimited organizations. */
   organizationLimit: TierLimit;
   /** Organization seats. `null` means unlimited team seats. */
@@ -86,6 +92,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: 0,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    cleanExportAccess: false,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
     trainingAccess: false,
@@ -95,6 +102,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: 0,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    cleanExportAccess: false,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: FREE_SEAT_LIMIT,
     trainingAccess: false,
@@ -104,6 +112,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: HIGHER_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    cleanExportAccess: true,
     organizationLimit: SINGLE_ORGANIZATION_LIMIT,
     seatLimit: PLAN_LIMIT_UNLIMITED,
     trainingAccess: true,
@@ -113,6 +122,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: SCALE_API_RATE_LIMIT,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    cleanExportAccess: true,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
     trainingAccess: true,
@@ -122,6 +132,7 @@ export const TIER_PLAN_ENTITLEMENTS: Record<
     apiRateLimit: null,
     brandLimit: PLAN_LIMIT_UNLIMITED,
     channelLimit: PLAN_LIMIT_UNLIMITED,
+    cleanExportAccess: true,
     organizationLimit: PLAN_LIMIT_UNLIMITED,
     seatLimit: PLAN_LIMIT_UNLIMITED,
     trainingAccess: true,
@@ -188,6 +199,16 @@ export function hasApiAccess(tier: string | null | undefined): boolean {
 /** Whether a tier may create custom model trainings (LoRA). Pro and above. */
 export function hasTrainingAccess(tier: string | null | undefined): boolean {
   return getPlanEntitlementForTier(tier).trainingAccess;
+}
+
+/**
+ * Whether a tier may download clean (unwatermarked) ingredient exports.
+ * Pro and above on cloud SaaS; free tiers (PAYG/BYOK) only get
+ * platform-branded exports. Callers must separately allow self-hosted
+ * deployments, which are always unrestricted regardless of tier.
+ */
+export function hasCleanExportAccess(tier: string | null | undefined): boolean {
+  return getPlanEntitlementForTier(tier).cleanExportAccess;
 }
 
 /**
