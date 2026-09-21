@@ -12,6 +12,10 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import {
+  type AgentAutoRoutingRound,
+  resolveAgentAutoRoutingRound,
+} from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
@@ -186,22 +190,11 @@ export class AgentOrchestratorPlanModeService {
       planCompressedCtx,
     );
 
-    // Plan mode is a single round with no tools (#4865): the decision sees a
-    // round-1 turn that cannot call anything, which is what it is.
-    const autoRouting = await this.autoModelResolver.resolve({
-      brandId: params.context.scope?.brandId,
-      defaultModelKey: await this.agentChatModelRegistry.getDefaultModelKey(),
-      hasPreviousRoundUsedTools: false,
-      hasToolsAvailable: false,
-      latestUserMessage: params.request.content,
-      model: params.model,
-      organizationId: params.context.organizationId,
-      roundNumber: 1,
-      runId: params.context.executionId,
-      source: params.request.source,
-      threadId: params.threadId,
-      userId: params.context.userId,
-    });
+    const {
+      defaultModelKey,
+      dispatchedModel,
+      resolution: autoRouting,
+    } = await this.resolvePlanModeAutoRouting(params);
     const chatParams = await this.buildPlanningChatCompletionParams({
       autoRouting,
       messages: history,
@@ -221,7 +214,7 @@ export class AgentOrchestratorPlanModeService {
         params.model,
       ),
       organizationId: params.context.organizationId,
-      requestedModel: autoRouting.dispatchModelKey ?? params.model,
+      requestedModel: dispatchedModel,
       run: () =>
         this.llmDispatcher.chatCompletion(
           chatParams,
@@ -279,7 +272,7 @@ export class AgentOrchestratorPlanModeService {
       ...buildAgentScopeMetadata(params.context),
       ...buildAgentRoutingMetadata({
         autoRouting,
-        defaultModelKey: await this.agentChatModelRegistry.getDefaultModelKey(),
+        defaultModelKey,
         model: params.model,
         prompt: params.request.content,
         source: params.request.source,
@@ -345,6 +338,31 @@ export class AgentOrchestratorPlanModeService {
     });
 
     return thread?.mode === AgentThreadMode.PLAN;
+  }
+
+  /**
+   * Plan mode is a single round with no tools (#4865): the decision sees a
+   * round-1 turn that cannot call anything, which is what it is.
+   */
+  private async resolvePlanModeAutoRouting(params: {
+    context: AgentChatContext;
+    model: string;
+    request: AgentChatRequest;
+    threadId: string;
+  }): Promise<AgentAutoRoutingRound> {
+    return resolveAgentAutoRoutingRound({
+      context: params.context,
+      hasPreviousRoundUsedTools: false,
+      hasToolsAvailable: false,
+      isTerminalRound: false,
+      latestUserMessage: params.request.content,
+      model: params.model,
+      modelRegistry: this.agentChatModelRegistry,
+      resolver: this.autoModelResolver,
+      roundNumber: 1,
+      source: params.request.source,
+      threadId: params.threadId,
+    });
   }
 
   private async buildPlanningChatCompletionParams(params: {

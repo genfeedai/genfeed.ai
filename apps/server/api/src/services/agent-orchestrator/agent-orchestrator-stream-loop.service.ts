@@ -23,6 +23,7 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { mergeAgentArtifactCompletionMetadata } from '@api/services/agent-orchestrator/utils/agent-artifact-reference-metadata.util';
+import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
@@ -232,32 +233,23 @@ export class AgentOrchestratorStreamLoopService {
         }
         round++;
 
-        const defaultModelKey =
-          await this.agentChatModelRegistry.getDefaultModelKey();
-        // A terminal round replays content already produced by a tool; it
-        // never reaches the provider, so it must not pay for a decision and
-        // keeps the previous round's resolution for the thread metadata.
-        if (!terminalContent) {
-          latestAutoRouting = await this.autoModelResolver.resolve({
-            brandId: context.scope?.brandId,
-            defaultModelKey,
+        const { defaultModelKey, dispatchedModel, resolution } =
+          await resolveAgentAutoRoutingRound({
+            context,
             hasPreviousRoundUsedTools,
             hasToolsAvailable: tools.length > 0,
+            isTerminalRound: Boolean(terminalContent),
             latestUserMessage,
             model,
-            organizationId: context.organizationId,
+            modelRegistry: this.agentChatModelRegistry,
+            previous: latestAutoRouting,
             prioritize: generationPriority,
+            resolver: this.autoModelResolver,
             roundNumber: round,
-            runId: context.executionId,
             source,
             threadId,
-            userId: context.userId,
           });
-        }
-        // The reservation envelope still comes from the requested key, but the
-        // round settles on what was actually dispatched.
-        const dispatchedModel: string =
-          latestAutoRouting?.dispatchModelKey ?? model;
+        latestAutoRouting = resolution;
 
         const chatParams = buildAgentChatCompletionParams({
           autoAllowedModelKeys:
@@ -498,8 +490,7 @@ export class AgentOrchestratorStreamLoopService {
               ...buildAgentScopeMetadata(context),
               ...buildAgentRoutingMetadata({
                 autoRouting: latestAutoRouting,
-                defaultModelKey:
-                  await this.agentChatModelRegistry.getDefaultModelKey(),
+                defaultModelKey,
                 model,
                 prompt: latestUserMessage,
                 source,
