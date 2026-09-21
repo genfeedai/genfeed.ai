@@ -3716,6 +3716,11 @@ model Model {
   isPublic      Boolean        @default(true)
   isFree        Boolean        @default(false)
 
+  // Confidence of the typed category decision that produced `category` at
+  // discovery time (#4869). Null on seeded rows and on every keyword-table
+  // answer; a low value is the operator's cue that the draft needs a look.
+  categoryConfidence Float?
+
   discoveredAt    DateTime?
   lastSyncedAt    DateTime?
   reviewedAt      DateTime?

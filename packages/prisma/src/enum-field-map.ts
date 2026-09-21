@@ -3624,6 +3624,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   Model: {
     allFields: [
       'category',
+      'categoryConfidence',
       'config',
       'cost',
       'costPerUnit',

@@ -81,6 +81,12 @@ export interface IModel extends IBaseEntity {
   reviewedAt?: Date;
   reviewedBy?: string;
   reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
+  /**
+   * Confidence of the typed category decision taken at discovery time
+   * (#4869). Absent on seeded rows and on deterministic keyword answers; a
+   * value below the configured threshold is why a draft needs an operator.
+   */
+  categoryConfidence?: number;
 }
 
 export interface IModelProviderContractSnapshot {

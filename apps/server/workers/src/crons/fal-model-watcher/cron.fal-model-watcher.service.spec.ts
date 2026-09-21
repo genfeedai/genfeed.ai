@@ -76,8 +76,13 @@ describe('CronFalModelWatcherService', () => {
         {
           provide: ModelDiscoveryService,
           useValue: {
+            classifyCategory: vi
+              .fn()
+              .mockResolvedValue({
+                category: ModelCategory.IMAGE,
+                source: 'keyword',
+              }),
             createDraftModel: vi.fn(),
-            detectCategory: vi.fn().mockReturnValue(ModelCategory.IMAGE),
             touchLastSyncedAt: vi.fn().mockResolvedValue(undefined),
           },
         },
@@ -388,27 +393,59 @@ describe('CronFalModelWatcherService', () => {
       expect(result.draftsCreated).toBe(1);
     });
 
-    it('falls back to description detection for unmapped categories', async () => {
+    it('falls back to the shared classification for unmapped categories', async () => {
       mockFalResponse([
         {
           endpoint_id: 'fal-ai/mystery-model',
           metadata: { category: 'unknown-task', description: 'Does things' },
         },
       ]);
-      modelDiscoveryService.detectCategory.mockReturnValue(ModelCategory.VOICE);
+      modelDiscoveryService.classifyCategory.mockResolvedValue({
+        category: ModelCategory.VOICE,
+        confidence: 0.42,
+        source: 'typed-decision',
+      });
       modelDiscoveryService.createDraftModel.mockResolvedValueOnce({
         id: 'draft',
       } as unknown as ServerModelRecord);
 
       await service.discoverNewModels();
 
-      expect(modelDiscoveryService.detectCategory).toHaveBeenCalledWith(
-        {},
-        expect.stringContaining('unknown-task'),
+      expect(modelDiscoveryService.classifyCategory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'Does things',
+          endpoint: 'fal-ai/mystery-model',
+          tags: expect.arrayContaining(['unknown-task']),
+        }),
       );
       expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith(
-        expect.objectContaining({ category: ModelCategory.VOICE }),
+        expect.objectContaining({
+          category: ModelCategory.VOICE,
+          categoryConfidence: 0.42,
+        }),
       );
+    });
+
+    it('never classifies an endpoint whose fal task category is mapped', async () => {
+      mockFalResponse([
+        {
+          endpoint_id: 'fal-ai/mapped-model',
+          metadata: { category: 'text-to-video', description: 'Does things' },
+        },
+      ]);
+      modelDiscoveryService.createDraftModel.mockResolvedValueOnce({
+        id: 'draft',
+      } as unknown as ServerModelRecord);
+
+      await service.discoverNewModels();
+
+      expect(modelDiscoveryService.classifyCategory).not.toHaveBeenCalled();
+      expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith(
+        expect.objectContaining({ category: ModelCategory.VIDEO }),
+      );
+      expect(
+        modelDiscoveryService.createDraftModel.mock.calls[0][0],
+      ).not.toHaveProperty('categoryConfidence');
     });
   });
 

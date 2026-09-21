@@ -390,7 +390,7 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 233,
+    "actual": 224,
     "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts",
     "metric": "method-lines",
     "symbol": "CronModelWatcherService.discoverNewModels"

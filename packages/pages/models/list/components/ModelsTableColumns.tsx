@@ -141,6 +141,20 @@ function formatModelQuality(qualityTier: QualityTier): string {
     : getQualityTierLabel(qualityTier);
 }
 
+/**
+ * Confidence of the typed category decision taken at discovery (#4869).
+ * Seeded rows and deterministic keyword answers carry none, and show nothing.
+ */
+function formatCategoryConfidence(model: IModel): string | null {
+  const confidence = model.categoryConfidence;
+
+  if (typeof confidence !== 'number' || !Number.isFinite(confidence)) {
+    return null;
+  }
+
+  return `${Math.round(confidence * 100)}% confidence`;
+}
+
 export function buildModelsTableColumns({
   isAdminScope,
   isModelEnabled,
@@ -256,6 +270,10 @@ export function buildModelsTableColumns({
           {model.category}
         </Badge>
       ),
+      // #4869: discovery records how sure the typed category decision was.
+      // A pending draft with a low number is the one an operator should read
+      // before approving, so the confidence rides under the badge.
+      subtext: (model: IModel) => formatCategoryConfidence(model),
     },
     {
       header: 'Quality',

@@ -187,6 +187,12 @@ export interface IEnvConfig {
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
 
+  // === Typed decision: model-discovery category (#4869) ===
+  // Mirrors TypedDecisionMode in @genfeedai/contracts; spelled out here
+  // because @genfeedai/config does not depend on contracts.
+  MODEL_DISCOVERY_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  MODEL_DISCOVERY_MIN_CONFIDENCE?: number;
+
   // === News API ===
   NEWS_API_KEY?: string;
   NEWS_API_URL?: string;
