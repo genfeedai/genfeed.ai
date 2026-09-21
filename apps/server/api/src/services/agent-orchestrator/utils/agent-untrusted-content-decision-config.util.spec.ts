@@ -48,8 +48,18 @@ describe('resolveUntrustedContentDecisionConfig', () => {
     ).toBe('off');
   });
 
+  it('honours a configured zero threshold', () => {
+    // Joi permits min(0). Zero means "withhold on any positive decision";
+    // substituting the default would loosen a deliberate tightening.
+    expect(
+      resolveUntrustedContentDecisionConfig(
+        buildConfigService({ UNTRUSTED_CONTENT_MIN_CONFIDENCE: 0 }),
+      ).minConfidence,
+    ).toBe(0);
+  });
+
   it('falls back to the default threshold on an out-of-range confidence', () => {
-    for (const value of [0, -1, 1.5, 'nonsense', undefined]) {
+    for (const value of [-1, 1.5, 'nonsense', undefined]) {
       expect(
         resolveUntrustedContentDecisionConfig(
           buildConfigService({ UNTRUSTED_CONTENT_MIN_CONFIDENCE: value }),

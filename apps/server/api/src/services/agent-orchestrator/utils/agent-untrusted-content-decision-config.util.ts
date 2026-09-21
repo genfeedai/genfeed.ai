@@ -24,6 +24,11 @@ export interface UntrustedContentDecisionConfig {
  * Joi validates both keys, so an out-of-range value cannot reach here from a
  * booted app; the guards below keep a hand-built ConfigService honest and make
  * the fallback the safe one — `off` is today's behaviour.
+ *
+ * The confidence bound is inclusive of 0, matching the Joi schema's `min(0)`:
+ * a configured 0 means "withhold on any positive decision", and silently
+ * replacing it with the default would loosen a threshold an operator
+ * deliberately tightened.
  */
 export function resolveUntrustedContentDecisionConfig(
   configService: ConfigService,
@@ -38,7 +43,7 @@ export function resolveUntrustedContentDecisionConfig(
     configService.get('UNTRUSTED_CONTENT_MIN_CONFIDENCE'),
   );
   const minConfidence =
-    Number.isFinite(rawConfidence) && rawConfidence > 0 && rawConfidence <= 1
+    Number.isFinite(rawConfidence) && rawConfidence >= 0 && rawConfidence <= 1
       ? rawConfidence
       : UNTRUSTED_CONTENT_DEFAULT_MIN_CONFIDENCE;
 
