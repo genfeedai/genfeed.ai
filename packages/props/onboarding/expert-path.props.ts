@@ -6,6 +6,11 @@ import type {
 
 export interface ExpertStepHeaderProps {
   description: string;
+  /**
+   * The first-system screen closes the Expert Path but is not a gate step, so
+   * it reports itself as the final badge position.
+   */
+  isFinalStep?: boolean;
   title: string;
 }
 
