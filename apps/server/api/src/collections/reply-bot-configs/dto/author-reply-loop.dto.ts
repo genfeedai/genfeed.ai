@@ -1,5 +1,6 @@
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { ReplyIntent } from '@api/services/reply-bot/reply-intent.util';
+import type { ReplyIntent } from '@genfeedai/contracts/interfaces';
+import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
@@ -12,14 +13,6 @@ import {
   MaxLength,
   Min,
 } from 'class-validator';
-
-const REPLY_INTENTS = [
-  'thanks',
-  'question',
-  'troll',
-  'spam',
-  'default',
-] as const satisfies readonly ReplyIntent[];
 
 export class SchedulePostWatchDto {
   @IsEntityId()
@@ -128,11 +121,11 @@ export class AuthorReplyDraftDto {
   @ApiProperty()
   commentAuthor!: string;
 
-  @IsIn(REPLY_INTENTS)
+  @IsIn(REPLY_INTENT_VALUES)
   @IsOptional()
   @ApiProperty({
     description: 'Override auto-classified intent persona',
-    enum: REPLY_INTENTS,
+    enum: REPLY_INTENT_VALUES,
     required: false,
   })
   intent?: ReplyIntent;
@@ -180,11 +173,11 @@ export class AuthorReplySendDto {
   @ApiProperty({ required: false })
   commentAuthorId?: string;
 
-  @IsIn(REPLY_INTENTS)
+  @IsIn(REPLY_INTENT_VALUES)
   @IsOptional()
   @ApiProperty({
     description: 'Override auto-classified intent persona',
-    enum: REPLY_INTENTS,
+    enum: REPLY_INTENT_VALUES,
     required: false,
   })
   intent?: ReplyIntent;

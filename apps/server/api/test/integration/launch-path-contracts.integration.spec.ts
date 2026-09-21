@@ -19,6 +19,7 @@ import { readRepo, readSourceOf } from './launch-path-source.util';
 // Declarations may live in api or server after the shared-server extraction.
 const API_SRC = 'apps/server';
 const APP = 'apps/app';
+const CONTRACTS_SRC = 'packages/contracts/src';
 const SERVER_SRC = 'apps/server/api/src';
 const WORKERS_SRC = 'apps/server/workers/src';
 
@@ -517,13 +518,18 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
   });
 
   it('classifies reply intents and caps comment age at 48h', () => {
-    const intent = readSourceOf('ReplyIntent', { root: API_SRC });
+    // The persona vocabulary is a shared contract; the regex that reads it and
+    // the age cap stay in api.
+    const vocabulary = readSourceOf('REPLY_INTENT_VALUES', {
+      root: CONTRACTS_SRC,
+    });
+    const intent = readSourceOf('classifyReplyIntent', { root: API_SRC });
     const authorLoop = readSourceOf('AuthorReplyLoopService', {
       root: API_SRC,
     });
-    expect(intent).toContain('export type ReplyIntent');
-    expect(intent).toContain("'thanks'");
-    expect(intent).toContain("'troll'");
+    expect(vocabulary).toContain('export type ReplyIntent');
+    expect(vocabulary).toContain("'thanks'");
+    expect(vocabulary).toContain("'troll'");
     expect(intent).toContain('DEFAULT_REPLY_MAX_AGE_HOURS = 24');
     expect(intent).toContain('MAX_REPLY_MAX_AGE_HOURS = 48');
     expect(authorLoop).toContain('? 48 : DEFAULT_REPLY_MAX_AGE_HOURS');
@@ -531,6 +537,31 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     // Non-YouTube inbox path. Leading `:` so this cannot match `?? 48`.
     expect(authorLoop).toContain(': clampReplyMaxAgeHours(params.hours)');
     expect(authorLoop).toContain('resolveReplyIntent');
+  });
+
+  it('gates reply-bot auto-skip on a typed decision it can never fail on (#4866)', () => {
+    const classifier = readSourceOf('ReplyIntentClassifierService', {
+      root: API_SRC,
+    });
+    const settings = readSourceOf('resolveReplyIntentDecisionSettings', {
+      root: API_SRC,
+    });
+    // The telemetry key #4874 queries shadow-mode agreement by.
+    expect(settings).toContain(
+      "REPLY_INTENT_DECISION_POINT = 'reply_bot.intent'",
+    );
+    // The regex is the `off` path and the fallback; it is never deleted.
+    expect(classifier).toContain('classifyReplyIntent(params.commentText)');
+    expect(classifier).toContain("if (settings.mode === 'off')");
+    // Shadow mode measures agreement and acts on the deterministic answer.
+    expect(classifier).toContain('deterministicAnswer: regexIntent');
+    expect(classifier).toContain("if (settings.mode === 'shadow')");
+    // A null answer and a sub-threshold one both queue the comment for a
+    // person: no auto-reply, no auto-skip.
+    expect(classifier).toContain(
+      'answer === null || answer.confidence < settings.minConfidence',
+    );
+    expect(classifier).toContain('isNeedsReview: true');
   });
 
   it('keeps repaired API E2E specs in the full tier and drops the dead health harness', () => {

@@ -20,4 +20,9 @@ export const botActivityAttributes = createEntityAttributes([
   'processingTimeMs',
   'errorMessage',
   'skippedReason',
+  // Why a comment was skipped, not merely that it was (#4866).
+  'intent',
+  'intentConfidence',
+  'intentSource',
+  'isIntentNeedsReview',
 ]);

@@ -3,7 +3,15 @@ import {
   buildAuthorReplyDraftWorkflowDefinition,
   buildAuthorReplySendWorkflowDefinition,
 } from '@api/services/reply-bot/author-reply-workflow-definition';
+import {
+  getReplyIntentPersona,
+  resolveReplyIntent,
+} from '@api/services/reply-bot/reply-intent.util';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
+import type {
+  IReplyIntentClassification,
+  IReplyIntentClassifyParams,
+} from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AuthorReplyLoopService', () => {
@@ -43,6 +51,22 @@ describe('AuthorReplyLoopService', () => {
   const processedTweetsService = {
     markAsProcessed: vi.fn(),
   };
+  /** Stands in for `off` mode: the regex answer, acted on as today. */
+  const replyIntentClassifierService = {
+    classify: vi.fn(
+      async (
+        params: IReplyIntentClassifyParams,
+      ): Promise<IReplyIntentClassification> => {
+        const intent = resolveReplyIntent(params.commentText, params.override);
+        return {
+          intent,
+          isAutoSkip: getReplyIntentPersona(intent).shouldSkipAuto,
+          isNeedsReview: false,
+          source: params.override ? 'human' : 'regex',
+        };
+      },
+    ),
+  };
   const xActivitySubscriptionService = {
     ensureSubscriptionForUser: vi.fn().mockResolvedValue({
       message: 'X_ACTIVITY_WEBHOOK_ENABLED is off — subscription skipped',
@@ -69,6 +93,7 @@ describe('AuthorReplyLoopService', () => {
       credentialsService as never,
       processedTweetsService as never,
       xActivitySubscriptionService as never,
+      replyIntentClassifierService as never,
     );
     service.onModuleInit();
   });

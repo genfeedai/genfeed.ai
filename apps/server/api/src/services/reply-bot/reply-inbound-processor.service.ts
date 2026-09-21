@@ -11,10 +11,7 @@ import {
   type ReplyInboundWorkflowInput,
   type ReplyInboundWorkflowResult,
 } from '@api/services/reply-bot/reply-ingestion-workflow-definition';
-import {
-  getReplyIntentPersona,
-  resolveReplyIntent,
-} from '@api/services/reply-bot/reply-intent.util';
+import { ReplyIntentClassifierService } from '@api/services/reply-bot/reply-intent-classifier.service';
 import {
   ReplyBotPlatform,
   ReplyBotType,
@@ -35,6 +32,7 @@ export class ReplyInboundProcessorService implements OnModuleInit {
     private readonly authorReplyLoopService: AuthorReplyLoopService,
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
+    private readonly replyIntentClassifierService: ReplyIntentClassifierService,
   ) {}
 
   onModuleInit(): void {
@@ -104,8 +102,29 @@ export class ReplyInboundProcessorService implements OnModuleInit {
       };
     }
 
-    const intent = resolveReplyIntent(input.commentText);
-    if (getReplyIntentPersona(intent).shouldSkipAuto) {
+    const classification = await this.replyIntentClassifierService.classify({
+      authorHandle: input.commentAuthorUsername,
+      ...(input.brandId === undefined ? {} : { brandId: input.brandId }),
+      commentText: input.commentText,
+      organizationId: input.organizationId,
+      ...(input.parentPostPreview === undefined
+        ? {}
+        : { postCaption: input.parentPostPreview }),
+    });
+    const { intent } = classification;
+
+    // Uncertain: no auto-reply, and deliberately no markAsProcessed either —
+    // a processed comment drops out of the author inbox, and queueing it for
+    // a person is the whole point of the confidence gate (#4866).
+    if (classification.isNeedsReview) {
+      return {
+        input,
+        items: [],
+        outcome: { ...baseResult, skipped: true, success: true },
+      };
+    }
+
+    if (classification.isAutoSkip) {
       await this.processedTweetsService.markAsProcessed(
         input.commentId,
         input.organizationId,
@@ -163,6 +182,10 @@ export class ReplyInboundProcessorService implements OnModuleInit {
           commentId: input.commentId,
           commentText: input.commentText,
           intent,
+          ...(classification.confidence === undefined
+            ? {}
+            : { intentConfidence: classification.confidence }),
+          intentSource: classification.source,
           organizationId: input.organizationId,
           parentPostId: input.parentPostId,
           ...(input.parentPostPreview === undefined

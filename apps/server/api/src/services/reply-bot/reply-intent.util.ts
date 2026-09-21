@@ -1,9 +1,14 @@
 /**
  * Lightweight comment intent for Replies surface personas.
- * Deterministic heuristics first (no extra model call); LLM can refine later.
+ *
+ * Deterministic heuristics, no model call. #4866 layers a typed decision on
+ * top in `ReplyIntentClassifierService`; this file stays the `off` path, the
+ * fallback when the provider is unavailable, and the deterministic answer
+ * shadow mode measures agreement against. It must keep working on its own.
  */
 
-export type ReplyIntent = 'thanks' | 'question' | 'troll' | 'spam' | 'default';
+import type { ReplyIntent } from '@genfeedai/contracts/interfaces';
+import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
 
 export const DEFAULT_REPLY_MAX_AGE_HOURS = 24;
 /** Hard ceiling: never treat multi-day threads as fresh conversation. */
@@ -109,17 +114,16 @@ export function getReplyIntentPersona(intent: ReplyIntent): ReplyIntentPersona {
   return { intent, ...PERSONAS[intent] };
 }
 
+/** Narrows an operator override, which arrives from a DTO or workflow input. */
+export function isReplyIntent(value: unknown): value is ReplyIntent {
+  return REPLY_INTENT_VALUES.some((intent) => intent === value);
+}
+
 export function resolveReplyIntent(
   text: string,
   override?: ReplyIntent | null,
 ): ReplyIntent {
-  if (
-    override === 'thanks' ||
-    override === 'question' ||
-    override === 'troll' ||
-    override === 'spam' ||
-    override === 'default'
-  ) {
+  if (isReplyIntent(override)) {
     return override;
   }
   return classifyReplyIntent(text);
