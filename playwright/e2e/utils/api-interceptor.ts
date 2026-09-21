@@ -35,6 +35,8 @@ interface MockOrganization {
   imageUrl: string;
   createdAt: string;
   updatedAt: string;
+  /** Set when a spec needs an account-type-specific surface (Expert Path). */
+  accountType?: string;
 }
 
 interface MockIngredient {
