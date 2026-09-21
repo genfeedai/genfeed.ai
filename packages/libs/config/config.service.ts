@@ -195,6 +195,39 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
     ).replace(/\/+$/, '');
   }
 
+  /**
+   * CloudFront key-pair id used to sign media URLs. Unset means this
+   * deployment serves media unsigned (self-hosted, local development).
+   */
+  public get cdnSigningKeyPairId(): string | undefined {
+    return this.envConfig.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID || undefined;
+  }
+
+  /**
+   * PEM private key matching `cdnSigningKeyPairId`, provisioned from the
+   * operator secret store. Never committed and never read from `process.env`
+   * directly.
+   */
+  public get cdnSigningPrivateKey(): string | undefined {
+    return this.envConfig.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY || undefined;
+  }
+
+  /**
+   * Lifetime of a signed media URL: short enough that a leaked link stops
+   * working quickly, long enough for an in-flight download to finish.
+   */
+  public get cdnSignedUrlTtlSeconds(): number {
+    const configured = Number(
+      this.envConfig.GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS,
+    );
+    return Number.isFinite(configured) && configured > 0 ? configured : 900;
+  }
+
+  /** Media URLs are signed only when both signing inputs are present. */
+  public get isCdnSigningEnabled(): boolean {
+    return Boolean(this.cdnSigningKeyPairId && this.cdnSigningPrivateKey);
+  }
+
   public get ingredientsEndpoint(): string {
     return `${this.cdnUrl}/ingredients`;
   }

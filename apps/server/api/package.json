@@ -3,11 +3,13 @@
     "@anthropic-ai/sdk": "0.124.0",
     "@aws-sdk/client-cloudfront": "3.1127.0",
     "@aws-sdk/client-ec2": "3.1127.0",
+    "@aws-sdk/cloudfront-signer": "3.1125.0",
     "@better-auth/infra": "0.4.7",
     "@genfeedai/actions": "workspace:*",
     "@genfeedai/agent": "workspace:*",
     "@genfeedai/auth-client": "workspace:*",
     "@genfeedai/config": "workspace:*",
+    "@genfeedai/contracts": "workspace:*",
     "@genfeedai/harness": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/integrations": "workspace:*",
@@ -46,8 +48,7 @@
     "rxjs": "7.8.2",
     "tsconfig-paths": "4.2.0",
     "twitter-api-v2": "1.29.1",
-    "twitter-text": "3.1.0",
-    "@genfeedai/contracts": "workspace:*"
+    "twitter-text": "3.1.0"
   },
   "description": "Genfeed API Service",
   "devDependencies": {
