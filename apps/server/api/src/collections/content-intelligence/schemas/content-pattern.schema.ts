@@ -22,7 +22,7 @@ export interface ContentPatternDocument
   data?: Record<string, unknown>;
   description?: string;
   extractedFormula?: string;
-  /** No confident source produced this pattern's labels (#4868). */
+  /** No confident source produced the labels on this pattern (#4868). */
   isLowConfidence?: boolean;
   patternType?: ContentPatternType;
   placeholders?: string[];
