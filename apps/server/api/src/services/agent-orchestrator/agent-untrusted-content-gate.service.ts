@@ -34,34 +34,63 @@ export const UNTRUSTED_CONTENT_WITHHELD_NOTICE =
 
 const UNTRUSTED_CONTENT_WITHHELD_WORK_EVENT_LABEL = 'Tool result withheld';
 
-/**
- * Per-call budget on the text sent to the provider. A tool result longer than
- * this is windowed rather than truncated — see `buildDecisionContent`.
- */
+/** Per-call budget on the text sent to the provider, in characters. */
 const UNTRUSTED_CONTENT_DECISION_MAX_LENGTH =
   AGENT_UNTRUSTED_CONTENT_MAX_LENGTH;
 
-const UNTRUSTED_CONTENT_DECISION_WINDOW_MARKER = '\n…\n';
+/**
+ * Windows per tool result. Bounded so an oversized payload cannot fan out into
+ * unbounded provider calls; 8 × 32000 covers 256k of a single tool result,
+ * which is far beyond anything the tools in `web_fetch` / `connector` /
+ * `user_upload` return in practice.
+ */
+const UNTRUSTED_CONTENT_DECISION_MAX_WINDOWS = 8;
 
 /**
- * The text the provider judges, for content the model is about to read.
- *
- * Whatever the classifier does not see, it cannot withhold, so this returns
- * the caller's content verbatim up to the budget. Above it, head and tail are
- * both kept: a plain head-only truncation would leave an override appended
- * past the cut invisible to the decision and fully visible to the model.
+ * Characters each window repeats from the previous one, so an instruction
+ * straddling a window boundary is still seen whole by at least one call.
  */
-function buildDecisionContent(content: string): string {
+const UNTRUSTED_CONTENT_DECISION_WINDOW_OVERLAP = 512;
+
+interface UntrustedContentDecisionWindows {
+  /** True when the cap stopped the windows short of covering the content. */
+  isTruncated: boolean;
+  windows: string[];
+}
+
+/**
+ * Split the content the model is about to read into the windows the provider
+ * will judge.
+ *
+ * Whatever the classifier does not see, it cannot withhold, so every character
+ * has to land in some window. A head-only truncation hides an override
+ * appended at the end; a head-and-tail window hides one buried in the middle.
+ * Both were real: this covers the content end to end, overlapping the seams.
+ */
+function buildDecisionWindows(
+  content: string,
+): UntrustedContentDecisionWindows {
   if (content.length <= UNTRUSTED_CONTENT_DECISION_MAX_LENGTH) {
-    return content;
+    return { isTruncated: false, windows: content ? [content] : [] };
   }
 
-  const windowLength = Math.floor(UNTRUSTED_CONTENT_DECISION_MAX_LENGTH / 2);
+  const stride =
+    UNTRUSTED_CONTENT_DECISION_MAX_LENGTH -
+    UNTRUSTED_CONTENT_DECISION_WINDOW_OVERLAP;
+  const windows: string[] = [];
+  let offset = 0;
 
-  return [
-    content.slice(0, windowLength),
-    content.slice(content.length - windowLength),
-  ].join(UNTRUSTED_CONTENT_DECISION_WINDOW_MARKER);
+  while (
+    offset < content.length &&
+    windows.length < UNTRUSTED_CONTENT_DECISION_MAX_WINDOWS
+  ) {
+    windows.push(
+      content.slice(offset, offset + UNTRUSTED_CONTENT_DECISION_MAX_LENGTH),
+    );
+    offset += stride;
+  }
+
+  return { isTruncated: offset < content.length, windows };
 }
 
 /**
@@ -133,40 +162,68 @@ export class AgentUntrustedContentGateService {
       // regex-scrubbed copy instead would classify text that never reaches the
       // model: a payload made of literal injection phrases arrives as
       // `[REMOVED]` markers and reads clean, while the model still gets the
-      // original. Same for anything past a truncation point. Either gap is an
-      // evasion channel, so the raw serialization is what goes to the provider.
-      const decisionContent = buildDecisionContent(params.content);
-      if (!decisionContent.trim()) {
+      // original. So the raw serialization goes to the provider, split into
+      // overlapping windows that cover it end to end.
+      const { isTruncated, windows } = buildDecisionWindows(
+        params.content.trim() ? params.content : '',
+      );
+      if (windows.length === 0) {
         return allowed;
       }
 
-      const answer = await this.typedDecisionService.decide(
-        {
-          question: UNTRUSTED_CONTENT_DECISION_QUESTION,
-          state: {
-            content: decisionContent,
-            source,
+      if (isTruncated) {
+        // Loud, never silent: past the window cap some of what the model reads
+        // was not classified, so this result's coverage is partial.
+        this.loggerService.warn(
+          `${this.constructorName} classified a tool result only in part`,
+          {
+            contentLength: params.content.length,
+            maxClassifiedLength:
+              UNTRUSTED_CONTENT_DECISION_MAX_WINDOWS *
+              UNTRUSTED_CONTENT_DECISION_MAX_LENGTH,
+            organizationId: params.context.organizationId,
+            threadId: params.threadId,
             toolName: params.toolName,
           },
-        },
-        {
-          brandId: params.brandId ?? undefined,
-          decisionPoint: UNTRUSTED_CONTENT_DECISION_POINT,
-          // Today's path never withholds, so a disagreement in shadow mode is
-          // exactly one would-be withhold — the false-positive numerator.
-          deterministicAnswer: false,
-          mode,
-          organizationId: params.context.organizationId,
-          runId: params.context.executionId,
-          threadId: params.threadId,
-          userId: params.context.userId,
-        },
+        );
+      }
+
+      const answers = await Promise.all(
+        windows.map((window) =>
+          this.typedDecisionService.decide(
+            {
+              question: UNTRUSTED_CONTENT_DECISION_QUESTION,
+              state: { content: window, source, toolName: params.toolName },
+            },
+            {
+              brandId: params.brandId ?? undefined,
+              decisionPoint: UNTRUSTED_CONTENT_DECISION_POINT,
+              // Today's path never withholds, so a disagreement in shadow mode
+              // is exactly one would-be withhold — the false-positive
+              // numerator.
+              deterministicAnswer: false,
+              mode,
+              organizationId: params.context.organizationId,
+              runId: params.context.executionId,
+              threadId: params.threadId,
+              userId: params.context.userId,
+            },
+          ),
+        ),
       );
 
+      // One flagged window condemns the whole result: the model reads it whole.
       // `null` and sub-threshold are the same answer: today's behaviour.
-      if (!answer?.value || answer.confidence < minConfidence) {
+      const confidences = answers
+        .filter((answer) => answer?.value === true)
+        .map((answer) => answer?.confidence ?? 0)
+        .filter((confidence) => confidence >= minConfidence);
+
+      if (confidences.length === 0) {
         return allowed;
       }
+
+      const answer = { confidence: Math.max(...confidences) };
 
       const outcome: AgentUntrustedContentGateOutcome =
         mode === 'live' ? 'withheld' : 'shadow_flagged';
