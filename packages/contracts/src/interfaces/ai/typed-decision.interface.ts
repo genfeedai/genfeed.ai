@@ -81,6 +81,17 @@ export interface TypedDecisionProvider {
  */
 export type TypedDecisionMode = 'off' | 'shadow' | 'live';
 
+/**
+ * The rollout gate of one decision point, resolved from config: how far the
+ * call site has flipped, and the confidence a provider answer must clear
+ * before it is acted on. #4912 moves these reads behind a settings service.
+ */
+export interface TypedDecisionRolloutSettings {
+  /** 0..1. Anything below it is treated exactly like a `null` answer. */
+  minConfidence: number;
+  mode: TypedDecisionMode;
+}
+
 /** The answer a migrated call site would have produced without a provider. */
 export type TypedDecisionDeterministicAnswer = boolean | number | string;
 

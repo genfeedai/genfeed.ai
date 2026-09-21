@@ -77,6 +77,7 @@ describe('ContentPatternSerializer', () => {
       data: {
         description: 'Question hook',
         extractedFormula: 'Did you know {fact}?',
+        isLowConfidence: true,
         patternType: 'hook',
         placeholders: ['fact'],
         platform: 'twitter',
@@ -98,6 +99,7 @@ describe('ContentPatternSerializer', () => {
     expect(Object.keys(output.attributes).sort()).toEqual([
       'description',
       'extractedFormula',
+      'isLowConfidence',
       'patternType',
       'placeholders',
       'platform',
@@ -114,6 +116,7 @@ describe('ContentPatternSerializer', () => {
     expect(output.attributes).toMatchObject({
       description: 'Question hook',
       extractedFormula: 'Did you know {fact}?',
+      isLowConfidence: true,
       patternType: 'hook',
       sourceCreatorId: 'creator-1',
     });

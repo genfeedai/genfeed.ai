@@ -1,7 +1,7 @@
 import type {
   ContentIntelligencePlatform,
+  ContentPatternCategory,
   ContentPatternType,
-  TemplateCategory,
 } from '@genfeedai/contracts';
 import type { ContentPattern as PrismaContentPattern } from '@genfeedai/prisma';
 
@@ -22,6 +22,8 @@ export interface ContentPatternDocument
   data?: Record<string, unknown>;
   description?: string;
   extractedFormula?: string;
+  /** No confident source produced this pattern's labels (#4868). */
+  isLowConfidence?: boolean;
   patternType?: ContentPatternType;
   placeholders?: string[];
   platform?: ContentIntelligencePlatform;
@@ -32,7 +34,7 @@ export interface ContentPatternDocument
   sourcePostId?: string | null;
   sourcePostUrl?: string | null;
   tags?: string[];
-  templateCategory?: TemplateCategory;
+  templateCategory?: ContentPatternCategory;
   usageCount?: number;
   [key: string]: unknown;
 }
