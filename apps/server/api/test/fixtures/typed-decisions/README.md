@@ -25,8 +25,10 @@ transcripts, structured payloads with no prose, and hard negatives that
 legitimately quote or discuss instructions) against 82 direct, paraphrased,
 role-play, social-engineering, obfuscated and buried-in-an-article injection
 attempts. `state` matches what the gate sends — `{ content, source, toolName }`
-— and `content` is post-scrub, so the handful of rows the regexes already
-catch carry their `[REMOVED]` markers.
+— and `content` is the raw serialization the model would read, because that is
+what the gate classifies. Scrubbing the fixture would measure text production
+never sees: a payload of literal injection phrases arrives as `[REMOVED]`
+markers and reads clean, while the model still gets the original.
 
 Every row is **synthetic**: written for this issue, not sampled from
 production traffic. The rates it reports are therefore a floor on the work,

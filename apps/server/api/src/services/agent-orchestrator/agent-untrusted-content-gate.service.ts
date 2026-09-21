@@ -1,7 +1,7 @@
 import { AgentUntrustedContentAuditsService } from '@api/collections/agent-untrusted-content-audits/services/agent-untrusted-content-audits.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type { AgentChatContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
-import { sanitizeAgentUntrustedInput } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
+import { AGENT_UNTRUSTED_CONTENT_MAX_LENGTH } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import { resolveUntrustedContentDecisionConfig } from '@api/services/agent-orchestrator/utils/agent-untrusted-content-decision-config.util';
 import {
   isAgentUntrustedContentSource,
@@ -33,6 +33,36 @@ export const UNTRUSTED_CONTENT_WITHHELD_NOTICE =
   'tool result withheld: suspected instruction injection';
 
 const UNTRUSTED_CONTENT_WITHHELD_WORK_EVENT_LABEL = 'Tool result withheld';
+
+/**
+ * Per-call budget on the text sent to the provider. A tool result longer than
+ * this is windowed rather than truncated — see `buildDecisionContent`.
+ */
+const UNTRUSTED_CONTENT_DECISION_MAX_LENGTH =
+  AGENT_UNTRUSTED_CONTENT_MAX_LENGTH;
+
+const UNTRUSTED_CONTENT_DECISION_WINDOW_MARKER = '\n…\n';
+
+/**
+ * The text the provider judges, for content the model is about to read.
+ *
+ * Whatever the classifier does not see, it cannot withhold, so this returns
+ * the caller's content verbatim up to the budget. Above it, head and tail are
+ * both kept: a plain head-only truncation would leave an override appended
+ * past the cut invisible to the decision and fully visible to the model.
+ */
+function buildDecisionContent(content: string): string {
+  if (content.length <= UNTRUSTED_CONTENT_DECISION_MAX_LENGTH) {
+    return content;
+  }
+
+  const windowLength = Math.floor(UNTRUSTED_CONTENT_DECISION_MAX_LENGTH / 2);
+
+  return [
+    content.slice(0, windowLength),
+    content.slice(content.length - windowLength),
+  ].join(UNTRUSTED_CONTENT_DECISION_WINDOW_MARKER);
+}
 
 /**
  * The tool's own `tool_completed` work event already owns `toolCallId`, and
@@ -99,10 +129,14 @@ export class AgentUntrustedContentGateService {
         return allowed;
       }
 
-      // The decision judges what the scrub already cleaned, never the raw
-      // payload: the regexes own the literal forms, this owns the paraphrases.
-      const scrubbed = sanitizeAgentUntrustedInput(params.content);
-      if (!scrubbed) {
+      // The decision must judge what the model is about to read. Handing it a
+      // regex-scrubbed copy instead would classify text that never reaches the
+      // model: a payload made of literal injection phrases arrives as
+      // `[REMOVED]` markers and reads clean, while the model still gets the
+      // original. Same for anything past a truncation point. Either gap is an
+      // evasion channel, so the raw serialization is what goes to the provider.
+      const decisionContent = buildDecisionContent(params.content);
+      if (!decisionContent.trim()) {
         return allowed;
       }
 
@@ -110,7 +144,7 @@ export class AgentUntrustedContentGateService {
         {
           question: UNTRUSTED_CONTENT_DECISION_QUESTION,
           state: {
-            content: scrubbed,
+            content: decisionContent,
             source,
             toolName: params.toolName,
           },
