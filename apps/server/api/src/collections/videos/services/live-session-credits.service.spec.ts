@@ -1,5 +1,8 @@
 import { LiveSessionCreditsService } from '@api/collections/videos/services/live-session-credits.service';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  UnsettleableReservationException,
+} from '@api/exceptions/business-logic.exception';
 import {
   LiveSessionStatus,
   LiveSessionTerminateReason,
@@ -289,5 +292,85 @@ describe('LiveSessionCreditsService', () => {
         }),
       }),
     );
+  });
+  it('terminates a session whose hold expired before settlement', async () => {
+    creditsUtilsService.settleReservation.mockRejectedValueOnce(
+      new UnsettleableReservationException('EXPIRED'),
+    );
+
+    await expect(
+      service.terminateSession({
+        now: new Date('2026-09-18T12:00:10.000Z'),
+        organizationId: 'org-1',
+        reason: LiveSessionTerminateReason.USER,
+        sessionId: 'session-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toMatchObject({ status: LiveSessionStatus.TERMINATED });
+
+    expect(prisma.liveSession.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          settledCredits: 400,
+          status: LiveSessionStatus.TERMINATED,
+        }),
+      }),
+    );
+  });
+
+  it('terminates a session whose hold was already settled for another amount', async () => {
+    creditsUtilsService.settleReservation.mockRejectedValueOnce(
+      new BusinessLogicException(
+        'Settlement amount does not match the completed reservation',
+        { actualAmount: 400, settledAmount: 24_300 },
+        'SETTLEMENT_AMOUNT_MISMATCH',
+      ),
+    );
+
+    await expect(
+      service.terminateSession({
+        now: new Date('2026-09-18T12:00:10.000Z'),
+        organizationId: 'org-1',
+        reason: LiveSessionTerminateReason.USER,
+        sessionId: 'session-1',
+        userId: 'user-1',
+      }),
+    ).resolves.toMatchObject({ status: LiveSessionStatus.TERMINATED });
+  });
+
+  it('rethrows a settlement failure that leaves the hold chargeable', async () => {
+    creditsUtilsService.settleReservation.mockRejectedValueOnce(
+      new BusinessLogicException(
+        'Settlement amount exceeds the reserved amount',
+        { actualAmount: 24_301, reservedAmount: 24_300 },
+        'SETTLEMENT_EXCEEDS_RESERVATION',
+      ),
+    );
+
+    await expect(
+      service.terminateSession({
+        now: new Date('2026-09-18T12:00:10.000Z'),
+        organizationId: 'org-1',
+        reason: LiveSessionTerminateReason.USER,
+        sessionId: 'session-1',
+        userId: 'user-1',
+      }),
+    ).rejects.toBeInstanceOf(BusinessLogicException);
+
+    expect(prisma.liveSession.update).not.toHaveBeenCalled();
+  });
+
+  it('finishes the ceiling sweep when a due session has an expired hold', async () => {
+    prisma.liveSession.findMany.mockResolvedValue([
+      openSessionRow({ id: 'session-1' }),
+      openSessionRow({ id: 'session-2' }),
+    ]);
+    creditsUtilsService.settleReservation.mockRejectedValueOnce(
+      new UnsettleableReservationException('RELEASED'),
+    );
+
+    await expect(
+      service.terminateDue(new Date('2026-09-18T12:16:00.000Z')),
+    ).resolves.toBe(2);
   });
 });

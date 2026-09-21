@@ -9,7 +9,10 @@ import {
   isLiveSessionPastCeiling,
   liveSessionElapsedSeconds,
 } from '@api/collections/videos/services/live-session-credits.util';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  UnsettleableReservationException,
+} from '@api/exceptions/business-logic.exception';
 import type { ReservationCreditsConfig } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { scopedWhere } from '@api/index';
@@ -344,10 +347,12 @@ export class LiveSessionCreditsService {
         source: ActivitySource.VIDEO_GENERATION,
       });
     } catch (error: unknown) {
+      // A hold that was already settled for this amount, or that expired or was
+      // released before the session ended, owes nothing more: terminate anyway.
       if (
-        error instanceof BusinessLogicException &&
-        (error.errorCode === 'SETTLEMENT_AMOUNT_MISMATCH' ||
-          error.message.includes('cannot be settled'))
+        error instanceof UnsettleableReservationException ||
+        (error instanceof BusinessLogicException &&
+          error.errorCode === 'SETTLEMENT_AMOUNT_MISMATCH')
       ) {
         return;
       }

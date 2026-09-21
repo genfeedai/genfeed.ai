@@ -65,6 +65,24 @@ export class InsufficientCreditsException extends BusinessLogicException {
   }
 }
 
+/**
+ * A credit hold that is no longer RESERVED — released or expired — and so can
+ * never be settled.
+ *
+ * Callers must match on this class (or its `RESERVATION_NOT_SETTLEABLE` code),
+ * never on `error.message`: `BusinessLogicException` passes its reason to Nest
+ * as the response `detail`, leaving `message` as the generic class label.
+ */
+export class UnsettleableReservationException extends BusinessLogicException {
+  constructor(status: string) {
+    super(
+      `Reservation ${status} cannot be settled`,
+      { status },
+      'RESERVATION_NOT_SETTLEABLE',
+    );
+  }
+}
+
 export class CreditGrantBillingAccountMismatchException extends BusinessLogicException {
   constructor(
     expectedBillingAccountId: string,
