@@ -69,12 +69,10 @@ describe('CronModelWatcherService', () => {
         {
           provide: ModelDiscoveryService,
           useValue: {
-            classifyCategory: vi
-              .fn()
-              .mockResolvedValue({
-                category: ModelCategory.IMAGE,
-                source: 'keyword',
-              }),
+            classifyCategory: vi.fn().mockResolvedValue({
+              category: ModelCategory.IMAGE,
+              source: 'keyword',
+            }),
             createDraftModel: vi.fn(),
             fetchReplicateModel: vi
               .fn()
