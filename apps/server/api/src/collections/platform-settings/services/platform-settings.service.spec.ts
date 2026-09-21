@@ -165,12 +165,10 @@ describe('PlatformSettingsService', () => {
         typedDecisionProvider: 'none',
       };
       vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
-      const patch = vi
-        .spyOn(service, 'patch')
-        .mockResolvedValue({
-          ...current,
-          typedDecisionProvider: 'jev',
-        } as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue({
+        ...current,
+        typedDecisionProvider: 'jev',
+      } as never);
 
       await service.updateSingleton({ typedDecisionProvider: 'jev' });
 
