@@ -23,6 +23,7 @@ export * from './ai/harness-pack-registry.interface';
 export * from './ai/harness-profile.interface';
 export * from './ai/media-artifact-result.interface';
 export * from './ai/tone-profile.interface';
+export * from './ai/typed-decision.interface';
 export * from './analytics/account-analytics.interface';
 export * from './analytics/activity.interface';
 export * from './analytics/aggregation.interface';

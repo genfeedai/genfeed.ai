@@ -32,6 +32,14 @@ export const generalAiSchema = {
   // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
   // after Joi validation (unknown keys alone are not enough for typed access).
   OPENROUTER_API_KEY: Joi.string().optional().allow(''),
+  // Typed decisions (#4864). `none` binds the null provider so self-hosted
+  // installs keep working with no vendor key; `jev` requires TYPESAFE_API_KEY
+  // and falls back to the null provider when the key is absent.
+  TYPED_DECISION_PROVIDER: Joi.string().valid('none', 'jev').default('none'),
+  // Hard per-call budget. The agent turn path needs the 800ms default; async
+  // paths pass their own budget through the call context instead.
+  TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
+  TYPESAFE_API_KEY: Joi.string().optional().allow(''),
 };
 
 /**
