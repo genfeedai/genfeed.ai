@@ -1,6 +1,7 @@
 import { NullTypedDecisionProvider } from '@api/services/typed-decisions/providers/null-typed-decision.provider';
 import { TypedDecisionRateLimitError } from '@api/services/typed-decisions/typed-decision.errors';
 import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
+import type { TypedDecisionProviderResolver } from '@api/services/typed-decisions/typed-decision-provider.resolver';
 import type { TypedDecisionTelemetryService } from '@api/services/typed-decisions/typed-decision-telemetry.service';
 import { TYPED_DECISION_MAX_OPTIONS } from '@api/services/typed-decisions/typed-decisions.constants';
 import type {
@@ -48,10 +49,15 @@ function createHarness(provider: TypedDecisionProvider, timeoutMs = 50) {
     ),
   } as unknown as ConfigService;
 
+  const providerResolver = {
+    resolve: vi.fn(async () => provider),
+  } as unknown as TypedDecisionProviderResolver;
+
   return {
     logger,
+    providerResolver,
     service: new TypedDecisionService(
-      provider,
+      providerResolver,
       configService,
       logger,
       telemetry,
@@ -90,6 +96,27 @@ describe('TypedDecisionService', () => {
 
       expect(chooseSpy).not.toHaveBeenCalled();
       expect(recordMock(telemetry)).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('provider binding', () => {
+    it('re-resolves per call so an operator kill switch lands mid-process', async () => {
+      const provider = createProvider();
+      const { providerResolver, service } = createHarness(provider);
+      vi.mocked(provider.decide).mockResolvedValue({
+        confidence: 0.9,
+        value: true,
+      });
+
+      const params = { question: 'Is it spam?', state: {} };
+      await expect(service.decide(params, CONTEXT)).resolves.not.toBeNull();
+
+      vi.mocked(providerResolver.resolve).mockResolvedValue(
+        new NullTypedDecisionProvider(),
+      );
+
+      await expect(service.decide(params, CONTEXT)).resolves.toBeNull();
+      expect(vi.mocked(provider.decide)).toHaveBeenCalledTimes(1);
     });
   });
 
@@ -301,7 +328,14 @@ describe('TypedDecisionService', () => {
       get: vi.fn(() => 50),
     } as unknown as ConfigService;
     const logger = { warn: vi.fn() } as unknown as LoggerService;
-    const service = new TypedDecisionService(provider, configService, logger);
+    const providerResolver = {
+      resolve: vi.fn(async () => provider),
+    } as unknown as TypedDecisionProviderResolver;
+    const service = new TypedDecisionService(
+      providerResolver,
+      configService,
+      logger,
+    );
 
     await expect(
       service.decide({ question: 'Is it spam?', state: {} }, CONTEXT),

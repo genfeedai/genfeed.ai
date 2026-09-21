@@ -1,13 +1,19 @@
 import { CreatePlatformSettingDto } from '@api/collections/platform-settings/dto/create-platform-setting.dto';
 import { UpdatePlatformSettingDto } from '@api/collections/platform-settings/dto/update-platform-setting.dto';
 import type { PlatformSettingDocument } from '@api/collections/platform-settings/schemas/platform-setting.schema';
+import { isTypedDecisionProviderAvailable } from '@api/services/typed-decisions/typed-decision-provider.factory';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { PLATFORM_SETTING_KEY } from '@genfeedai/contracts/constants';
+import {
+  PLATFORM_SETTING_KEY,
+  TYPED_DECISION_PROVIDER_LABELS,
+} from '@genfeedai/contracts/constants';
 import { setRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   Injectable,
   InternalServerErrorException,
   type OnModuleInit,
@@ -31,6 +37,7 @@ export class PlatformSettingsService
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly configService: ConfigService,
   ) {
     super(prisma, 'platformSetting', logger);
   }
@@ -100,11 +107,17 @@ export class PlatformSettingsService
   async updateSingleton(
     dto: UpdatePlatformSettingDto,
   ): Promise<PlatformSettingDocument> {
+    this.assertTypedDecisionProviderAvailable(dto);
+
     const current = await this.getSingleton();
-    const patchData =
-      dto.marginMultiplier === undefined
+    const patchData = {
+      ...(dto.marginMultiplier === undefined
         ? {}
-        : { marginMultiplier: dto.marginMultiplier };
+        : { marginMultiplier: dto.marginMultiplier }),
+      ...(dto.typedDecisionProvider === undefined
+        ? {}
+        : { typedDecisionProvider: dto.typedDecisionProvider }),
+    };
     if (Object.keys(patchData).length === 0) {
       setRuntimeMarginMultiplier(current.marginMultiplier);
       return current;
@@ -113,5 +126,28 @@ export class PlatformSettingsService
     const updated = await this.patch(current.id, patchData);
     setRuntimeMarginMultiplier(updated.marginMultiplier);
     return updated;
+  }
+
+  /**
+   * Refuse a provider this deployment has no credential for.
+   *
+   * Storing it would leave the operator looking at a setting that says Jev
+   * while every decision quietly took the deterministic path — the failure
+   * mode an admin switch exists to prevent.
+   */
+  private assertTypedDecisionProviderAvailable(
+    dto: UpdatePlatformSettingDto,
+  ): void {
+    const provider = dto.typedDecisionProvider;
+    if (
+      provider === undefined ||
+      isTypedDecisionProviderAvailable(provider, this.configService)
+    ) {
+      return;
+    }
+
+    throw new BadRequestException(
+      `${TYPED_DECISION_PROVIDER_LABELS[provider]} needs TYPESAFE_API_KEY to be configured on the server`,
+    );
   }
 }

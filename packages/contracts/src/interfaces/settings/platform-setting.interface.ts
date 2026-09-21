@@ -1,3 +1,4 @@
+import type { TypedDecisionProviderName } from '../ai/typed-decision.interface';
 import type { IBaseEntity } from '../core/base.interface';
 
 /**
@@ -15,9 +16,21 @@ export interface IPlatformSetting extends IBaseEntity {
    * `@genfeedai/pricing`.
    */
   marginMultiplier: number;
+
+  /**
+   * Which provider answers typed decisions (epic #4863). `none` keeps every
+   * migrated decision point on its deterministic path.
+   *
+   * This is enablement, not availability: the `TYPESAFE_API_KEY` credential
+   * decides whether a hosted provider is *possible*, an operator decides
+   * whether it is *on*. Kept here rather than in the environment so turning a
+   * misbehaving vendor off takes a click rather than a deploy.
+   */
+  typedDecisionProvider: TypedDecisionProviderName;
 }
 
 /** Fields a platform operator may update via `/admin`. */
 export interface IUpdatePlatformSettingPayload {
   marginMultiplier?: number;
+  typedDecisionProvider?: TypedDecisionProviderName;
 }

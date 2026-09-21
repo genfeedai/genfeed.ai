@@ -10,6 +10,16 @@
  * only, so swapping the vendor never reaches a call site.
  */
 
+/**
+ * Every provider this product can bind.
+ *
+ * Selection is an operator setting on the platform-settings singleton
+ * (#4908), never an environment variable: the only useful reaction to a
+ * vendor that starts answering slowly, wrongly or expensively is one that
+ * does not need a deploy.
+ */
+export type TypedDecisionProviderName = 'jev' | 'none';
+
 /** Vendor usage for one decision, when the provider reports it. */
 export interface TypedDecisionUsage {
   /** Vendor model identifier, recorded next to LLM spend in the ledger. */
@@ -57,8 +67,8 @@ export interface TypedDecisionProviderCallOptions {
 }
 
 export interface TypedDecisionProvider {
-  /** Stable provider name recorded in telemetry (`none`, `jev`). */
-  readonly name: string;
+  /** Stable provider name recorded in telemetry. */
+  readonly name: TypedDecisionProviderName;
   choose<TOption extends string>(
     params: TypedDecisionChoiceParams<TOption>,
     options?: TypedDecisionProviderCallOptions,
@@ -126,7 +136,7 @@ export interface TypedDecisionTelemetryRecord {
   latencyMs: number;
   mode: TypedDecisionMode;
   organizationId?: string;
-  provider: string;
+  provider: TypedDecisionProviderName;
   /** Cooldown surfaced by a 429, in seconds. */
   retryAfterSeconds?: number;
   runId?: string;
@@ -155,7 +165,7 @@ export interface TypedDecisionTelemetryProperties {
   mode: TypedDecisionMode;
   organization_id?: string;
   output_tokens?: number;
-  provider: string;
+  provider: TypedDecisionProviderName;
   retry_after_seconds?: number;
   run_id?: string;
   thread_id?: string;

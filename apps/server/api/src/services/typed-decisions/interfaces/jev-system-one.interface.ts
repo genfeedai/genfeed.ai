@@ -10,9 +10,9 @@
  * network egress, so the names below were reconstructed from public secondary
  * sources (POST `/v1/systemone` with a `state` plus a map of typed questions
  * of kind `noul` / `choice` / `score`, answered by a map of typed answers with
- * probabilities). Confirm them against the vendor docs before enabling
- * `TYPED_DECISION_PROVIDER=jev` anywhere; a mismatch degrades to `null`
- * answers rather than wrong ones, because the parser validates every field.
+ * probabilities). Confirm them against the vendor docs before an operator
+ * selects Jev anywhere; a mismatch degrades to `null` answers rather than
+ * wrong ones, because the parser validates every field.
  */
 
 export const JEV_SYSTEM_ONE_URL = 'https://api.typesafe.ai/v1/systemone';
