@@ -28,6 +28,7 @@ const {
   isSaaSMock,
   isSelfHostedMock,
   managedCreateCheckoutSessionMock,
+  recordSignupAttributionMock,
   resolveAuthTokenMock,
   searchParamsState,
 } = vi.hoisted(() => ({
@@ -55,6 +56,7 @@ const {
   isSaaSMock: vi.fn(),
   isSelfHostedMock: vi.fn(),
   managedCreateCheckoutSessionMock: vi.fn(),
+  recordSignupAttributionMock: vi.fn(),
   resolveAuthTokenMock: vi.fn(),
   searchParamsState: {
     value: new URLSearchParams(),
@@ -158,6 +160,14 @@ vi.mock('@services/organization/organizations.service', () => ({
   },
 }));
 
+vi.mock('@services/organization/users.service', () => ({
+  UsersService: {
+    getInstance: vi.fn(() => ({
+      recordSignupAttribution: recordSignupAttributionMock,
+    })),
+  },
+}));
+
 vi.mock('@services/social/brands.service', () => ({
   BrandsService: {
     getInstance: vi.fn(() => ({
@@ -219,6 +229,8 @@ describe('PostSignupPage behavior', () => {
     claimBrandOsPreviewMock.mockReset();
     claimPublicYoutubeClipMock.mockReset();
     claimReferralMock.mockReset();
+    recordSignupAttributionMock.mockReset();
+    recordSignupAttributionMock.mockResolvedValue(undefined);
     managedCreateCheckoutSessionMock.mockReset();
     getTokenMock.mockReset();
     getMyOrganizationsMock.mockReset();
@@ -459,6 +471,70 @@ describe('PostSignupPage behavior', () => {
       expect(localStorage.getItem(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
         'frtesttestaa',
       );
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('records and clears the stored signup source before routing', async () => {
+    searchParamsState.value = new URLSearchParams(
+      'signup_referrer=chatgpt.com',
+    );
+    localStorage.setItem(
+      ONBOARDING_STORAGE_KEYS.signupAttribution,
+      'signup_landing=%2Fstudio&signup_referrer=chatgpt.com',
+    );
+
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(recordSignupAttributionMock).toHaveBeenCalledWith({
+        landingPath: '/studio',
+        referrerDomain: 'chatgpt.com',
+      });
+    });
+    await waitFor(() => {
+      expect(
+        localStorage.getItem(ONBOARDING_STORAGE_KEYS.signupAttribution),
+      ).toBeNull();
+    });
+  });
+
+  it('skips attribution when the signup source was never captured', async () => {
+    render(<PostSignupPage />);
+
+    await waitFor(() => {
+      expect(locationState.href).not.toBe(
+        'http://localhost/onboarding/post-signup',
+      );
+    });
+    expect(recordSignupAttributionMock).not.toHaveBeenCalled();
+  });
+
+  it('does not let a hung attribution request block routing', async () => {
+    vi.useFakeTimers();
+    try {
+      localStorage.setItem(
+        ONBOARDING_STORAGE_KEYS.signupAttribution,
+        'utm_source=producthunt',
+      );
+      recordSignupAttributionMock.mockReturnValue(new Promise(() => undefined));
+
+      render(<PostSignupPage />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_000);
+      });
+
+      expect(recordSignupAttributionMock).toHaveBeenCalledWith({
+        utmSource: 'producthunt',
+      });
+      expect(locationState.href).not.toBe(
+        'http://localhost/onboarding/post-signup',
+      );
+      expect(
+        localStorage.getItem(ONBOARDING_STORAGE_KEYS.signupAttribution),
+      ).toBe('utm_source=producthunt');
     } finally {
       vi.useRealTimers();
     }

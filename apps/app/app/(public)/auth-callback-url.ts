@@ -2,6 +2,10 @@ import {
   buildBrowserAuthCallbackURL,
   resolveAuthContinuation,
 } from '@genfeedai/auth-client/callback';
+import {
+  readSignupAttributionParams,
+  toSignupAttributionParams,
+} from '@genfeedai/helpers';
 import type { AuthCallbackURLOptions } from '@genfeedai/props/auth/auth-callback-url.props';
 import {
   extractBrandDomain,
@@ -141,6 +145,14 @@ function buildPostSignupCallbackURL(
 
   if (referralCode) {
     params.set('ref', referralCode);
+  }
+
+  // Forwarded first-touch source survives a magic link opened on another
+  // device, where the sign-up page's local copy is out of reach.
+  for (const [param, value] of toSignupAttributionParams(
+    readSignupAttributionParams(searchParams),
+  )) {
+    params.set(param, value);
   }
 
   const query = params.toString();

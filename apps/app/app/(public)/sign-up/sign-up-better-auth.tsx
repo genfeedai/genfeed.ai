@@ -15,7 +15,10 @@ import { useSearchParams } from 'next/navigation';
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
+import {
+  persistOnboardingHandoffParams,
+  persistSignupAttribution,
+} from '@/lib/onboarding/onboarding-access.util';
 import {
   getAuthCallbackURL,
   toAbsoluteAuthCallbackURL,
@@ -82,6 +85,11 @@ export default function SignUpBetterAuth({
 
   useEffect(() => {
     persistOnboardingHandoffParams(window.location.search);
+    persistSignupAttribution({
+      hostname: window.location.hostname,
+      referrer: document.referrer,
+      search: window.location.search,
+    });
   }, []);
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {

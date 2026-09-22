@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { CreateAvatarUploadDto } from '@api/collections/users/dto/create-avatar-upload.dto';
+import { RecordSignupAttributionDto } from '@api/collections/users/dto/record-signup-attribution.dto';
 import { UpdateAssetGateDto } from '@api/collections/users/dto/update-asset-gate.dto';
 import { UpdateUserDto } from '@api/collections/users/dto/update-user.dto';
 import { UpdateUserOnboardingDto } from '@api/collections/users/dto/update-user-onboarding.dto';
@@ -26,6 +27,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import {
   type ISubscriptionsService,
@@ -37,6 +39,7 @@ import {
   Body,
   Controller,
   Get,
+  HttpCode,
   Inject,
   Param,
   Patch,
@@ -140,6 +143,7 @@ export class UsersController {
     const isDeleted = QueryDefaultsUtil.getIsDeletedDefault(query.isDeleted);
     const data = await this.usersService.findAll(
       {
+        include: { signupAttribution: true },
         orderBy: handleQuerySort(query.sort),
         where: { isDeleted },
       },
@@ -267,6 +271,25 @@ export class UsersController {
     return data
       ? serializeSingle(request, UserSerializer, data)
       : returnNotFound(this.constructorName, user.userId ?? user.id);
+  }
+
+  /**
+   * First-touch acquisition source, posted once by post-signup routing. The
+   * service keeps the first record and ignores accounts past the window.
+   */
+  // Internal onboarding hand-off — excluded from the OpenAPI documentation.
+  @ApiExcludeEndpoint()
+  @Post('me/signup-attribution')
+  @HttpCode(204)
+  @RateLimit({ limit: 10, scope: 'user', windowMs: 60_000 })
+  async recordMeSignupAttribution(
+    @CurrentUser() user: User,
+    @Body() body: RecordSignupAttributionDto,
+  ): Promise<void> {
+    await this.usersService.recordSignupAttribution(
+      user.userId ?? user.id,
+      body,
+    );
   }
 
   /**

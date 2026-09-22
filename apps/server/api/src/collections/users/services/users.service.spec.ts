@@ -9,12 +9,16 @@ vi.mock('@genfeedai/prisma', async () => {
   return canonicalPrismaMock();
 });
 
-import { UsersService } from '@api/collections/users/services/users.service';
+import {
+  SIGNUP_ATTRIBUTION_WINDOW_MS,
+  UsersService,
+} from '@api/collections/users/services/users.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('UsersService', () => {
   let delegate: Record<string, ReturnType<typeof vi.fn>>;
+  let attributionDelegate: { createMany: ReturnType<typeof vi.fn> };
   let service: UsersService;
 
   beforeEach(() => {
@@ -29,8 +33,15 @@ describe('UsersService', () => {
       updateMany: vi.fn(),
     };
 
+    attributionDelegate = {
+      createMany: vi.fn().mockResolvedValue({ count: 1 }),
+    };
+
     service = new UsersService(
-      { user: delegate } as unknown as PrismaService,
+      {
+        user: delegate,
+        userSignupAttribution: attributionDelegate,
+      } as unknown as PrismaService,
       {
         debug: vi.fn(),
         error: vi.fn(),
@@ -103,5 +114,57 @@ describe('UsersService', () => {
     );
     const [args] = delegate.findMany.mock.calls[0];
     expect(args).not.toHaveProperty('include');
+  });
+
+  describe('recordSignupAttribution', () => {
+    it('records the first-touch source once for a new account', async () => {
+      delegate.findFirst.mockResolvedValue({ createdAt: new Date() });
+
+      await expect(
+        service.recordSignupAttribution('user_1', {
+          landingPath: '/studio',
+          referrerDomain: 'chatgpt.com',
+        }),
+      ).resolves.toBe(true);
+
+      expect(delegate.findFirst).toHaveBeenCalledWith({
+        select: { createdAt: true },
+        where: { id: 'user_1', isDeleted: false },
+      });
+      expect(attributionDelegate.createMany).toHaveBeenCalledWith({
+        data: [
+          {
+            landingPath: '/studio',
+            referrerDomain: 'chatgpt.com',
+            userId: 'user_1',
+            utmCampaign: undefined,
+            utmContent: undefined,
+            utmMedium: undefined,
+            utmSource: undefined,
+          },
+        ],
+        skipDuplicates: true,
+      });
+    });
+
+    it('keeps the existing record when attribution is posted again', async () => {
+      delegate.findFirst.mockResolvedValue({ createdAt: new Date() });
+      attributionDelegate.createMany.mockResolvedValue({ count: 0 });
+
+      await expect(
+        service.recordSignupAttribution('user_1', { utmSource: 'google' }),
+      ).resolves.toBe(false);
+    });
+
+    it('ignores accounts older than the attribution window', async () => {
+      delegate.findFirst.mockResolvedValue({
+        createdAt: new Date(Date.now() - SIGNUP_ATTRIBUTION_WINDOW_MS - 1),
+      });
+
+      await expect(
+        service.recordSignupAttribution('user_1', { utmSource: 'google' }),
+      ).resolves.toBe(false);
+      expect(attributionDelegate.createMany).not.toHaveBeenCalled();
+    });
   });
 });

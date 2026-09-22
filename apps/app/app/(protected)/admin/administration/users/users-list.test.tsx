@@ -213,6 +213,45 @@ describe('UsersList', () => {
     ).not.toBeInTheDocument();
   });
 
+  it('shows each user’s first-touch signup source', () => {
+    mocks.useQuery.mockReturnValue({
+      data: [
+        {
+          ...regularUser,
+          signupAttribution: {
+            landingPath: '/studio',
+            referrerDomain: 'chatgpt.com',
+          },
+        },
+        {
+          ...superAdminUser,
+          signupAttribution: { utmMedium: 'launch', utmSource: 'producthunt' },
+        },
+        { ...betterAuthUser, signupAttribution: {} },
+        { ...betterAuthUser, id: 'user-4' },
+      ],
+      error: null,
+      isFetching: false,
+      isLoading: false,
+      refetch: mocks.refetch,
+    });
+
+    render(<UsersList />);
+
+    expect(screen.getByTestId('user-1-signupAttribution')).toHaveTextContent(
+      'chatgpt.com → /studio',
+    );
+    expect(screen.getByTestId('user-2-signupAttribution')).toHaveTextContent(
+      'producthunt / launch',
+    );
+    expect(screen.getByTestId('user-3-signupAttribution')).toHaveTextContent(
+      'Direct',
+    );
+    expect(screen.getByTestId('user-4-signupAttribution')).toHaveTextContent(
+      'Unknown',
+    );
+  });
+
   it('shows Better Auth names plus valid joined and last-connected dates', () => {
     mocks.useQuery.mockReturnValue({
       data: [betterAuthUser],

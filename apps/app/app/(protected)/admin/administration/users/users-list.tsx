@@ -22,6 +22,26 @@ function formatUserName(user: IUser): string {
   return user.name?.trim() || splitName || 'No name';
 }
 
+/**
+ * First-touch source: UTM source/medium when tagged, else the referring site,
+ * else "Direct". Users whose source was never captured read "Unknown".
+ */
+function formatSignupSource(user: IUser): string {
+  const attribution = user.signupAttribution;
+  if (!attribution) {
+    return 'Unknown';
+  }
+
+  const campaign = [attribution.utmSource, attribution.utmMedium]
+    .filter(Boolean)
+    .join(' / ');
+  const source = campaign || attribution.referrerDomain || 'Direct';
+
+  return attribution.landingPath
+    ? `${source} → ${attribution.landingPath}`
+    : source;
+}
+
 function formatUserDate(
   value: string | null | undefined,
   fallback: string,
@@ -88,6 +108,11 @@ export default function UsersList() {
       header: 'Email',
       key: 'email',
       render: (u: IUser) => u.email || 'No email',
+    },
+    {
+      header: 'Source',
+      key: 'signupAttribution',
+      render: formatSignupSource,
     },
     {
       header: 'Joined',

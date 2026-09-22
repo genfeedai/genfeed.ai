@@ -30,6 +30,7 @@ import { ClipProjectsService } from '@services/content/clip-projects.service';
 import { EnvironmentService } from '@services/core/environment.service';
 import { logger } from '@services/core/logger.service';
 import { OrganizationsService } from '@services/organization/organizations.service';
+import { UsersService } from '@services/organization/users.service';
 import { BrandsService } from '@services/social/brands.service';
 import { useSearchParams } from 'next/navigation';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -43,12 +44,14 @@ import {
   ONBOARDING_STORAGE_KEYS,
   parseOnboardingAccountType,
   parseReferralCode,
+  resolvePendingSignupAttribution,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 
 export type { PostSignupRoutingState } from '@genfeedai/props/onboarding/post-signup-routing.props';
 
 const REFERRAL_CLAIM_TIMEOUT_MS = 2_000;
+const SIGNUP_ATTRIBUTION_TIMEOUT_MS = 2_000;
 
 export function usePostSignupRouting(): PostSignupRoutingState {
   const { getToken } = useAuthIdentity();
@@ -62,6 +65,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
   const requestedBrandOsTokenParam = searchParams.get('brandOsToken');
   const requestedClipToolTokenParam = searchParams.get('clipToolToken');
   const requestedReferralCodeParam = searchParams.get('ref');
+  const searchQuery = searchParams.toString();
   const requestedAccountType = parseOnboardingAccountType(
     searchParams.get('accountType'),
   );
@@ -211,6 +215,32 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         );
       }
 
+      // Started before the referral claim so both requests share one wait.
+      const signupAttribution = resolvePendingSignupAttribution(
+        new URLSearchParams(searchQuery),
+      );
+      const signupAttributionRecord = signupAttribution
+        ? (async () => {
+            const token = await resolveAuthToken(getToken);
+            if (!token) {
+              logger.warn(
+                'Signup attribution deferred because no auth token was available',
+              );
+              return;
+            }
+            try {
+              await UsersService.getInstance(token).recordSignupAttribution(
+                signupAttribution,
+              );
+              localStorage.removeItem(
+                ONBOARDING_STORAGE_KEYS.signupAttribution,
+              );
+            } catch (error: unknown) {
+              logger.error('Failed to record signup attribution', error);
+            }
+          })()
+        : null;
+
       const referralCode =
         parseReferralCode(requestedReferralCodeParam) ??
         parseReferralCode(
@@ -251,6 +281,22 @@ export function usePostSignupRouting(): PostSignupRoutingState {
               'Referral attribution is still pending; continuing post-signup routing',
             );
           }
+        }
+      }
+
+      if (signupAttributionRecord) {
+        let timeoutId: number | undefined;
+        await Promise.race([
+          signupAttributionRecord,
+          new Promise<void>((resolve) => {
+            timeoutId = window.setTimeout(
+              resolve,
+              SIGNUP_ATTRIBUTION_TIMEOUT_MS,
+            );
+          }),
+        ]);
+        if (timeoutId !== undefined) {
+          window.clearTimeout(timeoutId);
         }
       }
 
@@ -587,6 +633,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
     requestedPlanParam,
     requestedReferralCodeParam,
     routingAttempt,
+    searchQuery,
     resolveCheckoutReturnHref,
     resolveOnboardingHref,
   ]);

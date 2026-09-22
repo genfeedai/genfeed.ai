@@ -6,9 +6,16 @@ import {
 import type {
   DashboardPreferences,
   ISetting,
+  ISignupAttribution,
   OnboardingAccessMode,
 } from '@genfeedai/contracts/interfaces';
-import { extractBrandDomain } from '@genfeedai/helpers';
+import {
+  extractBrandDomain,
+  hasSignupAttribution,
+  readSignupAttributionParams,
+  resolveExternalReferrerDomain,
+  toSignupAttributionParams,
+} from '@genfeedai/helpers';
 import { EnvironmentService } from '@services/core/environment.service';
 
 export const ONBOARDING_ACCESS_SOURCE = 'oss-onboarding';
@@ -60,6 +67,7 @@ export const ONBOARDING_STORAGE_KEYS = {
   referralCode: 'gf_referral_code',
   selectedCredits: 'gf_selected_credits',
   selectedPlan: 'gf_selected_plan',
+  signupAttribution: 'gf_signup_attribution',
   source: 'gf_onboarding_source',
 } as const;
 
@@ -291,4 +299,72 @@ export function persistOnboardingHandoffParams(
   if (referralCode && !storedReferralCode) {
     storage.setItem(ONBOARDING_STORAGE_KEYS.referralCode, referralCode);
   }
+}
+
+type SignupAttributionStorage = Pick<Storage, 'getItem' | 'setItem'>;
+
+/**
+ * Remember where this visitor came from when the sign-up page loads. The
+ * marketing site forwards its first-touch source on the sign-up URL; a visitor
+ * who lands on the app directly falls back to the page's own referrer. An empty
+ * record is still stored so post-signup can tell "direct" from "never seen".
+ * A stored source wins over a later visit unless it recorded nothing.
+ */
+export function persistSignupAttribution(
+  input: { search: string; referrer: string; hostname: string },
+  storage: SignupAttributionStorage = localStorage,
+): void {
+  const stored = storage.getItem(ONBOARDING_STORAGE_KEYS.signupAttribution);
+  if (
+    stored !== null &&
+    hasSignupAttribution(
+      readSignupAttributionParams(new URLSearchParams(stored)),
+    )
+  ) {
+    return;
+  }
+
+  const attribution = readSignupAttributionParams(
+    new URLSearchParams(input.search),
+  );
+  if (!attribution.referrerDomain) {
+    const referrerDomain = resolveExternalReferrerDomain(
+      input.referrer,
+      input.hostname,
+    );
+    if (referrerDomain) {
+      attribution.referrerDomain = referrerDomain;
+    }
+  }
+
+  if (stored !== null && !hasSignupAttribution(attribution)) {
+    return;
+  }
+
+  storage.setItem(
+    ONBOARDING_STORAGE_KEYS.signupAttribution,
+    toSignupAttributionParams(attribution).toString(),
+  );
+}
+
+/**
+ * The attribution post-signup should record: the stored first touch, with the
+ * callback URL's forwarded values filling in for a cross-device magic link.
+ * Null when neither source exists, so an unknown signup stays unknown.
+ */
+export function resolvePendingSignupAttribution(
+  searchParams: Pick<URLSearchParams, 'get'>,
+  storage: Pick<Storage, 'getItem'> = localStorage,
+): ISignupAttribution | null {
+  const stored = storage.getItem(ONBOARDING_STORAGE_KEYS.signupAttribution);
+  const forwarded = readSignupAttributionParams(searchParams);
+
+  if (stored === null) {
+    return hasSignupAttribution(forwarded) ? forwarded : null;
+  }
+
+  return {
+    ...forwarded,
+    ...readSignupAttributionParams(new URLSearchParams(stored)),
+  };
 }

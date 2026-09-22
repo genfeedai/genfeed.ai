@@ -606,6 +606,7 @@ model User {
   sessions                  Session[]
   accounts                  Account[]
   settings                  Setting?
+  signupAttribution         UserSignupAttribution?
   credentials               Credential[]
   apiKeys                   ApiKey[]
   ingredients               Ingredient[]
@@ -1482,6 +1483,28 @@ model Jwks {
   expiresAt  DateTime?
 
   @@map("auth_jwks")
+}
+
+/// First-touch acquisition source, recorded once right after signup. Only the
+/// referring domain and landing path are kept (never full URLs or query
+/// strings), and `utm_term` is excluded as free text.
+model UserSignupAttribution {
+  id             String   @id @default(cuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  referrerDomain String?
+  landingPath    String?
+  utmSource      String?
+  utmMedium      String?
+  utmCampaign    String?
+  utmContent     String?
+  isDeleted      Boolean  @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([utmSource, createdAt(sort: Desc)])
+  @@index([referrerDomain, createdAt(sort: Desc)])
+  @@map("user_signup_attributions")
 }
 
 // ═══════════════════════════════════════════════════════════════

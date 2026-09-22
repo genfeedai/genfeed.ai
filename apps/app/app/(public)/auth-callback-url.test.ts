@@ -56,6 +56,19 @@ describe('auth callback URL helpers', () => {
     );
   });
 
+  it('forwards normalized signup attribution on the post-signup callback', () => {
+    expect(
+      getAuthCallbackURL(
+        new URLSearchParams(
+          'plan=pro&utm_source=ChatGPT&utm_term=private&signup_referrer=chatgpt.com&signup_landing=%2Fstudio%3Fx%3D1',
+        ),
+        { includeOnboardingHandoffParams: true },
+      ),
+    ).toBe(
+      '/onboarding/post-signup?plan=pro&signup_landing=%2Fstudio&signup_referrer=chatgpt.com&utm_source=chatgpt',
+    );
+  });
+
   it('preserves explicit callbacks when handoff params are present', () => {
     expect(
       getAuthCallbackURL(
