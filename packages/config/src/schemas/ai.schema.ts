@@ -61,6 +61,13 @@ export const generalAiSchema = {
   // Typed decisions (#4864). Which provider is bound is an operator setting on
   // the platform-settings singleton (#4908), not an env var — the key here is
   // only the credential that makes a hosted provider available at all.
+  // Task-routing output type (#4867). `off` keeps the keyword table, `shadow`
+  // calls the provider and records the disagreement, `live` routes on the
+  // decided output type at or above TASK_ROUTING_MIN_CONFIDENCE.
+  TASK_ROUTING_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  TASK_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // Hard per-call budget. The agent turn path needs the 800ms default; async
   // paths pass their own budget through the call context instead.
   TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
