@@ -433,6 +433,10 @@ describe('ModelDiscoveryService', () => {
       expect(result).toBe(ModelCategory.VIDEO);
     });
 
+    // `encode` was dropped from EMBEDDING when it moved to the head of the
+    // table. Two specs, because the two readings fail differently: the first
+    // pins a realistic video description that happens to say "encodes", the
+    // second isolates the token so *any* rule claiming it shows up.
     it('does not let `encode` claim a video model for EMBEDDING', () => {
       const result = service.detectCategory(
         {},
@@ -440,6 +444,12 @@ describe('ModelDiscoveryService', () => {
       );
 
       expect(result).toBe(ModelCategory.VIDEO);
+    });
+
+    it('leaves a bare `encode` unclaimed, falling through to the default', () => {
+      const result = service.detectCategory({}, 'Encodes frames into tokens');
+
+      expect(result).toBe(ModelCategory.IMAGE);
     });
   });
 
