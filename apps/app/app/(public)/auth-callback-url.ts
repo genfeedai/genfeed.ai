@@ -2,6 +2,7 @@ import {
   buildBrowserAuthCallbackURL,
   resolveAuthContinuation,
 } from '@genfeedai/auth-client/callback';
+import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import {
   readSignupAttributionParams,
   toSignupAttributionParams,
@@ -96,6 +97,7 @@ export function parsePublicYoutubeClipToken(
 
 function buildPostSignupCallbackURL(
   searchParams: Pick<URLSearchParams, 'get'>,
+  signupAttribution?: ISignupAttribution | null,
 ): string {
   const params = new URLSearchParams();
   const selectedPlan = resolveSelectedPlanParam(searchParams.get('plan'));
@@ -147,11 +149,13 @@ function buildPostSignupCallbackURL(
     params.set('ref', referralCode);
   }
 
-  // Forwarded first-touch source survives a magic link opened on another
-  // device, where the sign-up page's local copy is out of reach.
-  for (const [param, value] of toSignupAttributionParams(
-    readSignupAttributionParams(searchParams),
-  )) {
+  // The first-touch source rides on the callback so a magic link opened on
+  // another device, where the sign-up page's local copy is out of reach,
+  // still records it. The stored first touch wins over the current URL.
+  for (const [param, value] of toSignupAttributionParams({
+    ...readSignupAttributionParams(searchParams),
+    ...signupAttribution,
+  })) {
     params.set(param, value);
   }
 
@@ -175,7 +179,7 @@ export function getAuthCallbackURL(
     parseBrandOsPreviewToken(searchParams.get('brandOsToken')) ||
     parsePublicYoutubeClipToken(searchParams.get('clipToolToken'))
   ) {
-    return buildPostSignupCallbackURL(searchParams);
+    return buildPostSignupCallbackURL(searchParams, options.signupAttribution);
   }
 
   return options.defaultCallbackURL ?? ROOT_CALLBACK_URL;

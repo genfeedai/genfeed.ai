@@ -315,7 +315,7 @@ describe('persistSignupAttribution', () => {
       [ONBOARDING_STORAGE_KEYS.signupAttribution]: 'utm_source=producthunt',
     });
 
-    persistSignupAttribution(
+    const recorded = persistSignupAttribution(
       {
         hostname: 'app.genfeed.ai',
         referrer: 'https://t.co/',

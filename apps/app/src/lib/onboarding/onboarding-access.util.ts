@@ -304,7 +304,8 @@ export function persistOnboardingHandoffParams(
 type SignupAttributionStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 /**
- * Remember where this visitor came from when the sign-up page loads. The
+ * Remember where this visitor came from when the sign-up page loads, and
+ * return the source now on record. The
  * marketing site forwards its first-touch source on the sign-up URL; a visitor
  * who lands on the app directly falls back to the page's own referrer. An empty
  * record is still stored so post-signup can tell "direct" from "never seen".
@@ -313,15 +314,14 @@ type SignupAttributionStorage = Pick<Storage, 'getItem' | 'setItem'>;
 export function persistSignupAttribution(
   input: { search: string; referrer: string; hostname: string },
   storage: SignupAttributionStorage = localStorage,
-): void {
+): ISignupAttribution {
   const stored = storage.getItem(ONBOARDING_STORAGE_KEYS.signupAttribution);
-  if (
-    stored !== null &&
-    hasSignupAttribution(
-      readSignupAttributionParams(new URLSearchParams(stored)),
-    )
-  ) {
-    return;
+  const storedAttribution =
+    stored === null
+      ? null
+      : readSignupAttributionParams(new URLSearchParams(stored));
+  if (storedAttribution && hasSignupAttribution(storedAttribution)) {
+    return storedAttribution;
   }
 
   const attribution = readSignupAttributionParams(
@@ -337,14 +337,15 @@ export function persistSignupAttribution(
     }
   }
 
-  if (stored !== null && !hasSignupAttribution(attribution)) {
-    return;
+  if (storedAttribution && !hasSignupAttribution(attribution)) {
+    return storedAttribution;
   }
 
   storage.setItem(
     ONBOARDING_STORAGE_KEYS.signupAttribution,
     toSignupAttributionParams(attribution).toString(),
   );
+  return attribution;
 }
 
 /**

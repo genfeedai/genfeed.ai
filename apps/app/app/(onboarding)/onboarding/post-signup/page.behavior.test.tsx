@@ -540,6 +540,33 @@ describe('PostSignupPage behavior', () => {
     }
   });
 
+  it('bounds a hung referral claim and attribution request by one shared wait', async () => {
+    vi.useFakeTimers();
+    try {
+      hasOrganizationBillingMock.mockReturnValue(true);
+      isSelfHostedMock.mockReturnValue(false);
+      searchParamsState.value = new URLSearchParams(
+        'ref=frtesttestaa&credits=1000',
+      );
+      localStorage.setItem(
+        ONBOARDING_STORAGE_KEYS.signupAttribution,
+        'utm_source=producthunt',
+      );
+      claimReferralMock.mockReturnValue(new Promise(() => undefined));
+      recordSignupAttributionMock.mockReturnValue(new Promise(() => undefined));
+
+      render(<PostSignupPage />);
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(2_000);
+      });
+
+      expect(createCheckoutSessionMock).toHaveBeenCalled();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('starts an EE plan checkout from a post-signup plan query', async () => {
     hasOrganizationBillingMock.mockReturnValue(true);
     isSelfHostedMock.mockReturnValue(false);

@@ -2,6 +2,7 @@
 
 import { signIn } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import type { SignUpBetterAuthProps } from '@props/auth/sign-up-better-auth.props';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
@@ -71,12 +72,15 @@ export default function SignUpBetterAuth({
   const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [signupAttribution, setSignupAttribution] =
+    useState<ISignupAttribution | null>(null);
   const [socialErrorMessage, setSocialErrorMessage] = useState<string | null>(
     null,
   );
   const callbackURL = getAuthCallbackURL(searchParams, {
     defaultCallbackURL: '/onboarding/post-signup',
     includeOnboardingHandoffParams: true,
+    signupAttribution,
   });
   const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
   const chooserHref = getSignUpModeHref('/sign-up', searchParams);
@@ -85,11 +89,13 @@ export default function SignUpBetterAuth({
 
   useEffect(() => {
     persistOnboardingHandoffParams(window.location.search);
-    persistSignupAttribution({
-      hostname: window.location.hostname,
-      referrer: document.referrer,
-      search: window.location.search,
-    });
+    setSignupAttribution(
+      persistSignupAttribution({
+        hostname: window.location.hostname,
+        referrer: document.referrer,
+        search: window.location.search,
+      }),
+    );
   }, []);
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {

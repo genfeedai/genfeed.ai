@@ -69,6 +69,20 @@ describe('auth callback URL helpers', () => {
     );
   });
 
+  it('carries the stored first touch over the current URL for other devices', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
+        includeOnboardingHandoffParams: true,
+        signupAttribution: {
+          referrerDomain: 'google.com',
+          utmSource: 'producthunt',
+        },
+      }),
+    ).toBe(
+      '/onboarding/post-signup?signup_referrer=google.com&utm_source=producthunt',
+    );
+  });
+
   it('preserves explicit callbacks when handoff params are present', () => {
     expect(
       getAuthCallbackURL(

@@ -23,6 +23,15 @@ describe('normalizeSignupAttributionValue', () => {
     expect(normalizeSignupAttributionValue('x'.repeat(101))).toBeUndefined();
     expect(normalizeSignupAttributionValue('')).toBeUndefined();
   });
+
+  it('rejects URL-shaped values', () => {
+    expect(
+      normalizeSignupAttributionValue('https://example.com/private/customer-1'),
+    ).toBeUndefined();
+    expect(
+      normalizeSignupAttributionValue('example.com/private'),
+    ).toBeUndefined();
+  });
 });
 
 describe('normalizeSignupLandingPath', () => {
@@ -35,6 +44,10 @@ describe('normalizeSignupLandingPath', () => {
   it('rejects anything that is not a relative path', () => {
     expect(normalizeSignupLandingPath('https://evil.test/')).toBeUndefined();
     expect(normalizeSignupLandingPath('studio')).toBeUndefined();
+    expect(
+      normalizeSignupLandingPath('//example.com/private/customer-1'),
+    ).toBeUndefined();
+    expect(normalizeSignupLandingPath('/a//b')).toBeUndefined();
   });
 });
 

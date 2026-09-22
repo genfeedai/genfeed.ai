@@ -215,7 +215,9 @@ export function usePostSignupRouting(): PostSignupRoutingState {
         );
       }
 
-      // Started before the referral claim so both requests share one wait.
+      // Started before the referral claim; both requests share one deadline.
+      const signupAttributionDeadline =
+        Date.now() + SIGNUP_ATTRIBUTION_TIMEOUT_MS;
       const signupAttribution = resolvePendingSignupAttribution(
         new URLSearchParams(searchQuery),
       );
@@ -291,7 +293,7 @@ export function usePostSignupRouting(): PostSignupRoutingState {
           new Promise<void>((resolve) => {
             timeoutId = window.setTimeout(
               resolve,
-              SIGNUP_ATTRIBUTION_TIMEOUT_MS,
+              Math.max(0, signupAttributionDeadline - Date.now()),
             );
           }),
         ]);
