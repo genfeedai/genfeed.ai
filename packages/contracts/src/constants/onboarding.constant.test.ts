@@ -91,6 +91,24 @@ describe('onboarding.constant', () => {
       ).toBe('/onboarding/providers');
     });
 
+    it('keeps the wizard tail sequenced on agent-first surfaces', () => {
+      // Cloud walks an operator through brand only, but providers and summary
+      // stay reachable on their own; continuing from providers must not drop
+      // straight to the root.
+      expect(
+        resolveOnboardingContinueHref({
+          completedStep: 'providers',
+          hasAgentFirstOnboarding: true,
+        }),
+      ).toBe('/onboarding/summary');
+      expect(
+        resolveOnboardingContinueHref({
+          completedStep: 'summary',
+          hasAgentFirstOnboarding: true,
+        }),
+      ).toBe('/');
+    });
+
     it('forces incomplete Cloud users onto the shared brand form', () => {
       expect(
         resolveForcedOnboardingHref({

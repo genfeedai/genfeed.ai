@@ -3,11 +3,13 @@ import {
   CreatorScraperService,
   type ScrapedPost,
 } from '@api/collections/content-intelligence/services/creator-scraper.service';
+import { resolvePatternAnalyzerDecisionSettings } from '@api/collections/content-intelligence/services/pattern-analyzer-decision.config';
 import {
   type CreatePatternDto,
   PatternStoreService,
 } from '@api/collections/content-intelligence/services/pattern-store.service';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
+import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
@@ -16,19 +18,54 @@ import {
 } from '@genfeedai/contracts';
 import {
   CONTENT_PATTERN_EXTRACTION_SCHEMA_NAME,
+  type ContentPatternExtractionItem,
   contentPatternExtractionSchema,
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { ContentPatternLabels } from '@genfeedai/contracts/interfaces';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
-interface ExtractedPattern {
-  patternType: ContentPatternType;
-  templateCategory?: ContentPatternCategory;
-  rawExample: string;
-  extractedFormula: string;
+/**
+ * Telemetry keys of the two label decisions (#4868). #4874 queries shadow-mode
+ * agreement by them, so they are stable and must not be renamed.
+ */
+export const CONTENT_PATTERN_TYPE_DECISION_POINT =
+  'content_pattern.pattern_type';
+export const CONTENT_PATTERN_TEMPLATE_CATEGORY_DECISION_POINT =
+  'content_pattern.template_category';
+
+/**
+ * The analyzer's label vocabulary, from #4868. `headline` and `giveaway` are
+ * on the enums for other surfaces; no path in this service produces them, so
+ * offering them here would only invite a label nothing downstream expects.
+ */
+const PATTERN_TYPE_OPTIONS: readonly ContentPatternType[] = [
+  ContentPatternType.HOOK,
+  ContentPatternType.TEMPLATE,
+  ContentPatternType.CTA,
+  ContentPatternType.STRUCTURE,
+];
+
+const TEMPLATE_CATEGORY_OPTIONS: readonly ContentPatternCategory[] = [
+  ContentPatternCategory.STORY,
+  ContentPatternCategory.CONTRARIAN,
+  ContentPatternCategory.CASE_STUDY,
+  ContentPatternCategory.LIST,
+  ContentPatternCategory.CURATION,
+  ContentPatternCategory.QUESTION,
+  ContentPatternCategory.THREAD,
+];
+
+/** Same budget as the extraction prompt: the decision judges the same post. */
+const DECISION_STATE_TEXT_LIMIT = 1000;
+
+interface ExtractedPattern extends ContentPatternLabels {
   description: string;
+  extractedFormula: string;
   placeholders: string[];
+  rawExample: string;
 }
 
 @Injectable()
@@ -46,6 +83,8 @@ export class PatternAnalyzerService {
     private readonly contentIntelligenceService: ContentIntelligenceService,
     private readonly creatorScraperService: CreatorScraperService,
     private readonly patternStoreService: PatternStoreService,
+    private readonly typedDecisionService: TypedDecisionService,
+    private readonly configService: ConfigService,
   ) {
     this.defaultModel = LLM_DEFAULTS.background;
   }
@@ -148,12 +187,14 @@ export class PatternAnalyzerService {
         const hookPatterns = await this.extractHookPatterns(
           post,
           organizationId,
+          platform,
         );
 
         for (const pattern of hookPatterns) {
           patterns.push({
             description: pattern.description,
             extractedFormula: pattern.extractedFormula,
+            isLowConfidence: pattern.isLowConfidence,
             organizationId,
             patternType: pattern.patternType,
             placeholders: pattern.placeholders,
@@ -172,7 +213,6 @@ export class PatternAnalyzerService {
             sourcePostId: post.id,
             sourcePostUrl: post.url,
             tags: post.hashtags,
-            // @ts-expect-error TS2322
             templateCategory: pattern.templateCategory,
           });
         }
@@ -192,24 +232,153 @@ export class PatternAnalyzerService {
   private async extractHookPatterns(
     post: ScrapedPost,
     organizationId: string,
+    platform: ContentIntelligencePlatform,
   ): Promise<ExtractedPattern[]> {
     const text = post.text;
     if (!text || text.length < 20) {
       return [];
     }
 
-    // Try to use LLM for extraction, fall back to rule-based
+    // The rule-based extractor is both the fallback and the deterministic
+    // answer the label decisions are measured against, so it always runs.
+    const ruleBasedPatterns = this.extractPatternsRuleBased(text);
+
+    let extractedItems: ContentPatternExtractionItem[];
     try {
-      return await this.extractPatternsWithLLM(text, organizationId);
+      extractedItems = await this.extractPatternsWithLLM(text, organizationId);
     } catch {
-      return this.extractPatternsRuleBased(text);
+      return ruleBasedPatterns;
     }
+
+    if (extractedItems.length === 0) {
+      return [];
+    }
+
+    const labels = await this.decidePatternLabels(
+      text,
+      platform,
+      ruleBasedPatterns,
+      organizationId,
+    );
+
+    return extractedItems.map((item) => ({
+      description: item.description,
+      extractedFormula: item.extractedFormula,
+      placeholders: item.placeholders,
+      rawExample: text,
+      ...labels,
+    }));
+  }
+
+  /**
+   * The two closed labels of a post (#4868).
+   *
+   * Only an enum member is ever returned: a decided label above the
+   * configured floor, or the rule-based answer. A `null` decision and a
+   * sub-threshold one are the same thing, and a label neither source produced
+   * ships as `isLowConfidence` rather than as a plausible default.
+   */
+  private async decidePatternLabels(
+    text: string,
+    platform: ContentIntelligencePlatform,
+    ruleBasedPatterns: ExtractedPattern[],
+    organizationId: string,
+  ): Promise<ContentPatternLabels> {
+    const fallback = this.readRuleBasedLabels(ruleBasedPatterns);
+    const hasRuleBasedAnswer = ruleBasedPatterns.length > 0;
+    const { minConfidence, mode } = resolvePatternAnalyzerDecisionSettings(
+      this.configService,
+    );
+
+    if (mode === 'off') {
+      return { ...fallback, isLowConfidence: !hasRuleBasedAnswer };
+    }
+
+    const state: Record<string, unknown> = {
+      platform,
+      postText: text.slice(0, DECISION_STATE_TEXT_LIMIT),
+    };
+
+    const [typeAnswer, categoryAnswer] = await Promise.all([
+      this.typedDecisionService.choose(
+        {
+          options: PATTERN_TYPE_OPTIONS,
+          question:
+            'Which reusable pattern does this social post primarily demonstrate?',
+          state,
+        },
+        {
+          decisionPoint: CONTENT_PATTERN_TYPE_DECISION_POINT,
+          deterministicAnswer: fallback.patternType,
+          mode,
+          organizationId,
+        },
+      ),
+      this.typedDecisionService.choose(
+        {
+          options: TEMPLATE_CATEGORY_OPTIONS,
+          question: 'Which template category does this social post follow?',
+          state,
+        },
+        {
+          decisionPoint: CONTENT_PATTERN_TEMPLATE_CATEGORY_DECISION_POINT,
+          mode,
+          organizationId,
+          ...(fallback.templateCategory === undefined
+            ? {}
+            : { deterministicAnswer: fallback.templateCategory }),
+        },
+      ),
+    ]);
+
+    // Shadow mode buys the agreement number that gates the flip to live; the
+    // deterministic labels still ship.
+    if (mode !== 'live') {
+      return { ...fallback, isLowConfidence: !hasRuleBasedAnswer };
+    }
+
+    const decidedType =
+      typeAnswer !== null && typeAnswer.confidence >= minConfidence
+        ? typeAnswer.value
+        : undefined;
+    const decidedCategory =
+      categoryAnswer !== null && categoryAnswer.confidence >= minConfidence
+        ? categoryAnswer.value
+        : undefined;
+    const templateCategory = decidedCategory ?? fallback.templateCategory;
+    const isLowConfidence =
+      (decidedType === undefined || decidedCategory === undefined) &&
+      !hasRuleBasedAnswer;
+
+    return {
+      isLowConfidence,
+      patternType: decidedType ?? fallback.patternType,
+      ...(templateCategory === undefined ? {} : { templateCategory }),
+    };
+  }
+
+  /**
+   * The rule-based answer for one post: the labels of its first matched rule.
+   * A post no rule matches has no answer, so the caller flags the pattern
+   * instead of treating `hook` as one.
+   */
+  private readRuleBasedLabels(
+    ruleBasedPatterns: ExtractedPattern[],
+  ): Omit<ContentPatternLabels, 'isLowConfidence'> {
+    const [first] = ruleBasedPatterns;
+
+    return {
+      patternType: first?.patternType ?? ContentPatternType.HOOK,
+      ...(first?.templateCategory === undefined
+        ? {}
+        : { templateCategory: first.templateCategory }),
+    };
   }
 
   private async extractPatternsWithLLM(
     text: string,
     organizationId: string,
-  ): Promise<ExtractedPattern[]> {
+  ): Promise<ContentPatternExtractionItem[]> {
     try {
       const extraction = await this.llmDispatcherService.completeStructured(
         {
@@ -225,18 +394,7 @@ export class PatternAnalyzerService {
         organizationId,
       );
 
-      // `patternType` and `templateCategory` stay coerced: they are the two
-      // enum labels a sibling issue in epic #4863 moves onto a typed decision.
-      return extraction.patterns.map((pattern) => ({
-        description: pattern.description,
-        extractedFormula: pattern.extractedFormula,
-        patternType: this.validatePatternType(pattern.patternType),
-        placeholders: pattern.placeholders,
-        rawExample: text,
-        templateCategory: this.validateTemplateCategory(
-          pattern.templateCategory,
-        ),
-      }));
+      return extraction.patterns;
     } catch (error: unknown) {
       this.logger.error(
         `${this.constructorName}: LLM extraction failed`,
@@ -254,17 +412,17 @@ POST:
 ${text.slice(0, 1000)}
 """
 
-Identify:
+Look for:
 1. Hook patterns (attention-grabbing opening lines)
 2. Template structure (story, list, contrarian, case study, etc.)
 3. CTA patterns (call to action phrases)
 
 For each pattern, give:
-- patternType: one of hook, template, cta, structure
-- templateCategory: one of story, contrarian, case_study, list, curation, question, thread — or null
 - extractedFormula: the reusable formula with [PLACEHOLDER] markers
 - description: why this works, in one line
 - placeholders: the placeholder names used in the formula
+
+Do not label the pattern; the formula and the description are the answer.
 
 If no patterns are worth reusing, return an empty list.`;
   }
@@ -279,6 +437,7 @@ If no patterns are worth reusing, return an empty list.`;
       patterns.push({
         description: 'Question hook pattern',
         extractedFormula: '[QUESTION]?',
+        isLowConfidence: false,
         patternType: ContentPatternType.HOOK,
         placeholders: ['QUESTION'],
         rawExample: text,
@@ -299,6 +458,7 @@ If no patterns are worth reusing, return an empty list.`;
       patterns.push({
         description: 'Contrarian hook pattern',
         extractedFormula: "[CONTRARIAN_STATEMENT]. Here's why:",
+        isLowConfidence: false,
         patternType: ContentPatternType.HOOK,
         placeholders: ['CONTRARIAN_STATEMENT'],
         rawExample: text,
@@ -320,6 +480,7 @@ If no patterns are worth reusing, return an empty list.`;
       patterns.push({
         description: 'Personal story hook',
         extractedFormula: "[TIMEFRAME] I [EXPERIENCE]. Here's what happened:",
+        isLowConfidence: false,
         patternType: ContentPatternType.HOOK,
         placeholders: ['TIMEFRAME', 'EXPERIENCE'],
         rawExample: text,
@@ -329,12 +490,13 @@ If no patterns are worth reusing, return an empty list.`;
 
     // Rule 4: List posts (contains numbered items)
     const numberPattern = /^\d+[.)]/gm;
-    // @ts-expect-error TS2532
-    if (text.match(numberPattern) && text.match(numberPattern)?.length >= 3) {
+    const numberedItems = text.match(numberPattern);
+    if (numberedItems && numberedItems.length >= 3) {
       patterns.push({
         description: 'Numbered list template',
         extractedFormula:
           '[NUMBER] [TOPIC_TIPS]:\n\n1. [TIP_1]\n2. [TIP_2]\n...',
+        isLowConfidence: false,
         patternType: ContentPatternType.TEMPLATE,
         placeholders: ['NUMBER', 'TOPIC_TIPS', 'TIP_1', 'TIP_2'],
         rawExample: text,
@@ -347,6 +509,7 @@ If no patterns are worth reusing, return an empty list.`;
       patterns.push({
         description: 'Thread format',
         extractedFormula: '[HOOK]\n\n🧵 Thread:',
+        isLowConfidence: false,
         patternType: ContentPatternType.STRUCTURE,
         placeholders: ['HOOK'],
         rawExample: text,
@@ -368,6 +531,7 @@ If no patterns are worth reusing, return an empty list.`;
         patterns.push({
           description: `CTA pattern: ${cta}`,
           extractedFormula: `[ACTION] ${cta.split(' ')[0]} [VALUE]`,
+          isLowConfidence: false,
           patternType: ContentPatternType.CTA,
           placeholders: ['ACTION', 'VALUE'],
           rawExample: text,
@@ -394,30 +558,6 @@ If no patterns are worth reusing, return an empty list.`;
     }
 
     return ContentIntelligencePlatform.LINKEDIN;
-  }
-
-  private validatePatternType(type: unknown): ContentPatternType {
-    const validTypes = Object.values(ContentPatternType);
-    if (
-      typeof type === 'string' &&
-      validTypes.includes(type as ContentPatternType)
-    ) {
-      return type as ContentPatternType;
-    }
-    return ContentPatternType.HOOK;
-  }
-
-  private validateTemplateCategory(
-    category: unknown,
-  ): ContentPatternCategory | undefined {
-    const validCategories = Object.values(ContentPatternCategory);
-    if (
-      typeof category === 'string' &&
-      validCategories.includes(category as ContentPatternCategory)
-    ) {
-      return category as ContentPatternCategory;
-    }
-    return undefined;
   }
 
   private calculateViralScore(post: ScrapedPost): number {

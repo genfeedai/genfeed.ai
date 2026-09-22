@@ -275,6 +275,36 @@ describe('TypedDecisionService', () => {
       ).rejects.toBeInstanceOf(BadRequestException);
     });
 
+    it('throws when a score scale has fewer than two levels', async () => {
+      const provider = createProvider();
+      const { service } = createHarness(provider);
+
+      await expect(
+        service.score(
+          { question: 'How urgent?', scale: ['only'], state: {} },
+          CONTEXT,
+        ),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(provider.score).not.toHaveBeenCalled();
+    });
+
+    it('passes a two-level score scale through to the provider', async () => {
+      const provider = createProvider();
+      vi.mocked(provider.score).mockResolvedValue(null);
+      const { service } = createHarness(provider);
+      const params = {
+        question: 'How urgent?',
+        scale: ['low', 'high'],
+        state: {},
+      };
+
+      await expect(service.score(params, CONTEXT)).resolves.toBeNull();
+      expect(provider.score).toHaveBeenCalledWith(
+        params,
+        expect.objectContaining({ signal: expect.any(AbortSignal) }),
+      );
+    });
+
     it('accepts exactly the option ceiling', async () => {
       const provider = createProvider();
       vi.mocked(provider.choose).mockResolvedValue(null);

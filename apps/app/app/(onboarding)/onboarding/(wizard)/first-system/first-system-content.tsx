@@ -173,6 +173,7 @@ export default function FirstSystemContent() {
       <ExpertStepHeader
         title={translate('firstSystem.title')}
         description={translate('firstSystem.description')}
+        isFinalStep
       />
 
       {readiness && !readiness.isReady && !hasPlan ? (
