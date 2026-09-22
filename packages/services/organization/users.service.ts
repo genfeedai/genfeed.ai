@@ -8,6 +8,7 @@ import type {
   IOrganization,
   IQueryParams,
   ISetting,
+  ISignupAttribution,
   IUser,
   ProductEmailTopic,
 } from '@genfeedai/contracts/interfaces';
@@ -238,5 +239,12 @@ export class UsersService extends BaseService<User> {
         hasDismissedAssetGate: true,
       })
       .then((res) => this.mapOne(res.data));
+  }
+
+  /** Record the first-touch acquisition source; the API keeps the first one. */
+  public async recordSignupAttribution(
+    attribution: ISignupAttribution,
+  ): Promise<void> {
+    await this.instance.post('me/signup-attribution', attribution);
   }
 }

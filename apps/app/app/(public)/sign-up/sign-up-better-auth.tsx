@@ -2,6 +2,7 @@
 
 import { signIn } from '@genfeedai/auth-client';
 import { ButtonVariant } from '@genfeedai/contracts';
+import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import { GoogleColorIcon } from '@genfeedai/helpers/ui/icons/brands';
 import type { SignUpBetterAuthProps } from '@props/auth/sign-up-better-auth.props';
 import AuthFormLayout from '@ui/layouts/auth/AuthFormLayout';
@@ -15,7 +16,10 @@ import { useSearchParams } from 'next/navigation';
 import { type ChangeEvent, type FormEvent, useEffect, useState } from 'react';
 
 import { ANALYTICS_EVENTS, captureAnalyticsEvent } from '@/lib/analytics';
-import { persistOnboardingHandoffParams } from '@/lib/onboarding/onboarding-access.util';
+import {
+  persistOnboardingHandoffParams,
+  persistSignupAttribution,
+} from '@/lib/onboarding/onboarding-access.util';
 import {
   getAuthCallbackURL,
   toAbsoluteAuthCallbackURL,
@@ -68,12 +72,15 @@ export default function SignUpBetterAuth({
   const [isSocialSubmitting, setIsSocialSubmitting] = useState(false);
   const [isEmailSent, setIsEmailSent] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [signupAttribution, setSignupAttribution] =
+    useState<ISignupAttribution | null>(null);
   const [socialErrorMessage, setSocialErrorMessage] = useState<string | null>(
     null,
   );
   const callbackURL = getAuthCallbackURL(searchParams, {
     defaultCallbackURL: '/onboarding/post-signup',
     includeOnboardingHandoffParams: true,
+    signupAttribution,
   });
   const authCallbackURL = toAbsoluteAuthCallbackURL(callbackURL);
   const chooserHref = getSignUpModeHref('/sign-up', searchParams);
@@ -82,6 +89,13 @@ export default function SignUpBetterAuth({
 
   useEffect(() => {
     persistOnboardingHandoffParams(window.location.search);
+    setSignupAttribution(
+      persistSignupAttribution({
+        hostname: window.location.hostname,
+        referrer: document.referrer,
+        search: window.location.search,
+      }),
+    );
   }, []);
 
   async function handleMagicLink(event: FormEvent<HTMLFormElement>) {

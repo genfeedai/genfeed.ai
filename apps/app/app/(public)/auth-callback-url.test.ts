@@ -56,6 +56,51 @@ describe('auth callback URL helpers', () => {
     );
   });
 
+  it('forwards normalized signup attribution on the post-signup callback', () => {
+    expect(
+      getAuthCallbackURL(
+        new URLSearchParams(
+          'plan=pro&utm_source=ChatGPT&utm_term=private&signup_referrer=chatgpt.com&signup_landing=%2Fstudio%3Fx%3D1',
+        ),
+        { includeOnboardingHandoffParams: true },
+      ),
+    ).toBe(
+      '/onboarding/post-signup?plan=pro&signup_landing=%2Fstudio&signup_referrer=chatgpt.com&utm_source=chatgpt',
+    );
+  });
+
+  it('carries the stored first touch over the current URL for other devices', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
+        includeOnboardingHandoffParams: true,
+        signupAttribution: {
+          referrerDomain: 'google.com',
+          utmSource: 'producthunt',
+        },
+      }),
+    ).toBe(
+      '/onboarding/post-signup?signup_referrer=google.com&utm_source=producthunt',
+    );
+  });
+
+  it('never mixes a later visit’s fields into the stored first touch', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
+        includeOnboardingHandoffParams: true,
+        signupAttribution: { referrerDomain: 'google.com' },
+      }),
+    ).toBe('/onboarding/post-signup?signup_referrer=google.com');
+  });
+
+  it('forwards the current URL source when nothing was stored', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
+        includeOnboardingHandoffParams: true,
+        signupAttribution: {},
+      }),
+    ).toBe('/onboarding/post-signup?utm_source=newsletter');
+  });
+
   it('preserves explicit callbacks when handoff params are present', () => {
     expect(
       getAuthCallbackURL(

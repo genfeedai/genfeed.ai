@@ -30,6 +30,7 @@ export * from './model-allowlist.helper';
 export * from './model-capability.helper';
 export * from './model-provider-catalog.helper';
 export * from './oauth/parse-granted-oauth-scopes.helper';
+export * from './onboarding/signup-attribution.helper';
 export * from './onboarding/signup-brand-domain.helper';
 export * from './publisher/permission-scope-readiness.helper';
 export * from './publisher/publishing-diagnostics.helper';

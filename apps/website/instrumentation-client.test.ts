@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   init: vi.fn(),
+  initSignupAttribution: vi.fn(),
   initWebsiteAnalytics: vi.fn(),
 }));
 
@@ -12,6 +13,10 @@ vi.mock('@sentry/nextjs', () => ({
 
 vi.mock('./packages/analytics/posthog-client', () => ({
   initWebsiteAnalytics: mocks.initWebsiteAnalytics,
+}));
+
+vi.mock('./packages/analytics/signup-attribution', () => ({
+  initSignupAttribution: mocks.initSignupAttribution,
 }));
 
 describe('website Sentry instrumentation', () => {
@@ -27,5 +32,6 @@ describe('website Sentry instrumentation', () => {
       expect.objectContaining({ tracesSampleRate: 0 }),
     );
     expect(mocks.initWebsiteAnalytics).toHaveBeenCalledTimes(1);
+    expect(mocks.initSignupAttribution).toHaveBeenCalledTimes(1);
   });
 });

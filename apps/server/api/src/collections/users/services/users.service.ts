@@ -7,10 +7,19 @@ import {
   type PrismaFindAllInput,
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
-import type { PopulateOption } from '@genfeedai/contracts/interfaces';
+import type {
+  ISignupAttribution,
+  PopulateOption,
+} from '@genfeedai/contracts/interfaces';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
+
+/**
+ * Attribution is only accepted this long after the account was created, so a
+ * later sign-in on a device holding stale attribution cannot rewrite it.
+ */
+export const SIGNUP_ATTRIBUTION_WINDOW_MS = 7 * 24 * 60 * 60 * 1000;
 
 const USER_FIND_ALL_SELECT = {
   id: true,
@@ -87,6 +96,44 @@ export class UsersService extends BaseService<
     updateUserDto: Partial<UpdateUserDto>,
   ): Promise<UserDocument> {
     return await super.patch(id, updateUserDto, [{ path: 'settings' }]);
+  }
+
+  /**
+   * Record the first-touch acquisition source once. A repeat post, or one for
+   * an account older than the attribution window, is a no-op.
+   */
+  async recordSignupAttribution(
+    userId: string,
+    attribution: ISignupAttribution,
+  ): Promise<boolean> {
+    const user = await this.prisma.user.findFirst({
+      select: { createdAt: true },
+      where: { id: userId, isDeleted: false },
+    });
+
+    if (
+      !user ||
+      Date.now() - user.createdAt.getTime() > SIGNUP_ATTRIBUTION_WINDOW_MS
+    ) {
+      return false;
+    }
+
+    const { count } = await this.prisma.userSignupAttribution.createMany({
+      data: [
+        {
+          landingPath: attribution.landingPath,
+          referrerDomain: attribution.referrerDomain,
+          userId,
+          utmCampaign: attribution.utmCampaign,
+          utmContent: attribution.utmContent,
+          utmMedium: attribution.utmMedium,
+          utmSource: attribution.utmSource,
+        },
+      ],
+      skipDuplicates: true,
+    });
+
+    return count > 0;
   }
 
   /**

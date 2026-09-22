@@ -15,11 +15,35 @@ import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
 import AppTable from '@ui/display/table/Table';
 import Container from '@ui/layout/container/Container';
 import { Users, VenetianMask } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect } from 'react';
 
-function formatUserName(user: IUser): string {
+function formatUserName(user: IUser, fallback: string): string {
   const splitName = [user.firstName, user.lastName].filter(Boolean).join(' ');
-  return user.name?.trim() || splitName || 'No name';
+  return user.name?.trim() || splitName || fallback;
+}
+
+/**
+ * First-touch source: UTM source/medium when tagged, else the referring site,
+ * else "Direct". Users whose source was never captured read "Unknown".
+ */
+function formatSignupSource(
+  user: IUser,
+  labels: { direct: string; unknown: string },
+): string {
+  const attribution = user.signupAttribution;
+  if (!attribution) {
+    return labels.unknown;
+  }
+
+  const campaign = [attribution.utmSource, attribution.utmMedium]
+    .filter(Boolean)
+    .join(' / ');
+  const source = campaign || attribution.referrerDomain || labels.direct;
+
+  return attribution.landingPath
+    ? `${source} → ${attribution.landingPath}`
+    : source;
 }
 
 function formatUserDate(
@@ -30,6 +54,7 @@ function formatUserDate(
 }
 
 export default function UsersList() {
+  const translate = useTranslations('pages.adminUsers');
   const notificationsService = NotificationsService.getInstance();
   const getUsersService = useAuthedService((token: string) =>
     UsersService.getInstance(token),
@@ -74,30 +99,40 @@ export default function UsersList() {
       window.location.assign(APP_ROUTES.ROOT);
     } catch (error) {
       logger.error('Failed to impersonate user', error);
-      notificationsService.error('Failed to impersonate user');
+      notificationsService.error(translate('impersonateFailed'));
     }
+  };
+
+  const sourceLabels = {
+    direct: translate('source.direct'),
+    unknown: translate('source.unknown'),
   };
 
   const columns: TableColumn<IUser>[] = [
     {
-      header: 'Name',
+      header: translate('columns.name'),
       key: 'name',
-      render: formatUserName,
+      render: (u: IUser) => formatUserName(u, translate('noName')),
     },
     {
-      header: 'Email',
+      header: translate('columns.email'),
       key: 'email',
-      render: (u: IUser) => u.email || 'No email',
+      render: (u: IUser) => u.email || translate('noEmail'),
     },
     {
-      header: 'Joined',
+      header: translate('columns.source'),
+      key: 'signupAttribution',
+      render: (u: IUser) => formatSignupSource(u, sourceLabels),
+    },
+    {
+      header: translate('columns.joined'),
       key: 'createdAt',
       render: (u: IUser) => formatUserDate(u.createdAt, '—'),
     },
     {
-      header: 'Last connected',
+      header: translate('columns.lastConnected'),
       key: 'lastActiveAt',
-      render: (u: IUser) => formatUserDate(u.lastActiveAt, 'Never'),
+      render: (u: IUser) => formatUserDate(u.lastActiveAt, translate('never')),
     },
   ];
 
@@ -111,14 +146,14 @@ export default function UsersList() {
       onClick: (u: IUser) => {
         void handleImpersonate(u);
       },
-      tooltip: 'Impersonate',
+      tooltip: translate('impersonate'),
     },
   ];
 
   return (
     <Container
-      label="Users"
-      description="Manage user accounts, roles, and permissions across the platform"
+      label={translate('title')}
+      description={translate('description')}
       icon={Users}
       right={
         <ButtonRefresh onClick={() => refresh()} isRefreshing={isRefreshing} />
@@ -130,7 +165,7 @@ export default function UsersList() {
         columns={columns}
         actions={actions}
         getRowKey={(u) => u.id}
-        emptyLabel="No users found"
+        emptyLabel={translate('empty')}
       />
     </Container>
   );

@@ -5,6 +5,7 @@ import type {
   IOrganization,
   ISetting,
   IUser,
+  IUserSignupAttribution,
 } from '@genfeedai/contracts/interfaces';
 
 export class User extends BaseEntity implements IUser {
@@ -29,6 +30,7 @@ export class User extends BaseEntity implements IUser {
   declare public onboardingCompletedAt?: Date;
   declare public onboardingType?: OnboardingType;
   declare public onboardingStepsCompleted?: string[];
+  declare public signupAttribution?: IUserSignupAttribution | null;
 
   constructor(data: Partial<IUser> = {}) {
     super(data);
