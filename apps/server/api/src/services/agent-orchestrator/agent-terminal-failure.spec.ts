@@ -36,6 +36,9 @@ describe('background agent terminal failures', () => {
       {} as never,
       effects as never,
       { findOne: vi.fn().mockResolvedValue({ status: 'RUNNING' }) } as never,
+      // #4865 auto-routing resolver: `off` is the shipped default, so the
+      // round keeps today's gateway request.
+      { resolve: vi.fn().mockResolvedValue({ mode: 'off' }) } as never,
     );
     await expect(
       service.runStreamLoop(

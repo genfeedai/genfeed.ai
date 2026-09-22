@@ -31,6 +31,8 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     getMaximumRoundCredits: ReturnType<typeof vi.fn>;
     getAutoAllowedModelKeys: ReturnType<typeof vi.fn>;
   };
+  // #4865: `off` is the shipped default, so plan mode keeps today's request.
+  let autoModelResolver: { resolve: ReturnType<typeof vi.fn> };
   let service: AgentOrchestratorPlanModeService;
 
   const organizationId = testId('org');
@@ -75,6 +77,9 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
       getMaximumRoundCredits: vi.fn().mockResolvedValue(10),
       getAutoAllowedModelKeys: vi.fn().mockResolvedValue([]),
     };
+    autoModelResolver = {
+      resolve: vi.fn().mockResolvedValue({ mode: 'off' }),
+    };
 
     service = new AgentOrchestratorPlanModeService(
       agentThreadsService as never,
@@ -85,6 +90,7 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
       streamEffects as never,
       contextService as never,
       agentChatModelRegistry as never,
+      autoModelResolver as never,
     );
   });
 

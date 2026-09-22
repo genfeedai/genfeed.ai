@@ -17,7 +17,13 @@ export interface AgentRoutingPlugin {
   id: string;
 }
 
+/**
+ * Why the web plugin was attached to a turn. `decided-live-data` is the typed
+ * decision's answer (#4865); the other two are the keyword path it replaces,
+ * which stays the `off`-mode and fallback behaviour.
+ */
 export type AgentRoutingPolicyReason =
+  | 'decided-live-data'
   | 'default'
   | 'explicit-web-search'
   | 'fresh-live-data';

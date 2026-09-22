@@ -5,6 +5,7 @@ import {
   resolveBlockedTools,
 } from '@api/services/agent-orchestrator/utils/agent-tool-definitions.util';
 import type { CuratedActionName } from '@genfeedai/actions';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -116,5 +117,68 @@ describe('provider-compatible tool definitions', () => {
 
     expect(params.tools).toBe(tools);
     expect(JSON.stringify(params.tools)).toContain('additionalProperties');
+  });
+});
+
+/** #4865: what the gateway receives in each rollout mode. */
+describe('auto-routing request shape', () => {
+  const autoKey = AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO;
+  const buildAutoParams = (
+    overrides: Partial<
+      Parameters<typeof buildAgentChatCompletionParams>[0]
+    > = {},
+  ) =>
+    buildAgentChatCompletionParams({
+      autoAllowedModelKeys: ['vendor/cheap', 'vendor/reasoner'],
+      defaultModelKey: autoKey,
+      messages: [{ content: 'Hello', role: 'user' }],
+      model: autoKey,
+      prompt: 'Hello',
+      sessionId: 'thread-1',
+      tools: buildToolDefinitions(),
+      ...overrides,
+    });
+
+  it('emits the gateway auto-router request when no key was decided', () => {
+    const params = buildAutoParams();
+
+    expect(params.model).toBe(autoKey);
+    expect(params.plugins).toEqual([
+      {
+        allowed_models: ['vendor/cheap', 'vendor/reasoner'],
+        cost_tier: 'medium',
+        id: 'auto-router',
+      },
+    ]);
+    expect(params).toMatchObject({ session_id: 'thread-1' });
+  });
+
+  it('dispatches a decided key with no auto-router plugin and no session id', () => {
+    const params = buildAutoParams({ dispatchModelKey: 'vendor/reasoner' });
+
+    expect(params.model).toBe('vendor/reasoner');
+    expect(params.plugins).toBeUndefined();
+    expect(params).not.toHaveProperty('session_id');
+  });
+
+  it('keeps the web plugin on a routed turn, judged on the requested model', () => {
+    const params = buildAutoParams({
+      dispatchModelKey: 'vendor/reasoner',
+      isWebSearchNeeded: true,
+    });
+
+    expect(params.model).toBe('vendor/reasoner');
+    expect(params.plugins).toEqual([{ id: 'web' }]);
+  });
+
+  it('drops the web plugin when the decision says the turn needs no live data', () => {
+    const params = buildAutoParams({
+      isWebSearchNeeded: false,
+      prompt: 'what is trending in the creator economy today',
+    });
+
+    expect(params.plugins).toEqual([
+      expect.objectContaining({ id: 'auto-router' }),
+    ]);
   });
 });
