@@ -558,7 +558,8 @@ describe('PostSignupPage behavior', () => {
       render(<PostSignupPage />);
 
       await act(async () => {
-        await vi.advanceTimersByTimeAsync(2_000);
+        // Sequential waits would take 4s; the shared deadline ends at 2s.
+        await vi.advanceTimersByTimeAsync(2_100);
       });
 
       expect(createCheckoutSessionMock).toHaveBeenCalled();

@@ -21,7 +21,7 @@ export const SIGNUP_ATTRIBUTION_MAX_PATH_LENGTH = 200;
 // No `/` or `:` in campaign values, and no `//` in paths, so a URL can never
 // be smuggled into storage as a UTM tag or landing path.
 const ATTRIBUTION_VALUE_PATTERN = /^[\p{L}\p{N} ._+~-]+$/u;
-const LANDING_PATH_PATTERN = /^\/(?!.*\/\/)[\p{L}\p{N}._~/-]*$/u;
+const LANDING_PATH_PATTERN = /^(?!.*\/\/)\/[\p{L}\p{N}._~/-]*$/u;
 const DOMAIN_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
 
 type SignupAttributionKey = keyof ISignupAttribution;
