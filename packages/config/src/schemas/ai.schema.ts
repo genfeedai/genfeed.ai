@@ -48,10 +48,9 @@ export const generalAiSchema = {
     .default('off'),
   // Calibrated 0..1. Below it the turn falls back to the gateway auto-router.
   AGENT_AUTO_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
-  // Typed decisions (#4864). `none` binds the null provider so self-hosted
-  // installs keep working with no vendor key; `jev` requires TYPESAFE_API_KEY
-  // and falls back to the null provider when the key is absent.
-  TYPED_DECISION_PROVIDER: Joi.string().valid('none', 'jev').default('none'),
+  // Typed decisions (#4864). Which provider is bound is an operator setting on
+  // the platform-settings singleton (#4908), not an env var — the key here is
+  // only the credential that makes a hosted provider available at all.
   // Hard per-call budget. The agent turn path needs the 800ms default; async
   // paths pass their own budget through the call context instead.
   TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),

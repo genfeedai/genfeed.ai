@@ -185,7 +185,6 @@ export interface IEnvConfig {
   // === Typed decisions (TypeSafe AI / Jev) ===
   AGENT_AUTO_ROUTING_DECISION_MODE?: 'off' | 'shadow' | 'live';
   AGENT_AUTO_ROUTING_MIN_CONFIDENCE?: number;
-  TYPED_DECISION_PROVIDER?: 'none' | 'jev';
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
   PATTERN_ANALYZER_DECISION_MODE?: 'off' | 'shadow' | 'live';
