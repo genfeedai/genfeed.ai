@@ -1,4 +1,10 @@
 import { redactEmailTrackingUrl } from '@api/helpers/utils/email-tracking-url.util';
+import {
+  isOAuthErrorPath,
+  isOAuthRegistrationPath,
+  OAuthExceptionFilter,
+  OAuthRegistrationExceptionFilter,
+} from '@api/oauth/filters/oauth-exception.filter';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -34,6 +40,10 @@ export class AllExceptionFilter implements ExceptionFilter {
   }
 
   public catch(exception: unknown, host: ArgumentsHost) {
+    if (this.catchOAuthEndpointFailure(exception, host)) {
+      return;
+    }
+
     const ctx = host.switchToHttp();
     const res = ctx.getResponse<ExpressResponse>();
     const req = ctx.getRequest<ExpressRequest>();
@@ -105,6 +115,31 @@ export class AllExceptionFilter implements ExceptionFilter {
       status,
       title,
     });
+  }
+
+  /**
+   * Failures raised before routing — malformed JSON or an oversized body from
+   * the Express body parser — never reach the controller-scoped
+   * OAuthExceptionFilter, so OAuth and Auth.md paths are routed to it here to
+   * keep every response RFC-shaped (#4949). Returns whether it responded.
+   */
+  protected catchOAuthEndpointFailure(
+    exception: unknown,
+    host: ArgumentsHost,
+  ): boolean {
+    const path = host.switchToHttp().getRequest<ExpressRequest>()?.path;
+    if (!isOAuthErrorPath(path)) {
+      return false;
+    }
+
+    const filter = isOAuthRegistrationPath(path)
+      ? new OAuthRegistrationExceptionFilter(
+          this.loggerService,
+          this.configService,
+        )
+      : new OAuthExceptionFilter(this.loggerService, this.configService);
+    filter.catch(exception, host);
+    return true;
   }
 
   protected writeJsonApiError(

@@ -37,7 +37,12 @@ function getCallbackHost(redirectUri: string | null): string {
   }
   try {
     const url = new URL(redirectUri);
-    return url.host || url.protocol.replace(':', '');
+    if (url.protocol === 'https:' || url.protocol === 'http:') {
+      return url.host;
+    }
+    // Native-app schemes (`cursor://anysphere.cursor-mcp`) identify the
+    // receiving app by the scheme, so show it alongside the host.
+    return url.host ? `${url.protocol}//${url.host}` : url.protocol;
   } catch {
     return 'the requesting client';
   }

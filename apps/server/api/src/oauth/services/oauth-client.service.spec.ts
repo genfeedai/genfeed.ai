@@ -42,26 +42,51 @@ describe('OAuthClientService', () => {
     });
   });
 
-  it('rejects unsafe redirect URIs', async () => {
+  it.each([
+    'http://attacker.example/callback',
+    'ftp://localhost/callback',
+    'javascript:alert(1)',
+    'JavaScript:alert(1)',
+    'data:text/html,<script>alert(1)</script>',
+    'vbscript:msgbox(1)',
+    'file:///etc/passwd',
+    'blob:https://app.genfeed.ai/uuid',
+    'about:blank',
+    'wss://attacker.example/callback',
+    'https://claude.ai/callback#fragment',
+    'https://attacker@claude.ai/callback',
+    'not a url',
+  ])(
+    'rejects unsafe redirect URI %s with invalid_redirect_uri',
+    async (redirectUri) => {
+      const service = buildService();
+
+      await expect(
+        service.register({
+          redirect_uris: [redirectUri],
+        }),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          error: 'invalid_redirect_uri',
+          error_description: expect.any(String),
+        }),
+      });
+    },
+  );
+
+  it('rejects the whole registration when any one redirect is unsafe', async () => {
     const service = buildService();
 
-    await Promise.all(
-      [
-        'http://attacker.example/callback',
-        'ftp://localhost/callback',
-        'javascript:alert(1)',
-      ].map((redirectUri) =>
-        expect(
-          service.register({
-            redirect_uris: [redirectUri],
-          }),
-        ).rejects.toMatchObject({
-          response: expect.objectContaining({
-            error: 'invalid_client_metadata',
-          }),
-        }),
-      ),
-    );
+    await expect(
+      service.register({
+        redirect_uris: [
+          'https://claude.ai/oauth/callback',
+          'javascript:alert(1)',
+        ],
+      }),
+    ).rejects.toMatchObject({
+      response: expect.objectContaining({ error: 'invalid_redirect_uri' }),
+    });
   });
 
   it('accepts loopback and reverse-domain private-use redirects', async () => {
@@ -80,6 +105,21 @@ describe('OAuthClientService', () => {
         'com.genfeed.desktop:/oauth/callback',
       ],
     });
+  });
+
+  it('accepts the single-label private-use scheme Cursor and Grok Bot register (#4948)', async () => {
+    const service = buildService();
+    const cursorRedirect = 'cursor://anysphere.cursor-mcp/oauth/callback';
+
+    const registered = await service.register({
+      client_name: 'Cursor',
+      redirect_uris: [cursorRedirect],
+    });
+
+    expect(registered.redirect_uris).toEqual([cursorRedirect]);
+    await expect(
+      service.requireClient(registered.client_id, cursorRedirect),
+    ).resolves.toMatchObject({ redirectUris: [cursorRedirect] });
   });
 
   it('rejects an unregistered redirect without redirecting to it', async () => {

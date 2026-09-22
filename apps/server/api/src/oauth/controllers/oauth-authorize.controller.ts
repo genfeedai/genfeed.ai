@@ -1,6 +1,7 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { OAuthExceptionFilter } from '@api/oauth/filters/oauth-exception.filter';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { Public } from '@libs/decorators/public.decorator';
 import {
@@ -10,6 +11,7 @@ import {
   Post,
   Query,
   Redirect,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
@@ -19,6 +21,7 @@ import { OAuthAuthorizeService } from '../services/oauth-authorize.service';
 
 @ApiTags('OAuth')
 @Controller('oauth')
+@UseFilters(OAuthExceptionFilter)
 export class OAuthAuthorizeController {
   constructor(private readonly authorizeService: OAuthAuthorizeService) {}
 

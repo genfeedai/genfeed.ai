@@ -137,7 +137,8 @@ async function main(): Promise<void> {
       res.status(401).json({
         error: {
           code: -32001,
-          message: 'Unauthorized. Connect with a Genfeed API key bearer token.',
+          message:
+            'Unauthorized. Authorize this client with Genfeed OAuth, or send a Genfeed API key as a bearer token.',
         },
         id: null,
         jsonrpc: '2.0',

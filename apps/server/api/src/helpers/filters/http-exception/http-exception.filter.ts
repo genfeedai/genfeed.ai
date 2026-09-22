@@ -12,6 +12,10 @@ import type { Request as ExpressRequest } from 'express';
 @Catch(HttpException)
 export class HttpExceptionFilter extends AllExceptionFilter {
   public catch(exception: HttpException, host: ArgumentsHost) {
+    if (this.catchOAuthEndpointFailure(exception, host)) {
+      return;
+    }
+
     const ctx = host.switchToHttp();
     const res = ctx.getResponse();
     const req = ctx.getRequest<ExpressRequest>();

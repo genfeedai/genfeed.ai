@@ -10,6 +10,7 @@ import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard'
 import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ApiAccessGuard } from '@api/helpers/guards/api-access/api-access.guard';
+import { OAuthExceptionFilter } from '@api/oauth/filters/oauth-exception.filter';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { Public } from '@libs/decorators/public.decorator';
 import {
@@ -19,6 +20,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -30,6 +32,7 @@ import {
 
 @ApiTags('Agent Auth')
 @Controller('agent/auth')
+@UseFilters(OAuthExceptionFilter)
 export class AgentAuthController {
   constructor(private readonly agentAuthService: AgentAuthService) {}
 

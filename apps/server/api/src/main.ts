@@ -29,6 +29,7 @@ import {
 } from '@api/helpers/utils/openapi/openapi-document.util';
 import { maybeEmitOpenApiDocument } from '@api/helpers/utils/openapi/openapi-emit.util';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
+import { buildApiCorsOptionsDelegate } from '@api/oauth/oauth-cors.util';
 import { buildOAuthAuthorizationServerMetadata } from '@api/oauth/oauth-metadata.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { createBullBoard } from '@bull-board/api';
@@ -155,10 +156,12 @@ async function main() {
     docsService.setGptActionsSpec(gptActionsSpec);
 
     app.enableCors(
-      getGenfeedCorsOptions({
-        chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
-        isDevelopment: shouldAllowLocalCorsOrigins(nodeEnv),
-      }),
+      buildApiCorsOptionsDelegate(
+        getGenfeedCorsOptions({
+          chromeExtensionId: configService.get('CHROME_EXTENSION_ID'),
+          isDevelopment: shouldAllowLocalCorsOrigins(nodeEnv),
+        }),
+      ),
     );
 
     app.setGlobalPrefix('v1');
