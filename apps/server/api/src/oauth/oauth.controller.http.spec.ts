@@ -315,6 +315,46 @@ describe('OAuth endpoints real HTTP pipeline', () => {
     });
   });
 
+  describe('failures raised before routing', () => {
+    it('answers malformed JSON on register with invalid_client_metadata', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth/register')
+        .set('Content-Type', 'application/json')
+        .send('{')
+        .expect(400);
+
+      expect(result.body).toEqual({
+        error: 'invalid_client_metadata',
+        error_description: expect.any(String),
+      });
+      expect(result.headers['cache-control']).toBe('no-store');
+    });
+
+    it('answers malformed JSON on token with invalid_request', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth/token')
+        .set('Content-Type', 'application/json')
+        .send('{"grant_type":')
+        .expect(400);
+
+      expect(result.body).toEqual({
+        error: 'invalid_request',
+        error_description: expect.any(String),
+      });
+    });
+
+    it('leaves the JSON:API envelope on non-OAuth paths', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth-lookalike')
+        .set('Content-Type', 'application/json')
+        .send('{')
+        .expect(400);
+
+      expect(result.body).toHaveProperty('errors');
+      expect(result.body).not.toHaveProperty('error_description');
+    });
+  });
+
   describe('CORS', () => {
     it.each(['/v1/oauth/register', '/v1/oauth/token', '/v1/oauth/revoke'])(
       'lets a browser MCP client from any origin call %s',

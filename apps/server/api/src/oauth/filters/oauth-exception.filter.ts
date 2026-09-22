@@ -16,6 +16,24 @@ export interface OAuthErrorBody {
   error_description: string;
 }
 
+/**
+ * Endpoints whose every failure must be RFC-shaped: the OAuth authorization
+ * server and the Auth.md agent-auth flow. Matched against the Express path,
+ * which includes the global `v1` prefix.
+ */
+const OAUTH_ERROR_PATH =
+  /^\/v1\/(?:oauth\/(?:authorize(?:\/decision)?|register|revoke|token)|agent\/auth(?:\/[a-z/]*)?)\/?$/;
+
+const OAUTH_REGISTRATION_PATH = /^\/v1\/oauth\/register\/?$/;
+
+export function isOAuthErrorPath(path: string | undefined): boolean {
+  return !!path && OAUTH_ERROR_PATH.test(path);
+}
+
+export function isOAuthRegistrationPath(path: string | undefined): boolean {
+  return !!path && OAUTH_REGISTRATION_PATH.test(path);
+}
+
 /** An OAuth error code is lowercase ASCII with underscores (RFC 6749 §5.2). */
 const OAUTH_ERROR_CODE = /^[a-z][a-z0-9_]*$/;
 

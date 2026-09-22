@@ -1,4 +1,6 @@
 import {
+  isOAuthErrorPath,
+  isOAuthRegistrationPath,
   OAuthExceptionFilter,
   OAuthRegistrationExceptionFilter,
 } from '@api/oauth/filters/oauth-exception.filter';
@@ -207,5 +209,35 @@ describe('OAuthExceptionFilter', () => {
     expect(response.json).toHaveBeenCalledWith(
       expect.objectContaining({ error: 'temporarily_unavailable' }),
     );
+  });
+});
+
+describe('isOAuthErrorPath', () => {
+  it.each([
+    '/v1/oauth/register',
+    '/v1/oauth/token',
+    '/v1/oauth/revoke',
+    '/v1/oauth/authorize',
+    '/v1/oauth/authorize/decision',
+    '/v1/agent/auth',
+    '/v1/agent/auth/claim/complete',
+  ])('routes %s to the OAuth error shape', (path) => {
+    expect(isOAuthErrorPath(path)).toBe(true);
+  });
+
+  it.each([
+    undefined,
+    '/v1/oauth-lookalike',
+    '/v1/oauth/cli',
+    '/v1/oauth/register/extra',
+    '/v1/users/me',
+    '/oauth/token',
+  ])('leaves %s on the JSON:API envelope', (path) => {
+    expect(isOAuthErrorPath(path)).toBe(false);
+  });
+
+  it('singles out dynamic registration', () => {
+    expect(isOAuthRegistrationPath('/v1/oauth/register')).toBe(true);
+    expect(isOAuthRegistrationPath('/v1/oauth/token')).toBe(false);
   });
 });
