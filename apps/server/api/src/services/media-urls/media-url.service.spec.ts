@@ -144,4 +144,64 @@ describe('MediaUrlService', () => {
       expect(logger.error).toHaveBeenCalled();
     });
   });
+
+  describe('buildUrlFromAbsolute', () => {
+    const signingConfig = {
+      cdnSigningKeyPairId: 'KEYPAIR',
+      cdnSigningPrivateKey: TEST_PRIVATE_KEY,
+    };
+
+    it('recovers the object key from a stored CDN URL and signs it', async () => {
+      const { service } = await buildService(signingConfig);
+
+      expect(
+        service.buildUrlFromAbsolute(
+          'https://cdn.genfeed.ai/ingredients/images/abc',
+        ),
+      ).toBe('https://cdn.genfeed.ai/signed?Signature=abc');
+      expect(getSignedUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://cdn.genfeed.ai/ingredients/images/abc',
+        }),
+      );
+    });
+
+    it('drops an existing query string so an old signature never leaks in', async () => {
+      const { service } = await buildService(signingConfig);
+
+      service.buildUrlFromAbsolute(
+        'https://cdn.genfeed.ai/ingredients/images/abc?Expires=1&Signature=stale',
+      );
+
+      expect(getSignedUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          url: 'https://cdn.genfeed.ai/ingredients/images/abc',
+        }),
+      );
+    });
+
+    it('leaves a URL on another origin untouched', async () => {
+      const { service } = await buildService(signingConfig);
+      const providerUrl = 'https://replicate.delivery/output/abc.png';
+
+      expect(service.buildUrlFromAbsolute(providerUrl)).toBe(providerUrl);
+      expect(getSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('leaves an unparseable value untouched', async () => {
+      const { service } = await buildService(signingConfig);
+
+      expect(service.buildUrlFromAbsolute('not a url')).toBe('not a url');
+      expect(getSignedUrl).not.toHaveBeenCalled();
+    });
+
+    it('returns the CDN root untouched when there is no key', async () => {
+      const { service } = await buildService(signingConfig);
+
+      expect(service.buildUrlFromAbsolute('https://cdn.genfeed.ai/')).toBe(
+        'https://cdn.genfeed.ai/',
+      );
+      expect(getSignedUrl).not.toHaveBeenCalled();
+    });
+  });
 });

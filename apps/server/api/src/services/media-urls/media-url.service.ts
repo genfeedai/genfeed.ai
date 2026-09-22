@@ -46,6 +46,44 @@ export class MediaUrlService {
   }
 
   /**
+   * Signs an already-resolved absolute media URL by recovering its object key.
+   *
+   * Transitional: callers that still read a stored absolute URL route through
+   * here so signing works before media identity has moved to the object key
+   * everywhere. Once every caller holds a key, this goes away in favour of
+   * `buildUrl`.
+   *
+   * A URL pointing somewhere other than this deployment's CDN is returned
+   * untouched — provider URLs and files-host paths are not ours to sign.
+   */
+  buildUrlFromAbsolute(
+    absoluteUrl: string,
+    options: { isSignable?: boolean } = {},
+  ): string {
+    let parsed: URL;
+    let cdnBase: URL;
+    try {
+      parsed = new URL(absoluteUrl);
+      cdnBase = new URL(this.configService.cdnUrl);
+    } catch {
+      return absoluteUrl;
+    }
+
+    if (parsed.origin !== cdnBase.origin) {
+      return absoluteUrl;
+    }
+
+    // The path carries the key; any existing query string is discarded so a
+    // previous signature never leaks into the new one.
+    const objectKey = parsed.pathname.replace(/^\/+/, '');
+    if (!objectKey) {
+      return absoluteUrl;
+    }
+
+    return this.buildUrl(decodeURIComponent(objectKey), options);
+  }
+
+  /**
    * Signs `url` with the configured CloudFront key pair.
    *
    * A signing failure never falls back to an unsigned URL — that would hand
