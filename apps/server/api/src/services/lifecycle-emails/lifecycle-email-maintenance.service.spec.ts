@@ -163,6 +163,7 @@ describe('system recap policy', () => {
 function creditsFixture(overrides: {
   spendable: number;
   recentAlert?: { templateKey: string } | null;
+  hasPaidGrant?: boolean;
 }) {
   const queueEmail = vi.fn();
   const prisma = {
@@ -177,6 +178,13 @@ function creditsFixture(overrides: {
         userId: 'owner-1',
         billingAccount: { members: [] },
       }),
+    },
+    creditTransaction: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue(
+          overrides.hasPaidGrant === false ? null : { id: 'grant-1' },
+        ),
     },
     emailMessage: {
       findFirst: vi.fn().mockResolvedValue(overrides.recentAlert ?? null),
@@ -244,6 +252,25 @@ describe('credit balance alerts', () => {
     });
     await service.credits(request);
     expect(queueEmail).not.toHaveBeenCalled();
+  });
+  it('does not alert an organization that has never paid for credits', async () => {
+    const { service, prisma, queueEmail } = creditsFixture({
+      spendable: 0,
+      hasPaidGrant: false,
+    });
+    await service.credits(request);
+    expect(queueEmail).not.toHaveBeenCalled();
+    expect(prisma.emailMessage.findFirst).not.toHaveBeenCalled();
+    expect(prisma.creditTransaction.findFirst).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        isDeleted: false,
+        amount: { gt: 0 },
+        referenceId: { not: null },
+        referenceType: { startsWith: 'stripe-' },
+      },
+      select: { id: true },
+    });
   });
   it('evaluates balances once an hour, not on every five-minute tick', async () => {
     const { service, prisma } = creditsFixture({ spendable: 400 });

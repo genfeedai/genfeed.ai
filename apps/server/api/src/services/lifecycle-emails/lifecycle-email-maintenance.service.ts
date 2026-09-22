@@ -38,6 +38,8 @@ const DAY_MS = 86_400_000;
  */
 const CREDIT_ALERT_COOLDOWN_MS = 7 * DAY_MS;
 const CREDIT_ALERT_TEMPLATE_KEYS = ['credit-low', 'credit-exhausted'] as const;
+/** Every Stripe-backed credit grant namespaces its ledger reference with this. */
+const PAID_CREDIT_REFERENCE_PREFIX = 'stripe-';
 export function completedEmailPeriod(
   reference: Date,
   weekly: boolean,
@@ -589,6 +591,20 @@ export class LifecycleEmailMaintenanceService implements OnModuleInit {
     if (!balance || !organization) return;
     const spendable = balance.balance - balance.heldAmount;
     if (spendable >= 1000) return;
+    // Only a customer who has paid is running low. Spending the free signup
+    // grant is expected, so an organization with no Stripe-backed grant
+    // (checkout session, subscription initial grant or invoice) gets no alert.
+    const paidGrant = await this.prisma.creditTransaction.findFirst({
+      where: {
+        organizationId: request.organizationId,
+        isDeleted: false,
+        amount: { gt: 0 },
+        referenceId: { not: null },
+        referenceType: { startsWith: PAID_CREDIT_REFERENCE_PREFIX },
+      },
+      select: { id: true },
+    });
+    if (!paidGrant) return;
     const exhausted = spendable <= 0;
     const recipientId =
       organization.billingAccount?.members[0]?.userId ?? organization.userId;
