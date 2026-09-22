@@ -96,7 +96,7 @@ These are **real production assets** and should stay:
 1. **Private harness is empty of taste.** Fill examples/anti-examples/banned phrases per brand from real posts. Without this, every host rewrites generic voice.
 2. **Harness does not touch image/video prompts.** Operator brand settings + private packs never reach Replicate/fal/ComfyUI/agent media tools.
 3. **Ads path ignores harness.** Ad pack remix is platform-ad + free-text brandName; no voice/structure/evaluation from packs or profiles.
-4. **Quality loop is generic.** Scorer does not use harness `evaluationCriteria` or brand examples; cannot reject “pretty but off-brand.”
+4. **Quality loop is generic.** Scorer does not use harness `evaluationCriteria` or brand examples; cannot reject “pretty but off-brand.” Tracked: #4924.
 
 ### P1 — architecture
 
@@ -110,7 +110,22 @@ These are **real production assets** and should stay:
 9. **Visual identity pack fields:** palette, type treatment, logo safe zones, product SKUs, approved faces, LoRA ids per brand, negative prompts, platform crop templates.
 10. **Winner feedback into harness.** Top-performer / campaign-winner extraction should write `performance_winner` sources into packs or profile metadata (today winners feed text context, not pack registry).
 11. **Ads-specific pack capabilities:** offer ladder, claim language, UGC vs studio, competitor “do not look like,” platform ad policy notes.
-12. **Eval harness CI.** Hermetic tests that golden-prompt a brand pack and assert directives/examples appear; private examples stay out of public monorepo (test with fixtures).
+12. **Eval harness CI.** Hermetic tests that golden-prompt a brand pack and assert directives/examples appear; private examples stay out of public monorepo (test with fixtures). Tracked: #4921 → #4922 (harness), #4928 (CI).
+
+## Tracking — measurement is its own epic
+
+Gaps 4 and 12 are owned by **#4921 — Epic: Content evals** (milestone Deferred): judge
+calibration against human labels, generation ladders per content kind, and a matched
+harness / brief-compiler A/B. GitHub is canonical; there is no local spec for it.
+
+Two findings from that epic that change how this audit reads:
+
+- The #3470 Schnell ablation that closed #1650 set `visualPassed` from the prompt-token
+  contract check, so its +100pp guided lift was never judged on a generated image. #4926
+  re-runs that grid with a vision-judge panel and the human anchor #3470 specified.
+- `genfeedai/benchmark` is schema, tasks and an Elo recompute with **no match runner**;
+  Season One stands at zero matches. #4926 reuses its schema and judging rules internally;
+  the public ladder stays with #3848.
 
 ## Target architecture (north star)
 

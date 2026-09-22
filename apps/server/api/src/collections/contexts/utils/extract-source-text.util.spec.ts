@@ -1,7 +1,9 @@
+import { deflateSync } from 'node:zlib';
 import {
   extractHtmlText,
   extractPdfText,
   extractSourceText,
+  PDF_MAX_EXTRACTED_CHARS,
   UnsupportedKnowledgeSourceError,
 } from '@api/collections/contexts/utils/extract-source-text.util';
 import { KnowledgeBaseCategory } from '@genfeedai/contracts';
@@ -34,6 +36,37 @@ describe('extractPdfText', () => {
     );
 
     expect(extractPdfText(pdf)).toBe('Hello knowledge document');
+  });
+
+  it('refuses a Flate stream that inflates past the ingest ceiling', () => {
+    // ~64 MB of zeros compresses to a few KB — a quota-compliant PDF bomb.
+    const bomb = deflateSync(Buffer.alloc(64 * 1024 * 1024, 0x20));
+    const pdf = Buffer.concat([
+      Buffer.from('%PDF-1.1\nBT (seed) Tj ET\nstream\n', 'latin1'),
+      bomb,
+      Buffer.from('\nendstream\n%%EOF', 'latin1'),
+    ]);
+
+    // The bomb is skipped rather than expanded, so the seeded literal is all
+    // that survives — and the call returns instead of exhausting the heap.
+    expect(extractPdfText(pdf)).toBe('seed');
+  });
+
+  it('caps the extracted text at the ingest ceiling', () => {
+    const literal = 'a'.repeat(1_500_000);
+    const stream = (body: string) => `stream\n${body}\nendstream\n`;
+    const pdf = Buffer.from(
+      `%PDF-1.1\n${stream(`(${literal}) Tj`)}${stream(
+        `(${literal}) Tj`,
+      )}${stream(`(${literal}) Tj`)}%%EOF`,
+      'latin1',
+    );
+
+    // Three uncompressed streams stay under the inflate limit individually;
+    // the running character budget is what stops them adding up.
+    expect(extractPdfText(pdf).length).toBeLessThanOrEqual(
+      PDF_MAX_EXTRACTED_CHARS,
+    );
   });
 
   it('throws when the PDF has no extractable text', () => {

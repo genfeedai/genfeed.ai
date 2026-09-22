@@ -1,3 +1,4 @@
+import { OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import {
   type BrowserContext,
@@ -14,6 +15,10 @@ import {
   generateMockUser,
   setupApiMocks,
 } from '../utils/api-interceptor';
+import {
+  createExpertPathMockState,
+  setupExpertPathApiMocks,
+} from '../utils/expert-path-mocks';
 import { setupStrictNetworkGuard } from '../utils/network-guard';
 
 /**
@@ -38,6 +43,13 @@ interface OnboardingFixtures {
    * `/onboarding/brand` — the shipped app never does that.
    */
   onboardingPage: Page;
+
+  /**
+   * The same page with the bootstrap organization typed `EXPERT`, plus the
+   * Expert Path API mocks. The wizard then resolves
+   * `brand → positioning → corpus` and hands off to `/onboarding/first-system`.
+   */
+  expertOnboardingPage: Page;
 }
 
 /** Per-page onboarding progress recorded from the app's own PATCH calls. */
@@ -124,11 +136,15 @@ const MOCK_BRAND_SCRAPE_RESPONSE = {
   success: true,
 };
 
-function buildOnboardingBootstrapPayload(state: OnboardingProgressState) {
+function buildOnboardingBootstrapPayload(
+  state: OnboardingProgressState,
+  accountType?: string,
+) {
   const organization = generateMockOrganization({
     id: MOCK_SESSION.organizationId,
     name: 'Test Organization',
     slug: 'test-org',
+    ...(accountType ? { accountType } : {}),
   });
 
   return {
@@ -524,50 +540,87 @@ async function setupAuthLocalStorage(page: Page): Promise<void> {
 // Extended Test with Onboarding Fixtures
 // ----------------------------------------------------------------------------
 
+/**
+ * Authenticate the page as an onboarding user and mock every API it touches.
+ * `accountType` types the bootstrap organization; `registerExtraMocks` runs
+ * last so account-specific handlers win over the generic ones.
+ */
+async function startOnboardingSession(
+  page: Page,
+  context: BrowserContext,
+  options: {
+    accountType?: string;
+    registerExtraMocks?: (page: Page) => Promise<void>;
+  } = {},
+): Promise<() => void> {
+  const networkGuard = await setupStrictNetworkGuard(page);
+
+  // Per-page, so a test that walks the flow cannot leak completed steps into
+  // the next one.
+  const progressState: OnboardingProgressState = {
+    completedSteps: [],
+    isOnboardingCompleted: false,
+  };
+
+  // Set up authentication cookies
+  await setupAuthCookies(context);
+
+  // Inject Better Auth auth state BEFORE any page loads
+  await injectBetterAuthState(page);
+
+  // Set up Better Auth mocks with isOnboardingCompleted: false
+  await setupBetterAuthMocksForOnboarding(page);
+
+  // Register generic routes first. Playwright checks matching routes in
+  // reverse registration order, so the stateful onboarding routes below get
+  // first opportunity to handle overlapping /users/** progress requests.
+  await setupApiMocks(page, {
+    '**/auth/bootstrap**': async (route) => {
+      await route.fulfill({
+        body: JSON.stringify(
+          buildOnboardingBootstrapPayload(progressState, options.accountType),
+        ),
+        contentType: 'application/json',
+        status: 200,
+      });
+    },
+  });
+
+  await setupOnboardingApiMocks(page, progressState);
+  await options.registerExtraMocks?.(page);
+
+  // Bootstrap by navigating to onboarding start
+  await page.goto(APP_ROUTES.ONBOARDING.BRAND, {
+    timeout: 120000,
+    waitUntil: 'domcontentloaded',
+  });
+  await setupAuthLocalStorage(page);
+
+  return () => networkGuard.assertNoBlockedRequests();
+}
+
 export const test = base.extend<OnboardingFixtures>({
-  onboardingPage: async ({ page, context }, runFixture) => {
-    const networkGuard = await setupStrictNetworkGuard(page);
-
-    // Per-page, so a test that walks the flow cannot leak completed steps into
-    // the next one.
-    const progressState: OnboardingProgressState = {
-      completedSteps: [],
-      isOnboardingCompleted: false,
-    };
-
-    // Set up authentication cookies
-    await setupAuthCookies(context);
-
-    // Inject Better Auth auth state BEFORE any page loads
-    await injectBetterAuthState(page);
-
-    // Set up Better Auth mocks with isOnboardingCompleted: false
-    await setupBetterAuthMocksForOnboarding(page);
-
-    // Register generic routes first. Playwright checks matching routes in
-    // reverse registration order, so the stateful onboarding routes below get
-    // first opportunity to handle overlapping /users/** progress requests.
-    await setupApiMocks(page, {
-      '**/auth/bootstrap**': async (route) => {
-        await route.fulfill({
-          body: JSON.stringify(buildOnboardingBootstrapPayload(progressState)),
-          contentType: 'application/json',
-          status: 200,
-        });
+  expertOnboardingPage: async ({ page, context }, runFixture) => {
+    const expertState = createExpertPathMockState();
+    const assertNoBlockedRequests = await startOnboardingSession(
+      page,
+      context,
+      {
+        accountType: OrganizationCategory.EXPERT,
+        registerExtraMocks: (target) =>
+          setupExpertPathApiMocks(target, expertState),
       },
-    });
-
-    await setupOnboardingApiMocks(page, progressState);
-
-    // Bootstrap by navigating to onboarding start
-    await page.goto(APP_ROUTES.ONBOARDING.BRAND, {
-      timeout: 120000,
-      waitUntil: 'domcontentloaded',
-    });
-    await setupAuthLocalStorage(page);
+    );
 
     await runFixture(page);
-    networkGuard.assertNoBlockedRequests();
+    assertNoBlockedRequests();
+  },
+
+  onboardingPage: async ({ page, context }, runFixture) => {
+    const assertNoBlockedRequests = await startOnboardingSession(page, context);
+
+    await runFixture(page);
+    assertNoBlockedRequests();
   },
 });
 

@@ -45,7 +45,7 @@ describe('JevTypedDecisionProvider', () => {
     vi.clearAllMocks();
   });
 
-  it('answers a choice with the vendor probability as confidence', async () => {
+  it('answers a choice with the vendor confidence and a calculated charge', async () => {
     mocks.safeFetch.mockResolvedValue(
       jsonResponse({
         answers: {
@@ -56,14 +56,13 @@ describe('JevTypedDecisionProvider', () => {
             type: 'choice',
           },
         },
+        model: 'jev-1.13',
         usage: { input_tokens: 312, output_tokens: 48 },
       }),
     );
 
-    const provider = createProvider();
-
     await expect(
-      provider.choose({
+      createProvider().choose({
         options: ['billing', 'sales', 'technical'] as const,
         question: 'Which queue?',
         state: { body: 'my deploy fails' },
@@ -71,15 +70,18 @@ describe('JevTypedDecisionProvider', () => {
     ).resolves.toEqual({
       confidence: 0.82,
       usage: {
+        costEvidence: 'calculated',
         inputTokens: 312,
         model: 'jev-latest',
         outputTokens: 48,
+        // 312 input tokens at the published input-only list price.
+        vendorCostMicros: 13,
       },
       value: 'technical',
     });
   });
 
-  it('sends the state as data under the LLM dispatcher retention posture', async () => {
+  it('sends a choice as the SDK shape: instructions plus a criteria map', async () => {
     mocks.safeFetch.mockResolvedValue(
       jsonResponse({
         answers: {
@@ -89,31 +91,36 @@ describe('JevTypedDecisionProvider', () => {
     );
 
     await createProvider().choose({
+      descriptions: { sales: 'Pricing, plans and invoices' },
       options: ['sales', 'technical'] as const,
       question: 'Which queue?',
       state: { body: 'pricing question' },
     });
 
     const body = readRequestBody();
-    expect(body).toMatchObject({
+    expect(body).toEqual({
       model: 'jev-latest',
       questions: {
         decision: {
-          options: ['sales', 'technical'],
-          question: 'Which queue?',
+          criteria: {
+            sales: 'Pricing, plans and invoices',
+            technical: null,
+          },
+          instructions: 'Which queue?',
           type: 'choice',
         },
       },
       state: { body: 'pricing question' },
-      store: false,
-      zero_data_retention: true,
     });
+    // Retention is an account-level term; the API has no per-request flag.
+    expect(body).not.toHaveProperty('store');
+    expect(body).not.toHaveProperty('zero_data_retention');
   });
 
-  it('normalises a score answer onto the contract 0..1 range', async () => {
+  it('asks a score on the default five-level rubric and normalises the expected value', async () => {
     mocks.safeFetch.mockResolvedValue(
       jsonResponse({
-        answers: { decision: { confidence: 0.7, score: 0.42, type: 'score' } },
+        answers: { decision: { confidence: 0.7, score: 1.68, type: 'score' } },
       }),
     );
 
@@ -123,9 +130,59 @@ describe('JevTypedDecisionProvider', () => {
         state: { body: 'hi' },
       }),
     ).resolves.toMatchObject({ confidence: 0.7, value: 0.42 });
+
+    expect(readRequestBody()).toMatchObject({
+      questions: {
+        decision: {
+          criteria: [
+            'not at all',
+            'slightly',
+            'moderately',
+            'very',
+            'extremely',
+          ],
+          instructions: 'How urgent?',
+          type: 'score',
+        },
+      },
+    });
   });
 
-  it('derives boolean confidence from the noul probability', async () => {
+  it('uses a caller-supplied scale and maps its top level to 1', async () => {
+    mocks.safeFetch.mockResolvedValue(
+      jsonResponse({
+        answers: { decision: { confidence: 0.95, score: 2, type: 'score' } },
+      }),
+    );
+
+    await expect(
+      createProvider().score({
+        question: 'Likelihood this needs changes?',
+        scale: ['unlikely', 'possible', 'likely'],
+        state: {},
+      }),
+    ).resolves.toMatchObject({ confidence: 0.95, value: 1 });
+
+    expect(readRequestBody()).toMatchObject({
+      questions: {
+        decision: { criteria: ['unlikely', 'possible', 'likely'] },
+      },
+    });
+  });
+
+  it('rejects a score outside the rubric instead of clamping it', async () => {
+    mocks.safeFetch.mockResolvedValue(
+      jsonResponse({
+        answers: { decision: { confidence: 0.9, score: 7, type: 'score' } },
+      }),
+    );
+
+    await expect(
+      createProvider().score({ question: 'How urgent?', state: {} }),
+    ).resolves.toBeNull();
+  });
+
+  it('asks a noul question and derives boolean confidence from its probability', async () => {
     mocks.safeFetch.mockResolvedValue(
       jsonResponse({ answers: { decision: { noul: 0.92, type: 'noul' } } }),
     );
@@ -133,14 +190,17 @@ describe('JevTypedDecisionProvider', () => {
     await expect(
       createProvider().decide({ question: 'Is it urgent?', state: {} }),
     ).resolves.toMatchObject({ confidence: 0.92, value: true });
+
+    expect(readRequestBody()).toMatchObject({
+      questions: {
+        decision: { instructions: 'Is it urgent?', type: 'noul' },
+      },
+    });
   });
 
-  it('reads an exact vendor charge when the response states one', async () => {
+  it('bills a response without a usage envelope as unknown, not as zero', async () => {
     mocks.safeFetch.mockResolvedValue(
-      jsonResponse({
-        answers: { decision: { noul: 0.1, type: 'noul' } },
-        usage: { cost_micros: 1200, input_tokens: 10, output_tokens: 2 },
-      }),
+      jsonResponse({ answers: { decision: { noul: 0.1, type: 'noul' } } }),
     );
 
     const answer = await createProvider().decide({
@@ -149,10 +209,9 @@ describe('JevTypedDecisionProvider', () => {
     });
 
     expect(answer?.usage).toEqual({
-      inputTokens: 10,
+      inputTokens: 0,
       model: 'jev-latest',
-      outputTokens: 2,
-      vendorCostMicros: 1200,
+      outputTokens: 0,
     });
     expect(answer?.value).toBe(false);
   });
