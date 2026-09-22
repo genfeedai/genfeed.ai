@@ -7,7 +7,7 @@ import {
   normalizeSignupLandingPath,
   readSignupAttributionParams,
   resolveExternalReferrerDomain,
-} from '@helpers/onboarding/signup-attribution.helper';
+} from '@genfeedai/helpers';
 import { EnvironmentService } from '@services/core/environment.service';
 
 /**
