@@ -67,6 +67,15 @@ export const generalAiSchema = {
     .default('off'),
   // Calibrated 0..1. Below it the turn falls back to the gateway auto-router.
   AGENT_AUTO_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
+  // Reply-bot intent (#4866). `off` keeps the regex classifier, `shadow` calls
+  // the provider and records agreement while the regex still acts, `live` acts
+  // on the decided intent above REPLY_BOT_INTENT_MIN_CONFIDENCE.
+  REPLY_BOT_INTENT_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  // Below this confidence the comment is neither auto-replied nor auto-skipped
+  // — it is queued for a person. Conservative by default, per the epic.
+  REPLY_BOT_INTENT_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // Typed decisions (#4864). Which provider is bound is an operator setting on
   // the platform-settings singleton (#4908), not an env var — the key here is
   // only the credential that makes a hosted provider available at all.

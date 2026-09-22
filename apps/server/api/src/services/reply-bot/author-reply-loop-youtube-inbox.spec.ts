@@ -37,6 +37,9 @@ describe('AuthorReplyLoopService.getInbox YouTube path', () => {
       credentialsService as never,
       processedTweetsService as never,
       xActivitySubscriptionService as never,
+      // The inbox listing stays on the regex path, so the classifier is only
+      // here to satisfy the constructor.
+      { classify: vi.fn() } as never,
     );
   });
 

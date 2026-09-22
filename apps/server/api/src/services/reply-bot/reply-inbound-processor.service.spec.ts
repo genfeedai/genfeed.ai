@@ -1,7 +1,21 @@
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
 import { REPLY_INGESTION_ACTION_IDS } from '@api/services/reply-bot/reply-ingestion-workflow-definition';
 import { Platform } from '@genfeedai/contracts';
+import type { IReplyIntentClassification } from '@genfeedai/contracts/interfaces';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const INBOUND_INPUT = {
+  brandId: 'brand-1',
+  commentAuthorUsername: 'viewer',
+  commentId: 'comment-1',
+  commentText: 'Great video',
+  organizationId: 'org-1',
+  parentPostId: 'video-1',
+  parentPostPreview: 'How we ship weekly',
+  platform: Platform.YOUTUBE as const,
+  receivedAt: new Date().toISOString(),
+  source: 'xaa' as const,
+};
 
 describe('ReplyInboundProcessorService workflow boundary', () => {
   const workflowRunner = {
@@ -10,16 +24,147 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
     runWorkflow: vi.fn(),
   };
   const workflowQueue = { queueSystemWorkflow: vi.fn() };
+  const processedTweetsService = {
+    isProcessed: vi.fn().mockResolvedValue(false),
+    markAsProcessed: vi.fn(),
+  };
+  const botActivitiesService = {
+    create: vi.fn(),
+    findIntentReviewHold: vi.fn().mockResolvedValue(null),
+  };
+  const authorReplyLoopService = {
+    findResponderOwnerUserId: vi.fn().mockResolvedValue('user-1'),
+  };
+  const replyIntentClassifierService = { classify: vi.fn() };
   let service: ReplyInboundProcessorService;
+
+  /** The prepare action as the workflow runner would invoke it. */
+  async function prepareInbound(
+    classification: IReplyIntentClassification,
+  ): Promise<Record<string, unknown>> {
+    replyIntentClassifierService.classify.mockResolvedValueOnce(classification);
+    service.onModuleInit();
+    const prepare = workflowRunner.registerAction.mock.calls.find(
+      ([actionId]) => actionId === REPLY_INGESTION_ACTION_IDS.PREPARE_INBOUND,
+    )?.[1] as (request: {
+      input: Record<string, unknown>;
+    }) => Promise<Record<string, unknown>>;
+
+    return prepare({ input: { request: INBOUND_INPUT } });
+  }
 
   beforeEach(() => {
     vi.clearAllMocks();
+    processedTweetsService.isProcessed.mockResolvedValue(false);
+    botActivitiesService.findIntentReviewHold.mockResolvedValue(null);
+    botActivitiesService.create.mockResolvedValue({ id: 'activity-1' });
+    authorReplyLoopService.findResponderOwnerUserId.mockResolvedValue('user-1');
     service = new ReplyInboundProcessorService(
-      {} as never,
-      {} as never,
+      processedTweetsService as never,
+      botActivitiesService as never,
+      authorReplyLoopService as never,
       workflowRunner as never,
       workflowQueue as never,
+      replyIntentClassifierService as never,
     );
+  });
+
+  describe('confidence gate', () => {
+    it('auto-replies on a confident non-skip intent', async () => {
+      const preparation = await prepareInbound({
+        confidence: 0.95,
+        intent: 'question',
+        isAutoSkip: false,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      expect(preparation.items).toEqual([
+        expect.objectContaining({
+          intent: 'question',
+          intentConfidence: 0.95,
+          // Carried through so the send workflow neither re-decides nor
+          // records the answer as an operator override.
+          intentSource: 'decision',
+        }),
+      ]);
+      expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
+    });
+
+    it('auto-skips and closes out a confident spam intent', async () => {
+      const preparation = await prepareInbound({
+        confidence: 0.97,
+        intent: 'spam',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      expect(preparation.items).toEqual([]);
+      expect(preparation.outcome).toMatchObject({
+        skipped: true,
+        success: true,
+      });
+      expect(processedTweetsService.markAsProcessed).toHaveBeenCalledOnce();
+    });
+
+    it('queues an uncertain comment for a person instead of guessing', async () => {
+      const preparation = await prepareInbound({
+        confidence: 0.4,
+        intent: 'spam',
+        isAutoSkip: false,
+        isNeedsReview: true,
+        source: 'regex',
+      });
+
+      expect(preparation.items).toEqual([]);
+      expect(preparation.outcome).toMatchObject({
+        skipped: true,
+        success: true,
+      });
+      // Marking it processed would drop it out of the author inbox, which is
+      // exactly where the person is meant to find it.
+      expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
+      // The hold: the same skipped activity the orchestrator path writes.
+      expect(botActivitiesService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          intent: 'spam',
+          intentConfidence: 0.4,
+          isIntentNeedsReview: true,
+          organizationId: 'org-1',
+          skipReason: 'needs_review',
+          status: 'skipped',
+          triggerTweetId: 'comment-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it('never decides a comment already queued for a person again', async () => {
+      botActivitiesService.findIntentReviewHold.mockResolvedValue({
+        id: 'activity-9',
+        isIntentNeedsReview: true,
+      });
+
+      const preparation = await prepareInbound({
+        confidence: 0.99,
+        intent: 'spam',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      // A redelivered webhook replaces this comment's terminal job. Without
+      // the hold it would be classified again and, confident this time,
+      // auto-skipped or auto-replied behind the person's back.
+      expect(replyIntentClassifierService.classify).not.toHaveBeenCalled();
+      expect(preparation.items).toEqual([]);
+      expect(preparation.outcome).toMatchObject({
+        skipped: true,
+        success: true,
+      });
+      expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
+    });
   });
 
   it('registers the inbound graph and its atomic actions', () => {
@@ -38,17 +183,7 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
 
   it('queues webhook intake as a deterministic system workflow', async () => {
     workflowQueue.queueSystemWorkflow.mockResolvedValueOnce('job-1');
-    const input = {
-      brandId: 'brand-1',
-      commentAuthorUsername: 'viewer',
-      commentId: 'comment-1',
-      commentText: 'Great video',
-      organizationId: 'org-1',
-      parentPostId: 'video-1',
-      platform: Platform.YOUTUBE as const,
-      receivedAt: new Date().toISOString(),
-      source: 'xaa' as const,
-    };
+    const input = INBOUND_INPUT;
 
     await expect(service.enqueue(input)).resolves.toEqual({ jobId: 'job-1' });
     expect(workflowQueue.queueSystemWorkflow).toHaveBeenCalledWith(

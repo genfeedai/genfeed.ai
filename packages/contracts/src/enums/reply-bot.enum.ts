@@ -38,6 +38,8 @@ export enum BotActivityStatus {
 export enum BotActivitySkipReason {
   RATE_LIMITED = 'rate_limited',
   FILTERED_OUT = 'filtered_out',
+  /** Intent confidence below threshold — queued for a person (#4866). */
+  NEEDS_REVIEW = 'needs_review',
   ALREADY_PROCESSED = 'already_processed',
   BOT_PAUSED = 'bot_paused',
   OUTSIDE_SCHEDULE = 'outside_schedule',

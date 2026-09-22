@@ -1,5 +1,6 @@
 import * as Sentry from '@sentry/nextjs';
 import { initWebsiteAnalytics } from './packages/analytics/posthog-client';
+import { initSignupAttribution } from './packages/analytics/signup-attribution';
 import { dropNonBrowserRuntimeEvent } from './packages/sentry/drop-non-browser-runtime-event';
 
 Sentry.init({
@@ -36,5 +37,10 @@ Sentry.init({
 // pageviews + CTA conversions. No-ops (and never loads posthog-js) when no
 // build-time key is present. See packages/analytics/posthog-client.ts.
 initWebsiteAnalytics();
+
+// In-memory first-touch source forwarded onto app sign-up links, so a signup
+// can be traced to where the visitor came from. Stores nothing on the device.
+// See packages/analytics/signup-attribution.ts.
+initSignupAttribution();
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

@@ -10,6 +10,8 @@ import {
   ONBOARDING_STORAGE_KEYS,
   parseReferralCode,
   persistOnboardingHandoffParams,
+  persistSignupAttribution,
+  resolvePendingSignupAttribution,
   resolveSelectedPlanParam,
 } from '@/lib/onboarding/onboarding-access.util';
 
@@ -245,5 +247,142 @@ describe('persistOnboardingHandoffParams', () => {
     expect(storedValues.get(ONBOARDING_STORAGE_KEYS.referralCode)).toBe(
       'frend2345xyz',
     );
+  });
+});
+
+function memoryStorage(initial: Record<string, string> = {}) {
+  const values = new Map(Object.entries(initial));
+  return {
+    getItem: (key: string) => values.get(key) ?? null,
+    setItem: (key: string, value: string) => {
+      values.set(key, value);
+    },
+    values,
+  };
+}
+
+describe('persistSignupAttribution', () => {
+  it('stores the source the marketing site forwarded on the sign-up URL', () => {
+    const storage = memoryStorage();
+
+    persistSignupAttribution(
+      {
+        hostname: 'app.genfeed.ai',
+        referrer: 'https://genfeed.ai/studio',
+        search:
+          '?plan=payg&signup_referrer=chatgpt.com&signup_landing=%2Fstudio',
+      },
+      storage,
+    );
+
+    expect(storage.values.get(ONBOARDING_STORAGE_KEYS.signupAttribution)).toBe(
+      'signup_landing=%2Fstudio&signup_referrer=chatgpt.com',
+    );
+  });
+
+  it('falls back to an external referrer on a direct app visit', () => {
+    const storage = memoryStorage();
+
+    persistSignupAttribution(
+      {
+        hostname: 'app.genfeed.ai',
+        referrer: 'https://www.google.com/',
+        search: '',
+      },
+      storage,
+    );
+
+    expect(storage.values.get(ONBOARDING_STORAGE_KEYS.signupAttribution)).toBe(
+      'signup_referrer=google.com',
+    );
+  });
+
+  it('records a direct visit as an empty source', () => {
+    const storage = memoryStorage();
+
+    persistSignupAttribution(
+      { hostname: 'app.genfeed.ai', referrer: '', search: '' },
+      storage,
+    );
+
+    expect(storage.values.get(ONBOARDING_STORAGE_KEYS.signupAttribution)).toBe(
+      '',
+    );
+  });
+
+  it('keeps the first known source over a later visit', () => {
+    const storage = memoryStorage({
+      [ONBOARDING_STORAGE_KEYS.signupAttribution]: 'utm_source=producthunt',
+    });
+
+    const recorded = persistSignupAttribution(
+      {
+        hostname: 'app.genfeed.ai',
+        referrer: 'https://t.co/',
+        search: '',
+      },
+      storage,
+    );
+
+    expect(storage.values.get(ONBOARDING_STORAGE_KEYS.signupAttribution)).toBe(
+      'utm_source=producthunt',
+    );
+    expect(recorded).toEqual({ utmSource: 'producthunt' });
+  });
+
+  it('replaces an empty direct record once a real source appears', () => {
+    const storage = memoryStorage({
+      [ONBOARDING_STORAGE_KEYS.signupAttribution]: '',
+    });
+
+    persistSignupAttribution(
+      { hostname: 'app.genfeed.ai', referrer: '', search: '?utm_source=x' },
+      storage,
+    );
+
+    expect(storage.values.get(ONBOARDING_STORAGE_KEYS.signupAttribution)).toBe(
+      'utm_source=x',
+    );
+  });
+});
+
+describe('resolvePendingSignupAttribution', () => {
+  it('returns null when the source was never captured', () => {
+    expect(
+      resolvePendingSignupAttribution(
+        new URLSearchParams('plan=payg'),
+        memoryStorage(),
+      ),
+    ).toBeNull();
+  });
+
+  it('uses forwarded callback params on a cross-device magic link', () => {
+    expect(
+      resolvePendingSignupAttribution(
+        new URLSearchParams('signup_referrer=chatgpt.com'),
+        memoryStorage(),
+      ),
+    ).toEqual({ referrerDomain: 'chatgpt.com' });
+  });
+
+  it('returns an empty source for a stored direct visit', () => {
+    expect(
+      resolvePendingSignupAttribution(
+        new URLSearchParams(),
+        memoryStorage({ [ONBOARDING_STORAGE_KEYS.signupAttribution]: '' }),
+      ),
+    ).toEqual({});
+  });
+
+  it('keeps the stored first touch whole over forwarded params', () => {
+    expect(
+      resolvePendingSignupAttribution(
+        new URLSearchParams('utm_source=newsletter'),
+        memoryStorage({
+          [ONBOARDING_STORAGE_KEYS.signupAttribution]:
+            'signup_referrer=google.com',
+        }),
+      ),
+    ).toEqual({ referrerDomain: 'google.com' });
   });
 });

@@ -33,10 +33,12 @@ import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-o
 import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
 import { ReplyInboundProcessorService } from '@api/services/reply-bot/reply-inbound-processor.service';
+import { ReplyIntentClassifierService } from '@api/services/reply-bot/reply-intent-classifier.service';
 import { ReplyPostWatchService } from '@api/services/reply-bot/reply-post-watch.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
 import { XActivitySubscriptionService } from '@api/services/reply-bot/x-activity-subscription.service';
 import { XActivityWebhookService } from '@api/services/reply-bot/x-activity-webhook.service';
+import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
@@ -55,6 +57,7 @@ import { Module } from '@nestjs/common';
     RateLimitService,
     ReplyCandidatePrefilterService,
     ReplyGenerationService,
+    ReplyIntentClassifierService,
     // Export individual services for testing and direct access
     SocialMonitorService,
   ],
@@ -86,6 +89,9 @@ import { Module } from '@nestjs/common';
     // Instagram for comment replies and DMs
     InstagramModule,
     WorkflowsCoreModule,
+
+    // Reply-bot intent as a typed decision (#4866).
+    TypedDecisionsModule,
   ],
   providers: [
     AuthorReplyLoopService,
@@ -94,6 +100,7 @@ import { Module } from '@nestjs/common';
     ReplyCandidatePrefilterService,
     ReplyGenerationService,
     ReplyInboundProcessorService,
+    ReplyIntentClassifierService,
     ReplyPostWatchService,
     XActivityWebhookService,
     XActivitySubscriptionService,

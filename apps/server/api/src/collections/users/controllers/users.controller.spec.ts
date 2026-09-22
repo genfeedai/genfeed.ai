@@ -59,6 +59,7 @@ describe('UsersController', () => {
       findOne: vi.fn(),
       hasOnboardingField: vi.fn(),
       patch: vi.fn(),
+      recordSignupAttribution: vi.fn().mockResolvedValue(true),
     };
     settingsService = { findOne: vi.fn(), patch: vi.fn() };
     brandsService = {
@@ -274,6 +275,19 @@ describe('UsersController', () => {
         accessBootstrapCacheService.invalidateForUser,
       ).toHaveBeenCalledWith(userId);
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('recordMeSignupAttribution', () => {
+    it('records attribution for the canonical current user id', async () => {
+      await controller.recordMeSignupAttribution(mockUser, {
+        utmSource: 'chatgpt',
+      });
+
+      expect(usersService.recordSignupAttribution).toHaveBeenCalledWith(
+        userId,
+        { utmSource: 'chatgpt' },
+      );
     });
   });
 

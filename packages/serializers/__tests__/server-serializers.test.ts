@@ -543,6 +543,34 @@ describe('Server Serializers', () => {
     it('should have a serialize method', () => {
       expect(typeof UserSerializer.serialize).toBe('function');
     });
+
+    it('serializes the signup attribution relationship', () => {
+      const document = UserSerializer.serialize({
+        email: 'jane@example.com',
+        id: 'user-1',
+        signupAttribution: {
+          id: 'attribution-1',
+          landingPath: '/studio',
+          referrerDomain: 'chatgpt.com',
+          utmSource: 'chatgpt',
+        },
+      }) as {
+        data: { relationships?: Record<string, { data: { id: string } }> };
+        included?: Array<{ attributes: Record<string, unknown>; id: string }>;
+      };
+
+      expect(document.data.relationships?.signupAttribution?.data.id).toBe(
+        'attribution-1',
+      );
+      expect(
+        document.included?.find((item) => item.id === 'attribution-1')
+          ?.attributes,
+      ).toMatchObject({
+        landingPath: '/studio',
+        referrerDomain: 'chatgpt.com',
+        utmSource: 'chatgpt',
+      });
+    });
   });
 
   describe('ImageSerializer', () => {
