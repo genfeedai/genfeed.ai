@@ -14,6 +14,7 @@ import { CronLifecycleEmailsService } from '@workers/crons/lifecycle-emails/cron
 import { CronLlmIdleService } from '@workers/crons/llm-idle/cron.llm-idle.service';
 import { CronModelDeprecationService } from '@workers/crons/model-deprecation/cron.model-deprecation.service';
 import { CronModelWatcherService } from '@workers/crons/model-watcher/cron.model-watcher.service';
+import { CronOAuthClientCleanupService } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service';
 import { CronPatternExtractionService } from '@workers/crons/pattern-extraction/cron.pattern-extraction.service';
 import { CronPostsService } from '@workers/crons/posts/cron.posts.service';
 import { CronReviewGateTimeoutService } from '@workers/crons/review-gate/cron.review-gate-timeout.service';
@@ -80,6 +81,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly logger: LoggerService,
     private readonly lifecycleEmails: CronLifecycleEmailsService,
     private readonly threadComments: ThreadCommentDeliveryService,
+    private readonly oauthClientCleanup: CronOAuthClientCleanupService,
   ) {
     super();
     this.handlers = {
@@ -111,6 +113,8 @@ export class PlatformSchedulesProcessor extends WorkerHost {
         this.modelDeprecation.deprecateSupersededModels(),
       [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: () =>
         this.notificationRecovery.recover(),
+      [PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP]: () =>
+        this.oauthClientCleanup.deleteAbandonedClients(),
       [PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION]: () =>
         this.patternExtraction.computeDailyPatterns(),
       [PLATFORM_SCHEDULED_TASKS.POSTS_PUBLISH]: () =>

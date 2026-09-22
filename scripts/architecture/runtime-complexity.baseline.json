@@ -402,7 +402,7 @@
     "symbol": "CronTiktokStatusService.checkPostStatus"
   },
   {
-    "actual": 30,
+    "actual": 31,
     "file": "apps/server/workers/src/scheduling/platform-schedules.processor.ts",
     "metric": "constructor-dependencies",
     "symbol": "PlatformSchedulesProcessor.constructor"
