@@ -40,7 +40,21 @@ const MAX_COMMENT_CHARS = 1_000;
 const MAX_CAPTION_CHARS = 280;
 const MAX_HANDLE_CHARS = 120;
 
-const LINK_RE = /https?:\/\/\S+/i;
+/**
+ * A link as the provider should see it: a scheme, a `www.` host, a bare domain
+ * on a common TLD (`example.com/path`), or a shortener-style two-letter TLD
+ * with a path (`t.me/x`, `bit.ly/y`). Prose with a dot in it (`Node.js`,
+ * `file.txt`, `great post.in fact`) is not a link. This flag feeds the
+ * decision state only — the regex classifier's own link-dump rule stays
+ * scheme-only on purpose, because that is the `off` path and it must not move.
+ */
+const LINK_RE =
+  /https?:\/\/\S+|\bwww\.[a-z0-9-]+(?:\.[a-z0-9-]+)+|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:com|net|org|xyz|info|biz|shop|store|link|club|top|vip|win|bet|cash)\b(?:\/\S*)?|\b[a-z0-9-]+(?:\.[a-z0-9-]+)*\.(?:ai|cc|co|gg|io|ly|me|to|tv|uk|us)\/\S+/i;
+
+/** Whether a comment carries a link, by the rule the decision state uses. */
+export function hasCommentLinks(text: string): boolean {
+  return LINK_RE.test(text);
+}
 
 /**
  * Asked of the state only. The brand's private reply instructions are never
@@ -198,7 +212,7 @@ export class ReplyIntentClassifierService {
         MAX_HANDLE_CHARS,
       ),
       comment: truncate(params.commentText, MAX_COMMENT_CHARS),
-      hasLinks: LINK_RE.test(params.commentText),
+      hasLinks: hasCommentLinks(params.commentText),
       postCaption: truncate(params.postCaption ?? '', MAX_CAPTION_CHARS),
     };
   }

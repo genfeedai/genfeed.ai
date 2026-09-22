@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { classifyReplyIntent } from '@api/services/reply-bot/reply-intent.util';
+import { hasCommentLinks } from '@api/services/reply-bot/reply-intent-classifier.service';
 import type { ReplyIntent } from '@genfeedai/contracts/interfaces';
 import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
 import { describe, expect, it } from 'vitest';
@@ -75,18 +76,20 @@ describe('reply-bot-intent labelled set', () => {
         'hasLinks',
         'postCaption',
       ]);
-      expect(row.state.hasLinks).toBe(
-        /https?:\/\/\S+/i.test(row.state.comment),
-      );
+      expect(row.state.hasLinks).toBe(hasCommentLinks(row.state.comment));
     }
   });
 
-  it('is not a set the incumbent regex already aces', () => {
+  it('pins what the incumbent regex scores, so fixture drift fails loudly', () => {
     const correct = regexAnswers.filter(
       (answer, index) => answer === rows[index]?.expected,
     ).length;
 
-    // Leaves real headroom to measure a replacement against.
+    // 234 / 359 = 65.2%. Exact on purpose: a fixture edit that moves the
+    // baseline has to move this number with it, in the same review.
+    expect(rows.length).toBe(359);
+    expect(correct).toBe(234);
+    // And real headroom to measure a replacement against.
     expect(correct / rows.length).toBeLessThan(0.8);
   });
 
@@ -96,6 +99,8 @@ describe('reply-bot-intent labelled set', () => {
       (row) => regexAnswers[rows.indexOf(row)] === 'spam',
     ).length;
 
-    expect(falsePositives / nonSpam.length).toBeLessThanOrEqual(0.01);
+    // 1 / 294 = 0.34%: the bar a replacement has to clear.
+    expect(nonSpam.length).toBe(294);
+    expect(falsePositives).toBe(1);
   });
 });

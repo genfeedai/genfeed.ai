@@ -1,4 +1,7 @@
-import { ReplyIntentClassifierService } from '@api/services/reply-bot/reply-intent-classifier.service';
+import {
+  hasCommentLinks,
+  ReplyIntentClassifierService,
+} from '@api/services/reply-bot/reply-intent-classifier.service';
 import { REPLY_INTENT_DECISION_POINT } from '@api/services/reply-bot/reply-intent-decision.settings';
 import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { REPLY_INTENT_VALUES } from '@genfeedai/contracts/interfaces';
@@ -273,6 +276,20 @@ describe('ReplyIntentClassifierService', () => {
       });
     });
 
+    it('flags a scheme-less link the same way as one with a scheme', async () => {
+      const { chooseMock, service } = createHarness(LIVE_ENV);
+      chooseMock.mockResolvedValue({ confidence: 0.9, value: 'spam' });
+
+      await service.classify({
+        ...COMMENT,
+        commentText: 'DM me on telegram t.me/growfast check my bio',
+      });
+
+      expect(chooseMock.mock.calls[0]?.[0]?.state).toMatchObject({
+        hasLinks: true,
+      });
+    });
+
     it('gives the async path its own budget, not the agent turn timeout', async () => {
       const { chooseMock, service } = createHarness(LIVE_ENV);
       chooseMock.mockResolvedValue({ confidence: 0.9, value: 'default' });
@@ -280,6 +297,29 @@ describe('ReplyIntentClassifierService', () => {
       await service.classify(COMMENT);
 
       expect(chooseMock.mock.calls[0]?.[1]?.timeoutMs).toBe(2_000);
+    });
+  });
+
+  describe('hasCommentLinks', () => {
+    it.each([
+      'grab it at https://example.com/deal',
+      'see www.example.com for more',
+      'example.com/path has the details',
+      'DM me on telegram t.me/growfast check my bio',
+      'bit.ly/fastcash message me for details',
+      'email me at john@example.com',
+    ])('sees a link in %j', (text) => {
+      expect(hasCommentLinks(text)).toBe(true);
+    });
+
+    it.each([
+      'Node.js and file.txt are not links',
+      'great post.in fact the best one yet',
+      'i.e. v1.2.3 of the lib',
+      'Mr.Smith said hi',
+      'no links here at all',
+    ])('leaves prose with dots alone: %j', (text) => {
+      expect(hasCommentLinks(text)).toBe(false);
     });
   });
 });

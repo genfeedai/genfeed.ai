@@ -381,6 +381,34 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     };
   }
 
+  /**
+   * A comment already queued for a person is not decided again: the next
+   * poll would otherwise spend a decision and, on a confident answer,
+   * auto-reply to something a human was asked to handle (#4866). The hold is
+   * the skipped activity that queued it; it ends when the human flow marks
+   * the comment processed.
+   */
+  private async findIntentReviewHoldState(
+    request: ReplyBotContentRequest,
+    botConfig: Pick<ReplyBotConfigDocument, 'type'>,
+  ): Promise<ReplyBotContentState | null> {
+    if (botConfig.type !== ReplyBotType.COMMENT_RESPONDER) return null;
+    const hold = await this.botActivitiesService.findIntentReviewHold(
+      request.organizationId,
+      request.content.id,
+    );
+    if (!hold) return null;
+    return {
+      ...request,
+      dmDelayMs: 0,
+      dmItems: [],
+      ...(hold.intent === undefined ? {} : { intent: hold.intent }),
+      replySent: false,
+      skipReason: BotActivitySkipReason.NEEDS_REVIEW,
+      skipped: true,
+    };
+  }
+
   private async claimContentAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentState> {
@@ -390,6 +418,8 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       botConfig,
       request.botConfigId,
     );
+    const held = await this.findIntentReviewHoldState(request, botConfig);
+    if (held) return held;
     const rateCheck = await this.rateLimitService.checkRateLimit(
       request.botConfigId,
       request.organizationId,

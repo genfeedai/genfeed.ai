@@ -34,7 +34,11 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
   };
   const replyBotConfigsService = { findOneById: vi.fn() };
   const rateLimitService = { checkRateLimit: vi.fn() };
-  const botActivitiesService = { create: vi.fn(), updateStatus: vi.fn() };
+  const botActivitiesService = {
+    create: vi.fn(),
+    findIntentReviewHold: vi.fn(),
+    updateStatus: vi.fn(),
+  };
   const processedTweetsService = { markAsProcessed: vi.fn() };
   const replyIntentClassifierService = { classify: vi.fn() };
   let service: ReplyBotOrchestratorService;
@@ -102,6 +106,7 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
     }).compile();
     service = module.get(ReplyBotOrchestratorService);
     vi.clearAllMocks();
+    botActivitiesService.findIntentReviewHold.mockResolvedValue(null);
   });
 
   describe('comment intent gate', () => {
@@ -159,6 +164,41 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
         expect.objectContaining({ status: BotActivityStatus.SKIPPED }),
       );
       // Still unprocessed, so the comment reaches a person in the inbox.
+      expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
+    });
+
+    it('never decides a comment already queued for a person again', async () => {
+      const state = await claimContent({
+        confidence: 0.99,
+        intent: 'troll',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+      vi.clearAllMocks();
+      botActivitiesService.findIntentReviewHold.mockResolvedValue({
+        id: 'activity-9',
+        intent: 'troll',
+        isIntentNeedsReview: true,
+      });
+      const held = await claimContent({
+        confidence: 0.99,
+        intent: 'troll',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      // The first poll is unremarkable; the second finds the hold and stops
+      // before spending a decision or writing another activity row.
+      expect(state).toMatchObject({ skipped: true });
+      expect(held).toMatchObject({
+        intent: 'troll',
+        skipReason: BotActivitySkipReason.NEEDS_REVIEW,
+        skipped: true,
+      });
+      expect(replyIntentClassifierService.classify).not.toHaveBeenCalled();
+      expect(botActivitiesService.create).not.toHaveBeenCalled();
       expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
     });
   });

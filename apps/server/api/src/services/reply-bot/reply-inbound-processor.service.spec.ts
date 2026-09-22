@@ -28,6 +28,10 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
     isProcessed: vi.fn().mockResolvedValue(false),
     markAsProcessed: vi.fn(),
   };
+  const botActivitiesService = {
+    create: vi.fn(),
+    findIntentReviewHold: vi.fn().mockResolvedValue(null),
+  };
   const authorReplyLoopService = {
     findResponderOwnerUserId: vi.fn().mockResolvedValue('user-1'),
   };
@@ -52,9 +56,12 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     processedTweetsService.isProcessed.mockResolvedValue(false);
+    botActivitiesService.findIntentReviewHold.mockResolvedValue(null);
+    botActivitiesService.create.mockResolvedValue({ id: 'activity-1' });
     authorReplyLoopService.findResponderOwnerUserId.mockResolvedValue('user-1');
     service = new ReplyInboundProcessorService(
       processedTweetsService as never,
+      botActivitiesService as never,
       authorReplyLoopService as never,
       workflowRunner as never,
       workflowQueue as never,
@@ -117,6 +124,45 @@ describe('ReplyInboundProcessorService workflow boundary', () => {
       });
       // Marking it processed would drop it out of the author inbox, which is
       // exactly where the person is meant to find it.
+      expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
+      // The hold: the same skipped activity the orchestrator path writes.
+      expect(botActivitiesService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          intent: 'spam',
+          intentConfidence: 0.4,
+          isIntentNeedsReview: true,
+          organizationId: 'org-1',
+          skipReason: 'needs_review',
+          status: 'skipped',
+          triggerTweetId: 'comment-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it('never decides a comment already queued for a person again', async () => {
+      botActivitiesService.findIntentReviewHold.mockResolvedValue({
+        id: 'activity-9',
+        isIntentNeedsReview: true,
+      });
+
+      const preparation = await prepareInbound({
+        confidence: 0.99,
+        intent: 'spam',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      // A redelivered webhook replaces this comment's terminal job. Without
+      // the hold it would be classified again and, confident this time,
+      // auto-skipped or auto-replied behind the person's back.
+      expect(replyIntentClassifierService.classify).not.toHaveBeenCalled();
+      expect(preparation.items).toEqual([]);
+      expect(preparation.outcome).toMatchObject({
+        skipped: true,
+        success: true,
+      });
       expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
     });
   });

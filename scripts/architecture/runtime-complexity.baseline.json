@@ -342,7 +342,7 @@
     "symbol": "AuthorReplyLoopService.getInbox"
   },
   {
-    "actual": 1126,
+    "actual": 1156,
     "file": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/reply-bot/reply-bot-orchestrator.service.ts"
