@@ -17,6 +17,9 @@ export interface IEnvConfig {
   GENFEEDAI_API_PUBLIC_URL?: string;
   GENFEEDAI_API_URL?: string;
   GENFEEDAI_CDN_URL?: string;
+  GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID?: string;
+  GENFEEDAI_CDN_SIGNING_PRIVATE_KEY?: string;
+  GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS?: string;
   GENFEEDAI_APP_URL?: string;
   GENFEEDAI_MCP_PUBLIC_URL?: string;
   GENFEEDAI_PUBLIC_URL?: string;
@@ -185,12 +188,20 @@ export interface IEnvConfig {
   // === Typed decisions (TypeSafe AI / Jev) ===
   REPLY_BOT_INTENT_DECISION_MODE?: 'off' | 'shadow' | 'live';
   REPLY_BOT_INTENT_MIN_CONFIDENCE?: number;
+  TASK_ROUTING_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  TASK_ROUTING_MIN_CONFIDENCE?: number;
   TYPED_DECISION_TIMEOUT_MS?: number;
   TYPESAFE_API_KEY?: string;
   PATTERN_ANALYZER_DECISION_MODE?: 'off' | 'shadow' | 'live';
   PATTERN_ANALYZER_MIN_CONFIDENCE?: number;
   UNTRUSTED_CONTENT_DECISION_MODE?: 'off' | 'shadow' | 'live';
   UNTRUSTED_CONTENT_MIN_CONFIDENCE?: number;
+
+  // === Typed decision: model-discovery category (#4869) ===
+  // Mirrors TypedDecisionMode in @genfeedai/contracts; spelled out here
+  // because @genfeedai/config does not depend on contracts.
+  MODEL_DISCOVERY_DECISION_MODE?: 'off' | 'shadow' | 'live';
+  MODEL_DISCOVERY_MIN_CONFIDENCE?: number;
 
   // === News API ===
   NEWS_API_KEY?: string;

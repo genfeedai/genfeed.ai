@@ -8,6 +8,7 @@ import { ModelsModule } from '@api/collections/models/models.module';
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { ConfigModule } from '@libs/config/config.module';
@@ -21,6 +22,7 @@ import { Module } from '@nestjs/common';
     ConfigModule,
     CreditsModule,
     ImagesCoreModule,
+    MediaUrlsModule,
     ModelsModule,
     NotificationsPublisherModule,
     PostsCoreModule,

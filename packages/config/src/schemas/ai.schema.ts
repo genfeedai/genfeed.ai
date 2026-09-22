@@ -3,6 +3,25 @@ import Joi from 'joi';
 import { conditionalRequired } from '../helpers';
 
 /**
+ * Model-discovery category decision (#4869, epic #4863).
+ *
+ * Its own fragment because the decision runs in `workers`, whose ConfigService
+ * composes a much smaller schema than the API's. Both include this fragment so
+ * the rollout mode and threshold carry the same defaults in either runtime.
+ *
+ * #4912 replaces this pair of env vars with a settings service; until then the
+ * only reader is `resolveModelDiscoveryDecisionSettings`.
+ */
+export const modelDiscoveryDecisionSchema = {
+  // `off` keeps the keyword table in control, `shadow` records the provider
+  // answer next to it, `live` acts on it above MODEL_DISCOVERY_MIN_CONFIDENCE.
+  MODEL_DISCOVERY_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  MODEL_DISCOVERY_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
+};
+
+/**
  * General AI config
  */
 export const generalAiSchema = {
@@ -51,10 +70,18 @@ export const generalAiSchema = {
   // Typed decisions (#4864). Which provider is bound is an operator setting on
   // the platform-settings singleton (#4908), not an env var — the key here is
   // only the credential that makes a hosted provider available at all.
+  // Task-routing output type (#4867). `off` keeps the keyword table, `shadow`
+  // calls the provider and records the disagreement, `live` routes on the
+  // decided output type at or above TASK_ROUTING_MIN_CONFIDENCE.
+  TASK_ROUTING_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  TASK_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // Hard per-call budget. The agent turn path needs the 800ms default; async
   // paths pass their own budget through the call context instead.
   TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
+  ...modelDiscoveryDecisionSchema,
   // Untrusted-content injection gate (#4870). Its own rollout flag: `off` is
   // today's behaviour, `shadow` records what it would have withheld, `live`
   // keeps flagged tool results out of the model context.

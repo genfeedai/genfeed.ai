@@ -41,6 +41,14 @@ export const genfeedaiUrlsSchema = {
   GENFEEDAI_API_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_APP_URL: conditionalRequired(Joi.string().uri()),
   GENFEEDAI_CDN_URL: conditionalRequired(Joi.string().uri()),
+  // Optional pair: set both to serve media through CloudFront signed URLs.
+  // Unset (self-hosted, local) keeps media URLs unsigned.
+  GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID: Joi.string().optional(),
+  GENFEEDAI_CDN_SIGNING_PRIVATE_KEY: Joi.string().optional(),
+  GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS: Joi.number()
+    .min(60)
+    .max(86400)
+    .optional(),
   GENFEEDAI_MCP_PUBLIC_URL: conditionalRequired(
     mcpResourceUrl('GENFEEDAI_MCP_PUBLIC_URL'),
   ),

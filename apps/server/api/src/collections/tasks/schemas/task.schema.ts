@@ -32,10 +32,21 @@ export const TASK_OUTPUT_TYPES = [
   'video',
 ] as const;
 
+/**
+ * Where a task's `outputType` came from: the caller stated it, the keyword
+ * table inferred it, or the typed decision point decided it (#4867).
+ */
+export const TASK_OUTPUT_TYPE_SOURCES = [
+  'decision',
+  'explicit',
+  'keyword',
+] as const;
+
 export type TaskStatus = (typeof TASK_STATUSES)[number];
 export type TaskPriority = (typeof TASK_PRIORITIES)[number];
 export type TaskLinkedEntityModel = (typeof TASK_LINKED_ENTITY_MODELS)[number];
 export type TaskOutputType = (typeof TASK_OUTPUT_TYPES)[number];
+export type TaskOutputTypeSource = (typeof TASK_OUTPUT_TYPE_SOURCES)[number];
 
 export type TaskEvent = {
   createdAt?: Date | string;
@@ -91,6 +102,9 @@ export interface TaskDocument
   linkedIssueId?: string;
   linkedOutputIds: string[];
   outputType: TaskOutputType;
+  /** Confidence of a decided outputType. Absent unless the source is `decision`. */
+  outputTypeConfidence?: number;
+  outputTypeSource?: TaskOutputTypeSource;
   platforms: string[];
   planningThreadId?: string;
   priority: TaskPriority;

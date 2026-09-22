@@ -1,6 +1,7 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import type {
@@ -27,6 +28,7 @@ export class IngredientExportService {
     private readonly prisma: PrismaService,
     private readonly files: FilesClientService,
     private readonly config: ConfigService,
+    private readonly mediaUrlService: MediaUrlService,
   ) {}
 
   async export(
@@ -131,10 +133,13 @@ export class IngredientExportService {
         );
       }
     } else {
-      url = resolveIngredientMediaUrl(
+      const resolvedUrl = resolveIngredientMediaUrl(
         { s3Key: result.storageKey },
         this.config.cdnUrl,
       );
+      url = resolvedUrl
+        ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
+        : undefined;
     }
     if (!url) throw new BadRequestException('The preview URL is unavailable');
     return { id: ingredient.id, url, filename };

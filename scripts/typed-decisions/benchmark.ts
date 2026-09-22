@@ -23,6 +23,13 @@
  *                           a deployment actually runs is an operator setting
  *                           in /admin (#4908), which this script has no
  *                           database to read, so it is named here.
+ *   --state-filter=<k>=<v>  keep only rows whose `state.<k>` is one of the
+ *                           comma-separated values. A fixture may deliberately
+ *                           cover more ground than the decision point meets in
+ *                           production — #4869's model-discovery set carries
+ *                           hand-seeded providers no watcher can discover — and
+ *                           a rollout gate has to read the reachable subset,
+ *                           not the whole file
  *   --min-accuracy=<0..1>   exit non-zero below this accuracy
  *   --question=<text>       default question for rows that omit one
  *   --options=a,b,c         default choice options
@@ -64,6 +71,11 @@ import {
 } from './report';
 
 const DEFAULT_SCORE_TOLERANCE = 0.1;
+
+interface BenchmarkStateFilter {
+  key: string;
+  values: string[];
+}
 
 interface BenchmarkFixtureRow {
   expected: TypedDecisionDeterministicAnswer;
@@ -135,6 +147,50 @@ function parseRow(line: string, index: number): BenchmarkFixtureRow {
     source: typeof row.source === 'string' ? row.source : 'unknown',
     state,
   };
+}
+
+function readStateFilter(): BenchmarkStateFilter | undefined {
+  const raw = readFlag('state-filter');
+  if (raw === undefined) {
+    return undefined;
+  }
+
+  const separatorIndex = raw.indexOf('=');
+  const key = separatorIndex > 0 ? raw.slice(0, separatorIndex).trim() : '';
+  const values = raw
+    .slice(separatorIndex + 1)
+    .split(',')
+    .map((value) => value.trim())
+    .filter(Boolean);
+
+  if (key.length === 0 || values.length === 0) {
+    throw new Error(
+      `--state-filter must be <key>=<value[,value]>, got "${raw}"`,
+    );
+  }
+
+  return { key, values };
+}
+
+function applyStateFilter(
+  rows: BenchmarkFixtureRow[],
+  filter: BenchmarkStateFilter | undefined,
+): BenchmarkFixtureRow[] {
+  if (!filter) {
+    return rows;
+  }
+
+  const selected = rows.filter((row) =>
+    filter.values.includes(String(row.state[filter.key] ?? '')),
+  );
+
+  if (selected.length === 0) {
+    throw new Error(
+      `--state-filter ${filter.key}=${filter.values.join(',')} selected no rows`,
+    );
+  }
+
+  return selected;
 }
 
 function loadFixture(path: string): BenchmarkFixtureRow[] {
@@ -229,7 +285,9 @@ async function main(): Promise<void> {
     configService,
     buildLogger(),
   );
-  const rows = loadFixture(fixturePath);
+  const stateFilter = readStateFilter();
+  const allRows = loadFixture(fixturePath);
+  const rows = applyStateFilter(allRows, stateFilter);
   const timeoutMs = resolveTimeoutMs(configService);
   const scoreTolerance =
     readNumberFlag('score-tolerance') ?? DEFAULT_SCORE_TOLERANCE;
@@ -270,7 +328,12 @@ async function main(): Promise<void> {
   report += `  fixture:   ${fixturePath}\n`;
   report += `  provider:  ${provider.name}\n`;
   report += `  timeout:   ${timeoutMs}ms\n`;
-  report += `  rows:      ${rows.length}\n`;
+  if (stateFilter) {
+    report += `  filter:    state.${stateFilter.key} in ${stateFilter.values.join(', ')}\n`;
+    report += `  rows:      ${rows.length} of ${allRows.length} selected\n`;
+  } else {
+    report += `  rows:      ${rows.length}\n`;
+  }
   report += `  answered:  ${formatAccuracy(answered.length, rows.length)}\n`;
   report += `  accuracy:  ${formatAccuracy(correct, answered.length)}\n`;
   report += `  latency:   p50 ${percentile(latencies, 0.5)}ms · p95 ${percentile(latencies, 0.95)}ms\n`;

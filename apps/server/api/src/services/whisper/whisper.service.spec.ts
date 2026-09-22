@@ -1,5 +1,6 @@
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { WhisperService } from '@api/services/whisper/whisper.service';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -43,6 +44,7 @@ describe('WhisperService', () => {
   let httpServiceMock: Record<string, ReturnType<typeof vi.fn>>;
   let fileQueueMock: Record<string, ReturnType<typeof vi.fn>>;
   let logger: ReturnType<typeof createMockLogger>;
+  let mediaUrlMock: { buildUrlFromAbsolute: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
     replicateMock = {
@@ -64,6 +66,9 @@ describe('WhisperService', () => {
       }),
     };
     logger = createMockLogger();
+    mediaUrlMock = {
+      buildUrlFromAbsolute: vi.fn((url: string) => url),
+    };
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -80,6 +85,7 @@ describe('WhisperService', () => {
         { provide: FileQueueService, useValue: fileQueueMock },
         { provide: HttpService, useValue: httpServiceMock },
         { provide: ReplicateService, useValue: replicateMock },
+        { provide: MediaUrlService, useValue: mediaUrlMock },
       ],
     }).compile();
 
@@ -237,6 +243,21 @@ describe('WhisperService', () => {
 
       expect(httpServiceMock.get).toHaveBeenCalledWith(
         'https://cdn.genfeed.ai/ingredients/videos/ingredient-123.mp4',
+        { responseType: 'arraybuffer' },
+      );
+    });
+
+    it('downloads through a signed URL when the deployment signs media', async () => {
+      mediaUrlMock.buildUrlFromAbsolute.mockImplementation(
+        (url: string) => `${url}?Signature=signed`,
+      );
+
+      await service.generateCaptions('ingredient-123', {
+        s3Key: 'ingredients/videos/ingredient-123.mp4',
+      });
+
+      expect(httpServiceMock.get).toHaveBeenCalledWith(
+        'https://cdn.genfeed.ai/ingredients/videos/ingredient-123.mp4?Signature=signed',
         { responseType: 'arraybuffer' },
       );
     });

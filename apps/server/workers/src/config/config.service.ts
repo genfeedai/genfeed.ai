@@ -2,6 +2,7 @@ import {
   createServiceConfig,
   type IEnvConfig,
   microservicesSchema,
+  modelDiscoveryDecisionSchema,
   postgresSchema,
   redisSchema,
   sentryOptionalSchema,
@@ -29,6 +30,10 @@ export class ConfigService extends createServiceConfig<WorkersEnvConfig>({
     // microservices URLs default to localhost in self-hosted instead of
     // silently resolving to undefined.
     microservicesSchema,
+    // #4869: the model-discovery category decision runs in this runtime, so
+    // its mode and threshold must carry their defaults here too — the API's
+    // generalAiSchema is not part of the workers schema.
+    modelDiscoveryDecisionSchema,
   ],
   extend: {
     GF_DEV_ENABLE_SCHEDULERS: Joi.string()
