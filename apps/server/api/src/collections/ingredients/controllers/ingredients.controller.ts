@@ -25,6 +25,7 @@ import {
 } from '@api/helpers/utils/response/response.util';
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { scopedWhere } from '@api/index';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import type {
   ILibrarySummary,
@@ -61,6 +62,7 @@ export class IngredientsController {
     private readonly foldersService: FoldersService,
     private readonly cancellationService: IngredientGenerationCancellationService,
     private readonly configService: ConfigService,
+    private readonly mediaUrlService: MediaUrlService,
   ) {}
 
   /**
@@ -210,11 +212,17 @@ export class IngredientsController {
       /\/ingredients\/?$/,
       '',
     );
-    const renderableIngredients = ingredients.map((ingredient) => ({
-      ...ingredient,
-      cdnUrl:
-        resolveIngredientMediaUrl(ingredient, cdnOrigin) ?? ingredient.cdnUrl,
-    }));
+    const renderableIngredients = ingredients.map((ingredient) => {
+      const resolvedUrl =
+        resolveIngredientMediaUrl(ingredient, cdnOrigin) ?? ingredient.cdnUrl;
+
+      return {
+        ...ingredient,
+        cdnUrl: resolvedUrl
+          ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
+          : resolvedUrl,
+      };
+    });
 
     return serializeCollection(request, IngredientSerializer, {
       docs: renderableIngredients,

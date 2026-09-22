@@ -1,6 +1,7 @@
 import { IngredientExportsController } from '@api/collections/ingredients/controllers/ingredient-exports.controller';
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 /**
  * Ingredients Module
  * Content building blocks: manage videos, images, voices, music as reusable components.
@@ -27,6 +28,7 @@ import { Module } from '@nestjs/common';
   exports: [IngredientGenerationCancellationService, IngredientsService],
   imports: [
     FilesClientModule,
+    MediaUrlsModule,
     FoldersModule,
     FailedGenerationModule,
     MetadataModule,
