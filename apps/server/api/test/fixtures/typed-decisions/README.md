@@ -16,6 +16,16 @@ the script runnable. It is not a benchmark: every migration in epic #4863 ships
 its own labelled set, sized to say something about accuracy, and reports the
 number before its decision point goes live.
 
+## `agent-auto-routing-tier.jsonl`
+
+23 rows for the agent's `agent.auto_routing_tier` decision (#4865). Their
+`state` is the exact shape `AgentAutoModelResolverService` sends, so a run
+measures the live call site rather than a paraphrase of it. The labels are
+hand-assigned against the tier rubric in `AgentChatRoutingTier`, not drawn from
+production traffic, and **no accuracy number has been reported for it yet** —
+`AGENT_AUTO_ROUTING_DECISION_MODE` stays `off` until a benchmark run and a week
+of shadow telemetry say otherwise.
+
 `task-routing-output-type.jsonl` is the labelled set for `task_routing.output_type`
 (#4867): 251 rows over the seven `TASK_OUTPUT_TYPES`, each state shaped exactly
 like the one `TaskRoutingService` sends (request text, platforms, attachment
