@@ -63,6 +63,7 @@ describe('IngredientsController — Library axes', () => {
     {} as never,
     {} as never,
     { ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients' } as never,
+    { buildUrlFromAbsolute: (url: string) => url } as never,
   );
 
   afterEach(() => {
