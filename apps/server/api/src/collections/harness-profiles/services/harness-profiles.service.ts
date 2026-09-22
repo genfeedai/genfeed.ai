@@ -2,7 +2,6 @@ import type { UpdateHarnessProfileDto } from '@api/collections/harness-profiles/
 import type { UpsertHarnessProfileDto } from '@api/collections/harness-profiles/dto/upsert-harness-profile.dto';
 import type { HarnessProfileDocument } from '@api/collections/harness-profiles/schemas/harness-profile.schema';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import type { ExpertHarnessDraft } from '@api/services/expert-path/utils/expert-harness-draft.util';
 import {
   type HarnessPackSeed,
@@ -12,6 +11,7 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import { readRecordOrEmpty as readRecord } from '@api/shared/utils/object/read-record-or-empty.util';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type {
   ExpertPositioningDimensionKey,
   ExpertPositioningRating,
