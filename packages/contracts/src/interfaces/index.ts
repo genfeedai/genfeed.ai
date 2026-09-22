@@ -16,6 +16,7 @@ export * from './ai/agent-tool.interface';
 export * from './ai/agent-transfer.interface';
 export * from './ai/agent-ui-action.interface';
 export * from './ai/agent-ui-block.interface';
+export * from './ai/agent-untrusted-content-gate.interface';
 export * from './ai/agent-wizard.interface';
 export * from './ai/agent-work-object.interface';
 export * from './ai/ai-actions.interface';

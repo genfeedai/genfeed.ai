@@ -1,4 +1,5 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrator/agent-untrusted-content-gate.service';
 import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type {
   AgentChatContext,
@@ -205,6 +206,7 @@ export class AgentTurnRoundRunnerService {
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly toolExecutorService: AgentToolExecutorService,
     private readonly toolConfirmationService: AgentToolConfirmationService,
+    private readonly untrustedContentGateService: AgentUntrustedContentGateService,
   ) {}
 
   /**
@@ -671,7 +673,14 @@ export class AgentTurnRoundRunnerService {
       }
 
       messages.push({
-        content: JSON.stringify(modelVisibleResult),
+        content: await this.gateToolResultContent({
+          context,
+          modelVisibleResult,
+          policy,
+          threadId,
+          toolCall,
+          toolName,
+        }),
         role: 'tool' as const,
         tool_call_id: toolCall.id,
       });
@@ -686,6 +695,34 @@ export class AgentTurnRoundRunnerService {
           }
         : {}),
     };
+  }
+
+  /**
+   * What the model is allowed to see of one tool result (#4870).
+   *
+   * The injection gate only ever tightens this: above its threshold in `live`
+   * mode it returns a withheld notice, and every other outcome — `off`,
+   * `shadow`, a sub-threshold or unavailable decision, a thrown error — hands
+   * back exactly the serialized result.
+   */
+  private async gateToolResultContent(params: {
+    context: AgentChatContext;
+    modelVisibleResult: AgentToolResult;
+    policy: ResolvedAgentExecutionPolicy;
+    threadId: string;
+    toolCall: OpenRouterToolCallResponse;
+    toolName: CuratedActionName;
+  }): Promise<string> {
+    const gated = await this.untrustedContentGateService.evaluateToolResult({
+      brandId: params.policy.brandId,
+      content: JSON.stringify(params.modelVisibleResult),
+      context: params.context,
+      threadId: params.threadId,
+      toolCallId: params.toolCall.id,
+      toolName: params.toolName,
+    });
+
+    return gated.content;
   }
 
   private readCurrentOperatorMessage(

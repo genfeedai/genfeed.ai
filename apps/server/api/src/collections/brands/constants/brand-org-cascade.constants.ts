@@ -98,6 +98,12 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
+    delegate: 'agentUntrustedContentAudit',
+    table: 'agent_untrusted_content_audits',
+    brandField: 'brandId',
+    orgField: 'organizationId',
+  },
+  {
     delegate: 'engagementRule',
     table: 'engagement_rules',
     brandField: 'brandId',

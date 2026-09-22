@@ -1,6 +1,7 @@
 export * from './agent-auto-routing.interface';
 export * from './agent-publish.interface';
 export * from './agent-ui-block.interface';
+export * from './agent-untrusted-content-gate.interface';
 export * from './harness-pack-registry.interface';
 export * from './llm-structured-output.interface';
 export * from './resolved-runtime-skill.interface';
