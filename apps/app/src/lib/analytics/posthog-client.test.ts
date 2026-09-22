@@ -299,8 +299,14 @@ describe('initAnalytics', () => {
           'https://app.genfeed.ai/acme/brand/publishing/review?title=Confidential',
         $initial_utm_campaign:
           '  HTTPS://app.genfeed.ai/acme/brand?document=confidential',
+        $initial_utm_content:
+          'campaign=https://app.genfeed.ai/acme/brand?document=confidential',
+        $initial_utm_medium:
+          'https:\\\\app.genfeed.ai\\acme\\brand?document=confidential',
         $initial_utm_source: 'newsletter',
         $initial_utm_term: 'confidential search',
+        $session_entry_url:
+          '//app.genfeed.ai/acme/brand/publishing?document=confidential',
       },
       event: '$identify',
       properties: {
@@ -319,6 +325,11 @@ describe('initAnalytics', () => {
       'https://app.genfeed.ai/:org/:brand',
     );
     expect(scrubbed.$set_once.$initial_utm_source).toBe('newsletter');
+    expect(scrubbed.$set_once.$initial_utm_content).toBeUndefined();
+    expect(scrubbed.$set_once.$initial_utm_medium).toBeUndefined();
+    expect(scrubbed.$set_once.$session_entry_url).toBe(
+      'https://app.genfeed.ai/:org/:brand/publishing',
+    );
     expect(scrubbed.$set_once.$initial_utm_term).toBeUndefined();
     expect(scrubbed.properties.$session_entry_utm_term).toBeUndefined();
   });

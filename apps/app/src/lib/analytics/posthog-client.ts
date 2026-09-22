@@ -139,6 +139,12 @@ const PAYMENT_CARD_LIKE_RE = /^\d{13,19}$/;
  * any scheme casing, after trimming (campaign params arrive verbatim).
  */
 const URL_LIKE_RE = /^(?:https?:\/\/|\/)/i;
+/**
+ * Any other value still carrying a URL marker (`scheme:/`, `scheme:\`, `//`,
+ * a URL embedded mid-string, backslash forms) cannot be templated safely, so
+ * it is dropped rather than passed through.
+ */
+const EMBEDDED_URL_RE = /[a-z][a-z0-9+.-]*:[\\/]|[\\/]{2}/i;
 /** Bound on recursion into nested property bags ($set/$set_once/$groups). */
 const MAX_SCRUB_DEPTH = 6;
 const BLOCKED_PROPERTY_VALUE = Symbol('blocked-analytics-property');
@@ -163,7 +169,10 @@ function scrubPropertyValue(value: unknown, depth: number): unknown {
       return BLOCKED_PROPERTY_VALUE;
     }
     const trimmed = value.trim();
-    return URL_LIKE_RE.test(trimmed) ? sanitizeAnalyticsUrl(trimmed) : value;
+    if (URL_LIKE_RE.test(trimmed)) {
+      return sanitizeAnalyticsUrl(trimmed);
+    }
+    return EMBEDDED_URL_RE.test(trimmed) ? BLOCKED_PROPERTY_VALUE : value;
   }
   if (value === null || typeof value !== 'object') {
     return value;
