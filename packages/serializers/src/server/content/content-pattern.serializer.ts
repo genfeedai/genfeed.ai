@@ -6,6 +6,7 @@ import {
 export interface ContentPatternAttributes {
   description: unknown;
   extractedFormula: unknown;
+  isLowConfidence: unknown;
   patternType: unknown;
   placeholders: unknown;
   platform: unknown;
@@ -44,6 +45,7 @@ export const ContentPatternSerializer = {
       attributes: {
         description: persistedData.description,
         extractedFormula: persistedData.extractedFormula,
+        isLowConfidence: persistedData.isLowConfidence,
         patternType: persistedData.patternType,
         placeholders: persistedData.placeholders,
         platform: persistedData.platform,
