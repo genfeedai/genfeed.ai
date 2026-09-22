@@ -67,15 +67,26 @@ Read the numbers with the construction in mind:
   `fal` rows — 114 of 139 — are the discovery-reachable subset; the 13
   `openrouter`, 11 `genfeed-ai` and 1 `mureka` rows are hand-seeded and the
   classifier is never asked about them in production. The generator prints
-  both totals, and rollout reads the reachable one.
+  both totals, and rollout reads the reachable one:
+
+  ```bash
+  bun run bench:typed-decisions -- \
+    --fixture=apps/server/api/test/fixtures/typed-decisions/model-discovery-category.jsonl \
+    --state-filter=provider=replicate,fal \
+    --min-accuracy=0.43
+  ```
+
+  `--state-filter` prints the selection it made (`rows: 114 of 139 selected`),
+  so the number a gate is read off is never implicit. Drop the filter for the
+  catalogue-wide coverage run.
 
 Baselines the provider has to beat, measured on the text the keyword table
 actually sees — description plus tags, not `modelName`:
 
-| Population | Rows | Keyword table |
-|---|---|---|
-| **Discovery-reachable (`replicate` + `fal`)** — the rollout gate | 114 | **49 (43.0%)** |
-| Whole catalogue — benchmark coverage | 139 | 60 (43.2%) |
+| Population | Rows | Keyword table | Benchmark invocation |
+|---|---|---|---|
+| **Discovery-reachable (`replicate` + `fal`)** — the rollout gate | 114 | **49 (43.0%)** | `--state-filter=provider=replicate,fal` |
+| Whole catalogue — benchmark coverage | 139 | 60 (43.2%) | no filter |
 
 The #4869 keyword-ordering fixes account for both: 47 → 49 reachable
 (41.2% → 43.0%) and 58 → 60 overall (41.7% → 43.2%).
