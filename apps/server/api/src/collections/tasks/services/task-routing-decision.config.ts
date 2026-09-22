@@ -1,6 +1,6 @@
 import type {
   TypedDecisionMode,
-  TypedDecisionRolloutConfig,
+  TypedDecisionRolloutSettings,
 } from '@genfeedai/contracts/interfaces';
 import type { ConfigService } from '@libs/config/config.service';
 
@@ -24,7 +24,7 @@ function isTypedDecisionMode(value: unknown): value is TypedDecisionMode {
  */
 export function resolveTaskRoutingDecisionRollout(
   configService: ConfigService,
-): TypedDecisionRolloutConfig {
+): TypedDecisionRolloutSettings {
   const mode = configService.get('TASK_ROUTING_DECISION_MODE');
   const minConfidence = Number(
     configService.get('TASK_ROUTING_MIN_CONFIDENCE'),

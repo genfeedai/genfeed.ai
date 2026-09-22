@@ -26,3 +26,23 @@ video request, and `facecam`, which no pattern can produce) — not sampled from
 production. Today's regex table scores **51.8% (130/251)** on it. That number
 is a baseline for the fixture, not a production accuracy claim, and the flip to
 `live` still waits on a genuinely labelled set.
+## `content-pattern-labels.jsonl`
+
+220 posts for the pattern analyzer's two label decisions (#4868), two rows per
+post: one for `content_pattern.pattern_type`, one for
+`content_pattern.template_category`. Both carry their own `question` and
+`options`, and `state` is exactly what the service sends — `{ platform,
+postText }`.
+
+The rows are **synthetic**, constructed to cover every label rather than
+sampled from production, so a number measured on them says the shape of the
+call works, not how accurate the decision is on real creator posts. The flip to
+`live` waits on a genuinely labelled set.
+
+The benchmark reports one accuracy per run, so split the file by decision point
+first:
+
+```bash
+grep '"Which reusable pattern' content-pattern-labels.jsonl > /tmp/pattern-type.jsonl
+grep '"Which template category' content-pattern-labels.jsonl > /tmp/template-category.jsonl
+```

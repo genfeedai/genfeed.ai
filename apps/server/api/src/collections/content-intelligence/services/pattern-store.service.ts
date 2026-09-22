@@ -3,8 +3,9 @@ import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { readRecordOrEmpty as readJsonRecord } from '@api/shared/utils/object/read-record-or-empty.util';
-import {
+import type {
   ContentIntelligencePlatform,
+  ContentPatternCategory,
   ContentPatternType,
   TemplateCategory,
 } from '@genfeedai/contracts';
@@ -17,7 +18,9 @@ export interface CreatePatternDto {
   sourceCreatorId?: string;
   platform: ContentIntelligencePlatform;
   patternType: ContentPatternType;
-  templateCategory?: TemplateCategory;
+  templateCategory?: ContentPatternCategory;
+  /** No confident source produced the labels above (#4868). */
+  isLowConfidence?: boolean;
   rawExample: string;
   extractedFormula: string;
   description?: string;

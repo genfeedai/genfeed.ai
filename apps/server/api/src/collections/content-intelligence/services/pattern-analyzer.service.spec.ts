@@ -3,10 +3,15 @@ import type {
   CreatorScraperService,
   ScrapedPost,
 } from '@api/collections/content-intelligence/services/creator-scraper.service';
-import { PatternAnalyzerService } from '@api/collections/content-intelligence/services/pattern-analyzer.service';
+import {
+  CONTENT_PATTERN_TEMPLATE_CATEGORY_DECISION_POINT,
+  CONTENT_PATTERN_TYPE_DECISION_POINT,
+  PatternAnalyzerService,
+} from '@api/collections/content-intelligence/services/pattern-analyzer.service';
 import type { PatternStoreService } from '@api/collections/content-intelligence/services/pattern-store.service';
 import type { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { LlmStructuredOutputError } from '@api/services/integrations/llm/llm-structured-output.error';
+import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import {
   ContentIntelligencePlatform,
   ContentPatternCategory,
@@ -14,6 +19,7 @@ import {
   CreatorAnalysisStatus,
 } from '@genfeedai/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -44,6 +50,23 @@ const mockPatternStoreService = {
   storeBulkPatterns: vi.fn(),
 };
 
+// The Jev provider is never exercised here: the service under test only has to
+// treat `null` and a sub-threshold confidence identically.
+const mockTypedDecisionService = {
+  choose: vi.fn(),
+};
+
+const configValues: Record<string, unknown> = {};
+
+const mockConfigService = {
+  get: vi.fn((key: string) => configValues[key]),
+};
+
+function setDecisionConfig(mode: string, minConfidence?: number): void {
+  configValues.PATTERN_ANALYZER_DECISION_MODE = mode;
+  configValues.PATTERN_ANALYZER_MIN_CONFIDENCE = minConfidence;
+}
+
 function makeService() {
   return new PatternAnalyzerService(
     mockLogger as unknown as LoggerService,
@@ -51,11 +74,20 @@ function makeService() {
     mockContentIntelligenceService as unknown as ContentIntelligenceService,
     mockCreatorScraperService as unknown as CreatorScraperService,
     mockPatternStoreService as unknown as PatternStoreService,
+    mockTypedDecisionService as unknown as TypedDecisionService,
+    mockConfigService as unknown as ConfigService,
   );
 }
 
 const orgId = 'test-object-id';
 const creatorId = 'test-object-id';
+
+// Default posture for every suite: the decision path is off, exactly as a
+// deployment that sets neither key.
+beforeEach(() => {
+  setDecisionConfig('off');
+  mockTypedDecisionService.choose.mockResolvedValue(null);
+});
 
 function makePost(overrides: Partial<ScrapedPost> = {}): ScrapedPost {
   return {
@@ -405,9 +437,7 @@ describe('PatternAnalyzerService LLM response parsing', () => {
         description: 'Personal journey hook',
         extractedFormula:
           '[TIMEFRAME] I [VERB] [TOPIC]. Here are my learnings:',
-        patternType: 'hook',
         placeholders: ['TIMEFRAME', 'VERB', 'TOPIC'],
-        templateCategory: 'story',
       },
     ];
 
@@ -439,13 +469,12 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     expect(params.messages[0].content).not.toContain('ONLY the JSON');
   });
 
-  it('maps the validated free-text parts onto stored patterns', async () => {
+  it('maps the free-text parts onto stored patterns and labels them locally', async () => {
     mockLlmDispatcherService.completeStructured.mockResolvedValue({
       patterns: [
         {
           description: 'CTA',
           extractedFormula: 'Follow [ACCOUNT] for more',
-          patternType: 'cta',
           placeholders: ['ACCOUNT'],
         },
       ],
@@ -454,14 +483,31 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     const { patterns } = await service.analyzeCreator(creatorId);
 
     expect(mockLlmDispatcherService.completeStructured).toHaveBeenCalled();
+    // The post opens with "I spent ...", so the rule-based answer is a story
+    // hook; the model is no longer asked for either label.
     expect(patterns).toEqual([
       expect.objectContaining({
         description: 'CTA',
         extractedFormula: 'Follow [ACCOUNT] for more',
-        patternType: ContentPatternType.CTA,
+        isLowConfidence: false,
+        patternType: ContentPatternType.HOOK,
         placeholders: ['ACCOUNT'],
+        templateCategory: ContentPatternCategory.STORY,
       }),
     ]);
+  });
+
+  it('stops asking the model to label the pattern', async () => {
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: [],
+    });
+
+    await service.analyzeCreator(creatorId);
+
+    const [params] = mockLlmDispatcherService.completeStructured.mock
+      .calls[0] as [{ messages: Array<{ content: string }> }];
+    expect(params.messages[0].content).not.toContain('patternType');
+    expect(params.messages[0].content).not.toContain('templateCategory');
   });
 
   it('falls back to rule-based when the model misses the schema twice', async () => {
@@ -517,24 +563,32 @@ describe('PatternAnalyzerService LLM response parsing', () => {
     expect(patterns).toHaveLength(0);
   });
 
-  it('validates unknown patternType and defaults to HOOK', async () => {
-    const llmPatterns = [
-      {
-        description: 'something',
-        extractedFormula: '[X]',
-        patternType: 'totally_invalid_type',
-        placeholders: [],
-      },
-    ];
-
+  it('marks a pattern uncertain when no rule matched and nothing was decided', async () => {
+    mockCreatorScraperService.scrapeCreator.mockResolvedValue({
+      posts: [
+        makePost({
+          text: 'The framework we use to price enterprise deals at scale.',
+        }),
+      ],
+      profile: {},
+    });
     mockLlmDispatcherService.completeStructured.mockResolvedValue({
-      patterns: llmPatterns,
+      patterns: [
+        {
+          description: 'something',
+          extractedFormula: '[X]',
+          placeholders: [],
+        },
+      ],
     });
 
     const { patterns } = await service.analyzeCreator(creatorId);
-    if (patterns.length > 0) {
-      expect(patterns[0].patternType).toBe(ContentPatternType.HOOK);
-    }
+
+    expect(patterns).toHaveLength(1);
+    // A placeholder label, visibly flagged rather than quietly plausible.
+    expect(patterns[0].isLowConfidence).toBe(true);
+    expect(patterns[0].patternType).toBe(ContentPatternType.HOOK);
+    expect(patterns[0].templateCategory).toBeUndefined();
   });
 });
 
@@ -668,5 +722,232 @@ describe('PatternAnalyzerService post sorting and capping', () => {
     // Only top 30 by engagement should be processed; the 5 low-engagement posts won't contribute
     // All question hook posts should generate patterns
     expect(patterns.length).toBeGreaterThan(0);
+  });
+});
+
+// ─── Typed-decision labels (#4868) ────────────────────────────────────────
+
+describe('PatternAnalyzerService typed-decision labels', () => {
+  let service: PatternAnalyzerService;
+
+  const questionHookPost =
+    'What if you could 10x your output?\n\nHere is the system I use.';
+
+  beforeEach(() => {
+    service = makeService();
+    vi.clearAllMocks();
+
+    mockContentIntelligenceService.findOne.mockResolvedValue({
+      // The creator's platform lives in the JSON `data` column.
+      data: { platform: ContentIntelligencePlatform.TWITTER },
+      id: creatorId,
+      organizationId: orgId,
+    });
+    mockContentIntelligenceService.updateStatus.mockResolvedValue(undefined);
+    mockContentIntelligenceService.updateMetrics.mockResolvedValue(undefined);
+    mockCreatorScraperService.calculateAggregateMetrics.mockReturnValue({});
+    mockPatternStoreService.storeBulkPatterns.mockImplementation(
+      async (p) => p,
+    );
+    mockCreatorScraperService.scrapeCreator.mockResolvedValue({
+      posts: [makePost({ text: questionHookPost })],
+      profile: {},
+    });
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: [
+        {
+          description: 'Opens on an outcome question',
+          extractedFormula: 'What if you could [OUTCOME]?',
+          placeholders: ['OUTCOME'],
+        },
+      ],
+    });
+  });
+
+  function answer(value: string, confidence: number) {
+    return { confidence, value };
+  }
+
+  function decide(
+    patternType: string,
+    templateCategory: string,
+    confidence = 0.95,
+  ) {
+    mockTypedDecisionService.choose.mockImplementation(
+      async (_params: unknown, context: { decisionPoint: string }) =>
+        context.decisionPoint === CONTENT_PATTERN_TYPE_DECISION_POINT
+          ? answer(patternType, confidence)
+          : answer(templateCategory, confidence),
+    );
+  }
+
+  it('never calls the provider in off mode', async () => {
+    setDecisionConfig('off');
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: false,
+      patternType: ContentPatternType.HOOK,
+      templateCategory: ContentPatternCategory.QUESTION,
+    });
+  });
+
+  it('records the rule-based answer in shadow mode without acting on the decision', async () => {
+    setDecisionConfig('shadow');
+    decide(ContentPatternType.TEMPLATE, ContentPatternCategory.LIST);
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(mockTypedDecisionService.choose).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: [
+          ContentPatternType.HOOK,
+          ContentPatternType.TEMPLATE,
+          ContentPatternType.CTA,
+          ContentPatternType.STRUCTURE,
+        ],
+        state: {
+          platform: ContentIntelligencePlatform.TWITTER,
+          postText: questionHookPost,
+        },
+      }),
+      expect.objectContaining({
+        decisionPoint: CONTENT_PATTERN_TYPE_DECISION_POINT,
+        deterministicAnswer: ContentPatternType.HOOK,
+        mode: 'shadow',
+        organizationId: orgId,
+      }),
+    );
+    expect(mockTypedDecisionService.choose).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: [
+          ContentPatternCategory.STORY,
+          ContentPatternCategory.CONTRARIAN,
+          ContentPatternCategory.CASE_STUDY,
+          ContentPatternCategory.LIST,
+          ContentPatternCategory.CURATION,
+          ContentPatternCategory.QUESTION,
+          ContentPatternCategory.THREAD,
+        ],
+      }),
+      expect.objectContaining({
+        decisionPoint: CONTENT_PATTERN_TEMPLATE_CATEGORY_DECISION_POINT,
+        deterministicAnswer: ContentPatternCategory.QUESTION,
+        mode: 'shadow',
+      }),
+    );
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: false,
+      patternType: ContentPatternType.HOOK,
+      templateCategory: ContentPatternCategory.QUESTION,
+    });
+  });
+
+  it('persists the decided labels in live mode above the threshold', async () => {
+    setDecisionConfig('live', 0.8);
+    decide(ContentPatternType.TEMPLATE, ContentPatternCategory.LIST, 0.81);
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: false,
+      patternType: ContentPatternType.TEMPLATE,
+      templateCategory: ContentPatternCategory.LIST,
+    });
+  });
+
+  it('treats a sub-threshold confidence exactly like no answer', async () => {
+    setDecisionConfig('live');
+    decide(ContentPatternType.TEMPLATE, ContentPatternCategory.LIST, 0.84);
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: false,
+      patternType: ContentPatternType.HOOK,
+      templateCategory: ContentPatternCategory.QUESTION,
+    });
+  });
+
+  it('falls back to the rule-based answer when the provider resolves null', async () => {
+    setDecisionConfig('live');
+    mockTypedDecisionService.choose.mockResolvedValue(null);
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: false,
+      patternType: ContentPatternType.HOOK,
+      templateCategory: ContentPatternCategory.QUESTION,
+    });
+  });
+
+  it('flags the pattern when neither the decision nor a rule produced a label', async () => {
+    setDecisionConfig('live');
+    mockTypedDecisionService.choose.mockResolvedValue(null);
+    mockCreatorScraperService.scrapeCreator.mockResolvedValue({
+      posts: [
+        makePost({
+          text: 'The pricing framework we use for enterprise deals at scale.',
+        }),
+      ],
+      profile: {},
+    });
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: true,
+      patternType: ContentPatternType.HOOK,
+    });
+    expect(patterns[0].templateCategory).toBeUndefined();
+  });
+
+  it('keeps the rule-based category when only the pattern type is decided', async () => {
+    setDecisionConfig('live');
+    mockTypedDecisionService.choose.mockImplementation(
+      async (_params: unknown, context: { decisionPoint: string }) =>
+        context.decisionPoint === CONTENT_PATTERN_TYPE_DECISION_POINT
+          ? answer(ContentPatternType.STRUCTURE, 0.99)
+          : null,
+    );
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: false,
+      patternType: ContentPatternType.STRUCTURE,
+      templateCategory: ContentPatternCategory.QUESTION,
+    });
+  });
+
+  it('does not decide labels when the model returns no pattern', async () => {
+    setDecisionConfig('live');
+    mockLlmDispatcherService.completeStructured.mockResolvedValue({
+      patterns: [],
+    });
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(patterns).toHaveLength(0);
+    expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
+  });
+
+  it('does not decide labels when the model call fails', async () => {
+    setDecisionConfig('live');
+    mockLlmDispatcherService.completeStructured.mockRejectedValue(
+      new Error('LLM timeout'),
+    );
+
+    const { patterns } = await service.analyzeCreator(creatorId);
+
+    expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
+    expect(patterns[0]).toMatchObject({
+      isLowConfidence: false,
+      patternType: ContentPatternType.HOOK,
+      templateCategory: ContentPatternCategory.QUESTION,
+    });
   });
 });
