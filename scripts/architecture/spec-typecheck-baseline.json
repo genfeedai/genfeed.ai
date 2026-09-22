@@ -313,54 +313,6 @@
       "workspace": "api"
     },
     {
-      "code": 2367,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-intelligence/services/pattern-analyzer.service.spec.ts",
-      "fingerprint": "0e8028bf9e9db5467ec8",
-      "message": "This comparison appears to be unintentional because the types 'TemplateCategory | undefined' and 'ContentPatternCategory' have no overlap.",
-      "workspace": "api"
-    },
-    {
-      "code": 2367,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-intelligence/services/pattern-analyzer.service.spec.ts",
-      "fingerprint": "2bb3669ed7814ecc00cc",
-      "message": "This comparison appears to be unintentional because the types 'TemplateCategory | undefined' and 'ContentPatternCategory' have no overlap.",
-      "workspace": "api"
-    },
-    {
-      "code": 2367,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-intelligence/services/pattern-analyzer.service.spec.ts",
-      "fingerprint": "38915c58b7bf2a829b7c",
-      "message": "This comparison appears to be unintentional because the types 'TemplateCategory | undefined' and 'ContentPatternCategory' have no overlap.",
-      "workspace": "api"
-    },
-    {
-      "code": 2367,
-      "count": 2,
-      "file": "apps/server/api/src/collections/content-intelligence/services/pattern-analyzer.service.spec.ts",
-      "fingerprint": "663763fad5314741da4b",
-      "message": "This comparison appears to be unintentional because the types 'TemplateCategory | undefined' and 'ContentPatternCategory' have no overlap.",
-      "workspace": "api"
-    },
-    {
-      "code": 2367,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-intelligence/services/pattern-analyzer.service.spec.ts",
-      "fingerprint": "99c0b4d1d8838bf1a9d4",
-      "message": "This comparison appears to be unintentional because the types 'TemplateCategory | undefined' and 'ContentPatternCategory' have no overlap.",
-      "workspace": "api"
-    },
-    {
-      "code": 2367,
-      "count": 1,
-      "file": "apps/server/api/src/collections/content-intelligence/services/pattern-analyzer.service.spec.ts",
-      "fingerprint": "ec7cd15e76121f3b2bcf",
-      "message": "This comparison appears to be unintentional because the types 'TemplateCategory | undefined' and 'ContentPatternCategory' have no overlap.",
-      "workspace": "api"
-    },
-    {
       "code": 2820,
       "count": 1,
       "file": "apps/server/api/src/collections/content-performance/services/analytics-ingestion-dashboard-smoke.spec.ts",

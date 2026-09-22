@@ -1,7 +1,14 @@
-// Role authorization has its own guard suite; this unit covers export handler policy and metadata.
+// Role authorization and clean-export entitlement each have their own guard
+// suite; this unit covers export handler policy and metadata.
 vi.mock('@api/helpers/guards/roles/roles.guard', () => ({
   RolesGuard: class RolesGuard {},
 }));
+vi.mock(
+  '@api/helpers/guards/clean-export-access/clean-export-access.guard',
+  () => ({
+    CleanExportAccessGuard: class CleanExportAccessGuard {},
+  }),
+);
 
 import { IngredientExportsController } from '@api/collections/ingredients/controllers/ingredient-exports.controller';
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';

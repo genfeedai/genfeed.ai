@@ -28,6 +28,13 @@ export const generalAiSchema = {
     .valid('true', 'false')
     .default('false'),
   MAX_TOKENS: Joi.number().default(4000),
+  // Pattern analyzer typed decisions (#4868). `off` keeps the rule-based
+  // labels, `shadow` records provider/rule agreement, `live` persists a
+  // provider label once it clears PATTERN_ANALYZER_MIN_CONFIDENCE.
+  PATTERN_ANALYZER_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  PATTERN_ANALYZER_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
   // OpenRouter is the primary text-model gateway for agent chat. Must stay on
   // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
   // after Joi validation (unknown keys alone are not enough for typed access).

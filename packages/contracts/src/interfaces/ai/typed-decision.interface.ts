@@ -26,7 +26,13 @@ export interface TypedDecisionUsage {
   model: string;
   inputTokens: number;
   outputTokens: number;
-  /** Exact vendor charge, only when the response states it. */
+  /**
+   * `observed` when the vendor stated the charge, `calculated` when the
+   * provider derived it from token counts and a published list price. Absent
+   * with `vendorCostMicros` when nothing is known.
+   */
+  costEvidence?: 'observed' | 'calculated';
+  /** Vendor charge in micro-USD, when known; see `costEvidence`. */
   vendorCostMicros?: number;
 }
 
@@ -38,6 +44,12 @@ export interface TypedDecisionAnswer<TValue> {
 }
 
 export interface TypedDecisionChoiceParams<TOption extends string> {
+  /**
+   * Optional one-line description per option. Providers that take a rubric
+   * send it alongside the label; a described option is judged more reliably
+   * than a bare enum member.
+   */
+  descriptions?: Readonly<Partial<Record<TOption, string>>>;
   /**
    * Genfeed enum members, never model names, registry keys or free text.
    * Bounded by TYPED_DECISION_MAX_OPTIONS.
@@ -53,6 +65,12 @@ export interface TypedDecisionChoiceParams<TOption extends string> {
 
 export interface TypedDecisionScoreParams {
   question: string;
+  /**
+   * Optional ordinal rubric, lowest level first, at least two levels and at
+   * most TYPED_DECISION_MAX_OPTIONS. The answer is still normalised to 0..1
+   * with the top level at 1; without a scale the provider uses its own.
+   */
+  scale?: readonly string[];
   state: Record<string, unknown>;
 }
 
@@ -90,6 +108,17 @@ export interface TypedDecisionProvider {
  * provider answer above its threshold.
  */
 export type TypedDecisionMode = 'off' | 'shadow' | 'live';
+
+/**
+ * The rollout gate of one decision point, resolved from config: how far the
+ * call site has flipped, and the confidence a provider answer must clear
+ * before it is acted on. #4912 moves these reads behind a settings service.
+ */
+export interface TypedDecisionRolloutSettings {
+  /** 0..1. Anything below it is treated exactly like a `null` answer. */
+  minConfidence: number;
+  mode: TypedDecisionMode;
+}
 
 /** The answer a migrated call site would have produced without a provider. */
 export type TypedDecisionDeterministicAnswer = boolean | number | string;

@@ -56,8 +56,9 @@ function isCalibratedConfidence(confidence: unknown): confidence is number {
  * - it never throws for provider health, so no decision can fail a request.
  *
  * The single exception is a programming error at the call site: a choice with
- * no options, or more than TYPED_DECISION_MAX_OPTIONS of them, throws
- * BadRequestException instead of silently degrading.
+ * no options or more than TYPED_DECISION_MAX_OPTIONS of them, or a score scale
+ * with fewer than two levels, throws BadRequestException instead of silently
+ * degrading.
  */
 @Injectable()
 export class TypedDecisionService {
@@ -93,6 +94,10 @@ export class TypedDecisionService {
     params: TypedDecisionScoreParams,
     context: TypedDecisionCallContext,
   ): Promise<TypedDecisionAnswer<number> | null> {
+    if (params.scale !== undefined) {
+      this.assertBoundedScale(params.scale, context.decisionPoint);
+    }
+
     return this.run(
       'score',
       context,
@@ -282,6 +287,23 @@ export class TypedDecisionService {
     if (options.length > TYPED_DECISION_MAX_OPTIONS) {
       throw new BadRequestException(
         `Typed decision "${decisionPoint}" was given ${options.length} options; the maximum is ${TYPED_DECISION_MAX_OPTIONS}`,
+      );
+    }
+  }
+
+  private assertBoundedScale(
+    scale: readonly string[],
+    decisionPoint: string,
+  ): void {
+    if (scale.length < 2) {
+      throw new BadRequestException(
+        `Typed decision "${decisionPoint}" was given a score scale with ${scale.length} levels; at least 2 are required`,
+      );
+    }
+
+    if (scale.length > TYPED_DECISION_MAX_OPTIONS) {
+      throw new BadRequestException(
+        `Typed decision "${decisionPoint}" was given a score scale with ${scale.length} levels; the maximum is ${TYPED_DECISION_MAX_OPTIONS}`,
       );
     }
   }

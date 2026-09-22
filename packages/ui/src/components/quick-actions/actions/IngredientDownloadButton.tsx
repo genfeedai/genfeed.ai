@@ -14,8 +14,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@ui/primitives/dropdown-menu';
+import { SimpleTooltip } from '@ui/primitives/tooltip';
 import { QUICK_ACTION_TRIGGER_CLASS } from '@ui/quick-actions/quick-actions.constants';
-import { ChevronDown, Download } from 'lucide-react';
+import { ChevronDown, Download, Lock } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 
@@ -24,6 +25,7 @@ export default function IngredientDownloadButton({
   disabled,
   onDownloadOriginal,
   isCompact = false,
+  canDownloadOriginal = true,
 }: IngredientDownloadButtonProps) {
   const translate = useTranslations('ui.watermarkDownload');
   const [isDownloading, setIsDownloading] = useState(false);
@@ -34,6 +36,7 @@ export default function IngredientDownloadButton({
 
   async function download(watermark: boolean) {
     if (inFlight.current) return;
+    if (!watermark && !canDownloadOriginal) return;
     inFlight.current = true;
     setIsDownloading(true);
     try {
@@ -53,6 +56,23 @@ export default function IngredientDownloadButton({
       setIsDownloading(false);
     }
   }
+
+  const originalMenuItem = (
+    <DropdownMenuItem
+      disabled={!canDownloadOriginal}
+      onSelect={() => void download(false)}
+    >
+      {canDownloadOriginal ? null : (
+        <Lock aria-hidden="true" className="size-3.5" />
+      )}
+      {translate('original')}
+      {canDownloadOriginal ? null : (
+        <span className="ml-auto pl-3 text-xs text-muted-foreground">
+          {translate('upgradeHint')}
+        </span>
+      )}
+    </DropdownMenuItem>
+  );
 
   if (isCompact) {
     return (
@@ -79,9 +99,7 @@ export default function IngredientDownloadButton({
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <DropdownMenuItem onSelect={() => void download(false)}>
-            {translate('original')}
-          </DropdownMenuItem>
+          {originalMenuItem}
           <DropdownMenuItem onSelect={() => void download(true)}>
             {translate('branded')}
           </DropdownMenuItem>
@@ -90,24 +108,48 @@ export default function IngredientDownloadButton({
     );
   }
 
+  const originalButton = (
+    <Button
+      variant={ButtonVariant.GHOST}
+      withWrapper={false}
+      className="rounded-r-none"
+      ariaLabel={translate('original')}
+      tooltip={canDownloadOriginal ? translate('original') : undefined}
+      isDisabled={disabled || isDownloading || !canDownloadOriginal}
+      isLoading={isDownloading}
+      onClick={() => void download(false)}
+    >
+      {canDownloadOriginal ? (
+        <Download className="size-4" />
+      ) : (
+        <Lock className="size-4" />
+      )}
+    </Button>
+  );
+
   return (
     <div
       className="flex items-center"
       role="group"
       aria-label={translate('options')}
     >
-      <Button
-        variant={ButtonVariant.GHOST}
-        withWrapper={false}
-        className="rounded-r-none"
-        ariaLabel={translate('original')}
-        tooltip={translate('original')}
-        isDisabled={disabled || isDownloading}
-        isLoading={isDownloading}
-        onClick={() => void download(false)}
-      >
-        <Download className="size-4" />
-      </Button>
+      {canDownloadOriginal ? (
+        originalButton
+      ) : (
+        // A disabled button emits no pointer events, so the focusable wrapper
+        // is the tooltip trigger that explains the lock.
+        <SimpleTooltip label={translate('originalLocked')}>
+          <span
+            aria-disabled="true"
+            aria-label={translate('originalLocked')}
+            className="inline-flex rounded-l-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            role="button"
+            tabIndex={0}
+          >
+            {originalButton}
+          </span>
+        </SimpleTooltip>
+      )}
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
@@ -125,9 +167,7 @@ export default function IngredientDownloadButton({
           onClick={(event) => event.stopPropagation()}
           onPointerDown={(event) => event.stopPropagation()}
         >
-          <DropdownMenuItem onSelect={() => void download(false)}>
-            {translate('original')}
-          </DropdownMenuItem>
+          {originalMenuItem}
           <DropdownMenuItem onSelect={() => void download(true)}>
             {translate('branded')}
           </DropdownMenuItem>
