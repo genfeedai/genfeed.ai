@@ -36,3 +36,22 @@ first:
 grep '"Which reusable pattern' content-pattern-labels.jsonl > /tmp/pattern-type.jsonl
 grep '"Which template category' content-pattern-labels.jsonl > /tmp/template-category.jsonl
 ```
+## Sets
+
+`untrusted-content-injection.jsonl` — 217 rows for the untrusted-content
+injection gate (#4870, `agent.untrusted_content_injection`). 135 benign tool
+results (search snippets, connector threads, long articles, upload
+transcripts, structured payloads with no prose, and hard negatives that
+legitimately quote or discuss instructions) against 82 direct, paraphrased,
+role-play, social-engineering, obfuscated and buried-in-an-article injection
+attempts. `state` matches what the gate sends — `{ content, source, toolName }`
+— and `content` is the raw serialization the model would read, because that is
+what the gate classifies. Scrubbing the fixture would measure text production
+never sees: a payload of literal injection phrases arrives as `[REMOVED]`
+markers and reads clean, while the model still gets the original.
+
+Every row is **synthetic**: written for this issue, not sampled from
+production traffic. The rates it reports are therefore a floor on the work,
+not a measurement of the real world. The false-positive rate on real tool
+traffic is sized from `shadow` mode telemetry, and that is what gates the flip
+to `live`.
