@@ -69,8 +69,11 @@ describe('CronModelWatcherService', () => {
         {
           provide: ModelDiscoveryService,
           useValue: {
+            classifyCategory: vi.fn().mockResolvedValue({
+              category: ModelCategory.IMAGE,
+              source: 'keyword',
+            }),
             createDraftModel: vi.fn(),
-            detectCategory: vi.fn().mockReturnValue(ModelCategory.IMAGE),
             fetchReplicateModel: vi
               .fn()
               .mockImplementation((owner: string, name: string) =>
@@ -218,6 +221,54 @@ describe('CronModelWatcherService', () => {
           name: 'imagen-5',
           owner: 'google',
           provider: ModelProvider.REPLICATE,
+        }),
+      );
+      // Nothing to record when the deterministic path answered (#4869).
+      expect(
+        modelDiscoveryService.createDraftModel.mock.calls[0][0],
+      ).not.toHaveProperty('categoryConfidence');
+    });
+
+    it('carries the category confidence onto the draft when one was decided', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValueOnce({
+        json: () =>
+          Promise.resolve({
+            next: null,
+            results: [
+              {
+                description: 'A brand new model',
+                latest_version: { id: 'v9', openapi_schema: {} },
+                name: 'imagen-5',
+                owner: 'google',
+                url: 'https://replicate.com/google/imagen-5',
+              },
+            ],
+          }),
+        ok: true,
+      } as Response);
+      modelDiscoveryService.classifyCategory.mockResolvedValue({
+        category: ModelCategory.VIDEO,
+        confidence: 0.51,
+        source: 'keyword',
+      });
+      modelDiscoveryService.createDraftModel.mockResolvedValueOnce({
+        _id: 'new-draft-id',
+        key: 'google/imagen-5',
+      } as unknown as ServerModelRecord);
+
+      await service.discoverNewModels();
+
+      expect(modelDiscoveryService.classifyCategory).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'A brand new model',
+          endpoint: 'google/imagen-5',
+          provider: ModelProvider.REPLICATE,
+        }),
+      );
+      expect(modelDiscoveryService.createDraftModel).toHaveBeenCalledWith(
+        expect.objectContaining({
+          category: ModelCategory.VIDEO,
+          categoryConfidence: 0.51,
         }),
       );
     });

@@ -180,19 +180,19 @@
     "symbol": "AgentOrchestratorContextService.resolveSystemPromptAndModel"
   },
   {
-    "actual": 160,
+    "actual": 167,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-plan-mode.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
   },
   {
-    "actual": 601,
+    "actual": 625,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
   },
   {
-    "actual": 398,
+    "actual": 421,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-sync-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
@@ -390,7 +390,7 @@
     "symbol": "CronIngredientsService.refreshMissingMetadataDimensions"
   },
   {
-    "actual": 233,
+    "actual": 224,
     "file": "apps/server/workers/src/crons/model-watcher/cron.model-watcher.service.ts",
     "metric": "method-lines",
     "symbol": "CronModelWatcherService.discoverNewModels"

@@ -18,6 +18,7 @@ import {
   AGENT_FALLBACK_ROUND_CREDITS,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
   LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
+  REASONING_FEATURE,
 } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
@@ -27,6 +28,8 @@ export interface AgentChatRegistryRow {
   isActive: boolean;
   isDefault: boolean;
   isFree: boolean;
+  /** Registry row advertises the reasoning feature. Tier mapping prefers these for `complex`. */
+  isReasoning: boolean;
   key: string;
   label: string;
   provider: string;
@@ -82,6 +85,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         succeededBy: true,
         lifecycle: true,
         reviewStatus: true,
+        supportsFeatures: true,
       },
       where: {
         category: ModelCategory.TEXT,
@@ -102,6 +106,7 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         isDefault: row.isDefault,
         isDiscovered: row.isDiscovered,
         isFree: row.isFree,
+        isReasoning: row.supportsFeatures.includes(REASONING_FEATURE),
         key: row.key,
         label: row.label,
         provider: row.provider,
@@ -260,11 +265,20 @@ export class AgentChatModelRegistryService implements OnModuleInit {
   }
 
   async getAutoAllowedModelKeys(): Promise<string[]> {
+    return (await this.listAutoCandidates()).map((row) => row.key).sort();
+  }
+
+  /**
+   * The rows behind `getAutoAllowedModelKeys()` (#4865).
+   *
+   * Tier mapping needs cost and `isReasoning`, not just keys, and it must read
+   * the same eligibility filter the gateway's `allowed_models` list is built
+   * from — otherwise Genfeed could dispatch a key the auto-router would never
+   * have been allowed to pick.
+   */
+  async listAutoCandidates(): Promise<AgentChatRegistryRow[]> {
     await this.ensureFresh();
-    return [...this.byKey.values()]
-      .filter((row) => this.isAutoEligible(row))
-      .map((row) => row.key)
-      .sort();
+    return [...this.byKey.values()].filter((row) => this.isAutoEligible(row));
   }
 
   private isAutoEligible(row: AgentChatRegistryRow): boolean {

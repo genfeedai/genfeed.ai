@@ -8,6 +8,7 @@ export * from './agent-failure-reason.enum';
 export * from './agent-generation-mode.enum';
 export * from './agent-publish-policy.enum';
 export * from './agent-reply-style.enum';
+export * from './agent-routing-tier.enum';
 export * from './agent-runtime-state.enum';
 export * from './agent-strategy.enum';
 export * from './agent-thread.enum';

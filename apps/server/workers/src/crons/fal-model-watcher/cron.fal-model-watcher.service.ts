@@ -8,6 +8,7 @@ import { ConfigService } from '@workers/config/config.service';
 import { FalPlatformClient } from '@workers/crons/fal-model-watcher/fal-platform.client';
 import type {
   IFalModel,
+  IModelCategoryDecision,
   IModelDiscoveryInput,
   IModelDiscoveryRunSummary,
 } from '@workers/interfaces/model-discovery.interface';
@@ -161,16 +162,16 @@ export class CronFalModelWatcherService {
         let registryModel = existingFalModels.get(model.endpoint_id);
         try {
           if (!registryModel) {
-            const draft = await this.modelDiscoveryService.createDraftModel(
-              this.buildDiscoveryInput(model),
-            );
+            const discoveryInput = await this.buildDiscoveryInput(model);
+            const draft =
+              await this.modelDiscoveryService.createDraftModel(discoveryInput);
 
             if (!draft) continue;
             summary.draftsCreated++;
             registryModel = draft;
             await this.sendDiscoveryNotification(
               model.endpoint_id,
-              this.detectModelCategory(model),
+              discoveryInput.category,
               draft.cost ?? 0,
             );
           }
@@ -251,13 +252,16 @@ export class CronFalModelWatcherService {
    * stays verbatim while the discovery service derives a collision-safe public
    * key; `owner` is the first segment and `name` carries the remaining path.
    */
-  private buildDiscoveryInput(model: IFalModel): IModelDiscoveryInput {
+  private async buildDiscoveryInput(
+    model: IFalModel,
+  ): Promise<IModelDiscoveryInput> {
     const [owner, ...rest] = model.endpoint_id.split('/');
     const metadata = model.metadata;
     const displayName = metadata?.display_name?.trim();
+    const decision = await this.decideModelCategory(model);
 
     return {
-      category: this.detectModelCategory(model),
+      category: decision.category,
       description: metadata?.description || '',
       endpoint: model.endpoint_id,
       name: rest.join('/'),
@@ -266,26 +270,36 @@ export class CronFalModelWatcherService {
       providerUrl:
         metadata?.model_url || `https://fal.ai/models/${model.endpoint_id}`,
       versionId: null,
+      ...(decision.confidence !== undefined
+        ? { categoryConfidence: decision.confidence }
+        : {}),
       ...(displayName ? { label: displayName } : {}),
     };
   }
 
   /**
-   * Map the fal task category onto a registry category, falling back to the
-   * shared description-based detection when fal publishes something unmapped.
+   * Map the fal task category onto a registry category. A mapped task category
+   * is fal's own structural statement about the endpoint, so it short-circuits
+   * the shared classification (#4869) the same way an unambiguous output
+   * schema does; anything unmapped falls through to it.
    */
-  private detectModelCategory(model: IFalModel): ModelCategory {
+  private async decideModelCategory(
+    model: IFalModel,
+  ): Promise<IModelCategoryDecision> {
     const category = model.metadata?.category?.toLowerCase();
     const mapped = category ? FAL_CATEGORY_MAP[category] : undefined;
 
     if (mapped) {
-      return mapped;
+      return { category: mapped, source: 'provider-metadata' };
     }
 
-    return this.modelDiscoveryService.detectCategory(
-      {},
-      `${category ?? ''} ${model.metadata?.description ?? ''}`,
-    );
+    return this.modelDiscoveryService.classifyCategory({
+      description: model.metadata?.description,
+      endpoint: model.endpoint_id,
+      provider: ModelProvider.FAL,
+      schema: model.openapi,
+      tags: [...(category ? [category] : []), ...(model.metadata?.tags ?? [])],
+    });
   }
 
   /**

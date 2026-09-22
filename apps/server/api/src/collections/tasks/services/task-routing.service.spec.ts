@@ -1,20 +1,48 @@
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import type { CreateTaskDto } from '@api/collections/tasks/dto/create-task.dto';
 import { TaskRoutingService } from '@api/collections/tasks/services/task-routing.service';
+import { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
+import { ConfigService } from '@libs/config/config.service';
+
+type ConfigValues = {
+  TASK_ROUTING_DECISION_MODE?: string;
+  TASK_ROUTING_MIN_CONFIDENCE?: number;
+};
 
 describe('TaskRoutingService', () => {
   let service: TaskRoutingService;
   let skillsService: { resolveBrandSkills: ReturnType<typeof vi.fn> };
+  let typedDecisionService: { choose: ReturnType<typeof vi.fn> };
+  let configValues: ConfigValues;
+
+  /**
+   * The Jev provider is mocked everywhere: no spec may depend on a live
+   * decision provider, and the service contract is that a `null` answer is
+   * indistinguishable from a sub-threshold one.
+   */
+  const buildService = (overrides: ConfigValues = {}): TaskRoutingService => {
+    configValues = { TASK_ROUTING_DECISION_MODE: 'off', ...overrides };
+    const configService = {
+      get: (key: keyof ConfigValues) => configValues[key],
+    };
+
+    return new TaskRoutingService(
+      skillsService as unknown as SkillsService,
+      typedDecisionService as unknown as TypedDecisionService,
+      configService as unknown as ConfigService,
+    );
+  };
 
   beforeEach(() => {
     skillsService = { resolveBrandSkills: vi.fn().mockResolvedValue([]) };
-    service = new TaskRoutingService(skillsService as unknown as SkillsService);
+    typedDecisionService = { choose: vi.fn().mockResolvedValue(null) };
+    service = buildService();
   });
 
   const dto = (overrides: Record<string, unknown>): CreateTaskDto =>
     ({ ...overrides }) as unknown as CreateTaskDto;
 
-  describe('keyword fallback routing', () => {
+  describe('keyword fallback routing (mode off)', () => {
     it.each([
       [
         'Make a 30s video reel for launch',
@@ -145,6 +173,218 @@ describe('TaskRoutingService', () => {
 
       expect(decision.outputType).toBe('video');
       expect(decision.skillsUsed).toEqual([]);
+    });
+  });
+
+  describe('output-type decision point (#4867)', () => {
+    const decisionDto = (request: string): CreateTaskDto =>
+      dto({
+        brandId: 'brand-1',
+        linkedEntities: [
+          { entityId: 'ingredient-1', entityModel: 'Ingredient' },
+        ],
+        organizationId: 'org-1',
+        platforms: ['TikTok'],
+        request,
+        userId: 'user-1',
+      });
+
+    it('never calls the provider in off mode', async () => {
+      const decision = await service.buildRoutingDecision(
+        decisionDto('make a video'),
+        'Title',
+      );
+
+      expect(typedDecisionService.choose).not.toHaveBeenCalled();
+      expect(decision.outputType).toBe('video');
+      expect(decision.outputTypeSource).toBe('keyword');
+      expect(decision.outputTypeConfidence).toBeUndefined();
+    });
+
+    it('sends the request text and the structured hints as decision state', async () => {
+      service = buildService({ TASK_ROUTING_DECISION_MODE: 'shadow' });
+
+      await service.buildRoutingDecision(
+        decisionDto('make something for the drop'),
+        'Title',
+      );
+
+      expect(typedDecisionService.choose).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: expect.arrayContaining(['ingredient', 'video']),
+          state: {
+            attachmentCount: 1,
+            hasBrand: true,
+            platforms: ['tiktok'],
+            request: 'make something for the drop',
+          },
+        }),
+        expect.objectContaining({
+          brandId: 'brand-1',
+          decisionPoint: 'task_routing.output_type',
+          deterministicAnswer: 'ingredient',
+          mode: 'shadow',
+          organizationId: 'org-1',
+          userId: 'user-1',
+        }),
+      );
+    });
+
+    it('acts on the keyword answer in shadow mode even when the provider is confident', async () => {
+      service = buildService({ TASK_ROUTING_DECISION_MODE: 'shadow' });
+      typedDecisionService.choose.mockResolvedValue({
+        confidence: 0.99,
+        value: 'newsletter',
+      });
+
+      const decision = await service.buildRoutingDecision(
+        decisionDto('make a video'),
+        'Title',
+      );
+
+      expect(typedDecisionService.choose).toHaveBeenCalledTimes(1);
+      expect(decision.outputType).toBe('video');
+      expect(decision.outputTypeSource).toBe('keyword');
+    });
+
+    it('routes on the decided output type in live mode above the threshold', async () => {
+      service = buildService({
+        TASK_ROUTING_DECISION_MODE: 'live',
+        TASK_ROUTING_MIN_CONFIDENCE: 0.85,
+      });
+      typedDecisionService.choose.mockResolvedValue({
+        confidence: 0.91,
+        value: 'newsletter',
+      });
+
+      const decision = await service.buildRoutingDecision(
+        decisionDto('put together the monthly round-up for subscribers'),
+        'Title',
+      );
+
+      expect(decision.outputType).toBe('newsletter');
+      expect(decision.outputTypeSource).toBe('decision');
+      expect(decision.outputTypeConfidence).toBe(0.91);
+      expect(decision.executionPathUsed).toBe('caption_generation');
+      expect(decision.reviewTriggered).toBe(true);
+      expect(decision.routingSummary).toBe(
+        'Detected a newsletter request and routed it to the writing generation path for review.',
+      );
+    });
+
+    it('falls back to the keyword answer below the threshold', async () => {
+      service = buildService({
+        TASK_ROUTING_DECISION_MODE: 'live',
+        TASK_ROUTING_MIN_CONFIDENCE: 0.85,
+      });
+      typedDecisionService.choose.mockResolvedValue({
+        confidence: 0.84,
+        value: 'newsletter',
+      });
+
+      const decision = await service.buildRoutingDecision(
+        decisionDto('make a video'),
+        'Title',
+      );
+
+      expect(decision.outputType).toBe('video');
+      expect(decision.outputTypeSource).toBe('keyword');
+      expect(decision.outputTypeConfidence).toBeUndefined();
+    });
+
+    it('treats a null answer exactly like a sub-threshold one', async () => {
+      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      typedDecisionService.choose.mockResolvedValue(null);
+
+      const decision = await service.buildRoutingDecision(
+        decisionDto('make a video'),
+        'Title',
+      );
+
+      expect(decision.outputType).toBe('video');
+      expect(decision.outputTypeSource).toBe('keyword');
+    });
+
+    it('does not decide an explicitly requested output type', async () => {
+      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+
+      const decision = await service.buildRoutingDecision(
+        dto({ outputType: 'image', request: 'write a video script' }),
+        'Title',
+      );
+
+      expect(typedDecisionService.choose).not.toHaveBeenCalled();
+      expect(decision.outputType).toBe('image');
+      expect(decision.outputTypeSource).toBe('explicit');
+    });
+
+    it('does not call the provider for an empty request', async () => {
+      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+
+      const decision = await service.buildRoutingDecision(
+        dto({ request: '   ' }),
+        'Title',
+      );
+
+      expect(typedDecisionService.choose).not.toHaveBeenCalled();
+      expect(decision.outputType).toBe('ingredient');
+    });
+
+    it('asks the facet filter about the decided modality and keeps the filter authoritative', async () => {
+      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      typedDecisionService.choose.mockResolvedValue({
+        confidence: 0.97,
+        value: 'image',
+      });
+      // A skill the facet filter rejected is simply not in the list a
+      // decision can reorder — resolveBrandSkills returns the survivors.
+      skillsService.resolveBrandSkills.mockResolvedValue([]);
+
+      const decision = await service.buildRoutingDecision(
+        decisionDto('something for the launch'),
+        'Title',
+      );
+
+      expect(skillsService.resolveBrandSkills).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        expect.objectContaining({
+          channel: 'tiktok',
+          modality: 'image',
+          workflowStage: 'creation',
+        }),
+      );
+      expect(decision.skillsUsed).toEqual([]);
+      expect(decision.outputType).toBe('image');
+    });
+
+    it('carries the decision provenance onto a skill-driven decision', async () => {
+      service = buildService({ TASK_ROUTING_DECISION_MODE: 'live' });
+      typedDecisionService.choose.mockResolvedValue({
+        confidence: 0.93,
+        value: 'post',
+      });
+      skillsService.resolveBrandSkills.mockResolvedValue([
+        {
+          targetSkill: {
+            name: 'Hook Writer',
+            reviewDefaults: { requiresApproval: false },
+            slug: 'hook-writer',
+            workflowStage: 'creation',
+          },
+          variant: null,
+        },
+      ]);
+
+      const decision = await service.buildRoutingDecision(
+        decisionDto('something for the launch'),
+        'Title',
+      );
+
+      expect(decision.skillsUsed).toEqual(['hook-writer']);
+      expect(decision.outputType).toBe('post');
+      expect(decision.outputTypeSource).toBe('decision');
+      expect(decision.outputTypeConfidence).toBe(0.93);
     });
   });
 });

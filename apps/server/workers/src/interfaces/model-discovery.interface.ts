@@ -3,6 +3,7 @@ import type {
   ModelProvider,
   PricingType,
 } from '@genfeedai/contracts';
+import type { TypedDecisionMode } from '@genfeedai/contracts/interfaces';
 
 /**
  * Raw model data returned from Replicate API
@@ -90,6 +91,66 @@ export interface IModelDiscoveryInput {
   label?: string;
   provider: ModelProvider.REPLICATE | ModelProvider.FAL;
   providerCostUsd?: number;
+  /**
+   * Confidence of the typed category decision (#4869). Only set when a
+   * provider answered; the keyword table and the schema sniffer carry none.
+   */
+  categoryConfidence?: number;
+}
+
+/**
+ * Resolved rollout gate for the model-discovery category decision (#4869).
+ * Produced by `resolveModelDiscoveryDecisionSettings`.
+ */
+export interface IModelDiscoveryDecisionSettings {
+  /** 0..1. A provider answer below this is treated exactly like `null`. */
+  minConfidence: number;
+  mode: TypedDecisionMode;
+}
+
+/** Which layer of the three-layer resolution produced a category (#4869). */
+export type ModelCategoryDecisionSource =
+  | 'keyword'
+  | 'output-schema'
+  | 'provider-metadata'
+  | 'typed-decision';
+
+/** Everything the category decision is allowed to judge about one model. */
+export interface IModelCategoryDetectionInput {
+  description?: string;
+  /** `owner/name` on Replicate, the endpoint id on fal. */
+  endpoint: string;
+  provider: ModelProvider;
+  /** Provider OpenAPI document, when discovery managed to fetch one. */
+  schema?: Record<string, unknown>;
+  /** Provider-published labels (fal's task category, marketplace tags). */
+  tags?: readonly string[];
+}
+
+/** Outcome of the three-layer category resolution (#4869). */
+export interface IModelCategoryDecision {
+  category: ModelCategory;
+  /**
+   * Provider confidence, recorded whenever a provider answered — including
+   * when it was too low to act on, which is exactly the case the admin
+   * registry review needs to see.
+   */
+  confidence?: number;
+  source: ModelCategoryDecisionSource;
+}
+
+/**
+ * A category read straight off the provider's output schema, plus whether that
+ * read is strong enough to skip the decision provider entirely.
+ */
+export interface IOutputSchemaCategorySignal {
+  category: ModelCategory;
+  /**
+   * True only for a positive structural statement (`video/mp4`, an audio
+   * description). Negative inference — "a bare string is probably text" — is
+   * still worth using as the deterministic answer but never short-circuits.
+   */
+  isUnambiguous: boolean;
 }
 
 /**

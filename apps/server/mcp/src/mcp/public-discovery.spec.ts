@@ -2,15 +2,19 @@ import { isPublicMcpRequest } from '@mcp/mcp/public-discovery';
 import { McpResourceUri } from '@mcp/mcp/resource-catalog';
 
 describe('isPublicMcpRequest', () => {
-  it.each([
-    'initialize',
-    'notifications/initialized',
-    'ping',
-    'tools/list',
-    'resources/list',
-  ])('allows unauthenticated MCP discovery method %s', (method) => {
-    expect(isPublicMcpRequest({ jsonrpc: '2.0', method })).toBe(true);
-  });
+  it.each(['ping', 'tools/list', 'resources/list'])(
+    'allows unauthenticated MCP discovery method %s',
+    (method) => {
+      expect(isPublicMcpRequest({ jsonrpc: '2.0', method })).toBe(true);
+    },
+  );
+
+  it.each(['initialize', 'notifications/initialized'])(
+    'requires a bearer token for %s so clients start OAuth on connect (#4950)',
+    (method) => {
+      expect(isPublicMcpRequest({ jsonrpc: '2.0', method })).toBe(false);
+    },
+  );
 
   it('allows reading only the public agent guide', () => {
     expect(

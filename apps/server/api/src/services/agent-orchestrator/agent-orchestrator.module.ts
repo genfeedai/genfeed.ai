@@ -48,6 +48,7 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-message-bus.module';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
+import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
@@ -208,6 +209,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
+    AgentAutoModelResolverService,
     AgentAnalyticsToolHandler,
     AgentGenerationScopeService,
     AgentMediaAssetGenerationService,

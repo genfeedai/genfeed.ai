@@ -120,6 +120,23 @@ describe('OAuthConsentPage', () => {
     vi.clearAllMocks();
   });
 
+  it.each([
+    ['https://claude.ai/oauth/callback', 'Returns to claude.ai'],
+    [
+      'cursor://anysphere.cursor-mcp/oauth/callback',
+      'Returns to cursor://anysphere.cursor-mcp',
+    ],
+    ['com.genfeed.desktop:/oauth/callback', 'Returns to com.genfeed.desktop:'],
+  ])('names the app a %s redirect returns to', (redirectUri, expected) => {
+    useSearchParamsMock.mockReturnValue(
+      oauthParams({ redirect_uri: redirectUri }),
+    );
+
+    render(<OAuthConsentPage />);
+
+    expect(screen.getByText(expected)).toBeInTheDocument();
+  });
+
   it('preserves the full OAuth request through sign-in', () => {
     useAuthMock.mockReturnValue({
       getToken: vi.fn(),

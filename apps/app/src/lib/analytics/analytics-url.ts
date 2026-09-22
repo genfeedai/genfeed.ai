@@ -95,7 +95,9 @@ export function normalizeAnalyticsPathname(pathname: string): string {
  */
 export function sanitizeAnalyticsUrl(value: string): string {
   try {
-    const url = new URL(value);
+    // Protocol-relative `//host/path` parses as a URL, not as a path whose
+    // first segment happens to be the host.
+    const url = new URL(value.startsWith('//') ? `https:${value}` : value);
     return `${url.origin}${normalizeAnalyticsPathname(url.pathname)}`;
   } catch {
     const pathOnly = value.split('?')[0].split('#')[0];

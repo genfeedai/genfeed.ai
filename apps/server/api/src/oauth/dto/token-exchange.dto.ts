@@ -1,5 +1,4 @@
 import {
-  IsIn,
   IsOptional,
   IsString,
   Matches,
@@ -7,8 +6,6 @@ import {
   MinLength,
   ValidateIf,
 } from 'class-validator';
-
-export type OAuthGrantType = 'authorization_code' | 'refresh_token';
 
 function requiresAuthorizationCode(dto: OAuthTokenExchangeDto): boolean {
   return dto.grant_type === 'authorization_code';
@@ -19,9 +16,14 @@ function requiresRefreshToken(dto: OAuthTokenExchangeDto): boolean {
 }
 
 export class OAuthTokenExchangeDto {
+  /**
+   * Any string passes validation so an unknown grant reaches the controller
+   * and is answered `unsupported_grant_type` (RFC 6749 §5.2) rather than a
+   * generic `invalid_request`.
+   */
   @IsString()
-  @IsIn(['authorization_code', 'refresh_token'])
-  grant_type!: OAuthGrantType;
+  @MaxLength(100)
+  grant_type!: string;
 
   @IsString()
   @MaxLength(200)

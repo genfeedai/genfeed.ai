@@ -175,6 +175,16 @@ export const BATCH_SCOPED_ALLOWED_TOOLS: CuratedActionName[] = [
 export function buildAgentChatCompletionParams(params: {
   autoAllowedModelKeys?: string[];
   defaultModelKey: string;
+  /**
+   * Concrete registry key the auto-routing decision chose (#4865). When set,
+   * the round dispatches it directly and the gateway's `auto-router` plugin,
+   * its `allowed_models` list and `session_id` are all left off — Genfeed has
+   * already made the choice they exist to make. Unset keeps today's request
+   * byte-for-byte.
+   */
+  dispatchModelKey?: string;
+  /** Typed decision's web-search answer; unset keeps the keyword outcome. */
+  isWebSearchNeeded?: boolean;
   messages: OpenRouterMessage[];
   model: string;
   prompt: string;
@@ -192,29 +202,36 @@ export function buildAgentChatCompletionParams(params: {
   tool_choice: 'auto';
   tools: OpenRouterTool[];
 } {
+  // The web policy is judged on the model the turn REQUESTED, not on the key
+  // the decision routed it to: routing to a concrete model must not silently
+  // turn web search off for a turn that asked for the platform default.
   const routingPolicy = resolveAgentRoutingPolicy({
     defaultModelKey: params.defaultModelKey,
+    isWebSearchNeeded: params.isWebSearchNeeded,
     model: params.model,
     prompt: params.prompt,
     source: params.source,
   });
   const routingPlugins = resolveAgentRoutingPlugins(routingPolicy) ?? [];
-  const plugins =
-    params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO
-      ? [
-          ...routingPlugins,
-          {
-            allowed_models: params.autoAllowedModelKeys ?? [],
-            cost_tier:
-              params.prioritize === RouterPriority.QUALITY
-                ? ('max' as const)
-                : params.prioritize === RouterPriority.COST
-                  ? ('low' as const)
-                  : ('medium' as const),
-            id: 'auto-router',
-          },
-        ]
-      : routingPlugins;
+  const isGatewayAutoRouted =
+    params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO &&
+    params.dispatchModelKey === undefined;
+  const dispatchModel = params.dispatchModelKey ?? params.model;
+  const plugins = isGatewayAutoRouted
+    ? [
+        ...routingPlugins,
+        {
+          allowed_models: params.autoAllowedModelKeys ?? [],
+          cost_tier:
+            params.prioritize === RouterPriority.QUALITY
+              ? ('max' as const)
+              : params.prioritize === RouterPriority.COST
+                ? ('low' as const)
+                : ('medium' as const),
+          id: 'auto-router',
+        },
+      ]
+    : routingPlugins;
   const titleInstruction = params.seedTitle?.trim()
     ? [
         {
@@ -228,14 +245,13 @@ export function buildAgentChatCompletionParams(params: {
   return {
     max_tokens: 4096,
     messages: [...titleInstruction, ...params.messages],
-    model: params.model,
+    model: dispatchModel,
     ...(plugins.length > 0 ? { plugins } : {}),
-    ...(params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO &&
-    params.sessionId
+    ...(isGatewayAutoRouted && params.sessionId
       ? { session_id: params.sessionId }
       : {}),
     temperature: 0.7,
     tool_choice: 'auto',
-    tools: resolveProviderToolDefinitions(params.model, params.tools),
+    tools: resolveProviderToolDefinitions(dispatchModel, params.tools),
   };
 }

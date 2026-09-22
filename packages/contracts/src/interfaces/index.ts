@@ -3,6 +3,7 @@ export * from './admin/email-performance.interface';
 export * from './admin/fleet.interface';
 export * from './admin/warmup-accounts.interface';
 export * from './ai/agent-artifact-reference.interface';
+export * from './ai/agent-auto-routing.interface';
 export * from './ai/agent-campaign.interface';
 export * from './ai/agent-failure.interface';
 export * from './ai/agent-generation-quote.interface';

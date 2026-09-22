@@ -1,3 +1,4 @@
+import { OAuthExceptionFilter } from '@api/oauth/filters/oauth-exception.filter';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { Public } from '@libs/decorators/public.decorator';
 import {
@@ -8,6 +9,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import {
@@ -20,6 +22,7 @@ import { OAuthRefreshTokenService } from '../services/oauth-refresh-token.servic
 
 @ApiTags('OAuth')
 @Controller('oauth')
+@UseFilters(OAuthExceptionFilter)
 export class OAuthTokenController {
   constructor(
     private readonly authorizeService: OAuthAuthorizeService,
@@ -31,7 +34,9 @@ export class OAuthTokenController {
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
-  @RateLimit({ limit: 10, scope: 'ip', windowMs: 60_000 })
+  // Shared egress IPs of hosted MCP clients carry every user's exchange and
+  // refresh (#4951).
+  @RateLimit({ limit: 60, scope: 'ip', windowMs: 60_000 })
   @ApiOperation({
     summary:
       'Exchange an OAuth code, or rotate a refresh token, for an MCP access token',

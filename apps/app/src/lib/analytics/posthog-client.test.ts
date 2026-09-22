@@ -255,6 +255,85 @@ describe('initAnalytics', () => {
     ).toBe('https://app.genfeed.ai/:org/:brand/publishing/review');
   });
 
+  it('before_send keeps the project token and distinct id PostHog routes by', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    const config = mocks.posthogInit.mock.calls[0]?.[1] as {
+      before_send: (event: unknown) => { properties: Record<string, unknown> };
+    };
+
+    const scrubbed = config.before_send({
+      event: '$pageview',
+      properties: {
+        accessToken: 'test-access-value',
+        distinct_id: 'user_opaque_1',
+        token: 'phc_testkey',
+      },
+    });
+
+    expect(scrubbed.properties.token).toBe('phc_testkey');
+    expect(scrubbed.properties.distinct_id).toBe('user_opaque_1');
+    expect(scrubbed.properties.accessToken).toBeUndefined();
+  });
+
+  it('before_send scrubs top-level person updates and prefixed search terms', async () => {
+    const client = await loadClient();
+    client.initAnalytics();
+    await flushInit();
+    const config = mocks.posthogInit.mock.calls[0]?.[1] as {
+      before_send: (event: unknown) => {
+        $set: Record<string, unknown>;
+        $set_once: Record<string, unknown>;
+        properties: Record<string, unknown>;
+      };
+    };
+
+    const scrubbed = config.before_send({
+      $set: {
+        $current_url:
+          'https://app.genfeed.ai/acme/brand/publishing/review?title=Confidential',
+      },
+      $set_once: {
+        $initial_current_url:
+          'https://app.genfeed.ai/acme/brand/publishing/review?title=Confidential',
+        $initial_utm_campaign:
+          '  HTTPS://app.genfeed.ai/acme/brand?document=confidential',
+        $initial_utm_content:
+          'campaign=https://app.genfeed.ai/acme/brand?document=confidential',
+        $initial_utm_medium:
+          'https:\\\\app.genfeed.ai\\acme\\brand?document=confidential',
+        $initial_utm_source: 'newsletter',
+        $initial_utm_term: 'confidential search',
+        $session_entry_url:
+          '//app.genfeed.ai/acme/brand/publishing?document=confidential',
+      },
+      event: '$identify',
+      properties: {
+        $session_entry_utm_term: 'confidential search',
+        token: 'phc_testkey',
+      },
+    });
+
+    expect(scrubbed.$set.$current_url).toBe(
+      'https://app.genfeed.ai/:org/:brand/publishing/review',
+    );
+    expect(scrubbed.$set_once.$initial_current_url).toBe(
+      'https://app.genfeed.ai/:org/:brand/publishing/review',
+    );
+    expect(scrubbed.$set_once.$initial_utm_campaign).toBe(
+      'https://app.genfeed.ai/:org/:brand',
+    );
+    expect(scrubbed.$set_once.$initial_utm_source).toBe('newsletter');
+    expect(scrubbed.$set_once.$initial_utm_content).toBeUndefined();
+    expect(scrubbed.$set_once.$initial_utm_medium).toBeUndefined();
+    expect(scrubbed.$set_once.$session_entry_url).toBe(
+      'https://app.genfeed.ai/:org/:brand/publishing',
+    );
+    expect(scrubbed.$set_once.$initial_utm_term).toBeUndefined();
+    expect(scrubbed.properties.$session_entry_utm_term).toBeUndefined();
+  });
+
   it('never constructs the client in self-hosted mode', async () => {
     mocks.isSaaS.mockReturnValue(false);
     const client = await loadClient();

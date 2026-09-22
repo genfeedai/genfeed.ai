@@ -2,6 +2,7 @@ import { type AgentMemoryDocument } from '@api/collections/agent-memories/schema
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { AgentOrchestratorContextService } from '@api/services/agent-orchestrator/agent-orchestrator-context.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
@@ -11,6 +12,10 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import {
+  type AgentAutoRoutingRound,
+  resolveAgentAutoRoutingRound,
+} from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
@@ -31,6 +36,7 @@ import type {
 } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { AgentMessageRole, AgentThreadMode } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import type { AgentAutoRoutingResolution } from '@genfeedai/contracts/interfaces';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -63,6 +69,7 @@ export class AgentOrchestratorPlanModeService {
     private readonly streamEffects: AgentStreamEffectsService,
     private readonly contextService: AgentOrchestratorContextService,
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
+    private readonly autoModelResolver: AgentAutoModelResolverService,
   ) {}
 
   async tryHandlePlanModeTurn(
@@ -183,7 +190,13 @@ export class AgentOrchestratorPlanModeService {
       planCompressedCtx,
     );
 
+    const {
+      defaultModelKey,
+      dispatchedModel,
+      resolution: autoRouting,
+    } = await this.resolvePlanModeAutoRouting(params);
     const chatParams = await this.buildPlanningChatCompletionParams({
+      autoRouting,
       messages: history,
       model: params.model,
       prompt: params.request.content,
@@ -201,7 +214,7 @@ export class AgentOrchestratorPlanModeService {
         params.model,
       ),
       organizationId: params.context.organizationId,
-      requestedModel: params.model,
+      requestedModel: dispatchedModel,
       run: () =>
         this.llmDispatcher.chatCompletion(
           chatParams,
@@ -258,7 +271,8 @@ export class AgentOrchestratorPlanModeService {
     const assistantMetadata = {
       ...buildAgentScopeMetadata(params.context),
       ...buildAgentRoutingMetadata({
-        defaultModelKey: await this.agentChatModelRegistry.getDefaultModelKey(),
+        autoRouting,
+        defaultModelKey,
         model: params.model,
         prompt: params.request.content,
         source: params.request.source,
@@ -326,7 +340,33 @@ export class AgentOrchestratorPlanModeService {
     return thread?.mode === AgentThreadMode.PLAN;
   }
 
+  /**
+   * Plan mode is a single round with no tools (#4865): the decision sees a
+   * round-1 turn that cannot call anything, which is what it is.
+   */
+  private async resolvePlanModeAutoRouting(params: {
+    context: AgentChatContext;
+    model: string;
+    request: AgentChatRequest;
+    threadId: string;
+  }): Promise<AgentAutoRoutingRound> {
+    return resolveAgentAutoRoutingRound({
+      context: params.context,
+      hasPreviousRoundUsedTools: false,
+      hasToolsAvailable: false,
+      isTerminalRound: false,
+      latestUserMessage: params.request.content,
+      model: params.model,
+      modelRegistry: this.agentChatModelRegistry,
+      resolver: this.autoModelResolver,
+      roundNumber: 1,
+      source: params.request.source,
+      threadId: params.threadId,
+    });
+  }
+
   private async buildPlanningChatCompletionParams(params: {
+    autoRouting?: AgentAutoRoutingResolution;
     messages: OpenRouterMessage[];
     model: string;
     prompt: string;
@@ -341,25 +381,31 @@ export class AgentOrchestratorPlanModeService {
     session_id?: string;
     temperature: number;
   }> {
+    // Judged on the requested model, not the routed one — see
+    // buildAgentChatCompletionParams.
     const routingPolicy = resolveAgentRoutingPolicy({
       defaultModelKey: await this.agentChatModelRegistry.getDefaultModelKey(),
+      isWebSearchNeeded: params.autoRouting?.isWebSearchNeeded,
       model: params.model,
       prompt: params.prompt,
       source: params.source,
     });
     const routingPlugins = resolveAgentRoutingPlugins(routingPolicy) ?? [];
-    const plugins =
-      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO
-        ? [
-            ...routingPlugins,
-            {
-              allowed_models:
-                await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
-              cost_tier: 'medium' as const,
-              id: 'auto-router',
-            },
-          ]
-        : routingPlugins;
+    const isGatewayAutoRouted =
+      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO &&
+      params.autoRouting?.dispatchModelKey === undefined;
+    const dispatchModel = params.autoRouting?.dispatchModelKey ?? params.model;
+    const plugins = isGatewayAutoRouted
+      ? [
+          ...routingPlugins,
+          {
+            allowed_models:
+              await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
+            cost_tier: 'medium' as const,
+            id: 'auto-router',
+          },
+        ]
+      : routingPlugins;
     const planInstruction = {
       content:
         'Plan mode is enabled. Do not call tools or execute work. Respond with valid JSON only: {"title":"optional thread title","summary":"one short summary sentence","explanation":"brief rationale","content":"markdown plan","steps":[{"step":"...", "status":"pending"}]}. Keep the plan concise and execution-ready.',
@@ -369,11 +415,9 @@ export class AgentOrchestratorPlanModeService {
     return {
       max_tokens: 2048,
       messages: [planInstruction, ...params.messages],
-      model: params.model,
+      model: dispatchModel,
       ...(plugins.length > 0 ? { plugins } : {}),
-      ...(params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO
-        ? { session_id: params.threadId }
-        : {}),
+      ...(isGatewayAutoRouted ? { session_id: params.threadId } : {}),
       temperature: 0.3,
     };
   }
