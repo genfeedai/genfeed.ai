@@ -39,6 +39,9 @@ export const generalAiSchema = {
   // the validated schema so ConfigService.get('OPENROUTER_API_KEY') resolves
   // after Joi validation (unknown keys alone are not enough for typed access).
   OPENROUTER_API_KEY: Joi.string().optional().allow(''),
+  // Typed decisions (#4864). Which provider is bound is an operator setting on
+  // the platform-settings singleton (#4908), not an env var — the key here is
+  // only the credential that makes a hosted provider available at all.
   // Task-routing output type (#4867). `off` keeps the keyword table, `shadow`
   // calls the provider and records the disagreement, `live` routes on the
   // decided output type at or above TASK_ROUTING_MIN_CONFIDENCE.
@@ -46,14 +49,19 @@ export const generalAiSchema = {
     .valid('off', 'shadow', 'live')
     .default('off'),
   TASK_ROUTING_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.85),
-  // Typed decisions (#4864). `none` binds the null provider so self-hosted
-  // installs keep working with no vendor key; `jev` requires TYPESAFE_API_KEY
-  // and falls back to the null provider when the key is absent.
-  TYPED_DECISION_PROVIDER: Joi.string().valid('none', 'jev').default('none'),
   // Hard per-call budget. The agent turn path needs the 800ms default; async
   // paths pass their own budget through the call context instead.
   TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
+  // Untrusted-content injection gate (#4870). Its own rollout flag: `off` is
+  // today's behaviour, `shadow` records what it would have withheld, `live`
+  // keeps flagged tool results out of the model context.
+  UNTRUSTED_CONTENT_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  // Deliberately above the epic's 0.85 default: a false positive costs a user
+  // their tool result, so the gate must be very sure before it withholds.
+  UNTRUSTED_CONTENT_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.95),
 };
 
 /**

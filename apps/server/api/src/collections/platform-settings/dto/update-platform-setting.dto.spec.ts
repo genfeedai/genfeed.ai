@@ -37,4 +37,20 @@ describe('UpdatePlatformSettingDto', () => {
     const errors = await validateDto({ marginMultiplier: 'high' });
     expect(errors.length).toBeGreaterThan(0);
   });
+
+  it('accepts every known typed-decision provider', async () => {
+    await expect(
+      validateDto({ typedDecisionProvider: 'none' }),
+    ).resolves.toHaveLength(0);
+    await expect(
+      validateDto({ typedDecisionProvider: 'jev' }),
+    ).resolves.toHaveLength(0);
+  });
+
+  it('rejects a typed-decision provider this deployment does not know', async () => {
+    const errors = await validateDto({
+      typedDecisionProvider: 'some-future-vendor',
+    });
+    expect(errors.length).toBeGreaterThan(0);
+  });
 });

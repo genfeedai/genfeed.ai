@@ -26,6 +26,24 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => getPlatformSettingsService,
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+
+  const translations = new Map<
+    string,
+    ReturnType<typeof translateFromCatalog>
+  >();
+  return {
+    useTranslations: (namespace: string) => {
+      if (!translations.has(namespace))
+        translations.set(namespace, translateFromCatalog(namespace));
+      return translations.get(namespace);
+    },
+  };
+});
+
 vi.mock('@services/core/logger.service', () => ({
   logger: {
     error: mocks.error,
@@ -103,16 +121,52 @@ vi.mock('@ui/primitives/input', () => ({
   Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
+/**
+ * A native select stands in for the Radix one: this suite is about the page's
+ * load/save wiring, and Radix's portalled listbox needs a pointer environment
+ * jsdom does not provide.
+ */
+vi.mock('@ui/primitives/select', () => ({
+  Select: ({
+    children,
+    disabled,
+    onValueChange,
+    value,
+  }: {
+    children: ReactNode;
+    disabled?: boolean;
+    onValueChange: (value: string) => void;
+    value: string;
+  }) => (
+    <select
+      data-testid="typed-decision-provider"
+      disabled={disabled}
+      onChange={(event) => onValueChange(event.target.value)}
+      value={value}
+    >
+      {children}
+    </select>
+  ),
+  SelectContent: ({ children }: { children: ReactNode }) => <>{children}</>,
+  SelectItem: ({ children, value }: { children: ReactNode; value: string }) => (
+    <option value={value}>{children}</option>
+  ),
+  SelectTrigger: () => null,
+  SelectValue: () => null,
+}));
+
 describe('PlatformSettingsPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.getSettings.mockResolvedValue({
       id: 'platform-settings',
       marginMultiplier: 1.25,
+      typedDecisionProvider: 'jev',
     });
     mocks.updateSettings.mockResolvedValue({
       id: 'platform-settings',
       marginMultiplier: 1.5,
+      typedDecisionProvider: 'none',
     });
   });
 
@@ -126,6 +180,7 @@ describe('PlatformSettingsPage', () => {
     expect(screen.getByLabelText('Model-cost margin multiplier')).toHaveValue(
       1.25,
     );
+    expect(screen.getByTestId('typed-decision-provider')).toHaveValue('jev');
   });
 
   it('submits a valid multiplier and refreshes the input value', async () => {
@@ -140,8 +195,52 @@ describe('PlatformSettingsPage', () => {
     });
     expect(mocks.updateSettings).toHaveBeenCalledWith({
       marginMultiplier: 1.5,
+      typedDecisionProvider: 'jev',
     });
     expect(input).toHaveValue(1.5);
+  });
+
+  it('saves the typed-decision provider an operator selected', async () => {
+    render(<PlatformSettingsPage />);
+
+    const select = await screen.findByTestId('typed-decision-provider');
+    fireEvent.change(select, { target: { value: 'none' } });
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() => {
+      expect(mocks.success).toHaveBeenCalledWith('Platform settings saved');
+    });
+    expect(mocks.updateSettings).toHaveBeenCalledWith({
+      marginMultiplier: 1.25,
+      typedDecisionProvider: 'none',
+    });
+    expect(select).toHaveValue('none');
+  });
+
+  it('surfaces the server reason when a provider has no credential', async () => {
+    mocks.updateSettings.mockRejectedValue({
+      response: {
+        data: {
+          errors: [
+            {
+              detail:
+                'Jev (TypeSafe AI) needs TYPESAFE_API_KEY to be configured on the server',
+              status: '400',
+            },
+          ],
+        },
+      },
+    });
+    render(<PlatformSettingsPage />);
+
+    await screen.findByTestId('typed-decision-provider');
+    fireEvent.click(screen.getByRole('button', { name: /save settings/i }));
+
+    await waitFor(() => {
+      expect(mocks.error).toHaveBeenCalledWith(
+        'Jev (TypeSafe AI) needs TYPESAFE_API_KEY to be configured on the server',
+      );
+    });
   });
 
   it('blocks invalid and excessive multipliers before saving', async () => {

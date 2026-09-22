@@ -2595,5 +2595,9 @@
       "sourceRequired": "Add a website URL or brand details before generating.",
       "sourceUrlInvalid": "That website URL could not be read. Check it and try again."
     }
+  },
+  "platformSettings": {
+    "typedDecisionLabel": "Typed-decision provider",
+    "typedDecisionHelp": "Off keeps every decision point on its deterministic path. A hosted provider also needs TYPESAFE_API_KEY on the server; switching takes effect within seconds, with no deploy."
   }
 }
