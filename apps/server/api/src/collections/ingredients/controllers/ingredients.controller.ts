@@ -52,6 +52,9 @@ import {
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
 
+/** Fields a client may never write: they decide which stored object is served. */
+const SERVER_OWNED_MEDIA_FIELDS = ['cdnUrl', 's3Key'] as const;
+
 @AutoSwagger()
 @Controller('ingredients')
 @UseGuards(RolesGuard)
