@@ -230,6 +230,13 @@ export const PLATFORM_SCHEDULE_HANDLER_ALLOWLIST: CronBoundaryEntry[] = [
     reason: 'Platform schedule handler invoked by PlatformSchedulesProcessor.',
   },
   {
+    file: 'apps/server/workers/src/crons/oauth-client-cleanup/cron.oauth-client-cleanup.service.ts',
+    id: 'oauth-client-cleanup',
+    methodName: 'deleteAbandonedClients',
+    reason:
+      'Platform schedule handler for the #4957 daily delete of OAuth clients that never completed a sign-in.',
+  },
+  {
     file: 'apps/server/workers/src/crons/transcript-purge/cron.transcript-purge.service.ts',
     id: 'transcript-purge',
     methodName: 'purgeExpiredTranscripts',

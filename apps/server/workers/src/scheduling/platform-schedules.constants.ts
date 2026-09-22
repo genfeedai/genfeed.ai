@@ -1,3 +1,4 @@
+import { OAUTH_CLIENT_CLEANUP_SCHEDULE } from '@workers/crons/oauth-client-cleanup/oauth-client-cleanup.constants';
 import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/transcript-purge.constants';
 
 /**
@@ -29,6 +30,7 @@ export const PLATFORM_SCHEDULED_TASKS = {
   LLM_IDLE_SHUTDOWN: 'llm-idle-shutdown',
   MODEL_DEPRECATION: 'model-deprecation',
   NOTIFICATION_DELIVERY_RECOVERY: 'notification-delivery-recovery',
+  OAUTH_CLIENT_CLEANUP: 'oauth-client-cleanup',
   PATTERN_EXTRACTION: 'pattern-extraction',
   POSTS_PUBLISH: 'posts-publish',
   POSTS_THREAD_COMMENTS: 'posts-thread-comments',
@@ -111,6 +113,10 @@ export const PLATFORM_SCHEDULE_CATALOG = {
   },
   [PLATFORM_SCHEDULED_TASKS.NOTIFICATION_DELIVERY_RECOVERY]: {
     pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.OAUTH_CLIENT_CLEANUP]: {
+    pattern: OAUTH_CLIENT_CLEANUP_SCHEDULE,
     timezone: 'UTC',
   },
   [PLATFORM_SCHEDULED_TASKS.PATTERN_EXTRACTION]: {

@@ -19,6 +19,7 @@ import { CronLifecycleEmailsModule } from '@workers/crons/lifecycle-emails/cron.
 import { CronLlmIdleModule } from '@workers/crons/llm-idle/cron.llm-idle.module';
 import { CronModelDeprecationModule } from '@workers/crons/model-deprecation/cron.model-deprecation.module';
 import { CronModelWatcherModule } from '@workers/crons/model-watcher/cron.model-watcher.module';
+import { CronOAuthClientCleanupModule } from '@workers/crons/oauth-client-cleanup/cron.oauth-client-cleanup.module';
 import { CronPatternExtractionModule } from '@workers/crons/pattern-extraction/cron.pattern-extraction.module';
 import { CronPostsModule } from '@workers/crons/posts/cron.posts.module';
 import { CronReviewGateModule } from '@workers/crons/review-gate/cron.review-gate.module';
@@ -65,6 +66,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     CronLlmIdleModule,
     CronModelDeprecationModule,
     CronModelWatcherModule,
+    CronOAuthClientCleanupModule,
     CronPatternExtractionModule,
     CronPostsModule,
     CronReviewGateModule,
