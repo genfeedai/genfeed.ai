@@ -11,8 +11,6 @@ type EnvOverrides = Record<string, string | number>;
 const LIVE_ENV: EnvOverrides = {
   REPLY_BOT_INTENT_DECISION_MODE: 'live',
   REPLY_BOT_INTENT_MIN_CONFIDENCE: 0.85,
-  TYPED_DECISION_PROVIDER: 'jev',
-  TYPESAFE_API_KEY: 'fake-key-for-tests',
 };
 
 const COMMENT = {
@@ -34,10 +32,12 @@ function createHarness(env: EnvOverrides) {
   } as unknown as LoggerService;
   const typedDecisionService = {
     choose: vi.fn(),
+    isProviderBound: vi.fn(async () => true),
   } as unknown as TypedDecisionService;
 
   return {
     chooseMock: vi.mocked(typedDecisionService.choose),
+    isProviderBoundMock: vi.mocked(typedDecisionService.isProviderBound),
     logger,
     service: new ReplyIntentClassifierService(
       configService,
@@ -121,16 +121,25 @@ describe('ReplyIntentClassifierService', () => {
     });
 
     it('stays off when no provider is bound, whatever the mode says', async () => {
-      const { chooseMock, service } = createHarness({
-        REPLY_BOT_INTENT_DECISION_MODE: 'live',
-        TYPED_DECISION_PROVIDER: 'none',
-      });
+      const { chooseMock, isProviderBoundMock, service } =
+        createHarness(LIVE_ENV);
+      isProviderBoundMock.mockResolvedValue(false);
 
       await expect(service.classify(COMMENT)).resolves.toMatchObject({
         isNeedsReview: false,
         source: 'regex',
       });
       expect(chooseMock).not.toHaveBeenCalled();
+    });
+
+    it('never consults the provider binding in off mode', async () => {
+      const { isProviderBoundMock, service } = createHarness({
+        REPLY_BOT_INTENT_DECISION_MODE: 'off',
+      });
+
+      await service.classify(COMMENT);
+
+      expect(isProviderBoundMock).not.toHaveBeenCalled();
     });
   });
 

@@ -111,6 +111,16 @@ export class ReplyIntentClassifierService {
       return this.deterministic(regexIntent);
     }
 
+    // "WHEN the provider is unavailable THE SYSTEM SHALL behave as `off`"
+    // (#4866): a self-host with nothing bound, or an operator who switched the
+    // provider off in /admin (#4908), keeps the regex in control rather than
+    // queueing every comment for a review no answer could ever have resolved.
+    // A *runtime* failure with a provider bound is a different thing, and is
+    // treated below exactly like a sub-threshold answer.
+    if (!(await this.typedDecisionService.isProviderBound())) {
+      return this.deterministic(regexIntent);
+    }
+
     const answer = await this.typedDecisionService.choose<ReplyIntent>(
       {
         options: REPLY_INTENT_VALUES,

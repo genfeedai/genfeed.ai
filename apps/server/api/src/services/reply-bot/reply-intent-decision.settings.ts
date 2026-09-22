@@ -5,8 +5,6 @@
  * settings service, so nothing else belongs here.
  */
 
-import { JEV_TYPED_DECISION_PROVIDER_NAME } from '@api/services/typed-decisions/typed-decisions.constants';
-import { isUnconfiguredSecret } from '@genfeedai/config';
 import type {
   IReplyIntentDecisionSettings,
   TypedDecisionMode,
@@ -54,18 +52,9 @@ export function resolveReplyIntentDecisionSettings(
       ? parsedConfidence
       : REPLY_INTENT_DEFAULT_MIN_CONFIDENCE;
 
-  // "WHEN the provider is unavailable THE SYSTEM SHALL behave as `off`"
-  // (#4866). An install that binds no decision provider — every self-host —
-  // can never produce an answer, so it must not queue every comment for review
-  // for want of one. Mirrors createTypedDecisionProvider's binding condition.
-  // A *runtime* failure with a provider bound is a different thing, and the
-  // classifier treats it exactly like a sub-threshold answer.
-  const apiKey = String(configService.get('TYPESAFE_API_KEY') || '').trim();
-  const hasProvider =
-    String(configService.get('TYPED_DECISION_PROVIDER') || '').trim() ===
-      JEV_TYPED_DECISION_PROVIDER_NAME &&
-    Boolean(apiKey) &&
-    !isUnconfiguredSecret(apiKey);
-
-  return { minConfidence, mode: hasProvider ? mode : 'off' };
+  // Whether a provider is bound is the operator's platform setting (#4908),
+  // read per call by TypedDecisionProviderResolver — not an env var, so it is
+  // not this function's to answer. The classifier asks TypedDecisionService
+  // before it spends a decision.
+  return { minConfidence, mode };
 }
