@@ -186,6 +186,7 @@ describe('Library folder lifecycle persistence', () => {
         cancelProcessingIngredient: vi.fn(),
       } as never,
       { ingredientsEndpoint: 'https://cdn.test/ingredients' } as never,
+      { buildUrlFromAbsolute: (url: string) => url } as never,
     );
   });
 

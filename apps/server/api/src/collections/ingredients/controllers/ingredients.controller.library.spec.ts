@@ -320,5 +320,52 @@ describe('IngredientsController — Library axes', () => {
         },
       });
     });
+
+    it('routes the resolved media URL through the signing service', async () => {
+      const signingController = new IngredientsController(
+        ingredientsService as unknown as IngredientsService,
+        {} as never,
+        {} as never,
+        { ingredientsEndpoint: 'https://cdn.genfeed.ai/ingredients' } as never,
+        {
+          buildUrlFromAbsolute: (url: string) => `${url}?Signature=signed`,
+        } as never,
+      );
+      ingredientsService.findByIds.mockResolvedValue([
+        {
+          cdnUrl: null,
+          id: 'image-signed',
+          s3Key: 'ingredients/images/image-signed.png',
+        },
+      ]);
+
+      await expect(
+        signingController.getBatch(mockRequest, 'image-signed', mockUser),
+      ).resolves.toEqual({
+        data: {
+          docs: [
+            expect.objectContaining({
+              cdnUrl:
+                'https://cdn.genfeed.ai/ingredients/images/image-signed.png?Signature=signed',
+              id: 'image-signed',
+            }),
+          ],
+        },
+      });
+    });
+
+    it('leaves an ingredient without any media URL unchanged', async () => {
+      ingredientsService.findByIds.mockResolvedValue([
+        { cdnUrl: null, id: 'image-empty', s3Key: null },
+      ]);
+
+      await expect(
+        controller.getBatch(mockRequest, 'image-empty', mockUser),
+      ).resolves.toEqual({
+        data: {
+          docs: [expect.objectContaining({ cdnUrl: null, id: 'image-empty' })],
+        },
+      });
+    });
   });
 });
