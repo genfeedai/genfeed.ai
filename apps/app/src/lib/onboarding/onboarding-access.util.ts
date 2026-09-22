@@ -349,23 +349,27 @@ export function persistSignupAttribution(
 }
 
 /**
- * The attribution post-signup should record: the stored first touch, with the
- * callback URL's forwarded values filling in for a cross-device magic link.
- * Null when neither source exists, so an unknown signup stays unknown.
+ * The attribution post-signup should record, as one whole record: the stored
+ * first touch, or the callback URL's forwarded source on a cross-device magic
+ * link. Null when neither exists, so an unknown signup stays unknown.
  */
 export function resolvePendingSignupAttribution(
   searchParams: Pick<URLSearchParams, 'get'>,
   storage: Pick<Storage, 'getItem'> = localStorage,
 ): ISignupAttribution | null {
   const stored = storage.getItem(ONBOARDING_STORAGE_KEYS.signupAttribution);
-  const forwarded = readSignupAttributionParams(searchParams);
-
-  if (stored === null) {
-    return hasSignupAttribution(forwarded) ? forwarded : null;
+  const storedAttribution =
+    stored === null
+      ? null
+      : readSignupAttributionParams(new URLSearchParams(stored));
+  if (storedAttribution && hasSignupAttribution(storedAttribution)) {
+    return storedAttribution;
   }
 
-  return {
-    ...forwarded,
-    ...readSignupAttributionParams(new URLSearchParams(stored)),
-  };
+  const forwarded = readSignupAttributionParams(searchParams);
+  if (hasSignupAttribution(forwarded)) {
+    return forwarded;
+  }
+
+  return storedAttribution;
 }

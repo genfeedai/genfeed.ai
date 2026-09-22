@@ -327,6 +327,7 @@ describe('persistSignupAttribution', () => {
     expect(storage.values.get(ONBOARDING_STORAGE_KEYS.signupAttribution)).toBe(
       'utm_source=producthunt',
     );
+    expect(recorded).toEqual({ utmSource: 'producthunt' });
   });
 
   it('replaces an empty direct record once a real source appears', () => {
@@ -371,5 +372,17 @@ describe('resolvePendingSignupAttribution', () => {
         memoryStorage({ [ONBOARDING_STORAGE_KEYS.signupAttribution]: '' }),
       ),
     ).toEqual({});
+  });
+
+  it('keeps the stored first touch whole over forwarded params', () => {
+    expect(
+      resolvePendingSignupAttribution(
+        new URLSearchParams('utm_source=newsletter'),
+        memoryStorage({
+          [ONBOARDING_STORAGE_KEYS.signupAttribution]:
+            'signup_referrer=google.com',
+        }),
+      ),
+    ).toEqual({ referrerDomain: 'google.com' });
   });
 });

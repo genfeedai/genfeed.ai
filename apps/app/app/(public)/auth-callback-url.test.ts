@@ -83,6 +83,24 @@ describe('auth callback URL helpers', () => {
     );
   });
 
+  it('never mixes a later visit’s fields into the stored first touch', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
+        includeOnboardingHandoffParams: true,
+        signupAttribution: { referrerDomain: 'google.com' },
+      }),
+    ).toBe('/onboarding/post-signup?signup_referrer=google.com');
+  });
+
+  it('forwards the current URL source when nothing was stored', () => {
+    expect(
+      getAuthCallbackURL(new URLSearchParams('utm_source=newsletter'), {
+        includeOnboardingHandoffParams: true,
+        signupAttribution: {},
+      }),
+    ).toBe('/onboarding/post-signup?utm_source=newsletter');
+  });
+
   it('preserves explicit callbacks when handoff params are present', () => {
     expect(
       getAuthCallbackURL(

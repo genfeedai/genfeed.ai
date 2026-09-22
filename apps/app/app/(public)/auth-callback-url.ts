@@ -4,6 +4,7 @@ import {
 } from '@genfeedai/auth-client/callback';
 import type { ISignupAttribution } from '@genfeedai/contracts/interfaces';
 import {
+  hasSignupAttribution,
   readSignupAttributionParams,
   toSignupAttributionParams,
 } from '@genfeedai/helpers';
@@ -151,11 +152,13 @@ function buildPostSignupCallbackURL(
 
   // The first-touch source rides on the callback so a magic link opened on
   // another device, where the sign-up page's local copy is out of reach,
-  // still records it. The stored first touch wins over the current URL.
-  for (const [param, value] of toSignupAttributionParams({
-    ...readSignupAttributionParams(searchParams),
-    ...signupAttribution,
-  })) {
+  // still records it. A stored first touch replaces the current URL's source
+  // whole: fields from two visits are never mixed into one record.
+  const firstTouch =
+    signupAttribution && hasSignupAttribution(signupAttribution)
+      ? signupAttribution
+      : readSignupAttributionParams(searchParams);
+  for (const [param, value] of toSignupAttributionParams(firstTouch)) {
     params.set(param, value);
   }
 
