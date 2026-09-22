@@ -1,11 +1,11 @@
 /**
  * Offline typed-decision benchmark (#4864).
  *
- * Runs a labelled JSONL fixture against the provider this deployment's config
- * would bind — the same `createTypedDecisionProvider` the NestJS module uses —
- * and prints accuracy, a confusion matrix, per-confidence-bin accuracy
- * (calibration) and p50/p95 latency. No decision point in epic #4863 goes live
- * on a number this script has not printed.
+ * Runs a labelled JSONL fixture against a provider adapter — built by the same
+ * `createTypedDecisionProvider` the API resolves per call — and prints
+ * accuracy, a confusion matrix, per-confidence-bin accuracy (calibration) and
+ * p50/p95 latency. No decision point in epic #4863 goes live on a number this
+ * script has not printed.
  *
  * Usage (from the repo root, with the API env in place):
  *   bun run bench:typed-decisions -- \
@@ -19,6 +19,10 @@
  *
  * Flags:
  *   --fixture=<path>        required, JSONL fixture
+ *   --provider=<name>       adapter to benchmark (default jev). Which provider
+ *                           a deployment actually runs is an operator setting
+ *                           in /admin (#4908), which this script has no
+ *                           database to read, so it is named here.
  *   --min-accuracy=<0..1>   exit non-zero below this accuracy
  *   --question=<text>       default question for rows that omit one
  *   --options=a,b,c         default choice options
@@ -33,11 +37,19 @@
 import { readFileSync } from 'node:fs';
 import process from 'node:process';
 import { createTypedDecisionProvider } from '@api/services/typed-decisions/typed-decision-provider.factory';
-import { TYPED_DECISION_DEFAULT_TIMEOUT_MS } from '@api/services/typed-decisions/typed-decisions.constants';
+import {
+  JEV_TYPED_DECISION_PROVIDER_NAME,
+  TYPED_DECISION_DEFAULT_TIMEOUT_MS,
+} from '@api/services/typed-decisions/typed-decisions.constants';
+import {
+  parseTypedDecisionProvider,
+  TYPED_DECISION_PROVIDER_NAMES,
+} from '@genfeedai/contracts/constants';
 import type {
   TypedDecisionAnswer,
   TypedDecisionDeterministicAnswer,
   TypedDecisionProvider,
+  TypedDecisionProviderName,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -175,6 +187,23 @@ function buildLogger(): LoggerService {
   );
 }
 
+/** Named on the command line, since there is no settings row to read here. */
+function resolveProviderName(): TypedDecisionProviderName {
+  const raw = readFlag('provider');
+  if (raw === undefined) {
+    return JEV_TYPED_DECISION_PROVIDER_NAME;
+  }
+
+  const parsed = parseTypedDecisionProvider(raw);
+  if (parsed !== raw) {
+    throw new Error(
+      `--provider must be one of ${TYPED_DECISION_PROVIDER_NAMES.join(', ')}, got "${raw}"`,
+    );
+  }
+
+  return parsed;
+}
+
 function resolveTimeoutMs(configService: ConfigService): number {
   const flag = readNumberFlag('timeout-ms');
   if (flag !== undefined && flag > 0) {
@@ -195,7 +224,11 @@ async function main(): Promise<void> {
   }
 
   const configService = new ConfigService();
-  const provider = createTypedDecisionProvider(configService, buildLogger());
+  const provider = createTypedDecisionProvider(
+    resolveProviderName(),
+    configService,
+    buildLogger(),
+  );
   const rows = loadFixture(fixturePath);
   const timeoutMs = resolveTimeoutMs(configService);
   const scoreTolerance =
@@ -254,7 +287,7 @@ async function main(): Promise<void> {
   }
 
   if (answered.length === 0) {
-    report += `\nNo answers: the bound provider is "${provider.name}". Set TYPED_DECISION_PROVIDER=jev with a TYPESAFE_API_KEY to benchmark a real provider.\n`;
+    report += `\nNo answers: the bound provider is "${provider.name}". Pass --provider=jev with a TYPESAFE_API_KEY in the environment to benchmark a real provider.\n`;
   }
 
   process.stdout.write(report);

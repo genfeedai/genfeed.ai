@@ -1,12 +1,19 @@
 'use client';
 
 import {
+  parseTypedDecisionProvider,
+  TYPED_DECISION_PROVIDER_LABELS,
+  TYPED_DECISION_PROVIDER_NAMES,
+} from '@genfeedai/contracts/constants';
+import type { TypedDecisionProviderName } from '@genfeedai/contracts/interfaces';
+import {
   BASE_MARGIN_PERCENT,
   BASE_PROVIDER_COST_FRACTION,
   MAX_MARGIN_MULTIPLIER,
 } from '@genfeedai/pricing';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdminPlatformSettingsService } from '@services/admin/platform-settings.service';
+import { getJsonApiErrorMessage } from '@services/core/json-api-error-message';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
 import { SkeletonCard } from '@ui/display/skeleton/skeleton';
@@ -15,7 +22,15 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@ui/primitives/select';
 import { Banknote, CircleCheck, RefreshCw } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import type { FormEvent } from 'react';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -31,9 +46,12 @@ function effectiveMarginPercent(multiplier: number): number {
 
 export default function PlatformSettingsPage() {
   const [marginInput, setMarginInput] = useState('1');
+  const [typedDecisionProvider, setTypedDecisionProvider] =
+    useState<TypedDecisionProviderName>(parseTypedDecisionProvider(undefined));
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
+  const translate = useTranslations('pages.platformSettings');
   const notificationsService = NotificationsService.getInstance();
   const getPlatformSettingsService = useAuthedService((token: string) =>
     AdminPlatformSettingsService.getInstance(token),
@@ -47,6 +65,9 @@ export default function PlatformSettingsPage() {
 
         if (!signal.aborted) {
           setMarginInput(String(data.marginMultiplier));
+          setTypedDecisionProvider(
+            parseTypedDecisionProvider(data.typedDecisionProvider),
+          );
         }
       } catch (error) {
         if (!signal.aborted) {
@@ -95,12 +116,20 @@ export default function PlatformSettingsPage() {
       const service = await getPlatformSettingsService();
       const updated = await service.updateSettings({
         marginMultiplier: parsed,
+        typedDecisionProvider,
       });
       setMarginInput(String(updated.marginMultiplier));
+      setTypedDecisionProvider(
+        parseTypedDecisionProvider(updated.typedDecisionProvider),
+      );
       notificationsService.success('Platform settings saved');
     } catch (error) {
       logger.error('Failed to save platform settings', error);
-      notificationsService.error('Failed to save platform settings');
+      // The API rejects a provider this deployment has no key for; that reason
+      // is the whole point of the message, so surface it rather than "failed".
+      notificationsService.error(
+        getJsonApiErrorMessage(error, 'Failed to save platform settings'),
+      );
     } finally {
       setIsSaving(false);
     }
@@ -144,6 +173,31 @@ export default function PlatformSettingsPage() {
               onChange={(event) => setMarginInput(event.target.value)}
               disabled={isSaving}
             />
+          </Field>
+
+          <Field
+            label={translate('typedDecisionLabel')}
+            htmlFor="platform-typed-decision-provider"
+            helpText={translate('typedDecisionHelp')}
+          >
+            <Select
+              value={typedDecisionProvider}
+              onValueChange={(value) =>
+                setTypedDecisionProvider(parseTypedDecisionProvider(value))
+              }
+              disabled={isSaving}
+            >
+              <SelectTrigger id="platform-typed-decision-provider">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TYPED_DECISION_PROVIDER_NAMES.map((provider) => (
+                  <SelectItem key={provider} value={provider}>
+                    {TYPED_DECISION_PROVIDER_LABELS[provider]}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </Field>
 
           <Button
