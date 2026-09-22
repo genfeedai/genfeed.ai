@@ -397,6 +397,50 @@ describe('ModelDiscoveryService', () => {
 
       expect(result).toBe(ModelCategory.IMAGE_UPSCALE);
     });
+
+    // #4869: `clip` lived in both VIDEO and EMBEDDING with VIDEO first, so
+    // EMBEDDING's copy was dead and a bare `clip` stole audio models too.
+    it('detects EMBEDDING instead of letting the generic video rule shadow it', () => {
+      const result = service.detectCategory({}, 'CLIP embedding model');
+
+      expect(result).toBe(ModelCategory.EMBEDDING);
+    });
+
+    it('detects EMBEDDING for a text embedding model rather than TEXT', () => {
+      const result = service.detectCategory(
+        {},
+        'Sentence embedding model for semantic search',
+      );
+
+      expect(result).toBe(ModelCategory.EMBEDDING);
+    });
+
+    it('no longer reads a bare clip as video, so audio clips reach MUSIC', () => {
+      const result = service.detectCategory(
+        {},
+        'Text-to-music generation, 5-30 second instrumental clips',
+      );
+
+      expect(result).toBe(ModelCategory.MUSIC);
+    });
+
+    it('still detects VIDEO for a video clip, which `video` already covers', () => {
+      const result = service.detectCategory(
+        {},
+        'Generates a short video clip from a prompt',
+      );
+
+      expect(result).toBe(ModelCategory.VIDEO);
+    });
+
+    it('does not let `encode` claim a video model for EMBEDDING', () => {
+      const result = service.detectCategory(
+        {},
+        'Encodes video frames into tokens',
+      );
+
+      expect(result).toBe(ModelCategory.VIDEO);
+    });
   });
 
   describe('classifyCategory', () => {
@@ -467,9 +511,11 @@ describe('ModelDiscoveryService', () => {
 
       const decision = await service.classifyCategory(replicateInput);
 
+      // No confidence: shadow mode records through telemetry and writes
+      // nothing to the row, and 0.99 was the provider's confidence in MUSIC,
+      // not in the VIDEO this decision keeps.
       expect(decision).toEqual({
         category: ModelCategory.VIDEO,
-        confidence: 0.99,
         source: 'keyword',
       });
       expect(mockTypedDecisionService.choose).toHaveBeenCalledWith(
@@ -504,10 +550,10 @@ describe('ModelDiscoveryService', () => {
       });
     });
 
-    it('keeps the deterministic answer below the threshold but records the confidence', async () => {
+    it('records a sub-threshold confidence when the provider agrees with the kept category', async () => {
       decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
       mockTypedDecisionService.choose.mockResolvedValue(
-        answer(ModelCategory.VIDEO_EDIT, 0.4),
+        answer(ModelCategory.VIDEO, 0.4),
       );
 
       const decision = await service.classifyCategory(replicateInput);
@@ -515,6 +561,23 @@ describe('ModelDiscoveryService', () => {
       expect(decision).toEqual({
         category: ModelCategory.VIDEO,
         confidence: 0.4,
+        source: 'keyword',
+      });
+    });
+
+    it('drops a sub-threshold confidence that belongs to a category it did not keep', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      mockTypedDecisionService.choose.mockResolvedValue(
+        answer(ModelCategory.VIDEO_EDIT, 0.4),
+      );
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      // 0.4 was the provider's confidence in VIDEO_EDIT. Persisting it next
+      // to VIDEO would render as "40% confidence" under a category the
+      // provider never chose.
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
         source: 'keyword',
       });
     });

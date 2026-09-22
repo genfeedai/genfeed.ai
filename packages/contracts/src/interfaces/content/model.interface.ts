@@ -82,9 +82,12 @@ export interface IModel extends IBaseEntity {
   reviewedBy?: string;
   reviewStatus?: 'approved' | 'legacy' | 'pending' | 'rejected';
   /**
-   * Confidence of the typed category decision taken at discovery time
-   * (#4869). Absent on seeded rows and on deterministic keyword answers; a
-   * value below the configured threshold is why a draft needs an operator.
+   * Confidence the typed decision had in `category` itself, taken at
+   * discovery time (#4869). Absent on seeded rows, on deterministic keyword
+   * answers, in shadow mode, and whenever a sub-threshold provider answer
+   * named a different category than the one kept — the number always
+   * describes the category beside it. A low value is why a draft needs an
+   * operator.
    */
   categoryConfidence?: number;
 }

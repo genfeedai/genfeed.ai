@@ -19,6 +19,12 @@
  *   the decision provider (layer 1 short-circuits it), so a fixture that
  *   carried one would measure a path that does not exist.
  *
+ * The set covers the whole catalogue, which is wider than the population the
+ * decision point actually meets: only the Replicate and fal watchers discover
+ * models, so OpenRouter, Genfeed-AI and Mureka rows are labelled ground truth
+ * the classifier will never be asked about in production. The script prints
+ * both totals, and the rollout gate reads the discovery-reachable one.
+ *
  * Usage (from the repo root):
  *   bun run build:typed-decision-fixture:model-discovery
  */
@@ -26,12 +32,26 @@
 import { writeFileSync } from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
-import { ModelCategory, ModelLifecycle } from '@genfeedai/contracts';
+import {
+  ModelCategory,
+  ModelLifecycle,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import {
   AGENT_CHAT_CAPABILITY,
   type ModelCatalogSeedEntry,
   UNIFIED_MODEL_CATALOG,
 } from '@genfeedai/contracts/constants';
+
+/**
+ * The providers a discovery watcher can actually surface a new model from.
+ * Every other catalogue provider is seeded by hand, so its rows are coverage
+ * for the benchmark but not part of the population the rollout gate is about.
+ */
+const DISCOVERY_REACHABLE_PROVIDERS: readonly ModelProvider[] = [
+  ModelProvider.REPLICATE,
+  ModelProvider.FAL,
+];
 
 const OUTPUT_PATH = path.join(
   'apps',
@@ -132,10 +152,28 @@ function main(): void {
     byCategory.set(row.expected, (byCategory.get(row.expected) ?? 0) + 1);
   }
 
-  process.stdout.write(`Wrote ${rows.length} rows to ${OUTPUT_PATH}\n`);
-  for (const [category, count] of [...byCategory].sort()) {
-    process.stdout.write(`  ${category}: ${count}\n`);
+  const byProvider = new Map<string, number>();
+  for (const row of rows) {
+    const provider = row.state.provider;
+    byProvider.set(provider, (byProvider.get(provider) ?? 0) + 1);
   }
+
+  const reachable = rows.filter((row) =>
+    DISCOVERY_REACHABLE_PROVIDERS.includes(row.state.provider),
+  ).length;
+
+  process.stdout.write(`Wrote ${rows.length} rows to ${OUTPUT_PATH}\n`);
+  process.stdout.write('  by category:\n');
+  for (const [category, count] of [...byCategory].sort()) {
+    process.stdout.write(`    ${category}: ${count}\n`);
+  }
+  process.stdout.write('  by provider:\n');
+  for (const [provider, count] of [...byProvider].sort()) {
+    process.stdout.write(`    ${provider}: ${count}\n`);
+  }
+  process.stdout.write(
+    `  discovery-reachable (${DISCOVERY_REACHABLE_PROVIDERS.join(', ')}): ${reachable}/${rows.length}\n`,
+  );
 }
 
 main();

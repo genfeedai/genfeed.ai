@@ -62,7 +62,20 @@ Read the numbers with the construction in mind:
 - The set is skewed the way the catalogue is: 54 `image` and 46 `video` rows
   against 1 `embedding` and 2 each of `image-edit`, `image-upscale`,
   `video-edit`. A per-class number matters more here than the headline.
+- The set is also **wider than the population the decision point meets**. Only
+  the Replicate and fal watchers discover models, so the 90 `replicate` and 24
+  `fal` rows — 114 of 139 — are the discovery-reachable subset; the 13
+  `openrouter`, 11 `genfeed-ai` and 1 `mureka` rows are hand-seeded and the
+  classifier is never asked about them in production. The generator prints
+  both totals, and rollout reads the reachable one.
 
-Baseline to beat: the keyword table scores **59/139 (42.4%)** on this set
-(41.7% before the #4869 ordering fix), measured on the text the keyword table
-actually sees — description plus tags, not `modelName`.
+Baselines the provider has to beat, measured on the text the keyword table
+actually sees — description plus tags, not `modelName`:
+
+| Population | Rows | Keyword table |
+|---|---|---|
+| **Discovery-reachable (`replicate` + `fal`)** — the rollout gate | 114 | **49 (43.0%)** |
+| Whole catalogue — benchmark coverage | 139 | 60 (43.2%) |
+
+The #4869 keyword-ordering fixes account for both: 47 → 49 reachable
+(41.2% → 43.0%) and 58 → 60 overall (41.7% → 43.2%).

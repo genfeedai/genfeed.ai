@@ -44,11 +44,18 @@ interface ISchemaProperty {
  *
  * ORDER IS THE CONTRACT. Every rule is a substring match, so a rule whose
  * keywords are prefixes of another rule's must come first or it can never
- * fire. #4869 fixed two rules that were dead on arrival:
+ * fire. #4869 fixed three rules that were dead or actively wrong:
  * - generic `video` sat above VIDEO_UPSCALE / VIDEO_EDIT and swallowed
  *   every `video upscale` and `video edit` model into plain VIDEO;
  * - IMAGE_UPSCALE's generic `enhance` sat above IMAGE_EDIT and swallowed
- *   every "edit and enhance" image model into IMAGE_UPSCALE.
+ *   every "edit and enhance" image model into IMAGE_UPSCALE;
+ * - `clip` sat in both VIDEO and EMBEDDING with VIDEO first, so a CLIP
+ *   embedding model resolved to VIDEO and EMBEDDING's copy could never fire.
+ *   A bare `clip` is not a video signal either — it stole "instrumental
+ *   clips" from MUSIC — and `video clip` is already covered by `video`, so
+ *   the token is gone from both rules and EMBEDDING leads on distinctive
+ *   spellings instead. `encode` is deliberately not among them: at the head
+ *   of the table it would claim "encodes video frames into tokens".
  *
  * Add new rules specific-first, and add a spec for the pair you are ordering
  * against — a shadowed rule is invisible until someone reads the table.
@@ -57,6 +64,12 @@ const CATEGORY_DETECTION_RULES: Array<{
   keywords: string[];
   category: ModelCategory;
 }> = [
+  {
+    category: ModelCategory.EMBEDDING,
+    // `clip embedding` is not listed: `embedding` already matches it, and a
+    // keyword that can never fire is the bug this comment is about.
+    keywords: ['embedding', 'clip-vit', 'sentence-transformer'],
+  },
   {
     category: ModelCategory.VIDEO_UPSCALE,
     keywords: ['video-upscale', 'video upscale', 'video enhance'],
@@ -67,7 +80,7 @@ const CATEGORY_DETECTION_RULES: Array<{
   },
   {
     category: ModelCategory.VIDEO,
-    keywords: ['video', 'mp4', 'animation', 'motion', 'clip'],
+    keywords: ['video', 'mp4', 'animation', 'motion'],
   },
   {
     category: ModelCategory.IMAGE_EDIT,
@@ -88,10 +101,6 @@ const CATEGORY_DETECTION_RULES: Array<{
   {
     category: ModelCategory.TEXT,
     keywords: ['text', 'language', 'chat', 'completion', 'llm', 'instruct'],
-  },
-  {
-    category: ModelCategory.EMBEDDING,
-    keywords: ['embedding', 'encode', 'clip'],
   },
   {
     category: ModelCategory.IMAGE,
@@ -409,22 +418,29 @@ export class ModelDiscoveryService {
     );
 
     // `null` and a sub-threshold confidence are the same thing to a caller:
-    // keep the deterministic answer. Shadow mode never acts on the provider.
+    // keep the deterministic answer. Shadow mode never acts on the provider,
+    // and persisting a confidence is acting — the recorded decision is what
+    // shadow mode is for, so nothing reaches the row.
     if (!answer || mode !== 'live') {
-      return {
-        category: deterministic,
-        source: deterministicSource,
-        ...(answer ? { confidence: answer.confidence } : {}),
-      };
+      return { category: deterministic, source: deterministicSource };
     }
 
     if (answer.confidence < minConfidence) {
       // Not a failure — the draft is already created pending, and the recorded
       // confidence is what tells an operator why it is worth a second look.
+      //
+      // Only when the provider picked the category we are keeping, though:
+      // `categoryConfidence` renders under the category badge, so a number
+      // carried over from a category the provider did *not* choose would read
+      // as a confidence in the wrong answer. A disagreement below the
+      // threshold is recorded through the decision telemetry instead, where
+      // both answers are visible.
       return {
         category: deterministic,
-        confidence: answer.confidence,
         source: deterministicSource,
+        ...(answer.value === deterministic
+          ? { confidence: answer.confidence }
+          : {}),
       };
     }
 
