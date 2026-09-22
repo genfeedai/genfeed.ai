@@ -16,6 +16,13 @@ const mocks = vi.hoisted(() => ({
   useQuery: vi.fn(),
 }));
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
+
 vi.mock('@ui/buttons/refresh/button-refresh/ButtonRefresh', () => ({
   default: ({ onClick }: { onClick: () => void }) => (
     <button type="button" onClick={onClick}>

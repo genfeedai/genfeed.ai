@@ -6352,6 +6352,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'onboardingType',
       'platformRole',
       'settings',
+      'signupAttribution',
       'stripeCustomerId',
       'updatedAt',
       'userSubscription',
@@ -6467,6 +6468,27 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       platformRole: { enumType: 'PlatformRole', isRequired: true },
     },
     relationIdFields: {},
+  },
+  UserSignupAttribution: {
+    allFields: [
+      'createdAt',
+      'id',
+      'isDeleted',
+      'landingPath',
+      'referrerDomain',
+      'updatedAt',
+      'user',
+      'userId',
+      'utmCampaign',
+      'utmContent',
+      'utmMedium',
+      'utmSource',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {
+      user: 'userId',
+    },
   },
   UserSubscription: {
     allFields: [

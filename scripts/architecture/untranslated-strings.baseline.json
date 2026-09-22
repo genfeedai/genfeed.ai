@@ -177,7 +177,6 @@
     "apps/app/app/(protected)/admin/administration/roles/roles-list.tsx": 11,
     "apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx": 13,
     "apps/app/app/(protected)/admin/administration/system-emails/system-emails-page.tsx": 14,
-    "apps/app/app/(protected)/admin/administration/users/users-list.tsx": 8,
     "apps/app/app/(protected)/admin/automation/bots/bots-page.tsx": 8,
     "apps/app/app/(protected)/admin/automation/models/layout.tsx": 9,
     "apps/app/app/(protected)/admin/automation/trainings/[id]/images/training-images-tab.tsx": 7,
