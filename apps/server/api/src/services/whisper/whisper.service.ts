@@ -6,6 +6,7 @@ import {
 } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { FileInputType } from '@genfeedai/contracts';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -56,6 +57,7 @@ export class WhisperService {
     private readonly fileQueueService: FileQueueService,
     private readonly httpService: HttpService,
     private readonly replicateService: ReplicateService,
+    private readonly mediaUrlService: MediaUrlService,
   ) {}
 
   private async convertVideoToAudio(
@@ -176,8 +178,11 @@ export class WhisperService {
       `${url} Starting caption generation for ingredient: ${id}`,
     );
 
-    const videoUrl = source
+    const resolvedUrl = source
       ? resolveIngredientMediaUrl(source, this.configService.cdnUrl)
+      : undefined;
+    const videoUrl = resolvedUrl
+      ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
       : undefined;
 
     let videoBuffer: Buffer;

@@ -127,6 +127,60 @@ describe('EvaluationsService review and comparison workflow', () => {
         expect.any(Function),
       );
     });
+
+    it('sends the evaluator a signed media URL when the deployment signs media', async () => {
+      const signingService = new EvaluationsService(
+        mocks.prisma as never,
+        mocks.logger as never,
+        mocks.evaluationsOperationsService as never,
+        mocks.creditsUtilsService as never,
+        mocks.websocketService as never,
+        undefined,
+        mocks.videosService as never,
+        undefined,
+        mocks.postsService as never,
+        undefined,
+        {
+          buildUrlFromAbsolute: (url: string) => `${url}?Signature=signed`,
+        } as never,
+      );
+      mocks.videosService.findOne.mockResolvedValue({
+        brand: { name: 'FUD News' },
+        id: 'video-1',
+        metadata: {},
+        prompt: { original: 'A red apple on a table' },
+        s3Key: 'ingredients/videos/video-1.mp4',
+      });
+      mocks.evaluationsOperationsService.evaluateVideo.mockResolvedValue({
+        analysis: { summary: 'ok' },
+        flags: {},
+        overallScore: 82,
+        scores: {},
+      });
+      mocks.creditsUtilsService.deductCreditsFromOrganization.mockResolvedValue(
+        undefined,
+      );
+      mocks.prisma.evaluation.create.mockResolvedValue({
+        id: 'eval-video-1',
+      });
+
+      await signingService.evaluateVideo(
+        'video-1',
+        'pre_publication' as never,
+        organizationId,
+        reviewerId,
+        'brand-1',
+      );
+
+      expect(
+        mocks.evaluationsOperationsService.evaluateVideo,
+      ).toHaveBeenCalledWith(
+        'https://cdn.genfeed.ai/ingredients/videos/video-1.mp4?Signature=signed',
+        expect.any(Object),
+        organizationId,
+        expect.any(Function),
+      );
+    });
   });
 
   describe('canonical document shape', () => {
