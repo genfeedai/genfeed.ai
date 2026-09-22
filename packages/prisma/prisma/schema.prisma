@@ -1601,6 +1601,10 @@ model PlatformSetting {
   id               String   @id @default(cuid())
   key              String   @unique @default("platform")
   marginMultiplier Float    @default(1.0)
+  // Typed-decision provider (#4908): "none" | "jev". A plain string rather
+  // than a Prisma enum so adding a provider is a contract change, not a
+  // migration on the operator's critical path.
+  typedDecisionProvider String @default("none")
   isDeleted        Boolean  @default(false)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
