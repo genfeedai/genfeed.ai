@@ -5,6 +5,15 @@ import * as cheerio from 'cheerio';
 
 export const KNOWLEDGE_SOURCE_MAX_BYTES = 2_000_000;
 
+/**
+ * Inflation ceiling for one PDF Flate stream and for the extracted text.
+ * A quota-compliant PDF can carry a highly compressible stream that expands
+ * into hundreds of megabytes on the request thread, so the decompressor is
+ * bounded rather than the upload alone.
+ */
+export const PDF_MAX_INFLATED_BYTES = 16 * 1024 * 1024;
+export const PDF_MAX_EXTRACTED_CHARS = 2_000_000;
+
 export const INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES = [
   KnowledgeBaseCategory.AUDIO,
   KnowledgeBaseCategory.DOCUMENT,
@@ -157,11 +166,12 @@ function collectPdfLiterals(payload: string, parts: string[]): void {
 }
 
 function inflatePdfStream(bytes: Buffer): string | null {
+  const limits = { maxOutputLength: PDF_MAX_INFLATED_BYTES };
   try {
-    return inflateSync(bytes).toString('latin1');
+    return inflateSync(bytes, limits).toString('latin1');
   } catch {
     try {
-      return inflateRawSync(bytes).toString('latin1');
+      return inflateRawSync(bytes, limits).toString('latin1');
     } catch {
       return null;
     }
@@ -172,15 +182,35 @@ export function extractPdfText(buffer: Buffer): string {
   const raw = buffer.toString('latin1');
   const parts: string[] = [];
 
+  let extractedChars = 0;
+  let countedParts = 0;
+  const countNewParts = (): number => {
+    for (; countedParts < parts.length; countedParts++) {
+      extractedChars += parts[countedParts].length;
+    }
+    return extractedChars;
+  };
+
   collectPdfLiterals(raw, parts);
+  countNewParts();
 
   for (const match of raw.matchAll(/stream\r?\n([\s\S]*?)endstream/g)) {
     const payload = Buffer.from(match[1] ?? '', 'latin1');
     const inflated = inflatePdfStream(payload);
     collectPdfLiterals(inflated ?? payload.toString('latin1'), parts);
+
+    // Stop once the document has produced more text than a source ever keeps,
+    // so many small streams cannot add up to the size one bomb cannot reach.
+    if (countNewParts() > PDF_MAX_EXTRACTED_CHARS) {
+      break;
+    }
   }
 
-  const text = parts.join(' ').replace(/\s+/g, ' ').trim();
+  const text = parts
+    .join(' ')
+    .slice(0, PDF_MAX_EXTRACTED_CHARS)
+    .replace(/\s+/g, ' ')
+    .trim();
   if (!text) {
     throw new Error('No extractable text in PDF');
   }
