@@ -5,6 +5,7 @@ import {
   setRuntimeMarginMultiplier,
 } from '@genfeedai/pricing';
 import { Prisma } from '@genfeedai/prisma';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -19,13 +20,20 @@ describe('PlatformSettingsService', () => {
 
   let service: PlatformSettingsService;
 
+  function buildService(env: Record<string, string> = {}) {
+    return new PlatformSettingsService(
+      prisma as never,
+      logger as LoggerService,
+      {
+        get: vi.fn((key: string) => env[key] ?? ''),
+      } as unknown as ConfigService,
+    );
+  }
+
   beforeEach(() => {
     vi.clearAllMocks();
     setRuntimeMarginMultiplier(1);
-    service = new PlatformSettingsService(
-      prisma as never,
-      logger as LoggerService,
-    );
+    service = buildService({ TYPESAFE_API_KEY: 'typesafe-key' });
   });
 
   afterEach(() => {
@@ -147,6 +155,60 @@ describe('PlatformSettingsService', () => {
       } as never);
 
       expect(patch).toHaveBeenCalledWith('ps-1', { marginMultiplier: 2 });
+    });
+
+    it('patches the typed-decision provider an operator selected', async () => {
+      const current = {
+        id: 'ps-1',
+        key: PLATFORM_SETTING_KEY,
+        marginMultiplier: 1,
+        typedDecisionProvider: 'none',
+      };
+      vi.spyOn(service, 'getSingleton').mockResolvedValue(current as never);
+      const patch = vi.spyOn(service, 'patch').mockResolvedValue({
+        ...current,
+        typedDecisionProvider: 'jev',
+      } as never);
+
+      await service.updateSingleton({ typedDecisionProvider: 'jev' });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        typedDecisionProvider: 'jev',
+      });
+    });
+
+    it('rejects a provider this deployment has no credential for', async () => {
+      const keyless = buildService();
+      const getSingleton = vi.spyOn(keyless, 'getSingleton');
+      const patch = vi.spyOn(keyless, 'patch');
+
+      await expect(
+        keyless.updateSingleton({ typedDecisionProvider: 'jev' }),
+      ).rejects.toThrow('TYPESAFE_API_KEY');
+
+      expect(getSingleton).not.toHaveBeenCalled();
+      expect(patch).not.toHaveBeenCalled();
+    });
+
+    it('always accepts turning typed decisions off', async () => {
+      const keyless = buildService();
+      const current = {
+        id: 'ps-1',
+        key: PLATFORM_SETTING_KEY,
+        marginMultiplier: 1,
+        typedDecisionProvider: 'jev',
+      };
+      vi.spyOn(keyless, 'getSingleton').mockResolvedValue(current as never);
+      const patch = vi.spyOn(keyless, 'patch').mockResolvedValue({
+        ...current,
+        typedDecisionProvider: 'none',
+      } as never);
+
+      await keyless.updateSingleton({ typedDecisionProvider: 'none' });
+
+      expect(patch).toHaveBeenCalledWith('ps-1', {
+        typedDecisionProvider: 'none',
+      });
     });
 
     it('short-circuits when no editable fields are provided', async () => {

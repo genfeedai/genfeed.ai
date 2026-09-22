@@ -7,4 +7,5 @@ export class PlatformSettingEntity
 {
   declare readonly key: string;
   declare readonly marginMultiplier: number;
+  declare readonly typedDecisionProvider: string;
 }

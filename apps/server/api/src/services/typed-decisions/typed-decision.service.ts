@@ -2,13 +2,13 @@ import {
   TypedDecisionRateLimitError,
   TypedDecisionTimeoutError,
 } from '@api/services/typed-decisions/typed-decision.errors';
+import { TypedDecisionProviderResolver } from '@api/services/typed-decisions/typed-decision-provider.resolver';
 import { TypedDecisionTelemetryService } from '@api/services/typed-decisions/typed-decision-telemetry.service';
 import {
   NULL_TYPED_DECISION_PROVIDER_NAME,
   TYPED_DECISION_DEFAULT_TIMEOUT_MS,
   TYPED_DECISION_MAX_OPTIONS,
 } from '@api/services/typed-decisions/typed-decisions.constants';
-import { TYPED_DECISION_PROVIDER } from '@api/services/typed-decisions/typed-decisions.tokens';
 import type {
   TypedDecisionAnswer,
   TypedDecisionBooleanParams,
@@ -18,17 +18,13 @@ import type {
   TypedDecisionFailureReason,
   TypedDecisionKind,
   TypedDecisionProvider,
+  TypedDecisionProviderName,
   TypedDecisionScoreParams,
   TypedDecisionTelemetryRecord,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import {
-  BadRequestException,
-  Inject,
-  Injectable,
-  Optional,
-} from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 type TypedDecisionValueGuard<TValue> = (value: unknown) => value is TValue;
 
@@ -69,8 +65,7 @@ export class TypedDecisionService {
   private readonly constructorName = String(this.constructor.name);
 
   constructor(
-    @Inject(TYPED_DECISION_PROVIDER)
-    private readonly provider: TypedDecisionProvider,
+    private readonly providerResolver: TypedDecisionProviderResolver,
     private readonly configService: ConfigService,
     private readonly logger: LoggerService,
     @Optional()
@@ -90,7 +85,7 @@ export class TypedDecisionService {
     return this.run(
       'choice',
       context,
-      (signal) => this.provider.choose(params, { signal }),
+      (provider, signal) => provider.choose(params, { signal }),
       isOption,
     );
   }
@@ -106,7 +101,7 @@ export class TypedDecisionService {
     return this.run(
       'score',
       context,
-      (signal) => this.provider.score(params, { signal }),
+      (provider, signal) => provider.score(params, { signal }),
       isFiniteScore,
     );
   }
@@ -118,7 +113,7 @@ export class TypedDecisionService {
     return this.run(
       'boolean',
       context,
-      (signal) => this.provider.decide(params, { signal }),
+      (provider, signal) => provider.decide(params, { signal }),
       isBoolean,
     );
   }
@@ -127,12 +122,18 @@ export class TypedDecisionService {
     kind: TypedDecisionKind,
     context: TypedDecisionCallContext,
     execute: (
+      provider: TypedDecisionProvider,
       signal: AbortSignal,
     ) => Promise<TypedDecisionAnswer<TValue> | null>,
     isValue: TypedDecisionValueGuard<TValue>,
   ): Promise<TypedDecisionAnswer<TValue> | null> {
-    // Self-host with no provider: no timer, no telemetry, no network call.
-    if (this.provider.name === NULL_TYPED_DECISION_PROVIDER_NAME) {
+    // Resolved per call so an operator turning the provider off in /admin
+    // lands within the resolver's TTL rather than at the next deploy.
+    const provider = await this.providerResolver.resolve();
+
+    // Self-host, or an operator kill switch: no timer, no telemetry, no
+    // network call.
+    if (provider.name === NULL_TYPED_DECISION_PROVIDER_NAME) {
       return null;
     }
 
@@ -143,7 +144,7 @@ export class TypedDecisionService {
 
     try {
       const answer = await Promise.race([
-        execute(controller.signal),
+        execute(provider, controller.signal),
         new Promise<never>((_resolve, reject) => {
           timer = setTimeout(() => {
             // Abort first so the in-flight request stops costing money.
@@ -154,7 +155,9 @@ export class TypedDecisionService {
       ]);
 
       if (answer === null) {
-        this.record(kind, context, startedAt, { failureReason: 'unavailable' });
+        this.record(kind, context, provider.name, startedAt, {
+          failureReason: 'unavailable',
+        });
         return null;
       }
 
@@ -162,22 +165,34 @@ export class TypedDecisionService {
         !isValue(answer.value) ||
         !isCalibratedConfidence(answer.confidence)
       ) {
-        this.warn(context, 'returned a malformed answer', timeoutMs);
-        this.record(kind, context, startedAt, {
+        this.warn(
+          context,
+          provider.name,
+          'returned a malformed answer',
+          timeoutMs,
+        );
+        this.record(kind, context, provider.name, startedAt, {
           failureReason: 'malformed',
           usage: answer.usage,
         });
         return null;
       }
 
-      this.record(kind, context, startedAt, {
+      this.record(kind, context, provider.name, startedAt, {
         answer: answer.value,
         confidence: answer.confidence,
         usage: answer.usage,
       });
       return answer;
     } catch (error: unknown) {
-      return this.handleFailure(kind, context, startedAt, timeoutMs, error);
+      return this.handleFailure(
+        kind,
+        context,
+        provider.name,
+        startedAt,
+        timeoutMs,
+        error,
+      );
     } finally {
       if (timer) {
         clearTimeout(timer);
@@ -188,6 +203,7 @@ export class TypedDecisionService {
   private handleFailure<TValue>(
     kind: TypedDecisionKind,
     context: TypedDecisionCallContext,
+    providerName: TypedDecisionProviderName,
     startedAt: number,
     timeoutMs: number,
     error: unknown,
@@ -200,8 +216,14 @@ export class TypedDecisionService {
         ? 'rate_limited'
         : 'error';
 
-    this.warn(context, `failed (${failureReason})`, timeoutMs, error);
-    this.record(kind, context, startedAt, {
+    this.warn(
+      context,
+      providerName,
+      `failed (${failureReason})`,
+      timeoutMs,
+      error,
+    );
+    this.record(kind, context, providerName, startedAt, {
       failureReason,
       ...(isRateLimited ? { retryAfterSeconds: error.retryAfterSeconds } : {}),
     });
@@ -212,6 +234,7 @@ export class TypedDecisionService {
   /** One warn per failed call; never the state or the question. */
   private warn(
     context: TypedDecisionCallContext,
+    providerName: TypedDecisionProviderName,
     summary: string,
     timeoutMs: number,
     error?: unknown,
@@ -220,7 +243,7 @@ export class TypedDecisionService {
       `${this.constructorName} ${context.decisionPoint} ${summary}`,
       {
         decisionPoint: context.decisionPoint,
-        provider: this.provider.name,
+        provider: providerName,
         timeoutMs,
         ...(error === undefined ? {} : { error }),
       },
@@ -230,6 +253,7 @@ export class TypedDecisionService {
   private record(
     kind: TypedDecisionKind,
     context: TypedDecisionCallContext,
+    providerName: TypedDecisionProviderName,
     startedAt: number,
     outcome: Partial<TypedDecisionTelemetryRecord>,
   ): void {
@@ -242,7 +266,7 @@ export class TypedDecisionService {
       // A call site that does not declare its mode is acting on the answer.
       mode: context.mode ?? 'live',
       organizationId: context.organizationId,
-      provider: this.provider.name,
+      provider: providerName,
       runId: context.runId,
       threadId: context.threadId,
       userId: context.userId,
