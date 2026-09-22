@@ -7,6 +7,7 @@ vi.mock('@genfeedai/config', async (importOriginal) => {
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
 import { BadRequestException, ForbiddenException } from '@nestjs/common';
@@ -34,12 +35,14 @@ describe('IngredientExportService', () => {
   };
   const files = { watermarkExport: vi.fn() };
   const config = { cdnUrl: 'https://cdn.example', get: vi.fn() };
+  const mediaUrls = { buildUrlFromAbsolute: vi.fn() };
   let service: IngredientExportService;
 
   beforeEach(async () => {
     vi.resetAllMocks();
     deployment.selfHosted = false;
     config.get.mockReturnValue('https://media.example');
+    mediaUrls.buildUrlFromAbsolute.mockImplementation((url: string) => url);
     prisma.ingredient.findFirst.mockResolvedValue(ingredient);
     prisma.brand.findFirst.mockResolvedValue(brand);
     files.watermarkExport.mockResolvedValue({
@@ -55,6 +58,7 @@ describe('IngredientExportService', () => {
           useValue: config,
         },
         { provide: FilesClientService, useValue: files },
+        { provide: MediaUrlService, useValue: mediaUrls },
       ],
     }).compile();
     service = module.get(IngredientExportService);
@@ -116,6 +120,25 @@ describe('IngredientExportService', () => {
     });
     const result = await service.export('image-1', 'org-1', true);
     expect(result.url).toBe('https://cdn.example/exports/preview.png');
+  });
+
+  it('signs the cloud preview URL before returning it', async () => {
+    files.watermarkExport.mockResolvedValue({
+      url: '/local/exports/preview.png',
+      storageKey: 'exports/preview.png',
+    });
+    mediaUrls.buildUrlFromAbsolute.mockImplementation(
+      (url: string) => `${url}?Signature=signed`,
+    );
+
+    const result = await service.export('image-1', 'org-1', true);
+
+    expect(mediaUrls.buildUrlFromAbsolute).toHaveBeenCalledWith(
+      'https://cdn.example/exports/preview.png',
+    );
+    expect(result.url).toBe(
+      'https://cdn.example/exports/preview.png?Signature=signed',
+    );
   });
 
   it('preserves local storage routing at the explicit self-host public origin', async () => {

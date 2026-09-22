@@ -11,6 +11,7 @@ export {
   heygenSchema,
   klingaiSchema,
   leonardoSchema,
+  modelDiscoveryDecisionSchema,
   murekaSchema,
   newsApiSchema,
   opusProSchema,

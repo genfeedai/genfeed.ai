@@ -179,6 +179,7 @@ import { YoutubeMetadataService } from '@api/services/integrations/youtube/servi
 import { YoutubeService } from '@api/services/integrations/youtube/services/youtube.service';
 import { LifecycleEmailDeliveryService } from '@api/services/lifecycle-emails/lifecycle-email-delivery.service';
 import { SystemEmailEligibilityService } from '@api/services/lifecycle-emails/system-email-eligibility.service';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { NotificationPreferenceService } from '@api/services/notifications/workflow-notifications/notification-preference.service';
 import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
@@ -451,6 +452,7 @@ const WORKER_DOMAIN_SERVICES = [
     ConfigModule,
     HttpModule,
     LoggerModule,
+    MediaUrlsModule,
     PrismaModule,
   ],
   providers: [

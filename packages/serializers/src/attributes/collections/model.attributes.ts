@@ -63,6 +63,7 @@ export const modelAttributes = createEntityAttributes([
   'providerPricingSyncedAt',
   'providerSyncFailedAt',
   'reviewStatus',
+  'categoryConfidence',
   'reviewedAt',
   'reviewedBy',
   'rejectionReason',

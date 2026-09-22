@@ -1,11 +1,12 @@
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
-import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
+import { ModelProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@workers/config/config.service';
 import type {
+  IModelCategoryDecision,
   IModelDiscoveryInput,
   IModelDiscoveryRunSummary,
   IReplicateModel,
@@ -192,24 +193,15 @@ export class CronModelWatcherService {
         let registryModel = existingModels.get(modelKey);
         try {
           const model = await this.hydrateReplicateSchema(listedModel);
-          const category = await this.detectModelCategory(model);
+          const decision = await this.decideModelCategory(model);
+          const category = decision.category;
           const knownCost =
             this.modelPricingService.getKnownReplicateCost(modelKey);
 
           if (!registryModel) {
-            const discoveryInput: IModelDiscoveryInput = {
-              category,
-              description: model.description || '',
-              endpoint: modelKey,
-              name: model.name,
-              owner: model.owner,
-              provider: ModelProvider.REPLICATE,
-              providerUrl: model.url,
-              versionId: model.latest_version?.id ?? null,
-              ...(knownCost !== null ? { providerCostUsd: knownCost } : {}),
-            };
-            const draft =
-              await this.modelDiscoveryService.createDraftModel(discoveryInput);
+            const draft = await this.modelDiscoveryService.createDraftModel(
+              this.buildDiscoveryInput(model, modelKey, decision, knownCost),
+            );
             if (!draft) continue;
             summary.draftsCreated++;
             registryModel = draft;
@@ -439,23 +431,56 @@ export class CronModelWatcherService {
     };
   }
 
-  /**
-   * Detect the category for a Replicate model.
-   * Uses the OpenAPI schema from the latest version if available,
-   * otherwise falls back to description-based detection.
-   */
-  private async detectModelCategory(
+  /** The shared discovery input for one Replicate listing row. */
+  private buildDiscoveryInput(
     model: IReplicateModel,
-  ): Promise<ModelCategory> {
-    // If there's a latest version with a schema, use it for detection
+    modelKey: string,
+    decision: IModelCategoryDecision,
+    knownCost: number | null,
+  ): IModelDiscoveryInput {
+    return {
+      category: decision.category,
+      description: model.description || '',
+      endpoint: modelKey,
+      name: model.name,
+      owner: model.owner,
+      provider: ModelProvider.REPLICATE,
+      providerUrl: model.url,
+      versionId: model.latest_version?.id ?? null,
+      ...(decision.confidence !== undefined
+        ? { categoryConfidence: decision.confidence }
+        : {}),
+      ...(knownCost !== null ? { providerCostUsd: knownCost } : {}),
+    };
+  }
+
+  /**
+   * Decide the category for a Replicate model (#4869).
+   * Uses the OpenAPI schema from the latest version if available,
+   * otherwise falls back to description-only classification.
+   */
+  private async decideModelCategory(
+    model: IReplicateModel,
+  ): Promise<IModelCategoryDecision> {
+    return this.modelDiscoveryService.classifyCategory({
+      description: model.description,
+      endpoint: `${model.owner}/${model.name}`,
+      provider: ModelProvider.REPLICATE,
+      schema: await this.resolveOpenApiSchema(model),
+    });
+  }
+
+  /**
+   * The model's OpenAPI document: inline when the listing carried it, fetched
+   * when only a version id is known, empty when Replicate offers neither.
+   */
+  private async resolveOpenApiSchema(
+    model: IReplicateModel,
+  ): Promise<Record<string, unknown>> {
     if (model.latest_version?.id && model.latest_version?.openapi_schema) {
-      return this.modelDiscoveryService.detectCategory(
-        model.latest_version.openapi_schema,
-        model.description,
-      );
+      return model.latest_version.openapi_schema;
     }
 
-    // If there's a version ID but no inline schema, fetch it
     if (model.latest_version?.id) {
       const versionDetail =
         await this.modelDiscoveryService.fetchReplicateSchema(
@@ -465,14 +490,10 @@ export class CronModelWatcherService {
         );
 
       if (versionDetail?.openapi_schema) {
-        return this.modelDiscoveryService.detectCategory(
-          versionDetail.openapi_schema,
-          model.description,
-        );
+        return versionDetail.openapi_schema;
       }
     }
 
-    // Fall back to description-only detection
-    return this.modelDiscoveryService.detectCategory({}, model.description);
+    return {};
   }
 }

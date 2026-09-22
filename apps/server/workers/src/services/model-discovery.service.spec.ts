@@ -38,6 +38,7 @@ vi.mock('@genfeedai/pricing', async (importOriginal) => {
 });
 
 import type { ModelsService } from '@api/collections/models/services/models.service';
+import type { TypedDecisionService } from '@api/services/typed-decisions/typed-decision.service';
 import { ModelCategory, ModelProvider } from '@genfeedai/contracts';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@workers/config/config.service';
@@ -66,6 +67,10 @@ describe('ModelDiscoveryService', () => {
   let mockConfigService: {
     get: ReturnType<typeof vi.fn>;
   };
+  let mockTypedDecisionService: {
+    choose: ReturnType<typeof vi.fn>;
+  };
+  let decisionConfig: Record<string, unknown>;
 
   const mockPricing = {
     cost: 25,
@@ -97,8 +102,18 @@ describe('ModelDiscoveryService', () => {
       getKnownReplicateCost: vi.fn().mockReturnValue(null),
     };
 
+    // The Jev adapter's wire format is still being fixed (#4910), so every
+    // spec drives TypedDecisionService as a mock — `null` is the contract's
+    // "no provider answered", which every mode must survive.
+    decisionConfig = { MODEL_DISCOVERY_DECISION_MODE: 'off' };
     mockConfigService = {
-      get: vi.fn().mockReturnValue('test-replicate-token'),
+      get: vi.fn((key: string) =>
+        key in decisionConfig ? decisionConfig[key] : 'test-replicate-token',
+      ),
+    };
+
+    mockTypedDecisionService = {
+      choose: vi.fn().mockResolvedValue(null),
     };
 
     service = new ModelDiscoveryService(
@@ -106,6 +121,7 @@ describe('ModelDiscoveryService', () => {
       mockModelsService as unknown as ModelsService,
       mockModelPricingService as unknown as ModelPricingService,
       mockConfigService as unknown as ConfigService,
+      mockTypedDecisionService as unknown as TypedDecisionService,
     );
   });
 
@@ -217,6 +233,30 @@ describe('ModelDiscoveryService', () => {
       );
     });
 
+    it('persists the category confidence so admin review can show it', async () => {
+      mockModelsService.create.mockResolvedValue({ id: 'draft-id' });
+
+      await service.createDraftModel({
+        ...modelInfo,
+        categoryConfidence: 0.42,
+      });
+
+      expect(mockModelsService.patch).toHaveBeenCalledWith(
+        'draft-id',
+        expect.objectContaining({ categoryConfidence: 0.42 }),
+      );
+    });
+
+    it('omits the category confidence when no provider answered', async () => {
+      mockModelsService.create.mockResolvedValue({ id: 'draft-id' });
+
+      await service.createDraftModel(modelInfo);
+
+      expect(mockModelsService.patch.mock.calls[0][1]).not.toHaveProperty(
+        'categoryConfidence',
+      );
+    });
+
     it('should return null on creation error', async () => {
       mockModelsService.create.mockRejectedValue(new Error('DB error'));
 
@@ -320,6 +360,307 @@ describe('ModelDiscoveryService', () => {
       const result = service.detectCategory({}, 'text-to-speech voice cloning');
 
       expect(result).toBe(ModelCategory.VOICE);
+    });
+
+    // #4869: both rules below were unreachable before the table was reordered
+    // specific-first — the generic `video` and `enhance` keywords matched
+    // first and swallowed them.
+    it('detects VIDEO_UPSCALE instead of letting the generic video rule shadow it', () => {
+      const result = service.detectCategory(
+        {},
+        'Video upscale model that restores 4k detail',
+      );
+
+      expect(result).toBe(ModelCategory.VIDEO_UPSCALE);
+    });
+
+    it('detects VIDEO_EDIT instead of letting the generic video rule shadow it', () => {
+      const result = service.detectCategory(
+        {},
+        'Video edit model for re-styling existing footage',
+      );
+
+      expect(result).toBe(ModelCategory.VIDEO_EDIT);
+    });
+
+    it('detects IMAGE_EDIT instead of letting the enhance rule shadow it', () => {
+      const result = service.detectCategory(
+        {},
+        'Image editing model that enhances portraits',
+      );
+
+      expect(result).toBe(ModelCategory.IMAGE_EDIT);
+    });
+
+    it('still detects IMAGE_UPSCALE when nothing more specific matches', () => {
+      const result = service.detectCategory({}, 'Super-resolution upscaler');
+
+      expect(result).toBe(ModelCategory.IMAGE_UPSCALE);
+    });
+
+    // #4869: `clip` lived in both VIDEO and EMBEDDING with VIDEO first, so
+    // EMBEDDING's copy was dead and a bare `clip` stole audio models too.
+    it('detects EMBEDDING instead of letting the generic video rule shadow it', () => {
+      const result = service.detectCategory({}, 'CLIP embedding model');
+
+      expect(result).toBe(ModelCategory.EMBEDDING);
+    });
+
+    it('detects EMBEDDING for a text embedding model rather than TEXT', () => {
+      const result = service.detectCategory(
+        {},
+        'Sentence embedding model for semantic search',
+      );
+
+      expect(result).toBe(ModelCategory.EMBEDDING);
+    });
+
+    it('no longer reads a bare clip as video, so audio clips reach MUSIC', () => {
+      const result = service.detectCategory(
+        {},
+        'Text-to-music generation, 5-30 second instrumental clips',
+      );
+
+      expect(result).toBe(ModelCategory.MUSIC);
+    });
+
+    it('still detects VIDEO for a video clip, which `video` already covers', () => {
+      const result = service.detectCategory(
+        {},
+        'Generates a short video clip from a prompt',
+      );
+
+      expect(result).toBe(ModelCategory.VIDEO);
+    });
+
+    // `encode` was dropped from EMBEDDING when it moved to the head of the
+    // table. Two specs, because the two readings fail differently: the first
+    // pins a realistic video description that happens to say "encodes", the
+    // second isolates the token so *any* rule claiming it shows up.
+    it('does not let `encode` claim a video model for EMBEDDING', () => {
+      const result = service.detectCategory(
+        {},
+        'Encodes video frames into tokens',
+      );
+
+      expect(result).toBe(ModelCategory.VIDEO);
+    });
+
+    it('leaves a bare `encode` unclaimed, falling through to the default', () => {
+      const result = service.detectCategory({}, 'Encodes frames into tokens');
+
+      expect(result).toBe(ModelCategory.IMAGE);
+    });
+  });
+
+  describe('classifyCategory', () => {
+    const replicateInput = {
+      description: 'Generates a short video from a text prompt',
+      endpoint: 'acme-labs/test-model',
+      provider: ModelProvider.REPLICATE,
+    };
+
+    const videoSchema = {
+      components: {
+        schemas: {
+          Output: {
+            description: 'The generated video file',
+            format: 'uri',
+            type: 'string',
+          },
+        },
+      },
+    };
+
+    function answer(value: ModelCategory, confidence: number) {
+      return { confidence, value };
+    }
+
+    it('never calls the provider when the output schema is unambiguous', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+
+      const decision = await service.classifyCategory({
+        ...replicateInput,
+        description: 'text to music',
+        schema: videoSchema,
+      });
+
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
+        source: 'output-schema',
+      });
+      expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
+    });
+
+    it('never calls the provider in off mode', async () => {
+      const decision = await service.classifyCategory(replicateInput);
+
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
+        source: 'keyword',
+      });
+      expect(mockTypedDecisionService.choose).not.toHaveBeenCalled();
+    });
+
+    it('matches keywords on provider tags as well as the description', async () => {
+      const decision = await service.classifyCategory({
+        description: '',
+        endpoint: 'fal-ai/some-endpoint',
+        provider: ModelProvider.FAL,
+        tags: ['text-to-speech'],
+      });
+
+      expect(decision.category).toBe(ModelCategory.VOICE);
+    });
+
+    it('calls the provider in shadow mode but keeps the deterministic answer', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'shadow';
+      mockTypedDecisionService.choose.mockResolvedValue(
+        answer(ModelCategory.MUSIC, 0.99),
+      );
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      // No confidence: shadow mode records through telemetry and writes
+      // nothing to the row, and 0.99 was the provider's confidence in MUSIC,
+      // not in the VIDEO this decision keeps.
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
+        source: 'keyword',
+      });
+      expect(mockTypedDecisionService.choose).toHaveBeenCalledWith(
+        expect.objectContaining({
+          options: Object.values(ModelCategory),
+          state: expect.objectContaining({
+            modelName: 'acme-labs/test-model',
+            provider: ModelProvider.REPLICATE,
+          }),
+        }),
+        expect.objectContaining({
+          decisionPoint: 'model_discovery.category',
+          deterministicAnswer: ModelCategory.VIDEO,
+          mode: 'shadow',
+          timeoutMs: 2000,
+        }),
+      );
+    });
+
+    it('acts on the provider answer in live mode above the threshold', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      mockTypedDecisionService.choose.mockResolvedValue(
+        answer(ModelCategory.VIDEO_EDIT, 0.91),
+      );
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO_EDIT,
+        confidence: 0.91,
+        source: 'typed-decision',
+      });
+    });
+
+    it('records a sub-threshold confidence when the provider agrees with the kept category', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      mockTypedDecisionService.choose.mockResolvedValue(
+        answer(ModelCategory.VIDEO, 0.4),
+      );
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
+        confidence: 0.4,
+        source: 'keyword',
+      });
+    });
+
+    it('drops a sub-threshold confidence that belongs to a category it did not keep', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      mockTypedDecisionService.choose.mockResolvedValue(
+        answer(ModelCategory.VIDEO_EDIT, 0.4),
+      );
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      // 0.4 was the provider's confidence in VIDEO_EDIT. Persisting it next
+      // to VIDEO would render as "40% confidence" under a category the
+      // provider never chose.
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
+        source: 'keyword',
+      });
+    });
+
+    it('honours a configured threshold', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      decisionConfig.MODEL_DISCOVERY_MIN_CONFIDENCE = 0.3;
+      mockTypedDecisionService.choose.mockResolvedValue(
+        answer(ModelCategory.VIDEO_EDIT, 0.4),
+      );
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      expect(decision.category).toBe(ModelCategory.VIDEO_EDIT);
+    });
+
+    it('falls back to the deterministic answer when the provider resolves null', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      mockTypedDecisionService.choose.mockResolvedValue(null);
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
+        source: 'keyword',
+      });
+    });
+
+    it('falls back to the deterministic answer when the provider throws', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'live';
+      mockTypedDecisionService.choose.mockRejectedValue(new Error('boom'));
+
+      const decision = await service.classifyCategory(replicateInput);
+
+      expect(decision).toEqual({
+        category: ModelCategory.VIDEO,
+        source: 'keyword',
+      });
+      expect(mockLoggerService.warn).toHaveBeenCalled();
+    });
+
+    it('sends a bounded state and never the raw schema document', async () => {
+      decisionConfig.MODEL_DISCOVERY_DECISION_MODE = 'shadow';
+
+      await service.classifyCategory({
+        ...replicateInput,
+        description: 'x'.repeat(900),
+        schema: {
+          components: {
+            schemas: {
+              Input: {
+                properties: Object.fromEntries(
+                  Array.from({ length: 40 }, (_unused, index) => [
+                    `field_${index}`,
+                    { type: 'string' },
+                  ]),
+                ),
+              },
+              Output: { items: { format: 'uri' }, type: 'array' },
+            },
+          },
+        },
+      });
+
+      const [params] = mockTypedDecisionService.choose.mock.calls[0];
+      expect(params.state.inputFields).toHaveLength(24);
+      expect(String(params.state.description)).toHaveLength(601);
+      expect(params.state.outputSchema).toEqual({
+        description: '',
+        format: '',
+        itemFormat: 'uri',
+        type: 'array',
+      });
     });
   });
 

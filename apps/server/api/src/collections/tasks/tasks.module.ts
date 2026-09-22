@@ -17,6 +17,7 @@ import { WorkflowExecutionsModule } from '@api/collections/workflow-executions/w
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AgentOrchestratorModule } from '@api/services/agent-orchestrator/agent-orchestrator.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
@@ -35,6 +36,7 @@ import { Module } from '@nestjs/common';
     TaskCommentsModule,
     TaskCountersModule,
     OrganizationsModule,
+    TypedDecisionsModule,
     WorkflowExecutionsModule,
     LoggerModule,
   ],

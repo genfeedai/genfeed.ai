@@ -26,6 +26,16 @@ production traffic, and **no accuracy number has been reported for it yet** —
 `AGENT_AUTO_ROUTING_DECISION_MODE` stays `off` until a benchmark run and a week
 of shadow telemetry say otherwise.
 
+`task-routing-output-type.jsonl` is the labelled set for `task_routing.output_type`
+(#4867): 251 rows over the seven `TASK_OUTPUT_TYPES`, each state shaped exactly
+like the one `TaskRoutingService` sends (request text, platforms, attachment
+count, brand flag). The requests are **synthetic** — written by hand to cover
+the phrasings the keyword table handles and the ones it misses (plurals like
+"clips"/"shorts", `post` inside an image request, `issue`/`email` inside a
+video request, and `facecam`, which no pattern can produce) — not sampled from
+production. Today's regex table scores **51.8% (130/251)** on it. That number
+is a baseline for the fixture, not a production accuracy claim, and the flip to
+`live` still waits on a genuinely labelled set.
 ## `content-pattern-labels.jsonl`
 
 220 posts for the pattern analyzer's two label decisions (#4868), two rows per
@@ -65,3 +75,57 @@ production traffic. The rates it reports are therefore a floor on the work,
 not a measurement of the real world. The false-positive rate on real tool
 traffic is sized from `shadow` mode telemetry, and that is what gates the flip
 to `live`.
+
+## model-discovery-category.jsonl (#4869)
+
+139 labelled rows, generated — never hand-edited — by
+
+```
+bun run build:typed-decision-fixture:model-discovery
+```
+
+from `UNIFIED_MODEL_CATALOG`, the registry seed. Each curated seed row already
+pairs a provider endpoint, a description and schema-derived capability metadata
+with a human-approved category, and the generator projects those into the exact
+`state` shape `ModelDiscoveryService.buildCategoryState` sends.
+
+Read the numbers with the construction in mind:
+
+- Rows whose seed description is the placeholder `"<Label> (<category>)"` ship
+  with an **empty** description and are marked `(name-only)` in `source`; the
+  placeholder string is the label. 103 of the 139 rows are name-only, which is
+  also the common case in real discovery listings.
+- `outputSchema` is empty on every row. An unambiguous output schema never
+  reaches the decision provider — layer 1 of `classifyCategory` short-circuits
+  it — so carrying one would measure a path that does not exist.
+- The set is skewed the way the catalogue is: 54 `image` and 46 `video` rows
+  against 1 `embedding` and 2 each of `image-edit`, `image-upscale`,
+  `video-edit`. A per-class number matters more here than the headline.
+- The set is also **wider than the population the decision point meets**. Only
+  the Replicate and fal watchers discover models, so the 90 `replicate` and 24
+  `fal` rows — 114 of 139 — are the discovery-reachable subset; the 13
+  `openrouter`, 11 `genfeed-ai` and 1 `mureka` rows are hand-seeded and the
+  classifier is never asked about them in production. The generator prints
+  both totals, and rollout reads the reachable one:
+
+  ```bash
+  bun run bench:typed-decisions -- \
+    --fixture=apps/server/api/test/fixtures/typed-decisions/model-discovery-category.jsonl \
+    --state-filter=provider=replicate,fal \
+    --min-accuracy=0.43
+  ```
+
+  `--state-filter` prints the selection it made (`rows: 114 of 139 selected`),
+  so the number a gate is read off is never implicit. Drop the filter for the
+  catalogue-wide coverage run.
+
+Baselines the provider has to beat, measured on the text the keyword table
+actually sees — description plus tags, not `modelName`:
+
+| Population | Rows | Keyword table | Benchmark invocation |
+|---|---|---|---|
+| **Discovery-reachable (`replicate` + `fal`)** — the rollout gate | 114 | **49 (43.0%)** | `--state-filter=provider=replicate,fal` |
+| Whole catalogue — benchmark coverage | 139 | 60 (43.2%) | no filter |
+
+The #4869 keyword-ordering fixes account for both: 47 → 49 reachable
+(41.2% → 43.0%) and 58 → 60 overall (41.7% → 43.2%).

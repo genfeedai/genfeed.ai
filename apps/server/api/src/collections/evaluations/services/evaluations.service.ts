@@ -22,6 +22,7 @@ import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { scopedWhere } from '@api/index';
+import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
@@ -71,6 +72,7 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     @Optional() private readonly articlesService?: ArticlesService,
     @Optional() private readonly postsService?: PostsService,
     @Optional() private readonly configService?: ConfigService,
+    @Optional() private readonly mediaUrlService?: MediaUrlService,
   ) {
     super(prisma, 'evaluation', logger);
   }
@@ -80,10 +82,14 @@ export class EvaluationsService extends BaseService<EvaluationDocument> {
     s3Key?: string | null;
     metadata?: { result?: string | null } | string | null;
   }): string | undefined {
-    return resolveIngredientMediaUrl(
+    const resolvedUrl = resolveIngredientMediaUrl(
       ingredient,
       this.configService?.cdnUrl ?? 'https://cdn.genfeed.ai',
     );
+    if (!resolvedUrl || !this.mediaUrlService) {
+      return resolvedUrl;
+    }
+    return this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl);
   }
 
   /**
