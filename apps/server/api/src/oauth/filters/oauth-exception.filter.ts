@@ -22,9 +22,10 @@ export interface OAuthErrorBody {
  * which includes the global `v1` prefix.
  */
 const OAUTH_ERROR_PATH =
-  /^\/v1\/(?:oauth\/(?:authorize(?:\/decision)?|register|revoke|token)|agent\/auth(?:\/[a-z/]*)?)\/?$/;
+  /^\/v1\/(?:oauth\/(?:authorize(?:\/decision)?|register|revoke|token)|agent\/auth(?:\/[a-z/]*)?)\/?$/i;
 
-const OAUTH_REGISTRATION_PATH = /^\/v1\/oauth\/register\/?$/;
+// Case-insensitive like Express routing, so `/v1/OAuth/register` is covered too.
+const OAUTH_REGISTRATION_PATH = /^\/v1\/oauth\/register\/?$/i;
 
 export function isOAuthErrorPath(path: string | undefined): boolean {
   return !!path && OAUTH_ERROR_PATH.test(path);
@@ -60,6 +61,29 @@ function readString(value: unknown): string | undefined {
     return parts.length > 0 ? parts.join('; ') : undefined;
   }
   return undefined;
+}
+
+/**
+ * HttpExceptions carry their status. Express body-parser failures that reach
+ * the global filters unmapped (413 too large, 415 unsupported charset) are
+ * http-errors objects with a client `status`; keep it rather than reporting a
+ * client mistake as a 500 (#4949 review).
+ */
+function resolveStatus(exception: unknown): number {
+  if (exception instanceof HttpException) {
+    return exception.getStatus();
+  }
+  if (isRecord(exception)) {
+    const status = exception.status ?? exception.statusCode;
+    if (
+      typeof status === 'number' &&
+      status >= HttpStatus.BAD_REQUEST &&
+      status < HttpStatus.INTERNAL_SERVER_ERROR
+    ) {
+      return status;
+    }
+  }
+  return HttpStatus.INTERNAL_SERVER_ERROR;
 }
 
 /** Flattens the ValidationPipe's `{ errors: [{ property, constraints }] }`. */
@@ -103,10 +127,7 @@ export class OAuthExceptionFilter implements ExceptionFilter {
     const http = host.switchToHttp();
     const response = http.getResponse<Response>();
     const request = http.getRequest<Request>();
-    const status =
-      exception instanceof HttpException
-        ? exception.getStatus()
-        : HttpStatus.INTERNAL_SERVER_ERROR;
+    const status = resolveStatus(exception);
     const body = this.toOAuthError(exception, status);
 
     const context = {

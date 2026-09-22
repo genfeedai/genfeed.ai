@@ -202,6 +202,22 @@ describe('OAuthExceptionFilter', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(failure);
   });
 
+  it('keeps the client status of a raw body-parser error instead of a 500', () => {
+    const tooLarge = Object.assign(new Error('request entity too large'), {
+      status: 413,
+      statusCode: 413,
+      type: 'entity.too.large',
+    });
+    build().catch(tooLarge, host);
+
+    expect(response.status).toHaveBeenCalledWith(413);
+    expect(response.json).toHaveBeenCalledWith({
+      error: 'invalid_request',
+      error_description: 'request entity too large',
+    });
+    expect(Sentry.captureException).not.toHaveBeenCalled();
+  });
+
   it('answers a 503 as temporarily_unavailable', () => {
     build().catch(new ServiceUnavailableException('Redis down'), host);
 
@@ -234,6 +250,11 @@ describe('isOAuthErrorPath', () => {
     '/oauth/token',
   ])('leaves %s on the JSON:API envelope', (path) => {
     expect(isOAuthErrorPath(path)).toBe(false);
+  });
+
+  it('matches case-insensitively, like Express routing', () => {
+    expect(isOAuthErrorPath('/v1/OAuth/Token')).toBe(true);
+    expect(isOAuthRegistrationPath('/V1/OAUTH/REGISTER')).toBe(true);
   });
 
   it('singles out dynamic registration', () => {

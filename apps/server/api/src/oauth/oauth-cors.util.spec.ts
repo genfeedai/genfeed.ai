@@ -8,6 +8,7 @@ describe('isPublicOAuthCorsPath', () => {
     '/v1/oauth/revoke',
     '/v1/oauth/token/',
     '/v1/oauth/token?grant_type=refresh_token',
+    '/v1/OAuth/Token',
   ])('treats %s as a public OAuth endpoint', (url) => {
     expect(isPublicOAuthCorsPath(url)).toBe(true);
   });

@@ -343,6 +343,34 @@ describe('OAuth endpoints real HTTP pipeline', () => {
       });
     });
 
+    it('matches OAuth paths case-insensitively, like Express routing', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/OAuth/Register')
+        .set('Content-Type', 'application/json')
+        .send('{')
+        .expect(400);
+
+      expect(result.body.error).toBe('invalid_client_metadata');
+    });
+
+    it('keeps an oversized body a 413 client error, not a 500', async () => {
+      const result = await request(app.getHttpServer())
+        .post('/v1/oauth/register')
+        .set('Content-Type', 'application/json')
+        .send(
+          JSON.stringify({
+            client_name: 'x'.repeat(200_000),
+            redirect_uris: [CURSOR_REDIRECT],
+          }),
+        )
+        .expect(413);
+
+      expect(result.body).toEqual({
+        error: 'invalid_client_metadata',
+        error_description: expect.any(String),
+      });
+    });
+
     it('leaves the JSON:API envelope on non-OAuth paths', async () => {
       const result = await request(app.getHttpServer())
         .post('/v1/oauth-lookalike')

@@ -37,7 +37,7 @@ export function isPublicOAuthCorsPath(url: string | undefined): boolean {
   if (!url) {
     return false;
   }
-  const path = url.split('?')[0].replace(/\/+$/, '');
+  const path = url.split('?')[0].replace(/\/+$/, '').toLowerCase();
   return PUBLIC_OAUTH_CORS_PATHS.has(path);
 }
 
