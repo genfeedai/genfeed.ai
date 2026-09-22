@@ -66,6 +66,15 @@ export const generalAiSchema = {
   TYPED_DECISION_TIMEOUT_MS: Joi.number().integer().min(1).default(800),
   TYPESAFE_API_KEY: Joi.string().optional().allow(''),
   ...modelDiscoveryDecisionSchema,
+  // Untrusted-content injection gate (#4870). Its own rollout flag: `off` is
+  // today's behaviour, `shadow` records what it would have withheld, `live`
+  // keeps flagged tool results out of the model context.
+  UNTRUSTED_CONTENT_DECISION_MODE: Joi.string()
+    .valid('off', 'shadow', 'live')
+    .default('off'),
+  // Deliberately above the epic's 0.85 default: a false positive costs a user
+  // their tool result, so the gate must be very sure before it withholds.
+  UNTRUSTED_CONTENT_MIN_CONFIDENCE: Joi.number().min(0).max(1).default(0.95),
 };
 
 /**

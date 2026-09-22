@@ -79,7 +79,7 @@ describe('SlackService', () => {
     });
 
     it('should initialize Slack client when token is present', async () => {
-      mockConfigService.get.mockReturnValue('xoxb-test-token');
+      mockConfigService.get.mockReturnValue('test-slack-bot-token');
 
       const module: TestingModule = await Test.createTestingModule({
         providers: [
@@ -123,7 +123,7 @@ describe('SlackService', () => {
     });
 
     it('should call postMessage with channel and text', async () => {
-      mockConfigService.get.mockReturnValue('xoxb-token');
+      mockConfigService.get.mockReturnValue('test-slack-bot-token');
       mockPostMessage.mockResolvedValue({ ok: true });
 
       const module: TestingModule = await Test.createTestingModule({
@@ -143,7 +143,7 @@ describe('SlackService', () => {
     });
 
     it('should include blocks when provided', async () => {
-      mockConfigService.get.mockReturnValue('xoxb-token');
+      mockConfigService.get.mockReturnValue('test-slack-bot-token');
       mockPostMessage.mockResolvedValue({ ok: true });
 
       const module: TestingModule = await Test.createTestingModule({
@@ -166,7 +166,7 @@ describe('SlackService', () => {
     });
 
     it('should log error when postMessage fails', async () => {
-      mockConfigService.get.mockReturnValue('xoxb-token');
+      mockConfigService.get.mockReturnValue('test-slack-bot-token');
       mockPostMessage.mockRejectedValue(new Error('Rate limited'));
 
       const module: TestingModule = await Test.createTestingModule({
@@ -216,7 +216,7 @@ describe('SlackService', () => {
     });
 
     it('should post image block with file URL', async () => {
-      mockConfigService.get.mockReturnValue('xoxb-token');
+      mockConfigService.get.mockReturnValue('test-slack-bot-token');
       mockPostMessage.mockResolvedValue({ ok: true });
 
       const module: TestingModule = await Test.createTestingModule({

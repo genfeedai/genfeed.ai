@@ -659,6 +659,7 @@ model User {
   rssFeedItems              RssFeedItem[]
   engagementRules           EngagementRule[]
   agentPublishAudits        AgentPublishAudit[]
+  agentUntrustedContentAudits AgentUntrustedContentAudit[]
   streaks                   Streak[]
   forecasts                 Forecast[]
   tasks                     Task[]
@@ -806,6 +807,7 @@ model Organization {
   rssFeedItems                  RssFeedItem[]
   engagementRules               EngagementRule[]
   agentPublishAudits            AgentPublishAudit[]
+  agentUntrustedContentAudits   AgentUntrustedContentAudit[]
   distributions                 Distribution[]
   votes                         Vote[]
   watchlists                    Watchlist[]
@@ -1046,6 +1048,7 @@ model Brand {
   rssFeedItems               RssFeedItem[]
   engagementRules            EngagementRule[]
   agentPublishAudits         AgentPublishAudit[]
+  agentUntrustedContentAudits AgentUntrustedContentAudit[]
   bookmarks                  Bookmark[]
   moodBoard                  MoodBoard?                 @relation("brand_moodboard")
   dashboardLayouts           DashboardLayout[]          @relation("brand_dashboard_layout")
@@ -4575,6 +4578,7 @@ model WorkflowExecution {
   captions                 Caption[]
   destinationAgentTransfer AgentTransfer?
   agentPublishAudits       AgentPublishAudit[]
+  agentUntrustedContentAudits AgentUntrustedContentAudit[]
   clipGenerationProject    ClipProject?                  @relation("clip_generation_workflow_execution")
   clipContinuityProject    ClipProject?                  @relation("clip_continuity_workflow_execution")
 
@@ -6810,6 +6814,39 @@ model AgentPublishAudit {
   @@index([postGroupId, isDeleted, createdAt(sort: Desc)])
   @@index([workflowExecutionId, isDeleted])
   @@map("agent_publish_audits")
+}
+
+/// Untrusted-content injection gate (#4870). One row per tool result the gate
+/// flagged at or above its confidence threshold: `withheld` in live mode,
+/// `shadow_flagged` in shadow mode. Sub-threshold and unavailable decisions
+/// are not audited — they are today's behaviour and would be every tool call.
+model AgentUntrustedContentAudit {
+  id                  String             @id @default(cuid())
+  userId              String
+  user                User               @relation(fields: [userId], references: [id])
+  organizationId      String
+  organization        Organization       @relation(fields: [organizationId], references: [id])
+  brandId             String?
+  brand               Brand?             @relation(fields: [brandId], references: [id])
+  workflowExecutionId String?
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  agentThreadId       String?
+  agentStrategyId     String?
+  toolName            String
+  source              String
+  outcome             String
+  confidence          Float
+  minConfidence       Float
+  mode                String
+  contentLength       Int
+  isDeleted           Boolean            @default(false)
+  createdAt           DateTime           @default(now())
+  updatedAt           DateTime           @updatedAt
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, outcome, isDeleted, createdAt(sort: Desc)])
+  @@index([workflowExecutionId, isDeleted])
+  @@map("agent_untrusted_content_audits")
 }
 
 enum KnowledgeSourceKind {

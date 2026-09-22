@@ -211,6 +211,7 @@ describe('UTM Builder Helper', () => {
     });
 
     it('should handle URLs with authentication', () => {
+      // Placeholder userinfo, allow-listed in .secretlintrc.json — keep both in sync.
       const url = 'https://user:pass@example.com/path';
       const result = addUTMParameters(url, 'user');
 
