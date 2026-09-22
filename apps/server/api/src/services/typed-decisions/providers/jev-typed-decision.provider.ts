@@ -1,12 +1,13 @@
 import {
+  JEV_DEFAULT_SCORE_CRITERIA,
+  JEV_PRICING_USD_PER_MILLION_TOKENS,
   JEV_QUESTION_KEY,
-  JEV_RETENTION_POLICY,
-  JEV_SCORE_MAX,
-  JEV_SCORE_MIN,
   JEV_SYSTEM_ONE_MODEL,
   JEV_SYSTEM_ONE_URL,
   type JevAnswer,
+  type JevChoiceQuestion,
   type JevQuestion,
+  type JevScoreQuestion,
   type JevSystemOneRequest,
 } from '@api/services/typed-decisions/interfaces/jev-system-one.interface';
 import { TypedDecisionRateLimitError } from '@api/services/typed-decisions/typed-decision.errors';
@@ -73,17 +74,68 @@ function parseRetryAfterSeconds(header: string | null): number {
   return DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS;
 }
 
-/** Reads the `usage` envelope defensively; absent fields bill as zero. */
+/**
+ * The API reports token counts and no charge, so the ledger entry is
+ * calculated from the published list price (`tokens * usdPerMillion` is
+ * already micro-USD, the convention `computeLlmVendorCostMicros` uses). A
+ * response without a usage envelope bills as unknown rather than as zero.
+ */
 function parseUsage(usage: UnknownRecord | undefined): TypedDecisionUsage {
-  const costMicros = usage?.cost_micros;
-  return {
-    inputTokens: asPositiveInteger(usage?.input_tokens),
+  const inputTokens = asPositiveInteger(usage?.input_tokens);
+  const outputTokens = asPositiveInteger(usage?.output_tokens);
+  const base: TypedDecisionUsage = {
+    inputTokens,
     model: JEV_SYSTEM_ONE_MODEL,
-    outputTokens: asPositiveInteger(usage?.output_tokens),
-    ...(typeof costMicros === 'number' && Number.isFinite(costMicros)
-      ? { vendorCostMicros: Math.max(0, Math.round(costMicros)) }
-      : {}),
+    outputTokens,
   };
+
+  if (!usage) {
+    return base;
+  }
+
+  return {
+    ...base,
+    costEvidence: 'calculated',
+    vendorCostMicros: Math.max(
+      0,
+      Math.round(
+        inputTokens * JEV_PRICING_USD_PER_MILLION_TOKENS.prompt +
+          outputTokens * JEV_PRICING_USD_PER_MILLION_TOKENS.completion,
+      ),
+    ),
+  };
+}
+
+/** A caller-supplied scale replaces the default rubric only when it is one. */
+function resolveScoreCriteria(
+  scale: readonly string[] | undefined,
+): JevScoreQuestion['criteria'] {
+  if (!scale) {
+    return JEV_DEFAULT_SCORE_CRITERIA;
+  }
+
+  const [first, second, ...rest] = scale;
+  return first !== undefined && second !== undefined
+    ? [first, second, ...rest]
+    : JEV_DEFAULT_SCORE_CRITERIA;
+}
+
+/**
+ * The vendor answers with an expected score on the rubric, `0..levels-1`,
+ * which may fall between integer levels. The contract wants `0..1`, so the
+ * top level maps to 1. A value outside the rubric is a malformed answer.
+ */
+function normaliseScore(score: unknown, levels: number): number | undefined {
+  if (typeof score !== 'number' || !Number.isFinite(score)) {
+    return undefined;
+  }
+
+  const top = levels - 1;
+  if (top <= 0 || score < 0 || score > top) {
+    return undefined;
+  }
+
+  return score / top;
 }
 
 interface JevEvaluation {
@@ -92,12 +144,12 @@ interface JevEvaluation {
 }
 
 /**
- * TypeSafe AI "System One" (Jev) adapter (#4864).
+ * TypeSafe AI "System One" (Jev) adapter (#4864, wire format fixed in #4906).
  *
- * The wire shapes it speaks are UNVERIFIED — see the header of
- * `interfaces/jev-system-one.interface.ts`. Every response field is validated
- * before it becomes an answer, so a shape mismatch resolves to `null` (the
- * deterministic path) instead of a wrong decision.
+ * The wire shapes it speaks are verified against the vendor SDK — see the
+ * header of `interfaces/jev-system-one.interface.ts`. Every response field is
+ * still validated before it becomes an answer, so a future shape change
+ * resolves to `null` (the deterministic path) instead of a wrong decision.
  *
  * The adapter never retries inside the request budget: on 429 it records the
  * cooldown the vendor asked for and fails fast until it expires, so a rate
@@ -120,12 +172,17 @@ export class JevTypedDecisionProvider implements TypedDecisionProvider {
     params: TypedDecisionChoiceParams<TOption>,
     options?: TypedDecisionProviderCallOptions,
   ): Promise<TypedDecisionAnswer<TOption> | null> {
+    // The SDK rejects a list: options travel as a label → description map,
+    // with `null` for a label the call site did not describe.
+    const criteria: JevChoiceQuestion['criteria'] = Object.fromEntries(
+      params.options.map((option) => [
+        option,
+        params.descriptions?.[option] ?? null,
+      ]),
+    );
+
     const evaluation = await this.evaluate(
-      {
-        options: [...params.options],
-        question: params.question,
-        type: 'choice',
-      },
+      { criteria, instructions: params.question, type: 'choice' },
       params.state,
       options,
     );
@@ -153,13 +210,10 @@ export class JevTypedDecisionProvider implements TypedDecisionProvider {
     params: TypedDecisionScoreParams,
     options?: TypedDecisionProviderCallOptions,
   ): Promise<TypedDecisionAnswer<number> | null> {
+    const criteria = resolveScoreCriteria(params.scale);
+
     const evaluation = await this.evaluate(
-      {
-        max: JEV_SCORE_MAX,
-        min: JEV_SCORE_MIN,
-        question: params.question,
-        type: 'score',
-      },
+      { criteria, instructions: params.question, type: 'score' },
       params.state,
       options,
     );
@@ -174,7 +228,7 @@ export class JevTypedDecisionProvider implements TypedDecisionProvider {
     }
 
     const confidence = asProbability(answer.confidence);
-    const value = asProbability(answer.score);
+    const value = normaliseScore(answer.score, criteria.length);
     if (confidence === undefined || value === undefined) {
       return null;
     }
@@ -187,7 +241,7 @@ export class JevTypedDecisionProvider implements TypedDecisionProvider {
     options?: TypedDecisionProviderCallOptions,
   ): Promise<TypedDecisionAnswer<boolean> | null> {
     const evaluation = await this.evaluate(
-      { question: params.question, type: 'noul' },
+      { instructions: params.question, type: 'noul' },
       params.state,
       options,
     );
@@ -226,7 +280,6 @@ export class JevTypedDecisionProvider implements TypedDecisionProvider {
       model: JEV_SYSTEM_ONE_MODEL,
       questions: { [JEV_QUESTION_KEY]: question },
       state,
-      ...JEV_RETENTION_POLICY,
     };
 
     const response = await safeFetch(

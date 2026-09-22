@@ -62,7 +62,9 @@ export class TypedDecisionTelemetryService {
       brandId: record.brandId,
       completionTokens: usage.outputTokens,
       costEvidence:
-        usage.vendorCostMicros === undefined ? 'unknown' : 'observed',
+        usage.vendorCostMicros === undefined
+          ? 'unknown'
+          : (usage.costEvidence ?? 'observed'),
       isByok: false,
       latencyMs: record.latencyMs,
       model: usage.model,
