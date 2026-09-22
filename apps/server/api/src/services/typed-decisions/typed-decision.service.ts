@@ -118,6 +118,21 @@ export class TypedDecisionService {
     );
   }
 
+  /**
+   * Whether an operator has a provider bound right now (#4908).
+   *
+   * A `null` from `choose`/`score`/`decide` cannot tell an unbound provider
+   * from a runtime failure, and some call sites owe the two different
+   * behaviours — "behave as `off`" for the first, "queue for review" for the
+   * second. They ask this first. Resolved per call, like the decisions, so a
+   * kill switch in /admin lands within the resolver's TTL.
+   */
+  async isProviderBound(): Promise<boolean> {
+    const provider = await this.providerResolver.resolve();
+
+    return provider.name !== NULL_TYPED_DECISION_PROVIDER_NAME;
+  }
+
   private async run<TValue extends TypedDecisionDeterministicAnswer>(
     kind: TypedDecisionKind,
     context: TypedDecisionCallContext,

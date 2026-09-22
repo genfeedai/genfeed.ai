@@ -30,10 +30,8 @@ import {
   ReplyCandidatePrefilterService,
 } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
-import {
-  getReplyIntentPersona,
-  resolveReplyIntent,
-} from '@api/services/reply-bot/reply-intent.util';
+import { getReplyIntentPersona } from '@api/services/reply-bot/reply-intent.util';
+import { ReplyIntentClassifierService } from '@api/services/reply-bot/reply-intent-classifier.service';
 import {
   type SocialContentData,
   SocialMonitorService,
@@ -49,8 +47,11 @@ import {
   ReplyTone,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
-import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
-import { ConfigService } from '@libs/config/config.service';
+import type {
+  IReplyBotCredentialData,
+  ReplyIntent,
+  ReplyIntentSource,
+} from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -87,7 +88,10 @@ type ReplyBotContentState = ReplyBotContentRequest & {
   dmItems: ReplyBotDmRequest[];
   dmText?: string;
   error?: string;
-  intent?: ReturnType<typeof resolveReplyIntent> | 'default';
+  intent?: ReplyIntent;
+  /** Present only when a decision answered; 0..1 (#4866). */
+  intentConfidence?: number;
+  intentSource?: ReplyIntentSource;
   replyContentId?: string;
   replyContentUrl?: string;
   replySent: boolean;
@@ -117,7 +121,6 @@ type ForEachResult<T> = {
 @Injectable()
 export class ReplyBotOrchestratorService implements OnModuleInit {
   constructor(
-    readonly _configService: ConfigService,
     private readonly loggerService: LoggerService,
     private readonly socialMonitorService: SocialMonitorService,
     private readonly replyGenerationService: ReplyGenerationService,
@@ -132,6 +135,7 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     private readonly systemWorkflowRunner: SystemWorkflowRunnerService,
     private readonly workflowQueue: WorkflowExecutionQueueService,
     private readonly authorReplyLoopService: AuthorReplyLoopService,
+    private readonly replyIntentClassifierService: ReplyIntentClassifierService,
   ) {}
 
   onModuleInit(): void {
@@ -377,6 +381,34 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
     };
   }
 
+  /**
+   * A comment already queued for a person is not decided again: the next
+   * poll would otherwise spend a decision and, on a confident answer,
+   * auto-reply to something a human was asked to handle (#4866). The hold is
+   * the skipped activity that queued it; it ends when the human flow marks
+   * the comment processed.
+   */
+  private async findIntentReviewHoldState(
+    request: ReplyBotContentRequest,
+    botConfig: Pick<ReplyBotConfigDocument, 'type'>,
+  ): Promise<ReplyBotContentState | null> {
+    if (botConfig.type !== ReplyBotType.COMMENT_RESPONDER) return null;
+    const hold = await this.botActivitiesService.findIntentReviewHold(
+      request.organizationId,
+      request.content.id,
+    );
+    if (!hold) return null;
+    return {
+      ...request,
+      dmDelayMs: 0,
+      dmItems: [],
+      ...(hold.intent === undefined ? {} : { intent: hold.intent }),
+      replySent: false,
+      skipReason: BotActivitySkipReason.NEEDS_REVIEW,
+      skipped: true,
+    };
+  }
+
   private async claimContentAction(
     action: SystemWorkflowActionRequest,
   ): Promise<ReplyBotContentState> {
@@ -386,6 +418,8 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       botConfig,
       request.botConfigId,
     );
+    const held = await this.findIntentReviewHoldState(request, botConfig);
+    if (held) return held;
     const rateCheck = await this.rateLimitService.checkRateLimit(
       request.botConfigId,
       request.organizationId,
@@ -412,9 +446,36 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
         skipped: true,
       };
     }
+    // Classified before the activity row is written, so the row carries *why*
+    // a comment was skipped and not merely that it was (#4866).
+    const classification =
+      botConfig.type === ReplyBotType.COMMENT_RESPONDER
+        ? await this.replyIntentClassifierService.classify({
+            authorHandle: request.content.authorUsername,
+            ...(typeof botConfig.brandId === 'string'
+              ? { brandId: botConfig.brandId }
+              : {}),
+            commentText: request.content.text,
+            organizationId: request.organizationId,
+            ...(request.content.replyContext === undefined
+              ? {}
+              : { postCaption: request.content.replyContext }),
+            userId: ownerUserId,
+          })
+        : undefined;
     const activity = await this.botActivitiesService.create({
       replyBotConfigId: botConfig.id,
       botType: botConfig.type,
+      ...(classification === undefined
+        ? {}
+        : {
+            intent: classification.intent,
+            ...(classification.confidence === undefined
+              ? {}
+              : { intentConfidence: classification.confidence }),
+            intentSource: classification.source,
+            isIntentNeedsReview: classification.isNeedsReview,
+          }),
       organizationId: request.organizationId,
       status: BotActivityStatus.PROCESSING,
       triggerTweetAuthorId: request.content.authorId,
@@ -423,24 +484,42 @@ export class ReplyBotOrchestratorService implements OnModuleInit {
       triggerTweetText: request.content.text,
       userId: ownerUserId,
     });
-    const intent =
-      botConfig.type === ReplyBotType.COMMENT_RESPONDER
-        ? resolveReplyIntent(request.content.text)
-        : 'default';
     const activityId = activity.id.toString();
     const state: ReplyBotContentState = {
       ...request,
       activityId,
       dmDelayMs: Math.max(0, botConfig.dmConfig?.delaySeconds ?? 60) * 1000,
       dmItems: [],
-      intent,
+      intent: classification?.intent ?? 'default',
+      ...(classification?.confidence === undefined
+        ? {}
+        : { intentConfidence: classification.confidence }),
+      ...(classification === undefined
+        ? {}
+        : { intentSource: classification.source }),
       replySent: false,
       skipped: false,
     };
-    if (
-      botConfig.type === ReplyBotType.COMMENT_RESPONDER &&
-      getReplyIntentPersona(intent).shouldSkipAuto
-    ) {
+    // Uncertain: neither auto-reply nor auto-skip. The comment is deliberately
+    // left unprocessed so it still reaches a person in the author inbox.
+    if (classification?.isNeedsReview) {
+      await this.botActivitiesService.updateStatus(
+        activityId,
+        request.organizationId,
+        {
+          completedAt: new Date(),
+          errorMessage:
+            'Intent confidence below threshold — queued for human review',
+          status: BotActivityStatus.SKIPPED,
+        },
+      );
+      return {
+        ...state,
+        skipReason: BotActivitySkipReason.NEEDS_REVIEW,
+        skipped: true,
+      };
+    }
+    if (classification?.isAutoSkip) {
       await this.botActivitiesService.updateStatus(
         activityId,
         request.organizationId,

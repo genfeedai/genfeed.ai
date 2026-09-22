@@ -12,8 +12,14 @@ import { ReplyBotOrchestratorService } from '@api/services/reply-bot/reply-bot-o
 import { REPLY_BOT_ACTION_IDS } from '@api/services/reply-bot/reply-bot-workflow-definition';
 import { ReplyCandidatePrefilterService } from '@api/services/reply-bot/reply-candidate-prefilter.service';
 import { ReplyGenerationService } from '@api/services/reply-bot/reply-generation.service';
+import { ReplyIntentClassifierService } from '@api/services/reply-bot/reply-intent-classifier.service';
 import { SocialMonitorService } from '@api/services/reply-bot/social-monitor.service';
-import { ConfigService } from '@libs/config/config.service';
+import {
+  BotActivitySkipReason,
+  BotActivityStatus,
+  ReplyBotType,
+} from '@genfeedai/contracts';
+import type { IReplyIntentClassification } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Test } from '@nestjs/testing';
 
@@ -26,31 +32,175 @@ describe('ReplyBotOrchestratorService workflow boundary', () => {
   const workflowQueue = {
     queueSystemWorkflow: vi.fn(),
   };
+  const replyBotConfigsService = { findOneById: vi.fn() };
+  const rateLimitService = { checkRateLimit: vi.fn() };
+  const botActivitiesService = {
+    create: vi.fn(),
+    findIntentReviewHold: vi.fn(),
+    updateStatus: vi.fn(),
+  };
+  const processedTweetsService = { markAsProcessed: vi.fn() };
+  const replyIntentClassifierService = { classify: vi.fn() };
   let service: ReplyBotOrchestratorService;
+
+  const CONTENT_REQUEST = {
+    botConfigId: 'bot-1',
+    content: {
+      authorId: 'author-1',
+      authorUsername: 'reader',
+      createdAt: new Date().toISOString(),
+      id: 'comment-1',
+      replyContext: 'How we ship weekly',
+      text: 'this is mid garbage cope harder',
+    },
+    credentialId: 'credential-1',
+    organizationId: 'org-1',
+  };
+
+  /** Drives the claim action the way the workflow runner would. */
+  async function claimContent(
+    classification: IReplyIntentClassification,
+  ): Promise<Record<string, unknown>> {
+    replyBotConfigsService.findOneById.mockResolvedValue({
+      brandId: 'brand-1',
+      id: 'bot-1',
+      type: ReplyBotType.COMMENT_RESPONDER,
+      userId: 'user-1',
+    });
+    rateLimitService.checkRateLimit.mockResolvedValue({ allowed: true });
+    botActivitiesService.create.mockResolvedValue({ id: 'activity-1' });
+    replyIntentClassifierService.classify.mockResolvedValue(classification);
+    service.onModuleInit();
+    const claim = workflowRunner.registerAction.mock.calls.find(
+      ([actionId]) => actionId === REPLY_BOT_ACTION_IDS.CLAIM_CONTENT,
+    )?.[1] as (request: {
+      input: Record<string, unknown>;
+    }) => Promise<Record<string, unknown>>;
+
+    return claim({ input: { request: CONTENT_REQUEST } });
+  }
 
   beforeEach(async () => {
     const module = await Test.createTestingModule({
       providers: [
         ReplyBotOrchestratorService,
-        { provide: ConfigService, useValue: {} },
         { provide: LoggerService, useValue: { error: vi.fn() } },
         { provide: SocialMonitorService, useValue: {} },
         { provide: ReplyGenerationService, useValue: {} },
         { provide: BotActionExecutorService, useValue: {} },
-        { provide: RateLimitService, useValue: {} },
+        { provide: RateLimitService, useValue: rateLimitService },
         { provide: ReplyCandidatePrefilterService, useValue: {} },
-        { provide: ReplyBotConfigsService, useValue: {} },
+        { provide: ReplyBotConfigsService, useValue: replyBotConfigsService },
         { provide: MonitoredAccountsService, useValue: {} },
-        { provide: BotActivitiesService, useValue: {} },
-        { provide: ProcessedTweetsService, useValue: {} },
+        { provide: BotActivitiesService, useValue: botActivitiesService },
+        { provide: ProcessedTweetsService, useValue: processedTweetsService },
         { provide: CredentialsService, useValue: {} },
         { provide: SystemWorkflowRunnerService, useValue: workflowRunner },
         { provide: WorkflowExecutionQueueService, useValue: workflowQueue },
         { provide: AuthorReplyLoopService, useValue: {} },
+        {
+          provide: ReplyIntentClassifierService,
+          useValue: replyIntentClassifierService,
+        },
       ],
     }).compile();
     service = module.get(ReplyBotOrchestratorService);
     vi.clearAllMocks();
+    botActivitiesService.findIntentReviewHold.mockResolvedValue(null);
+  });
+
+  describe('comment intent gate', () => {
+    it('records the decided intent and its confidence on the activity', async () => {
+      await claimContent({
+        confidence: 0.93,
+        intent: 'question',
+        isAutoSkip: false,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      expect(botActivitiesService.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          intent: 'question',
+          intentConfidence: 0.93,
+          intentSource: 'decision',
+          isIntentNeedsReview: false,
+        }),
+      );
+    });
+
+    it('auto-skips a confident troll and closes the comment out', async () => {
+      const state = await claimContent({
+        confidence: 0.96,
+        intent: 'troll',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      expect(state).toMatchObject({
+        skipReason: BotActivitySkipReason.FILTERED_OUT,
+        skipped: true,
+      });
+      expect(processedTweetsService.markAsProcessed).toHaveBeenCalledOnce();
+    });
+
+    it('queues an uncertain comment for review without closing it out', async () => {
+      const state = await claimContent({
+        confidence: 0.5,
+        intent: 'troll',
+        isAutoSkip: false,
+        isNeedsReview: true,
+        source: 'regex',
+      });
+
+      expect(state).toMatchObject({
+        skipReason: BotActivitySkipReason.NEEDS_REVIEW,
+        skipped: true,
+      });
+      expect(botActivitiesService.updateStatus).toHaveBeenCalledWith(
+        'activity-1',
+        'org-1',
+        expect.objectContaining({ status: BotActivityStatus.SKIPPED }),
+      );
+      // Still unprocessed, so the comment reaches a person in the inbox.
+      expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
+    });
+
+    it('never decides a comment already queued for a person again', async () => {
+      const state = await claimContent({
+        confidence: 0.99,
+        intent: 'troll',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+      vi.clearAllMocks();
+      botActivitiesService.findIntentReviewHold.mockResolvedValue({
+        id: 'activity-9',
+        intent: 'troll',
+        isIntentNeedsReview: true,
+      });
+      const held = await claimContent({
+        confidence: 0.99,
+        intent: 'troll',
+        isAutoSkip: true,
+        isNeedsReview: false,
+        source: 'decision',
+      });
+
+      // The first poll is unremarkable; the second finds the hold and stops
+      // before spending a decision or writing another activity row.
+      expect(state).toMatchObject({ skipped: true });
+      expect(held).toMatchObject({
+        intent: 'troll',
+        skipReason: BotActivitySkipReason.NEEDS_REVIEW,
+        skipped: true,
+      });
+      expect(replyIntentClassifierService.classify).not.toHaveBeenCalled();
+      expect(botActivitiesService.create).not.toHaveBeenCalled();
+      expect(processedTweetsService.markAsProcessed).not.toHaveBeenCalled();
+    });
   });
 
   it('registers every reusable action and all child workflows', () => {

@@ -26,6 +26,7 @@ export * from './ai/harness-pack-registry.interface';
 export * from './ai/harness-profile.interface';
 export * from './ai/llm-structured-output.interface';
 export * from './ai/media-artifact-result.interface';
+export * from './ai/reply-intent-decision.interface';
 export * from './ai/tone-profile.interface';
 export * from './ai/typed-decision.interface';
 export * from './analytics/account-analytics.interface';

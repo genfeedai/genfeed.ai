@@ -40,9 +40,14 @@ import {
   clampReplyMaxAgeHours,
   DEFAULT_REPLY_MAX_AGE_HOURS,
   getReplyIntentPersona,
-  type ReplyIntent,
+  isReplyIntent,
   resolveReplyIntent,
 } from '@api/services/reply-bot/reply-intent.util';
+import {
+  isReplyIntentAutoSkip,
+  isReplyIntentSource,
+  ReplyIntentClassifierService,
+} from '@api/services/reply-bot/reply-intent-classifier.service';
 import {
   type SocialContentData,
   SocialMonitorService,
@@ -62,7 +67,12 @@ import {
   toPrismaCredentialPlatform,
   WorkflowExecutionTrigger,
 } from '@genfeedai/contracts';
-import type { IReplyBotCredentialData } from '@genfeedai/contracts/interfaces';
+import type {
+  IReplyBotCredentialData,
+  IReplyIntentClassification,
+  ReplyIntent,
+  ReplyIntentSource,
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { EncryptionUtil } from '@libs/utils/encryption/encryption.util';
@@ -84,6 +94,13 @@ type AuthorReplyWorkflowRequest = {
   commentId: string;
   commentText: string;
   intent?: ReplyIntent;
+  /**
+   * Set by the automated inbound path, which already gated the comment on a
+   * decision (#4866), so the workflow neither re-decides nor mislabels that
+   * intent as an operator override. Absent on an operator's own override.
+   */
+  intentConfidence?: number;
+  intentSource?: ReplyIntentSource;
   organizationId: string;
   parentPostId?: string;
   parentPostPreview?: string;
@@ -96,7 +113,13 @@ type AuthorReplyWorkflowState = {
   credentialId?: string;
   draftResult?: AuthorReplyDraftResult;
   intent: ReplyIntent;
+  /** Present only when a decision answered; 0..1 (#4866). */
+  intentConfidence?: number;
   intentLabel: string;
+  intentSource: ReplyIntentSource;
+  /** Auto-skip decided by the classifier, not by the persona table (#4866). */
+  isIntentAutoSkip: boolean;
+  isIntentNeedsReview: boolean;
   platform: ReplyBotPlatform;
   replyText?: string;
   request: AuthorReplyWorkflowRequest;
@@ -123,6 +146,7 @@ export class AuthorReplyLoopService implements OnModuleInit {
     private readonly credentialsService: CredentialsService | undefined,
     private readonly processedTweetsService: ProcessedTweetsService,
     private readonly xActivitySubscriptionService: XActivitySubscriptionService,
+    private readonly replyIntentClassifierService: ReplyIntentClassifierService,
     @Optional() private readonly moduleRef?: ModuleRef,
     @Optional()
     private readonly botActionExecutorService?: BotActionExecutorService,
@@ -483,6 +507,10 @@ export class AuthorReplyLoopService implements OnModuleInit {
           continue;
         }
 
+        // The inbox lists up to MAX_PARENT_POSTS x MAX_COMMENTS_PER_POST
+        // comments per load; one provider call each would be hundreds of
+        // decisions for a listing nobody acts on yet. The gated decision runs
+        // where an auto-reply is actually sent, and on draft/send below.
         const intent = resolveReplyIntent(comment.text);
         const persona = getReplyIntentPersona(intent);
 
@@ -574,15 +602,59 @@ export class AuthorReplyLoopService implements OnModuleInit {
     return result;
   }
 
+  /**
+   * The inbound auto path classifies once, before it decides to auto-send at
+   * all; re-deciding here would pay a second provider call and could disagree
+   * with the answer that let the comment through.
+   */
+  private readUpstreamClassification(
+    request: AuthorReplyWorkflowRequest,
+  ): IReplyIntentClassification | undefined {
+    if (
+      !isReplyIntent(request.intent) ||
+      !isReplyIntentSource(request.intentSource)
+    ) {
+      return undefined;
+    }
+
+    return {
+      ...(request.intentConfidence === undefined
+        ? {}
+        : { confidence: request.intentConfidence }),
+      intent: request.intent,
+      isAutoSkip: isReplyIntentAutoSkip(request.intent, request.intentSource),
+      isNeedsReview: false,
+      source: request.intentSource,
+    };
+  }
+
   private async resolveIntentAction(
     action: SystemWorkflowActionRequest,
   ): Promise<AuthorReplyWorkflowState> {
     const request = this.readWorkflowRequest(action.input);
-    const intent = resolveReplyIntent(request.commentText, request.intent);
-    const persona = getReplyIntentPersona(intent);
+    const classification =
+      this.readUpstreamClassification(request) ??
+      (await this.replyIntentClassifierService.classify({
+        authorHandle: request.commentAuthor,
+        brandId: request.brandId,
+        commentText: request.commentText,
+        organizationId: request.organizationId,
+        override: request.intent,
+        ...(request.parentPostPreview === undefined
+          ? {}
+          : { postCaption: request.parentPostPreview }),
+        userId: request.userId,
+      }));
+    const persona = getReplyIntentPersona(classification.intent);
     return {
-      intent,
+      intent: classification.intent,
+      ...(classification.confidence === undefined
+        ? {}
+        : { intentConfidence: classification.confidence }),
       intentLabel: persona.label,
+      intentSource: classification.source,
+      isIntentAutoSkip: classification.isAutoSkip,
+      isIntentNeedsReview: classification.isNeedsReview,
       platform: toAuthorReplyPlatform(request.platform),
       request,
     };
@@ -625,12 +697,12 @@ export class AuthorReplyLoopService implements OnModuleInit {
     const { request } = state;
     const persona = getReplyIntentPersona(state.intent);
     const explicitReply = request.replyText?.trim();
-    if (state.intent === 'spam' && !explicitReply && request.parentPostId) {
+    if (state.isIntentAutoSkip && !explicitReply && request.parentPostId) {
       throw new BadRequestException(
-        'Spam comments are skipped by default — provide replyText to force-send',
+        `${persona.label} comments are skipped by default — provide replyText to force-send`,
       );
     }
-    if (persona.shouldSkipAuto && !request.intent && !explicitReply) {
+    if (state.isIntentAutoSkip && !request.intent && !explicitReply) {
       return {
         ...state,
         draftResult: {
@@ -638,7 +710,12 @@ export class AuthorReplyLoopService implements OnModuleInit {
           draft: '',
           harnessApplied: false,
           intent: state.intent,
+          ...(state.intentConfidence === undefined
+            ? {}
+            : { intentConfidence: state.intentConfidence }),
           intentLabel: state.intentLabel,
+          intentSource: state.intentSource,
+          isIntentNeedsReview: state.isIntentNeedsReview,
         },
         replyText: '',
       };
@@ -682,7 +759,12 @@ export class AuthorReplyLoopService implements OnModuleInit {
         draft: replyText,
         harnessApplied: !explicitReply,
         intent: state.intent,
+        ...(state.intentConfidence === undefined
+          ? {}
+          : { intentConfidence: state.intentConfidence }),
         intentLabel: state.intentLabel,
+        intentSource: state.intentSource,
+        isIntentNeedsReview: state.isIntentNeedsReview,
       },
       replyText,
     };

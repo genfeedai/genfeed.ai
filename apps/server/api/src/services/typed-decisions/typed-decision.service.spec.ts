@@ -100,6 +100,18 @@ describe('TypedDecisionService', () => {
   });
 
   describe('provider binding', () => {
+    it('reports the null provider as unbound and any other as bound', async () => {
+      const { providerResolver, service } = createHarness(createProvider());
+
+      await expect(service.isProviderBound()).resolves.toBe(true);
+
+      vi.mocked(providerResolver.resolve).mockResolvedValue(
+        new NullTypedDecisionProvider(),
+      );
+
+      await expect(service.isProviderBound()).resolves.toBe(false);
+    });
+
     it('re-resolves per call so an operator kill switch lands mid-process', async () => {
       const provider = createProvider();
       const { providerResolver, service } = createHarness(provider);

@@ -3,7 +3,10 @@
  * Not reply-guy / mention farming.
  */
 
-import type { ReplyIntent } from '@api/services/reply-bot/reply-intent.util';
+import type {
+  ReplyIntent,
+  ReplyIntentSource,
+} from '@genfeedai/contracts/interfaces';
 
 export type AuthorReplyInboxItem = {
   authorDisplayName?: string;
@@ -48,7 +51,12 @@ export type AuthorReplyDraftResult = {
   draft: string;
   harnessApplied: boolean;
   intent: ReplyIntent;
+  /** Present only when a decision answered; 0..1 (#4866). */
+  intentConfidence?: number;
   intentLabel: string;
+  intentSource: ReplyIntentSource;
+  /** Neither auto-replied nor auto-skipped — a person decides (#4866). */
+  isIntentNeedsReview: boolean;
 };
 
 export type AuthorReplySendResult = {

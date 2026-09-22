@@ -146,6 +146,33 @@ export class BotActivitiesService extends BaseService<
   }
 
   /**
+   * The needs-review hold on a comment (#4866): the skipped activity that
+   * queued it for a person. While one exists the bot must not decide the
+   * comment again — a redelivered webhook or the next poll would otherwise
+   * spend another decision and, on a confident answer, auto-reply to a
+   * comment a human was asked to handle. The hold ends when the human flow
+   * marks the comment processed; callers check that first.
+   */
+  async findIntentReviewHold(
+    organizationId: string,
+    triggerTweetId: string,
+  ): Promise<BotActivityDocument | null> {
+    const existing = await this.prisma.botActivity.findFirst({
+      orderBy: { createdAt: 'desc' },
+      where: scopedWhere(organizationId, {
+        AND: [
+          { data: { equals: triggerTweetId, path: ['triggerTweetId'] } },
+          { data: { equals: true, path: ['isIntentNeedsReview'] } },
+        ],
+      }),
+    });
+
+    return existing
+      ? this.normalizeActivity(existing as unknown as BotActivityDocument)
+      : null;
+  }
+
+  /**
    * Find activities with filters and pagination
    */
   async findWithFilters(

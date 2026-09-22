@@ -77,13 +77,14 @@ describe('reply-bot.enum', () => {
   });
 
   describe('BotActivitySkipReason', () => {
-    it('should have 5 members', () => {
-      expect(Object.values(BotActivitySkipReason)).toHaveLength(5);
+    it('should have 6 members', () => {
+      expect(Object.values(BotActivitySkipReason)).toHaveLength(6);
     });
 
     it('should have correct values', () => {
       expect(BotActivitySkipReason.RATE_LIMITED).toBe('rate_limited');
       expect(BotActivitySkipReason.FILTERED_OUT).toBe('filtered_out');
+      expect(BotActivitySkipReason.NEEDS_REVIEW).toBe('needs_review');
       expect(BotActivitySkipReason.ALREADY_PROCESSED).toBe('already_processed');
       expect(BotActivitySkipReason.BOT_PAUSED).toBe('bot_paused');
       expect(BotActivitySkipReason.OUTSIDE_SCHEDULE).toBe('outside_schedule');
