@@ -3723,6 +3723,14 @@ model Model {
   isPublic      Boolean        @default(true)
   isFree        Boolean        @default(false)
 
+  // Confidence the typed decision had in the `category` stored on this row,
+  // at discovery time (#4869). Always about the category actually persisted:
+  // null on seeded rows, on every keyword-table answer, in shadow mode, and
+  // whenever a sub-threshold provider answer disagreed with the kept
+  // category (that disagreement is recorded through decision telemetry).
+  // A low value is the operator's cue that the draft needs a look.
+  categoryConfidence Float?
+
   discoveredAt    DateTime?
   lastSyncedAt    DateTime?
   reviewedAt      DateTime?
