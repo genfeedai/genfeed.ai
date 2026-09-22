@@ -123,14 +123,22 @@ const FREE_TEXT_PROPERTY_KEYS = new Set([
   'title',
   'utm_term',
 ]);
+/**
+ * The SDK also stores campaign params under prefixed keys (`$initial_utm_term`,
+ * `$session_entry_utm_term`), which the exact-name set above would miss.
+ */
+const FREE_TEXT_PROPERTY_SUFFIX_PATTERN = /(?:^|_)(?:utm_term|ph_keyword)$/i;
 const SENSITIVE_PROPERTY_KEY_PATTERN =
   /(billing|card|completion|content|cookie|credential|cvv|email|message|password|payment|prompt|secret|stripe|text|token)/i;
 const EMAIL_LIKE_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const CREDENTIAL_LIKE_RE =
   /^(?:bearer\s+|eyJ[A-Za-z0-9_-]+\.|p(?:hc|hx)_[A-Za-z0-9]+|(?:pk|sk)_(?:live|test)_[A-Za-z0-9]+|(?:cs|pi|pm|seti|src|tok)_[A-Za-z0-9_]+$)/i;
 const PAYMENT_CARD_LIKE_RE = /^\d{13,19}$/;
-/** A property value worth sanitising as a URL: absolute or path-relative. */
-const URL_LIKE_RE = /^(?:https?:\/\/|\/)/;
+/**
+ * A property value worth sanitising as a URL: absolute or path-relative, in
+ * any scheme casing, after trimming (campaign params arrive verbatim).
+ */
+const URL_LIKE_RE = /^(?:https?:\/\/|\/)/i;
 /** Bound on recursion into nested property bags ($set/$set_once/$groups). */
 const MAX_SCRUB_DEPTH = 6;
 const BLOCKED_PROPERTY_VALUE = Symbol('blocked-analytics-property');
@@ -154,7 +162,8 @@ function scrubPropertyValue(value: unknown, depth: number): unknown {
     ) {
       return BLOCKED_PROPERTY_VALUE;
     }
-    return URL_LIKE_RE.test(value) ? sanitizeAnalyticsUrl(value) : value;
+    const trimmed = value.trim();
+    return URL_LIKE_RE.test(trimmed) ? sanitizeAnalyticsUrl(trimmed) : value;
   }
   if (value === null || typeof value !== 'object') {
     return value;
@@ -182,6 +191,7 @@ function scrubPropertyValue(value: unknown, depth: number): unknown {
   for (const key of Object.keys(record)) {
     if (
       FREE_TEXT_PROPERTY_KEYS.has(key.toLowerCase()) ||
+      FREE_TEXT_PROPERTY_SUFFIX_PATTERN.test(key) ||
       SENSITIVE_PROPERTY_KEY_PATTERN.test(key)
     ) {
       continue;
@@ -206,12 +216,44 @@ function scrubEventProperties(
   event: CaptureResult | null,
 ): CaptureResult | null {
   if (event?.properties) {
-    event.properties = scrubPropertyValue(
-      event.properties,
+    const transport = pickTransportProperties(event.properties);
+    event.properties = {
+      ...(scrubPropertyValue(event.properties, 0) as typeof event.properties),
+      ...transport,
+    };
+  }
+  // posthog-js sends person updates (initial URL, referrer, campaign params)
+  // as top-level `$set`/`$set_once`, outside `properties`.
+  if (event?.$set) {
+    event.$set = scrubPropertyValue(event.$set, 0) as typeof event.$set;
+  }
+  if (event?.$set_once) {
+    event.$set_once = scrubPropertyValue(
+      event.$set_once,
       0,
-    ) as typeof event.properties;
+    ) as typeof event.$set_once;
   }
   return event;
+}
+
+/**
+ * Properties posthog-js adds for routing rather than description. `token` is
+ * the public project key: its name matches the sensitive-key pattern and its
+ * `phc_` value matches the credential pattern, so the scrub would strip it and
+ * ingestion would reject every event as unattributed to any project.
+ */
+const POSTHOG_TRANSPORT_PROPERTY_KEYS = ['token', 'distinct_id'] as const;
+
+function pickTransportProperties(
+  properties: CaptureResult['properties'],
+): Partial<CaptureResult['properties']> {
+  const transport: Partial<CaptureResult['properties']> = {};
+  for (const key of POSTHOG_TRANSPORT_PROPERTY_KEYS) {
+    if (typeof properties[key] === 'string') {
+      transport[key] = properties[key];
+    }
+  }
+  return transport;
 }
 
 type AnalyticsDeliveryFailureCode =
