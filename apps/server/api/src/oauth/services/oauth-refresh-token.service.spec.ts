@@ -704,11 +704,21 @@ describe('OAuthTokenExchangeDto', () => {
     ]);
   });
 
-  it('rejects unknown grant types', async () => {
+  it('lets an unknown grant type through so the controller answers unsupported_grant_type', async () => {
     const errors = await validate(
       plainToInstance(OAuthTokenExchangeDto, {
         client_id: clientId,
         grant_type: 'client_credentials',
+      }),
+    );
+
+    expect(errors).toHaveLength(0);
+  });
+
+  it('rejects a missing grant type', async () => {
+    const errors = await validate(
+      plainToInstance(OAuthTokenExchangeDto, {
+        client_id: clientId,
       }),
     );
 

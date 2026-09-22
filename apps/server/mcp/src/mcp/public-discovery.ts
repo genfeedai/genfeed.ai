@@ -1,8 +1,16 @@
 import { isPublicMcpResourceUri } from '@mcp/mcp/resource-catalog';
 
+/**
+ * Methods a caller may send without a bearer token. `initialize` is
+ * deliberately excluded: an MCP client decides whether a server needs
+ * authorization from the response to `initialize` (MCP authorization spec,
+ * "servers MUST return 401"). Answering it tokenless let Cursor and Grok Bot
+ * mark Genfeed connected with ~119 tools while every tool call failed, and
+ * skipped the OAuth flow entirely until the first `tools/call` (#4950).
+ * Registries and scanners still get the catalog from `tools/list` and the
+ * public server card.
+ */
 const PUBLIC_DISCOVERY_METHODS = new Set([
-  'initialize',
-  'notifications/initialized',
   'ping',
   'resources/list',
   'tools/list',

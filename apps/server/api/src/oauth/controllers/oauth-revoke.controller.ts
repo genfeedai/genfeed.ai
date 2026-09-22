@@ -1,3 +1,4 @@
+import { OAuthExceptionFilter } from '@api/oauth/filters/oauth-exception.filter';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { Public } from '@libs/decorators/public.decorator';
 import {
@@ -7,6 +8,7 @@ import {
   HttpCode,
   HttpStatus,
   Post,
+  UseFilters,
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { OAuthRevokeTokenDto } from '../dto/revoke-token.dto';
@@ -14,6 +16,7 @@ import { OAuthRefreshTokenService } from '../services/oauth-refresh-token.servic
 
 @ApiTags('OAuth')
 @Controller('oauth')
+@UseFilters(OAuthExceptionFilter)
 export class OAuthRevokeController {
   constructor(private readonly refreshTokenService: OAuthRefreshTokenService) {}
 
@@ -27,7 +30,7 @@ export class OAuthRevokeController {
   @HttpCode(HttpStatus.OK)
   @Header('Cache-Control', 'no-store')
   @Header('Pragma', 'no-cache')
-  @RateLimit({ limit: 10, scope: 'ip', windowMs: 60_000 })
+  @RateLimit({ limit: 30, scope: 'ip', windowMs: 60_000 })
   @ApiOperation({ summary: 'Revoke an MCP OAuth refresh or access token' })
   @ApiResponse({ status: HttpStatus.OK })
   async revoke(@Body() dto: OAuthRevokeTokenDto): Promise<void> {
