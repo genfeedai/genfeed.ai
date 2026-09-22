@@ -3,11 +3,15 @@ import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { describe, expect, it } from 'vitest';
 
 describe('RecordSignupAttributionDto', () => {
-  const transform = (value: Record<string, unknown>) =>
-    new ValidationPipe().transform(value, {
+  // `ValidationPipe.transform` is typed `unknown`; the metatype above is what
+  // the pipe actually builds, so the spec reads the DTO's own fields.
+  const transform = async (
+    value: Record<string, unknown>,
+  ): Promise<RecordSignupAttributionDto> =>
+    (await new ValidationPipe().transform(value, {
       metatype: RecordSignupAttributionDto,
       type: 'body',
-    });
+    })) as RecordSignupAttributionDto;
 
   it('normalizes values and strips undeclared fields', async () => {
     await expect(
