@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/nextjs';
+import { initAttributionForwarding } from './packages/analytics/attribution';
 import { initWebsiteAnalytics } from './packages/analytics/posthog-client';
 import { dropNonBrowserRuntimeEvent } from './packages/sentry/drop-non-browser-runtime-event';
 
@@ -36,5 +37,10 @@ Sentry.init({
 // pageviews + CTA conversions. No-ops (and never loads posthog-js) when no
 // build-time key is present. See packages/analytics/posthog-client.ts.
 initWebsiteAnalytics();
+
+// Forward the landing page's utm_* / ref parameters onto every link into the
+// app so a signup can be joined to the channel that produced it. No storage:
+// the parameters ride the URL only. See packages/analytics/attribution.ts.
+initAttributionForwarding();
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
