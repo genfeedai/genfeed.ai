@@ -53,7 +53,7 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
         uploadMethod: 'PUT',
         uploadUrl: 'https://upload.example.test',
         publicUrl: 'https://cdn.example.test/asset-1',
-        s3Key: 'asset-1',
+        s3Key: 'ingredients/images/asset-1',
         expiresIn: 3600,
       }),
     };
@@ -116,7 +116,7 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
       uploadMethod: 'POST_JSON',
       uploadUrl: 'http://files.local/v1/files/upload',
       publicUrl: 'http://files.local/asset-1',
-      s3Key: 'asset-1',
+      s3Key: 'ingredients/images/asset-1',
       expiresIn: 3600,
     });
     const result = await handler.requestMediaUpload(params, {
@@ -127,8 +127,8 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
       method: 'POST_JSON',
       localUpload: {
         key: 'asset-1',
-        sourceType: 'base64',
-        type: IngredientCategory.IMAGE,
+        source: { type: 'base64', contentType: 'image/png' },
+        type: 'images',
       },
     });
     expect(result.data).not.toHaveProperty('headers');

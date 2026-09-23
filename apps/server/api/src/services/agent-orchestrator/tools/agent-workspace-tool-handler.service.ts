@@ -6,7 +6,11 @@ import { PostsService } from '@api/collections/posts/services/posts.service';
 import { resolvePublishValidationMedia } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { PresignedUploadService } from '@api/services/uploads/presigned-upload.service';
-import { IngredientCategory, TargetExecutionState } from '@genfeedai/contracts';
+import {
+  categoryToPlural,
+  IngredientCategory,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import { postExecutionStateReadFilter } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import { createLibraryAssetRoute } from '@genfeedai/contracts/constants';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
@@ -282,9 +286,11 @@ export class AgentWorkspaceToolHandler {
             ? { headers: { 'Content-Type': contentType } }
             : {
                 localUpload: {
-                  key: presigned.s3Key,
-                  sourceType: 'base64',
-                  type: UPLOAD_CATEGORY_TO_INGREDIENT[categoryName],
+                  key: presigned.id,
+                  source: { contentType, type: 'base64' },
+                  type: categoryToPlural(
+                    UPLOAD_CATEGORY_TO_INGREDIENT[categoryName],
+                  ),
                 },
               }),
           uploadUrl: presigned.uploadUrl,
