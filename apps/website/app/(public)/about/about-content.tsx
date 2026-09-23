@@ -118,9 +118,10 @@ const DIFFERENTIATORS = [
   {
     body: (
       <>
-        One credit is one cent. An image costs 50 credits ($0.50) and an
-        8-second reel costs 600 credits ($6.00), and you see the price before
-        you generate.
+        At the {PLAN_COPY.payg.name} rate one credit is one cent, and
+        subscriptions buy credits cheaper. An image costs 50 credits and an
+        8-second reel costs 600 credits, and you see the price before you
+        generate.
       </>
     ),
     title: 'Published prices per output',
@@ -190,7 +191,7 @@ const KEY_FACTS = [
   },
   {
     label: 'Pricing',
-    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.pro.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.nameWithPrice}. One credit costs $0.01.`,
+    value: `${PLAN_COPY.payg.nameWithPrice}, ${PLAN_COPY.pro.nameWithPrice}, ${PLAN_COPY.scale.nameWithPrice}, ${PLAN_COPY.enterprise.nameWithPrice}. Credits cost $0.01 each on ${PLAN_COPY.payg.name} and less on subscriptions.`,
   },
   {
     label: 'Contract terms',
@@ -271,7 +272,7 @@ const FAQ_ITEMS = [
   },
   {
     answer:
-      'No. You own the rights to what you generate, and your content is never used for training or shared with third parties.',
+      'Genfeed does not train models on your content, and you own the rights to what you generate. Prompts and media are sent to the AI providers that run each job and are processed under their terms.',
     question: 'Does Genfeed train AI on my content?',
   },
   {
