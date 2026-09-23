@@ -131,7 +131,7 @@ const MetricCard = memo(function MetricCard({
           valueClassName,
         )}
       >
-        {resolveValueContent(value, isLoading, size)}
+        {resolveValueContent(value, false, size)}
       </p>
 
       {hasTrend && !isLoading ? (
@@ -174,6 +174,8 @@ const MetricCard = memo(function MetricCard({
       bodyClassName={cn('flex h-full flex-col gap-0', BODY_PADDING[size])}
       className={cn('h-full', className)}
       data-testid="metric-card"
+      isLoading={isLoading}
+      loadingLabel={`Loading ${label}`}
     >
       <div className="flex items-center gap-2">
         {Icon ? (

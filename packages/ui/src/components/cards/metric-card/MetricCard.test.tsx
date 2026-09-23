@@ -37,12 +37,19 @@ describe('MetricCard', () => {
     expect(screen.getByText('Orgs')).toBeInTheDocument();
   });
 
-  it('shows a loading skeleton for the value', () => {
+  it('shows one skeleton for the entire loading tile', () => {
     const { container } = render(
       <MetricCard isLoading label="Models" value="10" />,
     );
-    expect(screen.queryByText('10')).not.toBeInTheDocument();
-    expect(container.querySelector('.animate-pulse')).not.toBeNull();
+    expect(screen.getByText('10').closest('[aria-hidden]')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
+    expect(screen.getByText('Models').closest('[inert]')).not.toBeNull();
+    expect(
+      screen.getByRole('status', { name: 'Loading Models' }).childElementCount,
+    ).toBe(0);
+    expect(container.querySelectorAll('.animate-pulse')).toHaveLength(1);
   });
 
   it('renders inline appearance without a framed tile', () => {

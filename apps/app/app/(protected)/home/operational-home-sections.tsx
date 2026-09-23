@@ -38,9 +38,7 @@ import { NotificationsService } from '@services/core/notifications.service';
 import MetricCard, { MetricSummary } from '@ui/cards/metric-card/MetricCard';
 import { MetricCardGrid } from '@ui/cards/metric-card/MetricCardGrid';
 import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { Skeleton } from '@ui/display/skeleton/skeleton';
 import { ListRow } from '@ui/lists/list-row/ListRow';
-import { ListRowsSkeleton } from '@ui/lists/list-row/ListRowsSkeleton';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
 import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
@@ -266,15 +264,14 @@ function NeedsYouSurface({
   return (
     <WorkspaceSurface
       data-testid="operational-home-needs-you"
+      isLoading={isLoading}
       density="compact"
       flush
       title={
         <SurfaceTitleLink href={reviewHref}>Attention queue</SurfaceTitleLink>
       }
     >
-      {isLoading ? (
-        <ListRowsSkeleton rows={3} />
-      ) : isError ? (
+      {isError ? (
         <ErrorLine
           description="Approval state is temporarily unavailable. Publishing and credential checks remain available."
           onRetry={onRetry}
@@ -553,9 +550,7 @@ function UpcomingScheduleBlock({
             <RefreshCw aria-hidden="true" className="size-3.5" />
           </Button>
         </div>
-      ) : scheduleDays === null ? (
-        <Skeleton className="w-2/3" height={12} variant="text" />
-      ) : (
+      ) : scheduleDays === null ? null : (
         <MetricSummary
           data-testid="upcoming-schedule-summary"
           items={[
@@ -616,13 +611,12 @@ function PublishingSurface({
     <WorkspaceSurface
       className="h-full"
       data-testid="operational-home-publishing"
+      isLoading={isLoading}
       density="compact"
       flush
       title={<SurfaceTitleLink href={postsHref}>Publishing</SurfaceTitleLink>}
     >
-      {isLoading ? (
-        <ListRowsSkeleton rows={3} />
-      ) : isError ? (
+      {isError ? (
         <ErrorLine
           description="Publishing state could not be loaded. Credential health and activity remain available."
           onRetry={onRetry}
@@ -697,18 +691,13 @@ function CredentialHealthSurface({
     <WorkspaceSurface
       className="h-full"
       data-testid="operational-home-credentials"
+      isLoading={isLoading}
+      loadingLabel={translate('home.credentials.loading')}
       density="compact"
       flush
       title={<SurfaceTitleLink href={settingsHref}>Accounts</SurfaceTitleLink>}
     >
-      {isLoading ? (
-        <>
-          <span className="sr-only" role="status">
-            {translate('home.credentials.loading')}
-          </span>
-          <ListRowsSkeleton rows={3} />
-        </>
-      ) : isError ? (
+      {isError ? (
         <ErrorLine
           description="Credential health is temporarily unavailable. Approval, publishing, and activity summaries remain available."
           onRetry={onRetry}
@@ -751,15 +740,14 @@ function ActivitySurface({ activityHref }: { activityHref: string }) {
   return (
     <WorkspaceSurface
       data-testid="operational-home-activity"
+      isLoading={isLoading}
       density="compact"
       flush
       title={
         <SurfaceTitleLink href={activityHref}>Recent activity</SurfaceTitleLink>
       }
     >
-      {isLoading ? (
-        <ListRowsSkeleton rows={4} />
-      ) : isError ? (
+      {isError ? (
         <ErrorLine
           description="Recent activity is temporarily unavailable. Approval, publishing, and credential summaries remain available."
           onRetry={refresh}
@@ -812,6 +800,7 @@ export default function OperationalHomeSections({
   const {
     executions,
     isLoading: areExecutionsLoading,
+    isError: hasExecutionsError,
     refresh: refreshExecutions,
     stats: executionStats,
   } = useWorkflowExecutions({ limit: 20, sort: '-createdAt' });
@@ -918,9 +907,9 @@ export default function OperationalHomeSections({
           brandId={brandId}
           brandSlug={brandSlug}
           executions={completedExecutions}
-          isError={isError}
-          isLoading={isLoading || areExecutionsLoading}
-          onRetry={refreshOperationalState}
+          isError={hasExecutionsError}
+          isLoading={areExecutionsLoading}
+          onRetry={refreshExecutions}
           orgSlug={orgSlug}
         />
         <CredentialHealthSurface

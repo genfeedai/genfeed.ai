@@ -2,6 +2,7 @@ import { ButtonVariant, CardVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { CardProps } from '@genfeedai/props/ui/ui.props';
 import CardIcon from '@ui/card/icon/CardIcon';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { memo } from 'react';
@@ -35,6 +36,8 @@ const Card = memo(function Card({
   label,
   description,
   isDisabled,
+  isLoading = false,
+  loadingLabel,
   onClick,
   onDescriptionClick,
   'data-testid': dataTestId,
@@ -71,7 +74,13 @@ const Card = memo(function Card({
       )}
 
       <div
-        className={cn('relative z-10 flex flex-col gap-3 p-4', bodyClassName)}
+        aria-hidden={isLoading || undefined}
+        inert={isLoading || undefined}
+        className={cn(
+          'relative z-10 flex flex-col gap-3 p-4',
+          isLoading && 'invisible',
+          bodyClassName,
+        )}
       >
         {(icon || label || description || headerAction) && (
           <div className={cn('flex items-start gap-3', children && 'mb-1')}>
@@ -126,6 +135,19 @@ const Card = memo(function Card({
           </div>
         )}
       </div>
+      {isLoading ? (
+        <SkeletonCard
+          className="absolute inset-0 z-20 size-full rounded-[inherit]"
+          label={
+            loadingLabel ??
+            (typeof label === 'string' ? `Loading ${label}` : 'Loading card')
+          }
+          showImage={false}
+          showTitle={false}
+          showDescription={false}
+          showActions={false}
+        />
+      ) : null}
     </>
   );
 
@@ -137,7 +159,8 @@ const Card = memo(function Card({
         data-testid={dataTestId}
         id={id}
         onClick={onClick}
-        isDisabled={isDisabled}
+        isDisabled={isDisabled || isLoading}
+        aria-busy={isLoading || undefined}
         className={cardClasses}
         type="button"
         variant={ButtonVariant.UNSTYLED}
@@ -150,6 +173,7 @@ const Card = memo(function Card({
 
   return (
     <div
+      aria-busy={isLoading || undefined}
       className={cardClasses}
       data-card-index={index}
       data-testid={dataTestId}

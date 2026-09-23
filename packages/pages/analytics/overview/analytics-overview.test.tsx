@@ -261,7 +261,11 @@ vi.mock('@ui/feedback/alert/Alert', () => ({
 }));
 
 vi.mock('@ui/kpi/kpi-section/KPISection', () => ({
-  default: ({ title }: { title: string }) => <div>{title}</div>,
+  default: ({ title, isLoading }: { title: string; isLoading: boolean }) => (
+    <div data-testid="kpi-section" data-loading={isLoading}>
+      {title}
+    </div>
+  ),
 }));
 
 vi.mock('next/navigation', () => ({
@@ -350,7 +354,10 @@ describe('AnalyticsOverview', () => {
 
     const markup = renderOverview();
 
-    expect(markup).toContain('analytics-overview-loading');
+    expect(markup).not.toContain('analytics-overview-loading');
+    expect(markup).toContain('data-testid="kpi-section" data-loading="true"');
+    expect(markup).toContain('top-accounts-section');
+    expect(markup).toContain('performance-dataset-section');
     expect(markup).not.toContain('First run');
     expect(markup).not.toContain('Connect accounts to see analytics');
     expect(markup).not.toContain(
@@ -360,6 +367,14 @@ describe('AnalyticsOverview', () => {
     expect(markup).not.toContain(
       'Brand rankings will unlock after the first measurable wins',
     );
+  });
+
+  it('keeps populated KPI cards visible during a background refresh', () => {
+    mockAnalyticsReturn.analytics.totalViews = 200;
+    mockAnalyticsReturn.isRefreshing = true;
+    const markup = renderOverview();
+    expect(markup).toContain('data-testid="kpi-section" data-loading="false"');
+    expect(markup).not.toContain('data-loading="true"');
   });
 
   it('mounts agent dashboard persistence before the customized dashboard is visible', async () => {

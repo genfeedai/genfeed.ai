@@ -91,7 +91,6 @@ export default function AnalyticsOverview({
     isAgentModified,
     isLeaderboardLoading,
     isLoading,
-    isRefreshing,
     isTimeseriesLoading,
     isTopPostsLoading,
     isUsingAnyCache,
@@ -121,16 +120,7 @@ export default function AnalyticsOverview({
   const isEmptyOverview =
     scope !== PageScope.SUPERADMIN && dashboardState === 'empty';
 
-  if (isEmptyOverview) {
-    if (isLoading) {
-      return (
-        <div
-          className="h-48 w-full animate-pulse rounded-lg bg-muted/60"
-          data-testid="analytics-overview-loading"
-        />
-      );
-    }
-
+  if (isEmptyOverview && !isLoading) {
     return (
       <EmptyStateCard
         icon={ChartColumn}
@@ -161,6 +151,7 @@ export default function AnalyticsOverview({
 
       <div
         className={cn('flex flex-col gap-6', showAgentDashboard && 'hidden')}
+        aria-busy={isLoading || undefined}
       >
         {heroContent && !isLoading ? (
           <AnalyticsOverviewHero
@@ -184,7 +175,7 @@ export default function AnalyticsOverview({
           <KPISection
             gridCols={{ desktop: 4, mobile: 1, tablet: 2 }}
             className="mb-0 bg-background"
-            isLoading={isLoading || isRefreshing}
+            isLoading={isLoading}
             items={primaryKpiItems}
           />
         )}
@@ -193,7 +184,7 @@ export default function AnalyticsOverview({
           <KPISection
             gridCols={{ desktop: 2, mobile: 1, tablet: 2 }}
             className="mb-0 bg-background"
-            isLoading={isLoading || isRefreshing}
+            isLoading={isLoading}
             items={secondaryKpiItems}
           />
         )}
@@ -205,9 +196,10 @@ export default function AnalyticsOverview({
           </>
         ) : null}
 
-        {hasTimeseriesData || isTimeseriesLoading ? (
+        {hasTimeseriesData || isTimeseriesLoading || isLoading ? (
           <Card
             variant={CardVariant.DEFAULT}
+            isLoading={!hasTimeseriesData && (isTimeseriesLoading || isLoading)}
             label={translate('timeseriesTitle')}
             description={translate('timeseriesDescription')}
           >
@@ -220,7 +212,7 @@ export default function AnalyticsOverview({
                 Platform.TWITTER,
                 Platform.FACEBOOK,
               ]}
-              isLoading={isTimeseriesLoading}
+              isLoading={false}
               height={400}
             />
           </Card>
@@ -248,8 +240,11 @@ export default function AnalyticsOverview({
           hasBrandLeaderboard={hasBrandLeaderboard}
           hasOrgLeaderboard={hasOrgLeaderboard}
           hasTopPosts={hasTopPosts}
-          isLeaderboardLoading={isLeaderboardLoading}
-          isTopPostsLoading={isTopPostsLoading}
+          isLeaderboardLoading={
+            isLeaderboardLoading ||
+            (isLoading && !hasBrandLeaderboard && !hasOrgLeaderboard)
+          }
+          isTopPostsLoading={isTopPostsLoading || (isLoading && !hasTopPosts)}
           orgsLeaderboard={orgsLeaderboard}
           scope={scope}
           topPosts={topPosts}
