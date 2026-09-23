@@ -140,13 +140,22 @@ export function AgentChatPromptBar({
       workEvents={workEvents}
     />
   );
-  const hasFollowUpChips =
-    showSuggestedActionsWhenNotEmpty && Boolean(promptBarSuggestions);
   const hasRunningTasks = hasRenderableComposerTasks({
     isRunActive,
     latestProposedPlan,
     workEvents,
   });
+  // Follow-up chips belong to a settled turn. While the task panel, a plan
+  // review, or an input request owns the slot above the composer, chips would
+  // wedge between that panel and the prompt it attaches to.
+  const hasComposerStatusPanel =
+    hasRunningTasks ||
+    latestProposedPlan?.status === 'awaiting_approval' ||
+    Boolean(pendingInputRequest);
+  const hasFollowUpChips =
+    showSuggestedActionsWhenNotEmpty &&
+    Boolean(promptBarSuggestions) &&
+    !hasComposerStatusPanel;
   const topContent = (
     <>
       {followUps.length > 0 &&
