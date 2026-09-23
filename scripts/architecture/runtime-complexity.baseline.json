@@ -258,7 +258,7 @@
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 314,
+    "actual": 311,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "method-lines",
     "symbol": "AgentToolExecutorService.dispatch"

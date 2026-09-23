@@ -784,22 +784,10 @@ export class AgentToolExecutorService implements OnModuleInit {
         return this.memoryGoalsHandler.updateGoal(params, ctx);
 
       case 'start_brand_interview':
-        return this.brandInterviewHandler.startBrandInterview(params, ctx);
-
       case 'submit_brand_interview_answer':
-        return this.brandInterviewHandler.submitBrandInterviewAnswer(
-          params,
-          ctx,
-        );
-
       case 'skip_brand_interview_question':
-        return this.brandInterviewHandler.skipBrandInterviewQuestion(
-          params,
-          ctx,
-        );
-
       case 'get_brand_completeness':
-        return this.brandInterviewHandler.getBrandCompleteness(params, ctx);
+        return this.brandInterviewHandler.execute(toolName, params, ctx);
 
       default:
         return {
