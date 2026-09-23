@@ -569,6 +569,30 @@ describe('ClientService (MCP)', () => {
       expect(result).toHaveLength(2);
       expect(result[0].prompt).toBe('Sunset');
     });
+
+    it('reads the derived media url and stored prompt text', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: [
+            {
+              attributes: {
+                cdnUrl: 'https://cdn.genfeed.ai/images/ready.png',
+                text: 'A studio portrait',
+              },
+              id: 'i3',
+            },
+          ],
+        },
+      });
+
+      const result = await service.listImages();
+
+      expect(result[0]).toMatchObject({
+        id: 'i3',
+        prompt: 'A studio portrait',
+        url: 'https://cdn.genfeed.ai/images/ready.png',
+      });
+    });
   });
 
   // ==================== AVATAR TESTS ====================
@@ -858,6 +882,25 @@ describe('ClientService (MCP)', () => {
       expect(result.status).toBe('active');
       expect(result.nodeCount).toBe(3);
     });
+
+    it('uses lastExecutedAt when the payload has no lastRunAt', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: {
+            attributes: {
+              lastExecutedAt: '2026-09-23T07:00:00.000Z',
+              name: 'Daily Trends Digest',
+              status: 'active',
+            },
+            id: 'workflow-123',
+          },
+        },
+      });
+
+      const result = await service.getWorkflowStatus('workflow-123');
+
+      expect(result.lastRunAt).toBe('2026-09-23T07:00:00.000Z');
+    });
   });
 
   describe('listWorkflows', () => {
@@ -1141,6 +1184,30 @@ describe('ClientService (MCP)', () => {
       );
       expect(result).toHaveLength(2);
       expect(result[0].id).toBe('daily-image-generation');
+      expect(result[0].name).toBe('Daily Image Generation');
+    });
+
+    it('reads plain catalog objects that are not JSON:API resources', async () => {
+      (mockAxiosInstance.get as Mock).mockResolvedValue({
+        data: {
+          data: [
+            {
+              category: 'content',
+              description: 'Send the morning digest',
+              id: 'daily-trends',
+              name: 'Daily Trends Digest',
+            },
+          ],
+        },
+      });
+
+      const result = await service.listWorkflowTemplates();
+
+      expect(result[0]).toMatchObject({
+        description: 'Send the morning digest',
+        id: 'daily-trends',
+        name: 'Daily Trends Digest',
+      });
     });
   });
 

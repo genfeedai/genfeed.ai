@@ -30,7 +30,7 @@ Focused coverage must exercise duplicate dispatch/provider callbacks, stale elig
 
 ## Activation
 
-Deploy the schema migrations before the API and workers. Configure the existing email provider credentials, `GENFEEDAI_APP_URL`, `GENFEEDAI_API_URL`, and `RESEND_WEBHOOK_SECRET` in the deployment environment. Register the public API endpoint `/v1/email-performance/webhooks/resend` for `email.sent`, `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, and `email.complained`. The endpoint requires the original request bytes and validates the signed webhook headers. Reverse proxies must preserve those headers and body.
+Deploy the schema migrations before the API and workers. Configure the existing email provider credentials, `GENFEEDAI_APP_URL`, `GENFEEDAI_API_PUBLIC_URL`, `GENFEEDAI_API_URL`, and `RESEND_WEBHOOK_SECRET` in the deployment environment. `GENFEEDAI_API_PUBLIC_URL` builds customer-facing tracking and unsubscribe links; `GENFEEDAI_API_URL` remains the service-to-service origin. Register the public API endpoint `/v1/email-performance/webhooks/resend` for `email.sent`, `email.delivered`, `email.opened`, `email.clicked`, `email.bounced`, and `email.complained`. The endpoint requires the original request bytes and validates the signed webhook headers. Reverse proxies must preserve those headers and body.
 
 The platform scheduler discovers email work every five minutes. UTC daily/weekly windows and send-time preferences control eligibility. Generation timestamps begin with new transitions after migration; historical completion dates are not backfilled. Generation emails are opt-in and require a recorded duration of at least two minutes. This version does not infer whether a creator has already viewed the result.
 

@@ -333,7 +333,11 @@ export class TwitterService {
    */
   public async searchRecentTweets(
     query: string,
-    options: { maxResults?: number; sortOrder?: 'relevancy' | 'recency' } = {},
+    options: {
+      accessToken?: string;
+      maxResults?: number;
+      sortOrder?: 'relevancy' | 'recency';
+    } = {},
   ): Promise<ITwitterSearchResult[]> {
     return this.readService.searchRecentTweets(query, options);
   }

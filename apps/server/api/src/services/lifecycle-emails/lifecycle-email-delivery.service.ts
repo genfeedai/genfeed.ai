@@ -457,9 +457,7 @@ export class LifecycleEmailDeliveryService {
   }
 
   private apiUrl(): string {
-    return this.stripTrailingSlash(
-      this.configService.get('GENFEEDAI_API_URL') ?? 'https://api.genfeed.ai',
-    );
+    return this.configService.apiUrl;
   }
 
   private unsubscribeUrl(token: string): string {

@@ -174,10 +174,12 @@ export class AgentKnowledgeToolHandler {
     if (!query) {
       return { creditsUsed: 0, error: 'query is required', success: false };
     }
-    if (!ctx.brandId) {
+    const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
+    if (!brandId) {
       return {
         creditsUsed: 0,
-        error: 'Select a brand before searching its Knowledge',
+        error:
+          'Select a brand before searching its Knowledge. Pass brandId from list_brands.',
         success: false,
       };
     }
@@ -198,7 +200,7 @@ export class AgentKnowledgeToolHandler {
       await this.records.assertSourcesInScope(toActor(ctx), sourceIds);
     }
     const hits = await this.contextsService.retrieveBrandContentMemory({
-      brandId: ctx.brandId,
+      brandId,
       knowledgePurposes: readPurposes(params.purposes),
       knowledgeSourceIds: sourceIds,
       limit: readBoundedInt(

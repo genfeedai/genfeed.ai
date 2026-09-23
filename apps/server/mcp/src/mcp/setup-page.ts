@@ -151,7 +151,8 @@ ${codex.configuration}
 4. ${codex.authorizationInstruction}
 5. Ask the user to complete consent in their browser. Never request tokens or passwords in this chat. If authorization is denied or expires, restart the client authorization flow.
 6. Verify access with a scoped read: list my Genfeed brands. A copied command or server list entry alone does not verify authorization.
-7. Report exactly what changed and any remaining authorization or verification step. If OAuth is unsupported, direct the user to the advanced manual-key path in guided setup.`;
+7. Report exactly what changed and any remaining authorization or verification step. If OAuth is unsupported, direct the user to the advanced manual-key path in guided setup.
+8. For the Genfeed CLI, run genfeed login with no flags. The human approves in the browser. Do not paste a secret into this chat. After login, genfeed keys create -p mcp still mints a scoped key.`;
 }
 
 /**
@@ -931,7 +932,7 @@ ${postHogSnippet}
         <p class="section-kicker">Setup</p>
         <h2 class="section-title" id="setup-title">One server. <em>Any client.</em></h2>
       </div>
-      <p class="section-copy">Add Genfeed to your client and approve access in your browser. No API key is required.</p>
+      <p class="section-copy">Add Genfeed to your client and approve access in your browser. No API key is required. For the CLI, run <code class="${ui.inlineCode}">genfeed login</code> and approve in the browser. Do not paste a secret.</p>
     </div>
 
     <div class="${ui.card}">
@@ -1036,7 +1037,7 @@ ${postHogSnippet}
       <article class="${ui.infoCard}">
         <p class="meta-label">Authentication</p>
         <h3>Browser OAuth</h3>
-        <p>Your client manages the access token after sign-in and consent. For clients without OAuth, choose Advanced: manual API key in guided setup.</p>
+        <p>Your client manages the access token after sign-in and consent. For clients without OAuth, choose Advanced: manual API key in guided setup. The CLI one-command path is <code class="${ui.inlineCode}">genfeed login</code>. CI overrides the stored key with <code class="${ui.inlineCode}">GENFEED_API_KEY</code> instead of a pasted secret. <code class="${ui.inlineCode}">genfeed keys create -p mcp</code> still works after login.</p>
         <a href="${connectUrlSafe}" rel="noopener noreferrer">Open guided setup</a>
       </article>
       <article class="${ui.infoCard}">

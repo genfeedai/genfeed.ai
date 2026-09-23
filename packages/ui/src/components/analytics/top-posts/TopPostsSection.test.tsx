@@ -40,9 +40,21 @@ describe('TopPostsSection', () => {
     ).toBeInTheDocument();
   });
 
-  it('renders featured post content when posts exist', () => {
+  it('uses one card skeleton before posts arrive', () => {
+    render(<TopPostsSection posts={[]} isLoading />);
+    expect(screen.getByRole('status')).toHaveAccessibleName(
+      'Loading Top Posts',
+    );
+    expect(screen.getByRole('status').childElementCount).toBe(0);
+    expect(
+      screen.queryByText('No posts found for this period'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('keeps existing posts visible during a refresh', () => {
     render(
       <TopPostsSection
+        isLoading
         posts={[
           {
             label: 'Launch post',
@@ -58,5 +70,6 @@ describe('TopPostsSection', () => {
 
     expect(screen.getByText('Launch post')).toBeInTheDocument();
     expect(screen.getByText('#1')).toBeInTheDocument();
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 });

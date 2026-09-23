@@ -34,6 +34,11 @@ export const OVERLAP_KNOWLEDGE_TOOLS: SourceTool[] = [
           items: { enum: [...PURPOSE_ENUM], type: 'string' },
           type: 'array',
         },
+        brandId: {
+          description:
+            'Brand whose Knowledge to search. Required when the session has no brand. Use an id from list_brands.',
+          type: 'string',
+        },
         query: {
           description: 'What you need to know, phrased as a question or topic',
           type: 'string',

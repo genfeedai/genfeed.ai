@@ -16,6 +16,7 @@ import type {
   AppSwitcherNavigationTarget,
   AppSwitcherProps,
 } from '@genfeedai/props/ui/app-switcher.props';
+import { useNavigationIntentPrefetch } from '@ui/navigation/prefetch/useNavigationPrefetch';
 import {
   ChartNoAxesColumn,
   ChevronsUpDown,
@@ -92,7 +93,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'workspace',
         label: APP_DISPLAY_LABELS.workspace,
         route: createScopedAppRoute({
-          brandPath: '/workspace',
+          brandPath: '/workspace/overview',
           organizationPath: '/workspace/overview',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.workspace,
@@ -130,8 +131,8 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'library',
         label: APP_DISPLAY_LABELS.library,
         route: createScopedAppRoute({
-          brandPath: '/library',
-          organizationPath: '/library',
+          brandPath: '/library/assets',
+          organizationPath: '/library/assets',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.library,
       },
@@ -152,7 +153,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'publishing',
         itemKey: 'publishing',
         label: APP_DISPLAY_LABELS.publishing,
-        route: createScopedAppRoute({ brandPath: '/publishing' }),
+        route: createScopedAppRoute({ brandPath: '/publishing/overview' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.publishing,
       },
       {
@@ -162,7 +163,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         id: 'analytics',
         itemKey: 'analytics',
         label: APP_DISPLAY_LABELS.analytics,
-        route: createScopedAppRoute({ brandPath: '/analytics' }),
+        route: createScopedAppRoute({ brandPath: '/analytics/overview' }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.analytics,
       },
       {
@@ -173,7 +174,7 @@ const APP_SWITCHER_SECTIONS: AppSwitcherSectionConfig[] = [
         itemKey: 'automation',
         label: APP_DISPLAY_LABELS.automation,
         route: createScopedAppRoute({
-          brandPath: '/automation',
+          brandPath: '/automation/overview',
         }),
         visibilityFlagKey: APP_SWITCHER_FEATURE_FLAGS.automation,
       },
@@ -407,11 +408,15 @@ function AppSwitcherGridItem({
   ) => void;
 }) {
   const Icon = APP_SWITCHER_ICON_OVERRIDES[app.itemKey] ?? app.icon;
+  const intent = useNavigationIntentPrefetch(href);
 
   return (
     <DropdownMenuItem asChild>
       <Link
         href={href}
+        prefetch={false}
+        onBlur={intent.onBlur}
+        onMouseLeave={intent.onMouseLeave}
         aria-current={isActive ? 'page' : undefined}
         aria-describedby={`app-switcher-desc-${app.itemKey}`}
         aria-label={
@@ -420,8 +425,14 @@ function AppSwitcherGridItem({
             : app.label
         }
         onClick={() => onNavigateStart(navigationAnnouncement)}
-        onFocus={(event) => onPreviewShow(app, event.currentTarget)}
-        onMouseEnter={(event) => onPreviewShow(app, event.currentTarget)}
+        onFocus={(event) => {
+          intent.onFocus();
+          onPreviewShow(app, event.currentTarget);
+        }}
+        onMouseEnter={(event) => {
+          intent.onMouseEnter();
+          onPreviewShow(app, event.currentTarget);
+        }}
         className={cn(
           'group grid min-h-[4.375rem] min-w-0 grid-rows-[2rem_1.125rem] place-items-center gap-1.5 rounded-lg p-2 text-center outline-none',
           'border-transparent !bg-transparent !shadow-none !ring-0 !ring-offset-0',

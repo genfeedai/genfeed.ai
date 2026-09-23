@@ -6,6 +6,7 @@ import {
   normalizeSignupAttributionValue,
   normalizeSignupLandingPath,
   readSignupAttributionParams,
+  readSignupReferralCode,
   resolveExternalReferrerDomain,
   toSignupAttributionParams,
 } from './signup-attribution.helper';
@@ -100,6 +101,17 @@ describe('readSignupAttributionParams', () => {
     expect(attribution).toEqual({});
     expect(hasSignupAttribution(attribution)).toBe(false);
   });
+
+  it('does not treat a referral code as attribution', () => {
+    const params = new URLSearchParams(
+      'ref=ABCDEF23JKMN&utm_source=newsletter',
+    );
+    const attribution = readSignupAttributionParams(params);
+
+    expect(attribution).toEqual({ utmSource: 'newsletter' });
+    expect(readSignupReferralCode(params)).toBe('abcdef23jkmn');
+    expect(toSignupAttributionParams(attribution).has('ref')).toBe(false);
+  });
 });
 
 describe('appendSignupAttributionParams', () => {
@@ -118,6 +130,34 @@ describe('appendSignupAttributionParams', () => {
     expect(url.searchParams.get('signup_referrer')).toBe('google.com');
     expect(url.searchParams.get('signup_landing')).toBe('/pricing');
     expect(url.searchParams.get('plan')).toBe('payg');
+  });
+
+  it('appends a valid landing referral code', () => {
+    const landing = new URLSearchParams('ref=ABCDEF23JKMN');
+    const url = new URL('https://app.genfeed.ai/sign-up?plan=payg');
+
+    appendSignupAttributionParams(url, {}, readSignupReferralCode(landing));
+
+    expect(url.searchParams.get('ref')).toBe('abcdef23jkmn');
+    expect(url.searchParams.get('plan')).toBe('payg');
+  });
+
+  it('leaves a ref the link already carries unchanged', () => {
+    const url = new URL('https://app.genfeed.ai/sign-up?ref=FREND2345XYZ');
+
+    appendSignupAttributionParams(url, {}, 'ABCDEF23JKMN');
+
+    expect(url.searchParams.get('ref')).toBe('FREND2345XYZ');
+  });
+
+  it('drops an invalid referral code', () => {
+    const url = new URL('https://app.genfeed.ai/sign-up');
+
+    appendSignupAttributionParams(url, {}, 'not a code');
+    expect(url.searchParams.has('ref')).toBe(false);
+
+    appendSignupAttributionParams(url, {}, 'code_with_1');
+    expect(url.searchParams.has('ref')).toBe(false);
   });
 });
 

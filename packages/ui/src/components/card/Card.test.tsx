@@ -138,3 +138,35 @@ describe('Card', () => {
     expect(container.firstChild).not.toHaveClass('bg-white', 'text-black');
   });
 });
+
+it('loads inside the same card frame and keeps nested content inert until ready', () => {
+  const { container, rerender } = render(
+    <Card isLoading label="Results">
+      <button type="button">Open result</button>
+    </Card>,
+  );
+  const frame = container.firstElementChild;
+  expect(frame).toHaveAttribute('aria-busy', 'true');
+  expect(frame).toContainElement(
+    screen.getByRole('status', { name: 'Loading Results' }),
+  );
+  expect(screen.getByRole('status').childElementCount).toBe(0);
+  expect(
+    screen.queryByRole('button', { name: 'Open result' }),
+  ).not.toBeInTheDocument();
+  expect(container.querySelector('[inert]')).not.toBeNull();
+  rerender(
+    <Card label="Results">
+      <button type="button">Open result</button>
+    </Card>,
+  );
+  expect(container.firstElementChild).toBe(frame);
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Open result' })).toBeVisible();
+});
+
+it('never adds a skeleton to a static card', () => {
+  render(<Card label="Quick actions">Create a post</Card>);
+  expect(screen.getByText('Create a post')).toBeVisible();
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+});

@@ -1,5 +1,5 @@
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
-import { FileInputType } from '@genfeedai/contracts';
+import { FileInputType, IngredientStatus } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('AiInfluencerService.createIngredientRecord', () => {
@@ -48,6 +48,7 @@ describe('AiInfluencerService.createIngredientRecord', () => {
 
     const created = ingredientsService.create.mock.calls[0]?.[0];
     expect(created).not.toHaveProperty('cdnUrl');
+    expect(created.status).toBe(IngredientStatus.PROCESSING);
     expect(filesClientService.uploadToS3).toHaveBeenCalledWith(
       'ing-1',
       'images',
@@ -55,6 +56,7 @@ describe('AiInfluencerService.createIngredientRecord', () => {
     );
     expect(ingredientsService.patch).toHaveBeenCalledWith('ing-1', {
       s3Key: 'ingredients/images/ing-1',
+      status: IngredientStatus.GENERATED,
     });
     expect(result).toEqual({ id: 'ing-1', s3Key: 'ingredients/images/ing-1' });
   });
@@ -69,6 +71,24 @@ describe('AiInfluencerService.createIngredientRecord', () => {
         'caption',
       ),
     ).rejects.toThrow(/no object key/);
-    expect(ingredientsService.patch).not.toHaveBeenCalled();
+    expect(ingredientsService.patch).toHaveBeenCalledTimes(1);
+    expect(ingredientsService.patch).toHaveBeenCalledWith('ing-1', {
+      status: IngredientStatus.FAILED,
+    });
+  });
+
+  it('marks the ingredient failed when the upload itself rejects', async () => {
+    filesClientService.uploadToS3.mockRejectedValue(new Error('files down'));
+
+    await expect(
+      service.createIngredientRecord(
+        persona as never,
+        'https://fal.media/files/x.png',
+        'caption',
+      ),
+    ).rejects.toThrow('files down');
+    expect(ingredientsService.patch).toHaveBeenCalledWith('ing-1', {
+      status: IngredientStatus.FAILED,
+    });
   });
 });

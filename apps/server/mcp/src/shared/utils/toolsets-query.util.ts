@@ -26,7 +26,8 @@ export function readToolsetsQueryParam(
 export function hasExplicitToolsetsQuery(
   raw: string | readonly string[] | undefined,
 ): boolean {
-  const values = raw === undefined ? [] : Array.isArray(raw) ? raw : [raw];
+  const values: readonly string[] =
+    raw === undefined ? [] : Array.isArray(raw) ? raw : [raw];
   return values.some((value) =>
     value.split(',').some((segment) => segment.trim().length > 0),
   );

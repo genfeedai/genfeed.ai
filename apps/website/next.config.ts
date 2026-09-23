@@ -29,6 +29,24 @@ const config = createAppNextConfig({
       source: '/(.*)',
     },
     {
+      headers: [
+        {
+          key: 'Content-Type',
+          value: 'text/plain; charset=utf-8',
+        },
+      ],
+      source: '/llms.txt',
+    },
+    {
+      headers: [
+        {
+          key: 'Content-Type',
+          value: 'text/plain; charset=utf-8',
+        },
+      ],
+      source: '/llms-full.txt',
+    },
+    {
       has: [
         {
           key: 'accept',

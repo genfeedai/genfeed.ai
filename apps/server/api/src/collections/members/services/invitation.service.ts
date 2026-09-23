@@ -21,7 +21,6 @@ import {
 const INVITATION_TOKEN_BYTES = 32;
 const INVITATION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000;
 const DEFAULT_APP_URL = 'https://app.genfeed.ai';
-const DEFAULT_API_PORT = '3010';
 
 export type InvitationStatus =
   | 'accepted'
@@ -769,16 +768,7 @@ export class InvitationService {
   }
 
   private getApiBaseUrl(): string {
-    const configured =
-      this.configService.get('GENFEEDAI_API_URL') ??
-      this.configService.get('BETTER_AUTH_URL');
-
-    if (typeof configured === 'string' && configured.length > 0) {
-      return configured.replace(/\/$/, '');
-    }
-
-    const port = this.configService.get('PORT') ?? DEFAULT_API_PORT;
-    return `http://localhost:${port}`;
+    return this.configService.apiUrl;
   }
 
   private getAppBaseUrl(): string {

@@ -32,6 +32,9 @@ export interface BadgeFormatProps {
 }
 
 export interface CardProps {
+  /** One skeleton inside the frame while initial data is pending. */
+  isLoading?: boolean;
+  loadingLabel?: string;
   index?: number;
   variant?: CardVariant;
   children?: ReactNode;

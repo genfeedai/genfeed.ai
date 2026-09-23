@@ -26,6 +26,10 @@ import type {
 import type { BaseApiClient } from './base-api-client';
 import { CONTENT_STATUS } from './client.types';
 
+function readNonEmptyString(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
+}
+
 /** Media generation + listing: videos, images, avatars, and music. */
 export class MediaClient {
   constructor(private readonly base: BaseApiClient) {}
@@ -160,15 +164,31 @@ export class MediaClient {
         });
 
         return (
-          response.data?.data?.map((image: ImageResource) => ({
-            createdAt: image.attributes?.createdAt,
-            id: image.id,
-            prompt: image.attributes?.prompt || '',
-            size: image.attributes?.size || 'square',
-            status: image.attributes?.status || CONTENT_STATUS.COMPLETED,
-            style: image.attributes?.style || 'realistic',
-            url: image.attributes?.url || '',
-          })) || []
+          response.data?.data?.map((image: ImageResource) => {
+            const attributes = image.attributes as
+              | (ImageResource['attributes'] & {
+                  cdnUrl?: string;
+                  text?: string;
+                })
+              | undefined;
+            const prompt =
+              readNonEmptyString(attributes?.prompt) ||
+              readNonEmptyString(attributes?.text) ||
+              '';
+            const url =
+              readNonEmptyString(attributes?.url) ||
+              readNonEmptyString(attributes?.cdnUrl) ||
+              '';
+            return {
+              createdAt: attributes?.createdAt,
+              id: image.id,
+              prompt,
+              size: attributes?.size || 'square',
+              status: attributes?.status || CONTENT_STATUS.COMPLETED,
+              style: attributes?.style || 'realistic',
+              url,
+            };
+          }) || []
         );
       },
       this.base.failWith('Failed to list images'),

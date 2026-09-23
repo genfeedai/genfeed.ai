@@ -57,9 +57,10 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
     dbHelper = new TestDatabaseHelper(prisma);
 
     const config = {
+      apiUrl: 'https://api.public.example.test',
       get: vi.fn((key: string) => {
         if (key === 'GENFEEDAI_API_URL') {
-          return 'https://api.example.test';
+          return 'http://api.internal.example.test:3010';
         }
         if (key === 'GENFEEDAI_APP_URL') {
           return 'https://app.example.test';
@@ -141,6 +142,9 @@ describeWithDatabase('Member invitation lifecycle integration', () => {
         redirectUrl: `https://app.example.test/login?org=${organizationId}`,
         roleId: adminRoleId,
       });
+      expect(sendEmail.mock.calls.at(-1)?.[2]).toContain(
+        'https://api.public.example.test/accept-invitation?token=',
+      );
       const token = extractToken(sendEmail.mock.calls.at(-1)?.[2] as string);
 
       expect(invitation).toMatchObject({

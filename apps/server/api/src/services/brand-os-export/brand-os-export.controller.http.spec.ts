@@ -99,7 +99,10 @@ describe('Brand OS export real HTTP pipeline', () => {
     );
     const service = new BrandOsExportService(
       db as unknown as PrismaService,
-      { get: () => 'https://api.example.com/v1' } as unknown as ConfigService,
+      {
+        apiUrl: 'https://api.public.example.com',
+        get: () => 'http://api.internal.example.com:3010',
+      } as unknown as ConfigService,
       { log: vi.fn() } as unknown as LoggerService,
     );
     const moduleRef = await Test.createTestingModule({
@@ -273,11 +276,14 @@ describe('Brand OS export real HTTP pipeline', () => {
       .set('Authorization', 'Bearer admin-key')
       .expect(200);
     expect(state.body.data.attributes.canPublish).toBe(true);
-    await request(app.getHttpServer())
+    const publishedState = await request(app.getHttpServer())
       .post('/brands/brand-1/brand-os/publication')
       .set('Authorization', 'Bearer admin-key')
       .send({ revisionId: 'revision-1' })
       .expect(201);
+    expect(publishedState.body.data.attributes.publicUrl).toContain(
+      'https://api.public.example.com/v1/public/brand-os/',
+    );
     await request(app.getHttpServer())
       .delete('/brands/brand-1/brand-os/publication')
       .set('Authorization', 'Bearer admin-key')

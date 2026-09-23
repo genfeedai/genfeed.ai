@@ -211,7 +211,11 @@ export default function AnalyticsOverviewLeaderboards({
       >
         {scope === PageScope.SUPERADMIN &&
           (hasOrgLeaderboard || isLeaderboardLoading ? (
-            <Card variant={CardVariant.DEFAULT} bodyClassName="p-4">
+            <Card
+              variant={CardVariant.DEFAULT}
+              bodyClassName="p-4"
+              isLoading={isLeaderboardLoading && !hasOrgLeaderboard}
+            >
               <div className="mb-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
                   Top organizations
@@ -232,7 +236,7 @@ export default function AnalyticsOverviewLeaderboards({
 
               <AppTable<IOrgLeaderboardItem>
                 items={orgsLeaderboard}
-                isLoading={isLeaderboardLoading}
+                isLoading={false}
                 columns={orgsColumns}
                 getRowKey={(item, index) => `${item.organization.id}-${index}`}
                 emptyLabel="No organizations found"
@@ -252,7 +256,11 @@ export default function AnalyticsOverviewLeaderboards({
           ))}
 
         {hasBrandLeaderboard || isLeaderboardLoading ? (
-          <Card variant={CardVariant.DEFAULT} bodyClassName="p-4">
+          <Card
+            variant={CardVariant.DEFAULT}
+            bodyClassName="p-4"
+            isLoading={isLeaderboardLoading && !hasBrandLeaderboard}
+          >
             <div className="mb-4 flex items-center justify-between">
               <h3 className="text-lg font-semibold tracking-[-0.02em] text-foreground">
                 Top brands
@@ -273,7 +281,7 @@ export default function AnalyticsOverviewLeaderboards({
 
             <AppTable<IBrandWithStats>
               items={brandsLeaderboard}
-              isLoading={isLeaderboardLoading}
+              isLoading={false}
               columns={brandsColumns}
               getRowKey={(item, index) => `${item.id}-${index}`}
               emptyLabel="No brands found"

@@ -56,6 +56,7 @@ export const SERVER_TOKENS = {
 } as const;
 
 export interface ServerConfig {
+  readonly apiUrl: string;
   get(key: string): string | undefined;
 }
 

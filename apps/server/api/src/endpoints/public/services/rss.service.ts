@@ -23,7 +23,7 @@ export class RssService {
     private readonly articlesService: ArticlesService,
     private readonly configService: ConfigService,
   ) {
-    this.apiUrl = this.configService.get('GENFEEDAI_API_URL') ?? '';
+    this.apiUrl = this.configService.apiUrl;
     this.siteUrl = this.configService.get('GENFEEDAI_APP_URL') ?? '';
   }
 

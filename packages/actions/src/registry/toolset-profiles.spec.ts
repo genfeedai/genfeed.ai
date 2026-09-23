@@ -48,7 +48,7 @@ describe('MCP toolset profiles', () => {
     }
   });
 
-  it('keeps the bare-URL profile within the 30-tool cap', () => {
+  it('keeps the bare-URL profile within the tool cap', () => {
     const tools = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS);
 
     expect(tools.length).toBeLessThanOrEqual(BARE_MCP_URL_TOOL_CAP);

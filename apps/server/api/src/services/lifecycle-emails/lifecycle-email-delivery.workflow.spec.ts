@@ -82,9 +82,10 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
       prisma as unknown as PrismaService,
       { queueEmail } as unknown as EmailPerformanceService,
       {
+        apiUrl: 'https://api.public.genfeed.ai',
         get: vi.fn((key: string) =>
           key === 'GENFEEDAI_API_URL'
-            ? 'https://api.genfeed.ai'
+            ? 'http://api.genfeed.internal:3010'
             : 'https://app.genfeed.ai',
         ),
       } as unknown as ServerConfig,
@@ -119,6 +120,9 @@ describe('LifecycleEmailDeliveryService workflow actions', () => {
         lifecycleDeliveryId: delivery.id,
         html: expect.stringContaining('{{emailActionUrl}}'),
       }),
+    );
+    expect(queueEmail.mock.calls[0][0].html).toContain(
+      'https://api.public.genfeed.ai/lifecycle-emails/unsubscribe?token=unsubscribe-token',
     );
     // Only a still-scheduled row may become queued. The job is enqueued before
     // this write, so a worker that already recorded a terminal failure must not

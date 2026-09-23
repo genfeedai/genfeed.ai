@@ -153,3 +153,32 @@ describe('WorkspaceSurface', () => {
     expect(body(container)).toHaveClass('bg-transparent');
   });
 });
+
+it('keeps section chrome visible and replaces only the card body while loading', () => {
+  const { rerender } = render(
+    <WorkspaceSurface
+      isLoading
+      title="Recent Runs"
+      actions={<button type="button">View all</button>}
+    >
+      <button type="button">Nested action</button>
+    </WorkspaceSurface>,
+  );
+  expect(
+    screen.getByRole('heading', { name: 'Recent Runs' }),
+  ).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'View all' })).toBeInTheDocument();
+  expect(
+    screen.queryByRole('button', { name: 'Nested action' }),
+  ).not.toBeInTheDocument();
+  expect(screen.getByRole('status').childElementCount).toBe(0);
+  rerender(
+    <WorkspaceSurface title="Recent Runs">
+      <button type="button">Nested action</button>
+    </WorkspaceSurface>,
+  );
+  expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  expect(
+    screen.getByRole('button', { name: 'Nested action' }),
+  ).toBeInTheDocument();
+});

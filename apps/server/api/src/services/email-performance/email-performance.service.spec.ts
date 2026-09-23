@@ -83,11 +83,13 @@ function fixture() {
   const eligibility = { shouldSend: vi.fn().mockResolvedValue(true) };
   const secret = `whsec_${Buffer.from('test-secret-only').toString('base64')}`;
   const config = {
+    apiUrl: 'https://api.public.example.test',
     get: vi.fn(
       (key: string) =>
         (
           ({
             GENFEEDAI_APP_URL: 'https://app.example.test',
+            GENFEEDAI_API_PUBLIC_URL: 'https://api.public.example.test',
             GENFEEDAI_API_URL: 'https://api.example.test',
             RESEND_WEBHOOK_SECRET: secret,
           }) as Record<string, string>
@@ -136,7 +138,7 @@ describe('EmailPerformanceService durable delivery', () => {
     ).resolves.toBe('delivery-1');
     const event = f.prisma.notificationEvent.upsert.mock.calls[0][0].create;
     expect(event.payload.html).toMatch(
-      /https:\/\/api\.example\.test\/v1\/email-performance\/click\/[A-Za-z0-9_-]{43}/,
+      /https:\/\/api\.public\.example\.test\/v1\/email-performance\/click\/[A-Za-z0-9_-]{43}/,
     );
     expect(event.payload.html).not.toContain('user-1');
     expect(

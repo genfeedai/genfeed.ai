@@ -226,7 +226,9 @@ export class IngredientsService extends BaseService<
         organizationId,
       });
 
+      // `metadata.result` is the only media link keyless external media has.
       const result = await this.prisma.ingredient.findMany({
+        include: { metadata: { select: { result: true } } },
         where: scopedWhere(organizationId, { id: { in: ids } }),
       });
 
@@ -235,7 +237,7 @@ export class IngredientsService extends BaseService<
         requested: ids.length,
       });
 
-      return result as unknown as IngredientDocument[];
+      return result.map((row) => this.normalizeDocument(row));
     } catch (error: unknown) {
       this.logger.error(`${this.constructorName} findByIds failed`, {
         count: ids.length,
