@@ -40,6 +40,7 @@ describe('useNavigationPrefetch', () => {
 
     expect(prefetchMock).toHaveBeenCalledTimes(1);
     expect(prefetchMock).toHaveBeenCalledWith('/acme/brand/publishing', {
+      kind: 'auto',
       onInvalidate: expect.any(Function),
     });
   });

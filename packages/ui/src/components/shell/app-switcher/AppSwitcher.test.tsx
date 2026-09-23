@@ -234,7 +234,7 @@ describe('AppSwitcher', () => {
     expect(router.prefetch).toHaveBeenCalledTimes(1);
     expect(router.prefetch).toHaveBeenCalledWith(
       '/acme/my-brand/analytics/overview?thread=123',
-      { onInvalidate: expect.any(Function) },
+      { kind: 'auto', onInvalidate: expect.any(Function) },
     );
   });
 

@@ -1,5 +1,6 @@
 'use client';
 
+import { PrefetchKind } from 'next/dist/client/components/router-reducer/router-reducer-types';
 import { useRouter } from 'next/navigation';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -38,7 +39,10 @@ export function useNavigationPrefetch(href?: string) {
 
     prefetchedHrefs.current.add(href);
     router.prefetch(href, {
-      onInvalidate: () => prefetchedHrefs.current.delete(href),
+      kind: PrefetchKind.AUTO,
+      onInvalidate: () => {
+        prefetchedHrefs.current.delete(href);
+      },
     });
   }, [href, router]);
 }
