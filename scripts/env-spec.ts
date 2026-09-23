@@ -48,6 +48,10 @@ export const DEPRECATED_ENV_KEYS = [
   // Never read by any service.
   'STRIPE_COUPON_CREDITS_PACKS_V2_PRO',
   'STRIPE_COUPON_CREDITS_PACKS_V2_ENTERPRISE',
+  // The bound typed-decision provider is an operator setting on the
+  // platform-settings singleton (#4913), chosen in /admin. Nothing reads this
+  // env key any more, so leaving it set only suggests it still selects Jev.
+  'TYPED_DECISION_PROVIDER',
 ] as const;
 
 const frontendSharedKeys = [
@@ -230,7 +234,6 @@ export const ENV_TARGETS: EnvTarget[] = [
       'REPLY_BOT_INTENT_MIN_CONFIDENCE',
       'TASK_ROUTING_DECISION_MODE',
       'TASK_ROUTING_MIN_CONFIDENCE',
-      'TYPED_DECISION_PROVIDER',
       'TYPED_DECISION_TIMEOUT_MS',
       'TYPESAFE_API_KEY',
       'AGENT_AUTO_ROUTING_DECISION_MODE',
@@ -416,7 +419,6 @@ export const ENV_TARGETS: EnvTarget[] = [
       'REPLY_BOT_INTENT_MIN_CONFIDENCE',
       'TASK_ROUTING_DECISION_MODE',
       'TASK_ROUTING_MIN_CONFIDENCE',
-      'TYPED_DECISION_PROVIDER',
       'TYPED_DECISION_TIMEOUT_MS',
       'TYPESAFE_API_KEY',
       'AGENT_AUTO_ROUTING_DECISION_MODE',
@@ -839,7 +841,6 @@ export const ROOT_ENV_SECTIONS: EnvSection[] = [
       'REPLY_BOT_INTENT_MIN_CONFIDENCE',
       'TASK_ROUTING_DECISION_MODE',
       'TASK_ROUTING_MIN_CONFIDENCE',
-      'TYPED_DECISION_PROVIDER',
       'TYPED_DECISION_TIMEOUT_MS',
       'TYPESAFE_API_KEY',
       'AGENT_AUTO_ROUTING_DECISION_MODE',
