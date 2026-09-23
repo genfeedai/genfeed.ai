@@ -206,6 +206,49 @@ export class AgentStreamPublisherService {
     await this.agentThreadEngineService.appendEvent(params);
   }
 
+  async publishTurnPhase(data: {
+    organizationId: string;
+    phase: 'preparing' | 'waiting_for_lane';
+    runId: string;
+    threadId: string;
+    timestamp: string;
+    userId: string;
+  }): Promise<void> {
+    if (!this.agentThreadEngineService) {
+      throw new Error('Thread engine is required to publish turn phases');
+    }
+    const label =
+      data.phase === 'preparing' ? 'Preparing response' : 'Waiting to continue';
+    const payload = {
+      label,
+      phase: data.phase,
+      status: 'running' as const,
+      timestamp: data.timestamp,
+    };
+    await this.agentThreadEngineService.appendEvent({
+      commandId: `turn-phase:${data.threadId}:${data.runId}:${data.phase}`,
+      metadata: { origin: 'stream-publisher' },
+      occurredAt: data.timestamp,
+      organizationId: data.organizationId,
+      payload,
+      runId: data.runId,
+      threadId: data.threadId,
+      type: 'work.updated',
+      userId: data.userId,
+    });
+    await this.redisService.publish(CHANNEL, {
+      data: {
+        ...payload,
+        event: 'started',
+        organizationId: data.organizationId,
+        runId: data.runId,
+        threadId: data.threadId,
+        userId: data.userId,
+      },
+      type: 'agent:work_event',
+    });
+  }
+
   async publishStreamStart(data: {
     threadId: string;
     model: string;

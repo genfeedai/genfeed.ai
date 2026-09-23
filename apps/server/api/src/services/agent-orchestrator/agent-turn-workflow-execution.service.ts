@@ -461,6 +461,14 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     if (mediaResult) {
       return mediaResult;
     }
+    await this.streamEffects.publishTurnPhase({
+      organizationId: state.organizationId,
+      phase: 'preparing',
+      runId: state.executionId,
+      threadId: state.threadId,
+      timestamp: new Date().toISOString(),
+      userId: state.userId,
+    });
     const userSettings = await this.settingsService.findOne({
       userId: state.userId,
     });
@@ -622,6 +630,14 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           threadId: state.threadId,
         }));
       if (!handledDeterministically) {
+        await this.streamEffects.publishTurnPhase({
+          organizationId: state.organizationId,
+          phase: 'waiting_for_lane',
+          runId: state.executionId,
+          threadId: state.threadId,
+          timestamp: new Date().toISOString(),
+          userId: state.userId,
+        });
         await this.executionLaneService.runExclusive(state.threadId, () =>
           this.streamLoopService.runStreamLoop(
             context,
