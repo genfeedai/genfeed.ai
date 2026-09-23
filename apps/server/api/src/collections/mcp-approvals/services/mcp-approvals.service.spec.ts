@@ -34,6 +34,12 @@ describe('McpApprovalsService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mcpApproval.count.mockResolvedValue(0);
+    mcpApproval.findFirst.mockResolvedValue({
+      id: 'outside-transaction',
+      toolName: 'generate_content_batch',
+      status: 'PENDING',
+    });
+    mcpApproval.updateMany.mockResolvedValue({ count: 1 });
 
     service = new McpApprovalsService(
       { mcpApproval } as unknown as PrismaService,

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
@@ -14,6 +15,7 @@ import type {
   AgentToolResult,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
+import type { Prisma } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
@@ -132,16 +134,14 @@ export class AgentOrchestratorUiActionMutationService {
     if (approval.status === 'APPROVED' && action === 'decline_mutation') {
       throw new ConflictException('This action was already approved.');
     }
-    if (approval.status === 'PENDING') {
-      await this.approvals.resolve(
-        approvalId,
-        context.organizationId,
-        action === 'confirm_mutation' ? 'approve' : 'decline',
-        undefined,
-        context.apiKeyContext,
-      );
-    }
     const status = action === 'confirm_mutation' ? 'approved' : 'declined';
+    const admittedCard = await this.updateProposalCards(
+      sourceActionId,
+      status,
+      undefined,
+      params,
+      approval,
+    );
     const result: AgentToolResult =
       status === 'approved'
         ? await this.executor.executeTool(
@@ -161,12 +161,15 @@ export class AgentOrchestratorUiActionMutationService {
             },
           )
         : { creditsUsed: 0, success: true };
-    const resolvedCard = await this.updateProposalCards(
-      sourceActionId,
-      status,
-      result,
-      params,
-    );
+    const resolvedCard =
+      status === 'declined'
+        ? admittedCard
+        : await this.updateProposalCards(
+            sourceActionId,
+            status,
+            result,
+            params,
+          );
     return this.finalizeMutationResult(
       params,
       approvalId,
@@ -235,40 +238,61 @@ export class AgentOrchestratorUiActionMutationService {
     });
   }
 
+  private async lockProposalThread(
+    transaction: Prisma.TransactionClient,
+    params: ThreadUiActionExecutionParams,
+    admission: boolean,
+  ) {
+    const { context, threadId } = params;
+    const scope = context.scope;
+    const key = JSON.stringify([
+      'agent-generation-decision',
+      context.organizationId,
+      context.userId,
+      threadId,
+    ]);
+    await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
+    await transaction.$queryRaw`SELECT "id" FROM "agent_threads"
+    WHERE "id" = ${threadId} AND "organizationId" = ${context.organizationId}
+      AND "userId" = ${context.userId} AND "isDeleted" = false
+    FOR UPDATE`;
+    const thread = await transaction.agentThread.findFirst({
+      where: {
+        id: threadId,
+        organizationId: context.organizationId,
+        userId: context.userId,
+        isDeleted: false,
+        status: admission ? 'active' : undefined,
+      },
+    });
+    if (
+      !thread ||
+      !scope ||
+      (admission &&
+        (thread.contextVersion !== scope.contextVersion ||
+          (thread.brandId ?? null) !== (scope.brandId ?? null)))
+    ) {
+      throw new ConflictException(
+        'The active approval thread or scope is unavailable.',
+      );
+    }
+    return scope;
+  }
+
   private async updateProposalCards(
     sourceActionId: string,
     status: 'approved' | 'declined',
-    result: AgentToolResult,
+    result: AgentToolResult | undefined,
     params: ThreadUiActionExecutionParams,
+    approval?: McpApprovalDocument,
   ): Promise<AgentUiAction> {
     const { context, threadId } = params;
     return this.prisma.$transaction(async (transaction) => {
-      const key = JSON.stringify([
-        'agent-generation-decision',
-        context.organizationId,
-        context.userId,
-        threadId,
-      ]);
-      await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
-      const thread = await transaction.agentThread.findFirst({
-        where: {
-          id: threadId,
-          organizationId: context.organizationId,
-          userId: context.userId,
-          isDeleted: false,
-          status: 'active',
-        },
-      });
-      if (
-        !thread ||
-        !context.scope ||
-        thread.contextVersion !== context.scope.contextVersion ||
-        (thread.brandId ?? null) !== (context.scope.brandId ?? null)
-      ) {
-        throw new ConflictException(
-          'The active approval thread or scope is unavailable.',
-        );
-      }
+      const scope = await this.lockProposalThread(
+        transaction,
+        params,
+        Boolean(approval),
+      );
       const messages = await transaction.agentMessage.findMany({
         where: {
           threadId,
@@ -279,6 +303,10 @@ export class AgentOrchestratorUiActionMutationService {
         select: { id: true, metadata: true },
       });
       let resolvedCard: AgentUiAction | undefined;
+      const updates: Pick<
+        PersistedMutationProposal,
+        'messageId' | 'metadata'
+      >[] = [];
       for (const message of messages) {
         const metadata = record(message.metadata);
         const currentActions = Array.isArray(metadata.uiActions)
@@ -299,11 +327,28 @@ export class AgentOrchestratorUiActionMutationService {
             );
           }
           if (
-            data.scopeVersion !== thread.contextVersion ||
-            (data.brandId ?? null) !== (thread.brandId ?? null)
+            data.scopeVersion !== scope.contextVersion ||
+            (data.brandId ?? null) !== (scope.brandId ?? null)
           ) {
             throw new ConflictException(
               'This approval is stale. Prepare the action again in the current brand context.',
+            );
+          }
+          if (
+            (data.status === 'declined' && status === 'approved') ||
+            (data.status === 'approved' && status === 'declined')
+          ) {
+            throw new ConflictException(
+              'This approval already has the opposite consent.',
+            );
+          }
+          if (
+            approval?.status === 'PENDING' &&
+            (!Number.isFinite(Date.parse(String(data.expiresAt))) ||
+              Date.parse(String(data.expiresAt)) <= Date.now())
+          ) {
+            throw new ConflictException(
+              'This approval expired. Prepare the action again.',
             );
           }
           hasChanges = true;
@@ -321,25 +366,49 @@ export class AgentOrchestratorUiActionMutationService {
               executionStatus:
                 status === 'declined'
                   ? 'cancelled'
-                  : result.success
-                    ? 'completed'
-                    : 'failed',
-              ...(result.error ? { error: result.error } : {}),
+                  : result
+                    ? result.success
+                      ? 'completed'
+                      : 'failed'
+                    : ['completed', 'failed', 'cancelled'].includes(
+                          String(data.executionStatus),
+                        )
+                      ? data.executionStatus
+                      : 'running',
+              ...(result?.error ? { error: result.error } : {}),
             },
           };
           resolvedCard ??= resolved;
           return resolved;
         });
         if (!hasChanges) continue;
+        updates.push({
+          messageId: message.id,
+          metadata: { ...metadata, uiActions: actions },
+        });
+      }
+      if (!resolvedCard)
+        throw new ConflictException('The approval card is unavailable.');
+      if (approval?.status === 'PENDING') {
+        await this.approvals.resolve(
+          approval.id,
+          context.organizationId,
+          status === 'approved' ? 'approve' : 'decline',
+          undefined,
+          context.apiKeyContext,
+          transaction,
+        );
+      }
+      for (const update of updates) {
         const patched = await transaction.agentMessage.updateMany({
           where: {
-            id: message.id,
+            id: update.messageId,
             threadId,
             organizationId: context.organizationId,
             isDeleted: false,
           },
           data: {
-            metadata: toPlainJson({ ...metadata, uiActions: actions }),
+            metadata: toPlainJson(update.metadata),
           },
         });
         if (patched.count !== 1) {
@@ -348,8 +417,6 @@ export class AgentOrchestratorUiActionMutationService {
           );
         }
       }
-      if (!resolvedCard)
-        throw new ConflictException('The approval card is unavailable.');
       return resolvedCard;
     });
   }

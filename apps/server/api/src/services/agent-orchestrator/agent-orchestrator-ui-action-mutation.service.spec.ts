@@ -462,31 +462,40 @@ describe('persisted mutation approvals', () => {
         }),
       ],
     });
-    expect(transaction.$queryRaw).toHaveBeenCalledTimes(4);
+    expect(transaction.$queryRaw).toHaveBeenCalledTimes(5);
     expect(
       transaction.$queryRaw.mock.calls
         .filter((call) => String(call[0]).includes('pg_advisory'))
         .map((call) => call[1]),
-    ).toEqual([
-      JSON.stringify([
-        'agent-generation-decision',
-        'org-1',
-        'user-1',
-        'thread-1',
-      ]),
-      JSON.stringify([
-        'agent-generation-decision',
-        'org-1',
-        'user-1',
-        'thread-1',
-      ]),
-    ]);
+    ).toEqual(
+      Array(3).fill(
+        JSON.stringify([
+          'agent-generation-decision',
+          'org-1',
+          'user-1',
+          'thread-1',
+        ]),
+      ),
+    );
+    const rowLocks = transaction.$queryRaw.mock.calls.filter((call) =>
+      String(call[0]).includes('FOR UPDATE'),
+    );
+    expect(rowLocks).toHaveLength(2);
+    for (const lock of rowLocks) {
+      expect(String(lock[0])).toContain('"isDeleted" = false');
+      expect(lock.slice(1)).toEqual(['thread-1', 'org-1', 'user-1']);
+    }
     const locks = transaction.$queryRaw.mock.invocationCallOrder;
     const threadReads =
       transaction.agentThread.findFirst.mock.invocationCallOrder;
     const messageReads =
       transaction.agentMessage.findMany.mock.invocationCallOrder;
-    expect(locks[1]).toBeLessThan(threadReads[1]);
+    expect(locks[0]).toBeLessThan(locks[1]);
+    expect(locks[1]).toBeLessThan(threadReads[0]);
+    expect(threadReads[0]).toBeLessThan(messageReads[0]);
+    expect(messageReads[0]).toBeLessThan(
+      approvals.resolve.mock.invocationCallOrder[0],
+    );
     expect(threadReads[1]).toBeLessThan(messageReads[1]);
     expect(messageReads[1]).toBeLessThan(
       transaction.agentMessage.updateMany.mock.invocationCallOrder[1],
@@ -522,8 +531,6 @@ describe('persisted mutation approvals', () => {
     expect(approvals.resolve).not.toHaveBeenCalled();
     expect(executor.executeTool).not.toHaveBeenCalled();
     expect(transaction.agentMessage.findMany).not.toHaveBeenCalled();
-    expect(approvals.resolve).not.toHaveBeenCalled();
-    expect(executor.executeTool).not.toHaveBeenCalled();
     expect(transaction.agentMessage.updateMany).not.toHaveBeenCalled();
     expect(finalizer.finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
   });
@@ -689,4 +696,22 @@ describe('persisted mutation approvals', () => {
     await service.execute('confirm_mutation', params());
     expect(approvals.resolve).not.toHaveBeenCalled();
   });
+  it.each([
+    ['confirm_mutation', 'declined'],
+    ['decline_mutation', 'approved'],
+  ] as const)(
+    'rejects fresh opposite consent for %s',
+    async (action, status) => {
+      const fresh = card();
+      fresh.data.status = status;
+      transaction.agentMessage.findMany.mockResolvedValue([
+        { id: 'message-1', metadata: { uiActions: [fresh] } },
+      ]);
+      await expect(service.execute(action, params())).rejects.toThrow(
+        'opposite consent',
+      );
+      expect(approvals.resolve).not.toHaveBeenCalled();
+      expect(executor.executeTool).not.toHaveBeenCalled();
+    },
+  );
 });
