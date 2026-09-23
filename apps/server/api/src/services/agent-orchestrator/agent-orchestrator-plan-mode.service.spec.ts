@@ -139,6 +139,24 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     });
   });
 
+  it('stamps the drafted plan reply with the run that produced it', async () => {
+    agentThreadsService.findOne.mockResolvedValue({ mode: 'plan' });
+
+    await service.tryHandlePlanModeTurn(
+      {
+        ...baseParams,
+        context: { ...baseParams.context, executionId: 'run-1' },
+      } as never,
+      host,
+    );
+
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({ runId: 'run-1' }),
+      }),
+    );
+  });
+
   it('treats a thread with no mode field as not plan-enabled', async () => {
     agentThreadsService.findOne.mockResolvedValue({});
 
