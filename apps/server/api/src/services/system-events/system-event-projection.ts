@@ -40,7 +40,11 @@ export function projectStripeSystemEvent(
       const session = event.data.object;
       if (
         session.mode !== 'payment' ||
-        session.payment_status !== 'paid' ||
+        (session.payment_status !== 'paid' &&
+          !(
+            session.payment_status === 'no_payment_required' &&
+            session.amount_total === 0
+          )) ||
         session.metadata?.plan_type !== 'payg'
       )
         return null;

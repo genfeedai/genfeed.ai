@@ -24,6 +24,7 @@ describe('StripeWebhookController', () => {
   let controller: StripeWebhookController;
   let stripeWebhookService: vi.Mocked<StripeWebhookService>;
   let stripeService: { constructWebhookEvent: ReturnType<typeof vi.fn> };
+  let systemEvents: { recordStripeEvent: ReturnType<typeof vi.fn> };
   let loggerService: vi.Mocked<LoggerService>;
 
   const mockPublisher = {
@@ -79,6 +80,7 @@ describe('StripeWebhookController', () => {
     stripeWebhookService = module.get(StripeWebhookService);
     stripeService = module.get(StripeService);
     loggerService = module.get(LoggerService);
+    systemEvents = module.get(SystemEventsService);
   });
 
   it('should be defined', () => {
@@ -93,6 +95,39 @@ describe('StripeWebhookController', () => {
           'stripe-signature': signature || 'test-signature',
         },
       }) as unknown as Request;
+
+    it('fails before billing side effects if durable event persistence fails', async () => {
+      stripeService.constructWebhookEvent.mockResolvedValue({
+        id: 'evt_1',
+        type: 'invoice.paid',
+        data: { object: {} },
+      });
+      systemEvents.recordStripeEvent.mockRejectedValue(
+        new Error('Database unavailable'),
+      );
+      await expect(
+        controller.handleStripe(mockRequest(Buffer.from('{}'))),
+      ).rejects.toThrow('Database unavailable');
+      expect(stripeWebhookService.handleWebhookEvent).not.toHaveBeenCalled();
+      expect(mockPublisher.set).not.toHaveBeenCalled();
+    });
+
+    it('persists provider activity even if billing rejects it as non-retryable', async () => {
+      const event = { id: 'evt_1', type: 'invoice.paid', data: { object: {} } };
+      stripeService.constructWebhookEvent.mockResolvedValue(event);
+      stripeWebhookService.handleWebhookEvent.mockRejectedValue(
+        new BadRequestException('Invalid billing metadata'),
+      );
+      await controller
+        .handleStripe(mockRequest(Buffer.from('{}')))
+        .catch(() => undefined);
+      expect(systemEvents.recordStripeEvent).toHaveBeenCalledWith(event);
+      expect(
+        systemEvents.recordStripeEvent.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        stripeWebhookService.handleWebhookEvent.mock.invocationCallOrder[0],
+      );
+    });
 
     it('should handle webhook successfully', async () => {
       const rawBody = Buffer.from('{"type":"payment_intent.succeeded"}');

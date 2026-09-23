@@ -68,6 +68,23 @@ describe('system event outbox', () => {
       expect.objectContaining({ where: { id: 'user.created/u1' }, update: {} }),
     );
   });
+  it('recovers a missed signup hook from canonical users', async () => {
+    const { service, prisma } = setup();
+    prisma.$queryRaw.mockResolvedValue([{ id: 'u2' }]);
+    prisma.user.findFirst.mockResolvedValue({
+      id: 'u2',
+      email: 'new@example.com',
+      createdAt: new Date('2026-09-23T12:00:00Z'),
+    });
+    prisma.systemEventWebhook.findMany.mockResolvedValue([]);
+    await service.recover();
+    expect(prisma.user.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'u2', isDeleted: false } }),
+    );
+    expect(prisma.systemEventWebhook.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({ where: { id: 'user.created/u2' }, update: {} }),
+    );
+  });
   it('signs a fresh delivery and records successful delivery under the lease', async () => {
     const { service, prisma } = setup();
     vi.mocked(safeFetch).mockResolvedValue(new Response('', { status: 200 }));

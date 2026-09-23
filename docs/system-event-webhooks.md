@@ -25,3 +25,8 @@ delivery: receivers must suppress replay by id. Rotating the destination can rep
 pending events to the new destination. Delivery history retains status codes, never
 response bodies or secrets. The deployment operator controls these settings; they
 must never be writable by ordinary tenant users.
+
+Verified Stripe activity is persisted before billing side effects and duplicate
+suppression. Alerts describe provider activity, not a guarantee that local
+fulfillment succeeded. Persistence failure returns an error before fulfillment
+so Stripe can retry without repeating completed billing side effects.

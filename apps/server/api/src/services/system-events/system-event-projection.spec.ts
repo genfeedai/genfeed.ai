@@ -18,7 +18,7 @@ describe('system billing events', () => {
         event('checkout.session.completed', {
           id: 'cs_1',
           mode: 'payment',
-          payment_status: 'paid',
+          payment_status: 'no_payment_required',
           currency: 'usd',
           amount_total: 0,
           metadata: { plan_type: 'payg', credits: '1000' },
@@ -36,6 +36,39 @@ describe('system billing events', () => {
         }),
       ),
     ).toBeNull();
+  });
+  it('projects payment failures and lifecycle changes independently of collections', () => {
+    expect(
+      projectStripeSystemEvent(
+        event('invoice.payment_failed', {
+          id: 'in_2',
+          subscription: 'sub_1',
+          amount_due: 4900,
+          amount_paid: 0,
+          currency: 'usd',
+          customer: 'cus_1',
+        }),
+      ),
+    ).toMatchObject({ type: 'payment.failed', data: { amountMinor: 4900 } });
+    for (const [type, projected] of [
+      ['customer.subscription.created', 'subscription.created'],
+      ['customer.subscription.updated', 'subscription.updated'],
+      ['customer.subscription.deleted', 'subscription.canceled'],
+    ]) {
+      const output = projectStripeSystemEvent(
+        event(type, {
+          id: 'sub_1',
+          customer: 'cus_1',
+          status: 'active',
+          cancel_at_period_end: true,
+        }),
+      );
+      expect(output).toMatchObject({
+        type: projected,
+        data: { cancelAtPeriodEnd: true },
+      });
+      expect(output?.data.amountMinor).toBeUndefined();
+    }
   });
   it('excludes test-mode, unpaid and unrelated checkout events', () => {
     expect(

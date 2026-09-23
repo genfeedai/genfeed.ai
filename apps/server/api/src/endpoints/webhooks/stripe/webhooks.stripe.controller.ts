@@ -60,6 +60,9 @@ export class StripeWebhookController {
         type: event.type,
       });
 
+      // Persist verified provider activity before billing side effects or replay suppression.
+      await this.systemEvents.recordStripeEvent(event);
+
       // Idempotency: skip if this event was already processed
       idempotencyKey = `stripe:webhook:${event.id}`;
 
@@ -87,7 +90,6 @@ export class StripeWebhookController {
       }
 
       await this.stripeWebhookService.handleWebhookEvent(event, url);
-      await this.systemEvents.recordStripeEvent(event);
     } catch (error: unknown) {
       const mapping = mapStripeWebhookError(error);
       const diagnostics = getStripeWebhookErrorDiagnostics(error, event);
