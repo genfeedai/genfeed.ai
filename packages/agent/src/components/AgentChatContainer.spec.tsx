@@ -356,7 +356,7 @@ type StoreState = {
 
 const storeState: StoreState = {
   activeRunId: 'run-1',
-  activeRunStatus: 'running',
+  activeRunStatus: 'idle',
   activeThreadId: 'thread-1',
   addMessage: vi.fn(),
   addWorkEvent: vi.fn(),
@@ -519,7 +519,7 @@ describe('AgentChatContainer', () => {
     storeState.isGenerating = false;
     storeState.error = null;
     storeState.activeRunId = 'run-1';
-    storeState.activeRunStatus = 'running';
+    storeState.activeRunStatus = 'idle';
   });
 
   it('clears a stale local run when the server has no active execution for the thread', async () => {
@@ -531,6 +531,29 @@ describe('AgentChatContainer', () => {
 
     await waitFor(() => {
       expect(storeState.clearStaleActiveRun).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it('adopts a restored running execution as a live stream', async () => {
+    const apiService = createApiService({
+      getActiveWorkflowExecutions: vi.fn().mockResolvedValue([
+        {
+          id: 'run-1',
+          metadata: { threadId: 'thread-1' },
+          startedAt: '2026-09-23T15:06:00.000Z',
+          status: 'RUNNING',
+        },
+      ]),
+    });
+
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+
+    await waitFor(() => {
+      expect(storeState.markStreamLive).toHaveBeenCalledTimes(1);
+    });
+    expect(storeState.setActiveRun).toHaveBeenCalledWith('run-1', {
+      startedAt: '2026-09-23T15:06:00.000Z',
+      status: 'running',
     });
   });
 
@@ -1305,6 +1328,32 @@ describe('AgentChatContainer', () => {
     );
   });
 
+  it('queues a send while a restored run is active even though no stream is live', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [];
+    storeState.activeRunId = 'run-1';
+    storeState.activeRunStatus = 'running';
+
+    render(
+      <AgentChatContainer
+        apiService={apiService as never}
+        isStreaming
+        suggestedActions={[
+          { id: 'status', label: 'Status', prompt: 'status?' },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Status' }));
+
+    expect(sendStreaming).not.toHaveBeenCalled();
+    expect(screen.getByTestId('composer-follow-up-queue')).toHaveTextContent(
+      'status?',
+    );
+  });
+
   it('queues a rapid second send after the first send marks the live transport busy', () => {
     const apiService = createApiService();
 
@@ -1478,6 +1527,7 @@ describe('AgentChatContainer', () => {
     expect(sendNonStreaming).not.toHaveBeenCalled();
 
     storeState.isGenerating = false;
+    storeState.activeRunStatus = 'cancelled';
     view.rerender(
       <AgentChatContainer
         apiService={apiService as never}
@@ -1760,6 +1810,7 @@ describe('AgentChatContainer', () => {
 
     storeState.pendingInputRequest = null;
     storeState.messages = [buildAssistantMessage()];
+    storeState.activeRunStatus = 'running';
 
     render(
       <AgentChatContainer
@@ -1785,6 +1836,7 @@ describe('AgentChatContainer', () => {
 
     storeState.pendingInputRequest = null;
     storeState.messages = [buildAssistantMessage()];
+    storeState.activeRunStatus = 'running';
     storeState.runStartedAt = new Date(Date.now() - 5_000).toISOString();
     storeState.stream.streamingContent = 'Partial answer';
     isStreamingHookActive = true;
