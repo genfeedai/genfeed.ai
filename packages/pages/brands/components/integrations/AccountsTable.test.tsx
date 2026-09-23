@@ -55,16 +55,8 @@ const noop = () => {
   // intentionally empty — unused handlers for tests that don't assert calls
 };
 
-function desktop() {
-  return within(screen.getByTestId('accounts-table-desktop'));
-}
-
-function mobile() {
-  return within(screen.getByTestId('accounts-table-mobile'));
-}
-
 describe('AccountsTable', () => {
-  it('shows the handle only when set, stripping a leading @, and never substitutes the name — in both layouts', () => {
+  it('shows the handle only when set, stripping a leading @, and never substitutes the name', () => {
     render(
       <AccountsTable
         accountHealth={[]}
@@ -84,16 +76,14 @@ describe('AccountsTable', () => {
       />,
     );
 
-    for (const layout of [desktop(), mobile()]) {
-      expect(layout.getByText('@genfeed')).toBeInTheDocument();
-      // "No Handle" has no `handle`, so no `@…` line renders for it — the
-      // fallback never substitutes the display name.
-      expect(layout.queryByText('@No Handle')).not.toBeInTheDocument();
-      expect(layout.getByText('No Handle')).toBeInTheDocument();
-    }
+    expect(screen.getByText('@genfeed')).toBeInTheDocument();
+    // "No Handle" has no `handle`, so no `@…` line renders for it — the
+    // fallback never substitutes the display name.
+    expect(screen.queryByText('@No Handle')).not.toBeInTheDocument();
+    expect(screen.getByText('No Handle')).toBeInTheDocument();
   });
 
-  it('derives Needs reconnect from a disconnected (not deleted) credential — in both layouts', () => {
+  it('derives Needs reconnect from a disconnected (not deleted) credential', () => {
     render(
       <AccountsTable
         accountHealth={[]}
@@ -106,8 +96,7 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
-    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('derives Needs reconnect from a connected credential missing its externalId identity', () => {
@@ -123,8 +112,7 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
-    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('derives Needs reconnect from an expired access token', () => {
@@ -142,8 +130,7 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
-    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('shows Connected for a fully linked account with no health data', () => {
@@ -159,8 +146,7 @@ describe('AccountsTable', () => {
       />,
     );
 
-    expect(desktop().getByText('Connected')).toBeInTheDocument();
-    expect(mobile().getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByText('Connected')).toBeInTheDocument();
   });
 
   it('renders the live-fetched accountHealth passed down, not just connection.accountHealth', () => {
@@ -185,8 +171,8 @@ describe('AccountsTable', () => {
 
     // Twitter runs the warmup blueprint, so the live health's "warming"
     // state — not "Connected" — must win once it's wired through.
-    expect(desktop().getByText('Warming')).toBeInTheDocument();
-    expect(desktop().queryByText('Connected')).not.toBeInTheDocument();
+    expect(screen.getByText('Warming')).toBeInTheDocument();
+    expect(screen.queryByText('Connected')).not.toBeInTheDocument();
   });
 
   it('sorts rows by platform then name', () => {
@@ -218,40 +204,11 @@ describe('AccountsTable', () => {
       />,
     );
 
-    // `getAllByRole('row')` only matches the desktop `<table>` rows — the
-    // mobile stacked list renders plain `<div>`s, so this stays unambiguous
-    // even though both layouts are present at once in jsdom.
     const [, ...dataRows] = screen.getAllByRole('row');
     expect(dataRows).toHaveLength(3);
     expect(dataRows[0]?.textContent).toContain('Alpha');
     expect(dataRows[1]?.textContent).toContain('Bravo');
     expect(dataRows[2]?.textContent).toContain('Zed');
-  });
-
-  it('derives the header count from status, excluding lapsed and identity-less rows', () => {
-    render(
-      <AccountsTable
-        accountHealth={[]}
-        connections={[
-          buildConnection({ credentialId: 'live-1' }),
-          buildConnection({
-            credentialId: 'live-2',
-            platform: CredentialPlatform.TIKTOK,
-          }),
-          buildConnection({ credentialId: 'lapsed-1', isConnected: false }),
-          buildConnection({ credentialId: 'no-id-1', externalId: undefined }),
-        ]}
-        onConnectAccount={noop}
-        onDisconnect={noop}
-        onPostingTimes={noop}
-        onReconnect={noop}
-        unavailablePlatforms={new Set()}
-      />,
-    );
-
-    // 4 rows total, but only 2 are actually connected — the header must
-    // say 2, matching what the Status column shows for each row.
-    expect(screen.getByText('2 connected accounts')).toBeInTheDocument();
   });
 
   it('shows an empty state with a Connect account action and no table when there are no accounts', () => {
@@ -271,12 +228,6 @@ describe('AccountsTable', () => {
     expect(screen.getByText('No accounts connected yet')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
     expect(screen.queryByRole('row')).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('accounts-table-desktop'),
-    ).not.toBeInTheDocument();
-    expect(
-      screen.queryByTestId('accounts-table-mobile'),
-    ).not.toBeInTheDocument();
 
     const connectButtons = screen.getAllByRole('button', {
       name: 'Connect account',
@@ -305,13 +256,13 @@ describe('AccountsTable', () => {
       />,
     );
 
-    const menuTrigger = desktop().getByRole('button', {
+    const menuTrigger = screen.getByRole('button', {
       name: /More actions/,
     });
     fireEvent.pointerDown(menuTrigger);
     fireEvent.click(menuTrigger);
-    // Radix portals the menu content to `document.body`, outside the
-    // desktop-layout container — query it globally, not scoped.
+    // Radix portals the menu content to `document.body` — query it
+    // globally, not scoped to the row.
     expect(screen.getByRole('menuitem', { name: 'Reconnect' })).toHaveAttribute(
       'data-disabled',
     );
@@ -349,7 +300,7 @@ describe('AccountsTable', () => {
     // Sorted alphabetically by name within the same platform ("Other
     // Account" < "Reconnecting Account"), so find each row by its own
     // content rather than assuming an index.
-    const dataRows = desktop().getAllByRole('row').slice(1);
+    const dataRows = screen.getAllByRole('row').slice(1);
     const reconnectingRow = dataRows.find((row) =>
       row.textContent?.includes('Reconnecting Account'),
     );

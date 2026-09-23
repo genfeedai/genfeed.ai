@@ -23,6 +23,15 @@ import {
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import {
+  bootstrapCredentialInclude,
+  mapBootstrapCredentials,
+} from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
+import {
+  isMergeableRecord,
+  mergeDefinedKeys,
+  omitUndefinedFields,
+} from '@api/collections/brands/utils/brand-config-merge.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import {
@@ -93,51 +102,6 @@ const MERGEABLE_AGENT_CONFIG_KEYS: ReadonlySet<string> = new Set([
   'strategy',
   'voice',
 ]);
-
-function isMergeableRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * Drops keys whose value is `undefined`.
- *
- * Nest's `plainToInstance` materializes every declared DTO field as an own
- * property holding `undefined` when the request body omitted it. Prisma rejects
- * those keys (`Argument X is missing` / invalid undefined), so write paths must
- * never forward them.
- */
-function omitUndefinedFields(
-  input: Record<string, unknown>,
-): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(input).filter(([, value]) => value !== undefined),
-  );
-}
-
-/**
- * Copies the defined keys of `incoming` over `current`.
- *
- * `undefined` has to be skipped here for the same reason it is skipped at the
- * top level: `plainToInstance` builds the DTO with `new`, and under this
- * codebase's runtime class-field semantics every declared-but-absent property
- * becomes a real own property holding `undefined`. Spreading the instance
- * directly would therefore write `undefined` over each stored value the caller
- * never mentioned — the exact data loss this merge exists to prevent.
- */
-function mergeDefinedKeys(
-  current: Record<string, unknown>,
-  incoming: Record<string, unknown>,
-): Record<string, unknown> {
-  const merged = { ...current };
-
-  for (const [key, value] of Object.entries(incoming)) {
-    if (value !== undefined) {
-      merged[key] = value;
-    }
-  }
-
-  return merged;
-}
 
 type BrandCreateInput = CreateBrandDto & {
   agentConfig?: UpdateBrandAgentConfigDto & Record<string, unknown>;
@@ -287,6 +251,7 @@ export class BrandsService extends BaseService<
     organizationId: string,
     options: {
       brandIds?: string[];
+      includeCredentials?: boolean;
     } = {},
   ): Promise<BrandDocument[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {});
@@ -297,6 +262,9 @@ export class BrandsService extends BaseService<
 
     const brands = (await this.delegate.findMany({
       include: {
+        ...(options.includeCredentials
+          ? { credentials: bootstrapCredentialInclude(organizationId) }
+          : {}),
         organization: {
           select: {
             accountType: true,
@@ -307,6 +275,12 @@ export class BrandsService extends BaseService<
       where,
       orderBy: { label: 'asc' },
     })) as BrandDocument[];
+
+    if (options.includeCredentials) {
+      for (const brand of brands) {
+        brand.credentials = mapBootstrapCredentials(brand.credentials);
+      }
+    }
 
     return this.attachBrandKitAssetRelations(brands, organizationId);
   }

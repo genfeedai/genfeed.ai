@@ -1,12 +1,6 @@
 import { CredentialPlatform } from '@genfeedai/contracts';
 import BrandDetailSocialMediaCard from '@pages/brands/components/sidebar/BrandDetailSocialMediaCard';
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-  within,
-} from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { resolveOAuthConnectPlatformCatalog } from '@ui/constants/oauth-connect-platforms';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -223,18 +217,6 @@ class MockResizeObserver {
 }
 
 describe('BrandDetailSocialMediaCard', () => {
-  // Matches AccountsTable.test.tsx's convention: the page variant renders a
-  // desktop `<table>` and a mobile stacked list simultaneously in jsdom (no
-  // real CSS media queries), so an unscoped query matches every status
-  // badge or name twice. Scope to one layout to make an assertion real.
-  function desktop() {
-    return within(screen.getByTestId('accounts-table-desktop'));
-  }
-
-  function mobile() {
-    return within(screen.getByTestId('accounts-table-mobile'));
-  }
-
   beforeEach(() => {
     vi.clearAllMocks();
     useOAuthConnectPlatforms.mockReturnValue(
@@ -414,10 +396,8 @@ describe('BrandDetailSocialMediaCard', () => {
       />,
     );
 
-    expect(desktop().getByText('Connected')).toBeInTheDocument();
-    expect(desktop().getByText('Needs reconnect')).toBeInTheDocument();
-    expect(mobile().getByText('Connected')).toBeInTheDocument();
-    expect(mobile().getByText('Needs reconnect')).toBeInTheDocument();
+    expect(screen.getByText('Connected')).toBeInTheDocument();
+    expect(screen.getByText('Needs reconnect')).toBeInTheDocument();
   });
 
   it('passes fetched account health down to the accounts table on the page variant', async () => {
@@ -439,10 +419,8 @@ describe('BrandDetailSocialMediaCard', () => {
 
     // `listBrandAccountHealth` (mocked above) returns a "warming" summary
     // for credential-1 — the accounts table must show that live health
-    // instead of falling back to a bare "Connected" badge. Both the
-    // desktop and mobile layouts render at once in jsdom, so each query
-    // matches twice.
-    expect((await screen.findAllByText('Warming')).length).toBeGreaterThan(0);
+    // instead of falling back to a bare "Connected" badge.
+    expect(await screen.findByText('Warming')).toBeInTheDocument();
     expect(screen.queryAllByText('Connected')).toHaveLength(0);
   });
 
@@ -557,6 +535,27 @@ describe('BrandDetailSocialMediaCard', () => {
     await waitFor(() => {
       expect(postConnect).toHaveBeenCalledWith({ brandId: 'brand-1' });
     });
+  });
+
+  it('lets the page header own the Connect account modal', () => {
+    const onConnectAccountModalOpenChange = vi.fn();
+    render(
+      <BrandDetailSocialMediaCard
+        brandId="brand-1"
+        connections={[]}
+        connectedPlatformsCount={0}
+        isConnectAccountModalOpen
+        onConnectAccountModalOpenChange={onConnectAccountModalOpenChange}
+        variant="page"
+      />,
+    );
+
+    expect(screen.getByText('Instagram')).toBeInTheDocument();
+
+    fireEvent.keyDown(document.activeElement ?? document.body, {
+      key: 'Escape',
+    });
+    expect(onConnectAccountModalOpenChange).toHaveBeenCalledWith(false);
   });
 
   it('offers Fanvue under Creator in the connect modal and omits unavailable X Ads', () => {

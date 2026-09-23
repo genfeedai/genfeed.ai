@@ -118,6 +118,12 @@ export interface BrandDetailSocialMediaCardProps {
    */
   onRefresh?: () => Promise<void> | void;
   /**
+   * Controlled Connect account modal state. The `page` variant's trigger
+   * lives in the page header, so the page owns whether the modal is open.
+   */
+  isConnectAccountModalOpen?: boolean;
+  onConnectAccountModalOpenChange?: (isOpen: boolean) => void;
+  /**
    * `compact` — summary card + connect modal (sidebar / embed).
    * `page` — full accounts table + Connect account modal (settings/integrations).
    */
