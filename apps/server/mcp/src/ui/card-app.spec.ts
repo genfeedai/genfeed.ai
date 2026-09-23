@@ -164,3 +164,63 @@ it('reports a failed handshake instead of loading indefinitely', async () => {
   await vi.advanceTimersByTimeAsync(10001);
   expect(document.body.textContent).toContain('could not initialize');
 });
+
+it('renders avatars that only supply a thumbnail', () => {
+  result('list_avatars', [
+    { name: 'Avatar', thumbnailUrl: 'https://cdn.genfeed.ai/avatar.png' },
+  ]);
+  expect(document.querySelector('img')?.getAttribute('src')).toBe(
+    'https://cdn.genfeed.ai/avatar.png',
+  );
+  expect(document.querySelector('a')?.href).toBe(
+    'https://cdn.genfeed.ai/avatar.png',
+  );
+});
+
+it('reports host open-link failures returned as results', async () => {
+  result('list_images', [{ url: 'https://external.example/image.png' }]);
+  document.querySelector('a')?.click();
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      source: window.parent,
+      data: { jsonrpc: '2.0', id: 2, result: { isError: true } },
+    }),
+  );
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(document.querySelector('#notice')?.textContent).toContain(
+    'could not open the link',
+  );
+});
+
+it('reports natural body height so the host frame can shrink', async () => {
+  vi.stubGlobal('requestAnimationFrame', (callback: FrameRequestCallback) => {
+    callback(0);
+    return 1;
+  });
+  const bounds = vi.spyOn(document.body, 'getBoundingClientRect');
+  bounds.mockReturnValue({ height: 800 } as DOMRect);
+  window.dispatchEvent(
+    new MessageEvent('message', {
+      source: window.parent,
+      data: { jsonrpc: '2.0', id: 1, result: { hostContext: {} } },
+    }),
+  );
+  await Promise.resolve();
+  expect(window.parent.postMessage).toHaveBeenCalledWith(
+    expect.objectContaining({
+      method: 'ui/notifications/size-changed',
+      params: { height: 800 },
+    }),
+    '*',
+  );
+  bounds.mockReturnValue({ height: 200 } as DOMRect);
+  result('list_posts', []);
+  expect(window.parent.postMessage).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      method: 'ui/notifications/size-changed',
+      params: { height: 200 },
+    }),
+    '*',
+  );
+});

@@ -63,7 +63,7 @@ footer{margin-top:12px}details summary{cursor:pointer;font-size:12px}details .de
   function resize() {
     if (!isInitialized || isDisposed) return;
     cancelAnimationFrame(resizeFrame);
-    resizeFrame = requestAnimationFrame(() => send({ method: 'ui/notifications/size-changed', params: { height: document.documentElement.scrollHeight } }));
+    resizeFrame = requestAnimationFrame(() => send({ method: 'ui/notifications/size-changed', params: { height: Math.ceil(document.body.getBoundingClientRect().height) } }));
   }
   function theme(context) {
     if (context && ['light', 'dark'].includes(context.theme)) document.body.dataset.theme = context.theme;
@@ -82,8 +82,8 @@ footer{margin-top:12px}details summary{cursor:pointer;font-size:12px}details .de
   function renderCard(item) {
     const article = element('article', 'card');
     const copy = element('div', 'copy');
-    const url = safeUrl(item.url);
-    const preview = mediaUrl(item.url);
+    const url = safeUrl(item.url) || (item.kind === 'image' ? safeUrl(item.thumbnailUrl) : null);
+    const preview = mediaUrl(item.url) || (item.kind === 'image' ? mediaUrl(item.thumbnailUrl) : null);
     let media;
     if (preview && item.kind === 'image') {
       media = element('img'); media.alt = item.title || 'Generated image'; media.loading = 'lazy'; media.referrerPolicy = 'no-referrer';
@@ -110,7 +110,7 @@ footer{margin-top:12px}details summary{cursor:pointer;font-size:12px}details .de
     if (url) {
       const link = element('a', '', ['post', 'article'].includes(item.kind) ? 'Open published content ↗' : 'Open media ↗');
       link.href = url.href; link.target = '_blank'; link.rel = 'noopener noreferrer';
-      link.addEventListener('click', event => { event.preventDefault(); request('ui/open-link', { url: url.href }).catch(() => { notice.textContent = 'The host could not open the link. Copy the link address to open it in your browser.'; resize(); }); });
+      link.addEventListener('click', event => { event.preventDefault(); request('ui/open-link', { url: url.href }).then(result => { if (result && result.isError) throw new Error('The host could not open the link.'); }).catch(() => { notice.textContent = 'The host could not open the link. Copy the link address to open it in your browser.'; resize(); }); });
       copy.append(link);
     }
     article.append(copy); return article;
