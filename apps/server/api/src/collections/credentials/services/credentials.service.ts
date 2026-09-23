@@ -1,4 +1,5 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
+import { isBootstrapCredentialWrite } from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
 import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import type {
   CredentialDocument,
@@ -10,9 +11,15 @@ import { CreateCredentialDto } from '@api/collections/credentials/dto/create-cre
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
+import {
+  hashOAuthRequestToken,
+  pickCarriedConnectionColumns,
+  requireCredentialRelationId,
+} from '@api/collections/credentials/utils/credential-persistence.util';
 import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
 import { isMirrorableAvatarUrl } from '@api/collections/credentials/utils/provider-placeholder-image.util';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { assertUrlNotPrivate } from '@api/helpers/utils/ssrf/ssrf.util';
@@ -37,10 +44,6 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export type { ResolveBrandAccountOptions } from '@api/collections/credentials/credential.types';
 
-function hashOAuthRequestToken(token: string): string {
-  return createHash('sha256').update(token).digest('hex');
-}
-
 /** Reconnect intent lives on warmupSignals, never in the OAuth state nonce. */
 const OAUTH_CONNECT_INTENT_STORAGE_KEY = 'oauthConnectIntent';
 
@@ -64,27 +67,6 @@ export function extractReconnectCredentialIdFromWarmupSignals(
     : undefined;
 }
 
-/**
- * Columns that describe *this connection* rather than *this account*. When a
- * reconnect resolves to an account the brand already holds, these move onto the
- * incumbent row; everything else it owns — label, description, posting times,
- * warm-up state, tags, and every row that foreign-keys to its id — stays put.
- */
-const CARRIED_CONNECTION_COLUMNS = [
-  'accessToken',
-  'accessTokenExpiry',
-  'accessTokenSecret',
-  'grantedScopes',
-  'grantedScopesCapturedAt',
-  'oauthToken',
-  'oauthTokenHash',
-  'oauthTokenSecret',
-  'refreshToken',
-  'refreshTokenExpiry',
-  'userId',
-  'username',
-] as const;
-
 /** Postgres reports a partial-unique collision as Prisma error P2002. */
 function isUniqueConstraintViolation(error: unknown): boolean {
   return (
@@ -100,14 +82,6 @@ type CredentialUpsertFields = Partial<
     'brandId' | 'organizationId' | 'platform' | 'userId'
   >
 >;
-
-function requireCredentialRelationId(value: unknown, field: string): string {
-  if (typeof value !== 'string' || value.trim().length === 0) {
-    throw new TypeError(`${field} is required to persist a credential`);
-  }
-
-  return value;
-}
 
 export interface OAuthCredentialScope {
   organizationId: string;
@@ -136,8 +110,25 @@ export class CredentialsService
     private readonly filesClientService: FilesClientService,
     private readonly providerAccountPurgeService: ProviderAccountPurgeService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
   ) {
     super(prisma, 'credential', logger);
+  }
+
+  /**
+   * Access bootstrap brands embed a credential summary, so every write that
+   * changes it (connect, disconnect, delete) drops the organization's cached
+   * bootstrap — otherwise the agent sidebar serves the old list until expiry.
+   */
+  private async invalidateAccessBootstrap(
+    organizationId: unknown,
+  ): Promise<void> {
+    if (typeof organizationId !== 'string' || !organizationId) {
+      return;
+    }
+    await this.accessBootstrapCacheService.invalidateForOrganization(
+      organizationId,
+    );
   }
 
   protected override normalizeData(data: unknown): Record<string, unknown> {
@@ -199,12 +190,14 @@ export class CredentialsService
     createDto: CreateCredentialDto,
     populate: PopulateInput = [],
   ): Promise<CredentialDocument> {
-    return super.create(
+    const created = await super.create(
       this.cryptoService.encryptSecretFields(
         createDto as unknown as Record<string, unknown>,
       ) as unknown as CreateCredentialDto,
       populate,
     );
+    await this.invalidateAccessBootstrap(created.organizationId);
+    return created;
   }
 
   override async patch(
@@ -212,23 +205,37 @@ export class CredentialsService
     updateDto: Partial<UpdateCredentialDto> | Record<string, unknown>,
     populate: PopulateInput = [],
   ): Promise<CredentialDocument> {
-    return super.patch(
+    const updated = await super.patch(
       id,
       this.cryptoService.encryptSecretFields(
         updateDto as Record<string, unknown>,
       ),
       populate,
     );
+    if (isBootstrapCredentialWrite(updateDto)) {
+      await this.invalidateAccessBootstrap(updated.organizationId);
+    }
+    return updated;
   }
 
-  override patchAll(
+  override async patchAll(
     filter: Record<string, unknown>,
     update: Record<string, unknown>,
   ): Promise<{ modifiedCount: number }> {
-    return super.patchAll(
+    const result = await super.patchAll(
       filter,
       this.cryptoService.encryptSecretFields(update),
     );
+    if (result.modifiedCount > 0 && isBootstrapCredentialWrite(update)) {
+      await this.invalidateAccessBootstrap(filter.organizationId);
+    }
+    return result;
+  }
+
+  override async remove(id: string): Promise<CredentialDocument | null> {
+    const removed = await super.remove(id);
+    await this.invalidateAccessBootstrap(removed?.organizationId);
+    return removed;
   }
 
   /**
@@ -866,6 +873,7 @@ export class CredentialsService
       update,
       this.cryptoService.encryptSecretFields(this.normalizeData(connection)),
     );
+    await this.invalidateAccessBootstrap(organizationId);
     emitCredentialProfileSynced(this.eventEmitter, connected, profile);
     return connected;
   }
@@ -924,7 +932,7 @@ export class CredentialsService
           oauthTokenSecret: null,
         };
         const data = {
-          ...this.carriedConnectionColumns(
+          ...pickCarriedConnectionColumns(
             this.normalizeDocument({ ...source }),
           ),
           ...connectionUpdate,
@@ -978,23 +986,5 @@ export class CredentialsService
       }
       return settle();
     }
-  }
-
-  /** Connection-bearing columns to move onto a surviving incumbent row. */
-  private carriedConnectionColumns(
-    credential: CredentialDocument,
-  ): Record<string, unknown> {
-    const source = credential as unknown as Record<string, unknown>;
-
-    return CARRIED_CONNECTION_COLUMNS.reduce<Record<string, unknown>>(
-      (carried, column) => {
-        if (source[column] !== undefined) {
-          carried[column] = source[column];
-        }
-
-        return carried;
-      },
-      {},
-    );
   }
 }
