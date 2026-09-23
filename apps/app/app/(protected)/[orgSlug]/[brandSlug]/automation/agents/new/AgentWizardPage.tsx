@@ -201,6 +201,7 @@ export default function AgentWizardPage({
         autoPublishConfidenceThreshold: form.autoPublishConfidenceThreshold,
         brandId,
         dailyCreditBudget: form.dailyCreditBudget,
+        weeklyCreditBudget: form.dailyCreditBudget * 5,
         isActive: form.startImmediately,
         label: form.label,
         minCreditThreshold: form.minCreditThreshold,

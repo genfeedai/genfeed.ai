@@ -32,8 +32,15 @@ export class BatchGenerationService {
     userId: string,
     orgId: string,
     idempotencyKey?: string,
+    strategyId?: string,
   ): Promise<IBatchSummary> {
-    return this.creationService.createBatch(dto, userId, orgId, idempotencyKey);
+    return this.creationService.createBatch(
+      dto,
+      userId,
+      orgId,
+      idempotencyKey,
+      strategyId,
+    );
   }
 
   @HandleErrors('create manual review batch', 'batch-generation')

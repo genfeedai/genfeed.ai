@@ -200,3 +200,158 @@ describe('AgentStrategiesService', () => {
     });
   });
 });
+
+describe('AgentStrategiesService budget and atomic run persistence', () => {
+  function setup(config: Record<string, unknown> = {}) {
+    const row = {
+      id: 'strategy',
+      organizationId: 'org',
+      config,
+      policies: {},
+      isDeleted: false,
+      isActive: true,
+    };
+    const prisma = {
+      $queryRaw: vi.fn().mockResolvedValue([]),
+      $transaction: vi.fn(async (fn: (tx: unknown) => Promise<unknown>) =>
+        fn(prisma),
+      ),
+      agentStrategy: {
+        findFirst: vi
+          .fn()
+          .mockImplementation(async ({ where }) =>
+            where.organizationId && where.organizationId !== 'org' ? null : row,
+          ),
+        create: vi
+          .fn()
+          .mockImplementation(async ({ data }) => ({ ...row, ...data })),
+        update: vi
+          .fn()
+          .mockImplementation(async ({ data }) => Object.assign(row, data)),
+      },
+    };
+    const service = new AgentStrategiesService(
+      prisma as never,
+      { debug: vi.fn(), error: vi.fn() } as never,
+    );
+    return { prisma, service, row };
+  }
+  it.each([
+    [10, undefined, 50],
+    [10, 0, 0],
+    [undefined, undefined, 0],
+  ])(
+    'defaults weekly budgets from daily without overriding zero',
+    async (daily, weekly, expected) => {
+      const { prisma, service } = setup();
+      await service.createWithClient(
+        {
+          organizationId: 'org',
+          userId: 'user',
+          label: 'Agent',
+          dailyCreditBudget: daily,
+          weeklyCreditBudget: weekly,
+        },
+        prisma as never,
+      );
+      expect(prisma.agentStrategy.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          data: expect.objectContaining({
+            config: expect.objectContaining({ weeklyCreditBudget: expected }),
+          }),
+        }),
+      );
+    },
+  );
+  it.each([
+    [
+      { dailyCreditBudget: 10, weeklyCreditBudget: 12 },
+      { label: 'changed' },
+      12,
+    ],
+    [{ dailyCreditBudget: 10, weeklyCreditBudget: 0 }, { label: 'changed' }, 0],
+    [{ dailyCreditBudget: 10 }, { label: 'changed' }, 50],
+    [
+      { dailyCreditBudget: 10, weeklyCreditBudget: 12 },
+      { dailyCreditBudget: 20 },
+      100,
+    ],
+    [
+      { dailyCreditBudget: 10 },
+      { dailyCreditBudget: 20, weeklyCreditBudget: 0 },
+      0,
+    ],
+  ])(
+    'preserves/recalculates update defaults',
+    async (config, update, expected) => {
+      const { service, row, prisma } = setup(config);
+      await service.patch('strategy', update);
+      expect(row.config.weeklyCreditBudget).toBe(expected);
+      expect(prisma.$queryRaw).toHaveBeenCalledOnce();
+    },
+  );
+  it('uses the terminal transaction and latest counters with bounded ISO history', async () => {
+    const { service, prisma, row } = setup({
+      creditsUsedToday: 1,
+      creditsUsedThisWeek: 2,
+      runHistory: Array.from({ length: 50 }, () => ({ executionId: 'old' })),
+      consecutiveFailures: 2,
+    });
+    await service.recordRun(
+      'strategy',
+      {
+        startedAt: new Date('2026-09-24T00:00:00Z'),
+        completedAt: new Date('2026-09-24T00:00:01Z'),
+        status: 'COMPLETED' as never,
+        creditsUsed: 0.25,
+        contentGenerated: 0,
+        executionId: 'run',
+      },
+      'org',
+      prisma as never,
+    );
+    expect(prisma.$transaction).not.toHaveBeenCalled();
+    expect(row.config).toMatchObject({
+      creditsUsedToday: 1.25,
+      creditsUsedThisWeek: 2.25,
+      consecutiveFailures: 0,
+      lastRunAt: '2026-09-24T00:00:01.000Z',
+    });
+    expect(row.config.runHistory).toHaveLength(50);
+    expect((row.config.runHistory as unknown[]).at(-1)).toMatchObject({
+      executionId: 'run',
+      completedAt: '2026-09-24T00:00:01.000Z',
+    });
+  });
+  it('records failed runs, pauses at three, and requires manual reactivation at five', async () => {
+    const { service, row } = setup({ consecutiveFailures: 2 });
+    const run = {
+      startedAt: new Date(),
+      completedAt: new Date(),
+      status: 'FAILED' as never,
+      creditsUsed: 0,
+      contentGenerated: 0,
+    };
+    await service.recordRun('strategy', run, 'org');
+    expect(row.isActive).toBe(false);
+    expect(row.config.consecutiveFailures).toBe(3);
+    await service.recordRun('strategy', run, 'org');
+    await service.recordRun('strategy', run, 'org');
+    expect(row.config.requiresManualReactivation).toBe(true);
+  });
+  it('does not mutate a foreign strategy', async () => {
+    const { service, prisma } = setup();
+    await service.recordRun(
+      'strategy',
+      {
+        startedAt: new Date(),
+        completedAt: new Date(),
+        status: 'COMPLETED' as never,
+        creditsUsed: 2,
+        contentGenerated: 0,
+      },
+      'foreign',
+    );
+    expect(prisma.agentStrategy.update).not.toHaveBeenCalled();
+  });
+});

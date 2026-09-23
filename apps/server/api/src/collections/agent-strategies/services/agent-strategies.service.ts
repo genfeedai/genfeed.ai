@@ -2,6 +2,8 @@ import { getAgentTypeWorkflowDefault } from '@api/collections/agent-strategies/c
 import { CreateAgentStrategyDto } from '@api/collections/agent-strategies/dto/create-agent-strategy.dto';
 import { UpdateAgentStrategyDto } from '@api/collections/agent-strategies/dto/update-agent-strategy.dto';
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { ValidationException } from '@api/exceptions/validation.exception';
 import type { PrismaTransactionClient } from '@api/helpers/utils/transaction/transaction.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -10,7 +12,7 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import { AgentStrategyRunStatus } from '@genfeedai/contracts';
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -201,6 +203,8 @@ export class AgentStrategiesService extends BaseService<
       ...(preferredWorkflowTemplateId ? { preferredWorkflowTemplateId } : {}),
       ...(skillSlugs !== undefined ? { skillSlugs } : {}),
       // Defaults for counters that live in config
+      weeklyCreditBudget:
+        createDto.weeklyCreditBudget ?? (createDto.dailyCreditBudget ?? 0) * 5,
       consecutiveFailures: 0,
       creditsUsedThisWeek: 0,
       creditsUsedToday: 0,
@@ -218,21 +222,47 @@ export class AgentStrategiesService extends BaseService<
     updateDto: Partial<UpdateAgentStrategyDto>,
     populate: PopulateInput = [],
   ): Promise<AgentStrategyDocument> {
-    const existing = await this.findOne({ id: id });
-    const existingRecord = existing as Record<string, unknown> | null;
-    const existingConfig = this.readRecord(existingRecord?.config) ?? {};
-    const existingPolicies = this.readRecord(existingRecord?.policies) ?? {};
-
-    return super.patch(
-      id,
-      this.toPrismaWriteData(
-        updateDto as AgentStrategyWriteDto,
+    if (!id) throw new ValidationException('Document ID is required');
+    if (!updateDto || typeof updateDto !== 'object')
+      throw new ValidationException('Update data is required');
+    return this.prisma.$transaction(async (transaction) => {
+      await lockAgentStrategy(transaction, id);
+      // tenant-scope-ignore: the collection controller authorizes the opaque strategy id; resolve its organization before the scoped write
+      const existing = await transaction.agentStrategy.findFirst({
+        where: { id, isDeleted: false },
+      });
+      if (!existing) throw new NotFoundException('Agent strategy', id);
+      const existingConfig = this.readRecord(existing.config) ?? {};
+      const existingPolicies = this.readRecord(existing.policies) ?? {};
+      const data = this.toPrismaWriteData(
+        {
+          ...updateDto,
+          weeklyCreditBudget:
+            updateDto.weeklyCreditBudget ??
+            (updateDto.dailyCreditBudget !== undefined
+              ? updateDto.dailyCreditBudget * 5
+              : Number(
+                  existingConfig.weeklyCreditBudget ??
+                    Number(existingConfig.dailyCreditBudget ?? 0) * 5,
+                )),
+        } as AgentStrategyWriteDto,
         'update',
         existingConfig,
         existingPolicies,
-      ) as unknown as Partial<UpdateAgentStrategyDto>,
-      populate,
-    );
+      );
+      const include = this.populateToInclude(populate);
+      return this.normalizeDocument(
+        await transaction.agentStrategy.update({
+          where: {
+            id,
+            organizationId: existing.organizationId,
+            isDeleted: false,
+          },
+          data: this.normalizeData(data) as Prisma.AgentStrategyUpdateInput,
+          ...(include ? { include } : {}),
+        }),
+      );
+    });
   }
 
   /**
@@ -285,49 +315,58 @@ export class AgentStrategiesService extends BaseService<
       status: AgentStrategyRunStatus;
       creditsUsed: number;
       contentGenerated: number;
+      executionId?: string;
       threadId?: string;
     },
+    organizationId: string,
+    client?: Prisma.TransactionClient,
   ): Promise<void> {
-    const current = (await this.delegate.findFirst({
-      where: { id },
-    })) as AgentStrategyDocument | null;
-    if (!current) return;
-
-    const config = this.readRecord(current.config) ?? {};
-    const existingHistory = Array.isArray(config.runHistory)
-      ? (config.runHistory as unknown[])
-      : Array.isArray(current.runHistory)
-        ? (current.runHistory as unknown[])
-        : [];
-    const trimmedHistory = [...existingHistory, run].slice(-50);
-
-    const creditsUsedThisWeek =
-      Number(config.creditsUsedThisWeek ?? current.creditsUsedThisWeek ?? 0) +
-      run.creditsUsed;
-    const creditsUsedToday =
-      Number(config.creditsUsedToday ?? 0) + run.creditsUsed;
-    const dailyCreditsUsed =
-      Number(config.dailyCreditsUsed ?? current.dailyCreditsUsed ?? 0) +
-      run.creditsUsed;
-    const monthToDateCreditsUsed =
-      Number(
-        config.monthToDateCreditsUsed ?? current.monthToDateCreditsUsed ?? 0,
-      ) + run.creditsUsed;
-
-    await this.delegate.update({
-      where: { id },
-      data: {
-        config: {
-          ...config,
-          creditsUsedThisWeek,
-          creditsUsedToday,
-          dailyCreditsUsed,
-          lastRunAt: run.completedAt,
-          monthToDateCreditsUsed,
-          runHistory: trimmedHistory,
+    const record = async (
+      transaction: Prisma.TransactionClient,
+    ): Promise<void> => {
+      await lockAgentStrategy(transaction, id);
+      const current = await transaction.agentStrategy.findFirst({
+        where: { id, organizationId, isDeleted: false },
+      });
+      if (!current) return;
+      const config = this.readRecord(current.config) ?? {};
+      const history = Array.isArray(config.runHistory) ? config.runHistory : [];
+      const failures =
+        run.status === AgentStrategyRunStatus.FAILED
+          ? Number(config.consecutiveFailures ?? 0) + 1
+          : 0;
+      await transaction.agentStrategy.update({
+        where: { id, organizationId, isDeleted: false },
+        data: {
+          ...(failures >= 3 ? { isActive: false } : {}),
+          config: toPrismaJson({
+            ...config,
+            consecutiveFailures: failures,
+            ...(failures >= 3 ? { nextRunAt: null } : {}),
+            ...(failures >= 5 ? { requiresManualReactivation: true } : {}),
+            creditsUsedThisWeek:
+              Number(config.creditsUsedThisWeek ?? 0) + run.creditsUsed,
+            creditsUsedToday:
+              Number(config.creditsUsedToday ?? 0) + run.creditsUsed,
+            dailyCreditsUsed:
+              Number(config.dailyCreditsUsed ?? 0) + run.creditsUsed,
+            monthToDateCreditsUsed:
+              Number(config.monthToDateCreditsUsed ?? 0) + run.creditsUsed,
+            lastRunAt: run.completedAt.toISOString(),
+            runHistory: [
+              ...history,
+              {
+                ...run,
+                startedAt: run.startedAt.toISOString(),
+                completedAt: run.completedAt.toISOString(),
+              },
+            ].slice(-50),
+          }),
         },
-      },
-    });
+      });
+    };
+    if (client) await record(client);
+    else await this.prisma.$transaction(record);
   }
 
   /**
@@ -582,4 +621,12 @@ function normalizeWorkflowInputOverrides(
     }
   }
   return out.slice(0, 40);
+}
+
+export async function lockAgentStrategy(
+  transaction: Prisma.TransactionClient,
+  strategyId: string,
+): Promise<void> {
+  const key = `agent-strategy-config:${strategyId}`;
+  await transaction.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${key}, 0))::text`;
 }

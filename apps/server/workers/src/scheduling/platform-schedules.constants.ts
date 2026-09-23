@@ -16,6 +16,9 @@ import { TRANSCRIPT_PURGE_SCHEDULE } from '@workers/crons/transcript-purge/trans
 export const PLATFORM_SCHEDULE_QUEUE = 'system-sweeps';
 
 export const PLATFORM_SCHEDULED_TASKS = {
+  PROACTIVE_AGENT_STRATEGIES: 'proactive-agent-strategies',
+  ANALYTICS_SYNC: 'analytics-sync',
+  CONTENT_LOOP_AUTOPILOT: 'content-loop-autopilot',
   BATCH_CREDIT_SETTLEMENT_RECONCILE: 'batch-credit-settlement-reconcile',
   BATCH_GENERATION_RECONCILE: 'batch-generation-reconcile',
   BYOK_MONTHLY_BILLING: 'byok-monthly-billing',
@@ -59,6 +62,18 @@ export type PlatformSchedule = {
 };
 
 export const PLATFORM_SCHEDULE_CATALOG = {
+  [PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES]: {
+    pattern: '* * * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC]: {
+    pattern: '0 */6 * * *',
+    timezone: 'UTC',
+  },
+  [PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT]: {
+    pattern: '0 8 * * *',
+    timezone: 'UTC',
+  },
   [PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS]: {
     pattern: '*/5 * * * *',
     timezone: 'UTC',

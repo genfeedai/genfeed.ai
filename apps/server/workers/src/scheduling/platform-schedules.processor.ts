@@ -35,11 +35,12 @@ import {
   PLATFORM_SCHEDULED_TASKS,
   type PlatformScheduledTaskName,
 } from '@workers/scheduling/platform-schedules.constants';
+import { PlatformWorkflowSweepsService } from '@workers/scheduling/platform-workflow-sweeps.service';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 import type { Job } from 'bullmq';
 
-type PlatformTaskHandler = () => Promise<unknown>;
+type PlatformTaskHandler = (job: Job) => Promise<unknown>;
 
 @Injectable()
 @Processor(PLATFORM_SCHEDULE_QUEUE)
@@ -82,9 +83,16 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly lifecycleEmails: CronLifecycleEmailsService,
     private readonly threadComments: ThreadCommentDeliveryService,
     private readonly oauthClientCleanup: CronOAuthClientCleanupService,
+    private readonly workflowSweeps: PlatformWorkflowSweepsService,
   ) {
     super();
     this.handlers = {
+      [PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES]: (job) =>
+        this.workflowSweeps.sweep('proactive-agent-strategies', job.timestamp),
+      [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC]: (job) =>
+        this.workflowSweeps.sweep('analytics-sync', job.timestamp),
+      [PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT]: (job) =>
+        this.workflowSweeps.sweep('content-loop-autopilot', job.timestamp),
       [PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS]: () =>
         this.lifecycleEmails.processLifecycleEmails(),
       [PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE]: () =>
@@ -165,6 +173,6 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       throw new Error(`Unknown platform scheduled task: ${job.name}`);
     }
 
-    await this.handlers[job.name]();
+    await this.handlers[job.name](job);
   }
 }

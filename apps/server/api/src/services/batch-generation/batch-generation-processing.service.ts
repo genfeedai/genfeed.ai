@@ -514,6 +514,7 @@ export class BatchGenerationProcessingService {
     }
 
     const post = await this.postsService.create({
+      agentStrategyId: batchRecord.agentStrategyId ?? undefined,
       brandId: batchRecord.brandId,
       ...(credentialId ? { credentialId } : {}),
       description: caption,

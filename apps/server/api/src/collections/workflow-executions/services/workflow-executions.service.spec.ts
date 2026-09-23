@@ -65,6 +65,7 @@ describe('WorkflowExecutionsService', () => {
         logger as never,
         workflowEventWebhookService as never,
         workflowNotificationOutboxService as never,
+        { recordRun: vi.fn() } as never,
       ),
       workflowNotificationOutboxService,
       workflowEventWebhookService,

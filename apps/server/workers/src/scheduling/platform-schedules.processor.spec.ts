@@ -51,10 +51,17 @@ describe('PlatformSchedulesProcessor', () => {
   const workflowContinuation = { reconcile: handler() };
   const youtubeMessages = { syncYoutubeMessages: handler() };
   const youtubeStatus = { checkScheduledYoutubeVideos: handler() };
+  const workflowSweeps = { sweep: handler() };
   const logger = { debug: vi.fn() };
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
+      [
+        PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES,
+        workflowSweeps.sweep,
+      ],
+      [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC, workflowSweeps.sweep],
+      [PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT, workflowSweeps.sweep],
       [
         PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE,
         batchGeneration.reconcileSettlementShortfalls,
@@ -207,6 +214,7 @@ describe('PlatformSchedulesProcessor', () => {
       lifecycleEmails as never,
       threadComments as never,
       oauthClientCleanup as never,
+      workflowSweeps as never,
     );
   });
 
@@ -220,6 +228,14 @@ describe('PlatformSchedulesProcessor', () => {
     await processor.process({ name: taskName } as Job);
 
     expect(expected).toHaveBeenCalledOnce();
+  });
+
+  it('passes the scheduled timestamp to the canonical sweep', async () => {
+    await processor.process({
+      name: 'analytics-sync',
+      timestamp: 123456,
+    } as Job);
+    expect(workflowSweeps.sweep).toHaveBeenCalledWith('analytics-sync', 123456);
   });
 
   it('fails closed for unknown task names', async () => {

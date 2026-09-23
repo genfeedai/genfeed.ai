@@ -1,3 +1,4 @@
+import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
 /**
  * Workflow Executions Module
  * Tracks execution history for workflows including node-by-node results,
@@ -22,6 +23,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [WorkflowExecutionsService],
   imports: [
+    AgentStrategiesCoreModule,
     AgentThreadsModule,
     WorkflowsCoreModule,
     UsersModule,
