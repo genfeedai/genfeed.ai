@@ -23,6 +23,7 @@ import {
   Credits,
   DeferCreditsUntilModelResolution,
 } from '@api/helpers/decorators/credits/credits.decorator';
+import { RequestTimeout } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -191,6 +192,7 @@ export class CampaignsController {
   }
 
   @Post('generate-plan')
+  @RequestTimeout(170_000)
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @UseInterceptors(CreditsInterceptor)
   @Credits({ description: 'Campaign planning', source: ActivitySource.SCRIPT })
@@ -315,6 +317,7 @@ export class CampaignsController {
   }
 
   @Post(':id/generate')
+  @RequestTimeout(290_000)
   @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async generate(
     @Req() request: Request,

@@ -371,6 +371,8 @@ config.generateBuildId = async () => {
 
 config.experimental = {
   ...(config.experimental ?? {}),
+  // Let bounded AI handlers return before the same-origin API proxy closes.
+  proxyTimeout: 300_000,
   optimizePackageImports: [
     ...(config.experimental?.optimizePackageImports ?? []),
     '@tiptap/core',
