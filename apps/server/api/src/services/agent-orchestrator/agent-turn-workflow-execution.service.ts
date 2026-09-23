@@ -449,26 +449,12 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     state: PreparedAgentTurnState,
   ): Promise<AgentTurnWorkflowResult> {
     let request = state.request;
-    const baseContext: AgentChatContext = {
-      executionId: state.executionId,
-      executionMode: 'background',
-      organizationId: state.organizationId,
-      userId: state.userId,
-      ...(state.campaignId ? { campaignId: state.campaignId } : {}),
-      ...(state.strategyId ? { strategyId: state.strategyId } : {}),
-    };
+    const baseContext = this.buildBaseContext(state);
     const mediaResult = await this.tryExecuteMediaTurn(state, baseContext);
     if (mediaResult) {
       return mediaResult;
     }
-    await this.streamEffects.publishTurnPhase({
-      organizationId: state.organizationId,
-      phase: 'preparing',
-      runId: state.executionId,
-      threadId: state.threadId,
-      timestamp: new Date().toISOString(),
-      userId: state.userId,
-    });
+    await this.publishTurnPhase(state, 'preparing');
     const userSettings = await this.settingsService.findOne({
       userId: state.userId,
     });
@@ -630,14 +616,7 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           threadId: state.threadId,
         }));
       if (!handledDeterministically) {
-        await this.streamEffects.publishTurnPhase({
-          organizationId: state.organizationId,
-          phase: 'waiting_for_lane',
-          runId: state.executionId,
-          threadId: state.threadId,
-          timestamp: new Date().toISOString(),
-          userId: state.userId,
-        });
+        await this.publishTurnPhase(state, 'waiting_for_lane');
         await this.executionLaneService.runExclusive(state.threadId, () =>
           this.streamLoopService.runStreamLoop(
             context,
@@ -659,6 +638,31 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     }
 
     return this.readCompletedTurn(state.threadId, state.organizationId, model);
+  }
+
+  private buildBaseContext(state: PreparedAgentTurnState): AgentChatContext {
+    return {
+      executionId: state.executionId,
+      executionMode: 'background',
+      organizationId: state.organizationId,
+      userId: state.userId,
+      ...(state.campaignId ? { campaignId: state.campaignId } : {}),
+      ...(state.strategyId ? { strategyId: state.strategyId } : {}),
+    };
+  }
+
+  private publishTurnPhase(
+    state: PreparedAgentTurnState,
+    phase: 'preparing' | 'waiting_for_lane',
+  ): Promise<void> {
+    return this.streamEffects.publishTurnPhase({
+      organizationId: state.organizationId,
+      phase,
+      runId: state.executionId,
+      threadId: state.threadId,
+      timestamp: new Date().toISOString(),
+      userId: state.userId,
+    });
   }
 
   async executeUiAction(
