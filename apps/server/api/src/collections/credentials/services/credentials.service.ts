@@ -2,6 +2,7 @@ import { createHash, randomBytes } from 'node:crypto';
 import { OAUTH_STATE_TTL_MS } from '@api/collections/credentials/constants/oauth.constants';
 import type {
   CredentialDocument,
+  ExternalCredentialProfile,
   ResolveBrandAccountOptions,
 } from '@api/collections/credentials/credential.types';
 import type { ServerCredentialStore } from '@api/collections/credentials/credentials.port';
@@ -9,6 +10,8 @@ import { CreateCredentialDto } from '@api/collections/credentials/dto/create-cre
 import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-credential.dto';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
+import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
+import { isMirrorableAvatarUrl } from '@api/collections/credentials/utils/provider-placeholder-image.util';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -30,6 +33,7 @@ import { isReservedExternalConnectionOAuthState } from '@genfeedai/helpers/integ
 import { TagCategory as PrismaTagCategory } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 export type { ResolveBrandAccountOptions } from '@api/collections/credentials/credential.types';
 
@@ -105,13 +109,6 @@ function requireCredentialRelationId(value: unknown, field: string): string {
   return value;
 }
 
-export interface ExternalCredentialProfile {
-  avatarUrl?: string | null;
-  handle?: string | null;
-  id?: string | null;
-  name?: string | null;
-}
-
 export interface OAuthCredentialScope {
   organizationId: string;
   userId?: string;
@@ -138,6 +135,7 @@ export class CredentialsService
     private readonly cryptoService: CredentialCryptoService,
     private readonly filesClientService: FilesClientService,
     private readonly providerAccountPurgeService: ProviderAccountPurgeService,
+    private readonly eventEmitter: EventEmitter2,
   ) {
     super(prisma, 'credential', logger);
   }
@@ -822,7 +820,7 @@ export class CredentialsService
       update.externalName = profile.name;
     }
 
-    if (profile.avatarUrl) {
+    if (isMirrorableAvatarUrl(profile.avatarUrl)) {
       try {
         const parsedAvatarUrl = new URL(profile.avatarUrl);
         if (!['http:', 'https:'].includes(parsedAvatarUrl.protocol)) {
@@ -862,12 +860,14 @@ export class CredentialsService
       );
     }
 
-    return this.reconcileConnectedAccount(
+    const connected = await this.reconcileConnectedAccount(
       credential,
       externalId,
       update,
       this.cryptoService.encryptSecretFields(this.normalizeData(connection)),
     );
+    emitCredentialProfileSynced(this.eventEmitter, connected, profile);
+    return connected;
   }
 
   /**

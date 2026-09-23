@@ -82,3 +82,24 @@ export type ResolveBrandAccountOptions = {
   organizationId: string;
   platform: CredentialPlatform;
 };
+
+/** Provider profile media reported by a connect/reconnect, for brand autofill. */
+export type CredentialProfileSyncedEvent = {
+  avatarUrl?: string;
+  bannerUrl?: string;
+  brandId: string;
+  credentialId: string;
+  organizationId: string;
+  platform: string;
+  userId: string;
+};
+
+/** Public provider identity reported by an OAuth/API-key connect callback. */
+export interface ExternalCredentialProfile {
+  avatarUrl?: string | null;
+  /** Not stored on the credential; forwarded to brand asset autofill. */
+  bannerUrl?: string | null;
+  handle?: string | null;
+  id?: string | null;
+  name?: string | null;
+}

@@ -283,7 +283,7 @@ export class BrandSetupService {
           targetBrandId,
           scrapedData.socialLinks,
         );
-        await this.brandPersistenceService.importScrapedBrandBanner(
+        await this.brandPersistenceService.autofillScrapedBrandAssets(
           targetBrandId,
           organizationId,
           userId,

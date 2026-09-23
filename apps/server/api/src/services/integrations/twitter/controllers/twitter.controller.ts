@@ -16,6 +16,11 @@ import {
   isTwitterClientAuthError,
   isTwitterOAuthCodeError,
 } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import {
+  readTwitterBannerUrl,
+  TWITTER_PROFILE_MEDIA_USER_FIELDS,
+  toTwitterFullSizeAvatarUrl,
+} from '@api/services/integrations/twitter/utils/twitter-profile-media.util';
 import { isUnconfiguredSecret } from '@genfeedai/config';
 import {
   CredentialPlatform,
@@ -212,7 +217,7 @@ export class TwitterController {
 
       // Get authenticated user profile
       const { data: me } = await loggedClient.v2.me({
-        'user.fields': ['profile_image_url'],
+        'user.fields': TWITTER_PROFILE_MEDIA_USER_FIELDS,
       });
 
       // Update credential with OAuth 2.0 tokens
@@ -237,7 +242,8 @@ export class TwitterController {
         updatedCredential.id,
         organizationId,
         {
-          avatarUrl: me.profile_image_url,
+          avatarUrl: toTwitterFullSizeAvatarUrl(me.profile_image_url),
+          bannerUrl: readTwitterBannerUrl(me),
           handle: me.username,
           id: me.id,
           name: me.name,
