@@ -9,7 +9,6 @@ interface MockThread {
 }
 
 const mocks = vi.hoisted(() => ({
-  brandId: 'brand-a',
   // `undefined` means "fall through to the real context hook" — the
   // no-provider branch has to run through the actual optional chain, not a
   // hand-rolled null.
@@ -45,13 +44,6 @@ vi.mock('@genfeedai/agent', () => {
   };
 });
 
-vi.mock('@contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    brandId: mocks.brandId,
-    organizationId: 'org-1',
-  }),
-}));
-
 vi.mock(
   '@/components/workspace-shell/WorkspaceInspectorContext',
   async (importOriginal) => {
@@ -83,12 +75,11 @@ describe('useOpenAgentComposer', () => {
     mocks.seedComposer.mockReset();
     mocks.setActiveThread.mockReset();
     mocks.setIsOpen.mockReset();
-    mocks.brandId = 'brand-a';
     mocks.inspector = { setIsOpen: mocks.setIsOpen };
     setStore('thread-1', [{ brandId: 'brand-a', id: 'thread-1' }]);
   });
 
-  it('seeds the composer, opens the inspector, and switches to Conversation', () => {
+  it('seeds a fresh conversation, opens the inspector, and switches to Conversation', () => {
     const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
     const { result } = renderHook(() => useOpenAgentComposer());
 
@@ -96,10 +87,16 @@ describe('useOpenAgentComposer', () => {
       result.current('Draft a LinkedIn post about our launch.');
     });
 
+    expect(mocks.setActiveThread).toHaveBeenCalledWith(null);
+    expect(mocks.resetActiveConversationState).toHaveBeenCalledTimes(1);
     expect(mocks.seedComposer).toHaveBeenCalledWith(
       'Draft a LinkedIn post about our launch.',
-      'thread-1',
+      null,
     );
+    // The reset clears composerSeed, so it must land before the seed.
+    expect(
+      mocks.resetActiveConversationState.mock.invocationCallOrder[0],
+    ).toBeLessThan(mocks.seedComposer.mock.invocationCallOrder[0]);
     expect(mocks.setIsOpen).toHaveBeenCalledWith(true);
     expect(dispatchSpy).toHaveBeenCalledWith(
       expect.objectContaining({ type: OPEN_CONVERSATION_TAB_EVENT }),
@@ -108,55 +105,19 @@ describe('useOpenAgentComposer', () => {
     dispatchSpy.mockRestore();
   });
 
-  it('keeps the active thread when it carries no brand yet', () => {
-    setStore('thread-1', [{ brandId: null, id: 'thread-1' }]);
+  it('never seeds into the previously active same-brand thread', () => {
+    setStore('thread-1', [{ brandId: 'brand-a', id: 'thread-1' }]);
     const { result } = renderHook(() => useOpenAgentComposer());
 
     act(() => {
       result.current('Draft a post.');
     });
 
-    expect(mocks.seedComposer).toHaveBeenCalledWith(
+    expect(mocks.seedComposer).not.toHaveBeenCalledWith(
       'Draft a post.',
       'thread-1',
     );
-    expect(mocks.setActiveThread).not.toHaveBeenCalled();
-  });
-
-  it('keeps the active thread when the workspace has no brand selected', () => {
-    mocks.brandId = '';
-    setStore('thread-1', [{ brandId: 'brand-b', id: 'thread-1' }]);
-    const { result } = renderHook(() => useOpenAgentComposer());
-
-    act(() => {
-      result.current('Draft a post.');
-    });
-
-    expect(mocks.seedComposer).toHaveBeenCalledWith(
-      'Draft a post.',
-      'thread-1',
-    );
-    expect(mocks.setActiveThread).not.toHaveBeenCalled();
-  });
-
-  it('starts a fresh thread when the active thread belongs to another brand', () => {
-    setStore('thread-1', [{ brandId: 'brand-b', id: 'thread-1' }]);
-    const { result } = renderHook(() => useOpenAgentComposer());
-
-    act(() => {
-      result.current('Draft a post for brand A.');
-    });
-
-    expect(mocks.setActiveThread).toHaveBeenCalledWith(null);
-    expect(mocks.resetActiveConversationState).toHaveBeenCalledTimes(1);
-    expect(mocks.seedComposer).toHaveBeenCalledWith(
-      'Draft a post for brand A.',
-      null,
-    );
-    // The reset clears composerSeed, so it must land before the seed.
-    expect(
-      mocks.resetActiveConversationState.mock.invocationCallOrder[0],
-    ).toBeLessThan(mocks.seedComposer.mock.invocationCallOrder[0]);
+    expect(mocks.seedComposer).toHaveBeenCalledWith('Draft a post.', null);
   });
 
   it('seeds a new conversation when no thread is active', () => {
@@ -168,7 +129,6 @@ describe('useOpenAgentComposer', () => {
     });
 
     expect(mocks.seedComposer).toHaveBeenCalledWith('Draft a post.', null);
-    expect(mocks.setActiveThread).not.toHaveBeenCalled();
   });
 
   it('still seeds when no inspector context is mounted', () => {
@@ -180,10 +140,7 @@ describe('useOpenAgentComposer', () => {
       result.current('Draft a post.');
     });
 
-    expect(mocks.seedComposer).toHaveBeenCalledWith(
-      'Draft a post.',
-      'thread-1',
-    );
+    expect(mocks.seedComposer).toHaveBeenCalledWith('Draft a post.', null);
     expect(mocks.setIsOpen).not.toHaveBeenCalled();
     expect(dispatchSpy).toHaveBeenCalledWith(
       expect.objectContaining({ type: OPEN_CONVERSATION_TAB_EVENT }),
@@ -203,10 +160,7 @@ describe('useOpenAgentComposer', () => {
       result.current('Draft a post.');
     });
 
-    expect(mocks.seedComposer).toHaveBeenCalledWith(
-      'Draft a post.',
-      'thread-1',
-    );
+    expect(mocks.seedComposer).toHaveBeenCalledWith('Draft a post.', null);
     expect(mocks.setIsOpen).not.toHaveBeenCalled();
     expect(dispatchSpy).toHaveBeenCalledWith(
       expect.objectContaining({ type: OPEN_CONVERSATION_TAB_EVENT }),

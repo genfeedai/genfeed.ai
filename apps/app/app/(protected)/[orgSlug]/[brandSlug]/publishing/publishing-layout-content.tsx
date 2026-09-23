@@ -211,7 +211,10 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         icon={Newspaper}
         titleVisibility="sr-only"
         right={
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+          // One row that compacts as it narrows (e.g. inspector open): the
+          // filters node shrinks and "New post" collapses to its icon, instead
+          // of wrapping the view toggles onto a second line.
+          <div className="@container/publishing-actions flex min-w-0 flex-1 items-center justify-end gap-2">
             {filtersNode}
             {viewToggleNode}
             {exportNode}
@@ -227,8 +230,14 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.DEFAULT}
                   withWrapper={false}
+                  className="shrink-0"
+                  ariaLabel="New post"
                   icon={<Plus className="size-4" />}
-                  label="New post"
+                  label={
+                    <span className="hidden @[60rem]/publishing-actions:inline">
+                      New post
+                    </span>
+                  }
                 />
               }
             >
