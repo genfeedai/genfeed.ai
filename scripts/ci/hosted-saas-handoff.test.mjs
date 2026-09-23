@@ -342,7 +342,7 @@ test('hosted SaaS owns the canonical browser app origin', () => {
     'utf8',
   );
   const internalEnv = servicesTf.slice(
-    servicesTf.indexOf('internal_env = ['),
+    servicesTf.indexOf('internal_env ='),
     servicesTf.indexOf('module "service"'),
   );
 
