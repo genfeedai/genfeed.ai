@@ -1,5 +1,8 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
-import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
+import {
+  type IngredientServerUpdate,
+  UpdateIngredientDto,
+} from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import {
   toIngredientCreateData,
@@ -311,7 +314,7 @@ export class IngredientsService extends BaseService<
 
   async patch(
     id: string,
-    updateDto: Partial<UpdateIngredientDto>,
+    updateDto: IngredientServerUpdate,
     populate: PopulateInput = [],
   ): Promise<IngredientDocument> {
     try {

@@ -1,5 +1,4 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -10,6 +9,7 @@ import type {
   WatermarkPosition,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import {
   BadRequestException,
   ForbiddenException,

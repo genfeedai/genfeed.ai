@@ -13,7 +13,6 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
-import { withoutClientStorageIdentity } from '@api/helpers/utils/client-storage-identity/client-storage-identity.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
@@ -241,9 +240,9 @@ export class IngredientsController {
     @CurrentUser() user: User,
     @Body() updateIngredientDto: UpdateIngredientDto,
   ): Promise<JsonApiSingleResponse> {
-    const processedDto = withoutClientStorageIdentity({
+    const processedDto = {
       ...(updateIngredientDto as unknown as Record<string, unknown>),
-    });
+    };
 
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.

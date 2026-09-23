@@ -8,6 +8,12 @@ import {
   IsString,
 } from 'class-validator';
 
+/**
+ * Client-writable ingredient fields. Storage identity (`s3Key`) is written by
+ * the server when an upload or generation completes and is deliberately not
+ * declared here, so the whitelisting ValidationPipe strips it: a caller must
+ * never repoint an ingredient at another object. `cdnUrl` is derived on read.
+ */
 export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
   @IsBoolean()
   @IsOptional()
@@ -25,14 +31,6 @@ export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
     required: false,
   })
   readonly isFavorite?: boolean;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Public CDN URL for the generated asset',
-    required: false,
-  })
-  readonly cdnUrl?: string;
 
   @IsNumber()
   @IsOptional()
@@ -82,12 +80,13 @@ export class UpdateIngredientDto extends PartialType(CreateIngredientDto) {
     required: false,
   })
   readonly modelUsed?: string;
-
-  @IsString()
-  @IsOptional()
-  @ApiProperty({
-    description: 'Storage key for the generated asset',
-    required: false,
-  })
-  readonly s3Key?: string;
 }
+
+/**
+ * Server-side ingredient update: the client-writable fields plus storage
+ * identity, which only completion handlers (uploads, generation, renders)
+ * set. Never use this as a request body type.
+ */
+export type IngredientServerUpdate = Partial<UpdateIngredientDto> & {
+  readonly s3Key?: string;
+};
