@@ -25,8 +25,9 @@ function buildLogger(): LoggerService {
 
 function buildApifyAdsService(): ApifyAdsService {
   return {
+    fetchGoogleAdsTransparencyCreatives: vi.fn().mockResolvedValue([]),
     fetchMetaAdLibraryCreatives: vi.fn().mockResolvedValue([]),
-    fetchTikTokCreativeCenterCreatives: vi.fn().mockResolvedValue([]),
+    fetchTikTokAdsLibraryCreatives: vi.fn().mockResolvedValue([]),
   } as unknown as ApifyAdsService;
 }
 
@@ -39,7 +40,7 @@ function buildRegistry(config: ConfigService): {
   return {
     apifyAdsService,
     registry: new PaidCreativeProviderRegistry(
-      new GoogleAdsTransparencyProvider(),
+      new GoogleAdsTransparencyProvider(apifyAdsService, config),
       new MetaAdLibraryProvider(apifyAdsService, config),
       new TikTokCreativeCenterProvider(apifyAdsService, config),
       new XAdsRepositoryProvider(config, buildLogger()),
@@ -52,7 +53,7 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
     const { registry } = buildRegistry(buildConfig());
 
     expect(registry.resolve('meta').provider).toBe('meta_ads_library');
-    expect(registry.resolve('tiktok').provider).toBe('tiktok_creative_center');
+    expect(registry.resolve('tiktok').provider).toBe('tiktok_ads_library');
     expect(registry.resolve('google').provider).toBe(
       'google_ads_transparency_center',
     );
@@ -98,10 +99,10 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
       .map((entry) => entry.platform)
       .sort();
 
-    expect(available).toEqual(['meta', 'tiktok']);
+    expect(available).toEqual(['google', 'meta', 'tiktok', 'youtube']);
   });
 
-  it('keeps Google, YouTube, and X fail-closed even with every environment flag set', () => {
+  it('keeps X fail-closed even with every environment flag set', () => {
     const { registry } = buildRegistry(
       buildConfig({
         APIFY_API_TOKEN: 'token-1',
@@ -113,18 +114,14 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
     const readiness = registry.getReadiness();
     const blocked = readiness.filter((entry) => !entry.available);
 
-    expect(blocked.map((entry) => entry.platform).sort()).toEqual([
-      'google',
-      'x',
-      'youtube',
-    ]);
+    expect(blocked.map((entry) => entry.platform).sort()).toEqual(['x']);
     expect(
       readiness.find((entry) => entry.platform === AdsPlatform.X)?.blockers,
     ).toEqual(['x_ads_repository_contract_fixtures_missing']);
     expect(
       readiness.find((entry) => entry.platform === AdsPlatform.GOOGLE)
         ?.blockers,
-    ).toEqual(['google_ads_transparency_contract_fixtures_missing']);
+    ).toEqual([]);
   });
 
   it('requires both X repository approval flags to be explicitly true', () => {
@@ -150,9 +147,6 @@ describe('PaidCreativeProviderRegistry (#3537)', () => {
       buildConfig({ APIFY_API_TOKEN: 'token-1' }),
     );
 
-    await expect(
-      registry.resolve('google').fetchCreatives({ limit: 10, query: 'nike' }),
-    ).rejects.toThrow(/unavailable/i);
     await expect(
       registry.resolve('x').fetchCreatives({ limit: 10, query: 'nike' }),
     ).rejects.toThrow(/unavailable/i);

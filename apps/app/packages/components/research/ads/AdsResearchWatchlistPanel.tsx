@@ -27,7 +27,7 @@ const WATCHLIST_PLATFORM_OPTIONS: Array<{
   value: AdWatchlistPlatform;
 }> = [
   { label: 'Meta Ad Library', value: AdsPlatform.META },
-  { label: 'TikTok Creative Center', value: AdsPlatform.TIKTOK },
+  { label: 'TikTok Ads Library', value: AdsPlatform.TIKTOK },
   { label: 'Google Ads Transparency', value: AdsPlatform.GOOGLE },
   { label: 'YouTube (Google Ads Transparency)', value: 'youtube' },
   { label: 'X Ads Repository', value: AdsPlatform.X },
@@ -52,7 +52,7 @@ const BLOCKER_LABELS: Record<string, string> = {
 };
 
 const FRESHNESS_LABELS: Record<string, string> = {
-  empty: 'No live ads',
+  empty: 'No creatives found',
   fresh: 'Fresh',
   stale: 'Stale',
   unavailable: 'Not polled',

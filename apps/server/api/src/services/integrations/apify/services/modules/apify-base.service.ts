@@ -62,7 +62,7 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
     capability: 'youtube.comments',
     mode: 'fallback_only',
   },
-  'clockworks/tiktok-ads-scraper': {
+  'lexis-solutions/tiktok-ads-scraper': {
     capability: 'tiktok.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
   },
@@ -84,6 +84,10 @@ const APIFY_ACTOR_REGISTRY: Readonly<Record<string, ApifyActorRegistration>> = {
   },
   'curious_coder/linkedin-profile-scraper': {
     capability: 'linkedin.public-creator-ingestion',
+    mode: 'temporarily_apify_primary',
+  },
+  'lexis-solutions/google-ads-scraper': {
+    capability: 'google.paid-creative-discovery',
     mode: 'temporarily_apify_primary',
   },
   'quacker/twitter-scraper': {

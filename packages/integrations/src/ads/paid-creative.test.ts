@@ -24,9 +24,7 @@ describe('paid creative research contract', () => {
 
   it('maps every watchlist platform to its transparency provider', () => {
     expect(resolvePaidCreativeProvider('meta')).toBe('meta_ads_library');
-    expect(resolvePaidCreativeProvider('tiktok')).toBe(
-      'tiktok_creative_center',
-    );
+    expect(resolvePaidCreativeProvider('tiktok')).toBe('tiktok_ads_library');
     expect(resolvePaidCreativeProvider('x')).toBe('x_ads_repository');
   });
 

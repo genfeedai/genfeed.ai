@@ -257,7 +257,7 @@
     "apps/app/packages/components/performance-lab/UsePatternButton.tsx": 1,
     "apps/app/packages/components/research/ads/AdsResearchDetailSidebar.tsx": 33,
     "apps/app/packages/components/research/ads/AdsResearchFilterPanel.tsx": 27,
-    "apps/app/packages/components/research/ads/AdsResearchPageClient.tsx": 19,
+    "apps/app/packages/components/research/ads/AdsResearchPageClient.tsx": 17,
     "apps/app/packages/components/research/ads/AdsResearchWatchlistPanel.tsx": 9,
     "apps/app/packages/components/research/remix/RemixBriefInspector.tsx": 16,
     "apps/app/src/components/desktop/DesktopLocalProviderSettings.tsx": 7,

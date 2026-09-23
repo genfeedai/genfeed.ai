@@ -24,6 +24,7 @@ const DEFAULT_CREATIVE_LIMIT = 50;
 
 export type WatchedAdvertiserScope = {
   advertiserHandle: string;
+  advertiserName?: string | null;
   brandId: string | null;
   externalAdvertiserId: string | null;
   id: string;
@@ -116,7 +117,14 @@ export class PaidCreativeResearchIngestionService {
       creatives = await adapter.fetchCreatives({
         ...(options.countries ? { countries: options.countries } : {}),
         limit: options.limit ?? DEFAULT_CREATIVE_LIMIT,
-        query: advertiser.externalAdvertiserId ?? advertiser.advertiserHandle,
+        externalAdvertiserId: advertiser.externalAdvertiserId ?? undefined,
+        mode: 'advertiser',
+        organizationId,
+        platform,
+        query:
+          platform === 'tiktok'
+            ? (advertiser.advertiserName ?? advertiser.advertiserHandle)
+            : (advertiser.externalAdvertiserId ?? advertiser.advertiserHandle),
       });
     } catch (error: unknown) {
       this.loggerService.error(
@@ -234,7 +242,7 @@ export class PaidCreativeResearchIngestionService {
       fundingEntity: creative.fundingEntity,
       granularity: creative.granularity,
       headlineText: creative.headlineText,
-      imageUrls,
+      imageUrls: creative.imageUrls ?? imageUrls,
       impressions: creative.impressions,
       isHalted: creative.isHalted,
       landingPageUrl: creative.landingPageUrl,
@@ -269,7 +277,7 @@ export class PaidCreativeResearchIngestionService {
       targetingCountries: creative.targetingCountries,
       targetingCriteria: creative.targetingCriteria,
       usagePolicy: creative.usagePolicy,
-      videoUrls,
+      videoUrls: creative.videoUrls ?? videoUrls,
     };
   }
 

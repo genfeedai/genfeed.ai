@@ -36,6 +36,10 @@ export interface PaidCreativeReadiness {
 export interface PaidCreativeFetchRequest {
   /** ISO country codes to scope the archive query to, when it supports them. */
   countries?: string[];
+  externalAdvertiserId?: string;
+  mode?: 'keyword' | 'advertiser';
+  organizationId?: string;
+  platform?: string;
   limit: number;
   /** Advertiser handle, page slug, or platform-native advertiser id. */
   query: string;

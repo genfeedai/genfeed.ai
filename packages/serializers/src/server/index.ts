@@ -6,11 +6,11 @@ export * from '@serializers/server/billing';
 export * from '@serializers/server/collections';
 export * from '@serializers/server/common';
 export * from '@serializers/server/content';
+export * from '@serializers/server/content/ads-discovery.serializer';
 export * from '@serializers/server/elements';
 export * from '@serializers/server/ingredients';
 export * from '@serializers/server/integrations';
 export * from '@serializers/server/management';
-
 export * from '@serializers/server/organizations';
 export * from '@serializers/server/skills-pro';
 export * from '@serializers/server/social';

@@ -3,8 +3,8 @@
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import type {
   AdWatchedAdvertiser,
-  AdWatchlistPlatform,
   AdWatchlistPlatformReadiness,
+  CreateAdWatchedAdvertiserInput,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdWatchedAdvertisersService } from '@services/ads/ad-watched-advertisers.service';
@@ -20,10 +20,7 @@ export type AdsResearchWatchlistApi = {
   isLoading: boolean;
   loadError?: string;
   readiness: AdWatchlistPlatformReadiness[];
-  addAdvertiser: (input: {
-    advertiserHandle: string;
-    platform: AdWatchlistPlatform;
-  }) => Promise<void>;
+  addAdvertiser: (input: CreateAdWatchedAdvertiserInput) => Promise<boolean>;
   removeAdvertiser: (id: string) => Promise<void>;
 };
 
@@ -70,14 +67,13 @@ export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
     queryKey: ['ads-research-watchlist-readiness'],
   });
 
-  async function addAdvertiser(input: {
-    advertiserHandle: string;
-    platform: AdWatchlistPlatform;
-  }): Promise<void> {
+  async function addAdvertiser(
+    input: CreateAdWatchedAdvertiserInput,
+  ): Promise<boolean> {
     const advertiserHandle = input.advertiserHandle.trim().replace(/^@/, '');
     if (!advertiserHandle) {
       setAddError('Enter the advertiser handle or page name to watch.');
-      return;
+      return false;
     }
 
     setAddError(undefined);
@@ -85,17 +81,20 @@ export function useAdsResearchWatchlist(): AdsResearchWatchlistApi {
     try {
       const service = await getWatchlistService();
       await service.create({
+        ...input,
         advertiserHandle,
         ...(brandId ? { brandId } : {}),
         platform: input.platform,
       });
       await refetch();
+      return true;
     } catch (error) {
       setAddError(
         error instanceof Error
           ? error.message
           : 'Could not add that advertiser.',
       );
+      return false;
     } finally {
       setIsAdding(false);
     }

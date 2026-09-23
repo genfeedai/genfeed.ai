@@ -31,6 +31,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import AdsPublicDiscoveryPanel from './AdsPublicDiscoveryPanel';
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
 import { AdsResearchFilterPanel } from './AdsResearchFilterPanel';
@@ -303,6 +304,14 @@ export default function AdsResearchPageClient() {
           </div>
         </div>
       </div>
+
+      {source === 'all' || source === 'public' ? (
+        <AdsPublicDiscoveryPanel
+          watchError={watchlist.addError}
+          onWatch={watchlist.addAdvertiser}
+          isWatching={watchlist.isAdding}
+        />
+      ) : null}
 
       {isWatchlistVisible ? (
         <AdsResearchWatchlistPanel
