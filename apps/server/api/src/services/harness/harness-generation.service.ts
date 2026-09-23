@@ -16,7 +16,6 @@ import type {
   KnowledgeSelection,
 } from '@genfeedai/contracts/interfaces';
 import {
-  buildMediaPromptFromHarness,
   type ContentHarnessBrief,
   type ContentKind,
   type ContentObjective,
@@ -175,25 +174,6 @@ export class HarnessGenerationService {
       );
       return null;
     }
-  }
-
-  async applyToMediaPrompt(params: {
-    brandId?: string;
-    contentType: ContentKind;
-    organizationId: string;
-    platform?: string;
-    prompt: string;
-    topic?: string;
-  }): Promise<string> {
-    const brief = await this.resolveBrief({
-      brandId: params.brandId,
-      contentType: params.contentType,
-      includeContentMemory: true,
-      organizationId: params.organizationId,
-      platform: params.platform,
-      topic: params.topic ?? params.prompt.slice(0, 200),
-    });
-    return buildMediaPromptFromHarness(params.prompt, brief);
   }
 
   formatBrief(brief: ContentHarnessBrief | null | undefined): string {

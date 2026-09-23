@@ -94,13 +94,13 @@ const apiSpecificSchema = {
   API_SLOW_QUERY_THRESHOLD_MS: Joi.string().optional().allow(''),
   CONTENT_HARNESS_PACKAGES: Joi.string()
     .description(
-      'Comma-separated package names for private/EE content harness packs, e.g. @genfeedai/private-harness',
+      'Comma-separated content harness package names or the verified hosted bundle path',
     )
     .pattern(
       /^(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*(\s*,\s*(@[a-z0-9][\w-]*\/)?[a-z0-9][\w.-]*)*$/i,
     )
     .optional()
-    .allow(''),
+    .allow('', '/usr/src/app/content-harness/index.cjs'),
   FEATURE_FLAG_DEFAULTS: Joi.string().optional().allow(''),
   GENERATION_BRIEF_LIVE_EVAL: Joi.string().valid('0', '1').optional().allow(''),
   POSTHOG_HOST: Joi.string().uri().optional().allow(''),

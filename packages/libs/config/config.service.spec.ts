@@ -21,6 +21,7 @@ describe('ConfigService', () => {
     env.AWS_ACCESS_KEY_ID = 'test-key';
     env.AWS_SECRET_ACCESS_KEY = 'test-secret';
     delete env.DB_MODE;
+    delete env.CONTENT_HARNESS_PACKAGES;
     env.PORT = '3010';
     env.GOOGLE_OAUTH_CLIENT_ID = 'test-client-id';
     env.GOOGLE_OAUTH_CLIENT_SECRET = 'test-client-secret';
@@ -87,6 +88,7 @@ describe('ConfigService', () => {
     // Clean up environment variables
     delete env.DATABASE_URL;
     delete env.NODE_ENV;
+    delete env.CONTENT_HARNESS_PACKAGES;
   });
 
   describe('constructor', () => {
@@ -102,6 +104,28 @@ describe('ConfigService', () => {
       delete env.DATABASE_URL;
 
       expect(() => new ConfigService()).toThrow(/DATABASE_URL/);
+    });
+  });
+
+  describe('content harness configuration', () => {
+    it.each([
+      '@example/content-pack',
+      '@example/one, @example/two',
+      '/usr/src/app/content-harness/index.cjs',
+    ])('accepts the supported module specifier %s', (specifier) => {
+      env.CONTENT_HARNESS_PACKAGES = specifier;
+      expect(new ConfigService().get('CONTENT_HARNESS_PACKAGES')).toBe(
+        specifier,
+      );
+    });
+
+    it.each([
+      '/tmp/untrusted.cjs',
+      '../pack.cjs',
+      'https://example.com/pack.cjs',
+    ])('rejects unsupported module locations %s', (specifier) => {
+      env.CONTENT_HARNESS_PACKAGES = specifier;
+      expect(() => new ConfigService()).toThrow(/CONTENT_HARNESS_PACKAGES/);
     });
   });
 

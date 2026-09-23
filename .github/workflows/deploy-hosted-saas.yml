@@ -75,6 +75,10 @@ on:
         required: true
       TURBO_TOKEN:
         required: false
+      CONTENT_HARNESS_BUNDLE_URI:
+        required: false
+      CONTENT_HARNESS_BUNDLE_SHA256:
+        required: false
 
 concurrency:
   group: deploy-hosted-saas
@@ -151,3 +155,5 @@ jobs:
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
+      CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}

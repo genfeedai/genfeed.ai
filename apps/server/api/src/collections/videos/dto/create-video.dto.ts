@@ -20,6 +20,7 @@ import {
   IsString,
   Max,
   Min,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
@@ -202,6 +203,14 @@ export class ZoomConfigDto {
 }
 
 export class CreateVideoDto extends CreateIngredientDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsBoolean()
+  @ApiProperty({
+    description: 'Override prompt enhancement for this generation',
+    required: false,
+  })
+  readonly harness?: boolean;
+
   // Video generation only generates the video: background music is an
   // editing action that belongs in the Studio editor's audio tracks now, not
   // a generation-time option. Removing the fields is enough — the pipe's

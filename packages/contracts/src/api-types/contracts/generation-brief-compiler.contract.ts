@@ -23,6 +23,7 @@ export const FLUX_SCHNELL_IMAGE_COMPILER_VERSION = 1;
 export const GENERATION_BRIEF_CONTRACT_VERSION = 1;
 
 export const generationBriefExemptionReasonValues = [
+  'raw_prompt_requested',
   'legacy_prompt_builder',
   'non_generative_transform',
   'model_training_operation',

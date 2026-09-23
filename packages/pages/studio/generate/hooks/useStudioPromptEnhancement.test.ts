@@ -1,4 +1,5 @@
 import { act, renderHook } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // ────────────────────────────────────────────────────────────
@@ -399,5 +400,112 @@ describe('useStudioPromptEnhancement', () => {
 
     expect(onPromptChange).not.toHaveBeenCalled();
     expect(mockNotificationsError).not.toHaveBeenCalled();
+  });
+  it('retains reviewed-text identity after the undo window expires', async () => {
+    vi.useFakeTimers();
+    try {
+      const { result } = renderHook(() => {
+        const [prompt, setPrompt] = useState('Original');
+        return useStudioPromptEnhancement({
+          brandId: 'brand-1',
+          modelKey: 'openai/dall-e-3',
+          prompt,
+          onPromptChange: setPrompt,
+        });
+      });
+      await act(async () => {
+        await result.current.enhancePrompt();
+      });
+      act(() => getSubscribedHandler().onCompleted('Reviewed result'));
+      expect(result.current.enhancedPromptId).toBe('prompt-123');
+      act(() => vi.advanceTimersByTime(30001));
+      expect(result.current.previousPrompt).toBeNull();
+      expect(result.current.enhancedPromptId).toBe('prompt-123');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('invalidates reviewed identity on edits and undo', async () => {
+    const { result } = renderHook(() => {
+      const [prompt, setPrompt] = useState('Original');
+      return {
+        ...useStudioPromptEnhancement({
+          brandId: 'brand-1',
+          modelKey: 'openai/dall-e-3',
+          prompt,
+          onPromptChange: setPrompt,
+        }),
+        setPrompt,
+      };
+    });
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+    act(() => getSubscribedHandler().onCompleted('Reviewed result'));
+    expect(result.current.enhancedPromptId).toBe('prompt-123');
+    act(() => result.current.undoEnhance());
+    expect(result.current.enhancedPromptId).toBeUndefined();
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+    act(() =>
+      mockSubscribe.mock.calls.at(-1)?.[1].onCompleted('Reviewed again'),
+    );
+    expect(result.current.enhancedPromptId).toBe('prompt-123');
+    act(() => result.current.setPrompt('Edited result'));
+    expect(result.current.enhancedPromptId).toBeUndefined();
+    act(() => result.current.setPrompt('Reviewed again'));
+    expect(result.current.enhancedPromptId).toBeUndefined();
+  });
+
+  it.each(['brandId', 'modelKey'] as const)(
+    'invalidates the reviewed result when %s changes',
+    async (field) => {
+      const originalScope = { brandId: 'brand-1', modelKey: 'openai/dall-e-3' };
+      const { result, rerender } = renderHook(
+        (scope) => {
+          const [prompt, setPrompt] = useState('Original');
+          return useStudioPromptEnhancement({
+            ...scope,
+            prompt,
+            onPromptChange: setPrompt,
+          });
+        },
+        { initialProps: originalScope },
+      );
+      await act(async () => {
+        await result.current.enhancePrompt();
+      });
+      act(() => getSubscribedHandler().onCompleted('Reviewed result'));
+      expect(result.current.enhancedPromptId).toBe('prompt-123');
+      rerender({ ...originalScope, [field]: 'different' });
+      expect(result.current.enhancedPromptId).toBeUndefined();
+      rerender(originalScope);
+      expect(result.current.enhancedPromptId).toBeUndefined();
+    },
+  );
+
+  it('discards enhancement results from a previous brand/model scope', async () => {
+    const onPromptChange = vi.fn();
+    const { result, rerender } = renderHook(
+      ({ brandId }) =>
+        useStudioPromptEnhancement({
+          brandId,
+          modelKey: 'openai/dall-e-3',
+          prompt: 'Original',
+          onPromptChange,
+        }),
+      { initialProps: { brandId: 'brand-1' } },
+    );
+    await act(async () => {
+      await result.current.enhancePrompt();
+    });
+    const handler = getSubscribedHandler();
+    rerender({ brandId: 'brand-2' });
+    act(() => handler.onCompleted('Old scope result'));
+    expect(onPromptChange).not.toHaveBeenCalled();
+    expect(result.current.enhancedPromptId).toBeUndefined();
+    expect(result.current.isEnhancing).toBe(false);
   });
 });

@@ -43,6 +43,10 @@ on:
         required: true
       TURBO_TOKEN:
         required: false
+      CONTENT_HARNESS_BUNDLE_URI:
+        required: false
+      CONTENT_HARNESS_BUNDLE_SHA256:
+        required: false
 
 concurrency:
   group: hosted-saas-core-production
@@ -82,6 +86,7 @@ jobs:
     timeout-minutes: 90
     outputs:
       image_digest: ${{ steps.copy-image.outputs.image_digest }}
+      public_image_digest: ${{ steps.copy-image.outputs.public_image_digest }}
     environment: production
     steps:
       - name: Require hosted SaaS site variables
@@ -311,24 +316,13 @@ jobs:
           echo "::error::server:${HEAD_SHA} was not found, and server-image inputs changed after newest available ancestor ${ANCESTOR}. Wait for the Build Server Image workflow for ${HEAD_SHA}, then re-dispatch."
           exit 1
 
-      - name: Copy server:<sha> GHCR -> ECR (no rebuild)
+      - name: Prepare hosted server image
         id: copy-image
         env:
           IMAGE_SHA: ${{ steps.image.outputs.sha }}
-        run: |
-          set -euo pipefail
-          if ! printf '%s' "${IMAGE_SHA}" | grep -Eq '^[A-Za-z0-9._-]+$'; then
-            echo "::error::Invalid image tag '${IMAGE_SHA}' (allowed chars: A-Za-z0-9 . _ -)"
-            exit 1
-          fi
-          ECR="$(aws ecr describe-repositories --repository-names "${ECR_REPOSITORY_NAME}" \
-                 --query 'repositories[0].repositoryUri' --output text)"
-          digest="$(docker buildx imagetools inspect "${SERVER_IMAGE_REPOSITORY}:${IMAGE_SHA}" --format '{{json .Manifest.Digest}}' | jq -er 'select(test("^sha256:[0-9a-f]{64}$"))')"
-          docker buildx imagetools create --prefer-index=false -t "${ECR}:${IMAGE_SHA}" "${SERVER_IMAGE_REPOSITORY}@${digest}"
-          copied="$(docker buildx imagetools inspect "${ECR}:${IMAGE_SHA}" --format '{{json .Manifest.Digest}}' | jq -er 'select(test("^sha256:[0-9a-f]{64}$"))')"
-          test "$copied" = "$digest"
-          echo "image_digest=$digest" >> "$GITHUB_OUTPUT"
-          echo "TF_VAR_image_digest=$digest" >> "$GITHUB_ENV"
+          CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
+          CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}
+        run: bun ops/scripts/deploy/hosted-saas/prepare-server-image.ts
 
       # OpenTofu, not Terraform — state is tofu in S3; mixing the two risks a
       # state-version mismatch.
@@ -749,7 +743,7 @@ jobs:
       - uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
       - env:
           IMAGE: ${{ vars.SERVER_IMAGE_REPOSITORY }}
-          DIGEST: ${{ needs.deploy.outputs.image_digest }}
+          DIGEST: ${{ needs.deploy.outputs.public_image_digest }}
         run: |
           set -euo pipefail
           [[ "$DIGEST" =~ ^sha256:[0-9a-f]{64}$ ]]

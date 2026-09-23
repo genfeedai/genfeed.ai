@@ -36,6 +36,8 @@ import {
   toRedactedGenerationBriefProviderData,
 } from '@api/services/generation-brief';
 import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
+import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
+import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
@@ -54,7 +56,12 @@ import type {
   ImageGenerationBriefReference,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
-import type { JsonApiSingleResponse } from '@genfeedai/contracts/interfaces';
+import { buildGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
+import type {
+  GenerationHarnessReceipt,
+  JsonApiSingleResponse,
+} from '@genfeedai/contracts/interfaces';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -97,6 +104,7 @@ export class ImageGenerationService {
     private readonly sharedService: SharedService,
     private readonly cancellationService: IngredientGenerationCancellationService,
     private readonly templatesService: TemplatesService,
+    private readonly enhancementService: MediaPromptEnhancementService,
   ) {}
 
   async generateImage(
@@ -118,20 +126,23 @@ export class ImageGenerationService {
       promptOriginalText,
     } = await this.resolveAndValidate(user, createImageDto, request);
 
-    const accepted = await this.admissionService.findReusableIngredient(
-      createImageDto.sourceActionId,
-      user.organizationId,
+    const accepted = await this.reuseAcceptedGeneration(
+      user,
+      createImageDto,
+      request,
+      model,
+      onCreditsPrepared,
     );
-    if (accepted) {
-      await this.admissionService.ensureCredits(
-        createImageDto,
-        model,
-        user.organizationId,
-        request,
-        onCreditsPrepared,
-      );
-      return serializeSingle(request, IngredientSerializer, accepted);
-    }
+    if (accepted) return accepted;
+
+    const generationHarness = await this.enhanceGenerationPrompt(
+      user,
+      createImageDto,
+      request,
+      brand.id,
+      model,
+      promptOriginalText,
+    );
 
     const brandPromptBranding = buildPromptBrandingFromBrand(brand);
     const promptBuilderBrand = {
@@ -177,14 +188,14 @@ export class ImageGenerationService {
       createImageDto,
       height,
       model,
-      promptOriginalText,
+      generationHarness,
       referenceIds,
       runReferences,
       style,
       width,
     });
 
-    const { promptData, metadataData, ingredientData } =
+    const { promptData, metadataData, ingredientData, providerInput } =
       await this.persistImageDocuments({
         brand,
         brandPromptBranding,
@@ -192,6 +203,7 @@ export class ImageGenerationService {
         compiledDispatch: compiledBrief.dispatch,
         createImageDto,
         generationSource: compiledBrief.generationSource,
+        generationHarness,
         height,
         model,
         modelInputSchema,
@@ -205,9 +217,9 @@ export class ImageGenerationService {
         width,
       });
 
-    const websocketUrl = WebSocketPaths.image(ingredientData.id);
-
     const context: ImageGenerationContext = {
+      generationHarness,
+      providerInput,
       brand,
       brandPromptBranding,
       briefEvidence: compiledBrief.evidence,
@@ -234,7 +246,7 @@ export class ImageGenerationService {
       style,
       user,
       waitForCompletion: createImageDto.waitForCompletion === true,
-      websocketUrl,
+      websocketUrl: WebSocketPaths.image(ingredientData.id),
       width,
       abortSignal: createRequestAbortSignal(request),
     };
@@ -244,6 +256,62 @@ export class ImageGenerationService {
       onPlaceholderCreated,
       onCreditsPrepared,
     );
+  }
+
+  private async reuseAcceptedGeneration(
+    user: User,
+    createImageDto: CreateImageDto,
+    request: Request,
+    model: string,
+    onCreditsPrepared?: () => Promise<void>,
+  ): Promise<JsonApiSingleResponse | null> {
+    const accepted = await this.admissionService.findReusableIngredient(
+      createImageDto.sourceActionId,
+      user.organizationId,
+    );
+    if (accepted) {
+      await this.admissionService.ensureCredits(
+        createImageDto,
+        model,
+        user.organizationId,
+        request,
+        onCreditsPrepared,
+      );
+      return serializeSingle(request, IngredientSerializer, accepted);
+    }
+    return null;
+  }
+
+  private async enhanceGenerationPrompt(
+    user: User,
+    createImageDto: CreateImageDto,
+    request: Request,
+    brandId: string,
+    model: string,
+    promptOriginalText: string,
+  ) {
+    const generationHarness = await this.enhancementService.enhance({
+      organizationId: user.organizationId,
+      brandId,
+      prompt: promptOriginalText,
+      contentType: 'image',
+      model,
+      harness: createImageDto.harness,
+      promptId: createImageDto.promptId,
+    });
+    if (request.generationOriginalPrompt !== undefined) {
+      if (
+        generationHarness.status === 'skipped' &&
+        request.generationOriginalPrompt !== promptOriginalText
+      ) {
+        throw new HttpException(
+          'Remove selected context or enable prompt enhancement.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      generationHarness.originalPrompt = request.generationOriginalPrompt;
+    }
+    return generationHarness;
   }
 
   private async dispatchAndFinish(
@@ -444,7 +512,7 @@ export class ImageGenerationService {
     createImageDto: CreateImageDto;
     height: number;
     model: string;
-    promptOriginalText: string;
+    generationHarness: GenerationHarnessReceipt;
     referenceIds: string[];
     runReferences?: readonly ImageGenerationBriefReference[];
     style?: string;
@@ -469,7 +537,7 @@ export class ImageGenerationService {
     ];
 
     try {
-      return runImageGenerationBrief({
+      const compiled = runImageGenerationBrief({
         avoid,
         brandContext: params.briefBrandContext,
         brandingMode: params.createImageDto.brandingMode,
@@ -479,7 +547,7 @@ export class ImageGenerationService {
         isBrandingEnabled: params.createImageDto.isBrandingEnabled,
         lighting: params.createImageDto.lighting,
         model: params.model,
-        objective: params.promptOriginalText,
+        objective: params.generationHarness.enhancedPrompt,
         quality: params.createImageDto.quality,
         referenceIds: params.referenceIds,
         references: params.runReferences,
@@ -489,6 +557,16 @@ export class ImageGenerationService {
         visualDirection: params.style || params.createImageDto.style,
         width: params.width,
       });
+      if (params.generationHarness.status === 'skipped') {
+        if (compiled.dispatch)
+          compiled.dispatch.prompt = params.generationHarness.originalPrompt;
+        compiled.evidence = rawPromptBriefEvidence(compiled.evidence);
+        compiled.generationSource = buildGenerationBriefExemptionSource(
+          'raw_prompt_requested',
+        );
+      }
+
+      return compiled;
     } catch (error: unknown) {
       if (error instanceof GenerationBriefCompileError) {
         throw new HttpException(
@@ -503,6 +581,49 @@ export class ImageGenerationService {
     }
   }
 
+  private async resolveGenerationPrompt(
+    user: User,
+    createImageDto: CreateImageDto,
+    model: string,
+    promptOriginalText: string,
+  ): Promise<ImageGenerationResolvedPrompt> {
+    const submittedPromptId = isEntityId(createImageDto.promptId)
+      ? createImageDto.promptId
+      : undefined;
+    const submittedPrompt = submittedPromptId
+      ? await this.promptsService.findOne({
+          id: submittedPromptId,
+          isDeleted: false,
+          organizationId: user.organizationId,
+          userId: user.userId ?? user.id,
+        })
+      : null;
+    const isReviewedPrompt =
+      submittedPrompt?.status === PromptStatus.GENERATED &&
+      !submittedPrompt.isSkipEnhancement &&
+      submittedPrompt.enhanced === promptOriginalText;
+    return isReviewedPrompt
+      ? submittedPrompt
+      : submittedPrompt
+        ? await this.promptsService.patch(submittedPrompt.id, {
+            model,
+            status: PromptStatus.PROCESSING,
+          })
+        : await this.promptsService.create(
+            new PromptEntity({
+              brandId: isEntityId(createImageDto.brandId)
+                ? createImageDto.brandId
+                : user.brandId,
+              category: PromptCategory.MODELS_PROMPT_IMAGE,
+              model,
+              organizationId: user.organizationId,
+              original: promptOriginalText,
+              status: PromptStatus.PROCESSING,
+              userId: user.userId ?? user.id,
+            }),
+          );
+  }
+
   /**
    * Create the prompt document, run the template-tracking prompt build, persist
    * the placeholder ingredient/metadata pair, and link the prompt. Returns the
@@ -515,6 +636,7 @@ export class ImageGenerationService {
     compiledDispatch?: ImageGenerationBriefDispatch;
     createImageDto: CreateImageDto;
     generationSource: string;
+    generationHarness: GenerationHarnessReceipt;
     height: number;
     model: string;
     modelInputSchema?: Record<string, unknown>;
@@ -530,6 +652,7 @@ export class ImageGenerationService {
     ingredientData: ImageGenerationSavedIngredient;
     metadataData: ImageGenerationSavedMetadata;
     promptData: ImageGenerationResolvedPrompt;
+    providerInput?: Record<string, unknown>;
   }> {
     const {
       brand,
@@ -538,6 +661,7 @@ export class ImageGenerationService {
       compiledDispatch,
       createImageDto,
       generationSource,
+      generationHarness,
       height,
       model,
       modelInputSchema,
@@ -551,35 +675,14 @@ export class ImageGenerationService {
       width,
     } = params;
 
-    const submittedPromptId = isEntityId(createImageDto.promptId)
-      ? createImageDto.promptId
-      : undefined;
-    const submittedPrompt = submittedPromptId
-      ? await this.promptsService.findOne({
-          id: submittedPromptId,
-          organizationId: user.organizationId,
-          userId: user.userId ?? user.id,
-        })
-      : null;
-    const promptData = submittedPrompt
-      ? await this.promptsService.patch(submittedPrompt.id, {
-          model,
-          status: PromptStatus.PROCESSING,
-        })
-      : await this.promptsService.create(
-          new PromptEntity({
-            brandId: isEntityId(createImageDto.brandId)
-              ? createImageDto.brandId
-              : user.brandId,
-            category: PromptCategory.MODELS_PROMPT_IMAGE,
-            model,
-            organizationId: user.organizationId,
-            original: promptOriginalText,
-            status: PromptStatus.PROCESSING,
-            userId: user.userId ?? user.id,
-          }),
-        );
+    const promptData = await this.resolveGenerationPrompt(
+      user,
+      createImageDto,
+      model,
+      promptOriginalText,
+    );
 
+    let providerInput: Record<string, unknown> | undefined;
     let imageTemplateUsed: string | undefined;
     let imageTemplateVersion: number | undefined;
     if (!compiledDispatch) {
@@ -599,28 +702,42 @@ export class ImageGenerationService {
           modelInputSchema,
           modelCategory: ModelCategory.IMAGE,
           mood: createImageDto.mood,
-          outputs: createImageDto.outputs,
-          prompt: promptData.original,
+          outputs: MODEL_OUTPUT_CAPABILITIES[model]?.isBatchSupported
+            ? Number(createImageDto.outputs) || 1
+            : 1,
+          prompt: generationHarness.enhancedPrompt,
           promptTemplate: createImageDto.promptTemplate,
           references: referenceImageUrls,
           scene: createImageDto.scene,
           seed: createImageDto.seed,
           style: style || createImageDto.style || 'realistic',
+          tags: createImageDto.tags?.map((tag) => tag.toString()) || [],
           useTemplate: createImageDto.useTemplate,
           width,
         },
         user.organizationId,
       );
+      providerInput = builtPrompt.input;
       imageTemplateUsed = builtPrompt.templateUsed;
       imageTemplateVersion = builtPrompt.templateVersion;
     }
+
+    const compiledPrompt = compiledDispatch?.prompt ?? providerInput?.prompt;
+    if (
+      generationHarness.status === 'applied' &&
+      typeof compiledPrompt === 'string'
+    ) {
+      generationHarness.enhancedPrompt = compiledPrompt;
+    }
+    if (providerInput) providerInput.prompt = generationHarness.enhancedPrompt;
 
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
         brandId: brand.id,
         category: IngredientCategory.IMAGE,
         extension: MetadataExtension.JPEG,
-        generationPrompt: promptOriginalText,
+        generationPrompt: generationHarness.enhancedPrompt,
+        generationHarness,
         generationSeed: createImageDto.seed,
         generationSource,
         groupId: placeholderScope?.groupId,
@@ -649,7 +766,7 @@ export class ImageGenerationService {
       promptId: promptData.id,
     });
 
-    return { ingredientData, metadataData, promptData };
+    return { ingredientData, metadataData, promptData, providerInput };
   }
 
   /**

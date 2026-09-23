@@ -7,6 +7,7 @@ import type {
   QualityStatus,
   TransformationCategory,
 } from '../..';
+import type { GenerationHarnessReceipt } from '../content/generation-harness.interface';
 import type {
   IAsset,
   IBaseEntity,
@@ -24,6 +25,7 @@ import type {
 } from '../index';
 
 export interface IIngredient extends IBaseEntity {
+  generationHarness?: GenerationHarnessReceipt | null;
   agentWorkObject?: AgentWorkObjectMaterial;
   userId?: string | null;
   organizationId?: string | null;

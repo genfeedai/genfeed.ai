@@ -1,3 +1,8 @@
+import {
+  type MediaPromptEnhancementInput,
+  MediaPromptEnhancementService,
+} from '@api/services/harness/media-prompt-enhancement.service';
+
 vi.mock('@api/services/integrations/klingai/services/klingai.service', () => ({
   KlingAIService: class {},
 }));
@@ -235,6 +240,23 @@ describe('ImagesOperationsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [ImagesOperationsController],
       providers: [
+        {
+          provide: MediaPromptEnhancementService,
+          useValue: {
+            enhance: vi
+              .fn()
+              .mockImplementation(
+                async (input: MediaPromptEnhancementInput) => ({
+                  originalPrompt: input.prompt,
+                  enhancedPrompt: input.prompt,
+                  brandId: input.brandId,
+                  status: 'applied',
+                  source: 'default',
+                  appliedPacks: [],
+                }),
+              ),
+          },
+        },
         // Real service resolved from the mocks below; the controller delegates
         // create() to it, so the DI graph must be able to construct it.
         FalImageGenerationProviderAdapter,
@@ -759,7 +781,7 @@ describe('ImagesOperationsController', () => {
         MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
         expect.objectContaining({
           height: dto.height,
-          prompt: 'Test prompt',
+          prompt: dto.text,
           width: dto.width,
         }),
       );

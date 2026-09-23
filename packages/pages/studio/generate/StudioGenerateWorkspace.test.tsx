@@ -57,6 +57,15 @@ const mocks = vi.hoisted(() => ({
   removeJob: vi.fn(),
   remixRun: { value: null as BrandRemixRunView | null },
   settings: vi.fn(),
+  enhancedPromptId: { value: undefined as string | undefined },
+  cancelEnhance: vi.fn(),
+  enhancePrompt: vi.fn(),
+  undoEnhance: vi.fn(),
+  promptCommandExtensions: [{ name: 'promptCommands' }],
+  resolvePromptCommands: vi.fn((text: string) => ({
+    content: text.replace('/cinema ', ''),
+    skillSlugs: [],
+  })),
   submit: vi.fn(),
   submitForReview: vi.fn(),
   startRemix: vi.fn(),
@@ -197,6 +206,24 @@ vi.mock('@pages/studio/generate/components/StudioGenerateResults', () => ({
   },
 }));
 
+vi.mock('@pages/studio/generate/hooks/useStudioPromptEnhancement', () => ({
+  useStudioPromptEnhancement: () => ({
+    cancelEnhance: mocks.cancelEnhance,
+    enhancePrompt: mocks.enhancePrompt,
+    undoEnhance: mocks.undoEnhance,
+    isEnhancing: false,
+    previousPrompt: null,
+    enhancedPromptId: mocks.enhancedPromptId.value,
+  }),
+}));
+
+vi.mock('@ui/prompt-editor/use-prompt-command-extension', () => ({
+  usePromptCommandExtension: () => ({
+    extraExtensions: mocks.promptCommandExtensions,
+    resolveSubmit: mocks.resolvePromptCommands,
+  }),
+}));
+
 vi.mock('@pages/studio/generate/hooks/useStudioGenerateAssetActions', () => ({
   useStudioGenerateAssetActions: (params: unknown) => {
     mocks.assetActionsHook(params);
@@ -324,6 +351,7 @@ vi.mock('@pages/studio/generate/components/StudioRemixRunPanel', () => ({
 describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.enhancedPromptId.value = undefined;
     mocks.isHydrated.value = true;
     mocks.brandId.value = 'brand-1';
     mocks.organizationId.value = 'org-1';
@@ -425,11 +453,15 @@ describe('StudioGenerateWorkspace', () => {
     act(() => currentProps.onSubmit());
 
     expect(characterMentionMocks.resolveSubmit).toHaveBeenCalled();
-    expect(mocks.submit).toHaveBeenCalledWith('Use this composition', {
-      endFrameId: undefined,
-      imageReferenceIds: ['ingredient-1', 'img-anna'],
-      videoReferenceIds: [],
-    });
+    expect(mocks.submit).toHaveBeenCalledWith(
+      'Use this composition',
+      {
+        endFrameId: undefined,
+        imageReferenceIds: ['ingredient-1', 'img-anna'],
+        videoReferenceIds: [],
+      },
+      undefined,
+    );
   });
 
   it('serializes character mention display names and merges reference ids on generate', () => {
@@ -445,12 +477,45 @@ describe('StudioGenerateWorkspace', () => {
     };
     act(() => currentProps.onSubmit());
 
-    expect(mocks.submit).toHaveBeenCalledWith('Anna walking', {
-      endFrameId: undefined,
-      imageReferenceIds: ['ingredient-1', 'img-anna'],
-      videoReferenceIds: [],
-    });
+    expect(mocks.submit).toHaveBeenCalledWith(
+      'Anna walking',
+      {
+        endFrameId: undefined,
+        imageReferenceIds: ['ingredient-1', 'img-anna'],
+        videoReferenceIds: [],
+      },
+      undefined,
+    );
   });
+
+  it.each([
+    [
+      'Reviewed visual prompt',
+      'Reviewed visual prompt',
+      { promptId: 'reviewed-prompt-id' },
+    ],
+    ['@anna walking', 'Anna walking', undefined],
+    ['/cinema Reviewed visual prompt', 'Reviewed visual prompt', undefined],
+  ])(
+    'only reuses the stored prompt ID for unchanged reviewed text: %s',
+    (prompt, submitted, options) => {
+      mocks.enhancedPromptId.value = 'reviewed-prompt-id';
+      render(<StudioGenerateWorkspace />);
+      const initial = mocks.composer.mock.calls.at(-1)?.[0] as {
+        onPromptChange: (text: string) => void;
+      };
+      act(() => initial.onPromptChange(prompt as string));
+      const current = mocks.composer.mock.calls.at(-1)?.[0] as {
+        onSubmit: () => void;
+      };
+      act(() => current.onSubmit());
+      expect(mocks.submit).toHaveBeenCalledWith(
+        submitted,
+        expect.any(Object),
+        options,
+      );
+    },
+  );
 
   it('turns a gallery remix into a composer reference', () => {
     render(<StudioGenerateWorkspace />);

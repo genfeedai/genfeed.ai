@@ -152,3 +152,13 @@ variable "image_digest" {
     error_message = "image_digest must be an immutable SHA-256 digest."
   }
 }
+
+variable "content_harness_packages" {
+  description = "Verified content harness module bundled into the private server image."
+  type        = string
+  default     = ""
+  validation {
+    condition     = contains(["", "/usr/src/app/content-harness/index.cjs"], var.content_harness_packages)
+    error_message = "Use the deployment pipeline's verified bundle path or leave empty."
+  }
+}

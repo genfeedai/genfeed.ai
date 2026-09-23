@@ -7,6 +7,48 @@ import type { SourceTool } from '../../interfaces/source-tool.interface';
  */
 export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
+    name: 'enhance_prompt',
+    description:
+      'Preview a media prompt using the same Enhance implementation as Studio and Agent, with effective organization/brand settings and contributing pack metadata. Does not generate media. To generate the reviewed prompt unchanged, pass the returned prompt with harness:false. Model compilation during normal generation may add format-specific instructions; the generation receipt records the final submitted prompt.',
+    creditCost: 1,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['prompt', 'contentType'],
+      properties: {
+        prompt: { type: 'string' },
+        contentType: { type: 'string', enum: ['image', 'video'] },
+        brandId: { type: 'string' },
+        model: { type: 'string' },
+        harness: { type: 'boolean' },
+      },
+    },
+  },
+  {
+    name: 'get_generation_settings',
+    description:
+      'Read effective image/video prompt enhancement settings and organization or brand overrides. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: { type: 'object', properties: { brandId: { type: 'string' } } },
+  },
+  {
+    name: 'set_generation_settings',
+    description:
+      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['scope', 'isEnabled'],
+      properties: {
+        scope: { type: 'string', enum: ['organization', 'brand'] },
+        brandId: { type: 'string' },
+        isEnabled: { anyOf: [{ type: 'boolean' }, { type: 'null' }] },
+      },
+    },
+  },
+  {
     // Floor for preflight only. Real amount is format+model-aware and billed
     // dynamically in the handler (isBillingDelegated).
     creditCost: 1,
