@@ -6,6 +6,7 @@ import {
 import { CampaignsQueryDto } from '@api/collections/campaigns/dto/campaigns-query.dto';
 import { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
 import { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/generate-campaign-content.dto';
+import { GenerateCampaignPlanDto } from '@api/collections/campaigns/dto/generate-campaign-plan.dto';
 import {
   ApproveCampaignSpendDto,
   PrepareCampaignActivationDto,
@@ -16,6 +17,7 @@ import { CampaignGenerationService } from '@api/collections/campaigns/services/c
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
+import { CampaignPlanningService } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -62,6 +64,7 @@ export class CampaignsController {
     private readonly paidActivationService: CampaignPaidActivationService,
     private readonly performanceService: CampaignPerformanceService,
     private readonly service: CampaignsService,
+    private readonly planningService: CampaignPlanningService,
   ) {}
 
   @Get()
@@ -175,6 +178,21 @@ export class CampaignsController {
       dto,
     );
     return serializeSingle(request, CampaignPaidActivationSerializer, data);
+  }
+
+  @Post('generate-plan')
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  async generatePlan(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: GenerateCampaignPlanDto,
+  ) {
+    const data = await this.planningService.generate(
+      user.organizationId,
+      this.resolveUserId(user),
+      dto,
+    );
+    return serializeSingle(request, CampaignSerializer, data);
   }
 
   @Post()

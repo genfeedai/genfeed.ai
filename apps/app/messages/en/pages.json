@@ -1012,7 +1012,7 @@
       "emptyArchived": "No archived campaigns.",
       "emptyBrief": "No brief yet.",
       "endDate": "End date",
-      "generate": "Generate",
+      "generate": "Generate content with AI",
       "generateFailed": "Could not generate campaign content.",
       "generateMessage": "Creates draft platform variants from this brief. Nothing publishes. Credentials that already have campaign content are skipped.",
       "generateTitle": "Generate campaign content?",
@@ -1060,7 +1060,63 @@
         "performance": "Performance"
       },
       "title": "Campaigns",
-      "updated": "Campaign updated."
+      "updated": "Campaign updated.",
+      "setup": {
+        "description": "A campaign brings related posts together around one goal, such as a launch, announcement, or educational series.",
+        "idea": "Campaign name or idea",
+        "placeholder": "e.g. Launch our new video editor",
+        "brandContext": "AI uses the voice, audience, and context of {brand}.",
+        "selectedBrand": "your selected brand",
+        "examples": "Start with an example",
+        "generate": "Generate campaign with AI",
+        "generating": "Building your campaign\u2026",
+        "failed": "We could not generate your campaign. Your idea is still here\u2014try again.",
+        "next": "We\u2019ll create the objective, creative brief, channel recommendations, and post ideas. Then choose accounts and generate draft content for review. Nothing is published automatically.",
+        "missingObjective": "Add a goal in Edit so every post has a clear purpose.",
+        "examplesList": {
+          "launch": {
+            "title": "Product launch",
+            "description": "Build anticipation, introduce the product, and invite people to try it.",
+            "idea": "Launch our product with a teaser, reveal, and getting-started series"
+          },
+          "education": {
+            "title": "Educational series",
+            "description": "Teach your audience something useful across a week of posts.",
+            "idea": "A week of practical tips that help our audience solve their biggest problem"
+          },
+          "feature": {
+            "title": "Feature announcement",
+            "description": "Explain what changed, why it matters, and how to use it.",
+            "idea": "Introduce our newest feature with a problem, walkthrough, and use-case series"
+          },
+          "stories": {
+            "title": "Customer stories",
+            "description": "Turn verified customer experiences into useful lessons.",
+            "idea": "A series of customer stories using only our verified examples and results"
+          }
+        }
+      },
+      "accounts": {
+        "title": "Social accounts",
+        "description": "These accounts are connected to this campaign\u2019s brand. Choose the accounts for this campaign when generating content. Generated drafts appear in Content; review and schedule them there.",
+        "loading": "Loading social accounts\u2026",
+        "failed": "Social accounts could not be loaded.",
+        "retry": "Try again",
+        "unnamed": "Connected account",
+        "available": "Available for AI drafts",
+        "unsupported": "AI text drafts unavailable",
+        "empty": "Connect an X, LinkedIn, Instagram, or TikTok account to this brand to generate campaign drafts.",
+        "manage": "Manage social connections",
+        "nextStep": "Next: generate content with AI, choose your social accounts, then review the drafts in Content.",
+        "generateDescription": "Choose connected accounts for this campaign. AI creates one platform-specific text draft per selected account. Add any required images or videos before publishing. Existing campaign drafts are kept.",
+        "partial": "Created {succeeded} drafts; {failed} failed and {ineligible} could not be generated. You can retry the remaining accounts.",
+        "generated": "Created {succeeded} drafts. Review and schedule them in Content.",
+        "alreadyGenerated": "These accounts already have campaign content. Open Content to review it.",
+        "generateFailed": "Content could not be generated. Check the selected accounts and try again.",
+        "generating": "Generating drafts\u2026",
+        "close": "Close",
+        "review": "Review content"
+      }
     },
     "calendar": {
       "bookedHole": "Booked calendar hole",

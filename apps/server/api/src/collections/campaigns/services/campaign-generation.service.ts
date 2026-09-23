@@ -92,7 +92,7 @@ export class CampaignGenerationService {
     const captions = await this.captionsForCredentials(campaign, pending);
     const targets = pending.flatMap((credential, index) => {
       const platform = fromPrismaCredentialPlatform(credential.platform);
-      if (!platform) {
+      if (!platform || !this.toGeneratorPlatform(platform)) {
         items.push(
           campaignItemOutcome({
             id: credential.id,
@@ -104,9 +104,22 @@ export class CampaignGenerationService {
         );
         return [];
       }
+      const caption = captions[index];
+      if (!caption) {
+        items.push(
+          campaignItemOutcome({
+            id: credential.id,
+            kind: ContentCampaignItemKind.RELEASE,
+            reason: 'AI content generation failed. Retry this account.',
+            retryable: true,
+            status: ContentCampaignItemOutcomeStatus.FAILED,
+          }),
+        );
+        return [];
+      }
       return [
         {
-          caption: captions[index] ?? this.campaignCopy(campaign),
+          caption,
           credentialId: credential.id,
           platform,
         },
@@ -169,10 +182,10 @@ export class CampaignGenerationService {
         error: getErrorMessage(error),
         organizationId,
       });
-      for (const credential of pending) {
+      for (const target of targets) {
         items.push(
           campaignItemOutcome({
-            id: credential.id,
+            id: target.credentialId,
             kind: ContentCampaignItemKind.RELEASE,
             reason: getErrorMessage(error),
             retryable: true,
@@ -238,9 +251,11 @@ export class CampaignGenerationService {
   private async captionsForCredentials(
     campaign: Campaign,
     credentials: Credential[],
-  ): Promise<string[]> {
+  ): Promise<Array<string | undefined>> {
     const copy = this.campaignCopy(campaign);
-    const captions = credentials.map(() => copy);
+    const captions: Array<string | undefined> = credentials.map(
+      () => undefined,
+    );
     const neededByPlatform = new Map<ContentIntelligencePlatform, number[]>();
 
     credentials.forEach((credential, index) => {
@@ -264,7 +279,8 @@ export class CampaignGenerationService {
           {
             additionalContext: [
               'Write a platform-native variant of this campaign brief.',
-              'Keep the objective and offer identical. Change only phrasing and hook.',
+              'Write publishable copy for the first post idea, not the campaign plan itself. Keep the objective and verified offer identical. Do not invent facts.',
+              `Campaign objective: ${campaign.objective ?? campaign.name}`,
             ],
             brandId: campaign.brandId,
             platform,
@@ -280,7 +296,7 @@ export class CampaignGenerationService {
           captions[index] = item.content;
         });
       } catch (error: unknown) {
-        this.logger.warn('Campaign platform variation degraded to brief', {
+        this.logger.warn('Campaign AI content generation failed', {
           campaignId: campaign.id,
           error: getErrorMessage(error),
           platform,

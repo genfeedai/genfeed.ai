@@ -4,6 +4,7 @@ import { CampaignGenerationService } from '@api/collections/campaigns/services/c
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
+import { CampaignPlanningService } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { PostGroupsModule } from '@api/collections/post-groups/post-groups.module';
@@ -11,12 +12,16 @@ import { PostLifecycleModule } from '@api/collections/posts/post-lifecycle.modul
 import { PublishApprovalsModule } from '@api/collections/publish-approvals/publish-approvals.module';
 import { QueuesModule } from '@api/queues/core/queues.module';
 import { AdsGatewayModule } from '@api/services/ads-gateway/ads-gateway.module';
+import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
+import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [CampaignsController],
   exports: [CampaignsService],
   imports: [
+    AgentContextAssemblyModule,
+    LlmDispatcherModule,
     ContentIntelligenceModule,
     PostGroupsModule,
     PostLifecycleModule,
@@ -25,6 +30,7 @@ import { Module } from '@nestjs/common';
     AdsGatewayModule,
   ],
   providers: [
+    CampaignPlanningService,
     CampaignComparisonService,
     CampaignGenerationService,
     CampaignLifecycleService,

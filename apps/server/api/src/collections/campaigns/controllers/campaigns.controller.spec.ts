@@ -4,6 +4,7 @@ import { CampaignGenerationService } from '@api/collections/campaigns/services/c
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
+import { CampaignPlanningService } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -66,6 +67,7 @@ describe('CampaignsController', () => {
     unassignPosts: vi.fn(),
     update: vi.fn(),
   };
+  const planningService = { generate: vi.fn() };
   let controller: CampaignsController;
 
   beforeEach(() => {
@@ -77,6 +79,7 @@ describe('CampaignsController', () => {
       paidActivationService as unknown as CampaignPaidActivationService,
       performanceService as unknown as CampaignPerformanceService,
       service as unknown as CampaignsService,
+      planningService as unknown as CampaignPlanningService,
     );
   });
 
@@ -84,6 +87,7 @@ describe('CampaignsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CampaignsController],
       providers: [
+        { provide: CampaignPlanningService, useValue: planningService },
         { provide: CampaignComparisonService, useValue: comparisonService },
         { provide: CampaignGenerationService, useValue: generationService },
         { provide: CampaignLifecycleService, useValue: lifecycleService },

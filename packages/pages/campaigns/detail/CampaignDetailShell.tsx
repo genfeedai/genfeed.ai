@@ -14,6 +14,7 @@ import {
   summarizeCampaignLifecycleItems,
   visibleCampaignDeskActions,
 } from '@pages/campaigns/campaigns-status';
+import CampaignGenerateDialog from '@pages/campaigns/detail/CampaignGenerateDialog';
 import CampaignUnavailableState from '@pages/campaigns/detail/CampaignUnavailableState';
 import { useConfirmModal } from '@providers/global-modals/global-modals.provider';
 import {
@@ -27,7 +28,7 @@ import Badge from '@ui/display/badge/Badge';
 import LoadingState from '@ui/feedback/LoadingState';
 import Container from '@ui/layout/container/Container';
 import { Button } from '@ui/primitives/button';
-import { Flag } from 'lucide-react';
+import { Flag, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { type ReactNode, useMemo, useState } from 'react';
@@ -55,6 +56,7 @@ export default function CampaignDetailShell({
   const { campaign, isLoading, isUnavailable, refetch } =
     useCampaign(campaignId);
   const [isMutating, setIsMutating] = useState(false);
+  const [isGenerateOpen, setIsGenerateOpen] = useState(false);
 
   if (isUnavailable) {
     return <CampaignUnavailableState />;
@@ -94,9 +96,13 @@ export default function CampaignDetailShell({
     result: CampaignLifecycleResult,
     successKey: string,
   ): void {
-    notificationsService.success(
-      translate(successKey, summarizeCampaignLifecycleItems(result.items)),
-    );
+    const summary = summarizeCampaignLifecycleItems(result.items);
+    const message = translate(successKey, summary);
+    if (summary.failed || summary.ineligible) {
+      notificationsService.error(message);
+    } else {
+      notificationsService.success(message);
+    }
   }
 
   function confirmLifecycle(
@@ -171,14 +177,7 @@ export default function CampaignDetailShell({
   }
 
   function handleGenerate(): void {
-    confirmLifecycle(
-      'generateTitle',
-      'generateMessage',
-      'generate',
-      'generated',
-      'generateFailed',
-      (service) => service.generate(resolvedCampaign.id),
-    );
+    setIsGenerateOpen(true);
   }
 
   function handleStart(): void {
@@ -249,92 +248,98 @@ export default function CampaignDetailShell({
       }}
       icon={Flag}
       label={resolvedCampaign.name}
-      right={
-        <div className="flex items-center gap-2">
-          <Badge status={resolvedCampaign.status}>
-            {CAMPAIGN_STATUS_LABELS[resolvedCampaign.status] ??
-              resolvedCampaign.status}
-          </Badge>
-          {deskActions.canGenerate ? (
-            <Button
-              isDisabled={isMutating}
-              label={translate('generate')}
-              onClick={handleGenerate}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            />
-          ) : null}
-          {deskActions.canStart ? (
-            <Button
-              isDisabled={isMutating}
-              label={translate('start')}
-              onClick={handleStart}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DEFAULT}
-            />
-          ) : null}
-          {deskActions.canPause ? (
-            <Button
-              isDisabled={isMutating}
-              label={translate('pause')}
-              onClick={handlePause}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-            />
-          ) : null}
-          {deskActions.canComplete ? (
-            <Button
-              isDisabled={isMutating}
-              label={translate('complete')}
-              onClick={handleComplete}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-            />
-          ) : null}
-          <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
-            <Link href={href(APP_ROUTES.PUBLISHING.CAMPAIGNS)}>
-              {translate('backToCampaigns')}
-            </Link>
-          </Button>
-          {section === 'overview' ? (
-            <Button
-              asChild
-              size={ButtonSize.SM}
-              variant={ButtonVariant.SECONDARY}
-            >
-              <Link
-                href={href(
-                  createPublishingCampaignRoute(resolvedCampaign.id, 'edit'),
-                )}
-              >
-                {translate('edit')}
-              </Link>
-            </Button>
-          ) : null}
-          {deskActions.canRestore ? (
-            <Button
-              isDisabled={isMutating}
-              label={translate('restore')}
-              onClick={() => {
-                void handleRestore();
-              }}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.DEFAULT}
-            />
-          ) : null}
-          {deskActions.canArchive ? (
-            <Button
-              isDisabled={isMutating}
-              label={translate('archive')}
-              onClick={handleArchive}
-              size={ButtonSize.SM}
-              variant={ButtonVariant.GHOST}
-            />
-          ) : null}
-        </div>
-      }
       titleVisibility="visible"
     >
+      <div className="flex min-w-0 flex-wrap items-center gap-2 border-b border-border py-4">
+        <Badge status={resolvedCampaign.status}>
+          {CAMPAIGN_STATUS_LABELS[resolvedCampaign.status] ??
+            resolvedCampaign.status}
+        </Badge>
+        {deskActions.canGenerate ? (
+          <Button
+            isDisabled={isMutating}
+            label={translate('generate')}
+            icon={<Sparkles className="size-4" />}
+            onClick={handleGenerate}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+          />
+        ) : null}
+        {deskActions.canStart ? (
+          <Button
+            isDisabled={isMutating}
+            label={translate('start')}
+            onClick={handleStart}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          />
+        ) : null}
+        {deskActions.canPause ? (
+          <Button
+            isDisabled={isMutating}
+            label={translate('pause')}
+            onClick={handlePause}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+          />
+        ) : null}
+        {deskActions.canComplete ? (
+          <Button
+            isDisabled={isMutating}
+            label={translate('complete')}
+            onClick={handleComplete}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+          />
+        ) : null}
+        <Button asChild size={ButtonSize.SM} variant={ButtonVariant.GHOST}>
+          <Link href={href(APP_ROUTES.PUBLISHING.CAMPAIGNS)}>
+            {translate('backToCampaigns')}
+          </Link>
+        </Button>
+        {section === 'overview' ? (
+          <Button
+            asChild
+            size={ButtonSize.SM}
+            variant={ButtonVariant.SECONDARY}
+          >
+            <Link
+              href={href(
+                createPublishingCampaignRoute(resolvedCampaign.id, 'edit'),
+              )}
+            >
+              {translate('edit')}
+            </Link>
+          </Button>
+        ) : null}
+        {deskActions.canRestore ? (
+          <Button
+            isDisabled={isMutating}
+            label={translate('restore')}
+            onClick={() => {
+              void handleRestore();
+            }}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+          />
+        ) : null}
+        {deskActions.canArchive ? (
+          <Button
+            isDisabled={isMutating}
+            label={translate('archive')}
+            onClick={handleArchive}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.GHOST}
+          />
+        ) : null}
+      </div>
+
+      {isGenerateOpen ? (
+        <CampaignGenerateDialog
+          campaign={resolvedCampaign}
+          onClose={() => setIsGenerateOpen(false)}
+        />
+      ) : null}
       {children}
     </Container>
   );
