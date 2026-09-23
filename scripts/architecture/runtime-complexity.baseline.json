@@ -240,7 +240,7 @@
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
   },
   {
-    "actual": 158,
+    "actual": 153,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentPublishToolHandler.createPost"
