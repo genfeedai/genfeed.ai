@@ -130,8 +130,11 @@ describe('PublishingLayoutContent', () => {
       </PublishingLayoutContent>,
     );
     await user.click(screen.getByRole('button', { name: /new post/i }));
-    await user.click(screen.getByRole('button', { name: /social post/i }));
+    await user.click(screen.getByRole('menuitem', { name: /social post/i }));
     expect(openModalMock).toHaveBeenCalledWith('modal-post');
+    await waitFor(() =>
+      expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
+    );
     expect(openAgentComposerMock).not.toHaveBeenCalled();
   });
 
@@ -143,7 +146,7 @@ describe('PublishingLayoutContent', () => {
       </PublishingLayoutContent>,
     );
     await user.click(screen.getByRole('button', { name: /new post/i }));
-    await user.click(screen.getByRole('button', { name: /ask agent/i }));
+    await user.click(screen.getByRole('menuitem', { name: /ask agent/i }));
     expect(openAgentComposerMock).toHaveBeenCalledWith(
       'Draft a social post for my brand.',
     );
@@ -159,20 +162,18 @@ describe('PublishingLayoutContent', () => {
 
     await user.click(await screen.findByRole('button', { name: /new post/i }));
     await user.click(
-      await screen.findByRole('button', { name: /x long post/i }),
+      await screen.findByRole('menuitem', { name: /x long post/i }),
     );
     expect(openModalMock).toHaveBeenCalledWith('modal-post-long-form');
 
-    // openModal is mocked, so no modal takes over and the menu stays open —
-    // it marks the rest of the page aria-hidden, which would hide the trigger
-    // from the next query. Dismiss it before reopening.
-    await user.keyboard('{Escape}');
     await waitFor(() => {
       expect(document.body).not.toHaveAttribute('data-scroll-locked');
     });
 
     await user.click(await screen.findByRole('button', { name: /new post/i }));
-    await user.click(await screen.findByRole('button', { name: /x thread/i }));
+    await user.click(
+      await screen.findByRole('menuitem', { name: /x thread/i }),
+    );
     expect(openModalMock).toHaveBeenCalledWith('modal-thread-create');
   });
 

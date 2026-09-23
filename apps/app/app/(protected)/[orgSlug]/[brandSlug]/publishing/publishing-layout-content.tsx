@@ -22,6 +22,7 @@ import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
+import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
 import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -236,77 +237,48 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                 />
               }
             >
-              <div className="flex flex-col gap-1 p-1">
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('socialPost')}
-                  onClick={handleNewPost}
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('xPost')}
-                  onClick={() => {
-                    setCreationPlatform(CredentialPlatform.TWITTER);
-                    openModal(ModalEnum.POST);
-                  }}
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('article')}
-                  onClick={() =>
-                    openAgentComposer(
-                      'Help me write a new long-form article for my brand.',
-                    )
-                  }
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('newsletter')}
-                  onClick={() =>
-                    openAgentComposer(
-                      'Help me write a new newsletter for my brand.',
-                    )
-                  }
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('xLongPost')}
-                  onClick={handleNewLongPost}
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('xThread')}
-                  onClick={handleNewThread}
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('askAgent')}
-                  onClick={() =>
-                    openAgentComposer('Draft a social post for my brand.')
-                  }
-                />
-              </div>
+              <DropdownMenuItem onSelect={handleNewPost}>
+                {translate('socialPost')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setCreationPlatform(CredentialPlatform.TWITTER);
+                  openModal(ModalEnum.POST);
+                }}
+              >
+                {translate('xPost')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  openAgentComposer(
+                    'Help me write a new long-form article for my brand.',
+                  )
+                }
+              >
+                {translate('article')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  openAgentComposer(
+                    'Help me write a new newsletter for my brand.',
+                  )
+                }
+              >
+                {translate('newsletter')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleNewLongPost}>
+                {translate('xLongPost')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleNewThread}>
+                {translate('xThread')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  openAgentComposer('Draft a social post for my brand.')
+                }
+              >
+                {translate('askAgent')}
+              </DropdownMenuItem>
             </Dropdown>
           </div>
         }
