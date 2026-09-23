@@ -1,5 +1,3 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { AgentThreadMode } from '@genfeedai/contracts';
 import {
   fireEvent,
@@ -94,18 +92,6 @@ describe('AgentChatInput', () => {
     storeState.draftAgentMode = AgentThreadMode.MANUAL;
     storeState.composerSeed = null;
     storeState.threads = [];
-  });
-
-  it('resolves toolbar copy through the host agent catalog', () => {
-    const source = readFileSync(
-      join(__dirname, 'AgentChatInputToolbar.tsx'),
-      'utf8',
-    );
-    expect(source).toContain("useTranslations('agent.composerToolbar')");
-    expect(source).toContain("translate('actionsAria')");
-    expect(source).toContain("{translate('actions')}");
-    expect(source).toContain("translate('actionsDescription')");
-    expect(source).not.toContain('const COPY =');
   });
 
   it('renders inside the shared prompt bar shell', () => {
@@ -274,8 +260,8 @@ describe('AgentChatInput', () => {
     expect(screen.queryByText(/Plan mode/i)).not.toBeInTheDocument();
     expect(screen.getByLabelText('Add context')).toBeInTheDocument();
     expect(
-      screen.getByLabelText('Open workspace shortcuts'),
-    ).toBeInTheDocument();
+      screen.queryByLabelText('Open workspace shortcuts'),
+    ).not.toBeInTheDocument();
   });
 
   it('uses the inspector rail treatment without duplicating shell context', () => {
@@ -300,8 +286,8 @@ describe('AgentChatInput', () => {
     // Inspector density is compact: actions control is icon-only (no "Actions" label).
     expect(screen.queryByText('Actions')).not.toBeInTheDocument();
     expect(
-      screen.getByLabelText('Open workspace shortcuts'),
-    ).toBeInTheDocument();
+      screen.queryByLabelText('Open workspace shortcuts'),
+    ).not.toBeInTheDocument();
     expect(getComputedStyle(screen.getByRole('textbox')).minHeight).toBe(
       '56px',
     );
@@ -437,12 +423,8 @@ describe('AgentChatInput', () => {
       </ConversationComposerShellProvider>,
     );
 
-    // Actions are a Radix dropdown: the trigger opens on pointerdown and the
-    // entries are menuitems, not buttons.
-    fireEvent.pointerDown(screen.getByLabelText('Open workspace shortcuts'));
-    fireEvent.click(
-      await screen.findByRole('menuitem', { name: /\/publish/i }),
-    );
+    const user = userEvent.setup();
+    await user.type(await screen.findByRole('textbox'), '/publish');
     expect(await screen.findByRole('textbox')).toHaveTextContent('/publish');
     fireEvent.click(await screen.findByLabelText('Send message'));
 

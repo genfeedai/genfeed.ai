@@ -1,8 +1,12 @@
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { TasksService } from '@services/management/tasks.service';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
+
+vi.mock('@hooks/ui/use-theme-logo/use-theme-logo', () => ({
+  useThemeLogo: () => null,
+}));
 
 const agentFullPageSpy = vi.fn();
 const getTokenMock = vi.fn();
@@ -75,6 +79,8 @@ vi.mock('./agent-workspace-context', () => ({
 describe('AgentWorkspacePageShell', () => {
   beforeEach(() => {
     agentFullPageSpy.mockClear();
+    completeOnboardingFlowMock.mockReset();
+    completeOnboardingFlowMock.mockResolvedValue(undefined);
     pushMock.mockClear();
     replaceMock.mockClear();
     getTokenMock.mockResolvedValue('authProvider-token');
@@ -99,6 +105,32 @@ describe('AgentWorkspacePageShell', () => {
       'flex-1',
       'flex-col',
       'overflow-hidden',
+    );
+  });
+
+  it('finishes onboarding before opening the workspace without a social connection', async () => {
+    render(<AgentWorkspacePageShell />);
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
+    await waitFor(() =>
+      expect(pushMock).toHaveBeenCalledWith('/test-org/~/workspace'),
+    );
+    expect(completeOnboardingFlowMock).toHaveBeenCalledTimes(1);
+    expect(handleOAuthConnectMock).not.toHaveBeenCalled();
+  });
+
+  it('keeps skip retryable when completing setup fails', async () => {
+    completeOnboardingFlowMock.mockRejectedValueOnce(
+      new Error('Network error'),
+    );
+    render(<AgentWorkspacePageShell />);
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not finish setup',
+    );
+    expect(pushMock).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Skip to workspace' }));
+    await waitFor(() =>
+      expect(pushMock).toHaveBeenCalledWith('/test-org/~/workspace'),
     );
   });
 

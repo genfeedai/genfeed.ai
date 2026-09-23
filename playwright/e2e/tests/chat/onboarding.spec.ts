@@ -193,6 +193,101 @@ test.describe('Agent Onboarding', () => {
     await expect(authenticatedPage.locator('body')).toBeVisible();
   });
 
+  test('shows the first brand draft with a docked composer and optional workspace entry', async ({
+    authenticatedPage,
+  }, testInfo) => {
+    const threadId = 'thread-first-post-preview';
+    await mockThreads(authenticatedPage, [
+      {
+        id: threadId,
+        title: 'Your first brand post',
+        messageContent:
+          'Here is your first draft. Tell me what you would change.',
+        messageMetadata: {
+          uiActions: [
+            {
+              id: 'first-post',
+              type: 'content_preview_card',
+              platform: 'twitter',
+              title: 'Your first post for Genfeed',
+              description: 'Review your draft. Nothing has been published.',
+              tweets: [
+                'One idea. A week of content. Make more room for the work only you can do.',
+              ],
+              images: ['/assets/pwa/app/icon-512x512.png'],
+              ctas: [
+                {
+                  label: 'Looks good',
+                  action: 'send_prompt',
+                  payload: {
+                    prompt:
+                      'I approve this draft. Show the optional X connection.',
+                  },
+                },
+                {
+                  label: 'Try another version',
+                  action: 'send_prompt',
+                  payload: { prompt: 'Create another draft for my brand.' },
+                },
+              ],
+            },
+          ],
+        },
+      },
+    ]);
+    await authenticatedPage.goto(
+      `${orgPath(APP_ROUTES.AGENT.ONBOARDING)}/${threadId}`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    await expect(
+      authenticatedPage.getByText(
+        'Review your draft. Nothing has been published.',
+      ),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Looks good',
+        exact: true,
+      }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('button', { name: 'Skip to workspace' }),
+    ).toBeVisible();
+    await expect(
+      authenticatedPage.getByLabel('Open workspace shortcuts'),
+    ).toHaveCount(0);
+    await expect(
+      authenticatedPage.getByRole('button', {
+        name: 'Connect X (Twitter)',
+        exact: true,
+      }),
+    ).toHaveCount(0);
+    for (const viewport of [
+      { width: 1440, height: 1000 },
+      { width: 390, height: 844 },
+    ]) {
+      await authenticatedPage.setViewportSize(viewport);
+      const prompt = authenticatedPage.getByTestId('agent-chat-input-shell');
+      await expect(prompt).toBeVisible();
+      await expect
+        .poll(async () => {
+          const bounds = await prompt.boundingBox();
+          return bounds ? viewport.height - bounds.y - bounds.height : 999;
+        })
+        .toBeLessThan(70);
+      await expect
+        .poll(() =>
+          authenticatedPage.evaluate(
+            () => document.documentElement.scrollWidth <= window.innerWidth,
+          ),
+        )
+        .toBe(true);
+      await authenticatedPage.screenshot({
+        path: testInfo.outputPath(`onboarding-draft-${viewport.width}.png`),
+      });
+    }
+  });
+
   for (let pass = 1; pass <= 5; pass += 1) {
     test(`bootstraps onboarding chat, promotes the thread route, and saves the drafted brand voice profile (pass ${pass}/5)`, async ({
       authenticatedPage,
@@ -323,20 +418,6 @@ test.describe('Agent Onboarding', () => {
 
       await authenticatedPage.goto(onboardingPath);
       await authenticatedPage.waitForLoadState('domcontentloaded');
-      await expect
-        .poll(() => new URL(authenticatedPage.url()).pathname)
-        .toBe(onboardingPath);
-      const composer = authenticatedPage
-        .locator(
-          '[data-testid="agent-chat-input-shell"] [contenteditable="true"]',
-        )
-        .first();
-      await composer.click();
-      await composer.pressSequentially(
-        'We help startup operators build AI workflows without noisy guru language.',
-      );
-      await composer.press('Enter');
-
       await expect
         .poll(() => new URL(authenticatedPage.url()).pathname)
         .toBe(threadPath);

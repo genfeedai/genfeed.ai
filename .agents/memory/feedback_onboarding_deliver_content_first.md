@@ -19,7 +19,8 @@ The onboarding sequence is brand context → proactively generated image and twe
 - Present the draft in a focused, Genfeed-branded onboarding surface with the user's brand context and honest generation progress.
 - Use a cost-conscious image model and text generation for the first image plus tweet. No specific model or numeric budget was selected in this decision.
 - Let users edit, regenerate, and validate the output before offering account connection for publishing.
-- Keep an explicit skip/open-workspace exit and recoverable failure states.
+- Keep an explicit skip/open-workspace exit and recoverable failure states. Dock the composer at the bottom even without navigation chrome; leave spacing between the hint and composer.
+- Reuse agent shortcut styling. Slash commands are the quick-action entry point; do not duplicate them in a lightning-button dropdown.
 - Agent assistance remains available, but chat and workspace navigation are not prerequisites to receiving the first output.
 
-This explicit user correction supersedes the conversation-first presentation prescribed in `feedback_onboarding_conversation_prompt_card.md`. It records the intended product flow; it does not claim that the redesigned flow has been implemented.
+This explicit user correction supersedes the conversation-first presentation prescribed in `feedback_onboarding_conversation_prompt_card.md`.

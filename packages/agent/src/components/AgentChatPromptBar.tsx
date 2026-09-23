@@ -38,6 +38,7 @@ type AgentChatPromptBarProps = {
   knowledgeSelection?: KnowledgeSelection;
   /** Host-provided Knowledge picker rendered inside the composer. */
   knowledgePicker?: ReactNode;
+  composerBanner?: ReactNode;
   layoutMode: 'fixed' | 'surface-fixed';
   followUps?: readonly ComposerFollowUp[];
   isBusy: boolean;
@@ -84,6 +85,7 @@ type AgentChatPromptBarProps = {
 export function AgentChatPromptBar({
   knowledgeSelection,
   knowledgePicker,
+  composerBanner,
   agentMode,
   onAgentModeChange,
   apiService,
@@ -149,6 +151,7 @@ export function AgentChatPromptBar({
   });
   const topContent = (
     <>
+      {composerBanner ? <div className="pb-3">{composerBanner}</div> : null}
       {followUps.length > 0 &&
       onMoveFollowUp &&
       onRemoveFollowUp &&

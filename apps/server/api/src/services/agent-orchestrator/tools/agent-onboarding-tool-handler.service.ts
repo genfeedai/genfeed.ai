@@ -25,6 +25,7 @@ import {
 } from '@genfeedai/config';
 import {
   ByokProvider,
+  ContentIntelligencePlatform,
   RouterPriority,
   Status,
   TargetExecutionState,
@@ -86,10 +87,6 @@ interface AgentBrandsServiceLike {
     organizationId: string,
     identity: { description: string; label: string; slug: string },
   ) => Promise<Record<string, unknown>>;
-}
-
-interface ContentGeneratorTextServiceLike {
-  generateText: (params: Record<string, unknown>) => Promise<{ text?: string }>;
 }
 
 /**
@@ -1078,127 +1075,175 @@ export class AgentOnboardingToolHandler {
     };
   }
 
-  /**
-   * Generates sample onboarding content (3 tweets + 3 images) using cheap models.
-   * Credits are deducted from the user's balance via the internal API endpoints
-   * (CreditsInterceptor), including any onboarding journey credits already earned.
-   * Uses brand voice/style from scraping for personalized content.
-   */
   async generateOnboardingContent(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const brandId = params.brandId as string;
-    const brandName = (params.brandName as string) || 'your brand';
-    const brandDescription = (params.brandDescription as string) || '';
-
-    try {
-      // Generate 3 tweets using brand context
-      const tweetTopics = [
-        `Engaging tweet about ${brandName}'s value proposition${brandDescription ? `: ${brandDescription}` : ''}`,
-        `Behind-the-scenes or authentic story tweet for ${brandName}`,
-        `Call-to-action or community engagement tweet for ${brandName}`,
-      ];
-
-      const tweets: string[] = [];
-      for (let i = 0; i < tweetTopics.length; i++) {
-        const topic = tweetTopics[i];
-        try {
-          await this.publishToolProgress({
-            message: `Generating tweet ${i + 1}/3...`,
-            progress: i / 6,
-            threadId: ctx.threadId ?? `onboarding-${brandId}`,
-            toolName: 'generate_onboarding_content',
-            userId: ctx.userId,
-          });
-        } catch (error) {
-          this.loggerService.warn(
-            'generateOnboardingContent tweet progress publish failed',
-            { error },
-          );
-        }
-        const result = await (
-          this
-            .contentGeneratorService as unknown as ContentGeneratorTextServiceLike
-        ).generateText({
-          brandId,
-          organizationId: ctx.organizationId,
-          platform: 'twitter',
-          topic,
-          type: 'post',
-        });
-        tweets.push(result.text || '');
-      }
-
-      // Generate 3 images sequentially using brand-aware prompts
-      const imagePrompts = [
-        `Professional brand lifestyle photo for ${brandName}, social media ready, high quality`,
-        `Clean product or service showcase for ${brandName}, modern aesthetic`,
-        `Engaging visual content for ${brandName} social media campaign`,
-      ];
-
-      const imageResults: PromiseSettledResult<AgentToolResult>[] = [];
-      for (let i = 0; i < imagePrompts.length; i++) {
-        try {
-          await this.publishToolProgress({
-            message: `Generating image ${i + 1}/3...`,
-            progress: (3 + i) / 6,
-            threadId: ctx.threadId ?? `onboarding-${brandId}`,
-            toolName: 'generate_onboarding_content',
-            userId: ctx.userId,
-          });
-        } catch (error) {
-          this.loggerService.warn(
-            'generateOnboardingContent image progress publish failed',
-            { error },
-          );
-        }
-        const imageResult = await this.generateOnboardingImage(
-          imagePrompts[i] ?? '',
-          ctx,
-        ).then(
-          (value) => ({ status: 'fulfilled' as const, value }),
-          (reason: unknown) => ({ reason, status: 'rejected' as const }),
-        );
-        if (
-          imageResult.status === 'fulfilled' &&
-          imageResult.value.nextActions?.some(
-            (action) => action.type === 'onboarding_checklist_card',
-          )
-        ) {
-          return imageResult.value;
-        }
-        imageResults.push(imageResult);
-      }
-
-      const images: string[] = imageResults
-        .filter(
-          (r): r is PromiseFulfilledResult<AgentToolResult> =>
-            r.status === 'fulfilled' && r.value.success && !!r.value.data?.url,
-        )
-        .map((r) => r.value.data?.url as string);
-
+    const direction =
+      typeof params.direction === 'string'
+        ? params.direction.trim().slice(0, 2000)
+        : '';
+    const retryTweet =
+      typeof params.retryTweet === 'string'
+        ? params.retryTweet.trim()
+        : undefined;
+    if (
+      params.retryTweet !== undefined &&
+      (!retryTweet || retryTweet.length > 280)
+    ) {
       return {
         creditsUsed: 0,
+        error:
+          'Provide the original tweet (up to 280 characters) to retry its image.',
+        success: false,
+      };
+    }
+    const brandId =
+      typeof params.brandId === 'string' ? params.brandId : ctx.brandId;
+    if (!brandId || (ctx.brandId && ctx.brandId !== brandId)) {
+      return {
+        creditsUsed: 0,
+        error: 'Choose the current brand before creating its first post.',
+        success: false,
+      };
+    }
+
+    try {
+      if (isSelfHostedDeployment()) {
+        const settings = await this.organizationSettingsService?.findOne({
+          organizationId: ctx.organizationId,
+        });
+        if (!this.resolveProviderReadiness(settings ?? null).isImageReady) {
+          return this.checkOnboardingStatus(ctx);
+        }
+      }
+      const brand = await this.brandsService.findOne({
+        id: brandId,
+        organizationId: ctx.organizationId,
+        isDeleted: false,
+      });
+      if (!brand) {
+        return {
+          creditsUsed: 0,
+          error: 'This brand is unavailable in your workspace.',
+          success: false,
+        };
+      }
+      const brandName =
+        typeof brand.label === 'string' ? brand.label : 'your brand';
+      const description =
+        typeof brand.description === 'string' ? brand.description : '';
+      const reportProgress = async (message: string, progress: number) => {
+        if (!ctx.threadId) return;
+        try {
+          await this.publishToolProgress({
+            message,
+            progress,
+            threadId: ctx.threadId,
+            toolName: 'generate_onboarding_content',
+            userId: ctx.userId,
+          });
+        } catch (error) {
+          this.loggerService.warn(
+            'Onboarding progress could not be published',
+            { error },
+          );
+        }
+      };
+      let tweet = retryTweet;
+      if (!tweet) {
+        await reportProgress(`Writing a tweet for ${brandName}…`, 0.1);
+        const generated =
+          await this.contentGeneratorService.generateContentWorkflow(
+            ctx.userId,
+            ctx.organizationId,
+            {
+              brandId,
+              platform: ContentIntelligencePlatform.TWITTER,
+              topic:
+                `Introduce ${brandName} with a useful, specific post grounded in its offering. ${description}`.slice(
+                  0,
+                  2000,
+                ),
+              variationsCount: 1,
+              additionalContext: [
+                'Write one standalone tweet, at most 280 characters. Use the saved brand voice and audience. Do not invent claims, customer quotes, metrics, discounts, or URLs.',
+                ...(direction
+                  ? [`Apply these requested changes: ${direction}`]
+                  : []),
+              ],
+            },
+          );
+        tweet = generated[0]?.content?.trim();
+        if (!tweet) throw new Error('The text generator returned no draft.');
+        if (tweet.length > 280) {
+          return {
+            creditsUsed: 0,
+            isBillingDelegated: true,
+            success: false,
+            error:
+              'The draft exceeded the tweet length limit. Ask for a shorter version; no image was generated.',
+          };
+        }
+      }
+
+      await reportProgress(`Creating an image for ${brandName}…`, 0.5);
+      const image = await this.generateOnboardingImage(
+        `Create one distinctive social image for ${brandName}. Brand context: ${description}. Illustrate this post: ${tweet}. Match the brand's subject and audience. ${direction ? `Requested creative direction: ${direction}.` : ''} Use a clear focal point and intentional composition. Avoid invented logos, text overlays, claims, and stock-photo cliches.`,
+        { ...ctx, brandId },
+      );
+      const url =
+        typeof image.data?.url === 'string' ? image.data.url : undefined;
+      const images = url ? [url] : [];
+      const isComplete = image.success && images.length > 0;
+      return {
+        creditsUsed: 0,
+        isBillingDelegated: true,
         data: {
           images,
-          message: `Generated ${tweets.length} tweets and ${images.length} images for ${brandName}.`,
-          tweets,
+          tweets: [tweet],
+          isComplete,
+          message: isComplete
+            ? `The image and tweet for ${brandName} are ready for review. Ask whether the user likes them; do not offer connection until approval.`
+            : `The tweet is ready, but the image failed: ${image.error ?? 'Image unavailable'}. Keep the tweet visible. Do not claim the full draft is ready.`,
         },
         nextActions: [
           {
+            id: `onboarding-content-${randomUUID()}`,
+            type: 'content_preview_card',
+            brandId,
+            platform: 'twitter',
+            title: isComplete
+              ? `Your first post for ${brandName}`
+              : `Your tweet for ${brandName}`,
+            description: isComplete
+              ? 'Review your draft. Nothing has been published.'
+              : `Your tweet is ready. ${image.error ?? 'The image could not be generated.'}`,
+            images,
+            tweets: [tweet],
             ctas: [
+              ...(isComplete
+                ? [
+                    {
+                      label: 'Looks good',
+                      action: 'send_prompt',
+                      payload: {
+                        prompt:
+                          'I approve this image and tweet. Show me the optional X connection to publish it. Do not publish anything yet.',
+                      },
+                    },
+                  ]
+                : []),
               {
-                href: '/publishing/posts?publicationState=not-posted',
-                label: 'View all drafts',
+                label: isComplete ? 'Try another version' : 'Retry image',
+                action: 'send_prompt',
+                payload: {
+                  prompt: isComplete
+                    ? 'Create another version of the image and tweet for my brand, with a different creative angle. Show it for review before connecting an account.'
+                    : `Retry only the image using generate_onboarding_content with retryTweet set to this exact tweet: ${tweet}`,
+                },
               },
             ],
-            description: `Sample content generated for ${brandName}`,
-            id: `onboarding-content-${Date.now()}`,
-            images,
-            title: `${tweets.length} tweets + ${images.length} images generated`,
-            tweets,
-            type: 'content_preview_card',
           },
         ],
         success: true,
@@ -1207,7 +1252,9 @@ export class AgentOnboardingToolHandler {
       this.loggerService.error('generateOnboardingContent failed', error);
       return {
         creditsUsed: 0,
-        error: 'Failed to generate sample content',
+        isBillingDelegated: true,
+        error:
+          'We could not create your first post. Try again, or skip setup to open your workspace.',
         success: false,
       };
     }
@@ -1288,7 +1335,7 @@ export class AgentOnboardingToolHandler {
     const body: Record<string, unknown> = {
       autoSelectModel: true,
       height: dimensions.height,
-      prioritize: ctx.generationPriority || RouterPriority.QUALITY,
+      prioritize: RouterPriority.COST,
       prompt,
       text: prompt,
       waitForCompletion: true,
@@ -1314,8 +1361,18 @@ export class AgentOnboardingToolHandler {
         this.configService.ingredientsEndpoint,
       );
 
+      if (!url) {
+        throw new Error('Image generation returned no usable preview.');
+      }
       if (id) {
-        await this.completeJourneyMission(ctx, 'generate_first_image');
+        try {
+          await this.completeJourneyMission(ctx, 'generate_first_image');
+        } catch (error) {
+          this.loggerService.warn(
+            'Onboarding image reward could not be recorded',
+            { error },
+          );
+        }
       }
 
       return {
@@ -1324,12 +1381,17 @@ export class AgentOnboardingToolHandler {
         isBillingDelegated: true,
         success: true,
       };
-    } catch {
+    } catch (error) {
+      this.loggerService.error('Onboarding image generation failed', error);
       return {
         creditsUsed: 0,
-        data: { status: Status.PROCESSING },
+        error:
+          error instanceof Error &&
+          /insufficient.*credits|not enough.*credits/i.test(error.message)
+            ? 'There are not enough credits to create this image. You can open your workspace to manage credits or continue with the tweet.'
+            : 'The image could not be generated. Please retry, or open your workspace.',
         isBillingDelegated: true,
-        success: true,
+        success: false,
       };
     }
   }

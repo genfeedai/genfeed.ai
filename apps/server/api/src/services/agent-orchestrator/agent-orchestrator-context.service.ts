@@ -201,6 +201,12 @@ export class AgentOrchestratorContextService {
     );
 
     if (shouldUseOnboardingPrompt) {
+      const onboardingPrompt = isSelfHostedDeployment()
+        ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
+        : ONBOARDING_SYSTEM_PROMPT;
+      const scopedPrompt = policy.brandId
+        ? `${onboardingPrompt}\n\nCurrent brand ID: ${policy.brandId}. Use this saved brand; do not create a duplicate.`
+        : onboardingPrompt;
       return {
         memories,
         model: await resolveModel(),
@@ -208,9 +214,13 @@ export class AgentOrchestratorContextService {
         preparedScope,
         resolvedSkills,
         systemPrompt: composeAgentGuardrails(
-          isSelfHostedDeployment()
-            ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
-            : ONBOARDING_SYSTEM_PROMPT,
+          brandContext
+            ? this.contextAssemblyService.buildSystemPrompt(
+                scopedPrompt,
+                brandContext,
+                { replyStyle },
+              )
+            : scopedPrompt,
         ),
       };
     }

@@ -2,12 +2,14 @@
 name: onboarding conversation prompt card
 description: First-login /agent/onboarding is a conversation; compact card sits on the prompt bar
 type: feedback
-status: active
+status: superseded
 last_verified: 2026-08-14
 topics: [onboarding, agent, composer]
 ---
 
-# Post-brand onboarding is a conversation, not a setup form
+# Post-brand onboarding conversation (superseded)
+
+Superseded by [content before connection](feedback_onboarding_deliver_content_first.md) on 2026-09-23: deliver the first image and tweet proactively, dock the composer at the bottom, and keep a visible skip-to-workspace exit.
 
 First-login still starts at the shared brand step (`/onboarding/brand`) so
 Cloud and Desktop run the same brand setup. After that, Cloud / Community

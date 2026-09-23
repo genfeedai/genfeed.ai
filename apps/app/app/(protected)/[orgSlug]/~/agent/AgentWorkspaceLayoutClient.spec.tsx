@@ -1,5 +1,5 @@
 import { act, render, waitFor } from '@testing-library/react';
-import type { PropsWithChildren } from 'react';
+import { type PropsWithChildren, StrictMode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspaceLayoutClient } from './AgentWorkspaceLayoutClient';
 
@@ -27,6 +27,10 @@ const navigationState = {
 
 const storeState = {
   activeThreadId: 'thread-existing' as string | null,
+  setError: vi.fn(),
+  messages: [] as Array<{ content: string }>,
+  isGenerating: false,
+  stream: { isStreaming: false },
   threads: [] as Array<{
     brandId?: string | null;
     id: string;
@@ -109,8 +113,10 @@ vi.mock('@genfeedai/agent', () => ({
       {children}
     </div>
   ),
-  useAgentChatStore: (selector: (state: typeof storeState) => unknown) =>
-    selector(storeState),
+  useAgentChatStore: Object.assign(
+    (selector: (state: typeof storeState) => unknown) => selector(storeState),
+    { getState: () => storeState },
+  ),
   useAgentChatStream: ({ apiService }: { apiService: unknown }) => {
     useAgentChatStreamSpy(apiService);
     return { sendMessage };
@@ -160,6 +166,10 @@ describe('AgentWorkspaceLayoutClient', () => {
     navigationState.searchParams = new URLSearchParams();
     storeState.activeThreadId = 'thread-existing';
     storeState.threads = [];
+    storeState.messages = [];
+    storeState.isGenerating = false;
+    storeState.stream.isStreaming = false;
+    storeState.setError.mockReset();
     brandState.brandId = 'brand-1';
     brandState.brands = AUTHORIZED_BRANDS;
     brandState.isBrandScopeResolved = true;
@@ -830,11 +840,15 @@ describe('AgentWorkspaceLayoutClient', () => {
       {
         id: 'thread-onboarding-old',
         source: 'onboarding',
+        status: 'active',
+        organizationId: 'org-1',
         updatedAt: '2026-08-01T09:00:00.000Z',
       },
       {
         id: 'thread-onboarding-latest',
         source: 'onboarding',
+        status: 'active',
+        organizationId: 'org-1',
         updatedAt: '2026-08-04T18:00:00.000Z',
       },
     ]);
@@ -872,11 +886,15 @@ describe('AgentWorkspaceLayoutClient', () => {
       {
         id: 'thread-onboarding-latest',
         source: 'onboarding',
+        status: 'active',
+        organizationId: 'org-1',
         updatedAt: '2026-08-04T18:00:00.000Z',
       },
       {
         id: 'thread-onboarding-old',
         source: 'onboarding',
+        status: 'active',
+        organizationId: 'org-1',
         updatedAt: '2026-08-01T09:00:00.000Z',
       },
     ]);
@@ -915,7 +933,57 @@ describe('AgentWorkspaceLayoutClient', () => {
     expect(getThreads.mock.calls[0]?.[0]).not.toHaveProperty('limit');
   });
 
-  it('leaves a first-time operator on the onboarding entry route when no thread exists', async () => {
+  it('does not start another paid draft if the user sends while the resume lookup is pending', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+    let resolveLookup!: (threads: []) => void;
+    getThreads.mockReturnValue(
+      new Promise((resolve) => {
+        resolveLookup = resolve;
+      }),
+    );
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+    await waitFor(() => expect(getThreads).toHaveBeenCalled());
+    storeState.messages = [{ content: 'Create my first post' }];
+    await act(async () => resolveLookup([]));
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('starts only one first draft in Strict Mode', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+    render(
+      <StrictMode>
+        <AgentWorkspaceLayoutClient>
+          <div>child</div>
+        </AgentWorkspaceLayoutClient>
+      </StrictMode>,
+    );
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+  });
+
+  it('shows a recoverable error when onboarding cannot be loaded', async () => {
+    navigationState.pathname = '/agent/onboarding';
+    storeState.activeThreadId = null;
+    getThreads.mockRejectedValue(new Error('Network unavailable'));
+    render(
+      <AgentWorkspaceLayoutClient>
+        <div>child</div>
+      </AgentWorkspaceLayoutClient>,
+    );
+    await waitFor(() =>
+      expect(storeState.setError).toHaveBeenCalledWith(
+        expect.stringContaining('could not open your first draft'),
+      ),
+    );
+    expect(sendMessage).not.toHaveBeenCalled();
+  });
+
+  it('automatically creates the first brand draft when no onboarding thread exists', async () => {
     navigationState.pathname = '/agent/onboarding';
     storeState.activeThreadId = null;
 
@@ -929,6 +997,16 @@ describe('AgentWorkspaceLayoutClient', () => {
       expect(getThreads).toHaveBeenCalled();
     });
 
+    await waitFor(() => expect(sendMessage).toHaveBeenCalledTimes(1));
+    expect(sendMessage).toHaveBeenCalledWith(
+      expect.stringContaining('one image and one tweet'),
+      expect.objectContaining({
+        brandId: 'brand-1',
+        agentMode: 'auto',
+        forceNewThread: true,
+        source: 'onboarding',
+      }),
+    );
     expect(routerReplace).not.toHaveBeenCalled();
   });
 

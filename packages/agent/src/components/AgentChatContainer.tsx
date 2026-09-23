@@ -172,7 +172,9 @@ export function AgentChatContainer({
   // bar (Claude/T3 pattern) — not as sticky timeline chrome.
   const isComposerDocked =
     (composerShell?.isComposerVisible ?? true) &&
-    (!container.isEmpty || composerShell?.placement === 'inspector');
+    (onboardingMode ||
+      !container.isEmpty ||
+      composerShell?.placement === 'inspector');
   const shouldRenderInlineComposerFeedback = !isComposerDocked;
   // Archived threads replace the prompt bar with restore chrome — always dock it
   // so empty archived threads still get Unarchive instead of a dead input.
@@ -221,6 +223,9 @@ export function AgentChatContainer({
           </div>
         ) : container.isEmpty ? (
           <AgentChatEmptyState
+            composerPaddingPx={
+              onboardingMode ? composerTranscriptPaddingPx : undefined
+            }
             addFiles={container.addFiles}
             agentMode={container.draftAgentMode}
             onAgentModeChange={container.setAgentMode}
@@ -244,7 +249,9 @@ export function AgentChatContainer({
             // keeps it inline and centered under the hero. Archived threads
             // use the docked restore bar instead of a dead input.
             isComposerVisible={
-              !isArchivedThread && composerShell?.placement !== 'inspector'
+              !onboardingMode &&
+              !isArchivedThread &&
+              composerShell?.placement !== 'inspector'
             }
             isReadOnly={isReadOnly}
             isRunActive={container.isRunActive}
@@ -328,6 +335,11 @@ export function AgentChatContainer({
             />
           ) : (
             <AgentChatPromptBar
+              composerBanner={
+                onboardingMode && container.isEmpty ? (
+                  <OnboardingConversationCard />
+                ) : undefined
+              }
               activeWorkEvent={activeWorkEvent}
               workEvents={container.workEvents}
               addFiles={container.addFiles}

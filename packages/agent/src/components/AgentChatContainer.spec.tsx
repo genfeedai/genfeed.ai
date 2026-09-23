@@ -987,15 +987,16 @@ describe('AgentChatContainer', () => {
       screen.queryByText(/what best describes you/i),
     ).not.toBeInTheDocument();
     expect(
-      container.querySelectorAll(
-        '[data-layout-mode="inflow"][data-max-width="full"]',
-      ).length,
+      container.querySelectorAll('[data-layout-mode="surface-fixed"]').length,
     ).toBe(1);
     expect(
       container.querySelector(
-        '[data-layout-mode="inflow"] [data-testid="onboarding-composer-card"]',
+        '[data-layout-mode="surface-fixed"] [data-testid="onboarding-composer-card"]',
       ),
     ).not.toBeNull();
+    expect(
+      screen.getByTestId('onboarding-composer-card').parentElement,
+    ).toHaveClass('pb-3');
   });
 
   it('keeps the empty-state composer full-width inside the centered column', () => {

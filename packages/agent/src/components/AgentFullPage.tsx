@@ -127,16 +127,9 @@ export function AgentFullPage({
     />
   );
 
-  // T3 density on product agent routes: single conversation column.
-  // Onboarding keeps the setup/outputs dual-column chrome — and only those two,
-  // so a finished checklist collapses back to one column instead of pinning a
-  // reference panel next to the welcome conversation. Product routes project
-  // into ConversationInspector when the workspace shell provides it; mobile
-  // drawers still expose outputs/setup without a permanent right rail.
-  const hasInlineContextPanel =
-    !inspectorShell && onboardingMode && (hasThreadOutputs || showSetupPanel);
   const setInspectorHasPanel = inspectorShell?.setHasPanel;
-  const hasProjectedContextPanel = inspectorShell?.isActive === true;
+  const hasProjectedContextPanel =
+    !onboardingMode && inspectorShell?.isActive === true;
 
   useEffect(() => {
     if (!setInspectorHasPanel) {
@@ -152,10 +145,9 @@ export function AgentFullPage({
     <div
       className={cn(
         'flex min-h-0 flex-1 overflow-hidden bg-background text-foreground',
-        onboardingMode && 'max-md:pb-14',
       )}
     >
-      {showThreadSidebar ? (
+      {!onboardingMode && showThreadSidebar ? (
         <div className="hidden xl:flex xl:w-[15rem] xl:shrink-0 xl:border-r xl:border-border xl:bg-background">
           <AgentSidebarContent apiService={apiService} />
         </div>
@@ -163,9 +155,9 @@ export function AgentFullPage({
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
         <AgentFullPageMobileBar
-          showThreadSidebar={showThreadSidebar}
-          hasThreadOutputs={hasThreadOutputs}
-          showSetupPanel={showSetupPanel}
+          showThreadSidebar={!onboardingMode && showThreadSidebar}
+          hasThreadOutputs={!onboardingMode && hasThreadOutputs}
+          showSetupPanel={!onboardingMode && showSetupPanel}
           onOpenThreads={() => setMobileThreadsOpen(true)}
           onOpenOutputs={() => setMobileOutputsOpen(true)}
           onOpenSetup={() => setMobileSetupOpen(true)}
@@ -186,16 +178,16 @@ export function AgentFullPage({
               isStreaming
               isReadOnly={activeThreadStatus === AgentThreadStatus.ARCHIVED}
               emptyStateTitle={
-                onboardingMode ? 'Welcome to GenFeed' : 'Start a chat'
+                onboardingMode ? 'Your brand. Your first post.' : 'Start a chat'
               }
               emptyStateDescription={
                 onboardingMode
-                  ? "I'm your AI content agent. Let's get you set up."
+                  ? 'An image and a tweet, made for you. Review the draft before connecting an account.'
                   : 'Plan content, review drafts, or decide what to do next.'
               }
               placeholder={
                 onboardingMode
-                  ? 'Paste a site or handle, or type what you make...'
+                  ? 'Tell us what to change, or ask for another version…'
                   : 'Ask for help with content, review, or planning...'
               }
               suggestedActions={
@@ -210,17 +202,11 @@ export function AgentFullPage({
               onSelectCreditPack={onSelectCreditPack}
               onUnarchive={handleUnarchiveActiveThread}
               onboardingMode={onboardingMode}
-              isWideLayout={!hasInlineContextPanel}
+              isWideLayout
               promptBarLayoutMode="surface-fixed"
               workspacePlanningTaskId={workspacePlanningTaskId}
             />
           </div>
-
-          {hasInlineContextPanel ? (
-            <div className="hidden min-h-0 overflow-hidden xl:flex xl:w-[24rem] xl:shrink-0 xl:border-l xl:border-border xl:bg-background">
-              {contextPanel}
-            </div>
-          ) : null}
         </div>
       </div>
 
@@ -247,13 +233,13 @@ export function AgentFullPage({
 
       <AgentFullPageMobileDrawers
         apiService={apiService}
-        showThreadSidebar={showThreadSidebar}
+        showThreadSidebar={!onboardingMode && showThreadSidebar}
         mobileThreadsOpen={mobileThreadsOpen}
         onMobileThreadsOpenChange={setMobileThreadsOpen}
-        hasThreadOutputs={hasThreadOutputs}
+        hasThreadOutputs={!onboardingMode && hasThreadOutputs}
         mobileOutputsOpen={mobileOutputsOpen}
         onMobileOutputsOpenChange={setMobileOutputsOpen}
-        showSetupPanel={showSetupPanel}
+        showSetupPanel={!onboardingMode && showSetupPanel}
         mobileSetupOpen={mobileSetupOpen}
         onMobileSetupOpenChange={setMobileSetupOpen}
         agentSetup={agentSetup}

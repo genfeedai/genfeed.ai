@@ -25,15 +25,7 @@ import {
   DEFAULT_AGENT_THREAD_MODE,
   type MemberRole,
 } from '@genfeedai/contracts';
-import {
-  Briefcase,
-  Calendar,
-  ChartColumn,
-  ClipboardCheck,
-  Heart,
-  Paintbrush,
-  Rocket,
-} from 'lucide-react';
+import { Calendar, ChartColumn, ClipboardCheck, Rocket } from 'lucide-react';
 import {
   createElement,
   useCallback,
@@ -69,23 +61,9 @@ const DEFAULT_AGENT_ACTIONS: SuggestedAction[] = [
 const ONBOARDING_SUGGESTED_ACTIONS: SuggestedAction[] = [
   {
     icon: createElement(Rocket, { className: 'size-5 text-foreground/50' }),
-    label: "Let's go",
-    prompt: "I'm ready to set up my account",
-  },
-  {
-    icon: createElement(Heart, { className: 'size-5 text-foreground/50' }),
-    label: 'Fitness creator',
-    prompt: "I'm a fitness content creator",
-  },
-  {
-    icon: createElement(Paintbrush, { className: 'size-5 text-foreground/50' }),
-    label: 'Art and design',
-    prompt: 'I create art and design content',
-  },
-  {
-    icon: createElement(Briefcase, { className: 'size-5 text-foreground/50' }),
-    label: 'Business content',
-    prompt: 'I create business and entrepreneurship content',
+    label: 'Create my first post',
+    prompt:
+      'Create one image and one tweet based on my saved brand. Show me the draft before asking me to connect an account.',
   },
 ];
 

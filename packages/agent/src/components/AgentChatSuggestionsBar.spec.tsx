@@ -34,9 +34,6 @@ describe('AgentChatSuggestionsBar', () => {
       'sm:grid-cols-3',
       '[&>button]:w-full',
       '[&>button]:max-w-none',
-      '[&>button]:border-0',
-      '[&>button]:bg-transparent',
-      '[&>button]:shadow-none',
     );
   });
 });

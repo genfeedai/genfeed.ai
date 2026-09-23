@@ -299,10 +299,16 @@ export function useAgentChatStream(
       );
 
       if (hasCompletedOnboarding && onOnboardingCompleted) {
-        await onOnboardingCompleted();
+        try {
+          await onOnboardingCompleted();
+        } catch {
+          setError(
+            'Could not finish setup. Use Skip to workspace to try again, or sign in again if your session expired.',
+          );
+        }
       }
     },
-    [onOnboardingCompleted],
+    [onOnboardingCompleted, setError],
   );
 
   const scheduleCompletionWatchdog = useCallback(() => {
