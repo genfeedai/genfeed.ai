@@ -46,7 +46,6 @@ const READ_ONLY_NAMES = new Set<string>([
   'analyze_performance',
   'read_knowledge_source',
   'open_studio_handoff',
-  'request_media_upload',
   'resolve_approval',
   'resolve_handle',
 ]);
@@ -116,6 +115,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   prepare_clip_workflow_run: 'direct',
   prepare_generation: 'direct',
   request_input: 'direct',
+  request_media_upload: 'direct',
   present_work_object: 'direct',
   ingest_source_media: 'direct',
   prepare_voice_clone: 'direct',

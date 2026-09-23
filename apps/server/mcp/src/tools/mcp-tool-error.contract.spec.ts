@@ -135,6 +135,60 @@ describe('MCP tool error contract', () => {
     expect(result?.structuredContent).not.toHaveProperty('nextStepUrl');
   });
 
+  it.each([
+    {
+      status: 401,
+      title: 'Unauthorized',
+      detail: 'Sign in again',
+      code: 'unauthorized',
+      route: APP_ROUTES.CONNECT,
+    },
+    {
+      status: 403,
+      title: 'Plan required',
+      detail: 'Upgrade to Pro',
+      code: 'plan_required',
+      route: APP_ROUTES.SETTINGS.SUBSCRIPTION,
+    },
+    {
+      status: 422,
+      title: 'Insufficient credits',
+      detail: 'Insufficient credits',
+      code: 'insufficient_credits',
+      route: APP_ROUTES.SETTINGS.CREDITS,
+    },
+    {
+      status: 429,
+      title: 'Too many requests',
+      detail: 'Rate limit exceeded',
+      code: 'rate_limited',
+      route: undefined,
+    },
+  ])(
+    'preserves $code when JSON:API source points at a request URL',
+    ({ status, title, detail, code, route }) => {
+      const result = toMcpToolErrorResult(
+        new McpUpstreamError(detail, {
+          body: {
+            errors: [
+              { title, detail, source: { pointer: '/v1/agent/tools/execute' } },
+            ],
+          },
+          retryAfterSeconds: status === 429 ? 15 : undefined,
+          status,
+        }),
+      );
+      expect(result?.structuredContent.code).toBe(code);
+      expect(result?.structuredContent.errors).toBeUndefined();
+      expect(result?.structuredContent.nextStepUrl).toBe(
+        route ? appUrl(route) : undefined,
+      );
+      expect(result?.structuredContent.retryAfterSeconds).toBe(
+        status === 429 ? 15 : undefined,
+      );
+    },
+  );
+
   it('returns approval_pending with the publishing approval queue', () => {
     const result = approvalPendingToolResult({
       id: 'apr-1',

@@ -297,3 +297,21 @@ https://mcp.genfeed.ai/mcp
   restart browser authorization only if that fails; in manual mode, check the
   key and its scopes.
 - **Wrong endpoint:** check `/v1/config` on the MCP host.
+
+## Uploading local media
+
+The default MCP profile includes `request_media_upload`, `complete_media_upload`,
+and `get_post`. Select a brand before reserving an upload.
+
+1. Call `request_media_upload` with `filename`, `contentType`, and `category`.
+2. Upload to the returned `uploadUrl` before it expires. For `method: PUT`, send
+   the file bytes with the returned headers. For self-hosted `method: POST_JSON`,
+   send a JSON body containing the returned `localUpload` fields and `source`
+   set to the base64-encoded file bytes. Respect the returned file constraints.
+3. Call `complete_media_upload` with the returned `assetId`. Its `media` entries
+   can be passed to `create_scheduled_release`; a returned hosted `url` can also
+   be used in `create_post` `mediaUrls`. Scheduling retains its approval checks.
+4. Use `get_post` with `postId` to read a post's targets, state, media, and timestamps.
+
+Upload reservation creates a pending asset. Both upload tools are non-destructive
+writes; `get_post` is read-only. None of these tools publishes a post.

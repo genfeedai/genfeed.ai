@@ -246,9 +246,14 @@ export class AgentWorkspaceToolHandler {
       );
     }
 
+    const uploadUser = toUploadUser(ctx);
+    if (!uploadUser.brandId) {
+      return toolFailure('Select a brand before requesting a media upload.');
+    }
+
     try {
       const presigned = await this.presignedUploadService.getPresignedUploadUrl(
-        toUploadUser(ctx),
+        uploadUser,
         {
           category: UPLOAD_CATEGORY_TO_INGREDIENT[categoryName],
           contentType,
@@ -486,7 +491,7 @@ function filenameExtension(filename: string): string | undefined {
 
 function toUploadUser(ctx: ToolExecutionContext): AuthenticatedUser {
   return {
-    brandId: ctx.brandId ?? '',
+    brandId: ctx.brandId ?? ctx.validatedScope?.brandId ?? '',
     id: ctx.userId,
     organizationId: ctx.organizationId,
     userId: ctx.userId,

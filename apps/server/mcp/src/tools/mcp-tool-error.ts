@@ -187,6 +187,7 @@ function readFieldErrors(value: unknown): McpToolFieldError[] {
     }
     const pointer = isRecord(item.source) ? item.source.pointer : undefined;
     if (
+      item.title === 'Validation failed' &&
       typeof pointer === 'string' &&
       pointer.startsWith('/') &&
       pointer.length > 1 &&

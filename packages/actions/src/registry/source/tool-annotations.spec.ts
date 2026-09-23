@@ -126,7 +126,8 @@ describe('MCP tool annotations', () => {
   it('keeps media upload and get_post hints off the global write default', () => {
     expect(getToolByName('request_media_upload')?.annotations).toMatchObject({
       destructiveHint: false,
-      readOnlyHint: true,
+      idempotentHint: false,
+      readOnlyHint: false,
     });
     expect(getToolByName('get_post')?.annotations).toMatchObject({
       destructiveHint: false,
@@ -142,9 +143,9 @@ describe('MCP tool annotations', () => {
     expect(getToolByName('complete_media_upload')?.mutationPolicy).toBe(
       'direct',
     );
-    expect(
-      getToolByName('request_media_upload')?.mutationPolicy,
-    ).toBeUndefined();
+    expect(getToolByName('request_media_upload')?.mutationPolicy).toBe(
+      'direct',
+    );
     expect(getToolByName('get_post')?.toolset).toBe('content');
     expect(getToolByName('request_media_upload')?.toolset).toBe('content');
     expect(getToolByName('complete_media_upload')?.toolset).toBe('content');

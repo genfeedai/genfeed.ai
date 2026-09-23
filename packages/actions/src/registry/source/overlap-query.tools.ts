@@ -134,7 +134,7 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Reserve a pending asset and return a presigned upload URL, assetId, and constraints. PUT the file bytes to uploadUrl with the signed Content-Type, then call complete_media_upload. Does not publish or attach the file.',
+      'Reserve a pending asset for the selected brand and return uploadUrl, assetId, method, and constraints. For PUT, send file bytes with the returned headers. For POST_JSON, send localUpload fields plus source containing base64 file bytes as JSON. Then call complete_media_upload. Does not publish or attach the file.',
     name: 'request_media_upload',
     parameters: {
       properties: {

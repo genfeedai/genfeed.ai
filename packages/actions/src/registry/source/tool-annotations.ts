@@ -42,7 +42,6 @@ const DESTRUCTIVE_HINT_NAMES: ReadonlySet<string> = new Set([
 const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
   'get_account_info',
   'list_brands',
-  'request_media_upload',
   'validate_scheduler_target',
 ]);
 
@@ -53,6 +52,7 @@ const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
  */
 const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
   'complete_media_upload',
+  'request_media_upload',
   'create_post',
 ]);
 

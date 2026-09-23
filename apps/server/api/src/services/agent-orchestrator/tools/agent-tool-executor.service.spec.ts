@@ -2181,15 +2181,13 @@ describe('AgentToolExecutorService', () => {
         contentType: 'image/png',
         filename: 'launch.png',
       },
-      {
-        organizationId: testId('org'),
-        userId: testId('user'),
-      },
+      scopedContext(testId('brand')),
     );
 
     expect(result.success).toBe(true);
     expect(presignedUploadService.getPresignedUploadUrl).toHaveBeenCalledWith(
       expect.objectContaining({
+        brandId: testId('brand'),
         organizationId: testId('org'),
         userId: testId('user'),
       }),
