@@ -1,4 +1,4 @@
-import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { type LoginEndpoints, resolveLoginEndpoints } from './endpoints';
@@ -46,10 +46,13 @@ export async function loadConfig(): Promise<Config> {
 export async function saveConfig(config: Config): Promise<void> {
   await mkdir(CONFIG_DIR, { mode: CONFIG_DIRECTORY_MODE, recursive: true });
   await chmod(CONFIG_DIR, CONFIG_DIRECTORY_MODE);
-  await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), {
+  const temporaryPath = `${CONFIG_PATH}.${process.pid}.tmp`;
+  await writeFile(temporaryPath, JSON.stringify(config, null, 2), {
     encoding: 'utf8',
     mode: CONFIG_FILE_MODE,
   });
+  await chmod(temporaryPath, CONFIG_FILE_MODE);
+  await rename(temporaryPath, CONFIG_PATH);
   await chmod(CONFIG_PATH, CONFIG_FILE_MODE);
   cachedConfig = config;
 }

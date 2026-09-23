@@ -1,4 +1,4 @@
-import { chmod, mkdir, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, rename, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -14,6 +14,7 @@ vi.mock('node:fs/promises', () => ({
     }
     return mockFileSystem.content;
   }),
+  rename: vi.fn(async () => {}),
   writeFile: vi.fn(async (_path: string, data: string) => {
     mockFileSystem.content = data;
   }),
@@ -89,10 +90,11 @@ describe('config/store', () => {
       expect(file.includes(`${path.sep}.genfeed${path.sep}`)).toBe(false);
       expect(mkdir).toHaveBeenCalledWith(directory, { mode: 0o700, recursive: true });
       expect(chmod).toHaveBeenCalledWith(directory, 0o700);
-      expect(writeFile).toHaveBeenCalledWith(file, expect.any(String), {
+      expect(writeFile).toHaveBeenCalledWith(`${file}.${process.pid}.tmp`, expect.any(String), {
         encoding: 'utf8',
         mode: 0o600,
       });
+      expect(rename).toHaveBeenCalledWith(`${file}.${process.pid}.tmp`, file);
       expect(chmod).toHaveBeenCalledWith(file, 0o600);
     });
   });

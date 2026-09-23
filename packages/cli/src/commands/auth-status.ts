@@ -2,7 +2,7 @@ import { Command } from 'commander';
 import { validateApiKey } from '@/api/auth';
 import { getApiKey, getOrganizationId } from '@/config/store';
 import { print } from '@/ui/theme';
-import { handleError } from '@/utils/errors';
+import { AuthError, handleError } from '@/utils/errors';
 
 export interface AuthStatus {
   isLoggedIn: boolean;
@@ -26,13 +26,25 @@ export async function readAuthStatus(): Promise<AuthStatus> {
     };
   }
 
-  const account = await validateApiKey();
+  try {
+    const account = await validateApiKey();
 
-  return {
-    isLoggedIn: true,
-    organizationId: storedOrganizationId ?? account.organization.id,
-    scopes: account.scopes,
-  };
+    return {
+      isLoggedIn: true,
+      organizationId: storedOrganizationId ?? account.organization.id,
+      scopes: account.scopes,
+    };
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return {
+        isLoggedIn: false,
+        organizationId: storedOrganizationId,
+        scopes: [],
+      };
+    }
+
+    throw error;
+  }
 }
 
 export function formatAuthStatus(status: AuthStatus): string {

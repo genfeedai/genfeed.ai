@@ -16,6 +16,7 @@ vi.mock('node:fs/promises', () => ({
     }
     return mockFileSystem.content;
   }),
+  rename: vi.fn(async () => {}),
   writeFile: vi.fn(async (_path: string, data: string) => {
     mockFileSystem.content = data;
   }),
@@ -77,6 +78,23 @@ describe('auth status and logout', () => {
 
     expect(printed).toEqual(['Logged in: yes\nOrganization: org-1\nScopes: mcp, read']);
     expect(mockValidateApiKey).toHaveBeenCalledOnce();
+  });
+
+  it('reports logged out when the stored key is rejected', async () => {
+    mockFileSystem.content = makeConfigJson({
+      apiKey: 'gf_test_key',
+      organizationId: 'org-1',
+    });
+    const { AuthError } = await import('../../src/utils/errors');
+    mockValidateApiKey.mockRejectedValue(new AuthError('Invalid or expired API key'));
+
+    const { clearConfigCache } = await import('../../src/config/store');
+    clearConfigCache();
+    const { authCommand } = await import('../../src/commands/auth');
+
+    await authCommand.parseAsync(['status'], { from: 'user' });
+
+    expect(printed).toEqual(['Logged in: no\nOrganization: org-1\nScopes: none']);
   });
 
   it('clears the stored API key on auth logout and top-level logout', async () => {

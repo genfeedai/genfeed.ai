@@ -127,10 +127,9 @@ export GENFEED_API_KEY=gf_live_xxx
 genfeed whoami
 ```
 
-`--key` and `--interactive` remain for machines without a browser. Prefer `GENFEED_API_KEY` in CI.
+`--key` and `--interactive` remain for machines without a browser. Prefer `GENFEED_API_KEY` in CI. A key passed on the command line is stored in shell history.
 
 ```bash
-genfeed login --key gf_live_xxx
 genfeed login --interactive
 ```
 
