@@ -16,6 +16,38 @@ const HEALTHY_ENV: Record<string, string> = {
 };
 
 describe('AccountPublishingContextService', () => {
+  it('scopes account-free draft context to the authorized brand and organization', async () => {
+    prisma.brand.findFirst.mockResolvedValueOnce({
+      id: brandId,
+      label: 'Brand',
+      description: 'Description',
+      text: 'Voice',
+    });
+    const result = await service.resolveDraft({
+      brandId,
+      organizationId,
+      platform: CredentialPlatform.TWITTER,
+    });
+    expect(prisma.brand.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: brandId, organizationId, isDeleted: false },
+      }),
+    );
+    expect(result.constraints.maxWeightedCharacters).toBe(280);
+    expect(result.brand.voice).toBe('Voice');
+    expect(credentialsService.findOne).not.toHaveBeenCalled();
+  });
+  it('rejects missing or foreign draft brands', async () => {
+    prisma.brand.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      service.resolveDraft({
+        brandId,
+        organizationId,
+        platform: CredentialPlatform.TWITTER,
+      }),
+    ).rejects.toThrow();
+  });
+
   const credentialId = 'cred-1';
   const organizationId = 'org-1';
   const brandId = 'brand-1';

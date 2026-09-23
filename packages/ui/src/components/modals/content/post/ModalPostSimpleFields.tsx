@@ -74,33 +74,35 @@ export default function ModalPostSimpleFields({
           </SelectField>
         </FormControl>
       )}
-      <FormControl
-        label={translate('account')}
-        error={form.formState.errors.credentialId?.message}
-      >
-        <SelectField
-          name="credentialId"
-          onChange={(event) => {
-            if (!event.target.value) {
-              form.setValue('scheduledDate', '');
-              form.setValue(
-                'targetExecutionState',
-                TargetExecutionState.DRAFT,
-                { shouldValidate: true },
-              );
-            }
-          }}
-          control={form.control}
-          isDisabled={isSubmitting}
+      {(!isEditMode || !form.watch('credentialId')) && (
+        <FormControl
+          label={translate('account')}
+          error={form.formState.errors.credentialId?.message}
         >
-          <option value="">{translate('noAccount')}</option>
-          {credentials.map((account) => (
-            <option key={account.id} value={account.id}>
-              {account.label || account.externalHandle || account.platform}
-            </option>
-          ))}
-        </SelectField>
-      </FormControl>
+          <SelectField
+            name="credentialId"
+            onChange={(event) => {
+              if (!event.target.value) {
+                form.setValue('scheduledDate', '');
+                form.setValue(
+                  'targetExecutionState',
+                  TargetExecutionState.DRAFT,
+                  { shouldValidate: true },
+                );
+              }
+            }}
+            control={form.control}
+            isDisabled={isSubmitting}
+          >
+            <option value="">{translate('noAccount')}</option>
+            {credentials.map((account) => (
+              <option key={account.id} value={account.id}>
+                {account.label || account.externalHandle || account.platform}
+              </option>
+            ))}
+          </SelectField>
+        </FormControl>
+      )}
       <PostDraftGenerator
         key={`${selectedPlatform}-${form.watch('format')}`}
         platform={form.watch('platform') ?? Platform.TWITTER}

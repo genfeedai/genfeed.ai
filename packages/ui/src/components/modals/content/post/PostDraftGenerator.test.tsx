@@ -16,6 +16,9 @@ vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
 vi.mock('@genfeedai/services/core/notifications.service', () => ({
   NotificationsService: { getInstance: () => ({ error: mocks.error }) },
 }));
+vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
+  useBrand: () => ({ brandId: 'brand-workspace' }),
+}));
 vi.mock('next-intl', async () => {
   const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
   return { useTranslations: translateFromCatalog };
@@ -46,6 +49,7 @@ describe('PostDraftGenerator', () => {
       expect(onGenerate).toHaveBeenCalledWith('Generated tweet'),
     );
     expect(mocks.generateDraftText).toHaveBeenCalledWith({
+      brandId: 'brand-workspace',
       prompt: 'Product launch',
       platform: Platform.TWITTER,
       format: undefined,

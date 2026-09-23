@@ -209,7 +209,11 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       await expect(
         service.generateDraftText(
-          { prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
+          {
+            brandId,
+            prompt: 'Launch day',
+            platform: CredentialPlatform.TWITTER,
+          },
           identity,
         ),
       ).resolves.toEqual({ description: 'A new tweet' });
@@ -236,7 +240,7 @@ Tweet 3: Tech innovation is changing the world.`,
     it('rejects a blank prompt before calling the model', async () => {
       await expect(
         service.generateDraftText(
-          { prompt: '  ', platform: CredentialPlatform.TWITTER },
+          { brandId, prompt: '  ', platform: CredentialPlatform.TWITTER },
           identity,
         ),
       ).rejects.toThrow('Describe');
@@ -250,7 +254,7 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       await expect(
         service.generateDraftText(
-          { prompt: 'Launch', platform: CredentialPlatform.TWITTER },
+          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
           identity,
         ),
       ).rejects.toThrow('Brand not found');
@@ -264,14 +268,40 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       await expect(
         service.generateDraftText(
-          { prompt: 'Launch', platform: CredentialPlatform.TWITTER },
+          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
           identity,
         ),
       ).rejects.toThrow('No draft');
     });
+    it('retries an oversized X draft using weighted character limits', async () => {
+      mockReplicateService.generateTextCompletionSync
+        .mockResolvedValueOnce('界'.repeat(200))
+        .mockResolvedValueOnce('A short tweet');
+      await expect(
+        service.generateDraftText(
+          { brandId, prompt: 'Launch', platform: CredentialPlatform.TWITTER },
+          identity,
+        ),
+      ).resolves.toEqual({ description: 'A short tweet' });
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledTimes(2);
+    });
+    it('rejects non-publishing platforms before calling the model', async () => {
+      await expect(
+        service.generateDraftText(
+          { brandId, prompt: 'Launch', platform: CredentialPlatform.RESTREAM },
+          identity,
+        ),
+      ).rejects.toThrow('supported publishing channel');
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).not.toHaveBeenCalled();
+    });
     it('uses the X long-post limit for long-form drafts', async () => {
       await service.generateDraftText(
         {
+          brandId,
           prompt: 'Launch',
           platform: CredentialPlatform.TWITTER,
           format: PostFormat.LONG_FORM,
@@ -280,7 +310,10 @@ Tweet 3: Tech innovation is changing the world.`,
       );
       expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
         expect.any(String),
-        expect.objectContaining({ prompt: expect.stringContaining('25000') }),
+        expect.objectContaining({
+          prompt: expect.stringContaining('25000'),
+          maxTokens: 12500,
+        }),
         organizationId,
       );
     });

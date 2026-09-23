@@ -1,6 +1,6 @@
-import { TargetExecutionState } from '@genfeedai/contracts';
+'use client';
 
-('use client');
+import { TargetExecutionState } from '@genfeedai/contracts';
 
 import { getPostLifecycleOptions } from '@genfeedai/helpers/content/posts.helper';
 import type { ModalCreateThreadSettingsProps } from '@genfeedai/props/modals/modal.props';

@@ -15,6 +15,11 @@ describe('createPost draft boundary', () => {
       ingredientsService: { findByIds: vi.fn() },
       loggerService: { error: vi.fn() },
       postsService: {
+        prisma: {
+          brand: {
+            findFirst: vi.fn().mockResolvedValue({ id: 'brand-selected' }),
+          },
+        },
         create: vi.fn().mockResolvedValue({ id: 'post-1' }),
         handleYoutubePost: vi.fn(),
       },
@@ -32,6 +37,26 @@ describe('createPost draft boundary', () => {
     label: '',
     targetExecutionState: TargetExecutionState.DRAFT,
   };
+  it('validates and uses the requested workspace brand over the last-used brand', async () => {
+    const { mocks, dependencies } = setup();
+    await createPost({
+      createPostDto: { ...draft, brandId: 'brand-selected' },
+      dependencies,
+      identity,
+    });
+    expect(mocks.postsService.prisma.brand.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'brand-selected',
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+      }),
+    );
+    expect(mocks.postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-selected' }),
+    );
+  });
   it('saves an account-free draft in the active brand', async () => {
     const { mocks, dependencies } = setup();
     await createPost({ createPostDto: draft, dependencies, identity });

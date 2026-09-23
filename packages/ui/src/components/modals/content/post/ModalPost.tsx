@@ -2,6 +2,7 @@ import {
   type PostModalSchema,
   postModalSchema,
 } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   ModalEnum,
   Platform,
@@ -42,6 +43,7 @@ export default function ModalPost({
   showViewDetailsButton = false,
   onViewDetails,
 }: ModalPostProps) {
+  const { brandId } = useBrand();
   const notificationsService = NotificationsService.getInstance();
 
   // Get browser timezone for consistent date display
@@ -154,6 +156,7 @@ export default function ModalPost({
       } else {
         const url = 'POST /publishing';
         const result = await postsService.post({
+          brandId: brandId || undefined,
           credentialId: formData.credentialId || undefined,
           description: formData.description.trim(),
           format: formData.format,
@@ -180,7 +183,14 @@ export default function ModalPost({
         return result;
       }
     },
-    [isEditMode, isThreadReply, notificationsService, credentials, post],
+    [
+      isEditMode,
+      isThreadReply,
+      notificationsService,
+      credentials,
+      post,
+      brandId,
+    ],
   );
 
   const shouldAutoOpen = Boolean(post || ingredient || credential);

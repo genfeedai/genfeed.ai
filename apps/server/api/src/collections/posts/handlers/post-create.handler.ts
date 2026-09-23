@@ -7,6 +7,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { assertPostBrandAccess } from '@api/collections/posts/services/post-draft-scope.util';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
 import {
@@ -20,6 +21,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { getSupportedPostVisibilities } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolveDefaultTargetExecutionState } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -77,6 +79,14 @@ export async function createPost({
   dependencies,
   identity,
 }: PostCreateParams): Promise<PostDocument> {
+  if (createPostDto.brandId) {
+    await assertPostBrandAccess(
+      dependencies.postsService.prisma,
+      createPostDto.brandId,
+      identity.organizationId,
+    );
+    identity = { ...identity, brandId: createPostDto.brandId };
+  }
   const requestedExecutionState = resolveDefaultTargetExecutionState({
     scheduledDate: createPostDto.scheduledDate,
     targetExecutionState: createPostDto.targetExecutionState,
@@ -113,6 +123,18 @@ export async function createPost({
   const domainPlatform = credential
     ? fromPrismaCredentialPlatform(String(credential.platform ?? ''))
     : createPostDto.platform;
+  if (!domainPlatform) {
+    throw new HttpException(
+      'Choose a channel for this draft',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+  if (!credential && !getChannelCapability(domainPlatform)) {
+    throw new HttpException(
+      'Select a supported publishing channel',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
   const textOnlyPlatforms = new Set([
     CredentialPlatform.THREADS,
     CredentialPlatform.TWITTER,

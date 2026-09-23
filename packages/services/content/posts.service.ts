@@ -90,6 +90,7 @@ export class PostsService extends BaseService<
     const response = await this.instance.post<PostDraftGenerationResult>(
       '/draft-generations',
       data,
+      { timeout: 120_000 },
     );
     return response.data;
   }
@@ -219,6 +220,7 @@ export class PostsService extends BaseService<
    */
   public async createThread(data: {
     posts: Array<{
+      brandId?: string;
       credentialId?: string;
       platform?: Platform;
       description: string;

@@ -65,6 +65,11 @@ export class CreatePostDto {
   readonly credentialId?: string;
 
   @IsOptional()
+  @IsEntityId()
+  @ApiProperty({ description: 'The selected workspace brand', required: false })
+  readonly brandId?: string;
+
+  @IsOptional()
   @IsEnum(Platform)
   @ApiProperty({ enum: Platform, enumName: 'Platform', required: false })
   readonly platform?: Platform;

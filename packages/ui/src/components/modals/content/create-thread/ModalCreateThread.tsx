@@ -2,6 +2,7 @@ import {
   type ThreadModalSchema,
   threadModalSchema,
 } from '@genfeedai/client/schemas';
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import {
   AlertCategory,
   ButtonVariant,
@@ -54,6 +55,7 @@ export default function ModalCreateThread({
   onConfirm,
   onClose,
 }: ModalCreateThreadProps) {
+  const { brandId } = useBrand();
   const translate = useTranslations('ui.createThread');
   const getPostsService = useAuthedService((token: string) =>
     PostsService.getInstance(token),
@@ -116,6 +118,7 @@ export default function ModalCreateThread({
 
       const sharedIngredients = data.ingredient ? [data.ingredient] : [];
       const threadPosts = data.posts.map((post, index) => ({
+        brandId: brandId || undefined,
         credentialId: data.credentialId || undefined,
         platform: selectedPlatform ?? Platform.TWITTER,
         description: post.description.trim(),

@@ -14,6 +14,7 @@ import {
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import {
   extractPostGenerationLabel,
+  isValidPostLength,
   parsePostGenerationContent,
 } from '@api/collections/posts/services/post-generation-text.util';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
@@ -39,6 +40,7 @@ import {
   SystemPromptKey,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import type {
   AccountPublishingContext,
   PostDraftGenerationInput,
@@ -660,11 +662,14 @@ export class PostGenerationService {
     dto: PostDraftGenerationInput,
     identity: GenerationMetadata,
   ): Promise<PostDraftGenerationResult> {
+    if (!getChannelCapability(dto.platform)) {
+      throw new BadRequestException('Select a supported publishing channel');
+    }
     if (!dto.prompt.trim()) {
       throw new BadRequestException('Describe what the post should be about');
     }
     const context = await this.accountPublishingContextService.resolveDraft({
-      brandId: identity.brandId,
+      brandId: dto.brandId,
       organizationId: identity.organizationId,
       platform: dto.platform,
     });
@@ -687,7 +692,10 @@ export class PostGenerationService {
       DEFAULT_MINI_TEXT_MODEL,
       {
         modelCategory: ModelCategory.TEXT,
-        maxTokens: TEXT_GENERATION_LIMITS.postEnhancement,
+        maxTokens: Math.max(
+          TEXT_GENERATION_LIMITS.postTweetGeneration,
+          Math.ceil(limit / 2),
+        ),
         prompt: [
           `Write one ${dto.platform} post, at most ${limit} characters.`,
           'Use the supplied brand context as reference data. Return only the finished post text, without explanations.',
@@ -700,16 +708,29 @@ export class PostGenerationService {
       },
       identity.organizationId,
     );
-    const description = (
-      await this.replicateService.generateTextCompletionSync(
-        DEFAULT_MINI_TEXT_MODEL,
-        input,
-      )
-    )?.trim();
-    if (!description) {
-      throw new BadRequestException('No draft was generated. Try again.');
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const description = (
+        await this.replicateService.generateTextCompletionSync(
+          DEFAULT_MINI_TEXT_MODEL,
+          input,
+        )
+      )?.trim();
+      if (!description) {
+        throw new BadRequestException('No draft was generated. Try again.');
+      }
+      if (
+        isValidPostLength(
+          description,
+          limit,
+          context.constraints.usesWeightedCharacters,
+        )
+      ) {
+        return { description };
+      }
     }
-    return { description };
+    throw new BadRequestException(
+      'The generated draft exceeds the channel limit. Try a shorter topic.',
+    );
   }
 
   async enhanceDescription(

@@ -6,7 +6,7 @@ function stripHtmlTags(html: string): string {
   return replaceMarkup(html, '');
 }
 
-function isValidPostLength(
+export function isValidPostLength(
   postHtml: string,
   maxLength: number,
   usesWeightedCharacters: boolean,

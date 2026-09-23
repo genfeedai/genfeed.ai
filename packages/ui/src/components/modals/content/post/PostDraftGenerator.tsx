@@ -1,3 +1,4 @@
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import type { PostDraftGeneratorProps } from '@genfeedai/props/modals/modal.props';
@@ -16,6 +17,7 @@ export default function PostDraftGenerator({
   isDisabled,
   onGenerate,
 }: PostDraftGeneratorProps) {
+  const { brandId } = useBrand();
   const translate = useTranslations('ui.postDraft');
   const [prompt, setPrompt] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -23,18 +25,20 @@ export default function PostDraftGenerator({
   const getService = useAuthedService(
     useCallback((token: string) => PostsService.getInstance(token), []),
   );
-  useEffect(
-    () => () => {
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a brand switch invalidates in-flight generation.
+  useEffect(() => {
+    setIsGenerating(false);
+    return () => {
       requestVersion.current += 1;
-    },
-    [],
-  );
+    };
+  }, [brandId]);
   const generate = async () => {
     const version = ++requestVersion.current;
     setIsGenerating(true);
     try {
       const service = await getService();
       const result = await service.generateDraftText({
+        brandId,
         prompt: prompt.trim(),
         platform,
         format,
@@ -62,7 +66,7 @@ export default function PostDraftGenerator({
         type="button"
         label={translate(isGenerating ? 'generating' : 'generate')}
         variant={ButtonVariant.SECONDARY}
-        isDisabled={isDisabled || isGenerating || !prompt.trim()}
+        isDisabled={isDisabled || isGenerating || !prompt.trim() || !brandId}
         onClick={generate}
       />
     </div>
