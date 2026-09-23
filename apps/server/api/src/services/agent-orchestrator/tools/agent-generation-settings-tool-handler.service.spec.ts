@@ -13,12 +13,10 @@ function setup() {
     set: vi.fn().mockResolvedValue({ isEnabled: false }),
   };
   const enhancement = {
-    enhance: vi
-      .fn()
-      .mockResolvedValue({
-        status: 'applied',
-        enhancedPrompt: 'Enhanced prompt',
-      }),
+    enhance: vi.fn().mockResolvedValue({
+      status: 'applied',
+      enhancedPrompt: 'Enhanced prompt',
+    }),
   };
   return {
     settings,
@@ -31,6 +29,50 @@ function setup() {
 }
 
 describe('AgentGenerationSettingsToolHandler', () => {
+  it('previews through the shared enhancer using only authenticated scope', async () => {
+    const { handler, enhancement } = setup();
+    expect(handler.handles('enhance_prompt')).toBe(true);
+    const result = await handler.execute(
+      'enhance_prompt',
+      {
+        prompt: 'A bicycle',
+        contentType: 'image',
+        harness: true,
+        organizationId: 'foreign',
+      },
+      ctx,
+    );
+    expect(enhancement.enhance).toHaveBeenCalledWith({
+      organizationId: 'trusted-org',
+      brandId: 'thread-brand',
+      prompt: 'A bicycle',
+      contentType: 'image',
+      harness: true,
+      model: undefined,
+    });
+    expect(result).toMatchObject({
+      success: true,
+      creditsUsed: 1,
+      data: {
+        prompt: 'Enhanced prompt',
+        generationHarness: { status: 'applied' },
+      },
+    });
+  });
+
+  it.each([
+    { prompt: '', contentType: 'image' },
+    { prompt: 'A bicycle', contentType: 'audio' },
+    { prompt: 'A bicycle', contentType: 'image', harness: 'false' },
+  ])(
+    'rejects invalid preview inputs without calling the enhancer',
+    async (params) => {
+      const { handler, enhancement } = setup();
+      await expect(handler.enhance(params, ctx)).rejects.toThrow();
+      expect(enhancement.enhance).not.toHaveBeenCalled();
+    },
+  );
+
   it('reads only in the authenticated tenant and uses thread brand context', async () => {
     const { handler, settings } = setup();
     expect(await handler.get({ organizationId: 'foreign' }, ctx)).toMatchObject(

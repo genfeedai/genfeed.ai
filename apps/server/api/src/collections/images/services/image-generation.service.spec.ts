@@ -384,9 +384,110 @@ beforeEach(() => {
 });
 
 describe('ImageGenerationService', () => {
-  it('returns the accepted source-action asset without dispatching the provider again', async () => {
-    const { imagesService, replicateService, service, sharedService } =
+  it('enhances once and persists the exact compiled provider prompt for every output', async () => {
+    const { service, enhancementService, replicateService, sharedService } =
       createService();
+    enhancementService.enhance.mockResolvedValue({
+      originalPrompt: 'A bicycle',
+      enhancedPrompt: 'A red bicycle at dusk',
+      brandId: RESOLVED_BRAND,
+      status: 'applied',
+      source: 'brand',
+      appliedPacks: [{ id: 'test-pack', version: '1' }],
+    });
+    await service.generateImage(
+      buildUser(),
+      baseDto({ text: 'A bicycle', outputs: 2 }),
+      buildRequest(),
+    );
+    expect(enhancementService.enhance).toHaveBeenCalledTimes(1);
+    expect(enhancementService.enhance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: ORG,
+        brandId: RESOLVED_BRAND,
+        prompt: 'A bicycle',
+        contentType: 'image',
+      }),
+    );
+    const providerPrompt =
+      replicateService.generateTextToImage.mock.calls[0][1].prompt;
+    expect(providerPrompt).toContain('A red bicycle at dusk');
+    expect(sharedService.createMediaDocuments.mock.calls).toHaveLength(2);
+    for (const [, document] of sharedService.createMediaDocuments.mock.calls) {
+      expect(document).toMatchObject({
+        generationPrompt: providerPrompt,
+        generationHarness: {
+          originalPrompt: 'A bicycle',
+          enhancedPrompt: providerPrompt,
+          status: 'applied',
+          appliedPacks: [{ id: 'test-pack', version: '1' }],
+        },
+      });
+    }
+  });
+
+  it('preserves caller bytes through compilation and provider dispatch when off', async () => {
+    const { service, replicateService, sharedService } = createService();
+    const prompt = '  Keep THIS sentence.\n';
+    await service.generateImage(
+      buildUser(),
+      baseDto({
+        text: prompt,
+        harness: false,
+        style: 'cinematic',
+        isBrandingEnabled: true,
+      }),
+      buildRequest(),
+    );
+    expect(replicateService.generateTextToImage.mock.calls[0][1].prompt).toBe(
+      prompt,
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        generationHarness: expect.objectContaining({
+          originalPrompt: prompt,
+          enhancedPrompt: prompt,
+          status: 'skipped',
+          appliedPacks: [],
+        }),
+      }),
+    );
+  });
+
+  it('does not create or dispatch media after enhancement failure', async () => {
+    const { service, enhancementService, replicateService, sharedService } =
+      createService();
+    enhancementService.enhance.mockRejectedValue(
+      new Error('Enhancement unavailable'),
+    );
+    await expect(
+      service.generateImage(buildUser(), baseDto(), buildRequest()),
+    ).rejects.toThrow('Enhancement unavailable');
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
+  it('rejects selected context in raw mode instead of silently changing the prompt', async () => {
+    const { service, replicateService } = createService();
+    await expect(
+      service.generateImage(
+        buildUser(),
+        baseDto({ harness: false, text: 'Raw prompt plus context' }),
+        buildRequest({ generationOriginalPrompt: 'Raw prompt' }),
+      ),
+    ).rejects.toThrow('Remove selected context');
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
+  it('returns the accepted source-action asset without dispatching the provider again', async () => {
+    const {
+      imagesService,
+      replicateService,
+      service,
+      sharedService,
+      enhancementService,
+    } = createService();
     imagesService.findOne.mockResolvedValue({
       id: 'ing-accepted',
       metadata: { externalId: 'provider-job-1' },
@@ -404,6 +505,7 @@ describe('ImageGenerationService', () => {
     );
 
     expect(response).toMatchObject({ data: { id: 'ing-accepted' } });
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
     expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
   });

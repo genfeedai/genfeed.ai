@@ -172,7 +172,7 @@ export class AgentMediaAssetGenerationService {
       response = toMediaResponseRecord(
         await this.generationGateway.generateImage({
           body,
-          originalPrompt: rawPrompt,
+          ...(prompt !== rawPrompt ? { originalPrompt: rawPrompt } : {}),
           principal: this.toPrincipal(ctx),
         }),
       );
@@ -487,7 +487,7 @@ export class AgentMediaAssetGenerationService {
       response = toMediaResponseRecord(
         await this.generationGateway.generateVideo({
           body,
-          originalPrompt: rawPrompt,
+          ...(prompt !== rawPrompt ? { originalPrompt: rawPrompt } : {}),
           principal: this.toPrincipal(ctx),
         }),
       );
