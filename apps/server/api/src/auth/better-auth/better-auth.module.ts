@@ -1,3 +1,4 @@
+import { SystemEventSignupListener } from '@api/auth/better-auth/listeners/system-event-signup.listener';
 import { BrandsModule } from '@api/collections/brands/brands.module';
 import { MembersModule } from '@api/collections/members/members.module';
 import { OrganizationsModule } from '@api/collections/organizations/organizations.module';
@@ -8,6 +9,7 @@ import { CacheModule } from '@api/services/cache/cache.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
 import { NotificationsModule } from '@api/services/notifications/notifications.module';
 import { SignupPrefillModule } from '@api/services/signup-prefill/signup-prefill.module';
+import { SystemEventsModule } from '@api/services/system-events/system-events.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { isBetterAuthEnabled } from '@genfeedai/auth-client/server';
 import { ConfigService } from '@libs/config/config.service';
@@ -46,6 +48,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
 @Module({
   exports: [BetterAuthService, BetterAuthStrategy, PassportModule],
   imports: [
+    SystemEventsModule,
     PassportModule,
     UsersModule,
     OrganizationsModule,
@@ -65,6 +68,7 @@ import { RateLimitClientService } from './services/rate-limit-client.service';
     BetterAuthService,
     RateLimitClientService,
     UserProvisioningListener,
+    SystemEventSignupListener,
     {
       inject: [
         PrismaService,

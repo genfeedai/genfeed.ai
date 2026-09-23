@@ -11,6 +11,7 @@ import type {
   IUserCreatedPayload,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
+import type { SystemEvent } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   buildIoRedisClientOptions,
@@ -242,6 +243,75 @@ export class NotificationsService implements OnModuleInit, OnModuleDestroy {
   }
 
   /** Request-time provider acceptance for durable and authentication email. */
+  async systemNotificationStatus(): Promise<{
+    webhookConfigured: boolean;
+    transportConfigured: boolean;
+  }> {
+    const result = await this.requestSystemNotifications();
+    if (
+      !result ||
+      typeof result !== 'object' ||
+      !('webhookConfigured' in result) ||
+      typeof result.webhookConfigured !== 'boolean'
+    )
+      throw new Error('Invalid notifications status');
+    return {
+      webhookConfigured: result.webhookConfigured,
+      transportConfigured: true,
+    };
+  }
+
+  async deliverSystemNotification(event: SystemEvent): Promise<void> {
+    const result = await this.requestSystemNotifications(event);
+    if (
+      !result ||
+      typeof result !== 'object' ||
+      !('delivered' in result) ||
+      result.delivered !== true
+    )
+      throw new Error('Notification delivery was not acknowledged');
+  }
+
+  private async requestSystemNotifications(
+    event?: SystemEvent,
+  ): Promise<unknown> {
+    const endpoint = this.configService
+      .get('GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL')
+      ?.trim();
+    const key = this.configService.get('GENFEEDAI_API_KEY')?.trim();
+    if (!endpoint || !key)
+      throw new Error('Notifications service is not configured');
+    try {
+      const base = new URL(endpoint.endsWith('/') ? endpoint : `${endpoint}/`);
+      if (!['http:', 'https:'].includes(base.protocol))
+        throw new Error('Invalid service URL');
+      const response = await safeFetch(
+        new URL('v1/internal/system-notifications', base),
+        {
+          method: event ? 'POST' : 'GET',
+          headers: {
+            Authorization: `Bearer ${key}`,
+            'Content-Type': 'application/json',
+          },
+          ...(event ? { body: JSON.stringify(event) } : {}),
+          signal: AbortSignal.timeout(15_000),
+        },
+        {
+          allowedOrigins: [base.origin],
+          allowPrivateNetwork: true,
+          maxRedirects: 0,
+        },
+      );
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error('Notifications service rejected delivery');
+      }
+      return await response.json();
+    } catch {
+      throw new Error('Notifications service request failed');
+    }
+  }
+
   async deliverEmail(payload: IEmailDeliveryRequest): Promise<string> {
     let explicitRetryability: boolean | undefined;
     let statusCode: number | undefined;

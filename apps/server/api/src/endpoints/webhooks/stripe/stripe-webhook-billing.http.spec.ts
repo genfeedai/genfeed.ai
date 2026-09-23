@@ -15,6 +15,7 @@ import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-ex
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { SUBSCRIPTIONS_SERVICE } from '@genfeedai/contracts/interfaces/billing';
 import { ConfigService } from '@libs/config/config.service';
@@ -96,6 +97,10 @@ describe('Stripe billing HTTP composition', () => {
     const module = await Test.createTestingModule({
       controllers: [StripeWebhookController],
       providers: [
+        {
+          provide: SystemEventsService,
+          useValue: { recordStripeEvent: vi.fn().mockResolvedValue(undefined) },
+        },
         StripeWebhookService,
         StripeSubscriptionWebhookHandler,
         StripeInvoiceWebhookHandler,
