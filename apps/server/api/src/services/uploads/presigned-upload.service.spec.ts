@@ -162,6 +162,7 @@ describe('PresignedUploadService', () => {
         id: mockIngredientId.toString(),
         publicUrl: `https://cdn.example.com/images/${mockIngredientId}`,
         s3Key: `ingredients/images/${mockIngredientId}`,
+        uploadMethod: 'PUT',
         uploadUrl: 'https://s3.amazonaws.com/bucket/upload?signature=abc',
       });
 

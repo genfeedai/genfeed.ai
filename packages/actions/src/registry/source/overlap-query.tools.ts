@@ -117,6 +117,68 @@ export const OVERLAP_QUERY_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
+      'Get one post by id. Returns the same item shape as list_posts: channel target, execution state, media, and timestamps.',
+    name: 'get_post',
+    parameters: {
+      properties: {
+        postId: {
+          description: 'Post id returned by list_posts or a scheduling tool.',
+          type: 'string',
+        },
+      },
+      required: ['postId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Reserve a pending asset and return a presigned upload URL, assetId, and constraints. PUT the file bytes to uploadUrl with the signed Content-Type, then call complete_media_upload. Does not publish or attach the file.',
+    name: 'request_media_upload',
+    parameters: {
+      properties: {
+        category: {
+          default: 'image',
+          description: 'Media category for the pending asset.',
+          enum: ['image', 'video', 'audio', 'music'],
+          type: 'string',
+        },
+        contentType: {
+          description:
+            'MIME type signed into the upload URL. The PUT Content-Type must match it.',
+          type: 'string',
+        },
+        filename: {
+          description: 'Original filename, including the extension.',
+          type: 'string',
+        },
+      },
+      required: ['filename', 'contentType'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
+      'Finalize a presigned media upload. Returns assetId and, when available, the hosted URL. Pass assetId as create_scheduled_release media[].assetId or as create_post contentId / ingredientId. Pass the hosted URL as create_post mediaUrls.',
+    name: 'complete_media_upload',
+    parameters: {
+      properties: {
+        assetId: {
+          description: 'assetId returned by request_media_upload.',
+          type: 'string',
+        },
+      },
+      required: ['assetId'],
+      type: 'object',
+    },
+    requiredRole: 'user',
+  },
+  {
+    creditCost: 0,
+    description:
       'List all workflows in your organization with optional status filtering.',
     name: 'list_workflows',
     parameters: {

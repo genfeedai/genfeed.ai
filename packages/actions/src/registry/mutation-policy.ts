@@ -46,6 +46,7 @@ const READ_ONLY_NAMES = new Set<string>([
   'analyze_performance',
   'read_knowledge_source',
   'open_studio_handoff',
+  'request_media_upload',
   'resolve_approval',
   'resolve_handle',
 ]);
@@ -67,6 +68,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   batch_approve_reject: 'direct',
   capture_knowledge: 'direct',
   capture_memory: 'direct',
+  complete_media_upload: 'direct',
   complete_onboarding: 'direct',
   complete_outreach_sequence: 'direct',
   connect_social_account: 'direct',

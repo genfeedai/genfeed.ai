@@ -42,7 +42,16 @@ const DESTRUCTIVE_HINT_NAMES: ReadonlySet<string> = new Set([
 const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
   'get_account_info',
   'list_brands',
+  'request_media_upload',
   'validate_scheduler_target',
+]);
+
+/**
+ * Writes that do not delete or overwrite existing data. The default is
+ * `destructiveHint = !readOnlyHint`; this set is the per-tool override.
+ */
+const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
+  'complete_media_upload',
 ]);
 
 const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(
@@ -94,6 +103,10 @@ export function deriveMcpToolPresentation(
   }
   if (READ_ONLY_HINT_NAMES.has(name)) {
     readOnlyHint = true;
+    destructiveHint = false;
+  }
+  if (NON_DESTRUCTIVE_WRITE_NAMES.has(name)) {
+    readOnlyHint = false;
     destructiveHint = false;
   }
 

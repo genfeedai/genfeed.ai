@@ -30,6 +30,24 @@ describe('MCP toolset profiles', () => {
     expect(isMcpToolsetProfileName('not-a-profile')).toBe(false);
   });
 
+  it('keeps media upload and get_post on content inside the bare-URL profile', () => {
+    const names = new Set(
+      getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS).map(
+        (tool) => tool.name,
+      ),
+    );
+    for (const name of [
+      'complete_media_upload',
+      'get_post',
+      'request_media_upload',
+    ]) {
+      expect(names.has(name), name).toBe(true);
+      expect(
+        getToolsForToolsets('mcp', ['core']).some((tool) => tool.name === name),
+      ).toBe(false);
+    }
+  });
+
   it('keeps the bare-URL profile within the 30-tool cap', () => {
     const tools = getToolsForToolsets('mcp', DEFAULT_MCP_PROFILE_TOOLSETS);
 

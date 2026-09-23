@@ -121,6 +121,33 @@ describe('MCP tool annotations', () => {
     }
   });
 
+  it('keeps media upload and get_post hints off the global write default', () => {
+    expect(getToolByName('request_media_upload')?.annotations).toMatchObject({
+      destructiveHint: false,
+      readOnlyHint: true,
+    });
+    expect(getToolByName('get_post')?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: true,
+      readOnlyHint: true,
+    });
+    expect(getToolByName('complete_media_upload')?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(getToolByName('complete_media_upload')?.mutationPolicy).toBe(
+      'direct',
+    );
+    expect(
+      getToolByName('request_media_upload')?.mutationPolicy,
+    ).toBeUndefined();
+    expect(getToolByName('get_post')?.toolset).toBe('content');
+    expect(getToolByName('request_media_upload')?.toolset).toBe('content');
+    expect(getToolByName('complete_media_upload')?.toolset).toBe('content');
+  });
+
   it('derives a title from the tool name', () => {
     expect(getToolByName('get_account_info')?.title).toBe('Get Account Info');
     expect(getToolByName('create_post')?.title).toBe('Create Post');

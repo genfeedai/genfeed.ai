@@ -9,6 +9,7 @@ function createHandler(): AgentWorkspaceToolHandler {
     {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[1],
     {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
     {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
+    {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[4],
   );
 }
 

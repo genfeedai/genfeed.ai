@@ -205,7 +205,7 @@ describe('tool registry catalog validation', () => {
   it('rejects a default MCP profile that exceeds the bare-URL cap', async () => {
     vi.doMock('./toolsets', () => ({
       CORE_TOOLSET_NAME: 'core',
-      getToolsForToolsets: () => Array.from({ length: 31 }, () => ({})),
+      getToolsForToolsets: () => Array.from({ length: 32 }, () => ({})),
       isToolsetName: () => true,
       TOOLSETS: [{ description: 'core', isAlwaysOn: true, name: 'core' }],
     }));
@@ -226,7 +226,7 @@ describe('tool registry catalog validation', () => {
     vi.resetModules();
 
     await expect(import('./tool-registry')).rejects.toThrow(
-      /default MCP profile exceeds the 30-tool bare-URL cap: has 31/,
+      /default MCP profile exceeds the 31-tool bare-URL cap: has 32/,
     );
   });
 });

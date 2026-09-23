@@ -92,6 +92,7 @@ export function inferCategory(name: string): ToolCategory {
     name.includes('post') ||
     name.includes('article') ||
     name.includes('content') ||
+    name.includes('media_upload') ||
     name.includes('release') ||
     name.includes('schedul')
   )

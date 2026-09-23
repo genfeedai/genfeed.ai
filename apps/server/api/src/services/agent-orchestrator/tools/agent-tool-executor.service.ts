@@ -165,6 +165,9 @@ const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'list_genfeed_tools',
   'list_outlier_posts',
   'list_posts',
+  'get_post',
+  'request_media_upload',
+  'complete_media_upload',
   'list_review_queue',
   'list_system_workflow_catalog',
   'list_workflow_runs',
@@ -516,6 +519,15 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'list_posts':
         return this.workspaceHandler.listPosts(params, ctx);
+
+      case 'get_post':
+        return this.workspaceHandler.getPost(params, ctx);
+
+      case 'request_media_upload':
+        return this.workspaceHandler.requestMediaUpload(params, ctx);
+
+      case 'complete_media_upload':
+        return this.workspaceHandler.completeMediaUpload(params, ctx);
 
       case 'create_post':
         return this.publishHandler.createPost(params, ctx);
