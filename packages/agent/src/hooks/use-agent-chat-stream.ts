@@ -9,6 +9,7 @@ import { restoreThreadFromSnapshot as restoreThreadFromSnapshotFn } from '@genfe
 import { getAgentStreamRuntime } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { attachAgentStreamSubscriptions } from '@genfeedai/agent/hooks/agent-chat-stream.subscriptions';
 import type {
+  AgentRunHandoff,
   PendingStreamCompletion,
   SendStreamMessageOptions,
   UseAgentChatStreamOptions,
@@ -336,15 +337,13 @@ export function useAgentChatStream(
         cleanupSubscriptions,
         clearCompletionWatchdog,
         clearPendingInputRequest,
-        clearPendingCompletion: (threadId) => {
-          if (
-            streamRuntime.pendingCompletionRef.current?.threadId === threadId
-          ) {
+        clearPendingCompletion: (current) => {
+          if (streamRuntime.pendingCompletionRef.current === current) {
             streamRuntime.pendingCompletionRef.current = null;
           }
         },
-        isCurrentPendingThread: (threadId) =>
-          streamRuntime.pendingCompletionRef.current?.threadId === threadId,
+        isCurrentPending: (current) =>
+          streamRuntime.pendingCompletionRef.current === current,
         isThreadVisible,
         resetStreamState,
         scheduleCompletionWatchdog,
@@ -484,6 +483,7 @@ export function useAgentChatStream(
       return;
     }
 
+    streamRuntime.ownerGeneration += 1;
     streamRuntime.activeStreamThreadRef.current = activeThreadId;
     streamRuntime.activeStreamRunIdRef.current = state.activeRunId;
     streamRuntime.isAwaitingRunIdRef.current = false;
@@ -559,8 +559,8 @@ export function useAgentChatStream(
       cleanupSubscriptions();
       // Hold every event until acceptance names this turn's run.
       streamRuntime.isAwaitingRunIdRef.current = true;
-      streamRuntime.sendGeneration += 1;
-      const sendGeneration = streamRuntime.sendGeneration;
+      streamRuntime.ownerGeneration += 1;
+      const sendGeneration = streamRuntime.ownerGeneration;
 
       if (currentActiveThreadId) {
         updateThreadSummary(currentActiveThreadId, {
@@ -618,6 +618,12 @@ export function useAgentChatStream(
 
         const acceptedAt = response.queuedAt;
 
+        // A handoff or adoption on another thread took the stream while this
+        // send waited; its late acknowledgement must not reclaim it.
+        if (streamRuntime.ownerGeneration !== sendGeneration) {
+          return;
+        }
+
         streamRuntime.activeStreamThreadRef.current = response.threadId;
         streamRuntime.activeStreamRunIdRef.current = response.executionId;
         streamRuntime.isAwaitingRunIdRef.current = false;
@@ -657,7 +663,7 @@ export function useAgentChatStream(
           // Nothing will name this turn's run, so stop holding events for it —
           // unless a newer send already owns the runtime.
           if (
-            streamRuntime.sendGeneration === sendGeneration &&
+            streamRuntime.ownerGeneration === sendGeneration &&
             streamRuntime.isAwaitingRunIdRef.current
           ) {
             streamRuntime.pendingCompletionRef.current = null;
@@ -716,19 +722,37 @@ export function useAgentChatStream(
   // events from the moment the answer is posted, then pin the stream to the
   // execution the server names so its events are not dropped as foreign.
   const beginRunHandoff = useCallback(
-    (threadId: string) => {
+    (threadId: string): AgentRunHandoff => {
+      streamRuntime.ownerGeneration += 1;
+      const handoff: AgentRunHandoff = {
+        generation: streamRuntime.ownerGeneration,
+        previousPending: streamRuntime.pendingCompletionRef.current,
+        threadId,
+      };
+      // The asking run's watchdog must not recover (and so complete) the
+      // thread while its continuation is being handed over.
+      streamRuntime.pendingCompletionRef.current = null;
+      clearCompletionWatchdog();
       streamRuntime.activeStreamThreadRef.current = threadId;
       streamRuntime.isAwaitingRunIdRef.current = true;
       if (streamRuntime.unsubscribersRef.current.length === 0) {
         attachSubscriptions();
       }
+      return handoff;
     },
-    [attachSubscriptions],
+    [attachSubscriptions, clearCompletionWatchdog],
   );
 
   const adoptRun = useCallback(
-    (threadId: string, runId: string, startedAt: string | null) => {
+    (handoff: AgentRunHandoff, runId: string, startedAt: string | null) => {
+      // A later send, handoff, or adoption owns the stream now.
+      if (streamRuntime.ownerGeneration !== handoff.generation) {
+        return;
+      }
+
+      const { threadId } = handoff;
       if (!isThreadVisible(threadId)) {
+        clearCompletionWatchdog();
         cleanupSubscriptions();
         return;
       }
@@ -760,6 +784,7 @@ export function useAgentChatStream(
     [
       attachSubscriptions,
       cleanupSubscriptions,
+      clearCompletionWatchdog,
       flushBufferedEvents,
       isThreadVisible,
       markStreamLive,
@@ -770,11 +795,22 @@ export function useAgentChatStream(
   );
 
   const cancelRunHandoff = useCallback(
-    (threadId: string) => {
+    (handoff: AgentRunHandoff) => {
+      if (streamRuntime.ownerGeneration !== handoff.generation) {
+        return;
+      }
+
       streamRuntime.isAwaitingRunIdRef.current = false;
-      flushBufferedEvents(threadId);
+      if (
+        handoff.previousPending &&
+        !streamRuntime.pendingCompletionRef.current
+      ) {
+        streamRuntime.pendingCompletionRef.current = handoff.previousPending;
+        scheduleCompletionWatchdog();
+      }
+      flushBufferedEvents(handoff.threadId);
     },
-    [flushBufferedEvents],
+    [flushBufferedEvents, scheduleCompletionWatchdog],
   );
 
   const clearChat = useCallback(() => {

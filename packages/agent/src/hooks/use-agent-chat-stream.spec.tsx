@@ -649,8 +649,10 @@ describe('useAgentChatStream', () => {
       }),
     );
 
+    let handoff: ReturnType<typeof result.current.beginRunHandoff> | null =
+      null;
     act(() => {
-      result.current.beginRunHandoff('thread-1');
+      handoff = result.current.beginRunHandoff('thread-1');
     });
 
     act(() => {
@@ -666,11 +668,13 @@ describe('useAgentChatStream', () => {
     expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
 
     act(() => {
-      result.current.adoptRun(
-        'thread-1',
-        'run-answer',
-        '2026-09-23T15:10:00.000Z',
-      );
+      if (handoff) {
+        result.current.adoptRun(
+          handoff,
+          'run-answer',
+          '2026-09-23T15:10:00.000Z',
+        );
+      }
     });
 
     const state = useAgentChatStore.getState();
@@ -683,6 +687,59 @@ describe('useAgentChatStream', () => {
         'continuing',
       ),
     );
+  });
+
+  it('ignores a handoff acknowledgement after another thread took the stream', async () => {
+    const streamRuntime = getAgentStreamRuntime();
+    useAgentChatStore.setState({
+      activeRunId: 'run-ask',
+      activeRunStatus: 'awaiting_input',
+      activeThreadId: 'thread-a',
+    });
+
+    const { result } = renderHook(() =>
+      useAgentChatStream({
+        apiService: createApiService({
+          chatStream: vi.fn(async () => ({
+            brandId: null,
+            contextVersion: 1,
+            executionId: 'run-b',
+            queuedAt: '2026-09-23T15:11:00.000Z',
+            threadId: 'thread-b',
+          })),
+        }),
+      }),
+    );
+
+    let handoff: ReturnType<typeof result.current.beginRunHandoff> | null =
+      null;
+    act(() => {
+      handoff = result.current.beginRunHandoff('thread-a');
+    });
+
+    // The user moves to thread B and sends before A's answer is acknowledged.
+    act(() => {
+      useAgentChatStore.setState({ activeThreadId: 'thread-b' });
+    });
+    await act(async () => {
+      await result.current.sendMessage('Plan next week');
+    });
+    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-b');
+    const liveSubscriptionCount = streamRuntime.unsubscribersRef.current.length;
+
+    act(() => {
+      if (handoff) {
+        result.current.adoptRun(handoff, 'run-answer', null);
+        result.current.cancelRunHandoff(handoff);
+      }
+    });
+
+    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-b');
+    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-b');
+    expect(streamRuntime.unsubscribersRef.current).toHaveLength(
+      liveSubscriptionCount,
+    );
+    expect(useAgentChatStore.getState().activeRunId).toBe('run-b');
   });
 
   it('keeps one stream owner when the hook is mounted twice (layout + page)', async () => {

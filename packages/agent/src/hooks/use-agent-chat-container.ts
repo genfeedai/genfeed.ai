@@ -2,6 +2,7 @@ import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInpu
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
+import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
 import { useAgentModePersistence } from '@genfeedai/agent/hooks/use-agent-mode-persistence';
@@ -626,6 +627,7 @@ export function useAgentChatContainer({
       }
 
       const submissionSequence = ++inputSubmissionSequenceRef.current;
+      let handoff: AgentRunHandoff | null = null;
       setIsSubmittingInputRequest(true);
       setError(null);
       clearPendingInputRequest();
@@ -642,9 +644,7 @@ export function useAgentChatContainer({
           status: AgentWorkEventStatus.COMPLETED,
           threadId: request.threadId,
         } satisfies AgentWorkEvent);
-        if (isStreaming) {
-          beginRunHandoff(request.threadId);
-        }
+        handoff = isStreaming ? beginRunHandoff(request.threadId) : null;
         const response = await apiService.respondToInputRequest(
           request.threadId,
           request.inputRequestId,
@@ -658,20 +658,16 @@ export function useAgentChatContainer({
             };
           })(),
         );
-        if (isStreaming) {
+        if (handoff) {
           if (response?.executionId) {
-            adoptRun(
-              request.threadId,
-              response.executionId,
-              response.queuedAt ?? null,
-            );
+            adoptRun(handoff, response.executionId, response.queuedAt ?? null);
           } else {
-            cancelRunHandoff(request.threadId);
+            cancelRunHandoff(handoff);
           }
         }
       } catch {
-        if (isStreaming) {
-          cancelRunHandoff(request.threadId);
+        if (handoff) {
+          cancelRunHandoff(handoff);
         }
         const currentState = useAgentChatStore.getState();
         if (

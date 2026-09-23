@@ -35,13 +35,24 @@ export interface SendStreamMessageOptions {
   agentMode?: AgentThreadMode;
 }
 
+/** Ownership token for handing a thread's stream to a continuing execution. */
+export interface AgentRunHandoff {
+  generation: number;
+  previousPending: PendingStreamCompletion | null;
+  threadId: string;
+}
+
 export interface UseAgentChatStreamReturn {
-  /** Pin the stream to an execution the server started for this thread. */
-  adoptRun: (threadId: string, runId: string, startedAt: string | null) => void;
+  /** Pin the stream to the execution that continues a handoff. */
+  adoptRun: (
+    handoff: AgentRunHandoff,
+    runId: string,
+    startedAt: string | null,
+  ) => void;
   /** Hold the thread's events until `adoptRun` names the next execution. */
-  beginRunHandoff: (threadId: string) => void;
+  beginRunHandoff: (threadId: string) => AgentRunHandoff;
   /** Release a handoff that produced no execution. */
-  cancelRunHandoff: (threadId: string) => void;
+  cancelRunHandoff: (handoff: AgentRunHandoff) => void;
   sendMessage: (
     content: string,
     options?: SendStreamMessageOptions,
@@ -80,8 +91,12 @@ export interface AgentStreamRuntime {
   isAwaitingRunIdRef: MutableRefObject<boolean>;
   /** Live hook instances; shared subscriptions are torn down only at zero. */
   mountCount: number;
-  /** Incremented per send so an aborted older send never tears down a newer one. */
-  sendGeneration: number;
+  /**
+   * Incremented whenever a send, input handoff, or run adoption takes the
+   * stream, so a stale acknowledgement or aborted request never tears down
+   * the owner that replaced it.
+   */
+  ownerGeneration: number;
   pendingCompletionRef: MutableRefObject<PendingStreamCompletion | null>;
   unsubscribersRef: MutableRefObject<Array<() => void>>;
 }

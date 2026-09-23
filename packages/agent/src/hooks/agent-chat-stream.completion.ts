@@ -15,8 +15,13 @@ export type ResolveStreamFromMessagesDeps = {
   cleanupSubscriptions: () => void;
   clearCompletionWatchdog: () => void;
   clearPendingInputRequest: () => void;
-  clearPendingCompletion: (threadId: string) => void;
-  isCurrentPendingThread: (threadId: string) => boolean;
+  clearPendingCompletion: (pending: PendingStreamCompletion) => void;
+  /**
+   * Whether `pending` is still the completion the stream tracks. A newer send,
+   * handoff, or adoption replaces it, and a recovery started for the old one
+   * must not complete or tear down the run that replaced it.
+   */
+  isCurrentPending: (pending: PendingStreamCompletion) => boolean;
   isThreadVisible: (threadId: string) => boolean;
   resetStreamState: () => void;
   scheduleCompletionWatchdog: () => void;
@@ -51,6 +56,9 @@ export async function resolveStreamFromMessages(
     const messages = await deps.apiService.getMessages(pending.threadId, {
       limit: 100,
     });
+    if (!deps.isCurrentPending(pending)) {
+      return;
+    }
 
     const recoveredAssistantMessage = findRecoveredAssistantMessage(
       messages,
@@ -67,6 +75,9 @@ export async function resolveStreamFromMessages(
       const persistedExecution = pending.runId
         ? await deps.apiService.getWorkflowExecution(pending.runId)
         : null;
+      if (!deps.isCurrentPending(pending)) {
+        return;
+      }
       if (
         persistedExecution?.status === WorkflowExecutionStatus.PENDING ||
         persistedExecution?.status === WorkflowExecutionStatus.RUNNING
@@ -113,6 +124,9 @@ export async function resolveStreamFromMessages(
       });
     }
   } catch (error) {
+    if (!deps.isCurrentPending(pending)) {
+      return;
+    }
     if (!hasExceededGracePeriod) {
       deps.scheduleCompletionWatchdog();
       return;
@@ -140,11 +154,11 @@ export async function resolveStreamFromMessages(
     }
   } finally {
     if (
-      deps.isCurrentPendingThread(pending.threadId) &&
+      deps.isCurrentPending(pending) &&
       hasExceededGracePeriod &&
       !shouldKeepWaiting
     ) {
-      deps.clearPendingCompletion(pending.threadId);
+      deps.clearPendingCompletion(pending);
       deps.clearCompletionWatchdog();
       deps.cleanupSubscriptions();
     }

@@ -23,7 +23,11 @@ vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
 const sendNonStreaming = vi.fn();
 const sendStreaming = vi.fn();
 const adoptRun = vi.fn();
-const beginRunHandoff = vi.fn();
+const beginRunHandoff = vi.fn((threadId: string) => ({
+  generation: 1,
+  previousPending: null,
+  threadId,
+}));
 const cancelRunHandoff = vi.fn();
 let isStreamingHookActive = false;
 const scrollIntoViewMock = vi.fn();
@@ -482,7 +486,7 @@ describe('AgentChatContainer', () => {
     sendNonStreaming.mockReset();
     sendStreaming.mockReset();
     adoptRun.mockReset();
-    beginRunHandoff.mockReset();
+    beginRunHandoff.mockClear();
     cancelRunHandoff.mockReset();
     storeState.addMessage.mockReset();
     storeState.addWorkEvent.mockReset();
@@ -702,7 +706,9 @@ describe('AgentChatContainer', () => {
     );
     expect(storeState.clearPendingInputRequest).toHaveBeenCalledTimes(1);
     expect(beginRunHandoff).toHaveBeenCalledWith('thread-1');
-    expect(cancelRunHandoff).toHaveBeenCalledWith('thread-1');
+    expect(cancelRunHandoff).toHaveBeenCalledWith(
+      expect.objectContaining({ threadId: 'thread-1' }),
+    );
     expect(adoptRun).not.toHaveBeenCalled();
   });
 
@@ -736,7 +742,7 @@ describe('AgentChatContainer', () => {
 
     await waitFor(() => {
       expect(adoptRun).toHaveBeenCalledWith(
-        'thread-1',
+        expect.objectContaining({ threadId: 'thread-1' }),
         'run-answer',
         '2026-09-23T15:10:00.000Z',
       );
