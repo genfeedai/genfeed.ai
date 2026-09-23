@@ -48,12 +48,13 @@ describe('RssService', () => {
         {
           provide: ConfigService,
           useValue: {
+            apiUrl: 'https://api.public.genfeed.ai',
             get: vi.fn((key: string) => {
               if (key === 'GENFEEDAI_APP_URL') {
                 return 'https://genfeed.ai';
               }
               if (key === 'GENFEEDAI_API_URL') {
-                return 'https://api.genfeed.ai';
+                return 'http://api.genfeed.internal:3010';
               }
               return undefined;
             }),
@@ -84,6 +85,9 @@ describe('RssService', () => {
       expect(feed).toContain('Genfeed Articles');
       expect(feed).toContain('Test Article 1');
       expect(feed).toContain('Test Article 2');
+      expect(feed).toContain(
+        '<atom:link href="https://api.public.genfeed.ai/rss/articles"',
+      );
     });
 
     it('should query for public published articles', async () => {

@@ -253,10 +253,15 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
 
   /**
    * Public base URL of the API service (used to build webhook URLs).
-   * Falls back to the production host when unset.
+   * Hosted deployments keep GENFEEDAI_API_URL private for service discovery,
+   * while self-hosted deployments may continue to use it as the public origin.
    */
   public get apiUrl(): string {
-    return this.envConfig.GENFEEDAI_API_URL ?? 'https://api.genfeed.ai';
+    return (
+      this.envConfig.GENFEEDAI_API_PUBLIC_URL ??
+      this.envConfig.GENFEEDAI_API_URL ??
+      'https://api.genfeed.ai'
+    ).replace(/\/+$/, '');
   }
 
   /**

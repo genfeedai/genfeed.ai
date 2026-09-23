@@ -83,6 +83,7 @@ function fixture() {
   const eligibility = { shouldSend: vi.fn().mockResolvedValue(true) };
   const secret = `whsec_${Buffer.from('test-secret-only').toString('base64')}`;
   const config = {
+    apiUrl: 'https://api.public.example.test',
     get: vi.fn(
       (key: string) =>
         (

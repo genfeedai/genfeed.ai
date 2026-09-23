@@ -66,9 +66,7 @@ export class EmailPerformanceService {
       this.appUrl(),
     );
     const token = randomBytes(32).toString('base64url');
-    const apiUrl =
-      this.config.get('GENFEEDAI_API_URL') ?? 'https://api.genfeed.ai/v1';
-    const apiBase = apiUrl.replace(/\/$/, '');
+    const apiBase = this.config.apiUrl;
     const trackingUrl = `${apiBase.endsWith('/v1') ? apiBase : `${apiBase}/v1`}/email-performance/click/${token}`;
     const html = input.html.replaceAll(
       '{{emailActionUrl}}',

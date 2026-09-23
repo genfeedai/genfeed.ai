@@ -356,9 +356,7 @@ export class BrandOsExportService {
   }
 
   private apiBase(): string {
-    const base = (
-      this.config.get('GENFEEDAI_API_URL') ?? 'https://api.genfeed.ai'
-    ).replace(/\/$/, '');
+    const base = this.config.apiUrl;
     return base.endsWith('/v1') ? base : `${base}/v1`;
   }
   private async lockBrand(
