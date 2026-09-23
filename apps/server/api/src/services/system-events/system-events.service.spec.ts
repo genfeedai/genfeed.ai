@@ -16,10 +16,10 @@ const payload = JSON.stringify({
   occurredAt: '2026-09-23T12:00:00Z',
   data: { objectId: 'u1' },
 });
-function setup(enabled = true) {
+function setup(enabled = true, enabledAt = '2026-09-23T00:00:00Z') {
   const values: Record<string, string> = enabled
     ? {
-        SYSTEM_EVENTS_ENABLED_AT: '2026-09-23T00:00:00Z',
+        SYSTEM_EVENTS_ENABLED_AT: enabledAt,
       }
     : {};
   const prisma = {
@@ -55,6 +55,23 @@ describe('system event outbox', () => {
     await service.recordSignup('u1');
     expect(prisma.$queryRaw).not.toHaveBeenCalled();
     expect(prisma.user.findFirst).not.toHaveBeenCalled();
+  });
+  it('disables recording and recovery when the enablement timestamp is invalid', async () => {
+    const { service, prisma } = setup(true, 'not-a-date');
+    await service.recordSignup('u1');
+    await service.record({
+      version: 1,
+      id: 'user.created/u1',
+      type: 'user.created',
+      occurredAt: '2026-09-23T12:00:00Z',
+      data: { objectId: 'u1' },
+    });
+    await service.recover();
+    expect(prisma.user.findFirst).not.toHaveBeenCalled();
+    expect(prisma.systemEventWebhook.upsert).not.toHaveBeenCalled();
+    expect(prisma.$queryRaw).not.toHaveBeenCalled();
+    expect(prisma.systemEventWebhook.findMany).not.toHaveBeenCalled();
+    expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
   });
   it('does not backfill users before enablement and uses stable IDs for current users', async () => {
     const { service, prisma } = setup();

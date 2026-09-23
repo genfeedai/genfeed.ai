@@ -22,7 +22,9 @@ export class SystemEventsService {
   private configuration() {
     const since = this.config.get('SYSTEM_EVENTS_ENABLED_AT');
     if (!since) return null;
-    return { since: new Date(since) };
+    const enabledAt = new Date(since);
+    if (!Number.isFinite(enabledAt.getTime())) return null;
+    return { since: enabledAt };
   }
 
   async settings() {
