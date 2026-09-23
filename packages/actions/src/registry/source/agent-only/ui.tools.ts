@@ -1,4 +1,8 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import {
+  DASHBOARD_BLOCK_REFERENCE,
+  DASHBOARD_DEFINITIONS,
+} from '../schemas/dashboard.schema';
 
 // Hoisted so both `anyOf` branches close over the identical property set: the
 // engine compiles action contracts in strict mode, where every object branch
@@ -50,6 +54,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
       'Render dynamic UI blocks on the analytics dashboard. Fetch data with other tools first, then call this to display it. See system prompt for block type reference and examples.',
     name: 'render_dashboard',
     parameters: {
+      $defs: DASHBOARD_DEFINITIONS,
       properties: {
         blockIds: {
           description: 'Block IDs to remove (for remove operation)',
@@ -59,121 +64,7 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
         blocks: {
           description:
             'UI blocks to render. Each block must have id (string), type (metric_card|kpi_grid|chart|table|top_posts|alert|section_header|text_paragraph|bullet_list|callout|image_grid|composite|empty_state), and optional width (full|half|third). Chart blocks need chartType (area|bar|line|pie), data array, and optional xAxis/series. Table blocks need columns and rows arrays. KPI grid blocks need a cards array of metric_card blocks.',
-          items: {
-            properties: {
-              cards: {
-                description: 'Array of metric_card blocks (for kpi_grid)',
-                items: { type: 'object' },
-                type: 'array',
-              },
-              chartType: {
-                description: 'Chart visualization type',
-                enum: ['area', 'bar', 'line', 'pie'],
-                type: 'string',
-              },
-              columns: {
-                anyOf: [
-                  { items: { type: 'object' }, type: 'array' },
-                  { type: 'number' },
-                ],
-                description:
-                  'Table columns: [{ key, label, sortable?, align? }] or number of columns for kpi_grid/image_grid',
-              },
-              text: {
-                description: 'Text for section_header or text_paragraph',
-                type: 'string',
-              },
-              level: {
-                description: 'Heading level for section_header',
-                enum: [1, 2, 3, 4],
-                type: 'number',
-              },
-              items: {
-                description: 'Text items for bullet_list',
-                items: { type: 'string' },
-                type: 'array',
-              },
-              ordered: {
-                description: 'Number the bullet_list items',
-                type: 'boolean',
-              },
-              tone: {
-                description: 'Callout tone',
-                enum: ['info', 'warning', 'error', 'success'],
-                type: 'string',
-              },
-              data: {
-                description:
-                  'Chart data array of objects (each object is a data point)',
-                items: { type: 'object' },
-                type: 'array',
-              },
-              id: {
-                description: 'Unique block ID for updates/removal',
-                type: 'string',
-              },
-              message: {
-                description: 'Text message (for alert/empty_state/callout)',
-                type: 'string',
-              },
-              rows: {
-                description: 'Table row data array of objects',
-                items: { type: 'object' },
-                type: 'array',
-              },
-              series: {
-                description: 'Chart series config: [{ key, label, color? }]',
-                items: { type: 'object' },
-                type: 'array',
-              },
-              severity: {
-                description: 'Alert severity',
-                enum: ['info', 'warning', 'error', 'success'],
-                type: 'string',
-              },
-              subtitle: { type: 'string' },
-              title: { type: 'string' },
-              trend: {
-                description:
-                  'Trend indicator for metric_card: { direction: up|down|flat, percentage }',
-                type: 'object',
-              },
-              type: {
-                description: 'Block type',
-                enum: [
-                  'metric_card',
-                  'kpi_grid',
-                  'chart',
-                  'table',
-                  'top_posts',
-                  'alert',
-                  'section_header',
-                  'text_paragraph',
-                  'bullet_list',
-                  'callout',
-                  'image_grid',
-                  'composite',
-                  'empty_state',
-                ],
-                type: 'string',
-              },
-              value: {
-                anyOf: [{ type: 'string' }, { type: 'number' }],
-                description: 'Display value for metric_card (string or number)',
-              },
-              width: {
-                description: 'Grid width',
-                enum: ['full', 'half', 'third'],
-                type: 'string',
-              },
-              xAxis: {
-                description: 'Key in data objects to use as x-axis',
-                type: 'string',
-              },
-            },
-            required: ['id', 'type'],
-            type: 'object',
-          },
+          items: DASHBOARD_BLOCK_REFERENCE,
           type: 'array',
         },
         operation: {

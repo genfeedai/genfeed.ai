@@ -146,11 +146,14 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       params.threadId,
       sourceActionId,
     ].join(':');
+    const toolPayload = { ...(params.payload ?? {}) };
+    delete toolPayload.sourceActionId;
+    delete toolPayload.sourceThreadId;
     return runIdempotent(this.cacheService, idempotencyKey, async () => {
       const execution = await this.executeTool(
         params,
         'transfer_agent_conversation',
-        { ...(params.payload ?? {}) },
+        toolPayload,
         { confirmationOrigin: 'thread-ui-action', sourceActionId },
       );
       if (!execution.result.success) {
@@ -263,11 +266,16 @@ export class AgentOrchestratorUiActionConfirmedToolService {
     params: ThreadUiActionExecutionParams,
   ): Promise<AgentChatResult> {
     const toolPayload = { ...(params.payload ?? {}) };
+    const sourceActionId =
+      typeof toolPayload.sourceActionId === 'string'
+        ? toolPayload.sourceActionId.trim()
+        : undefined;
+    delete toolPayload.sourceActionId;
     const execution = await this.executeTool(
       params,
       'save_brand_voice_profile' as CuratedActionName,
       toolPayload,
-      { confirmationOrigin: 'thread-ui-action' },
+      { confirmationOrigin: 'thread-ui-action', sourceActionId },
     );
     if (!execution.result.success || execution.result.requiresConfirmation) {
       throwFailedUiActionResult(

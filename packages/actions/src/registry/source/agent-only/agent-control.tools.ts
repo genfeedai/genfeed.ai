@@ -1,4 +1,5 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import { JSON_OBJECT_SCHEMA } from '../../contracts/schema-builders';
 
 export const AGENT_AGENT_CONTROL_TOOLS: SourceTool[] = [
   {
@@ -20,7 +21,7 @@ export const AGENT_AGENT_CONTROL_TOOLS: SourceTool[] = [
         specifications: {
           description:
             'Additional specifications (aspect ratio, duration, style, etc.)',
-          type: 'object',
+          ...JSON_OBJECT_SCHEMA,
         },
         targetAgentId: {
           description: 'Strategy ID of the agent to request the asset from',

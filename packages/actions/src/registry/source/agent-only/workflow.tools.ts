@@ -30,6 +30,11 @@ export const AGENT_WORKFLOW_TOOLS: SourceTool[] = [
             'Optional brand ID to attach to the installed workflow after bootstrap.',
           type: 'string',
         },
+        sourceActionId: {
+          description:
+            'Persisted confirmation token; authorization is verified against the trusted execution context.',
+          type: 'string',
+        },
         confirmed: {
           description:
             'Set to true only after the user confirms installation or generation.',

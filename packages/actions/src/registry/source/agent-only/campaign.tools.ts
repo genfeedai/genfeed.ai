@@ -44,6 +44,16 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
     name: 'start_outreach_sequence',
     parameters: {
       properties: {
+        confirmed: {
+          type: 'boolean',
+          description:
+            'Confirmation is accepted only with verified operator intent.',
+        },
+        sourceActionId: {
+          type: 'string',
+          description:
+            'Persisted confirmation token verified against the trusted execution context.',
+        },
         campaignId: {
           description: 'Outreach sequence ID',
           type: 'string',
@@ -60,6 +70,16 @@ export const AGENT_CAMPAIGN_TOOLS: SourceTool[] = [
     name: 'pause_outreach_sequence',
     parameters: {
       properties: {
+        confirmed: {
+          type: 'boolean',
+          description:
+            'Confirmation is accepted only with verified operator intent.',
+        },
+        sourceActionId: {
+          type: 'string',
+          description:
+            'Persisted confirmation token verified against the trusted execution context.',
+        },
         campaignId: {
           description: 'Outreach sequence ID',
           type: 'string',
