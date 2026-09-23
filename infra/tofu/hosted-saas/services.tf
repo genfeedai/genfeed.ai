@@ -1,10 +1,9 @@
 locals {
   # Internal service URLs via Cloud Map (replace docker-compose http://files:3012).
-  internal_env = [
+  internal_env = concat([
     # Production ECS is the hosted cloud deployment. Keep this explicit so
     # server-side deployment-mode gates agree with the Vercel frontend.
     { name = "GENFEED_CLOUD", value = "true" },
-    { name = "CONTENT_HARNESS_PACKAGES", value = var.content_harness_packages },
     { name = "GENFEEDAI_MICROSERVICES_FILES_URL", value = "http://files.genfeed.internal:${local.services.files.port}" },
     { name = "GENFEEDAI_MICROSERVICES_MCP_URL", value = "http://mcp.genfeed.internal:${local.services.mcp.port}" },
     { name = "GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL", value = "http://notifications.genfeed.internal:${local.services.notifications.port}" },
@@ -25,7 +24,9 @@ locals {
     { name = "AWS_REGION", value = var.region },
     { name = "NODE_ENV", value = "production" },
     { name = "VERSION", value = "1.0.0" },
-  ]
+  ], var.content_harness_packages == "" ? [] : [
+    { name = "CONTENT_HARNESS_PACKAGES", value = var.content_harness_packages },
+  ])
 }
 
 module "service" {

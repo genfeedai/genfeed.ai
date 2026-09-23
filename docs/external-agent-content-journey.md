@@ -55,7 +55,9 @@ needs read access to that object. The bundle must be self-contained, at most
 It must contain no credentials or source maps. The pipeline validates the
 checksum before building, removes its temporary copy, and never publishes the
 module to GHCR or a shared cache. API boot smoke validates pack activation
-before services roll. With neither secret configured, only built-in packs load.
+before services roll. With neither secret configured, the public base image is
+used and existing runtime package configuration is preserved. Without any
+external runtime configuration, only built-in packs load.
 
 Activation is not proven by merging this code. Record the deployed image digest,
 successful boot smoke, and sanitized loaded pack IDs/versions from the target
