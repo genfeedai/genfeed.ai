@@ -103,7 +103,7 @@ export default function GenerationHarnessSettingsCard({
           </p>
           <Button
             size={ButtonSize.SM}
-            variant={ButtonVariant.OUTLINE}
+            variant={ButtonVariant.SECONDARY}
             isDisabled={isSaving}
             onClick={onRefresh}
             withWrapper={false}
