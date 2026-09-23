@@ -3,6 +3,7 @@
  * All properties are optional here - each service validates only what it needs.
  */
 export interface IEnvConfig {
+  SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL?: string;
   // === Base ===
   NODE_ENV: 'development' | 'staging' | 'production' | 'test';
   PORT: number;
@@ -424,8 +425,6 @@ export interface IEnvConfig {
   // AI
   XAI_MODEL?: string;
 
-  SYSTEM_EVENTS_WEBHOOK_URL?: string;
-  SYSTEM_EVENTS_WEBHOOK_SECRET?: string;
   SYSTEM_EVENTS_ENABLED_AT?: string;
 
   // Allow additional env vars

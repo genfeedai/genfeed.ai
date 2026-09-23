@@ -1,32 +1,53 @@
-# System event webhooks
+# System notifications
 
-Optional deployment-wide system events use a durable database outbox. Configure
-`SYSTEM_EVENTS_WEBHOOK_URL` (HTTPS), `SYSTEM_EVENTS_WEBHOOK_SECRET` (at least 32
-characters) and `SYSTEM_EVENTS_ENABLED_AT` (ISO timestamp) on the API and workers.
-Unset configuration disables recording/delivery. The observation start prevents
-historical signup floods; worker recovery catches account-created hook failures.
+System notifications are owned by this deployment's API, workers and existing
+notifications service. They work without any external management application.
 
-The receiver accepts JSON `{ "payload": "<serialized event>" }`, authenticates
-`X-Genfeed-Signature` as hex HMAC-SHA256 over
-`X-Genfeed-Timestamp + "." + payload`, and checks that the delivery timestamp is
-within five minutes. The event has version 1, id, type, occurredAt, and data.
-Deduplicate by id. Persist before acknowledging with 2xx. Reject redirects.
+## Configuration
+
+Set `SYSTEM_EVENTS_ENABLED_AT` (ISO timestamp) on API and workers to begin
+recording. Unset means disabled: ordinary signup and billing continue, with no
+notification delivery calls. The timestamp prevents historical signup floods.
+
+Set `SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL` on the notifications service to
+an incoming webhook owned by your deployment. API/workers use the existing
+`GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL` and `GENFEEDAI_API_KEY` configuration,
+just as acknowledged email delivery does. No additional receiver endpoint,
+external account, bot token or event signing secret is required.
+
+Apply the additive outbox/settings migration before enabling recording.
+Notification settings, history and retry scheduling are available through
+`/v1/admin/system-notifications`, using existing super-admin and IP allowlist
+requirements. Any authorized administration client can consume this JSON:API
+resource. Webhook URLs and event payloads are never returned by this resource.
+
+## Delivery
+
+Better Auth user-created events and verified live Stripe callbacks record
+minimal versioned payloads with stable event IDs in the database outbox. Billing
+activity is persisted before fulfillment and duplicate suppression. Alerts
+report provider activity, not a guarantee of local fulfillment.
+
+The existing once-per-minute worker notification recovery schedule calls
+`NotificationsService`, which requests acknowledged delivery through the
+notifications service's authenticated internal endpoint. Its existing
+`DiscordService` validates and sends to the configured incoming webhook.
+The API owns delivery leases, deduplication, event filtering, history and
+retries with backoff capped at one hour. Manual retry schedules the next sweep.
+Disabled or unselected event types are skipped and are not replayed later.
 
 Events: user.created; subscription.created/updated/canceled;
-subscription.payment_succeeded; payment.failed; credits.purchased. Billing emits
-only live events after signature validation. Subscription checkout is deliberately
-not a second payment notification. A zero amount is a free redemption, not revenue.
+subscription.payment_succeeded; payment.failed; credits.purchased. Subscription
+checkout is excluded as a second payment notification. Paid and zero-total
+`no_payment_required` credit checkouts are supported; free redemptions are
+labelled separately from payments. Stripe's endpoint must already enable these
+source events, including invoice.payment_failed for failure alerts.
 
-The existing once-per-minute notification-delivery recovery schedule dispatches due rows with a
-lease, retrying failures with backoff capped at one hour. Receiver outages never
-make signup or billing wait for external HTTP. Outbox persistence failures cause
-Stripe retries; signup failures recover from the users table. This is at-least-once
-delivery: receivers must suppress replay by id. Rotating the destination can replay
-pending events to the new destination. Delivery history retains status codes, never
-response bodies or secrets. The deployment operator controls these settings; they
-must never be writable by ordinary tenant users.
+External delivery never runs inside signup or billing requests. Signup hook
+persistence failures recover from canonical users created after the configured
+start. Billing persistence failures return an error before side effects so
+Stripe retries. Missing or unavailable notification services leave events pending.
 
-Verified Stripe activity is persisted before billing side effects and duplicate
-suppression. Alerts describe provider activity, not a guarantee that local
-fulfillment succeeded. Persistence failure returns an error before fulfillment
-so Stripe can retry without repeating completed billing side effects.
+Delivery is at-least-once: a crash after Discord acceptance but before the API
+records success can duplicate a message. Provider failures expose no response
+body or secret URL. Discord mentions and redirects are disabled.

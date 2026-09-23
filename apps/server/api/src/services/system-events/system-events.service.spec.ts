@@ -1,12 +1,14 @@
-import { createHmac } from 'node:crypto';
+import type { NotificationsService } from '@api/services/notifications/notifications.service';
 import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { safeFetch } from '@libs/security/destination-guard';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock('@libs/security/destination-guard', () => ({ safeFetch: vi.fn() }));
+const notifications = {
+  deliverSystemNotification: vi.fn(),
+  systemNotificationStatus: vi.fn(),
+};
 const payload = JSON.stringify({
   version: 1,
   id: 'user.created/u1',
@@ -17,19 +19,23 @@ const payload = JSON.stringify({
 function setup(enabled = true) {
   const values: Record<string, string> = enabled
     ? {
-        SYSTEM_EVENTS_WEBHOOK_URL: 'https://receiver.example/events',
-        SYSTEM_EVENTS_WEBHOOK_SECRET: 'a'.repeat(32),
         SYSTEM_EVENTS_ENABLED_AT: '2026-09-23T00:00:00Z',
       }
     : {};
   const prisma = {
     user: { findFirst: vi.fn() },
+    systemNotificationSettings: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      upsert: vi.fn(),
+    },
     $queryRaw: vi.fn().mockResolvedValue([]),
     systemEventWebhook: {
       upsert: vi.fn(),
       findMany: vi
         .fn()
-        .mockResolvedValue([{ id: 'user.created/u1', payload, attempts: 0 }]),
+        .mockResolvedValue([
+          { id: 'user.created/u1', type: 'user.created', payload, attempts: 0 },
+        ]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
   };
@@ -37,6 +43,7 @@ function setup(enabled = true) {
     prisma as unknown as PrismaService,
     { get: (key: string) => values[key] } as ConfigService,
     { warn: vi.fn() } as unknown as LoggerService,
+    notifications as unknown as NotificationsService,
   );
   return { service, prisma };
 }
@@ -85,16 +92,12 @@ describe('system event outbox', () => {
       expect.objectContaining({ where: { id: 'user.created/u2' }, update: {} }),
     );
   });
-  it('signs a fresh delivery and records successful delivery under the lease', async () => {
+  it('delivers through the existing notifications service and records acknowledgement under the lease', async () => {
     const { service, prisma } = setup();
-    vi.mocked(safeFetch).mockResolvedValue(new Response('', { status: 200 }));
+    notifications.deliverSystemNotification.mockResolvedValue(undefined);
     await service.recover();
-    const [, request] = vi.mocked(safeFetch).mock.calls[0];
-    const headers = request?.headers as Record<string, string>;
-    expect(headers['X-Genfeed-Signature']).toBe(
-      createHmac('sha256', 'a'.repeat(32))
-        .update(`${headers['X-Genfeed-Timestamp']}.${payload}`)
-        .digest('hex'),
+    expect(notifications.deliverSystemNotification).toHaveBeenCalledWith(
+      JSON.parse(payload),
     );
     expect(prisma.systemEventWebhook.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -105,9 +108,25 @@ describe('system event outbox', () => {
       }),
     );
   });
+  it('honors deployment filters without dispatching externally', async () => {
+    const { service, prisma } = setup();
+    prisma.systemNotificationSettings.findUnique.mockResolvedValue({
+      enabled: false,
+      eventTypes: [],
+    });
+    await service.recover();
+    expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
+    expect(prisma.systemEventWebhook.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ skippedAt: expect.any(Date) }),
+      }),
+    );
+  });
   it('reschedules failed delivery and does not send when another worker owns the lease', async () => {
     const { service, prisma } = setup();
-    vi.mocked(safeFetch).mockRejectedValue(new Error('secret request URL'));
+    notifications.deliverSystemNotification.mockRejectedValue(
+      new Error('service unavailable'),
+    );
     await service.recover();
     expect(prisma.systemEventWebhook.updateMany).toHaveBeenLastCalledWith(
       expect.objectContaining({
@@ -117,9 +136,9 @@ describe('system event outbox', () => {
         }),
       }),
     );
-    vi.mocked(safeFetch).mockClear();
+    notifications.deliverSystemNotification.mockClear();
     prisma.systemEventWebhook.updateMany.mockResolvedValue({ count: 0 });
     await service.recover();
-    expect(safeFetch).not.toHaveBeenCalled();
+    expect(notifications.deliverSystemNotification).not.toHaveBeenCalled();
   });
 });

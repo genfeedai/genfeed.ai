@@ -7,3 +7,6 @@ CREATE TABLE "system_event_webhooks" (
   "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP, "updatedAt" TIMESTAMP(3) NOT NULL
 );
 CREATE INDEX "system_event_webhooks_isDeleted_deliveredAt_nextAttemptAt_idx" ON "system_event_webhooks" ("isDeleted", "deliveredAt", "nextAttemptAt");
+
+ALTER TABLE "system_event_webhooks" ADD COLUMN "skippedAt" TIMESTAMP(3);
+CREATE TABLE "system_notification_settings" ("id" TEXT NOT NULL PRIMARY KEY, "enabled" BOOLEAN NOT NULL DEFAULT true, "eventTypes" TEXT[] NOT NULL, "updatedAt" TIMESTAMP(3) NOT NULL);

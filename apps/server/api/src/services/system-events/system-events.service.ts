@@ -1,11 +1,13 @@
-import { createHmac, randomUUID } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import type { SystemEvent } from '@api/services/system-events/system-event.types';
 import { projectStripeSystemEvent } from '@api/services/system-events/system-event-projection';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigService } from '@libs/config/config.service';
+import { SYSTEM_EVENT_TYPES } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
-import { safeFetch } from '@libs/security/destination-guard';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import type Stripe from 'stripe';
 
 @Injectable()
@@ -14,14 +16,115 @@ export class SystemEventsService {
     private readonly prisma: PrismaService,
     private readonly config: ConfigService,
     private readonly logger: LoggerService,
+    private readonly notifications: NotificationsService,
   ) {}
 
   private configuration() {
-    const endpoint = this.config.get('SYSTEM_EVENTS_WEBHOOK_URL');
-    const secret = this.config.get('SYSTEM_EVENTS_WEBHOOK_SECRET');
     const since = this.config.get('SYSTEM_EVENTS_ENABLED_AT');
-    if (!endpoint || !secret || !since) return null;
-    return { endpoint, secret, since: new Date(since) };
+    if (!since) return null;
+    return { since: new Date(since) };
+  }
+
+  async settings() {
+    // tenant-scope-ignore: deployment-wide operator settings
+    const row = await this.prisma.systemNotificationSettings.findUnique({
+      where: { id: 'default' },
+    });
+    return {
+      enabled: row?.enabled ?? true,
+      eventTypes: row?.eventTypes ?? [...SYSTEM_EVENT_TYPES],
+    };
+  }
+
+  async overview() {
+    const [settings, transport, rows, observedSignups, first] =
+      await Promise.all([
+        this.settings(),
+        this.notifications.systemNotificationStatus().catch(() => ({
+          webhookConfigured: false,
+          transportConfigured: false,
+        })),
+        // tenant-scope-ignore: super-admin delivery history; payloads excluded from the response
+        this.prisma.systemEventWebhook.findMany({
+          where: { isDeleted: false },
+          orderBy: { occurredAt: 'desc' },
+          take: 50,
+        }),
+        // tenant-scope-ignore: deployment-wide signup observation count
+        this.prisma.systemEventWebhook.count({
+          where: { type: 'user.created', isDeleted: false },
+        }),
+        // tenant-scope-ignore: deployment-wide signup observation window
+        this.prisma.systemEventWebhook.findFirst({
+          where: { type: 'user.created', isDeleted: false },
+          orderBy: { occurredAt: 'asc' },
+          select: { occurredAt: true },
+        }),
+      ]);
+    return {
+      id: 'system-notifications',
+      configuration: {
+        ...settings,
+        ...transport,
+        recordingEnabled: Boolean(this.configuration()),
+      },
+      observedSignups,
+      signupObservationStart: first?.occurredAt.toISOString() ?? null,
+      deliveries: rows.map((row) => ({
+        id: row.id,
+        type: row.type,
+        occurredAt: row.occurredAt.toISOString(),
+        status: row.deliveredAt
+          ? 'delivered'
+          : row.skippedAt
+            ? 'skipped'
+            : row.leaseUntil && row.leaseUntil > new Date()
+              ? 'sending'
+              : row.attempts > 0
+                ? 'failed'
+                : 'pending',
+        attempts: row.attempts,
+        lastStatusCode: row.lastStatusCode,
+        deliveredAt: row.deliveredAt?.toISOString() ?? null,
+      })),
+    };
+  }
+
+  async configure(input: unknown): Promise<void> {
+    if (
+      !input ||
+      typeof input !== 'object' ||
+      !('enabled' in input) ||
+      typeof input.enabled !== 'boolean' ||
+      !('eventTypes' in input) ||
+      !Array.isArray(input.eventTypes) ||
+      !input.eventTypes.every((type) => SYSTEM_EVENT_TYPES.includes(type))
+    )
+      throw new BadRequestException('Select valid notification events');
+    const data = {
+      enabled: input.enabled,
+      eventTypes: [...new Set<string>(input.eventTypes)],
+    };
+    // tenant-scope-ignore: super-admin deployment settings
+    await this.prisma.systemNotificationSettings.upsert({
+      where: { id: 'default' },
+      create: { id: 'default', ...data },
+      update: data,
+    });
+  }
+
+  async retry(id: string): Promise<void> {
+    // tenant-scope-ignore: super-admin retries a single non-deleted event
+    const row = await this.prisma.systemEventWebhook.findFirst({
+      where: { id, isDeleted: false },
+    });
+    if (!row) throw new NotFoundException('Notification not found');
+    if (row.deliveredAt || row.skippedAt) return;
+    // tenant-scope-ignore: scheduling never bypasses another worker's lease
+    await this.prisma.systemEventWebhook.updateMany({
+      where: { id, isDeleted: false, deliveredAt: null, skippedAt: null },
+      data: { nextAttemptAt: new Date() },
+    });
   }
 
   async recordStripeEvent(event: Stripe.Event): Promise<void> {
@@ -79,6 +182,7 @@ export class SystemEventsService {
       where: {
         isDeleted: false,
         deliveredAt: null,
+        skippedAt: null,
         nextAttemptAt: { lte: now },
         OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
       },
@@ -94,6 +198,7 @@ export class SystemEventsService {
             id: row.id,
             isDeleted: false,
             deliveredAt: null,
+            skippedAt: null,
             OR: [{ leaseUntil: null }, { leaseUntil: { lte: now } }],
           },
           data: {
@@ -105,27 +210,23 @@ export class SystemEventsService {
         if (!claimed.count) return;
         let status: number | null = null;
         try {
-          const timestamp = Math.floor(Date.now() / 1000).toString();
-          const signature = createHmac('sha256', config.secret)
-            .update(`${timestamp}.${row.payload}`)
-            .digest('hex');
-          const response = await safeFetch(
-            config.endpoint,
-            {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'X-Genfeed-Timestamp': timestamp,
-                'X-Genfeed-Signature': signature,
+          const settings = await this.settings();
+          if (!settings.enabled || !settings.eventTypes.includes(row.type)) {
+            // tenant-scope-ignore: lease owner records an explicit operator filter decision
+            await this.prisma.systemEventWebhook.updateMany({
+              where: { id: row.id, leaseToken, isDeleted: false },
+              data: {
+                skippedAt: new Date(),
+                leaseUntil: null,
+                leaseToken: null,
               },
-              body: JSON.stringify({ payload: row.payload }),
-              signal: AbortSignal.timeout(30_000),
-            },
-            { maxRedirects: 0 },
+            });
+            return;
+          }
+          await this.notifications.deliverSystemNotification(
+            JSON.parse(row.payload) as SystemEvent,
           );
-          status = response.status;
-          await response.body?.cancel();
-          if (!response.ok) throw new Error('Receiver rejected system event');
+          status = 200;
           // tenant-scope-ignore: lease owner alone may finish this delivery
           await this.prisma.systemEventWebhook.updateMany({
             where: { id: row.id, leaseToken, isDeleted: false },

@@ -7375,6 +7375,7 @@ model OutlierPostPerformance {
 
 /// Deployment-wide outbound events, configured by the operator rather than tenants.
 model SystemEventWebhook {
+  skippedAt DateTime?
   id             String   @id
   type           String
   payload        String
@@ -7391,4 +7392,12 @@ model SystemEventWebhook {
 
   @@index([isDeleted, deliveredAt, nextAttemptAt])
   @@map("system_event_webhooks")
+}
+
+model SystemNotificationSettings {
+  id String @id
+  enabled Boolean @default(true)
+  eventTypes String[]
+  updatedAt DateTime @updatedAt
+  @@map("system_notification_settings")
 }
