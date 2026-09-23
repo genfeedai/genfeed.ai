@@ -36,7 +36,9 @@ export default function CampaignDetailOverview({
     <div className="grid min-w-0 gap-4 py-5">
       <div className="flex flex-col gap-2">
         <h2 className="break-words text-xl font-semibold">{campaign.name}</h2>
-        <p className="text-sm text-muted">{translate('setup.description')}</p>
+        <p className="text-sm text-muted-foreground">
+          {translate('setup.description')}
+        </p>
         {campaign.status === ContentCampaignStatus.DRAFT ? (
           <p className="text-sm">{translate('accounts.nextStep')}</p>
         ) : null}
@@ -74,7 +76,7 @@ export default function CampaignDetailOverview({
         </dl>
       </Card>
       <Card label={translate('brief')}>
-        <p className="whitespace-pre-wrap break-words text-sm text-secondary">
+        <p className="whitespace-pre-wrap break-words text-sm text-muted-foreground">
           {campaign.brief || translate('emptyBrief')}
         </p>
       </Card>

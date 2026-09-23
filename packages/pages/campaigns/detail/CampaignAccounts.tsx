@@ -18,7 +18,9 @@ export default function CampaignAccounts({ brandId }: CampaignAccountsProps) {
   return (
     <Card label={t('accounts.title')}>
       <div className="flex flex-col gap-3">
-        <p className="text-sm text-muted">{t('accounts.description')}</p>
+        <p className="text-sm text-muted-foreground">
+          {t('accounts.description')}
+        </p>
         {isPending ? (
           <p role="status">{t('accounts.loading')}</p>
         ) : isError ? (
@@ -45,7 +47,7 @@ export default function CampaignAccounts({ brandId }: CampaignAccountsProps) {
                     account.label ||
                     t('accounts.unnamed')}
                 </span>
-                <span className="text-muted">
+                <span className="text-muted-foreground">
                   {t(
                     eligibleAccounts.some((item) => item.id === account.id)
                       ? 'accounts.available'

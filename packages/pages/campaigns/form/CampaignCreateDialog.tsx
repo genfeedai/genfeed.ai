@@ -151,7 +151,7 @@ export default function CampaignCreateDialog({
               placeholder={t('setup.placeholder')}
               onChange={(event) => setName(event.target.value)}
             />
-            <p className="text-sm text-muted">
+            <p className="text-sm text-muted-foreground">
               {t('setup.brandContext', {
                 brand:
                   brands.find((brand) => brand.id === brandId)?.label ??
@@ -175,7 +175,7 @@ export default function CampaignCreateDialog({
                 >
                   <span className="flex flex-col gap-1">
                     <span>{t(`setup.examplesList.${example}.title`)}</span>
-                    <span className="text-xs font-normal text-muted">
+                    <span className="text-xs font-normal text-muted-foreground">
                       {t(`setup.examplesList.${example}.description`)}
                     </span>
                   </span>
@@ -188,7 +188,7 @@ export default function CampaignCreateDialog({
               {error}
             </p>
           ) : null}
-          <p className="text-sm text-muted">{t('setup.next')}</p>
+          <p className="text-sm text-muted-foreground">{t('setup.next')}</p>
           <div className="flex flex-wrap justify-end gap-2">
             <Button
               type="button"
