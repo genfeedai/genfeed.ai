@@ -6,7 +6,7 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { AgentScopeContextService } from '@api/index';
+import { AgentScopeContextService, getActionOriginContext } from '@api/index';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
@@ -33,6 +33,7 @@ import {
 import { CacheService } from '@api/services/cache/cache.service';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import {
+  ActionOrigin,
   ActivitySource,
   AgentAutonomyMode,
   AgentPublishDecision,
@@ -70,6 +71,21 @@ import {
 import { z } from 'zod';
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
+
+const MCP_CREATE_POST_DRAFT_ONLY_ERROR =
+  'create_post on the MCP surface only creates a draft and does not publish. Publish with create_scheduled_release.';
+
+function isMcpActionOrigin(): boolean {
+  return getActionOriginContext().origin === ActionOrigin.MCP;
+}
+
+function mcpDraftOnlyResult(): AgentToolResult {
+  return {
+    creditsUsed: 0,
+    error: MCP_CREATE_POST_DRAFT_ONLY_ERROR,
+    success: false,
+  };
+}
 
 type IngredientsServiceLike = {
   findOne: (query: Record<string, unknown>) => Promise<unknown>;
@@ -816,6 +832,10 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    // Card prep is the in-app publish path. MCP has no card, so this is an error.
+    if (isMcpActionOrigin()) {
+      return mcpDraftOnlyResult();
+    }
     const visibility = z
       .nativeEnum(PostVisibility)
       .safeParse(params.visibility ?? PostVisibility.PUBLIC);
@@ -858,6 +878,10 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    // Action origin distinguishes MCP from the in-app agent. MCP stays draft-only.
+    if (isMcpActionOrigin() && params.confirmed === true) {
+      return mcpDraftOnlyResult();
+    }
     const parsedVisibility = z
       .nativeEnum(PostVisibility)
       .safeParse(params.visibility ?? PostVisibility.PUBLIC);
@@ -878,6 +902,9 @@ export class AgentPublishToolHandler {
           : undefined;
 
     if (contentId) {
+      if (isMcpActionOrigin()) {
+        return mcpDraftOnlyResult();
+      }
       const { caption, platforms, requestedScheduledAt, requestedTargets } =
         this.readPublishRequest(params);
       const scheduledDate = requestedScheduledAt
