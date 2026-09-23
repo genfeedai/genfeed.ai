@@ -226,4 +226,21 @@ describe('IngredientsController folder assignment', () => {
       folderId: null,
     });
   });
+
+  it('never forwards a client-supplied cdnUrl or s3Key', async () => {
+    ingredientsService.findOne
+      .mockResolvedValueOnce(ingredient)
+      .mockResolvedValueOnce(ingredient);
+    ingredientsService.patch.mockResolvedValue(ingredient);
+
+    await controller.update(mockRequest, ingredientId, mockUser, {
+      cdnUrl: 'https://cdn.example.com/other-tenant/image.png',
+      folderId: null,
+      s3Key: 'other-tenant/image.png',
+    });
+
+    expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientId, {
+      folderId: null,
+    });
+  });
 });
