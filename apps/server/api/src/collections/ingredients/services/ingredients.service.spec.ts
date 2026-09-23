@@ -413,6 +413,19 @@ describe('IngredientsService', () => {
       expect(ingredientDelegate.findFirst).toHaveBeenCalled();
       expect(result).toBeDefined();
     });
+
+    it('falls back to the metadata link for external media without a key', async () => {
+      ingredientDelegate.findFirst.mockResolvedValueOnce({
+        ...mockIngredient,
+        cdnUrl: null,
+        metadata: { result: 'https://cdn.argil.ai/video-1.mp4' },
+        s3Key: null,
+      });
+
+      const result = await service.findOne({ id: 'test-id' });
+
+      expect(result?.cdnUrl).toBe('https://cdn.argil.ai/video-1.mp4');
+    });
   });
 
   describe('findAll', () => {

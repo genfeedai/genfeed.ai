@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "@aws-sdk/cloudfront-signer": "3.1125.0",
     "@genfeedai/config": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/prisma": "workspace:*",

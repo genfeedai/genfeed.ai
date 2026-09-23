@@ -231,7 +231,6 @@ describe('CaptionsController', () => {
       expect(deps.whisperService.generateCaptions).toHaveBeenCalledWith(
         ingredientId.toString(),
         {
-          cdnUrl: 'https://cdn.genfeed.ai/ingredients/videos/clip.mp4',
           metadata: undefined,
           s3Key: 'ingredients/videos/clip.mp4',
         },

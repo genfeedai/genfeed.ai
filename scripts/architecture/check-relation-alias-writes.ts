@@ -4,6 +4,15 @@ import ts from 'typescript';
 import { parseSourceFile } from './parse-source-file';
 
 const INCLUDE_GLOBS = ['apps/server/**/*.ts'];
+/**
+ * Prisma result-extension fields: computed on read, valid in a `select`, and
+ * never valid as a filter or write. Keep in sync with the extensions in
+ * `packages/libs/prisma/` (`media-url.extension.ts` computes Ingredient.cdnUrl).
+ */
+const COMPUTED_RESULT_FIELDS: Record<string, ReadonlySet<string>> = {
+  Ingredient: new Set(['cdnUrl']),
+};
+
 const IGNORE_GLOBS = [
   '**/*.spec.ts',
   '**/*.test.ts',
@@ -223,7 +232,8 @@ function inspectProjectionExpression(
     const isValid =
       kind === 'include'
         ? metadata.relationFields.has(field)
-        : metadata.fields.has(field);
+        : metadata.fields.has(field) ||
+          (COMPUTED_RESULT_FIELDS[model]?.has(field) ?? false);
     if (!isValid) {
       violations.push({
         alias: field,

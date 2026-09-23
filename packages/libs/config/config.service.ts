@@ -35,6 +35,7 @@ import {
   trainingPricingSchema,
   webhooksSchema,
 } from '@genfeedai/config';
+import type { MediaUrlConfig } from '@libs/media/media-url.util';
 import { Injectable } from '@nestjs/common';
 import Joi from 'joi';
 
@@ -226,6 +227,24 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
   /** Media URLs are signed only when both signing inputs are present. */
   public get isCdnSigningEnabled(): boolean {
     return Boolean(this.cdnSigningKeyPairId && this.cdnSigningPrivateKey);
+  }
+
+  /** CDN origin plus signing inputs, as consumed by the media URL builders. */
+  public get mediaUrlConfig(): MediaUrlConfig {
+    const keyPairId = this.cdnSigningKeyPairId;
+    const privateKey = this.cdnSigningPrivateKey;
+    return {
+      cdnUrl: this.cdnUrl,
+      ...(keyPairId && privateKey
+        ? {
+            signing: {
+              keyPairId,
+              privateKey,
+              ttlSeconds: this.cdnSignedUrlTtlSeconds,
+            },
+          }
+        : {}),
+    };
   }
 
   public get ingredientsEndpoint(): string {

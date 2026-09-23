@@ -1,5 +1,8 @@
 import { CreateIngredientDto } from '@api/collections/ingredients/dto/create-ingredient.dto';
-import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
+import {
+  type IngredientServerUpdate,
+  UpdateIngredientDto,
+} from '@api/collections/ingredients/dto/update-ingredient.dto';
 import type { IngredientDocument } from '@api/collections/ingredients/schemas/ingredient.schema';
 import {
   toIngredientCreateData,
@@ -30,6 +33,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { withExternalMediaFallback } from '@libs/media/media-url.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -50,6 +54,14 @@ export class IngredientsService extends BaseService<
     protected readonly moduleRef: ModuleRef,
   ) {
     super(prisma, 'ingredient', logger);
+  }
+
+  /**
+   * Media on a read: `cdnUrl` is computed from the row's own key; external
+   * media without a key falls back to its loaded metadata link.
+   */
+  protected override normalizeDocument(document: unknown): IngredientDocument {
+    return super.normalizeDocument(withExternalMediaFallback(document));
   }
 
   /**
@@ -311,7 +323,7 @@ export class IngredientsService extends BaseService<
 
   async patch(
     id: string,
-    updateDto: Partial<UpdateIngredientDto>,
+    updateDto: IngredientServerUpdate,
     populate: PopulateInput = [],
   ): Promise<IngredientDocument> {
     try {

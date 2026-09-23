@@ -240,6 +240,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'blacklist',
     'blacklists',
     'camera',
+    // Computed on read from s3Key by the Prisma result extension.
+    'cdnUrl',
     'enhanceModel',
     'evaluation',
     'faceEnhancement',
@@ -277,6 +279,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'agentWorkObject',
     'blacklists',
     'camera',
+    // Computed on read from s3Key by the Prisma result extension.
+    'cdnUrl',
     'enhanceModel',
     'evaluation',
     'faceEnhancement',
@@ -411,6 +415,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'accent',
     'blacklists',
     'camera',
+    // Computed on read from s3Key by the Prisma result extension.
+    'cdnUrl',
     'enhanceModel',
     'evaluation',
     'faceEnhancement',
@@ -578,6 +584,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'age',
     'blacklists',
     'camera',
+    // Computed on read from s3Key by the Prisma result extension.
+    'cdnUrl',
     'description',
     'duration',
     'enhanceModel',
@@ -628,6 +636,8 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
     'blacklist',
     'blacklists',
     'camera',
+    // Computed on read from s3Key by the Prisma result extension.
+    'cdnUrl',
     'cameraMovement',
     'codec',
     'duration',

@@ -53,6 +53,10 @@ describe('VoiceGenerationService', () => {
       generateAndUploadAudio: vi.fn().mockResolvedValue({
         audioUrl: 'https://example.com/generated.mp3',
         duration: 90,
+        uploadResult: {
+          publicUrl: 'https://example.com/generated.mp3',
+          s3Key: 'ingredients/musics/voice-1',
+        },
       }),
     };
     logger = { error: vi.fn() };
@@ -297,8 +301,8 @@ describe('VoiceGenerationService', () => {
     expect(voices.patchAll).toHaveBeenCalledWith(
       { id: ingredientId, isDeleted: false, organizationId },
       expect.objectContaining({
-        cdnUrl: 'https://example.com/generated.mp3',
         duration: 90,
+        s3Key: 'ingredients/musics/voice-1',
         status: IngredientStatus.GENERATED,
       }),
     );

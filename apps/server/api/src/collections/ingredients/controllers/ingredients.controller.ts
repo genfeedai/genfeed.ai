@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
-import { SERVER_OWNED_MEDIA_FIELDS } from '@api/collections/ingredients/constants/server-owned-media-fields.constants';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
@@ -15,7 +14,6 @@ import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -35,6 +33,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
+import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import {
   BadRequestException,
   Body,
@@ -213,15 +212,16 @@ export class IngredientsController {
       /\/ingredients\/?$/,
       '',
     );
+    // The computed `cdnUrl` already covers `s3Key`; resolving here adds the
+    // `metadata.result` fallback for provider-hosted and external media.
     const renderableIngredients = ingredients.map((ingredient) => {
-      const resolvedUrl =
-        resolveIngredientMediaUrl(ingredient, cdnOrigin) ?? ingredient.cdnUrl;
+      const resolvedUrl = resolveIngredientMediaUrl(ingredient, cdnOrigin);
 
       return {
         ...ingredient,
         cdnUrl: resolvedUrl
           ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
-          : resolvedUrl,
+          : null,
       };
     });
 
@@ -242,14 +242,6 @@ export class IngredientsController {
     const processedDto = {
       ...(updateIngredientDto as unknown as Record<string, unknown>),
     };
-    // Storage identity is server-owned: it is written when an upload or
-    // generation completes, never by a client. The global ValidationPipe does
-    // not whitelist, so unknown or omitted fields would otherwise pass straight
-    // through. Accepting these would let a caller repoint an ingredient at
-    // another tenant's object and obtain a signed URL for it.
-    for (const field of SERVER_OWNED_MEDIA_FIELDS) {
-      delete processedDto[field];
-    }
 
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.

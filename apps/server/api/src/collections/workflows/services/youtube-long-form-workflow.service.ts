@@ -588,7 +588,7 @@ export class YoutubeLongFormWorkflowService implements OnModuleInit {
         await transaction.ingredient.create({
           data: {
             category: IngredientCategory.VIDEO,
-            cdnUrl: source.url,
+            // External source: its link lives on `metadata.result` above.
             generationCompletedAt: new Date(),
             generationPrompt: source.title,
             generationSource: `youtube:${source.videoId}`,

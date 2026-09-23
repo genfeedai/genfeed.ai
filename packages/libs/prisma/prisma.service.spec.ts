@@ -7,7 +7,8 @@ function testConfigService(
 ): ConfigService {
   return {
     get: (key: string) => env[key],
-  } as ConfigService;
+    mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
+  } as unknown as ConfigService;
 }
 
 describe('isCloudTenantGuardEnabled', () => {
@@ -40,5 +41,28 @@ describe('PrismaService tenant guard wiring', () => {
 
     expect(service).toBeDefined();
     expect(typeof service.$connect).toBe('function');
+  });
+});
+
+describe('PrismaService media URL wiring', () => {
+  it('refuses to start when a signing key pair is configured but cannot sign', () => {
+    const config = {
+      get: (key: string) =>
+        key === 'DATABASE_URL'
+          ? 'postgresql://user:pass@localhost:5432/genfeed'
+          : undefined,
+      mediaUrlConfig: {
+        cdnUrl: 'https://cdn.test',
+        signing: {
+          keyPairId: 'KEYPAIR',
+          privateKey: 'not-a-key',
+          ttlSeconds: 300,
+        },
+      },
+    } as unknown as ConfigService;
+
+    expect(() => new PrismaService(config)).toThrow(
+      /key pair cannot sign URLs/,
+    );
   });
 });

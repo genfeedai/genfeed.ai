@@ -2,9 +2,11 @@ import { getDeploymentFromReader } from '@genfeedai/config/deployment';
 import type { Prisma } from '@genfeedai/prisma';
 import { PRISMA_MODEL_METADATA, PrismaClient } from '@genfeedai/prisma';
 import type { ConfigService } from '@libs/config/config.service';
+import { assertMediaUrlSigningConfig } from '@libs/media/media-url.util';
 import type { OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { tenantModelsFromMetadata } from './discover-tenant-models';
+import { createMediaUrlExtension } from './media-url.extension';
 import {
   createPrismaPgConfig,
   POSTGRES_CA_FILE_ENV_KEYS,
@@ -95,6 +97,9 @@ export class PrismaService
       );
     }
 
+    const mediaUrlConfig = configService.mediaUrlConfig;
+    assertMediaUrlSigningConfig(mediaUrlConfig);
+
     const extended = this.$extends(
       createTenantGuardExtension({
         isCloud: isCloudTenantGuardEnabled((key) =>
@@ -106,7 +111,7 @@ export class PrismaService
           ),
         ),
       }),
-    );
+    ).$extends(createMediaUrlExtension(mediaUrlConfig));
 
     Object.defineProperty(extended, 'onModuleInit', {
       configurable: true,

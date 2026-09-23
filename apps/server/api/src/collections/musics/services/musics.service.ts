@@ -8,6 +8,7 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { withExternalMediaFallback } from '@libs/media/media-url.util';
 import { Injectable } from '@nestjs/common';
 
 @Injectable()
@@ -22,6 +23,14 @@ export class MusicsService extends BaseService<
     private readonly ingredientsService: IngredientsService,
   ) {
     super(prisma, 'ingredient', logger);
+  }
+
+  /**
+   * Media on a read: `cdnUrl` is computed from the row's own key; external
+   * media without a key falls back to its loaded metadata link.
+   */
+  protected override normalizeDocument(document: unknown): MusicDocument {
+    return super.normalizeDocument(withExternalMediaFallback(document));
   }
 
   override async create(

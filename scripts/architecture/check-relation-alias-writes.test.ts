@@ -113,6 +113,57 @@ describe('check-relation-alias-writes', () => {
   });
 });
 
+describe('computed result fields', () => {
+  let originalCwd = '';
+  let testDir = '';
+
+  beforeEach(() => {
+    originalCwd = process.cwd();
+    testDir = mkdtempSync(path.join(tmpdir(), 'relation-alias-computed-'));
+    process.chdir(testDir);
+    writeFixture(
+      'packages/prisma/prisma/schema.prisma',
+      [
+        SCHEMA,
+        '',
+        'model Ingredient {',
+        '  id    String  @id',
+        '  s3Key String?',
+        '}',
+      ].join('\n'),
+    );
+  });
+
+  afterEach(() => {
+    process.chdir(originalCwd);
+    rmSync(testDir, { force: true, recursive: true });
+  });
+
+  it('accepts Ingredient.cdnUrl in a select but still rejects it as a filter', () => {
+    writeFixture(
+      'apps/server/api/src/ingredients/media.service.ts',
+      [
+        'export class MediaService {',
+        '  constructor(readonly prisma: any) {}',
+        '  projection() {',
+        '    return this.prisma.ingredient.findMany({ select: { cdnUrl: true, id: true } });',
+        '  }',
+        '  filter() {',
+        '    return this.prisma.ingredient.findMany({ where: { cdnUrl: { not: null } } });',
+        '  }',
+        '}',
+      ].join('\n'),
+    );
+
+    const violations = runCheckRelationAliasWrites().violations;
+    expect(violations).toHaveLength(1);
+    expect(violations[0]).toEqual(
+      expect.objectContaining({ alias: 'cdnUrl', model: 'Ingredient' }),
+    );
+    expect(violations[0]?.type).not.toBe('unknown-projection');
+  });
+});
+
 function writeService(body: string[]): void {
   writeFixture(
     'apps/server/api/src/posts/posts.service.ts',

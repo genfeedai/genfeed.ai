@@ -6,6 +6,7 @@ import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard
 import { AiInfluencerController } from '@api/services/ai-influencer/ai-influencer.controller';
 import { AiInfluencerService } from '@api/services/ai-influencer/ai-influencer.service';
 import { AiInfluencerWorkflowService } from '@api/services/ai-influencer/ai-influencer-workflow.service';
+import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { InstagramModule } from '@api/services/integrations/instagram/instagram.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
@@ -24,6 +25,7 @@ import { Module } from '@nestjs/common';
     PersonasModule,
     IngredientsModule,
     FalModule,
+    FilesClientModule,
     OpenRouterModule,
     InstagramModule,
     TwitterModule,

@@ -3,6 +3,7 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { type PersonaDocument } from '@api/collections/personas/schemas/persona.schema';
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { FalService } from '@api/services/integrations/fal/services/fal.service';
 import { InstagramService } from '@api/services/integrations/instagram/services/instagram.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
@@ -13,6 +14,7 @@ import {
 } from '@api/services/persona-content/persona-content.service';
 import { requireRelationId } from '@api/shared/utils/relation-id/relation-id.util';
 import {
+  FileInputType,
   FleetReviewStatus,
   IngredientStatus,
   LoraStatus,
@@ -85,6 +87,7 @@ export class AiInfluencerService {
     private readonly instagramService: InstagramService,
     private readonly twitterService: TwitterService,
     private readonly personaContentService: PersonaContentService,
+    private readonly filesClientService: FilesClientService,
     private readonly loggerService: LoggerService,
   ) {}
 
@@ -441,7 +444,6 @@ export class AiInfluencerService {
     const ingredient = await this.ingredientsService.create({
       brandId: persona.brandId,
       caption,
-      cdnUrl: imageUrl,
       generationSource: `ai-influencer-${persona.slug}`,
       isDeleted: false,
       organizationId: persona.organizationId,
@@ -452,12 +454,26 @@ export class AiInfluencerService {
       userId: persona.userId,
     } as Parameters<IngredientsService['create']>[0]);
 
+    // Provider URLs are temporary, and media identity is the stored object
+    // key. Copy the image into our storage under this ingredient's id.
+    const upload = await this.filesClientService.uploadToS3(
+      ingredient.id.toString(),
+      'images',
+      { type: FileInputType.URL, url: imageUrl },
+    );
+    if (typeof upload.s3Key !== 'string' || !upload.s3Key) {
+      throw new Error('Image upload returned no object key');
+    }
+    const stored = await this.ingredientsService.patch(ingredient.id, {
+      s3Key: upload.s3Key,
+    });
+
     this.loggerService.log(caller, {
       ingredientId: ingredient.id.toString(),
       message: 'Ingredient record created',
     });
 
-    return ingredient;
+    return stored ?? ingredient;
   }
 
   /**

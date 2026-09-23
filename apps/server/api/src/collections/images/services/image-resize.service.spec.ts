@@ -126,7 +126,6 @@ describe('ImageResizeService', () => {
       expect.objectContaining({ height: 720, size: 2048, width: 1280 }),
     );
     expect(imagesService.patch).toHaveBeenCalledWith(resizedImageId, {
-      cdnUrl: 'https://cdn.example.com/resized.jpg',
       s3Key: `ingredients/images/${resizedImageId}`,
       status: IngredientStatus.GENERATED,
       transformations: [TransformationCategory.RESIZED],
@@ -155,7 +154,7 @@ describe('ImageResizeService', () => {
     );
     expect(imagesService.patch).toHaveBeenCalledWith(
       resizedImageId,
-      expect.objectContaining({ cdnUrl: undefined, s3Key: undefined }),
+      expect.objectContaining({ s3Key: undefined }),
     );
   });
 

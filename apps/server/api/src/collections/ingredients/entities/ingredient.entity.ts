@@ -22,7 +22,8 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly promptTemplate: Ingredient['promptTemplate'];
   declare readonly templateVersion: Ingredient['templateVersion'];
   declare readonly s3Key: Ingredient['s3Key'];
-  declare readonly cdnUrl: Ingredient['cdnUrl'];
+  /** Derived from `s3Key` on every read; not a column. */
+  declare readonly cdnUrl: string | null;
   declare readonly personaSlug: Ingredient['personaSlug'];
   declare readonly contentRating: Ingredient['contentRating'];
   declare readonly reviewStatus: Ingredient['reviewStatus'];

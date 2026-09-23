@@ -17,7 +17,6 @@ import { DocsService } from '@api/endpoints/docs/docs.service';
 import { AllExceptionFilter } from '@api/helpers/filters/all-exception/all-exception.filter';
 import { DatabaseExceptionFilter } from '@api/helpers/filters/database-exception/database-exception.filter';
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
-import { MediaUrlSigningInterceptor } from '@api/helpers/interceptors/media-url-signing/media-url-signing.interceptor';
 import {
   APIMetricsInterceptor,
   PerformanceInterceptor,
@@ -278,17 +277,12 @@ async function main() {
 
     // Get optional services
     const redisCacheInterceptor = app.get(RedisCacheInterceptor);
-    const mediaUrlSigningInterceptor = app.get(MediaUrlSigningInterceptor);
     const memoryMonitor = app.get(MemoryMonitorService, { strict: false });
     const logApiUsage =
       nodeEnv !== 'production' ||
       configService.get('API_METRICS_LOGGING') === 'true';
 
-    // Media URL signing runs outermost so it wraps the Redis cache: the cache
-    // stores unsigned payloads and every response, cache hits included, gets a
-    // fresh signature rather than one that may expire before the cache entry.
     const interceptors = [
-      mediaUrlSigningInterceptor,
       ...(redisCacheInterceptor ? [redisCacheInterceptor] : []),
       new TimeoutInterceptor(app.get(Reflector)),
       new PerformanceInterceptor(logger, configService, memoryMonitor),

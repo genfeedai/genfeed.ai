@@ -20,6 +20,7 @@ import type {
   AgentWorkObjectMaterial,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
+import { readIngredientMediaUrl } from '@libs/media/media-url.util';
 import {
   BadRequestException,
   ConflictException,
@@ -132,6 +133,7 @@ export class AgentWorkObjectService {
         ingredient.category.toLowerCase(),
         ingredient.id,
       );
+      const mediaUrl = readIngredientMediaUrl(ingredient);
       if (
         work.threadId === scope.threadId &&
         ['table', 'script', 'brief'].includes(work.kind)
@@ -163,7 +165,7 @@ export class AgentWorkObjectService {
           },
         });
       } else if (
-        ingredient.cdnUrl &&
+        mediaUrl &&
         ['VIDEO', 'AUDIO', 'MUSIC', 'IMAGE'].includes(ingredient.category)
       ) {
         const kind =
@@ -176,7 +178,7 @@ export class AgentWorkObjectService {
           ingredientId: ingredient.id,
           kind,
           title: ingredient.metadata?.label ?? 'Source media',
-          url: ingredient.cdnUrl,
+          url: mediaUrl,
           href,
           duration: ingredient.metadata?.duration || undefined,
           width: ingredient.metadata?.width || undefined,

@@ -92,10 +92,6 @@ export class ImageResizeService {
       const updatedIngredient = await this.imagesService.patch(
         ingredientData.id,
         {
-          cdnUrl:
-            typeof uploadMeta.publicUrl === 'string'
-              ? uploadMeta.publicUrl
-              : undefined,
           s3Key:
             typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
           status: IngredientStatus.GENERATED,

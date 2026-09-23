@@ -2012,7 +2012,6 @@ model Ingredient {
   promptTemplate        String?
   templateVersion       Int?
   s3Key                 String?
-  cdnUrl                String?
   personaSlug           String?
   contentRating         ContentRating?
   reviewStatus          FleetReviewStatus?

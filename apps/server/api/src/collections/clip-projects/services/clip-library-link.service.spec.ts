@@ -138,7 +138,6 @@ describe('ClipLibraryLinkService', () => {
       expect.objectContaining({
         brandId: 'brand-1',
         category: IngredientCategory.VIDEO,
-        cdnUrl: 'https://cdn.genfeed.ai/videos/clip-1-captioned.mp4',
         generationPrompt: 'Launch clip',
         generationSource: clipResultGenerationSource('clip-1'),
         generationStage: 'raw-cut',
@@ -369,13 +368,20 @@ describe('ClipLibraryLinkService', () => {
       status: 'linked',
     });
 
+    // Provider-hosted media has no object key; its link lives on the
+    // metadata row, and reads fall back to it.
     expect(ingredientsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        cdnUrl: 'https://cdn.argil.ai/video-1.mp4',
         generationStage: 'avatar',
         modelUsed: 'argil',
         s3Key: undefined,
       }),
+    );
+    expect(ingredientsService.create.mock.calls[0]?.[0]).not.toHaveProperty(
+      'cdnUrl',
+    );
+    expect(metadataService.create).toHaveBeenCalledWith(
+      expect.objectContaining({ result: 'https://cdn.argil.ai/video-1.mp4' }),
     );
     expect(captionsService.create).not.toHaveBeenCalled();
   });
