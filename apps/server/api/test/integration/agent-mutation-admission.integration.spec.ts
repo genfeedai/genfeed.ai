@@ -6,8 +6,9 @@ import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-or
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions';
 import { AgentThreadMode } from '@genfeedai/contracts';
-import { ConfigService } from '@libs/config/config.service';
+import type { ConfigService } from '@libs/config/config.service';
 import { ConflictException } from '@nestjs/common';
+import { ConfigService as EnvironmentConfigService } from '@nestjs/config';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 
 describe('atomic agent mutation admission with PostgreSQL', () => {
@@ -18,7 +19,9 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
   let approvals: McpApprovalsService;
 
   beforeAll(async () => {
-    const databaseUrl = new ConfigService().get('DATABASE_URL');
+    const databaseUrl = new EnvironmentConfigService().get<string>(
+      'DATABASE_URL',
+    );
     const url = new URL(databaseUrl ?? '');
     if (
       !['localhost', '127.0.0.1'].includes(url.hostname) ||
