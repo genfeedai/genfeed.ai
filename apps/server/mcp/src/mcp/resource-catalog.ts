@@ -10,6 +10,7 @@ import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
  */
 export const McpResourceUri = {
   AGENT_GUIDE: 'https://genfeed.ai/llms.txt',
+  CONTENT_CARDS: MCP_CARD_RESOURCE_URI,
   ORGANIZATION_ANALYTICS: 'genfeed://analytics/organization',
   VIDEO_ANALYTICS: 'genfeed://analytics/videos',
 } as const;
@@ -25,17 +26,17 @@ export type McpResourceUriValue =
 export const PUBLIC_MCP_RESOURCES: readonly McpResource[] = [
   {
     description:
-      'Portable content cards for posts, articles, media and usage. Contains no account data.',
-    mimeType: MCP_APP_MIME_TYPE,
-    name: 'Genfeed content cards',
-    uri: MCP_CARD_RESOURCE_URI,
-  },
-  {
-    description:
       'Agent-readable product, authentication, API, MCP, and contact discovery for Genfeed',
     mimeType: 'text/markdown',
     name: 'Genfeed agent guide',
     uri: McpResourceUri.AGENT_GUIDE,
+  },
+  {
+    description:
+      'Portable content cards for posts, articles, media and usage. Contains no account data.',
+    mimeType: MCP_APP_MIME_TYPE,
+    name: 'Genfeed content cards',
+    uri: MCP_CARD_RESOURCE_URI,
   },
 ];
 
