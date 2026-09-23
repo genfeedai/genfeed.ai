@@ -149,7 +149,11 @@ describe('CampaignsService', () => {
     );
 
     const started = await service.start(CAMPAIGN_ID);
-    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/start`, {});
+    expect(http.post).toHaveBeenCalledWith(
+      `/${CAMPAIGN_ID}/start`,
+      {},
+      undefined,
+    );
     expect(started).toBeInstanceOf(CampaignLifecycleResult);
     expect(started.campaign).toBeInstanceOf(Campaign);
     expect(started.campaign.status).toBe(ContentCampaignStatus.ACTIVE);
@@ -174,15 +178,27 @@ describe('CampaignsService', () => {
     );
 
     await service.generate(CAMPAIGN_ID, { credentialIds: ['ccred00000001'] });
-    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/generate`, {
-      credentialIds: ['ccred00000001'],
-    });
+    expect(http.post).toHaveBeenCalledWith(
+      `/${CAMPAIGN_ID}/generate`,
+      {
+        credentialIds: ['ccred00000001'],
+      },
+      { timeout: 300_000 },
+    );
 
     await service.pause(CAMPAIGN_ID);
-    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/pause`, {});
+    expect(http.post).toHaveBeenCalledWith(
+      `/${CAMPAIGN_ID}/pause`,
+      {},
+      undefined,
+    );
 
     await service.complete(CAMPAIGN_ID);
-    expect(http.post).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/complete`, {});
+    expect(http.post).toHaveBeenCalledWith(
+      `/${CAMPAIGN_ID}/complete`,
+      {},
+      undefined,
+    );
   });
 
   it('maps assign and unassign as lifecycle results, not campaign rows', async () => {
@@ -241,5 +257,31 @@ describe('CampaignsService', () => {
     expect(http.delete).toHaveBeenCalledWith(`/${CAMPAIGN_ID}/posts`, {
       data: { postIds: ['cpost00000001'] },
     });
+  });
+  it('creates an AI campaign through the planning endpoint with a generation timeout', async () => {
+    http.post.mockResolvedValue(
+      axiosResponse(
+        resourceDocument(
+          {
+            brandId: 'brand-1',
+            name: 'Launch',
+            objective: 'Grow adoption',
+            brief: 'Plan',
+          },
+          { id: CAMPAIGN_ID, type: 'campaign' },
+        ),
+      ),
+    );
+    const input = {
+      brandId: 'brand-1',
+      name: 'Launch',
+      idempotencyKey: 'request-1',
+    };
+    const campaign = await service.generatePlan(input);
+    expect(http.post).toHaveBeenCalledWith('/generate-plan', input, {
+      timeout: 180_000,
+    });
+    expect(campaign).toBeInstanceOf(Campaign);
+    expect(campaign.id).toBe(CAMPAIGN_ID);
   });
 });
