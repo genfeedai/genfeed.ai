@@ -169,7 +169,7 @@ export class ContentPlannerService {
       ? `Brand Voice:
 - Tone: ${voice.tone ?? 'professional'}
 - Style: ${voice.style ?? 'informative'}
-- Audience: ${voice.audience?.join(', ') ?? 'general'}
+- Audience: ${voice.audience?.join(', ') || 'general'}
 - Values: ${voice.values?.join(', ') ?? 'quality'}`
       : 'Brand Voice: Professional and engaging';
 

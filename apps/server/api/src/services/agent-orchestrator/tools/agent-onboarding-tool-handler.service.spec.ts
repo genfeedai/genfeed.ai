@@ -533,6 +533,42 @@ describe('Agent onboarding first draft', () => {
     });
   });
 
+  it.each([null, '', '   '])(
+    'treats empty optional generation fields as absent: %s',
+    async (empty) => {
+      vi.stubEnv('GENFEED_CLOUD', '1');
+      const { handler, contentGeneratorService, generationGateway } =
+        createHandler({ brand: { id: 'brand-1', label: 'Acme' } });
+      const result = await handler.generateOnboardingContent(
+        { brandId: empty, retryTweet: empty },
+        { ...CONTEXT, brandId: 'brand-1' },
+      );
+      expect(
+        contentGeneratorService.generateContentWorkflow,
+      ).toHaveBeenCalledOnce();
+      expect(generationGateway.generateImage).toHaveBeenCalledOnce();
+      expect(result.data?.tweets).toEqual(['Generated tweet']);
+    },
+  );
+
+  it.each([42, {}, 'x'.repeat(281)])(
+    'rejects malformed retry text before spending credits: %s',
+    async (retryTweet) => {
+      vi.stubEnv('GENFEED_CLOUD', '1');
+      const { handler, contentGeneratorService, generationGateway } =
+        createHandler({ brand: { id: 'brand-1' } });
+      const result = await handler.generateOnboardingContent(
+        { retryTweet },
+        { ...CONTEXT, brandId: 'brand-1' },
+      );
+      expect(result.success).toBe(false);
+      expect(
+        contentGeneratorService.generateContentWorkflow,
+      ).not.toHaveBeenCalled();
+      expect(generationGateway.generateImage).not.toHaveBeenCalled();
+    },
+  );
+
   it('preserves the tweet and an honest retry when image generation fails', async () => {
     vi.stubEnv('GENFEED_CLOUD', '1');
     const { handler, generationGateway } = createHandler({

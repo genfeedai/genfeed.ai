@@ -20,6 +20,7 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { createOnboardingBrandDraft } from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
   hasOrganizationBilling,
   isSelfHostedDeployment,
@@ -1080,16 +1081,11 @@ export class AgentOnboardingToolHandler {
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const direction =
-      typeof params.direction === 'string'
-        ? params.direction.trim().slice(0, 2000)
-        : '';
-    const retryTweet =
-      typeof params.retryTweet === 'string'
-        ? params.retryTweet.trim()
-        : undefined;
+      readOptionalString(params.direction)?.slice(0, 2000) ?? '';
+    const retryTweet = readOptionalString(params.retryTweet);
     if (
-      params.retryTweet !== undefined &&
-      (!retryTweet || retryTweet.length > 280)
+      params.retryTweet != null &&
+      (typeof params.retryTweet !== 'string' || (retryTweet?.length ?? 0) > 280)
     ) {
       return {
         creditsUsed: 0,
@@ -1098,8 +1094,7 @@ export class AgentOnboardingToolHandler {
         success: false,
       };
     }
-    const brandId =
-      typeof params.brandId === 'string' ? params.brandId : ctx.brandId;
+    const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
     if (!brandId || (ctx.brandId && ctx.brandId !== brandId)) {
       return {
         creditsUsed: 0,

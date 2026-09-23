@@ -222,7 +222,7 @@
     "symbol": "AgentAnalyticsToolHandler.getAnalytics"
   },
   {
-    "actual": 1264,
+    "actual": 1259,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service.ts"

@@ -181,6 +181,22 @@ describe('ContentPlannerService', () => {
     ).toContain('Audience: Founders');
   });
 
+  it.each([null, [], ['  ']])(
+    'keeps the general audience fallback for empty stored audiences: %j',
+    async (audience) => {
+      stubGeneratePlan();
+      brandsService.findOne.mockResolvedValue({
+        ...baseBrand,
+        agentConfig: { voice: { audience } },
+      } as unknown as BrandLookup);
+      await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+      expect(
+        llmDispatcherService.completeStructured.mock.calls[0][0].messages[0]
+          .content,
+      ).toContain('Audience: general');
+    },
+  );
+
   it('grounds the user prompt in the plan performance context', async () => {
     stubGeneratePlan();
     planPerformanceContextService.build.mockResolvedValueOnce({

@@ -112,14 +112,11 @@ export class OnboardingPage {
     await expect(this.headline).toHaveText('Give it your voice.');
   }
 
-  async openBrandDetails(): Promise<void> {
+  async openBrandDetails(accountType: RegExp = /^Business/): Promise<void> {
     if (await this.brandNameInput.isVisible()) return;
-    await expect(
-      this.page.getByRole('button', { name: /^Business/ }),
-    ).toBeVisible();
-    if (await this.continueButton.isDisabled()) {
-      await this.page.getByRole('button', { name: /^Business/ }).click();
-    }
+    const option = this.page.getByRole('button', { name: accountType });
+    await option.click();
+    await expect(option).toHaveAttribute('aria-pressed', 'true');
     await this.continueButton.click();
     await expect(this.brandNameInput).toBeVisible();
   }

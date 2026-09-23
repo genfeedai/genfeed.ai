@@ -29,6 +29,7 @@ test.describe('Expert Path Onboarding', () => {
 
     // --- Brand ---------------------------------------------------------------
     await wizard.waitForStep(1);
+    await wizard.openBrandDetails(/^Expert/);
     await wizard.fillBrand({
       brandName: 'Expert Brand',
     });
