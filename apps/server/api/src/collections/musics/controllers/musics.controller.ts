@@ -1,5 +1,4 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
-import { SERVER_OWNED_MEDIA_FIELDS } from '@api/collections/ingredients/constants/server-owned-media-fields.constants';
 import { MusicQueryDto } from '@api/collections/musics/dto/music-query.dto';
 import { UpdateMusicDto } from '@api/collections/musics/dto/update-music.dto';
 import type { MusicDocument } from '@api/collections/musics/schemas/music.schema';
@@ -268,18 +267,12 @@ export class MusicsController {
   private enrichUpdateDto(
     updateDto: UpdateMusicDto,
     user: User,
-  ): Record<string, unknown> {
-    const enriched: Record<string, unknown> = {
+  ): UpdateMusicDto {
+    return {
       ...updateDto,
       brandId: updateDto.brandId ?? user.brandId,
       organizationId: user.organizationId,
       userId: user.userId ?? user.id,
     };
-    // Music rows are ingredients: a client-supplied cdnUrl or s3Key would
-    // repoint this row at another tenant's object.
-    for (const field of SERVER_OWNED_MEDIA_FIELDS) {
-      delete enriched[field];
-    }
-    return enriched;
   }
 }

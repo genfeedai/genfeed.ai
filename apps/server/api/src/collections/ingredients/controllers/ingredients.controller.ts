@@ -1,6 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
-import { SERVER_OWNED_MEDIA_FIELDS } from '@api/collections/ingredients/constants/server-owned-media-fields.constants';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
