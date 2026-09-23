@@ -533,10 +533,10 @@ export default function LoginBetterAuth({
       <AuthFormLayout
         description={
           <>
-            We sent a sign-in link to
+            We sent a sign-in link to{' '}
             <strong className="block break-all font-medium text-foreground">
               {email}
-            </strong>
+            </strong>{' '}
             <span className="mt-2 block">
               Click the link in your email to sign in.
             </span>
