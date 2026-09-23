@@ -48,6 +48,7 @@ import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import type {
   FastlaneIdea,
   IBrandKitApplyResult,
@@ -93,6 +94,53 @@ const MERGEABLE_AGENT_CONFIG_KEYS: ReadonlySet<string> = new Set([
   'strategy',
   'voice',
 ]);
+
+/**
+ * Credential columns the access bootstrap embeds on each brand. Every
+ * brand-context consumer (agent setup panel, publishing, credentials guard,
+ * menu items) reads `selectedBrand.credentials`, so bootstrap brands must
+ * carry them. The select is an explicit allowlist: bootstrap rows are plain
+ * JSON, not serializer output, so token, secret and OAuth columns must never
+ * be reachable from it.
+ */
+const BOOTSTRAP_CREDENTIAL_SELECT = {
+  accessTokenExpiry: true,
+  brandId: true,
+  createdAt: true,
+  description: true,
+  externalAvatar: true,
+  externalHandle: true,
+  externalId: true,
+  externalName: true,
+  id: true,
+  isConnected: true,
+  label: true,
+  organizationId: true,
+  platform: true,
+  postingTimes: true,
+  updatedAt: true,
+  userId: true,
+  warmupRiskLevel: true,
+  warmupScore: true,
+  warmupState: true,
+} satisfies Prisma.CredentialSelect;
+
+type BootstrapCredentialRow = Prisma.CredentialGetPayload<{
+  select: typeof BOOTSTRAP_CREDENTIAL_SELECT;
+}>;
+
+/**
+ * Prisma stores `platform` SCREAMING; brand-context consumers compare against
+ * the lowercase domain enum, same as the credential serializer emits.
+ */
+function toBootstrapCredential(
+  credential: BootstrapCredentialRow,
+): Record<string, unknown> {
+  return {
+    ...credential,
+    platform: fromPrismaCredentialPlatform(credential.platform),
+  };
+}
 
 function isMergeableRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -287,6 +335,7 @@ export class BrandsService extends BaseService<
     organizationId: string,
     options: {
       brandIds?: string[];
+      includeCredentials?: boolean;
     } = {},
   ): Promise<BrandDocument[]> {
     const where: Record<string, unknown> = scopedWhere(organizationId, {});
@@ -297,6 +346,15 @@ export class BrandsService extends BaseService<
 
     const brands = (await this.delegate.findMany({
       include: {
+        ...(options.includeCredentials
+          ? {
+              credentials: {
+                orderBy: { createdAt: 'asc' },
+                select: BOOTSTRAP_CREDENTIAL_SELECT,
+                where: { isDeleted: false, organizationId },
+              },
+            }
+          : {}),
         organization: {
           select: {
             accountType: true,
@@ -307,6 +365,15 @@ export class BrandsService extends BaseService<
       where,
       orderBy: { label: 'asc' },
     })) as BrandDocument[];
+
+    if (options.includeCredentials) {
+      for (const brand of brands) {
+        const credentials = brand.credentials as
+          | BootstrapCredentialRow[]
+          | undefined;
+        brand.credentials = (credentials ?? []).map(toBootstrapCredential);
+      }
+    }
 
     return this.attachBrandKitAssetRelations(brands, organizationId);
   }
