@@ -86,6 +86,15 @@ export class PresignedUploadService {
       3600, // 1 hour expiry
     );
 
+    if (!presigned.s3Key?.trim()) {
+      throw new HttpException(
+        'Files service returned no storage key',
+        HttpStatus.BAD_GATEWAY,
+      );
+    }
+
+    await this.ingredientsService.patch(key, { s3Key: presigned.s3Key });
+
     return {
       expiresIn: 3600,
       id: ingredientData.id.toString(),
@@ -129,6 +138,7 @@ export class PresignedUploadService {
       ingredient.category || IngredientCategory.IMAGE,
     );
     const s3Type = categoryToPlural(category);
+    let s3Key = ingredient.s3Key || `ingredients/${s3Type}/${id}`;
 
     try {
       // Get presigned download URL
@@ -144,6 +154,14 @@ export class PresignedUploadService {
         type: FileInputType.URL,
         url: downloadUrl,
       });
+
+      if (
+        !ingredient.s3Key &&
+        typeof uploadMeta?.s3Key === 'string' &&
+        uploadMeta.s3Key.trim()
+      ) {
+        s3Key = uploadMeta.s3Key;
+      }
 
       // Update metadata document with extracted dimensions
       if (ingredient.metadataId && uploadMeta) {
@@ -170,6 +188,7 @@ export class PresignedUploadService {
 
     // Update status to uploaded
     return await this.ingredientsService.patch(id, {
+      s3Key,
       status: IngredientStatus.UPLOADED,
     });
   }
