@@ -29,16 +29,16 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
         artifactReferences: {
           description: 'Canonical references selected for the handoff.',
           items: {
-            oneOf: ['article', 'asset', 'ingredient', 'newsletter', 'post'].map(
+            anyOf: ['article', 'asset', 'ingredient', 'newsletter', 'post'].map(
               (kind) =>
                 closedObjectSchema(
                   {
                     brandId: STRING_SCHEMA,
-                    kind: { const: kind, type: 'string' },
+                    kind: { enum: [kind], type: 'string' },
                     organizationId: STRING_SCHEMA,
                     recordId: STRING_SCHEMA,
                     recordVersion: STRING_SCHEMA,
-                    serializer: { const: kind, type: 'string' },
+                    serializer: { enum: [kind], type: 'string' },
                   },
                   ['kind', 'organizationId', 'recordId', 'serializer'],
                 ),
@@ -47,6 +47,8 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
           maxItems: 20,
           type: 'array',
         },
+        artifactVersionPinIds: { items: STRING_SCHEMA, type: 'array' },
+        parentCorrelationId: STRING_SCHEMA,
         content: { maxLength: 12000, type: 'string' },
         deliveryMode: { enum: ['SEND', 'SEND_AND_RUN'], type: 'string' },
         destinationBrandId: { type: 'string' },

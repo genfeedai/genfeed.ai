@@ -139,7 +139,33 @@ const fixtures = [
       ],
     },
   },
-  { id: 'save_dashboard_layout', input: { blocks: [metric] } },
+  {
+    id: 'save_dashboard_layout',
+    input: { brandId: 'brand', version: 2, blocks: [metric] },
+  },
+  {
+    id: 'get_dashboard_layout',
+    input: { brandId: 'brand', pageKey: 'overview' },
+  },
+  {
+    id: 'save_dashboard_layout',
+    input: {
+      document: {
+        components: [
+          {
+            component: 'Dashboard.Stack',
+            props: { id: 'group', layout: 'row' },
+            children: [
+              {
+                component: 'Dashboard.MetricCard',
+                props: { id: 'total', value: 12, sourceKey: 'totalPosts' },
+              },
+            ],
+          },
+        ],
+      },
+    },
+  },
   {
     id: 'save_dashboard_layout',
     input: {
@@ -256,6 +282,24 @@ describe('nested tool input contracts', () => {
         assetType: 'image',
         prompt: 'Cat',
         specifications: 'wrong',
+      },
+    ],
+    [
+      'save_dashboard_layout',
+      { document: { components: [{ component: 'Dashboard.Unknown' }] } },
+    ],
+    [
+      'render_dashboard',
+      {
+        operation: 'replace',
+        blocks: [{ id: 'chart', type: 'chart', chartType: 'funnel' }],
+      },
+    ],
+    [
+      'render_dashboard',
+      {
+        operation: 'replace',
+        blocks: [{ id: 'heading', type: 'section_header', level: 4 }],
       },
     ],
     ['save_brand_voice_profile', { voiceProfile: { tone: 7 } }],

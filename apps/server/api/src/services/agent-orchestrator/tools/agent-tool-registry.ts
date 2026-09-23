@@ -6,14 +6,16 @@ const BASE_AGENT_TOOLS: AgentToolOutput[] = toAgentTools(
   getToolsForSurface('agent'),
 );
 
-const CANONICAL_OVERLAP_TOOL_NAMES = new Set<CuratedActionName>([
+const CANONICAL_TOOL_NAMES = new Set<CuratedActionName>([
+  'capture_memory',
+  'create_workflow',
   'create_ad_remix_workflow',
   'get_ad_research_detail',
   'list_ads_research',
 ]);
 
 const FILTERED_CLOUD_AGENT_TOOL_EXTENSIONS = CLOUD_AGENT_TOOL_EXTENSIONS.filter(
-  (tool) => !CANONICAL_OVERLAP_TOOL_NAMES.has(tool.name),
+  (tool) => !CANONICAL_TOOL_NAMES.has(tool.name),
 );
 
 /**

@@ -18,6 +18,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
           description: 'Caption override for the content item.',
           type: 'string',
         },
+        sourceActionId: {
+          description:
+            'Persisted confirmation token; authorization is verified against the trusted execution context.',
+          type: 'string',
+        },
         confirmed: {
           description:
             'Set to true only after the user confirms the publish card.',

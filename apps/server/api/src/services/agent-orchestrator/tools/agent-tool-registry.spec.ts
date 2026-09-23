@@ -153,3 +153,12 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS.list_genfeed_tools).toBe(0);
   });
 });
+
+it.each(['capture_memory', 'create_workflow'] as const)(
+  'keeps %s nested parameters and shared definitions canonical',
+  (name) => {
+    expect(getToolDefinitionByName(name)?.parameters).toEqual(
+      getToolByName(name)?.parameters,
+    );
+  },
+);

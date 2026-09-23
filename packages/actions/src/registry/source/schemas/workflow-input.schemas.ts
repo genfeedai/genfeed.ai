@@ -26,9 +26,9 @@ export const WORKFLOW_EDGE_SCHEMA = closedObjectSchema(
   {
     id: STRING_SCHEMA,
     source: STRING_SCHEMA,
-    sourceHandle: { type: ['string', 'null'] },
+    sourceHandle: { anyOf: [STRING_SCHEMA, { type: 'null' }] },
     target: STRING_SCHEMA,
-    targetHandle: { type: ['string', 'null'] },
+    targetHandle: { anyOf: [STRING_SCHEMA, { type: 'null' }] },
   },
   ['id', 'source', 'target'],
 );

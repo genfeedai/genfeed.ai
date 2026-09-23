@@ -105,6 +105,49 @@ describe('provider-compatible tool definitions', () => {
     expect(serializedTools).toContain('"anyOf":');
   });
 
+  it('keeps repaired object definitions and artifact variants in Gemini schemas', () => {
+    const params = buildParams('google/gemini-3.5-flash-lite');
+    const serializedTools = JSON.stringify(params.tools);
+    expect(serializedTools).not.toMatch(/"type":\s*\[/);
+    expect(serializedTools).not.toContain('genfeed:recursive-json-document');
+    const transfer = params.tools?.find(
+      (tool) => tool.function.name === 'transfer_agent_conversation',
+    );
+    expect(transfer?.function.parameters).toMatchObject({
+      $defs: expect.objectContaining({ jsonValue: expect.any(Object) }),
+      properties: {
+        artifactReferences: {
+          items: {
+            anyOf: expect.arrayContaining([
+              expect.objectContaining({
+                properties: expect.objectContaining({
+                  kind: { enum: ['post'], type: 'string' },
+                  serializer: { enum: ['post'], type: 'string' },
+                }),
+              }),
+            ]),
+          },
+        },
+      },
+    });
+    const workflow = params.tools?.find(
+      (tool) => tool.function.name === 'create_workflow',
+    );
+    expect(workflow?.function.parameters).toMatchObject({
+      $defs: expect.objectContaining({ jsonValue: expect.any(Object) }),
+      properties: {
+        nodes: {
+          items: {
+            properties: expect.objectContaining({
+              id: { type: 'string' },
+              data: { type: 'object' },
+            }),
+          },
+        },
+      },
+    });
+  });
+
   it('preserves canonical schemas for non-Gemini providers', () => {
     const tools = buildToolDefinitions();
     const params = buildAgentChatCompletionParams({

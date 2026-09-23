@@ -25,13 +25,15 @@ const baseProperties = {
   id: STRING_SCHEMA,
   sourceKey: STRING_SCHEMA,
   sourceParams: {
-    additionalProperties: { type: ['string', 'number', 'boolean', 'null'] },
+    additionalProperties: {
+      anyOf: [STRING_SCHEMA, NUMBER_SCHEMA, BOOLEAN_SCHEMA, { type: 'null' }],
+    },
     type: 'object',
   },
   subtitle: STRING_SCHEMA,
   title: STRING_SCHEMA,
   trend,
-  value: { type: ['string', 'number'] },
+  value: { anyOf: [STRING_SCHEMA, NUMBER_SCHEMA] },
   width: enumSchema(['full', 'half', 'third']),
 };
 const metric = closedObjectSchema(
@@ -43,7 +45,7 @@ const block = closedObjectSchema(
     ...baseProperties,
     blocks: arraySchema(DASHBOARD_BLOCK_REFERENCE),
     cards: arraySchema(metric),
-    chartType: enumSchema(['area', 'bar', 'line', 'pie', 'funnel']),
+    chartType: enumSchema(['area', 'bar', 'line', 'pie']),
     columns: {
       anyOf: [
         NUMBER_SCHEMA,
@@ -73,7 +75,7 @@ const block = closedObjectSchema(
     ),
     items: arraySchema(STRING_SCHEMA),
     layout: enumSchema(['row', 'column', 'grid', 'list']),
-    level: { enum: [1, 2, 3, 4], type: 'number' },
+    level: { enum: [1, 2, 3], type: 'number' },
     message: STRING_SCHEMA,
     ordered: BOOLEAN_SCHEMA,
     pageSize: NUMBER_SCHEMA,
@@ -126,11 +128,48 @@ const block = closedObjectSchema(
   ['id', 'type'],
 );
 
-export const DASHBOARD_DEFINITIONS = { dashboardBlock: block };
-export const DASHBOARD_DOCUMENT_SCHEMA = closedObjectSchema(
+const componentReference = { $ref: '#/$defs/dashboardComponent' } as const;
+const component = closedObjectSchema(
   {
-    blocks: arraySchema(DASHBOARD_BLOCK_REFERENCE),
-    version: enumSchema(['genfeed.dashboard.openui.v1']),
+    component: enumSchema([
+      'Dashboard.MetricCard',
+      'Dashboard.KpiGrid',
+      'Dashboard.Chart',
+      'Dashboard.Table',
+      'Dashboard.TopPosts',
+      'Dashboard.Alert',
+      'Dashboard.SectionHeader',
+      'Dashboard.Text',
+      'Dashboard.BulletList',
+      'Dashboard.Callout',
+      'Dashboard.ImageGrid',
+      'Dashboard.EmptyState',
+      'Dashboard.Stack',
+    ]),
+    props: JSON_OBJECT_SCHEMA,
+    children: arraySchema(componentReference),
   },
-  ['blocks'],
+  ['component'],
 );
+export const DASHBOARD_DEFINITIONS = {
+  dashboardBlock: block,
+  dashboardComponent: component,
+};
+export const DASHBOARD_DOCUMENT_SCHEMA = {
+  anyOf: [
+    closedObjectSchema(
+      {
+        blocks: arraySchema(DASHBOARD_BLOCK_REFERENCE),
+        version: enumSchema(['genfeed.dashboard.openui.v1']),
+      },
+      ['blocks'],
+    ),
+    closedObjectSchema(
+      {
+        components: arraySchema(componentReference),
+        version: enumSchema(['genfeed.dashboard.openui.v1']),
+      },
+      ['components'],
+    ),
+  ],
+};

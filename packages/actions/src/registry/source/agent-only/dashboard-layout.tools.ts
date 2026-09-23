@@ -21,11 +21,21 @@ export const AGENT_DASHBOARD_LAYOUT_TOOLS: SourceTool[] = [
     parameters: {
       $defs: DASHBOARD_DEFINITIONS,
       properties: {
+        brandId: {
+          type: 'string',
+          description: 'Optional brand; defaults to the current brand.',
+        },
         blocks: {
           description:
             'Dashboard blocks to persist (same shape as render_dashboard). Data-bearing blocks must include a sourceKey.',
           items: DASHBOARD_BLOCK_REFERENCE,
           type: 'array',
+        },
+        version: {
+          type: 'integer',
+          minimum: 0,
+          description:
+            'Expected saved layout version for optimistic concurrency.',
         },
         document: {
           description:
@@ -50,6 +60,10 @@ export const AGENT_DASHBOARD_LAYOUT_TOOLS: SourceTool[] = [
     name: 'get_dashboard_layout',
     parameters: {
       properties: {
+        brandId: {
+          type: 'string',
+          description: 'Optional brand; defaults to the current brand.',
+        },
         pageKey: {
           description:
             'Page to read the layout for. Defaults to "workspace-overview".',
