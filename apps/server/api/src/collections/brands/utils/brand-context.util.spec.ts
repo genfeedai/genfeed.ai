@@ -69,6 +69,14 @@ describe('buildPromptBrandingFromBrand', () => {
     expect(result?.audience).toBe('Gen Z, Millennials');
   });
 
+  it('builds branding from an existing onboarding text audience', () => {
+    const result = buildPromptBrandingFromBrand({
+      agentConfig: { voice: { audience: 'Founders', tone: 'direct' } },
+    } as never);
+
+    expect(result).toMatchObject({ audience: 'Founders', tone: 'direct' });
+  });
+
   it('builds branding with hashtags array', () => {
     const brand = makeBrand({ hashtags: ['#AI', '#Content'] });
     const result = buildPromptBrandingFromBrand(brand);

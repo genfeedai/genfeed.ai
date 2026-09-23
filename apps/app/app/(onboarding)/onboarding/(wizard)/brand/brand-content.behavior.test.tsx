@@ -220,7 +220,7 @@ describe('BrandContent behavior', () => {
         {
           agentConfig: {
             voice: {
-              audience: 'Founders',
+              audience: ['Founders'],
               tone: 'Bold',
             },
           },

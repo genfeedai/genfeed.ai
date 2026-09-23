@@ -187,6 +187,28 @@ describe('AgentContextAssemblyService', () => {
     });
   });
 
+  it('assembles context for an existing onboarding brand with a text audience', async () => {
+    const brand = createCompleteBrand();
+    brandsService.findOne.mockResolvedValue({
+      ...brand,
+      agentConfig: {
+        ...brand.agentConfig,
+        voice: { ...brand.agentConfig.voice, audience: 'Founders' },
+      },
+    });
+
+    const context = await service.assembleContext({
+      brandId: 'brand-1',
+      layers: { brandMemory: false },
+      organizationId: 'org-1',
+    });
+
+    expect(context.voice).toMatchObject({
+      audience: 'Founders',
+      tone: 'direct',
+    });
+  });
+
   it('registers the cached brand context under the org-scoped tag', async () => {
     await service.assembleContext({
       brandId: 'brand-1',

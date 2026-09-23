@@ -4,6 +4,7 @@ import { useOnboarding } from '@contexts/onboarding/onboarding-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
@@ -336,12 +337,12 @@ function BrandContentContent() {
             : {}),
           ...(trimmedTone ? { tone: trimmedTone } : {}),
         });
-        const voiceConfig =
+        const voiceConfig: IBrandAgentConfig | undefined =
           trimmedTargetAudience || trimmedTone
             ? {
                 voice: {
                   ...(trimmedTargetAudience
-                    ? { audience: trimmedTargetAudience }
+                    ? { audience: [trimmedTargetAudience] }
                     : {}),
                   ...(trimmedTone ? { tone: trimmedTone } : {}),
                 },

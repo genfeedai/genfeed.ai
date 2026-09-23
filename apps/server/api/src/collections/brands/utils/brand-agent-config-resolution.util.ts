@@ -174,6 +174,26 @@ const asBrandAgentConfig = (value: unknown): BrandAgentConfig | undefined => {
   return value as BrandAgentConfig;
 };
 
+const normalizeVoiceAudience = (
+  voice: Partial<BrandAgentVoice>,
+): Partial<BrandAgentVoice> => {
+  const audience: unknown = voice.audience;
+  if (audience === undefined) {
+    return voice;
+  }
+
+  const entries = typeof audience === 'string' ? [audience] : audience;
+  return {
+    ...voice,
+    audience: Array.isArray(entries)
+      ? entries
+          .filter((entry): entry is string => typeof entry === 'string')
+          .map((entry) => entry.trim())
+          .filter(Boolean)
+      : [],
+  };
+};
+
 export const resolveEffectiveBrandAgentConfig = ({
   brand,
   organizationSettings,
@@ -222,10 +242,10 @@ export const resolveEffectiveBrandAgentConfig = ({
         }
       : undefined,
     voice: hasVoiceConfig
-      ? {
+      ? normalizeVoiceAudience({
           ...(brandAgentConfig?.voice ?? {}),
           ...(platformOverride?.voice ?? {}),
-        }
+        })
       : undefined,
   };
 };
