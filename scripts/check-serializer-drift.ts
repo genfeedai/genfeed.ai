@@ -732,6 +732,7 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'task-counter:TaskCounter': OPERATIONAL_MODEL_REASON,
   'template-usage:TemplateUsage': ANALYTICS_MODEL_REASON,
   'thread-context-state:ThreadContextState': INTERNAL_MODEL_REASON,
+  'trend-preferences:TrendPreferences': OPERATIONAL_MODEL_REASON,
   'trend-remix-lineage:TrendRemixLineage': ANALYTICS_MODEL_REASON,
   'trend-source-reference-link:TrendSourceReferenceLink': INTERNAL_MODEL_REASON,
   'trend-source-reference-snapshot:TrendSourceReferenceSnapshot':
