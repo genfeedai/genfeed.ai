@@ -294,6 +294,7 @@ type StoreState = {
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
   clearStaleActiveRun: ReturnType<typeof vi.fn>;
+  markStreamLive: ReturnType<typeof vi.fn>;
   draftAgentMode: AgentThreadMode;
   hasMoreMessages: boolean;
   isLoadingOlderMessages: boolean;
@@ -361,6 +362,7 @@ const storeState: StoreState = {
   addWorkEvent: vi.fn(),
   clearPendingInputRequest: vi.fn(),
   clearStaleActiveRun: vi.fn(),
+  markStreamLive: vi.fn(),
   draftAgentMode: AgentThreadMode.MANUAL,
   error: null,
   hasMoreMessages: false,
@@ -477,6 +479,7 @@ describe('AgentChatContainer', () => {
     storeState.addWorkEvent.mockReset();
     storeState.clearPendingInputRequest.mockReset();
     storeState.clearStaleActiveRun.mockReset();
+    storeState.markStreamLive.mockReset();
     storeState.prependOlderMessages.mockClear();
     storeState.setActiveThread.mockReset();
     storeState.setActiveRun.mockReset();

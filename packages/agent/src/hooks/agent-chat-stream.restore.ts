@@ -15,6 +15,7 @@ export type RestoreThreadFromSnapshotDeps = {
   clearCompletionWatchdog: () => void;
   clearPendingCompletionIfThread: (threadId: string) => void;
   clearPendingInputRequest: () => void;
+  markStreamLive: () => void;
   resetStreamState: () => void;
   setActiveRun: (
     runId: string | null,
@@ -79,11 +80,15 @@ export async function restoreThreadFromSnapshot(
   deps.setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
   deps.setPendingInputRequest(pendingInputRequest);
   deps.setWorkEvents(mapSnapshotWorkEvents(snapshot));
+  const activeRunStatus = mapSnapshotRunStatus(snapshot.activeRun?.status);
   deps.setActiveRun(snapshot.activeRun?.runId ?? null, {
     startedAt: snapshot.activeRun?.startedAt ?? null,
-    status: mapSnapshotRunStatus(snapshot.activeRun?.status),
+    status: activeRunStatus,
   });
   deps.setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
+  if (snapshot.activeRun && activeRunStatus === 'running') {
+    deps.markStreamLive();
+  }
 
   if (!snapshot.activeRun && !pendingInputRequest) {
     deps.resetStreamState();

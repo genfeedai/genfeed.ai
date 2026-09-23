@@ -100,6 +100,7 @@ export function useAgentChatStream(
   const addPendingUiActions = useAgentChatStore((s) => s.addPendingUiActions);
   const updateActiveToolCall = useAgentChatStore((s) => s.updateActiveToolCall);
   const finalizeStream = useAgentChatStore((s) => s.finalizeStream);
+  const markStreamLive = useAgentChatStore((s) => s.markStreamLive);
   const resetStreamState = useAgentChatStore((s) => s.resetStreamState);
 
   const abortRef = useRef<AbortController | null>(null);
@@ -121,12 +122,15 @@ export function useAgentChatStream(
     }
     streamRuntime.unsubscribersRef.current = [];
     streamRuntime.bufferedEventsRef.current = [];
+    streamRuntime.activeStreamRunIdRef.current = null;
+    streamRuntime.isAwaitingRunIdRef.current = false;
   }, []);
 
   const flushBufferedEvents = useCallback((threadId: string) => {
     streamRuntime.bufferedEventsRef.current = flushBufferedEventsForThread(
       streamRuntime.bufferedEventsRef.current,
       threadId,
+      streamRuntime.activeStreamRunIdRef.current,
     );
   }, []);
 
@@ -206,6 +210,7 @@ export function useAgentChatStream(
           }
         },
         clearPendingInputRequest,
+        markStreamLive,
         resetStreamState,
         setActiveRun,
         setError,
@@ -221,6 +226,7 @@ export function useAgentChatStream(
       apiService,
       clearCompletionWatchdog,
       clearPendingInputRequest,
+      markStreamLive,
       resetStreamState,
       setActiveRun,
       setError,
@@ -380,6 +386,7 @@ export function useAgentChatStream(
   const attachSubscriptions = useCallback(() => {
     streamRuntime.unsubscribersRef.current.push(
       ...attachAgentStreamSubscriptions({
+        activeStreamRunIdRef: streamRuntime.activeStreamRunIdRef,
         activeStreamThreadRef: streamRuntime.activeStreamThreadRef,
         addActiveToolCall,
         addPendingUiActions,
@@ -392,6 +399,7 @@ export function useAgentChatStream(
         resolvePendingInputRequest,
         completeOnboardingIfNeeded,
         finalizeStream,
+        isAwaitingRunIdRef: streamRuntime.isAwaitingRunIdRef,
         isThreadVisible,
         markThreadRunning,
         pendingCompletionRef: streamRuntime.pendingCompletionRef,
@@ -448,16 +456,14 @@ export function useAgentChatStream(
   //
   // Re-attaching here — and rebuilding the watchdog state from the store, which
   // *does* survive the remount — makes the new instance take over the live run.
+  // A run restored after reload or navigation (`markStreamLive`) flips
+  // `isStreaming` on and is adopted the same way.
   useEffect(() => {
-    if (!isReady || !activeThreadId) {
+    if (!isReady || !activeThreadId || !isStreaming) {
       return;
     }
 
     const state = useAgentChatStore.getState();
-
-    if (!state.stream.isStreaming) {
-      return;
-    }
 
     // The shared runtime already owns this stream — `sendMessage` attached the
     // subscriptions on this or another live instance.
@@ -475,6 +481,8 @@ export function useAgentChatStream(
     }
 
     streamRuntime.activeStreamThreadRef.current = activeThreadId;
+    streamRuntime.activeStreamRunIdRef.current = state.activeRunId;
+    streamRuntime.isAwaitingRunIdRef.current = false;
     attachSubscriptions();
     streamRuntime.pendingCompletionRef.current = {
       initiatedAt: Date.now(),
@@ -490,6 +498,7 @@ export function useAgentChatStream(
     attachSubscriptions,
     flushBufferedEvents,
     isReady,
+    isStreaming,
     scheduleCompletionWatchdog,
   ]);
 
@@ -544,6 +553,8 @@ export function useAgentChatStream(
       clearCompletionWatchdog();
       resetStreamState();
       cleanupSubscriptions();
+      // Hold every event until acceptance names this turn's run.
+      streamRuntime.isAwaitingRunIdRef.current = true;
 
       if (currentActiveThreadId) {
         updateThreadSummary(currentActiveThreadId, {
@@ -602,6 +613,8 @@ export function useAgentChatStream(
         const acceptedAt = response.queuedAt;
 
         streamRuntime.activeStreamThreadRef.current = response.threadId;
+        streamRuntime.activeStreamRunIdRef.current = response.executionId;
+        streamRuntime.isAwaitingRunIdRef.current = false;
         streamRuntime.pendingCompletionRef.current = {
           initiatedAt: Date.now(),
           preAssistantIds,

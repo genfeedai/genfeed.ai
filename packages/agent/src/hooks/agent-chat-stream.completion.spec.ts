@@ -89,3 +89,61 @@ it('keeps reconciling a durably queued run after the stream grace period', async
   expect(deps.clearPendingCompletion).not.toHaveBeenCalled();
   expect(deps.cleanupSubscriptions).not.toHaveBeenCalled();
 });
+
+it('recovers only the reply produced by the tracked run', async () => {
+  const trackedReply = {
+    content: 'Your setup is partially done.',
+    createdAt: '2026-09-23T15:09:00.000Z',
+    id: 'assistant-run-2',
+    metadata: { runId: 'execution-2' },
+    role: 'assistant' as const,
+    threadId: 'thread-1',
+  };
+  const deps = {
+    apiService: {
+      getMessages: vi.fn().mockResolvedValue([
+        {
+          ...trackedReply,
+          content: 'Reply from the earlier run',
+          id: 'assistant-run-1',
+          metadata: { runId: 'execution-1' },
+        },
+      ]),
+      getWorkflowExecution: vi.fn(),
+    },
+    cleanupSubscriptions: vi.fn(),
+    clearCompletionWatchdog: vi.fn(),
+    clearPendingCompletion: vi.fn(),
+    clearPendingInputRequest: vi.fn(),
+    isCurrentPendingThread: vi.fn(() => true),
+    isThreadVisible: vi.fn(() => true),
+    resetStreamState: vi.fn(),
+    scheduleCompletionWatchdog: vi.fn(),
+    setActiveRun: vi.fn(),
+    setActiveRunStatus: vi.fn(),
+    setError: vi.fn(),
+    setMessages: vi.fn(),
+    updateThreadSummary: vi.fn(),
+  };
+  const pending = {
+    initiatedAt: Date.now(),
+    preAssistantIds: new Set<string>(),
+    runId: 'execution-2',
+    startedAt: '2026-09-23T15:08:00.000Z',
+    threadId: 'thread-1',
+  };
+
+  await resolveStreamFromMessages(pending, deps as never);
+
+  expect(deps.setMessages).not.toHaveBeenCalled();
+  expect(deps.scheduleCompletionWatchdog).toHaveBeenCalledOnce();
+
+  deps.apiService.getMessages.mockResolvedValue([trackedReply]);
+  await resolveStreamFromMessages(pending, deps as never);
+
+  expect(deps.setMessages).toHaveBeenCalledWith([trackedReply]);
+  expect(deps.setActiveRun).toHaveBeenCalledWith('execution-2', {
+    startedAt: '2026-09-23T15:08:00.000Z',
+    status: 'completed',
+  });
+});

@@ -55,6 +55,7 @@ export async function resolveStreamFromMessages(
     const recoveredAssistantMessage = findRecoveredAssistantMessage(
       messages,
       pending.preAssistantIds,
+      pending.runId,
     );
 
     if (!recoveredAssistantMessage) {

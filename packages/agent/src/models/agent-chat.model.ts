@@ -42,6 +42,8 @@ export interface AgentChatMessageMetadata {
   attachments?: ChatAttachment[];
   suggestedActions?: SuggestedAction[];
   proposedPlan?: AgentProposedPlan | null;
+  /** Execution that produced this assistant reply. */
+  runId?: string;
   agentTransfer?: {
     direction: 'inbound' | 'outbound';
     transfer?: AgentTransferPresentation;

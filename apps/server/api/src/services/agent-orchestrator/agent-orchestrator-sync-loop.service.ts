@@ -372,6 +372,7 @@ export class AgentOrchestratorSyncLoopService {
             metadata: {
               creditsRemaining,
               ...assistantMetadata,
+              ...(context.executionId ? { runId: context.executionId } : {}),
               tokenUsage: response.usage
                 ? {
                     completion: response.usage.completion_tokens,

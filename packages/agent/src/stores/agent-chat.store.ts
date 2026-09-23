@@ -344,6 +344,11 @@ interface AgentChatActions {
     update: Partial<AgentToolCall>,
   ) => void;
   finalizeStream: (message: AgentChatMessage) => void;
+  /**
+   * Treat a run adopted from the server (reload, navigation, reconnect) as a
+   * live stream, so the working row renders and the stream hook re-attaches.
+   */
+  markStreamLive: () => void;
   resetStreamState: () => void;
   setSocketConnectionState: (state: AgentSocketConnectionState) => void;
   updateThread: (threadId: string, update: Partial<AgentThread>) => void;
@@ -853,6 +858,12 @@ export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
       };
     });
   },
+  markStreamLive: () =>
+    set((state) =>
+      state.stream.isStreaming
+        ? state
+        : { stream: { ...state.stream, isStreaming: true } },
+    ),
   isConversationCacheFresh: (threadId) => {
     const cached = get().conversationCacheByThread[threadId];
     if (!cached) {

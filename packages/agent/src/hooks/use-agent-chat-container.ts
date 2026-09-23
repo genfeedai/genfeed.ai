@@ -25,6 +25,7 @@ import {
   readConversationComposerDraft,
   writeConversationComposerAttachments,
 } from '@genfeedai/agent/stores/conversation-composer-draft.store';
+import type { MappedSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 import type { ComposerFollowUp } from '@genfeedai/agent/utils/composer-follow-up-queue.util';
 import {
   computeStableTimelineEntries,
@@ -64,6 +65,10 @@ interface UseAgentChatContainerParams {
   onCreateFollowUpTasks?: (taskId: string) => Promise<{ createdCount: number }>;
   onSelectIngredient?: (ingredient: { id: string; title?: string }) => void;
   workspacePlanningTaskId?: string | null;
+}
+
+function isAgentRunActive(status: MappedSnapshotRunStatus): boolean {
+  return status === 'running' || status === 'cancelling';
 }
 
 function restoreComposerAttachments(
@@ -159,6 +164,7 @@ export function useAgentChatContainer({
     (s) => s.clearPendingInputRequest,
   );
   const clearStaleActiveRun = useAgentChatStore((s) => s.clearStaleActiveRun);
+  const markStreamLive = useAgentChatStore((s) => s.markStreamLive);
   const draftAgentMode = useAgentChatStore((s) => s.draftAgentMode);
   const savedAgentMode = useAgentChatStore((s) => s.savedAgentMode);
   const hasExplicitDraftAgentMode = useAgentChatStore(
@@ -202,7 +208,11 @@ export function useAgentChatContainer({
     });
 
   const sendMessage = isStreaming ? sendStreaming : sendNonStreaming;
-  const isTransportBusy = isGenerating || (isStreaming && isStreamingActive);
+  // One source of truth with the Stop button: while a run is active, a send
+  // queues as a follow-up instead of starting a second run on the thread.
+  const isRunActive = isAgentRunActive(activeRunStatus);
+  const isTransportBusy =
+    isGenerating || (isStreaming && isStreamingActive) || isRunActive;
 
   const {
     attachments: chatAttachments,
@@ -283,8 +293,6 @@ export function useAgentChatContainer({
   activeThreadIdRef.current = activeThreadId;
   messagesCursorRef.current = messagesCursor;
 
-  const isRunActive =
-    activeRunStatus === 'running' || activeRunStatus === 'cancelling';
   const canAutoDispatchFollowUps = !isBusy && !error;
 
   const activeThreadTitle = useMemo(() => {
@@ -481,6 +489,7 @@ export function useAgentChatContainer({
       const shouldQueueFollowUp =
         Boolean(activeUiActionRef.current) ||
         liveState.isGenerating ||
+        isAgentRunActive(liveState.activeRunStatus) ||
         (isStreaming &&
           liveState.stream.isStreaming &&
           liveState.activeRunStatus !== 'awaiting_input');
@@ -1011,14 +1020,18 @@ export function useAgentChatContainer({
           return;
         }
 
+        const isExecutionLive =
+          matchingExecution.status === WorkflowExecutionStatus.RUNNING ||
+          matchingExecution.status === WorkflowExecutionStatus.PENDING;
         setActiveRun(matchingExecution.id, {
           startedAt: matchingExecution.startedAt ?? null,
-          status:
-            matchingExecution.status === WorkflowExecutionStatus.RUNNING ||
-            matchingExecution.status === WorkflowExecutionStatus.PENDING
-              ? 'running'
-              : 'idle',
+          status: isExecutionLive ? 'running' : 'idle',
         });
+        // Without a live stream the transcript renders nothing while Stop and
+        // WORKING are on, and no listener is attached to hear the run finish.
+        if (isExecutionLive) {
+          markStreamLive();
+        }
       })
       .catch(() => {
         /* ignore restore failures */
@@ -1030,6 +1043,7 @@ export function useAgentChatContainer({
     activeThreadId,
     apiService,
     clearStaleActiveRun,
+    markStreamLive,
     setActiveRun,
   ]);
 

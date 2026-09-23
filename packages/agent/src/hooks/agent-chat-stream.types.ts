@@ -45,6 +45,7 @@ export interface UseAgentChatStreamReturn {
 }
 
 export interface BufferedThreadEvent {
+  runId?: string;
   threadId?: string;
   data: unknown;
   handler: (data: unknown) => void;
@@ -60,9 +61,17 @@ export interface PendingStreamCompletion {
 
 /** Mutable stream-ownership state shared by every mounted `useAgentChatStream`. */
 export interface AgentStreamRuntime {
+  /**
+   * Run the stream belongs to. Events stamped with any other run id are
+   * dropped, so a slow earlier run on the same thread cannot revive
+   * Stop/WORKING or leak tokens into the current turn.
+   */
+  activeStreamRunIdRef: MutableRefObject<string | null>;
   activeStreamThreadRef: MutableRefObject<string | null>;
   bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
   completionTimeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
+  /** A send is waiting for its run id; events are held until it is known. */
+  isAwaitingRunIdRef: MutableRefObject<boolean>;
   /** Live hook instances; shared subscriptions are torn down only at zero. */
   mountCount: number;
   pendingCompletionRef: MutableRefObject<PendingStreamCompletion | null>;

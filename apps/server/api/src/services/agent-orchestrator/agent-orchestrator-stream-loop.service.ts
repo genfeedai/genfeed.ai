@@ -503,6 +503,9 @@ export class AgentOrchestratorStreamLoopService {
               reasoning,
               reviewRequired: toolRoundState.reviewRequired,
               riskLevel: toolRoundState.highestRiskLevel,
+              // Ties the reply to its run so stream recovery never adopts a
+              // concurrent run's answer.
+              ...(context.executionId ? { runId: context.executionId } : {}),
               ...(enhancedUiActions.suggestedActions.length
                 ? { suggestedActions: enhancedUiActions.suggestedActions }
                 : {}),

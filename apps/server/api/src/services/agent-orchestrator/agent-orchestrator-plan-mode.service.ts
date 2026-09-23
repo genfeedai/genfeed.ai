@@ -295,6 +295,9 @@ export class AgentOrchestratorPlanModeService {
       metadata: {
         creditsRemaining,
         ...assistantMetadata,
+        ...(params.context.executionId
+          ? { runId: params.context.executionId }
+          : {}),
       },
       organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,

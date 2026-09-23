@@ -5,9 +5,11 @@ import type {
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 
 const runtime: AgentStreamRuntime = {
+  activeStreamRunIdRef: { current: null },
   activeStreamThreadRef: { current: null },
   bufferedEventsRef: { current: [] as BufferedThreadEvent[] },
   completionTimeoutRef: { current: null },
+  isAwaitingRunIdRef: { current: false },
   mountCount: 0,
   pendingCompletionRef: { current: null as PendingStreamCompletion | null },
   unsubscribersRef: { current: [] as Array<() => void> },
@@ -41,9 +43,11 @@ export function resetAgentStreamRuntime(): void {
     clearTimeout(runtime.completionTimeoutRef.current);
   }
 
+  runtime.activeStreamRunIdRef.current = null;
   runtime.activeStreamThreadRef.current = null;
   runtime.bufferedEventsRef.current = [];
   runtime.completionTimeoutRef.current = null;
+  runtime.isAwaitingRunIdRef.current = false;
   runtime.mountCount = 0;
   runtime.pendingCompletionRef.current = null;
   runtime.unsubscribersRef.current = [];
