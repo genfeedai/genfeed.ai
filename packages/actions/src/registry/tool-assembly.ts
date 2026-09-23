@@ -11,6 +11,7 @@ import {
   toolRequiresMutationPolicy,
 } from './mutation-policy';
 import { SOURCE_TOOLS } from './source/index';
+import { deriveMcpToolPresentation } from './source/tool-annotations';
 
 /**
  * Assembles `ALL_TOOLS` from the curated catalog and the hand-authored tool
@@ -196,8 +197,13 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
     }
 
     const agent = isActionOnSurface(entry, 'agent');
+    const mcp = isActionOnSurface(entry, 'mcp');
     const mutationPolicy = MUTATION_POLICY_BY_NAME[tool.name];
+    const presentation = mcp
+      ? deriveMcpToolPresentation(tool.name, mutationPolicy)
+      : undefined;
     return {
+      ...(presentation ? { annotations: presentation.annotations } : {}),
       category: inferCategory(tool.name),
       creditCost: tool.creditCost,
       description: tool.description,
@@ -207,8 +213,9 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       surfaces: {
         agent,
         cliAgentVisible: agent,
-        mcp: isActionOnSurface(entry, 'mcp'),
+        mcp,
       },
+      ...(presentation ? { title: presentation.title } : {}),
       toolset: entry.toolset,
       uiActionType: UI_ACTION_MAP[tool.name],
       ...(mutationPolicy ? { mutationPolicy } : {}),
@@ -230,5 +237,24 @@ const missingMutationPolicies = ALL_TOOLS.filter(
 if (missingMutationPolicies.length > 0) {
   throw new Error(
     `canonical write tools missing mutationPolicy: ${missingMutationPolicies.join(', ')}`,
+  );
+}
+
+const missingAnnotations = ALL_TOOLS.filter((tool) => {
+  if (!tool.surfaces.mcp) return false;
+  const annotations = tool.annotations;
+  return (
+    typeof tool.title !== 'string' ||
+    tool.title.length === 0 ||
+    annotations === undefined ||
+    typeof annotations.readOnlyHint !== 'boolean' ||
+    typeof annotations.destructiveHint !== 'boolean' ||
+    typeof annotations.idempotentHint !== 'boolean' ||
+    typeof annotations.openWorldHint !== 'boolean'
+  );
+}).map((tool) => tool.name);
+if (missingAnnotations.length > 0) {
+  throw new Error(
+    `MCP-surfaced tools missing title or readOnlyHint: ${missingAnnotations.join(', ')}`,
   );
 }

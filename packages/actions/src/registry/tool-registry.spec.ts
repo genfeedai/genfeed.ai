@@ -142,6 +142,8 @@ describe('tool registry catalog validation', () => {
         entry: CuratedActionCatalogEntry,
         surface: CuratedActionSurface,
       ) => entry.surfaces.some((candidate) => candidate === surface),
+      // tool-annotations reads this while the registry module loads.
+      isPublishingApprovalRequired: () => false,
     }));
     vi.doMock('./source/index', () => ({
       SOURCE_TOOLS: [

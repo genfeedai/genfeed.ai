@@ -28,6 +28,7 @@ export type {
 export { GENFEED_ACTION_NODE_TYPE } from './interfaces/action-execution.interface';
 export type {
   CanonicalToolDefinition,
+  ToolAnnotations,
   ToolCategory,
   ToolMutationPolicy,
   ToolParameterSchema,
