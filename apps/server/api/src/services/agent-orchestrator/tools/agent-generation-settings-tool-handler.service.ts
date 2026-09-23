@@ -10,6 +10,23 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 export class AgentGenerationSettingsToolHandler {
   constructor(private readonly settings: GenerationHarnessSettingsService) {}
 
+  handles(toolName: string): boolean {
+    return (
+      toolName === 'get_generation_settings' ||
+      toolName === 'set_generation_settings'
+    );
+  }
+
+  async execute(
+    toolName: string,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    return toolName === 'set_generation_settings'
+      ? this.set(params, ctx)
+      : this.get(params, ctx);
+  }
+
   async get(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,

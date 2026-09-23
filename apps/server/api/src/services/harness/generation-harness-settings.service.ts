@@ -87,16 +87,26 @@ export class GenerationHarnessSettingsService {
         data: { isDeleted: true },
       });
     } else {
-      await this.prisma.generationHarnessSetting.upsert({
-        where: { organizationId_scopeKey: { organizationId, scopeKey } },
-        create: {
-          organizationId,
-          brandId,
-          scopeKey,
-          isEnabled: input.isEnabled,
-        },
-        update: { isEnabled: input.isEnabled, isDeleted: false },
+      const revived = await this.prisma.generationHarnessSetting.updateMany({
+        where: { organizationId, scopeKey, isDeleted: true },
+        data: { isEnabled: input.isEnabled, isDeleted: false, brandId },
       });
+      if (revived.count === 0) {
+        const active = await this.prisma.generationHarnessSetting.updateMany({
+          where: { organizationId, scopeKey, isDeleted: false },
+          data: { isEnabled: input.isEnabled, brandId },
+        });
+        if (active.count === 0) {
+          await this.prisma.generationHarnessSetting.create({
+            data: {
+              organizationId,
+              brandId,
+              scopeKey,
+              isEnabled: input.isEnabled,
+            },
+          });
+        }
+      }
     }
     return this.get(organizationId, input.brandId);
   }

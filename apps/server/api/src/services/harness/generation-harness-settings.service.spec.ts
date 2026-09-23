@@ -8,7 +8,8 @@ function setup() {
     generationHarnessSetting: {
       findMany: vi.fn().mockResolvedValue([]),
       upsert: vi.fn(),
-      updateMany: vi.fn(),
+      updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+      create: vi.fn(),
     },
   };
   return {
@@ -69,17 +70,9 @@ describe('GenerationHarnessSettingsService', () => {
       brandId: 'brand',
       isEnabled: false,
     });
-    expect(prisma.generationHarnessSetting.upsert).toHaveBeenCalledWith({
-      where: {
-        organizationId_scopeKey: { organizationId: 'org', scopeKey: 'brand' },
-      },
-      create: {
-        organizationId: 'org',
-        brandId: 'brand',
-        scopeKey: 'brand',
-        isEnabled: false,
-      },
-      update: { isEnabled: false, isDeleted: false },
+    expect(prisma.generationHarnessSetting.updateMany).toHaveBeenCalledWith({
+      where: { organizationId: 'org', scopeKey: 'brand', isDeleted: true },
+      data: { isEnabled: false, isDeleted: false, brandId: 'brand' },
     });
   });
 

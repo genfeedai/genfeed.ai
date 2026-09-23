@@ -423,7 +423,13 @@ export class AgentToolExecutorService implements OnModuleInit {
                 'ingest_source_media',
               ].includes(toolName)
             ? await this.workObjects.execute(toolName, parameters, context)
-            : await this.dispatch(toolName, parameters, context);
+            : this.generationSettingsHandler.handles(toolName)
+              ? await this.generationSettingsHandler.execute(
+                  toolName,
+                  parameters,
+                  context,
+                )
+              : await this.dispatch(toolName, parameters, context);
       const scopedResult = await this.routeRewriteService.scopeToolResultHrefs(
         result,
         context,
@@ -605,12 +611,6 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'generate_content':
         return this.mediaGenerationHandler.generateContent(params, ctx);
-
-      case 'get_generation_settings':
-        return this.generationSettingsHandler.get(params, ctx);
-
-      case 'set_generation_settings':
-        return this.generationSettingsHandler.set(params, ctx);
 
       case 'generate_image':
         return this.mediaGenerationHandler.generateImage(params, ctx);
