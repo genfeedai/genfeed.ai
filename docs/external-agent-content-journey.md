@@ -80,8 +80,6 @@ The MCP generation toolset exposes:
   setting and its source.
 - `set_generation_settings`: pass `scope` (`organization` or `brand`), `isEnabled`
   (`true`, `false`, or `null` to reset), and `brandId` for a brand override.
-- `enhance_prompt`: preview enhancement for a prompt and `contentType` (`image`
-  or `video`), without creating media.
 
 For example, ask a connected agent to discover `set_generation_settings` and
 turn prompt enhancement on for a selected brand. Pass `harness: false` with an
@@ -89,7 +87,7 @@ individual generation to override saved preferences. Organization identity comes
 from authentication, never from caller-supplied tool arguments.
 
 The generation integration remains pending until the central image/video path
-and preview executor are connected and verified. Tool registration and the
+and planned `enhance_prompt` preview executor are connected and verified. Tool registration and the
 settings UI alone do not establish that enhancement ran. An applied generation
 must return and persist `generationHarness` with the exact submitted prompt,
 setting source, and sanitized contributing pack IDs/versions. The receipt is

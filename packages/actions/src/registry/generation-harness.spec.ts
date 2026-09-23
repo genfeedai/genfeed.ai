@@ -3,13 +3,12 @@ import { getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('generation harness catalog', () => {
   it.each(['agent', 'mcp'] as const)(
-    'exposes settings and preview on %s without credit charges',
+    'exposes settings on %s without credit charges',
     (surface) => {
       const tools = getToolsForSurface(surface);
       for (const name of [
         'get_generation_settings',
         'set_generation_settings',
-        'enhance_prompt',
       ]) {
         expect(tools.find((tool) => tool.name === name)).toMatchObject({
           creditCost: 0,

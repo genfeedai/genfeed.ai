@@ -31,22 +31,6 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
     },
   },
   {
-    name: 'enhance_prompt',
-    description:
-      'Preview an enhanced image/video prompt and applied pack receipt without generating media. Explicitly requests enhancement regardless of saved preferences.',
-    creditCost: 0,
-    requiredRole: 'user',
-    parameters: {
-      type: 'object',
-      required: ['prompt', 'contentType'],
-      properties: {
-        prompt: { type: 'string', minLength: 1 },
-        contentType: { type: 'string', enum: ['image', 'video'] },
-        brandId: { type: 'string' },
-      },
-    },
-  },
-  {
     // Floor for preflight only. Real amount is format+model-aware and billed
     // dynamically in the handler (isBillingDelegated).
     creditCost: 1,

@@ -114,7 +114,6 @@ describe('MCP tool annotations', () => {
     for (const tool of getToolsForSurface('mcp')) {
       const isOpenWorld =
         tool.name.startsWith('generate_') ||
-        tool.name === 'enhance_prompt' ||
         tool.name === 'reframe_image' ||
         tool.name === 'upscale_image' ||
         publishing.has(tool.name);

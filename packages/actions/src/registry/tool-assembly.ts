@@ -64,13 +64,7 @@ const UI_ACTION_MAP: Partial<
 };
 
 export function inferCategory(name: string): ToolCategory {
-  if (
-    [
-      'get_generation_settings',
-      'set_generation_settings',
-      'enhance_prompt',
-    ].includes(name)
-  )
+  if (['get_generation_settings', 'set_generation_settings'].includes(name))
     return 'generation';
   if (name.includes('outreach_sequence') || name.includes('campaign')) {
     return 'campaign';

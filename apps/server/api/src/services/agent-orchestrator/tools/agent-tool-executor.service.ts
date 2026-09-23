@@ -142,7 +142,6 @@ export interface ToolExecutionContext {
 const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
   'get_generation_settings',
   'set_generation_settings',
-  'enhance_prompt',
   'analyze_performance',
   'check_goal_progress',
   'check_onboarding_status',
