@@ -191,6 +191,13 @@ supported API flows that call a local ComfyUI instance, configure:
 FLEET_COMFYUI_URL=http://your-comfyui-host:8188
 ```
 
+For `genfeed-ai/z-image-turbo-lora` or `genfeed-ai/flux2-dev-pulid-lora`,
+include `loraPath` in the image API request. Use a `.safetensors` filename
+relative to your ComfyUI LoRA directory, for example
+`"loraPath": "styles/product.safetensors"`. Absolute paths, parent-directory
+traversal and missing names are rejected. There is no bundled persona default.
+These ComfyUI LoRA models are not offered by the Replicate workflow image node.
+
 ## Organization Billing
 
 Organization billing code ships in the same image as everything else — there

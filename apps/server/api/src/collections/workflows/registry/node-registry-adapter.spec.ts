@@ -39,6 +39,13 @@ describe('node-registry-adapter', () => {
     });
   });
 
+  it('does not offer ComfyUI LoRA models in the Replicate workflow executor', () => {
+    const options =
+      getNodeDefinition('ai-generate-image')?.configSchema?.model?.options;
+    expect(options).not.toContain('genfeed-ai/flux2-dev-pulid-lora');
+    expect(options).not.toContain('genfeed-ai/z-image-turbo-lora');
+  });
+
   it('resolves canonical workflow input aliases', () => {
     const definition = getNodeDefinition('workflowInput');
 
