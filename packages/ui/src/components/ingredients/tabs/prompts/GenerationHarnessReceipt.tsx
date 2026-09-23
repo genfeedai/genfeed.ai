@@ -2,27 +2,31 @@
 
 import type { GenerationHarnessReceiptProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import Card from '@ui/card/Card';
+import { useTranslations } from 'next-intl';
 
 export default function GenerationHarnessReceipt({
   receipt,
 }: GenerationHarnessReceiptProps) {
+  const translate = useTranslations('ui.generationHarness');
   return (
     <Card bodyClassName="gap-3">
       <div className="space-y-1">
         <p className="text-sm font-semibold">
           {receipt.status === 'applied'
-            ? 'Prompt enhanced'
-            : 'Enhancement skipped'}
+            ? translate('promptEnhanced')
+            : translate('enhancementSkipped')}
         </p>
         <p className="text-xs text-muted-foreground">
           {receipt.source === 'request'
-            ? 'This generation’s override'
-            : `${receipt.source === 'default' ? 'System default' : `${receipt.source} preference`}`}
+            ? translate('requestOverride')
+            : receipt.source === 'default'
+              ? translate('systemDefault')
+              : translate('sourcePreference', { source: receipt.source })}
         </p>
       </div>
       <div className="space-y-1">
         <p className="text-xs font-medium text-muted-foreground">
-          Submitted prompt
+          {translate('submittedPrompt')}
         </p>
         <p className="whitespace-pre-wrap break-words text-sm">
           {receipt.enhancedPrompt}
@@ -31,7 +35,7 @@ export default function GenerationHarnessReceipt({
       {receipt.appliedPacks.length > 0 ? (
         <div className="space-y-1">
           <p className="text-xs font-medium text-muted-foreground">
-            Applied context
+            {translate('appliedContext')}
           </p>
           <ul className="space-y-1 text-xs text-muted-foreground">
             {receipt.appliedPacks.map((pack) => (

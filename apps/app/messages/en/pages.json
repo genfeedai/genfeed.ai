@@ -489,6 +489,7 @@
       "close": "Close inspector",
       "emptyHistory": "No other outputs in this run.",
       "emptyRecipe": "No recipe is attached to this generation yet.",
+      "receiptLoadError": "Could not load the submitted prompt. Reopen this asset to retry.",
       "emptyUsedIn": "This asset has not been used in a post yet.",
       "history": "History",
       "loading": "Loading\u2026",

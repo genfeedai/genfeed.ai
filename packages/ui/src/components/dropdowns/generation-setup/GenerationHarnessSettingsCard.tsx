@@ -4,6 +4,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { GenerationHarnessSettingsCardProps } from '@genfeedai/props/ui/generation-setup/generation-harness.props';
 import { Button } from '@ui/primitives/button';
 import { Switch } from '@ui/primitives/switch';
+import { useTranslations } from 'next-intl';
 
 export default function GenerationHarnessSettingsCard({
   brandId,
@@ -14,26 +15,31 @@ export default function GenerationHarnessSettingsCard({
   onSave,
   settings,
 }: GenerationHarnessSettingsCardProps) {
+  const translate = useTranslations('ui.generationHarness');
   const isDisabled = isLoading || isSaving || !settings;
+  const brandOptions = [
+    { label: translate('inherit'), value: null },
+    { label: translate('on'), value: true },
+    { label: translate('off'), value: false },
+  ] as const;
   return (
     <div className="flex flex-col gap-4 p-4" aria-busy={isLoading || isSaving}>
       <div className="space-y-1">
-        <p className="text-sm font-semibold">Prompt enhancement</p>
+        <p className="text-sm font-semibold">{translate('title')}</p>
         <p className="text-xs text-muted-foreground">
-          Improve image and video prompts automatically. These preferences apply
-          in Studio and all connected agents.
+          {translate('description')}
         </p>
       </div>
       {isLoading ? (
         <p className="text-sm" role="status">
-          Loading settings…
+          {translate('loading')}
         </p>
       ) : null}
       {settings ? (
         <>
           <Switch
-            aria-label="Organization prompt enhancement"
-            label="Organization default"
+            aria-label={translate('organizationLabel')}
+            label={translate('organizationDefault')}
             isChecked={settings.organizationEnabled ?? true}
             isDisabled={isDisabled}
             onCheckedChange={(value) => {
@@ -50,24 +56,18 @@ export default function GenerationHarnessSettingsCard({
               }}
               withWrapper={false}
             >
-              Reset organization default
+              {translate('resetOrganization')}
             </Button>
           ) : null}
           {brandId ? (
             <div className="space-y-2">
-              <p className="text-sm font-medium">This brand</p>
+              <p className="text-sm font-medium">{translate('brand')}</p>
               <div
                 className="flex gap-1"
                 role="group"
-                aria-label="Brand prompt enhancement"
+                aria-label={translate('brandLabel')}
               >
-                {(
-                  [
-                    { label: 'Inherit', value: null },
-                    { label: 'On', value: true },
-                    { label: 'Off', value: false },
-                  ] as const
-                ).map((option) => (
+                {brandOptions.map((option) => (
                   <Button
                     key={option.label}
                     aria-pressed={settings.brandEnabled === option.value}
@@ -108,7 +108,7 @@ export default function GenerationHarnessSettingsCard({
             onClick={onRefresh}
             withWrapper={false}
           >
-            Refresh settings
+            {translate('refresh')}
           </Button>
         </div>
       ) : null}

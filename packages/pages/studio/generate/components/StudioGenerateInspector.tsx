@@ -185,7 +185,7 @@ export default function StudioGenerateInspector({
         ) : null}
         {activeTab === 'recipe' && receiptError ? (
           <p role="status" className="text-xs text-muted-foreground">
-            Could not load the submitted prompt. Reopen this asset to retry.
+            {translate('inspector.receiptLoadError')}
           </p>
         ) : null}
 

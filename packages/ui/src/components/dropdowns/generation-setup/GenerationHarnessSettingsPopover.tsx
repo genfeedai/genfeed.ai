@@ -11,6 +11,7 @@ import {
   PopoverTrigger,
 } from '@ui/primitives/popover';
 import { WandSparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 function SettingsContent() {
@@ -29,13 +30,14 @@ export default function GenerationHarnessSettingsPopover({
   isDisabled,
 }: GenerationHarnessSettingsPopoverProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const translate = useTranslations('ui.generationHarness');
   return (
     <Popover open={isOpen && !isDisabled} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
           className={className}
-          ariaLabel="Prompt enhancement settings"
-          tooltip="Prompt enhancement settings"
+          ariaLabel={translate('settings')}
+          tooltip={translate('settings')}
           icon={<WandSparkles className="size-4" />}
           isDisabled={isDisabled}
           size={ButtonSize.ICON}
