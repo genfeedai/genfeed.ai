@@ -5,9 +5,9 @@ import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { scopedWhere } from '@api/index';
 import { ExpertPositioningService } from '@api/services/expert-path/services/expert-positioning.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActivitySource,
   BrandInterviewStatus,
