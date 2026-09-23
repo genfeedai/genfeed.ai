@@ -57,16 +57,19 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
         expiresIn: 3600,
       }),
     };
+    const brands = { findOne: vi.fn().mockResolvedValue({ id: 'brand-1' }) };
     const handler = new AgentWorkspaceToolHandler(
       {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[0],
-      {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[1],
+      brands as unknown as ConstructorParameters<
+        typeof AgentWorkspaceToolHandler
+      >[1],
       {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[2],
       {} as ConstructorParameters<typeof AgentWorkspaceToolHandler>[3],
       uploads as unknown as ConstructorParameters<
         typeof AgentWorkspaceToolHandler
       >[4],
     );
-    return { handler, uploads };
+    return { brands, handler, uploads };
   }
   const params = {
     filename: 'photo.png',
@@ -99,13 +102,49 @@ describe('AgentWorkspaceToolHandler.requestMediaUpload', () => {
   });
 
   it('rejects brandless uploads before reserving an asset', async () => {
-    const { handler, uploads } = fixture();
+    const { brands, handler, uploads } = fixture();
+    brands.findOne.mockResolvedValue(null);
     const result = await handler.requestMediaUpload(params, {
       organizationId: 'org-1',
       userId: 'user-1',
     });
     expect(result.success).toBe(false);
     expect(result.error).toContain('brand');
+    expect(uploads.getPresignedUploadUrl).not.toHaveBeenCalled();
+  });
+
+  it('resolves the selected brand for headless MCP calls', async () => {
+    const { brands, handler, uploads } = fixture();
+    const result = await handler.requestMediaUpload(params, {
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(result.success).toBe(true);
+    expect(brands.findOne).toHaveBeenCalledWith({
+      isDeleted: false,
+      isSelected: true,
+      organizationId: 'org-1',
+      userId: 'user-1',
+    });
+    expect(uploads.getPresignedUploadUrl).toHaveBeenCalledWith(
+      expect.objectContaining({ brandId: 'brand-1', organizationId: 'org-1' }),
+      expect.anything(),
+    );
+  });
+
+  it('rejects an explicit brand outside the organization without falling back', async () => {
+    const { brands, handler, uploads } = fixture();
+    brands.findOne.mockResolvedValue(null);
+    const result = await handler.requestMediaUpload(params, {
+      ...ctx,
+      brandId: 'foreign-brand',
+    });
+    expect(result.success).toBe(false);
+    expect(brands.findOne).toHaveBeenCalledExactlyOnceWith({
+      id: 'foreign-brand',
+      organizationId: 'org-1',
+      isDeleted: false,
+    });
     expect(uploads.getPresignedUploadUrl).not.toHaveBeenCalled();
   });
 

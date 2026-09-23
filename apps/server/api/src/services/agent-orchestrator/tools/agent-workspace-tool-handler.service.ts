@@ -108,18 +108,7 @@ export class AgentWorkspaceToolHandler {
     // relying only on isSelected fails when that flag is false or stale.
     const scopedBrandId = ctx.brandId || ctx.validatedScope?.brandId;
 
-    const currentBrand = scopedBrandId
-      ? await this.brandsService.findOne({
-          id: scopedBrandId,
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-        })
-      : await this.brandsService.findOne({
-          isDeleted: false,
-          isSelected: true,
-          organizationId: ctx.organizationId,
-          userId: ctx.userId,
-        });
+    const currentBrand = await this.findCurrentBrand(ctx);
 
     if (!currentBrand) {
       return {
@@ -140,6 +129,22 @@ export class AgentWorkspaceToolHandler {
       },
       success: true,
     };
+  }
+
+  private findCurrentBrand(ctx: ToolExecutionContext): Promise<unknown> {
+    const scopedBrandId = ctx.brandId || ctx.validatedScope?.brandId;
+    return scopedBrandId
+      ? this.brandsService.findOne({
+          id: scopedBrandId,
+          isDeleted: false,
+          organizationId: ctx.organizationId,
+        })
+      : this.brandsService.findOne({
+          isDeleted: false,
+          isSelected: true,
+          organizationId: ctx.organizationId,
+          userId: ctx.userId,
+        });
   }
 
   async listPosts(
@@ -250,12 +255,18 @@ export class AgentWorkspaceToolHandler {
       );
     }
 
-    const uploadUser = toUploadUser(ctx);
-    if (!uploadUser.brandId) {
-      return toolFailure('Select a brand before requesting a media upload.');
-    }
-
     try {
+      const brand = await this.findCurrentBrand(ctx);
+      const brandId =
+        brand && typeof brand === 'object' && 'id' in brand
+          ? readRequiredString(brand.id)
+          : undefined;
+      if (!brandId) {
+        return toolFailure(
+          'Select a valid brand in this organization before requesting a media upload.',
+        );
+      }
+      const uploadUser = toUploadUser({ ...ctx, brandId });
       const presigned = await this.presignedUploadService.getPresignedUploadUrl(
         uploadUser,
         {

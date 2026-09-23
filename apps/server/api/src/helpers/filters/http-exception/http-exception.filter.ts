@@ -88,9 +88,14 @@ export class HttpExceptionFilter extends AllExceptionFilter {
         (responseObj.error as string) ||
         exception.name ||
         title;
+      const responseMessage = Array.isArray(responseObj.message)
+        ? responseObj.message
+            .filter((value): value is string => typeof value === 'string')
+            .join('; ')
+        : responseObj.message;
       detail =
         (responseObj.detail as string) ||
-        (typeof responseObj.message === 'string' ? responseObj.message : '') ||
+        (typeof responseMessage === 'string' ? responseMessage : '') ||
         detail;
       source = responseObj.source as Record<string, unknown> | undefined;
       fieldErrors = readValidatorFieldErrors(responseObj);

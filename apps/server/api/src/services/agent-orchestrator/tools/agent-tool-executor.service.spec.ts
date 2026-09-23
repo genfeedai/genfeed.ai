@@ -2163,55 +2163,62 @@ describe('AgentToolExecutorService', () => {
     });
   });
 
-  it('reserves a presigned media upload without publishing', async () => {
-    const { presignedUploadService, service } = createService();
-    presignedUploadService.getPresignedUploadUrl.mockResolvedValue({
-      expiresIn: 3600,
-      id: 'asset-1',
-      publicUrl: 'https://cdn.example.test/images/asset-1',
-      s3Key: 'ingredients/images/asset-1',
-      uploadMethod: 'PUT',
-      uploadUrl: 'https://s3.example.test/upload',
-    });
-
-    const result = await service.executeTool(
-      'request_media_upload',
-      {
-        category: 'image',
-        contentType: 'image/png',
-        filename: 'launch.png',
-      },
-      scopedContext(testId('brand')),
-    );
-
-    expect(result.success).toBe(true);
-    expect(presignedUploadService.getPresignedUploadUrl).toHaveBeenCalledWith(
-      expect.objectContaining({
-        brandId: testId('brand'),
-        organizationId: testId('org'),
-        userId: testId('user'),
-      }),
-      expect.objectContaining({
-        category: IngredientCategory.IMAGE,
-        contentType: 'image/png',
-        filename: 'launch.png',
-      }),
-    );
-    expect(result.data).toEqual(
-      expect.objectContaining({
-        assetId: 'asset-1',
-        constraints: expect.objectContaining({
-          contentType: 'image/png',
-          maxBytes: 10 * 1024 * 1024,
-          method: 'PUT',
-        }),
-        headers: { 'Content-Type': 'image/png' },
-        method: 'PUT',
+  it.each(['thread', 'headless MCP'])(
+    'reserves a presigned media upload without publishing from %s',
+    async (surface) => {
+      const { brandsService, presignedUploadService, service } =
+        createService();
+      brandsService.findOne.mockResolvedValue({ id: testId('brand') });
+      presignedUploadService.getPresignedUploadUrl.mockResolvedValue({
+        expiresIn: 3600,
+        id: 'asset-1',
         publicUrl: 'https://cdn.example.test/images/asset-1',
+        s3Key: 'ingredients/images/asset-1',
+        uploadMethod: 'PUT',
         uploadUrl: 'https://s3.example.test/upload',
-      }),
-    );
-  });
+      });
+
+      const result = await service.executeTool(
+        'request_media_upload',
+        {
+          category: 'image',
+          contentType: 'image/png',
+          filename: 'launch.png',
+        },
+        surface === 'thread'
+          ? scopedContext(testId('brand'))
+          : { organizationId: testId('org'), userId: testId('user') },
+      );
+
+      expect(result.success).toBe(true);
+      expect(presignedUploadService.getPresignedUploadUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: testId('brand'),
+          organizationId: testId('org'),
+          userId: testId('user'),
+        }),
+        expect.objectContaining({
+          category: IngredientCategory.IMAGE,
+          contentType: 'image/png',
+          filename: 'launch.png',
+        }),
+      );
+      expect(result.data).toEqual(
+        expect.objectContaining({
+          assetId: 'asset-1',
+          constraints: expect.objectContaining({
+            contentType: 'image/png',
+            maxBytes: 10 * 1024 * 1024,
+            method: 'PUT',
+          }),
+          headers: { 'Content-Type': 'image/png' },
+          method: 'PUT',
+          publicUrl: 'https://cdn.example.test/images/asset-1',
+          uploadUrl: 'https://s3.example.test/upload',
+        }),
+      );
+    },
+  );
 
   it('finalizes an upload as an asset id scheduled releases accept', async () => {
     const { presignedUploadService, service } = createService();
