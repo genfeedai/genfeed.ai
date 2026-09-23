@@ -14,6 +14,7 @@ const LOGO_DIMENSIONS = {
 export default function AuthFormLayout({
   children,
   description,
+  headingIcon,
   logoSize = 'default',
   title,
 }: AuthFormLayoutProps) {
@@ -31,17 +32,20 @@ export default function AuthFormLayout({
       >
         <Card className="w-full max-w-md" bodyClassName="gap-0 p-6 sm:p-10">
           {title ? (
-            <div className="mb-8 flex items-center gap-5">
-              {logoUrl && (
-                <Image
-                  src={logoUrl}
-                  className="shrink-0 object-contain dark:invert"
-                  alt={EnvironmentService.LOGO_ALT}
-                  width={logoDimension}
-                  height={logoDimension}
-                  priority
-                />
-              )}
+            <div
+              className={`mb-8 flex ${headingIcon ? 'items-start gap-4' : 'items-center gap-5'}`}
+            >
+              {headingIcon ??
+                (logoUrl && (
+                  <Image
+                    src={logoUrl}
+                    className="shrink-0 object-contain dark:invert"
+                    alt={EnvironmentService.LOGO_ALT}
+                    width={logoDimension}
+                    height={logoDimension}
+                    priority
+                  />
+                ))}
               <div className="min-w-0">
                 <h1 className="text-2xl font-semibold tracking-tight text-foreground">
                   {title}
