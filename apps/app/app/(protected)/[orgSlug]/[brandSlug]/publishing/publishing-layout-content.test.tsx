@@ -10,12 +10,15 @@ const useSearchParamsMock = vi.fn();
 const openAgentComposerMock = vi.fn();
 const openModalMock = vi.fn();
 
-const brandMock = vi.hoisted(() => ({ label: 'Acme Creator' }));
+const brandMock = vi.hoisted(() => ({
+  label: 'Acme Creator',
+  credentials: [] as { id: string; platform: string }[],
+}));
 
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: vi.fn(() => ({
     brandId: 'brand-1',
-    credentials: [{ id: 'credential-x', label: '@acme', platform: 'twitter' }],
+    credentials: brandMock.credentials,
     selectedBrand: { id: 'brand-1', label: brandMock.label },
   })),
 }));
@@ -119,44 +122,31 @@ describe('PublishingLayoutContent', () => {
     ).not.toBeInTheDocument();
   });
 
-  it('seeds the agent composer without leaving Publishing', async () => {
+  it('opens the manual composer without a connected account', async () => {
     const user = userEvent.setup();
     render(
       <PublishingLayoutContent>
-        <div>child content</div>
+        <div>posts</div>
       </PublishingLayoutContent>,
     );
-
-    // The New post menu is a pointer-driven dropdown, so fireEvent.click on
-    // the trigger never opens it — drive it through userEvent.
     await user.click(screen.getByRole('button', { name: /new post/i }));
     await user.click(screen.getByRole('button', { name: /social post/i }));
-
-    expect(openAgentComposerMock).toHaveBeenCalledTimes(1);
-    expect(openAgentComposerMock).toHaveBeenCalledWith(
-      expect.stringMatching(
-        /generate a new post for my brand "Acme Creator".*do not ask which brand/i,
-      ),
-    );
+    expect(openModalMock).toHaveBeenCalledWith('modal-post');
+    expect(openAgentComposerMock).not.toHaveBeenCalled();
   });
 
-  it('keeps the prompt well-formed when the brand label contains a quote', async () => {
-    brandMock.label = 'The "Real" Deal';
+  it('keeps agent assistance optional with a clean prompt', async () => {
     const user = userEvent.setup();
     render(
       <PublishingLayoutContent>
-        <div>child content</div>
+        <div>posts</div>
       </PublishingLayoutContent>,
     );
-
     await user.click(screen.getByRole('button', { name: /new post/i }));
-    await user.click(screen.getByRole('button', { name: /social post/i }));
-
-    const prompt = openAgentComposerMock.mock.calls[0][0] as string;
-    expect(prompt).toContain(
-      'my brand "The \\"Real\\" Deal" (already selected',
+    await user.click(screen.getByRole('button', { name: /ask agent/i }));
+    expect(openAgentComposerMock).toHaveBeenCalledWith(
+      'Draft a social post for my brand.',
     );
-    expect(prompt).toContain('do not ask which brand to use)');
   });
 
   it('opens first-class X long-form and thread composers', async () => {

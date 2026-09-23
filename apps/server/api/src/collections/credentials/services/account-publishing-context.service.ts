@@ -73,6 +73,35 @@ export class AccountPublishingContextService {
     private readonly logger: LoggerService,
   ) {}
 
+  async resolveDraft(params: {
+    brandId: string;
+    organizationId: string;
+    platform: CredentialPlatform;
+  }): Promise<Pick<AccountPublishingContext, 'brand' | 'constraints'>> {
+    const brand = await this.prisma.brand.findFirst({
+      where: {
+        id: params.brandId,
+        organizationId: params.organizationId,
+        isDeleted: false,
+      },
+      select: { id: true, label: true, description: true, text: true },
+    });
+    if (!brand) {
+      throw new NotFoundException({
+        message: 'The selected brand does not exist',
+      });
+    }
+    return {
+      brand: {
+        id: brand.id,
+        label: readString(brand.label),
+        description: readString(brand.description),
+        voice: readString(brand.text),
+      },
+      constraints: this.getConstraints(params.platform, 'post'),
+    };
+  }
+
   async resolve(
     params: ResolveAccountPublishingContextParams,
   ): Promise<AccountPublishingContext> {

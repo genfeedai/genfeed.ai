@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import {
+  Platform,
   PostCategory,
   PostFormat,
   PostFrequency,
@@ -34,8 +35,10 @@ import {
  */
 export type CreatePostRequest = Omit<
   components['schemas']['CreatePostDto'],
-  'status'
+  'status' | 'credentialId'
 > & {
+  credentialId?: string;
+  platform?: Platform;
   format?: PostFormat;
 };
 
@@ -60,7 +63,8 @@ export type UpdatePostRequest = Omit<
  */
 export const createPostSchema = z.object({
   category: z.nativeEnum(PostCategory).optional(),
-  credentialId: entityIdSchema,
+  credentialId: entityIdSchema.optional(),
+  platform: z.nativeEnum(Platform).optional(),
   description: z.string().min(1),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,

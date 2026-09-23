@@ -17,6 +17,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import {
   CredentialPlatform,
+  PostFormat,
   SystemPromptKey,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -101,6 +102,7 @@ describe('PostGenerationService', () => {
     patch: vi.fn().mockResolvedValue(mockActivity),
   };
   const mockAccountPublishingContextService = {
+    resolveDraft: vi.fn(),
     resolve: vi.fn().mockResolvedValue(mockPublishingContext),
   };
   const mockLoggerService = {
@@ -140,6 +142,10 @@ Tweet 3: Tech innovation is changing the world.`,
 
   beforeEach(async () => {
     vi.clearAllMocks();
+    mockAccountPublishingContextService.resolveDraft.mockResolvedValue({
+      brand: mockPublishingContext.brand,
+      constraints: { ...mockPublishingContext.constraints },
+    });
 
     mockActivitiesService.create.mockResolvedValue(mockActivity);
     mockActivitiesService.patch.mockResolvedValue(mockActivity);
@@ -194,6 +200,90 @@ Tweet 3: Tech innovation is changing the world.`,
     }).compile();
 
     service = module.get<PostGenerationService>(PostGenerationService);
+  });
+
+  describe('generateDraftText', () => {
+    it('generates a tweet using brand context without resolving an account or saving a post', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        'A new tweet',
+      );
+      await expect(
+        service.generateDraftText(
+          { prompt: 'Launch day', platform: CredentialPlatform.TWITTER },
+          identity,
+        ),
+      ).resolves.toEqual({ description: 'A new tweet' });
+      expect(
+        mockAccountPublishingContextService.resolveDraft,
+      ).toHaveBeenCalledWith({
+        brandId,
+        organizationId,
+        platform: CredentialPlatform.TWITTER,
+      });
+      expect(
+        mockAccountPublishingContextService.resolve,
+      ).not.toHaveBeenCalled();
+      expect(mockPostsService.create).not.toHaveBeenCalled();
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({
+          prompt: expect.stringContaining('Test Brand'),
+          systemPromptTemplate: SystemPromptKey.TWITTER,
+        }),
+        organizationId,
+      );
+    });
+    it('rejects a blank prompt before calling the model', async () => {
+      await expect(
+        service.generateDraftText(
+          { prompt: '  ', platform: CredentialPlatform.TWITTER },
+          identity,
+        ),
+      ).rejects.toThrow('Describe');
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).not.toHaveBeenCalled();
+    });
+    it('propagates inaccessible brand errors before calling the model', async () => {
+      mockAccountPublishingContextService.resolveDraft.mockRejectedValueOnce(
+        new Error('Brand not found'),
+      );
+      await expect(
+        service.generateDraftText(
+          { prompt: 'Launch', platform: CredentialPlatform.TWITTER },
+          identity,
+        ),
+      ).rejects.toThrow('Brand not found');
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).not.toHaveBeenCalled();
+    });
+    it('rejects empty model output', async () => {
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        ' ',
+      );
+      await expect(
+        service.generateDraftText(
+          { prompt: 'Launch', platform: CredentialPlatform.TWITTER },
+          identity,
+        ),
+      ).rejects.toThrow('No draft');
+    });
+    it('uses the X long-post limit for long-form drafts', async () => {
+      await service.generateDraftText(
+        {
+          prompt: 'Launch',
+          platform: CredentialPlatform.TWITTER,
+          format: PostFormat.LONG_FORM,
+        },
+        identity,
+      );
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.objectContaining({ prompt: expect.stringContaining('25000') }),
+        organizationId,
+      );
+    });
   });
 
   it('should be defined', () => {

@@ -1,6 +1,12 @@
 'use client';
 
-import { AlertCategory, Platform } from '@genfeedai/contracts';
+import {
+  AlertCategory,
+  Platform,
+  PostFormat,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
+import { CHANNEL_CAPABILITIES } from '@genfeedai/contracts/api-types/contracts';
 import {
   getPostLifecycleOptions,
   getPostVisibilityOptions,
@@ -12,11 +18,12 @@ import {
 import type { ModalPostSimpleFieldsProps } from '@genfeedai/props/modals/modal.props';
 import LazyRichTextEditor from '@ui/editors/LazyRichTextEditor';
 import Alert from '@ui/feedback/alert/Alert';
+import PostDraftGenerator from '@ui/modals/content/post/PostDraftGenerator';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
-import PlatformSelector from '@ui/primitives/platform-selector';
 import { SelectField } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 
 export default function ModalPostSimpleFields({
   form,
@@ -31,8 +38,8 @@ export default function ModalPostSimpleFields({
   isTitleError,
   hasIngredients,
   browserTimezone,
-  onCredentialSelect,
 }: ModalPostSimpleFieldsProps) {
+  const translate = useTranslations('ui.postDraft');
   return (
     <div className="space-y-4">
       {hasFormErrors(form.formState.errors) && (
@@ -45,17 +52,67 @@ export default function ModalPostSimpleFields({
         </Alert>
       )}
 
-      {(!isEditMode || !form.watch('credentialId')) &&
-        credentials.length > 0 && (
-          <FormControl error={form.formState.errors.credentialId?.message}>
-            <PlatformSelector
-              credentials={credentials}
-              selectedCredentialId={form.watch('credentialId')}
-              onSelect={onCredentialSelect}
-              isDisabled={isSubmitting}
-            />
-          </FormControl>
-        )}
+      {!isEditMode && (
+        <FormControl label={translate('platform')}>
+          <SelectField
+            name="platform"
+            control={form.control}
+            isDisabled={
+              isSubmitting || form.watch('format') === PostFormat.LONG_FORM
+            }
+            onChange={() => {
+              form.setValue('credentialId', '');
+              form.setValue('scheduledDate', '');
+              form.setValue('targetExecutionState', TargetExecutionState.DRAFT);
+            }}
+          >
+            {CHANNEL_CAPABILITIES.map((channel) => (
+              <option key={channel.platform} value={channel.platform}>
+                {channel.label}
+              </option>
+            ))}
+          </SelectField>
+        </FormControl>
+      )}
+      <FormControl
+        label={translate('account')}
+        error={form.formState.errors.credentialId?.message}
+      >
+        <SelectField
+          name="credentialId"
+          onChange={(event) => {
+            if (!event.target.value) {
+              form.setValue('scheduledDate', '');
+              form.setValue(
+                'targetExecutionState',
+                TargetExecutionState.DRAFT,
+                { shouldValidate: true },
+              );
+            }
+          }}
+          control={form.control}
+          isDisabled={isSubmitting}
+        >
+          <option value="">{translate('noAccount')}</option>
+          {credentials.map((account) => (
+            <option key={account.id} value={account.id}>
+              {account.label || account.externalHandle || account.platform}
+            </option>
+          ))}
+        </SelectField>
+      </FormControl>
+      <PostDraftGenerator
+        key={`${selectedPlatform}-${form.watch('format')}`}
+        platform={form.watch('platform') ?? Platform.TWITTER}
+        format={form.watch('format')}
+        isDisabled={isSubmitting}
+        onGenerate={(description) =>
+          form.setValue('description', description, {
+            shouldDirty: true,
+            shouldValidate: true,
+          })
+        }
+      />
 
       {selectedPlatform !== Platform.TWITTER && (
         <FormControl
@@ -104,51 +161,55 @@ export default function ModalPostSimpleFields({
         />
       </FormControl>
 
-      {(hasIngredients || selectedPlatform === Platform.TWITTER) && (
-        <>
-          <FormControl
-            label="Scheduled Date (Optional)"
-            error={form.formState.errors.scheduledDate?.message}
-            helpText="Set when content is ready to publish"
-          >
-            <FormDateTimePicker
-              value={form.watch('scheduledDate')}
-              timezone={browserTimezone}
-              onChange={(value) =>
-                form.setValue('scheduledDate', value ? value.toISOString() : '')
-              }
-            />
-          </FormControl>
-
-          <FormControl
-            label="Lifecycle"
-            error={form.formState.errors.targetExecutionState?.message}
-          >
-            <SelectField name="targetExecutionState" control={form.control}>
-              {getPostLifecycleOptions().map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </SelectField>
-          </FormControl>
-
-          {selectedPlatform === Platform.YOUTUBE && (
+      {form.watch('credentialId') &&
+        (hasIngredients || selectedPlatform === Platform.TWITTER) && (
+          <>
             <FormControl
-              label="Visibility"
-              error={form.formState.errors.visibility?.message}
+              label="Scheduled Date (Optional)"
+              error={form.formState.errors.scheduledDate?.message}
+              helpText="Set when content is ready to publish"
             >
-              <SelectField name="visibility" control={form.control}>
-                {getPostVisibilityOptions().map((option) => (
+              <FormDateTimePicker
+                value={form.watch('scheduledDate')}
+                timezone={browserTimezone}
+                onChange={(value) =>
+                  form.setValue(
+                    'scheduledDate',
+                    value ? value.toISOString() : '',
+                  )
+                }
+              />
+            </FormControl>
+
+            <FormControl
+              label="Lifecycle"
+              error={form.formState.errors.targetExecutionState?.message}
+            >
+              <SelectField name="targetExecutionState" control={form.control}>
+                {getPostLifecycleOptions().map((option) => (
                   <option key={option.value} value={option.value}>
                     {option.label}
                   </option>
                 ))}
               </SelectField>
             </FormControl>
-          )}
-        </>
-      )}
+
+            {selectedPlatform === Platform.YOUTUBE && (
+              <FormControl
+                label="Visibility"
+                error={form.formState.errors.visibility?.message}
+              >
+                <SelectField name="visibility" control={form.control}>
+                  {getPostVisibilityOptions().map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </SelectField>
+              </FormControl>
+            )}
+          </>
+        )}
     </div>
   );
 }

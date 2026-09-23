@@ -7,6 +7,7 @@ import {
   ButtonVariant,
   IngredientCategory,
   ModalEnum,
+  Platform,
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
@@ -68,7 +69,8 @@ export default function ModalCreateThread({
 
   const form = useForm<ThreadModalSchema>({
     defaultValues: {
-      credentialId: credential?.id || credentials[0]?.id,
+      credentialId: credential?.id || credentials[0]?.id || '',
+      platform: Platform.TWITTER,
       globalTitle: '',
       ingredient: ingredient?.id,
       posts: [
@@ -114,7 +116,8 @@ export default function ModalCreateThread({
 
       const sharedIngredients = data.ingredient ? [data.ingredient] : [];
       const threadPosts = data.posts.map((post, index) => ({
-        credentialId: data.credentialId,
+        credentialId: data.credentialId || undefined,
+        platform: selectedPlatform ?? Platform.TWITTER,
         description: post.description.trim(),
         ingredients:
           post.ingredientIds && post.ingredientIds.length > 0
@@ -158,9 +161,9 @@ export default function ModalCreateThread({
     }
   };
 
-  const selectedPlatform = credentials.find(
-    (c) => c.id === form.watch('credentialId'),
-  )?.platform;
+  const selectedPlatform =
+    credentials.find((c) => c.id === form.watch('credentialId'))?.platform ??
+    Platform.TWITTER;
 
   const charLimit = resolvePlatformCharLimit(selectedPlatform);
 

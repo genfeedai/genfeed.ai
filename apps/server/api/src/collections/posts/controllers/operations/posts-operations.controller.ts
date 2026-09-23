@@ -319,13 +319,19 @@ export class PostsOperationsController {
         );
       }
 
-      const credential = await this.credentialsService.findOne({
-        id: createPostDto.credentialId,
-        isConnected: true,
-        organizationId: user.organizationId,
-      });
+      const credential = createPostDto.credentialId
+        ? await this.credentialsService.findOne({
+            id: createPostDto.credentialId,
+            ...(requestedExecutionState !== TargetExecutionState.DRAFT
+              ? { isConnected: true }
+              : {}),
+            isDeleted: false,
+            brandId: user.brandId,
+            organizationId: user.organizationId,
+          })
+        : null;
 
-      if (!credential) {
+      if (createPostDto.credentialId && !credential) {
         throw new HttpException(
           {
             detail: 'Credential not found',
@@ -335,7 +341,18 @@ export class PostsOperationsController {
         );
       }
 
-      const credentialPlatform = parsePlatform(credential.platform);
+      if (
+        !credential &&
+        requestedExecutionState !== TargetExecutionState.DRAFT
+      ) {
+        throw new HttpException(
+          'Connect an account before scheduling or publishing',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      const credentialPlatform = parsePlatform(
+        credential?.platform ?? parentPost.platform,
+      );
       if (!credentialPlatform) {
         throw new HttpException(
           {
@@ -349,7 +366,7 @@ export class PostsOperationsController {
       this.validateScheduledThreadReply(
         createPostDto,
         credentialPlatform,
-        credential.platform,
+        credential?.platform ?? credentialPlatform,
         requestedExecutionState,
       );
       const { firstIngredient, ingredientIds } =
@@ -358,7 +375,12 @@ export class PostsOperationsController {
           user.organizationId,
         );
 
-      await this.quotaService.verifyQuota(credential, user.organizationId);
+      if (
+        credential &&
+        requestedExecutionState !== TargetExecutionState.DRAFT
+      ) {
+        await this.quotaService.verifyQuota(credential, user.organizationId);
+      }
 
       const data = await this.postsService.addThreadReply(parentId, {
         ...createPostDto,
@@ -367,11 +389,11 @@ export class PostsOperationsController {
           createPostDto.category ??
           this.getPostCategoryFromIngredient(firstIngredient),
         credentialId: createPostDto.credentialId,
-        description: createPostDto.description || credential.description || '',
+        description: createPostDto.description || credential?.description || '',
         ingredients: ingredientIds,
         label:
           createPostDto.label?.trim() ||
-          credential.label ||
+          credential?.label ||
           (createPostDto.description?.trim()
             ? this.postGenerationService.extractLabelFromTweet(
                 createPostDto.description.trim(),

@@ -20,7 +20,7 @@ import { NotificationsService } from '@genfeedai/services/core/notifications.ser
 import Modal from '@ui/modals/modal/Modal';
 import { Form } from '@ui/primitives/form';
 import { resolvePlatformCharLimit } from '@ui-constants/platform-char-limit.constant';
-import { useCallback, useEffect, useMemo, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import ModalPostSimpleActions from './ModalPostSimpleActions';
 import ModalPostSimpleFields from './ModalPostSimpleFields';
 import ModalPostSimpleHeader from './ModalPostSimpleHeader';
@@ -35,6 +35,7 @@ export default function ModalPost({
   credentials = EMPTY_ARRAY,
   parentPost,
   postFormat = PostFormat.STANDARD,
+  defaultPlatform,
   onConfirm,
   onClose,
   onCreated,
@@ -46,6 +47,7 @@ export default function ModalPost({
   // Get browser timezone for consistent date display
   const browserTimezone = useMemo(() => getBrowserTimezone(), []);
 
+  const [openVersion, setOpenVersion] = useState(0);
   const isEditMode = Boolean(post);
   const isThreadReply = Boolean(parentPost);
 
@@ -72,11 +74,24 @@ export default function ModalPost({
       ingredients: ingredient ? [ingredient.id] : [],
       label: '',
       parentId: parentPost?.id || '',
+      platform:
+        defaultPlatform ??
+        credential?.platform ??
+        credentials[0]?.platform ??
+        Platform.TWITTER,
       scheduledDate: '',
       targetExecutionState: TargetExecutionState.DRAFT,
       visibility: PostVisibility.PUBLIC,
     }),
-    [credential?.id, credentials, ingredient, parentPost?.id, postFormat],
+    [
+      credential?.id,
+      credential?.platform,
+      credentials,
+      ingredient,
+      parentPost?.id,
+      postFormat,
+      defaultPlatform,
+    ],
   );
   const defaultValuesRef = useRef(defaultValues);
   defaultValuesRef.current = defaultValues;
@@ -95,7 +110,8 @@ export default function ModalPost({
       const targetPlatform =
         selectedCredential?.platform ||
         entity?.platform ||
-        entity?.credential?.platform;
+        entity?.credential?.platform ||
+        formData.platform;
 
       const isScheduling =
         formData.targetExecutionState === TargetExecutionState.SCHEDULED;
@@ -117,10 +133,11 @@ export default function ModalPost({
         }
       }
 
-      if (isEditMode && entity?.id) {
+      if (isEditMode && post?.id) {
+        entity = post;
         const url = `PATCH /posts/${entity.id}`;
         const result = await postsService.patch(entity.id, {
-          credentialId: formData.credentialId,
+          credentialId: formData.credentialId || undefined,
           description: formData.description.trim(),
           format: formData.format,
           label: formData.label?.trim() || '',
@@ -137,12 +154,13 @@ export default function ModalPost({
       } else {
         const url = 'POST /publishing';
         const result = await postsService.post({
-          credentialId: formData.credentialId,
+          credentialId: formData.credentialId || undefined,
           description: formData.description.trim(),
           format: formData.format,
           ingredients: formData.ingredients || [],
           label: formData.label?.trim() || '',
-          parentId: formData.parentId,
+          parentId: formData.parentId || undefined,
+          platform: formData.platform,
           ...(formData.scheduledDate
             ? { scheduledDate: formData.scheduledDate }
             : {}),
@@ -162,7 +180,7 @@ export default function ModalPost({
         return result;
       }
     },
-    [isEditMode, isThreadReply, notificationsService, credentials],
+    [isEditMode, isThreadReply, notificationsService, credentials, post],
   );
 
   const shouldAutoOpen = Boolean(post || ingredient || credential);
@@ -194,6 +212,13 @@ export default function ModalPost({
       form.setValue('description', post.description || '');
       form.setValue('format', post.format || PostFormat.STANDARD);
       form.setValue(
+        'platform',
+        post.platform ??
+          post.credential?.platform ??
+          defaultPlatform ??
+          Platform.TWITTER,
+      );
+      form.setValue(
         'scheduledDate',
         post.scheduledDate ? new Date(post.scheduledDate).toISOString() : '',
       );
@@ -208,7 +233,7 @@ export default function ModalPost({
         post.ingredients?.map((ing: IIngredient) => ing.id) || [],
       );
     }
-  }, [post, form]);
+  }, [post, form, defaultPlatform]);
 
   // Called when Cancel button is clicked - initiates the close
   const handleCancel = useCallback(() => {
@@ -218,6 +243,7 @@ export default function ModalPost({
   // Called by Modal's onClose after modal is closed - just cleanup, don't re-close
   const handleModalClosed = useCallback(() => {
     form.reset(defaultValuesRef.current);
+    setOpenVersion((version) => version + 1);
   }, [form]);
 
   const handleViewDetails = useCallback(() => {
@@ -232,7 +258,8 @@ export default function ModalPost({
   const selectedPlatform =
     selectedCredential?.platform ||
     post?.platform ||
-    post?.credential?.platform;
+    post?.credential?.platform ||
+    form.watch('platform');
 
   const charLimit = resolvePlatformCharLimit(
     selectedPlatform,
@@ -252,16 +279,6 @@ export default function ModalPost({
     (post?.ingredients?.length ?? 0) > 0 ||
     (form.watch('ingredients')?.length ?? 0) > 0;
 
-  const handleCredentialSelect = useCallback(
-    (credentialId: string) => {
-      form.setValue('credentialId', credentialId, {
-        shouldDirty: true,
-        shouldValidate: true,
-      });
-    },
-    [form],
-  );
-
   const getModalContent = () => {
     if (isEditMode) {
       return {
@@ -279,7 +296,7 @@ export default function ModalPost({
       description:
         postFormat === PostFormat.LONG_FORM
           ? 'Create a long X post, then refine or schedule it from the Posts library'
-          : 'Create a new post to schedule for publishing',
+          : 'Write or generate a draft. Connect an account when you are ready to publish',
       title:
         postFormat === PostFormat.LONG_FORM
           ? 'Create X Long Post'
@@ -303,8 +320,11 @@ export default function ModalPost({
         />
 
         <ModalPostSimpleFields
+          key={openVersion}
           form={form}
-          credentials={credentials}
+          credentials={credentials.filter(
+            (account) => account.platform === selectedPlatform,
+          )}
           isEditMode={isEditMode}
           isSubmitting={isSubmitting}
           selectedPlatform={selectedPlatform}
@@ -315,7 +335,6 @@ export default function ModalPost({
           isTitleError={isTitleError}
           hasIngredients={hasIngredients}
           browserTimezone={browserTimezone}
-          onCredentialSelect={handleCredentialSelect}
         />
 
         <ModalPostSimpleActions

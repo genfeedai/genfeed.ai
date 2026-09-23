@@ -26,19 +26,8 @@ import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { Suspense, useCallback, useMemo, useReducer } from 'react';
+import { Suspense, useCallback, useMemo, useReducer, useState } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
-
-function buildNewPostAgentPrompt(brandLabel?: string | null): string {
-  const trimmedLabel = brandLabel?.trim();
-  // Brand labels are user-supplied — quote via JSON.stringify so a `"` in the
-  // name cannot break out of the clause and restructure the prompt.
-  const brandClause = trimmedLabel
-    ? `my brand ${JSON.stringify(trimmedLabel)} (already selected in the workspace — do not ask which brand to use)`
-    : 'my currently selected brand (do not ask which brand to use)';
-
-  return `Help me generate a new post for ${brandClause} — draft the content, pick the best channels, and prepare it for review or scheduling.`;
-}
 
 const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,
@@ -93,7 +82,9 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const { refresh } = useRouter();
   const pathname = usePathname();
-  const { credentials, selectedBrand } = useBrand();
+  const { credentials } = useBrand();
+  const [creationPlatform, setCreationPlatform] =
+    useState<CredentialPlatform>();
   const openAgentComposer = useOpenAgentComposer();
   const translate = useTranslations('pages.publishing.layout');
 
@@ -130,8 +121,9 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   }, [refreshFn, refresh]);
 
   const handleNewPost = useCallback(() => {
-    openAgentComposer(buildNewPostAgentPrompt(selectedBrand?.label));
-  }, [openAgentComposer, selectedBrand?.label]);
+    setCreationPlatform(undefined);
+    openModal(ModalEnum.POST);
+  }, []);
 
   const xCredentials = useMemo(
     () =>
@@ -258,6 +250,17 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
+                  label={translate('xPost')}
+                  onClick={() => {
+                    setCreationPlatform(CredentialPlatform.TWITTER);
+                    openModal(ModalEnum.POST);
+                  }}
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
                   label={translate('article')}
                   onClick={() =>
                     openAgentComposer(
@@ -284,7 +287,6 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   className="w-full justify-start"
                   label={translate('xLongPost')}
                   onClick={handleNewLongPost}
-                  isDisabled={xCredentials.length === 0}
                 />
                 <Button
                   withWrapper={false}
@@ -293,7 +295,16 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   className="w-full justify-start"
                   label={translate('xThread')}
                   onClick={handleNewThread}
-                  isDisabled={xCredentials.length === 0}
+                />
+                <Button
+                  withWrapper={false}
+                  size={ButtonSize.SM}
+                  variant={ButtonVariant.GHOST}
+                  className="w-full justify-start"
+                  label={translate('askAgent')}
+                  onClick={() =>
+                    openAgentComposer('Draft a social post for my brand.')
+                  }
                 />
               </div>
             </Dropdown>
@@ -303,6 +314,13 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         {children}
       </Container>
       <LazyModalPost
+        key={creationPlatform ?? 'social'}
+        credentials={creationPlatform ? xCredentials : credentials}
+        defaultPlatform={creationPlatform}
+        onConfirm={handleRefresh}
+      />
+      <LazyModalPost
+        defaultPlatform={CredentialPlatform.TWITTER}
         credentials={xCredentials}
         modalId={ModalEnum.POST_LONG_FORM}
         postFormat={PostFormat.LONG_FORM}
