@@ -302,6 +302,42 @@ describe('nested tool input contracts', () => {
         blocks: [{ id: 'heading', type: 'section_header', level: 4 }],
       },
     ],
+    [
+      'create_post',
+      {
+        targets: [
+          {
+            credentialId: 'credential',
+            platform: 'twitter',
+            unknownSetting: true,
+          },
+        ],
+      },
+    ],
+    [
+      'create_post',
+      {
+        targets: [
+          {
+            credentialId: 'credential',
+            platform: 'twitter',
+            settings: 'wrong',
+          },
+        ],
+      },
+    ],
+    [
+      'create_post',
+      {
+        targets: [
+          {
+            credentialId: 'credential',
+            platform: 'twitter',
+            attachments: [{ body: 3 }],
+          },
+        ],
+      },
+    ],
     ['save_brand_voice_profile', { voiceProfile: { tone: 7 } }],
     ['save_brand_voice_profile', { voiceProfile: { typo: true } }],
     [

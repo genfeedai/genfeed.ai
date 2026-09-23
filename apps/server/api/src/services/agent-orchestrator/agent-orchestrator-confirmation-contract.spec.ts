@@ -65,6 +65,64 @@ const cases: ConfirmationCase[] = [
     },
   },
   {
+    action: 'confirm_publish_post',
+    tool: 'create_post',
+    payload: {
+      caption: 'Launch',
+      contentId: 'post',
+      platforms: ['twitter'],
+      scheduledAt: '2026-09-24T12:00:00.000Z',
+      postingSetId: 'posting-set',
+      visibility: 'public',
+      targets: [
+        {
+          attachments: [
+            {
+              body: 'Follow for more',
+              kind: 'signature',
+              order: 0,
+              platform: 'twitter',
+            },
+          ],
+          caption: 'A launch for X',
+          credentialId: 'credential',
+          platform: 'twitter',
+          settings: { reply_settings: 'everyone', options: { enabled: true } },
+          signatureIds: ['signature'],
+          visibility: 'public',
+        },
+      ],
+    },
+  },
+  {
+    action: 'confirm_publish_post',
+    tool: 'create_post',
+    payload: {
+      contentId: 'post',
+      platforms: ['twitter'],
+      postingSetId: 'posting-set',
+      scheduledAt: '2026-09-24T12:00:00.000Z',
+      timezone: 'Europe/Malta',
+      targets: [
+        {
+          attachments: [
+            {
+              body: 'Follow for more',
+              kind: 'signature',
+              order: 0,
+              platform: 'twitter',
+            },
+          ],
+          credentialId: 'credential',
+          platform: 'twitter',
+          scheduledAt: '2026-09-24T13:00:00.000Z',
+          signatureIds: ['signature'],
+          timezone: 'Europe/Malta',
+        },
+      ],
+    },
+  },
+  {
     action: 'confirm_outreach_sequence',
     tool: 'start_outreach_sequence',
     payload: { campaignId: 'campaign', transition: 'start' },

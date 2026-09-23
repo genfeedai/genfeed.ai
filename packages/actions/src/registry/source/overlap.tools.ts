@@ -4,6 +4,7 @@ import { OVERLAP_KNOWLEDGE_TOOLS } from './overlap-knowledge.tools';
 import { OVERLAP_PUBLISHING_TOOLS } from './overlap-publishing.tools';
 import { OVERLAP_QUERY_TOOLS } from './overlap-query.tools';
 import { OVERLAP_WORKFLOW_TOOLS } from './overlap-workflow.tools';
+import { PUBLISH_TARGET_SCHEMA } from './schemas/publish-target.schema';
 import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools';
 
 export const OVERLAP_TOOLS: SourceTool[] = [
@@ -71,6 +72,20 @@ export const OVERLAP_TOOLS: SourceTool[] = [
             type: 'string',
           },
           type: 'array',
+        },
+        postingSetId: {
+          type: 'string',
+          description: 'Selected posting set ID.',
+        },
+        timezone: {
+          type: 'string',
+          description: 'Timezone used for scheduling.',
+        },
+        targets: {
+          type: 'array',
+          items: PUBLISH_TARGET_SCHEMA,
+          description:
+            'Per-account publish or schedule settings from the confirmation card.',
         },
         scheduledAt: {
           description:

@@ -162,3 +162,16 @@ it.each(['capture_memory', 'create_workflow'] as const)(
     );
   },
 );
+
+it('advertises only root fields accepted by each canonical tool contract', () => {
+  for (const tool of getToolDefinitions()) {
+    const canonical = getToolByName(tool.name);
+    expect(canonical, tool.name).toBeDefined();
+    for (const key of Object.keys(tool.parameters.properties)) {
+      expect(
+        canonical?.parameters.properties,
+        `${tool.name}.${key}`,
+      ).toHaveProperty(key);
+    }
+  }
+});

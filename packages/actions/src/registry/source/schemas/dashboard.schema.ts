@@ -75,7 +75,7 @@ const block = closedObjectSchema(
     ),
     items: arraySchema(STRING_SCHEMA),
     layout: enumSchema(['row', 'column', 'grid', 'list']),
-    level: { enum: [1, 2, 3], type: 'number' },
+    level: { minimum: 1, maximum: 3, type: 'integer' },
     message: STRING_SCHEMA,
     ordered: BOOLEAN_SCHEMA,
     pageSize: NUMBER_SCHEMA,

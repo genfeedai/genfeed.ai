@@ -148,6 +148,25 @@ describe('provider-compatible tool definitions', () => {
     });
   });
 
+  it('only sends string enums to Gemini', () => {
+    function visit(value: unknown): void {
+      if (!value || typeof value !== 'object') return;
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+        return;
+      }
+      const schema = value as Record<string, unknown>;
+      if (Array.isArray(schema.enum)) {
+        expect(schema.type).toBe('string');
+        expect(schema.enum.every((entry) => typeof entry === 'string')).toBe(
+          true,
+        );
+      }
+      Object.values(schema).forEach(visit);
+    }
+    visit(buildParams('google/gemini-3.5-flash-lite').tools);
+  });
+
   it('preserves canonical schemas for non-Gemini providers', () => {
     const tools = buildToolDefinitions();
     const params = buildAgentChatCompletionParams({
