@@ -1947,5 +1947,48 @@ describe('WorkflowEngineAdapterService', () => {
 
       expect(result).toHaveLength(2);
     });
+
+    it('includes topic-corpus rows from get_trends that clear the viral gate', async () => {
+      const trends = {
+        ...makeTrends(),
+        getTrends: vi.fn().mockResolvedValue([
+          {
+            platform: 'youtube',
+            topic: 'Launch thread',
+            viralityScore: 88,
+          },
+          {
+            data: { score: 40 },
+            platform: 'tiktok',
+            topic: 'Quiet week',
+          },
+          {
+            data: { name: 'Nested name', score: 93 },
+            platform: 'tiktok',
+          },
+        ]),
+        getViralVideos: vi.fn().mockResolvedValue([]),
+      };
+
+      const result = await service.buildDigestTrends(
+        trends,
+        10,
+        70,
+        ['youtube', 'tiktok'],
+        'org-1',
+      );
+
+      expect(trends.getTrends).toHaveBeenCalledWith(
+        'org-1',
+        undefined,
+        undefined,
+        { allowFetchIfMissing: false },
+      );
+      expect(result.map((item) => item.topic)).toEqual([
+        'Nested name',
+        'Launch thread',
+      ]);
+      expect(result.map((item) => item.type)).toEqual(['topic', 'topic']);
+    });
   });
 });

@@ -159,6 +159,58 @@ describe('HttpExceptionFilter', () => {
     );
   });
 
+  it('preserves built-in ValidationPipe message arrays', () => {
+    filter.catch(
+      new HttpException(
+        {
+          error: 'Bad Request',
+          message: ['name must be a string', 'email must be an email'],
+        },
+        HttpStatus.BAD_REQUEST,
+      ),
+      mockArgumentsHost,
+    );
+    expect(mockResponse.json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errors: expect.arrayContaining([
+          expect.objectContaining({
+            detail: 'name must be a string; email must be an email',
+          }),
+        ]),
+      }),
+    );
+  });
+
+  it('keeps ValidationPipe field errors on the JSON:API error array', () => {
+    const exception = new HttpException(
+      {
+        errors: [
+          {
+            constraints: { isString: 'prompt must be a string' },
+            property: 'prompt',
+          },
+        ],
+        message: 'Validation failed',
+      },
+      HttpStatus.BAD_REQUEST,
+    );
+
+    filter.catch(exception, mockArgumentsHost);
+
+    expect(mockResponse.status).toHaveBeenCalledWith(HttpStatus.BAD_REQUEST);
+    expect(mockResponse.json).toHaveBeenCalledWith({
+      errors: [
+        {
+          code: '400',
+          detail: 'prompt must be a string',
+          source: { pointer: '/prompt' },
+          status: '400',
+          title: 'Validation failed',
+        },
+      ],
+    });
+  });
+
   describe('HTTP Status Code Validation', () => {
     const statusTestCases = [
       { message: 'Bad Request', status: HttpStatus.BAD_REQUEST },

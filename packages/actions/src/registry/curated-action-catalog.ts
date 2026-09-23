@@ -60,6 +60,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'onboarding',
   },
   { name: 'compare_meta_campaigns', surfaces: ['mcp'], toolset: 'ads' },
+  {
+    name: 'complete_media_upload',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'content',
+  },
   { name: 'complete_onboarding', surfaces: ['agent'], toolset: 'onboarding' },
   {
     name: 'complete_outreach_sequence',
@@ -231,6 +236,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent'],
     toolset: 'outreach',
   },
+  { name: 'get_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'get_scheduled_release', surfaces: ['mcp'], toolset: 'scheduler' },
   { name: 'get_scheduler_capability', surfaces: ['mcp'], toolset: 'scheduler' },
   {
@@ -395,6 +401,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'repurpose_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
   { name: 'request_asset', surfaces: ['agent'], toolset: 'agent-chat' },
   { name: 'request_input', surfaces: ['agent'], toolset: 'ui' },
+  {
+    name: 'request_media_upload',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'content',
+  },
   { name: 'resolve_approval', surfaces: ['mcp'], toolset: 'core' },
   { name: 'resolve_handle', surfaces: ['agent'], toolset: 'onboarding' },
   {

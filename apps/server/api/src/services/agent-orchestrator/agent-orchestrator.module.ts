@@ -127,6 +127,7 @@ import { MediaReadinessModule } from '@api/services/media-readiness/media-readin
 import { SeoModule } from '@api/services/seo/seo.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { TypedDecisionsModule } from '@api/services/typed-decisions/typed-decisions.module';
+import { UploadsModule } from '@api/services/uploads/uploads.module';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ConfigModule } from '@libs/config/config.module';
 import { LoggerModule } from '@libs/logger/logger.module';
@@ -177,6 +178,7 @@ import { Module } from '@nestjs/common';
     DashboardLayoutsModule,
     ImagesCoreModule,
     IngredientsModule,
+    UploadsModule,
     InstagramInspirationModule,
     LoggerModule,
     LlmDispatcherModule,

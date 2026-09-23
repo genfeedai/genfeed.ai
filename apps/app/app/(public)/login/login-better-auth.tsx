@@ -16,7 +16,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { KeyRound, Sparkles } from 'lucide-react';
+import { KeyRound, Mail, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -42,7 +42,7 @@ import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
   AUTH_SECONDARY_BUTTON_CLASS_NAME,
-  AuthCheckEmail,
+  AuthBackLink,
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
@@ -421,9 +421,9 @@ export default function LoginBetterAuth({
   if (isDesktop) {
     return (
       <AuthFormLayout
-        description="Sign in securely in your system browser."
+        description={translate('loginForm.desktopDescription')}
         logoSize="compact"
-        title="Connect to Genfeed"
+        title={translate('loginForm.connectTitle')}
       >
         <AuthActionSurface
           actions={
@@ -431,11 +431,11 @@ export default function LoginBetterAuth({
               <Form
                 onSubmit={(event) => void handleDesktopCompleteWithCode(event)}
               >
-                <Field label="Sign-in code">
+                <Field label={translate('loginForm.signInCode')}>
                   <Input
                     autoComplete="off"
                     name="desktop-signin-code"
-                    placeholder="Paste the code from the browser"
+                    placeholder={translate('loginForm.signInCodePlaceholder')}
                     spellCheck={false}
                     value={desktopAuthCode}
                     isDisabled={isSubmittingDesktopCode}
@@ -467,7 +467,7 @@ export default function LoginBetterAuth({
                   className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                   withWrapper={false}
                 >
-                  Back
+                  {translate('loginForm.back')}
                 </Button>
               </Form>
             ) : (
@@ -480,7 +480,7 @@ export default function LoginBetterAuth({
                   className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
                   withWrapper={false}
                 >
-                  Sign in with Genfeed
+                  {translate('loginForm.signInWithGenfeed')}
                 </Button>
                 <Button
                   type="button"
@@ -509,7 +509,9 @@ export default function LoginBetterAuth({
             <div className="space-y-2">
               {isWaitingForDesktopSession ? (
                 <>
-                  <p aria-live="polite">Waiting for the browser...</p>
+                  <p aria-live="polite">
+                    {translate('loginForm.waitingForBrowser')}
+                  </p>
                   <p>{translate('desktopAuth.pasteCodeHint')}</p>
                 </>
               ) : (
@@ -533,14 +535,27 @@ export default function LoginBetterAuth({
       <AuthFormLayout
         description={
           <>
-            We sent a sign-in link to <strong>{email}</strong>. Click the link
-            in the email to sign in.
+            {translate('loginForm.sentLinkTo')}{' '}
+            <strong className="block break-all font-medium text-foreground">
+              {email}
+            </strong>{' '}
+            <span className="mt-2 block">
+              {translate('loginForm.clickEmailLink')}
+            </span>
           </>
         }
         logoSize="compact"
-        title="Check your email"
+        title={translate('loginForm.checkEmail')}
+        headingIcon={
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-foreground">
+            <Mail className="size-6" aria-hidden="true" />
+          </div>
+        }
       >
-        <AuthCheckEmail backHref={chooserHref} />
+        <AuthBackLink
+          href={chooserHref}
+          label={translate('loginForm.backToSignIn')}
+        />
       </AuthFormLayout>
     );
   }
@@ -548,17 +563,17 @@ export default function LoginBetterAuth({
   if (mode === 'magic-link') {
     return (
       <AuthFormLayout
-        description="Enter your email and we'll send you a secure sign-in link."
+        description={translate('loginForm.magicLinkDescription')}
         logoSize="compact"
-        title="Sign in with a magic link"
+        title={translate('loginForm.magicLinkTitle')}
       >
         <div className="w-full space-y-6">
           <Form onSubmit={handleMagicLink}>
-            <Field label="Email" isRequired>
+            <Field label={translate('loginForm.email')} isRequired>
               <Input
                 type="email"
                 name="email"
-                placeholder="you@example.com"
+                placeholder={translate('loginForm.emailPlaceholder')}
                 value={email}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   setEmail(e.target.value)
@@ -582,7 +597,7 @@ export default function LoginBetterAuth({
                 className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
               >
-                Send link
+                {translate('loginForm.sendLink')}
               </Button>
             </AuthFormActions>
           </Form>
@@ -594,17 +609,17 @@ export default function LoginBetterAuth({
   if (mode === 'password') {
     return (
       <AuthFormLayout
-        description="Use your Genfeed email and password."
+        description={translate('loginForm.passwordDescription')}
         logoSize="compact"
-        title="Sign in with password"
+        title={translate('loginForm.passwordTitle')}
       >
         <div className="w-full space-y-6">
           <Form onSubmit={handleEmailPassword}>
-            <Field label="Email" isRequired>
+            <Field label={translate('loginForm.email')} isRequired>
               <Input
                 type="email"
                 name="email"
-                placeholder="you@example.com"
+                placeholder={translate('loginForm.emailPlaceholder')}
                 value={email}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   setEmail(e.target.value)
@@ -615,11 +630,11 @@ export default function LoginBetterAuth({
               />
             </Field>
 
-            <Field label="Password" isRequired>
+            <Field label={translate('loginForm.password')} isRequired>
               <Input
                 type="password"
                 name="password"
-                placeholder="Enter your password"
+                placeholder={translate('loginForm.passwordPlaceholder')}
                 value={password}
                 onChange={(e: ChangeEvent<HTMLInputElement>) =>
                   setPassword(e.target.value)
@@ -635,7 +650,7 @@ export default function LoginBetterAuth({
                 href={forgotPasswordHref}
                 className={`text-sm ${AUTH_LINK_CLASS_NAME}`}
               >
-                Forgot password?
+                {translate('loginForm.forgotPassword')}
               </Link>
             </div>
 
@@ -652,7 +667,7 @@ export default function LoginBetterAuth({
                 className={AUTH_PRIMARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
               >
-                Sign in
+                {translate('loginForm.signIn')}
               </Button>
             </AuthFormActions>
           </Form>
@@ -683,7 +698,7 @@ export default function LoginBetterAuth({
                 className={AUTH_SECONDARY_BUTTON_CLASS_NAME}
                 withWrapper={false}
               >
-                Google
+                {translate('loginForm.google')}
               </Button>
 
               <Button
@@ -694,7 +709,7 @@ export default function LoginBetterAuth({
               >
                 <Link href={magicLinkHref}>
                   <Sparkles className="size-4" aria-hidden="true" />
-                  <span>Magic Link</span>
+                  <span>{translate('loginForm.magicLink')}</span>
                 </Link>
               </Button>
 
@@ -706,7 +721,7 @@ export default function LoginBetterAuth({
               >
                 <Link href={passwordHref}>
                   <KeyRound className="size-4" aria-hidden="true" />
-                  <span>Email / Password</span>
+                  <span>{translate('loginForm.emailPassword')}</span>
                 </Link>
               </Button>
             </>
@@ -714,9 +729,9 @@ export default function LoginBetterAuth({
           error={socialErrorMessage}
           footer={
             <AuthFooterPrompt>
-              Don&apos;t have an account?{' '}
+              {translate('loginForm.noAccount')}{' '}
               <Link href={signUpHref} className={AUTH_LINK_CLASS_NAME}>
-                Sign up
+                {translate('loginForm.signUp')}
               </Link>
             </AuthFooterPrompt>
           }

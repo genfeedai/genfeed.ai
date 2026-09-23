@@ -157,6 +157,30 @@ The CLI equivalents are `gf connect <platform>`, `gf gen image --brand --context
 and `gf status <id>`. Client evidence lives in the repository file
 `docs/external-agent-content-journey.md`.
 
+## Tool errors
+
+A gating failure is a tool result with `isError: true`. `structuredContent`
+is the contract below — not a generic 500 and not a bare string. The same
+object is `error.data` on the JSON-RPC response when the Streamable HTTP
+transport rejects the request before a tool runs (missing credential, or the
+shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
+
+| `code` | When | `nextStepUrl` | Extra fields |
+| --- | --- | --- | --- |
+| `unauthorized` | Missing or rejected bearer credential (`401`) | `/connect` on the app origin — the same Connect Genfeed sign-in the server already advertises | |
+| `plan_required` | Paid-plan, subscription, plan-limit, or organization-billing gate (`hasOrganizationBilling()`, `PLAN_LIMIT_EXCEEDED`) | `/settings/subscription` | |
+| `insufficient_credits` | Ledger rejection (`INSUFFICIENT_CREDITS`, HTTP 402) | `/settings/credits` | |
+| `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
+| `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
+| `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | |
+
+`message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted
+when they do not apply — `rate_limited` does not invent a URL. Paths are the
+app routes the product already uses; sign-in continues into the caller's
+organization. Fix `errors[]` and call the tool again. For
+`approval_pending`, hand the human `nextStepUrl` or call `resolve_approval`
+with the approval id in `message`.
+
 ## Tools
 
 Each call uses the permissions on the authorized token or manual key.
@@ -273,3 +297,42 @@ https://mcp.genfeed.ai/mcp
   restart browser authorization only if that fails; in manual mode, check the
   key and its scopes.
 - **Wrong endpoint:** check `/v1/config` on the MCP host.
+
+## Uploading local media
+
+The default MCP profile includes `request_media_upload`, `complete_media_upload`,
+and `get_post`. Select a brand before reserving an upload.
+
+1. Call `request_media_upload` with `filename`, `contentType`, and `category`.
+2. Upload to the returned `uploadUrl` before it expires. For `method: PUT`, send
+   the file bytes with the returned headers. For self-hosted `method: POST_JSON`,
+   send the returned `localUpload` object as JSON, adding the base64-encoded file
+   bytes as `localUpload.source.data`. Respect the returned file constraints.
+3. Call `complete_media_upload` with the returned `assetId`. Its `media` entries
+   can be passed to `create_scheduled_release`; a returned hosted `url` can also
+   be used in `create_post` `mediaUrls`. Scheduling retains its approval checks.
+4. Use `get_post` with `postId` to read a post's targets, state, media, and timestamps.
+
+Upload reservation creates a pending asset. Both upload tools are non-destructive
+writes; `get_post` is read-only. None of these tools publishes a post.
+
+## Interactive content cards
+
+MCP Apps hosts can render Genfeed posts, articles, image galleries, video and audio
+previews, generation results, and usage summaries directly in the conversation.
+The MCP server serves a self-contained HTML resource at
+`ui://genfeed/content-cards-v1.html` with MIME type
+`text/html;profile=mcp-app`. Selected tool descriptors link it through
+`_meta.ui.resourceUri`; the widget uses the standard MCP Apps JSON-RPC bridge.
+No separate ChatGPT frontend deployment is needed.
+
+Text and media resource links remain available to clients without MCP Apps.
+Empty results and tool errors remain visible, and pending approvals are never
+presented as completed content. Cards do not publish or mutate content.
+
+For self-hosting, configure `GENFEEDAI_CDN_URL` and, if media is served directly by
+it, `GENFEEDAI_MICROSERVICES_FILES_URL` on the MCP server. Only these media origins
+are allowed by the widget CSP (the CDN defaults to `https://cdn.genfeed.ai`).
+Other HTTP(S) media URLs remain available through an explicit open-link action.
+The static HTML resource is public; all account data still comes from authenticated
+tool calls. It contains no bearer tokens or account cookies.

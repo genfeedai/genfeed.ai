@@ -1,11 +1,9 @@
+import type { ToolParameterSchema } from './tool-definition.interface';
+
 export interface SourceTool {
   name: string;
   description: string;
-  parameters: {
-    type: 'object';
-    properties: Record<string, unknown>;
-    required?: string[];
-  };
+  parameters: ToolParameterSchema;
   creditCost: number;
   requiredRole: 'user' | 'admin' | 'superadmin';
 }

@@ -56,6 +56,35 @@ describe('BrandWebsiteParserService', () => {
     });
   });
 
+  it('orders logo candidates (page logo, touch icon, favicons by size) with declared types', () => {
+    const parsed = service.parseHtml(
+      `<html><head>
+        <link rel="icon" href="/favicon.ico">
+        <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon?h=192">
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png">
+        <meta property="og:image" content="/opengraph-image?abc">
+        <meta property="og:image:type" content="image/png">
+      </head><body><img class="logo" src="/logo.svg"></body></html>`,
+      'https://acme.example',
+    );
+
+    expect(
+      service.extractBrandData(parsed, 'https://acme.example'),
+    ).toMatchObject({
+      logoCandidates: [
+        { url: 'https://acme.example/logo.svg' },
+        { url: 'https://acme.example/apple-touch-icon.png' },
+        { mimeType: 'image/png', url: 'https://acme.example/icon?h=192' },
+        { mimeType: 'image/png', url: 'https://acme.example/favicon-32.png' },
+        { url: 'https://acme.example/favicon.ico' },
+      ],
+      logoUrl: 'https://acme.example/logo.svg',
+      ogImage: '/opengraph-image?abc',
+      ogImageType: 'image/png',
+    });
+  });
+
   it('matches social links by hostname and ignores redirects or non-web links', () => {
     const parsed = service.parseHtml(
       `<body>

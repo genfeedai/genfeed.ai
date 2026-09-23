@@ -1,7 +1,8 @@
 import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
+import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -24,9 +25,13 @@ vi.mock('@genfeedai/agent/components/AgentChatInput', () => ({
   ),
 }));
 
+const { hasRenderableComposerTasksMock } = vi.hoisted(() => ({
+  hasRenderableComposerTasksMock: vi.fn(() => false),
+}));
+
 vi.mock('@genfeedai/agent/components/AgentComposerStatusStack', () => ({
   AgentComposerStatusStack: () => null,
-  hasRenderableComposerTasks: () => false,
+  hasRenderableComposerTasks: hasRenderableComposerTasksMock,
 }));
 
 vi.mock('@genfeedai/agent/components/ConversationComposerShellContext', () => ({
@@ -63,6 +68,8 @@ function renderPromptBar(
     onMoveFollowUp: () => void;
     onRemoveFollowUp: () => void;
     onSendFollowUpNow: () => void;
+    pendingInputRequest: AgentInputRequest | null;
+    promptBarSuggestions: ReactNode;
   }> = {},
 ): void {
   render(
@@ -98,16 +105,20 @@ function renderPromptBar(
       onSendFollowUpNow={extras.onSendFollowUpNow}
       onStop={vi.fn()}
       onSubmitInputRequest={vi.fn()}
-      pendingInputRequest={null}
-      promptBarSuggestions={null}
+      pendingInputRequest={extras.pendingInputRequest ?? null}
+      promptBarSuggestions={extras.promptBarSuggestions ?? null}
       removeAttachment={vi.fn()}
-      showSuggestedActionsWhenNotEmpty={false}
+      showSuggestedActionsWhenNotEmpty={Boolean(extras.promptBarSuggestions)}
       socketConnectionState="connected"
     />,
   );
 }
 
 describe('AgentChatPromptBar', () => {
+  beforeEach(() => {
+    hasRenderableComposerTasksMock.mockReturnValue(false);
+  });
+
   it('keeps read-only threads from rendering a second generation surface', () => {
     renderPromptBar(true);
 
@@ -155,5 +166,42 @@ describe('AgentChatPromptBar', () => {
     expect(input).toHaveAttribute('data-disabled', 'false');
     expect(input).toHaveAttribute('data-show-stop', 'true');
     expect(input).toHaveAttribute('data-will-queue', 'true');
+  });
+
+  it('renders follow-up chips above the composer once the turn has settled', () => {
+    renderPromptBar(false, {
+      promptBarSuggestions: <div data-testid="follow-up-chips" />,
+    });
+
+    expect(screen.getByTestId('follow-up-chips')).toBeInTheDocument();
+  });
+
+  it('hides follow-up chips while the task panel sits above the composer', () => {
+    hasRenderableComposerTasksMock.mockReturnValue(true);
+
+    renderPromptBar(false, {
+      isRunActive: true,
+      promptBarSuggestions: <div data-testid="follow-up-chips" />,
+    });
+
+    expect(screen.queryByTestId('follow-up-chips')).not.toBeInTheDocument();
+    expect(screen.getByTestId('chat-input')).toHaveAttribute(
+      'data-top-attached',
+      'true',
+    );
+  });
+
+  it('hides follow-up chips while an input request is pending', () => {
+    renderPromptBar(false, {
+      pendingInputRequest: {
+        inputRequestId: 'input-1',
+        prompt: 'Pick a format',
+        threadId: 'thread-1',
+        title: 'Format',
+      },
+      promptBarSuggestions: <div data-testid="follow-up-chips" />,
+    });
+
+    expect(screen.queryByTestId('follow-up-chips')).not.toBeInTheDocument();
   });
 });

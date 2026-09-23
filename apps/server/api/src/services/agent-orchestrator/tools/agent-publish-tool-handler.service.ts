@@ -8,6 +8,12 @@ import { PostRepurposeService } from '@api/collections/posts/services/post-repur
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService } from '@api/index';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
+import {
+  blockMcpCreatePost,
+  isMcpActionOrigin,
+  mcpDraftOnlyResult,
+  readPublishContentId,
+} from '@api/services/agent-orchestrator/tools/agent-publish-mcp-draft-only.util';
 import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
   buildAgentPublishTargetProposals,
@@ -816,12 +822,11 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (isMcpActionOrigin()) return mcpDraftOnlyResult();
     const visibility = z
       .nativeEnum(PostVisibility)
       .safeParse(params.visibility ?? PostVisibility.PUBLIC);
-    const contentId =
-      readOptionalString(params.contentId) ??
-      readOptionalString(params.ingredientId);
+    const contentId = readPublishContentId(params);
     if (!visibility.success || !contentId) {
       return {
         creditsUsed: 0,
@@ -858,6 +863,8 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const mcpBlock = blockMcpCreatePost(params);
+    if (mcpBlock) return mcpBlock;
     const parsedVisibility = z
       .nativeEnum(PostVisibility)
       .safeParse(params.visibility ?? PostVisibility.PUBLIC);
@@ -869,13 +876,7 @@ export class AgentPublishToolHandler {
       };
     }
     const visibility = parsedVisibility.data;
-    const contentId =
-      typeof params.contentId === 'string' && params.contentId.trim().length > 0
-        ? params.contentId.trim()
-        : typeof params.ingredientId === 'string' &&
-            params.ingredientId.trim().length > 0
-          ? params.ingredientId.trim()
-          : undefined;
+    const contentId = readPublishContentId(params);
 
     if (contentId) {
       const { caption, platforms, requestedScheduledAt, requestedTargets } =
@@ -890,8 +891,7 @@ export class AgentPublishToolHandler {
           success: false,
         };
       }
-      // Model-supplied `confirmed` is stripped upstream; only the card-button
-      // resume path sets `ctx.confirmationOrigin`, so it is the trusted signal.
+      // Only the card-button resume sets `ctx.confirmationOrigin`. Model `confirmed` is stripped upstream.
       const isCardConfirmed = ctx.confirmationOrigin === 'thread-ui-action';
       if (!isCardConfirmed) {
         const policy = evaluateAgentAutoPublishPolicies({

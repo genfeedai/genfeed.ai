@@ -1,5 +1,8 @@
 import type { WebsiteScrapingResult } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
-import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
+import type {
+  IScrapedBrandData,
+  IScrapedImageCandidate,
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
@@ -35,6 +38,8 @@ export class BrandWebsiteParserService {
         .attr('content')
         ?.trim() ||
       undefined;
+    const ogImageType =
+      $('meta[property="og:image:type"]').attr('content')?.trim() || undefined;
     const favicon =
       $('link[rel="icon"]').attr('href')?.trim() ||
       $('link[rel="shortcut icon"]').attr('href')?.trim() ||
@@ -68,6 +73,7 @@ export class BrandWebsiteParserService {
 
     // Extract logo
     const logoUrl = this.extractLogoFromDom($, sourceUrl);
+    const icons = this.extractIconsFromDom($, sourceUrl);
     const images = this.extractImagesFromDom($, sourceUrl);
     const bannerUrl = this.extractBannerFromDom(
       $,
@@ -87,10 +93,12 @@ export class BrandWebsiteParserService {
       fonts,
       headings,
       heroText: headings[0],
+      icons,
       images,
       logoUrl,
       ogDescription,
       ogImage,
+      ogImageType,
       ogTitle,
       paragraphs: [],
       scrapedAt: new Date(),
@@ -126,9 +134,14 @@ export class BrandWebsiteParserService {
       fontCandidates: scrapedContent.fonts,
       fontFamily: scrapedContent.fonts[0],
       heroText: scrapedContent.heroText,
+      logoCandidates: this.dedupeImageCandidates([
+        ...(scrapedContent.logoUrl ? [{ url: scrapedContent.logoUrl }] : []),
+        ...scrapedContent.icons,
+      ]),
       logoUrl: scrapedContent.logoUrl,
       metaDescription: scrapedContent.description,
       ogImage: scrapedContent.ogImage,
+      ogImageType: scrapedContent.ogImageType,
       primaryColor: scrapedContent.colors.primary,
       referenceImageUrls: scrapedContent.images
         .map((image) => image.src)
@@ -402,6 +415,76 @@ export class BrandWebsiteParserService {
     }
 
     return undefined;
+  }
+
+  /**
+   * Touch icons first (large, opaque, square), then declared favicons by
+   * their largest `sizes` entry. The brand-kit importer rejects formats it
+   * cannot store (ico, svg), so callers simply try these in order. The
+   * declared `type` travels along because generated icons (`/apple-icon?…`)
+   * carry no extension.
+   */
+  private extractIconsFromDom(
+    $: cheerio.CheerioAPI,
+    sourceUrl: string,
+  ): IScrapedImageCandidate[] {
+    const touchIcons: IScrapedImageCandidate[] = [];
+    const favicons: Array<{ icon: IScrapedImageCandidate; size: number }> = [];
+
+    $('link[rel][href]').each((_i, el) => {
+      const rel = ($(el).attr('rel') ?? '').toLowerCase().split(/\s+/);
+      const href = $(el).attr('href')?.trim();
+      if (!href || href.startsWith('data:')) {
+        return;
+      }
+
+      const declaredType = $(el).attr('type')?.trim().toLowerCase();
+      const icon: IScrapedImageCandidate = {
+        url: this.resolveUrl(href, sourceUrl),
+        ...(declaredType?.startsWith('image/')
+          ? { mimeType: declaredType }
+          : {}),
+      };
+      if (
+        rel.includes('apple-touch-icon') ||
+        rel.includes('apple-touch-icon-precomposed')
+      ) {
+        touchIcons.push(icon);
+      } else if (rel.includes('icon')) {
+        favicons.push({ icon, size: this.readIconSize($(el).attr('sizes')) });
+      }
+    });
+
+    favicons.sort((a, b) => b.size - a.size);
+
+    return this.dedupeImageCandidates([
+      ...touchIcons,
+      ...favicons.map(({ icon }) => icon),
+    ]);
+  }
+
+  private dedupeImageCandidates(
+    candidates: IScrapedImageCandidate[],
+  ): IScrapedImageCandidate[] {
+    const seen = new Set<string>();
+
+    return candidates.filter(({ url }) => {
+      if (seen.has(url)) {
+        return false;
+      }
+      seen.add(url);
+      return true;
+    });
+  }
+
+  private readIconSize(sizes: string | undefined): number {
+    return Math.max(
+      0,
+      ...(sizes ?? '')
+        .split(/\s+/)
+        .map((size) => Number.parseInt(size.split(/x/i)[0] ?? '', 10))
+        .filter((size) => Number.isFinite(size)),
+    );
   }
 
   private extractImagesFromDom(

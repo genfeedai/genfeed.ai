@@ -4,6 +4,7 @@ export type AuthFormLayoutLogoSize = 'default' | 'compact';
 
 interface AuthFormLayoutBaseProps {
   children: ReactNode;
+  headingIcon?: ReactNode;
   logoSize?: AuthFormLayoutLogoSize;
 }
 

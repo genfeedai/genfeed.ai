@@ -1175,8 +1175,10 @@ export default function ContentCalendarPage({
     [runMutation, selectedReleaseId],
   );
 
+  // Content-sized and unwrapped: the calendar topbar scrolls horizontally
+  // when narrow, so a full-width wrapping row here only stacked the controls.
   const filterControls = (
-    <div className="flex w-full flex-wrap items-center justify-end gap-2">
+    <div className="flex shrink-0 items-center justify-end gap-2">
       <Button
         aria-label="New cadence"
         isDisabled={!defaultCredentialId}

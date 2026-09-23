@@ -53,8 +53,12 @@ export default function PublishingContentLibraryToolbar({
 }: PublishingContentLibraryToolbarProps) {
   const translate = useTranslations('pages.posts.library');
   return (
-    <div className="flex flex-wrap items-center gap-2">
-      <div className="w-48 sm:w-56 xl:w-64">
+    // Tiers key off the Publishing page width (`@container/publishing` on the
+    // layout Container), so opening the inspector compacts the row — narrower
+    // search, icon-only Approval Queue — instead of wrapping it. Items only
+    // wrap as a last resort on phone widths.
+    <div className="flex flex-wrap items-center justify-end gap-2">
+      <div className="w-40 @[56rem]/publishing:w-64">
         <FormSearchbar
           value={searchValue}
           onSearch={onSearchChange}
@@ -123,9 +127,14 @@ export default function PublishingContentLibraryToolbar({
           variant={ButtonVariant.GHOST}
           withWrapper={false}
         >
-          <Link href={approvalQueueHref}>
+          <Link
+            aria-label={translate('approvalQueue')}
+            href={approvalQueueHref}
+          >
             <ClipboardCheck aria-hidden="true" className="size-3.5" />
-            {translate('approvalQueue')}
+            <span className="hidden @[64rem]/publishing:inline">
+              {translate('approvalQueue')}
+            </span>
           </Link>
         </Button>
       ) : null}

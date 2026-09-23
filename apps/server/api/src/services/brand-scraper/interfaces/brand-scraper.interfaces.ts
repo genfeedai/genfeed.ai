@@ -1,3 +1,5 @@
+import type { IScrapedImageCandidate } from '@genfeedai/contracts/interfaces';
+
 /**
  * LinkedIn company page data extracted from scraping
  */
@@ -107,7 +109,10 @@ export interface WebsiteScrapingResult {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  ogImageType?: string;
   favicon?: string;
+  /** Absolute apple-touch-icon and icon URLs, best first. */
+  icons: IScrapedImageCandidate[];
   canonical?: string;
 
   // Colors extracted from CSS

@@ -63,6 +63,8 @@ describe('MCP tool annotations', () => {
   it('marks approval-required tools destructive and not read-only', () => {
     for (const tool of getToolsForSurface('mcp')) {
       if (!isApprovalRequiredToolName(tool.name)) continue;
+      // MCP create_post only saves a draft; publishing is create_scheduled_release.
+      if (tool.name === 'create_post') continue;
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(false);
       expect(tool.annotations?.destructiveHint, tool.name).toBe(true);
       expect(tool.annotations?.idempotentHint, tool.name).toBe(false);
@@ -121,8 +123,49 @@ describe('MCP tool annotations', () => {
     }
   });
 
+  it('keeps media upload and get_post hints off the global write default', () => {
+    expect(getToolByName('request_media_upload')?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      readOnlyHint: false,
+    });
+    expect(getToolByName('get_post')?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: true,
+      readOnlyHint: true,
+    });
+    expect(getToolByName('complete_media_upload')?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: false,
+      readOnlyHint: false,
+    });
+    expect(getToolByName('complete_media_upload')?.mutationPolicy).toBe(
+      'direct',
+    );
+    expect(getToolByName('request_media_upload')?.mutationPolicy).toBe(
+      'direct',
+    );
+    expect(getToolByName('get_post')?.toolset).toBe('content');
+    expect(getToolByName('request_media_upload')?.toolset).toBe('content');
+    expect(getToolByName('complete_media_upload')?.toolset).toBe('content');
+  });
+
   it('derives a title from the tool name', () => {
     expect(getToolByName('get_account_info')?.title).toBe('Get Account Info');
     expect(getToolByName('create_post')?.title).toBe('Create Post');
+  });
+
+  it('marks MCP create_post as a non-destructive draft', () => {
+    const tool = getToolByName('create_post');
+    expect(tool?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      readOnlyHint: false,
+    });
+    expect(tool?.description).toContain('create_scheduled_release');
+    expect(tool?.description).toContain('never publishes');
+    expect(tool?.mutationPolicy).toBe('approval-required');
+    expect(tool?.toolset).toBe('content');
   });
 });

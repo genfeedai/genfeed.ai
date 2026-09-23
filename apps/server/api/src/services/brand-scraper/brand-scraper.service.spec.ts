@@ -414,6 +414,14 @@ describe('BrandScraperService', () => {
       const result = await service.scrapeWebsite('https://acme.com');
 
       expect(result.logoUrl).toBe('https://acme.com/owned-logo.svg');
+      // An SVG page logo cannot be stored, so Logo.dev stays in the chain.
+      expect(result.logoCandidates).toEqual([
+        { url: 'https://acme.com/owned-logo.svg' },
+        {
+          mimeType: 'image/png',
+          url: 'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
+        },
+      ]);
     });
 
     it('retains the placeholder path when Logo.dev is not configured', async () => {
@@ -517,6 +525,9 @@ describe('BrandScraperService', () => {
       expect(result.logoUrl).toBe(
         'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
       );
+      expect(result.logoCandidates).toEqual([
+        { mimeType: 'image/png', url: result.logoUrl },
+      ]);
     });
 
     it('falls back to meta tags when scrape fails (503)', async () => {

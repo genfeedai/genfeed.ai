@@ -105,6 +105,68 @@ describe('provider-compatible tool definitions', () => {
     expect(serializedTools).toContain('"anyOf":');
   });
 
+  it('keeps repaired object definitions and artifact variants in Gemini schemas', () => {
+    const params = buildParams('google/gemini-3.5-flash-lite');
+    const serializedTools = JSON.stringify(params.tools);
+    expect(serializedTools).not.toMatch(/"type":\s*\[/);
+    expect(serializedTools).not.toContain('genfeed:recursive-json-document');
+    const transfer = params.tools?.find(
+      (tool) => tool.function.name === 'transfer_agent_conversation',
+    );
+    expect(transfer?.function.parameters).toMatchObject({
+      $defs: expect.objectContaining({ jsonValue: expect.any(Object) }),
+      properties: {
+        artifactReferences: {
+          items: {
+            anyOf: expect.arrayContaining([
+              expect.objectContaining({
+                properties: expect.objectContaining({
+                  kind: { enum: ['post'], type: 'string' },
+                  serializer: { enum: ['post'], type: 'string' },
+                }),
+              }),
+            ]),
+          },
+        },
+      },
+    });
+    const workflow = params.tools?.find(
+      (tool) => tool.function.name === 'create_workflow',
+    );
+    expect(workflow?.function.parameters).toMatchObject({
+      $defs: expect.objectContaining({ jsonValue: expect.any(Object) }),
+      properties: {
+        nodes: {
+          items: {
+            properties: expect.objectContaining({
+              id: { type: 'string' },
+              data: { type: 'object' },
+            }),
+          },
+        },
+      },
+    });
+  });
+
+  it('only sends string enums to Gemini', () => {
+    function visit(value: unknown): void {
+      if (!value || typeof value !== 'object') return;
+      if (Array.isArray(value)) {
+        value.forEach(visit);
+        return;
+      }
+      const schema = value as Record<string, unknown>;
+      if (Array.isArray(schema.enum)) {
+        expect(schema.type).toBe('string');
+        expect(schema.enum.every((entry) => typeof entry === 'string')).toBe(
+          true,
+        );
+      }
+      Object.values(schema).forEach(visit);
+    }
+    visit(buildParams('google/gemini-3.5-flash-lite').tools);
+  });
+
   it('preserves canonical schemas for non-Gemini providers', () => {
     const tools = buildToolDefinitions();
     const params = buildAgentChatCompletionParams({

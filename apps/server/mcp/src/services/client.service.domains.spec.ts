@@ -993,11 +993,79 @@ describe('ClientService (MCP) domain clients', () => {
       );
     });
 
-    it('throws the fixed failure message on error', async () => {
+    it('classifies a transport failure as internal', async () => {
       (mockAxiosInstance.get as Mock).mockRejectedValue(new Error('nope'));
 
       await expect(service.listMetaAdAccounts()).rejects.toThrow(
-        'Failed to list Meta ad accounts',
+        'Failed to list Meta ad accounts (internal)',
+      );
+    });
+
+    it('says Meta Ads is not connected when the credential is missing', async () => {
+      (mockAxiosInstance.get as Mock).mockRejectedValue({
+        response: {
+          data: {
+            errors: [
+              {
+                detail:
+                  'Facebook credential not found. Please connect your Facebook account first.',
+              },
+            ],
+          },
+          status: 404,
+        },
+      });
+
+      await expect(service.listMetaAdAccounts()).rejects.toThrow(
+        'Meta account is not connected or not authorized. Facebook credential not found. Please connect your Facebook account first.',
+      );
+    });
+
+    it('says Meta Ads is not authorized on 403 without leaking a token', async () => {
+      (mockAxiosInstance.get as Mock).mockRejectedValue({
+        response: {
+          data: {
+            errors: [{ detail: 'Bearer super-secret-token-value' }],
+          },
+          status: 403,
+        },
+      });
+
+      await expect(service.listMetaAdAccounts()).rejects.toThrow(
+        'Meta account is not connected or not authorized. Bearer [redacted]',
+      );
+      await expect(service.listMetaAdAccounts()).rejects.not.toThrow(
+        'super-secret-token-value',
+      );
+    });
+
+    it('labels a Meta provider failure and drops raw HTML', async () => {
+      (mockAxiosInstance.get as Mock).mockRejectedValue({
+        response: {
+          data: {
+            errors: [{ detail: '<html><body>upstream exploded</body></html>' }],
+          },
+          status: 502,
+        },
+      });
+
+      const pending = service.listMetaAdAccounts();
+      await expect(pending).rejects.toThrow(
+        'Failed to list Meta ad accounts (provider)',
+      );
+      await expect(pending).rejects.not.toThrow('<html');
+    });
+
+    it('labels a Meta auth failure that is not a missing connection', async () => {
+      (mockAxiosInstance.get as Mock).mockRejectedValue({
+        response: {
+          data: { errors: [{ detail: 'OAuth token expired' }] },
+          status: 400,
+        },
+      });
+
+      await expect(service.listMetaAdAccounts()).rejects.toThrow(
+        'Failed to list Meta ad accounts (auth): OAuth token expired',
       );
     });
   });
@@ -1150,11 +1218,57 @@ describe('ClientService (MCP) domain clients', () => {
       );
     });
 
-    it('throws the fixed failure message on error', async () => {
+    it('classifies a transport failure as internal', async () => {
       (mockAxiosInstance.get as Mock).mockRejectedValue(new Error('nope'));
 
       await expect(service.listGoogleAdsCustomers()).rejects.toThrow(
-        'Failed to list Google Ads customers',
+        'Failed to list Google Ads customers (internal)',
+      );
+    });
+
+    it('says Google Ads is not connected when the credential is missing', async () => {
+      (mockAxiosInstance.get as Mock).mockRejectedValue({
+        response: {
+          data: {
+            errors: [
+              {
+                detail:
+                  'Google Ads credential not found. Please connect your Google Ads account first.',
+                status: '404',
+              },
+            ],
+          },
+        },
+      });
+
+      await expect(service.listGoogleAdsCustomers()).rejects.toThrow(
+        'Google Ads account is not connected or not authorized. Google Ads credential not found. Please connect your Google Ads account first.',
+      );
+    });
+
+    it('labels a Google Ads provider failure with a safe detail', async () => {
+      (mockAxiosInstance.get as Mock).mockRejectedValue({
+        response: {
+          data: { errors: [{ detail: 'Invalid customer ID' }] },
+          status: 400,
+        },
+      });
+
+      await expect(service.listGoogleAdsCustomers()).rejects.toThrow(
+        'Failed to list Google Ads customers (provider): Invalid customer ID',
+      );
+    });
+
+    it('drops a generic production 500 instead of calling it a provider error', async () => {
+      (mockAxiosInstance.get as Mock).mockRejectedValue({
+        response: {
+          data: { errors: [{ detail: 'An unexpected error occurred' }] },
+          status: 500,
+        },
+      });
+
+      await expect(service.listGoogleAdsCustomers()).rejects.toThrow(
+        'Failed to list Google Ads customers (internal)',
       );
     });
   });
@@ -1289,6 +1403,7 @@ describe('ClientService (MCP) domain clients', () => {
       expect(mockAxiosInstance.get).toHaveBeenCalledWith(
         '/credentials/mentions',
       );
+      expect(mockAxiosInstance.get).toHaveBeenCalledTimes(1);
       expect(result).toEqual({
         avatar: 'https://cdn/avatar.png',
         connected: true,
@@ -1298,13 +1413,22 @@ describe('ClientService (MCP) domain clients', () => {
       });
     });
 
-    it('reports a disconnected state when no LinkedIn mention exists', async () => {
-      (mockAxiosInstance.get as Mock).mockResolvedValue({
-        data: { mentions: [] },
+    it('reports a disconnected state when no LinkedIn mention or credential exists', async () => {
+      (mockAxiosInstance.get as Mock).mockImplementation((url: string) => {
+        if (url === '/credentials/mentions') {
+          return Promise.resolve({ data: { mentions: [] } });
+        }
+        if (url === '/credentials') {
+          return Promise.resolve({ data: { data: [] } });
+        }
+        return Promise.reject(new Error(`unexpected ${url}`));
       });
 
       const result = await service.getLinkedInConnectionStatus();
 
+      expect(mockAxiosInstance.get).toHaveBeenCalledWith('/credentials', {
+        params: { limit: 100 },
+      });
       expect(result).toEqual({
         avatar: null,
         connected: false,
@@ -1312,6 +1436,78 @@ describe('ClientService (MCP) domain clients', () => {
         name: null,
         platform: 'linkedin',
       });
+    });
+
+    it('treats a handle-less LinkedIn credential as connected', async () => {
+      (mockAxiosInstance.get as Mock).mockImplementation((url: string) => {
+        if (url === '/credentials/mentions') {
+          return Promise.resolve({ data: { mentions: [] } });
+        }
+        if (url === '/credentials') {
+          return Promise.resolve({
+            data: {
+              data: [
+                {
+                  attributes: {
+                    accessToken: 'should-not-leak',
+                    externalAvatar: null,
+                    externalHandle: null,
+                    externalName: 'Genfeed',
+                    isConnected: true,
+                    platform: 'linkedin',
+                  },
+                  id: 'credential-1',
+                },
+              ],
+            },
+          });
+        }
+        return Promise.reject(new Error(`unexpected ${url}`));
+      });
+
+      const result = await service.getLinkedInConnectionStatus();
+
+      expect(result).toEqual({
+        avatar: null,
+        connected: true,
+        handle: null,
+        name: 'Genfeed',
+        platform: 'linkedin',
+      });
+      expect(JSON.stringify(result)).not.toContain('should-not-leak');
+    });
+
+    it('documents a stored LinkedIn credential that is not marked connected', async () => {
+      (mockAxiosInstance.get as Mock).mockImplementation((url: string) => {
+        if (url === '/credentials/mentions') {
+          return Promise.resolve({ data: { mentions: [] } });
+        }
+        if (url === '/credentials') {
+          return Promise.resolve({
+            data: {
+              data: [
+                {
+                  attributes: {
+                    externalHandle: 'genfeed',
+                    isConnected: false,
+                    platform: 'linkedin',
+                  },
+                },
+              ],
+            },
+          });
+        }
+        return Promise.reject(new Error(`unexpected ${url}`));
+      });
+
+      const result = await service.getLinkedInConnectionStatus();
+
+      expect(result).toMatchObject({
+        connected: false,
+        handle: 'genfeed',
+        platform: 'linkedin',
+      });
+      expect(result.reason).toContain('not marked connected');
     });
 
     it('reads LinkedIn analytics for a content item', async () => {

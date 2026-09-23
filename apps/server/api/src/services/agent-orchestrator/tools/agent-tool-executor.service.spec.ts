@@ -158,6 +158,10 @@ describe('AgentToolExecutorService', () => {
       handleYoutubePost: vi.fn(),
       patch: vi.fn(),
     };
+    const presignedUploadService = {
+      confirmUpload: vi.fn(),
+      getPresignedUploadUrl: vi.fn(),
+    };
     const postGroupsService = {
       create: vi
         .fn()
@@ -925,6 +929,7 @@ describe('AgentToolExecutorService', () => {
       brandsService as never,
       postsService as never,
       { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
+      presignedUploadService as never,
     );
     const reviewHandler = new AgentReviewToolHandler(
       batchGenerationService as never,
@@ -1191,6 +1196,7 @@ describe('AgentToolExecutorService', () => {
       postGroupsService,
       postRepurposeService,
       postsService,
+      presignedUploadService,
       publishCacheService,
       recurringWorkflowId,
       service,
@@ -2082,6 +2088,9 @@ describe('AgentToolExecutorService', () => {
     expect(result.success).toBe(true);
     expect(postsService.findAll).toHaveBeenCalledWith(
       {
+        include: {
+          ingredients: { select: { category: true, id: true } },
+        },
         orderBy: { createdAt: -1 },
         where: {
           isDeleted: false,
@@ -2091,6 +2100,160 @@ describe('AgentToolExecutorService', () => {
       },
       { limit: 10 },
     );
+  });
+
+  it('returns one post in the list_posts item shape', async () => {
+    const { postsService, service } = createService();
+    const createdAt = new Date('2026-09-01T00:00:00.000Z');
+    const scheduledDate = new Date('2026-09-02T00:00:00.000Z');
+    postsService.findOne.mockResolvedValue({
+      createdAt,
+      credentialId: 'cred-1',
+      description: 'Launch note',
+      id: 'post-1',
+      ingredients: [{ category: 'IMAGE', id: 'asset-1' }],
+      label: 'Launch',
+      platform: 'instagram',
+      publishedAt: null,
+      scheduledDate,
+      status: 'draft',
+      targetExecutionState: TargetExecutionState.SCHEDULED,
+      targetValidationState: 'valid',
+      updatedAt: createdAt,
+    });
+
+    const result = await service.executeTool(
+      'get_post',
+      { postId: 'post-1' },
+      {
+        organizationId: testId('org'),
+        userId: testId('user'),
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(postsService.findOne).toHaveBeenCalledWith({
+      id: 'post-1',
+      isDeleted: false,
+      organizationId: testId('org'),
+    });
+    expect(result.data).toEqual({
+      post: {
+        createdAt: createdAt.toISOString(),
+        description: 'Launch note',
+        id: 'post-1',
+        label: 'Launch',
+        media: [{ assetId: 'asset-1', kind: 'image', order: 0 }],
+        platform: 'instagram',
+        publishedAt: null,
+        scheduledDate: scheduledDate.toISOString(),
+        state: TargetExecutionState.SCHEDULED,
+        status: 'draft',
+        targets: [
+          {
+            credentialId: 'cred-1',
+            platform: 'instagram',
+            scheduledDate: scheduledDate.toISOString(),
+            state: TargetExecutionState.SCHEDULED,
+            validationState: 'valid',
+          },
+        ],
+        updatedAt: createdAt.toISOString(),
+      },
+    });
+  });
+
+  it.each(['thread', 'headless MCP'])(
+    'reserves a presigned media upload without publishing from %s',
+    async (surface) => {
+      const { brandsService, presignedUploadService, service } =
+        createService();
+      brandsService.findOne.mockResolvedValue({ id: testId('brand') });
+      presignedUploadService.getPresignedUploadUrl.mockResolvedValue({
+        expiresIn: 3600,
+        id: 'asset-1',
+        publicUrl: 'https://cdn.example.test/images/asset-1',
+        s3Key: 'ingredients/images/asset-1',
+        uploadMethod: 'PUT',
+        uploadUrl: 'https://s3.example.test/upload',
+      });
+
+      const result = await service.executeTool(
+        'request_media_upload',
+        {
+          category: 'image',
+          contentType: 'image/png',
+          filename: 'launch.png',
+        },
+        surface === 'thread'
+          ? scopedContext(testId('brand'))
+          : { organizationId: testId('org'), userId: testId('user') },
+      );
+
+      expect(result.success).toBe(true);
+      expect(presignedUploadService.getPresignedUploadUrl).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: testId('brand'),
+          organizationId: testId('org'),
+          userId: testId('user'),
+        }),
+        expect.objectContaining({
+          category: IngredientCategory.IMAGE,
+          contentType: 'image/png',
+          filename: 'launch.png',
+        }),
+      );
+      expect(result.data).toEqual(
+        expect.objectContaining({
+          assetId: 'asset-1',
+          constraints: expect.objectContaining({
+            contentType: 'image/png',
+            maxBytes: 10 * 1024 * 1024,
+            method: 'PUT',
+          }),
+          headers: { 'Content-Type': 'image/png' },
+          method: 'PUT',
+          publicUrl: 'https://cdn.example.test/images/asset-1',
+          uploadUrl: 'https://s3.example.test/upload',
+        }),
+      );
+    },
+  );
+
+  it('finalizes an upload as an asset id scheduled releases accept', async () => {
+    const { presignedUploadService, service } = createService();
+    presignedUploadService.confirmUpload.mockResolvedValue({
+      category: IngredientCategory.IMAGE,
+      cdnUrl: 'https://cdn.example.test/images/asset-1',
+      id: 'asset-1',
+      status: 'UPLOADED',
+    });
+
+    const result = await service.executeTool(
+      'complete_media_upload',
+      { assetId: 'asset-1' },
+      {
+        organizationId: testId('org'),
+        userId: testId('user'),
+      },
+    );
+
+    expect(result.success).toBe(true);
+    expect(presignedUploadService.confirmUpload).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: testId('org'),
+        userId: testId('user'),
+      }),
+      'asset-1',
+    );
+    expect(result.data).toEqual({
+      assetId: 'asset-1',
+      contentId: 'asset-1',
+      ingredientId: 'asset-1',
+      media: [{ assetId: 'asset-1', kind: 'image', order: 0 }],
+      status: 'UPLOADED',
+      url: 'https://cdn.example.test/images/asset-1',
+    });
   });
 
   it('lists Instagram inspiration for the selected organization brand', async () => {
@@ -5507,6 +5670,7 @@ describe('AgentToolExecutorService', () => {
         brandsService as never,
         postsService as never,
         { listCharacterMentions: vi.fn().mockResolvedValue([]) } as never,
+        { confirmUpload: vi.fn(), getPresignedUploadUrl: vi.fn() } as never,
       ),
       new AgentConnectionToolHandler(credentialsService as never),
       new AgentTrendsToolHandler({

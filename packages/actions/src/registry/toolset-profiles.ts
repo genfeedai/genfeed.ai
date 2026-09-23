@@ -7,8 +7,8 @@ import type { ToolsetName } from './toolset-names';
  *
  * `default` is what the bare MCP URL loads. The intended set is core,
  * scheduler, content, generation, analytics, brand, and onboarding, but
- * those seven are 55 MCP tools and the bare URL is capped at
- * {@link BARE_MCP_URL_TOOL_CAP}. core + scheduler + content is 28, and
+ * those seven are 58 MCP tools and the bare URL is capped at
+ * {@link BARE_MCP_URL_TOOL_CAP}. core + scheduler + content is 31, and
  * adding any of the remaining four (generation 12, analytics 7, brand 5,
  * onboarding 3) crosses the cap, so they stay off `default`. `?profile=full`
  * and an explicit `?toolsets=` still reach them.
@@ -21,7 +21,7 @@ export type McpToolsetProfileName = (typeof MCP_PROFILE_NAMES)[number];
 export const BARE_URL_MCP_PROFILE: McpToolsetProfileName = 'default';
 
 /** Hard cap on tools advertised by the bare MCP URL (`tools/list`). */
-export const BARE_MCP_URL_TOOL_CAP = 30;
+export const BARE_MCP_URL_TOOL_CAP = 31;
 
 export const DEFAULT_MCP_PROFILE_TOOLSETS: readonly ToolsetName[] = [
   'core',

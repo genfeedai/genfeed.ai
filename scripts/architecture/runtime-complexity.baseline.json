@@ -240,7 +240,7 @@
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
   },
   {
-    "actual": 158,
+    "actual": 153,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentPublishToolHandler.createPost"
@@ -258,7 +258,7 @@
     "symbol": "AgentToolExecutorService.constructor"
   },
   {
-    "actual": 314,
+    "actual": 311,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-tool-executor.service.ts",
     "metric": "method-lines",
     "symbol": "AgentToolExecutorService.dispatch"
@@ -360,7 +360,7 @@
     "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
   },
   {
-    "actual": 354,
+    "actual": 338,
     "file": "apps/server/mcp/src/services/tool-registry.service.ts",
     "metric": "method-lines",
     "symbol": "ToolRegistryService.handleLegacyTool"

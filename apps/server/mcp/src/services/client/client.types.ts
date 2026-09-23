@@ -19,6 +19,9 @@ export interface ApiErrorResponseData {
 export interface ApiError {
   response?: {
     status?: number;
+    headers?: Record<string, unknown> & {
+      get?: (name: string) => unknown;
+    };
     data?: ApiErrorResponseData;
   };
   message?: string;

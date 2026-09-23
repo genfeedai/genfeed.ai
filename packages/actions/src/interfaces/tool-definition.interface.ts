@@ -30,6 +30,7 @@ export type ToolUiActionType =
   | 'next_steps_card';
 
 export interface ToolParameterSchema {
+  $defs?: Record<string, unknown>;
   additionalProperties?: false;
   type: 'object';
   properties: Record<string, unknown>;

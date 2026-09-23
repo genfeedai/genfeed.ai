@@ -126,12 +126,14 @@ export class WorkflowEngineAdapterService {
     topN: number,
     minViralScore: number,
     platforms: string[],
+    organizationId?: string,
   ) {
     return this.trendPublishRegistrar.buildDigestTrends(
       trends,
       topN,
       minViralScore,
       platforms,
+      organizationId,
     );
   }
 }

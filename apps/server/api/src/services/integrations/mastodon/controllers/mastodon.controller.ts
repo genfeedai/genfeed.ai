@@ -157,6 +157,7 @@ export class MastodonController {
       credential.organizationId,
       {
         avatarUrl: account.avatar,
+        bannerUrl: account.header,
         handle: account.acct || account.username,
         id: account.id,
         name: account.display_name || account.username,

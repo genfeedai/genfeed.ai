@@ -343,9 +343,15 @@ describe('ToolRegistryService', () => {
   it('getResources returns the shared catalog', () => {
     const resources = service.getResources();
     expect(resources).toEqual([...MCP_RESOURCES]);
-    expect(resources[0].uri).toBe(McpResourceUri.AGENT_GUIDE);
-    expect(resources[1].uri).toBe(McpResourceUri.VIDEO_ANALYTICS);
-    expect(resources[2].uri).toBe(McpResourceUri.ORGANIZATION_ANALYTICS);
+    expect(resources.map((resource) => resource.uri)).toContain(
+      McpResourceUri.AGENT_GUIDE,
+    );
+    expect(resources.map((resource) => resource.uri)).toContain(
+      McpResourceUri.VIDEO_ANALYTICS,
+    );
+    expect(resources.map((resource) => resource.uri)).toContain(
+      McpResourceUri.ORGANIZATION_ANALYTICS,
+    );
   });
 
   it('getPublicResources returns only safe discovery content', () => {
@@ -386,7 +392,7 @@ describe('ToolRegistryService', () => {
     ).toContain('completed');
   });
 
-  it('handleToolCall get_video_status throws when videoId missing', async () => {
+  it('handleToolCall get_video_status returns validation details when videoId missing', async () => {
     const result = await service.handleToolCall({
       arguments: {},
       name: 'get_video_status',
@@ -397,7 +403,11 @@ describe('ToolRegistryService', () => {
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('videoId required');
     expect(result).toMatchObject({
-      structuredContent: { failure: { reason: 'UNKNOWN', detail: null } },
+      structuredContent: {
+        code: 'validation_failed',
+        errors: [{ field: 'videoId', message: 'videoId required' }],
+        message: 'videoId required',
+      },
     });
   });
 

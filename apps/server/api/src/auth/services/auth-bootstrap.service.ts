@@ -145,6 +145,7 @@ export class AuthBootstrapService {
 
     return await this.brandsService.findForOrganization(organizationId, {
       brandIds: undefined,
+      includeCredentials: true,
     });
   }
 

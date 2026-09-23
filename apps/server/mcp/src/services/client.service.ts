@@ -25,6 +25,7 @@ import {
 } from '@mcp/services/client/clips.client';
 import { ContentClient } from '@mcp/services/client/content.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
+import type { LinkedInConnectionStatus } from '@mcp/services/client/linkedin.client.types';
 import { MediaClient } from '@mcp/services/client/media.client';
 import {
   type ScheduledReleaseControlAction,
@@ -789,13 +790,7 @@ export class ClientService {
     return this.linkedin.generateLinkedInContent(params);
   }
 
-  getLinkedInConnectionStatus(): Promise<{
-    avatar: string | null;
-    connected: boolean;
-    handle: string | null;
-    name: string | null;
-    platform: string;
-  }> {
+  getLinkedInConnectionStatus(): Promise<LinkedInConnectionStatus> {
     return this.linkedin.getLinkedInConnectionStatus();
   }
 

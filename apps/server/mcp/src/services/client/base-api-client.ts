@@ -3,9 +3,29 @@ import type { LoggerService } from '@libs/logger/logger.service';
 import type { ConfigService } from '@mcp/config/config.service';
 import { resolveApiBaseUrl } from '@mcp/shared/utils/api-url.util';
 import { createMcpOriginProof } from '@mcp/shared/utils/mcp-origin-proof.util';
+import { McpUpstreamError } from '@mcp/tools/mcp-tool-error';
 import type { HttpService } from '@nestjs/axios';
 import type { AxiosInstance, AxiosResponse } from 'axios';
+
 import type { ApiError } from './client.types';
+
+function isHeaderRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function readRetryAfterSeconds(error: ApiError): number | undefined {
+  const headers = error.response?.headers;
+  if (!isHeaderRecord(headers)) return undefined;
+  const fromGetter =
+    typeof headers.get === 'function' ? headers.get('retry-after') : undefined;
+  const raw =
+    typeof fromGetter === 'string'
+      ? fromGetter
+      : (headers['retry-after'] ?? headers['Retry-After']);
+  if (typeof raw !== 'string' || !/^\d+$/.test(raw)) return undefined;
+  const seconds = Number(raw);
+  return seconds > 0 ? seconds : undefined;
+}
 
 /**
  * Low-level HTTP foundation shared by every domain client.
@@ -93,7 +113,11 @@ export class BaseApiClient {
   /** `onError` factory: prefer the API-supplied error detail, else `defaultMessage`. */
   failWithDetail(defaultMessage: string): (error: ApiError) => never {
     return (error: ApiError) => {
-      throw new Error(this.getErrorMessage(error, defaultMessage));
+      throw new McpUpstreamError(this.getErrorMessage(error, defaultMessage), {
+        body: error.response?.data,
+        retryAfterSeconds: readRetryAfterSeconds(error),
+        status: error.response?.status,
+      });
     };
   }
 

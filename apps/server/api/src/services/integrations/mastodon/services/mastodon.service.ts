@@ -35,6 +35,7 @@ interface MastodonAccount {
   acct: string;
   display_name: string;
   avatar: string;
+  header?: string;
   url: string;
 }
 

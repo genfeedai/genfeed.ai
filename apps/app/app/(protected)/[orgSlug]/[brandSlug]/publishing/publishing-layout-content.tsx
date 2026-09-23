@@ -24,6 +24,7 @@ import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
 import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
 import { Suspense, useCallback, useMemo, useReducer } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
@@ -94,6 +95,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const pathname = usePathname();
   const { credentials, selectedBrand } = useBrand();
   const openAgentComposer = useOpenAgentComposer();
+  const translate = useTranslations('pages.publishing.layout');
 
   const [state, dispatch] = useReducer(
     publishingLayoutReducer,
@@ -206,12 +208,16 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
       <Container
-        label="Publishing"
-        description="Manage and publish across platforms."
+        // Page-width container: the toolbar compacts when the inspector
+        // narrows the page (see the `@…/publishing:` tiers below and in the
+        // posts library toolbar) instead of wrapping onto a second row.
+        className="@container/publishing"
+        label={translate('title')}
+        description={translate('description')}
         icon={Newspaper}
         titleVisibility="sr-only"
         right={
-          <div className="flex min-w-0 flex-wrap items-center gap-2">
+          <div className="flex min-w-0 items-center justify-end gap-2">
             {filtersNode}
             {viewToggleNode}
             {exportNode}
@@ -227,8 +233,14 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.DEFAULT}
                   withWrapper={false}
+                  className="shrink-0"
+                  ariaLabel={translate('newPost')}
                   icon={<Plus className="size-4" />}
-                  label="New post"
+                  label={
+                    <span className="hidden @[64rem]/publishing:inline">
+                      {translate('newPost')}
+                    </span>
+                  }
                 />
               }
             >
@@ -238,7 +250,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
-                  label="Social post"
+                  label={translate('socialPost')}
                   onClick={handleNewPost}
                 />
                 <Button
@@ -246,7 +258,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
-                  label="Article"
+                  label={translate('article')}
                   onClick={() =>
                     openAgentComposer(
                       'Help me write a new long-form article for my brand.',
@@ -258,7 +270,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
-                  label="Newsletter"
+                  label={translate('newsletter')}
                   onClick={() =>
                     openAgentComposer(
                       'Help me write a new newsletter for my brand.',
@@ -270,7 +282,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
-                  label="X long post"
+                  label={translate('xLongPost')}
                   onClick={handleNewLongPost}
                   isDisabled={xCredentials.length === 0}
                 />
@@ -279,7 +291,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
                   className="w-full justify-start"
-                  label="X thread"
+                  label={translate('xThread')}
                   onClick={handleNewThread}
                   isDisabled={xCredentials.length === 0}
                 />

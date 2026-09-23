@@ -168,6 +168,8 @@ function getHealthToneClass(summary: AccountHealthSummary): string {
 export default function BrandDetailSocialMediaCard({
   brandId,
   connections,
+  isConnectAccountModalOpen: controlledIsConnectAccountModalOpen,
+  onConnectAccountModalOpenChange,
   onRefresh,
   variant = 'compact',
 }: BrandDetailSocialMediaCardProps) {
@@ -176,8 +178,15 @@ export default function BrandDetailSocialMediaCard({
   const { getToken } = useAuthIdentity();
   const oauthConnectPlatforms = useOAuthConnectPlatforms();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [isConnectAccountModalOpen, setIsConnectAccountModalOpen] =
-    useState(false);
+  const [
+    uncontrolledIsConnectAccountModalOpen,
+    setUncontrolledIsConnectAccountModalOpen,
+  ] = useState(false);
+  const isConnectAccountModalOpen =
+    controlledIsConnectAccountModalOpen ??
+    uncontrolledIsConnectAccountModalOpen;
+  const setIsConnectAccountModalOpen =
+    onConnectAccountModalOpenChange ?? setUncontrolledIsConnectAccountModalOpen;
   const [connectingPlatform, setConnectingPlatform] = useState<string | null>(
     null,
   );
