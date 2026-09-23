@@ -10,6 +10,7 @@ reproducible substitute until those live rows pass.
 | --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
 | Genfeed CLI | `gf` workspace | Browser OAuth login | `gf brand` / `--brand` | `--context` (transient) | `gf gen image` / `gf gen video` | `gf status <id>` | File download | File download | Automated: connect, brand, wait recovery |
 | Codex | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | `get_job_status` / tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Codex session not run in this change |
+| Grok | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` / `generate_video` | `get_job_status` / tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Grok session not run in this change |
 | Claude Code | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Claude Code session not run in this change |
 | Claude Desktop | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Claude Desktop session not run in this change |
 
@@ -82,6 +83,10 @@ The MCP generation toolset exposes:
   setting and its source.
 - `set_generation_settings`: pass `scope` (`organization` or `brand`), `isEnabled`
   (`true`, `false`, or `null` to reset), and `brandId` for a brand override.
+- `enhance_prompt`: pass `prompt`, `contentType` (`image` or `video`), selected
+  `brandId`, and optionally `model` and `harness`. This previews the shared
+  enhancement without creating media. Generate the returned prompt with
+  `harness: false` to submit that reviewed text unchanged.
 
 For example, ask a connected agent to discover `set_generation_settings` and
 turn prompt enhancement on for a selected brand. Pass `harness: false` with an
@@ -90,10 +95,29 @@ from authentication, never from caller-supplied tool arguments. In an Agent
 conversation, the validated thread brand is fixed; switch the conversation
 brand before editing another brand. Threadless MCP calls can select `brandId`.
 
-The generation integration remains pending until the central image/video path
-and planned `enhance_prompt` preview executor are connected and verified. Tool registration and the
-settings UI alone do not establish that enhancement ran. An applied generation
-must return and persist `generationHarness` with the exact submitted prompt,
-setting source, and sanitized contributing pack IDs/versions. The receipt is
-shown on the generation card and in asset prompt details. Disabled enhancement
-must preserve the caller's prompt and report `skipped` with no applied packs.
+Central image/video generation resolves request, brand, then organization
+preferences and calls the same Enhance implementation used by Studio and Agent.
+It uses existing prompt templates, skills, and provider configuration. There is
+no separate enhancement API key or environment toggle. Preferences are nullable
+fields on the existing organization settings and brand records; `null` inherits.
+
+Every generation persists `generationHarness` with the original and exact
+submitted prompt, setting source, and sanitized contributing pack IDs/versions.
+The receipt appears on generation cards, in asset prompt details, and in both
+MCP structured data and text content. Provider-specific compilation may add
+format instructions after enhancement; the stored receipt includes them.
+An accepted retry returns the existing asset and receipt without enhancing again.
+Enhancement failures stop generation explicitly instead of silently using an
+unenhanced prompt.
+
+Disabled enhancement preserves the caller's prompt byte-for-byte through
+provider submission and reports `skipped` with no applied packs. Selected
+context that would modify this text must be removed or enhancement enabled.
+After an explicit Studio Enhance succeeds, generating that exact reviewed text
+skips automatic enhancement. Editing it or changing brand/model restores the
+saved automatic setting. This skip concerns the generation pass; the explicit
+Enhance action has already run.
+
+Rollout requires the database migration and API/MCP/frontend deployment. The
+automated checks cover mocked provider calls and cross-surface dispatch; live
+client runs and hosted pack activation remain separate evidence requirements.

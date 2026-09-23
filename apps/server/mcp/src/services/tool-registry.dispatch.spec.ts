@@ -47,6 +47,7 @@ describe('ToolRegistryService.classify', () => {
     ['list_system_workflow_catalog', 'workflow-control'],
     ['install_system_workflow', 'workflow-control'],
     ['generate_image', 'agent-executor'],
+    ['enhance_prompt', 'agent-executor'],
     ['get_generation_settings', 'agent-executor'],
     ['set_generation_settings', 'agent-executor'],
     ['get_video_status', 'legacy'],

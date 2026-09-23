@@ -228,7 +228,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     // is billed dynamically by the generation endpoint (issue #482).
     creditCost: 50,
     description:
-      'Generate AI images with a custom prompt, style, and dimensions.',
+      'Generate AI images with a custom prompt, style, and dimensions. Returns generationHarness with the exact submitted prompt and enhancement status. Show that prompt with the result instead of reconstructing it.',
     name: 'generate_image',
     parameters: {
       properties: {
@@ -388,7 +388,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     // dynamically by the generation endpoint per duration (issue #482).
     creditCost: 300,
     description:
-      'Generate a video from a prompt. Add imageUrl+audioUrl for talking-avatar lip-sync. Returns the video URL.',
+      'Generate a video from a prompt. Add imageUrl+audioUrl for talking-avatar lip-sync. Returns the video URL and generationHarness with the exact submitted prompt and enhancement status. Show that prompt with the result instead of reconstructing it.',
     name: 'generate_video',
     parameters: {
       properties: {
