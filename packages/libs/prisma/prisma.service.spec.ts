@@ -7,7 +7,8 @@ function testConfigService(
 ): ConfigService {
   return {
     get: (key: string) => env[key],
-  } as ConfigService;
+    mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
+  } as unknown as ConfigService;
 }
 
 describe('isCloudTenantGuardEnabled', () => {

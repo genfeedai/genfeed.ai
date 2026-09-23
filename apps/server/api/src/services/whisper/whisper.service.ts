@@ -3,7 +3,7 @@ import path from 'node:path';
 import {
   type IngredientMediaSource,
   resolveIngredientMediaUrl,
-} from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
+} from '@libs/media/media-url.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';

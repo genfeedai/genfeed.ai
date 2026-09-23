@@ -1,5 +1,5 @@
 import { NotFoundException } from '@api/exceptions/not-found.exception';
-import { resolveIngredientMediaUrl } from '@api/helpers/utils/ingredient-media-url/ingredient-media-url.util';
+import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
