@@ -14,17 +14,23 @@ import {
 describe('parseToolsetSelection', () => {
   it('treats undefined as no selection', () => {
     expect(parseToolsetSelection(undefined)).toEqual({
+      empty: [],
       toolsets: [],
       unknown: [],
     });
   });
 
   it('treats an empty string as no selection', () => {
-    expect(parseToolsetSelection('')).toEqual({ toolsets: [], unknown: [] });
+    expect(parseToolsetSelection('')).toEqual({
+      empty: [],
+      toolsets: [],
+      unknown: [],
+    });
   });
 
   it('trims, lowercases, dedupes, and drops empty segments from a comma-separated string', () => {
     expect(parseToolsetSelection('Content, GENERATION ,,')).toEqual({
+      empty: [],
       toolsets: ['content', 'generation'],
       unknown: [],
     });
@@ -32,6 +38,7 @@ describe('parseToolsetSelection', () => {
 
   it('dedupes a name that repeats after normalization', () => {
     expect(parseToolsetSelection('content,Content, content ')).toEqual({
+      empty: [],
       toolsets: ['content'],
       unknown: [],
     });
@@ -39,17 +46,23 @@ describe('parseToolsetSelection', () => {
 
   it('accepts an array of comma-separated strings (repeated query param)', () => {
     expect(parseToolsetSelection(['content', 'generation,ads'])).toEqual({
+      empty: [],
       toolsets: ['content', 'generation', 'ads'],
       unknown: [],
     });
   });
 
   it('treats an empty array as no selection', () => {
-    expect(parseToolsetSelection([])).toEqual({ toolsets: [], unknown: [] });
+    expect(parseToolsetSelection([])).toEqual({
+      empty: [],
+      toolsets: [],
+      unknown: [],
+    });
   });
 
   it('collects unknown names separately from valid ones', () => {
     expect(parseToolsetSelection('content,not-a-toolset,also-fake')).toEqual({
+      empty: [],
       toolsets: ['content'],
       unknown: ['not-a-toolset', 'also-fake'],
     });
@@ -57,6 +70,7 @@ describe('parseToolsetSelection', () => {
 
   it('reports only unknown names when nothing valid is present', () => {
     expect(parseToolsetSelection('bogus')).toEqual({
+      empty: [],
       toolsets: [],
       unknown: ['bogus'],
     });
@@ -66,29 +80,36 @@ describe('parseToolsetSelection', () => {
     // "goals" is a real toolset name but has zero MCP-surfaced tools;
     // surface-less parsing only checks `isToolsetName`, not tool presence.
     expect(parseToolsetSelection('goals')).toEqual({
+      empty: [],
       toolsets: ['goals'],
       unknown: [],
     });
   });
 
-  it('with surface "mcp", rejects a toolset name that has no tools on that surface', () => {
+  it('with surface "mcp", keeps a declared toolset that has no tools on that surface', () => {
+    // Empty-on-this-deploy is not unknown. The name stays selected so the
+    // caller does not widen to every tool, and `empty` is how list_toolsets
+    // warns instead of the connection failing.
     expect(parseToolsetSelection('goals', 'mcp')).toEqual({
-      toolsets: [],
-      unknown: ['goals'],
+      empty: ['goals'],
+      toolsets: ['goals'],
+      unknown: [],
     });
   });
 
   it('with surface "mcp", still accepts a toolset name that has tools on that surface', () => {
     expect(parseToolsetSelection('content', 'mcp')).toEqual({
+      empty: [],
       toolsets: ['content'],
       unknown: [],
     });
   });
 
-  it('with a surface, mixes known-on-surface and unknown-on-surface names correctly', () => {
+  it('with a surface, reports empty-on-surface names separately from undeclared names', () => {
     expect(parseToolsetSelection('content,goals,bogus', 'mcp')).toEqual({
-      toolsets: ['content'],
-      unknown: ['goals', 'bogus'],
+      empty: ['goals'],
+      toolsets: ['content', 'goals'],
+      unknown: ['bogus'],
     });
   });
 });

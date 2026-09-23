@@ -1,5 +1,6 @@
 import {
   getToolByName,
+  getToolsetNames,
   getToolsForSurface,
   getToolsForToolsets,
   type McpToolOutput,
@@ -211,11 +212,11 @@ export class ToolRegistryService implements OnModuleInit {
     // per-request role, so it falls back to `'user'` — deny-by-default for
     // admin tools.
     @Optional() private readonly requestRole: McpRole = 'user',
-    // The caller's `?toolsets=` selection (parsed by `toolsetsQueryMiddleware`
-    // before this is constructed). Empty means "every toolset" — the DI
-    // singleton path (`McpController`) never threads a per-request selection
-    // here, so it also defaults to empty and resolves toolsets per-call via
-    // {@link getToolsForRoleAndToolsets} instead.
+    // The caller's resolved toolset selection (`resolveMcpToolQuery`). Empty
+    // means "every toolset" — `?profile=full`, and the DI singleton, which
+    // never threads a per-request selection and resolves toolsets per call
+    // via {@link getToolsForRoleAndToolsets}. The bare URL passes the default
+    // profile list, not an empty selection.
     @Optional() private readonly requestToolsets: readonly ToolsetName[] = [],
   ) {}
 
@@ -282,6 +283,19 @@ export class ToolRegistryService implements OnModuleInit {
    */
   getDiscoverableTools(): McpToolOutput[] {
     return this.getToolsForRole(this.requestRole);
+  }
+
+  /**
+   * Requested toolset names that exist in the catalog but have no MCP tools
+   * on this deploy. `list_toolsets` warns about them; they are not a failed
+   * connection. An empty request selection (`?profile=full`) warns about
+   * nothing — the caller did not name a specific empty toolset.
+   */
+  getIgnoredEmptyToolsets(): readonly ToolsetName[] {
+    const present = new Set(getToolsetNames('mcp'));
+    return this.requestToolsets
+      .filter((name) => !present.has(name))
+      .sort((a, b) => a.localeCompare(b));
   }
 
   getResources(): McpResource[] {

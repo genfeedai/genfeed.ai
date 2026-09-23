@@ -79,6 +79,13 @@ function getToolsetNameSet(surface: 'agent' | 'mcp'): ReadonlySet<ToolsetName> {
 }
 
 export interface ToolsetSelection {
+  /**
+   * Declared toolset names that have zero tools on `surface`. They are also
+   * listed in `toolsets` so a selection of only empty names does not widen
+   * to the full catalog, and they are not `unknown` — that would reject the
+   * connection. Empty when `surface` is omitted.
+   */
+  empty: ToolsetName[];
   toolsets: ToolsetName[];
   unknown: string[];
 }
@@ -88,15 +95,16 @@ export interface ToolsetSelection {
  * Accepts a single comma-separated string or an array of such strings
  * (Express repeats a query param into an array when it appears more than
  * once). Trims whitespace, lowercases, drops empty segments, and dedupes.
- * `undefined` or an all-empty value means "no selection" — the caller
- * should treat that as "every toolset".
+ * `undefined` or an all-empty value means "no selection". Callers decide
+ * what that means: `getToolsForToolsets` treats it as every tool, and the
+ * MCP HTTP boundary applies the default profile instead.
  *
  * When `surface` is omitted, a segment is "known" if it is any declared
- * toolset name (`isToolsetName`), regardless of whether that toolset has
- * tools on a particular surface. When `surface` is given, a segment is only
- * "known" if the toolset also has at least one tool on that surface — an
- * agent-only toolset name (e.g. `goals`) passed for the `mcp` surface
- * goes into `unknown` instead of silently resolving to core-only.
+ * toolset name (`isToolsetName`). When `surface` is given, a declared name
+ * with zero tools on that surface is still known: it stays in `toolsets`
+ * (so the selection does not widen to every tool) and is also reported in
+ * `empty`. Only a name that is not a declared toolset at all goes into
+ * `unknown`.
  */
 export function parseToolsetSelection(
   raw: string | readonly string[] | undefined,
@@ -108,13 +116,14 @@ export function parseToolsetSelection(
     .filter((value) => value.length > 0);
 
   if (segments.length === 0) {
-    return { toolsets: [], unknown: [] };
+    return { empty: [], toolsets: [], unknown: [] };
   }
 
   const namesOnSurface = surface ? getToolsetNameSet(surface) : undefined;
 
   const toolsets: ToolsetName[] = [];
   const unknown: string[] = [];
+  const empty: ToolsetName[] = [];
   const seen = new Set<string>();
 
   for (const segment of segments) {
@@ -123,24 +132,28 @@ export function parseToolsetSelection(
     }
     seen.add(segment);
 
-    if (
-      isToolsetName(segment) &&
-      (!namesOnSurface || namesOnSurface.has(segment))
-    ) {
-      toolsets.push(segment);
-    } else {
+    if (!isToolsetName(segment)) {
       unknown.push(segment);
+      continue;
+    }
+
+    toolsets.push(segment);
+    if (namesOnSurface && !namesOnSurface.has(segment)) {
+      empty.push(segment);
     }
   }
 
-  return { toolsets, unknown };
+  return { empty, toolsets, unknown };
 }
 
 /**
  * Tools available on a surface for a requested toolset selection. An empty
- * selection means "every toolset" (the default, unfiltered connection).
- * Otherwise the result is the selected toolsets unioned with `core` (always
- * on), sorted by name with no duplicates.
+ * selection means "every toolset" (the unfiltered catalog — `?profile=full`
+ * and direct callers). The bare MCP URL is not an empty selection; the HTTP
+ * boundary fills in the default profile first. Otherwise the result is the
+ * selected toolsets unioned with `core` (always on), sorted by name with no
+ * duplicates. A selected toolset with no tools on the surface contributes
+ * nothing.
  */
 export function getToolsForToolsets(
   surface: 'agent' | 'mcp',

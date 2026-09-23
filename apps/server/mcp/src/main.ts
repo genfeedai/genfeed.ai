@@ -174,8 +174,9 @@ async function main(): Promise<void> {
   registerWellKnownRoutes(expressApp);
 
   // `toolsetsQueryMiddleware` runs BEFORE authentication so an unknown
-  // `?toolsets=` name is rejected the same way for an authenticated caller
-  // and an unauthenticated public discovery request (`tools/list`).
+  // `?toolsets=` or `?profile=` name is rejected the same way for an
+  // authenticated caller and an unauthenticated public discovery request
+  // (`tools/list`). A bare URL resolves to the default profile.
   expressApp.post(
     '/mcp',
     express.json({ limit: '1mb' }),

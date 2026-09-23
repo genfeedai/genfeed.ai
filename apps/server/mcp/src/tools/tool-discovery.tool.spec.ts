@@ -140,6 +140,21 @@ describe('handleToolDiscoveryTool', () => {
       expect(core?.toolCount).toBe(9);
       expect(core?.toolNames).not.toContain('resolve_approval');
     });
+
+    it('warns when a requested toolset has no tools on this deploy', () => {
+      const registry: ToolDiscoverySource = {
+        getDiscoverableTools: () => [tool({ name: 'create_post' })],
+        getIgnoredEmptyToolsets: () => ['goals'],
+      };
+
+      const result = handleToolDiscoveryTool(registry, 'list_toolsets', {});
+      expectSuccess(result);
+
+      expect(result.content[0].text).toContain(
+        'Warning: requested toolset(s) with no tools on this deploy were ignored: goals.',
+      );
+      expect(result.structuredContent?.ignoredEmptyToolsets).toEqual(['goals']);
+    });
   });
 
   describe('search_tools', () => {

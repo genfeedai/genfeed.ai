@@ -1,4 +1,8 @@
-import { readToolsetsQueryParam } from '@mcp/shared/utils/toolsets-query.util';
+import {
+  hasExplicitToolsetsQuery,
+  readProfileQueryParam,
+  readToolsetsQueryParam,
+} from '@mcp/shared/utils/toolsets-query.util';
 import type { Request } from 'express';
 
 /**
@@ -56,5 +60,35 @@ describe('readToolsetsQueryParam', () => {
 
   it('returns undefined when the query has no toolsets param', () => {
     expect(readToolsetsQueryParam({} as Request['query'])).toBeUndefined();
+  });
+});
+
+describe('hasExplicitToolsetsQuery', () => {
+  it('is false for an absent or blank param and true once a name is present', () => {
+    expect(hasExplicitToolsetsQuery(undefined)).toBe(false);
+    expect(hasExplicitToolsetsQuery('')).toBe(false);
+    expect(hasExplicitToolsetsQuery(' , ')).toBe(false);
+    expect(hasExplicitToolsetsQuery('content')).toBe(true);
+    expect(hasExplicitToolsetsQuery(['', 'goals'])).toBe(true);
+  });
+});
+
+describe('readProfileQueryParam', () => {
+  it('normalizes a single profile and drops a blank one', () => {
+    expect(
+      readProfileQueryParam({ profile: ' Directory ' } as Request['query']),
+    ).toBe('directory');
+    expect(readProfileQueryParam({ profile: '  ' } as Request['query'])).toBe(
+      undefined,
+    );
+    expect(readProfileQueryParam({} as Request['query'])).toBeUndefined();
+  });
+
+  it('joins disagreeing repeated profile params so the caller fails closed', () => {
+    expect(
+      readProfileQueryParam({
+        profile: ['full', 'directory'],
+      } as unknown as Request['query']),
+    ).toBe('full,directory');
   });
 });

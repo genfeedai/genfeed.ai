@@ -4,7 +4,16 @@ import type {
   ToolRequiredRole,
 } from '../interfaces/tool-definition.interface';
 import { ALL_TOOLS } from './tool-assembly';
-import { CORE_TOOLSET_NAME, isToolsetName, TOOLSETS } from './toolsets';
+import {
+  BARE_MCP_URL_TOOL_CAP,
+  DEFAULT_MCP_PROFILE_TOOLSETS,
+} from './toolset-profiles';
+import {
+  CORE_TOOLSET_NAME,
+  getToolsForToolsets,
+  isToolsetName,
+  TOOLSETS,
+} from './toolsets';
 
 export { ALL_TOOLS } from './tool-assembly';
 
@@ -43,6 +52,16 @@ const coreMcpToolCount = ALL_TOOLS.filter(
 if (coreMcpToolCount > CORE_MCP_TOOL_LIMIT) {
   throw new Error(
     `core toolset exceeds the ${CORE_MCP_TOOL_LIMIT}-tool MCP limit: has ${coreMcpToolCount}`,
+  );
+}
+
+const bareUrlMcpToolCount = getToolsForToolsets(
+  'mcp',
+  DEFAULT_MCP_PROFILE_TOOLSETS,
+).length;
+if (bareUrlMcpToolCount > BARE_MCP_URL_TOOL_CAP) {
+  throw new Error(
+    `default MCP profile exceeds the ${BARE_MCP_URL_TOOL_CAP}-tool bare-URL cap: has ${bareUrlMcpToolCount} (${DEFAULT_MCP_PROFILE_TOOLSETS.join(', ')})`,
   );
 }
 

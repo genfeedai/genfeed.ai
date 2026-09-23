@@ -916,7 +916,7 @@ ${postHogSnippet}
         <p class="section-kicker">Toolsets</p>
         <h2 class="section-title" id="toolsets-title">Pick what <em>loads.</em></h2>
       </div>
-      <p class="section-copy">Narrow <code class="${ui.inlineCode}">tools/list</code> to only the toolsets your agent needs. Leave everything unchecked to connect with the full catalog.</p>
+      <p class="section-copy">Narrow <code class="${ui.inlineCode}">tools/list</code> to the toolsets your agent needs. Leave the others unchecked for the default profile on the bare URL, or add <code class="${ui.inlineCode}">?profile=full</code> for every tool.</p>
     </div>
 
     <div class="${ui.card}">
@@ -1127,7 +1127,8 @@ ${postHogSnippet}
   // Toolset picker: rewrites every rendered snippet that embeds the MCP
   // endpoint when the caller narrows (or widens) the selected toolsets.
   // Nothing selected (besides the always-on, disabled "core" box) means the
-  // plain URL — "every tool" — exactly like an absent toolsets query param.
+  // plain URL. The server treats that as the default profile, not the full
+  // catalog. ?profile=full is the explicit full-catalog URL.
   (function () {
     var baseMcpUrl = ${mcpUrlInlineScriptLiteral};
 
