@@ -541,6 +541,8 @@ jobs:
       NEXT_PUBLIC_POSTHOG_KEY: ${{ secrets.NEXT_PUBLIC_POSTHOG_KEY }}
       SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
       TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+      CONTENT_HARNESS_BUNDLE_URI: ${{ secrets.CONTENT_HARNESS_BUNDLE_URI }}
+      CONTENT_HARNESS_BUNDLE_SHA256: ${{ secrets.CONTENT_HARNESS_BUNDLE_SHA256 }}
 
   deploy-saas-via-operations:
     name: Deploy hosted SaaS through private operations

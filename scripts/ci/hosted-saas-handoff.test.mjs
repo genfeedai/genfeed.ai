@@ -34,18 +34,18 @@ const publicDeployVercel = readFileSync(
   'utf8',
 );
 
-const ENTRY_SECRETS = [
+const FRONTEND_SECRETS = [
   'VERCEL_TOKEN',
   'NEXT_PUBLIC_POSTHOG_KEY',
   'SENTRY_AUTH_TOKEN',
   'TURBO_TOKEN',
 ];
 const ENGINE_SECRETS = [
-  'VERCEL_TOKEN',
-  'NEXT_PUBLIC_POSTHOG_KEY',
-  'SENTRY_AUTH_TOKEN',
-  'TURBO_TOKEN',
+  ...FRONTEND_SECRETS,
+  'CONTENT_HARNESS_BUNDLE_URI',
+  'CONTENT_HARNESS_BUNDLE_SHA256',
 ];
+const ENTRY_SECRETS = ENGINE_SECRETS;
 
 // A skipped verify-suite must only be accepted when validate-release proved the
 // release SHA already carries green Full Suite evidence. A failed or
@@ -226,7 +226,7 @@ test('validates public source reachability and does not clone marketplace', () =
 test('maps only declared hosted SaaS secrets across each workflow boundary', () => {
   assert.deepEqual(workflowCallSecrets(publicDeployWorkflow), ENTRY_SECRETS);
   assert.deepEqual(workflowCallSecrets(publicDeployCore), ENGINE_SECRETS);
-  assert.deepEqual(workflowCallSecrets(publicDeployVercel), ENGINE_SECRETS);
+  assert.deepEqual(workflowCallSecrets(publicDeployVercel), FRONTEND_SECRETS);
 
   assert.deepEqual(
     jobSecretMapping(
@@ -244,7 +244,7 @@ test('maps only declared hosted SaaS secrets across each workflow boundary', () 
         './.github/workflows/_deploy-hosted-saas-vercel.yml',
       ),
     ),
-    ENGINE_SECRETS,
+    FRONTEND_SECRETS,
   );
   assert.doesNotMatch(publicDeployWorkflow, /secrets:\s*inherit/);
   assert.doesNotMatch(publicDeployCore, /secrets:\s*inherit/);
