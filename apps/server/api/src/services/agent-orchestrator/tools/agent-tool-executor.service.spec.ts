@@ -2139,26 +2139,26 @@ describe('AgentToolExecutorService', () => {
     });
     expect(result.data).toEqual({
       post: {
-        createdAt,
+        createdAt: createdAt.toISOString(),
         description: 'Launch note',
         id: 'post-1',
         label: 'Launch',
         media: [{ assetId: 'asset-1', kind: 'image', order: 0 }],
         platform: 'instagram',
         publishedAt: null,
-        scheduledDate,
+        scheduledDate: scheduledDate.toISOString(),
         state: TargetExecutionState.SCHEDULED,
         status: 'draft',
         targets: [
           {
             credentialId: 'cred-1',
             platform: 'instagram',
-            scheduledDate,
+            scheduledDate: scheduledDate.toISOString(),
             state: TargetExecutionState.SCHEDULED,
             validationState: 'valid',
           },
         ],
-        updatedAt: createdAt,
+        updatedAt: createdAt.toISOString(),
       },
     });
   });
