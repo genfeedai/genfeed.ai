@@ -119,6 +119,7 @@ describe('WebhooksService', () => {
     hasAudio: false,
     height: 768,
     publicUrl: 'https://cdn.example.com/test.png',
+    s3Key: 'ingredients/images/test.png',
     size: 1024000,
     width: 1024,
   };
@@ -341,7 +342,7 @@ describe('WebhooksService', () => {
       expect(ingredientsService.patch).toHaveBeenCalledWith(
         mockIngredientId.toString(),
         {
-          cdnUrl: mockUploadMeta.publicUrl,
+          s3Key: mockUploadMeta.s3Key,
           status: IngredientStatus.GENERATED,
         },
       );
@@ -429,7 +430,7 @@ describe('WebhooksService', () => {
       expect(ingredientsService.patch).toHaveBeenCalledWith(
         mockIngredientId.toString(),
         {
-          cdnUrl: mockUploadMeta.publicUrl,
+          s3Key: mockUploadMeta.s3Key,
           status: IngredientStatus.GENERATED,
         },
       );

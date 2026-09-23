@@ -33,6 +33,7 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
+import { withExternalMediaFallback } from '@libs/media/media-url.util';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -53,6 +54,14 @@ export class IngredientsService extends BaseService<
     protected readonly moduleRef: ModuleRef,
   ) {
     super(prisma, 'ingredient', logger);
+  }
+
+  /**
+   * Media on a read: `cdnUrl` is computed from the row's own key; external
+   * media without a key falls back to its loaded metadata link.
+   */
+  protected override normalizeDocument(document: unknown): IngredientDocument {
+    return super.normalizeDocument(withExternalMediaFallback(document));
   }
 
   /**

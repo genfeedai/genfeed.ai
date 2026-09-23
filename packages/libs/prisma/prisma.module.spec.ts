@@ -11,6 +11,7 @@ const configService = {
       ? 'postgresql://user:pass@localhost:5432/genfeed'
       : undefined,
   ),
+  mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
 };
 
 @Global()

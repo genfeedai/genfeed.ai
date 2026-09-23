@@ -6,6 +6,7 @@ import {
   type MediaUrlConfig,
   resolveIngredientMediaUrl,
   signCdnUrl,
+  withExternalMediaFallback,
 } from '@libs/media/media-url.util';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -33,14 +34,9 @@ function hasValidSignature(signedUrl: string, resource: string): boolean {
     return false;
   }
 
-  const policy = JSON.stringify({
-    Statement: [
-      {
-        Condition: { DateLessThan: { 'AWS:EpochTime': Number(expires) } },
-        Resource: resource,
-      },
-    ],
-  });
+  // Built as a literal so key order matches CloudFront's canned policy
+  // (Resource before Condition); a formatter may reorder object literals.
+  const policy = `{"Statement":[{"Resource":${JSON.stringify(resource)},"Condition":{"DateLessThan":{"AWS:EpochTime":${Number(expires)}}}}]}`;
   const decoded = signature
     .replace(/-/g, '+')
     .replace(/_/g, '=')
@@ -248,6 +244,49 @@ describe('ingredientMediaUrl', () => {
 
   it('returns null when the record has no media', () => {
     expect(ingredientMediaUrl({ s3Key: null }, signing)).toBeNull();
+  });
+});
+
+describe('withExternalMediaFallback', () => {
+  it('uses the metadata link for external media with no URL of its own', () => {
+    expect(
+      withExternalMediaFallback({
+        cdnUrl: null,
+        id: 'clip',
+        metadata: { result: 'https://cdn.argil.ai/video-1.mp4' },
+      }),
+    ).toEqual({
+      cdnUrl: 'https://cdn.argil.ai/video-1.mp4',
+      id: 'clip',
+      metadata: { result: 'https://cdn.argil.ai/video-1.mp4' },
+    });
+  });
+
+  it('keeps the computed URL when the row has its own key', () => {
+    const doc = {
+      cdnUrl: 'https://cdn.genfeed.ai/ingredients/videos/a.mp4',
+      metadata: { result: 'https://cdn.argil.ai/video-1.mp4' },
+    };
+    expect(withExternalMediaFallback(doc)).toBe(doc);
+  });
+
+  it('ignores missing metadata, empty results and non-URL results', () => {
+    for (const doc of [
+      { cdnUrl: null },
+      { cdnUrl: null, metadata: null },
+      { cdnUrl: null, metadata: { result: '' } },
+      { cdnUrl: null, metadata: { result: 'metadata-id-only' } },
+      null,
+      'not-an-object',
+    ]) {
+      expect(withExternalMediaFallback(doc)).toBe(doc);
+    }
+  });
+
+  it('does not mutate the input', () => {
+    const doc = { cdnUrl: null, metadata: { result: 'https://x.test/a.mp4' } };
+    withExternalMediaFallback(doc);
+    expect(doc.cdnUrl).toBeNull();
   });
 });
 

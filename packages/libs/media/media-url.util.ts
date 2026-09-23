@@ -254,6 +254,40 @@ export function readIngredientMediaUrl(
 }
 
 /**
+ * Fills `cdnUrl` for external media on a read.
+ *
+ * The computed field derives `cdnUrl` from the row's own `s3Key`, but external
+ * media (a provider-hosted avatar clip, a YouTube source) has no key: its link
+ * lives on the metadata row's `result`, which a Prisma computed field cannot
+ * reach. When a read loaded that metadata and the row has no URL of its own,
+ * use the external link. `cdnUrl` is stripped from writes, so this can never
+ * be persisted.
+ */
+export function withExternalMediaFallback(document: unknown): unknown {
+  if (!document || typeof document !== 'object' || Array.isArray(document)) {
+    return document;
+  }
+  if (readIngredientMediaUrl(document)) {
+    return document;
+  }
+  if (!('metadata' in document)) {
+    return document;
+  }
+
+  const metadata = document.metadata;
+  if (!metadata || typeof metadata !== 'object' || !('result' in metadata)) {
+    return document;
+  }
+
+  const result = metadata.result;
+  if (typeof result !== 'string' || !isHttpUrl(result.trim())) {
+    return document;
+  }
+
+  return { ...document, cdnUrl: result.trim() };
+}
+
+/**
  * Fails fast at boot when a key pair is configured but cannot sign.
  *
  * Signing runs inside every ingredient read, and a signing failure throws

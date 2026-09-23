@@ -438,7 +438,7 @@ describeWithDatabase('Brand remix paid draft integration', () => {
       data: createTestIngredient({
         brandId: fixture.brandId,
         category: IngredientCategory.IMAGE,
-        cdnUrl: 'https://cdn.example.test/remix.png',
+        s3Key: 'ingredients/images/remix.png',
         id: fixture.ingredientId,
         organizationId: fixture.organizationId,
         status: IngredientStatus.GENERATED,
@@ -508,7 +508,7 @@ describeWithDatabase('Brand remix paid draft integration', () => {
       data: createTestIngredient({
         brandId: fixture.brandId,
         category: IngredientCategory.IMAGE,
-        cdnUrl: 'https://cdn.example.test/x-remix.png',
+        s3Key: 'ingredients/images/x-remix.png',
         id: fixture.ingredientId,
         organizationId: fixture.organizationId,
         status: IngredientStatus.GENERATED,

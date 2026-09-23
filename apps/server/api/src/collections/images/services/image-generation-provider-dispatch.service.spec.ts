@@ -216,7 +216,6 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(imagesService.patch).toHaveBeenCalledWith(
       'ingredient-1',
       expect.objectContaining({
-        cdnUrl: 'https://cdn.example.com/generated.png',
         s3Key: 'images/generated.png',
         status: IngredientStatus.GENERATED,
       }),
@@ -472,7 +471,6 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(imagesService.patch).toHaveBeenCalledWith(
       'ingredient-1',
       expect.objectContaining({
-        cdnUrl: 'https://cdn.example.com/generated.png',
         s3Key: 'images/generated.png',
         status: IngredientStatus.GENERATED,
       }),
