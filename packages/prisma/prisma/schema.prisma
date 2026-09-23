@@ -2793,6 +2793,7 @@ model PostGroup {
   @@index([ownerId, isDeleted, createdAt(sort: Desc)], map: "post_groups_owner_created_idx")
   @@index([organizationId, campaignId, isDeleted, scheduledAt(sort: Asc)], map: "post_groups_org_campaign_schedule_idx")
   @@map("post_groups")
+  @@unique([id, organizationId])
 }
 
 /// Named posting plan for calendar ghosts. Does not dispatch work.
@@ -4612,6 +4613,7 @@ model WorkflowExecution {
   @@index([purgeAt, payloadScrubbedAt, isDeleted], map: "workflow_executions_purgeAt_idx")
   @@index([status, isDeleted, failureReason, completedAt(sort: Desc), id], map: "workflow_executions_failure_feed_idx")
   @@map("workflow_executions")
+  @@unique([id, organizationId])
 }
 
 /// Per-node execution results, unique on (executionId, nodeId). One upsert
@@ -6812,15 +6814,15 @@ model EngagementRule {
 model AgentPublishAudit {
   id                  String               @id @default(cuid())
   userId              String
-  user                User                 @relation(fields: [userId], references: [id])
+  user                User                 @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   organizationId      String
-  organization        Organization         @relation(fields: [organizationId], references: [id])
+  organization        Organization         @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   brandId             String?
-  brand               Brand?               @relation(fields: [brandId], references: [id])
+  brand               Brand?               @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "agent_publish_audits_brandId_fkey")
   postGroupId         String?
-  postGroup           PostGroup?           @relation(fields: [postGroupId], references: [id])
+  postGroup           PostGroup?           @relation(fields: [postGroupId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "agent_publish_audits_postGroupId_fkey")
   workflowExecutionId String?
-  workflowExecution   WorkflowExecution?   @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  workflowExecution   WorkflowExecution?   @relation(fields: [workflowExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "agent_publish_audits_workflowExecutionId_fkey")
   agentThreadId       String?
   agentStrategyId     String?
   autonomyMode        String
@@ -6845,13 +6847,13 @@ model AgentPublishAudit {
 model AgentUntrustedContentAudit {
   id                  String             @id @default(cuid())
   userId              String
-  user                User               @relation(fields: [userId], references: [id])
+  user                User               @relation(fields: [userId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   organizationId      String
-  organization        Organization       @relation(fields: [organizationId], references: [id])
+  organization        Organization       @relation(fields: [organizationId], references: [id], onDelete: Restrict, onUpdate: NoAction)
   brandId             String?
-  brand               Brand?             @relation(fields: [brandId], references: [id])
+  brand               Brand?             @relation(fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "agent_untrusted_content_audits_brandId_fkey")
   workflowExecutionId String?
-  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId], references: [id], onDelete: SetNull)
+  workflowExecution   WorkflowExecution? @relation(fields: [workflowExecutionId, organizationId], references: [id, organizationId], onDelete: Restrict, onUpdate: NoAction, map: "agent_untrusted_content_audits_workflowExecutionId_fkey")
   agentThreadId       String?
   agentStrategyId     String?
   toolName            String

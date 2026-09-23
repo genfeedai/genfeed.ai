@@ -21,7 +21,7 @@ describe('resolveUntrustedContentDecisionConfig', () => {
     });
   });
 
-  it('reads both validated keys', () => {
+  it('rejects live even in hand-built configuration', () => {
     expect(
       resolveUntrustedContentDecisionConfig(
         buildConfigService({
@@ -29,7 +29,7 @@ describe('resolveUntrustedContentDecisionConfig', () => {
           UNTRUSTED_CONTENT_MIN_CONFIDENCE: 0.99,
         }),
       ),
-    ).toEqual({ minConfidence: 0.99, mode: 'live' });
+    ).toEqual({ minConfidence: 0.99, mode: 'off' });
   });
 
   it('reads shadow mode', () => {

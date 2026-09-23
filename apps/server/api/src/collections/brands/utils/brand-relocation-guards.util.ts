@@ -52,3 +52,55 @@ export async function assertNoOpenLiveSessions(
     );
   }
 }
+
+/** Security history retains its original tenant, including deleted and indirect audits. */
+export async function assertNoSecurityAuditHistory(
+  client: Prisma.TransactionClient,
+  brandId: string,
+  organizationId: string,
+): Promise<void> {
+  // tenant-scope-ignore: retain deleted workflow ownership history for this exact tenant and brand.
+  const workflows = await client.workflow.findMany({
+    where: { organizationId, brandId },
+    select: { id: true },
+  });
+  // tenant-scope-ignore: deleted execution history still attributes audits to this brand.
+  const executions = await client.workflowExecution.findMany({
+    where: {
+      organizationId,
+      workflowId: { in: workflows.map(({ id }) => id) },
+    },
+    select: { id: true },
+  });
+  // tenant-scope-ignore: deleted post groups still attribute audits to this brand.
+  const postGroups = await client.postGroup.findMany({
+    where: { organizationId, brandId },
+    select: { id: true },
+  });
+  const workflowExecutionId = { in: executions.map(({ id }) => id) };
+  // tenant-scope-ignore: historical audits must include deleted rows.
+  const publish = await client.agentPublishAudit.findFirst({
+    where: {
+      organizationId,
+      OR: [
+        { brandId },
+        { workflowExecutionId },
+        { postGroupId: { in: postGroups.map(({ id }) => id) } },
+      ],
+    },
+    select: { id: true },
+  });
+  // tenant-scope-ignore: historical audits must include deleted rows.
+  const untrusted = await client.agentUntrustedContentAudit.findFirst({
+    where: {
+      organizationId,
+      OR: [{ brandId }, { workflowExecutionId }],
+    },
+    select: { id: true },
+  });
+  if (publish || untrusted) {
+    throw new ConflictException(
+      'Cannot move a brand with security audit history. Direct and indirect audits, including deleted records, must remain in their original organization.',
+    );
+  }
+}

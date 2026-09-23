@@ -92,18 +92,6 @@ export const FIRST_ORDER_TARGETS: readonly FirstOrderCascadeTarget[] = [
     orgField: 'organizationId',
   },
   {
-    delegate: 'agentPublishAudit',
-    table: 'agent_publish_audits',
-    brandField: 'brandId',
-    orgField: 'organizationId',
-  },
-  {
-    delegate: 'agentUntrustedContentAudit',
-    table: 'agent_untrusted_content_audits',
-    brandField: 'brandId',
-    orgField: 'organizationId',
-  },
-  {
     delegate: 'engagementRule',
     table: 'engagement_rules',
     brandField: 'brandId',
@@ -766,6 +754,9 @@ export const SECOND_ORDER_TARGETS: readonly SecondOrderCascadeTarget[] = [
  * listed here — so a new one can't slip through unreviewed.
  */
 export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
+  // Retained security history blocks relocation, including indirect and deleted audits.
+  'AgentPublishAudit',
+  'AgentUntrustedContentAudit',
   'AgentTransfer',
   'ContentVersionPin',
   // Immutable Knowledge history blocks relocation before the cascade; its composite Brand FK and ownership trigger also reject concurrent moves.
@@ -789,6 +780,8 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
  * via SECOND_ORDER_TARGETS.
  */
 export const AUDITOR_IGNORED_TABLES: readonly string[] = [
+  'agent_publish_audits',
+  'agent_untrusted_content_audits',
   'agent_transfers',
   'content_version_pins',
   // These tables cannot move: relocation rejects any live or deleted Knowledge history.

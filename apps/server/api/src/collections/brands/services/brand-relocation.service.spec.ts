@@ -208,6 +208,35 @@ describe('BrandRelocationService', () => {
     },
   );
 
+  it.each([
+    ['agentPublishAudit', false],
+    ['agentPublishAudit', true],
+    ['agentUntrustedContentAudit', false],
+    ['agentUntrustedContentAudit', true],
+  ] as const)(
+    'rejects security audit history from %s (deleted=%s)',
+    async (delegate, isDeleted) => {
+      primeBrand();
+      getDelegate(delegate).findFirst.mockResolvedValue({
+        id: 'audit',
+        isDeleted,
+      });
+      const actor = { isSuperAdmin: true, userId: USER_ID };
+      await expect(
+        service.previewRelocation(BRAND_ID, DEST_ORG, actor),
+      ).rejects.toThrow(/security audit history/);
+      await expect(
+        service.relocateToOrganization(
+          BRAND_ID,
+          { organizationId: DEST_ORG },
+          actor,
+        ),
+      ).rejects.toThrow(/security audit history/);
+      expect(getDelegate('brand').updateMany).not.toHaveBeenCalled();
+      expect(cacheInvalidationService.invalidate).not.toHaveBeenCalled();
+    },
+  );
+
   it('rejects preview and relocation while the brand has an open live session', async () => {
     primeBrand();
     getDelegate('liveSession').findFirst.mockResolvedValue({ id: 'live-1' });
@@ -252,6 +281,10 @@ describe('BrandRelocationService', () => {
     expect(transactionSpy).not.toHaveBeenCalled();
     expect(getDelegate('knowledgeSource').findFirst).not.toHaveBeenCalled();
     expect(getDelegate('knowledgeSpace').findFirst).not.toHaveBeenCalled();
+    expect(getDelegate('agentPublishAudit').findFirst).not.toHaveBeenCalled();
+    expect(
+      getDelegate('agentUntrustedContentAudit').findFirst,
+    ).not.toHaveBeenCalled();
     expect(queryRaw).not.toHaveBeenCalled();
     // Falls through to a normal field patch.
     expect(getDelegate('brand').update).toHaveBeenCalled();
@@ -342,12 +375,7 @@ describe('BrandRelocationService', () => {
       data: { organizationId: DEST_ORG },
       where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
     });
-    for (const delegate of [
-      'agentPublishAudit',
-      'engagementRule',
-      'rssFeedItem',
-      'rssSource',
-    ]) {
+    for (const delegate of ['engagementRule', 'rssFeedItem', 'rssSource']) {
       expect(getDelegate(delegate).updateMany).toHaveBeenCalledWith({
         data: { organizationId: DEST_ORG },
         where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
@@ -355,6 +383,14 @@ describe('BrandRelocationService', () => {
       expect(getDelegate(delegate).count).toHaveBeenCalledWith({
         where: { brandId: BRAND_ID, organizationId: { not: DEST_ORG } },
       });
+    }
+
+    for (const delegate of [
+      'agentPublishAudit',
+      'agentUntrustedContentAudit',
+    ]) {
+      expect(getDelegate(delegate).updateMany).not.toHaveBeenCalled();
+      expect(getDelegate(delegate).count).not.toHaveBeenCalled();
     }
 
     // Non-standard field names.

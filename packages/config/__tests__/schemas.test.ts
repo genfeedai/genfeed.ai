@@ -1228,3 +1228,25 @@ describe('Config Schemas', () => {
     });
   });
 });
+
+describe('untrusted content activation boundary', () => {
+  it.each(['production', 'development', 'test'])(
+    'rejects live in %s',
+    (environment) => {
+      const schema = Joi.object({ ...generalAiSchema, NODE_ENV: Joi.string() });
+      expect(
+        schema.validate({
+          NODE_ENV: environment,
+          UNTRUSTED_CONTENT_DECISION_MODE: 'live',
+        }).error,
+      ).toBeDefined();
+    },
+  );
+
+  it.each(['off', 'shadow', undefined])('accepts mode %s', (mode) => {
+    const schema = Joi.object(generalAiSchema);
+    const result = schema.validate({ UNTRUSTED_CONTENT_DECISION_MODE: mode });
+    expect(result.error).toBeUndefined();
+    expect(result.value.UNTRUSTED_CONTENT_DECISION_MODE).toBe(mode ?? 'off');
+  });
+});

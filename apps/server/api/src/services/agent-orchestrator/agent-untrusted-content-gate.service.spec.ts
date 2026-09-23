@@ -1,3 +1,16 @@
+// Dormant live algorithm coverage only. The unmocked activation boundary is tested separately.
+vi.mock(
+  '@api/services/agent-orchestrator/utils/agent-untrusted-content-decision-config.util',
+  () => ({
+    resolveUntrustedContentDecisionConfig: (config: {
+      get: (key: string) => unknown;
+    }) => ({
+      minConfidence: config.get('UNTRUSTED_CONTENT_MIN_CONFIDENCE') ?? 0.95,
+      mode: config.get('UNTRUSTED_CONTENT_DECISION_MODE') ?? 'off',
+    }),
+  }),
+);
+
 import {
   AgentUntrustedContentGateService,
   UNTRUSTED_CONTENT_DECISION_POINT,
@@ -12,8 +25,8 @@ import type {
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 /**
- * The Jev provider's wire format is being fixed in #4910, so every live call
- * degrades to `null` on master. TypedDecisionService is mocked throughout.
+ * Algorithm coverage uses a mocked TypedDecisionService and resolver. It does
+ * not establish provider health or authorize live activation.
  */
 describe('AgentUntrustedContentGateService', () => {
   const context: AgentChatContext = {
