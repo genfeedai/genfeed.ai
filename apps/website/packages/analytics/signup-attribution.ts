@@ -5,7 +5,9 @@ import {
   appendSignupAttributionParams,
   hasSignupAttribution,
   normalizeSignupLandingPath,
+  normalizeSignupReferralCode,
   readSignupAttributionParams,
+  readSignupReferralCode,
   resolveExternalReferrerDomain,
 } from '@genfeedai/helpers';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -24,6 +26,7 @@ const SIGNUP_PATH_PREFIX = '/sign-up';
 const LINK_INTENT_EVENTS = ['pointerdown', 'click'] as const;
 
 let firstTouch: ISignupAttribution | null = null;
+let forwardedReferralCode: string | undefined;
 let hasInitStarted = false;
 
 /** The landing page's source: its UTM tags, external referrer and path. */
@@ -47,13 +50,19 @@ export function captureSignupFirstTouch(
   };
 }
 
-/** Add the first-touch source to an app sign-up link; other links are left alone. */
+/**
+ * Add the first-touch source to an app sign-up link; other links are left
+ * alone. `referralCode` is copied onto the URL only and stays off the
+ * attribution record.
+ */
 export function decorateSignupLink(
   anchor: HTMLAnchorElement,
   attribution: ISignupAttribution,
   appOrigin: string,
+  referralCode?: string | null,
 ): void {
-  if (!hasSignupAttribution(attribution)) {
+  const code = normalizeSignupReferralCode(referralCode);
+  if (!hasSignupAttribution(attribution) && !code) {
     return;
   }
 
@@ -71,7 +80,7 @@ export function decorateSignupLink(
     return;
   }
 
-  appendSignupAttributionParams(url, attribution);
+  appendSignupAttributionParams(url, attribution, code);
   anchor.href = url.toString();
 }
 
@@ -92,7 +101,7 @@ function handleLinkIntent(event: Event): void {
   const anchor = target.closest('a[href]');
   const appOrigin = resolveAppOrigin();
   if (anchor instanceof HTMLAnchorElement && appOrigin) {
-    decorateSignupLink(anchor, firstTouch, appOrigin);
+    decorateSignupLink(anchor, firstTouch, appOrigin, forwardedReferralCode);
   }
 }
 
@@ -103,7 +112,9 @@ export function initSignupAttribution(): void {
   }
   hasInitStarted = true;
 
+  const landingParams = new URLSearchParams(window.location.search);
   firstTouch = captureSignupFirstTouch(window.location, document.referrer);
+  forwardedReferralCode = readSignupReferralCode(landingParams);
 
   for (const type of LINK_INTENT_EVENTS) {
     document.addEventListener(type, handleLinkIntent, { capture: true });
@@ -118,5 +129,6 @@ export function __resetSignupAttributionForTests(): void {
     }
   }
   firstTouch = null;
+  forwardedReferralCode = undefined;
   hasInitStarted = false;
 }

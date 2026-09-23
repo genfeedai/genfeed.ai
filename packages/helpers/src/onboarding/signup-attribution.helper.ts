@@ -18,6 +18,14 @@ export const SIGNUP_ATTRIBUTION_QUERY_PARAMS = {
 export const SIGNUP_ATTRIBUTION_MAX_VALUE_LENGTH = 100;
 export const SIGNUP_ATTRIBUTION_MAX_PATH_LENGTH = 200;
 
+/**
+ * Referral credential on the sign-up URL. Same Crockford base32 shape as
+ * `parseReferralCode` in the app. It is not a campaign tag, so it is absent
+ * from `ISignupAttribution` and from `SIGNUP_ATTRIBUTION_QUERY_PARAMS`.
+ */
+export const SIGNUP_REFERRAL_QUERY_PARAM = 'ref';
+const REFERRAL_CODE_PATTERN = /^[23456789abcdefghjkmnpqrstuvwxyz]{8,32}$/;
+
 // No `/` or `:` in campaign values, and no `//` in paths, so a URL can never
 // be smuggled into storage as a UTM tag or landing path.
 const ATTRIBUTION_VALUE_PATTERN = /^[\p{L}\p{N} ._+~-]+$/u;
@@ -106,6 +114,21 @@ export function resolveExternalReferrerDomain(
   return isInternal ? undefined : domain;
 }
 
+/** Lowercased referral code, or undefined when it is not a referral credential. */
+export function normalizeSignupReferralCode(
+  value?: string | null,
+): string | undefined {
+  const code = value?.trim().toLowerCase();
+  return code && REFERRAL_CODE_PATTERN.test(code) ? code : undefined;
+}
+
+/** Referral code carried on a URL, never part of the attribution record. */
+export function readSignupReferralCode(
+  params: Pick<URLSearchParams, 'get'>,
+): string | undefined {
+  return normalizeSignupReferralCode(params.get(SIGNUP_REFERRAL_QUERY_PARAM));
+}
+
 /** Read and normalize attribution carried on a URL's query string. */
 export function readSignupAttributionParams(
   params: Pick<URLSearchParams, 'get'>,
@@ -160,15 +183,23 @@ export function toSignupAttributionParams(
 
 /**
  * Copy attribution onto a sign-up URL. Parameters the link already sets (a
- * campaign link's own UTM tags) are kept.
+ * campaign link's own UTM tags, or its own `ref`) are kept. `referralCode`
+ * is written only as the `ref` query parameter and is not stored on the
+ * attribution record.
  */
 export function appendSignupAttributionParams(
   url: URL,
   attribution: ISignupAttribution,
+  referralCode?: string | null,
 ): void {
   for (const [param, value] of toSignupAttributionParams(attribution)) {
     if (!url.searchParams.has(param)) {
       url.searchParams.set(param, value);
     }
+  }
+
+  const code = normalizeSignupReferralCode(referralCode);
+  if (code && !url.searchParams.has(SIGNUP_REFERRAL_QUERY_PARAM)) {
+    url.searchParams.set(SIGNUP_REFERRAL_QUERY_PARAM, code);
   }
 }
