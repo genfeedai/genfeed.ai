@@ -37,6 +37,7 @@ import {
   resolveStudioGenerateCapabilities,
 } from '@pages/studio/generate/utils/studio-generate-types';
 import { getDefaultGenerationSetupValues } from '@pages/studio/generate/utils/studio-generation-setup-bridge';
+import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import GenerationSetupPopover from '@ui/dropdowns/generation-setup/GenerationSetupPopover';
 import { recommendGenerationSetup } from '@ui/dropdowns/generation-setup/generation-setup.recommend';
 import {
@@ -413,6 +414,8 @@ export default function StudioGenerateComposer({
               typeOptions={typeOptions}
             />
           )}
+
+          {type === 'image' || type === 'video' ? <GenerationHarnessSettingsPopover isDisabled={isGenerating} /> : null}
 
           {capabilities.hasIdentity ? (
             <StudioIdentityFields

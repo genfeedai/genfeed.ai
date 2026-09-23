@@ -232,6 +232,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     name: 'generate_image',
     parameters: {
       properties: {
+        harness: {
+          type: 'boolean',
+          description:
+            'Override saved prompt enhancement for this generation only. False preserves prompt text exactly.',
+        },
         aspectRatio: {
           description: 'Aspect ratio of the generated image',
           type: 'string',
@@ -387,6 +392,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     name: 'generate_video',
     parameters: {
       properties: {
+        harness: {
+          type: 'boolean',
+          description:
+            'Override saved prompt enhancement for this generation only. False preserves prompt text exactly.',
+        },
         aspectRatio: {
           description: 'Aspect ratio of the video',
           enum: ['16:9', '9:16', '1:1'],

@@ -44,6 +44,7 @@ const WRITE_NAMES_WITH_READ_PREFIX = new Set(['present_work_object']);
 
 const READ_ONLY_NAMES = new Set<string>([
   'analyze_performance',
+  'enhance_prompt',
   'read_knowledge_source',
   'open_studio_handoff',
   'resolve_approval',
@@ -59,6 +60,7 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   Record<string, ToolMutationPolicy>
 > = {
   ai_action: 'direct',
+  set_generation_settings: 'direct',
   analyze_clip_project: 'approval-required',
   approve_social_draft: 'approval-required',
   archive_knowledge_source: 'direct',

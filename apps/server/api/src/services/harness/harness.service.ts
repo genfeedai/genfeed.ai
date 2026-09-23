@@ -122,6 +122,13 @@ export class ContentHarnessService {
     return await composeContentHarnessBrief(registry, input);
   }
 
+  async listLoadedPackVersions(): Promise<
+    Array<{ id: string; version: string }>
+  > {
+    const registry = await this.getRegistry();
+    return registry.list().map(({ id, version }) => ({ id, version }));
+  }
+
   async listLoadedPackIds(): Promise<string[]> {
     const registry = await this.getRegistry();
     return registry.list().map((pack) => pack.id);

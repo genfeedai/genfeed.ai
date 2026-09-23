@@ -1,3 +1,4 @@
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import { useGenerationQuote } from '@genfeedai/agent/hooks/use-generation-quote';
 import type {
   AgentUiAction,
@@ -229,6 +230,7 @@ export function useGenerationActionCard({
   >(null);
   const [isPilotCeilingReached, setIsPilotCeilingReached] = useState(false);
   const [isFullRun, setIsFullRun] = useState(false);
+  const [generationHarness, setGenerationHarness] = useState<GenerationHarnessReceipt | undefined>();
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -635,6 +637,7 @@ export function useGenerationActionCard({
 
     clearGenerationOutcome();
     setGenerationStartedAt(Date.now());
+    setGenerationHarness(undefined);
     setStatus('generating');
     setHasStarted(true);
     // Dismiss the sticky composer error stack so it cannot cover this card's
@@ -726,6 +729,7 @@ export function useGenerationActionCard({
         controller.signal,
       );
       setResultId(result.id);
+      setGenerationHarness(result.generationHarness);
       if (!result.url) {
         throw new Error(
           'Generation completed without a renderable asset preview.',
@@ -1121,6 +1125,7 @@ export function useGenerationActionCard({
     status,
     resultUrl,
     resultId,
+    generationHarness,
     error,
     prioritize,
     setPrioritize: handlePrioritizeChange,

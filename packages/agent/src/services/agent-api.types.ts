@@ -1,3 +1,4 @@
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import type { ModelCategory } from '@genfeedai/contracts';
 import type {
   AgentGenerationQuote,
@@ -54,6 +55,7 @@ export interface GetGenerationModelsParams {
 }
 
 export interface GenerateIngredientResult {
+  generationHarness?: GenerationHarnessReceipt;
   id: string;
   url?: string;
 }
@@ -80,6 +82,7 @@ export interface CreateAgentStudioHandoffResult {
 }
 
 export interface AgentGeneratedAsset {
+  generationHarness?: GenerationHarnessReceipt;
   category?: string;
   cdnUrl?: string;
   id: string;

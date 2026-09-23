@@ -224,7 +224,7 @@ export async function generateIngredient(
     'Failed to deserialize generated asset',
   );
 
-  return { id: asset.id, url: asset.url ?? asset.cdnUrl };
+  return { id: asset.id, url: asset.url ?? asset.cdnUrl, ...(asset.generationHarness ? { generationHarness: asset.generationHarness } : {}) };
 }
 
 export async function cloneVoice(

@@ -86,6 +86,7 @@ import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
 import { AgentGenerationScopeService } from '@api/services/agent-orchestrator/tools/agent-generation-scope.service';
+import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
@@ -121,6 +122,7 @@ import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-th
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
+import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
 import { InstagramInspirationModule } from '@api/services/instagram-inspiration/instagram-inspiration.module';
 import { LlmDispatcherModule } from '@api/services/integrations/llm/llm-dispatcher.module';
 import { MediaReadinessModule } from '@api/services/media-readiness/media-readiness.module';
@@ -145,6 +147,7 @@ import { Module } from '@nestjs/common';
     AgentWorkObjectService,
   ],
   imports: [
+    MediaPromptEnhancementModule,
     AgentSourceIngestModule,
     ContextsModule,
     AgentCampaignsModule,
@@ -207,6 +210,7 @@ import { Module } from '@nestjs/common';
     TypedDecisionsModule,
   ],
   providers: [
+    AgentGenerationSettingsToolHandler,
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
     AgentAutoModelResolverService,

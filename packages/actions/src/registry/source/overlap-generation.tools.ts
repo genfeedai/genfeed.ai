@@ -7,6 +7,46 @@ import type { SourceTool } from '../../interfaces/source-tool.interface';
  */
 export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
+    name: 'get_generation_settings',
+    description:
+      'Read effective image/video prompt enhancement settings and organization or brand overrides.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: { type: 'object', properties: { brandId: { type: 'string' } } },
+  },
+  {
+    name: 'set_generation_settings',
+    description:
+      'Set organization or brand prompt enhancement. Use null to restore inheritance. Generation pricing is unchanged.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['scope', 'isEnabled'],
+      properties: {
+        scope: { type: 'string', enum: ['organization', 'brand'] },
+        brandId: { type: 'string' },
+        isEnabled: { type: ['boolean', 'null'] },
+      },
+    },
+  },
+  {
+    name: 'enhance_prompt',
+    description:
+      'Preview an enhanced image/video prompt and applied pack receipt without generating media. Explicitly requests enhancement regardless of saved preferences.',
+    creditCost: 0,
+    requiredRole: 'user',
+    parameters: {
+      type: 'object',
+      required: ['prompt', 'contentType'],
+      properties: {
+        prompt: { type: 'string', minLength: 1 },
+        contentType: { type: 'string', enum: ['image', 'video'] },
+        brandId: { type: 'string' },
+      },
+    },
+  },
+  {
     // Floor for preflight only. Real amount is format+model-aware and billed
     // dynamically in the handler (isBillingDelegated).
     creditCost: 1,

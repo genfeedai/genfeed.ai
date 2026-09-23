@@ -5,6 +5,7 @@ import type {
   IngredientStatus,
   TransformationCategory,
 } from '@genfeedai/contracts';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 
 /**
  * Canonical persistence contract for the Ingredient + Metadata pair backing
@@ -21,6 +22,7 @@ export interface MediaDocumentsInput {
   extension?: string;
   externalId?: string;
   externalProvider?: string;
+  generationHarness?: GenerationHarnessReceipt;
   generationPrompt?: string;
   generationSeed?: number;
   generationSource?: string;

@@ -22,6 +22,7 @@ const READ_ONLY_HINT_PREFIXES = [
 ] as const;
 
 const GENERATION_OPEN_WORLD_NAMES: ReadonlySet<string> = new Set([
+  'enhance_prompt',
   'reframe_image',
   'upscale_image',
 ]);

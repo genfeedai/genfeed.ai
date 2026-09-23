@@ -1,3 +1,4 @@
+import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -87,6 +88,7 @@ export function GenerationActionCard({
     status,
     resultUrl,
     resultId,
+    generationHarness,
     error,
     prioritize,
     setPrioritize,
@@ -223,6 +225,8 @@ export function GenerationActionCard({
         onStop={status === 'generating' ? handleStop : undefined}
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
+
+      {generationHarness ? <div className="p-3"><GenerationHarnessReceipt receipt={generationHarness} /></div> : null}
 
       {isCollapsed ? (
         status === 'done' ||

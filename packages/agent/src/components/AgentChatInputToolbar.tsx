@@ -1,3 +1,4 @@
+import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import { AgentModeDropdown } from '@genfeedai/agent/components/AgentModeDropdown';
 import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
 import type {
@@ -201,6 +202,8 @@ function AgentChatInputToolbarInner({
           mode={agentMode}
           onChange={onAgentModeChange}
         />
+
+        <GenerationHarnessSettingsPopover className={controlSize} isDisabled={disabled || showStop} />
 
         <PromptBarReferenceControls
           density={density}

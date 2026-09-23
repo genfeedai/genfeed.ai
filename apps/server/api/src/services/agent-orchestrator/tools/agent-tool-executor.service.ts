@@ -19,6 +19,7 @@ import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
 import { AgentDashboardToolHandler } from '@api/services/agent-orchestrator/tools/agent-dashboard-tool-handler.service';
+import { AgentGenerationSettingsToolHandler } from '@api/services/agent-orchestrator/tools/agent-generation-settings-tool-handler.service';
 import { AgentInstagramInspirationToolHandler } from '@api/services/agent-orchestrator/tools/agent-instagram-inspiration-tool-handler.service';
 import { AgentKnowledgeToolHandler } from '@api/services/agent-orchestrator/tools/agent-knowledge-tool-handler.service';
 import { AgentLivestreamToolHandler } from '@api/services/agent-orchestrator/tools/agent-livestream-tool-handler.service';
@@ -139,6 +140,9 @@ export interface ToolExecutionContext {
 }
 
 const BRANDLESS_AGENT_TOOLS = new Set<CuratedActionName>([
+  'get_generation_settings',
+  'set_generation_settings',
+  'enhance_prompt',
   'analyze_performance',
   'check_goal_progress',
   'check_onboarding_status',
@@ -189,6 +193,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentWorkObjectService)
   private readonly workObjects!: AgentWorkObjectService;
+
+  @Inject(AgentGenerationSettingsToolHandler)
+  private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -599,6 +606,12 @@ export class AgentToolExecutorService implements OnModuleInit {
 
       case 'generate_content':
         return this.mediaGenerationHandler.generateContent(params, ctx);
+
+      case 'get_generation_settings':
+        return this.generationSettingsHandler.get(params, ctx);
+
+      case 'set_generation_settings':
+        return this.generationSettingsHandler.set(params, ctx);
 
       case 'generate_image':
         return this.mediaGenerationHandler.generateImage(params, ctx);

@@ -46,6 +46,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
 import { ComfyUIModule } from '@api/services/integrations/comfyui/comfyui.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HiggsFieldModule } from '@api/services/integrations/higgsfield/higgsfield.module';
@@ -83,6 +84,7 @@ import { Module } from '@nestjs/common';
     ImagesCoreModule,
   ],
   imports: [
+    MediaPromptEnhancementModule,
     ImagesCoreModule,
     BrandsCoreModule,
     ByokModule,

@@ -1,6 +1,7 @@
 import { createEntityAttributes } from '@genfeedai/helpers';
 
 export const ingredientAttributes = createEntityAttributes([
+  'generationHarness',
   'agentWorkObject',
   'userId',
   'organizationId',
