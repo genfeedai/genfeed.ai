@@ -93,25 +93,41 @@ gf gen video "A drone flying over mountains"
 
 ## Authentication
 
-Browser login (opens `https://app.genfeed.ai/oauth/cli` and completes a PKCE flow):
+`genfeed` and `gf` share one command tree. The one-command path is browser login. No secret is pasted into chat:
 
 ```bash
-gf login
+genfeed login
 ```
 
-Create an account in the same secure browser flow:
+That opens the app OAuth page (`/oauth/cli`), listens on localhost, checks `state`, and exchanges the code at `POST /auth/desktop/exchange` (PKCE S256, the same desktop exchange the web app already uses). The API key is written to `~/.gf/config.json`. `~/.gf` is mode `0700` and `config.json` is mode `0600`. There is no second credential file.
+
+Show whether you are logged in, the stored organization, and the scopes of that key (scopes come from `GET /auth/whoami`):
+
+```bash
+genfeed auth status
+```
+
+Log out. Both commands remove the stored API key and the active brand. A `GENFEED_API_KEY` in the environment is a process override and is not cleared:
+
+```bash
+genfeed auth logout
+genfeed logout
+```
+
+Create an account in the same browser flow:
 
 ```bash
 gf signup
 ```
 
-Non-interactive login with an API key from the [Genfeed.ai dashboard](https://app.genfeed.ai/settings/api-keys) — also the path for self-hosted deployments:
+CI and other headless runs skip login. `GENFEED_API_KEY` overrides the key in `~/.gf/config.json` for that process, so the secret stays in the environment instead of shell history:
 
 ```bash
-genfeed login --key gf_live_xxx
+export GENFEED_API_KEY=gf_live_xxx
+genfeed whoami
 ```
 
-Paste a key manually instead of opening a browser:
+`--key` and `--interactive` remain for machines without a browser. Prefer `GENFEED_API_KEY` in CI. A key passed on the command line is stored in shell history.
 
 ```bash
 genfeed login --interactive
@@ -156,11 +172,12 @@ List, create, rotate, and revoke API keys for headless and MCP access:
 ```bash
 genfeed keys list
 genfeed keys create -n "CI publisher" -p content
+genfeed keys create -n "MCP agent" -p mcp
 genfeed keys rotate <id>
 genfeed keys revoke <id>
 ```
 
-`create` takes a scope preset via `-p` (`mcp`, `read`, `content`, `full`) or an explicit `--scopes` list, plus optional `--expires-at`, `--rate-limit`, and `--allow-ip`. The secret is printed once, on creation and on rotation.
+`create` takes a scope preset via `-p` (`mcp`, `read`, `content`, `full`) or an explicit `--scopes` list, plus optional `--expires-at`, `--rate-limit`, and `--allow-ip`. The secret is printed once, on creation and on rotation. `genfeed keys create -p mcp` still works after `genfeed login`.
 
 ### CLI Configuration
 
@@ -476,8 +493,12 @@ The Genfeed CLI is designed for use by AI agents and automation tools.
 
 ### Non-Interactive Authentication
 
+An agent on a machine with a browser runs `genfeed login` and waits for the human to approve. It does not ask for a pasted secret.
+
+CI injects the key from a secret store. No login step is required:
+
 ```bash
-genfeed login --key $GENFEED_API_KEY
+export GENFEED_API_KEY=gf_live_xxx
 ```
 
 ### JSON Output
@@ -505,8 +526,8 @@ genfeed status $ID --json
 ### Agent Usage Example
 
 ```bash
-# Authenticate
-genfeed login --key gf_live_xxx
+# Authenticate in a browser. Do not paste the key into chat.
+genfeed login
 
 # Generate an image
 RESULT=$(genfeed generate image "Professional headshot, studio lighting" --json)
@@ -546,7 +567,7 @@ See the [MCP documentation](https://mcp.genfeed.ai/v1/docs) for details.
 
 ## Configuration
 
-Config is stored in `~/.gf/config.json`:
+Config is stored in `~/.gf/config.json`. The directory is created as mode `0700` and the file as mode `0600`. Existing installs keep this path; the CLI does not also write `~/.genfeed/credentials`.
 
 ```json
 {
@@ -573,7 +594,7 @@ Config is stored in `~/.gf/config.json`:
 
 | Variable | Description |
 |----------|-------------|
-| `GENFEED_API_KEY` | API key |
+| `GENFEED_API_KEY` | CI override. Replaces the API key stored in `~/.gf/config.json` for the current process. Do not put the secret on the command line. |
 | `GENFEED_API_URL` | API base URL |
 | `GENFEED_APP_URL` | Web app URL serving `/oauth/cli` (derived from `GENFEED_API_URL` when unset) |
 | `GENFEED_TOKEN` | Auth token |
