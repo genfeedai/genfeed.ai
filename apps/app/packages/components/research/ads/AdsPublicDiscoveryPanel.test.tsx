@@ -17,6 +17,10 @@ const state = vi.hoisted(() => ({
 }));
 const discover = vi.hoisted(() => vi.fn());
 const getService = vi.hoisted(() => vi.fn());
+const videoPlayer = vi.hoisted(() => vi.fn());
+vi.mock('@ui/display/video-player/VideoPlayer', () => ({
+  default: videoPlayer,
+}));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => state,
 }));
@@ -75,6 +79,7 @@ vi.mock('@ui/primitives/select', () => ({
 describe('explicit public discovery', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    videoPlayer.mockReturnValue(null);
     state.organizationId = 'org';
     state.brandId = 'brand';
     getService.mockResolvedValue({ discover });
@@ -120,7 +125,9 @@ describe('explicit public discovery', () => {
             {
               id: 'a',
               imageUrls: ['https://example.com/a.jpg'],
-              videoUrls: [],
+              videoUrls: [
+                'https://example.com/creative-video?mime_type=video_mp4',
+              ],
               mediaUrls: [],
               archiveUrl: 'https://www.facebook.com/ads/library/?id=a',
             },
@@ -138,6 +145,23 @@ describe('explicit public discovery', () => {
     expect(screen.getByRole('img')).toHaveAttribute(
       'src',
       'https://example.com/a.jpg',
+    );
+    expect(videoPlayer).toHaveBeenCalledWith(
+      expect.objectContaining({
+        src: 'https://example.com/creative-video?mime_type=video_mp4',
+        thumbnail: 'https://example.com/a.jpg',
+        mediaProps: { poster: 'https://example.com/a.jpg' },
+        ariaLabel: 'Public ad video preview',
+        config: {
+          autoPlay: false,
+          controls: true,
+          loop: false,
+          muted: false,
+          playsInline: true,
+          preload: 'none',
+        },
+      }),
+      undefined,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Watch' }));
     await waitFor(() => expect(onWatch).toHaveBeenCalledWith(watchInput));

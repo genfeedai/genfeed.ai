@@ -11,7 +11,9 @@ import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { AdsResearchService } from '@services/ads/ads-research.service';
 import Card from '@ui/card/Card';
+import VideoPlayer from '@ui/display/video-player/VideoPlayer';
 import { Button } from '@ui/primitives/button';
+import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
 import {
   Select,
@@ -136,7 +138,8 @@ export default function AdsPublicDiscoveryPanel({
         <h2 className="text-sm font-semibold">{translate('title')}</h2>
         <p className="text-xs text-foreground/60">{translate('description')}</p>
       </div>
-      <form
+      <Form
+        spacing="none"
         className="flex flex-wrap gap-2"
         onSubmit={(event) => {
           event.preventDefault();
@@ -215,7 +218,7 @@ export default function AdsPublicDiscoveryPanel({
         >
           {translate(loading ? 'searching' : 'search')}
         </Button>
-      </form>
+      </Form>
       {platform === 'tiktok' ? (
         <p className="text-xs text-foreground/60">
           {translate('tiktokCoverage')}
@@ -316,15 +319,21 @@ export default function AdsPublicDiscoveryPanel({
                         </div>
                       ) : null}
                       {sample.videoUrls[0] ? (
-                        <video
-                          controls
-                          preload="none"
+                        <VideoPlayer
                           src={sample.videoUrls[0]}
-                          className="max-h-36 w-full rounded-md"
-                          aria-label={translate('videoPreview')}
-                        >
-                          <track kind="captions" />
-                        </video>
+                          thumbnail={sample.imageUrls[0]}
+                          mediaProps={{ poster: sample.imageUrls[0] }}
+                          className="h-36 w-full overflow-hidden rounded-md"
+                          ariaLabel={translate('videoPreview')}
+                          config={{
+                            autoPlay: false,
+                            controls: true,
+                            loop: false,
+                            muted: false,
+                            playsInline: true,
+                            preload: 'none',
+                          }}
+                        />
                       ) : null}
                       {sample.headline ? (
                         <p className="line-clamp-2 text-xs">
