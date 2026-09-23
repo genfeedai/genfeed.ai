@@ -3,6 +3,7 @@ import type {
   IBrandAgentConfig,
   IBrandPromptSeed,
 } from '@genfeedai/contracts/interfaces';
+import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
 
 export type AgentPromptSurface =
   | 'analytics'
@@ -264,7 +265,7 @@ export function resolveBrandSurfaceSuggestions(
   }
 
   const audience =
-    agentConfig.voice?.audience?.find((entry) => entry.trim()) ??
+    normalizeBrandAudience(agentConfig.voice?.audience)[0] ??
     agentConfig.prompting?.seeds.find((seed) => seed.audience.trim())
       ?.audience ??
     'the brand audience';

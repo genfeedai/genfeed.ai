@@ -17,6 +17,7 @@ import type {
   IExtractedBrandData,
   IScrapedBrandData,
 } from '@genfeedai/contracts/interfaces';
+import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
 import { Injectable } from '@nestjs/common';
 
 /**
@@ -213,13 +214,22 @@ export class BrandDataMapper {
       | ExtractedBrandVoice
       | undefined;
 
+    const existingVoice = brandAgentConfig.voice;
+    const normalizedVoice =
+      existingVoice?.audience !== undefined
+        ? {
+            ...existingVoice,
+            audience: normalizeBrandAudience(existingVoice.audience),
+          }
+        : existingVoice;
+
     const nextVoice: Partial<BrandAgentVoice> | undefined =
       extractedData.brandVoice
         ? {
-            ...(brandAgentConfig.voice ?? {}),
+            ...(normalizedVoice ?? {}),
             audience: extractedVoice?.audience
               ? this.parseAudienceList(extractedVoice.audience)
-              : (brandAgentConfig.voice?.audience ?? []),
+              : (normalizedVoice?.audience ?? []),
             doNotSoundLike: extractedVoice?.doNotSoundLike ?? [],
             hashtags: extractedVoice?.hashtags ?? [],
             messagingPillars: extractedVoice?.messagingPillars ?? [],
@@ -229,7 +239,7 @@ export class BrandDataMapper {
             tone: extractedVoice?.tone,
             values: extractedVoice?.values ?? [],
           }
-        : brandAgentConfig.voice;
+        : normalizedVoice;
     const nextStrategy = extractedVoice
       ? {
           ...(brandAgentConfig.strategy ?? {}),

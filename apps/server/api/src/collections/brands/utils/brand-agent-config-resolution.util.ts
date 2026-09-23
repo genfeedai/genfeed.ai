@@ -19,6 +19,8 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 
+import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
+
 type BrandSource = Pick<Brand, 'agentConfig'> | null | undefined;
 type AgentStrategySource =
   | Pick<
@@ -182,16 +184,7 @@ const normalizeVoiceAudience = (
     return voice;
   }
 
-  const entries = typeof audience === 'string' ? [audience] : audience;
-  return {
-    ...voice,
-    audience: Array.isArray(entries)
-      ? entries
-          .filter((entry): entry is string => typeof entry === 'string')
-          .map((entry) => entry.trim())
-          .filter(Boolean)
-      : [],
-  };
+  return { ...voice, audience: normalizeBrandAudience(audience) };
 };
 
 export const resolveEffectiveBrandAgentConfig = ({

@@ -166,6 +166,21 @@ describe('ContentPlannerService', () => {
     );
   });
 
+  it('generates a plan for a stored onboarding text audience', async () => {
+    stubGeneratePlan();
+    brandsService.findOne.mockResolvedValue({
+      ...baseBrand,
+      agentConfig: { voice: { audience: 'Founders' } },
+    } as unknown as BrandLookup);
+
+    await service.generatePlan(mockOrgId, mockBrandId, mockUserId, baseDto);
+
+    expect(
+      llmDispatcherService.completeStructured.mock.calls[0][0].messages[0]
+        .content,
+    ).toContain('Audience: Founders');
+  });
+
   it('grounds the user prompt in the plan performance context', async () => {
     stubGeneratePlan();
     planPerformanceContextService.build.mockResolvedValueOnce({
