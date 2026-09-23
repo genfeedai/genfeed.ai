@@ -22,6 +22,7 @@ import type {
   IExpertPositioningScore,
 } from '@genfeedai/contracts/interfaces';
 import type { Page, Route } from '@playwright/test';
+import { type ItemReviewBody, readItemReviewBody } from './expert-path-review';
 
 /**
  * Expert Path API mocks for the onboarding journey
@@ -509,18 +510,8 @@ export async function setupExpertPathApiMocks(
 }
 
 /** The review action (and optional topic edit) the item row submitted. */
-function readItemReview(route: Route): { action: string; topic?: string } {
-  try {
-    const body = route.request().postDataJSON() as
-      | { action?: string; topic?: string }
-      | undefined;
-    return {
-      action: body?.action ?? 'approve',
-      ...(body?.topic ? { topic: body.topic } : {}),
-    };
-  } catch {
-    return { action: 'approve' };
-  }
+function readItemReview(route: Route): ItemReviewBody {
+  return readItemReviewBody(() => route.request().postDataJSON());
 }
 
 /** Title the corpus form submitted, falling back to the captured URL. */
