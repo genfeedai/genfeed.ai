@@ -227,7 +227,6 @@
     "apps/app/app/(protected)/home/operational-home-sections.tsx": 18,
     "apps/app/app/(protected)/root-resolver-client.tsx": 4,
     "apps/app/app/(public)/agent-auth/claim/page.tsx": 1,
-    "apps/app/app/(public)/auth-ui.tsx": 1,
     "apps/app/app/(public)/desktop/local/page.tsx": 1,
     "apps/app/app/(public)/forgot-password/content.tsx": 8,
     "apps/app/app/(public)/forgot-password/page.tsx": 2,
