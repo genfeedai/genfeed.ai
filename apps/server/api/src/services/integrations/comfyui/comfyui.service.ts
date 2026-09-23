@@ -219,11 +219,14 @@ export class ComfyUIService {
         });
 
       case MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA:
+        if (typeof params.loraPath !== 'string' || !params.loraPath.trim()) {
+          throw new Error('A LoRA model path is required');
+        }
         return buildFlux2DevPulidLoraPrompt({
           ...getCommonParams(),
           faceImage: String(params.faceImage ?? ''),
           guidance: params.guidance as number | undefined,
-          loraPath: String(params.loraPath ?? ''),
+          loraPath: params.loraPath,
           loraStrength: params.loraStrength as number | undefined,
           pulidStrength: params.pulidStrength as number | undefined,
           realismLora: params.realismLora as string | undefined,
@@ -234,11 +237,12 @@ export class ComfyUIService {
         return buildFlux2KleinPrompt(getCommonParams());
 
       case MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA:
+        if (typeof params.loraPath !== 'string' || !params.loraPath.trim()) {
+          throw new Error('A LoRA model path is required');
+        }
         return buildZImageTurboLoraPrompt({
           ...getCommonParams(),
-          loraPath: String(
-            params.loraPath ?? 'itshaylamoore_z_image_turbo.safetensors',
-          ),
+          loraPath: params.loraPath,
           loraStrength: params.loraStrength as number | undefined,
           upscaleModel: params.upscaleModel as string | undefined,
         });

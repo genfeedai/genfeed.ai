@@ -45,7 +45,7 @@ export interface AgentChatModel {
 /** 1 credit = $0.01 of retail spend. */
 export const AGENT_CREDIT_USD = 0.01;
 
-/** Retail multiplier over provider list price (70% margin). */
+/** Retail multiplier over provider list price. */
 export const AGENT_CREDIT_MARGIN_MULTIPLIER = 1.7;
 
 /**

@@ -104,6 +104,6 @@ Clerk-shaped `publicMetadata`.
 
 - [Better Auth Organization Bridge](./better-auth-organization-bridge.md) —
   ownership boundary between Better Auth org compat and Genfeed domain rows
-- [Platform Admin Role](./platform-admin-role.md) — `users.platformRole`
+- `users.platformRole` is the deployment administrator role; organization roles are separate.
 - [Deployment Modes](./deployment-modes.md) — SaaS / Community / Desktop axes
 - [ADR-DEPLOYMENT-MODES](../.agents/memory/architecture/ADR-DEPLOYMENT-MODES.md)

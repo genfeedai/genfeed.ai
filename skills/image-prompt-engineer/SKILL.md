@@ -211,7 +211,7 @@ Professional headshot in a modern coworking space, wearing a navy crew-neck swea
 
 **Optimization rules:**
 
-- Always include the LoRA trigger word (e.g., `itshaylamoore` for a person LoRA)
+- Always include the LoRA trigger word (e.g., `example_person` for a person LoRA)
 - Trigger word placement matters — typically at the start of the prompt
 - LoRA weight parameter (0.0-1.0): start at 0.7, adjust up/down
 - Multiple LoRAs can be combined but may conflict — test carefully
@@ -222,7 +222,7 @@ Professional headshot in a modern coworking space, wearing a navy crew-neck swea
 **Example:**
 
 ```
-itshaylamoore, professional portrait in a bright modern studio, wearing a cream silk blouse, soft ring light illumination, confident expression looking slightly off-camera, clean white background with subtle shadows, fashion editorial style, sharp focus
+example_person, professional portrait in a bright modern studio, wearing a cream silk blouse, soft ring light illumination, confident expression looking slightly off-camera, clean white background with subtle shadows, fashion editorial style, sharp focus
 ```
 
 ## Content-Creation Templates

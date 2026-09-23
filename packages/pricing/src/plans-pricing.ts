@@ -1,19 +1,15 @@
 /**
  * Genfeed.ai Pricing Configuration
  *
- * Canonical source for all plan, credit, BYOK, and service pricing.
+ * Canonical source for plan, credit, and BYOK pricing.
  * See: https://github.com/genfeedai/genfeed.ai/issues/486
  *
  * Pricing Strategy:
- * - Credits are the user-facing unit of output: 1 credit = $0.01 at the
- *   pay-as-you-go rate (~70% margin on provider cost, see applyMargin)
+ * - Credits are the user-facing unit of output: 1 credit = $0.01 PAYG.
  * - Pay As You Go is free to join: buy credit packs, spend on any output
  * - Subscriptions sell a better credit rate, not access: included monthly
  *   credits carry a ~20% bonus over the pay-as-you-go rate (Pro $49 → 5,900
- *   credits ≈ $59 of PAYG output; Scale $499 → 60,000 credits ≈ $600 of PAYG
- *   output). The bonus and the margin are one dial:
- *   margin = 1 - 0.3 * (1 + bonus), so a ~20% bonus holds ~64% margin on both
- *   paid tiers. Size the bonus against the list price, never the launch coupon.
+ *   credits ≈ $59 of PAYG output; Scale $499 → 60,000 credits ≈ $600).
  * - Seats are never a usage meter: FREE/BYOK is solo (1 seat); every paid tier
  *   (Pro, Scale, Enterprise) has unlimited seats. Multi-organization workflows
  *   start at Scale. Brands and connected channels are unlimited so credits stay
@@ -129,8 +125,7 @@ const PLAN_PRICES = {
  * self-hosted deployments can price without a code change. These values are used
  * when a price carries no metadata but its tier is known.
  *
- * Each tier is sized to a ~20% credit bonus over the $0.01 PAYG rate, which
- * holds ~64% margin (see the margin identity in the file header).
+ * Each tier includes a credit bonus over the $0.01 PAYG rate.
  */
 export const TIER_INCLUDED_MONTHLY_CREDITS: Record<string, number> = {
   pro: 5_900,
@@ -247,7 +242,7 @@ export function getRuntimeMarginMultiplier(): number {
 }
 
 /**
- * Apply the base 70% margin to a provider cost in USD, optionally scaled by an
+ * Apply the configured provider-cost markup, optionally scaled by an
  * operator-configured margin multiplier. Returns the sell price in credits
  * (1 credit = $0.01).
  *
@@ -281,22 +276,21 @@ export function applyMargin(
  * Used for margin tracking and cost accounting only
  *
  * Exchange rate: 1 credit = $0.01
- * Pricing formula: Sell Price = Cost / 0.30 (70% margin target)
  *
  * See: https://github.com/genfeedai/genfeed.ai/issues?q=is%3Aissue+pricing
  */
 export const INTERNAL_CREDIT_COSTS = {
-  /** Long-form article: 25 credits = $0.25 (70% margin on ~$0.075 LLM cost) */
+  /** Long-form article: 25 credits = $0.25 */
   articlePerPost: 25,
   /** Avatar/Lip-sync per second: 100 credits = $1.00/sec */
   avatarPerSecond: 100,
-  /** Image (1K/2K): 50 credits = $0.50 (70% margin on $0.15 cost) */
+  /** Image (1K/2K): 50 credits = $0.50 */
   image: 50,
-  /** Image (4K): 100 credits = $1.00 (70% margin on $0.30 cost) */
+  /** Image (4K): 100 credits = $1.00 */
   image4k: 100,
   /** Video per second: 75 credits = $0.75/sec */
   videoPerSecond: 75,
-  /** Voice per minute: 17 credits = $0.17 (70% margin on $0.05 cost) */
+  /** Voice per minute: 17 credits = $0.17 */
   voicePerMinute: 17,
 } as const;
 
@@ -688,31 +682,6 @@ export function formatOutputs(
 }
 
 /**
- * Dedicated Server plan - Custom pricing for open-source models on dedicated infrastructure
- */
-export const dedicatedServerPlan: PricingPlanProps = {
-  cta: 'Book a Call',
-  ctaHref: CALENDLY_URL,
-  description: 'Your own AI infrastructure with managed content creation',
-  features: [
-    'Dedicated server infrastructure',
-    'Run any open-source model (Llama, Mistral, SD, etc.)',
-    'No API rate limits or quotas',
-    'Managed content creation service',
-    'Full control over model selection',
-    'Cost-based pricing (server costs only)',
-  ],
-  interval: 'month',
-  label: 'Dedicated',
-  outputs: null,
-  price: null,
-  target: 'Studios and brands wanting unlimited open-source AI',
-  type: 'enterprise',
-  valueProposition:
-    'Run unlimited open-source models on your own dedicated server.',
-};
-
-/**
  * PAYG credit top-up presets (Replicate-style). Flat rate: 1 credit = $0.01,
  * no bonus. Checkout also accepts any custom amount between the min and max
  * below; the presets are just convenient defaults.
@@ -769,94 +738,3 @@ export function creditsToOutputEstimate(credits: number): {
 export function creditPackPrice(pack: CreditPackTier): number {
   return pack.credits * 0.01;
 }
-
-/**
- * Done-For-You content service offering
- * Full-service content creation retainer
- */
-export const contentServiceOffering: ServiceOfferingProps = {
-  ctaHref: CALENDLY_URL,
-  description:
-    'We handle strategy, production, and publishing. You review and approve.',
-  includes: [
-    'Dedicated content strategist',
-    'Unlimited video production',
-    'Unlimited image generation',
-    'AI voice production',
-    'Social media copywriting',
-    'Multi-platform scheduling',
-    'Brand kit management',
-    'Monthly content calendar',
-    'Performance reporting',
-    'Unlimited revisions',
-  ],
-  name: 'Done-For-You Content',
-  process: [
-    {
-      description:
-        'We learn your brand, audience, and goals in a 30-minute call.',
-      step: 'Discovery Call',
-    },
-    {
-      description:
-        'We build your monthly content calendar with topics, formats, and channels.',
-      step: 'Strategy & Calendar',
-    },
-    {
-      description:
-        'Our team creates all content (videos, images, copy) using Genfeed AI.',
-      step: 'Production',
-    },
-    {
-      description:
-        'You review, request changes, and we publish across all platforms.',
-      step: 'Review & Publish',
-    },
-  ],
-};
-
-/**
- * Setup & Training packages
- * One-time onboarding and training sessions
- */
-export const TRAINING_PACKAGES: TrainingPackageProps[] = [
-  {
-    ctaHref: CALENDLY_URL,
-    description: 'Get up and running in under an hour.',
-    includes: [
-      'Workspace configuration',
-      '1 brand kit setup',
-      '1-hour platform overview',
-      'Publishing setup walkthrough',
-      'Email support for 7 days',
-    ],
-    name: 'Quick Start',
-    priceLabel: '$299',
-  },
-  {
-    ctaHref: CALENDLY_URL,
-    description: 'Custom deep-dive for advanced use cases.',
-    includes: [
-      'Custom agenda based on your needs',
-      '2-hour live workshop',
-      'Session recording',
-      'Q&A follow-up',
-      'Email support for 14 days',
-    ],
-    name: 'Training Sessions',
-    priceLabel: '$499',
-  },
-  {
-    ctaHref: CALENDLY_URL,
-    description: 'Full onboarding for teams ready to scale.',
-    includes: [
-      'Up to 5 brand kits',
-      'Full team training session',
-      'Content strategy session',
-      'Integration setup (socials, CMS)',
-      '30-day email support',
-    ],
-    name: 'Full Onboarding',
-    priceLabel: '$999',
-  },
-];

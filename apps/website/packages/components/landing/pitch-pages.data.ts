@@ -9,19 +9,6 @@ import {
   Server,
 } from 'lucide-react';
 
-/**
- * High-ticket pitch pages — direct-send sales collateral, NOT the self-serve
- * funnel.
- *
- * These reuse the ServiceLandingPage renderer and the `(landing)` chrome, but
- * are deliberately kept out of the site nav and footer. They are reachable by
- * their URL and listed in the sitemap (indexable), so a link can be shared with
- * a lead and still rank — but the public funnel never routes to them.
- *
- * Pricing lives here on purpose: the public site keeps retainer/DFY pricing off
- * the page (see the vault "Offers And Pricing" note), while these pitch pages
- * carry the real numbers because they are sent to qualified buyers.
- */
 export const pitchLandingConfigs: ServiceLandingConfig[] = [
   // ── Retainer ───────────────────────────────────────────────────────────────
   {
@@ -70,7 +57,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'A one-time $5,000 setup covers strategy, brand and voice calibration, workflow build, and the first production cycle. After that it is $2,000/month for ongoing execution. Scope scales with volume and channels.',
+          'Book a call to agree on setup, deliverables, channels, review rounds, and ongoing support before work begins.',
         question: 'How does pricing work?',
       },
       {
@@ -85,7 +72,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       },
       {
         answer:
-          'Compared to an ~$8k/month content agency or a full-time hire, this is a smaller commitment that ships more, faster, because the production runs on our own platform.',
+          'We run production inside your Genfeed workspace so you can review work and retain your assets. We agree on scope before the engagement begins.',
         question: 'How does this compare to an agency?',
       },
     ],
@@ -113,7 +100,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
     intro:
       'You bring the expertise, context, and final approvals. We handle strategy, production, and publishing so your brand shows up consistently, without another internal function to manage.',
     metaDescription:
-      'High-touch content retainer for founders and high-end SMBs. $5,000 setup, then $2,000/month. Strategy, production, and publishing run for you on Genfeed.',
+      'High-touch content retainer for founders and high-end SMBs. Strategy, production, and publishing run for you on Genfeed.',
     metaTitle: 'Content Retainer for Founders and SMBs | Genfeed.ai',
     outcomes: [
       {
@@ -139,8 +126,7 @@ export const pitchLandingConfigs: ServiceLandingConfig[] = [
       'For businesses that know content matters but do not want to run it internally.',
     outcomesTitle: 'What This Solves',
     priceCtaHint: 'Book a call to start',
-    priceLabel: '$5,000 setup',
-    priceNote: 'then $2,000 / month',
+    priceLabel: 'Scoped on a call',
     process: [
       {
         description:

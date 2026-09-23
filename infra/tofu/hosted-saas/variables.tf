@@ -152,3 +152,8 @@ variable "image_digest" {
     error_message = "image_digest must be an immutable SHA-256 digest."
   }
 }
+
+variable "ignored_ssm_secret_names" {
+  description = "Retired or operator-only SSM names excluded from task secrets. Supply [] explicitly when none are excluded."
+  type        = set(string)
+}

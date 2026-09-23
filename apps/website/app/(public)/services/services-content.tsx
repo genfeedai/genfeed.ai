@@ -1,7 +1,6 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { contentServiceOffering } from '@genfeedai/pricing';
 import { cn } from '@helpers/formatting/cn/cn.util';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
 import { EnvironmentService } from '@services/core/environment.service';
@@ -13,6 +12,7 @@ import {
   NeuralGridItem,
   WebSection,
 } from '@web-components/content/NeuralGrid';
+import { serviceOffering } from '@web-components/landing/service-offering.data';
 import PageLayout from '@web-components/PageLayout';
 import { Check, Sparkles } from 'lucide-react';
 import Link from 'next/link';
@@ -32,14 +32,14 @@ const SERVICE_CARDS = [
     ],
     label: 'Training & Onboarding',
     isFeatured: false,
-    price: 'From $299',
+    price: 'Scoped on a call',
     shortLabel: 'Training',
   },
   {
     cta: 'Book a Call',
     ctaHref: EnvironmentService.calendly,
-    description: contentServiceOffering.description,
-    features: contentServiceOffering.includes,
+    description: serviceOffering.description,
+    features: serviceOffering.includes,
     label: 'Done-For-You',
     isFeatured: true,
     price: 'Custom',

@@ -307,6 +307,28 @@ describe('ComfyUIService', () => {
       );
     });
 
+    it.each([undefined, '', '   '])(
+      'rejects a missing LoRA model path (%s)',
+      async (loraPath) => {
+        await expect(
+          Promise.all(
+            [
+              MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
+              MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+            ].map((model) =>
+              service.generateImage(model, {
+                ...commonImageParams,
+                loraPath,
+                prompt: 'a portrait',
+              }),
+            ),
+          ),
+        ).rejects.toThrow('A LoRA model path is required');
+        expect(buildZImageTurboLoraPrompt).not.toHaveBeenCalled();
+        expect(buildFlux2DevPulidLoraPrompt).not.toHaveBeenCalled();
+      },
+    );
+
     it('should route GENFEED_AI_Z_IMAGE_TURBO_LORA correctly', async () => {
       setupSuccessfulRun();
 

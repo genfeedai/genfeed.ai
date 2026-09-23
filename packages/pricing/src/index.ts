@@ -1,12 +1,12 @@
 /**
- * @genfeedai/pricing — Single source of truth for ALL pricing in genfeed.ai.
+ * @genfeedai/pricing — Single source of truth for product billing in genfeed.ai.
  *
  * This package owns: provider costs, credit costs, plans, credit packs,
  * BYOK fees, margins, and pricing configuration.
  *
  * To change a price, edit the files in this package:
  *   - provider-pricing.ts  — AI provider costs, model types, node-type sets, UI option arrays
- *   - plans-pricing.ts     — BYOK constants, credit costs, website plans, credit packs, services
+ *   - plans-pricing.ts     — BYOK constants, credit costs, website plans, credit packs
  *
  * Propagation is verified by:
  *   packages/pricing/src/provider-pricing.spec.ts

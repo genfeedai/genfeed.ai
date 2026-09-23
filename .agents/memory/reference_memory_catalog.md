@@ -20,10 +20,8 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [no_issue_body_frontmatter](no_issue_body_frontmatter.md) — no YAML in issue bodies
 - [issue_titles_imperative](issue_titles_imperative.md) — short imperative titles, no conventional-commit prefix, about 50 chars
 - [skill_boundary](skill_boundary.md) — `.agents/skills` build the app; `skills/` are product content
-- [genfeed_project_kanban](genfeed_project_kanban.md) — Project #12 owns workflow Status; native Issue Fields own shared metadata
 - [epic_status_on_child_start](epic_status_on_child_start.md) — epics go In Progress when a child starts
 - [positive_memory_framing](positive_memory_framing.md) — write memory as target state
-- [shared_checkout_automation](shared_checkout_automation.md) — path-scope `git add`; checkout state moves
 - [claim_work_before_starting](claim_work_before_starting.md) — search open PRs before branching or spawning a fix; push early to claim
 - [feedback_fix_branch_ends_in_pr](feedback_fix_branch_ends_in_pr.md) — a pushed fix branch is done only when a ready PR exists; no "pushed, no PR" handoffs
 - [feedback_desktop_local_workspace_disabled](feedback_desktop_local_workspace_disabled.md) — desktop local/PGlite workspace is a PostHog-gated slice, not a void coming-soon page
@@ -90,7 +88,6 @@ then open the relevant topic files. Add detailed topic entries here; keep MEMORY
 - [feedback_ui_action_403_not_provider](feedback_ui_action_403_not_provider.md) — confirm-generate 403s are our API (allowlist/brand/org), not a provider block
 - [feedback_generate_picker_reads_allowlist](feedback_generate_picker_reads_allowlist.md) — generate/agent pickers honor enabledModelIds; Settings → Models stays the catalog
 - [feedback_request_abort_not_body_close](feedback_request_abort_not_body_close.md) — cancel Replicate only on response.close; request.close is the body finishing
-- [claude_local_env_access](claude_local_env_access.md) — Claude may Read/Edit local `.env*`; deny stays on `secrets/` and key files
 - [project_generation_harness_worldclass_audit](project_generation_harness_worldclass_audit.md) — image/video/ads vs harness map; private packs required for taste; media path gaps
 - [project_content_memory_pgvector](project_content_memory_pgvector.md) — day-one vector store is Postgres pgvector; brand memory layers for generation
 - [project_x_algorithm_harness](project_x_algorithm_harness.md) — X open-source ranking → platform-x pack + winner scoring (not a separate product)

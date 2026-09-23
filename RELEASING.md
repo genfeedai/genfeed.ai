@@ -179,6 +179,7 @@ Required environment variables:
 
 - `DOMAIN`, `PROJECT`, `VPC_ID`, `PUBLIC_SUBNET_IDS`, `NAT_PUBLIC_SUBNET_ID`
 - `RDS_INSTANCE_ID`, `SSM_PATH`, `CDN_BUCKET`
+- `IGNORED_SSM_SECRET_NAMES`: JSON array of excluded SSM names; set `[]` explicitly if none. Preserve your current exclusions when configuring this value.
 - `TF_STATE_BUCKET`, `TF_STATE_KEY`
 - `SERVER_IMAGE_REPOSITORY`, `ECR_REPOSITORY_NAME`
 - `HOSTED_OWNER_EMAIL`, `HOSTED_ORGANIZATION_LABEL`

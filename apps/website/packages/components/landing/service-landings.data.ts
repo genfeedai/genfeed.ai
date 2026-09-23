@@ -1,4 +1,4 @@
-import { contentServiceOffering } from '@genfeedai/pricing';
+import { serviceOffering } from '@web-components/landing/service-offering.data';
 import {
   BadgeCheck,
   CalendarRange,
@@ -61,19 +61,17 @@ export interface ServiceLandingConfig {
   closingTitle: string;
   closingDescription: string;
   /**
-   * Price shown in the hero pill. Omit for public/funnel service pages — the
-   * vault keeps retainer pricing off the public site, so they fall back to a
-   * soft "scoped on a call" label. Set it only on direct-send pitch pages.
+   * Optional engagement label shown in the hero pill.
    */
   priceLabel?: string;
-  /** Secondary price line under {@link priceLabel} (e.g. "then $2,000 / month"). */
+  /** Secondary price line under {@link priceLabel}. */
   priceNote?: string;
   /** Hero pill CTA hint. Defaults to "Book a call to scope it". */
   priceCtaHint?: string;
 }
 
-const COMMON_SERVICE_PROCESS = contentServiceOffering.process;
-const COMMON_SERVICE_INCLUDES = contentServiceOffering.includes;
+const COMMON_SERVICE_PROCESS = serviceOffering.process;
+const COMMON_SERVICE_INCLUDES = serviceOffering.includes;
 
 export const serviceLandingConfigs: ServiceLandingConfig[] = [
   {
@@ -110,7 +108,7 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
         title: 'Operations',
       },
     ],
-    deliverablesDescription: contentServiceOffering.description,
+    deliverablesDescription: serviceOffering.description,
     deliverablesTitle: 'What You Get',
     faqDescription: 'Direct answers before the call.',
     faqs: [
