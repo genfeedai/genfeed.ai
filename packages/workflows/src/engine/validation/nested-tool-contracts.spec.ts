@@ -447,26 +447,41 @@ it('declares fields, a typed map, or intentional emptiness for every published o
   expect(failures).toEqual([]);
 });
 
-it('compiles every advertised Agent and MCP schema with its shared definitions', () => {
+// Compiles the full advertised tool catalog. One Ajv instance keeps the
+// meta-schema compiled once, and the MCP surface re-spreads the same agent
+// parameters, so identical schemas are compiled only once. The explicit timeout
+// matches action-catalog-contract.spec.ts for contended CI runners.
+it('compiles every advertised Agent and MCP schema with its shared definitions', {
+  timeout: 60_000,
+}, () => {
   const schemas = [
     ...toAgentTools(ALL_TOOLS).map((tool) => ({
-      name: tool.name,
+      name: `agent:${tool.name}`,
       schema: tool.parameters,
     })),
     ...toMcpTools(ALL_TOOLS).map((tool) => ({
-      name: tool.name,
+      name: `mcp:${tool.name}`,
       schema: tool.inputSchema,
     })),
   ];
+  const ajv = new Ajv({ allowUnionTypes: true, strict: true });
+  const compiled = new Map<string, string | null>();
   const failures: string[] = [];
   for (const { name, schema } of schemas) {
-    try {
-      new Ajv({ allowUnionTypes: true, strict: true }).compile(schema);
-    } catch (error) {
-      failures.push(
-        `${name}: ${error instanceof Error ? error.message : String(error)}`,
-      );
+    const key = JSON.stringify(schema);
+    if (!compiled.has(key)) {
+      try {
+        ajv.compile(schema);
+        compiled.set(key, null);
+      } catch (error) {
+        compiled.set(
+          key,
+          error instanceof Error ? error.message : String(error),
+        );
+      }
     }
+    const failure = compiled.get(key);
+    if (failure) failures.push(`${name}: ${failure}`);
   }
   expect(failures).toEqual([]);
 });
