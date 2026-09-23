@@ -21,7 +21,8 @@ type EnhanceCreatedPromptInput = {
   organizationId: string;
   promptId: string;
   requestedSkillSlugs: string[] | undefined;
-  systemPromptKey: string;
+  model?: string;
+  systemPromptKey?: string;
   url: string;
   userId: string;
   userPrompt: string;
@@ -37,6 +38,7 @@ export async function enhanceCreatedPrompt(
       contentType: input.contentType,
       organizationId: input.organizationId,
       requestedSkillSlugs: input.requestedSkillSlugs,
+      model: input.model,
       systemPromptKey: input.systemPromptKey,
       userPrompt: input.userPrompt,
     });

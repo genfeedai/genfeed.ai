@@ -39,6 +39,7 @@ describe('enhanceCreatedPrompt', () => {
       contentType: 'image',
       organizationId: 'org',
       requestedSkillSlugs: ['cinema'],
+      model: undefined,
       systemPromptKey: 'system.model.image',
       userPrompt: 'Raw input',
     });

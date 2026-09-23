@@ -1125,6 +1125,7 @@ describe('AgentToolExecutorService', () => {
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
+      generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     service.onModuleInit();
 
@@ -5607,6 +5608,7 @@ describe('AgentToolExecutorService', () => {
     );
     Object.assign(serviceWithoutScorer, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
+      generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     serviceWithoutScorer.onModuleInit();
 

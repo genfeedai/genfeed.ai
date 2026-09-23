@@ -18,11 +18,9 @@ import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { MarketplaceIntegrationModule } from '@api/marketplace-integration/marketplace-integration.module';
 import { ByokModule } from '@api/services/byok/byok.module';
-import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { PromptEnhancementModule } from '@api/services/prompt-enhancement/prompt-enhancement.module';
-import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
 
@@ -43,10 +41,8 @@ import { Module } from '@nestjs/common';
     IngredientsModule,
     MarketplaceIntegrationModule,
     ModelsModule,
-    OpenRouterModule,
     PromptBuilderModule,
     ReplicateModule,
-    SkillRuntimeModule,
     TemplatesModule,
     WhisperModule,
   ],

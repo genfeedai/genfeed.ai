@@ -37,7 +37,6 @@ import {
   ActivitySource,
   PromptCategory,
   PromptStatus,
-  SystemPromptKey,
 } from '@genfeedai/contracts';
 
 import type {
@@ -181,7 +180,6 @@ export class PromptsController {
     // User prompt is the original content
     const userPrompt = createPromptDto.original;
 
-    const systemPromptKey = this.resolveSystemPromptKey(createPromptDto);
     void enhanceCreatedPrompt(
       {
         creditsUtilsService: this.creditsUtilsService,
@@ -202,7 +200,8 @@ export class PromptsController {
         organizationId: user.organizationId,
         promptId: data.id,
         requestedSkillSlugs: createPromptDto.requestedSkillSlugs,
-        systemPromptKey,
+        model: createPromptDto.model,
+        systemPromptKey: createPromptDto.systemPromptKey,
         url,
         userId: user.userId ?? user.id,
         userPrompt,
@@ -210,22 +209,6 @@ export class PromptsController {
     );
 
     return serializeSingle(request, PromptSerializer, data);
-  }
-
-  private resolveSystemPromptKey(createPromptDto: CreatePromptDto): string {
-    // Priority: 1) model-specific template, 2) explicit systemPromptKey, 3) default
-    let systemPromptKey: string = SystemPromptKey.DEFAULT;
-    if (createPromptDto.model) {
-      // Use existing utility to convert model key to template key
-      // e.g., 'black-forest-labs/flux-2-pro' -> 'system.model.flux-2-pro'
-      systemPromptKey = PromptParser.getModelSystemPromptTemplateKey(
-        createPromptDto.model,
-      );
-    } else if (createPromptDto.systemPromptKey) {
-      systemPromptKey = createPromptDto.systemPromptKey;
-    }
-
-    return systemPromptKey;
   }
 
   @Get()

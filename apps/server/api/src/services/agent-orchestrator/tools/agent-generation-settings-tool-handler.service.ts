@@ -27,10 +27,18 @@ export class AgentGenerationSettingsToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (toolName === 'enhance_prompt') return this.enhance(params, ctx);
-    return toolName === 'set_generation_settings'
-      ? this.set(params, ctx)
-      : this.get(params, ctx);
+    switch (toolName) {
+      case 'enhance_prompt':
+        return this.enhance(params, ctx);
+      case 'set_generation_settings':
+        return this.set(params, ctx);
+      case 'get_generation_settings':
+        return this.get(params, ctx);
+      default:
+        throw new BadRequestException(
+          `Unknown generation settings tool: ${toolName}`,
+        );
+    }
   }
 
   async enhance(

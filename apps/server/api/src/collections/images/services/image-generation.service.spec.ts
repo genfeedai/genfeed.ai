@@ -412,7 +412,9 @@ describe('ImageGenerationService', () => {
     const providerPrompt =
       replicateService.generateTextToImage.mock.calls[0][1].prompt;
     expect(providerPrompt).toContain('A red bicycle at dusk');
-    expect(sharedService.createMediaDocuments.mock.calls).toHaveLength(2);
+    await vi.waitFor(() =>
+      expect(sharedService.createMediaDocuments.mock.calls).toHaveLength(2),
+    );
     for (const [, document] of sharedService.createMediaDocuments.mock.calls) {
       expect(document).toMatchObject({
         generationPrompt: providerPrompt,
