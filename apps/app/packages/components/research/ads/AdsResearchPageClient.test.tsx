@@ -1,5 +1,12 @@
 import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import {
+  act,
+  fireEvent,
+  render,
+  renderHook,
+  screen,
+  within,
+} from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -458,7 +465,10 @@ vi.mock('@ui/primitives/select', () => ({
 
 import { DetailSidebar } from './AdsResearchDetailSidebar';
 import AdsResearchPageClient from './AdsResearchPageClient';
-import { buildSaveAdInput } from './useAdsResearchPageClient';
+import {
+  buildSaveAdInput,
+  useAdsResearchPageClient,
+} from './useAdsResearchPageClient';
 
 function getSourceSelect() {
   const element = screen.getByText('Public + My Accounts').parentElement
@@ -556,6 +566,7 @@ describe('AdsResearchPageClient', () => {
           platform: 'meta',
         },
       ],
+      isBrandScopeResolved: true,
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
     });
@@ -1117,6 +1128,7 @@ describe('AdsResearchPageClient', () => {
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [],
+      isBrandScopeResolved: true,
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
     });
@@ -1205,6 +1217,7 @@ describe('AdsResearchPageClient', () => {
           platform: 'google_ads',
         },
       ],
+      isBrandScopeResolved: true,
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
     });
@@ -1237,10 +1250,23 @@ describe('AdsResearchPageClient', () => {
   });
 
   it.each([
-    { credentialsLoading: true, credentialsError: null },
+    {
+      credentialsLoading: true,
+      credentialsError: null,
+      isReady: true,
+      isBrandScopeResolved: true,
+    },
+    {
+      credentialsLoading: false,
+      credentialsError: null,
+      isReady: false,
+      isBrandScopeResolved: false,
+    },
     {
       credentialsLoading: false,
       credentialsError: new Error('Connections unavailable'),
+      isBrandScopeResolved: true,
+      isReady: true,
     },
   ])(
     'does not mistake unresolved connections for a disconnected account: %o',
@@ -1249,10 +1275,10 @@ describe('AdsResearchPageClient', () => {
         brandId: 'brand-1',
         credentials: [],
         ...state,
-        isReady: true,
         selectedBrand: { label: 'Moonrise Studio' },
       });
       render(<AdsResearchPageClient />);
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
       fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
       fireEvent.click(
         getSourceSelect().getByRole('button', {
@@ -1270,10 +1296,36 @@ describe('AdsResearchPageClient', () => {
     },
   );
 
+  it('clears account filters when a selected credential is disconnected', () => {
+    const { result, rerender } = renderHook(() => useAdsResearchPageClient());
+    act(() => result.current.setCredentialId('cred-google'));
+    act(() => {
+      result.current.setAdAccountId('acct-google-1');
+      result.current.setLoginCustomerId('mcc-111');
+    });
+    expect(result.current.credentialId).toBe('cred-google');
+
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [
+        { id: 'cred-google', isConnected: false, platform: 'google' },
+      ],
+      isBrandScopeResolved: true,
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+    rerender();
+
+    expect(result.current.credentialId).toBe('');
+    expect(result.current.adAccountId).toBe('');
+    expect(result.current.loginCustomerId).toBe('');
+  });
+
   it('keeps public ads visible without prompting for an owned account', () => {
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [],
+      isBrandScopeResolved: true,
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
     });

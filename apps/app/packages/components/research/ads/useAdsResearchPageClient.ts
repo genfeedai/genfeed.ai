@@ -206,11 +206,13 @@ export function useAdsResearchPageClient() {
   const savedSourceLabel = translate('swipeFile.sourceLabel');
   const remixSurface = useOptionalDiscoveryRemix();
   const surface = useOptionalResearchWorkSurface();
+  const updateSearchParams = surface?.updateSearchParams;
   const {
     brandId,
     credentials,
     credentialsError,
     credentialsLoading,
+    isBrandScopeResolved,
     isReady,
     selectedBrand,
   } = useBrand();
@@ -377,6 +379,37 @@ export function useAdsResearchPageClient() {
       }, []),
     [credentials, effectivePlatform],
   );
+
+  const isConnectionStateReady =
+    isReady && isBrandScopeResolved && !credentialsLoading && !credentialsError;
+
+  useEffect(() => {
+    if (
+      isConnectionStateReady &&
+      credentialId &&
+      !credentialOptions.some((credential) => credential.id === credentialId)
+    ) {
+      if (updateSearchParams) {
+        updateSearchParams({
+          account: null,
+          credential: null,
+          loginCustomer: null,
+        });
+      } else {
+        setCredentialId('');
+        setAdAccountId('');
+        setLoginCustomerId('');
+      }
+    }
+  }, [
+    credentialId,
+    credentialOptions,
+    isConnectionStateReady,
+    setAdAccountId,
+    setCredentialId,
+    setLoginCustomerId,
+    updateSearchParams,
+  ]);
 
   const filters: AdsResearchFilters = useMemo(
     () => ({
@@ -862,7 +895,10 @@ export function useAdsResearchPageClient() {
     allAds,
     busyAction,
     credentialOptions,
+    credentialsError,
     credentialsLoading,
+    isConnectionStateReady,
+    isReady,
     detail,
     detailError,
     detailLoading,
@@ -882,7 +918,7 @@ export function useAdsResearchPageClient() {
     resultsError,
     savedError: saved.error,
     savedMutating: saved.isMutating,
-    accountsError: accountsError ?? credentialsError,
+    accountsError,
     runAction,
     search,
     selectedAd,

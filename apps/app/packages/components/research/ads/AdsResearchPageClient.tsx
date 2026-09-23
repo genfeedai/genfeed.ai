@@ -79,7 +79,9 @@ export default function AdsResearchPageClient() {
     allAds,
     busyAction,
     credentialOptions,
-    credentialsLoading,
+    credentialsError,
+    isConnectionStateReady,
+    isReady,
     detail,
     detailError,
     detailLoading,
@@ -141,13 +143,16 @@ export default function AdsResearchPageClient() {
   const showConnectStrip =
     source === 'my_accounts' &&
     !isLoading &&
-    !credentialsLoading &&
+    isConnectionStateReady &&
     !hasCredentials &&
     !resultsError &&
     !accountsError;
+  const connectionError =
+    source === 'my_accounts' && !hasCredentials ? credentialsError : null;
   const isWatchlistVisible =
     showWatchlist ??
-    (source !== 'saved' &&
+    (isReady &&
+      source !== 'saved' &&
       source !== 'my_accounts' &&
       !isLoading &&
       !resultsError &&
@@ -208,7 +213,11 @@ export default function AdsResearchPageClient() {
       icon={Megaphone}
       right={headerRight}
     >
-      {(resultsError || accountsError || detailError || savedError) && (
+      {(resultsError ||
+        accountsError ||
+        connectionError ||
+        detailError ||
+        savedError) && (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           <div className="space-y-1">
             <div className="font-medium">{translate('errors.title')}</div>
@@ -218,6 +227,7 @@ export default function AdsResearchPageClient() {
                   ? savedError.message
                   : undefined) ||
                 accountsError?.message ||
+                connectionError?.message ||
                 resultsError?.message ||
                 'Try refreshing the page.'}
             </div>
