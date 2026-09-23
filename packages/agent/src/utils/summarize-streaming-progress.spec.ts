@@ -5,6 +5,7 @@ import {
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { describe, expect, it } from 'vitest';
+import { isGenericRunLifecycleEvent } from './derive-timeline';
 import { summarizeStreamingProgress } from './summarize-streaming-progress';
 
 function toolCall(
@@ -144,4 +145,90 @@ describe('summarizeStreamingProgress', () => {
       label: 'Reviewing',
     });
   });
+});
+
+describe('turn preparation progress', () => {
+  it.each([
+    ['preparing', 'Agent preparing response', 'Preparing response'],
+    [
+      'waiting_for_lane',
+      'Agent acquiring execution lane',
+      'Preparing to continue',
+    ],
+  ])(
+    'summarizes %s without adding a task-history step',
+    (phase, label, summary) => {
+      const event = workEvent({
+        event: AgentWorkEventType.STARTED,
+        label,
+        phase,
+      });
+      expect(summarizeStreamingProgress(idleStream, [event])).toEqual({
+        label: summary,
+      });
+      expect(isGenericRunLifecycleEvent(event)).toBe(true);
+    },
+  );
+
+  it.each(['preparing', 'waiting_for_lane'])(
+    'preserves actual progress priorities over %s',
+    (phase) => {
+      const event = workEvent({ event: AgentWorkEventType.STARTED, phase });
+      expect(
+        summarizeStreamingProgress(
+          { ...idleStream, activeToolCalls: [toolCall('get_trends')] },
+          [event],
+        ).label,
+      ).toBe('Researching');
+      expect(
+        summarizeStreamingProgress(
+          { ...idleStream, streamingContent: 'A response token' },
+          [event],
+        ),
+      ).toEqual({ label: 'Answering' });
+      expect(
+        summarizeStreamingProgress(
+          { ...idleStream, streamingReasoning: 'Considering the request' },
+          [event],
+        ),
+      ).toEqual({ detail: 'Considering the request', label: 'Thinking' });
+      expect(
+        summarizeStreamingProgress(idleStream, [
+          workEvent({ event: AgentWorkEventType.INPUT_REQUESTED, phase }),
+        ]).label,
+      ).toBe('Waiting for input');
+      expect(
+        summarizeStreamingProgress(idleStream, [
+          workEvent({ event: AgentWorkEventType.INPUT_SUBMITTED, phase }),
+        ]).label,
+      ).toBe('Reviewing');
+    },
+  );
+
+  it.each(['preparing', 'waiting_for_lane'])(
+    'lets normal Agent started supersede %s',
+    (phase) => {
+      expect(
+        summarizeStreamingProgress(idleStream, [
+          workEvent({ event: AgentWorkEventType.STARTED, phase }),
+          workEvent({
+            event: AgentWorkEventType.STARTED,
+            id: 'started',
+            label: 'Agent started',
+          }),
+        ]),
+      ).toEqual({ label: 'Thinking' });
+    },
+  );
+
+  it.each(['preparing', 'waiting_for_lane'])(
+    'ignores %s when the stream is no longer active',
+    (phase) => {
+      expect(
+        summarizeStreamingProgress({ ...idleStream, isStreaming: false }, [
+          workEvent({ event: AgentWorkEventType.STARTED, phase }),
+        ]),
+      ).toEqual({ label: 'Thinking' });
+    },
+  );
 });

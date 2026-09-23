@@ -286,7 +286,9 @@ describe('AgentStreamPublisherService', () => {
         'waiting_for_lane',
       ].entries()) {
         const label =
-          index === 0 ? 'Preparing response' : 'Waiting to continue';
+          index === 0
+            ? 'Agent preparing response'
+            : 'Agent acquiring execution lane';
         expect(calls[index][0]).toEqual({
           commandId: `turn-phase:${data.threadId}:run-1:${phase}`,
           metadata: { origin: 'stream-publisher' },

@@ -218,7 +218,9 @@ export class AgentStreamPublisherService {
       throw new Error('Thread engine is required to publish turn phases');
     }
     const label =
-      data.phase === 'preparing' ? 'Preparing response' : 'Waiting to continue';
+      data.phase === 'preparing'
+        ? 'Agent preparing response'
+        : 'Agent acquiring execution lane';
     const payload = {
       label,
       phase: data.phase,

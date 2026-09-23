@@ -126,5 +126,16 @@ export function summarizeStreamingProgress(
     };
   }
 
+  if (streamState.isStreaming && latestActiveEvent?.phase === 'preparing') {
+    return { label: 'Preparing response' };
+  }
+
+  if (
+    streamState.isStreaming &&
+    latestActiveEvent?.phase === 'waiting_for_lane'
+  ) {
+    return { label: 'Preparing to continue' };
+  }
+
   return { label: 'Thinking' };
 }
