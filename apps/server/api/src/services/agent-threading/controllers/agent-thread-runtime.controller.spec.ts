@@ -33,6 +33,7 @@ describe('Threading AgentThreadRuntimeController', () => {
   let controller: AgentThreadRuntimeController;
   let usersService: { findOne: ReturnType<typeof vi.fn> };
   let agentOrchestratorService: {
+    acceptChatStream: ReturnType<typeof vi.fn>;
     handleThreadUiAction: ReturnType<typeof vi.fn>;
   };
 
@@ -42,6 +43,7 @@ describe('Threading AgentThreadRuntimeController', () => {
       findOne: vi.fn().mockResolvedValue({ id: userId }),
     };
     agentOrchestratorService = {
+      acceptChatStream: vi.fn(),
       handleThreadUiAction: vi.fn(),
     };
 
@@ -107,6 +109,38 @@ describe('Threading AgentThreadRuntimeController', () => {
       expect.objectContaining({ threadId, organizationId, userId }),
       'work-1',
       'review-A',
+    );
+  });
+
+  it('returns the execution that continues an answered input request', async () => {
+    agentOrchestratorService.acceptChatStream.mockResolvedValue({
+      executionId: 'run-answer',
+      queuedAt: '2026-09-23T15:10:00.000Z',
+      status: 'queued',
+      threadId,
+    });
+
+    const response = await controller.respondToInputRequest(
+      threadId,
+      'req-1',
+      { answer: 'Use hybrid' },
+      mockUser,
+    );
+
+    expect(agentOrchestratorService.acceptChatStream).toHaveBeenCalledWith(
+      expect.objectContaining({
+        clientRequestId: 'input-response:req-1',
+        content: 'Use hybrid',
+        threadId,
+      }),
+      { organizationId, userId },
+    );
+    expect(response).toEqual(
+      expect.objectContaining({
+        executionId: 'run-answer',
+        queuedAt: '2026-09-23T15:10:00.000Z',
+        requestId: 'req-1',
+      }),
     );
   });
 
