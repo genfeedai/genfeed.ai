@@ -4,7 +4,10 @@ import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tool
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/create-manual-review-batch.dto';
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
-import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
+import {
+  mapTwitterApiError,
+  X_CREDENTIAL_ERROR,
+} from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import {
   buildTwitterStatusUrl,
   parseTwitterPostId,
@@ -63,7 +66,7 @@ export class AgentXActionsToolHandler {
   ): Promise<AgentToolResult> {
     switch (toolName) {
       case 'search_x_posts':
-        return this.searchXPosts(params);
+        return this.searchXPosts(params, ctx);
       case 'fetch_x_post':
         return this.fetchXPost(params, ctx);
       case 'list_x_account_activity':
@@ -79,12 +82,23 @@ export class AgentXActionsToolHandler {
 
   async searchXPosts(
     params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     const query = readOptionalString(params.query);
     if (!query) {
       return {
         creditsUsed: 0,
         error: 'query is required',
+        success: false,
+      };
+    }
+
+    const brandId = readOptionalString(params.brandId) ?? ctx.brandId;
+    if (!brandId) {
+      return {
+        creditsUsed: 0,
+        error:
+          "Pass brandId from list_brands. Search uses that brand's connected X account.",
         success: false,
       };
     }
@@ -99,8 +113,22 @@ export class AgentXActionsToolHandler {
       return this.unavailableResult();
     }
 
+    const accessToken = await twitterService.resolveBrandUserAccessToken(
+      ctx.organizationId,
+      brandId,
+      readOptionalString(params.credentialId),
+    );
+    if (!accessToken) {
+      return {
+        creditsUsed: 0,
+        error: X_CREDENTIAL_ERROR,
+        success: false,
+      };
+    }
+
     try {
       const tweets = await twitterService.searchRecentTweets(query, {
+        accessToken,
         maxResults: limit,
         sortOrder,
       });

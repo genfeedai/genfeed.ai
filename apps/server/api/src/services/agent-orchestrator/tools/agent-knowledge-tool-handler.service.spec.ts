@@ -151,6 +151,24 @@ describe('AgentKnowledgeToolHandler', () => {
     expect(contexts.retrieveBrandContentMemory).not.toHaveBeenCalled();
   });
 
+  it('searches the brand passed by the caller when the session has none', async () => {
+    const { contexts, handler } = buildHandler();
+
+    const result = await handler.searchKnowledge(
+      { brandId: 'brand-explicit', query: 'pricing' },
+      { ...ctx, brandId: undefined },
+    );
+
+    expect(result.success).toBe(true);
+    expect(contexts.retrieveBrandContentMemory).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'brand-explicit',
+        organizationId: 'org-1',
+        query: 'pricing',
+      }),
+    );
+  });
+
   it('filters by purpose and processing state in the query, before pagination', async () => {
     const { handler, records } = buildHandler();
     records.listSources.mockResolvedValue({

@@ -40,6 +40,19 @@ function resourceId(resource: JsonApiResource | undefined): string {
   return String(resource?.id ?? attrs.id ?? '');
 }
 
+/** Templates are plain catalog objects. Older payloads nest the same fields under `attributes`. */
+function readTemplateFields(
+  template: WorkflowTemplateResource,
+): Record<string, unknown> {
+  const root = asRecord(template);
+  const attributes = asRecord(root.attributes);
+  return {
+    ...root,
+    ...attributes,
+    id: template.id || asString(attributes.id) || asString(root.id) || '',
+  };
+}
+
 function mapWorkflowResource(
   resource: JsonApiResource | undefined,
 ): WorkflowResponse {
@@ -60,7 +73,7 @@ function mapWorkflowResource(
       typeof attrs.isScheduleEnabled === 'boolean'
         ? attrs.isScheduleEnabled
         : undefined,
-    lastRunAt: asString(attrs.lastRunAt),
+    lastRunAt: asString(attrs.lastRunAt) ?? asString(attrs.lastExecutedAt),
     lifecycle: asString(attrs.lifecycle),
     metadata: asRecord(attrs.metadata),
     name: asString(attrs.name) ?? asString(attrs.label) ?? 'Untitled workflow',
@@ -395,18 +408,23 @@ export class WorkflowClient {
         const response = await http.get('/workflows/templates');
 
         return (
-          response.data?.data?.map((template: WorkflowTemplateResource) => ({
-            category: template.attributes?.category || 'general',
-            creditsRequired: template.attributes?.creditsRequired,
-            description:
-              template.attributes?.description || 'No description available',
-            estimatedDuration: template.attributes?.estimatedDuration,
-            id: template.id,
-            name: template.attributes?.name,
-            nodeCount: Array.isArray(template.attributes?.nodes)
-              ? template.attributes.nodes.length
-              : 0,
-          })) || []
+          response.data?.data?.map((template: WorkflowTemplateResource) => {
+            const fields = readTemplateFields(template);
+            return {
+              category: asString(fields.category) ?? 'general',
+              creditsRequired: asNumber(fields.creditsRequired),
+              description:
+                asString(fields.description) ?? 'No description available',
+              estimatedDuration: asString(fields.estimatedDuration),
+              id: asString(fields.id) ?? '',
+              name:
+                asString(fields.name) ??
+                asString(fields.label) ??
+                asString(fields.title) ??
+                'Untitled template',
+              nodeCount: asArray(fields.nodes).length,
+            };
+          }) || []
         );
       },
       this.base.failWith('Failed to list workflow templates'),
