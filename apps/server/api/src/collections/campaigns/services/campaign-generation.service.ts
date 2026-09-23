@@ -19,6 +19,7 @@ import {
   fromPrismaCredentialPlatform,
   ReleaseStatus,
 } from '@genfeedai/contracts';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
@@ -90,42 +91,7 @@ export class CampaignGenerationService {
       };
     }
 
-    const captions = await this.captionsForCredentials(campaign, pending);
-    const targets = pending.flatMap((credential, index) => {
-      const platform = fromPrismaCredentialPlatform(credential.platform);
-      if (!platform || !this.toGeneratorPlatform(platform)) {
-        items.push(
-          campaignItemOutcome({
-            id: credential.id,
-            kind: ContentCampaignItemKind.RELEASE,
-            reason: 'Credential platform is unsupported',
-            retryable: true,
-            status: ContentCampaignItemOutcomeStatus.INELIGIBLE,
-          }),
-        );
-        return [];
-      }
-      const caption = captions[index];
-      if (!caption) {
-        items.push(
-          campaignItemOutcome({
-            id: credential.id,
-            kind: ContentCampaignItemKind.RELEASE,
-            reason: 'AI content generation failed. Retry this account.',
-            retryable: true,
-            status: ContentCampaignItemOutcomeStatus.FAILED,
-          }),
-        );
-        return [];
-      }
-      return [
-        {
-          caption,
-          credentialId: credential.id,
-          platform,
-        },
-      ];
-    });
+    const targets = await this.prepareTargets(campaign, pending, items);
 
     if (targets.length === 0) {
       return {
@@ -213,6 +179,51 @@ export class CampaignGenerationService {
       id: campaign.id,
       items,
     };
+  }
+
+  private async prepareTargets(
+    campaign: Campaign,
+    credentials: Credential[],
+    items: ICampaignLifecycleItemOutcome[],
+  ): Promise<
+    Pick<ChannelTargetInput, 'caption' | 'credentialId' | 'platform'>[]
+  > {
+    const captions = await this.captionsForCredentials(campaign, credentials);
+    return credentials.flatMap((credential, index) => {
+      const platform = fromPrismaCredentialPlatform(credential.platform);
+      if (!platform || !this.toGeneratorPlatform(platform)) {
+        items.push(
+          campaignItemOutcome({
+            id: credential.id,
+            kind: ContentCampaignItemKind.RELEASE,
+            reason: 'Credential platform is unsupported',
+            retryable: true,
+            status: ContentCampaignItemOutcomeStatus.INELIGIBLE,
+          }),
+        );
+        return [];
+      }
+      const caption = captions[index];
+      if (!caption) {
+        items.push(
+          campaignItemOutcome({
+            id: credential.id,
+            kind: ContentCampaignItemKind.RELEASE,
+            reason: 'AI content generation failed. Retry this account.',
+            retryable: true,
+            status: ContentCampaignItemOutcomeStatus.FAILED,
+          }),
+        );
+        return [];
+      }
+      return [
+        {
+          caption,
+          credentialId: credential.id,
+          platform,
+        },
+      ];
+    });
   }
 
   private async loadCredentials(

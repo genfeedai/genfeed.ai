@@ -30,12 +30,6 @@
     "symbol": "BillingAccountsService.linkOrganization"
   },
   {
-    "actual": 153,
-    "file": "apps/server/api/src/collections/campaigns/services/campaign-generation.service.ts",
-    "metric": "method-lines",
-    "symbol": "CampaignGenerationService.generate"
-  },
-  {
     "actual": 182,
     "file": "apps/server/api/src/collections/clip-projects/services/clip-generation-dispatch.service.ts",
     "metric": "method-lines",
