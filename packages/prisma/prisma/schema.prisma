@@ -7372,3 +7372,23 @@ model OutlierPostPerformance {
   @@index([organizationId, platform, accountId, outlierTier, isDeleted], map: "outlier_post_performances_org_platform_account_tier_idx")
   @@map("outlier_post_performances")
 }
+
+/// Deployment-wide outbound events, configured by the operator rather than tenants.
+model SystemEventWebhook {
+  id             String   @id
+  type           String
+  payload        String
+  occurredAt     DateTime
+  attempts       Int      @default(0)
+  nextAttemptAt  DateTime @default(now())
+  deliveredAt    DateTime?
+  leaseUntil     DateTime?
+  leaseToken     String?
+  lastStatusCode Int?
+  isDeleted      Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isDeleted, deliveredAt, nextAttemptAt])
+  @@map("system_event_webhooks")
+}

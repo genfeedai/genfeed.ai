@@ -424,6 +424,10 @@ export interface IEnvConfig {
   // AI
   XAI_MODEL?: string;
 
+  SYSTEM_EVENTS_WEBHOOK_URL?: string;
+  SYSTEM_EVENTS_WEBHOOK_SECRET?: string;
+  SYSTEM_EVENTS_ENABLED_AT?: string;
+
   // Allow additional env vars
   [key: string]: string | number | boolean | undefined;
 }

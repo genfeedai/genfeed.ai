@@ -1,3 +1,5 @@
+import { SystemEventsService } from '@api/services/system-events/system-events.service';
+
 vi.mock('@genfeedai/config', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@genfeedai/config')>();
   return {
@@ -37,6 +39,10 @@ describe('StripeWebhookController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [StripeWebhookController],
       providers: [
+        {
+          provide: SystemEventsService,
+          useValue: { recordStripeEvent: vi.fn().mockResolvedValue(undefined) },
+        },
         {
           provide: StripeWebhookService,
           useValue: {

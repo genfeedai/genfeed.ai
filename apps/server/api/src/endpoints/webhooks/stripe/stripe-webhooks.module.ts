@@ -27,6 +27,7 @@ import { StripeWebhookController } from '@api/endpoints/webhooks/stripe/webhooks
 import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.stripe.service';
 import { StripeModule } from '@api/services/integrations/stripe/stripe.module';
 import { LifecycleEmailsModule } from '@api/services/lifecycle-emails/lifecycle-emails.module';
+import { SystemEventsModule } from '@api/services/system-events/system-events.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
 import { ConfigModule } from '@libs/config/config.module';
 import { ConfigService } from '@libs/config/config.service';
@@ -36,6 +37,7 @@ import { Module, type Provider } from '@nestjs/common';
 const BaseModule = createServiceModule(StripeWebhookService, {
   additionalImports: [
     BillingAccountsModule,
+    SystemEventsModule,
     ActivitiesModule,
     ApiKeysModule,
     BrandsModule,

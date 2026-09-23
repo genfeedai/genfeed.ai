@@ -9,6 +9,7 @@ import { StripeWebhookService } from '@api/endpoints/webhooks/stripe/webhooks.st
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
+import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { isSelfHostedDeployment } from '@genfeedai/config';
 import { Public } from '@libs/decorators/public.decorator';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -34,6 +35,7 @@ export class StripeWebhookController {
     private readonly stripeService: StripeService,
 
     private readonly stripeWebhookService: StripeWebhookService,
+    private readonly systemEvents: SystemEventsService,
   ) {}
 
   @HttpCode(200)
@@ -85,6 +87,7 @@ export class StripeWebhookController {
       }
 
       await this.stripeWebhookService.handleWebhookEvent(event, url);
+      await this.systemEvents.recordStripeEvent(event);
     } catch (error: unknown) {
       const mapping = mapStripeWebhookError(error);
       const diagnostics = getStripeWebhookErrorDiagnostics(error, event);
