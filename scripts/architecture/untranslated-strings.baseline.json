@@ -74,7 +74,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/calendar/release-calendar-filters.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/campaigns/compare/page.tsx": 1,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/overview/PublishingOverviewPage.tsx": 13,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/publishing-layout-content.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewAssignmentPanel.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewDecisionPanel.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/publishing/review/components/ReviewDetailPanel.tsx": 3,

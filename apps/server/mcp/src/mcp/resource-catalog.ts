@@ -1,4 +1,5 @@
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
+import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
 
 /**
  * Canonical MCP resource URIs. Every surface that advertises or reads a
@@ -9,6 +10,7 @@ import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface'
  */
 export const McpResourceUri = {
   AGENT_GUIDE: 'https://genfeed.ai/llms.txt',
+  CONTENT_CARDS: MCP_CARD_RESOURCE_URI,
   ORGANIZATION_ANALYTICS: 'genfeed://analytics/organization',
   VIDEO_ANALYTICS: 'genfeed://analytics/videos',
 } as const;
@@ -28,6 +30,13 @@ export const PUBLIC_MCP_RESOURCES: readonly McpResource[] = [
     mimeType: 'text/markdown',
     name: 'Genfeed agent guide',
     uri: McpResourceUri.AGENT_GUIDE,
+  },
+  {
+    description:
+      'Portable content cards for posts, articles, media and usage. Contains no account data.',
+    mimeType: MCP_APP_MIME_TYPE,
+    name: 'Genfeed content cards',
+    uri: MCP_CARD_RESOURCE_URI,
   },
 ];
 

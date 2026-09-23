@@ -47,28 +47,12 @@ export const CLOUD_AGENT_TOOL_EXTENSIONS: AgentToolOutput[] = [
         platform: {
           description:
             'Legacy single-platform hint when creating a standalone draft post.',
-          enum: [
-            'instagram',
-            'twitter',
-            'linkedin',
-            'tiktok',
-            'youtube',
-            'facebook',
-          ],
           type: 'string',
         },
         platforms: {
           description:
             'Platforms to publish the selected content item to after confirmation.',
           items: {
-            enum: [
-              'instagram',
-              'twitter',
-              'linkedin',
-              'tiktok',
-              'youtube',
-              'facebook',
-            ],
             type: 'string',
           },
           type: 'array',

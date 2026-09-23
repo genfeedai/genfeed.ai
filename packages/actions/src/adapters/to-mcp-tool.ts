@@ -27,6 +27,7 @@ export interface McpToolOutput {
   title: string;
   description: string;
   inputSchema: {
+    $defs?: Record<string, unknown>;
     type: string;
     properties: Record<string, unknown>;
     required?: string[];
@@ -55,6 +56,7 @@ export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
         annotations: presentation.annotations,
         description: tool.description,
         inputSchema: {
+          ...tool.parameters,
           properties: tool.parameters.properties,
           required: tool.parameters.required,
           type: tool.parameters.type,

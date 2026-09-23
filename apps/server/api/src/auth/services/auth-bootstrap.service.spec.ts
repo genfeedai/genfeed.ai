@@ -461,6 +461,7 @@ describe('AuthBootstrapService', () => {
       organizationId,
       {
         brandIds: undefined,
+        includeCredentials: true,
       },
     );
   });

@@ -418,7 +418,7 @@ export class SignupPrefillService {
       input.brandId,
       input.scrapedData.socialLinks,
     );
-    await this.brandPersistenceService.importScrapedBrandBanner(
+    await this.brandPersistenceService.autofillScrapedBrandAssets(
       input.brandId,
       input.organizationId,
       input.userId,

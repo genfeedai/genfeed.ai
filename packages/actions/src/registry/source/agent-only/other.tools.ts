@@ -1,4 +1,5 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import { JSON_OBJECT_SCHEMA } from '../../contracts/schema-builders';
 
 export const AGENT_OTHER_TOOLS: SourceTool[] = [
   {
@@ -216,7 +217,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
         performanceSnapshot: {
           description:
             'Optional performance data associated with the saved content',
-          type: 'object',
+          ...JSON_OBJECT_SCHEMA,
         },
         platform: {
           description:

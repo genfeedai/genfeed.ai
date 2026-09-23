@@ -11,6 +11,9 @@
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/agent": "workspace:*"
   },
+  "devDependencies": {
+    "jsdom": "29.1.1"
+  },
   "description": "Genfeed MCP Server",
   "main": "../dist/apps/mcp/main.js",
   "name": "@genfeedai/mcp",

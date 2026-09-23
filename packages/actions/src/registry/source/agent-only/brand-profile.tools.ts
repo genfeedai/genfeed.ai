@@ -1,4 +1,5 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import { BRAND_VOICE_PROFILE_SCHEMA } from '../schemas/brand-voice.schema';
 
 /**
  * `draft_brand_voice_profile` costs one generation credit. The API mirrors this
@@ -64,7 +65,7 @@ export const AGENT_BRAND_PROFILE_TOOLS: SourceTool[] = [
         },
         voiceProfile: {
           description: 'Approved brand voice profile to save.',
-          type: 'object',
+          ...BRAND_VOICE_PROFILE_SCHEMA,
         },
       },
       required: ['voiceProfile'],

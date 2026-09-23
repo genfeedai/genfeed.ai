@@ -3,6 +3,8 @@ import { OVERLAP_GENERATION_TOOLS } from './overlap-generation.tools';
 import { OVERLAP_KNOWLEDGE_TOOLS } from './overlap-knowledge.tools';
 import { OVERLAP_PUBLISHING_TOOLS } from './overlap-publishing.tools';
 import { OVERLAP_QUERY_TOOLS } from './overlap-query.tools';
+import { OVERLAP_WORKFLOW_TOOLS } from './overlap-workflow.tools';
+import { PUBLISH_TARGET_SCHEMA } from './schemas/publish-target.schema';
 import { WORKFLOW_CONTROL_TOOLS } from './workflow-control.tools';
 
 export const OVERLAP_TOOLS: SourceTool[] = [
@@ -15,6 +17,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
       properties: {
         caption: {
           description: 'Caption override for the content item.',
+          type: 'string',
+        },
+        sourceActionId: {
+          description:
+            'Persisted confirmation token; authorization is verified against the trusted execution context.',
           type: 'string',
         },
         confirmed: {
@@ -41,30 +48,28 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         platform: {
           description: 'Legacy single-platform hint.',
-          enum: [
-            'instagram',
-            'twitter',
-            'linkedin',
-            'tiktok',
-            'youtube',
-            'facebook',
-          ],
           type: 'string',
         },
         platforms: {
           description: 'Platforms to publish the content item to.',
           items: {
-            enum: [
-              'instagram',
-              'twitter',
-              'linkedin',
-              'tiktok',
-              'youtube',
-              'facebook',
-            ],
             type: 'string',
           },
           type: 'array',
+        },
+        postingSetId: {
+          type: 'string',
+          description: 'Selected posting set ID.',
+        },
+        timezone: {
+          type: 'string',
+          description: 'Timezone used for scheduling.',
+        },
+        targets: {
+          type: 'array',
+          items: PUBLISH_TARGET_SCHEMA,
+          description:
+            'Per-account publish or schedule settings from the confirmation card.',
         },
         scheduledAt: {
           description:
@@ -85,144 +90,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     },
     requiredRole: 'user',
   },
-  {
-    creditCost: 0,
-    description:
-      'Create a workflow: direct graph, a recurring scaffold, or natural-language generation. Editable in the Workflows app.',
-    name: 'create_workflow',
-    parameters: {
-      properties: {
-        aspectRatio: {
-          description: 'Aspect ratio for recurring assets.',
-          enum: ['1:1', '4:5', '9:16', '16:9'],
-          type: 'string',
-        },
-        brandId: {
-          description: 'Brand ID; defaults to the selected brand.',
-          type: 'string',
-        },
-        contentType: {
-          description: 'Content type for the recurring scaffold.',
-          enum: ['image', 'video', 'post', 'newsletter'],
-          type: 'string',
-        },
-        count: {
-          description: 'Assets to generate per scheduled run.',
-          type: 'number',
-        },
-        description: {
-          description: 'Natural-language description.',
-          type: 'string',
-        },
-        diversityMode: {
-          description: 'Variation level for recurring assets.',
-          enum: ['low', 'medium', 'high'],
-          type: 'string',
-        },
-        edges: {
-          items: { type: 'object' },
-          type: 'array',
-        },
-        inputVariables: {
-          description: 'Input variable definitions.',
-          items: { type: 'object' },
-          type: 'array',
-        },
-        isScheduleEnabled: {
-          type: 'boolean',
-        },
-        label: {
-          description: 'Label shown in the Workflows app.',
-          type: 'string',
-        },
-        metadata: {
-          type: 'object',
-        },
-        model: {
-          description: 'Model override for recurring flows.',
-          type: 'string',
-        },
-        negativePrompt: {
-          description: 'What recurring generations should avoid.',
-          type: 'string',
-        },
-        nodes: {
-          items: { type: 'object' },
-          type: 'array',
-        },
-        prompt: {
-          description: 'Recurring generation brief (with schedule).',
-          type: 'string',
-        },
-        schedule: {
-          description: 'Cron expression for recurrence.',
-          type: 'string',
-        },
-        sourceAssetId: {
-          description: 'Source asset ID for the brief.',
-          type: 'string',
-        },
-        styleNotes: {
-          description: 'Creative direction or brand guardrails.',
-          type: 'string',
-        },
-        targetPlatforms: {
-          description: 'Platform hints for generation.',
-          items: { type: 'string' },
-          type: 'array',
-        },
-        templateId: {
-          type: 'string',
-        },
-        timezone: {
-          description: 'Schedule timezone.',
-          type: 'string',
-        },
-        trigger: {
-          type: 'string',
-        },
-      },
-      required: ['label'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
-  {
-    creditCost: 0,
-    description:
-      'Execute an existing workflow immediately. Select nodeIds to rerun edited steps while reusing locked outputs; pass required variables for full or partial execution.',
-    name: 'execute_workflow',
-    parameters: {
-      properties: {
-        nodeIds: {
-          description:
-            'Nonempty list of node IDs to rerun. Include affected downstream steps; unavailable dependencies fail explicitly.',
-          items: { minLength: 1, type: 'string' },
-          minItems: 1,
-          uniqueItems: true,
-          type: 'array',
-        },
-        respectLocks: {
-          default: true,
-          description:
-            'Reuse locked outputs by default; set false to regenerate selected locked nodes.',
-          type: 'boolean',
-        },
-        variables: {
-          description:
-            'Variables to pass to the workflow (e.g., topic, style, platforms)',
-          type: 'object',
-        },
-        workflowId: {
-          description: 'ID of the workflow to execute',
-          type: 'string',
-        },
-      },
-      required: ['workflowId'],
-      type: 'object',
-    },
-    requiredRole: 'user',
-  },
+  ...OVERLAP_WORKFLOW_TOOLS,
   {
     // Minimum charge per call (standard image; 4k costs more). Actual amount
     // is billed dynamically by the generation endpoint (issue #482).

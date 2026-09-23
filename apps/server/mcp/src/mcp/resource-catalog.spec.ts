@@ -35,12 +35,18 @@ describe('MCP resource catalog', () => {
     for (const resource of MCP_RESOURCES) {
       expect(resource.name).toBeTruthy();
       expect(resource.description).toBeTruthy();
-      expect(resource.mimeType).toMatch(/^(application\/json|text\/markdown)$/);
+      expect(resource.mimeType).toMatch(
+        /^(application\/json|text\/markdown|text\/html;profile=mcp-app)$/,
+      );
     }
   });
 
-  it('exposes a safe public resource before tenant-scoped resources', () => {
-    expect(PUBLIC_MCP_RESOURCES).toHaveLength(1);
+  it('exposes safe public resources before tenant-scoped resources', () => {
+    expect(PUBLIC_MCP_RESOURCES).toHaveLength(2);
+    expect(PUBLIC_MCP_RESOURCES[1]).toMatchObject({
+      mimeType: 'text/html;profile=mcp-app',
+      uri: McpResourceUri.CONTENT_CARDS,
+    });
     expect(PUBLIC_MCP_RESOURCES[0]).toMatchObject({
       mimeType: 'text/markdown',
       uri: McpResourceUri.AGENT_GUIDE,

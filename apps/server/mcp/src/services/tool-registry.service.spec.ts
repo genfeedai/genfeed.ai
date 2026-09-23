@@ -343,9 +343,15 @@ describe('ToolRegistryService', () => {
   it('getResources returns the shared catalog', () => {
     const resources = service.getResources();
     expect(resources).toEqual([...MCP_RESOURCES]);
-    expect(resources[0].uri).toBe(McpResourceUri.AGENT_GUIDE);
-    expect(resources[1].uri).toBe(McpResourceUri.VIDEO_ANALYTICS);
-    expect(resources[2].uri).toBe(McpResourceUri.ORGANIZATION_ANALYTICS);
+    expect(resources.map((resource) => resource.uri)).toContain(
+      McpResourceUri.AGENT_GUIDE,
+    );
+    expect(resources.map((resource) => resource.uri)).toContain(
+      McpResourceUri.VIDEO_ANALYTICS,
+    );
+    expect(resources.map((resource) => resource.uri)).toContain(
+      McpResourceUri.ORGANIZATION_ANALYTICS,
+    );
   });
 
   it('getPublicResources returns only safe discovery content', () => {

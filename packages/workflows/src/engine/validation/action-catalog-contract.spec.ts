@@ -77,3 +77,72 @@ describe('published action catalog', () => {
     ).toThrow('Action contract output validation failed');
   });
 });
+
+describe('generate_content_batch input contract', () => {
+  const action = getActionDefinition('generate_content_batch');
+  const contract = compileActionContract('generate_content_batch', {
+    inputSchema: (action?.inputSchema ?? {}) as ActionContractJsonSchema,
+    outputSchema: (action?.outputSchema ?? {}) as ActionContractJsonSchema,
+  });
+  const provenance = {
+    nodeId: 'execute-tool',
+    runId: 'run-batch',
+    workflowId: 'agent.tool.generate_content_batch',
+    workflowVersionId: 'v1',
+  };
+  const input = { count: 5, platforms: ['instagram'] };
+
+  it.each([
+    { end: '2026-09-30', start: '2026-09-23' },
+    { end: '2026-09-30T12:00:00.000Z', start: '2026-09-23T12:00:00.000Z' },
+  ])('accepts a scheduling range: %j', (dateRange) => {
+    expect(() =>
+      contract.validateInput({ ...input, dateRange }, provenance),
+    ).not.toThrow();
+  });
+
+  it.each([
+    {
+      carouselPercent: 10,
+      imagePercent: 60,
+      reelPercent: 5,
+      storyPercent: 0,
+      videoPercent: 25,
+    },
+    { imagePercent: 100 },
+    {},
+  ])('accepts a supported content mix: %j', (contentMix) => {
+    expect(() =>
+      contract.validateInput({ ...input, contentMix }, provenance),
+    ).not.toThrow();
+  });
+
+  it('keeps scheduling and content mix optional for handler defaults', () => {
+    expect(() => contract.validateInput(input, provenance)).not.toThrow();
+  });
+
+  it.each([
+    [{ dateRange: { start: '2026-09-23' } }, '$.dateRange.end'],
+    [{ dateRange: { end: '2026-09-30' } }, '$.dateRange.start'],
+    [
+      { dateRange: { end: '2026-09-30', start: 123 } },
+      '$.dateRange.start: must be string',
+    ],
+    [
+      { dateRange: { end: '2026-09-30', start: '2026-09-23', extra: true } },
+      '$.dateRange.extra',
+    ],
+    [
+      { contentMix: { imagePercent: '100' } },
+      '$.contentMix.imagePercent: must be number',
+    ],
+    [
+      { contentMix: { unsupportedPercent: 100 } },
+      '$.contentMix.unsupportedPercent',
+    ],
+  ])('rejects invalid nested inputs: %j', (invalid, errorPath) => {
+    expect(() =>
+      contract.validateInput({ ...input, ...invalid }, provenance),
+    ).toThrow(errorPath);
+  });
+});

@@ -685,7 +685,6 @@
     "accountHealth": "Account health",
     "accountHealthDescription": "Warmup and risk signals.",
     "accountHeldByWarmup": "This account is currently held by warmup state.",
-    "accountsCount": "{count, plural, =0 {No connected accounts} one {# connected account} other {# connected accounts}}",
     "accountsTableAccount": "Account",
     "accountsTableActions": "Actions",
     "accountsTablePlatform": "Platform",
@@ -957,6 +956,16 @@
     }
   },
   "publishing": {
+    "layout": {
+      "article": "Article",
+      "description": "Manage and publish across platforms.",
+      "newPost": "New post",
+      "newsletter": "Newsletter",
+      "socialPost": "Social post",
+      "title": "Publishing",
+      "xLongPost": "X long post",
+      "xThread": "X thread"
+    },
     "campaigns": {
       "loadError": "Campaigns could not be loaded.",
       "archive": "Archive",
@@ -2165,6 +2174,7 @@
   },
   "brandIntegrations": {
     "title": "Integrations",
+    "description": "Accounts this brand publishes to and imports history from.",
     "connections": "Connections",
     "imports": "Imports"
   },

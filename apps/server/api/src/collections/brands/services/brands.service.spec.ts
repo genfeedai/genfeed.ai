@@ -387,6 +387,55 @@ describe('BrandsService', () => {
       await expect(service.findForOrganization('org-1')).resolves.toEqual([]);
       expect(queryRaw).not.toHaveBeenCalled();
     });
+
+    // Brand-context consumers (agent setup panel, publishing, credentials
+    // guard) read `brand.credentials` off the bootstrap rows; without them
+    // every surface reports zero connected accounts.
+    it('embeds token-free, org-scoped credentials when requested', async () => {
+      delegate.findMany.mockResolvedValue([
+        {
+          credentials: [
+            { externalId: 'ext-1', id: 'cred-1', platform: 'LINKEDIN' },
+          ],
+          id: 'brand-1',
+          organizationId: 'org-1',
+        },
+      ]);
+      queryRaw.mockResolvedValue([]);
+
+      const brands = await service.findForOrganization('org-1', {
+        includeCredentials: true,
+      });
+
+      const credentialsInclude =
+        delegate.findMany.mock.calls[0]?.[0]?.include?.credentials;
+      expect(credentialsInclude.where).toEqual({
+        isDeleted: false,
+        organizationId: 'org-1',
+      });
+      for (const secretField of [
+        'accessToken',
+        'accessTokenSecret',
+        'oauthToken',
+        'oauthTokenSecret',
+        'refreshToken',
+      ]) {
+        expect(credentialsInclude.select).not.toHaveProperty(secretField);
+      }
+      expect(brands[0].credentials).toEqual([
+        { externalId: 'ext-1', id: 'cred-1', platform: 'linkedin' },
+      ]);
+    });
+
+    it('leaves credentials out by default', async () => {
+      delegate.findMany.mockResolvedValue([]);
+
+      await service.findForOrganization('org-1');
+
+      expect(delegate.findMany.mock.calls[0]?.[0]?.include).not.toHaveProperty(
+        'credentials',
+      );
+    });
   });
 
   describe('patch', () => {

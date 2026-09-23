@@ -95,7 +95,7 @@ export function getGenfeedCorsOrigins(
 
     // All subdomains
 
-    /^https:\/\/(admin|app|chatgpt|docs|login|marketplace|studio|website|workflows)\.genfeed\.ai$/,
+    /^https:\/\/(admin|app|chatgpt|console|docs|login|marketplace|studio|website|workflows)\.genfeed\.ai$/,
 
     // ChatGPT GPT Actions
     'https://chat.openai.com',
@@ -133,6 +133,7 @@ export const GENFEED_SUBDOMAINS = [
   'admin',
   'app',
   'chatgpt',
+  'console',
   'docs',
   'login',
   'marketplace',

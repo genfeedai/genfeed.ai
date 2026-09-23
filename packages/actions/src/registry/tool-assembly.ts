@@ -2,6 +2,7 @@ import type {
   CanonicalToolDefinition,
   ToolCategory,
 } from '../interfaces/tool-definition.interface';
+import { materializeJsonDocumentSchema } from './contracts/schema-builders';
 import {
   CURATED_ACTION_CATALOG,
   isActionOnSurface,
@@ -209,7 +210,10 @@ const CANONICAL_SOURCE_TOOLS: CanonicalToolDefinition[] =
       creditCost: tool.creditCost,
       description: tool.description,
       name: entry.name,
-      parameters: tool.parameters,
+      parameters: {
+        ...tool.parameters,
+        ...materializeJsonDocumentSchema(tool.parameters),
+      },
       requiredRole: tool.requiredRole,
       surfaces: {
         agent,

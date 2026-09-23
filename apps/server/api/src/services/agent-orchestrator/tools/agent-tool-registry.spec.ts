@@ -153,3 +153,51 @@ describe('agent-tool-registry', () => {
     expect(AGENT_CREDIT_COSTS.list_genfeed_tools).toBe(0);
   });
 });
+
+it.each(['capture_memory', 'create_workflow'] as const)(
+  'keeps %s nested parameters and shared definitions canonical',
+  (name) => {
+    expect(getToolDefinitionByName(name)?.parameters).toEqual(
+      getToolByName(name)?.parameters,
+    );
+  },
+);
+
+it('advertises only root fields accepted by each canonical tool contract', () => {
+  for (const tool of getToolDefinitions()) {
+    const canonical = getToolByName(tool.name);
+    expect(canonical, tool.name).toBeDefined();
+    const properties = tool.parameters.properties;
+    if (
+      !properties ||
+      typeof properties !== 'object' ||
+      Array.isArray(properties)
+    ) {
+      throw new Error(`Missing object properties for ${tool.name}`);
+    }
+    for (const key of Object.keys(properties)) {
+      expect(
+        canonical?.parameters.properties,
+        `${tool.name}.${key}`,
+      ).toHaveProperty(key);
+    }
+  }
+});
+
+it('accepts connected-platform names in both canonical and cloud publishing schemas', () => {
+  for (const tool of [
+    getToolByName('create_post'),
+    getToolDefinitionByName('create_post'),
+  ]) {
+    expect(tool?.parameters).toMatchObject({
+      properties: {
+        platform: { type: 'string' },
+        platforms: { items: { type: 'string' } },
+      },
+    });
+    expect(tool?.parameters).not.toHaveProperty('properties.platform.enum');
+    expect(tool?.parameters).not.toHaveProperty(
+      'properties.platforms.items.enum',
+    );
+  }
+});

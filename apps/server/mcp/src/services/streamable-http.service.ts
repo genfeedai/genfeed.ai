@@ -136,6 +136,7 @@ export class StreamableHttpService {
       this.logger,
       authContext?.role ?? 'user',
       toolsets,
+      this.configService,
     );
 
     const server = new Server(

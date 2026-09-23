@@ -67,6 +67,7 @@ export function buildTrendDigestMessage(
   const videos = trends.filter((trend) => trend.type === 'video');
   const hashtags = trends.filter((trend) => trend.type === 'hashtag');
   const sounds = trends.filter((trend) => trend.type === 'sound');
+  const topics = trends.filter((trend) => trend.type === 'topic');
 
   if (videos.length > 0) {
     lines.push(`*Viral Videos:*`);
@@ -99,6 +100,18 @@ export function buildTrendDigestMessage(
     });
   }
 
+  if (topics.length > 0) {
+    lines.push(`*Trending Topics:*`);
+    topics.slice(0, 5).forEach((topic, index) => {
+      const count = topic.usageCount
+        ? ` - ${formatTrendCount(topic.usageCount)} mentions`
+        : '';
+      lines.push(
+        `${index + 1}. ${topic.topic} (${topic.platform}, score: ${topic.viralScore})${count}`,
+      );
+    });
+  }
+
   lines.push(``);
   lines.push(`_Use these trends to create viral content!_`);
 
@@ -117,6 +130,7 @@ export function buildTrendDigestHtml(
   const videos = trends.filter((trend) => trend.type === 'video');
   const hashtags = trends.filter((trend) => trend.type === 'hashtag');
   const sounds = trends.filter((trend) => trend.type === 'sound');
+  const topics = trends.filter((trend) => trend.type === 'topic');
 
   const sections: string[] = [
     buildSystemEmailParagraph(`Filtered for viral score >= ${minViralScore}.`),
@@ -146,6 +160,15 @@ export function buildTrendDigestHtml(
     );
     sounds.slice(0, 5).forEach((sound) => {
       sections.push(buildTrendRow(sound, 'uses'));
+    });
+  }
+
+  if (topics.length > 0) {
+    sections.push(
+      '<h2 style="border-bottom:1px solid #333333;color:#EDEDED;font-size:16px;line-height:22px;margin:24px 0 10px;padding:0 0 8px;">Trending Topics</h2>',
+    );
+    topics.slice(0, 5).forEach((topic) => {
+      sections.push(buildTrendRow(topic, 'mentions'));
     });
   }
 

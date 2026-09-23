@@ -22,6 +22,13 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         contentMix: {
           description:
             'Content format distribution (e.g., { imagePercent: 60, videoPercent: 25, carouselPercent: 10, reelPercent: 5, storyPercent: 0 })',
+          properties: {
+            carouselPercent: { type: 'number' },
+            imagePercent: { type: 'number' },
+            reelPercent: { type: 'number' },
+            storyPercent: { type: 'number' },
+            videoPercent: { type: 'number' },
+          },
           type: 'object',
         },
         count: {
@@ -31,6 +38,11 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         dateRange: {
           description:
             'Date range for scheduling (e.g., { start: "2026-02-10", end: "2026-02-17" })',
+          properties: {
+            end: { type: 'string' },
+            start: { type: 'string' },
+          },
+          required: ['start', 'end'],
           type: 'object',
         },
         handle: {

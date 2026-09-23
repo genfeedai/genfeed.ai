@@ -360,7 +360,7 @@
     "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
   },
   {
-    "actual": 354,
+    "actual": 338,
     "file": "apps/server/mcp/src/services/tool-registry.service.ts",
     "metric": "method-lines",
     "symbol": "ToolRegistryService.handleLegacyTool"
