@@ -32,7 +32,8 @@ bound it: the scopes on the API key, and the MCP approval gate below.
 truth for which actions exist and which surfaces they appear on. Each entry is
 a name plus a `surfaces` array of `'agent'`, `'mcp'`, or both.
 
-Current shape: **162 curated actions — 105 on MCP, 93 on the agent, 36 on both.**
+Current shape: **186 curated actions — 123 on MCP, 113 on the agent, 50 on both.**
+Count from the catalog file before quoting a number anywhere public; this line drifts.
 
 Schemas and metadata live separately, in the definition shards under
 `packages/actions/src/registry/source/`. The catalog decides surface intent; the
