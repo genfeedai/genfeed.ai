@@ -643,6 +643,7 @@ it('forwards internal strategy attribution after the idempotency key', async () 
     brandId: 'brand',
     count: 1,
     dateRange: { start: '2026-09-24', end: '2026-09-25' },
+    platforms: ['instagram'],
   };
   await facade.createBatch(dto, 'owner', 'org', 'idempotency', 'strategy');
   expect(creation.createBatch).toHaveBeenCalledWith(
