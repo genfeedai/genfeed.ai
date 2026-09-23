@@ -1,6 +1,7 @@
+import * as animatedCounter from '@genfeedai/hooks/ui/use-animated-counter/use-animated-counter';
 import { render, screen } from '@testing-library/react';
 import { Users } from 'lucide-react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import MetricCard from './MetricCard';
 
 describe('MetricCard', () => {
@@ -50,6 +51,19 @@ describe('MetricCard', () => {
       screen.getByRole('status', { name: 'Loading Models' }).childElementCount,
     ).toBe(0);
     expect(container.querySelectorAll('.animate-pulse')).toHaveLength(1);
+  });
+
+  it('starts the counter only after the real value arrives', () => {
+    const counter = vi.spyOn(animatedCounter, 'useAnimatedCounter');
+    const { rerender } = render(
+      <MetricCard isLoading label="Models" value="0" />,
+    );
+    expect(counter).not.toHaveBeenCalled();
+    rerender(<MetricCard label="Models" value="42" />);
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    expect(screen.getByText('42')).toBeInTheDocument();
+    expect(counter).toHaveBeenCalledWith(expect.objectContaining({ end: 42 }));
+    counter.mockRestore();
   });
 
   it('renders inline appearance without a framed tile', () => {

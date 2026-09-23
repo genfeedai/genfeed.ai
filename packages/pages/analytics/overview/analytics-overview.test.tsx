@@ -320,6 +320,9 @@ describe('AnalyticsOverview', () => {
       totalViews: 0,
       viewsGrowth: 0,
     };
+    mockLeaderboardsReturn.isLeaderboardLoading = false;
+    mockTimeseriesReturn.isTimeseriesLoading = false;
+    mockTopPostsReturn.isLoading = false;
     mockLeaderboardsReturn.brandsLeaderboard = [];
     mockLeaderboardsReturn.orgsLeaderboard = [];
     mockTimeseriesReturn.timeseriesData = [];
@@ -349,8 +352,11 @@ describe('AnalyticsOverview', () => {
     expect(markup).not.toContain('font-serif');
   });
 
-  it('does not flash empty dashboard chrome while analytics data is loading', () => {
+  it('does not flash empty dashboard chrome while its queries are loading', () => {
     mockAnalyticsReturn.isLoading = true;
+    mockLeaderboardsReturn.isLeaderboardLoading = true;
+    mockTimeseriesReturn.isTimeseriesLoading = true;
+    mockTopPostsReturn.isLoading = true;
 
     const markup = renderOverview();
 
@@ -365,6 +371,19 @@ describe('AnalyticsOverview', () => {
     );
     expect(markup).not.toContain('Top posts will surface here');
     expect(markup).not.toContain(
+      'Brand rankings will unlock after the first measurable wins',
+    );
+  });
+
+  it('shows settled empty panels while core metrics are still loading', () => {
+    mockAnalyticsReturn.isLoading = true;
+    const markup = renderOverview();
+    expect(markup).toContain('data-testid="kpi-section" data-loading="true"');
+    expect(markup).toContain(
+      'Trend lines will appear here once performance data lands',
+    );
+    expect(markup).toContain('Top posts will surface here');
+    expect(markup).toContain(
       'Brand rankings will unlock after the first measurable wins',
     );
   });

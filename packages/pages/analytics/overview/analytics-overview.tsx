@@ -151,7 +151,6 @@ export default function AnalyticsOverview({
 
       <div
         className={cn('flex flex-col gap-6', showAgentDashboard && 'hidden')}
-        aria-busy={isLoading || undefined}
       >
         {heroContent && !isLoading ? (
           <AnalyticsOverviewHero
@@ -196,10 +195,10 @@ export default function AnalyticsOverview({
           </>
         ) : null}
 
-        {hasTimeseriesData || isTimeseriesLoading || isLoading ? (
+        {hasTimeseriesData || isTimeseriesLoading ? (
           <Card
             variant={CardVariant.DEFAULT}
-            isLoading={!hasTimeseriesData && (isTimeseriesLoading || isLoading)}
+            isLoading={!hasTimeseriesData && isTimeseriesLoading}
             label={translate('timeseriesTitle')}
             description={translate('timeseriesDescription')}
           >
@@ -240,11 +239,8 @@ export default function AnalyticsOverview({
           hasBrandLeaderboard={hasBrandLeaderboard}
           hasOrgLeaderboard={hasOrgLeaderboard}
           hasTopPosts={hasTopPosts}
-          isLeaderboardLoading={
-            isLeaderboardLoading ||
-            (isLoading && !hasBrandLeaderboard && !hasOrgLeaderboard)
-          }
-          isTopPostsLoading={isTopPostsLoading || (isLoading && !hasTopPosts)}
+          isLeaderboardLoading={isLeaderboardLoading}
+          isTopPostsLoading={isTopPostsLoading}
           orgsLeaderboard={orgsLeaderboard}
           scope={scope}
           topPosts={topPosts}

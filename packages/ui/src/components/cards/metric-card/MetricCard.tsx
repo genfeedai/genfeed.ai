@@ -131,7 +131,7 @@ const MetricCard = memo(function MetricCard({
           valueClassName,
         )}
       >
-        {resolveValueContent(value, false, size)}
+        {isLoading ? value : resolveValueContent(value, false, size)}
       </p>
 
       {hasTrend && !isLoading ? (
