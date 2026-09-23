@@ -392,7 +392,7 @@ describe('ToolRegistryService', () => {
     ).toContain('completed');
   });
 
-  it('handleToolCall get_video_status throws when videoId missing', async () => {
+  it('handleToolCall get_video_status returns validation details when videoId missing', async () => {
     const result = await service.handleToolCall({
       arguments: {},
       name: 'get_video_status',
@@ -403,7 +403,11 @@ describe('ToolRegistryService', () => {
       (result as { content: { text: string }[] }).content[0].text,
     ).toContain('videoId required');
     expect(result).toMatchObject({
-      structuredContent: { failure: { reason: 'UNKNOWN', detail: null } },
+      structuredContent: {
+        code: 'validation_failed',
+        errors: [{ field: 'videoId', message: 'videoId required' }],
+        message: 'videoId required',
+      },
     });
   });
 

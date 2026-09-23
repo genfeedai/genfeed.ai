@@ -45,6 +45,17 @@ const READ_ONLY_HINT_NAMES: ReadonlySet<string> = new Set([
   'validate_scheduler_target',
 ]);
 
+/**
+ * Writes that do not delete or overwrite existing data. The default is
+ * `destructiveHint = !readOnlyHint`; this set is the per-tool override.
+ * `create_post` is draft-only on MCP, so the draft write is not destructive.
+ */
+const NON_DESTRUCTIVE_WRITE_NAMES: ReadonlySet<string> = new Set([
+  'complete_media_upload',
+  'request_media_upload',
+  'create_post',
+]);
+
 const PUBLISHING_TOOL_NAMES: ReadonlySet<string> = new Set(
   CURATED_ACTION_CATALOG.filter((entry) =>
     isPublishingApprovalRequired(entry),
@@ -94,6 +105,10 @@ export function deriveMcpToolPresentation(
   }
   if (READ_ONLY_HINT_NAMES.has(name)) {
     readOnlyHint = true;
+    destructiveHint = false;
+  }
+  if (NON_DESTRUCTIVE_WRITE_NAMES.has(name)) {
+    readOnlyHint = false;
     destructiveHint = false;
   }
 

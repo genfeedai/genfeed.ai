@@ -9,6 +9,59 @@ import {
 import * as Sentry from '@sentry/nestjs';
 import type { Request as ExpressRequest } from 'express';
 
+interface ValidatorFieldError {
+  field: string;
+  message: string;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function constraintMessage(constraints: unknown): string | undefined {
+  if (!isRecord(constraints)) return undefined;
+  const messages = Object.values(constraints).filter(
+    (value): value is string => typeof value === 'string' && value.length > 0,
+  );
+  return messages.length > 0 ? messages.join('; ') : undefined;
+}
+
+/**
+ * Field errors from the shared REST `ValidationPipe` (`property` +
+ * `constraints`) or from `ErrorResponse.validationFailed` (`field` +
+ * `message`). String-only `errors` arrays stay on the generic JSON:API path.
+ */
+function readValidatorFieldErrors(
+  response: Record<string, unknown>,
+): ValidatorFieldError[] {
+  const errors: ValidatorFieldError[] = [];
+  const declared = response.validationErrors;
+  if (Array.isArray(declared)) {
+    for (const item of declared) {
+      if (
+        isRecord(item) &&
+        typeof item.field === 'string' &&
+        typeof item.message === 'string'
+      ) {
+        errors.push({ field: item.field, message: item.message });
+      }
+    }
+  }
+
+  const pipeErrors = response.errors;
+  if (Array.isArray(pipeErrors)) {
+    for (const item of pipeErrors) {
+      if (!isRecord(item) || typeof item.property !== 'string') continue;
+      const message = constraintMessage(item.constraints);
+      if (message) {
+        errors.push({ field: item.property, message });
+      }
+    }
+  }
+
+  return errors;
+}
+
 @Catch(HttpException)
 export class HttpExceptionFilter extends AllExceptionFilter {
   public catch(exception: HttpException, host: ArgumentsHost) {
@@ -26,6 +79,7 @@ export class HttpExceptionFilter extends AllExceptionFilter {
     let title = 'HTTP Exception';
     let detail = 'An error occurred';
     let source: Record<string, unknown> | undefined;
+    let fieldErrors: ValidatorFieldError[] = [];
 
     if (response && typeof response === 'object' && response !== null) {
       const responseObj = response as Record<string, unknown>;
@@ -34,11 +88,17 @@ export class HttpExceptionFilter extends AllExceptionFilter {
         (responseObj.error as string) ||
         exception.name ||
         title;
+      const responseMessage = Array.isArray(responseObj.message)
+        ? responseObj.message
+            .filter((value): value is string => typeof value === 'string')
+            .join('; ')
+        : responseObj.message;
       detail =
         (responseObj.detail as string) ||
-        (responseObj.message as string) ||
+        (typeof responseMessage === 'string' ? responseMessage : '') ||
         detail;
       source = responseObj.source as Record<string, unknown> | undefined;
+      fieldErrors = readValidatorFieldErrors(responseObj);
     } else if (typeof response === 'string') {
       detail = response;
     }
@@ -68,6 +128,19 @@ export class HttpExceptionFilter extends AllExceptionFilter {
         status,
         url: redactEmailTrackingUrl(req.originalUrl),
       });
+    }
+
+    if (fieldErrors.length > 0) {
+      res.status(status).json({
+        errors: fieldErrors.map((fieldError) => ({
+          code: String(status),
+          detail: fieldError.message,
+          source: { pointer: `/${fieldError.field}` },
+          status: String(status),
+          title: 'Validation failed',
+        })),
+      });
+      return;
     }
 
     this.writeJsonApiError(res, {

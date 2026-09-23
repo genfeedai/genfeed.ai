@@ -42,6 +42,7 @@ export class PresignedUploadService {
     publicUrl: string;
     s3Key: string;
     expiresIn: number;
+    uploadMethod: 'POST_JSON' | 'PUT';
   }> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
     this.loggerService.log(`${url} started`);
@@ -78,20 +79,20 @@ export class PresignedUploadService {
     const key = ingredientData.id.toString();
 
     // Get presigned URL from AWS service
-    const { uploadUrl, publicUrl, s3Key } =
-      await this.filesClientService.getPresignedUploadUrl(
-        key,
-        categoryToPlural(category),
-        body.contentType,
-        3600, // 1 hour expiry
-      );
+    const presigned = await this.filesClientService.getPresignedUploadUrl(
+      key,
+      categoryToPlural(category),
+      body.contentType,
+      3600, // 1 hour expiry
+    );
 
     return {
       expiresIn: 3600,
       id: ingredientData.id.toString(),
-      publicUrl,
-      s3Key,
-      uploadUrl,
+      publicUrl: presigned.publicUrl,
+      s3Key: presigned.s3Key,
+      uploadMethod: presigned.uploadMethod ?? 'PUT',
+      uploadUrl: presigned.uploadUrl,
     };
   }
 

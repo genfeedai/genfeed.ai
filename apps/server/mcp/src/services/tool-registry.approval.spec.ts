@@ -123,9 +123,10 @@ describe('ToolRegistryService — approval queue', () => {
     expect(client.createApproval).toHaveBeenCalledWith('create_post', {
       content: 'hello',
     });
-    expect(result.isError).toBeFalsy();
+    expect(result.isError).toBe(true);
     expect(result.content[0].text).toContain('requires approval');
     expect(result.content[0].text).toContain('apr-1');
+    expect(result.content[0].text).toContain('approval_pending');
   });
 
   it('queues Instagram remix creation instead of executing it immediately', async () => {
