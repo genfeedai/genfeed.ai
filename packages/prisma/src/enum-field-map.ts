@@ -5905,6 +5905,26 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       user: 'userId',
     },
   },
+  SystemEventWebhook: {
+    allFields: [
+      'attempts',
+      'createdAt',
+      'deliveredAt',
+      'id',
+      'isDeleted',
+      'lastStatusCode',
+      'leaseToken',
+      'leaseUntil',
+      'nextAttemptAt',
+      'occurredAt',
+      'payload',
+      'type',
+      'updatedAt',
+    ],
+    listFields: [],
+    enumFields: {},
+    relationIdFields: {},
+  },
   Tag: {
     allFields: [
       'backgroundColor',
