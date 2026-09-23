@@ -80,6 +80,8 @@ interface ApiEnvConfig extends IEnvConfig {
  * API-specific env vars that aren't in shared schemas
  */
 const apiSpecificSchema = {
+  GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID: Joi.string().optional().allow(''),
+  GENFEEDAI_CDN_SIGNING_PRIVATE_KEY: Joi.string().optional().allow(''),
   API_METRICS_LOGGING: Joi.string().valid('true', 'false').optional().allow(''),
   API_PERFORMANCE_AUDIT: Joi.string()
     .valid('true', 'false')
@@ -201,7 +203,9 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
    * deployment serves media unsigned (self-hosted, local development).
    */
   public get cdnSigningKeyPairId(): string | undefined {
-    return this.envConfig.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID || undefined;
+    return (
+      this.envConfig.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID?.trim() || undefined
+    );
   }
 
   /**
@@ -210,7 +214,9 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
    * directly.
    */
   public get cdnSigningPrivateKey(): string | undefined {
-    return this.envConfig.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY || undefined;
+    return (
+      this.envConfig.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY?.trim() || undefined
+    );
   }
 
   /**
@@ -226,13 +232,18 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
 
   /** Media URLs are signed only when both signing inputs are present. */
   public get isCdnSigningEnabled(): boolean {
-    return Boolean(this.cdnSigningKeyPairId && this.cdnSigningPrivateKey);
+    return Boolean(this.mediaUrlConfig.signing);
   }
 
   /** CDN origin plus signing inputs, as consumed by the media URL builders. */
   public get mediaUrlConfig(): MediaUrlConfig {
     const keyPairId = this.cdnSigningKeyPairId;
     const privateKey = this.cdnSigningPrivateKey;
+    if (Boolean(keyPairId) !== Boolean(privateKey)) {
+      throw new Error(
+        'GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID and GENFEEDAI_CDN_SIGNING_PRIVATE_KEY must both be configured or both be unset',
+      );
+    }
     return {
       cdnUrl: this.cdnUrl,
       ...(keyPairId && privateKey
