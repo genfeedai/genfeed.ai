@@ -40,7 +40,10 @@ export class SystemWorkflowDefinitionRegistrarService implements OnModuleInit {
           definition: {
             nodes,
             edges: template.edges ?? [],
-            inputVariables: template.inputVariables ?? [],
+            inputVariables: (template.inputVariables ?? []).map((variable) => ({
+              ...variable,
+              required: variable.required ?? false,
+            })),
           },
           description: template.description,
           label: template.name,
