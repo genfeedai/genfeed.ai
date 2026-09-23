@@ -38,6 +38,33 @@ describe('extractPdfText', () => {
     expect(extractPdfText(pdf)).toBe('Hello knowledge document');
   });
 
+  it('reads text from a compressed stream under both inflate limits', () => {
+    const payload = deflateSync(Buffer.from('(Compressed hello) Tj', 'latin1'));
+    const pdf = Buffer.concat([
+      Buffer.from('%PDF-1.1\nstream\n', 'latin1'),
+      payload,
+      Buffer.from('\nendstream\n%%EOF', 'latin1'),
+    ]);
+
+    expect(extractPdfText(pdf)).toBe('Compressed hello');
+  });
+
+  it('stops once cumulative inflation would pass the document budget', () => {
+    const chunk = deflateSync(Buffer.alloc(9 * 1024 * 1024, 0x20));
+    const later = deflateSync(Buffer.from('(later marker) Tj', 'latin1'));
+    const pdf = Buffer.concat([
+      Buffer.from('%PDF-1.1\nBT (seed) Tj ET\nstream\n', 'latin1'),
+      chunk,
+      Buffer.from('\nendstream\nstream\n', 'latin1'),
+      chunk,
+      Buffer.from('\nendstream\nstream\n', 'latin1'),
+      later,
+      Buffer.from('\nendstream\n%%EOF', 'latin1'),
+    ]);
+
+    expect(extractPdfText(pdf)).toBe('seed');
+  });
+
   it('refuses a Flate stream that inflates past the ingest ceiling', () => {
     // ~64 MB of zeros compresses to a few KB — a quota-compliant PDF bomb.
     const bomb = deflateSync(Buffer.alloc(64 * 1024 * 1024, 0x20));
