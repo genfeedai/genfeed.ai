@@ -6,8 +6,14 @@ import { PostGroupsService } from '@api/collections/post-groups/services/post-gr
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
-import { AgentScopeContextService, getActionOriginContext } from '@api/index';
+import { AgentScopeContextService } from '@api/index';
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
+import {
+  blockMcpCreatePost,
+  isMcpActionOrigin,
+  mcpDraftOnlyResult,
+  readPublishContentId,
+} from '@api/services/agent-orchestrator/tools/agent-publish-mcp-draft-only.util';
 import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
   buildAgentPublishTargetProposals,
@@ -33,7 +39,6 @@ import {
 import { CacheService } from '@api/services/cache/cache.service';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import {
-  ActionOrigin,
   ActivitySource,
   AgentAutonomyMode,
   AgentPublishDecision,
@@ -71,21 +76,6 @@ import {
 import { z } from 'zod';
 
 const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
-
-const MCP_CREATE_POST_DRAFT_ONLY_ERROR =
-  'create_post on the MCP surface only creates a draft and does not publish. Publish with create_scheduled_release.';
-
-function isMcpActionOrigin(): boolean {
-  return getActionOriginContext().origin === ActionOrigin.MCP;
-}
-
-function mcpDraftOnlyResult(): AgentToolResult {
-  return {
-    creditsUsed: 0,
-    error: MCP_CREATE_POST_DRAFT_ONLY_ERROR,
-    success: false,
-  };
-}
 
 type IngredientsServiceLike = {
   findOne: (query: Record<string, unknown>) => Promise<unknown>;
@@ -832,16 +822,11 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    // Card prep is the in-app publish path. MCP has no card, so this is an error.
-    if (isMcpActionOrigin()) {
-      return mcpDraftOnlyResult();
-    }
+    if (isMcpActionOrigin()) return mcpDraftOnlyResult();
     const visibility = z
       .nativeEnum(PostVisibility)
       .safeParse(params.visibility ?? PostVisibility.PUBLIC);
-    const contentId =
-      readOptionalString(params.contentId) ??
-      readOptionalString(params.ingredientId);
+    const contentId = readPublishContentId(params);
     if (!visibility.success || !contentId) {
       return {
         creditsUsed: 0,
@@ -878,10 +863,8 @@ export class AgentPublishToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    // Action origin distinguishes MCP from the in-app agent. MCP stays draft-only.
-    if (isMcpActionOrigin() && params.confirmed === true) {
-      return mcpDraftOnlyResult();
-    }
+    const mcpBlock = blockMcpCreatePost(params);
+    if (mcpBlock) return mcpBlock;
     const parsedVisibility = z
       .nativeEnum(PostVisibility)
       .safeParse(params.visibility ?? PostVisibility.PUBLIC);
@@ -893,18 +876,9 @@ export class AgentPublishToolHandler {
       };
     }
     const visibility = parsedVisibility.data;
-    const contentId =
-      typeof params.contentId === 'string' && params.contentId.trim().length > 0
-        ? params.contentId.trim()
-        : typeof params.ingredientId === 'string' &&
-            params.ingredientId.trim().length > 0
-          ? params.ingredientId.trim()
-          : undefined;
+    const contentId = readPublishContentId(params);
 
     if (contentId) {
-      if (isMcpActionOrigin()) {
-        return mcpDraftOnlyResult();
-      }
       const { caption, platforms, requestedScheduledAt, requestedTargets } =
         this.readPublishRequest(params);
       const scheduledDate = requestedScheduledAt
@@ -917,8 +891,7 @@ export class AgentPublishToolHandler {
           success: false,
         };
       }
-      // Model-supplied `confirmed` is stripped upstream; only the card-button
-      // resume path sets `ctx.confirmationOrigin`, so it is the trusted signal.
+      // Only the card-button resume sets `ctx.confirmationOrigin`. Model `confirmed` is stripped upstream.
       const isCardConfirmed = ctx.confirmationOrigin === 'thread-ui-action';
       if (!isCardConfirmed) {
         const policy = evaluateAgentAutoPublishPolicies({
