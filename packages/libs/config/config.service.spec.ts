@@ -10,6 +10,7 @@ describe('ConfigService', () => {
     env.NODE_ENV = 'test';
     env.SENTRY_ENVIRONMENT = 'test';
     env.SENTRY_DSN = 'https://test@sentry.io/test';
+    env.GENFEEDAI_API_PUBLIC_URL = 'https://api.public.test';
     env.GENFEEDAI_API_URL = 'http://localhost:3010';
     env.GENFEEDAI_APP_URL = 'http://localhost:3000';
     env.GENFEEDAI_CDN_URL = 'http://localhost:3002';
@@ -158,11 +159,18 @@ describe('ConfigService', () => {
   });
 
   describe('service URLs', () => {
-    it('returns the configured API URL', () => {
-      expect(configService.apiUrl).toBe('http://localhost:3010');
+    it('returns the public API URL instead of the internal service URL', () => {
+      expect(configService.apiUrl).toBe('https://api.public.test');
+    });
+
+    it('falls back to the internal API URL for legacy self-hosted configuration', () => {
+      delete env.GENFEEDAI_API_PUBLIC_URL;
+
+      expect(new ConfigService().apiUrl).toBe('http://localhost:3010');
     });
 
     it('falls back to the production API host when unset', () => {
+      delete env.GENFEEDAI_API_PUBLIC_URL;
       delete env.GENFEEDAI_API_URL;
 
       expect(new ConfigService().apiUrl).toBe('https://api.genfeed.ai');
