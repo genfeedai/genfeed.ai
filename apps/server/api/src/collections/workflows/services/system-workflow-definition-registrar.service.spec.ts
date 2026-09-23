@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { describe, expect, it } from 'vitest';
+import { SystemWorkflowDefinitionRegistrarService } from '@api/collections/workflows/services/system-workflow-definition-registrar.service';
+import { describe, expect, it, vi } from 'vitest';
 
 const registrarSource = readFileSync(
   fileURLToPath(
@@ -19,4 +20,33 @@ describe('system workflow definition registrar contract', () => {
     );
     expect(registrarSource).toContain('...AGENT_RUNTIME_WORKFLOW_DEFINITIONS');
   });
+});
+
+it('registers fallback templates without dropping graph inputs', () => {
+  const runner = { registerWorkflow: vi.fn() };
+  new SystemWorkflowDefinitionRegistrarService(runner as never).onModuleInit();
+  const definitions = runner.registerWorkflow.mock.calls.map(
+    ([definition]) => definition,
+  );
+  const analytics = definitions.find(
+    (definition) => definition.canonicalId === 'analytics-sync',
+  );
+  expect(
+    analytics.definition.inputVariables.map(
+      (input: { key: string }) => input.key,
+    ),
+  ).toEqual(['brandId', 'since']);
+  expect(
+    analytics.definition.nodes.map((node: { id: string }) => node.id),
+  ).toContain('sync-each-item');
+  expect(
+    definitions.find(
+      (definition) => definition.canonicalId === 'content-loop-autopilot',
+    ).definition.nodes,
+  ).not.toHaveLength(0);
+  expect(
+    definitions.filter(
+      (definition) => definition.canonicalId === 'agent.autopilot.proactive',
+    ),
+  ).toHaveLength(1);
 });

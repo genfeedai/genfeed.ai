@@ -12,7 +12,7 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import { AgentStrategyRunStatus } from '@genfeedai/contracts';
-import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
+import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -344,14 +344,26 @@ export class AgentStrategiesService extends BaseService<
             consecutiveFailures: failures,
             ...(failures >= 3 ? { nextRunAt: null } : {}),
             ...(failures >= 5 ? { requiresManualReactivation: true } : {}),
-            creditsUsedThisWeek:
-              Number(config.creditsUsedThisWeek ?? 0) + run.creditsUsed,
-            creditsUsedToday:
-              Number(config.creditsUsedToday ?? 0) + run.creditsUsed,
-            dailyCreditsUsed:
-              Number(config.dailyCreditsUsed ?? 0) + run.creditsUsed,
-            monthToDateCreditsUsed:
-              Number(config.monthToDateCreditsUsed ?? 0) + run.creditsUsed,
+            creditsUsedThisWeek: new Prisma.Decimal(
+              Number(config.creditsUsedThisWeek ?? 0),
+            )
+              .plus(run.creditsUsed)
+              .toNumber(),
+            creditsUsedToday: new Prisma.Decimal(
+              Number(config.creditsUsedToday ?? 0),
+            )
+              .plus(run.creditsUsed)
+              .toNumber(),
+            dailyCreditsUsed: new Prisma.Decimal(
+              Number(config.dailyCreditsUsed ?? 0),
+            )
+              .plus(run.creditsUsed)
+              .toNumber(),
+            monthToDateCreditsUsed: new Prisma.Decimal(
+              Number(config.monthToDateCreditsUsed ?? 0),
+            )
+              .plus(run.creditsUsed)
+              .toNumber(),
             lastRunAt: run.completedAt.toISOString(),
             runHistory: [
               ...history,
@@ -374,29 +386,13 @@ export class AgentStrategiesService extends BaseService<
    * Used by the processor after a run fails.
    */
   async incrementFailures(id: string): Promise<number> {
-    const current = (await this.delegate.findFirst({
-      where: { id },
-    })) as AgentStrategyDocument | null;
-    if (!current) {
-      return 0;
-    }
-
-    const config = this.readRecord(current.config) ?? {};
-    const next =
-      Number(config.consecutiveFailures ?? current.consecutiveFailures ?? 0) +
-      1;
-
-    await this.delegate.update({
-      where: { id },
-      data: {
-        config: {
-          ...config,
-          consecutiveFailures: next,
-        },
+    const config = await this.mutateConfig(id, (latest) => ({
+      config: {
+        ...latest,
+        consecutiveFailures: Number(latest.consecutiveFailures ?? 0) + 1,
       },
-    });
-
-    return next;
+    }));
+    return Number(config?.consecutiveFailures ?? 0);
   }
 
   /**
@@ -404,23 +400,9 @@ export class AgentStrategiesService extends BaseService<
    * Used by the processor after a successful run.
    */
   async resetFailures(id: string): Promise<void> {
-    const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false },
-    })) as AgentStrategyDocument | null;
-    if (!current) {
-      return;
-    }
-
-    const config = this.readRecord(current.config) ?? {};
-    await this.delegate.update({
-      where: { id },
-      data: {
-        config: {
-          ...config,
-          consecutiveFailures: 0,
-        },
-      },
-    });
+    await this.mutateConfig(id, (config) => ({
+      config: { ...config, consecutiveFailures: 0 },
+    }));
   }
 
   /**
@@ -428,24 +410,10 @@ export class AgentStrategiesService extends BaseService<
    * Used for auto-pause after consecutive failures.
    */
   async pauseStrategy(id: string): Promise<void> {
-    const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false },
-    })) as AgentStrategyDocument | null;
-    if (!current) {
-      return;
-    }
-
-    const config = this.readRecord(current.config) ?? {};
-    await this.delegate.update({
-      where: { id },
-      data: {
-        config: {
-          ...config,
-          nextRunAt: null,
-        },
-        isActive: false,
-      },
-    });
+    await this.mutateConfig(id, (config) => ({
+      config: { ...config, nextRunAt: null },
+      isActive: false,
+    }));
   }
 
   /**
@@ -468,24 +436,32 @@ export class AgentStrategiesService extends BaseService<
    * Mark strategy for manual reactivation after repeated failures.
    */
   async requireManualReactivation(id: string): Promise<void> {
-    const current = (await this.delegate.findFirst({
-      where: { id, isDeleted: false },
-    })) as AgentStrategyDocument | null;
-    if (!current) {
-      return;
-    }
+    await this.mutateConfig(id, (config) => ({
+      config: { ...config, nextRunAt: null, requiresManualReactivation: true },
+      isActive: false,
+    }));
+  }
 
-    const config = this.readRecord(current.config) ?? {};
-    await this.delegate.update({
-      where: { id },
-      data: {
-        config: {
-          ...config,
-          nextRunAt: null,
-          requiresManualReactivation: true,
-        },
-        isActive: false,
-      },
+  private async mutateConfig(
+    id: string,
+    mutate: (config: Record<string, unknown>) => {
+      config: Record<string, unknown>;
+      isActive?: boolean;
+    },
+  ): Promise<Record<string, unknown> | null> {
+    return this.prisma.$transaction(async (transaction) => {
+      await lockAgentStrategy(transaction, id);
+      // tenant-scope-ignore: internal callers supply an authorized opaque strategy id; resolve its tenant under the lock before the scoped update
+      const current = await transaction.agentStrategy.findFirst({
+        where: { id, isDeleted: false },
+      });
+      if (!current) return null;
+      const data = mutate(this.readRecord(current.config) ?? {});
+      await transaction.agentStrategy.update({
+        where: { id, organizationId: current.organizationId, isDeleted: false },
+        data: { ...data, config: toPrismaJson(data.config) },
+      });
+      return data.config;
     });
   }
 

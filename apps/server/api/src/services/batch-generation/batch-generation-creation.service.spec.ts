@@ -249,3 +249,69 @@ describe('BatchGenerationCreationService platform normalize (#2696)', () => {
     expect(prisma.batch.create).not.toHaveBeenCalled();
   });
 });
+
+describe('BatchGenerationCreationService strategy attribution', () => {
+  const dto = {
+    brandId: 'brand',
+    count: 1,
+    dateRange: { start: '2026-09-24', end: '2026-09-25' },
+    platforms: ['instagram'],
+  };
+  function setup(valid: boolean) {
+    const prisma = {
+      agentStrategy: {
+        findFirst: vi.fn().mockResolvedValue(valid ? { id: 'strategy' } : null),
+      },
+      batch: {
+        create: vi
+          .fn()
+          .mockImplementation(async ({ data }) => ({ ...data, id: 'batch' })),
+      },
+      batchItem: { upsert: vi.fn().mockResolvedValue({}) },
+    };
+    const service = new BatchGenerationCreationService(
+      prisma as never,
+      { log: vi.fn() } as never,
+      { findOne: vi.fn().mockResolvedValue({ id: 'brand' }) } as never,
+      {} as never,
+      {} as never,
+      { toBatchSummary: (batch: unknown) => batch } as never,
+    );
+    return { prisma, service };
+  }
+  it('persists validated same-tenant and same-brand attribution', async () => {
+    const { prisma, service } = setup(true);
+    await service.createBatch(dto, 'owner', 'org', undefined, 'strategy');
+    expect(prisma.agentStrategy.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'strategy',
+        organizationId: 'org',
+        brandId: 'brand',
+        isDeleted: false,
+      },
+      select: { id: true },
+    });
+    expect(prisma.batch.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ agentStrategyId: 'strategy' }),
+      }),
+    );
+  });
+  it('rejects foreign/deleted/wrong-brand strategy before creating a batch', async () => {
+    const { prisma, service } = setup(false);
+    await expect(
+      service.createBatch(dto, 'owner', 'org', undefined, 'strategy'),
+    ).rejects.toThrow();
+    expect(prisma.batch.create).not.toHaveBeenCalled();
+  });
+  it('keeps ordinary batches unattributed', async () => {
+    const { prisma, service } = setup(false);
+    await service.createBatch(dto, 'owner', 'org');
+    expect(prisma.agentStrategy.findFirst).not.toHaveBeenCalled();
+    expect(prisma.batch.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({ agentStrategyId: null }),
+      }),
+    );
+  });
+});

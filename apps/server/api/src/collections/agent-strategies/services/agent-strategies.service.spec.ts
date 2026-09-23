@@ -1,9 +1,4 @@
-vi.mock('@genfeedai/prisma', async () => {
-  const { canonicalPrismaMock } = await import(
-    '@api/shared/testing/prisma-mock'
-  );
-  return canonicalPrismaMock();
-});
+vi.unmock('@genfeedai/prisma');
 
 import type { AgentStrategyDocument } from '@api/collections/agent-strategies/schemas/agent-strategy.schema';
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';

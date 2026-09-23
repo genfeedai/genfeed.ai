@@ -299,13 +299,13 @@ export class AgentAutopilotWorkflowService {
     workflowHandoff?: AgentWorkflowHandoffContext,
   ): Promise<string | null> {
     const organizationId = strategy.organizationId;
-    const userId = strategy.userId;
     const strategyId = strategy.id;
     const current = await this.prisma.agentStrategy.findFirst({
       where: scopedWhere(organizationId, { id: strategyId, isActive: true }),
     });
     if (!current) return null;
     strategy = this.toStrategySnapshot(current);
+    const userId = strategy.userId;
     const config = this.readConfig(strategy);
     if (!this.isDueStrategy(strategy, new Date())) return null;
 

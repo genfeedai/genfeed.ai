@@ -1,3 +1,5 @@
+vi.unmock('@genfeedai/prisma');
+
 import {
   proactiveRunMetadata,
   resolveProactiveConsumedCredits,

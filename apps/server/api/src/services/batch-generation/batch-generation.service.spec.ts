@@ -631,3 +631,25 @@ describe('BatchGenerationService approval version pins', () => {
     ]);
   });
 });
+
+it('forwards internal strategy attribution after the idempotency key', async () => {
+  const creation = { createBatch: vi.fn().mockResolvedValue({ id: 'batch' }) };
+  const facade = new BatchGenerationService(
+    creation as never,
+    {} as never,
+    {} as never,
+  );
+  const dto = {
+    brandId: 'brand',
+    count: 1,
+    dateRange: { start: '2026-09-24', end: '2026-09-25' },
+  };
+  await facade.createBatch(dto, 'owner', 'org', 'idempotency', 'strategy');
+  expect(creation.createBatch).toHaveBeenCalledWith(
+    dto,
+    'owner',
+    'org',
+    'idempotency',
+    'strategy',
+  );
+});
