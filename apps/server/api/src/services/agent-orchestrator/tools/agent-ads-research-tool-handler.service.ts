@@ -1,5 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   readAdsChannel,
@@ -19,6 +20,7 @@ import type {
   AdsResearchSource,
 } from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
 
 /**
  * Discovery pages that exist per ads platform. Research covers every
@@ -31,6 +33,8 @@ const PLATFORM_ADS_HREFS: Partial<Record<AdsResearchPlatform, string>> = {
 };
 
 const ADS_HUB_HREF = '/discovery/ads';
+const ADS_RESEARCH_DEPLOY_GATE =
+  'Ads research is deploy-gated: AdsResearchService is not registered in this API process. This is not a plan or credit gate.';
 
 function adsPlatformHref(platform: AdsResearchPlatform | 'all'): string {
   return platform === 'all'
@@ -49,18 +53,32 @@ export class AgentAdsResearchToolHandler {
     @Optional()
     private readonly adsResearchService: AdsResearchService | undefined,
     private readonly brandsService: BrandsService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
+
+  private resolveAdsResearchService(): AdsResearchService | undefined {
+    return (
+      this.adsResearchService ??
+      resolveOptionalProvider(this.moduleRef, AdsResearchService)
+    );
+  }
+
+  private adsResearchUnavailable(): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      error: ADS_RESEARCH_DEPLOY_GATE,
+      success: false,
+    };
+  }
 
   async listAdsResearch(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
+    const adsResearchService = this.resolveAdsResearchService();
+    if (!adsResearchService) {
+      return this.adsResearchUnavailable();
     }
 
     const brandContext = await this.resolveAdsBrandContext(params, ctx);
@@ -79,7 +97,7 @@ export class AgentAdsResearchToolHandler {
       timeframe: readAdsTimeframe(params.timeframe),
     };
 
-    const result = await this.adsResearchService.listAds(
+    const result = await adsResearchService.listAds(
       ctx.organizationId,
       filters,
     );
@@ -133,12 +151,9 @@ export class AgentAdsResearchToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
+    const adsResearchService = this.resolveAdsResearchService();
+    if (!adsResearchService) {
+      return this.adsResearchUnavailable();
     }
 
     const source = readAdsSource(params.source);
@@ -154,19 +169,16 @@ export class AgentAdsResearchToolHandler {
 
     const brandContext = await this.resolveAdsBrandContext(params, ctx);
 
-    const detail = await this.adsResearchService.getAdDetail(
-      ctx.organizationId,
-      {
-        adAccountId: readOptionalString(params.adAccountId),
-        brandId: brandContext.brandId,
-        channel: readAdsChannel(params.channel),
-        credentialId: readOptionalString(params.credentialId),
-        id: adId,
-        loginCustomerId: readOptionalString(params.loginCustomerId),
-        platform: readAdsPlatform(params.platform),
-        source,
-      },
-    );
+    const detail = await adsResearchService.getAdDetail(ctx.organizationId, {
+      adAccountId: readOptionalString(params.adAccountId),
+      brandId: brandContext.brandId,
+      channel: readAdsChannel(params.channel),
+      credentialId: readOptionalString(params.credentialId),
+      id: adId,
+      loginCustomerId: readOptionalString(params.loginCustomerId),
+      platform: readAdsPlatform(params.platform),
+      source,
+    });
 
     return {
       creditsUsed: 0,
@@ -207,12 +219,9 @@ export class AgentAdsResearchToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
+    const adsResearchService = this.resolveAdsResearchService();
+    if (!adsResearchService) {
+      return this.adsResearchUnavailable();
     }
 
     const baseInput = await this.buildAdsWorkflowInput(params, ctx);
@@ -224,8 +233,7 @@ export class AgentAdsResearchToolHandler {
       };
     }
 
-    const workflow =
-      await this.adsResearchService.createRemixWorkflow(baseInput);
+    const workflow = await adsResearchService.createRemixWorkflow(baseInput);
 
     return {
       creditsUsed: 0,
@@ -266,12 +274,9 @@ export class AgentAdsResearchToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
+    const adsResearchService = this.resolveAdsResearchService();
+    if (!adsResearchService) {
+      return this.adsResearchUnavailable();
     }
 
     const baseInput = await this.buildAdsWorkflowInput(params, ctx);
@@ -283,7 +288,7 @@ export class AgentAdsResearchToolHandler {
       };
     }
 
-    const adPack = await this.adsResearchService.generateAdPack(
+    const adPack = await adsResearchService.generateAdPack(
       ctx.organizationId,
       baseInput,
     );
@@ -315,12 +320,9 @@ export class AgentAdsResearchToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.adsResearchService) {
-      return {
-        creditsUsed: 0,
-        error: 'Ads research service is not available.',
-        success: false,
-      };
+    const adsResearchService = this.resolveAdsResearchService();
+    if (!adsResearchService) {
+      return this.adsResearchUnavailable();
     }
 
     const baseInput = await this.buildAdsWorkflowInput(params, ctx);
@@ -332,7 +334,7 @@ export class AgentAdsResearchToolHandler {
       };
     }
 
-    const launchPrep = await this.adsResearchService.prepareCampaignForReview({
+    const launchPrep = await adsResearchService.prepareCampaignForReview({
       ...baseInput,
       campaignName: readOptionalString(params.campaignName),
       createWorkflow: params.createWorkflow === true,

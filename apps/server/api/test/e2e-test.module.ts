@@ -368,7 +368,10 @@ export const COLLECTION_E2E_MOCK_PROVIDERS = [
     BetterAuthIdentityCacheService,
   ].map((service) => ({
     provide: service,
-    useValue: { invalidateForUser: () => Promise.resolve() },
+    useValue: {
+      invalidateForOrganization: () => Promise.resolve(),
+      invalidateForUser: () => Promise.resolve(),
+    },
   })),
   // Real fan-out over the three stubs above — no extra behavior to stub out.
   UserAccessCacheService,

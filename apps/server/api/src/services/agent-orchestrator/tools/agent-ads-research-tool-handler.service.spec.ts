@@ -174,4 +174,42 @@ describe('AgentAdsResearchToolHandler CTA hrefs', () => {
       expect(href.startsWith('/workflows')).toBe(false);
     }
   });
+
+  it('names a deploy gate when ads research is not registered', async () => {
+    const handler = new AgentAdsResearchToolHandler(undefined, {
+      findOne: vi.fn(),
+    } as never);
+    const result = await handler.listAdsResearch({}, CONTEXT);
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('deploy-gated');
+    expect(result.error).toContain('Ads research');
+  });
+
+  it('uses the registered ads research service when constructor injection is empty', async () => {
+    const listAds = vi.fn().mockResolvedValue({
+      connectedAds: [],
+      filters: {},
+      publicAds: [],
+      summary: {
+        connectedCount: 0,
+        publicCount: 1,
+        reviewPolicy: 'manual',
+        selectedPlatform: 'meta',
+      },
+    });
+    const moduleRef = { get: vi.fn().mockReturnValue({ listAds }) };
+    const handler = new AgentAdsResearchToolHandler(
+      undefined,
+      { findOne: vi.fn().mockResolvedValue(null) } as never,
+      moduleRef as never,
+    );
+
+    const result = await handler.listAdsResearch({}, CONTEXT);
+
+    expect(result.success).toBe(true);
+    expect(listAds).toHaveBeenCalled();
+    expect(moduleRef.get).toHaveBeenCalledWith(expect.any(Function), {
+      strict: false,
+    });
+  });
 });
