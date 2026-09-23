@@ -174,7 +174,18 @@ async function mockThreads(
 }
 
 test.describe('Agent Onboarding', () => {
-  test.beforeEach(async ({ authenticatedPage }) => {
+  test.beforeEach(async ({ authenticatedPage, baseURL }) => {
+    if (baseURL) {
+      const domain = new URL(baseURL).hostname;
+      const cookies = await authenticatedPage.context().cookies();
+      await authenticatedPage
+        .context()
+        .addCookies(
+          cookies
+            .filter((cookie) => cookie.domain === 'localhost')
+            .map((cookie) => ({ ...cookie, domain })),
+        );
+    }
     await mockAgentCredits(authenticatedPage);
     await mockActiveRuns(authenticatedPage);
   });
@@ -284,6 +295,46 @@ test.describe('Agent Onboarding', () => {
         .toBe(true);
       await authenticatedPage.screenshot({
         path: testInfo.outputPath(`onboarding-draft-${viewport.width}.png`),
+      });
+    }
+  });
+
+  test('keeps the empty onboarding hint spaced above the bottom composer', async ({
+    authenticatedPage,
+  }, testInfo) => {
+    const threadId = 'thread-empty-first-post';
+    await mockThreads(authenticatedPage, [
+      { id: threadId, title: 'Your first post' },
+    ]);
+    await authenticatedPage.goto(
+      `${orgPath(APP_ROUTES.AGENT.ONBOARDING)}/${threadId}`,
+      { waitUntil: 'domcontentloaded' },
+    );
+    const hint = authenticatedPage.getByTestId('onboarding-composer-card');
+    const prompt = authenticatedPage.getByTestId('agent-chat-input-shell');
+    await expect(hint).toBeVisible();
+    for (const viewport of [
+      { width: 1440, height: 1000 },
+      { width: 390, height: 844 },
+    ]) {
+      await authenticatedPage.setViewportSize(viewport);
+      await expect
+        .poll(async () => {
+          const bounds = await prompt.boundingBox();
+          return bounds ? viewport.height - bounds.y - bounds.height : 999;
+        })
+        .toBeLessThan(70);
+      const cardBounds = await hint.boundingBox();
+      const promptBounds = await prompt.boundingBox();
+      expect(cardBounds).not.toBeNull();
+      expect(promptBounds).not.toBeNull();
+      expect(
+        (promptBounds?.y ?? 0) -
+          (cardBounds?.y ?? 0) -
+          (cardBounds?.height ?? 0),
+      ).toBeGreaterThanOrEqual(12);
+      await authenticatedPage.screenshot({
+        path: testInfo.outputPath(`onboarding-empty-${viewport.width}.png`),
       });
     }
   });
