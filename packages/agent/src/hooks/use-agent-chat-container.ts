@@ -200,12 +200,17 @@ export function useAgentChatContainer({
     model,
     onOnboardingCompleted,
   });
-  const { sendMessage: sendStreaming, isStreaming: isStreamingActive } =
-    useAgentChatStream({
-      apiService,
-      model,
-      onOnboardingCompleted,
-    });
+  const {
+    adoptRun,
+    beginRunHandoff,
+    cancelRunHandoff,
+    sendMessage: sendStreaming,
+    isStreaming: isStreamingActive,
+  } = useAgentChatStream({
+    apiService,
+    model,
+    onOnboardingCompleted,
+  });
 
   const sendMessage = isStreaming ? sendStreaming : sendNonStreaming;
   // One source of truth with the Stop button: while a run is active, a send
@@ -637,7 +642,10 @@ export function useAgentChatContainer({
           status: AgentWorkEventStatus.COMPLETED,
           threadId: request.threadId,
         } satisfies AgentWorkEvent);
-        await apiService.respondToInputRequest(
+        if (isStreaming) {
+          beginRunHandoff(request.threadId);
+        }
+        const response = await apiService.respondToInputRequest(
           request.threadId,
           request.inputRequestId,
           normalizedAnswer,
@@ -650,7 +658,21 @@ export function useAgentChatContainer({
             };
           })(),
         );
+        if (isStreaming) {
+          if (response?.executionId) {
+            adoptRun(
+              request.threadId,
+              response.executionId,
+              response.queuedAt ?? null,
+            );
+          } else {
+            cancelRunHandoff(request.threadId);
+          }
+        }
       } catch {
+        if (isStreaming) {
+          cancelRunHandoff(request.threadId);
+        }
         const currentState = useAgentChatStore.getState();
         if (
           currentState.activeThreadId === request.threadId &&
@@ -680,8 +702,12 @@ export function useAgentChatContainer({
     },
     [
       addWorkEvent,
+      adoptRun,
       apiService,
+      beginRunHandoff,
+      cancelRunHandoff,
       clearPendingInputRequest,
+      isStreaming,
       pendingInputRequest,
       setError,
       threads,

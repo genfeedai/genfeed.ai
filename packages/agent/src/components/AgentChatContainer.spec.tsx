@@ -22,6 +22,9 @@ vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
 
 const sendNonStreaming = vi.fn();
 const sendStreaming = vi.fn();
+const adoptRun = vi.fn();
+const beginRunHandoff = vi.fn();
+const cancelRunHandoff = vi.fn();
 let isStreamingHookActive = false;
 const scrollIntoViewMock = vi.fn();
 
@@ -132,6 +135,9 @@ vi.mock('@genfeedai/agent/hooks/use-agent-chat', () => ({
 
 vi.mock('@genfeedai/agent/hooks/use-agent-chat-stream', () => ({
   useAgentChatStream: () => ({
+    adoptRun,
+    beginRunHandoff,
+    cancelRunHandoff,
     isStreaming: isStreamingHookActive,
     sendMessage: sendStreaming,
   }),
@@ -475,6 +481,9 @@ describe('AgentChatContainer', () => {
     scrollIntoViewMock.mockReset();
     sendNonStreaming.mockReset();
     sendStreaming.mockReset();
+    adoptRun.mockReset();
+    beginRunHandoff.mockReset();
+    cancelRunHandoff.mockReset();
     storeState.addMessage.mockReset();
     storeState.addWorkEvent.mockReset();
     storeState.clearPendingInputRequest.mockReset();
@@ -692,6 +701,51 @@ describe('AgentChatContainer', () => {
       }),
     );
     expect(storeState.clearPendingInputRequest).toHaveBeenCalledTimes(1);
+    expect(beginRunHandoff).toHaveBeenCalledWith('thread-1');
+    expect(cancelRunHandoff).toHaveBeenCalledWith('thread-1');
+    expect(adoptRun).not.toHaveBeenCalled();
+  });
+
+  it('pins the stream to the execution that continues an answered input request', async () => {
+    const apiService = createApiService({
+      respondToInputRequest: vi.fn().mockResolvedValue({
+        answer: 'Use the hybrid prompt bar',
+        executionId: 'run-answer',
+        queuedAt: '2026-09-23T15:10:00.000Z',
+        requestId: 'input-1',
+        resolvedAt: '2026-09-23T15:10:00.000Z',
+        status: 'resolved',
+        threadId: 'thread-1',
+      }),
+      respondToUiAction: vi.fn(),
+    });
+    storeState.threads = [{ brandId: null, contextVersion: 1, id: 'thread-1' }];
+
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:1"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Submit requested input'));
+
+    await waitFor(() => {
+      expect(adoptRun).toHaveBeenCalledWith(
+        'thread-1',
+        'run-answer',
+        '2026-09-23T15:10:00.000Z',
+      );
+    });
+    expect(beginRunHandoff).toHaveBeenCalledWith('thread-1');
+    expect(beginRunHandoff.mock.invocationCallOrder[0]).toBeLessThan(
+      apiService.respondToInputRequest.mock.invocationCallOrder[0] ?? 0,
+    );
+    expect(cancelRunHandoff).not.toHaveBeenCalled();
   });
 
   it('resolves a pasted URL on the same turn while the agent is waiting for input', async () => {

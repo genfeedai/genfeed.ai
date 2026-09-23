@@ -548,6 +548,143 @@ describe('useAgentChatStream', () => {
     );
   });
 
+  it('lets a buffered input request own the run state after acknowledgement', async () => {
+    const queuedAt = '2026-09-23T15:10:00.000Z';
+    useAgentChatStore.setState({ activeThreadId: 'thread-1' });
+    const apiService = createApiService({
+      chatStream: vi.fn(async () => {
+        for (const handler of socketHandlers.get('agent:input_request') ?? []) {
+          handler({
+            inputRequestId: 'input-1',
+            options: [],
+            prompt: 'Pick a format',
+            runId: 'run-2',
+            threadId: 'thread-1',
+            timestamp: queuedAt,
+            title: 'Format',
+          });
+        }
+        return {
+          brandId: null,
+          contextVersion: 1,
+          executionId: 'run-2',
+          queuedAt,
+          threadId: 'thread-1',
+        };
+      }),
+    });
+
+    const { result } = renderHook(() => useAgentChatStream({ apiService }));
+
+    await act(async () => {
+      await result.current.sendMessage('Draft a post');
+    });
+
+    const state = useAgentChatStore.getState();
+    expect(state.activeRunId).toBe('run-2');
+    expect(state.activeRunStatus).toBe('awaiting_input');
+    expect(state.pendingInputRequest?.inputRequestId).toBe('input-1');
+  });
+
+  it('stops holding events when a send is aborted before acknowledgement', async () => {
+    const streamRuntime = getAgentStreamRuntime();
+    const controller = new AbortController();
+    useAgentChatStore.setState({ activeThreadId: 'thread-1' });
+    const apiService = createApiService({
+      chatStream: vi.fn(async () => {
+        controller.abort();
+        throw new DOMException('Aborted', 'AbortError');
+      }),
+    });
+
+    const { result } = renderHook(() => useAgentChatStream({ apiService }));
+
+    await act(async () => {
+      await result.current.sendMessage('Draft a post', {
+        signal: controller.signal,
+      });
+    });
+
+    expect(streamRuntime.isAwaitingRunIdRef.current).toBe(false);
+    expect(streamRuntime.unsubscribersRef.current).toHaveLength(0);
+    expect(useAgentChatStore.getState().stream.isStreaming).toBe(false);
+  });
+
+  it('adopts a restored run on a thread the finished stream no longer listens to', () => {
+    const streamRuntime = getAgentStreamRuntime();
+    streamRuntime.activeStreamThreadRef.current = 'thread-previous';
+
+    useAgentChatStore.setState({
+      activeRunId: 'run-b',
+      activeRunStatus: 'running',
+      activeThreadId: 'thread-b',
+    });
+
+    renderHook(() =>
+      useAgentChatStream({
+        apiService: createApiService({}),
+      }),
+    );
+
+    act(() => {
+      useAgentChatStore.getState().markStreamLive();
+    });
+
+    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-b');
+    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-b');
+    expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
+  });
+
+  it('hands the stream over to the execution that continues an answered input', async () => {
+    const streamRuntime = getAgentStreamRuntime();
+    useAgentChatStore.setState({
+      activeRunId: 'run-ask',
+      activeRunStatus: 'awaiting_input',
+      activeThreadId: 'thread-1',
+    });
+
+    const { result } = renderHook(() =>
+      useAgentChatStream({
+        apiService: createApiService({}),
+      }),
+    );
+
+    act(() => {
+      result.current.beginRunHandoff('thread-1');
+    });
+
+    act(() => {
+      for (const handler of socketHandlers.get('agent:token') ?? []) {
+        handler({
+          runId: 'run-answer',
+          threadId: 'thread-1',
+          token: 'continuing',
+        });
+      }
+    });
+
+    expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+
+    act(() => {
+      result.current.adoptRun(
+        'thread-1',
+        'run-answer',
+        '2026-09-23T15:10:00.000Z',
+      );
+    });
+
+    const state = useAgentChatStore.getState();
+    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-answer');
+    expect(state.activeRunId).toBe('run-answer');
+    expect(state.activeRunStatus).toBe('running');
+    expect(state.stream.isStreaming).toBe(true);
+    await waitFor(() =>
+      expect(useAgentChatStore.getState().stream.streamingContent).toBe(
+        'continuing',
+      ),
+    );
+  });
+
   it('keeps one stream owner when the hook is mounted twice (layout + page)', async () => {
     // The persistent agent layout and the per-route chat container each mount
     // this hook. Sending from one instance used to make the other "adopt" the

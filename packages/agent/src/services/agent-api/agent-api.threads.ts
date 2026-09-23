@@ -423,6 +423,9 @@ export async function respondToInputRequest(
   scope?: AgentScopePayload,
 ): Promise<{
   answer: string | null;
+  /** Execution that continues the turn with this answer, when one started. */
+  executionId?: string | null;
+  queuedAt?: string | null;
   requestId: string;
   resolvedAt: string | null;
   status: string;
@@ -430,6 +433,8 @@ export async function respondToInputRequest(
 }> {
   return api.fetchJson<{
     answer: string | null;
+    executionId?: string | null;
+    queuedAt?: string | null;
     requestId: string;
     resolvedAt: string | null;
     status: string;

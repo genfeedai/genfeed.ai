@@ -36,6 +36,12 @@ export interface SendStreamMessageOptions {
 }
 
 export interface UseAgentChatStreamReturn {
+  /** Pin the stream to an execution the server started for this thread. */
+  adoptRun: (threadId: string, runId: string, startedAt: string | null) => void;
+  /** Hold the thread's events until `adoptRun` names the next execution. */
+  beginRunHandoff: (threadId: string) => void;
+  /** Release a handoff that produced no execution. */
+  cancelRunHandoff: (threadId: string) => void;
   sendMessage: (
     content: string,
     options?: SendStreamMessageOptions,
@@ -74,6 +80,8 @@ export interface AgentStreamRuntime {
   isAwaitingRunIdRef: MutableRefObject<boolean>;
   /** Live hook instances; shared subscriptions are torn down only at zero. */
   mountCount: number;
+  /** Incremented per send so an aborted older send never tears down a newer one. */
+  sendGeneration: number;
   pendingCompletionRef: MutableRefObject<PendingStreamCompletion | null>;
   unsubscribersRef: MutableRefObject<Array<() => void>>;
 }

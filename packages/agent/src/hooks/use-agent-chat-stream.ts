@@ -466,17 +466,21 @@ export function useAgentChatStream(
     const state = useAgentChatStore.getState();
 
     // The shared runtime already owns this stream — `sendMessage` attached the
-    // subscriptions on this or another live instance.
+    // subscriptions on this or another live instance. A finished stream keeps
+    // its thread id but no listeners, so it does not block adopting this one.
     const ownedThreadId = streamRuntime.activeStreamThreadRef.current;
+    const hasLiveSubscriptions =
+      streamRuntime.unsubscribersRef.current.length > 0;
 
-    if (ownedThreadId && ownedThreadId !== activeThreadId) {
+    if (
+      ownedThreadId &&
+      ownedThreadId !== activeThreadId &&
+      hasLiveSubscriptions
+    ) {
       return;
     }
 
-    if (
-      ownedThreadId === activeThreadId &&
-      streamRuntime.unsubscribersRef.current.length > 0
-    ) {
+    if (ownedThreadId === activeThreadId && hasLiveSubscriptions) {
       return;
     }
 
@@ -555,6 +559,8 @@ export function useAgentChatStream(
       cleanupSubscriptions();
       // Hold every event until acceptance names this turn's run.
       streamRuntime.isAwaitingRunIdRef.current = true;
+      streamRuntime.sendGeneration += 1;
+      const sendGeneration = streamRuntime.sendGeneration;
 
       if (currentActiveThreadId) {
         updateThreadSummary(currentActiveThreadId, {
@@ -634,8 +640,6 @@ export function useAgentChatStream(
           response.contextVersion,
           response.brandId,
         );
-        scheduleCompletionWatchdog();
-        flushBufferedEvents(response.threadId);
         setActiveRun(response.executionId, {
           startedAt: acceptedAt,
           status: 'running',
@@ -644,8 +648,29 @@ export function useAgentChatStream(
           lastActivityAt: acceptedAt,
           runStatus: 'running',
         });
+        scheduleCompletionWatchdog();
+        // Replay last: a buffered input request, `done`, or error owns the
+        // final run state instead of being overwritten by "running".
+        flushBufferedEvents(response.threadId);
       } catch (err) {
         if (signal.aborted) {
+          // Nothing will name this turn's run, so stop holding events for it —
+          // unless a newer send already owns the runtime.
+          if (
+            streamRuntime.sendGeneration === sendGeneration &&
+            streamRuntime.isAwaitingRunIdRef.current
+          ) {
+            streamRuntime.pendingCompletionRef.current = null;
+            clearCompletionWatchdog();
+            resetStreamState();
+            cleanupSubscriptions();
+            if (currentActiveThreadId) {
+              updateThreadSummary(currentActiveThreadId, {
+                attentionState: null,
+                runStatus: 'idle',
+              });
+            }
+          }
           return;
         }
 
@@ -687,6 +712,71 @@ export function useAgentChatStream(
     ],
   );
 
+  // Answering an input request continues on a new execution. Hold the thread's
+  // events from the moment the answer is posted, then pin the stream to the
+  // execution the server names so its events are not dropped as foreign.
+  const beginRunHandoff = useCallback(
+    (threadId: string) => {
+      streamRuntime.activeStreamThreadRef.current = threadId;
+      streamRuntime.isAwaitingRunIdRef.current = true;
+      if (streamRuntime.unsubscribersRef.current.length === 0) {
+        attachSubscriptions();
+      }
+    },
+    [attachSubscriptions],
+  );
+
+  const adoptRun = useCallback(
+    (threadId: string, runId: string, startedAt: string | null) => {
+      if (!isThreadVisible(threadId)) {
+        cleanupSubscriptions();
+        return;
+      }
+
+      streamRuntime.activeStreamThreadRef.current = threadId;
+      streamRuntime.activeStreamRunIdRef.current = runId;
+      streamRuntime.isAwaitingRunIdRef.current = false;
+      if (streamRuntime.unsubscribersRef.current.length === 0) {
+        attachSubscriptions();
+      }
+      streamRuntime.pendingCompletionRef.current = {
+        initiatedAt: Date.now(),
+        preAssistantIds: collectAssistantMessageIds(
+          useAgentChatStore.getState().messages,
+        ),
+        runId,
+        startedAt,
+        threadId,
+      };
+      setActiveRun(runId, { startedAt, status: 'running' });
+      markStreamLive();
+      markThreadRunning(threadId, {
+        lastActivityAt: startedAt ?? new Date().toISOString(),
+        runStatus: 'running',
+      });
+      scheduleCompletionWatchdog();
+      flushBufferedEvents(threadId);
+    },
+    [
+      attachSubscriptions,
+      cleanupSubscriptions,
+      flushBufferedEvents,
+      isThreadVisible,
+      markStreamLive,
+      markThreadRunning,
+      scheduleCompletionWatchdog,
+      setActiveRun,
+    ],
+  );
+
+  const cancelRunHandoff = useCallback(
+    (threadId: string) => {
+      streamRuntime.isAwaitingRunIdRef.current = false;
+      flushBufferedEvents(threadId);
+    },
+    [flushBufferedEvents],
+  );
+
   const clearChat = useCallback(() => {
     abortRef.current?.abort();
     streamRuntime.pendingCompletionRef.current = null;
@@ -701,5 +791,12 @@ export function useAgentChatStream(
     resetStreamState,
   ]);
 
-  return { clearChat, isStreaming, sendMessage };
+  return {
+    adoptRun,
+    beginRunHandoff,
+    cancelRunHandoff,
+    clearChat,
+    isStreaming,
+    sendMessage,
+  };
 }

@@ -12,6 +12,7 @@ const runtime: AgentStreamRuntime = {
   isAwaitingRunIdRef: { current: false },
   mountCount: 0,
   pendingCompletionRef: { current: null as PendingStreamCompletion | null },
+  sendGeneration: 0,
   unsubscribersRef: { current: [] as Array<() => void> },
 };
 
@@ -50,5 +51,6 @@ export function resetAgentStreamRuntime(): void {
   runtime.isAwaitingRunIdRef.current = false;
   runtime.mountCount = 0;
   runtime.pendingCompletionRef.current = null;
+  runtime.sendGeneration = 0;
   runtime.unsubscribersRef.current = [];
 }
