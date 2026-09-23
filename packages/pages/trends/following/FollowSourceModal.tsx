@@ -588,15 +588,10 @@ export default function FollowSourceModal({
                           unoptimized
                           width={40}
                         />
-                      ) : (
-                        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground/50">
-                          {getPlatformIcon(candidate.platform, 'h-4 w-4')}
-                        </div>
-                      )}
+                      ) : null}
 
                       <div className="min-w-0 flex-1">
                         <div className="flex flex-wrap items-center gap-2">
-                          {getPlatformIcon(candidate.platform, 'h-3.5 w-3.5')}
                           <span className="text-sm font-medium text-foreground">
                             @{candidate.handle}
                           </span>
