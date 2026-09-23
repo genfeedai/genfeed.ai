@@ -1,6 +1,7 @@
 import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { AgentThreadMode } from '@genfeedai/contracts';
+import { ConflictException } from '@nestjs/common';
 import { validate } from 'class-validator';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -12,7 +13,7 @@ function fixture() {
   });
   const upsert = vi.fn(async () => {
     state.savedMode = 'auto';
-    return {};
+    return { isDeleted: false };
   });
   const tx = { agentThread: { updateMany }, setting: { upsert } };
   const prisma = {
@@ -57,12 +58,33 @@ describe('Agent thread mode command', () => {
       data: { mode: 'auto' },
     });
     expect(upsert).toHaveBeenCalledWith({
-      where: { userId: 'user', isDeleted: false },
+      where: { userId: 'user' },
       create: { userId: 'user', agentMode: 'auto' },
       update: { agentMode: 'auto' },
+      select: { isDeleted: true },
     });
     expect(state).toEqual({ mode: 'auto', savedMode: 'auto' });
   });
+  it.each([undefined, 'thread'])(
+    'rejects deleted settings atomically with thread %s',
+    async (threadId) => {
+      const { service, state, upsert } = fixture();
+      upsert.mockImplementation(async () => {
+        state.savedMode = 'auto';
+        return { isDeleted: true };
+      });
+      await expect(
+        service.updateAgentMode('user', 'org', AgentThreadMode.AUTO, threadId),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(state).toEqual({ mode: 'manual', savedMode: 'manual' });
+      expect(upsert).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: { userId: 'user' },
+          update: { agentMode: 'auto' },
+        }),
+      );
+    },
+  );
   it('rolls back thread changes if setting persistence fails', async () => {
     const { service, state, upsert } = fixture();
     upsert.mockRejectedValue(new Error('setting unavailable'));

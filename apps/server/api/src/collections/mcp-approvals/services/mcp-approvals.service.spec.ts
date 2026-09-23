@@ -217,6 +217,96 @@ describe('McpApprovalsService', () => {
   });
 
   describe('resolve', () => {
+    it.each(['approve', 'decline'] as const)(
+      'uses only the supplied transaction for %s',
+      async (decision) => {
+        const txApproval = {
+          findFirst: vi.fn().mockResolvedValue({
+            id: 'approval-tx',
+            toolName: 'generate_content_batch',
+            status: 'PENDING',
+          }),
+          updateMany: vi.fn().mockResolvedValue({ count: 1 }),
+        };
+        const tx = {
+          mcpApproval: txApproval,
+        } as unknown as Prisma.TransactionClient;
+        await service.resolve(
+          'approval-tx',
+          'org-1',
+          decision,
+          { ok: true },
+          undefined,
+          tx,
+        );
+        expect(mcpApproval.findFirst).not.toHaveBeenCalled();
+        expect(mcpApproval.updateMany).not.toHaveBeenCalled();
+        expect(txApproval.findFirst).toHaveBeenCalledWith({
+          where: {
+            id: 'approval-tx',
+            organizationId: 'org-1',
+            isDeleted: false,
+          },
+        });
+        expect(txApproval.updateMany).toHaveBeenCalledWith({
+          where: {
+            id: 'approval-tx',
+            organizationId: 'org-1',
+            isDeleted: false,
+            status: 'PENDING',
+          },
+          data: {
+            status: decision === 'approve' ? 'APPROVED' : 'DECLINED',
+            resolvedAt: expect.any(Date),
+            result: { ok: true },
+          },
+        });
+      },
+    );
+    it('retains publishing restrictions inside a transaction', async () => {
+      const txApproval = {
+        findFirst: vi.fn().mockResolvedValue({ toolName: 'post_social_reply' }),
+        updateMany: vi.fn(),
+      };
+      await expect(
+        service.resolve(
+          'approval-tx',
+          'org-1',
+          'approve',
+          undefined,
+          { isApiKey: true, scopes: [ApiKeyScope.POSTS_PUBLISH] },
+          { mcpApproval: txApproval } as unknown as Prisma.TransactionClient,
+        ),
+      ).rejects.toMatchObject({
+        response: expect.objectContaining({
+          code: 'API_KEY_PUBLISHING_SCOPE_REQUIRED',
+        }),
+      });
+      expect(txApproval.updateMany).not.toHaveBeenCalled();
+      expect(mcpApproval.findFirst).not.toHaveBeenCalled();
+    });
+    it.each([null, { id: 'approval-tx', toolName: 'generate_content_batch' }])(
+      'retains transactional missing and lost-race errors for %j',
+      async (approval) => {
+        const txApproval = {
+          findFirst: vi.fn().mockResolvedValue(approval),
+          updateMany: vi.fn().mockResolvedValue({ count: 0 }),
+        };
+        await expect(
+          service.resolve(
+            'approval-tx',
+            'org-1',
+            'decline',
+            undefined,
+            undefined,
+            { mcpApproval: txApproval } as unknown as Prisma.TransactionClient,
+          ),
+        ).rejects.toBeInstanceOf(
+          approval ? BadRequestException : NotFoundException,
+        );
+        expect(mcpApproval.findFirst).not.toHaveBeenCalled();
+      },
+    );
     it('atomically flips PENDING -> APPROVED via updateMany and sets resolvedAt + result', async () => {
       const updated = {
         id: 'approval-3',
