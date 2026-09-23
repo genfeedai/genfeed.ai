@@ -15,6 +15,7 @@ The onboarding sequence is brand context → proactively generated image and twe
 
 **How to apply:**
 
+- Keep initial brand setup to three small steps: profile selection; optional website plus one shared brand/workspace name; optional audience and tone. Suggest a website from professional email only, derive the name from the website until manually edited, and preserve answers when moving back.
 - Have the agent deliver the first draft proactively, without requiring a kickoff prompt.
 - Present the draft in a focused, Genfeed-branded onboarding surface with the user's brand context and honest generation progress.
 - Use a cost-conscious image model and text generation for the first image plus tweet. No specific model or numeric budget was selected in this decision.

@@ -1,10 +1,12 @@
 'use client';
 
 import { useOnboarding } from '@contexts/onboarding/onboarding-context';
+import { useCurrentUser } from '@contexts/user/user-context/user-context';
 import { isDesktopClient } from '@genfeedai/config/deployment';
 import { LinkCategory, type OrganizationCategory } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IBrandAgentConfig } from '@genfeedai/contracts/interfaces';
+import { resolveSignupBrandDomain } from '@genfeedai/helpers';
 import { useAuthIdentity } from '@genfeedai/hooks/auth/use-auth-identity/use-auth-identity';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
 import { useGsapTimeline } from '@hooks/ui/use-gsap-entrance';
@@ -102,15 +104,18 @@ function BrandContentContent() {
     useOnboarding();
   const translate = useTranslations('pages.onboarding.brand');
   const searchParams = useSearchParams();
-  const isAutoRequested = searchParams.get('auto') === 'true';
+  const { currentUser } = useCurrentUser();
+  const [step, setStep] = useState(1);
+  const [prefillReady, setPrefillReady] = useState(false);
   const initialBrandName =
     localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandName) ?? '';
   const initialWebsiteUrl =
     localStorage.getItem(ONBOARDING_STORAGE_KEYS.brandDomain) ?? '';
 
-  const [brandName, setBrandName] = useState(() => initialBrandName);
-  const [organizationName, setOrganizationName] = useState(
-    () => initialBrandName,
+  const [brandName, setBrandName] = useState(
+    () =>
+      initialBrandName ||
+      deriveBrandNameFromDomain(extractBrandDomain(initialWebsiteUrl) ?? ''),
   );
   const [websiteUrl, setWebsiteUrl] = useState(() => initialWebsiteUrl);
   const [targetAudience, setTargetAudience] = useState('');
@@ -120,8 +125,9 @@ function BrandContentContent() {
   const [accountType, setAccountType] = useState<OrganizationCategory | null>(
     null,
   );
-  const autoScanRef = useRef(false);
-  const prefetchedRef = useRef(false);
+  const nameEditedRef = useRef(!!initialBrandName);
+  const websiteEditedRef = useRef(false);
+  const accountTypeEditedRef = useRef(false);
   // Resource ids resolved during prefill; the collapsed onboarding routes are
   // now resource PATCH/POST on /brands and /organizations (REST audit #1354).
   const brandIdRef = useRef<string | null>(null);
@@ -129,10 +135,6 @@ function BrandContentContent() {
 
   // Prefill form fields from existing brand/organization data
   useEffect(() => {
-    if (prefetchedRef.current) {
-      return;
-    }
-
     const controller = new AbortController();
 
     const prefill = async () => {
@@ -142,7 +144,6 @@ function BrandContentContent() {
           return;
         }
 
-        prefetchedRef.current = true;
         const service = UsersService.getInstance(token);
 
         if (controller.signal.aborted) {
@@ -155,6 +156,10 @@ function BrandContentContent() {
           service.findMeOrganizations(),
         ]);
 
+        if (controller.signal.aborted) {
+          return;
+        }
+
         const brand = brands[0];
         const org = organizations[0];
 
@@ -165,21 +170,20 @@ function BrandContentContent() {
           orgIdRef.current = org.id;
         }
 
-        if (!isPlaceholderName(brand?.label)) {
-          setBrandName((prev) => prev || brand.label);
-        }
-
-        if (!isPlaceholderName(org?.label)) {
-          setOrganizationName((prev) => prev || org.label);
-        } else if (!isPlaceholderName(brand?.label)) {
-          setOrganizationName((prev) => prev || brand.label);
+        if (!nameEditedRef.current) {
+          const label = !isPlaceholderName(brand?.label)
+            ? brand?.label
+            : org?.label;
+          if (!isPlaceholderName(label)) {
+            setBrandName((prev) => prev || label || '');
+          }
         }
 
         const websiteLink = brand?.links?.find(
           (link) => link?.category === LinkCategory.WEBSITE && !!link.url,
         );
 
-        if (websiteLink?.url) {
+        if (websiteLink?.url && !websiteEditedRef.current) {
           setWebsiteUrl((prev) => prev || websiteLink.url || '');
         }
 
@@ -187,28 +191,19 @@ function BrandContentContent() {
           searchParams.get('accountType') ??
             localStorage.getItem(ONBOARDING_STORAGE_KEYS.accountType),
         );
-        if (requestedAccountType && org?.id) {
-          // A signup CTA preselected the account type (e.g. the Expert landing
-          // page). Persist it so the wizard routes the matching steps.
-          setAccountType(requestedAccountType);
-          setOnboardingAccountType(requestedAccountType);
-          await OrganizationsService.getInstance(token).updateAccountType(
-            org.id,
-            requestedAccountType,
-          );
-          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accountType);
-        } else if (org?.accountType || org?.category) {
+        if (!accountTypeEditedRef.current) {
           setAccountType(
-            (prev) => prev ?? (org.accountType || org.category || null),
+            requestedAccountType ?? org?.accountType ?? org?.category ?? null,
           );
-          if (org.accountType) {
-            setOnboardingAccountType(org.accountType);
-          }
         }
       } catch (error) {
         logger.error('Failed to prefill onboarding data', error);
         if (!controller.signal.aborted) {
           setErrorMessage(translate('errors.initialization'));
+        }
+      } finally {
+        if (!controller.signal.aborted) {
+          setPrefillReady(true);
         }
       }
     };
@@ -218,7 +213,7 @@ function BrandContentContent() {
     return () => {
       controller.abort();
     };
-  }, [getToken, searchParams, setOnboardingAccountType, translate]);
+  }, [getToken, searchParams, translate]);
 
   const resolveBrandId = useCallback(
     async (token: string): Promise<string | null> => {
@@ -248,156 +243,149 @@ function BrandContentContent() {
   );
 
   const handleAccountTypeSelect = useCallback(
-    async (category: OrganizationCategory) => {
+    (category: OrganizationCategory) => {
+      accountTypeEditedRef.current = true;
       setAccountType(category);
-      setOnboardingAccountType(category);
       setErrorMessage(null);
-      try {
-        const token = await resolveAuthToken(getToken);
-        if (!token) {
-          throw new Error('Authentication is unavailable');
-        }
-        const orgId = await resolveOrgId(token);
-        if (!orgId) {
-          throw new Error('No organization found for the current workspace');
-        }
-        await OrganizationsService.getInstance(token).updateAccountType(
-          orgId,
-          category,
-        );
-      } catch (error) {
-        logger.error('Failed to set account type', error);
-        setErrorMessage(translate('errors.accountType'));
-      }
     },
-    [getToken, resolveOrgId, setOnboardingAccountType, translate],
+    [],
   );
 
-  const handleContinue = useCallback(
-    async ({
-      brandNameOverride,
-      organizationNameOverride,
-      skipWebsite = false,
-      urlOverride,
-    }: {
-      brandNameOverride?: string;
-      organizationNameOverride?: string;
-      skipWebsite?: boolean;
-      urlOverride?: string;
-    } = {}) => {
-      const effectiveBrandName = (brandNameOverride ?? brandName).trim();
-      const effectiveOrganizationName = (
-        organizationNameOverride ?? organizationName
-      ).trim();
-      if (!effectiveBrandName || !effectiveOrganizationName) {
-        return;
+  const handleProfileContinue = useCallback(async () => {
+    if (!accountType || submitting) return;
+    setSubmitting(true);
+    setErrorMessage(null);
+    try {
+      const token = await resolveAuthToken(getToken);
+      if (!token) throw new Error('Authentication is unavailable');
+      const orgId = await resolveOrgId(token);
+      if (!orgId)
+        throw new Error('No organization found for the current workspace');
+      await OrganizationsService.getInstance(token).updateAccountType(
+        orgId,
+        accountType,
+      );
+      setOnboardingAccountType(accountType);
+      localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accountType);
+      setStep(2);
+    } catch (error) {
+      logger.error('Failed to set account type', error);
+      setErrorMessage(translate('errors.accountType'));
+    } finally {
+      setSubmitting(false);
+    }
+  }, [
+    accountType,
+    submitting,
+    getToken,
+    resolveOrgId,
+    setOnboardingAccountType,
+    translate,
+  ]);
+
+  const handleContinue = useCallback(async () => {
+    const effectiveBrandName = brandName.trim();
+    const effectiveOrganizationName = effectiveBrandName;
+    if (!effectiveBrandName || submitting) return;
+
+    setSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      const token = await resolveAuthToken(getToken);
+      if (!token) {
+        throw new Error('Authentication is unavailable');
       }
 
-      setSubmitting(true);
-      setErrorMessage(null);
+      const brandUrl = normalizeWebsiteUrl(websiteUrl);
+      const brandDomain = extractBrandDomain(brandUrl);
 
-      try {
-        const token = await resolveAuthToken(getToken);
-        if (!token) {
-          throw new Error('Authentication is unavailable');
-        }
+      localStorage.setItem(
+        ONBOARDING_STORAGE_KEYS.brandName,
+        effectiveBrandName,
+      );
 
-        const brandUrl = skipWebsite
-          ? null
-          : normalizeWebsiteUrl(urlOverride ?? websiteUrl);
-        const brandDomain = extractBrandDomain(brandUrl);
-
-        localStorage.setItem(
-          ONBOARDING_STORAGE_KEYS.brandName,
-          effectiveBrandName,
-        );
-
-        if (brandDomain) {
-          localStorage.setItem(
-            ONBOARDING_STORAGE_KEYS.brandDomain,
-            brandDomain,
-          );
-        } else {
-          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
-        }
-
-        const brandId = await resolveBrandId(token);
-        if (!brandId) {
-          throw new Error('No brand found for the current workspace');
-        }
-
-        const brandsService = BrandsService.getInstance(token);
-        const trimmedTargetAudience = targetAudience.trim();
-        const trimmedTone = tone.trim();
-        const guidancePrompt = buildBrandGuidance({
-          brandName: effectiveBrandName,
-          organizationName: effectiveOrganizationName,
-          ...(trimmedTargetAudience
-            ? { targetAudience: trimmedTargetAudience }
-            : {}),
-          ...(trimmedTone ? { tone: trimmedTone } : {}),
-        });
-        const voiceConfig: IBrandAgentConfig | undefined =
-          trimmedTargetAudience || trimmedTone
-            ? {
-                voice: {
-                  ...(trimmedTargetAudience
-                    ? { audience: [trimmedTargetAudience] }
-                    : {}),
-                  ...(trimmedTone ? { tone: trimmedTone } : {}),
-                },
-              }
-            : undefined;
-
-        await brandsService.renameWithOrganizationSync(
-          brandId,
-          effectiveBrandName,
-          {
-            description: guidancePrompt,
-            organizationLabel: effectiveOrganizationName,
-            text: guidancePrompt,
-            ...(voiceConfig ? { agentConfig: voiceConfig } : {}),
-          },
-        );
-
-        if (brandUrl) {
-          // Enrichment should not block the user from continuing.
-          void brandsService
-            .scrape(brandId, {
-              brandName: effectiveBrandName,
-              brandUrl,
-              organizationName: effectiveOrganizationName,
-              ...(trimmedTone
-                ? { additionalNotes: `Preferred tone: ${trimmedTone}` }
-                : {}),
-              ...(trimmedTargetAudience
-                ? { targetAudience: trimmedTargetAudience }
-                : {}),
-            })
-            .catch((error) => {
-              logger.error('Failed to scrape brand during onboarding', error);
-            });
-        }
-
-        await handleStepComplete('brand');
-      } catch (error) {
-        logger.error('Failed to continue onboarding', error);
-        setErrorMessage(translate('errors.continue'));
-        setSubmitting(false);
+      if (brandDomain) {
+        localStorage.setItem(ONBOARDING_STORAGE_KEYS.brandDomain, brandDomain);
+      } else {
+        localStorage.removeItem(ONBOARDING_STORAGE_KEYS.brandDomain);
       }
-    },
-    [
-      getToken,
-      brandName,
-      organizationName,
-      websiteUrl,
-      resolveBrandId,
-      targetAudience,
-      tone,
-      handleStepComplete,
-      translate,
-    ],
-  );
+
+      const brandId = await resolveBrandId(token);
+      if (!brandId) {
+        throw new Error('No brand found for the current workspace');
+      }
+
+      const brandsService = BrandsService.getInstance(token);
+      const trimmedTargetAudience = targetAudience.trim();
+      const trimmedTone = tone.trim();
+      const guidancePrompt = buildBrandGuidance({
+        brandName: effectiveBrandName,
+        organizationName: effectiveOrganizationName,
+        ...(trimmedTargetAudience
+          ? { targetAudience: trimmedTargetAudience }
+          : {}),
+        ...(trimmedTone ? { tone: trimmedTone } : {}),
+      });
+      const voiceConfig: IBrandAgentConfig | undefined =
+        trimmedTargetAudience || trimmedTone
+          ? {
+              voice: {
+                ...(trimmedTargetAudience
+                  ? { audience: [trimmedTargetAudience] }
+                  : {}),
+                ...(trimmedTone ? { tone: trimmedTone } : {}),
+              },
+            }
+          : undefined;
+
+      await brandsService.renameWithOrganizationSync(
+        brandId,
+        effectiveBrandName,
+        {
+          description: guidancePrompt,
+          organizationLabel: effectiveOrganizationName,
+          text: guidancePrompt,
+          ...(voiceConfig ? { agentConfig: voiceConfig } : {}),
+        },
+      );
+
+      if (brandUrl) {
+        // Enrichment should not block the user from continuing.
+        void brandsService
+          .scrape(brandId, {
+            brandName: effectiveBrandName,
+            brandUrl,
+            organizationName: effectiveOrganizationName,
+            ...(trimmedTone
+              ? { additionalNotes: `Preferred tone: ${trimmedTone}` }
+              : {}),
+            ...(trimmedTargetAudience
+              ? { targetAudience: trimmedTargetAudience }
+              : {}),
+          })
+          .catch((error) => {
+            logger.error('Failed to scrape brand during onboarding', error);
+          });
+      }
+
+      await handleStepComplete('brand');
+    } catch (error) {
+      logger.error('Failed to continue onboarding', error);
+      setErrorMessage(translate('errors.continue'));
+      setSubmitting(false);
+    }
+  }, [
+    getToken,
+    brandName,
+    submitting,
+    websiteUrl,
+    resolveBrandId,
+    targetAudience,
+    tone,
+    handleStepComplete,
+    translate,
+  ]);
 
   const handleSkipOnboarding = useCallback(async () => {
     setSubmitting(true);
@@ -418,6 +406,22 @@ function BrandContentContent() {
         throw new Error('No organization found for the current workspace');
       }
 
+      if (accountType) {
+        try {
+          await OrganizationsService.getInstance(token).updateAccountType(
+            orgId,
+            accountType,
+          );
+          setOnboardingAccountType(accountType);
+          localStorage.removeItem(ONBOARDING_STORAGE_KEYS.accountType);
+        } catch (error) {
+          logger.error(
+            'Failed to save optional profile while skipping onboarding',
+            error,
+          );
+        }
+      }
+
       // Skip completes the onboarding *gate* so we do not force the wizard
       // again. Brand setup stays at `/onboarding/brand` for later.
       await OrganizationsService.getInstance(token).patchSettings(orgId, {
@@ -432,59 +436,82 @@ function BrandContentContent() {
       setErrorMessage(translate('errors.skip'));
       setSubmitting(false);
     }
-  }, [getToken, push, resolveOrgId, translate]);
+  }, [
+    accountType,
+    getToken,
+    push,
+    resolveOrgId,
+    setOnboardingAccountType,
+    translate,
+  ]);
 
   const handleWebsiteUrlChange = useCallback((value: string) => {
+    websiteEditedRef.current = true;
     setWebsiteUrl(value);
-
     const domain = extractBrandDomain(value);
-    if (!domain) {
-      return;
+    if (domain && !nameEditedRef.current) {
+      setBrandName(deriveBrandNameFromDomain(domain));
     }
-
-    const inferredBrandName = deriveBrandNameFromDomain(domain);
-    setBrandName((prev) => prev || inferredBrandName);
-    setOrganizationName((prev) => prev || inferredBrandName);
   }, []);
 
-  // Auto mode pre-fills from the corporate email domain; the user confirms.
   useEffect(() => {
-    if (autoScanRef.current) {
+    if (step > 2 || !prefillReady || websiteEditedRef.current || websiteUrl)
       return;
+    const suggestion = resolveSignupBrandDomain({ email: currentUser?.email });
+    if (!suggestion.websiteUrl) return;
+    setWebsiteUrl(suggestion.websiteUrl);
+    if (!nameEditedRef.current) {
+      setBrandName((prev) => prev || suggestion.brandName || '');
     }
+  }, [step, prefillReady, currentUser?.email, websiteUrl]);
 
-    if (isAutoRequested && websiteUrl) {
-      const inferredBrandName =
-        brandName.trim() || deriveBrandNameFromDomain(websiteUrl);
-      autoScanRef.current = true;
-      setBrandName((prev) => prev || inferredBrandName);
-      setOrganizationName((prev) => prev || inferredBrandName);
+  const handleNext = () => {
+    if (submitting) return;
+    if (step === 1) {
+      void handleProfileContinue();
+    } else if (step === 2 && brandName.trim()) {
+      nameEditedRef.current = true;
+      websiteEditedRef.current = true;
+      setErrorMessage(null);
+      setStep(3);
+    } else if (step === 3) {
+      void handleContinue();
     }
-  }, [isAutoRequested, websiteUrl, brandName]);
+  };
 
   return (
     <div ref={sectionRef}>
-      <BrandStepHeader />
+      <BrandStepHeader step={step} />
 
-      <BrandAccountTypeSelector
-        accountType={accountType}
-        onSelect={handleAccountTypeSelect}
-      />
+      {step === 1 && (
+        <BrandAccountTypeSelector
+          accountType={accountType}
+          onSelect={handleAccountTypeSelect}
+          disabled={submitting}
+        />
+      )}
 
       <BrandFormFields
         brandName={brandName}
-        organizationName={organizationName}
+        step={step}
+        canContinue={step === 1 ? !!accountType : !!brandName.trim()}
         websiteUrl={websiteUrl}
         targetAudience={targetAudience}
         tone={tone}
         errorMessage={errorMessage}
         submitting={submitting}
-        onBrandNameChange={setBrandName}
-        onOrganizationNameChange={setOrganizationName}
+        onBrandNameChange={(value) => {
+          nameEditedRef.current = true;
+          setBrandName(value);
+        }}
         onWebsiteUrlChange={handleWebsiteUrlChange}
         onTargetAudienceChange={setTargetAudience}
         onToneChange={setTone}
-        onContinue={() => handleContinue()}
+        onContinue={handleNext}
+        onBack={() => {
+          setErrorMessage(null);
+          setStep((current) => current - 1);
+        }}
         onSkip={handleSkipOnboarding}
       />
     </div>

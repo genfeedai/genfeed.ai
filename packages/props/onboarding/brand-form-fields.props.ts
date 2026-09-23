@@ -1,13 +1,14 @@
 export interface BrandFormFieldsProps {
   brandName: string;
-  organizationName: string;
+  step: number;
+  canContinue: boolean;
   targetAudience: string;
   tone: string;
   websiteUrl: string;
   errorMessage: string | null;
   submitting: boolean;
   onBrandNameChange: (value: string) => void;
-  onOrganizationNameChange: (value: string) => void;
+  onBack: () => void;
   onTargetAudienceChange: (value: string) => void;
   onToneChange: (value: string) => void;
   onWebsiteUrlChange: (value: string) => void;
@@ -18,4 +19,8 @@ export interface BrandFormFieldsProps {
 export interface ChipOption {
   label: string;
   value: string;
+}
+
+export interface BrandStepHeaderProps {
+  step: number;
 }

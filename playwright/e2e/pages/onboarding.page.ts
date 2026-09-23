@@ -25,7 +25,6 @@ export class OnboardingPage {
   readonly loadingSpinner: Locator;
 
   readonly brandNameInput: Locator;
-  readonly organizationNameInput: Locator;
   readonly websiteUrlInput: Locator;
 
   readonly providerCards: Locator;
@@ -46,7 +45,6 @@ export class OnboardingPage {
     this.loadingSpinner = page.locator('.animate-spin');
 
     this.brandNameInput = page.locator('#brand-name');
-    this.organizationNameInput = page.locator('#organization-name');
     this.websiteUrlInput = page.locator('#brand-website-url');
 
     this.providerCards = page.locator('.provider-card');
@@ -103,14 +101,27 @@ export class OnboardingPage {
 
   async fillBrand(data: {
     brandName: string;
-    organizationName: string;
     websiteUrl?: string;
   }): Promise<void> {
+    await this.openBrandDetails();
     await this.brandNameInput.fill(data.brandName);
-    await this.organizationNameInput.fill(data.organizationName);
     if (data.websiteUrl) {
       await this.websiteUrlInput.fill(data.websiteUrl);
     }
+    await this.continueButton.click();
+    await expect(this.headline).toHaveText('Give it your voice.');
+  }
+
+  async openBrandDetails(): Promise<void> {
+    if (await this.brandNameInput.isVisible()) return;
+    await expect(
+      this.page.getByRole('button', { name: /^Business/ }),
+    ).toBeVisible();
+    if (await this.continueButton.isDisabled()) {
+      await this.page.getByRole('button', { name: /^Business/ }).click();
+    }
+    await this.continueButton.click();
+    await expect(this.brandNameInput).toBeVisible();
   }
 
   async clickContinue(): Promise<void> {

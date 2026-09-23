@@ -206,7 +206,7 @@ describe('AgentContextAssemblyService', () => {
       organizationId: 'org-1',
     });
 
-    expect(context.voice).toMatchObject({
+    expect(context?.voice).toMatchObject({
       audience: 'Founders',
       tone: 'direct',
     });
