@@ -14,10 +14,10 @@ Deduplicate by id. Persist before acknowledging with 2xx. Reject redirects.
 
 Events: user.created; subscription.created/updated/canceled;
 subscription.payment_succeeded; payment.failed; credits.purchased. Billing emits
-only live, verified events after processing. Subscription checkout is deliberately
+only live events after signature validation. Subscription checkout is deliberately
 not a second payment notification. A zero amount is a free redemption, not revenue.
 
-The existing notification-delivery recovery schedule dispatches due rows with a
+The existing once-per-minute notification-delivery recovery schedule dispatches due rows with a
 lease, retrying failures with backoff capped at one hour. Receiver outages never
 make signup or billing wait for external HTTP. Outbox persistence failures cause
 Stripe retries; signup failures recover from the users table. This is at-least-once
