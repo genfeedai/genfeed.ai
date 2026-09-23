@@ -3,6 +3,7 @@ import {
   PROMPT_ENHANCEMENT_MODEL,
   PromptEnhancementService,
 } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+import { PromptStatus } from '@genfeedai/contracts';
 import { describe, expect, it, vi } from 'vitest';
 
 const input = {
@@ -48,7 +49,7 @@ describe('PromptEnhancementService', () => {
       brandId: 'selected-brand',
       isDeleted: false,
       isSkipEnhancement: false,
-      status: 'generated',
+      status: PromptStatus.GENERATED,
       enhanced: input.userPrompt,
     });
     expect(openRouter.chatCompletion).not.toHaveBeenCalled();
