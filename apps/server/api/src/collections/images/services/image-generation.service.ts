@@ -36,6 +36,7 @@ import {
   toRedactedGenerationBriefProviderData,
 } from '@api/services/generation-brief';
 import type { ImageGenerationBriefDispatch } from '@api/services/generation-brief/image-generation-brief-registry';
+import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -55,6 +56,7 @@ import type {
   ImageGenerationBriefReference,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import { buildGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import type {
   GenerationHarnessReceipt,
@@ -146,6 +148,7 @@ export class ImageGenerationService {
       contentType: 'image',
       model,
       harness: createImageDto.harness,
+      promptId: createImageDto.promptId,
     });
     if (request.generationOriginalPrompt !== undefined) {
       if (
@@ -211,8 +214,13 @@ export class ImageGenerationService {
       width,
     });
 
-    if (compiledBrief.dispatch && generationHarness.status === 'skipped') {
-      compiledBrief.dispatch.prompt = generationHarness.originalPrompt;
+    if (generationHarness.status === 'skipped') {
+      if (compiledBrief.dispatch)
+        compiledBrief.dispatch.prompt = generationHarness.originalPrompt;
+      compiledBrief.evidence = rawPromptBriefEvidence(compiledBrief.evidence);
+      compiledBrief.generationSource = buildGenerationBriefExemptionSource(
+        'raw_prompt_requested',
+      );
     }
 
     const { promptData, metadataData, ingredientData, providerInput } =
@@ -594,28 +602,35 @@ export class ImageGenerationService {
     const submittedPrompt = submittedPromptId
       ? await this.promptsService.findOne({
           id: submittedPromptId,
+          isDeleted: false,
           organizationId: user.organizationId,
           userId: user.userId ?? user.id,
         })
       : null;
-    const promptData = submittedPrompt
-      ? await this.promptsService.patch(submittedPrompt.id, {
-          model,
-          status: PromptStatus.PROCESSING,
-        })
-      : await this.promptsService.create(
-          new PromptEntity({
-            brandId: isEntityId(createImageDto.brandId)
-              ? createImageDto.brandId
-              : user.brandId,
-            category: PromptCategory.MODELS_PROMPT_IMAGE,
+    const isReviewedPrompt =
+      submittedPrompt?.status === PromptStatus.GENERATED &&
+      !submittedPrompt.isSkipEnhancement &&
+      submittedPrompt.enhanced === promptOriginalText;
+    const promptData = isReviewedPrompt
+      ? submittedPrompt
+      : submittedPrompt
+        ? await this.promptsService.patch(submittedPrompt.id, {
             model,
-            organizationId: user.organizationId,
-            original: promptOriginalText,
             status: PromptStatus.PROCESSING,
-            userId: user.userId ?? user.id,
-          }),
-        );
+          })
+        : await this.promptsService.create(
+            new PromptEntity({
+              brandId: isEntityId(createImageDto.brandId)
+                ? createImageDto.brandId
+                : user.brandId,
+              category: PromptCategory.MODELS_PROMPT_IMAGE,
+              model,
+              organizationId: user.organizationId,
+              original: promptOriginalText,
+              status: PromptStatus.PROCESSING,
+              userId: user.userId ?? user.id,
+            }),
+          );
 
     let providerInput: Record<string, unknown> | undefined;
     let imageTemplateUsed: string | undefined;

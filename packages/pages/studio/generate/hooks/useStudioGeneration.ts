@@ -3,7 +3,6 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type {
-  BaseGenerationPayload,
   GenerationResponse,
   SocketResult,
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
@@ -68,8 +67,13 @@ export interface UseStudioGenerationReturn {
   submit: (
     promptText: string,
     references?: StudioGenerationReferences,
-    options?: Pick<BaseGenerationPayload, 'harness'>,
+    options?: StudioGenerationOptions,
   ) => Promise<void>;
+}
+
+export interface StudioGenerationOptions {
+  harness?: boolean;
+  promptId?: string;
 }
 
 export interface StudioGenerationReferences {
@@ -506,7 +510,7 @@ export function useStudioGeneration({
     async (
       promptText: string,
       references: StudioGenerationReferences = {},
-      options?: Pick<BaseGenerationPayload, 'harness'>,
+      options?: StudioGenerationOptions,
     ) => {
       if (submittingRef.current) {
         return;
@@ -598,6 +602,7 @@ export function useStudioGeneration({
             const payload = buildImagePayload(
               {
                 ...buildBaseGenerationPayload(promptData, modelKey, brandId),
+                ...(options?.promptId ? { promptId: options.promptId } : {}),
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),
@@ -623,6 +628,7 @@ export function useStudioGeneration({
                   modelKey,
                   brandId,
                 ),
+                ...(options?.promptId ? { promptId: options.promptId } : {}),
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
                   : {}),

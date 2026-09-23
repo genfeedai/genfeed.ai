@@ -1,6 +1,17 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import GenerationHarnessSettingsCard from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsCard';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactNode } from 'react';
 import { describe, expect, it, vi } from 'vitest';
+import messages from '../../../../../../apps/app/messages/en/ui.json';
+
+function EnglishMessages({ children }: { children: ReactNode }) {
+  return (
+    <NextIntlClientProvider locale="en" messages={{ ui: messages }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
 
 const settings = {
   organizationEnabled: true,
@@ -24,7 +35,9 @@ function props() {
 describe('GenerationHarnessSettingsCard', () => {
   it('offers a distinct brand override and inheritance without changing the organization', () => {
     const input = props();
-    render(<GenerationHarnessSettingsCard {...input} />);
+    render(<GenerationHarnessSettingsCard {...input} />, {
+      wrapper: EnglishMessages,
+    });
     const group = within(
       screen.getByRole('group', { name: 'Brand prompt enhancement' }),
     );
@@ -39,7 +52,9 @@ describe('GenerationHarnessSettingsCard', () => {
   });
   it('exposes organization default and reset with accessible names', () => {
     const input = props();
-    render(<GenerationHarnessSettingsCard {...input} />);
+    render(<GenerationHarnessSettingsCard {...input} />, {
+      wrapper: EnglishMessages,
+    });
     fireEvent.click(
       screen.getByRole('switch', { name: 'Organization prompt enhancement' }),
     );
@@ -53,6 +68,7 @@ describe('GenerationHarnessSettingsCard', () => {
     const input = props();
     const { rerender } = render(
       <GenerationHarnessSettingsCard {...input} isSaving />,
+      { wrapper: EnglishMessages },
     );
     expect(screen.getByRole('switch')).toBeDisabled();
     expect(screen.getByText('Saving…')).toBeInTheDocument();

@@ -453,6 +453,11 @@ describe('ImageGenerationService', () => {
           status: 'skipped',
           appliedPacks: [],
         }),
+        generationSource: 'generation-brief-exemption:raw_prompt_requested',
+        providerData: expect.objectContaining({
+          status: 'exempted',
+          reason: 'raw_prompt_requested',
+        }),
       }),
     );
   });
@@ -625,6 +630,28 @@ describe('ImageGenerationService', () => {
   });
 
   describe('prompt persistence', () => {
+    it('keeps a reviewed enhancement reusable without changing its status', async () => {
+      const promptId = testId('prompt');
+      const { service, promptsService, enhancementService } = createService();
+      promptsService.findOne.mockResolvedValue({
+        id: promptId,
+        original: 'Raw idea',
+        enhanced: 'Reviewed text',
+        status: PromptStatus.GENERATED,
+        isSkipEnhancement: false,
+      });
+      await service.generateImage(
+        buildUser(),
+        baseDto({ promptId, text: 'Reviewed text' }),
+        buildRequest(),
+      );
+      expect(promptsService.patch).not.toHaveBeenCalled();
+      expect(promptsService.create).not.toHaveBeenCalled();
+      expect(enhancementService.enhance).toHaveBeenCalledWith(
+        expect.objectContaining({ promptId, prompt: 'Reviewed text' }),
+      );
+    });
+
     it('reuses a submitted prompt document instead of creating a duplicate', async () => {
       const promptId = testId('prompt');
       const { service, promptsService } = createService();

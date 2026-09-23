@@ -417,10 +417,10 @@ describe('useStudioPromptEnhancement', () => {
         await result.current.enhancePrompt();
       });
       act(() => getSubscribedHandler().onCompleted('Reviewed result'));
-      expect(result.current.isCurrentPromptEnhanced).toBe(true);
+      expect(result.current.enhancedPromptId).toBe('prompt-123');
       act(() => vi.advanceTimersByTime(30001));
       expect(result.current.previousPrompt).toBeNull();
-      expect(result.current.isCurrentPromptEnhanced).toBe(true);
+      expect(result.current.enhancedPromptId).toBe('prompt-123');
     } finally {
       vi.useRealTimers();
     }
@@ -443,20 +443,20 @@ describe('useStudioPromptEnhancement', () => {
       await result.current.enhancePrompt();
     });
     act(() => getSubscribedHandler().onCompleted('Reviewed result'));
-    expect(result.current.isCurrentPromptEnhanced).toBe(true);
+    expect(result.current.enhancedPromptId).toBe('prompt-123');
     act(() => result.current.undoEnhance());
-    expect(result.current.isCurrentPromptEnhanced).toBe(false);
+    expect(result.current.enhancedPromptId).toBeUndefined();
     await act(async () => {
       await result.current.enhancePrompt();
     });
     act(() =>
       mockSubscribe.mock.calls.at(-1)?.[1].onCompleted('Reviewed again'),
     );
-    expect(result.current.isCurrentPromptEnhanced).toBe(true);
+    expect(result.current.enhancedPromptId).toBe('prompt-123');
     act(() => result.current.setPrompt('Edited result'));
-    expect(result.current.isCurrentPromptEnhanced).toBe(false);
+    expect(result.current.enhancedPromptId).toBeUndefined();
     act(() => result.current.setPrompt('Reviewed again'));
-    expect(result.current.isCurrentPromptEnhanced).toBe(false);
+    expect(result.current.enhancedPromptId).toBeUndefined();
   });
 
   it.each(['brandId', 'modelKey'] as const)(
@@ -478,11 +478,11 @@ describe('useStudioPromptEnhancement', () => {
         await result.current.enhancePrompt();
       });
       act(() => getSubscribedHandler().onCompleted('Reviewed result'));
-      expect(result.current.isCurrentPromptEnhanced).toBe(true);
+      expect(result.current.enhancedPromptId).toBe('prompt-123');
       rerender({ ...originalScope, [field]: 'different' });
-      expect(result.current.isCurrentPromptEnhanced).toBe(false);
+      expect(result.current.enhancedPromptId).toBeUndefined();
       rerender(originalScope);
-      expect(result.current.isCurrentPromptEnhanced).toBe(false);
+      expect(result.current.enhancedPromptId).toBeUndefined();
     },
   );
 
@@ -505,7 +505,7 @@ describe('useStudioPromptEnhancement', () => {
     rerender({ brandId: 'brand-2' });
     act(() => handler.onCompleted('Old scope result'));
     expect(onPromptChange).not.toHaveBeenCalled();
-    expect(result.current.isCurrentPromptEnhanced).toBe(false);
+    expect(result.current.enhancedPromptId).toBeUndefined();
     expect(result.current.isEnhancing).toBe(false);
   });
 });

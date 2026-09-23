@@ -57,7 +57,7 @@ const mocks = vi.hoisted(() => ({
   removeJob: vi.fn(),
   remixRun: { value: null as BrandRemixRunView | null },
   settings: vi.fn(),
-  isCurrentPromptEnhanced: { value: false },
+  enhancedPromptId: { value: undefined as string | undefined },
   cancelEnhance: vi.fn(),
   enhancePrompt: vi.fn(),
   undoEnhance: vi.fn(),
@@ -213,7 +213,7 @@ vi.mock('@pages/studio/generate/hooks/useStudioPromptEnhancement', () => ({
     undoEnhance: mocks.undoEnhance,
     isEnhancing: false,
     previousPrompt: null,
-    isCurrentPromptEnhanced: mocks.isCurrentPromptEnhanced.value,
+    enhancedPromptId: mocks.enhancedPromptId.value,
   }),
 }));
 
@@ -351,7 +351,7 @@ vi.mock('@pages/studio/generate/components/StudioRemixRunPanel', () => ({
 describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.isCurrentPromptEnhanced.value = false;
+    mocks.enhancedPromptId.value = undefined;
     mocks.isHydrated.value = true;
     mocks.brandId.value = 'brand-1';
     mocks.organizationId.value = 'org-1';
@@ -489,13 +489,17 @@ describe('StudioGenerateWorkspace', () => {
   });
 
   it.each([
-    ['Reviewed visual prompt', 'Reviewed visual prompt', { harness: false }],
+    [
+      'Reviewed visual prompt',
+      'Reviewed visual prompt',
+      { promptId: 'reviewed-prompt-id' },
+    ],
     ['@anna walking', 'Anna walking', undefined],
     ['/cinema Reviewed visual prompt', 'Reviewed visual prompt', undefined],
   ])(
-    'only skips automatic enhancement for unchanged reviewed text: %s',
+    'only reuses the stored prompt ID for unchanged reviewed text: %s',
     (prompt, submitted, options) => {
-      mocks.isCurrentPromptEnhanced.value = true;
+      mocks.enhancedPromptId.value = 'reviewed-prompt-id';
       render(<StudioGenerateWorkspace />);
       const initial = mocks.composer.mock.calls.at(-1)?.[0] as {
         onPromptChange: (text: string) => void;

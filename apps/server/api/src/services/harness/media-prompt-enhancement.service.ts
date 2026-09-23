@@ -15,6 +15,7 @@ export interface MediaPromptEnhancementInput {
   organizationId: string;
   brandId: string;
   prompt: string;
+  promptId?: string;
   contentType: 'image' | 'video';
   model?: string;
   harness?: boolean;
@@ -62,12 +63,11 @@ export class MediaPromptEnhancementService {
         organizationId: input.organizationId,
         brandId: input.brandId,
         userPrompt: input.prompt,
+        promptId: input.promptId,
         model: input.model,
         contentType: input.contentType,
       });
       stage = 'response';
-      if (!result.trim() || result.length > 8000)
-        throw new Error('Enhancement returned an invalid prompt');
       const enhancedPrompt = buildMediaPromptFromHarness(result, brief);
       stage = 'receipt';
       const loaded = await this.contentHarness.listLoadedPackVersions();

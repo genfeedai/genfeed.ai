@@ -192,6 +192,30 @@ describe('resolveModelKey', () => {
 
 describe('useStudioGeneration request payloads', () => {
   it.each(['image', 'video'] as const)(
+    'forwards the reviewed prompt ID to %s without disabling harness or making it sticky',
+    async (type) => {
+      const { result } = renderStudioGeneration({ type });
+      await act(async () => {
+        await result.current.submit(
+          'Reviewed result',
+          {},
+          { promptId: 'reviewed-prompt-id' },
+        );
+      });
+      const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      expect(post.mock.calls[0]?.[0]).toMatchObject({
+        promptId: 'reviewed-prompt-id',
+      });
+      expect(post.mock.calls[0]?.[0]).not.toHaveProperty('harness');
+      await act(async () => {
+        await result.current.submit('Other prompt');
+      });
+      expect(post.mock.calls[1]?.[0]).not.toHaveProperty('promptId');
+      expect(post.mock.calls[1]?.[0]).not.toHaveProperty('harness');
+    },
+  );
+
+  it.each(['image', 'video'] as const)(
     'forwards a per-request override to %s without making it sticky',
     async (type) => {
       const { result } = renderStudioGeneration({ type });
@@ -210,10 +234,15 @@ describe('useStudioGeneration request payloads', () => {
   it('does not forward a media enhancement override to music generation', async () => {
     const { result } = renderStudioGeneration({ type: 'music' });
     await act(async () => {
-      await result.current.submit('Music prompt', {}, { harness: false });
+      await result.current.submit(
+        'Music prompt',
+        {},
+        { harness: false, promptId: 'reviewed-prompt-id' },
+      );
     });
     expect(mockMusicsPost).toHaveBeenCalled();
     expect(mockMusicsPost.mock.calls[0]?.[0]).not.toHaveProperty('harness');
+    expect(mockMusicsPost.mock.calls[0]?.[0]).not.toHaveProperty('promptId');
   });
 
   it.each(['image', 'video'] as const)(

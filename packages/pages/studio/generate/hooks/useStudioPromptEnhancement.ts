@@ -57,7 +57,7 @@ export interface UseStudioPromptEnhancementResult {
   enhancePrompt: () => Promise<void>;
   isEnhancing: boolean;
   /** Current text is the last successful Enhance result in this brand/model scope. */
-  isCurrentPromptEnhanced: boolean;
+  enhancedPromptId?: string;
   /** Set only once an enhancement has actually replaced the prompt. */
   previousPrompt: string | null;
   /** Restores `previousPrompt` into the composer. */
@@ -93,6 +93,7 @@ export function useStudioPromptEnhancement({
   const [previousPrompt, setPreviousPrompt] = useState<string | null>(null);
   const [successfulEnhancement, setSuccessfulEnhancement] = useState<{
     text: string;
+    promptId: string;
     brandId: string;
     modelKey: string;
   } | null>(null);
@@ -258,7 +259,12 @@ export function useStudioPromptEnhancement({
             // since the request was sent — never clobber a live edit with a
             // stale enhancement result.
             if (promptRef.current === originalPrompt) {
-              setSuccessfulEnhancement({ text: result, brandId, modelKey });
+              setSuccessfulEnhancement({
+                text: result,
+                promptId: created.id,
+                brandId,
+                modelKey,
+              });
               setPreviousPrompt(originalPrompt);
               onPromptChange(result);
               clearUndoTimeout();
@@ -312,11 +318,13 @@ export function useStudioPromptEnhancement({
     cancelEnhance,
     enhancePrompt,
     isEnhancing,
-    isCurrentPromptEnhanced:
+    enhancedPromptId:
       successfulEnhancement !== null &&
       successfulEnhancement.text === prompt &&
       successfulEnhancement.brandId === brandId &&
-      successfulEnhancement.modelKey === modelKey,
+      successfulEnhancement.modelKey === modelKey
+        ? successfulEnhancement.promptId
+        : undefined,
     previousPrompt,
     undoEnhance,
   };

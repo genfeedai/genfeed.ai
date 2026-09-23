@@ -87,6 +87,7 @@ describe('MediaPromptEnhancementService', () => {
       organizationId: input.organizationId,
       brandId: input.brandId,
       userPrompt: input.prompt,
+      promptId: undefined,
       model: input.model,
       contentType: input.contentType,
     });
@@ -100,21 +101,6 @@ describe('MediaPromptEnhancementService', () => {
     );
     expect(promptEnhancement.enhance).not.toHaveBeenCalled();
   });
-
-  it.each(['', 'x'.repeat(8001)])(
-    'rejects unusable model output',
-    async (output) => {
-      const { service, promptEnhancement } = setup();
-      promptEnhancement.enhance.mockResolvedValue({
-        result: output,
-        tokensUsed: 10,
-        isByok: false,
-      });
-      await expect(service.enhance(input)).rejects.toThrow(
-        'Prompt enhancement is unavailable',
-      );
-    },
-  );
 
   it('does not hide a provider failure or return a stale applied receipt', async () => {
     const { service, promptEnhancement } = setup();
@@ -133,11 +119,9 @@ describe('MediaPromptEnhancementService', () => {
       if (stage === 'provider')
         promptEnhancement.enhance.mockRejectedValue(new Error(sensitive));
       if (stage === 'response')
-        promptEnhancement.enhance.mockResolvedValue({
-          result: sensitive.repeat(300),
-          tokensUsed: 10,
-          isByok: false,
-        });
+        promptEnhancement.enhance.mockRejectedValue(
+          new PromptEnhancementResponseError(),
+        );
       if (stage === 'receipt')
         packs.listLoadedPackVersions.mockRejectedValue(new Error(sensitive));
       await expect(

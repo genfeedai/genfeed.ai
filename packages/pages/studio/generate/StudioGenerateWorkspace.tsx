@@ -144,7 +144,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     cancelEnhance,
     enhancePrompt,
     isEnhancing: isEnhancingPrompt,
-    isCurrentPromptEnhanced,
+    enhancedPromptId,
     previousPrompt: previousEnhancedPrompt,
     undoEnhance,
   } = useStudioPromptEnhancement({
@@ -675,12 +675,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
         ...resolvedReferences,
         imageReferenceIds: prepared.referenceIds,
       },
-      isCurrentPromptEnhanced && prepared.text === prompt
-        ? { harness: false }
+      enhancedPromptId && prepared.text === prompt
+        ? { promptId: enhancedPromptId }
         : undefined,
     );
   }, [
-    isCurrentPromptEnhanced,
+    enhancedPromptId,
     isListening,
     isTranscribing,
     isUploading,

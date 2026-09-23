@@ -23,15 +23,41 @@ function setup() {
   const skills = {
     resolveRequestedSkillPromptSections: vi.fn().mockResolvedValue(''),
   };
+  const prompts = { findOne: vi.fn().mockResolvedValue(null) };
   const service = new PromptEnhancementService(
     openRouter as never,
+    prompts as never,
     templates as never,
     skills as never,
   );
-  return { service, openRouter, templates, skills };
+  return { service, openRouter, templates, skills, prompts };
 }
 
 describe('PromptEnhancementService', () => {
+  it('reuses only a completed enhancement with matching tenant, brand and exact text', async () => {
+    const { service, prompts, openRouter } = setup();
+    prompts.findOne.mockResolvedValue({ id: 'reviewed' });
+    expect(await service.enhance({ ...input, promptId: 'reviewed' })).toEqual({
+      result: input.userPrompt,
+      tokensUsed: 0,
+      isByok: false,
+    });
+    expect(prompts.findOne).toHaveBeenCalledWith({
+      id: 'reviewed',
+      organizationId: 'org',
+      brandId: 'selected-brand',
+      isDeleted: false,
+      isSkipEnhancement: false,
+      status: 'generated',
+      enhanced: input.userPrompt,
+    });
+    expect(openRouter.chatCompletion).not.toHaveBeenCalled();
+  });
+  it('enhances normally when a saved prompt does not satisfy the scope and content query', async () => {
+    const { service, openRouter } = setup();
+    await service.enhance({ ...input, promptId: 'inaccessible-or-edited' });
+    expect(openRouter.chatCompletion).toHaveBeenCalledOnce();
+  });
   it('uses the existing model template, selected-brand skills, free model and Studio config', async () => {
     const { service, templates, skills, openRouter } = setup();
     skills.resolveRequestedSkillPromptSections.mockResolvedValue(

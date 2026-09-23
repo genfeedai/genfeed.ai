@@ -416,6 +416,11 @@ describe('VideoGenerationService', () => {
           status: 'skipped',
           appliedPacks: [],
         }),
+        generationSource: 'generation-brief-exemption:raw_prompt_requested',
+        providerData: expect.objectContaining({
+          status: 'exempted',
+          reason: 'raw_prompt_requested',
+        }),
       }),
     );
   });

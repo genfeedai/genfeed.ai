@@ -1,10 +1,15 @@
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
 import { PromptParser } from '@api/helpers/utils/prompt-parser/prompt-parser.util';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { PromptCategory, SystemPromptKey } from '@genfeedai/contracts';
+import {
+  PromptCategory,
+  PromptStatus,
+  SystemPromptKey,
+} from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { Injectable, Optional } from '@nestjs/common';
 
@@ -17,6 +22,7 @@ export interface PromptEnhancementInput {
   organizationId: string;
   brandId?: string | null;
   userPrompt: string;
+  promptId?: string;
   systemPromptKey?: string;
   requestedSkillSlugs?: string[];
   model?: string;
@@ -45,6 +51,7 @@ export class PromptEnhancementResponseError extends Error {
 export class PromptEnhancementService {
   constructor(
     private readonly openRouter: OpenRouterService,
+    private readonly prompts: PromptsService,
     @Optional() private readonly templates?: TemplatesService,
     @Optional() private readonly skills?: SkillRuntimeService,
   ) {}
@@ -53,6 +60,19 @@ export class PromptEnhancementService {
     input: PromptEnhancementInput,
     options?: PromptEnhancementServerOptions,
   ): Promise<PromptEnhancementResult> {
+    if (input.promptId && input.brandId) {
+      const saved = await this.prompts.findOne({
+        id: input.promptId,
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        isDeleted: false,
+        isSkipEnhancement: false,
+        status: PromptStatus.GENERATED,
+        enhanced: input.userPrompt,
+      });
+      if (saved)
+        return { result: input.userPrompt, tokensUsed: 0, isByok: false };
+    }
     const fallback = input.contentType
       ? resolveEnhancePromptSystemPrompt({
           category:

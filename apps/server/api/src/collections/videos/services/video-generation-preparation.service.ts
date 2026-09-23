@@ -48,6 +48,7 @@ import {
   runVideoGenerationBrief,
   toRedactedVideoGenerationBriefProviderData,
 } from '@api/services/generation-brief';
+import { rawPromptBriefEvidence } from '@api/services/generation-brief/redact-generation-brief-evidence';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { RouterService } from '@api/services/router/router.service';
@@ -65,6 +66,7 @@ import type {
   VideoGenerationBrief,
 } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import { buildVideoGenerationBriefExemptionSource } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import {
   getModelMaxVideoReferences,
   hasVideoReferences,
@@ -239,6 +241,7 @@ export class VideoGenerationPreparationService {
       contentType: 'video',
       model,
       harness: createVideoDto.harness,
+      promptId: createVideoDto.promptId,
     });
     if (request.generationOriginalPrompt !== undefined) {
       if (
@@ -261,8 +264,8 @@ export class VideoGenerationPreparationService {
     const {
       brief: generationBrief,
       dispatch: rawCompiledDispatch,
-      evidence: briefEvidence,
-      generationSource,
+      evidence: compiledEvidence,
+      generationSource: compiledSource,
     } = this.compileVideoGenerationBrief({
       briefBrandContext,
       createVideoDto,
@@ -273,6 +276,18 @@ export class VideoGenerationPreparationService {
       runReferences,
       width,
     });
+    const briefEvidence =
+      generationHarness.status === 'skipped'
+        ? {
+            ...rawPromptBriefEvidence(compiledEvidence),
+            actionVerb: compiledEvidence.actionVerb,
+            dispatchMode: compiledEvidence.dispatchMode,
+          }
+        : compiledEvidence;
+    const generationSource =
+      generationHarness.status === 'skipped'
+        ? buildVideoGenerationBriefExemptionSource('raw_prompt_requested')
+        : compiledSource;
     const compiledDispatch = rawCompiledDispatch
       ? await this.resolveCompiledDispatchReferenceUrls(
           rawCompiledDispatch,

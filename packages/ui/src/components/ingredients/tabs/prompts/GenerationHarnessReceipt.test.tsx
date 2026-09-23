@@ -1,6 +1,17 @@
 import { render, screen } from '@testing-library/react';
 import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
+import { NextIntlClientProvider } from 'next-intl';
+import type { ReactNode } from 'react';
 import { describe, expect, it } from 'vitest';
+import messages from '../../../../../../../apps/app/messages/en/ui.json';
+
+function EnglishMessages({ children }: { children: ReactNode }) {
+  return (
+    <NextIntlClientProvider locale="en" messages={{ ui: messages }}>
+      {children}
+    </NextIntlClientProvider>
+  );
+}
 
 describe('GenerationHarnessReceipt', () => {
   it('shows the exact submitted prompt and sanitized context receipt', () => {
@@ -15,6 +26,7 @@ describe('GenerationHarnessReceipt', () => {
           appliedPacks: [{ id: 'brand-fidelity', version: '1.0' }],
         }}
       />,
+      { wrapper: EnglishMessages },
     );
     expect(
       screen.getByText('A cat beside a sunlit window.'),
@@ -34,6 +46,7 @@ describe('GenerationHarnessReceipt', () => {
           appliedPacks: [],
         }}
       />,
+      { wrapper: EnglishMessages },
     );
     expect(screen.getByText('Enhancement skipped')).toBeInTheDocument();
     expect(screen.getByText('This generation’s override')).toBeInTheDocument();

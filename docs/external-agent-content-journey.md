@@ -113,10 +113,13 @@ unenhanced prompt.
 Disabled enhancement preserves the caller's prompt byte-for-byte through
 provider submission and reports `skipped` with no applied packs. Selected
 context that would modify this text must be removed or enhancement enabled.
-After an explicit Studio Enhance succeeds, generating that exact reviewed text
-skips automatic enhancement. Editing it or changing brand/model restores the
-saved automatic setting. This skip concerns the generation pass; the explicit
-Enhance action has already run.
+After an explicit Studio Enhance succeeds, Studio sends the existing saved
+prompt ID with that exact reviewed text. The server validates the completed
+prompt against the organization, brand and text, then reuses it without another
+AI rewrite. Current harness guidance and composition controls still apply.
+Editing the text or changing brand/model drops this reuse. Explicit raw mode
+also bypasses prompt-based composition/style additions and records a
+`raw_prompt_requested` compilation exemption.
 
 Rollout requires the database migration and API/MCP/frontend deployment. The
 automated checks cover mocked provider calls and cross-surface dispatch; live

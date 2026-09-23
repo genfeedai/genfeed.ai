@@ -65,6 +65,7 @@ export class AgentGenerationSettingsToolHandler {
     return {
       success: true,
       creditsUsed: receipt.status === 'applied' ? 1 : 0,
+      isBillingDelegated: receipt.status === 'skipped',
       data: { generationHarness: receipt, prompt: receipt.enhancedPrompt },
     };
   }

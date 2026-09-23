@@ -53,10 +53,29 @@ describe('AgentGenerationSettingsToolHandler', () => {
     expect(result).toMatchObject({
       success: true,
       creditsUsed: 1,
+      isBillingDelegated: false,
       data: {
         prompt: 'Enhanced prompt',
         generationHarness: { status: 'applied' },
       },
+    });
+  });
+
+  it('bypasses catalog billing when the preview skips enhancement', async () => {
+    const { handler, enhancement } = setup();
+    enhancement.enhance.mockResolvedValue({
+      status: 'skipped',
+      enhancedPrompt: 'A bicycle',
+    });
+    expect(
+      await handler.enhance(
+        { prompt: 'A bicycle', contentType: 'image', harness: false },
+        ctx,
+      ),
+    ).toMatchObject({
+      success: true,
+      creditsUsed: 0,
+      isBillingDelegated: true,
     });
   });
 
