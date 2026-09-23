@@ -300,6 +300,9 @@ describe('MCP setup page', () => {
     );
     expect(promptHtml).toContain('~/.codex/config.toml');
     expect(promptHtml).not.toContain('gf_live_');
+    expect(promptHtml).toContain('genfeed login');
+    expect(promptHtml).toContain('Do not paste a secret');
+    expect(promptHtml).toContain('genfeed keys create -p mcp');
   });
 
   it('uses shared static UI surface primitives instead of local card CSS', () => {

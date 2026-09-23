@@ -1,4 +1,4 @@
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { chmod, mkdir, readFile, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { type LoginEndpoints, resolveLoginEndpoints } from './endpoints';
@@ -6,6 +6,10 @@ import { type Config, configSchema, defaultConfig, defaultProfile, type Profile 
 
 const CONFIG_DIR = path.join(os.homedir(), '.gf');
 const CONFIG_PATH = path.join(CONFIG_DIR, 'config.json');
+/** Directory mode is applied with chmod because mkdir honors the process umask. */
+const CONFIG_DIRECTORY_MODE = 0o700;
+/** Credential file mode is applied with chmod because writeFile honors the process umask. */
+const CONFIG_FILE_MODE = 0o600;
 
 let cachedConfig: Config | null = null;
 
@@ -40,8 +44,13 @@ export async function loadConfig(): Promise<Config> {
 }
 
 export async function saveConfig(config: Config): Promise<void> {
-  await mkdir(CONFIG_DIR, { recursive: true });
-  await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), 'utf8');
+  await mkdir(CONFIG_DIR, { mode: CONFIG_DIRECTORY_MODE, recursive: true });
+  await chmod(CONFIG_DIR, CONFIG_DIRECTORY_MODE);
+  await writeFile(CONFIG_PATH, JSON.stringify(config, null, 2), {
+    encoding: 'utf8',
+    mode: CONFIG_FILE_MODE,
+  });
+  await chmod(CONFIG_PATH, CONFIG_FILE_MODE);
   cachedConfig = config;
 }
 
