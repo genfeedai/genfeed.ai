@@ -4,6 +4,7 @@ import {
   buildMediaUrl,
   ingredientMediaUrl,
   type MediaUrlConfig,
+  readIngredientMediaUrlWithFallback,
   resolveIngredientMediaUrl,
   signCdnUrl,
   withExternalMediaFallback,
@@ -244,6 +245,33 @@ describe('ingredientMediaUrl', () => {
 
   it('returns null when the record has no media', () => {
     expect(ingredientMediaUrl({ s3Key: null }, signing)).toBeNull();
+  });
+});
+
+describe('readIngredientMediaUrlWithFallback', () => {
+  it('reads the computed URL of a keyed row', () => {
+    expect(
+      readIngredientMediaUrlWithFallback({
+        cdnUrl: 'https://cdn.genfeed.ai/ingredients/images/a.png',
+        metadata: { result: 'https://cdn.argil.ai/other.png' },
+      }),
+    ).toBe('https://cdn.genfeed.ai/ingredients/images/a.png');
+  });
+
+  it('falls back to the metadata link for keyless external media', () => {
+    expect(
+      readIngredientMediaUrlWithFallback({
+        cdnUrl: null,
+        metadata: { result: 'https://cdn.argil.ai/video-1.mp4' },
+      }),
+    ).toBe('https://cdn.argil.ai/video-1.mp4');
+  });
+
+  it('returns nothing when there is neither a key nor a loaded link', () => {
+    expect(
+      readIngredientMediaUrlWithFallback({ cdnUrl: null }),
+    ).toBeUndefined();
+    expect(readIngredientMediaUrlWithFallback(null)).toBeUndefined();
   });
 });
 

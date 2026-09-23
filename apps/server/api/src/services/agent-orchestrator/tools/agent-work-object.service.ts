@@ -20,7 +20,7 @@ import type {
   AgentWorkObjectMaterial,
 } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
-import { readIngredientMediaUrl } from '@libs/media/media-url.util';
+import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import {
   BadRequestException,
   ConflictException,
@@ -133,7 +133,7 @@ export class AgentWorkObjectService {
         ingredient.category.toLowerCase(),
         ingredient.id,
       );
-      const mediaUrl = readIngredientMediaUrl(ingredient);
+      const mediaUrl = readIngredientMediaUrlWithFallback(ingredient);
       if (
         work.threadId === scope.threadId &&
         ['table', 'script', 'brief'].includes(work.kind)

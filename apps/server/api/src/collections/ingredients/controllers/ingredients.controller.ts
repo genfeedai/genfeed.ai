@@ -216,9 +216,12 @@ export class IngredientsController {
     // `metadata.result` fallback for provider-hosted and external media.
     const renderableIngredients = ingredients.map((ingredient) => {
       const resolvedUrl = resolveIngredientMediaUrl(ingredient, cdnOrigin);
+      // `findByIds` loads only `metadata.result` to resolve the URL; it is not
+      // part of the batch response.
+      const { metadata: _metadata, ...rest } = ingredient;
 
       return {
-        ...ingredient,
+        ...rest,
         cdnUrl: resolvedUrl
           ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
           : null,
