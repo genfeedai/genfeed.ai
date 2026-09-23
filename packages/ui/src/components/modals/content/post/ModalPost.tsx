@@ -197,7 +197,7 @@ export default function ModalPost({
   const openKey = post?.id || ingredient?.id || credential?.id || 'new';
 
   useModalAutoOpen(modalId, {
-    isOpen: shouldAutoOpen,
+    isOpen: shouldAutoOpen ? true : undefined,
     openKey,
   });
 

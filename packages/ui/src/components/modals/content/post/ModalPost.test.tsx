@@ -1,5 +1,10 @@
 import type { PostModalSchema } from '@genfeedai/client/schemas';
 import type { IPost } from '@genfeedai/contracts/interfaces';
+import {
+  closeModal,
+  isModalOpen,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import ModalPost from '@ui/modals/content/post/ModalPost';
@@ -20,9 +25,6 @@ vi.mock('next-intl', async () => {
 });
 vi.mock('@ui/modals/modal/Modal', () => ({
   default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
-}));
-vi.mock('@genfeedai/hooks/ui/use-modal-auto-open/use-modal-auto-open', () => ({
-  useModalAutoOpen: vi.fn(),
 }));
 vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => async () => mocks,
@@ -85,6 +87,12 @@ describe('ModalPost', () => {
     vi.clearAllMocks();
     mocks.post.mockResolvedValue({ id: 'new-post' });
     mocks.patch.mockResolvedValue({ id: 'existing-post' });
+  });
+  it('keeps a manually opened composer open when it mounts', () => {
+    openModal('modal-post');
+    render(<ModalPost credentials={[]} onConfirm={vi.fn()} />);
+    expect(isModalOpen('modal-post')).toBe(true);
+    closeModal('modal-post');
   });
   it('saves a manually written X draft without an account', async () => {
     const user = userEvent.setup();
