@@ -998,6 +998,41 @@ Tweet 3: Tech innovation is changing the world.`,
       expect(result).toBeDefined();
     });
 
+    it('inherits the account platform for a legacy root without a platform', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        platform: null,
+      });
+      await controller.addThreadReply(mockRequest, mockUser, postId, {
+        ...createPostDto,
+        platform: CredentialPlatform.TWITTER,
+      });
+      expect(mockPostsService.addThreadReply).toHaveBeenCalledWith(
+        postId,
+        expect.objectContaining({ platform: 'twitter' }),
+      );
+    });
+    it('retains the root brand and exact account for legacy cross-brand threads', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce({
+        ...mockCredential,
+        brandId: 'older-account-brand',
+      });
+      await controller.addThreadReply(
+        mockRequest,
+        mockUser,
+        postId,
+        createPostDto,
+      );
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        id: credentialId,
+        organizationId,
+        isDeleted: false,
+      });
+      expect(mockPostsService.addThreadReply).toHaveBeenCalledWith(
+        postId,
+        expect.objectContaining({ brandId, credentialId }),
+      );
+    });
     it('rejects a reply using another account', async () => {
       await expect(
         controller.addThreadReply(mockRequest, mockUser, postId, {

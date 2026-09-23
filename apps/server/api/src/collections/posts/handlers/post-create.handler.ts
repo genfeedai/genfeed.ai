@@ -99,7 +99,7 @@ export async function createPost({
           ? { isConnected: true }
           : {}),
         isDeleted: false,
-        brandId: identity.brandId,
+        ...(createPostDto.brandId ? { brandId: createPostDto.brandId } : {}),
         organizationId: identity.organizationId,
       })
     : null;
@@ -112,6 +112,10 @@ export async function createPost({
       },
       HttpStatus.NOT_FOUND,
     );
+  }
+
+  if (!createPostDto.brandId && credential?.brandId) {
+    identity = { ...identity, brandId: credential.brandId };
   }
 
   if (!credential && requestedExecutionState !== TargetExecutionState.DRAFT) {
