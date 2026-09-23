@@ -14,13 +14,6 @@ export interface BrandAssetAutofillCandidate {
   url: string;
 }
 
-export interface BrandAssetCandidateOptions {
-  /** Resolves page-relative scraped URLs. */
-  baseUrl?: string;
-  /** Type to declare when the URL has no image extension. */
-  extensionlessMimeType?: string;
-}
-
 export interface SocialProfileAssets {
   avatarUrl?: string | null;
   bannerUrl?: string | null;

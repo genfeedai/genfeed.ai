@@ -11,6 +11,7 @@ import type {
 import type {
   IExtractedBrandData,
   IScrapedBrandData,
+  IScrapedImageCandidate,
 } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -75,8 +76,8 @@ export class BrandScraperService {
         scrapedData.logoUrl,
         normalizedUrl,
       );
-      scrapedData.logoCandidateUrls = this.resolveWebsiteLogoCandidateUrls(
-        scrapedData.logoCandidateUrls,
+      scrapedData.logoCandidates = this.resolveWebsiteLogoCandidates(
+        scrapedData.logoCandidates,
         normalizedUrl,
       );
 
@@ -98,7 +99,7 @@ export class BrandScraperService {
           fallback.title,
           fallback.ogTitle,
         );
-        const logoCandidateUrls = this.resolveWebsiteLogoCandidateUrls(
+        const logoCandidates = this.resolveWebsiteLogoCandidates(
           [],
           normalizedUrl,
         );
@@ -111,8 +112,8 @@ export class BrandScraperService {
           fontCandidates: [],
           fontFamily: undefined,
           heroText: undefined,
-          logoCandidateUrls,
-          logoUrl: logoCandidateUrls[0],
+          logoCandidates,
+          logoUrl: logoCandidates[0]?.url,
           metaDescription: fallback.description,
           ogImage: fallback.ogImage,
           primaryColor: undefined,
@@ -628,22 +629,20 @@ export class BrandScraperService {
    * `logoUrl`, Logo.dev stays in the chain behind a page logo, because a page
    * logo is often an SVG the brand-kit importer cannot store.
    */
-  private resolveWebsiteLogoCandidateUrls(
-    scrapedCandidateUrls: string[] | undefined,
+  private resolveWebsiteLogoCandidates(
+    scrapedCandidates: IScrapedImageCandidate[] | undefined,
     sourceUrl: string,
-  ): string[] {
+  ): IScrapedImageCandidate[] {
     const logoDevUrl = buildLogoDevLogoUrl(
       sourceUrl,
       this.configService.get('LOGO_DEV_PUBLISHABLE_KEY'),
     );
+    const candidates = scrapedCandidates ?? [];
 
-    return [
-      ...new Set(
-        [...(scrapedCandidateUrls ?? []), logoDevUrl].filter(
-          (url): url is string => Boolean(url),
-        ),
-      ),
-    ];
+    // The Logo.dev URL requests `format=png` but has no file extension.
+    return logoDevUrl && !candidates.some(({ url }) => url === logoDevUrl)
+      ? [...candidates, { mimeType: 'image/png', url: logoDevUrl }]
+      : candidates;
   }
 
   /**

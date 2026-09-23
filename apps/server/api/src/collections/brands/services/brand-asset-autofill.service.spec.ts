@@ -171,10 +171,14 @@ describe('BrandAssetAutofillService', () => {
       await service.fillFromWebsite(
         SCOPE,
         scraped({
-          logoCandidateUrls: [
-            'https://acme.com/logo.svg',
-            'https://acme.com/apple-touch-icon.png',
-            'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
+          logoCandidates: [
+            { url: 'https://acme.com/logo.svg' },
+            { url: 'https://acme.com/apple-touch-icon.png' },
+            { mimeType: 'image/png', url: 'https://acme.com/apple-icon?h=1' },
+            {
+              mimeType: 'image/png',
+              url: 'https://img.logo.dev/acme.com?token=pk_test&size=128&format=png&fallback=monogram',
+            },
           ],
           logoUrl: 'https://acme.com/logo.svg',
         }),
@@ -212,6 +216,11 @@ describe('BrandAssetAutofillService', () => {
           mimeType: undefined,
           sourceType: 'website',
           sourceUrl: 'https://acme.com/apple-touch-icon.png',
+        },
+        {
+          mimeType: 'image/png',
+          sourceType: 'website',
+          sourceUrl: 'https://acme.com/apple-icon?h=1',
         },
         {
           mimeType: 'image/png',
@@ -292,7 +301,7 @@ describe('BrandAssetAutofillService', () => {
 
       await service.fillFromWebsite(
         SCOPE,
-        scraped({ logoCandidateUrls: ['https://acme.com/favicon.ico'] }),
+        scraped({ logoCandidates: [{ url: 'https://acme.com/favicon.ico' }] }),
       );
 
       expect(loggerService.warn).toHaveBeenCalledWith(

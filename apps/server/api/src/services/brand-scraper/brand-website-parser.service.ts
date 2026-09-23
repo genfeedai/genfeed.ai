@@ -1,5 +1,8 @@
 import type { WebsiteScrapingResult } from '@api/services/brand-scraper/interfaces/brand-scraper.interfaces';
-import type { IScrapedBrandData } from '@genfeedai/contracts/interfaces';
+import type {
+  IScrapedBrandData,
+  IScrapedImageCandidate,
+} from '@genfeedai/contracts/interfaces';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import * as cheerio from 'cheerio';
 
@@ -70,7 +73,7 @@ export class BrandWebsiteParserService {
 
     // Extract logo
     const logoUrl = this.extractLogoFromDom($, sourceUrl);
-    const iconUrls = this.extractIconUrlsFromDom($, sourceUrl);
+    const icons = this.extractIconsFromDom($, sourceUrl);
     const images = this.extractImagesFromDom($, sourceUrl);
     const bannerUrl = this.extractBannerFromDom(
       $,
@@ -90,7 +93,7 @@ export class BrandWebsiteParserService {
       fonts,
       headings,
       heroText: headings[0],
-      iconUrls,
+      icons,
       images,
       logoUrl,
       ogDescription,
@@ -131,13 +134,10 @@ export class BrandWebsiteParserService {
       fontCandidates: scrapedContent.fonts,
       fontFamily: scrapedContent.fonts[0],
       heroText: scrapedContent.heroText,
-      logoCandidateUrls: [
-        ...new Set(
-          [scrapedContent.logoUrl, ...scrapedContent.iconUrls].filter(
-            (url): url is string => Boolean(url),
-          ),
-        ),
-      ],
+      logoCandidates: this.dedupeImageCandidates([
+        ...(scrapedContent.logoUrl ? [{ url: scrapedContent.logoUrl }] : []),
+        ...scrapedContent.icons,
+      ]),
       logoUrl: scrapedContent.logoUrl,
       metaDescription: scrapedContent.description,
       ogImage: scrapedContent.ogImage,
@@ -420,14 +420,16 @@ export class BrandWebsiteParserService {
   /**
    * Touch icons first (large, opaque, square), then declared favicons by
    * their largest `sizes` entry. The brand-kit importer rejects formats it
-   * cannot store (ico, svg), so callers simply try these in order.
+   * cannot store (ico, svg), so callers simply try these in order. The
+   * declared `type` travels along because generated icons (`/apple-icon?…`)
+   * carry no extension.
    */
-  private extractIconUrlsFromDom(
+  private extractIconsFromDom(
     $: cheerio.CheerioAPI,
     sourceUrl: string,
-  ): string[] {
-    const touchIcons: string[] = [];
-    const favicons: Array<{ size: number; url: string }> = [];
+  ): IScrapedImageCandidate[] {
+    const touchIcons: IScrapedImageCandidate[] = [];
+    const favicons: Array<{ icon: IScrapedImageCandidate; size: number }> = [];
 
     $('link[rel][href]').each((_i, el) => {
       const rel = ($(el).attr('rel') ?? '').toLowerCase().split(/\s+/);
@@ -436,20 +438,43 @@ export class BrandWebsiteParserService {
         return;
       }
 
-      const url = this.resolveUrl(href, sourceUrl);
+      const declaredType = $(el).attr('type')?.trim().toLowerCase();
+      const icon: IScrapedImageCandidate = {
+        url: this.resolveUrl(href, sourceUrl),
+        ...(declaredType?.startsWith('image/')
+          ? { mimeType: declaredType }
+          : {}),
+      };
       if (
         rel.includes('apple-touch-icon') ||
         rel.includes('apple-touch-icon-precomposed')
       ) {
-        touchIcons.push(url);
+        touchIcons.push(icon);
       } else if (rel.includes('icon')) {
-        favicons.push({ size: this.readIconSize($(el).attr('sizes')), url });
+        favicons.push({ icon, size: this.readIconSize($(el).attr('sizes')) });
       }
     });
 
     favicons.sort((a, b) => b.size - a.size);
 
-    return [...new Set([...touchIcons, ...favicons.map(({ url }) => url)])];
+    return this.dedupeImageCandidates([
+      ...touchIcons,
+      ...favicons.map(({ icon }) => icon),
+    ]);
+  }
+
+  private dedupeImageCandidates(
+    candidates: IScrapedImageCandidate[],
+  ): IScrapedImageCandidate[] {
+    const seen = new Set<string>();
+
+    return candidates.filter(({ url }) => {
+      if (seen.has(url)) {
+        return false;
+      }
+      seen.add(url);
+      return true;
+    });
   }
 
   private readIconSize(sizes: string | undefined): number {

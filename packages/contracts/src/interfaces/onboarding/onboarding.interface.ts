@@ -26,6 +26,13 @@ export interface IExtractedSocialLinks {
   youtube?: string;
 }
 
+/** A scraped image URL plus the type its markup declared, if any. */
+export interface IScrapedImageCandidate {
+  url: string;
+  /** Declared type (`<link type>`, Logo.dev `format`); needed when the URL has no extension. */
+  mimeType?: string;
+}
+
 export interface IScrapedBrandData {
   // Core info
   companyName?: string;
@@ -35,7 +42,7 @@ export interface IScrapedBrandData {
   // Visual
   logoUrl?: string;
   /** Ordered logo fallbacks: page logo, touch/fav icons, then Logo.dev. */
-  logoCandidateUrls?: string[];
+  logoCandidates?: IScrapedImageCandidate[];
   bannerUrl?: string;
   primaryColor?: string;
   secondaryColor?: string;

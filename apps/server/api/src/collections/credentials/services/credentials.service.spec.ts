@@ -1580,6 +1580,16 @@ describe('CredentialsService', () => {
       expect(prisma.credential.update).not.toHaveBeenCalled();
     });
 
+    it('does not mirror a provider default avatar', async () => {
+      await service.updateExternalProfile('existing-id', orgId, {
+        avatarUrl:
+          'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png',
+        id: 'provider-1',
+      });
+
+      expect(filesClient.uploadToS3).not.toHaveBeenCalled();
+    });
+
     it('preserves the previous avatar when S3 import fails', async () => {
       filesClient.uploadToS3.mockRejectedValue(new Error('files unavailable'));
 

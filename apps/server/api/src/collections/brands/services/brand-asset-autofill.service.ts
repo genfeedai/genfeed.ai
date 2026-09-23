@@ -1,11 +1,11 @@
 import type {
   BrandAssetAutofillCandidate,
   BrandAssetAutofillScope,
-  BrandAssetCandidateOptions,
   SocialProfileAssets,
 } from '@api/collections/brands/interfaces/brand-asset-autofill.interface';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { isProviderPlaceholderImageUrl } from '@api/collections/credentials/utils/provider-placeholder-image.util';
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
@@ -14,25 +14,19 @@ import type {
   BrandKitSourceType,
   IBrandKitAssetImportCandidate,
   IScrapedBrandData,
+  IScrapedImageCandidate,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
 type AutofillRole = Exclude<BrandKitAssetRole, 'reference'>;
+type AutofillImage = Omit<IScrapedImageCandidate, 'url'> & {
+  url?: string | null;
+};
 
 const AUTOFILL_ROLES: readonly AutofillRole[] = ['logo', 'banner'];
 const IMAGE_EXTENSION_PATTERN = /\.(gif|jpe?g|png|webp)$/i;
 const SOCIAL_AVATAR_CANDIDATE_LIMIT = 5;
-
-/**
- * Provider placeholders a brand should never inherit as its identity. A user
- * who never set an avatar or header gets one of these from the platform.
- */
-const PLACEHOLDER_IMAGE_PATTERNS: readonly RegExp[] = [
-  /\/default_profile_images\//i,
-  /\/(avatars|headers)\/original\/missing\.png$/i,
-  /\/avatar_default_\d+\.png$/i,
-];
 
 /**
  * Fills a brand's empty logo and banner from what Genfeed already knows about
@@ -83,17 +77,18 @@ export class BrandAssetAutofillService {
     scrapedData: IScrapedBrandData,
   ): Promise<void> {
     const socialAvatars = await this.findConnectedAccountAvatars(scope);
-    const logoUrls = scrapedData.logoCandidateUrls?.length
-      ? scrapedData.logoCandidateUrls
-      : [scrapedData.logoUrl];
+    const websiteLogos = scrapedData.logoCandidates?.length
+      ? scrapedData.logoCandidates
+      : [{ url: scrapedData.logoUrl }];
 
     await this.fillEmptySlots(scope, {
       banner: this.toWebsiteBannerCandidates(scrapedData),
       logo: [
         ...socialAvatars,
-        ...this.toWebsiteCandidates(
-          logoUrls,
+        ...this.toCandidates(
+          websiteLogos,
           'Website logo',
+          'website',
           scrapedData.sourceUrl,
         ),
       ],
@@ -206,22 +201,11 @@ export class BrandAssetAutofillService {
     label: string,
   ): BrandAssetAutofillCandidate[] {
     // Social CDNs (and Genfeed's avatar copies) serve extensionless JPEGs.
-    return this.toCandidates(urls, label, 'system', {
-      extensionlessMimeType: 'image/jpeg',
-    });
-  }
-
-  /** Scraped URLs may still be page-relative (`og:image` is kept verbatim). */
-  private toWebsiteCandidates(
-    urls: ReadonlyArray<string | null | undefined>,
-    label: string,
-    sourceUrl: string,
-    extensionlessMimeType?: string,
-  ): BrandAssetAutofillCandidate[] {
-    return this.toCandidates(urls, label, 'website', {
-      baseUrl: sourceUrl,
-      extensionlessMimeType,
-    });
+    return this.toCandidates(
+      urls.map((url) => ({ mimeType: 'image/jpeg', url })),
+      label,
+      'system',
+    );
   }
 
   private toWebsiteBannerCandidates(
@@ -231,41 +215,47 @@ export class BrandAssetAutofillService {
     // Generated social cards (e.g. `/opengraph-image?…`) have no extension but
     // declare their type in `og:image:type`. The header is often that same
     // card, and dedupe keeps the first entry, so it must carry the type too.
-    const socialCard = this.toWebsiteCandidates(
-      [ogImage],
-      'Website social card',
-      sourceUrl,
-      ogImageType,
-    );
-    const header = this.toWebsiteCandidates(
-      [bannerUrl],
-      'Website header',
-      sourceUrl,
-      socialCard.some(
-        ({ url }) => url === this.resolveUrl(bannerUrl, sourceUrl),
-      )
-        ? ogImageType
-        : undefined,
-    );
+    const isHeaderSocialCard =
+      Boolean(ogImage) &&
+      this.resolveUrl(bannerUrl, sourceUrl) ===
+        this.resolveUrl(ogImage, sourceUrl);
 
-    return [...header, ...socialCard];
+    return [
+      ...this.toCandidates(
+        [
+          {
+            mimeType: isHeaderSocialCard ? ogImageType : undefined,
+            url: bannerUrl,
+          },
+        ],
+        'Website header',
+        'website',
+        sourceUrl,
+      ),
+      ...this.toCandidates(
+        [{ mimeType: ogImageType, url: ogImage }],
+        'Website social card',
+        'website',
+        sourceUrl,
+      ),
+    ];
   }
 
+  /**
+   * `baseUrl` resolves page-relative scraped URLs (`og:image` is kept
+   * verbatim). A declared type is only sent for extensionless URLs; the
+   * importer infers the rest from the extension.
+   */
   private toCandidates(
-    urls: ReadonlyArray<string | null | undefined>,
+    images: ReadonlyArray<AutofillImage>,
     label: string,
     sourceType: BrandKitSourceType,
-    options: BrandAssetCandidateOptions = {},
+    baseUrl?: string,
   ): BrandAssetAutofillCandidate[] {
-    return urls.flatMap((url) => {
-      const parsed = this.parseHttpUrl(url, options.baseUrl);
+    return images.flatMap(({ mimeType, url }) => {
+      const parsed = this.parseHttpUrl(url, baseUrl);
 
-      if (
-        !parsed ||
-        PLACEHOLDER_IMAGE_PATTERNS.some((pattern) =>
-          pattern.test(parsed.pathname),
-        )
-      ) {
+      if (!parsed || isProviderPlaceholderImageUrl(parsed.href)) {
         return [];
       }
 
@@ -274,29 +264,12 @@ export class BrandAssetAutofillService {
           label,
           mimeType: IMAGE_EXTENSION_PATTERN.test(parsed.pathname)
             ? undefined
-            : this.readExtensionlessMimeType(
-                parsed,
-                options.extensionlessMimeType,
-              ),
+            : mimeType,
           sourceType,
           url: parsed.href,
         },
       ];
     });
-  }
-
-  /** Logo.dev URLs request `format=png`; everything else uses the caller's hint. */
-  private readExtensionlessMimeType(
-    url: URL,
-    fallback: string | undefined,
-  ): string | undefined {
-    const format = url.searchParams.get('format');
-
-    if (url.hostname === 'img.logo.dev' && format) {
-      return `image/${format.toLowerCase()}`;
-    }
-
-    return fallback;
   }
 
   private parseHttpUrl(

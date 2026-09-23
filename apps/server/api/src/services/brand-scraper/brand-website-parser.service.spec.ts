@@ -56,12 +56,12 @@ describe('BrandWebsiteParserService', () => {
     });
   });
 
-  it('orders logo candidates: page logo, touch icon, then favicons by size', () => {
+  it('orders logo candidates (page logo, touch icon, favicons by size) with declared types', () => {
     const parsed = service.parseHtml(
       `<html><head>
         <link rel="icon" href="/favicon.ico">
         <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-        <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png">
+        <link rel="icon" type="image/png" sizes="192x192" href="/icon?h=192">
         <link rel="apple-touch-icon" href="/apple-touch-icon.png">
         <meta property="og:image" content="/opengraph-image?abc">
         <meta property="og:image:type" content="image/png">
@@ -72,12 +72,12 @@ describe('BrandWebsiteParserService', () => {
     expect(
       service.extractBrandData(parsed, 'https://acme.example'),
     ).toMatchObject({
-      logoCandidateUrls: [
-        'https://acme.example/logo.svg',
-        'https://acme.example/apple-touch-icon.png',
-        'https://acme.example/icon-192.png',
-        'https://acme.example/favicon-32.png',
-        'https://acme.example/favicon.ico',
+      logoCandidates: [
+        { url: 'https://acme.example/logo.svg' },
+        { url: 'https://acme.example/apple-touch-icon.png' },
+        { mimeType: 'image/png', url: 'https://acme.example/icon?h=192' },
+        { mimeType: 'image/png', url: 'https://acme.example/favicon-32.png' },
+        { url: 'https://acme.example/favicon.ico' },
       ],
       logoUrl: 'https://acme.example/logo.svg',
       ogImage: '/opengraph-image?abc',

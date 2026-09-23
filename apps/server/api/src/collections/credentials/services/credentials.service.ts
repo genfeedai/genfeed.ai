@@ -11,6 +11,7 @@ import { UpdateCredentialDto } from '@api/collections/credentials/dto/update-cre
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import { emitCredentialProfileSynced } from '@api/collections/credentials/utils/credential-profile-event.util';
+import { isMirrorableAvatarUrl } from '@api/collections/credentials/utils/provider-placeholder-image.util';
 import type { CreateTagDto } from '@api/collections/tags/dto/create-tag.dto';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -819,7 +820,7 @@ export class CredentialsService
       update.externalName = profile.name;
     }
 
-    if (profile.avatarUrl) {
+    if (isMirrorableAvatarUrl(profile.avatarUrl)) {
       try {
         const parsedAvatarUrl = new URL(profile.avatarUrl);
         if (!['http:', 'https:'].includes(parsedAvatarUrl.protocol)) {
