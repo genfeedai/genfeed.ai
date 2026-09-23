@@ -82,6 +82,7 @@ describe('IngredientsController folder assignment', () => {
           useValue: {
             findOne: vi.fn(),
             patch: vi.fn(),
+            assertClientTags: vi.fn(),
           },
         },
         {
@@ -225,5 +226,21 @@ describe('IngredientsController folder assignment', () => {
     expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientId, {
       folderId: null,
     });
+  });
+  it('rejects foreign tags before any ingredient mutation', async () => {
+    ingredientsService.findOne.mockResolvedValue(ingredient);
+    ingredientsService.assertClientTags.mockRejectedValue(
+      new Error('Tags must belong to the current organization'),
+    );
+    await expect(
+      controller.update(mockRequest, ingredientId, mockUser, {
+        tags: [testId('tag')],
+      }),
+    ).rejects.toThrow('Tags must belong');
+    expect(ingredientsService.assertClientTags).toHaveBeenCalledWith(
+      [testId('tag')],
+      organizationId,
+    );
+    expect(ingredientsService.patch).not.toHaveBeenCalled();
   });
 });

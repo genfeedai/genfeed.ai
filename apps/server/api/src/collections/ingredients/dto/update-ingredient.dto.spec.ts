@@ -1,5 +1,6 @@
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
+import { testId } from '@helpers/testing/test-id.helper';
 import type { ArgumentMetadata } from '@nestjs/common';
 
 describe('UpdateIngredientDto', () => {
@@ -36,4 +37,40 @@ describe('UpdateIngredientDto', () => {
       expect(result).toHaveProperty('isFavorite', true);
     });
   });
+});
+
+describe('ingredient provenance at the HTTP boundary', () => {
+  const fields = [
+    'organizationId',
+    'userId',
+    'brandId',
+    'metadataId',
+    'parentId',
+    'promptId',
+    'trainingId',
+    'bookmarkId',
+    'personaId',
+    'workflowExecutionId',
+    'agentStrategyId',
+    'sourceActionId',
+    'sources',
+    'providerData',
+  ];
+  it.each(fields)(
+    'strips server-owned %s while preserving an ordinary edit',
+    async (field) => {
+      const value =
+        field === 'sources'
+          ? [testId('ingredient')]
+          : field === 'providerData'
+            ? { result: 'https://cdn.example.test/other-object' }
+            : testId('record');
+      const result = await new ValidationPipe().transform(
+        { [field]: value, isFavorite: true },
+        { metatype: UpdateIngredientDto, type: 'body' },
+      );
+      expect(result).not.toHaveProperty(field);
+      expect(result).toHaveProperty('isFavorite', true);
+    },
+  );
 });
