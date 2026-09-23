@@ -188,4 +188,135 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
       ).toMatchObject({ mode: 'manual' });
     },
   );
+  it('saves absent and current active settings normally', async () => {
+    await prisma.setting.deleteMany({ where: { userId } });
+    const service = new AgentThreadsService(prisma, {} as never, {} as never);
+    await service.updateAgentMode(
+      userId,
+      organizationId,
+      AgentThreadMode.AUTO,
+      threadId,
+    );
+    expect(await service.resolveSavedMode(userId)).toBe(AgentThreadMode.AUTO);
+    await service.updateAgentMode(userId, organizationId, AgentThreadMode.PLAN);
+    expect(await service.resolveSavedMode(userId)).toBe(AgentThreadMode.PLAN);
+    expect(
+      await prisma.setting.findUnique({ where: { userId } }),
+    ).toMatchObject({ agentMode: 'plan', isDeleted: false });
+  });
+
+  it('releases admission locks before the provider and completes after a real archive and scope switch', async () => {
+    const scope = {
+      organizationId,
+      userId,
+      threadId,
+      contextVersion: 1,
+      isLegacyFallback: false,
+      isVersionExplicit: true,
+      source: 'explicit' as const,
+    };
+    const args = { count: 1, platforms: ['twitter'], topics: ['Archive test'] };
+    const approval = await prisma.mcpApproval.create({
+      data: {
+        organizationId,
+        userId,
+        toolName: 'generate_content_batch',
+        arguments: args,
+        idempotencyKey: buildLogicalWriteKey({
+          organizationId,
+          userId,
+          threadId,
+          scope,
+          arguments: args,
+          toolName: 'generate_content_batch',
+        }),
+      },
+    });
+    const sourceActionId = `mutation-approval:${approval.id}`;
+    const card = {
+      id: sourceActionId,
+      type: 'mutation_approval_card',
+      data: {
+        approvalId: approval.id,
+        sourceActionId,
+        scopeVersion: 1,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      },
+    };
+    const message = await prisma.agentMessage.create({
+      data: {
+        organizationId,
+        threadId,
+        role: 'assistant',
+        metadata: { uiActions: [card], unrelated: 'retained' },
+      },
+    });
+    const executor = {
+      executeTool: vi.fn(async () => {
+        expect(
+          await prisma.mcpApproval.findFirst({
+            where: { id: approval.id, organizationId, isDeleted: false },
+          }),
+        ).toMatchObject({ status: 'APPROVED' });
+        expect(
+          await prisma.agentMessage.findFirst({
+            where: { id: message.id, organizationId, isDeleted: false },
+          }),
+        ).toMatchObject({
+          metadata: {
+            uiActions: [
+              expect.objectContaining({
+                data: expect.objectContaining({
+                  status: 'approved',
+                  executionStatus: 'running',
+                }),
+              }),
+            ],
+          },
+        });
+        await prisma.agentThread.updateMany({
+          where: { id: threadId, organizationId, userId, isDeleted: false },
+          data: { status: 'archived', contextVersion: 2 },
+        });
+        return { success: true, creditsUsed: 1 };
+      }),
+    };
+    const finalizer = {
+      finalizeStructuredAssistantTurn: vi.fn(async (value) => value),
+    };
+    const service = new AgentOrchestratorUiActionMutationService(
+      approvals,
+      { getMessagesByRoom: vi.fn().mockResolvedValue([message]) } as never,
+      executor as never,
+      finalizer as never,
+      prisma,
+    );
+    await service.execute('confirm_mutation', {
+      threadId,
+      model: 'test',
+      context: { organizationId, userId, scope },
+      payload: { approvalId: approval.id, sourceActionId },
+    });
+    expect(executor.executeTool).toHaveBeenCalledOnce();
+    expect(finalizer.finalizeStructuredAssistantTurn).toHaveBeenCalled();
+    expect(
+      await prisma.agentMessage.findFirst({
+        where: { id: message.id, organizationId, isDeleted: false },
+      }),
+    ).toMatchObject({
+      metadata: {
+        unrelated: 'retained',
+        uiActions: [
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: 'approved',
+              executionStatus: 'completed',
+              scopeVersion: 1,
+            }),
+          }),
+        ],
+      },
+    });
+  });
 });
