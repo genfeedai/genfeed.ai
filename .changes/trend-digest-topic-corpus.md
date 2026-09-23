@@ -1,0 +1,3 @@
+packages: @genfeedai/helpers @genfeedai/workflows
+
+Daily Trends Digest now reads the same topic corpus as `get_trends`, including `topic`/`name` and `viralityScore`/`score`. `assembleTrendDigest` reports how many named source topics existed before the viral-score and platform gates. `DigestTrendsProvider` returns that count with the ranked rows. When topics exist but none clear the configured filter, the skip reason is `no-matching-trends: …` (count, minViralScore, platforms) instead of `no-trends`. Callers that only pass videos, hashtags, and sounds are unchanged. A corpus with no named topics still skips with `no-trends`.

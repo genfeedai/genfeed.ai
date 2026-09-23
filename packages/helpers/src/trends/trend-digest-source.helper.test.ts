@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  assembleTrendDigest,
   buildTrendDigestItems,
   type RawTrendHashtag,
   type RawTrendSound,
@@ -180,5 +181,95 @@ describe('buildTrendDigestItems', () => {
     );
 
     expect(items.map((item) => item.platform)).toEqual(['tiktok']);
+  });
+
+  it('keeps topic-corpus rows get_trends would list when they clear the threshold', () => {
+    const items = buildTrendDigestItems(
+      {
+        hashtags: [],
+        sounds: [],
+        topics: [
+          { name: 'Named hook', platform: 'tiktok', score: 91 },
+          {
+            data: { score: 84, topic: 'Nested topic' },
+            platform: 'youtube',
+          },
+          { platform: 'instagram', topic: 'Column score', viralityScore: 77 },
+        ],
+        videos: [],
+      },
+      { minViralScore: 70, platforms: ['tiktok', 'instagram', 'youtube'] },
+    );
+
+    expect(items).toEqual([
+      {
+        platform: 'tiktok',
+        topic: 'Named hook',
+        type: 'topic',
+        viralScore: 91,
+      },
+      {
+        platform: 'youtube',
+        topic: 'Nested topic',
+        type: 'topic',
+        viralScore: 84,
+      },
+      {
+        platform: 'instagram',
+        topic: 'Column score',
+        type: 'topic',
+        viralScore: 77,
+      },
+    ]);
+  });
+
+  it('reads a video score stored as viralityScore instead of viralScore', () => {
+    const [item] = buildTrendDigestItems(
+      {
+        hashtags: [],
+        sounds: [],
+        videos: [{ ...video, viralScore: undefined, viralityScore: 86 }],
+      },
+      { minViralScore: 70 },
+    );
+
+    expect(item?.viralScore).toBe(86);
+    expect(item?.topic).toBe('Cat does a backflip');
+  });
+
+  it('counts named topics that miss the viral and platform gates', () => {
+    const assembly = assembleTrendDigest(
+      {
+        hashtags: [],
+        sounds: [],
+        topics: [
+          { platform: 'linkedin', topic: 'Quiet week', viralityScore: 40 },
+          { platform: 'reddit', topic: 'Off platform', viralityScore: 95 },
+        ],
+        videos: [{ ...video, title: 'Below the line', viralScore: 12 }],
+      },
+      {
+        minViralScore: 70,
+        platforms: ['tiktok', 'instagram', 'youtube', 'twitter'],
+      },
+    );
+
+    expect(assembly.items).toEqual([]);
+    expect(assembly.sourceTopicCount).toBe(3);
+  });
+
+  it('reports a true empty corpus as zero source topics', () => {
+    const assembly = assembleTrendDigest(
+      {
+        hashtags: [{ ...hashtag, hashtag: '   ' }],
+        sounds: [],
+        topics: [{ name: '  ', score: 99 }],
+        videos: [],
+      },
+      { minViralScore: 70 },
+    );
+
+    expect(assembly.items).toEqual([]);
+    expect(assembly.sourceTopicCount).toBe(0);
   });
 });
