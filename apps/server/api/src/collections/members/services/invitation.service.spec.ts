@@ -181,9 +181,10 @@ function buildPrisma(): MockPrisma {
 
 function buildService(prisma = buildPrisma()) {
   const configService = {
+    apiUrl: 'https://api.public.test',
     get: vi.fn((key: string) => {
       if (key === 'GENFEEDAI_API_URL') {
-        return 'https://api.test';
+        return 'http://api.internal.test:3010';
       }
       if (key === 'GENFEEDAI_APP_URL') {
         return 'https://app.test';
@@ -277,7 +278,9 @@ describe('InvitationService', () => {
       expect(notificationsService.sendEmail).toHaveBeenCalledWith(
         'new@example.com',
         "You're invited to Acme",
-        expect.stringContaining('https://api.test/accept-invitation?token='),
+        expect.stringContaining(
+          'https://api.public.test/accept-invitation?token=',
+        ),
       );
       expect(result).toMatchObject({
         email: 'new@example.com',

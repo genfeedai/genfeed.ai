@@ -49,9 +49,10 @@ describe('NewsletterImportFeedService', () => {
         {
           provide: ConfigService,
           useValue: {
+            apiUrl: 'https://api.public.genfeed.ai',
             get: vi.fn((key: string) => {
               if (key === 'GENFEEDAI_API_URL') {
-                return 'https://api.genfeed.ai/v1/';
+                return 'http://api.genfeed.internal:3010';
               }
               if (key === 'GENFEEDAI_APP_URL') {
                 return 'https://app.genfeed.ai/';
@@ -75,7 +76,7 @@ describe('NewsletterImportFeedService', () => {
     expect(feed).toContain('<h1>Launch</h1>');
     expect(feed).toContain('<strong>newsletter</strong>');
     expect(feed).toContain(
-      '<link>https://api.genfeed.ai/v1/public/newsletters/newsletter-1</link>',
+      '<link>https://api.public.genfeed.ai/v1/public/newsletters/newsletter-1</link>',
     );
     expect(feed).toContain(
       '<guid isPermaLink="false">urn:genfeed:newsletter:newsletter-1</guid>',
@@ -179,7 +180,7 @@ describe('NewsletterImportFeedService', () => {
     expect(page).toContain('<h1>Launch issue</h1>');
     expect(page).toContain('<h1>Launch</h1>');
     expect(page).toContain(
-      '<link rel="canonical" href="https://api.genfeed.ai/v1/public/newsletters/newsletter-1">',
+      '<link rel="canonical" href="https://api.public.genfeed.ai/v1/public/newsletters/newsletter-1">',
     );
     expect(page).not.toContain('<script>');
   });

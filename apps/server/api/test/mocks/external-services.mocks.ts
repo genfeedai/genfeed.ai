@@ -805,41 +805,50 @@ export const createMockLoggerService = () => ({
 
 export const createMockConfigService = (
   config: Record<string, unknown> = {},
-) => ({
-  get: vi.fn((key: string) => {
-    const defaults: Record<string, unknown> = {
-      AWS_ACCESS_KEY_ID: 'test-aws-key',
-      AWS_S3_BUCKET: 'test-bucket',
-      AWS_SECRET_ACCESS_KEY: 'test-aws-secret',
-      BETTER_AUTH_SECRET: 'test-better-auth-secret',
-      ELEVENLABS_API_KEY: 'test-elevenlabs-key',
-      GENFEEDAI_APP_URL: 'https://test-app.genfeed.ai',
-      GENFEEDAI_WEBHOOKS_URL: 'https://test-webhooks.genfeed.ai',
-      JWT_SECRET: 'test-jwt-secret',
-      DATABASE_URL:
-        process.env.DATABASE_URL ??
-        'postgresql://genfeed:genfeed_local@localhost:5432/test',
-      NODE_ENV: 'test',
-      PORT: 3001,
-      REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379',
-      REPLICATE_KEY: 'test-replicate-key',
-      STRIPE_SECRET_KEY: 'test-stripe-secret',
-      ...config,
-    };
-    return defaults[key];
-  }),
-  getNumber: vi.fn((key: string) => {
-    const defaults: Record<string, number> = {
-      PORT: 3001,
-      REDIS_PORT: 6379,
-      ...config,
-    } as Record<string, number>;
-    return defaults[key];
-  }),
-  // PrismaService validates this at construction; tests run unsigned.
-  ingredientsEndpoint: 'https://cdn.test/ingredients',
-  mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
-});
+) => {
+  const publicApiUrl = config.GENFEEDAI_API_PUBLIC_URL;
+  const internalApiUrl = config.GENFEEDAI_API_URL;
+
+  return {
+    apiUrl:
+      (typeof publicApiUrl === 'string' && publicApiUrl.trim()) ||
+      (typeof internalApiUrl === 'string' && internalApiUrl.trim()) ||
+      'https://api.test.genfeed.ai',
+    get: vi.fn((key: string) => {
+      const defaults: Record<string, unknown> = {
+        AWS_ACCESS_KEY_ID: 'test-aws-key',
+        AWS_S3_BUCKET: 'test-bucket',
+        AWS_SECRET_ACCESS_KEY: 'test-aws-secret',
+        BETTER_AUTH_SECRET: 'test-better-auth-secret',
+        ELEVENLABS_API_KEY: 'test-elevenlabs-key',
+        GENFEEDAI_APP_URL: 'https://test-app.genfeed.ai',
+        GENFEEDAI_WEBHOOKS_URL: 'https://test-webhooks.genfeed.ai',
+        JWT_SECRET: 'test-jwt-secret',
+        DATABASE_URL:
+          process.env.DATABASE_URL ??
+          'postgresql://genfeed:genfeed_local@localhost:5432/test',
+        NODE_ENV: 'test',
+        PORT: 3001,
+        REDIS_URL: process.env.REDIS_URL ?? 'redis://localhost:6379',
+        REPLICATE_KEY: 'test-replicate-key',
+        STRIPE_SECRET_KEY: 'test-stripe-secret',
+        ...config,
+      };
+      return defaults[key];
+    }),
+    getNumber: vi.fn((key: string) => {
+      const defaults: Record<string, number> = {
+        PORT: 3001,
+        REDIS_PORT: 6379,
+        ...config,
+      } as Record<string, number>;
+      return defaults[key];
+    }),
+    // PrismaService validates this at construction; tests run unsigned.
+    ingredientsEndpoint: 'https://cdn.test/ingredients',
+    mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
+  };
+};
 
 // ============================================================================
 // HTTP Service Mock

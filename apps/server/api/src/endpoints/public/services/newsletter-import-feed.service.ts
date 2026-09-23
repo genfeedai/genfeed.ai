@@ -45,9 +45,7 @@ export class NewsletterImportFeedService {
     private readonly newslettersService: NewslettersService,
     private readonly configService: ConfigService,
   ) {
-    this.apiUrl = versionedApiUrl(
-      this.configService.get('GENFEEDAI_API_URL') ?? '',
-    );
+    this.apiUrl = versionedApiUrl(this.configService.apiUrl);
     this.siteUrl = trimTrailingSlash(
       this.configService.get('GENFEEDAI_APP_URL') ?? '',
     );

@@ -139,7 +139,10 @@ describe('Brand OS export publication boundary', () => {
     log = vi.fn();
     service = new BrandOsExportService(
       db as unknown as PrismaService,
-      { get: () => 'https://api.example.com/v1' } as unknown as ConfigService,
+      {
+        apiUrl: 'https://api.public.example.com',
+        get: () => 'http://api.genfeed.internal:3010',
+      } as unknown as ConfigService,
       { log } as unknown as LoggerService,
     );
   });
@@ -161,7 +164,7 @@ describe('Brand OS export publication boundary', () => {
     const state = await service.publish('brand-1', 'rev-1', actor);
     expect(state.state).toBe('published');
     expect(state.publicUrl).toBe(
-      'https://api.example.com/v1/public/brand-os/pub-1/design.md',
+      'https://api.public.example.com/v1/public/brand-os/pub-1/design.md',
     );
     const original = await service.publicArtifact('pub-1');
     revisions[0].status = 'SUPERSEDED';
@@ -361,7 +364,8 @@ describe('Brand OS export publication boundary', () => {
       digest: null,
       generatedAt: null,
       publishedRevisionId: 'rev-1',
-      publicUrl: 'https://api.example.com/v1/public/brand-os/pub-1/design.md',
+      publicUrl:
+        'https://api.public.example.com/v1/public/brand-os/pub-1/design.md',
       revisionId: 'rev-2',
       state: 'unavailable',
     });
