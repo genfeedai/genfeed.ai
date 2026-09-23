@@ -33,6 +33,10 @@ import {
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import { toolsetsQueryMiddleware } from '@mcp/shared/middleware/toolsets-query.middleware';
+import {
+  classifyMcpToolFailure,
+  mcpJsonRpcError,
+} from '@mcp/tools/mcp-tool-error';
 import { Logger } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import type { NestExpressApplication } from '@nestjs/platform-express';
@@ -116,14 +120,21 @@ async function main(): Promise<void> {
     );
     applyRateLimitHeaders(res, rateLimit);
     if (!rateLimit.allowed) {
-      res.status(429).json({
-        error: {
-          code: -32029,
-          message: `Rate limit exceeded. Retry after ${rateLimit.retryAfterSeconds}s.`,
-        },
-        id: null,
-        jsonrpc: '2.0',
+      const message = `Rate limit exceeded. Retry after ${rateLimit.retryAfterSeconds}s.`;
+      const rateLimited = classifyMcpToolFailure({
+        message,
+        retryAfterSeconds: rateLimit.retryAfterSeconds,
+        status: 429,
       });
+      res.status(429).json(
+        rateLimited
+          ? mcpJsonRpcError(null, -32029, rateLimited)
+          : {
+              error: { code: -32029, message },
+              id: null,
+              jsonrpc: '2.0',
+            },
+      );
       return;
     }
 
@@ -134,15 +145,18 @@ async function main(): Promise<void> {
       }
 
       res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
-      res.status(401).json({
-        error: {
-          code: -32001,
-          message:
-            'Unauthorized. Authorize this client with Genfeed OAuth, or send a Genfeed API key as a bearer token.',
-        },
-        id: null,
-        jsonrpc: '2.0',
-      });
+      const message =
+        'Unauthorized. Authorize this client with Genfeed OAuth, or send a Genfeed API key as a bearer token.';
+      const unauthorized = classifyMcpToolFailure({ message, status: 401 });
+      res.status(401).json(
+        unauthorized
+          ? mcpJsonRpcError(null, -32001, unauthorized)
+          : {
+              error: { code: -32001, message },
+              id: null,
+              jsonrpc: '2.0',
+            },
+      );
       return;
     }
 
@@ -150,14 +164,17 @@ async function main(): Promise<void> {
 
     if (!authResult.valid) {
       res.setHeader('WWW-Authenticate', getMcpWwwAuthenticateHeader());
-      res.status(401).json({
-        error: {
-          code: -32001,
-          message: authResult.error || 'Invalid token',
-        },
-        id: null,
-        jsonrpc: '2.0',
-      });
+      const message = authResult.error || 'Invalid token';
+      const unauthorized = classifyMcpToolFailure({ message, status: 401 });
+      res.status(401).json(
+        unauthorized
+          ? mcpJsonRpcError(null, -32001, unauthorized)
+          : {
+              error: { code: -32001, message },
+              id: null,
+              jsonrpc: '2.0',
+            },
+      );
       return;
     }
 

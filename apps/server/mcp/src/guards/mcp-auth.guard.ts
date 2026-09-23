@@ -9,6 +9,7 @@ import {
   applyRateLimitHeaders,
   RateLimitService,
 } from '@mcp/services/rate-limit.service';
+import { classifyMcpToolFailure } from '@mcp/tools/mcp-tool-error';
 import {
   CanActivate,
   ExecutionContext,
@@ -55,8 +56,13 @@ export class McpAuthGuard implements CanActivate {
     );
     applyRateLimitHeaders(response, rateLimit);
     if (!rateLimit.allowed) {
+      const message = `Rate limit exceeded. Retry after ${rateLimit.retryAfterSeconds}s.`;
       throw new HttpException(
-        `Rate limit exceeded. Retry after ${rateLimit.retryAfterSeconds}s.`,
+        classifyMcpToolFailure({
+          message,
+          retryAfterSeconds: rateLimit.retryAfterSeconds,
+          status: HttpStatus.TOO_MANY_REQUESTS,
+        }) ?? message,
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

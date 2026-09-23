@@ -33,6 +33,10 @@ import {
   handleClipProjectsTool,
 } from '@mcp/tools/clip-projects.tool';
 import { handleGoogleAdsTool } from '@mcp/tools/google-ads.tool';
+import {
+  approvalPendingToolResult,
+  toMcpToolErrorResult,
+} from '@mcp/tools/mcp-tool-error';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
 import {
   handleSchedulerTool,
@@ -341,6 +345,8 @@ export class ToolRegistryService implements OnModuleInit {
       return await this.executeTool(name, args ?? {});
     } catch (error: unknown) {
       this.logger.error(`Error handling tool call ${name}:`, error);
+      const gated = toMcpToolErrorResult(error);
+      if (gated) return gated;
       return {
         content: [
           {
@@ -526,20 +532,7 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   private pendingApprovalResult(approval: McpApprovalResource) {
-    return {
-      content: [
-        {
-          text:
-            'This action requires approval before it runs.\n\n' +
-            `Approval ID: ${approval.id}\n` +
-            `Tool: ${approval.toolName}\n` +
-            `Status: ${approval.status}\n\n` +
-            'A reviewer has been notified. To proceed, call `resolve_approval` ' +
-            `with approvalId "${approval.id}" and decision "approve" (or "decline" to cancel).`,
-          type: 'text',
-        },
-      ],
-    };
+    return approvalPendingToolResult(approval);
   }
 
   private textResult(text: string) {
@@ -548,6 +541,10 @@ export class ToolRegistryService implements OnModuleInit {
 
   private toMcpResult(result: AgentToolResult) {
     if (!result.success) {
+      const gated = toMcpToolErrorResult(
+        result.error ?? 'Tool execution failed',
+      );
+      if (gated) return gated;
       return {
         content: [
           {

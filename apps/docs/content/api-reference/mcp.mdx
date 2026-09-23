@@ -157,6 +157,30 @@ The CLI equivalents are `gf connect <platform>`, `gf gen image --brand --context
 and `gf status <id>`. Client evidence lives in the repository file
 `docs/external-agent-content-journey.md`.
 
+## Tool errors
+
+A gating failure is a tool result with `isError: true`. `structuredContent`
+is the contract below — not a generic 500 and not a bare string. The same
+object is `error.data` on the JSON-RPC response when the Streamable HTTP
+transport rejects the request before a tool runs (missing credential, or the
+shared `RateLimitService` window). JSON-RPC `error.code` stays numeric.
+
+| `code` | When | `nextStepUrl` | Extra fields |
+| --- | --- | --- | --- |
+| `unauthorized` | Missing or rejected bearer credential (`401`) | `/connect` on the app origin — the same Connect Genfeed sign-in the server already advertises | |
+| `plan_required` | Paid-plan, subscription, plan-limit, or organization-billing gate (`hasOrganizationBilling()`, `PLAN_LIMIT_EXCEEDED`) | `/settings/subscription` | |
+| `insufficient_credits` | Ledger rejection (`INSUFFICIENT_CREDITS`, HTTP 402) | `/settings/credits` | |
+| `rate_limited` | `RateLimitService`, or an upstream `429` | none | `retryAfterSeconds` when the limiter reported a wait |
+| `validation_failed` | REST `ValidationPipe` / `ErrorResponse.validationFailed` field errors, or a missing required tool argument | none | `errors[]` of `{ field, message }` |
+| `approval_pending` | `mutationPolicy: 'approval-required'` queued the write instead of running it | `/publishing/review` | |
+
+`message` is always set. `retryAfterSeconds` and `nextStepUrl` are omitted
+when they do not apply — `rate_limited` does not invent a URL. Paths are the
+app routes the product already uses; sign-in continues into the caller's
+organization. Fix `errors[]` and call the tool again. For
+`approval_pending`, hand the human `nextStepUrl` or call `resolve_approval`
+with the approval id in `message`.
+
 ## Tools
 
 Each call uses the permissions on the authorized token or manual key.
