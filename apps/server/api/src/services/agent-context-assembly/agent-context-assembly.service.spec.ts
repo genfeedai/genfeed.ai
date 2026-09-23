@@ -193,7 +193,10 @@ describe('AgentContextAssemblyService', () => {
       ...brand,
       agentConfig: {
         ...brand.agentConfig,
-        voice: { ...brand.agentConfig.voice, audience: 'Founders' },
+        voice: {
+          ...brand.agentConfig.voice,
+          audience: 'Founders',
+        } as unknown as typeof brand.agentConfig.voice,
       },
     });
 
