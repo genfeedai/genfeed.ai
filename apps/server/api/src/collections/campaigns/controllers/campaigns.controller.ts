@@ -19,17 +19,26 @@ import { CampaignPaidActivationService } from '@api/collections/campaigns/servic
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
 import { CampaignPlanningService } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
+import {
+  Credits,
+  DeferCreditsUntilModelResolution,
+} from '@api/helpers/decorators/credits/credits.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ActivitySource, ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   CampaignComparisonSerializer,
   CampaignLifecycleSerializer,
@@ -49,6 +58,7 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -181,17 +191,27 @@ export class CampaignsController {
   }
 
   @Post('generate-plan')
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  @Credits({ description: 'Campaign planning', source: ActivitySource.SCRIPT })
+  @DeferCreditsUntilModelResolution()
+  @RateLimit({ limit: 10, scope: 'organization', windowMs: 60000 })
   @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async generatePlan(
     @Req() request: Request,
     @CurrentUser() user: User,
     @Body() dto: GenerateCampaignPlanDto,
   ) {
+    let billedCredits = 0;
     const data = await this.planningService.generate(
       user.organizationId,
       this.resolveUserId(user),
       dto,
+      (amount) => {
+        billedCredits += amount;
+      },
     );
+    finalizeDeferredTextCredits(request, billedCredits);
     return serializeSingle(request, CampaignSerializer, data);
   }
 

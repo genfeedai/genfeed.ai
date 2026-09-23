@@ -44,6 +44,7 @@ export default function CampaignGenerateDialog({
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
   const [resultMessage, setResultMessage] = useState('');
+  const [hasDrafts, setHasDrafts] = useState(false);
   const request = useRef({ fingerprint: '', key: '' });
   const isSubmitting = useRef(false);
   const credentialIds = selectedIds.filter((id) =>
@@ -66,6 +67,9 @@ export default function CampaignGenerateDialog({
         idempotencyKey: request.current.key,
       });
       const summary = summarizeCampaignLifecycleItems(result.items);
+      setHasDrafts(
+        (current) => current || summary.succeeded > 0 || summary.skipped > 0,
+      );
       if (summary.failed || summary.ineligible) {
         setError(t('accounts.partial', summary));
       } else if (summary.succeeded) {
@@ -158,7 +162,7 @@ export default function CampaignGenerateDialog({
           >
             {t('accounts.close')}
           </Button>
-          {resultMessage ? (
+          {hasDrafts ? (
             <Button asChild>
               <Link
                 href={href(
@@ -169,17 +173,19 @@ export default function CampaignGenerateDialog({
                 {t('accounts.review')}
               </Link>
             </Button>
-          ) : (
-            <Button
-              isDisabled={
-                isGenerating || isPending || isError || !credentialIds.length
-              }
-              onClick={() => void generate()}
-            >
-              <Sparkles className="size-4" />
-              {t(isGenerating ? 'accounts.generating' : 'generate')}
-            </Button>
-          )}
+          ) : null}
+          <Button
+            variant={
+              hasDrafts ? ButtonVariant.SECONDARY : ButtonVariant.DEFAULT
+            }
+            isDisabled={
+              isGenerating || isPending || isError || !credentialIds.length
+            }
+            onClick={() => void generate()}
+          >
+            <Sparkles className="size-4" />
+            {t(isGenerating ? 'accounts.generating' : 'generate')}
+          </Button>
         </div>
       </DialogContent>
     </Dialog>

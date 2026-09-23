@@ -1,6 +1,7 @@
 'use client';
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
+import { ContentCampaignStatus } from '@genfeedai/contracts';
 import { DATE_FORMATS, formatDate } from '@helpers/formatting/date/date.helper';
 import { useCampaign } from '@hooks/data/campaigns/use-campaign';
 import { CAMPAIGN_STATUS_LABELS } from '@pages/campaigns/campaigns-status';
@@ -36,7 +37,9 @@ export default function CampaignDetailOverview({
       <div className="flex flex-col gap-2">
         <h2 className="break-words text-xl font-semibold">{campaign.name}</h2>
         <p className="text-sm text-muted">{translate('setup.description')}</p>
-        <p className="text-sm">{translate('accounts.nextStep')}</p>
+        {campaign.status === ContentCampaignStatus.DRAFT ? (
+          <p className="text-sm">{translate('accounts.nextStep')}</p>
+        ) : null}
       </div>
       <CampaignAccounts brandId={campaign.brandId} />
       <Card label={translate('overviewDetails')}>

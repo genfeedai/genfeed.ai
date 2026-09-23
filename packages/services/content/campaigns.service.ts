@@ -142,7 +142,9 @@ export class CampaignsService extends BaseService<
     return this.executeWithErrorHandling(
       `POST ${this.baseURL}/generate-plan`,
       this.instance
-        .post<JsonApiResponseDocument>('/generate-plan', data)
+        .post<JsonApiResponseDocument>('/generate-plan', data, {
+          timeout: 180_000,
+        })
         .then((response) => this.mapOne(response.data)),
     );
   }
@@ -228,7 +230,11 @@ export class CampaignsService extends BaseService<
     return this.executeWithErrorHandling(
       `POST ${this.baseURL}/${id}/${action}`,
       this.instance
-        .post<JsonApiResponseDocument>(`/${id}/${action}`, body)
+        .post<JsonApiResponseDocument>(
+          `/${id}/${action}`,
+          body,
+          action === 'generate' ? { timeout: 300_000 } : undefined,
+        )
         .then((response) => this.mapLifecycle(response.data)),
     );
   }

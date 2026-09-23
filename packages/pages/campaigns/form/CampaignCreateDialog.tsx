@@ -52,7 +52,9 @@ export default function CampaignCreateDialog({
   );
   const [selectedBrandId, setSelectedBrandId] = useState('');
   const brandId =
-    scope.pageScope === 'brand' ? (scope.brandId ?? '') : selectedBrandId;
+    scope.pageScope === 'brand'
+      ? (scope.brandId ?? '')
+      : selectedBrandId || (brands.length === 1 ? (brands[0]?.id ?? '') : '');
   const [name, setName] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState('');
@@ -117,7 +119,7 @@ export default function CampaignCreateDialog({
             void generate();
           }}
         >
-          {scope.pageScope === 'org' ? (
+          {scope.pageScope === 'org' && brands.length !== 1 ? (
             <div className="flex flex-col gap-2">
               <Label htmlFor="campaign-brand">{t('columns.brand')}</Label>
               <Select

@@ -13,6 +13,12 @@ describe('CampaignPlanningService', () => {
   const context = { assembleContext: vi.fn(), buildSystemPrompt: vi.fn() };
   const llm = { completeStructured: vi.fn() };
   const campaigns = { create: vi.fn() };
+  const models = { findOne: vi.fn() };
+  const cache = { withLock: vi.fn() };
+  const credits = {
+    checkOrganizationCreditsAvailable: vi.fn(),
+    getOrganizationCreditsBalance: vi.fn(),
+  };
   const dto = {
     brandId: 'brand-1',
     name: '  Product launch  ',
@@ -25,6 +31,11 @@ describe('CampaignPlanningService', () => {
   let service: CampaignPlanningService;
   beforeEach(() => {
     vi.resetAllMocks();
+    cache.withLock.mockImplementation(
+      (_key: string, work: () => Promise<unknown>) => work(),
+    );
+    models.findOne.mockResolvedValue({ cost: 1, pricingType: 'fixed' });
+    credits.checkOrganizationCreditsAvailable.mockResolvedValue(true);
     prisma.brand.findFirst.mockResolvedValue({ id: dto.brandId });
     prisma.campaign.findFirst.mockResolvedValue(null);
     context.assembleContext.mockResolvedValue({
@@ -41,6 +52,9 @@ describe('CampaignPlanningService', () => {
       context as never,
       llm as never,
       campaigns as never,
+      models as never,
+      credits as never,
+      cache as never,
     );
   });
   it('generates a brand-aware draft from just a name', async () => {
@@ -109,5 +123,19 @@ describe('CampaignPlanningService', () => {
       campaignPlanSchema.safeParse({ objective: 'ok', brief: 'x'.repeat(8001) })
         .success,
     ).toBe(false);
+  });
+  it('does not call AI when the organization has no credits', async () => {
+    credits.checkOrganizationCreditsAvailable.mockResolvedValue(false);
+    credits.getOrganizationCreditsBalance.mockResolvedValue(0);
+    await expect(service.generate('org-1', 'user-1', dto)).rejects.toThrow();
+    expect(llm.completeStructured).not.toHaveBeenCalled();
+    expect(campaigns.create).not.toHaveBeenCalled();
+  });
+  it('does not call AI when a matching request is already in progress', async () => {
+    cache.withLock.mockResolvedValue(null);
+    await expect(service.generate('org-1', 'user-1', dto)).rejects.toThrow(
+      'busy',
+    );
+    expect(llm.completeStructured).not.toHaveBeenCalled();
   });
 });

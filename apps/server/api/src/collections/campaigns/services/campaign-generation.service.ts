@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/generate-campaign-content.dto';
 import {
   campaignItemOutcome,
@@ -135,6 +136,17 @@ export class CampaignGenerationService {
       };
     }
 
+    const releaseKey = dto.idempotencyKey
+      ? createHash('sha256')
+          .update(
+            JSON.stringify([
+              campaign.id,
+              dto.idempotencyKey,
+              targets.map((target) => target.credentialId).sort(),
+            ]),
+          )
+          .digest('hex')
+      : undefined;
     try {
       const release = await this.postGroupsService.create(
         organizationId,
@@ -143,13 +155,13 @@ export class CampaignGenerationService {
           baseContent: this.campaignCopy(campaign),
           brandId: campaign.brandId,
           campaignId: campaign.id,
-          ...(dto.idempotencyKey ? { idempotencyKey: dto.idempotencyKey } : {}),
+          ...(releaseKey ? { idempotencyKey: releaseKey } : {}),
           status: ReleaseStatus.DRAFT,
           targets,
           timezone: 'UTC',
           title: campaign.name,
         },
-        dto.idempotencyKey,
+        releaseKey,
         {
           ...(dto.contentRunId ? { contentRunId: dto.contentRunId } : {}),
           source: dto.source ?? 'campaign',
