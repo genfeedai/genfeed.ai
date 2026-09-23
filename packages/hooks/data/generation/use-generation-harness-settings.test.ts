@@ -140,4 +140,27 @@ describe('useGenerationHarnessSettings', () => {
     });
     await waitFor(() => expect(result.current.settings?.isEnabled).toBe(false));
   });
+  it('keeps loaded controls visible while checking for external changes', async () => {
+    const { result } = renderHook(() => useGenerationHarnessSettings(true));
+    await waitFor(() => expect(result.current.settings).toEqual(enabled));
+    let finishRefresh: (value: typeof enabled) => void = () => {};
+    mocks.service.getSettings.mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishRefresh = resolve;
+        }),
+    );
+    act(() => {
+      window.dispatchEvent(new Event('focus'));
+    });
+    await waitFor(() =>
+      expect(mocks.service.getSettings).toHaveBeenCalledTimes(2),
+    );
+    expect(result.current.settings).toEqual(enabled);
+    expect(result.current.isLoading).toBe(false);
+    await act(async () => {
+      finishRefresh({ ...enabled, isEnabled: false });
+    });
+    expect(result.current.settings?.isEnabled).toBe(false);
+  });
 });

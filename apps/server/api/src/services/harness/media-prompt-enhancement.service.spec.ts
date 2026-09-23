@@ -1,4 +1,5 @@
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup(enabled = true) {
@@ -20,7 +21,9 @@ function setup(enabled = true) {
       choices: [{ message: { content: 'A cinematic view of a red bicycle' } }],
     }),
   };
+  const logger = { warn: vi.fn() };
   return {
+    logger,
     settings,
     harness,
     packs,
@@ -30,6 +33,7 @@ function setup(enabled = true) {
       harness as never,
       packs as never,
       openRouter as never,
+      logger as never,
     ),
   };
 }
@@ -111,4 +115,41 @@ describe('MediaPromptEnhancementService', () => {
       'Prompt enhancement is unavailable',
     );
   });
+  it.each(['brief', 'provider', 'response', 'receipt'] as const)(
+    'logs only sanitized diagnostics for %s failures',
+    async (stage) => {
+      const { service, harness, openRouter, packs, logger } = setup();
+      const sensitive = 'private prompt and brand guidance from provider error';
+      if (stage === 'brief')
+        harness.resolveBrief.mockRejectedValue(new Error(sensitive));
+      if (stage === 'provider')
+        openRouter.chatCompletion.mockRejectedValue(new Error(sensitive));
+      if (stage === 'response')
+        openRouter.chatCompletion.mockResolvedValue({
+          choices: [{ message: { content: sensitive.repeat(300) } }],
+        });
+      if (stage === 'receipt')
+        packs.listLoadedPackVersions.mockRejectedValue(new Error(sensitive));
+      await expect(
+        service.enhance({
+          ...input,
+          prompt: sensitive,
+          model: sensitive,
+          contentType: 'video',
+        }),
+      ).rejects.toThrow('Prompt enhancement is unavailable');
+      expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
+        'Media prompt enhancement failed',
+        {
+          contentType: 'video',
+          model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+          stage,
+        },
+      );
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(sensitive);
+      expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+        'Private guidance',
+      );
+    },
+  );
 });

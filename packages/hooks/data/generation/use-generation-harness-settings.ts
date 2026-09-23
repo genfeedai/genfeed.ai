@@ -23,6 +23,8 @@ export function useGenerationHarnessSettings(isOpen: boolean) {
   const [revision, setRevision] = useState(0);
   const requestRef = useRef<AbortController | null>(null);
   const savingRef = useRef(false);
+  const loadedScopeRef = useRef<string | null>(null);
+  const loadedServiceRef = useRef<typeof getService | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: revision explicitly refreshes saved settings after focus or retry.
   useEffect(() => {
@@ -30,10 +32,19 @@ export function useGenerationHarnessSettings(isOpen: boolean) {
     requestRef.current?.abort();
     requestRef.current = controller;
     savingRef.current = false;
-    setSettings(null);
+    const scopeKey = JSON.stringify([organizationId, brandId]);
+    const keepSettings =
+      isOpen &&
+      loadedScopeRef.current === scopeKey &&
+      loadedServiceRef.current === getService;
+    if (!keepSettings) {
+      setSettings(null);
+      loadedScopeRef.current = null;
+      loadedServiceRef.current = null;
+    }
     setIsSaving(false);
     setError(null);
-    setIsLoading(isOpen && !!organizationId);
+    setIsLoading(isOpen && !!organizationId && !keepSettings);
     if (isOpen && !organizationId)
       setError('Choose an organization to edit prompt enhancement settings.');
     if (!isOpen || !organizationId) return () => controller.abort();
@@ -43,7 +54,11 @@ export function useGenerationHarnessSettings(isOpen: boolean) {
         const service = await getService();
         if (controller.signal.aborted) return;
         const value = await service.getSettings(brandId, controller.signal);
-        if (!controller.signal.aborted) setSettings(value);
+        if (!controller.signal.aborted) {
+          loadedScopeRef.current = scopeKey;
+          loadedServiceRef.current = getService;
+          setSettings(value);
+        }
       } catch {
         if (!controller.signal.aborted)
           setError('Could not load prompt enhancement settings.');

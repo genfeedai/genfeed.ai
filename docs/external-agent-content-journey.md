@@ -86,7 +86,9 @@ The MCP generation toolset exposes:
 For example, ask a connected agent to discover `set_generation_settings` and
 turn prompt enhancement on for a selected brand. Pass `harness: false` with an
 individual generation to override saved preferences. Organization identity comes
-from authentication, never from caller-supplied tool arguments.
+from authentication, never from caller-supplied tool arguments. In an Agent
+conversation, the validated thread brand is fixed; switch the conversation
+brand before editing another brand. Threadless MCP calls can select `brandId`.
 
 The generation integration remains pending until the central image/video path
 and planned `enhance_prompt` preview executor are connected and verified. Tool registration and the

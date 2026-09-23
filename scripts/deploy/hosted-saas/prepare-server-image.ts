@@ -70,7 +70,7 @@ export function verifyBundle(contents: Uint8Array, expected: string): void {
 export function prepareServerImage(
   config: ImageConfiguration,
   execute: CommandRunner = run,
-): { digest: string; packages: string } {
+): { digest: string; publicDigest: string; packages: string } {
   if (!privateEcrPattern.test(config.destination))
     throw new Error('Hosted images require a private ECR destination.');
   if (
@@ -105,7 +105,7 @@ export function prepareServerImage(
     const digest = inspect(destination, execute);
     if (digest !== baseDigest)
       throw new Error('Copied server digest does not match the source.');
-    return { digest, packages: '' };
+    return { digest, publicDigest: baseDigest, packages: '' };
   }
 
   if (!bundleUri || !bundleSha256)
@@ -135,7 +135,11 @@ export function prepareServerImage(
       destination,
       directory,
     ]);
-    return { digest: inspect(destination, execute), packages: packPath };
+    return {
+      digest: inspect(destination, execute),
+      publicDigest: baseDigest,
+      packages: packPath,
+    };
   } finally {
     rmSync(directory, { recursive: true, force: true });
   }
@@ -164,7 +168,10 @@ if (import.meta.main) {
       bundleUri: process.env.CONTENT_HARNESS_BUNDLE_URI,
       bundleSha256: process.env.CONTENT_HARNESS_BUNDLE_SHA256,
     });
-    appendFileSync(outputFile, `image_digest=${result.digest}\n`);
+    appendFileSync(
+      outputFile,
+      `image_digest=${result.digest}\npublic_image_digest=${result.publicDigest}\n`,
+    );
     appendFileSync(
       environmentFile,
       `TF_VAR_image_digest=${result.digest}\nTF_VAR_content_harness_packages=${result.packages}\n`,
@@ -172,7 +179,7 @@ if (import.meta.main) {
     console.log(
       result.packages
         ? 'Prepared hosted image with a verified content harness bundle; startup validates activation.'
-        : 'Prepared hosted image with built-in content harness packs.',
+        : 'Prepared hosted image without a bundled overlay.',
     );
   } catch (error) {
     console.error(

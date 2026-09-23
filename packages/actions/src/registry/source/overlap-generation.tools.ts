@@ -9,7 +9,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'get_generation_settings',
     description:
-      'Read effective image/video prompt enhancement settings and organization or brand overrides.',
+      'Read effective image/video prompt enhancement settings and organization or brand overrides. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: { type: 'object', properties: { brandId: { type: 'string' } } },
@@ -17,7 +17,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
   {
     name: 'set_generation_settings',
     description:
-      'Set organization or brand prompt enhancement. Use null to restore inheritance. Generation pricing is unchanged.',
+      'Set organization or brand prompt enhancement. Use null to restore inheritance. Threaded Agent calls use the validated current thread brand; brandId must match it. In threadless MCP calls, brandId selects the brand scope. Generation pricing is unchanged.',
     creditCost: 0,
     requiredRole: 'user',
     parameters: {

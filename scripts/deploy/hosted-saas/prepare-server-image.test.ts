@@ -22,7 +22,7 @@ describe('hosted content harness image', () => {
       commands.push([command, ...args]);
       return args.includes('inspect') ? JSON.stringify(base) : '';
     });
-    expect(result).toEqual({ digest: base, packages: '' });
+    expect(result).toEqual({ digest: base, publicDigest: base, packages: '' });
     expect(commands).toHaveLength(3);
     expect(commands[1]).toContain(`${source}@${base}`);
     expect(commands.flat()).not.toContain('build');
@@ -88,6 +88,7 @@ describe('hosted content harness image', () => {
     );
     expect(result).toEqual({
       digest: overlay,
+      publicDigest: base,
       packages: '/usr/src/app/content-harness/index.cjs',
     });
     expect(existsSync(directory)).toBe(false);
@@ -123,4 +124,15 @@ describe('hosted content harness image', () => {
       }),
     ).toThrow('does not match');
   });
+});
+
+test('promotes the public base digest instead of the private overlay', async () => {
+  const workflow = await Bun.file(
+    '../../../.github/workflows/_deploy-hosted-saas-core.yml',
+  ).text();
+  const promotion = workflow.slice(workflow.indexOf('  promote-server-image:'));
+  expect(promotion).toContain(
+    `DIGEST: \${{ needs.deploy.outputs.public_image_digest }}`,
+  );
+  expect(promotion).not.toContain('needs.deploy.outputs.image_digest');
 });
