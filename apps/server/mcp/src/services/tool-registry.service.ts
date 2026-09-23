@@ -23,6 +23,10 @@ import {
 } from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import {
+  agentGuideResource,
+  jsonResource,
+} from '@mcp/services/mcp-resource-contents.util';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
@@ -954,51 +958,19 @@ export class ToolRegistryService implements OnModuleInit {
             ],
           };
         case McpResourceUri.AGENT_GUIDE:
-          return {
-            contents: [
-              {
-                mimeType: 'text/markdown',
-                text: `# Genfeed agent guide
+          return agentGuideResource(uri);
 
-Use Genfeed for content research, AI generation, human review, scheduled publishing, and analytics. Protected tools and tenant resources require a scoped bearer credential.
+        case McpResourceUri.VIDEO_ANALYTICS:
+          return jsonResource(
+            uri,
+            await this.clientService.getVideoAnalytics(),
+          );
 
-- Product context: https://genfeed.ai/llms.txt
-- Authentication: https://genfeed.ai/auth.md
-- OpenAPI: https://api.genfeed.ai/v1/openapi.json
-- MCP setup: https://docs.genfeed.ai/api-reference/mcp
-- Contact: https://genfeed.ai/contact
-`,
-                uri,
-              },
-            ],
-          };
-
-        case McpResourceUri.VIDEO_ANALYTICS: {
-          const videoAnalytics = await this.clientService.getVideoAnalytics();
-          return {
-            contents: [
-              {
-                mimeType: 'application/json',
-                text: JSON.stringify(videoAnalytics, null, 2),
-                uri,
-              },
-            ],
-          };
-        }
-
-        case McpResourceUri.ORGANIZATION_ANALYTICS: {
-          const orgAnalytics =
-            await this.clientService.getOrganizationAnalytics();
-          return {
-            contents: [
-              {
-                mimeType: 'application/json',
-                text: JSON.stringify(orgAnalytics, null, 2),
-                uri,
-              },
-            ],
-          };
-        }
+        case McpResourceUri.ORGANIZATION_ANALYTICS:
+          return jsonResource(
+            uri,
+            await this.clientService.getOrganizationAnalytics(),
+          );
 
         default:
           throw new Error(`Unknown resource: ${uri}`);
