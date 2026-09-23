@@ -4,6 +4,16 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AgentWorkspacePageShell } from './AgentWorkspacePageShell';
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../tests/next-intl.stub'
+  );
+
+  return {
+    useTranslations: () => translateFromCatalog('common.agent.onboardingShell'),
+  };
+});
+
 vi.mock('@hooks/ui/use-theme-logo/use-theme-logo', () => ({
   useThemeLogo: () => null,
 }));

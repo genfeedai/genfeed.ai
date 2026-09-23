@@ -10,6 +10,7 @@ import { TasksService } from '@services/management/tasks.service';
 import { Button } from '@ui/primitives/button';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useState } from 'react';
 import { useAgentWorkspace } from './agent-workspace-context';
 
@@ -17,6 +18,7 @@ export function AgentWorkspacePageShell({
   threadId,
 }: AgentWorkspacePageShellProps) {
   const { push } = useRouter();
+  const translate = useTranslations('common.agent.onboardingShell');
   const logoUrl = useThemeLogo();
   const [isSkipping, setIsSkipping] = useState(false);
   const [skipError, setSkipError] = useState<string | null>(null);
@@ -37,10 +39,10 @@ export function AgentWorkspacePageShell({
       await completeOnboardingFlow();
       push(orgHref('/workspace'));
     } catch {
-      setSkipError('Could not finish setup. Please try again.');
+      setSkipError(translate('skipError'));
       setIsSkipping(false);
     }
-  }, [completeOnboardingFlow, orgHref, push]);
+  }, [completeOnboardingFlow, orgHref, push, translate]);
 
   const handleCreateFollowUpTasks = useCallback(
     async (taskId: string) => {
@@ -93,16 +95,18 @@ export function AgentWorkspacePageShell({
             {logoUrl ? (
               <Image
                 src={logoUrl}
-                alt="Genfeed"
+                alt={translate('brandName')}
                 width={28}
                 height={28}
                 className="size-7 object-contain dark:invert"
               />
             ) : null}
             <div className="min-w-0">
-              <p className="text-sm font-semibold text-foreground">Genfeed</p>
+              <p className="text-sm font-semibold text-foreground">
+                {translate('brandName')}
+              </p>
               <p className="text-xs text-muted-foreground">
-                Your first brand post
+                {translate('subtitle')}
               </p>
             </div>
           </div>
@@ -112,7 +116,7 @@ export function AgentWorkspacePageShell({
             onClick={() => void handleSkip()}
             isDisabled={isSkipping}
           >
-            {isSkipping ? 'Opening workspace…' : 'Skip to workspace'}
+            {isSkipping ? translate('openingWorkspace') : translate('skip')}
           </Button>
         </header>
       ) : null}

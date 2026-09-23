@@ -18,6 +18,7 @@ import {
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
+import { createOnboardingBrandDraft } from '@api/services/agent-orchestrator/tools/agent-onboarding-content.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   hasOrganizationBilling,
@@ -25,7 +26,6 @@ import {
 } from '@genfeedai/config';
 import {
   ByokProvider,
-  ContentIntelligencePlatform,
   RouterPriority,
   Status,
   TargetExecutionState,
@@ -1108,156 +1108,22 @@ export class AgentOnboardingToolHandler {
       };
     }
 
-    try {
-      if (isSelfHostedDeployment()) {
-        const settings = await this.organizationSettingsService?.findOne({
-          organizationId: ctx.organizationId,
-        });
-        if (!this.resolveProviderReadiness(settings ?? null).isImageReady) {
-          return this.checkOnboardingStatus(ctx);
-        }
-      }
-      const brand = await this.brandsService.findOne({
-        id: brandId,
-        organizationId: ctx.organizationId,
-        isDeleted: false,
-      });
-      if (!brand) {
-        return {
-          creditsUsed: 0,
-          error: 'This brand is unavailable in your workspace.',
-          success: false,
-        };
-      }
-      const brandName =
-        typeof brand.label === 'string' ? brand.label : 'your brand';
-      const description =
-        typeof brand.description === 'string' ? brand.description : '';
-      const reportProgress = async (message: string, progress: number) => {
-        if (!ctx.threadId) return;
-        try {
-          await this.publishToolProgress({
-            message,
-            progress,
-            threadId: ctx.threadId,
-            toolName: 'generate_onboarding_content',
-            userId: ctx.userId,
-          });
-        } catch (error) {
-          this.loggerService.warn(
-            'Onboarding progress could not be published',
-            { error },
-          );
-        }
-      };
-      let tweet = retryTweet;
-      if (!tweet) {
-        await reportProgress(`Writing a tweet for ${brandName}…`, 0.1);
-        const generated =
-          await this.contentGeneratorService.generateContentWorkflow(
-            ctx.userId,
-            ctx.organizationId,
-            {
-              brandId,
-              platform: ContentIntelligencePlatform.TWITTER,
-              topic:
-                `Introduce ${brandName} with a useful, specific post grounded in its offering. ${description}`.slice(
-                  0,
-                  2000,
-                ),
-              variationsCount: 1,
-              additionalContext: [
-                'Write one standalone tweet, at most 280 characters. Use the saved brand voice and audience. Do not invent claims, customer quotes, metrics, discounts, or URLs.',
-                ...(direction
-                  ? [`Apply these requested changes: ${direction}`]
-                  : []),
-              ],
-            },
-          );
-        tweet = generated[0]?.content?.trim();
-        if (!tweet) throw new Error('The text generator returned no draft.');
-        if (tweet.length > 280) {
-          return {
-            creditsUsed: 0,
-            isBillingDelegated: true,
-            success: false,
-            error:
-              'The draft exceeded the tweet length limit. Ask for a shorter version; no image was generated.',
-          };
-        }
-      }
-
-      await reportProgress(`Creating an image for ${brandName}…`, 0.5);
-      const image = await this.generateOnboardingImage(
-        `Create one distinctive social image for ${brandName}. Brand context: ${description}. Illustrate this post: ${tweet}. Match the brand's subject and audience. ${direction ? `Requested creative direction: ${direction}.` : ''} Use a clear focal point and intentional composition. Avoid invented logos, text overlays, claims, and stock-photo cliches.`,
-        { ...ctx, brandId },
-      );
-      const url =
-        typeof image.data?.url === 'string' ? image.data.url : undefined;
-      const images = url ? [url] : [];
-      const isComplete = image.success && images.length > 0;
-      return {
-        creditsUsed: 0,
-        isBillingDelegated: true,
-        data: {
-          images,
-          tweets: [tweet],
-          isComplete,
-          message: isComplete
-            ? `The image and tweet for ${brandName} are ready for review. Ask whether the user likes them; do not offer connection until approval.`
-            : `The tweet is ready, but the image failed: ${image.error ?? 'Image unavailable'}. Keep the tweet visible. Do not claim the full draft is ready.`,
-        },
-        nextActions: [
-          {
-            id: `onboarding-content-${randomUUID()}`,
-            type: 'content_preview_card',
-            brandId,
-            platform: 'twitter',
-            title: isComplete
-              ? `Your first post for ${brandName}`
-              : `Your tweet for ${brandName}`,
-            description: isComplete
-              ? 'Review your draft. Nothing has been published.'
-              : `Your tweet is ready. ${image.error ?? 'The image could not be generated.'}`,
-            images,
-            tweets: [tweet],
-            ctas: [
-              ...(isComplete
-                ? [
-                    {
-                      label: 'Looks good',
-                      action: 'send_prompt',
-                      payload: {
-                        prompt:
-                          'I approve this image and tweet. Show me the optional X connection to publish it. Do not publish anything yet.',
-                      },
-                    },
-                  ]
-                : []),
-              {
-                label: isComplete ? 'Try another version' : 'Retry image',
-                action: 'send_prompt',
-                payload: {
-                  prompt: isComplete
-                    ? 'Create another version of the image and tweet for my brand, with a different creative angle. Show it for review before connecting an account.'
-                    : `Retry only the image using generate_onboarding_content with retryTweet set to this exact tweet: ${tweet}`,
-                },
-              },
-            ],
-          },
-        ],
-        success: true,
-      };
-    } catch (error: unknown) {
-      this.loggerService.error('generateOnboardingContent failed', error);
-      return {
-        creditsUsed: 0,
-        isBillingDelegated: true,
-        error:
-          'We could not create your first post. Try again, or skip setup to open your workspace.',
-        success: false,
-      };
-    }
+    return createOnboardingBrandDraft({
+      brandId,
+      brandsService: this.brandsService,
+      checkOnboardingStatus: (next) => this.checkOnboardingStatus(next),
+      contentGeneratorService: this.contentGeneratorService,
+      ctx,
+      direction,
+      generateImage: (prompt, next) =>
+        this.generateOnboardingImage(prompt, next),
+      loggerService: this.loggerService,
+      organizationSettingsService: this.organizationSettingsService,
+      publishProgress: (data) => this.publishToolProgress(data),
+      resolveProviderReadiness: (settings) =>
+        this.resolveProviderReadiness(settings),
+      retryTweet,
+    });
   }
 
   /**

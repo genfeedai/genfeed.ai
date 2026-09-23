@@ -709,6 +709,13 @@
     "onboardingComposerCard": {
       "description": "An image and a tweet first. Refine them here, then connect an account when you’re ready to publish.",
       "title": "Made for your brand"
+    },
+    "onboardingShell": {
+      "brandName": "Genfeed",
+      "openingWorkspace": "Opening workspace…",
+      "skip": "Skip to workspace",
+      "skipError": "Could not finish setup. Please try again.",
+      "subtitle": "Your first brand post"
     }
   },
   "automation": {

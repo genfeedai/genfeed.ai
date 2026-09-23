@@ -201,27 +201,17 @@ export class AgentOrchestratorContextService {
     );
 
     if (shouldUseOnboardingPrompt) {
-      const onboardingPrompt = isSelfHostedDeployment()
-        ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
-        : ONBOARDING_SYSTEM_PROMPT;
-      const scopedPrompt = policy.brandId
-        ? `${onboardingPrompt}\n\nCurrent brand ID: ${policy.brandId}. Use this saved brand; do not create a duplicate.`
-        : onboardingPrompt;
       return {
         memories,
         model: await resolveModel(),
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: composeAgentGuardrails(
-          brandContext
-            ? this.contextAssemblyService.buildSystemPrompt(
-                scopedPrompt,
-                brandContext,
-                { replyStyle },
-              )
-            : scopedPrompt,
-        ),
+        systemPrompt: this.composeOnboardingSystemPrompt({
+          brandContext,
+          brandId: policy.brandId,
+          replyStyle,
+        }),
       };
     }
 
@@ -405,6 +395,34 @@ export class AgentOrchestratorContextService {
 
     return history;
   }
+  private composeOnboardingSystemPrompt(input: {
+    brandContext:
+      | Parameters<AgentContextAssemblyService['buildSystemPrompt']>[1]
+      | null;
+    brandId?: string;
+    replyStyle: Parameters<
+      AgentContextAssemblyService['buildSystemPrompt']
+    >[2] extends { replyStyle?: infer ReplyStyle }
+      ? ReplyStyle
+      : undefined;
+  }): string {
+    const onboardingPrompt = isSelfHostedDeployment()
+      ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
+      : ONBOARDING_SYSTEM_PROMPT;
+    const scopedPrompt = input.brandId
+      ? `${onboardingPrompt}\n\nCurrent brand ID: ${input.brandId}. Use this saved brand; do not create a duplicate.`
+      : onboardingPrompt;
+    return composeAgentGuardrails(
+      input.brandContext
+        ? this.contextAssemblyService.buildSystemPrompt(
+            scopedPrompt,
+            input.brandContext,
+            { replyStyle: input.replyStyle },
+          )
+        : scopedPrompt,
+    );
+  }
+
   /**
    * Resolve messages and optional compressed context for a thread.
    * If compaction is available, returns windowed messages + compressed context.
