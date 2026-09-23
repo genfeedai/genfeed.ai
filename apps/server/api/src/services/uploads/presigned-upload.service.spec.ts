@@ -157,6 +157,10 @@ describe('PresignedUploadService', () => {
 
       const result = await service.getPresignedUploadUrl(mockUser, body);
 
+      expect(ingredientsService.patch).toHaveBeenCalledWith(mockIngredientId, {
+        s3Key: `ingredients/images/${mockIngredientId}`,
+      });
+
       expect(result).toEqual({
         expiresIn: 3600,
         id: mockIngredientId.toString(),
@@ -186,6 +190,94 @@ describe('PresignedUploadService', () => {
         3600,
       );
     });
+
+    it.each(['PUT', 'POST_JSON'] as const)(
+      'should persist the exact files-service key before returning a %s grant',
+      async (uploadMethod) => {
+        sharedService.createMediaDocuments.mockResolvedValue({
+          ingredientData: createIngredientEntity({}),
+          metadataData: createMetadataEntity(),
+        });
+        const s3Key = 'ingredients/images/server-selected-key';
+        filesClientService.getPresignedUploadUrl.mockResolvedValue({
+          publicUrl: 'https://cdn.example.com/image',
+          s3Key,
+          uploadMethod,
+          uploadUrl: 'https://storage.example.com/upload?signature=abc',
+        });
+        let finishPersistence: (() => void) | undefined;
+        ingredientsService.patch.mockImplementation(
+          () =>
+            new Promise((resolve) => {
+              finishPersistence = () =>
+                resolve(createIngredientDocument({ s3Key }));
+            }),
+        );
+        let returned = false;
+        const grant = service
+          .getPresignedUploadUrl(mockUser, {
+            contentType: 'image/jpeg',
+            filename: 'image.jpg',
+          })
+          .then((result) => {
+            returned = true;
+            return result;
+          });
+        await vi.waitFor(() => expect(finishPersistence).toBeDefined());
+        expect(returned).toBe(false);
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          { s3Key },
+        );
+        finishPersistence?.();
+        await expect(grant).resolves.toEqual(
+          expect.objectContaining({ s3Key, uploadMethod }),
+        );
+      },
+    );
+
+    it('should reject the grant when key persistence fails', async () => {
+      sharedService.createMediaDocuments.mockResolvedValue({
+        ingredientData: createIngredientEntity({}),
+        metadataData: createMetadataEntity(),
+      });
+      filesClientService.getPresignedUploadUrl.mockResolvedValue({
+        publicUrl: 'https://cdn.example.com/image',
+        s3Key: 'ingredients/images/server-selected-key',
+        uploadUrl: 'https://storage.example.com/upload',
+      });
+      ingredientsService.patch.mockRejectedValue(
+        new Error('Persistence failed'),
+      );
+      await expect(
+        service.getPresignedUploadUrl(mockUser, {
+          contentType: 'image/jpeg',
+          filename: 'image.jpg',
+        }),
+      ).rejects.toThrow('Persistence failed');
+    });
+
+    it.each(['', '   ', undefined])(
+      'should reject a missing files-service key (%s)',
+      async (s3Key) => {
+        sharedService.createMediaDocuments.mockResolvedValue({
+          ingredientData: createIngredientEntity({}),
+          metadataData: createMetadataEntity(),
+        });
+        filesClientService.getPresignedUploadUrl.mockResolvedValue({
+          publicUrl: 'https://cdn.example.com/image',
+          s3Key,
+          uploadUrl: 'https://storage.example.com/upload',
+        } as Awaited<ReturnType<FilesClientService['getPresignedUploadUrl']>>);
+        await expect(
+          service.getPresignedUploadUrl(mockUser, {
+            contentType: 'image/jpeg',
+            filename: 'image.jpg',
+          }),
+        ).rejects.toThrow('Files service returned no storage key');
+        expect(ingredientsService.patch).not.toHaveBeenCalled();
+      },
+    );
 
     it('should generate presigned URL for video upload', async () => {
       const body = {
@@ -371,9 +463,88 @@ describe('PresignedUploadService', () => {
       });
 
       expect(ingredientsService.patch).toHaveBeenCalledWith(ingredientId, {
+        s3Key: `ingredients/images/${ingredientId}`,
         status: IngredientStatus.UPLOADED,
       });
     });
+
+    it.each([false, true])(
+      'should preserve the existing key when metadata fails: %s',
+      async (fails) => {
+        const s3Key = 'ingredients/images/existing-key';
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocument({ s3Key }),
+        );
+        if (fails) {
+          filesClientService.uploadToS3.mockRejectedValue(
+            new Error('Metadata failed'),
+          );
+        } else {
+          filesClientService.uploadToS3.mockResolvedValue({
+            s3Key: 'ingredients/images/reprocessed-key',
+          });
+        }
+        await service.confirmUpload(mockUser, mockIngredientId);
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          {
+            s3Key,
+            status: IngredientStatus.UPLOADED,
+          },
+        );
+      },
+    );
+
+    it.each([false, true])(
+      'should recover a legacy key from upload metadata when metadata patch fails: %s',
+      async (fails) => {
+        const s3Key = 'ingredients/images/trusted-upload-key';
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocument({}),
+        );
+        filesClientService.uploadToS3.mockResolvedValue({ s3Key });
+        if (fails)
+          metadataService.patch.mockRejectedValue(
+            new Error('Metadata patch failed'),
+          );
+        await service.confirmUpload(mockUser, mockIngredientId);
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          {
+            s3Key,
+            status: IngredientStatus.UPLOADED,
+          },
+        );
+      },
+    );
+
+    it.each(['download', 'upload'])(
+      'should recover a legacy video key when %s fails',
+      async (stage) => {
+        ingredientsService.findOne.mockResolvedValue(
+          createIngredientDocument({
+            category: IngredientCategory.VIDEO,
+          }),
+        );
+        if (stage === 'download') {
+          filesClientService.getPresignedDownloadUrl.mockRejectedValue(
+            new Error('Download failed'),
+          );
+        } else {
+          filesClientService.uploadToS3.mockRejectedValue(
+            new Error('Upload failed'),
+          );
+        }
+        await service.confirmUpload(mockUser, mockIngredientId);
+        expect(ingredientsService.patch).toHaveBeenCalledWith(
+          mockIngredientId,
+          {
+            s3Key: `ingredients/videos/${mockIngredientId}`,
+            status: IngredientStatus.UPLOADED,
+          },
+        );
+      },
+    );
 
     it('should throw NOT_FOUND when ingredient not found', async () => {
       const ingredientId = mockIngredientId.toString();
