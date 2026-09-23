@@ -1,4 +1,8 @@
-import type { CanonicalToolDefinition } from '../interfaces/tool-definition.interface';
+import type {
+  CanonicalToolDefinition,
+  ToolAnnotations,
+} from '../interfaces/tool-definition.interface';
+import { deriveMcpToolPresentation } from '../registry/source/tool-annotations';
 
 /**
  * `_meta` key carrying the minimum credit charge for one call of the tool.
@@ -20,12 +24,14 @@ export const MCP_TOOLSET_META_KEY = 'genfeed.ai/toolset';
 
 export interface McpToolOutput {
   name: string;
+  title: string;
   description: string;
   inputSchema: {
     type: string;
     properties: Record<string, unknown>;
     required?: string[];
   };
+  annotations: ToolAnnotations;
   requiredRole: 'user' | 'admin' | 'superadmin';
   _meta: Record<string, unknown>;
 }
@@ -33,21 +39,29 @@ export interface McpToolOutput {
 export function toMcpTools(tools: CanonicalToolDefinition[]): McpToolOutput[] {
   return tools
     .filter((tool) => tool.surfaces.mcp)
-    .map((tool) => ({
-      _meta: {
-        [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
-        [MCP_TOOLSET_META_KEY]: tool.toolset,
-        ...(tool.mutationPolicy
-          ? { [MCP_MUTATION_POLICY_META_KEY]: tool.mutationPolicy }
-          : {}),
-      },
-      description: tool.description,
-      inputSchema: {
-        properties: tool.parameters.properties,
-        required: tool.parameters.required,
-        type: tool.parameters.type,
-      },
-      name: tool.name,
-      requiredRole: tool.requiredRole,
-    }));
+    .map((tool) => {
+      const presentation =
+        tool.title && tool.annotations
+          ? { annotations: tool.annotations, title: tool.title }
+          : deriveMcpToolPresentation(tool.name, tool.mutationPolicy);
+      return {
+        _meta: {
+          [MCP_CREDIT_COST_META_KEY]: tool.creditCost,
+          [MCP_TOOLSET_META_KEY]: tool.toolset,
+          ...(tool.mutationPolicy
+            ? { [MCP_MUTATION_POLICY_META_KEY]: tool.mutationPolicy }
+            : {}),
+        },
+        annotations: presentation.annotations,
+        description: tool.description,
+        inputSchema: {
+          properties: tool.parameters.properties,
+          required: tool.parameters.required,
+          type: tool.parameters.type,
+        },
+        name: tool.name,
+        requiredRole: tool.requiredRole,
+        title: presentation.title,
+      };
+    });
 }

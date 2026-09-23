@@ -68,4 +68,37 @@ describe('toMcpTools', () => {
       expect(tool._meta[MCP_TOOLSET_META_KEY], tool.name).not.toBe('');
     }
   });
+
+  it('emits a title and all four hints for every MCP-surfaced action', () => {
+    const tools = toMcpTools(getToolsForSurface('mcp'));
+    expect(tools.length).toBeGreaterThan(0);
+    for (const tool of tools) {
+      expect(tool.title, tool.name).toEqual(expect.any(String));
+      expect(tool.title.length, tool.name).toBeGreaterThan(0);
+      expect(tool.annotations.readOnlyHint, tool.name).toEqual(
+        expect.any(Boolean),
+      );
+      expect(tool.annotations.destructiveHint, tool.name).toEqual(
+        expect.any(Boolean),
+      );
+      expect(tool.annotations.idempotentHint, tool.name).toEqual(
+        expect.any(Boolean),
+      );
+      expect(tool.annotations.openWorldHint, tool.name).toEqual(
+        expect.any(Boolean),
+      );
+    }
+  });
+
+  it('derives annotations when a fixture has not stored them', () => {
+    const [tool] = toMcpTools([buildTool({ mutationPolicy: 'direct' })]);
+
+    expect(tool?.title).toBe('Generate Voice');
+    expect(tool?.annotations).toEqual({
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    });
+  });
 });
