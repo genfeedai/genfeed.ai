@@ -71,6 +71,7 @@ import {
   getModelMaxVideoReferences,
   hasVideoReferences,
 } from '@genfeedai/contracts/constants';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import { resolveGenerationDimensions } from '@genfeedai/pricing';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -234,27 +235,15 @@ export class VideoGenerationPreparationService {
     const { endFrameUrl, referenceImageUrls } =
       await this.resolveReferenceUrls(resolved);
     const promptText = await this.resolvePromptText(resolved);
-    const generationHarness = await this.enhancementService.enhance({
-      organizationId: user.organizationId,
-      brandId: brand.id,
-      prompt: promptText,
-      contentType: 'video',
+    const generationHarness = await this.enhanceGenerationPrompt(
+      user,
+      createVideoDto,
+      request,
+      brand.id,
       model,
-      harness: createVideoDto.harness,
-      promptId: createVideoDto.promptId,
-    });
-    if (request.generationOriginalPrompt !== undefined) {
-      if (
-        generationHarness.status === 'skipped' &&
-        request.generationOriginalPrompt !== promptText
-      ) {
-        throw new HttpException(
-          'Remove selected context or enable prompt enhancement.',
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-      generationHarness.originalPrompt = request.generationOriginalPrompt;
-    }
+      promptText,
+    );
+
     const briefBrandContext = await this.resolveBriefBrandContext(
       brand,
       createVideoDto,
@@ -264,30 +253,18 @@ export class VideoGenerationPreparationService {
     const {
       brief: generationBrief,
       dispatch: rawCompiledDispatch,
-      evidence: compiledEvidence,
-      generationSource: compiledSource,
+      evidence: briefEvidence,
+      generationSource,
     } = this.compileVideoGenerationBrief({
       briefBrandContext,
       createVideoDto,
       height,
       model,
-      promptOriginalText: generationHarness.enhancedPrompt,
+      generationHarness,
       referenceIds,
       runReferences,
       width,
     });
-    const briefEvidence =
-      generationHarness.status === 'skipped'
-        ? {
-            ...rawPromptBriefEvidence(compiledEvidence),
-            actionVerb: compiledEvidence.actionVerb,
-            dispatchMode: compiledEvidence.dispatchMode,
-          }
-        : compiledEvidence;
-    const generationSource =
-      generationHarness.status === 'skipped'
-        ? buildVideoGenerationBriefExemptionSource('raw_prompt_requested')
-        : compiledSource;
     const compiledDispatch = rawCompiledDispatch
       ? await this.resolveCompiledDispatchReferenceUrls(
           rawCompiledDispatch,
@@ -321,23 +298,7 @@ export class VideoGenerationPreparationService {
     }
     promptParams.prompt = generationHarness.enhancedPrompt;
     const promptInput = promptParams as PromptInput;
-    const promptData = await this.promptsService.create(
-      new PromptEntity({
-        blacklists: createVideoDto.blacklist,
-        brandId: brand.id,
-        camera: createVideoDto.camera,
-        category: PromptCategory.MODELS_PROMPT_VIDEO,
-        mood: createVideoDto.mood,
-        organizationId: user.organizationId,
-        original: promptText,
-        scene: createVideoDto.scene,
-        sounds: createVideoDto.sounds,
-        speech: createVideoDto.speech,
-        status: PromptStatus.PROCESSING,
-        style: createVideoDto.style,
-        userId: user.userId ?? user.id,
-      }),
-    );
+    const promptData = await this.createGenerationPrompt(resolved, promptText);
     const { metadataData, ingredientData } =
       await this.sharedService.createMediaDocuments(user, {
         bookmarkId: createVideoDto.bookmark
@@ -400,6 +361,62 @@ export class VideoGenerationPreparationService {
       referenceImageUrls,
       width,
     };
+  }
+
+  private createGenerationPrompt(
+    resolved: ResolvedVideoGenerationRequest,
+    promptText: string,
+  ) {
+    const { createVideoDto, user } = resolved;
+    return this.promptsService.create(
+      new PromptEntity({
+        blacklists: createVideoDto.blacklist,
+        brandId: resolved.brand.id,
+        camera: createVideoDto.camera,
+        category: PromptCategory.MODELS_PROMPT_VIDEO,
+        mood: createVideoDto.mood,
+        organizationId: user.organizationId,
+        original: promptText,
+        scene: createVideoDto.scene,
+        sounds: createVideoDto.sounds,
+        speech: createVideoDto.speech,
+        status: PromptStatus.PROCESSING,
+        style: createVideoDto.style,
+        userId: user.userId ?? user.id,
+      }),
+    );
+  }
+
+  private async enhanceGenerationPrompt(
+    user: User,
+    createVideoDto: CreateVideoDto,
+    request: Request,
+    brandId: string,
+    model: string,
+    promptText: string,
+  ) {
+    const generationHarness = await this.enhancementService.enhance({
+      organizationId: user.organizationId,
+      brandId,
+      prompt: promptText,
+      contentType: 'video',
+      model,
+      harness: createVideoDto.harness,
+      promptId: createVideoDto.promptId,
+    });
+    if (request.generationOriginalPrompt !== undefined) {
+      if (
+        generationHarness.status === 'skipped' &&
+        request.generationOriginalPrompt !== promptText
+      ) {
+        throw new HttpException(
+          'Remove selected context or enable prompt enhancement.',
+          HttpStatus.BAD_REQUEST,
+        );
+      }
+      generationHarness.originalPrompt = request.generationOriginalPrompt;
+    }
+    return generationHarness;
   }
 
   private async buildPromptParams(params: {
@@ -521,7 +538,7 @@ export class VideoGenerationPreparationService {
     createVideoDto: CreateVideoDto;
     height: number;
     model: string;
-    promptOriginalText: string;
+    generationHarness: GenerationHarnessReceipt;
     referenceIds: string[];
     runReferences?: readonly GenerationBriefReference[];
     width: number;
@@ -545,7 +562,7 @@ export class VideoGenerationPreparationService {
     ];
 
     try {
-      return runVideoGenerationBrief({
+      const compiled = runVideoGenerationBrief({
         audioDirection: params.createVideoDto.speech,
         avoid,
         brandContext: params.briefBrandContext,
@@ -559,7 +576,7 @@ export class VideoGenerationPreparationService {
         lighting: params.createVideoDto.lighting,
         model: params.model,
         motion: params.createVideoDto.cameraMovement,
-        objective: params.promptOriginalText,
+        objective: params.generationHarness.enhancedPrompt,
         referenceIds: params.referenceIds,
         references: params.runReferences,
         resolution: params.createVideoDto.resolution,
@@ -571,6 +588,17 @@ export class VideoGenerationPreparationService {
         videoReferenceIds: params.createVideoDto.videoReferences,
         width: params.width,
       });
+      if (params.generationHarness.status === 'skipped') {
+        compiled.evidence = {
+          ...rawPromptBriefEvidence(compiled.evidence),
+          actionVerb: compiled.evidence.actionVerb,
+          dispatchMode: compiled.evidence.dispatchMode,
+        };
+        compiled.generationSource = buildVideoGenerationBriefExemptionSource(
+          'raw_prompt_requested',
+        );
+      }
+      return compiled;
     } catch (error: unknown) {
       if (error instanceof GenerationBriefCompileError) {
         throw new HttpException(
