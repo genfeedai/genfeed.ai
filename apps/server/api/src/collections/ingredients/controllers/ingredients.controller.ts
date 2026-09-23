@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { FoldersService } from '@api/collections/folders/services/folders.service';
+import { SERVER_OWNED_MEDIA_FIELDS } from '@api/collections/ingredients/constants/server-owned-media-fields.constants';
 import { IngredientsQueryDto } from '@api/collections/ingredients/dto/ingredients-query.dto';
 import { UpdateIngredientDto } from '@api/collections/ingredients/dto/update-ingredient.dto';
 import { IngredientGenerationCancellationService } from '@api/collections/ingredients/services/ingredient-generation-cancellation.service';
@@ -241,6 +242,14 @@ export class IngredientsController {
     const processedDto = {
       ...(updateIngredientDto as unknown as Record<string, unknown>),
     };
+    // Storage identity is server-owned: it is written when an upload or
+    // generation completes, never by a client. The global ValidationPipe does
+    // not whitelist, so unknown or omitted fields would otherwise pass straight
+    // through. Accepting these would let a caller repoint an ingredient at
+    // another tenant's object and obtain a signed URL for it.
+    for (const field of SERVER_OWNED_MEDIA_FIELDS) {
+      delete processedDto[field];
+    }
 
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.

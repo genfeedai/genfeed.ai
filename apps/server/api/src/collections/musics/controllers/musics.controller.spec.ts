@@ -308,6 +308,25 @@ describe('MusicsController', () => {
       );
     });
 
+    it('never forwards a client-supplied cdnUrl or s3Key', async () => {
+      musicsService.findOne.mockResolvedValue(music);
+      musicsService.patch.mockResolvedValue(music);
+
+      // A variable, not a literal: the unknown fields reach the handler the
+      // same way they do through the non-whitelisting ValidationPipe.
+      const body = {
+        cdnUrl: 'https://cdn.example.com/other-tenant/track.mp3',
+        isDeleted: false,
+        s3Key: 'other-tenant/track.mp3',
+      };
+      await controller.patch(request, user, musicId, body);
+
+      const forwarded = musicsService.patch.mock.calls[0][1];
+      expect(forwarded).toMatchObject({ isDeleted: false });
+      expect(forwarded).not.toHaveProperty('cdnUrl');
+      expect(forwarded).not.toHaveProperty('s3Key');
+    });
+
     it('soft-deletes only music owned by the canonical caller', async () => {
       musicsService.findOne.mockResolvedValue(music);
       musicsService.remove.mockResolvedValue({ ...music, isDeleted: true });

@@ -35,14 +35,14 @@ export class MediaUrlService {
       throw new Error('objectKey is required to build a media URL');
     }
 
-    const url = `${this.configService.cdnUrl}/${normalizedKey}`;
-    const isSignable = options.isSignable ?? true;
+    // Encode each segment so a key containing `?`, `#` or `%` stays part of
+    // the path instead of becoming a query string, fragment or escape.
+    const encodedPath = normalizedKey
+      .split('/')
+      .map((segment) => encodeURIComponent(segment))
+      .join('/');
 
-    if (!isSignable || !this.configService.isCdnSigningEnabled) {
-      return url;
-    }
-
-    return this.sign(url);
+    return this.buildFromEncodedPath(encodedPath, options);
   }
 
   /**
@@ -74,13 +74,29 @@ export class MediaUrlService {
     }
 
     // The path carries the key; any existing query string is discarded so a
-    // previous signature never leaks into the new one.
-    const objectKey = parsed.pathname.replace(/^\/+/, '');
-    if (!objectKey) {
+    // previous signature never leaks into the new one. The pathname stays in
+    // its encoded form: decoding it would turn `%2F` into a separator and
+    // select a different object, and a malformed escape would throw.
+    const encodedPath = parsed.pathname.replace(/^\/+/, '');
+    if (!encodedPath) {
       return absoluteUrl;
     }
 
-    return this.buildUrl(decodeURIComponent(objectKey), options);
+    return this.buildFromEncodedPath(encodedPath, options);
+  }
+
+  private buildFromEncodedPath(
+    encodedPath: string,
+    options: { isSignable?: boolean },
+  ): string {
+    const url = `${this.configService.cdnUrl}/${encodedPath}`;
+    const isSignable = options.isSignable ?? true;
+
+    if (!isSignable || !this.configService.isCdnSigningEnabled) {
+      return url;
+    }
+
+    return this.sign(url);
   }
 
   /**
