@@ -9,7 +9,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Create a post draft, or confirm direct publishing for an existing item via a confirmation card.',
+      'Create a post draft. On MCP this never publishes: confirmed is rejected, and publishing uses create_scheduled_release. The in-app agent still confirms publishing with a confirmation card.',
     name: 'create_post',
     parameters: {
       properties: {
@@ -19,7 +19,7 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         confirmed: {
           description:
-            'Set to true only after the user confirms the publish card.',
+            'Rejected on MCP. Do not set it. Publish with create_scheduled_release. The in-app agent sets it only after the publish confirmation card.',
           type: 'boolean',
         },
         content: {

@@ -1,6 +1,8 @@
+import { runWithActionOrigin } from '@api/index';
 import { AgentPublishToolHandler } from '@api/services/agent-orchestrator/tools/agent-publish-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
+  ActionOrigin,
   AgentAutonomyMode,
   AgentPublishDecision,
   CredentialPlatform,
@@ -110,9 +112,10 @@ function createHandler() {
       isBlocked: false,
     }),
   };
+  const postsService = { create: vi.fn(), findOne: vi.fn() };
   const handler = new AgentPublishToolHandler(
     postGroupsService as never,
-    { create: vi.fn(), findOne: vi.fn() } as never,
+    postsService as never,
     { error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
     ingredientsService,
     credentialsService,
@@ -135,6 +138,7 @@ function createHandler() {
     ingredientsService,
     mediaReadinessService,
     postGroupsService,
+    postsService,
   };
 }
 
@@ -831,5 +835,95 @@ describe('AgentPublishToolHandler server-owned confirmation (#4306)', () => {
       'sourceActionId does not match a persisted publish card.',
     );
     expect(postGroupsService.create).not.toHaveBeenCalled();
+  });
+
+  it('rejects confirmed:true on the MCP surface without publishing', async () => {
+    const { handler, postGroupsService, postsService } = createHandler();
+
+    const result = await runWithActionOrigin(
+      { origin: ActionOrigin.MCP },
+      async () => {
+        const direct = await handler.createPost(
+          {
+            confirmed: true,
+            content: 'Draft text',
+            contentId: 'ingredient-1',
+            platforms: ['twitter'],
+          },
+          scopedContext('brand-1'),
+        );
+        const prepared = await handler.preparePost(
+          {
+            confirmed: true,
+            contentId: 'ingredient-1',
+            platforms: ['twitter'],
+          },
+          scopedContext('brand-1'),
+        );
+        return { direct, prepared };
+      },
+    );
+
+    expect(result.direct).toEqual(
+      expect.objectContaining({
+        creditsUsed: 0,
+        error: expect.stringContaining('create_scheduled_release'),
+        success: false,
+      }),
+    );
+    expect(result.prepared).toEqual(
+      expect.objectContaining({
+        creditsUsed: 0,
+        error: expect.stringContaining('create_scheduled_release'),
+        success: false,
+      }),
+    );
+    expect(result.prepared.nextActions).toBeUndefined();
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
+    expect(postsService.create).not.toHaveBeenCalled();
+  });
+
+  it('keeps the in-app confirmation card when confirmed:true is not an MCP call', async () => {
+    const {
+      credentialsService,
+      handler,
+      ingredientsService,
+      postGroupsService,
+    } = createHandler();
+    ingredientsService.findOne.mockResolvedValue({
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+      id: 'ingredient-1',
+    });
+    credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+
+    const result = await runWithActionOrigin(
+      { origin: ActionOrigin.AGENT },
+      () =>
+        handler.createPost(
+          {
+            caption: 'Launch post',
+            confirmed: true,
+            contentId: 'ingredient-1',
+            platforms: ['twitter'],
+            sourceActionId: 'forged-action-id',
+          },
+          scopedContext('brand-1'),
+        ),
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.error).toBeUndefined();
+    expect(result.nextActions?.[0]).toEqual(
+      expect.objectContaining({
+        requiresConfirmation: true,
+        type: 'publish_post_card',
+      }),
+    );
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(postGroupsService.publishNow).not.toHaveBeenCalled();
   });
 });
