@@ -5,6 +5,10 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { ReplicatePollQueueService } from '@api/queues/replicate-poll/replicate-poll-queue.service';
+import {
+  type MediaPromptEnhancementInput,
+  MediaPromptEnhancementService,
+} from '@api/services/harness/media-prompt-enhancement.service';
 
 vi.mock('@api/collections/templates/services/templates.service', () => ({
   TemplatesService: class {},
@@ -198,6 +202,23 @@ describe('VideosController', () => {
     testingModule = await Test.createTestingModule({
       controllers: [VideosController],
       providers: [
+        {
+          provide: MediaPromptEnhancementService,
+          useValue: {
+            enhance: vi
+              .fn()
+              .mockImplementation(
+                async (input: MediaPromptEnhancementInput) => ({
+                  originalPrompt: input.prompt,
+                  enhancedPrompt: input.prompt,
+                  brandId: input.brandId,
+                  status: 'applied',
+                  source: 'default',
+                  appliedPacks: [],
+                }),
+              ),
+          },
+        },
         {
           provide: ConfigService,
           useValue: {
