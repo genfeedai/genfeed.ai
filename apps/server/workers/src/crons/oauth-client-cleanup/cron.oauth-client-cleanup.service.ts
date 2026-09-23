@@ -52,7 +52,13 @@ export class CronOAuthClientCleanupService {
       });
       deleted += result.count;
 
-      if (batch.length < OAUTH_CLIENT_CLEANUP_BATCH_SIZE) {
+      // A full page that deletes nothing will select the same rows again.
+      // Concurrent sign-in can make every selected client ineligible between
+      // findMany and deleteMany; stop instead of spinning on that page.
+      if (
+        result.count === 0 ||
+        batch.length < OAUTH_CLIENT_CLEANUP_BATCH_SIZE
+      ) {
         break;
       }
     }

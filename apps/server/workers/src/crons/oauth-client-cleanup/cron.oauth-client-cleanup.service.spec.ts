@@ -137,6 +137,34 @@ describe('CronOAuthClientCleanupService', () => {
     ).toEqual(['second-0', 'second-1', 'second-2']);
   });
 
+  it('stops when a full batch deletes nothing', async () => {
+    prisma.oAuthClient.findMany.mockResolvedValueOnce(
+      ids(OAUTH_CLIENT_CLEANUP_BATCH_SIZE),
+    );
+    prisma.oAuthClient.deleteMany.mockResolvedValueOnce({ count: 0 });
+
+    const deleted = await service.deleteAbandonedClients(NOW);
+
+    expect(deleted).toBe(0);
+    expect(prisma.oAuthClient.findMany).toHaveBeenCalledOnce();
+    expect(prisma.oAuthClient.deleteMany).toHaveBeenCalledOnce();
+  });
+
+  it('stops after a later full batch deletes nothing', async () => {
+    prisma.oAuthClient.findMany
+      .mockResolvedValueOnce(ids(OAUTH_CLIENT_CLEANUP_BATCH_SIZE, 'first'))
+      .mockResolvedValueOnce(ids(OAUTH_CLIENT_CLEANUP_BATCH_SIZE, 'second'));
+    prisma.oAuthClient.deleteMany
+      .mockResolvedValueOnce({ count: OAUTH_CLIENT_CLEANUP_BATCH_SIZE })
+      .mockResolvedValueOnce({ count: 0 });
+
+    const deleted = await service.deleteAbandonedClients(NOW);
+
+    expect(deleted).toBe(OAUTH_CLIENT_CLEANUP_BATCH_SIZE);
+    expect(prisma.oAuthClient.findMany).toHaveBeenCalledTimes(2);
+    expect(prisma.oAuthClient.deleteMany).toHaveBeenCalledTimes(2);
+  });
+
   it('stops after an empty page following a full batch', async () => {
     prisma.oAuthClient.findMany
       .mockResolvedValueOnce(ids(OAUTH_CLIENT_CLEANUP_BATCH_SIZE))
