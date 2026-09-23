@@ -39,26 +39,15 @@ export default function TopPostsSection({
   basePath = '/publishing',
   className = '',
 }: TopPostsSectionProps) {
-  if (isLoading) {
+  if (isLoading && posts.length === 0) {
     return (
       <Card
         variant={CardVariant.DEFAULT}
         label="Top Posts"
         className={className}
-      >
-        <div className="animate-pulse space-y-4">
-          <div className="h-48 bg-muted" />
-          <div className="grid grid-cols-3 gap-2">
-            {Array.from({ length: 9 }, (_, placeholderIndex) => {
-              const placeholderId = `top-post-placeholder-${placeholderIndex}`;
-
-              return (
-                <div key={placeholderId} className="aspect-square bg-muted" />
-              );
-            })}
-          </div>
-        </div>
-      </Card>
+        bodyClassName="min-h-80"
+        isLoading
+      />
     );
   }
 

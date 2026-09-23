@@ -26,6 +26,8 @@ const mocks = vi.hoisted(() => ({
   batchItemAction: vi.fn(async () => ({})),
   cancelExecution: vi.fn(async () => undefined),
   executionsRefresh: vi.fn(async () => undefined),
+  executionsIsError: false,
+  executionsIsLoading: false,
   brandRefresh: vi.fn(async () => undefined),
   loggerError: vi.fn(),
   notificationsError: vi.fn(),
@@ -179,7 +181,8 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: mocks.cancelExecution,
     executions: [],
-    isLoading: false,
+    isError: mocks.executionsIsError,
+    isLoading: mocks.executionsIsLoading,
     refresh: mocks.executionsRefresh,
     stats: {
       active: 0,
@@ -226,6 +229,8 @@ describe('OperationalHomeContent', () => {
     mocks.activities = [];
     mocks.accessState = { organizationId: 'org_1' };
     mocks.activityIsError = false;
+    mocks.executionsIsError = false;
+    mocks.executionsIsLoading = false;
     mocks.brandState.brands = [
       {
         organization: { slug: 'acme' },
@@ -452,7 +457,7 @@ describe('OperationalHomeContent', () => {
     }
 
     expect(mocks.connectionRefresh).toHaveBeenCalledTimes(1);
-    expect(mocks.overviewRefresh).toHaveBeenCalledTimes(2);
+    expect(mocks.overviewRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.activityRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.brandRefresh).toHaveBeenCalledTimes(1);
   });
@@ -473,12 +478,46 @@ describe('OperationalHomeContent', () => {
       screen.getByText(/Approval state is temporarily unavailable/),
     ).toBeInTheDocument();
     expect(
-      screen.getByText(/Publishing state could not be loaded/),
-    ).toBeInTheDocument();
+      screen.queryByText(/Publishing state could not be loaded/),
+    ).not.toBeInTheDocument();
     expect(
       screen.getByTestId('operational-home-credentials'),
     ).toBeInTheDocument();
     expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
+  });
+
+  it('retries a publishing failure through its own query', () => {
+    mocks.executionsIsError = true;
+    render(<OperationalHomeContent />);
+    const publishing = screen.getByTestId('operational-home-publishing');
+    expect(
+      within(publishing).getByText(/Publishing state could not be loaded/),
+    ).toBeInTheDocument();
+    fireEvent.click(
+      within(publishing).getByRole('button', { name: 'catalog:actions.retry' }),
+    );
+    expect(mocks.executionsRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.overviewRefresh).not.toHaveBeenCalled();
+  });
+
+  it('keeps ready cards visible while publishing loads', () => {
+    mocks.executionsIsLoading = true;
+    render(<OperationalHomeContent />);
+    expect(
+      within(screen.getByTestId('operational-home-publishing')).getAllByRole(
+        'status',
+      ),
+    ).toHaveLength(1);
+    expect(
+      within(screen.getByTestId('operational-home-credentials')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('operational-home-activity')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('isolates activity failure from the other operational summaries', () => {
@@ -513,11 +552,11 @@ describe('OperationalHomeContent', () => {
     render(<OperationalHomeContent />);
 
     const credentials = screen.getByTestId('operational-home-credentials');
-    expect(within(credentials).getByRole('status')).toHaveTextContent(
+    expect(within(credentials).getByRole('status')).toHaveAccessibleName(
       'catalog:home.credentials.loading',
     );
     expect(
-      within(credentials).getByTestId('list-rows-skeleton'),
+      within(credentials).getByTestId('skeleton-card'),
     ).toBeInTheDocument();
     expect(
       screen.queryByText('catalog:home.credentials.empty'),
@@ -568,12 +607,12 @@ describe('OperationalHomeContent', () => {
 
     expect(
       within(screen.getByTestId('operational-home-needs-you')).getByTestId(
-        'list-rows-skeleton',
+        'skeleton-card',
       ),
     ).toBeInTheDocument();
   });
 
-  it('renders KPI metric cards with skeleton values while overview data loads', () => {
+  it('renders one skeleton inside each loading KPI card', () => {
     mocks.overviewIsLoading = true;
 
     render(<OperationalHomeContent />);
@@ -585,6 +624,16 @@ describe('OperationalHomeContent', () => {
       metrics.querySelectorAll('[data-testid="metric-card"]'),
     ).toHaveLength(5);
     expect(metrics.querySelectorAll('.animate-pulse')).toHaveLength(2);
+    expect(
+      within(screen.getByTestId('operational-home-publishing')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      within(screen.getByTestId('operational-home-credentials')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
   });
 
   it('keeps decided review items out of the attention queue', () => {

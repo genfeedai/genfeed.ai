@@ -58,53 +58,76 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 describe('McpController', () => {
   let controller: McpController;
 
+  const readAnnotations = {
+    destructiveHint: false,
+    idempotentHint: true,
+    openWorldHint: false,
+    readOnlyHint: true,
+  } as const;
   const roleTools: Record<McpRole, McpToolOutput[]> = {
     admin: [
       {
         _meta: {},
+        annotations: readAnnotations,
         description: 'List posts',
         inputSchema: { properties: {}, type: 'object' },
         name: 'list_posts',
         requiredRole: 'user',
+        title: 'List Posts',
       },
       {
         _meta: {},
+        annotations: readAnnotations,
         description: 'Inspect workflow',
         inputSchema: { properties: {}, type: 'object' },
         name: 'inspect_workflow',
         requiredRole: 'admin',
+        title: 'Inspect Workflow',
       },
     ],
     superadmin: [
       {
         _meta: {},
+        annotations: readAnnotations,
         description: 'List posts',
         inputSchema: { properties: {}, type: 'object' },
         name: 'list_posts',
         requiredRole: 'user',
+        title: 'List Posts',
       },
       {
         _meta: {},
+        annotations: readAnnotations,
         description: 'Inspect workflow',
         inputSchema: { properties: {}, type: 'object' },
         name: 'inspect_workflow',
         requiredRole: 'admin',
+        title: 'Inspect Workflow',
       },
       {
         _meta: {},
+        annotations: {
+          destructiveHint: true,
+          idempotentHint: false,
+          openWorldHint: false,
+          readOnlyHint: false,
+        },
         description: 'Resolve approval',
         inputSchema: { properties: {}, type: 'object' },
         name: 'resolve_approval',
         requiredRole: 'superadmin',
+        title: 'Resolve Approval',
       },
     ],
     user: [
       {
         _meta: {},
+        annotations: readAnnotations,
         description: 'List posts',
         inputSchema: { properties: {}, type: 'object' },
         name: 'list_posts',
         requiredRole: 'user',
+        title: 'List Posts',
       },
     ],
   };

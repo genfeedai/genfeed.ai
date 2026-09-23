@@ -63,7 +63,8 @@ Drift is caught in three places, all fatal rather than advisory:
 
 - **Module load** — `packages/actions/src/registry/tool-registry.ts` throws when a
   catalog entry has no definition, a definition has no catalog entry, or either
-  side holds duplicates.
+  side holds duplicates. The same load throws when an MCP-surfaced tool is
+  missing `title` or `readOnlyHint` (`tool-assembly.ts`).
 - **MCP boot** — `ToolRegistryService.validateDispatchCoverage` (`OnModuleInit`)
   crashes startup when an MCP-surfaced tool classifies to no executor, or when an
   approval-gated name is not actually MCP-surfaced. A failed boot keeps
@@ -176,6 +177,13 @@ reviewers therefore see user- and admin-tier tools, but not `resolve_approval`.
 Each tool advertises its minimum credit charge at
 `_meta['genfeed.ai/creditCost']`. `_meta` is the only place vendor data survives
 a `tools/list` round trip — the MCP SDK strips unknown keys from `annotations`.
+
+`tools/list` and the REST mirror `GET /v1/tools` also emit a top-level `title`
+and `annotations` with `readOnlyHint`, `destructiveHint`, `idempotentHint`, and
+`openWorldHint` on every MCP-surfaced tool. Hints are derived at registry load
+from `mutationPolicy` and the read classifier, then pinned for `resolve_approval`,
+the scheduler writes, and the account/scheduler reads called out in the catalog
+guard. They are hints for client permission UX, not an authorization check.
 
 ## API keys and scopes
 

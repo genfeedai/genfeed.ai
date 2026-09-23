@@ -8,10 +8,17 @@ function tool(overrides: Partial<McpToolOutput> = {}): McpToolOutput {
       'genfeed.ai/creditCost': 1,
       'genfeed.ai/toolset': 'content',
     },
+    annotations: {
+      destructiveHint: true,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    },
     description: 'Create a post',
     inputSchema: { properties: {}, type: 'object' },
     name: 'create_post',
     requiredRole: 'user',
+    title: 'Create Post',
     ...overrides,
   };
 }

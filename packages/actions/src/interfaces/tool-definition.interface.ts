@@ -46,6 +46,17 @@ export type ToolRequiredRole = 'user' | 'admin' | 'superadmin';
 
 export type ToolMutationPolicy = 'approval-required' | 'direct';
 
+/**
+ * MCP `tools/list` hints. Clients treat these as hints, not authorization.
+ * Every MCP-surfaced tool sets all four; omitting `readOnlyHint` fails load.
+ */
+export interface ToolAnnotations {
+  destructiveHint: boolean;
+  idempotentHint: boolean;
+  openWorldHint: boolean;
+  readOnlyHint: boolean;
+}
+
 export type ToolCategory =
   | 'generation'
   | 'content'
@@ -71,6 +82,12 @@ export interface CanonicalToolDefinition {
   surfaces: ToolSurfaceConfig;
   category: ToolCategory;
   toolset: ToolsetName;
+  /**
+   * Human-readable MCP title. Set for every MCP-surfaced tool.
+   * Directory clients require it alongside {@link annotations}.
+   */
+  title?: string;
+  annotations?: ToolAnnotations;
   mutationPolicy?: ToolMutationPolicy;
   uiActionType?: ToolUiActionType;
   tags?: string[];

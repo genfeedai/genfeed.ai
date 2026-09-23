@@ -90,43 +90,35 @@ export function Skeleton({
 // Composite skeleton components for common patterns
 export function SkeletonCard({
   className,
+  label = 'Loading card',
+  'data-testid': dataTestId = 'skeleton-card',
   showImage = true,
   showTitle = true,
   showDescription = true,
   showActions = true,
 }: SkeletonCardProps) {
+  const sections = [showTitle, showDescription, showActions].filter(
+    Boolean,
+  ).length;
+  const minHeight =
+    (showImage ? 192 : 0) +
+    32 +
+    (showTitle ? 24 : 0) +
+    (showDescription ? 40 : 0) +
+    (showActions ? 36 : 0) +
+    Math.max(0, sections - 1) * 12;
+
   return (
-    <div
+    <ShadcnSkeleton
+      aria-label={label}
       className={cn(
-        'animate-pulse overflow-hidden rounded bg-card shadow-border',
+        'block w-full rounded-card motion-reduce:animate-none motion-reduce:before:animate-none',
         className,
       )}
-    >
-      {showImage && (
-        <div className="relative h-48 w-full overflow-hidden">
-          <div className="absolute inset-0">
-            <Skeleton variant="rounded" className="size-full" />
-          </div>
-        </div>
-      )}
-
-      <div className="p-4 space-y-3">
-        {showTitle && <Skeleton variant="text" height={24} className="w-3/4" />}
-
-        {showDescription && (
-          <div className="space-y-2">
-            <Skeleton variant="text" height={16} className="w-full" />
-            <Skeleton variant="text" height={16} className="w-2/3" />
-          </div>
-        )}
-
-        {showActions && (
-          <div className="flex justify-end">
-            <Skeleton variant="rounded" width={96} height={36} />
-          </div>
-        )}
-      </div>
-    </div>
+      data-testid={dataTestId}
+      role="status"
+      style={{ minHeight }}
+    />
   );
 }
 

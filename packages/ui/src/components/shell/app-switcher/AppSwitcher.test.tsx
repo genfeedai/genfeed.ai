@@ -1,11 +1,11 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import {
   cloneElement,
   isValidElement,
   type ReactElement,
   type ReactNode,
 } from 'react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Every APP_SWITCHER_FEATURE_FLAGS key must be listed: the mock falls back to
 // `true`, so a missing key silently keeps its tile visible and the
@@ -27,16 +27,23 @@ vi.mock('@genfeedai/hooks/feature-flags/use-feature-flag', () => ({
     featureFlags[flagKey as keyof typeof featureFlags] ?? true,
 }));
 
+const router = vi.hoisted(() => ({ prefetch: vi.fn() }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => router,
+}));
+
 vi.mock('next/link', () => ({
   default: ({
     children,
     href,
+    prefetch,
     ...props
   }: {
     children: ReactNode;
     href: string;
+    prefetch?: boolean;
   }) => (
-    <a href={href} {...props}>
+    <a href={href} data-prefetch={String(prefetch)} {...props}>
       {children}
     </a>
   ),
@@ -189,11 +196,52 @@ vi.mock('@genfeedai/helpers/formatting/cn/cn.util', () => ({
 const { AppSwitcher } = await import('./AppSwitcher');
 
 describe('AppSwitcher', () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   beforeEach(() => {
+    router.prefetch.mockClear();
     for (const key of Object.keys(featureFlags) as Array<
       keyof typeof featureFlags
     >) {
       featureFlags[key] = true;
+    }
+  });
+
+  it('warms only the intended resolved tile after a sustained interaction', () => {
+    vi.useFakeTimers();
+    render(
+      <AppSwitcher
+        orgSlug="acme"
+        brandSlug="my-brand"
+        resolveNavigation={(href) => ({ href: `${href}?thread=123` })}
+      />,
+    );
+    expect(router.prefetch).not.toHaveBeenCalled();
+    const workspace = screen.getByRole('link', { name: 'Workspace' });
+    const analytics = screen.getByRole('link', { name: 'Analytics' });
+    fireEvent.mouseEnter(workspace);
+    fireEvent.mouseLeave(workspace);
+    fireEvent.focus(analytics);
+    act(() => {
+      vi.advanceTimersByTime(99);
+    });
+    expect(router.prefetch).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(router.prefetch).toHaveBeenCalledTimes(1);
+    expect(router.prefetch).toHaveBeenCalledWith(
+      '/acme/my-brand/analytics/overview?thread=123',
+      { kind: 'auto', onInvalidate: expect.any(Function) },
+    );
+  });
+
+  it('never viewport-prefetches the switcher destinations', () => {
+    render(<AppSwitcher orgSlug="acme" brandSlug="my-brand" showAdmin />);
+    for (const link of screen.getAllByRole('link')) {
+      expect(link).toHaveAttribute('data-prefetch', 'false');
     }
   });
 
@@ -747,7 +795,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/workspace',
+        '/acme/my-brand/workspace/overview',
       );
       expect(screen.getByRole('link', { name: 'Agent' })).toHaveAttribute(
         'href',
@@ -759,7 +807,7 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Automation' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/automation',
+        '/acme/my-brand/automation/overview',
       );
     });
 
@@ -789,11 +837,11 @@ describe('AppSwitcher', () => {
 
       for (const [label, href] of [
         ['Studio', '/acme/~/studio'],
-        ['Library', '/acme/~/library'],
+        ['Library', '/acme/~/library/assets'],
         ['Discovery', '/acme/~/discovery/overview'],
-        ['Publishing', '/acme/~/publishing'],
-        ['Analytics', '/acme/~/analytics'],
-        ['Automation', '/acme/~/automation'],
+        ['Publishing', '/acme/~/publishing/overview'],
+        ['Analytics', '/acme/~/analytics/overview'],
+        ['Automation', '/acme/~/automation/overview'],
         ['Messages', '/acme/~/messages'],
       ] as const) {
         expect(screen.getByRole('link', { name: label })).toHaveAttribute(
@@ -825,7 +873,7 @@ describe('AppSwitcher', () => {
       expect(screen.getByText('FUDNEWS')).toBeInTheDocument();
       expect(screen.getByRole('link', { name: 'Workspace' })).toHaveAttribute(
         'href',
-        '/demo/FUDNEWS/workspace',
+        '/demo/FUDNEWS/workspace/overview',
       );
       expect(screen.queryByText('Boxingcouple')).not.toBeInTheDocument();
     });
@@ -835,7 +883,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
-        '/acme/~/analytics',
+        '/acme/~/analytics/overview',
       );
     });
 
@@ -844,7 +892,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/analytics',
+        '/acme/my-brand/analytics/overview',
       );
     });
 
@@ -857,11 +905,11 @@ describe('AppSwitcher', () => {
       );
       expect(screen.getByRole('link', { name: 'Publishing' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/publishing',
+        '/acme/my-brand/publishing/overview',
       );
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/analytics',
+        '/acme/my-brand/analytics/overview',
       );
     });
 
@@ -886,7 +934,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Publishing' })).toHaveAttribute(
         'href',
-        '/acme/my-brand/publishing',
+        '/acme/my-brand/publishing/overview',
       );
     });
 
@@ -900,7 +948,7 @@ describe('AppSwitcher', () => {
 
       expect(screen.getByRole('link', { name: 'Analytics' })).toHaveAttribute(
         'href',
-        '/acme/~/analytics?taskId=123&taskSource=workspace',
+        '/acme/~/analytics/overview?taskId=123&taskSource=workspace',
       );
     });
   });

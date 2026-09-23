@@ -1,8 +1,12 @@
+import { chmod, mkdir, rename, writeFile } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mockFileSystem: { content: string | null } = { content: null };
 
 vi.mock('node:fs/promises', () => ({
+  chmod: vi.fn(async () => {}),
   mkdir: vi.fn(async () => {}),
   readFile: vi.fn(async () => {
     if (mockFileSystem.content === null) {
@@ -10,6 +14,7 @@ vi.mock('node:fs/promises', () => ({
     }
     return mockFileSystem.content;
   }),
+  rename: vi.fn(async () => {}),
   writeFile: vi.fn(async (_path: string, data: string) => {
     mockFileSystem.content = data;
   }),
@@ -61,6 +66,36 @@ describe('config/store', () => {
       const { setApiKey, getApiKey } = await import('../../src/config/store');
       await setApiKey('new-api-key');
       expect(await getApiKey()).toBe('new-api-key');
+    });
+  });
+
+  describe('saveConfig', () => {
+    it('creates ~/.gf as mode 0700 and writes config.json as mode 0600', async () => {
+      vi.mocked(chmod).mockClear();
+      vi.mocked(mkdir).mockClear();
+      vi.mocked(writeFile).mockClear();
+
+      const { clearConfigCache, getConfigDir, getConfigPath, loadConfig, saveConfig } =
+        await import('../../src/config/store');
+      clearConfigCache();
+      const config = await loadConfig();
+      await saveConfig(config);
+
+      const directory = path.join(os.homedir(), '.gf');
+      const file = path.join(directory, 'config.json');
+
+      expect(getConfigDir()).toBe(directory);
+      expect(getConfigPath()).toBe(file);
+      expect(file.endsWith(`${path.sep}.gf${path.sep}config.json`)).toBe(true);
+      expect(file.includes(`${path.sep}.genfeed${path.sep}`)).toBe(false);
+      expect(mkdir).toHaveBeenCalledWith(directory, { mode: 0o700, recursive: true });
+      expect(chmod).toHaveBeenCalledWith(directory, 0o700);
+      expect(writeFile).toHaveBeenCalledWith(`${file}.${process.pid}.tmp`, expect.any(String), {
+        encoding: 'utf8',
+        mode: 0o600,
+      });
+      expect(rename).toHaveBeenCalledWith(`${file}.${process.pid}.tmp`, file);
+      expect(chmod).toHaveBeenCalledWith(file, 0o600);
     });
   });
 
