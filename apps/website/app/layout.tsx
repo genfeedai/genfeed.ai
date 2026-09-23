@@ -53,7 +53,16 @@ const organizationJsonLd = {
     email: 'hello@genfeed.ai',
   },
   description,
-  foundingDate: '2024',
+  founder: {
+    '@type': 'Person',
+    name: 'Vincent Tellier',
+    sameAs: [
+      'https://x.com/VincentShipsIt',
+      'https://www.linkedin.com/in/vincentshipsit',
+      'https://github.com/VincentShipsIt',
+    ],
+  },
+  foundingDate: '2026',
   knowsAbout: [
     'AI content generation',
     'AI video generation',
