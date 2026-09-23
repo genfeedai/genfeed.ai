@@ -415,7 +415,9 @@ export default function StudioGenerateComposer({
             />
           )}
 
-          {type === 'image' || type === 'video' ? <GenerationHarnessSettingsPopover isDisabled={isGenerating} /> : null}
+          {type === 'image' || type === 'video' ? (
+            <GenerationHarnessSettingsPopover isDisabled={isGenerating} />
+          ) : null}
 
           {capabilities.hasIdentity ? (
             <StudioIdentityFields

@@ -1,4 +1,3 @@
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import type { ModelCategory } from '@genfeedai/contracts';
 import type {
   AgentGenerationQuote,
@@ -6,6 +5,7 @@ import type {
   AgentStudioHandoffPayload,
   IModel,
 } from '@genfeedai/contracts/interfaces';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 
 export interface CredentialMentionItem {
   id: string;

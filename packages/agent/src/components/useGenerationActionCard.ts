@@ -1,4 +1,3 @@
-import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import { useGenerationQuote } from '@genfeedai/agent/hooks/use-generation-quote';
 import type {
   AgentUiAction,
@@ -45,6 +44,7 @@ import {
   MODEL_KEYS,
   requiresFirstFrame,
 } from '@genfeedai/contracts/constants';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces/content/generation-harness.interface';
 import type { GenerationSetupValues } from '@genfeedai/contracts/interfaces/studio/generation-setup.interface';
 import {
   getDefaultVideoResolution,
@@ -230,7 +230,9 @@ export function useGenerationActionCard({
   >(null);
   const [isPilotCeilingReached, setIsPilotCeilingReached] = useState(false);
   const [isFullRun, setIsFullRun] = useState(false);
-  const [generationHarness, setGenerationHarness] = useState<GenerationHarnessReceipt | undefined>();
+  const [generationHarness, setGenerationHarness] = useState<
+    GenerationHarnessReceipt | undefined
+  >();
   const [resultUrl, setResultUrl] = useState<string | null>(null);
   const [resultId, setResultId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);

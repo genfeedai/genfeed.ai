@@ -80,9 +80,29 @@ describe('StudioGenerateInspector', () => {
   });
 
   it('shows the stored submitted prompt receipt instead of inferring enhancement from the recipe', async () => {
-    mocks.findOne.mockResolvedValue({ id: 'ing-1', generationHarness: { originalPrompt: 'A founder', enhancedPrompt: 'A founder beside a window.', status: 'applied', source: 'brand', brandId: 'brand-1', appliedPacks: [] } });
-    render(<StudioGenerateInspector job={recipeJob} onClose={vi.fn()} onSelect={vi.fn()} onVary={vi.fn()} runJobs={[recipeJob]} />);
-    expect(await screen.findByText('A founder beside a window.')).toBeInTheDocument();
+    mocks.findOne.mockResolvedValue({
+      id: 'ing-1',
+      generationHarness: {
+        originalPrompt: 'A founder',
+        enhancedPrompt: 'A founder beside a window.',
+        status: 'applied',
+        source: 'brand',
+        brandId: 'brand-1',
+        appliedPacks: [],
+      },
+    });
+    render(
+      <StudioGenerateInspector
+        job={recipeJob}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+    expect(
+      await screen.findByText('A founder beside a window.'),
+    ).toBeInTheDocument();
     expect(screen.getByText('Prompt enhanced')).toBeInTheDocument();
   });
 

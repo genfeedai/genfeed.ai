@@ -42,9 +42,25 @@ describe('agent-api.media', () => {
   });
 
   it('preserves the server generation receipt for the action card', async () => {
-    const generationHarness = { originalPrompt: 'A cat', enhancedPrompt: 'A cat beside a window.', status: 'applied', source: 'brand', brandId: 'brand-1', appliedPacks: [] };
-    mockJsonApiResource({ id: 'image-1', cdnUrl: 'https://cdn.test/image.png', generationHarness }, 'ingredient');
-    const result = await generateIngredient(makeApi(), 'image', { text: 'A cat' });
+    const generationHarness = {
+      originalPrompt: 'A cat',
+      enhancedPrompt: 'A cat beside a window.',
+      status: 'applied',
+      source: 'brand',
+      brandId: 'brand-1',
+      appliedPacks: [],
+    };
+    mockJsonApiResource(
+      {
+        id: 'image-1',
+        cdnUrl: 'https://cdn.test/image.png',
+        generationHarness,
+      },
+      'ingredient',
+    );
+    const result = await generateIngredient(makeApi(), 'image', {
+      text: 'A cat',
+    });
     expect(result.generationHarness).toEqual(generationHarness);
   });
 

@@ -121,7 +121,11 @@ export default function StudioGenerateInspector({
       try {
         const service = await getIngredientsService();
         if (controller.signal.aborted) return;
-        const asset = await service.findOne(ingredientId, undefined, controller.signal);
+        const asset = await service.findOne(
+          ingredientId,
+          undefined,
+          controller.signal,
+        );
         if (!controller.signal.aborted) setReceiptAsset(asset);
       } catch {
         if (!controller.signal.aborted) setReceiptError(true);
@@ -173,8 +177,17 @@ export default function StudioGenerateInspector({
           })
         }
       >
-        {activeTab === 'recipe' && receiptAsset?.id === ingredientId && receiptAsset.generationHarness ? <GenerationHarnessReceipt receipt={receiptAsset.generationHarness} /> : null}
-        {activeTab === 'recipe' && receiptError ? <p role="status" className="text-xs text-muted-foreground">Could not load the submitted prompt. Reopen this asset to retry.</p> : null}
+        {activeTab === 'recipe' &&
+        receiptAsset &&
+        receiptAsset.id === ingredientId &&
+        receiptAsset.generationHarness ? (
+          <GenerationHarnessReceipt receipt={receiptAsset.generationHarness} />
+        ) : null}
+        {activeTab === 'recipe' && receiptError ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            Could not load the submitted prompt. Reopen this asset to retry.
+          </p>
+        ) : null}
 
         {activeTab === 'recipe' ? (
           promptText ? (

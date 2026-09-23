@@ -13,7 +13,10 @@ export default function IngredientTabsPrompts({
   const promptRows = [
     {
       label: 'Original',
-      value: ingredient?.generationHarness?.originalPrompt || ingredient?.promptText || 'No prompt available.',
+      value:
+        ingredient?.generationHarness?.originalPrompt ||
+        ingredient?.promptText ||
+        'No prompt available.',
     },
     { label: 'Style', value: prompt?.style || 'None' },
     { label: 'Mood', value: prompt?.mood || 'None' },
@@ -50,7 +53,9 @@ export default function IngredientTabsPrompts({
         </span>
       </Card>
 
-      {ingredient?.generationHarness ? <GenerationHarnessReceipt receipt={ingredient.generationHarness} /> : null}
+      {ingredient?.generationHarness ? (
+        <GenerationHarnessReceipt receipt={ingredient.generationHarness} />
+      ) : null}
 
       {/* Remaining rows: 2 columns */}
       <div className="grid grid-cols-2 gap-4">

@@ -17,16 +17,29 @@ export class GenerationHarnessService extends HTTPBaseService {
     ) as GenerationHarnessService;
   }
 
-  public async getSettings(brandId?: string, signal?: AbortSignal): Promise<GenerationHarnessSettings> {
-    const response = await this.instance.get<GenerationHarnessSettings>('settings', {
-      params: { brandId: brandId || undefined },
-      signal,
-    });
+  public async getSettings(
+    brandId?: string,
+    signal?: AbortSignal,
+  ): Promise<GenerationHarnessSettings> {
+    const response = await this.instance.get<GenerationHarnessSettings>(
+      'settings',
+      {
+        params: { brandId: brandId || undefined },
+        signal,
+      },
+    );
     return response.data;
   }
 
-  public async updateSettings(input: UpdateGenerationHarnessSettings, signal?: AbortSignal): Promise<GenerationHarnessSettings> {
-    const response = await this.instance.patch<GenerationHarnessSettings>('settings', input, { signal });
+  public async updateSettings(
+    input: UpdateGenerationHarnessSettings,
+    signal?: AbortSignal,
+  ): Promise<GenerationHarnessSettings> {
+    const response = await this.instance.patch<GenerationHarnessSettings>(
+      'settings',
+      input,
+      { signal },
+    );
     return response.data;
   }
 }

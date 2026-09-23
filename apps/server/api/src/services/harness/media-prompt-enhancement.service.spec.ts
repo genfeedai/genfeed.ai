@@ -16,13 +16,9 @@ function setup(enabled = true) {
     ]),
   };
   const openRouter = {
-    chatCompletion: vi
-      .fn()
-      .mockResolvedValue({
-        choices: [
-          { message: { content: 'A cinematic view of a red bicycle' } },
-        ],
-      }),
+    chatCompletion: vi.fn().mockResolvedValue({
+      choices: [{ message: { content: 'A cinematic view of a red bicycle' } }],
+    }),
   };
   return {
     settings,

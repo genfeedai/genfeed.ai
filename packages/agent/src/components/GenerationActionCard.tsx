@@ -1,4 +1,3 @@
-import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import type {
   AgentUiAction,
   AgentUiActionHandler,
@@ -7,6 +6,7 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import type { ThreadAsset } from '@genfeedai/agent/utils/extract-thread-assets';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import { Button } from '@ui/primitives/button';
 import { Image, Video } from 'lucide-react';
 import { useTranslations } from 'next-intl';
@@ -226,7 +226,11 @@ export function GenerationActionCard({
         onToggleCollapsed={() => setIsCollapsed((current) => !current)}
       />
 
-      {generationHarness ? <div className="p-3"><GenerationHarnessReceipt receipt={generationHarness} /></div> : null}
+      {generationHarness ? (
+        <div className="p-3">
+          <GenerationHarnessReceipt receipt={generationHarness} />
+        </div>
+      ) : null}
 
       {isCollapsed ? (
         status === 'done' ||
