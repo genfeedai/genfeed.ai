@@ -41,6 +41,7 @@ import {
   ORGANIZATION_SETTINGS_E2E_MOCK,
   TASK_E2E_MOCK_PROVIDERS,
 } from '@api-test/e2e-test.module';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Test } from '@nestjs/testing';
 import { describe, expect, it } from 'vitest';
 
@@ -136,6 +137,10 @@ describe('E2E fixture contracts', () => {
       expect(moduleRef.get(ProviderAccountPurgeService)).toBeInstanceOf(
         ProviderAccountPurgeService,
       );
+      const eventEmitter = moduleRef.get(EventEmitter2);
+      const markerEvent = 'e2e-fixture.marker';
+      eventEmitter.emit(markerEvent);
+      expect(eventEmitter.emit).toHaveBeenCalledWith(markerEvent);
     } finally {
       await moduleRef.close();
     }

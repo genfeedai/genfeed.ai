@@ -8,7 +8,9 @@ test.describe('Analytics — Outliers → Hooks → Remix', () => {
 
   test('renders the Outliers surface', async ({ authenticatedPage }) => {
     await assertRouteRenders(authenticatedPage, `${BRAND}/analytics/outliers`);
-    await expect(authenticatedPage.getByText('Outliers')).toBeVisible();
+    await expect(
+      authenticatedPage.getByRole('heading', { name: 'Outliers', exact: true }),
+    ).toBeVisible();
   });
 
   test('walks Outliers into Hooks and Remix', async ({ authenticatedPage }) => {
