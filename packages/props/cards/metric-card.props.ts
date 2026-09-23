@@ -23,7 +23,7 @@ export type MetricCardProps = {
   /** Optional leading/trailing icon */
   icon?: IconComponent;
   iconClassName?: string;
-  /** Show skeleton for the value */
+  /** Show one skeleton inside the tile while its data is loading. */
   isLoading?: boolean;
   /** Uppercase metric label — same type scale on every size */
   label: string;
