@@ -40,6 +40,7 @@ import {
 } from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
+import { readIngredientMediaUrl } from '@libs/media/media-url.util';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -514,8 +515,9 @@ export class AvatarVideoGenerationService {
         );
       }
 
-      if (avatarIngredient.cdnUrl) {
-        return avatarIngredient.cdnUrl;
+      const avatarUrl = readIngredientMediaUrl(avatarIngredient);
+      if (avatarUrl) {
+        return avatarUrl;
       }
 
       return `${this.configService.ingredientsEndpoint}/avatars/${avatarIngredient.id}`;

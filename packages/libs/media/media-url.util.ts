@@ -237,6 +237,23 @@ export function ingredientMediaUrl(
 }
 
 /**
+ * Reads the computed `cdnUrl` an ingredient read carries at runtime.
+ *
+ * The Prisma result extension adds `cdnUrl` to every ingredient read, but the
+ * client's static types do not include result extensions. Typed call sites
+ * read it through this guard rather than a cast.
+ */
+export function readIngredientMediaUrl(
+  row: object | null | undefined,
+): string | undefined {
+  if (!row || !('cdnUrl' in row)) {
+    return undefined;
+  }
+  const value = row.cdnUrl;
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+/**
  * Fails fast at boot when a key pair is configured but cannot sign.
  *
  * Signing runs inside every ingredient read, and a signing failure throws

@@ -230,7 +230,6 @@ export class ClipLibraryLinkService {
       const ingredient = await this.ingredientsService.create({
         ...(brandId ? { brandId } : {}),
         category: IngredientCategory.VIDEO,
-        cdnUrl: media.cdnUrl,
         generationCompletedAt: new Date(),
         generationPrompt: title,
         generationSource: clipResultGenerationSource(String(clipResult.id)),

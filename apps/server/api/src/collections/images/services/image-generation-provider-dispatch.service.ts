@@ -239,10 +239,6 @@ export class ImageGenerationProviderDispatchService {
           }),
         ),
         this.imagesService.patch(context.ingredientData.id, {
-          cdnUrl:
-            typeof uploadMeta.publicUrl === 'string'
-              ? uploadMeta.publicUrl
-              : undefined,
           promptId: context.promptData.id,
           s3Key:
             typeof uploadMeta.s3Key === 'string' ? uploadMeta.s3Key : undefined,
@@ -576,7 +572,6 @@ export class ImageGenerationProviderDispatchService {
         }),
       ),
       this.imagesService.patch(ingredientId, {
-        cdnUrl: optionalUploadString(uploadMeta.publicUrl),
         promptId: context.promptData.id,
         s3Key: optionalUploadString(uploadMeta.s3Key),
         status: IngredientStatus.GENERATED,

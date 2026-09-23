@@ -10,7 +10,6 @@ const INGREDIENT_SCALAR_FIELDS = [
   'campaign',
   'campaignWeek',
   'category',
-  'cdnUrl',
   'cfgScale',
   'cloneStatus',
   'contentRating',

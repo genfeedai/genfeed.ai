@@ -313,7 +313,11 @@ export class VoiceGenerationService implements OnModuleInit {
   private async executeGeneration(
     params: VoiceGenerationParams,
   ): Promise<IngredientDocument> {
-    let result: { audioUrl: string; duration: number };
+    let result: {
+      audioUrl: string;
+      duration: number;
+      uploadResult: Record<string, unknown>;
+    };
     try {
       result = await this.elevenLabsService.generateAndUploadAudio(
         params.voiceId,
@@ -330,8 +334,11 @@ export class VoiceGenerationService implements OnModuleInit {
           organizationId: params.organizationId,
         },
         {
-          cdnUrl: result.audioUrl,
           duration: result.duration,
+          // The object key is the stored identity; the URL is derived on read.
+          ...(typeof result.uploadResult.s3Key === 'string'
+            ? { s3Key: result.uploadResult.s3Key }
+            : {}),
           status: IngredientStatus.GENERATED,
         },
       );

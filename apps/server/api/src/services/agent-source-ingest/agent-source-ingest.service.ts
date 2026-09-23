@@ -123,7 +123,6 @@ export class AgentSourceIngestService {
           status: IngredientStatus.UPLOADED,
           category: this.category(artifact.kind),
           s3Key: artifact.storageKey,
-          cdnUrl: artifact.publicUrl,
           fileSize: Math.round(artifact.size),
           generationError: null,
           metadata: {

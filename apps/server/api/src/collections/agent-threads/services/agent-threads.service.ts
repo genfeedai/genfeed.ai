@@ -619,7 +619,8 @@ export class AgentThreadsService extends BaseService<
       },
       where: scopedWhere(organizationId, {
         category: { in: LIST_THUMB_INGREDIENT_CATEGORIES },
-        cdnUrl: { not: null },
+        // `cdnUrl` is derived from `s3Key`, so filter on the stored key.
+        s3Key: { not: null },
         workflowExecutionId: { in: executionIds },
       }),
     });

@@ -13,9 +13,9 @@ import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { getIsSuperAdmin } from '@api/helpers/utils/auth/auth.util';
 import { CategoryPrismaUtil } from '@api/helpers/utils/category-prisma/category-prisma.util';
+import { withoutClientStorageIdentity } from '@api/helpers/utils/client-storage-identity/client-storage-identity.util';
 import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/collection-filter.util';
 import { IngredientFilterUtil } from '@api/helpers/utils/ingredient-filter/ingredient-filter.util';
-import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import { LibraryShelfUtil } from '@api/helpers/utils/library-shelf/library-shelf.util';
 import { customLabels } from '@api/helpers/utils/pagination.util';
 import { QueryDefaultsUtil } from '@api/helpers/utils/query-defaults/query-defaults.util';
@@ -35,6 +35,7 @@ import type {
 import type { Prisma } from '@genfeedai/prisma';
 import { IngredientSerializer } from '@genfeedai/serializers';
 import { ConfigService } from '@libs/config/config.service';
+import { resolveIngredientMediaUrl } from '@libs/media/media-url.util';
 import {
   BadRequestException,
   Body,
@@ -51,9 +52,6 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiResponse } from '@nestjs/swagger';
 import type { Request } from 'express';
-
-/** Fields a client may never write: they decide which stored object is served. */
-const SERVER_OWNED_MEDIA_FIELDS = ['cdnUrl', 's3Key'] as const;
 
 @AutoSwagger()
 @Controller('ingredients')
@@ -216,15 +214,16 @@ export class IngredientsController {
       /\/ingredients\/?$/,
       '',
     );
+    // The computed `cdnUrl` already covers `s3Key`; resolving here adds the
+    // `metadata.result` fallback for provider-hosted and external media.
     const renderableIngredients = ingredients.map((ingredient) => {
-      const resolvedUrl =
-        resolveIngredientMediaUrl(ingredient, cdnOrigin) ?? ingredient.cdnUrl;
+      const resolvedUrl = resolveIngredientMediaUrl(ingredient, cdnOrigin);
 
       return {
         ...ingredient,
         cdnUrl: resolvedUrl
           ? this.mediaUrlService.buildUrlFromAbsolute(resolvedUrl)
-          : resolvedUrl,
+          : null,
       };
     });
 
@@ -242,17 +241,9 @@ export class IngredientsController {
     @CurrentUser() user: User,
     @Body() updateIngredientDto: UpdateIngredientDto,
   ): Promise<JsonApiSingleResponse> {
-    const processedDto = {
+    const processedDto = withoutClientStorageIdentity({
       ...(updateIngredientDto as unknown as Record<string, unknown>),
-    };
-    // Storage identity is server-owned: it is written when an upload or
-    // generation completes, never by a client. The global ValidationPipe does
-    // not whitelist, so unknown or omitted fields would otherwise pass straight
-    // through. Accepting these would let a caller repoint an ingredient at
-    // another tenant's object and obtain a signed URL for it.
-    for (const field of SERVER_OWNED_MEDIA_FIELDS) {
-      delete processedDto[field];
-    }
+    });
 
     // Load only an active ingredient in the caller organization, then enforce
     // current-brand or organization-shared access below.

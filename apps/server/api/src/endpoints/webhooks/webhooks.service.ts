@@ -37,17 +37,13 @@ export class WebhooksService {
     ingredientId: string,
     uploadMetadata: IFileMetadata,
   ): Promise<void> {
-    const cdnUrl =
-      typeof uploadMetadata.publicUrl === 'string'
-        ? uploadMetadata.publicUrl
-        : undefined;
+    // The object key is the stored identity; the URL is derived on read.
     const s3Key =
       typeof uploadMetadata.s3Key === 'string'
         ? uploadMetadata.s3Key
         : undefined;
 
     await this.ingredientsService.patch(ingredientId, {
-      ...(cdnUrl ? { cdnUrl } : {}),
       ...(s3Key ? { s3Key } : {}),
       status: IngredientStatus.GENERATED,
     });

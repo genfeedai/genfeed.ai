@@ -12,6 +12,7 @@ import {
 } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
+import { readIngredientMediaUrl } from '@libs/media/media-url.util';
 import { Injectable, Optional } from '@nestjs/common';
 import { ModuleRef } from '@nestjs/core';
 
@@ -443,7 +444,7 @@ export class ContentQualityScorerService {
         query.organizationId = organizationId;
       }
       const ingredient = await this.ingredientsService.findOne(query);
-      return ingredient?.cdnUrl || ingredient?.s3Key || undefined;
+      return readIngredientMediaUrl(ingredient);
     } catch {
       return undefined;
     }
