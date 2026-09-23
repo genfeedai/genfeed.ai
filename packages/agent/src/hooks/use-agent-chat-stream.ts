@@ -680,8 +680,6 @@ export function useAgentChatStream(
           return;
         }
 
-        streamRuntime.pendingCompletionRef.current = null;
-        clearCompletionWatchdog();
         if (currentActiveThreadId) {
           updateThreadSummary(currentActiveThreadId, {
             attentionState: null,
@@ -689,6 +687,14 @@ export function useAgentChatStream(
             runStatus: 'failed',
           });
         }
+        // A newer send, handoff, or adoption owns the stream; this failure is
+        // recorded on its own thread only.
+        if (streamRuntime.ownerGeneration !== sendGeneration) {
+          return;
+        }
+
+        streamRuntime.pendingCompletionRef.current = null;
+        clearCompletionWatchdog();
         setError(serializeAgentError(err));
         setActiveRunStatus('failed');
         resetStreamState();
