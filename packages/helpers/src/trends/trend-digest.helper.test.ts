@@ -124,6 +124,25 @@ describe('buildTrendDigestHtml', () => {
     expect(html).not.toContain('<a href=');
   });
 
+  it('renders topic-corpus rows the media sections would drop', () => {
+    const topic = {
+      platform: 'youtube',
+      topic: 'Launch thread',
+      type: 'topic' as const,
+      usageCount: 2_400,
+      viralScore: 88,
+    };
+    const message = buildTrendDigestMessage([topic], { minViralScore: 70 });
+    const html = buildTrendDigestHtml([topic], { minViralScore: 70 });
+
+    expect(message).toContain('Trending Topics:');
+    expect(message).toContain('Launch thread (youtube, score: 88)');
+    expect(message).toContain('2.4K mentions');
+    expect(html).toContain('Trending Topics');
+    expect(html).toContain('Launch thread');
+    expect(html).toContain('2.4K mentions');
+  });
+
   it('renders an empty digest without crashing', () => {
     const html = buildTrendDigestHtml([], { minViralScore: 70 });
     expect(html).toContain('Your Trend Summary');

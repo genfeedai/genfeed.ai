@@ -32,13 +32,22 @@ export type DigestOwnerResolver = (
   organizationId: string,
 ) => Promise<{ userId: string | null; email: string | null } | null>;
 
+/**
+ * Ranked digest rows plus how many named source topics existed before the
+ * viral-score and platform gates. `sourceTopicCount === 0` is an empty corpus.
+ */
+export interface DigestTrendsLookup {
+  sourceTopicCount: number;
+  trends: TrendDigestEntry[];
+}
+
 /** Fetches the deterministically-ranked top-N trends for an org. */
 export type DigestTrendsProvider = (params: {
   organizationId: string;
   platforms: string[];
   topN: number;
   minViralScore: number;
-}) => Promise<TrendDigestEntry[]>;
+}) => Promise<DigestTrendsLookup>;
 
 /**
  * Durable "ran today" marker. Returns true if THIS caller acquired the marker
@@ -62,13 +71,20 @@ export type DigestRenderer = (
   options: { minViralScore: number; appUrl?: string; headerTitle?: string },
 ) => RenderedDigest;
 
+export type TrendDigestSkipReason =
+  | 'no-owner-email'
+  | 'already-ran-today'
+  | 'insufficient-credits'
+  | 'no-trends'
+  | `no-matching-trends: ${string}`;
+
 export interface TrendDigestSkippedOutput {
   skipped: true;
-  reason:
-    | 'no-owner-email'
-    | 'already-ran-today'
-    | 'insufficient-credits'
-    | 'no-trends';
+  reason: TrendDigestSkipReason;
+  /** Present when topics existed but none cleared the configured filter. */
+  sourceTopicCount?: number;
+  minViralScore?: number;
+  platforms?: string[];
 }
 
 export interface TrendDigestReadyOutput {
@@ -204,15 +220,26 @@ export class TrendDigestExecutor extends BaseExecutor {
       return this.skip('insufficient-credits');
     }
 
-    const trends = await this.trendsProvider({
+    const lookup = await this.trendsProvider({
       minViralScore,
       organizationId: orgId,
       platforms,
       topN,
     });
+    const trends = lookup.trends;
+    const sourceTopicCount = Number.isFinite(lookup.sourceTopicCount)
+      ? lookup.sourceTopicCount
+      : 0;
 
     if (trends.length === 0) {
-      return this.skip('no-trends');
+      if (sourceTopicCount <= 0) {
+        return this.skip('no-trends');
+      }
+      return this.skipFiltered({
+        minViralScore,
+        platforms,
+        sourceTopicCount,
+      });
     }
 
     const { subject, html } = this.renderer(trends, {
@@ -247,4 +274,34 @@ export class TrendDigestExecutor extends BaseExecutor {
     const output: TrendDigestSkippedOutput = { reason, skipped: true };
     return { data: output, metadata: { reason, skipped: true } };
   }
+
+  private skipFiltered(params: {
+    minViralScore: number;
+    platforms: string[];
+    sourceTopicCount: number;
+  }): ExecutorOutput {
+    const reason = formatNoMatchingTrends(params);
+    const output: TrendDigestSkippedOutput = {
+      minViralScore: params.minViralScore,
+      platforms: params.platforms,
+      reason,
+      skipped: true,
+      sourceTopicCount: params.sourceTopicCount,
+    };
+    return { data: output, metadata: { ...output } };
+  }
+}
+
+function formatNoMatchingTrends(params: {
+  minViralScore: number;
+  platforms: string[];
+  sourceTopicCount: number;
+}): `no-matching-trends: ${string}` {
+  const topicLabel =
+    params.sourceTopicCount === 1 ? 'source topic' : 'source topics';
+  const platformClause =
+    params.platforms.length > 0
+      ? ` on platforms ${params.platforms.join(', ')}`
+      : '';
+  return `no-matching-trends: ${params.sourceTopicCount} ${topicLabel}, none met minViralScore ${params.minViralScore}${platformClause}`;
 }

@@ -48,7 +48,10 @@ function wire(executor: TrendDigestExecutor): Mocks {
   const ownerResolver = vi
     .fn()
     .mockResolvedValue({ email: 'owner@org.com', userId: 'user-1' });
-  const trendsProvider = vi.fn().mockResolvedValue(SAMPLE_TRENDS);
+  const trendsProvider = vi.fn().mockResolvedValue({
+    sourceTopicCount: SAMPLE_TRENDS.length,
+    trends: SAMPLE_TRENDS,
+  });
   const idempotencyGuard = vi.fn().mockResolvedValue(true);
   const creditsChecker = vi.fn().mockResolvedValue(true);
   const renderer = vi
@@ -140,10 +143,57 @@ describe('TrendDigestExecutor', () => {
     expect(mocks.trendsProvider).not.toHaveBeenCalled();
   });
 
-  it('skips with no-trends and does not render', async () => {
-    mocks.trendsProvider.mockResolvedValueOnce([]);
+  it('skips with no-trends and does not render when the corpus is empty', async () => {
+    mocks.trendsProvider.mockResolvedValueOnce({
+      sourceTopicCount: 0,
+      trends: [],
+    });
     const result = await executor.execute(makeInput());
     expect((result.data as TrendDigestSkippedOutput).reason).toBe('no-trends');
+    expect(result.metadata).toMatchObject({
+      reason: 'no-trends',
+      skipped: true,
+    });
     expect(mocks.renderer).not.toHaveBeenCalled();
+  });
+
+  it('explains a skip when source topics miss the viral and platform filters', async () => {
+    mocks.trendsProvider.mockResolvedValueOnce({
+      sourceTopicCount: 50,
+      trends: [],
+    });
+    const result = await executor.execute(
+      makeInput({ minViralScore: 70, platforms: ['youtube'] }),
+    );
+    const reason =
+      'no-matching-trends: 50 source topics, none met minViralScore 70 on platforms youtube';
+
+    expect((result.data as TrendDigestSkippedOutput).reason).toBe(reason);
+    expect(result.data).toMatchObject({
+      minViralScore: 70,
+      platforms: ['youtube'],
+      skipped: true,
+      sourceTopicCount: 50,
+    });
+    expect(result.metadata).toMatchObject({
+      minViralScore: 70,
+      platforms: ['youtube'],
+      reason,
+      skipped: true,
+      sourceTopicCount: 50,
+    });
+    expect(mocks.renderer).not.toHaveBeenCalled();
+  });
+
+  it('omits the platform clause when the digest is not platform-filtered', async () => {
+    mocks.trendsProvider.mockResolvedValueOnce({
+      sourceTopicCount: 1,
+      trends: [],
+    });
+    const result = await executor.execute(makeInput({ platforms: [] }));
+
+    expect((result.data as TrendDigestSkippedOutput).reason).toBe(
+      'no-matching-trends: 1 source topic, none met minViralScore 70',
+    );
   });
 });
