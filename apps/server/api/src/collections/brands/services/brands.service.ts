@@ -23,6 +23,15 @@ import {
   BrandRelocationService,
 } from '@api/collections/brands/services/brand-relocation.service';
 import { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import {
+  bootstrapCredentialInclude,
+  mapBootstrapCredentials,
+} from '@api/collections/brands/utils/brand-bootstrap-credentials.util';
+import {
+  isMergeableRecord,
+  mergeDefinedKeys,
+  omitUndefinedFields,
+} from '@api/collections/brands/utils/brand-config-merge.util';
 import { toBrandKitAssetRelations } from '@api/collections/brands/utils/brand-kit-asset-relations.util';
 import { resolveCreateAgentConfig } from '@api/collections/brands/utils/expert-brand-defaults.util';
 import {
@@ -48,7 +57,6 @@ import { scopedWhere } from '@api/index';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
-import { fromPrismaCredentialPlatform } from '@genfeedai/contracts';
 import type {
   FastlaneIdea,
   IBrandKitApplyResult,
@@ -94,98 +102,6 @@ const MERGEABLE_AGENT_CONFIG_KEYS: ReadonlySet<string> = new Set([
   'strategy',
   'voice',
 ]);
-
-/**
- * Credential columns the access bootstrap embeds on each brand. Every
- * brand-context consumer (agent setup panel, publishing, credentials guard,
- * menu items) reads `selectedBrand.credentials`, so bootstrap brands must
- * carry them. The select is an explicit allowlist: bootstrap rows are plain
- * JSON, not serializer output, so token, secret and OAuth columns must never
- * be reachable from it.
- */
-const BOOTSTRAP_CREDENTIAL_SELECT = {
-  accessTokenExpiry: true,
-  brandId: true,
-  createdAt: true,
-  description: true,
-  externalAvatar: true,
-  externalHandle: true,
-  externalId: true,
-  externalName: true,
-  id: true,
-  isConnected: true,
-  label: true,
-  organizationId: true,
-  platform: true,
-  postingTimes: true,
-  updatedAt: true,
-  userId: true,
-  warmupRiskLevel: true,
-  warmupScore: true,
-  warmupState: true,
-} satisfies Prisma.CredentialSelect;
-
-type BootstrapCredentialRow = Prisma.CredentialGetPayload<{
-  select: typeof BOOTSTRAP_CREDENTIAL_SELECT;
-}>;
-
-/**
- * Prisma stores `platform` SCREAMING; brand-context consumers compare against
- * the lowercase domain enum, same as the credential serializer emits.
- */
-function toBootstrapCredential(
-  credential: BootstrapCredentialRow,
-): Record<string, unknown> {
-  return {
-    ...credential,
-    platform: fromPrismaCredentialPlatform(credential.platform),
-  };
-}
-
-function isMergeableRecord(value: unknown): value is Record<string, unknown> {
-  return typeof value === 'object' && value !== null && !Array.isArray(value);
-}
-
-/**
- * Drops keys whose value is `undefined`.
- *
- * Nest's `plainToInstance` materializes every declared DTO field as an own
- * property holding `undefined` when the request body omitted it. Prisma rejects
- * those keys (`Argument X is missing` / invalid undefined), so write paths must
- * never forward them.
- */
-function omitUndefinedFields(
-  input: Record<string, unknown>,
-): Record<string, unknown> {
-  return Object.fromEntries(
-    Object.entries(input).filter(([, value]) => value !== undefined),
-  );
-}
-
-/**
- * Copies the defined keys of `incoming` over `current`.
- *
- * `undefined` has to be skipped here for the same reason it is skipped at the
- * top level: `plainToInstance` builds the DTO with `new`, and under this
- * codebase's runtime class-field semantics every declared-but-absent property
- * becomes a real own property holding `undefined`. Spreading the instance
- * directly would therefore write `undefined` over each stored value the caller
- * never mentioned — the exact data loss this merge exists to prevent.
- */
-function mergeDefinedKeys(
-  current: Record<string, unknown>,
-  incoming: Record<string, unknown>,
-): Record<string, unknown> {
-  const merged = { ...current };
-
-  for (const [key, value] of Object.entries(incoming)) {
-    if (value !== undefined) {
-      merged[key] = value;
-    }
-  }
-
-  return merged;
-}
 
 type BrandCreateInput = CreateBrandDto & {
   agentConfig?: UpdateBrandAgentConfigDto & Record<string, unknown>;
@@ -347,13 +263,7 @@ export class BrandsService extends BaseService<
     const brands = (await this.delegate.findMany({
       include: {
         ...(options.includeCredentials
-          ? {
-              credentials: {
-                orderBy: { createdAt: 'asc' },
-                select: BOOTSTRAP_CREDENTIAL_SELECT,
-                where: { isDeleted: false, organizationId },
-              },
-            }
+          ? { credentials: bootstrapCredentialInclude(organizationId) }
           : {}),
         organization: {
           select: {
@@ -368,10 +278,7 @@ export class BrandsService extends BaseService<
 
     if (options.includeCredentials) {
       for (const brand of brands) {
-        const credentials = brand.credentials as
-          | BootstrapCredentialRow[]
-          | undefined;
-        brand.credentials = (credentials ?? []).map(toBootstrapCredential);
+        brand.credentials = mapBootstrapCredentials(brand.credentials);
       }
     }
 
