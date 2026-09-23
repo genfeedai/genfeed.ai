@@ -48,27 +48,11 @@ export const OVERLAP_TOOLS: SourceTool[] = [
         },
         platform: {
           description: 'Legacy single-platform hint.',
-          enum: [
-            'instagram',
-            'twitter',
-            'linkedin',
-            'tiktok',
-            'youtube',
-            'facebook',
-          ],
           type: 'string',
         },
         platforms: {
           description: 'Platforms to publish the content item to.',
           items: {
-            enum: [
-              'instagram',
-              'twitter',
-              'linkedin',
-              'tiktok',
-              'youtube',
-              'facebook',
-            ],
             type: 'string',
           },
           type: 'array',
