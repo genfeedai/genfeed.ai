@@ -273,3 +273,24 @@ https://mcp.genfeed.ai/mcp
   restart browser authorization only if that fails; in manual mode, check the
   key and its scopes.
 - **Wrong endpoint:** check `/v1/config` on the MCP host.
+
+## Interactive content cards
+
+MCP Apps hosts can render Genfeed posts, articles, image galleries, video and audio
+previews, generation results, and usage summaries directly in the conversation.
+The MCP server serves a self-contained HTML resource at
+`ui://genfeed/content-cards-v1.html` with MIME type
+`text/html;profile=mcp-app`. Selected tool descriptors link it through
+`_meta.ui.resourceUri`; the widget uses the standard MCP Apps JSON-RPC bridge.
+No separate ChatGPT frontend deployment is needed.
+
+Text and media resource links remain available to clients without MCP Apps.
+Empty results and tool errors remain visible, and pending approvals are never
+presented as completed content. Cards do not publish or mutate content.
+
+For self-hosting, configure `GENFEEDAI_CDN_URL` and, if media is served directly by
+it, `GENFEEDAI_MICROSERVICES_FILES_URL` on the MCP server. Only these media origins
+are allowed by the widget CSP (the CDN defaults to `https://cdn.genfeed.ai`).
+Other HTTP(S) media URLs remain available through an explicit open-link action.
+The static HTML resource is public; all account data still comes from authenticated
+tool calls. It contains no bearer tokens or account cookies.

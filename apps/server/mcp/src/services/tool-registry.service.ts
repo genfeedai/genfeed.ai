@@ -14,6 +14,7 @@ import {
   toMcpMediaToolResult,
 } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ConfigService } from '@mcp/config/config.service';
 import { McpAuthGuard } from '@mcp/guards/mcp-auth.guard';
 import {
   MCP_RESOURCES,
@@ -22,6 +23,10 @@ import {
 } from '@mcp/mcp/resource-catalog';
 import { AuthService, type McpRole } from '@mcp/services/auth.service';
 import { ClientService } from '@mcp/services/client.service';
+import {
+  agentGuideResource,
+  jsonResource,
+} from '@mcp/services/mcp-resource-contents.util';
 import type { McpApprovalResource } from '@mcp/shared/interfaces/approval.interface';
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
 import { formatListResult } from '@mcp/shared/utils/format-list-result.util';
@@ -52,6 +57,12 @@ import {
   TOOL_DISCOVERY_TOOL_NAMES,
 } from '@mcp/tools/tool-discovery.tool';
 import { handleWorkflowControlTool } from '@mcp/tools/workflow-control.tool';
+import { cardResource } from '@mcp/ui/card-app';
+import {
+  MCP_CARD_RESOURCE_URI,
+  withCardMetadata,
+  withCardResult,
+} from '@mcp/ui/card-data';
 import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 interface ToolCallParams {
@@ -218,6 +229,7 @@ export class ToolRegistryService implements OnModuleInit {
     // via {@link getToolsForRoleAndToolsets}. The bare URL passes the default
     // profile list, not an empty selection.
     @Optional() private readonly requestToolsets: readonly ToolsetName[] = [],
+    @Optional() private readonly configService?: ConfigService,
   ) {}
 
   /**
@@ -226,7 +238,7 @@ export class ToolRegistryService implements OnModuleInit {
    * cannot invoke.
    */
   getAllTools(): McpToolOutput[] {
-    return toMcpTools(getToolsForSurface('mcp'));
+    return toMcpTools(getToolsForSurface('mcp')).map(withCardMetadata);
   }
 
   /**
@@ -263,7 +275,7 @@ export class ToolRegistryService implements OnModuleInit {
     toolsets: readonly ToolsetName[],
   ): McpToolOutput[] {
     return ToolRegistryService.filterToolsByRole(
-      toMcpTools(getToolsForToolsets('mcp', toolsets)),
+      toMcpTools(getToolsForToolsets('mcp', toolsets)).map(withCardMetadata),
       role,
     );
   }
@@ -390,6 +402,17 @@ export class ToolRegistryService implements OnModuleInit {
   }
 
   private async executeTool(
+    name: string,
+    args: Record<string, unknown>,
+    approvedApprovalId?: string,
+  ) {
+    return withCardResult(
+      name,
+      await this.dispatchTool(name, args, approvedApprovalId),
+    );
+  }
+
+  private async dispatchTool(
     name: string,
     args: Record<string, unknown>,
     approvedApprovalId?: string,
@@ -573,6 +596,7 @@ export class ToolRegistryService implements OnModuleInit {
           type: 'text',
         },
       ],
+      structuredContent: { data: payload },
     };
   }
 
@@ -586,6 +610,7 @@ export class ToolRegistryService implements OnModuleInit {
           args.videoId as string,
         );
         return {
+          structuredContent: { data: { ...status, id: args.videoId } },
           content: [
             {
               text: `Video Status: ${status.status}\nProgress: ${status.progress}%\n${status.message || ''}${status.url ? `\nURL: ${status.url}` : ''}`,
@@ -600,6 +625,7 @@ export class ToolRegistryService implements OnModuleInit {
         const offset = (args?.offset as number) || 0;
         const videos = await this.clientService.listVideos(limit, offset);
         return {
+          structuredContent: { data: videos },
           content: [
             {
               text: formatListResult(videos, 'videos'),
@@ -648,11 +674,7 @@ export class ToolRegistryService implements OnModuleInit {
         });
 
         return {
-          component: {
-            height: 600,
-            type: 'iframe',
-            url: `https://chatgpt.genfeed.ai/article-preview?id=${article.id}`,
-          },
+          structuredContent: { data: article },
           content: [
             {
               text: `Article created successfully!\n\nArticle ID: ${article.id}\nTitle: ${article.title}\nStatus: ${article.status}\nWord Count: ${article.wordCount}`,
@@ -673,11 +695,7 @@ export class ToolRegistryService implements OnModuleInit {
         });
 
         return {
-          component: {
-            height: 500,
-            type: 'iframe',
-            url: `https://chatgpt.genfeed.ai/article-list?q=${encodeURIComponent(args.query as string)}`,
-          },
+          structuredContent: { data: articles },
           content: [
             {
               text: formatListResult(
@@ -699,11 +717,7 @@ export class ToolRegistryService implements OnModuleInit {
           args.articleId as string,
         );
         return {
-          component: {
-            height: 600,
-            type: 'iframe',
-            url: `https://chatgpt.genfeed.ai/article-preview?id=${args.articleId}`,
-          },
+          structuredContent: { data: article },
           content: [
             {
               text: `Article: ${article.title}\n\nID: ${article.id}\nStatus: ${article.status}\nWord Count: ${article.wordCount}\nCreated: ${article.createdAt}\n\nContent Preview:\n${article.content?.substring(0, 500)}...`,
@@ -719,11 +733,7 @@ export class ToolRegistryService implements OnModuleInit {
           offset: args?.offset as number | undefined,
         });
         return {
-          component: {
-            height: 600,
-            type: 'iframe',
-            url: `https://chatgpt.genfeed.ai/image-gallery`,
-          },
+          structuredContent: { data: images },
           content: [
             {
               text: formatListResult(images, 'images'),
@@ -738,6 +748,7 @@ export class ToolRegistryService implements OnModuleInit {
           limit: args?.limit as number | undefined,
         });
         return {
+          structuredContent: { data: avatars },
           content: [
             {
               text: formatListResult(avatars, 'avatars'),
@@ -752,6 +763,7 @@ export class ToolRegistryService implements OnModuleInit {
           limit: args?.limit as number | undefined,
         });
         return {
+          structuredContent: { data: musicTracks },
           content: [
             {
               text: formatListResult(musicTracks, 'music tracks'),
@@ -855,11 +867,7 @@ export class ToolRegistryService implements OnModuleInit {
           (args?.timeRange as string) || '30d',
         );
         return {
-          component: {
-            height: 500,
-            type: 'iframe',
-            url: `https://chatgpt.genfeed.ai/usage-stats?range=${args?.timeRange || '30d'}`,
-          },
+          structuredContent: { data: stats },
           content: [
             {
               text: `Usage Statistics (${stats.timeRange}):\n\nContent Created:\n- Videos: ${stats.contentCreated.videos}\n- Articles: ${stats.contentCreated.articles}\n- Images: ${stats.contentCreated.images}\n- Music: ${stats.contentCreated.music}\n- Avatars: ${stats.contentCreated.avatars}\n\nCredits Used: ${stats.creditsUsed}\nPosts Published: ${stats.postsPublished}\nTotal Engagement: ${stats.totalEngagement}`,
@@ -938,52 +946,31 @@ export class ToolRegistryService implements OnModuleInit {
 
     try {
       switch (uri) {
+        case MCP_CARD_RESOURCE_URI:
+          return {
+            contents: [
+              cardResource([
+                this.configService?.get('GENFEEDAI_CDN_URL') ||
+                  'https://cdn.genfeed.ai',
+                this.configService?.get('GENFEEDAI_MICROSERVICES_FILES_URL') ||
+                  '',
+              ]),
+            ],
+          };
         case McpResourceUri.AGENT_GUIDE:
-          return {
-            contents: [
-              {
-                mimeType: 'text/markdown',
-                text: `# Genfeed agent guide
+          return agentGuideResource(uri);
 
-Use Genfeed for content research, AI generation, human review, scheduled publishing, and analytics. Protected tools and tenant resources require a scoped bearer credential.
+        case McpResourceUri.VIDEO_ANALYTICS:
+          return jsonResource(
+            uri,
+            await this.clientService.getVideoAnalytics(),
+          );
 
-- Product context: https://genfeed.ai/llms.txt
-- Authentication: https://genfeed.ai/auth.md
-- OpenAPI: https://api.genfeed.ai/v1/openapi.json
-- MCP setup: https://docs.genfeed.ai/api-reference/mcp
-- Contact: https://genfeed.ai/contact
-`,
-                uri,
-              },
-            ],
-          };
-
-        case McpResourceUri.VIDEO_ANALYTICS: {
-          const videoAnalytics = await this.clientService.getVideoAnalytics();
-          return {
-            contents: [
-              {
-                mimeType: 'application/json',
-                text: JSON.stringify(videoAnalytics, null, 2),
-                uri,
-              },
-            ],
-          };
-        }
-
-        case McpResourceUri.ORGANIZATION_ANALYTICS: {
-          const orgAnalytics =
-            await this.clientService.getOrganizationAnalytics();
-          return {
-            contents: [
-              {
-                mimeType: 'application/json',
-                text: JSON.stringify(orgAnalytics, null, 2),
-                uri,
-              },
-            ],
-          };
-        }
+        case McpResourceUri.ORGANIZATION_ANALYTICS:
+          return jsonResource(
+            uri,
+            await this.clientService.getOrganizationAnalytics(),
+          );
 
         default:
           throw new Error(`Unknown resource: ${uri}`);
