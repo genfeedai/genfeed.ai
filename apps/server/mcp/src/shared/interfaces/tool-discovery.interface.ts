@@ -10,6 +10,11 @@ import type { McpToolOutput } from '@genfeedai/actions';
  */
 export interface ToolDiscoverySource {
   getDiscoverableTools(): McpToolOutput[];
+  /**
+   * Requested toolsets with no tools on this deploy. Omitted by callers that
+   * have no request selection (the warning is then absent).
+   */
+  getIgnoredEmptyToolsets?(): readonly string[];
 }
 
 export interface ToolDiscoveryEntry {

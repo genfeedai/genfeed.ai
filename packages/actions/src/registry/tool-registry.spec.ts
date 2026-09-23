@@ -160,6 +160,7 @@ describe('tool registry catalog validation', () => {
   it('rejects a declared toolset with zero cataloged tools at load time', async () => {
     vi.doMock('./toolsets', () => ({
       CORE_TOOLSET_NAME: 'core',
+      getToolsForToolsets: () => [],
       isToolsetName: () => true,
       TOOLSETS: [
         { description: 'core', isAlwaysOn: true, name: 'core' },
@@ -176,6 +177,7 @@ describe('tool registry catalog validation', () => {
   it('rejects the core toolset exceeding the MCP tool limit at load time', async () => {
     vi.doMock('./toolsets', () => ({
       CORE_TOOLSET_NAME: 'core',
+      getToolsForToolsets: () => [],
       isToolsetName: () => true,
       TOOLSETS: [{ description: 'core', isAlwaysOn: true, name: 'core' }],
     }));
@@ -195,6 +197,34 @@ describe('tool registry catalog validation', () => {
 
     await expect(import('./tool-registry')).rejects.toThrow(
       /core toolset exceeds the 12-tool MCP limit: has 13/,
+    );
+  });
+
+  it('rejects a default MCP profile that exceeds the bare-URL cap', async () => {
+    vi.doMock('./toolsets', () => ({
+      CORE_TOOLSET_NAME: 'core',
+      getToolsForToolsets: () => Array.from({ length: 31 }, () => ({})),
+      isToolsetName: () => true,
+      TOOLSETS: [{ description: 'core', isAlwaysOn: true, name: 'core' }],
+    }));
+    vi.doMock('./tool-assembly', () => ({
+      ALL_TOOLS: [
+        {
+          category: 'other',
+          creditCost: 0,
+          description: 'core tool',
+          name: 'list_toolsets',
+          parameters: { properties: {}, type: 'object' },
+          requiredRole: 'user',
+          surfaces: { agent: false, cliAgentVisible: false, mcp: true },
+          toolset: 'core',
+        },
+      ],
+    }));
+    vi.resetModules();
+
+    await expect(import('./tool-registry')).rejects.toThrow(
+      /default MCP profile exceeds the 30-tool bare-URL cap: has 31/,
     );
   });
 });

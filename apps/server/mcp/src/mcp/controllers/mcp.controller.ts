@@ -9,8 +9,9 @@ import { StreamableHttpService } from '@mcp/services/streamable-http.service';
 import { ToolRegistryService } from '@mcp/services/tool-registry.service';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import {
+  buildUnknownProfileMessage,
   buildUnknownToolsetsMessage,
-  resolveRequestToolsets,
+  resolveMcpToolQuery,
 } from '@mcp/shared/middleware/toolsets-query.middleware';
 import {
   BadRequestException,
@@ -100,7 +101,13 @@ export class McpController {
   @Get('tools')
   getTools(@Req() request: McpRequest) {
     const role: McpRole = request?.authContext?.role ?? 'user';
-    const selection = resolveRequestToolsets(request?.query ?? {});
+    const selection = resolveMcpToolQuery(request?.query ?? {});
+
+    if (selection.unknownProfile) {
+      throw new BadRequestException(
+        buildUnknownProfileMessage(selection.unknownProfile),
+      );
+    }
 
     if (selection.unknown.length > 0) {
       throw new BadRequestException(

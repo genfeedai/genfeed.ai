@@ -81,9 +81,23 @@ function handleListToolsets(registry: ToolDiscoverySource) {
       `- ${toolset.name}${toolset.isAlwaysOn ? ' (always on)' : ''}: ${toolset.toolCount} tool(s) — ${toolset.description}`,
   );
 
-  return textResult(`Available toolsets:\n\n${lines.join('\n')}`, {
-    toolsets,
-  });
+  const ignoredEmptyToolsets = [
+    ...(registry.getIgnoredEmptyToolsets?.() ?? []),
+  ].sort((a, b) => a.localeCompare(b));
+  const warning =
+    ignoredEmptyToolsets.length > 0
+      ? `Warning: requested toolset(s) with no tools on this deploy were ignored: ${ignoredEmptyToolsets.join(', ')}.`
+      : undefined;
+
+  return textResult(
+    warning
+      ? `Available toolsets:\n\n${lines.join('\n')}\n\n${warning}`
+      : `Available toolsets:\n\n${lines.join('\n')}`,
+    {
+      ...(warning ? { ignoredEmptyToolsets } : {}),
+      toolsets,
+    },
+  );
 }
 
 function handleSearchTools(

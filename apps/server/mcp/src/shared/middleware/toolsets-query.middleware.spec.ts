@@ -1,6 +1,11 @@
+import {
+  DEFAULT_MCP_PROFILE_TOOLSETS,
+  DIRECTORY_MCP_PROFILE_TOOLSETS,
+} from '@genfeedai/actions';
 import type { McpRequest } from '@mcp/shared/interfaces/mcp-request.interface';
 import {
   buildUnknownToolsetsMessage,
+  resolveMcpToolQuery,
   resolveRequestToolsets,
   toolsetsQueryMiddleware,
 } from '@mcp/shared/middleware/toolsets-query.middleware';
@@ -18,6 +23,7 @@ describe('resolveRequestToolsets', () => {
     });
 
     expect(selection).toEqual({
+      empty: [],
       toolsets: ['content', 'generation'],
       unknown: [],
     });
@@ -41,20 +47,73 @@ describe('resolveRequestToolsets', () => {
     expect(selection.unknown).toEqual(['not-a-real-toolset']);
   });
 
-  it('treats an absent param as "every toolset"', () => {
-    expect(resolveRequestToolsets({})).toEqual({ toolsets: [], unknown: [] });
+  it('treats an absent param as no toolset selection', () => {
+    expect(resolveRequestToolsets({})).toEqual({
+      empty: [],
+      toolsets: [],
+      unknown: [],
+    });
   });
 
-  it('rejects an agent-only toolset name on the mcp surface', () => {
-    // `goals` is a real declared toolset name (isToolsetName is true),
-    // but it has no tools on the `mcp` surface — resolveRequestToolsets must
-    // scope validity to `mcp` (parseToolsetSelection(raw, 'mcp')) so this is
-    // rejected the same way a made-up name would be, instead of silently
-    // resolving to "core only".
+  it('keeps a declared toolset that has no MCP tools instead of calling it unknown', () => {
+    // `goals` is a real declared toolset name with no tools on the `mcp`
+    // surface. It must not 400. It stays selected so the connection does
+    // not widen to every tool, and `empty` is the list_toolsets warning.
     const selection = resolveRequestToolsets({ toolsets: 'goals' });
 
-    expect(selection.toolsets).toEqual([]);
-    expect(selection.unknown).toEqual(['goals']);
+    expect(selection.toolsets).toEqual(['goals']);
+    expect(selection.empty).toEqual(['goals']);
+    expect(selection.unknown).toEqual([]);
+  });
+});
+
+describe('resolveMcpToolQuery', () => {
+  it('uses the default profile when neither toolsets nor profile is set', () => {
+    expect(resolveMcpToolQuery({})).toEqual({
+      empty: [],
+      toolsets: [...DEFAULT_MCP_PROFILE_TOOLSETS],
+      unknown: [],
+      unknownProfile: null,
+    });
+  });
+
+  it('resolves ?profile=directory and ?profile=full', () => {
+    expect(resolveMcpToolQuery({ profile: 'directory' }).toolsets).toEqual([
+      ...DIRECTORY_MCP_PROFILE_TOOLSETS,
+    ]);
+    expect(resolveMcpToolQuery({ profile: 'FULL' })).toEqual({
+      empty: [],
+      toolsets: [],
+      unknown: [],
+      unknownProfile: null,
+    });
+  });
+
+  it('lets an explicit ?toolsets= win over ?profile=', () => {
+    const selection = resolveMcpToolQuery({
+      profile: 'full',
+      toolsets: 'content',
+    });
+
+    expect(selection.toolsets).toEqual(['content']);
+    expect(selection.unknownProfile).toBeNull();
+  });
+
+  it('reports an unknown profile and still rejects an undeclared toolset', () => {
+    expect(resolveMcpToolQuery({ profile: 'nope' }).unknownProfile).toBe(
+      'nope',
+    );
+    expect(
+      resolveMcpToolQuery({ toolsets: 'not-a-real-toolset' }).unknown,
+    ).toEqual(['not-a-real-toolset']);
+  });
+
+  it('does not fail a profile or toolsets query that only names an empty toolset', () => {
+    const selection = resolveMcpToolQuery({ toolsets: 'content,goals' });
+
+    expect(selection.unknown).toEqual([]);
+    expect(selection.empty).toEqual(['goals']);
+    expect(selection.toolsets).toEqual(['content', 'goals']);
   });
 });
 
@@ -113,13 +172,45 @@ describe('toolsetsQueryMiddleware', () => {
     expect(next).toHaveBeenCalledOnce();
   });
 
-  it('defaults req.toolsets to an empty selection when unset', () => {
+  it('defaults a bare request to the default profile', () => {
     const { req, res, next } = buildContext({});
 
     toolsetsQueryMiddleware(req, res, next);
 
-    expect(req.toolsets).toEqual([]);
+    expect(req.toolsets).toEqual([...DEFAULT_MCP_PROFILE_TOOLSETS]);
     expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('does not 400 when the only requested toolset is empty on this deploy', () => {
+    const { req, res, next, status } = buildContext({ toolsets: 'goals' });
+
+    toolsetsQueryMiddleware(req, res, next);
+
+    expect(status).not.toHaveBeenCalled();
+    expect(req.toolsets).toEqual(['goals']);
+    expect(next).toHaveBeenCalledOnce();
+  });
+
+  it('responds 400 for an unknown profile and never calls next', () => {
+    const { req, res, status, json, next } = buildContext({
+      profile: 'nope',
+    });
+
+    toolsetsQueryMiddleware(req, res, next);
+
+    expect(status).toHaveBeenCalledWith(400);
+    expect(json).toHaveBeenCalledWith(
+      expect.objectContaining({
+        error: expect.objectContaining({
+          code: -32602,
+          message: expect.stringContaining('Unknown profile: nope'),
+        }),
+        id: null,
+        jsonrpc: '2.0',
+      }),
+    );
+    expect(next).not.toHaveBeenCalled();
+    expect(req.toolsets).toBeUndefined();
   });
 
   it('responds 400 with a JSON-RPC error and never calls next for an unknown toolset', () => {

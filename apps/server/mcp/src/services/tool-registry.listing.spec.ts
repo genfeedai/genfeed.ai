@@ -200,6 +200,13 @@ describe('ToolRegistryService toolset-aware listing (getTools / getToolsForRoleA
     ]);
   });
 
+  it('reports a requested toolset that has no MCP tools as ignored', () => {
+    expect(
+      build('user', ['content', 'goals']).getIgnoredEmptyToolsets(),
+    ).toEqual(['goals']);
+    expect(build('user', []).getIgnoredEmptyToolsets()).toEqual([]);
+  });
+
   it('getToolsForRoleAndToolsets is the primitive both getTools and the REST mirror share', () => {
     const registry = build('superadmin');
 

@@ -1,4 +1,9 @@
-import type { McpToolOutput, ToolsetName } from '@genfeedai/actions';
+import {
+  DEFAULT_MCP_PROFILE_TOOLSETS,
+  DIRECTORY_MCP_PROFILE_TOOLSETS,
+  type McpToolOutput,
+  type ToolsetName,
+} from '@genfeedai/actions';
 import { LoggerService } from '@libs/logger/logger.service';
 import { McpController } from '@mcp/mcp/controllers/mcp.controller';
 import { MCP_RESOURCES, McpResourceUri } from '@mcp/mcp/resource-catalog';
@@ -300,7 +305,7 @@ describe('McpController', () => {
 
       expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith(
         'superadmin',
-        [],
+        [...DEFAULT_MCP_PROFILE_TOOLSETS],
       );
       expect(result).toEqual({ tools: roleTools.superadmin });
       expect(rawToolSourceMocks.getToolsForSurface).not.toHaveBeenCalled();
@@ -312,7 +317,9 @@ describe('McpController', () => {
         typeof controller.getTools
       >[0]);
 
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', []);
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
+        ...DEFAULT_MCP_PROFILE_TOOLSETS,
+      ]);
       expect(result).toEqual({ tools: roleTools.user });
     });
 
@@ -321,7 +328,9 @@ describe('McpController', () => {
         {} as unknown as Parameters<typeof controller.getTools>[0],
       );
 
-      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', []);
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
+        ...DEFAULT_MCP_PROFILE_TOOLSETS,
+      ]);
       expect(result).toEqual({ tools: roleTools.user });
     });
 
@@ -350,6 +359,51 @@ describe('McpController', () => {
         /Unknown toolset\(s\): not-a-real-toolset/,
       );
       expect(getToolsForRoleAndToolsetsMock).not.toHaveBeenCalled();
+    });
+
+    it('resolves ?profile=directory and ?profile=full', () => {
+      controller.getTools({
+        authContext: { role: 'user' },
+        query: { profile: 'directory' },
+      } as unknown as Parameters<typeof controller.getTools>[0]);
+      controller.getTools({
+        authContext: { role: 'user' },
+        query: { profile: 'full' },
+      } as unknown as Parameters<typeof controller.getTools>[0]);
+
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenNthCalledWith(
+        1,
+        'user',
+        [...DIRECTORY_MCP_PROFILE_TOOLSETS],
+      );
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenNthCalledWith(
+        2,
+        'user',
+        [],
+      );
+    });
+
+    it('lets an explicit ?toolsets= win over ?profile=', () => {
+      controller.getTools({
+        authContext: { role: 'user' },
+        query: { profile: 'full', toolsets: 'content' },
+      } as unknown as Parameters<typeof controller.getTools>[0]);
+
+      expect(getToolsForRoleAndToolsetsMock).toHaveBeenCalledWith('user', [
+        'content',
+      ]);
+    });
+
+    it('rejects an unknown profile with a 400', () => {
+      const request = {
+        authContext: { role: 'user' },
+        query: { profile: 'nope' },
+      } as unknown as Parameters<typeof controller.getTools>[0];
+
+      expect(() => controller.getTools(request)).toThrow(BadRequestException);
+      expect(() => controller.getTools(request)).toThrow(
+        /Unknown profile: nope/,
+      );
     });
 
     it('applies role filtering so a user never sees more than a superadmin', () => {
