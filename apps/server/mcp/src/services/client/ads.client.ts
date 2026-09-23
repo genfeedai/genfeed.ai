@@ -1,5 +1,142 @@
 import type { BaseApiClient } from './base-api-client';
-import type { AdsGatewayInsightsParams } from './client.types';
+import type { AdsGatewayInsightsParams, ApiError } from './client.types';
+
+type AdsListProvider = 'Meta' | 'Google Ads';
+type AdsListErrorClass = 'auth' | 'internal' | 'provider';
+
+const NOT_CONNECTED_DETAIL =
+  /credential not found|not connected|not authori[sz]ed|please connect|connect your|missing credential|\bno credential\b|\bforbidden\b/i;
+
+const AUTH_DETAIL =
+  /\b(auth(?:entication|orization)?|oauth|invalid[_-]?grant|invalid token|token expired|unauthenticated)\b/i;
+
+const GENERIC_DETAIL =
+  /^(an unexpected error occurred|an error occurred|internal server error|http exception)$/i;
+
+const UNSAFE_DETAIL =
+  /<!doctype|<html\b|<body\b|<script\b|\bat\s+\S+\s+\(|node_modules/i;
+
+/**
+ * Missing Meta/Google credentials arrive as 401/403 or a connect/credential
+ * detail. Other failures are labeled auth, provider, or internal. Only a short
+ * sanitized API detail is appended — never tokens, HTML, or stack traces.
+ */
+function describeAdsListFailure(
+  provider: AdsListProvider,
+  fallback: string,
+  error: ApiError,
+): string {
+  const status = readAdsHttpStatus(error);
+  const detail = readSafeAdsDetail(error);
+
+  if (isAdsNotConnected(status, detail)) {
+    const message = `${provider} account is not connected or not authorized.`;
+    return detail ? `${message} ${detail}` : message;
+  }
+
+  const errorClass = classifyAdsListError(status, detail);
+  const classified = `${fallback} (${errorClass})`;
+  return detail ? `${classified}: ${detail}` : classified;
+}
+
+function adsListOnError(
+  provider: AdsListProvider,
+  fallback: string,
+): (error: ApiError) => never {
+  return (error: ApiError) => {
+    throw new Error(describeAdsListFailure(provider, fallback, error));
+  };
+}
+
+function isAdsNotConnected(
+  status: number | undefined,
+  detail: string | undefined,
+): boolean {
+  if (status === 401 || status === 403) {
+    return true;
+  }
+
+  return detail !== undefined && NOT_CONNECTED_DETAIL.test(detail);
+}
+
+function classifyAdsListError(
+  status: number | undefined,
+  detail: string | undefined,
+): AdsListErrorClass {
+  if (detail !== undefined && AUTH_DETAIL.test(detail)) {
+    return 'auth';
+  }
+
+  // No HTTP status is a client/transport failure. A bare 500 is the API's
+  // redacted unexpected error. Other statuses are the provider's response.
+  if (status === undefined || (status === 500 && detail === undefined)) {
+    return 'internal';
+  }
+
+  return 'provider';
+}
+
+function readAdsHttpStatus(error: ApiError): number | undefined {
+  const httpStatus = error.response?.status;
+  if (
+    typeof httpStatus === 'number' &&
+    httpStatus >= 400 &&
+    httpStatus <= 599
+  ) {
+    return httpStatus;
+  }
+
+  const coded = error.response?.data?.errors?.[0]?.status;
+  if (typeof coded === 'string' && /^[45]\d\d$/.test(coded)) {
+    return Number(coded);
+  }
+
+  return undefined;
+}
+
+function readSafeAdsDetail(error: ApiError): string | undefined {
+  const raw = firstAdsDetail(error);
+  if (raw === undefined || UNSAFE_DETAIL.test(raw)) {
+    return undefined;
+  }
+
+  const redacted = raw
+    .replace(/\s+/g, ' ')
+    .replace(/\b(Bearer|Basic)\s+\S+/gi, '$1 [redacted]')
+    .replace(
+      /\b((?:access[_-]?token|api[_-]?key|refresh[_-]?token|client[_-]?secret|password|secret)\s*[:=]\s*)\S+/gi,
+      '$1[redacted]',
+    )
+    .replace(
+      /\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/g,
+      '[redacted]',
+    )
+    .trim();
+
+  if (
+    !redacted ||
+    redacted.length > 240 ||
+    GENERIC_DETAIL.test(redacted) ||
+    UNSAFE_DETAIL.test(redacted)
+  ) {
+    return undefined;
+  }
+
+  return redacted;
+}
+
+function firstAdsDetail(error: ApiError): string | undefined {
+  const data = error.response?.data;
+  const candidates = [data?.errors?.[0]?.detail, data?.message, data?.error];
+
+  for (const candidate of candidates) {
+    if (typeof candidate === 'string' && candidate.trim().length > 0) {
+      return candidate.trim();
+    }
+  }
+
+  return undefined;
+}
 
 /**
  * Meta Ads, Google Ads, and TikTok Ads read methods, plus the platform-generic
@@ -31,7 +168,7 @@ export class AdsClient {
       'listing Meta ad accounts',
       async (http) =>
         this.base.unwrapList(await http.get('/services/meta-ads/accounts')),
-      this.base.failWith('Failed to list Meta ad accounts'),
+      adsListOnError('Meta', 'Failed to list Meta ad accounts'),
     );
   }
 
@@ -150,7 +287,7 @@ export class AdsClient {
       'listing Google Ads customers',
       async (http) =>
         this.base.unwrapList(await http.get('/services/google-ads/customers')),
-      this.base.failWith('Failed to list Google Ads customers'),
+      adsListOnError('Google Ads', 'Failed to list Google Ads customers'),
     );
   }
 

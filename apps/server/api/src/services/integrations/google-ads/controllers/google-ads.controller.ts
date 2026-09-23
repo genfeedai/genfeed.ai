@@ -5,6 +5,7 @@ import {
   CreateCredentialVerifyDto,
 } from '@api/collections/credentials/dto/create-credential.dto';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -326,9 +327,10 @@ export class GoogleAdsController {
     });
 
     if (!credential?.accessToken) {
-      throw new Error(
-        'Google Ads credential not found. Please connect your Google Ads account first.',
-      );
+      throw new NotFoundException({
+        message:
+          'Google Ads credential not found. Please connect your Google Ads account first.',
+      });
     }
 
     // Decrypt the stored token
