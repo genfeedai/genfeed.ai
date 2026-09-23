@@ -485,7 +485,10 @@ describe('AgentThreadList', () => {
 
     fireEvent.pointerEnter(threadLink as HTMLAnchorElement);
     expect(prefetchRoute).toHaveBeenCalledOnce();
-    expect(prefetchRoute).toHaveBeenCalledWith('/acme/moonrise/agent/conv-1');
+    expect(prefetchRoute).toHaveBeenCalledWith('/acme/moonrise/agent/conv-1', {
+      kind: 'auto',
+      onInvalidate: expect.any(Function),
+    });
 
     const navigationWasNotCanceled = fireEvent.click(
       threadLink as HTMLAnchorElement,
