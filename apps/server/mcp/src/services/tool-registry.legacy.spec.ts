@@ -177,7 +177,10 @@ function build() {
 }
 
 type ToolResult = {
-  component?: { url: string };
+  structuredContent?: {
+    data: unknown;
+    genfeedCards?: { cards: unknown[]; title: string };
+  };
   content: { text: string }[];
   isError?: boolean;
 };
@@ -298,7 +301,8 @@ describe('handleLegacyTool — articles', () => {
     expect(result.content[0].text).toContain(
       'Found 1 articles matching "ai video"',
     );
-    expect(result.component?.url).toContain('q=ai%20video');
+    expect(result.structuredContent?.genfeedCards?.cards).toHaveLength(1);
+    expect(result).not.toHaveProperty('component');
   });
 
   it('reports an empty article search', async () => {
@@ -490,10 +494,10 @@ describe('handleLegacyTool — usage and LinkedIn', () => {
     expect(client.getUsageStats).toHaveBeenCalledWith('30d');
     expect(result.content[0].text).toContain('Usage Statistics (30d)');
     expect(result.content[0].text).toContain('Credits Used: 340');
-    expect(result.component?.url).toContain('range=30d');
+    expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
   });
 
-  it('honours an explicit usage time range', async () => {
+  it('forwards the requested usage range and displays the server-reported range', async () => {
     const { client, registry } = build();
 
     const result = await callTool(registry, 'get_usage_stats', {
@@ -501,7 +505,7 @@ describe('handleLegacyTool — usage and LinkedIn', () => {
     });
 
     expect(client.getUsageStats).toHaveBeenCalledWith('7d');
-    expect(result.component?.url).toContain('range=7d');
+    expect(result.structuredContent?.genfeedCards?.title).toBe('Usage · 30d');
   });
 
   it('generates LinkedIn variations with a default count of 3', async () => {

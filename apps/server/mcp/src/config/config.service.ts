@@ -21,6 +21,9 @@ export class ConfigService extends createServiceConfig<IEnvConfig>({
     webhooksSchema,
   ],
   extend: {
+    // Media origins exposed to sandboxed MCP Apps; no credentials are shared.
+    GENFEEDAI_CDN_URL: Joi.string().uri().optional().allow(''),
+    GENFEEDAI_MICROSERVICES_FILES_URL: Joi.string().uri().optional().allow(''),
     // MCP-specific
     GENFEEDAI_API_KEY: Joi.string().optional().allow(''),
     POSTHOG_HOST: Joi.string().uri().optional().allow(''),

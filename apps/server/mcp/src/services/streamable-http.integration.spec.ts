@@ -1,6 +1,7 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { StreamableHttpService } from '@mcp/services/streamable-http.service';
+import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
 import express from 'express';
 
 /**
@@ -59,6 +60,55 @@ describe('StreamableHttpService (real SDK integration)', () => {
       await new Promise<void>((resolve) => server.close(() => resolve()));
     }
   }
+
+  it('serves portable card metadata and HTML over the real SDK', async () => {
+    await withServer(async (baseUrl) => {
+      const listing = await postMcp(baseUrl, {
+        id: 10,
+        jsonrpc: '2.0',
+        method: 'tools/list',
+      });
+      expect(listing.status).toBe(200);
+      expect(JSON.parse(listing.text).result.tools).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({
+            name: 'list_posts',
+            _meta: expect.objectContaining({
+              ui: { resourceUri: MCP_CARD_RESOURCE_URI },
+            }),
+          }),
+          expect.objectContaining({
+            name: 'list_images',
+            _meta: expect.objectContaining({
+              ui: { resourceUri: MCP_CARD_RESOURCE_URI },
+            }),
+          }),
+        ]),
+      );
+      const resource = await postMcp(baseUrl, {
+        id: 11,
+        jsonrpc: '2.0',
+        method: 'resources/read',
+        params: { uri: MCP_CARD_RESOURCE_URI },
+      });
+      expect(resource.status).toBe(200);
+      const content = JSON.parse(resource.text).result.contents[0];
+      expect(content).toMatchObject({
+        uri: MCP_CARD_RESOURCE_URI,
+        mimeType: MCP_APP_MIME_TYPE,
+        _meta: {
+          ui: {
+            csp: {
+              connectDomains: [],
+              resourceDomains: ['https://cdn.genfeed.ai'],
+            },
+          },
+        },
+      });
+      expect(content.text).toContain('ui/initialize');
+      expect(content.text).toContain('ui/notifications/tool-result');
+    });
+  });
 
   const initializeBody = {
     id: 1,

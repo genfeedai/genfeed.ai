@@ -493,6 +493,9 @@
         "posthog-node": "5.51.7",
         "tsconfig-paths": "4.2.0",
       },
+      "devDependencies": {
+        "jsdom": "29.1.1",
+      },
     },
     "apps/server/notifications": {
       "name": "@genfeedai/notifications",

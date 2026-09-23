@@ -1,4 +1,5 @@
 import type { McpResource } from '@mcp/shared/interfaces/mcp-resource.interface';
+import { MCP_APP_MIME_TYPE, MCP_CARD_RESOURCE_URI } from '@mcp/ui/card-data';
 
 /**
  * Canonical MCP resource URIs. Every surface that advertises or reads a
@@ -22,6 +23,13 @@ export type McpResourceUriValue =
  * request handler.
  */
 export const PUBLIC_MCP_RESOURCES: readonly McpResource[] = [
+  {
+    description:
+      'Portable content cards for posts, articles, media and usage. Contains no account data.',
+    mimeType: MCP_APP_MIME_TYPE,
+    name: 'Genfeed content cards',
+    uri: MCP_CARD_RESOURCE_URI,
+  },
   {
     description:
       'Agent-readable product, authentication, API, MCP, and contact discovery for Genfeed',
