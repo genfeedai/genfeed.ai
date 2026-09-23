@@ -36,8 +36,8 @@ never claims inline playback.
 
 ## Private harness
 
-Configured pack activation is tracked privately. Public receipts contain only
-sanitized pack IDs and versions.
+Configured pack activation is tracked privately. Pack activation receipts contain
+only sanitized pack IDs and versions.
 
 The runtime reports each `CONTENT_HARNESS_PACKAGES` specifier as `loaded`,
 `unresolvable`, `invalid`, or `load_failed`
@@ -106,6 +106,13 @@ submitted prompt, setting source, and sanitized contributing pack IDs/versions.
 The receipt appears on generation cards, in asset prompt details, and in both
 MCP structured data and text content. Provider-specific compilation may add
 format instructions after enhancement; the stored receipt includes them.
+The submitted prompt intentionally includes the per-request brand directives and
+reference signals actually sent to the media provider. These are visible to the
+authenticated user and their connected agent, just like the creative prompt.
+Pack source code, credentials, non-applied directives, evaluation criteria and
+provider hints are not included. Pack authors must treat media-prompt
+contributions as user-visible output; provider-only secrets do not belong there.
+
 An accepted retry returns the existing asset and receipt without enhancing again.
 Enhancement failures stop generation explicitly instead of silently using an
 unenhanced prompt.

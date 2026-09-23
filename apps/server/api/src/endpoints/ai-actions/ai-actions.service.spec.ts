@@ -1,3 +1,4 @@
+import { PromptsService } from '@api/collections/prompts/services/prompts.service';
 import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
 import {
   AiActionType,
@@ -26,6 +27,10 @@ describe('AiActionsService', () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PromptEnhancementService,
+        {
+          provide: PromptsService,
+          useValue: { findOne: vi.fn().mockResolvedValue(null) },
+        },
         AiActionsService,
         {
           provide: AgentContextAssemblyService,

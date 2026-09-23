@@ -93,6 +93,26 @@ describe('MediaPromptEnhancementService', () => {
     });
   });
 
+  it('announces applied media instructions but excludes non-prompt pack fields', async () => {
+    const { service, harness } = setup();
+    harness.resolveBrief.mockResolvedValue({
+      appliedPacks: ['public-pack'],
+      systemDirectives: ['Keep the product logo accurate'],
+      styleDirectives: ['Use warm lighting'],
+      guardrails: ['Avoid misleading product claims'],
+      evaluationCriteria: ['Internal evaluation rubric'],
+      providerHints: ['Internal routing hint'],
+      sources: [],
+      metadata: { contentType: 'image' },
+    });
+    const receipt = await service.enhance(input);
+    expect(receipt.enhancedPrompt).toContain('Use warm lighting');
+    expect(receipt.enhancedPrompt).toContain('Keep the product logo accurate');
+    expect(receipt.enhancedPrompt).toContain('Avoid misleading product claims');
+    expect(JSON.stringify(receipt)).not.toContain('Internal evaluation rubric');
+    expect(JSON.stringify(receipt)).not.toContain('Internal routing hint');
+  });
+
   it('stops on unavailable harness guidance without calling a model', async () => {
     const { service, harness, promptEnhancement } = setup();
     harness.resolveBrief.mockResolvedValue(null);
