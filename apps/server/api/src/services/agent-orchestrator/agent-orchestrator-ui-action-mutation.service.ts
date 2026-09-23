@@ -15,13 +15,12 @@ import type {
   AgentToolResult,
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import {
   BadRequestException,
   ConflictException,
   Injectable,
 } from '@nestjs/common';
-import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
 interface PersistedMutationProposal {
   actions: unknown[];
@@ -408,7 +407,7 @@ export class AgentOrchestratorUiActionMutationService {
             isDeleted: false,
           },
           data: {
-            metadata: toPlainJson(update.metadata),
+            metadata: toPrismaJson(update.metadata),
           },
         });
         if (patched.count !== 1) {

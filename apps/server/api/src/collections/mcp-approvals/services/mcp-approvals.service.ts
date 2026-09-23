@@ -12,7 +12,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions';
-import { McpApprovalStatus, Prisma } from '@genfeedai/prisma';
+import { McpApprovalStatus, Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -187,7 +187,7 @@ export class McpApprovalsService extends BaseService<
       data: {
         status,
         resolvedAt: new Date(),
-        ...(result !== undefined && { result }),
+        ...(result !== undefined && { result: toPrismaJson(result) }),
       },
     });
 
