@@ -400,11 +400,7 @@ export class AgentOrchestratorContextService {
       | Parameters<AgentContextAssemblyService['buildSystemPrompt']>[1]
       | null;
     brandId?: string;
-    replyStyle: Parameters<
-      AgentContextAssemblyService['buildSystemPrompt']
-    >[2] extends { replyStyle?: infer ReplyStyle }
-      ? ReplyStyle
-      : undefined;
+    replyStyle?: string;
   }): string {
     const onboardingPrompt = isSelfHostedDeployment()
       ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
