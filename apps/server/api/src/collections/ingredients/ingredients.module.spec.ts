@@ -3,6 +3,7 @@ import { IngredientsModule } from '@api/collections/ingredients/ingredients.modu
 import { IngredientExportService } from '@api/collections/ingredients/services/ingredient-export.service';
 import { CleanExportAccessGuard } from '@api/helpers/guards/clean-export-access/clean-export-access.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import { SubscriptionTier } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import type { INestApplication, Provider } from '@nestjs/common';
@@ -33,6 +34,7 @@ describe('IngredientsModule export entitlement wiring', () => {
       MODULE_METADATA.PROVIDERS,
       IngredientsModule,
     ) as Provider[];
+    expect(declaredProviders).toContain(CleanExportAccessGuard);
     const module = await Test.createTestingModule({
       controllers: [IngredientExportsController],
       providers: [
@@ -50,6 +52,7 @@ describe('IngredientsModule export entitlement wiring', () => {
       CleanExportAccessGuard,
     );
     app = module.createNestApplication();
+    app.useGlobalPipes(new ValidationPipe());
     app.use((req: Request, _res: Response, next: NextFunction) => {
       req.user = {
         id: 'user',
@@ -76,6 +79,29 @@ describe('IngredientsModule export entitlement wiring', () => {
     await request(app.getHttpServer())
       .post('/ingredients/asset/export')
       .send({ watermark: true })
+      .expect(201);
+    expect(exportMedia).toHaveBeenCalledWith('asset', 'org', true);
+  });
+  it.each([
+    { data: { type: 'ingredient-exports', attributes: { Watermark: false } } },
+    { data: { type: 'ingredient-exports', attributes: { watermark: false } } },
+    {
+      watermark: true,
+      data: { type: 'ingredient-exports', attributes: { watermark: false } },
+    },
+  ])('rejects a JSON:API clean export before rendering (%j)', async (body) => {
+    await request(app.getHttpServer())
+      .post('/ingredients/asset/export')
+      .send(body)
+      .expect(403);
+    expect(exportMedia).not.toHaveBeenCalled();
+  });
+  it('allows a JSON:API watermarked export through the global pipe', async () => {
+    await request(app.getHttpServer())
+      .post('/ingredients/asset/export')
+      .send({
+        data: { type: 'ingredient-exports', attributes: { watermark: true } },
+      })
       .expect(201);
     expect(exportMedia).toHaveBeenCalledWith('asset', 'org', true);
   });
