@@ -1,3 +1,4 @@
+import { getAllAgentClientSlugs } from '@data/agent-clients.data';
 import { getAllCompetitorSlugs } from '@data/competitors.data';
 import { getAllIntegrationSlugs } from '@data/integrations.data';
 import { launchArticleSlugs } from '@data/launch-articles.data';
@@ -9,6 +10,7 @@ import type { MetadataRoute } from 'next';
 export const dynamic = 'force-dynamic';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const agentClientSlugs = getAllAgentClientSlugs();
   const productSlugs = getAllProductSlugs();
   const competitorSlugs = getAllCompetitorSlugs();
   const integrationSlugs = getAllIntegrationSlugs();
@@ -323,6 +325,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
+  const agentClientRoutes: MetadataRoute.Sitemap = agentClientSlugs.map(
+    (slug) => ({
+      changeFrequency: 'monthly',
+      lastModified: new Date(),
+      priority: 0.7,
+      url: `https://genfeed.ai/${slug}`,
+    }),
+  );
+
   const productRoutes: MetadataRoute.Sitemap = productSlugs.map((slug) => ({
     changeFrequency: 'weekly',
     lastModified: new Date(),
@@ -396,6 +407,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   const allRoutes = [
     ...staticRoutes,
+    ...agentClientRoutes,
     ...productRoutes,
     ...competitorRoutes,
     ...integrationRoutes,
