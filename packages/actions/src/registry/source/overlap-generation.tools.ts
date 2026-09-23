@@ -44,7 +44,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
       properties: {
         scope: { type: 'string', enum: ['organization', 'brand'] },
         brandId: { type: 'string' },
-        isEnabled: { type: ['boolean', 'null'] },
+        isEnabled: { anyOf: [{ type: 'boolean' }, { type: 'null' }] },
       },
     },
   },

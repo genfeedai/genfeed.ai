@@ -136,6 +136,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   {
+    name: 'enhance_prompt',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'generation',
+  },
+  {
     name: 'execute_workflow',
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
@@ -149,21 +154,6 @@ export const CURATED_ACTION_CATALOG = [
     name: 'generate_content_batch',
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
-  },
-  {
-    name: 'enhance_prompt',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'generation',
-  },
-  {
-    name: 'get_generation_settings',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'generation',
-  },
-  {
-    name: 'set_generation_settings',
-    surfaces: ['agent', 'mcp'],
-    toolset: 'generation',
   },
   { name: 'generate_image', surfaces: ['agent', 'mcp'], toolset: 'generation' },
   { name: 'generate_linkedin_content', surfaces: ['mcp'], toolset: 'content' },
@@ -209,6 +199,11 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'get_credits_balance', surfaces: ['agent', 'mcp'], toolset: 'core' },
   { name: 'get_current_brand', surfaces: ['agent'], toolset: 'brand' },
   { name: 'get_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
+  {
+    name: 'get_generation_settings',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'generation',
+  },
   {
     name: 'get_google_ads_adgroup_insights',
     surfaces: ['mcp'],
@@ -436,6 +431,11 @@ export const CURATED_ACTION_CATALOG = [
     name: 'send_social_dm',
     surfaces: ['mcp'],
     toolset: 'social-inbox',
+  },
+  {
+    name: 'set_generation_settings',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'generation',
   },
   {
     name: 'set_workflow_schedule',
