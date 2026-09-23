@@ -6,6 +6,21 @@ import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const useOAuthConnectPlatforms = vi.hoisted(() => vi.fn());
+const refreshBrands = vi.hoisted(() => vi.fn(async () => undefined));
+
+vi.mock(
+  '@contexts/user/brand-context/brand-context',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@contexts/user/brand-context/brand-context')
+      >();
+    return {
+      ...actual,
+      useBrand: () => ({ ...actual.useBrand(), refreshBrands }),
+    };
+  },
+);
 
 vi.mock(
   '@hooks/auth/use-oauth-connect-platforms/use-oauth-connect-platforms',
@@ -834,6 +849,9 @@ describe('BrandDetailSocialMediaCard', () => {
     await waitFor(() => {
       expect(deleteCredential).toHaveBeenCalledWith('credential-2');
       expect(onRefresh).toHaveBeenCalled();
+      // Brand context embeds credentials in the cached bootstrap, so the
+      // agent sidebar would keep the disconnected account without this.
+      expect(refreshBrands).toHaveBeenCalled();
     });
   });
 });

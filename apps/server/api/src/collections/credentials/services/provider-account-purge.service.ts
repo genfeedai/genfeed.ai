@@ -1,3 +1,4 @@
+import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   CredentialPlatform,
@@ -24,7 +25,10 @@ import { Injectable } from '@nestjs/common';
  */
 @Injectable()
 export class ProviderAccountPurgeService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly accessBootstrapCacheService: AccessBootstrapCacheService,
+  ) {}
 
   async purgeProviderAccount(
     platform: CredentialPlatform,
@@ -35,16 +39,24 @@ export class ProviderAccountPurgeService {
       throw new TypeError('A persisted platform and external id are required');
     }
 
-    return this.prisma.$transaction(async (tx) => {
+    let purgedOrganizationIds: string[] = [];
+    const purgedCount = await this.prisma.$transaction(async (tx) => {
       // tenant-scope-ignore: Meta's verified app-scoped user id is the global identity boundary; the signed callback contains no organization id
       const credentials = await tx.credential.findMany({
-        select: { id: true },
+        select: { id: true, organizationId: true },
         where: {
           externalId: externalId.trim(),
           platform: prismaPlatform,
         },
       });
       const credentialIds = credentials.map(({ id }) => id);
+      purgedOrganizationIds = [
+        ...new Set(
+          credentials.flatMap(({ organizationId }) =>
+            organizationId ? [organizationId] : [],
+          ),
+        ),
+      ];
 
       if (credentialIds.length === 0) {
         return 0;
@@ -116,5 +128,17 @@ export class ProviderAccountPurgeService {
 
       return result.count;
     });
+
+    // Every affected tenant's cached access bootstrap still embeds the purged
+    // accounts as connected.
+    await Promise.all(
+      purgedOrganizationIds.map((organizationId) =>
+        this.accessBootstrapCacheService.invalidateForOrganization(
+          organizationId,
+        ),
+      ),
+    );
+
+    return purgedCount;
   }
 }

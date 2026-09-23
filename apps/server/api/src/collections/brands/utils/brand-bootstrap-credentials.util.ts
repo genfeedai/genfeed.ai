@@ -30,6 +30,29 @@ const BOOTSTRAP_CREDENTIAL_SELECT = {
   warmupState: true,
 } satisfies Prisma.CredentialSelect;
 
+/**
+ * Columns whose write changes what a bootstrap brand embeds: every selected
+ * column, plus `isDeleted`, which decides whether the row is embedded at all.
+ */
+const BOOTSTRAP_CREDENTIAL_VISIBLE_COLUMNS: ReadonlySet<string> = new Set([
+  ...Object.keys(BOOTSTRAP_CREDENTIAL_SELECT),
+  'isDeleted',
+]);
+
+/**
+ * True when a credential write can change the access bootstrap payload, so
+ * the caller must invalidate the organization's cached bootstrap. Token,
+ * OAuth-state and warm-up-signal writes are not embedded and do not qualify.
+ */
+export function isBootstrapCredentialWrite(update: unknown): boolean {
+  if (!update || typeof update !== 'object') {
+    return false;
+  }
+  return Object.keys(update).some((column) =>
+    BOOTSTRAP_CREDENTIAL_VISIBLE_COLUMNS.has(column),
+  );
+}
+
 type BootstrapCredentialRow = Prisma.CredentialGetPayload<{
   select: typeof BOOTSTRAP_CREDENTIAL_SELECT;
 }>;

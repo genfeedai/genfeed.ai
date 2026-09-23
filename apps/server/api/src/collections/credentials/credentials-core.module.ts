@@ -6,6 +6,7 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { ProviderAccountPurgeService } from '@api/collections/credentials/services/provider-account-purge.service';
 import { PublishingProviderSetupModule } from '@api/collections/publishing-setup/publishing-provider-setup.module';
+import { CommonModule } from '@api/common/common.module';
 import { SERVER_TOKENS } from '@api/index';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { Module } from '@nestjs/common';
@@ -17,9 +18,10 @@ const SERVER_CREDENTIAL_STORE_PROVIDER = {
 
 /**
  * This module is a leaf that most of the graph imports, so it must not reach
- * back up it. `PublishingProviderSetupModule` has no imports of its own, so it
- * is safe to pull in directly; `QuotaService` is resolved through `ModuleRef`
- * inside `CredentialPublishingReadinessService` rather than imported here.
+ * back up it. `CommonModule` and `PublishingProviderSetupModule` have no
+ * imports of their own, so they are safe to pull in directly; `QuotaService`
+ * is resolved through `ModuleRef` inside
+ * `CredentialPublishingReadinessService` rather than imported here.
  */
 @Module({
   exports: [
@@ -32,7 +34,7 @@ const SERVER_CREDENTIAL_STORE_PROVIDER = {
     PublishingProviderSetupModule,
     SERVER_CREDENTIAL_STORE_PROVIDER,
   ],
-  imports: [FilesClientModule, PublishingProviderSetupModule],
+  imports: [CommonModule, FilesClientModule, PublishingProviderSetupModule],
   providers: [
     AccountHealthService,
     AccountPublishingContextService,

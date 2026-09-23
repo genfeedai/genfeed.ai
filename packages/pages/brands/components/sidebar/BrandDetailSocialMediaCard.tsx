@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@contexts/user/brand-context/brand-context';
 import {
   ButtonSize,
   ButtonVariant,
@@ -176,6 +177,7 @@ export default function BrandDetailSocialMediaCard({
   const translate = useTranslations('pages.brandSocialMedia');
   const isPageVariant = variant === 'page';
   const { getToken } = useAuthIdentity();
+  const { refreshBrands } = useBrand();
   const oauthConnectPlatforms = useOAuthConnectPlatforms();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [
@@ -461,8 +463,10 @@ export default function BrandDetailSocialMediaCard({
       );
       setDisconnectTarget(null);
       // The connection list is owned by the page, so the removed row only
-      // disappears once the brand is reloaded.
-      await onRefresh?.();
+      // disappears once the brand is reloaded. Brand context (agent sidebar,
+      // publishing gates) reads credentials from the bootstrap, so drop its
+      // client snapshot too.
+      await Promise.all([onRefresh?.(), refreshBrands()]);
     } catch (error) {
       logger.error('Failed to disconnect account', error);
       NotificationsService.getInstance().error(translate('disconnectAccount'));

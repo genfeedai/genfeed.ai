@@ -18,6 +18,15 @@ const mocks = vi.hoisted(() => ({
   searchParams: new URLSearchParams(),
 }));
 
+const { clearClientProtectedBootstrapCache } = vi.hoisted(() => ({
+  clearClientProtectedBootstrapCache: vi.fn(),
+}));
+
+vi.mock(
+  '@contexts/providers/protected-bootstrap/client-protected-bootstrap',
+  () => ({ clearClientProtectedBootstrapCache }),
+);
+
 vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getServicesService,
 }));
@@ -127,6 +136,7 @@ describe('OAuthPlatformForm', () => {
       'POST /services/instagram/verify success',
     );
     expect(screen.getByText('Instagram Connected')).toBeVisible();
+    expect(clearClientProtectedBootstrapCache).toHaveBeenCalledTimes(1);
 
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
   });
@@ -324,6 +334,7 @@ describe('OAuthPlatformForm', () => {
     await waitFor(() => {
       expect(screen.getByText('Instagram Connected')).toBeVisible();
     });
+    expect(clearClientProtectedBootstrapCache).toHaveBeenCalledTimes(1);
     expect(mocks.push).toHaveBeenCalledWith('/settings/publishing');
   });
 
