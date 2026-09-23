@@ -1,3 +1,5 @@
+import { BrandAssetAutofillListener } from '@api/collections/brands/listeners/brand-asset-autofill.listener';
+import { BrandAssetAutofillService } from '@api/collections/brands/services/brand-asset-autofill.service';
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
@@ -22,6 +24,7 @@ import { Module } from '@nestjs/common';
  */
 @Module({
   exports: [
+    BrandAssetAutofillService,
     BrandScraperModule,
     BrandsService,
     DefaultRecurringContentService,
@@ -37,6 +40,8 @@ import { Module } from '@nestjs/common';
     SkillsCoreModule,
   ],
   providers: [
+    BrandAssetAutofillListener,
+    BrandAssetAutofillService,
     BrandsService,
     DefaultRecurringContentService,
     BrandGenerationService,

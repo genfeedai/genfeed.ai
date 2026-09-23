@@ -9,6 +9,7 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import process from 'node:process';
+import { CREDENTIAL_PROFILE_SYNCED_EVENT } from '@api/collections/credentials/constants/credential-events.constants';
 import { CredentialCryptoService } from '@api/collections/credentials/services/credential-crypto.service';
 import {
   CredentialsService,
@@ -18,6 +19,7 @@ import { ProviderAccountPurgeService } from '@api/collections/credentials/servic
 
 import { CredentialPlatform, SubscriptionTier } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
+import type { EventEmitter2 } from '@nestjs/event-emitter';
 
 const KEY =
   process.env.TOKEN_ENCRYPTION_KEY ?? 'test-encryption-key-for-testing-only';
@@ -36,6 +38,7 @@ describe('CredentialsService', () => {
   };
   let logger: Record<string, ReturnType<typeof vi.fn>>;
   let filesClient: { uploadToS3: ReturnType<typeof vi.fn> };
+  let eventEmitter: { emit: ReturnType<typeof vi.fn> };
 
   const orgId = 'test-org-id';
   const brandId = 'test-brand-id';
@@ -88,12 +91,14 @@ describe('CredentialsService', () => {
       }),
     };
 
+    eventEmitter = { emit: vi.fn() };
     service = new CredentialsService(
       prisma as never,
       logger as never,
       crypto,
       filesClient as never,
       new ProviderAccountPurgeService(prisma as never),
+      eventEmitter as unknown as EventEmitter2,
     );
   });
 
@@ -1586,6 +1591,52 @@ describe('CredentialsService', () => {
       const data = prisma.credential.update.mock.calls[0][0].data;
       expect(data).not.toHaveProperty('externalAvatar');
       expect(data.externalName).toBe('Acme Studio');
+    });
+
+    describe('brand asset autofill event', () => {
+      beforeEach(() => {
+        prisma.credential.update.mockImplementation(
+          (args: { data: Record<string, unknown> }) =>
+            Promise.resolve({
+              brandId,
+              id: 'existing-id',
+              organizationId: orgId,
+              platform: 'TWITTER',
+              userId: 'user-1',
+              ...args.data,
+            }),
+        );
+      });
+
+      it('hands the provider avatar and banner to brand autofill', async () => {
+        await service.updateExternalProfile('existing-id', orgId, {
+          avatarUrl: 'https://platform.example/avatar.jpg',
+          bannerUrl: 'https://platform.example/banner.jpg',
+          id: 'provider-1',
+        });
+
+        expect(eventEmitter.emit).toHaveBeenCalledWith(
+          CREDENTIAL_PROFILE_SYNCED_EVENT,
+          {
+            avatarUrl: 'https://platform.example/avatar.jpg',
+            bannerUrl: 'https://platform.example/banner.jpg',
+            brandId,
+            credentialId: 'existing-id',
+            organizationId: orgId,
+            platform: 'twitter',
+            userId: 'user-1',
+          },
+        );
+      });
+
+      it('stays quiet when the provider reports no profile media', async () => {
+        await service.updateExternalProfile('existing-id', orgId, {
+          id: 'provider-1',
+          name: 'Acme Studio',
+        });
+
+        expect(eventEmitter.emit).not.toHaveBeenCalled();
+      });
     });
   });
 

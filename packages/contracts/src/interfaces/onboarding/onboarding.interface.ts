@@ -34,6 +34,8 @@ export interface IScrapedBrandData {
 
   // Visual
   logoUrl?: string;
+  /** Ordered logo fallbacks: page logo, touch/fav icons, then Logo.dev. */
+  logoCandidateUrls?: string[];
   bannerUrl?: string;
   primaryColor?: string;
   secondaryColor?: string;
@@ -53,6 +55,8 @@ export interface IScrapedBrandData {
   metaDescription?: string;
   metaKeywords?: string[];
   ogImage?: string;
+  /** `og:image:type`, for extensionless generated social cards. */
+  ogImageType?: string;
 
   // Source
   sourceUrl: string;

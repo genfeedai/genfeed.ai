@@ -85,7 +85,9 @@ describe('TwitterController', () => {
             data: {
               id: '1',
               name: 'Test User',
-              profile_image_url: 'https://twitter.example/avatar.jpg',
+              profile_banner_url:
+                'https://pbs.twimg.com/profile_banners/1/1700000000',
+              profile_image_url: 'https://twitter.example/avatar_normal.jpg',
               username: 'testuser',
             },
           }),
@@ -270,7 +272,9 @@ describe('TwitterController', () => {
         'cred',
         organizationId,
         {
-          avatarUrl: 'https://twitter.example/avatar.jpg',
+          avatarUrl: 'https://twitter.example/avatar_400x400.jpg',
+          bannerUrl:
+            'https://pbs.twimg.com/profile_banners/1/1700000000/1500x500',
           handle: 'testuser',
           id: '1',
           name: 'Test User',

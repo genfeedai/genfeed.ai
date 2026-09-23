@@ -75,6 +75,10 @@ export class BrandScraperService {
         scrapedData.logoUrl,
         normalizedUrl,
       );
+      scrapedData.logoCandidateUrls = this.resolveWebsiteLogoCandidateUrls(
+        scrapedData.logoCandidateUrls,
+        normalizedUrl,
+      );
 
       this.loggerService.log(`${caller} completed`, {
         companyName: scrapedData.companyName,
@@ -94,6 +98,10 @@ export class BrandScraperService {
           fallback.title,
           fallback.ogTitle,
         );
+        const logoCandidateUrls = this.resolveWebsiteLogoCandidateUrls(
+          [],
+          normalizedUrl,
+        );
 
         return {
           aboutText: undefined,
@@ -103,7 +111,8 @@ export class BrandScraperService {
           fontCandidates: [],
           fontFamily: undefined,
           heroText: undefined,
-          logoUrl: this.resolveWebsiteLogoUrl(undefined, normalizedUrl),
+          logoCandidateUrls,
+          logoUrl: logoCandidateUrls[0],
           metaDescription: fallback.description,
           ogImage: fallback.ogImage,
           primaryColor: undefined,
@@ -612,6 +621,29 @@ export class BrandScraperService {
       sourceUrl,
       this.configService.get('LOGO_DEV_PUBLISHABLE_KEY'),
     );
+  }
+
+  /**
+   * Every logo worth trying, best first, ending with Logo.dev. Unlike
+   * `logoUrl`, Logo.dev stays in the chain behind a page logo, because a page
+   * logo is often an SVG the brand-kit importer cannot store.
+   */
+  private resolveWebsiteLogoCandidateUrls(
+    scrapedCandidateUrls: string[] | undefined,
+    sourceUrl: string,
+  ): string[] {
+    const logoDevUrl = buildLogoDevLogoUrl(
+      sourceUrl,
+      this.configService.get('LOGO_DEV_PUBLISHABLE_KEY'),
+    );
+
+    return [
+      ...new Set(
+        [...(scrapedCandidateUrls ?? []), logoDevUrl].filter(
+          (url): url is string => Boolean(url),
+        ),
+      ),
+    ];
   }
 
   /**

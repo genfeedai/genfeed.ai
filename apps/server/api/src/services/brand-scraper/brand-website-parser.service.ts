@@ -35,6 +35,8 @@ export class BrandWebsiteParserService {
         .attr('content')
         ?.trim() ||
       undefined;
+    const ogImageType =
+      $('meta[property="og:image:type"]').attr('content')?.trim() || undefined;
     const favicon =
       $('link[rel="icon"]').attr('href')?.trim() ||
       $('link[rel="shortcut icon"]').attr('href')?.trim() ||
@@ -68,6 +70,7 @@ export class BrandWebsiteParserService {
 
     // Extract logo
     const logoUrl = this.extractLogoFromDom($, sourceUrl);
+    const iconUrls = this.extractIconUrlsFromDom($, sourceUrl);
     const images = this.extractImagesFromDom($, sourceUrl);
     const bannerUrl = this.extractBannerFromDom(
       $,
@@ -87,10 +90,12 @@ export class BrandWebsiteParserService {
       fonts,
       headings,
       heroText: headings[0],
+      iconUrls,
       images,
       logoUrl,
       ogDescription,
       ogImage,
+      ogImageType,
       ogTitle,
       paragraphs: [],
       scrapedAt: new Date(),
@@ -126,9 +131,17 @@ export class BrandWebsiteParserService {
       fontCandidates: scrapedContent.fonts,
       fontFamily: scrapedContent.fonts[0],
       heroText: scrapedContent.heroText,
+      logoCandidateUrls: [
+        ...new Set(
+          [scrapedContent.logoUrl, ...scrapedContent.iconUrls].filter(
+            (url): url is string => Boolean(url),
+          ),
+        ),
+      ],
       logoUrl: scrapedContent.logoUrl,
       metaDescription: scrapedContent.description,
       ogImage: scrapedContent.ogImage,
+      ogImageType: scrapedContent.ogImageType,
       primaryColor: scrapedContent.colors.primary,
       referenceImageUrls: scrapedContent.images
         .map((image) => image.src)
@@ -402,6 +415,51 @@ export class BrandWebsiteParserService {
     }
 
     return undefined;
+  }
+
+  /**
+   * Touch icons first (large, opaque, square), then declared favicons by
+   * their largest `sizes` entry. The brand-kit importer rejects formats it
+   * cannot store (ico, svg), so callers simply try these in order.
+   */
+  private extractIconUrlsFromDom(
+    $: cheerio.CheerioAPI,
+    sourceUrl: string,
+  ): string[] {
+    const touchIcons: string[] = [];
+    const favicons: Array<{ size: number; url: string }> = [];
+
+    $('link[rel][href]').each((_i, el) => {
+      const rel = ($(el).attr('rel') ?? '').toLowerCase().split(/\s+/);
+      const href = $(el).attr('href')?.trim();
+      if (!href || href.startsWith('data:')) {
+        return;
+      }
+
+      const url = this.resolveUrl(href, sourceUrl);
+      if (
+        rel.includes('apple-touch-icon') ||
+        rel.includes('apple-touch-icon-precomposed')
+      ) {
+        touchIcons.push(url);
+      } else if (rel.includes('icon')) {
+        favicons.push({ size: this.readIconSize($(el).attr('sizes')), url });
+      }
+    });
+
+    favicons.sort((a, b) => b.size - a.size);
+
+    return [...new Set([...touchIcons, ...favicons.map(({ url }) => url)])];
+  }
+
+  private readIconSize(sizes: string | undefined): number {
+    return Math.max(
+      0,
+      ...(sizes ?? '')
+        .split(/\s+/)
+        .map((size) => Number.parseInt(size.split(/x/i)[0] ?? '', 10))
+        .filter((size) => Number.isFinite(size)),
+    );
   }
 
   private extractImagesFromDom(

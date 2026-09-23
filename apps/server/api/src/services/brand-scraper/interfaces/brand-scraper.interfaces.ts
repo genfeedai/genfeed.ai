@@ -107,7 +107,10 @@ export interface WebsiteScrapingResult {
   ogTitle?: string;
   ogDescription?: string;
   ogImage?: string;
+  ogImageType?: string;
   favicon?: string;
+  /** Absolute apple-touch-icon and icon URLs, best first. */
+  iconUrls: string[];
   canonical?: string;
 
   // Colors extracted from CSS
