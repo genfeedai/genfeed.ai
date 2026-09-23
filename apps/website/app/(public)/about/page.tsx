@@ -2,8 +2,8 @@ import { createPageMetadataWithCanonical } from '@helpers/media/metadata/page-me
 import AboutContent from '@public/about/about-content';
 
 export const generateMetadata = createPageMetadataWithCanonical(
-  'About Genfeed: The AI Content OS',
-  'Genfeed is an AI content platform for creators, agencies, and marketers. See how we help teams produce professional content at scale.',
+  'About Genfeed: Open-Source AI Content Platform',
+  'Genfeed is an open-source AI content platform that generates, publishes, and measures content for creators, agencies, and founders. Founded in 2026 by Vincent Tellier.',
   '/about',
 );
 
