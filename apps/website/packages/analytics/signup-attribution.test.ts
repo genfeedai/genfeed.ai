@@ -46,6 +46,19 @@ describe('captureSignupFirstTouch', () => {
       ),
     ).toEqual({ landingPath: '/pricing' });
   });
+
+  it('keeps a referral code off the attribution record', () => {
+    expect(
+      captureSignupFirstTouch(
+        {
+          hostname: 'genfeed.ai',
+          pathname: '/',
+          search: '?ref=ABCDEF23JKMN',
+        },
+        '',
+      ),
+    ).toEqual({ landingPath: '/' });
+  });
 });
 
 describe('decorateSignupLink', () => {
@@ -98,5 +111,41 @@ describe('initSignupAttribution', () => {
     const url = new URL(link.href);
     expect(url.searchParams.get('utm_source')).toBe('chatgpt');
     expect(url.searchParams.get('signup_landing')).toBe('/studio');
+  });
+
+  it('forwards a landing referral code onto the sign-up link', () => {
+    window.history.replaceState({}, '', '/?ref=ABCDEF23JKMN');
+    initSignupAttribution();
+
+    const link = anchor(`${APP_ORIGIN}/sign-up`);
+    document.body.append(link);
+    link.addEventListener('click', (event) => event.preventDefault());
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(new URL(link.href).searchParams.get('ref')).toBe('abcdef23jkmn');
+  });
+
+  it('does not replace a referral code the sign-up link already has', () => {
+    window.history.replaceState({}, '', '/?ref=ABCDEF23JKMN');
+    initSignupAttribution();
+
+    const link = anchor(`${APP_ORIGIN}/sign-up?ref=FREND2345XYZ`);
+    document.body.append(link);
+    link.addEventListener('click', (event) => event.preventDefault());
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(new URL(link.href).searchParams.get('ref')).toBe('FREND2345XYZ');
+  });
+
+  it('drops an invalid landing referral code', () => {
+    window.history.replaceState({}, '', '/?ref=not+a+code');
+    initSignupAttribution();
+
+    const link = anchor(`${APP_ORIGIN}/sign-up`);
+    document.body.append(link);
+    link.addEventListener('click', (event) => event.preventDefault());
+    link.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+
+    expect(new URL(link.href).searchParams.has('ref')).toBe(false);
   });
 });
