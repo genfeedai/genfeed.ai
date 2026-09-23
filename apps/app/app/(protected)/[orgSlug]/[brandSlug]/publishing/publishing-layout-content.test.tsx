@@ -131,7 +131,7 @@ describe('PublishingLayoutContent', () => {
     );
     await user.click(screen.getByRole('button', { name: /new post/i }));
     await user.click(screen.getByRole('menuitem', { name: /social post/i }));
-    expect(openModalMock).toHaveBeenCalledWith('modal-post');
+    expect(openModalMock).toHaveBeenCalledWith('modal-post-create');
     await waitFor(() =>
       expect(screen.queryByRole('menu')).not.toBeInTheDocument(),
     );

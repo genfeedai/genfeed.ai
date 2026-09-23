@@ -123,7 +123,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
 
   const handleNewPost = useCallback(() => {
     setCreationPlatform(undefined);
-    openModal(ModalEnum.POST);
+    openModal(ModalEnum.POST_CREATE);
   }, []);
 
   const xCredentials = useMemo(
@@ -243,7 +243,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
               <DropdownMenuItem
                 onSelect={() => {
                   setCreationPlatform(CredentialPlatform.TWITTER);
-                  openModal(ModalEnum.POST);
+                  openModal(ModalEnum.POST_CREATE);
                 }}
               >
                 {translate('xPost')}
@@ -287,6 +287,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
       </Container>
       <LazyModalPost
         key={creationPlatform ?? 'social'}
+        modalId={ModalEnum.POST_CREATE}
         credentials={creationPlatform ? xCredentials : credentials}
         defaultPlatform={creationPlatform}
         onConfirm={handleRefresh}
