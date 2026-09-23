@@ -230,7 +230,6 @@
     "apps/app/app/(public)/desktop/local/page.tsx": 1,
     "apps/app/app/(public)/forgot-password/content.tsx": 8,
     "apps/app/app/(public)/forgot-password/page.tsx": 2,
-    "apps/app/app/(public)/login/login-better-auth.tsx": 28,
     "apps/app/app/(public)/login/magic-link/page.tsx": 2,
     "apps/app/app/(public)/login/page.tsx": 2,
     "apps/app/app/(public)/login/password/page.tsx": 2,
