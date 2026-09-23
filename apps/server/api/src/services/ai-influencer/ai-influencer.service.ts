@@ -450,22 +450,34 @@ export class AiInfluencerService {
       personaId: persona.id,
       personaSlug: persona.slug,
       reviewStatus: FleetReviewStatus.APPROVED,
-      status: IngredientStatus.GENERATED,
+      // GENERATED only once the image is stored: a row without its object key
+      // would show in the Library as a finished asset with no media.
+      status: IngredientStatus.PROCESSING,
       userId: persona.userId,
     } as Parameters<IngredientsService['create']>[0]);
 
     // Provider URLs are temporary, and media identity is the stored object
     // key. Copy the image into our storage under this ingredient's id.
-    const upload = await this.filesClientService.uploadToS3(
-      ingredient.id.toString(),
-      'images',
-      { type: FileInputType.URL, url: imageUrl },
-    );
-    if (typeof upload.s3Key !== 'string' || !upload.s3Key) {
-      throw new Error('Image upload returned no object key');
+    let s3Key: string;
+    try {
+      const upload = await this.filesClientService.uploadToS3(
+        ingredient.id.toString(),
+        'images',
+        { type: FileInputType.URL, url: imageUrl },
+      );
+      if (typeof upload.s3Key !== 'string' || !upload.s3Key) {
+        throw new Error('Image upload returned no object key');
+      }
+      s3Key = upload.s3Key;
+    } catch (error: unknown) {
+      await this.ingredientsService.patch(ingredient.id, {
+        status: IngredientStatus.FAILED,
+      });
+      throw error;
     }
     const stored = await this.ingredientsService.patch(ingredient.id, {
-      s3Key: upload.s3Key,
+      s3Key,
+      status: IngredientStatus.GENERATED,
     });
 
     this.loggerService.log(caller, {

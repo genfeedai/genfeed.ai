@@ -625,6 +625,112 @@ describe('check-serializer-drift', () => {
     expect(result.matchedCount).toBe(0);
   });
 
+  it('resolves a document interface whose comment contains an apostrophe', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      [
+        "import type { Widget as PrismaWidget } from '@genfeedai/prisma';",
+        '',
+        'export interface WidgetDocument',
+        "  extends Omit<PrismaWidget, 'payload'> {",
+        "  /** This pattern's labels stay on the document. */",
+        '  displayValue: string;',
+        '}',
+      ].join('\n'),
+    );
+    writeSerializerTriplet({ fields: ['displayValue'] });
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.discoveredSchemaCount).toBe(1);
+    expect(result.matchedCount).toBe(1);
+  });
+
+  it('resolves a type alias whose line comment contains a quote', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      [
+        "import type { Widget as PrismaWidget } from '@genfeedai/prisma';",
+        '',
+        'export type WidgetDocument = PrismaWidget & {',
+        "  // The buyer's label is a projection, not a stored column.",
+        '  displayValue: string;',
+        '};',
+      ].join('\n'),
+    );
+    writeSerializerTriplet({ fields: ['displayValue'] });
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+    });
+
+    expect(result.errors).toEqual([]);
+    expect(result.matchedCount).toBe(1);
+  });
+
+  it('still flags an unserialized schema when its comment contains an apostrophe', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      [
+        "import type { Widget as PrismaWidget } from '@genfeedai/prisma';",
+        '',
+        'export interface WidgetDocument',
+        "  extends Omit<PrismaWidget, 'payload'> {",
+        "  /** The probe's comment carries an apostrophe. */",
+        '  displayValue?: string;',
+        '}',
+      ].join('\n'),
+    );
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+      unserializedSchemas: {},
+    });
+
+    expect(result.errors).toContain(
+      'Unmatched schema widget:Widget needs a reason in INTENTIONALLY_UNSERIALIZED_SCHEMAS',
+    );
+  });
+
+  it('reports the file path when a listed schema cannot be resolved', () => {
+    writeBaseFixture();
+    writeFixture(
+      'apps/server/api/src/collections/widgets/schemas/widget.schema.ts',
+      [
+        "import type { Widget as PrismaWidget } from '@genfeedai/prisma';",
+        '',
+        'export interface WidgetDocument {',
+        '  /** Orphan document with no Prisma heritage. */',
+        '  label: string;',
+        '}',
+      ].join('\n'),
+    );
+
+    const result = runCheckSerializerDrift({
+      projections: {},
+      rootDir: fixtureRoot,
+      unserializedSchemas: {
+        'widget:Widget': 'Kept until the document names its model.',
+      },
+    });
+
+    expect(result.errors).toContain(
+      'Prisma-backed schema apps/server/api/src/collections/widgets/schemas/widget.schema.ts could not be resolved: Could not resolve WidgetDocument to an @genfeedai/prisma model',
+    );
+    expect(result.errors).toContain(
+      'Intentional unserialized contract widget:Widget is stale: schema was not discovered',
+    );
+  });
+
   function writeBaseFixture(): void {
     writeFixture(
       'packages/prisma/prisma/schema.prisma',

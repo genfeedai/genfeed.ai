@@ -31,14 +31,14 @@ export const WEBSITE_SECTIONS: FooterSection[] = [
   {
     links: [
       { href: 'https://docs.genfeed.ai', label: 'Docs' },
-      { href: '/changelog', label: 'Changelog' },
       { href: '/agent', label: 'Genfeed Agent' },
       { href: '/mcp', label: 'MCP Server' },
       { href: '/self-hosted', label: 'Self-host' },
-      { href: '/articles', label: 'Blog' },
-      { href: '/faq', label: 'FAQ' },
+      { href: '/claude', label: 'Claude' },
+      { href: '/claude-code', label: 'Claude Code' },
+      { href: '/codex', label: 'Codex' },
     ],
-    title: 'Resources',
+    title: 'Developers',
   },
   {
     links: [

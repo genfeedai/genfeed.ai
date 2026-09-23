@@ -1,7 +1,8 @@
 'use client';
 
+import { PrefetchKind } from 'next/dist/client/components/router-reducer/router-reducer-types';
 import { useRouter } from 'next/navigation';
-import { useCallback, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 
 function isPrefetchableHref(href?: string): href is string {
   if (!href || href.startsWith('#')) {
@@ -16,7 +17,7 @@ function isPrefetchableHref(href?: string): href is string {
 }
 
 /**
- * Prefetch a navigation destination on hover or focus, once per mount.
+ * Prefetch a navigation destination on hover or focus, once until the cached route is invalidated.
  *
  * Navigation chrome pairs this with `prefetch={false}` on the link: Next's
  * default prefetches every link in the viewport, and a sidebar or tab strip
@@ -37,6 +38,50 @@ export function useNavigationPrefetch(href?: string) {
     }
 
     prefetchedHrefs.current.add(href);
-    router.prefetch(href);
+    router.prefetch(href, {
+      kind: PrefetchKind.AUTO,
+      onInvalidate: () => {
+        prefetchedHrefs.current.delete(href);
+      },
+    });
   }, [href, router]);
+}
+
+/** Delay warming dense menus so passing pointer/focus events do not fetch every tile. */
+export function useNavigationIntentPrefetch(href?: string) {
+  const prefetch = useNavigationPrefetch(href);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const prefetchRef = useRef(prefetch);
+  useEffect(() => {
+    prefetchRef.current = prefetch;
+  }, [prefetch]);
+
+  const cancel = useCallback(() => {
+    if (timer.current !== null) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  }, []);
+
+  const schedule = useCallback(() => {
+    cancel();
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      prefetchRef.current();
+    }, 100);
+  }, [cancel]);
+
+  useEffect(() => {
+    if (!isPrefetchableHref(href)) {
+      cancel();
+    }
+    return cancel;
+  }, [href, cancel]);
+
+  return {
+    onBlur: cancel,
+    onFocus: schedule,
+    onMouseEnter: schedule,
+    onMouseLeave: cancel,
+  };
 }

@@ -10,6 +10,8 @@ export interface SkeletonMasonryProps {
 }
 
 export interface SkeletonCardProps {
+  label?: string;
+  'data-testid'?: string;
   className?: string;
   showImage?: boolean;
   showTitle?: boolean;

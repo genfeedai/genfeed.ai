@@ -1,4 +1,5 @@
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
+import { SkeletonCard } from '@ui/display/skeleton/skeleton';
 import type { HTMLAttributes, ReactElement, ReactNode } from 'react';
 
 type WorkspaceSurfaceDensity = 'compact' | 'comfortable';
@@ -31,6 +32,8 @@ const CONTENT_GAP_CLASSES: Record<WorkspaceSurfaceDensity, string> = {
 export interface WorkspaceSurfaceProps
   extends Omit<HTMLAttributes<HTMLElement>, 'children' | 'title'> {
   actions?: ReactNode;
+  isLoading?: boolean;
+  loadingLabel?: string;
   children: ReactNode;
   className?: string;
   contentClassName?: string;
@@ -60,6 +63,8 @@ export function WorkspaceSurface({
   eyebrow,
   flush = false,
   framed = true,
+  isLoading = false,
+  loadingLabel = 'Loading card',
   title,
   tone = 'default',
   ...props
@@ -116,9 +121,21 @@ export function WorkspaceSurface({
           !framed && 'gap-4',
           contentClassName,
         )}
+        aria-busy={isLoading || undefined}
         data-slot="workspace-surface-body"
       >
-        {children}
+        {isLoading ? (
+          <SkeletonCard
+            className="h-48 flex-1"
+            label={loadingLabel}
+            showImage={false}
+            showTitle={false}
+            showDescription={false}
+            showActions={false}
+          />
+        ) : (
+          children
+        )}
       </div>
     </section>
   );

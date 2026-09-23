@@ -732,6 +732,7 @@ export const INTENTIONALLY_UNSERIALIZED_SCHEMAS: Record<string, string> = {
   'task-counter:TaskCounter': OPERATIONAL_MODEL_REASON,
   'template-usage:TemplateUsage': ANALYTICS_MODEL_REASON,
   'thread-context-state:ThreadContextState': INTERNAL_MODEL_REASON,
+  'trend-preferences:TrendPreferences': OPERATIONAL_MODEL_REASON,
   'trend-remix-lineage:TrendRemixLineage': ANALYTICS_MODEL_REASON,
   'trend-source-reference-link:TrendSourceReferenceLink': INTERNAL_MODEL_REASON,
   'trend-source-reference-snapshot:TrendSourceReferenceSnapshot':
@@ -865,6 +866,70 @@ function findFiles(
   return results;
 }
 
+interface SourceScan {
+  blockComment: boolean;
+  lineComment: boolean;
+  quote: "'" | '"' | '`' | null;
+}
+
+function createSourceScan(): SourceScan {
+  return { blockComment: false, lineComment: false, quote: null };
+}
+
+function isEscaped(content: string, index: number): boolean {
+  let slashCount = 0;
+  for (
+    let cursor = index - 1;
+    cursor >= 0 && content[cursor] === '\\';
+    cursor -= 1
+  ) {
+    slashCount += 1;
+  }
+  return slashCount % 2 === 1;
+}
+
+function skipNonStructural(
+  content: string,
+  index: number,
+  scan: SourceScan,
+): { index: number; isStructural: boolean } {
+  const character = content[index] ?? '';
+  const next = content[index + 1];
+
+  if (scan.quote) {
+    if (character === scan.quote && !isEscaped(content, index)) {
+      scan.quote = null;
+    }
+    return { index, isStructural: false };
+  }
+  if (scan.lineComment) {
+    if (character === '\n') {
+      scan.lineComment = false;
+    }
+    return { index, isStructural: false };
+  }
+  if (scan.blockComment) {
+    if (character === '*' && next === '/') {
+      scan.blockComment = false;
+      return { index: index + 1, isStructural: false };
+    }
+    return { index, isStructural: false };
+  }
+  if (character === '/' && next === '/') {
+    scan.lineComment = true;
+    return { index: index + 1, isStructural: false };
+  }
+  if (character === '/' && next === '*') {
+    scan.blockComment = true;
+    return { index: index + 1, isStructural: false };
+  }
+  if (character === "'" || character === '"' || character === '`') {
+    scan.quote = character;
+    return { index, isStructural: false };
+  }
+  return { index, isStructural: true };
+}
+
 function extractBalancedBlock(
   content: string,
   openIndex: number,
@@ -872,21 +937,15 @@ function extractBalancedBlock(
   closeCharacter = '}',
 ): string | null {
   let depth = 0;
-  let quote: string | null = null;
+  const scan = createSourceScan();
 
   for (let index = openIndex; index < content.length; index += 1) {
+    const step = skipNonStructural(content, index, scan);
+    index = step.index;
+    if (!step.isStructural) {
+      continue;
+    }
     const character = content[index];
-    const previous = content[index - 1];
-    if (quote) {
-      if (character === quote && previous !== '\\') {
-        quote = null;
-      }
-      continue;
-    }
-    if (character === "'" || character === '"' || character === '`') {
-      quote = character;
-      continue;
-    }
     if (character === openCharacter) {
       depth += 1;
     } else if (character === closeCharacter) {
@@ -1057,20 +1116,15 @@ function typeAliasExpression(
     ']': '[',
     '}': '{',
   };
-  let quote: string | null = null;
+  const scan = createSourceScan();
 
   for (let index = expressionStart; index < content.length; index += 1) {
+    const step = skipNonStructural(content, index, scan);
+    index = step.index;
+    if (!step.isStructural) {
+      continue;
+    }
     const character = content[index];
-    if (quote) {
-      if (character === quote && content[index - 1] !== '\\') {
-        quote = null;
-      }
-      continue;
-    }
-    if (character === "'" || character === '"' || character === '`') {
-      quote = character;
-      continue;
-    }
     if (character && character in depths) {
       depths[character] += 1;
       continue;
@@ -2103,6 +2157,15 @@ export function runCheckSerializerDrift(
             `Intentional unserialized contract ${key} needs a non-empty reason`,
           );
         } else if (!discoveredSchemaKeys.has(key)) {
+          const basename = key.split(':')[0] ?? key;
+          const resolutionFailures = discovered.unresolved.filter(
+            (candidate) => candidate.basename === basename,
+          );
+          for (const candidate of resolutionFailures) {
+            errors.push(
+              `Prisma-backed schema ${path.relative(rootDir, candidate.filePath)} could not be resolved: ${candidate.reason}`,
+            );
+          }
           errors.push(
             `Intentional unserialized contract ${key} is stale: schema was not discovered`,
           );

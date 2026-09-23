@@ -1,5 +1,6 @@
 'use client';
 
+import { agentClients } from '@data/agent-clients.data';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import { GithubIcon } from '@genfeedai/helpers/ui/icons/brands';
 import { useMarketingEntrance } from '@hooks/ui/use-marketing-entrance';
@@ -253,6 +254,30 @@ export default function DevelopersLandingPage(): React.ReactElement {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className="gsap-section max-w-6xl mx-auto pb-16 px-6">
+          <Heading as="h3" className="text-2xl font-bold text-center mb-8">
+            Connect the client you already use
+          </Heading>
+          <div className="gsap-grid grid grid-cols-1 gap-1.5 sm:grid-cols-2 lg:grid-cols-3">
+            {agentClients.map((client) => (
+              <div
+                key={client.slug}
+                className="gsap-card gen-card-spotlight p-6"
+              >
+                <Link
+                  className="text-sm font-semibold text-surface transition-colors hover:text-primary"
+                  href={`/${client.slug}`}
+                >
+                  {client.name}
+                </Link>
+                <Text className="mt-2 text-sm text-surface/65">
+                  {client.description}
+                </Text>
+              </div>
+            ))}
           </div>
         </section>
 

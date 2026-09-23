@@ -836,6 +836,9 @@ export const createMockConfigService = (
     } as Record<string, number>;
     return defaults[key];
   }),
+  // PrismaService validates this at construction; tests run unsigned.
+  ingredientsEndpoint: 'https://cdn.test/ingredients',
+  mediaUrlConfig: { cdnUrl: 'https://cdn.test' },
 });
 
 // ============================================================================

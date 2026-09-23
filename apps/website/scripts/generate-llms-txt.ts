@@ -11,6 +11,7 @@
 
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { renderAgentConnectMarkdown } from '@data/agent-clients.data';
 import { FAQ_CATEGORIES } from '@data/faq.data';
 import { integrations } from '@data/integrations.data';
 import { products } from '@data/products.data';
@@ -21,6 +22,7 @@ import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants/model-
 import { PLAN_COPY, websitePlans } from '@genfeedai/pricing';
 
 const BASE_URL = 'https://genfeed.ai';
+const PRICING_SUMMARY = `${PLAN_COPY.pro.name} (${PLAN_COPY.pro.priceLabel} + PAYG output), ${PLAN_COPY.scale.name} (from ${PLAN_COPY.scale.priceLabel} + PAYG output), ${PLAN_COPY.enterprise.name} (custom). Free to join.`;
 const PUBLIC_DIR = resolve(process.cwd(), 'public');
 
 // ---------------------------------------------------------------------------
@@ -197,6 +199,12 @@ function buildLlmsIndex(): string {
     '- [Genfeed CLI](https://www.npmjs.com/package/@genfeedai/cli): Install with `npm install --global @genfeedai/cli` and run `genfeed --help`',
   );
   lines.push('');
+  lines.push(
+    renderAgentConnectMarkdown({
+      includeManualKey: false,
+      pricingSummary: PRICING_SUMMARY,
+    }),
+  );
 
   lines.push('## Products');
   lines.push('');
@@ -297,6 +305,14 @@ function buildLlmsFull(): string {
     '- **Generative Engine Optimization**: Make long-form content citation-ready for AI answer engines with direct answer blocks, source attribution, and Article/FAQ/HowTo structured data',
   );
   s.push('');
+  s.push('---');
+  s.push('');
+  s.push(
+    renderAgentConnectMarkdown({
+      includeManualKey: true,
+      pricingSummary: PRICING_SUMMARY,
+    }),
+  );
   s.push('---');
   s.push('');
   s.push('## Products');
