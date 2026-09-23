@@ -33,13 +33,20 @@ export class TwitterReadService {
 
   async searchRecentTweets(
     query: string,
-    options: { maxResults?: number; sortOrder?: 'relevancy' | 'recency' } = {},
+    options: {
+      accessToken?: string;
+      maxResults?: number;
+      sortOrder?: 'relevancy' | 'recency';
+    } = {},
   ): Promise<ITwitterSearchResult[]> {
     const url = `TwitterService ${CallerUtil.getCallerName()}`;
-    const { maxResults = 10, sortOrder = 'relevancy' } = options;
+    const { accessToken, maxResults = 10, sortOrder = 'relevancy' } = options;
+    const client = accessToken
+      ? new TwitterApi(accessToken)
+      : this.resolveClient();
 
     try {
-      const result = await this.resolveClient().v2.search(query, {
+      const result = await client.v2.search(query, {
         expansions: 'author_id',
         max_results: maxResults,
         sort_order: sortOrder,

@@ -1,6 +1,42 @@
-import type { McpMediaToolResult } from '@genfeedai/contracts/interfaces';
+import type {
+  AgentToolResult,
+  McpMediaToolResult,
+} from '@genfeedai/contracts/interfaces';
 import { toMcpMediaToolResult } from '@genfeedai/helpers';
 import type { ClientService } from '@mcp/services/client.service';
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readAgentBrands(result: AgentToolResult): Record<string, unknown>[] {
+  if (!result.success) {
+    const message =
+      typeof result.error === 'string' && result.error.trim().length > 0
+        ? result.error
+        : 'Failed to list brands';
+    throw new Error(message);
+  }
+  const data = result.data;
+  if (!isRecord(data) || !Array.isArray(data.brands)) {
+    return [];
+  }
+  return data.brands.filter(isRecord);
+}
+
+function brandMatches(
+  brand: Record<string, unknown>,
+  requested: string,
+): boolean {
+  const needle = requested.trim().toLowerCase();
+  for (const key of ['id', 'slug', 'name', 'label'] as const) {
+    const value = brand[key];
+    if (typeof value === 'string' && value.trim().toLowerCase() === needle) {
+      return true;
+    }
+  }
+  return false;
+}
 
 type AccountManagementToolResult = {
   content: McpMediaToolResult['content'];
@@ -28,19 +64,19 @@ export function handleAccountManagementTool(
       };
     },
     get_brand: async (a) => {
-      const brands = await client.listBrands();
-      const brandList = Array.isArray(brands) ? brands : brands ? [brands] : [];
+      // Same organization-scoped list as `list_brands`. The HTTP `/brands`
+      // collection also includes brands the user owns in other organizations,
+      // which hid the active org brand and rejected its id.
+      const brandList = readAgentBrands(
+        await client.executeAgentTool('list_brands', {}),
+      );
       const requestedId =
         typeof a.brandId === 'string' && a.brandId.trim().length > 0
           ? a.brandId.trim()
           : undefined;
       if (requestedId) {
-        const brand = brandList.find(
-          (entry) =>
-            entry &&
-            typeof entry === 'object' &&
-            'id' in entry &&
-            String((entry as { id?: unknown }).id) === requestedId,
+        const brand = brandList.find((entry) =>
+          brandMatches(entry, requestedId),
         );
         return {
           content: [

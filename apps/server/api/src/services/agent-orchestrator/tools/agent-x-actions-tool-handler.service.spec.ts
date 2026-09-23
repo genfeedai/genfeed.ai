@@ -22,7 +22,7 @@ describe('AgentXActionsToolHandler', () => {
     const twitterService = {
       getTweetById: vi.fn(),
       getUserTimelineByUsername: vi.fn(),
-      resolveBrandUserAccessToken: vi.fn().mockResolvedValue(null),
+      resolveBrandUserAccessToken: vi.fn().mockResolvedValue('user-token'),
       searchRecentTweets: vi.fn(),
     };
 
@@ -99,10 +99,63 @@ describe('AgentXActionsToolHandler', () => {
         url: 'https://x.com/genfeed/status/111',
       }),
     ]);
+    expect(twitterService.resolveBrandUserAccessToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-1',
+      undefined,
+    );
     expect(twitterService.searchRecentTweets).toHaveBeenCalledWith('genfeed', {
+      accessToken: 'user-token',
       maxResults: 5,
       sortOrder: 'relevancy',
     });
+  });
+
+  it('searches with an explicit brandId when the session has no brand', async () => {
+    const { handler, twitterService } = createHandler();
+    twitterService.searchRecentTweets.mockResolvedValue([]);
+
+    const result = await handler.execute(
+      'search_x_posts',
+      { brandId: 'brand-explicit', query: 'genfeed' },
+      { ...ctx, brandId: undefined },
+    );
+
+    expect(result.success).toBe(true);
+    expect(twitterService.resolveBrandUserAccessToken).toHaveBeenCalledWith(
+      'org-1',
+      'brand-explicit',
+      undefined,
+    );
+  });
+
+  it('asks for a brand and does not search when X has no brand scope', async () => {
+    const { handler, twitterService } = createHandler();
+
+    const result = await handler.execute(
+      'search_x_posts',
+      { query: 'genfeed' },
+      { ...ctx, brandId: undefined },
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/brandId/i);
+    expect(twitterService.searchRecentTweets).not.toHaveBeenCalled();
+  });
+
+  it('reports X as disconnected when the brand has no user token', async () => {
+    const { handler, twitterService } = createHandler();
+    twitterService.resolveBrandUserAccessToken.mockResolvedValue(null);
+
+    const result = await handler.execute(
+      'search_x_posts',
+      { query: 'genfeed' },
+      ctx,
+    );
+
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/not connected/i);
+    expect(twitterService.searchRecentTweets).not.toHaveBeenCalled();
   });
 
   it('maps tier-limit failures on search instead of empty success', async () => {

@@ -8,6 +8,11 @@ export const AGENT_SOCIAL_TOOLS: SourceTool[] = [
     name: 'search_x_posts',
     parameters: {
       properties: {
+        brandId: {
+          description:
+            'Brand whose connected X account searches. Required when the session has no brand. Use an id from list_brands.',
+          type: 'string',
+        },
         limit: {
           description: 'How many posts to return (default 10, max 25)',
           type: 'number',
