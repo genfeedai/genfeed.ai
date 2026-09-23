@@ -169,6 +169,12 @@ describe('ConfigService', () => {
       expect(new ConfigService().apiUrl).toBe('http://localhost:3010');
     });
 
+    it('treats an empty public API URL as unset', () => {
+      env.GENFEEDAI_API_PUBLIC_URL = '   ';
+
+      expect(new ConfigService().apiUrl).toBe('http://localhost:3010');
+    });
+
     it('falls back to the production API host when unset', () => {
       delete env.GENFEEDAI_API_PUBLIC_URL;
       delete env.GENFEEDAI_API_URL;

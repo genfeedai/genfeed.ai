@@ -257,11 +257,13 @@ export class ConfigService extends BaseConfigService<ApiEnvConfig> {
    * while self-hosted deployments may continue to use it as the public origin.
    */
   public get apiUrl(): string {
-    return (
-      this.envConfig.GENFEEDAI_API_PUBLIC_URL ??
-      this.envConfig.GENFEEDAI_API_URL ??
-      'https://api.genfeed.ai'
-    ).replace(/\/+$/, '');
+    const publicUrl = this.envConfig.GENFEEDAI_API_PUBLIC_URL?.trim();
+    const internalUrl = this.envConfig.GENFEEDAI_API_URL?.trim();
+
+    return (publicUrl || internalUrl || 'https://api.genfeed.ai').replace(
+      /\/+$/,
+      '',
+    );
   }
 
   /**
