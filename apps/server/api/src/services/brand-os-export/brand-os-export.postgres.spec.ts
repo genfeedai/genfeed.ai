@@ -77,7 +77,10 @@ describe.skipIf(!databaseUrl)('Brand OS export with real PostgreSQL', () => {
     prisma = new PrismaClient({ adapter: new PrismaPg(scoped, { schema }) });
     service = new BrandOsExportService(
       prisma as unknown as PrismaService,
-      { get: () => 'https://api.example.com/v1' } as unknown as ConfigService,
+      {
+        apiUrl: 'https://api.public.example.com',
+        get: () => 'http://api.internal.example.com:3010',
+      } as unknown as ConfigService,
       { log: vi.fn() } as unknown as LoggerService,
     );
   }, 30_000);
@@ -108,6 +111,9 @@ describe.skipIf(!databaseUrl)('Brand OS export with real PostgreSQL', () => {
     expect(await service.download('brand-1', actor)).toEqual(privateArtifact);
     const published = await service.publish('brand-1', 'rev-1', actor);
     expect(published.state).toBe('published');
+    expect(published.publicUrl).toContain(
+      'https://api.public.example.com/v1/public/brand-os/',
+    );
     const publication = await prisma.brandOsPublication.findFirstOrThrow({
       where: { brandId: 'brand-1', isDeleted: false, organizationId: 'org-1' },
     });
