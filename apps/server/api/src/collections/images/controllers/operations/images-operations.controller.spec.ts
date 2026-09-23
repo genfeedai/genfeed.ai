@@ -781,7 +781,7 @@ describe('ImagesOperationsController', () => {
         MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO,
         expect.objectContaining({
           height: dto.height,
-          prompt: 'Test prompt',
+          prompt: dto.text,
           width: dto.width,
         }),
       );
