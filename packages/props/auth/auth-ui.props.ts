@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 export interface AuthBackLinkProps {
   href: string;
+  label?: string;
 }
 
 export interface AuthFormActionsProps {

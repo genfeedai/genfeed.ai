@@ -16,7 +16,7 @@ import { Button } from '@ui/primitives/button';
 import Field from '@ui/primitives/field';
 import { Form } from '@ui/primitives/form';
 import { Input } from '@ui/primitives/input';
-import { KeyRound, Sparkles } from 'lucide-react';
+import { KeyRound, Mail, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -42,7 +42,7 @@ import {
   AUTH_LINK_CLASS_NAME,
   AUTH_PRIMARY_BUTTON_CLASS_NAME,
   AUTH_SECONDARY_BUTTON_CLASS_NAME,
-  AuthCheckEmail,
+  AuthBackLink,
   AuthFooterPrompt,
   AuthFormActions,
 } from '../auth-ui';
@@ -533,14 +533,24 @@ export default function LoginBetterAuth({
       <AuthFormLayout
         description={
           <>
-            We sent a sign-in link to <strong>{email}</strong>. Click the link
-            in the email to sign in.
+            We sent a sign-in link to
+            <strong className="block break-all font-medium text-foreground">
+              {email}
+            </strong>
+            <span className="mt-2 block">
+              Click the link in your email to sign in.
+            </span>
           </>
         }
         logoSize="compact"
         title="Check your email"
+        headingIcon={
+          <div className="flex size-12 shrink-0 items-center justify-center rounded-xl border border-border bg-muted text-foreground">
+            <Mail className="size-6" aria-hidden="true" />
+          </div>
+        }
       >
-        <AuthCheckEmail backHref={chooserHref} />
+        <AuthBackLink href={chooserHref} label="Back to sign in" />
       </AuthFormLayout>
     );
   }

@@ -35,7 +35,7 @@ export function AuthFooterPrompt({ children }: { children: ReactNode }) {
   );
 }
 
-export function AuthBackLink({ href }: AuthBackLinkProps) {
+export function AuthBackLink({ href, label = 'Back' }: AuthBackLinkProps) {
   return (
     <Button
       asChild
@@ -44,7 +44,7 @@ export function AuthBackLink({ href }: AuthBackLinkProps) {
       withWrapper={false}
     >
       <Link href={href}>
-        <span>Back</span>
+        <span>{label}</span>
       </Link>
     </Button>
   );
