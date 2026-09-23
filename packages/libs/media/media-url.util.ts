@@ -288,6 +288,20 @@ export function withExternalMediaFallback(document: unknown): unknown {
 }
 
 /**
+ * The media URL of a row read straight from Prisma: its computed `cdnUrl`, or
+ * for keyless external media the loaded `metadata.result`. The row must carry
+ * `metadata` for the fallback to apply.
+ */
+export function readIngredientMediaUrlWithFallback(
+  row: object | null | undefined,
+): string | undefined {
+  const resolved = withExternalMediaFallback(row);
+  return resolved && typeof resolved === 'object'
+    ? readIngredientMediaUrl(resolved)
+    : undefined;
+}
+
+/**
  * Fails fast at boot when a key pair is configured but cannot sign.
  *
  * Signing runs inside every ingredient read, and a signing failure throws

@@ -33,7 +33,7 @@ import {
 import type { KnowledgeReceipt } from '@genfeedai/contracts/interfaces';
 import { toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { readIngredientMediaUrl } from '@libs/media/media-url.util';
+import { readIngredientMediaUrlWithFallback } from '@libs/media/media-url.util';
 import {
   BadGatewayException,
   BadRequestException,
@@ -487,12 +487,14 @@ export class PostRepurposeService {
       return undefined;
     }
 
-    // `cdnUrl` is computed from the row's own key on every read.
+    // `cdnUrl` is computed from the row's own key; keyless external media
+    // falls back to its `metadata.result`.
     const row = await this.prisma.ingredient.findFirst({
+      include: { metadata: { select: { result: true } } },
       where: scopedWhere(organizationId, { id: ingredientId }),
     });
 
-    return readIngredientMediaUrl(row);
+    return readIngredientMediaUrlWithFallback(row);
   }
 
   private async resolveGroupOrder(
