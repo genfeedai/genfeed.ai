@@ -1,5 +1,5 @@
 import type { AdsResearchDetail } from '@genfeedai/contracts/interfaces';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
@@ -424,6 +424,12 @@ vi.mock('@ui/primitives/select', () => ({
   }) => (
     <div>
       {children}
+      <button type="button" onClick={() => onValueChange?.('my_accounts')}>
+        Select My Accounts Source
+      </button>
+      <button type="button" onClick={() => onValueChange?.('public')}>
+        Select Public Source
+      </button>
       <button type="button" onClick={() => onValueChange?.('cred-google')}>
         Select Google Credential
       </button>
@@ -453,6 +459,13 @@ vi.mock('@ui/primitives/select', () => ({
 import { DetailSidebar } from './AdsResearchDetailSidebar';
 import AdsResearchPageClient from './AdsResearchPageClient';
 import { buildSaveAdInput } from './useAdsResearchPageClient';
+
+function getSourceSelect() {
+  const element = screen.getByText('Public + My Accounts').parentElement
+    ?.parentElement;
+  if (!element) throw new Error('Source selector was not rendered');
+  return within(element);
+}
 
 describe('AdsResearchPageClient', () => {
   beforeEach(() => {
@@ -530,8 +543,18 @@ describe('AdsResearchPageClient', () => {
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [
-        { externalHandle: 'Google Ads', id: 'cred-google', platform: 'google' },
-        { externalHandle: 'Meta Ads', id: 'cred-meta', platform: 'meta' },
+        {
+          externalHandle: 'Google Ads',
+          id: 'cred-google',
+          isConnected: true,
+          platform: 'google',
+        },
+        {
+          externalHandle: 'Meta Ads',
+          id: 'cred-meta',
+          isConnected: true,
+          platform: 'meta',
+        },
       ],
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
@@ -1090,7 +1113,7 @@ describe('AdsResearchPageClient', () => {
     expect(screen.queryByText('Loading ad detail…')).not.toBeInTheDocument();
   });
 
-  it('shows a full connect empty state when there are no credentials and no ads', () => {
+  it('keeps competitor research available without credentials or ads', () => {
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [],
@@ -1101,74 +1124,172 @@ describe('AdsResearchPageClient', () => {
       ...resultsState,
       connectedAds: [],
       publicAds: [],
-      summary: {
-        ...resultsState.summary,
-        connectedCount: 0,
-        publicCount: 0,
-      },
+      summary: { ...resultsState.summary, connectedCount: 0, publicCount: 0 },
     };
 
     render(<AdsResearchPageClient />);
 
+    expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Refresh' })).toBeInTheDocument();
     expect(
-      screen.getByText('Connect Meta, Google/YouTube, TikTok, or X Ads'),
+      screen.getByRole('button', { name: 'Meta', exact: true }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText('No ads match the current filters.'),
-    ).not.toBeInTheDocument();
-    expect(screen.queryByPlaceholderText('Search ads')).not.toBeInTheDocument();
-    // No list chrome on setup empty — tabs / refresh / view toggle stay off.
+      screen.getByRole('button', { name: 'Competitors' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Watched competitors')).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Refresh' }),
-    ).not.toBeInTheDocument();
+      screen.getByRole('button', { name: 'Watch competitor' }),
+    ).toBeInTheDocument();
     expect(
-      screen.queryByRole('button', { name: 'Grid view' }),
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
     ).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Competitors' }));
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    fireEvent.click(
+      getSourceSelect().getByRole('button', { name: 'Select Public Source' }),
+    );
     expect(
-      screen.queryByRole('button', { name: 'Table view' }),
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
     ).not.toBeInTheDocument();
+  });
+
+  it('shows zero owned ads for a connected account without requesting reconnection', () => {
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: { ...resultsState.summary, connectedCount: 0, publicCount: 0 },
+    };
+
+    render(<AdsResearchPageClient />);
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    fireEvent.click(
+      getSourceSelect().getByRole('button', {
+        name: 'Select My Accounts Source',
+      }),
+    );
+
+    expect(screen.getByText('My ads').parentElement).toHaveTextContent('0');
+    expect(
+      screen.getByText(
+        'No ads match the current filters. Adjust filters or widen the timeframe.',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByText('Watched competitors')).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Competitors' }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers connection only for owned ads and excludes disconnected or deleted credentials', () => {
+    useBrandMock.mockReturnValue({
+      brandId: 'brand-1',
+      credentials: [
+        {
+          externalHandle: 'Disconnected Meta',
+          id: 'cred-disconnected',
+          isConnected: false,
+          platform: 'facebook',
+        },
+        {
+          externalHandle: 'Deleted Google',
+          id: 'cred-deleted',
+          isConnected: true,
+          isDeleted: true,
+          platform: 'google_ads',
+        },
+      ],
+      isReady: true,
+      selectedBrand: { label: 'Moonrise Studio' },
+    });
+    useQueryStates[0].data = {
+      ...resultsState,
+      connectedAds: [],
+      publicAds: [],
+      summary: { ...resultsState.summary, connectedCount: 0, publicCount: 0 },
+    };
+
+    render(<AdsResearchPageClient />);
+    fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+    expect(screen.queryByText('Disconnected Meta')).not.toBeInTheDocument();
+    expect(screen.queryByText('Deleted Google')).not.toBeInTheDocument();
+    fireEvent.click(
+      getSourceSelect().getByRole('button', {
+        name: 'Select My Accounts Source',
+      }),
+    );
+
     expect(
       screen.getByRole('link', { name: 'Manage ad connections' }),
     ).toHaveAttribute(
       'href',
       '/moonrise-org/moonrise-studio/settings/integrations',
     );
+    expect(
+      screen.getByRole('button', { name: 'Competitors' }),
+    ).toBeInTheDocument();
   });
 
-  it('keeps public ads visible and a slim connect strip when only public winners exist', () => {
+  it.each([
+    { credentialsLoading: true, credentialsError: null },
+    {
+      credentialsLoading: false,
+      credentialsError: new Error('Connections unavailable'),
+    },
+  ])(
+    'does not mistake unresolved connections for a disconnected account: %o',
+    (state) => {
+      useBrandMock.mockReturnValue({
+        brandId: 'brand-1',
+        credentials: [],
+        ...state,
+        isReady: true,
+        selectedBrand: { label: 'Moonrise Studio' },
+      });
+      render(<AdsResearchPageClient />);
+      fireEvent.click(screen.getByRole('button', { name: 'Filters' }));
+      fireEvent.click(
+        getSourceSelect().getByRole('button', {
+          name: 'Select My Accounts Source',
+        }),
+      );
+      expect(
+        screen.queryByRole('link', { name: 'Manage ad connections' }),
+      ).not.toBeInTheDocument();
+      if (state.credentialsError) {
+        expect(screen.getByRole('alert')).toHaveTextContent(
+          'Connections unavailable',
+        );
+      }
+    },
+  );
+
+  it('keeps public ads visible without prompting for an owned account', () => {
     useBrandMock.mockReturnValue({
       brandId: 'brand-1',
       credentials: [],
       isReady: true,
       selectedBrand: { label: 'Moonrise Studio' },
     });
-    // Default resultsState has public + connected ads; strip connected.
     useQueryStates[0].data = {
       ...resultsState,
       connectedAds: [],
-      summary: {
-        ...resultsState.summary,
-        connectedCount: 0,
-      },
+      summary: { ...resultsState.summary, connectedCount: 0 },
     };
 
     render(<AdsResearchPageClient />);
 
     expect(screen.getByText('Meta hook story')).toBeInTheDocument();
-    expect(
-      screen.getByText('Connect accounts for your campaigns'),
-    ).toBeInTheDocument();
-    // The strip is the only place the surface names the connectable ad
-    // platforms — it has to list every one the connections page offers.
-    expect(
-      screen.getByText(
-        'Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.',
-      ),
-    ).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search ads')).toBeInTheDocument();
     expect(
-      screen.getByRole('link', { name: 'Manage ad connections' }),
-    ).toBeInTheDocument();
+      screen.queryByRole('link', { name: 'Manage ad connections' }),
+    ).not.toBeInTheDocument();
   });
 
   it('ranks archive creatives by how long they have been running', () => {

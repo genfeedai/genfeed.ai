@@ -206,7 +206,14 @@ export function useAdsResearchPageClient() {
   const savedSourceLabel = translate('swipeFile.sourceLabel');
   const remixSurface = useOptionalDiscoveryRemix();
   const surface = useOptionalResearchWorkSurface();
-  const { brandId, credentials, isReady, selectedBrand } = useBrand();
+  const {
+    brandId,
+    credentials,
+    credentialsError,
+    credentialsLoading,
+    isReady,
+    selectedBrand,
+  } = useBrand();
   const getAdsResearchService = useAuthedService((token: string) =>
     AdsResearchService.getInstance(token),
   );
@@ -317,6 +324,8 @@ export function useAdsResearchPageClient() {
   const credentialOptions = useMemo(
     () =>
       credentials.reduce<CredentialOption[]>((options, credential) => {
+        if (!credential.isConnected || credential.isDeleted) return options;
+
         const value = String(credential.platform || '').toLowerCase();
 
         if (effectivePlatform === AdsPlatform.META) {
@@ -853,6 +862,7 @@ export function useAdsResearchPageClient() {
     allAds,
     busyAction,
     credentialOptions,
+    credentialsLoading,
     detail,
     detailError,
     detailLoading,
@@ -872,7 +882,7 @@ export function useAdsResearchPageClient() {
     resultsError,
     savedError: saved.error,
     savedMutating: saved.isMutating,
-    accountsError,
+    accountsError: accountsError ?? credentialsError,
     runAction,
     search,
     selectedAd,

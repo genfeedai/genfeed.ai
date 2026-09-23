@@ -168,7 +168,7 @@
       "watchCompetitors": "Competitors"
     },
     "connection": {
-      "description": "Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.",
+      "description": "Connect an ad account to view your own ads. Competitor research is available without connecting an account.",
       "title": "Connect accounts for your campaigns"
     },
     "dsaNotice": {
