@@ -6,12 +6,14 @@ import * as cheerio from 'cheerio';
 export const KNOWLEDGE_SOURCE_MAX_BYTES = 2_000_000;
 
 /**
- * Inflation ceiling for one PDF Flate stream and for the extracted text.
- * A quota-compliant PDF can carry a highly compressible stream that expands
- * into hundreds of megabytes on the request thread, so the decompressor is
- * bounded rather than the upload alone.
+ * Inflation ceiling for one PDF Flate stream, for the sum of successful
+ * inflations in one document, and for the extracted text. A quota-compliant
+ * PDF can carry highly compressible streams that expand into hundreds of
+ * megabytes on the request thread. Non-text streams never move the extracted
+ * text counter, so the document budget is separate from that counter.
  */
 export const PDF_MAX_INFLATED_BYTES = 16 * 1024 * 1024;
+export const PDF_MAX_DOCUMENT_INFLATED_BYTES = PDF_MAX_INFLATED_BYTES;
 export const PDF_MAX_EXTRACTED_CHARS = 2_000_000;
 
 export const INGESTIBLE_KNOWLEDGE_SOURCE_CATEGORIES = [
@@ -165,17 +167,45 @@ function collectPdfLiterals(payload: string, parts: string[]): void {
   }
 }
 
-function inflatePdfStream(bytes: Buffer): string | null {
-  const limits = { maxOutputLength: PDF_MAX_INFLATED_BYTES };
+function inflateWithinLimit(
+  bytes: Buffer,
+  maxOutputLength: number,
+): Buffer | null {
+  const limits = { maxOutputLength };
   try {
-    return inflateSync(bytes, limits).toString('latin1');
+    return inflateSync(bytes, limits);
   } catch {
     try {
-      return inflateRawSync(bytes, limits).toString('latin1');
+      return inflateRawSync(bytes, limits);
     } catch {
       return null;
     }
   }
+}
+
+function inflatePdfStream(
+  bytes: Buffer,
+  remainingBudget: number,
+): { exhaustedBudget: boolean; inflatedBytes: number; text: string | null } {
+  const maxOutputLength = Math.min(PDF_MAX_INFLATED_BYTES, remainingBudget);
+  if (maxOutputLength <= 0) {
+    return { exhaustedBudget: true, inflatedBytes: 0, text: null };
+  }
+
+  const inflated = inflateWithinLimit(bytes, maxOutputLength);
+  if (!inflated) {
+    return {
+      exhaustedBudget: maxOutputLength < PDF_MAX_INFLATED_BYTES,
+      inflatedBytes: 0,
+      text: null,
+    };
+  }
+
+  return {
+    exhaustedBudget: false,
+    inflatedBytes: inflated.length,
+    text: inflated.toString('latin1'),
+  };
 }
 
 export function extractPdfText(buffer: Buffer): string {
@@ -194,14 +224,24 @@ export function extractPdfText(buffer: Buffer): string {
   collectPdfLiterals(raw, parts);
   countNewParts();
 
+  let inflatedBytes = 0;
   for (const match of raw.matchAll(/stream\r?\n([\s\S]*?)endstream/g)) {
-    const payload = Buffer.from(match[1] ?? '', 'latin1');
-    const inflated = inflatePdfStream(payload);
-    collectPdfLiterals(inflated ?? payload.toString('latin1'), parts);
+    if (inflatedBytes >= PDF_MAX_DOCUMENT_INFLATED_BYTES) {
+      break;
+    }
 
-    // Stop once the document has produced more text than a source ever keeps,
-    // so many small streams cannot add up to the size one bomb cannot reach.
-    if (countNewParts() > PDF_MAX_EXTRACTED_CHARS) {
+    const payload = Buffer.from(match[1] ?? '', 'latin1');
+    const inflated = inflatePdfStream(
+      payload,
+      PDF_MAX_DOCUMENT_INFLATED_BYTES - inflatedBytes,
+    );
+    collectPdfLiterals(inflated.text ?? payload.toString('latin1'), parts);
+    inflatedBytes += inflated.inflatedBytes;
+
+    // A stream that cannot fit in the remaining document budget must not be
+    // followed by another inflation. A per-stream failure still falls through
+    // to the compressed bytes and leaves the budget unchanged.
+    if (inflated.exhaustedBudget || countNewParts() > PDF_MAX_EXTRACTED_CHARS) {
       break;
     }
   }
