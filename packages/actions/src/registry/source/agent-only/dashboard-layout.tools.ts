@@ -1,4 +1,9 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import {
+  DASHBOARD_BLOCK_REFERENCE,
+  DASHBOARD_DEFINITIONS,
+  DASHBOARD_DOCUMENT_SCHEMA,
+} from '../schemas/dashboard.schema';
 
 /**
  * Persist / read the per-brand dashboard page layout produced with
@@ -14,17 +19,18 @@ export const AGENT_DASHBOARD_LAYOUT_TOOLS: SourceTool[] = [
       'Persist the current dashboard as the saved layout for a brand page (default: the workspace overview). Pass the same blocks you would send to render_dashboard, but every data-bearing block (metric_card, kpi_grid card, chart, table, top_posts) MUST include a sourceKey referencing a live analytics source (e.g. "totalPosts", "timeSeries", "brandLeaderboard", "topPosts") — embedded data is stripped and re-hydrated at render time. Invalid layouts are rejected with validation issues.',
     name: 'save_dashboard_layout',
     parameters: {
+      $defs: DASHBOARD_DEFINITIONS,
       properties: {
         blocks: {
           description:
             'Dashboard blocks to persist (same shape as render_dashboard). Data-bearing blocks must include a sourceKey.',
-          items: { type: 'object' },
+          items: DASHBOARD_BLOCK_REFERENCE,
           type: 'array',
         },
         document: {
           description:
             'Alternative to blocks: a full genfeed.dashboard.openui.v1 document to persist.',
-          type: 'object',
+          ...DASHBOARD_DOCUMENT_SCHEMA,
         },
         pageKey: {
           description:

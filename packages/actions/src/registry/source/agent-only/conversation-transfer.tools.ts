@@ -1,4 +1,9 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import {
+  closedObjectSchema,
+  JSON_OBJECT_SCHEMA,
+  STRING_SCHEMA,
+} from '../../contracts/schema-builders';
 
 export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
   {
@@ -23,7 +28,22 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
       properties: {
         artifactReferences: {
           description: 'Canonical references selected for the handoff.',
-          items: { type: 'object' },
+          items: {
+            oneOf: ['article', 'asset', 'ingredient', 'newsletter', 'post'].map(
+              (kind) =>
+                closedObjectSchema(
+                  {
+                    brandId: STRING_SCHEMA,
+                    kind: { const: kind, type: 'string' },
+                    organizationId: STRING_SCHEMA,
+                    recordId: STRING_SCHEMA,
+                    recordVersion: STRING_SCHEMA,
+                    serializer: { const: kind, type: 'string' },
+                  },
+                  ['kind', 'organizationId', 'recordId', 'serializer'],
+                ),
+            ),
+          },
           maxItems: 20,
           type: 'array',
         },
@@ -41,7 +61,7 @@ export const AGENT_CONVERSATION_TRANSFER_TOOLS: SourceTool[] = [
           maxLength: 200,
           type: 'string',
         },
-        selectedContext: { type: 'object' },
+        selectedContext: { ...JSON_OBJECT_SCHEMA },
       },
       required: ['content', 'deliveryMode', 'idempotencyKey'],
       type: 'object',

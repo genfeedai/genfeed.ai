@@ -1,4 +1,5 @@
 import type { SourceTool } from '../../../interfaces/source-tool.interface';
+import { JSON_OBJECT_SCHEMA } from '../../contracts/schema-builders';
 
 const credentialPlatforms = [
   'youtube',
@@ -84,7 +85,7 @@ const targetSchema = {
       type: 'string',
     },
     scheduledDate: { description: 'ISO 8601', type: 'string' },
-    settings: { type: 'object' },
+    settings: { ...JSON_OBJECT_SCHEMA },
     timezone: { description: 'IANA', type: 'string' },
   },
   required: ['credentialId', 'platform'],
@@ -124,7 +125,7 @@ const releaseUpdateProperties = {
 const targetUpdateProperties = {
   order: { minimum: 0, type: 'number' },
   scheduledDate: { type: 'string' },
-  settings: { type: 'object' },
+  settings: { ...JSON_OBJECT_SCHEMA },
   timezone: { type: 'string' },
 };
 
@@ -309,7 +310,7 @@ export const MCP_SCHEDULER_TOOLS: SourceTool[] = [
         },
         settings: {
           description: 'Publishing settings',
-          type: 'object',
+          ...JSON_OBJECT_SCHEMA,
         },
         visibility: {
           description: 'Audience visibility',

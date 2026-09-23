@@ -45,6 +45,11 @@ export const JSON_DOCUMENT_SCHEMA = {
   $comment: 'genfeed:recursive-json-document',
 } as const;
 
+export const JSON_OBJECT_SCHEMA = {
+  additionalProperties: JSON_DOCUMENT_SCHEMA,
+  type: 'object',
+} as const;
+
 const JSON_VALUE_REFERENCE = { $ref: '#/$defs/jsonValue' } as const;
 const JSON_VALUE_DEFINITION: ActionJsonSchema = {
   anyOf: [
