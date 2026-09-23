@@ -133,6 +133,24 @@ const createService = () => {
     findOne: vi.fn().mockResolvedValue(null),
     patch: vi.fn().mockResolvedValue({ id: 'prompt-doc', original: 'built' }),
   };
+  const enhancementService = {
+    enhance: vi
+      .fn()
+      .mockImplementation(
+        async (input: {
+          prompt: string;
+          brandId: string;
+          harness?: boolean;
+        }) => ({
+          originalPrompt: input.prompt,
+          enhancedPrompt: input.prompt,
+          brandId: input.brandId,
+          status: input.harness === false ? 'skipped' : 'applied',
+          source: input.harness === undefined ? 'default' : 'request',
+          appliedPacks: [],
+        }),
+      ),
+  };
   const promptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
       input: { prompt: 'built-prompt' },
@@ -253,10 +271,7 @@ const createService = () => {
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
-    new ReplicateImageGenerationProviderAdapter(
-      promptBuilderService as never,
-      replicateService as never,
-    ),
+    new ReplicateImageGenerationProviderAdapter(replicateService as never),
     new SdxlImageGenerationProviderAdapter(),
     new HiggsFieldImageGenerationProviderAdapter(higgsFieldService as never),
   );
@@ -316,6 +331,7 @@ const createService = () => {
       cancelProcessingIngredient: vi.fn(),
     } as never,
     templatesService as never,
+    enhancementService as never,
   );
 
   return {
@@ -335,6 +351,7 @@ const createService = () => {
     service,
     sharedService,
     templatesService,
+    enhancementService,
   };
 };
 

@@ -1,5 +1,6 @@
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
+import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import type {
   AgentToolResult,
   UpdateGenerationHarnessSettings,
@@ -8,12 +9,16 @@ import { BadRequestException, Injectable } from '@nestjs/common';
 
 @Injectable()
 export class AgentGenerationSettingsToolHandler {
-  constructor(private readonly settings: GenerationHarnessSettingsService) {}
+  constructor(
+    private readonly settings: GenerationHarnessSettingsService,
+    private readonly enhancement: MediaPromptEnhancementService,
+  ) {}
 
   handles(toolName: string): boolean {
     return (
       toolName === 'get_generation_settings' ||
-      toolName === 'set_generation_settings'
+      toolName === 'set_generation_settings' ||
+      toolName === 'enhance_prompt'
     );
   }
 
@@ -22,9 +27,38 @@ export class AgentGenerationSettingsToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (toolName === 'enhance_prompt') return this.enhance(params, ctx);
     return toolName === 'set_generation_settings'
       ? this.set(params, ctx)
       : this.get(params, ctx);
+  }
+
+  async enhance(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    const brandId = this.brandId(params, ctx);
+    if (!brandId || typeof params.prompt !== 'string' || !params.prompt.trim())
+      throw new BadRequestException(
+        'brandId and a nonempty prompt are required',
+      );
+    if (params.contentType !== 'image' && params.contentType !== 'video')
+      throw new BadRequestException('contentType must be image or video');
+    if (params.harness !== undefined && typeof params.harness !== 'boolean')
+      throw new BadRequestException('harness must be a boolean');
+    const receipt = await this.enhancement.enhance({
+      organizationId: ctx.organizationId,
+      brandId,
+      prompt: params.prompt,
+      contentType: params.contentType,
+      model: typeof params.model === 'string' ? params.model : undefined,
+      harness: params.harness,
+    });
+    return {
+      success: true,
+      creditsUsed: receipt.status === 'applied' ? 1 : 0,
+      data: { generationHarness: receipt, prompt: receipt.enhancedPrompt },
+    };
   }
 
   async get(

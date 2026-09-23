@@ -12,9 +12,21 @@ function setup() {
     get: vi.fn().mockResolvedValue({ isEnabled: true }),
     set: vi.fn().mockResolvedValue({ isEnabled: false }),
   };
+  const enhancement = {
+    enhance: vi
+      .fn()
+      .mockResolvedValue({
+        status: 'applied',
+        enhancedPrompt: 'Enhanced prompt',
+      }),
+  };
   return {
     settings,
-    handler: new AgentGenerationSettingsToolHandler(settings as never),
+    handler: new AgentGenerationSettingsToolHandler(
+      settings as never,
+      enhancement as never,
+    ),
+    enhancement,
   };
 }
 

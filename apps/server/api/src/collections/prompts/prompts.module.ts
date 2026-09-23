@@ -21,6 +21,7 @@ import { ByokModule } from '@api/services/byok/byok.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
+import { PromptEnhancementModule } from '@api/services/prompt-enhancement/prompt-enhancement.module';
 import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
@@ -33,6 +34,7 @@ import { Module } from '@nestjs/common';
   ],
   exports: [PromptsCoreModule],
   imports: [
+    PromptEnhancementModule,
     PromptsCoreModule,
     ActivitiesModule,
     BrandsCoreModule,

@@ -37,18 +37,19 @@ export class GenerationHarnessSettingsService {
     brandId?: string,
   ): Promise<GenerationHarnessSettings> {
     await this.assertScope(organizationId, brandId);
-    const rows = await this.prisma.generationHarnessSetting.findMany({
-      where: {
-        organizationId,
-        isDeleted: false,
-        scopeKey: { in: ['organization', ...(brandId ? [brandId] : [])] },
-      },
+    const organization = await this.prisma.organizationSetting.findUnique({
+      where: { organizationId },
+      select: { isPromptEnhancementEnabled: true },
     });
-    const organizationEnabled =
-      rows.find((row) => row.scopeKey === 'organization')?.isEnabled ?? null;
-    const brandEnabled = brandId
-      ? (rows.find((row) => row.scopeKey === brandId)?.isEnabled ?? null)
+    const brand = brandId
+      ? await this.prisma.brand.findFirst({
+          where: { id: brandId, organizationId, isDeleted: false },
+          select: { isPromptEnhancementEnabled: true },
+        })
       : null;
+    const organizationEnabled =
+      organization?.isPromptEnhancementEnabled ?? null;
+    const brandEnabled = brand?.isPromptEnhancementEnabled ?? null;
     return {
       organizationEnabled,
       brandEnabled,
@@ -79,34 +80,19 @@ export class GenerationHarnessSettingsService {
       throw new BadRequestException('brandId is required for brand settings');
     }
     await this.assertScope(organizationId, input.brandId);
-    const brandId = input.scope === 'brand' ? input.brandId : undefined;
-    const scopeKey = brandId ?? 'organization';
-    if (input.isEnabled === null) {
-      await this.prisma.generationHarnessSetting.updateMany({
-        where: { organizationId, scopeKey, isDeleted: false },
-        data: { isDeleted: true },
+    const data = { isPromptEnhancementEnabled: input.isEnabled };
+    if (input.scope === 'brand') {
+      const updated = await this.prisma.brand.updateMany({
+        where: { id: input.brandId, organizationId, isDeleted: false },
+        data,
       });
+      if (updated.count === 0) throw new NotFoundException('Brand');
     } else {
-      const revived = await this.prisma.generationHarnessSetting.updateMany({
-        where: { organizationId, scopeKey, isDeleted: true },
-        data: { isEnabled: input.isEnabled, isDeleted: false, brandId },
+      await this.prisma.organizationSetting.upsert({
+        where: { organizationId },
+        create: { organizationId, ...data },
+        update: data,
       });
-      if (revived.count === 0) {
-        const active = await this.prisma.generationHarnessSetting.updateMany({
-          where: { organizationId, scopeKey, isDeleted: false },
-          data: { isEnabled: input.isEnabled, brandId },
-        });
-        if (active.count === 0) {
-          await this.prisma.generationHarnessSetting.create({
-            data: {
-              organizationId,
-              brandId,
-              scopeKey,
-              isEnabled: input.isEnabled,
-            },
-          });
-        }
-      }
     }
     return this.get(organizationId, input.brandId);
   }

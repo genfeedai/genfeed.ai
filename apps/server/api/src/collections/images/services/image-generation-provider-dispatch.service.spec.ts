@@ -80,10 +80,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
-    new ReplicateImageGenerationProviderAdapter(
-      promptBuilderService as never,
-      replicateService as never,
-    ),
+    new ReplicateImageGenerationProviderAdapter(replicateService as never),
     new SdxlImageGenerationProviderAdapter(),
     new HiggsFieldImageGenerationProviderAdapter(higgsFieldService as never),
   );

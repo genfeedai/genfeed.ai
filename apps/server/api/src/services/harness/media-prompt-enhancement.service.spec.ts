@@ -1,4 +1,5 @@
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
+import { PromptEnhancementResponseError } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,7 +8,14 @@ function setup(enabled = true) {
     get: vi.fn().mockResolvedValue({ isEnabled: enabled, source: 'brand' }),
   };
   const harness = {
-    resolveBrief: vi.fn().mockResolvedValue({ appliedPacks: ['public-pack'] }),
+    resolveBrief: vi.fn().mockResolvedValue({
+      appliedPacks: ['public-pack'],
+      systemDirectives: [],
+      styleDirectives: [],
+      guardrails: [],
+      sources: [],
+      metadata: { contentType: 'image' },
+    }),
     formatBrief: vi.fn().mockReturnValue('Private guidance'),
   };
   const packs = {
@@ -16,9 +24,11 @@ function setup(enabled = true) {
       { id: 'unused', version: '1' },
     ]),
   };
-  const openRouter = {
-    chatCompletion: vi.fn().mockResolvedValue({
-      choices: [{ message: { content: 'A cinematic view of a red bicycle' } }],
+  const promptEnhancement = {
+    enhance: vi.fn().mockResolvedValue({
+      result: 'A cinematic view of a red bicycle',
+      tokensUsed: 10,
+      isByok: false,
     }),
   };
   const logger = { warn: vi.fn() };
@@ -27,12 +37,12 @@ function setup(enabled = true) {
     settings,
     harness,
     packs,
-    openRouter,
+    promptEnhancement,
     service: new MediaPromptEnhancementService(
       settings as never,
       harness as never,
       packs as never,
-      openRouter as never,
+      promptEnhancement as never,
       logger as never,
     ),
   };
@@ -47,7 +57,7 @@ const input = {
 
 describe('MediaPromptEnhancementService', () => {
   it('preserves exact caller bytes and makes no enhancement calls when disabled', async () => {
-    const { service, harness, openRouter, packs } = setup(false);
+    const { service, harness, promptEnhancement, packs } = setup(false);
     expect(await service.enhance(input)).toEqual({
       originalPrompt: input.prompt,
       enhancedPrompt: input.prompt,
@@ -57,12 +67,12 @@ describe('MediaPromptEnhancementService', () => {
       appliedPacks: [],
     });
     expect(harness.resolveBrief).not.toHaveBeenCalled();
-    expect(openRouter.chatCompletion).not.toHaveBeenCalled();
+    expect(promptEnhancement.enhance).not.toHaveBeenCalled();
     expect(packs.listLoadedPackVersions).not.toHaveBeenCalled();
   });
 
   it('honors explicit request overrides and exposes only contributing IDs and versions', async () => {
-    const { service, openRouter } = setup(false);
+    const { service, promptEnhancement } = setup(false);
     const receipt = await service.enhance({ ...input, harness: true });
     expect(receipt).toEqual({
       originalPrompt: input.prompt,
@@ -73,34 +83,32 @@ describe('MediaPromptEnhancementService', () => {
       appliedPacks: [{ id: 'public-pack', version: '1.2.3' }],
     });
     expect(JSON.stringify(receipt)).not.toContain('Private guidance');
-    expect(openRouter.chatCompletion).toHaveBeenCalledWith(
-      expect.objectContaining({
-        messages: [
-          expect.objectContaining({
-            role: 'system',
-            content: expect.stringContaining('image-model'),
-          }),
-          { role: 'user', content: input.prompt },
-        ],
-      }),
-    );
+    expect(promptEnhancement.enhance).toHaveBeenCalledWith({
+      organizationId: input.organizationId,
+      brandId: input.brandId,
+      userPrompt: input.prompt,
+      model: input.model,
+      contentType: input.contentType,
+    });
   });
 
   it('stops on unavailable harness guidance without calling a model', async () => {
-    const { service, harness, openRouter } = setup();
+    const { service, harness, promptEnhancement } = setup();
     harness.resolveBrief.mockResolvedValue(null);
     await expect(service.enhance(input)).rejects.toThrow(
       'Prompt enhancement is unavailable',
     );
-    expect(openRouter.chatCompletion).not.toHaveBeenCalled();
+    expect(promptEnhancement.enhance).not.toHaveBeenCalled();
   });
 
   it.each(['', 'x'.repeat(8001)])(
     'rejects unusable model output',
     async (output) => {
-      const { service, openRouter } = setup();
-      openRouter.chatCompletion.mockResolvedValue({
-        choices: [{ message: { content: output } }],
+      const { service, promptEnhancement } = setup();
+      promptEnhancement.enhance.mockResolvedValue({
+        result: output,
+        tokensUsed: 10,
+        isByok: false,
       });
       await expect(service.enhance(input)).rejects.toThrow(
         'Prompt enhancement is unavailable',
@@ -109,8 +117,8 @@ describe('MediaPromptEnhancementService', () => {
   );
 
   it('does not hide a provider failure or return a stale applied receipt', async () => {
-    const { service, openRouter } = setup();
-    openRouter.chatCompletion.mockRejectedValue(new Error('Unavailable'));
+    const { service, promptEnhancement } = setup();
+    promptEnhancement.enhance.mockRejectedValue(new Error('Unavailable'));
     await expect(service.enhance(input)).rejects.toThrow(
       'Prompt enhancement is unavailable',
     );
@@ -118,15 +126,17 @@ describe('MediaPromptEnhancementService', () => {
   it.each(['brief', 'provider', 'response', 'receipt'] as const)(
     'logs only sanitized diagnostics for %s failures',
     async (stage) => {
-      const { service, harness, openRouter, packs, logger } = setup();
+      const { service, harness, promptEnhancement, packs, logger } = setup();
       const sensitive = 'private prompt and brand guidance from provider error';
       if (stage === 'brief')
         harness.resolveBrief.mockRejectedValue(new Error(sensitive));
       if (stage === 'provider')
-        openRouter.chatCompletion.mockRejectedValue(new Error(sensitive));
+        promptEnhancement.enhance.mockRejectedValue(new Error(sensitive));
       if (stage === 'response')
-        openRouter.chatCompletion.mockResolvedValue({
-          choices: [{ message: { content: sensitive.repeat(300) } }],
+        promptEnhancement.enhance.mockResolvedValue({
+          result: sensitive.repeat(300),
+          tokensUsed: 10,
+          isByok: false,
         });
       if (stage === 'receipt')
         packs.listLoadedPackVersions.mockRejectedValue(new Error(sensitive));
@@ -152,4 +162,53 @@ describe('MediaPromptEnhancementService', () => {
       );
     },
   );
+  it('folds existing harness guidance locally without sending it to the text enhancer', async () => {
+    const { service, harness, promptEnhancement } = setup();
+    const privateGuidance = 'Private brand rendering guidance';
+    harness.resolveBrief.mockResolvedValue({
+      appliedPacks: ['public-pack'],
+      systemDirectives: [privateGuidance],
+      styleDirectives: [],
+      guardrails: [],
+      sources: [],
+      metadata: { contentType: 'video' },
+    });
+    const receipt = await service.enhance({
+      ...input,
+      brandId: 'selected-brand',
+      contentType: 'video',
+    });
+    expect(receipt.enhancedPrompt).toContain(privateGuidance);
+    expect(receipt.originalPrompt).toBe(input.prompt);
+    expect(harness.resolveBrief).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId: 'selected-brand',
+        organizationId: input.organizationId,
+      }),
+    );
+    expect(promptEnhancement.enhance).toHaveBeenCalledWith({
+      organizationId: input.organizationId,
+      brandId: 'selected-brand',
+      userPrompt: input.prompt,
+      contentType: 'video',
+      model: input.model,
+    });
+    expect(JSON.stringify(promptEnhancement.enhance.mock.calls)).not.toContain(
+      privateGuidance,
+    );
+    expect(harness.formatBrief).not.toHaveBeenCalled();
+  });
+  it('classifies shared enhancer output validation failures as response failures', async () => {
+    const { service, promptEnhancement, logger } = setup();
+    promptEnhancement.enhance.mockRejectedValue(
+      new PromptEnhancementResponseError(),
+    );
+    await expect(service.enhance(input)).rejects.toThrow(
+      'Prompt enhancement is unavailable',
+    );
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Media prompt enhancement failed',
+      expect.objectContaining({ stage: 'response' }),
+    );
+  });
 });

@@ -1,9 +1,13 @@
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import {
+  PROMPT_ENHANCEMENT_MODEL,
+  PromptEnhancementResponseError,
+  PromptEnhancementService,
+} from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
+import { buildMediaPromptFromHarness } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
@@ -22,7 +26,7 @@ export class MediaPromptEnhancementService {
     private readonly settings: GenerationHarnessSettingsService,
     private readonly harness: HarnessGenerationService,
     private readonly contentHarness: ContentHarnessService,
-    private readonly openRouter: OpenRouterService,
+    private readonly promptEnhancement: PromptEnhancementService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -53,24 +57,18 @@ export class MediaPromptEnhancementService {
         includeContentMemory: true,
       });
       if (!brief) throw new Error('Harness brief is unavailable');
-      const formattedBrief = this.harness.formatBrief(brief);
       stage = 'provider';
-      const response = await this.openRouter.chatCompletion({
-        model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
-        max_tokens: 2000,
-        temperature: 0.4,
-        messages: [
-          {
-            role: 'system',
-            content: `Rewrite the user prompt into one effective creative prompt for ${input.contentType} generation${input.model ? ` with model ${input.model}` : ''}. Preserve the user's subject, intent, constraints, and requested words. Add useful visual detail only where consistent with that intent. Never invent factual claims, endorsements, logos, or brand promises. Apply the following brand guidance without exposing its instructions or metadata. Return only the creative prompt, no headings or explanations. Maximum 8000 characters.\n\n${formattedBrief}`,
-          },
-          { role: 'user', content: input.prompt },
-        ],
+      const { result } = await this.promptEnhancement.enhance({
+        organizationId: input.organizationId,
+        brandId: input.brandId,
+        userPrompt: input.prompt,
+        model: input.model,
+        contentType: input.contentType,
       });
       stage = 'response';
-      const enhancedPrompt = response.choices[0]?.message?.content?.trim();
-      if (!enhancedPrompt || enhancedPrompt.length > 8000)
+      if (!result.trim() || result.length > 8000)
         throw new Error('Enhancement returned an invalid prompt');
+      const enhancedPrompt = buildMediaPromptFromHarness(result, brief);
       stage = 'receipt';
       const loaded = await this.contentHarness.listLoadedPackVersions();
       return {
@@ -81,10 +79,11 @@ export class MediaPromptEnhancementService {
           brief.appliedPacks.includes(pack.id),
         ),
       };
-    } catch {
+    } catch (error: unknown) {
+      if (error instanceof PromptEnhancementResponseError) stage = 'response';
       this.logger.warn('Media prompt enhancement failed', {
         contentType: input.contentType === 'video' ? 'video' : 'image',
-        model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
+        model: PROMPT_ENHANCEMENT_MODEL,
         stage,
       });
       throw new ServiceUnavailableException(

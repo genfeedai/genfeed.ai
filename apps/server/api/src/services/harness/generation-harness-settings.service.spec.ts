@@ -4,12 +4,17 @@ import { describe, expect, it, vi } from 'vitest';
 function setup() {
   const prisma = {
     organization: { findFirst: vi.fn().mockResolvedValue({ id: 'org' }) },
-    brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand' }) },
-    generationHarnessSetting: {
-      findMany: vi.fn().mockResolvedValue([]),
-      upsert: vi.fn(),
+    brand: {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ id: 'brand', isPromptEnhancementEnabled: null }),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
-      create: vi.fn(),
+    },
+    organizationSetting: {
+      findUnique: vi
+        .fn()
+        .mockResolvedValue({ isPromptEnhancementEnabled: null }),
+      upsert: vi.fn(),
     },
   };
   return {
@@ -19,61 +24,55 @@ function setup() {
 }
 
 describe('GenerationHarnessSettingsService', () => {
-  it('defaults on and lets a brand override an organization preference', async () => {
+  it('defaults on, with brand over organization precedence', async () => {
     const { prisma, service } = setup();
     expect(await service.get('org', 'brand')).toMatchObject({
       isEnabled: true,
       source: 'default',
     });
-    prisma.generationHarnessSetting.findMany.mockResolvedValue([
-      { scopeKey: 'organization', isEnabled: false },
-    ]);
+    prisma.organizationSetting.findUnique.mockResolvedValue({
+      isPromptEnhancementEnabled: false,
+    });
     expect(await service.get('org', 'brand')).toMatchObject({
       isEnabled: false,
       source: 'organization',
     });
-    prisma.generationHarnessSetting.findMany.mockResolvedValue([
-      { scopeKey: 'organization', isEnabled: false },
-      { scopeKey: 'brand', isEnabled: true },
-    ]);
+    prisma.brand.findFirst.mockResolvedValue({
+      id: 'brand',
+      isPromptEnhancementEnabled: true,
+    });
     expect(await service.get('org', 'brand')).toMatchObject({
       isEnabled: true,
       source: 'brand',
     });
-    expect(prisma.generationHarnessSetting.findMany).toHaveBeenLastCalledWith({
-      where: {
-        organizationId: 'org',
-        isDeleted: false,
-        scopeKey: { in: ['organization', 'brand'] },
-      },
+    expect(prisma.brand.findFirst).toHaveBeenLastCalledWith({
+      where: { id: 'brand', organizationId: 'org', isDeleted: false },
+      select: { isPromptEnhancementEnabled: true },
     });
   });
 
-  it('resets only the authorized scope with a soft delete', async () => {
-    const { prisma, service } = setup();
-    await service.set('org', {
-      scope: 'brand',
-      brandId: 'brand',
-      isEnabled: null,
-    });
-    expect(prisma.generationHarnessSetting.updateMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org', scopeKey: 'brand', isDeleted: false },
-      data: { isDeleted: true },
-    });
-    expect(prisma.generationHarnessSetting.upsert).not.toHaveBeenCalled();
-  });
+  it.each([true, false, null])(
+    'sets or resets only the authorized brand field (%s)',
+    async (isEnabled) => {
+      const { prisma, service } = setup();
+      await service.set('org', { scope: 'brand', brandId: 'brand', isEnabled });
+      expect(prisma.brand.updateMany).toHaveBeenCalledWith({
+        where: { id: 'brand', organizationId: 'org', isDeleted: false },
+        data: { isPromptEnhancementEnabled: isEnabled },
+      });
+      expect(prisma.organizationSetting.upsert).not.toHaveBeenCalled();
+    },
+  );
 
-  it('resurrects only the organization and scope unique row', async () => {
+  it('uses the existing organization settings row without overwriting other preferences', async () => {
     const { prisma, service } = setup();
-    await service.set('org', {
-      scope: 'brand',
-      brandId: 'brand',
-      isEnabled: false,
+    await service.set('org', { scope: 'organization', isEnabled: false });
+    expect(prisma.organizationSetting.upsert).toHaveBeenCalledWith({
+      where: { organizationId: 'org' },
+      create: { organizationId: 'org', isPromptEnhancementEnabled: false },
+      update: { isPromptEnhancementEnabled: false },
     });
-    expect(prisma.generationHarnessSetting.updateMany).toHaveBeenCalledWith({
-      where: { organizationId: 'org', scopeKey: 'brand', isDeleted: true },
-      data: { isEnabled: false, isDeleted: false, brandId: 'brand' },
-    });
+    expect(prisma.brand.updateMany).not.toHaveBeenCalled();
   });
 
   it('rejects inaccessible brands before reading or writing settings', async () => {
@@ -90,11 +89,11 @@ describe('GenerationHarnessSettingsService', () => {
       where: { id: 'foreign', organizationId: 'org', isDeleted: false },
       select: { id: true },
     });
-    expect(prisma.generationHarnessSetting.upsert).not.toHaveBeenCalled();
-    expect(prisma.generationHarnessSetting.findMany).not.toHaveBeenCalled();
+    expect(prisma.brand.updateMany).not.toHaveBeenCalled();
+    expect(prisma.organizationSetting.findUnique).not.toHaveBeenCalled();
   });
 
-  it('requires a brand for brand settings and a strict boolean or null', async () => {
+  it('requires a brand and a strict boolean or null', async () => {
     const { service } = setup();
     await expect(
       service.set('org', { scope: 'brand', isEnabled: true }),

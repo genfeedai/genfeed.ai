@@ -120,6 +120,24 @@ describe('VideoGenerationService', () => {
       create: vi.fn().mockResolvedValue({ id: 'prompt-doc' }),
       findOne: vi.fn(),
     };
+    const enhancementService = {
+      enhance: vi
+        .fn()
+        .mockImplementation(
+          async (input: {
+            prompt: string;
+            brandId: string;
+            harness?: boolean;
+          }) => ({
+            originalPrompt: input.prompt,
+            enhancedPrompt: input.prompt,
+            brandId: input.brandId,
+            status: input.harness === false ? 'skipped' : 'applied',
+            source: input.harness === undefined ? 'default' : 'request',
+            appliedPacks: [],
+          }),
+        ),
+    };
     const promptBuilderService = {
       buildPrompt: vi.fn().mockResolvedValue({
         input: { prompt: 'built-prompt' },
@@ -242,6 +260,7 @@ describe('VideoGenerationService', () => {
       routerService as never,
       sharedService as never,
       templatesService as never,
+      enhancementService as never,
     );
     const creditsService = new VideoGenerationCreditsService(
       creditsUtilsService as never,
@@ -299,6 +318,7 @@ describe('VideoGenerationService', () => {
       service,
       sharedService,
       templatesService,
+      enhancementService,
       videosService,
     };
   };

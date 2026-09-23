@@ -2,12 +2,12 @@ import { GenerationHarnessController } from '@api/services/harness/generation-ha
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessModule } from '@api/services/harness/harness.module';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
-import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { PromptEnhancementModule } from '@api/services/prompt-enhancement/prompt-enhancement.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [ContentHarnessModule, OpenRouterModule, LoggerModule],
+  imports: [ContentHarnessModule, PromptEnhancementModule, LoggerModule],
   controllers: [GenerationHarnessController],
   providers: [GenerationHarnessSettingsService, MediaPromptEnhancementService],
   exports: [GenerationHarnessSettingsService, MediaPromptEnhancementService],

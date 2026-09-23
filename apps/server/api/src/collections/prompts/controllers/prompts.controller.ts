@@ -10,7 +10,6 @@ import { UpdatePromptDto } from '@api/collections/prompts/dto/update-prompt.dto'
 import { enhanceCreatedPrompt } from '@api/collections/prompts/enhance-created-prompt';
 import { type PromptDocument } from '@api/collections/prompts/schemas/prompt.schema';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
@@ -30,13 +29,13 @@ import {
 import { handleQuerySort } from '@api/helpers/utils/sort/sort.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { MarketplaceApiClient } from '@api/marketplace-integration/marketplace-api-client';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import type { IPromptBrandContext } from '@api/shared/interfaces/prompt/prompt.interface';
 import { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import {
   ActivitySource,
+  PromptCategory,
   PromptStatus,
   SystemPromptKey,
 } from '@genfeedai/contracts';
@@ -110,13 +109,10 @@ export class PromptsController {
     private readonly promptsService: PromptsService,
     private readonly ingredientsService: IngredientsService,
     private readonly loggerService: LoggerService,
-    private readonly openRouterService: OpenRouterService,
+    private readonly promptEnhancementService: PromptEnhancementService,
     private readonly websocketService: NotificationsPublisherService,
-    @Optional() readonly _templatesService?: TemplatesService,
     @Optional()
     private readonly marketplaceApiClient?: MarketplaceApiClient,
-    @Optional()
-    private readonly skillRuntimeService?: SkillRuntimeService,
   ) {}
 
   @Post()
@@ -190,15 +186,19 @@ export class PromptsController {
       {
         creditsUtilsService: this.creditsUtilsService,
         loggerService: this.loggerService,
-        openRouterService: this.openRouterService,
+        promptEnhancementService: this.promptEnhancementService,
         promptsService: this.promptsService,
-        skillRuntimeService: this.skillRuntimeService,
-        templatesService: this._templatesService,
         websocketService: this.websocketService,
       },
       {
         brandId: createPromptDto.brandId,
         chargedCredits,
+        contentType:
+          normalizedType === PromptCategory.MODELS_PROMPT_IMAGE
+            ? 'image'
+            : normalizedType === PromptCategory.MODELS_PROMPT_VIDEO
+              ? 'video'
+              : undefined,
         organizationId: user.organizationId,
         promptId: data.id,
         requestedSkillSlugs: createPromptDto.requestedSkillSlugs,

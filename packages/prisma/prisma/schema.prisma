@@ -707,7 +707,6 @@ model User {
 }
 
 model Organization {
-  generationHarnessSettings GenerationHarnessSetting[]
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
   knowledgeSources KnowledgeSource[]
@@ -927,7 +926,6 @@ model McpApproval {
 }
 
 model Brand {
-  generationHarnessSettings GenerationHarnessSetting[]
   brandOsRevisionVersion Int @default(0)
   brandOsRevisions BrandOsRevision[]
   brandOsPublications BrandOsPublication[]
@@ -965,6 +963,7 @@ model Brand {
   isHighlighted            Boolean      @default(false)
   isFleetEnabled           Boolean      @default(false)
   defaultVideoModel        String?
+  isPromptEnhancementEnabled Boolean?
   defaultImageModel        String?
   defaultImageToVideoModel String?
   defaultMusicModel        String?
@@ -1606,6 +1605,7 @@ model OrganizationSetting {
   defaultModel                   String?
   defaultModelReview             String?
   defaultModelUpdate             String?
+  isPromptEnhancementEnabled      Boolean?
   defaultImageModel              String?
   defaultVideoModel              String?
   defaultImageToVideoModel       String?
@@ -7374,21 +7374,4 @@ model OutlierPostPerformance {
   @@index([organizationId, brandId, isDeleted, outlierRatio], map: "outlier_post_performances_org_brand_ratio_idx")
   @@index([organizationId, platform, accountId, outlierTier, isDeleted], map: "outlier_post_performances_org_platform_account_tier_idx")
   @@map("outlier_post_performances")
-}
-
-model GenerationHarnessSetting {
-  id String @id @default(cuid())
-  organizationId String
-  organization Organization @relation(fields: [organizationId], references: [id])
-  brandId String?
-  brand Brand? @relation(fields: [brandId], references: [id])
-  scopeKey String
-  isEnabled Boolean
-  isDeleted Boolean @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@unique([organizationId, scopeKey])
-  @@index([organizationId, isDeleted])
-  @@map("generation_harness_settings")
 }

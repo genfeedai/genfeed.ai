@@ -1,3 +1,5 @@
+import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
+
 vi.mock('@api/helpers/utils/response/response.util', () => ({
   returnBadRequest: vi.fn((response) => {
     throw new HttpException(response, 400);
@@ -89,6 +91,7 @@ describe('PromptsController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [PromptsController],
       providers: [
+        PromptEnhancementService,
         {
           provide: PromptsService,
           useValue: mockPromptsService,
@@ -177,6 +180,7 @@ describe('PromptsController', () => {
           expect.objectContaining({
             model: AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE,
           }),
+          undefined,
         ),
       );
       expect(result).toBeDefined();

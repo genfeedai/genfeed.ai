@@ -1,5 +1,4 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
-import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -14,13 +13,13 @@ import {
 import {
   readMediaAssetUrl,
   readMediaResponseString,
+  readMediaResponseValue,
   readUsableCdnAssetUrl,
   toMediaResponseRecord,
 } from '@api/services/agent-orchestrator/tools/agent-media-generation-response-readers';
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { ContentQualityScorerService } from '@api/services/content-quality/content-quality-scorer.service';
-import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
 import {
   IngredientCategory,
   RouterPriority,
@@ -37,7 +36,6 @@ import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable, Optional } from '@nestjs/common';
-import { ModuleRef } from '@nestjs/core';
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -58,10 +56,6 @@ export class AgentMediaAssetGenerationService {
     readonly _brandsService: AgentBrandsServiceLike,
     @Optional()
     private readonly contentQualityScorerService?: ContentQualityScorerService,
-    @Optional()
-    private readonly harnessGenerationService?: HarnessGenerationService,
-    @Optional()
-    private readonly moduleRef?: ModuleRef,
     @Optional()
     private readonly personasService?: PersonasService,
     @Optional()
@@ -147,12 +141,7 @@ export class AgentMediaAssetGenerationService {
     if ('error' in scopedPrompt) {
       return scopedPrompt.error;
     }
-    const prompt = await this.applyBrandHarnessToPrompt({
-      contentType: 'image',
-      ctx,
-      prompt: scopedPrompt.prompt,
-      topic: rawPrompt.slice(0, 120),
-    });
+    const prompt = scopedPrompt.prompt;
     const promptPreview = rawPrompt.substring(0, 80);
     const imageUrl =
       (params.imageUrl as string | undefined) || ctx.attachmentUrls?.[0];
@@ -183,6 +172,7 @@ export class AgentMediaAssetGenerationService {
       response = toMediaResponseRecord(
         await this.generationGateway.generateImage({
           body,
+          originalPrompt: rawPrompt,
           principal: this.toPrincipal(ctx),
         }),
       );
@@ -249,7 +239,12 @@ export class AgentMediaAssetGenerationService {
       promptPreview,
       onboardingNextActions,
     );
-    return this.withGenerationReceipt(result, scopedPrompt.receipt, 'image');
+    return this.withGenerationReceipt(
+      result,
+      scopedPrompt.receipt,
+      'image',
+      response,
+    );
   }
 
   private buildImageGenerationBody(input: {
@@ -276,6 +271,9 @@ export class AgentMediaAssetGenerationService {
       text: input.prompt,
       waitForCompletion: false,
       width: dimensions.width,
+      ...(typeof input.params.harness === 'boolean'
+        ? { harness: input.params.harness }
+        : {}),
       ...(requestedOutputs ? { outputs: requestedOutputs } : {}),
       ...(input.ctx.brandId ? { brandId: input.ctx.brandId } : {}),
       ...(input.ctx.runId ? { workflowExecutionId: input.ctx.runId } : {}),
@@ -463,12 +461,7 @@ export class AgentMediaAssetGenerationService {
     if ('error' in scopedPrompt) {
       return scopedPrompt.error;
     }
-    const prompt = await this.applyBrandHarnessToPrompt({
-      contentType: 'video',
-      ctx,
-      prompt: scopedPrompt.prompt,
-      topic: rawPrompt.slice(0, 120),
-    });
+    const prompt = scopedPrompt.prompt;
     const body = this.buildVideoBody({
       audioUrl,
       ctx,
@@ -489,10 +482,12 @@ export class AgentMediaAssetGenerationService {
     });
     const promptPreview = rawPrompt.substring(0, 80);
     let response: Record<string, unknown>;
+    if (typeof params.harness === 'boolean') body.harness = params.harness;
     try {
       response = toMediaResponseRecord(
         await this.generationGateway.generateVideo({
           body,
+          originalPrompt: rawPrompt,
           principal: this.toPrincipal(ctx),
         }),
       );
@@ -568,6 +563,7 @@ export class AgentMediaAssetGenerationService {
       },
       scopedPrompt.receipt,
       'video',
+      response,
     );
   }
 
@@ -702,38 +698,6 @@ export class AgentMediaAssetGenerationService {
         : [],
       success: true,
     };
-  }
-
-  private async applyBrandHarnessToPrompt(params: {
-    contentType: 'image' | 'video';
-    ctx: ToolExecutionContext;
-    prompt: string;
-    topic?: string;
-  }): Promise<string> {
-    const harnessGenerationService = this.resolveHarnessGenerationService();
-    if (!harnessGenerationService || !params.ctx.brandId) {
-      return params.prompt;
-    }
-    try {
-      return await harnessGenerationService.applyToMediaPrompt({
-        brandId: params.ctx.brandId,
-        contentType: params.contentType,
-        organizationId: params.ctx.organizationId,
-        prompt: params.prompt,
-        topic: params.topic,
-      });
-    } catch {
-      return params.prompt;
-    }
-  }
-
-  private resolveHarnessGenerationService():
-    | HarnessGenerationService
-    | undefined {
-    if (this.harnessGenerationService) {
-      return this.harnessGenerationService;
-    }
-    return resolveOptionalProvider(this.moduleRef, HarnessGenerationService);
   }
 
   private buildVideoBody(params: {
@@ -899,12 +863,17 @@ export class AgentMediaAssetGenerationService {
       | { brandId: string; isPersisted: false; sources: unknown[] }
       | undefined,
     kind: 'image' | 'video',
+    response: Record<string, unknown>,
   ): AgentToolResult {
     return {
       ...result,
       data: {
         ...(result.data ?? {}),
         kind,
+        generationHarness: readMediaResponseValue(
+          response,
+          'generationHarness',
+        ),
         ...(receipt ? { contextReceipt: receipt } : {}),
       },
     };

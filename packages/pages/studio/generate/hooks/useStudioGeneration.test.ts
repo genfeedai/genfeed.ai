@@ -192,6 +192,31 @@ describe('resolveModelKey', () => {
 
 describe('useStudioGeneration request payloads', () => {
   it.each(['image', 'video'] as const)(
+    'forwards a per-request override to %s without making it sticky',
+    async (type) => {
+      const { result } = renderStudioGeneration({ type });
+      await act(async () => {
+        await result.current.submit('Reviewed result', {}, { harness: false });
+      });
+      const post = type === 'image' ? mockImagesPost : mockVideosPost;
+      expect(post.mock.calls[0]?.[0]).toMatchObject({ harness: false });
+      await act(async () => {
+        await result.current.submit('Other prompt');
+      });
+      expect(post.mock.calls[1]?.[0]).not.toHaveProperty('harness');
+    },
+  );
+
+  it('does not forward a media enhancement override to music generation', async () => {
+    const { result } = renderStudioGeneration({ type: 'music' });
+    await act(async () => {
+      await result.current.submit('Music prompt', {}, { harness: false });
+    });
+    expect(mockMusicsPost).toHaveBeenCalled();
+    expect(mockMusicsPost.mock.calls[0]?.[0]).not.toHaveProperty('harness');
+  });
+
+  it.each(['image', 'video'] as const)(
     'preserves blacklist entries and tag IDs when submitting %s',
     async (type) => {
       const blacklist = ['text, logos', 'watermark'];

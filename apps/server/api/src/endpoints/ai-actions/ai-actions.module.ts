@@ -3,6 +3,7 @@ import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
+import { PromptEnhancementModule } from '@api/services/prompt-enhancement/prompt-enhancement.module';
 import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
@@ -10,6 +11,7 @@ import { Module } from '@nestjs/common';
   controllers: [AiActionsController],
   exports: [AiActionsService],
   imports: [
+    PromptEnhancementModule,
     AgentContextAssemblyModule,
     ByokModule,
     LoggerModule,

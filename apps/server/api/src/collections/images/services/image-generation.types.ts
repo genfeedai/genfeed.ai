@@ -9,6 +9,7 @@ import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { ModelProvider } from '@genfeedai/contracts';
 import type { ImageGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 
 export type ImageGenerationProvider =
   | 'genfeedai'
@@ -43,6 +44,8 @@ export type ImageGenerationSavedMetadata =
   ImageGenerationSaveDocumentsResult['metadataData'];
 
 export interface ImageGenerationContext {
+  generationHarness?: GenerationHarnessReceipt;
+  providerInput?: Record<string, unknown>;
   brand: ImageGenerationResolvedBrand;
   brandPromptBranding: ReturnType<typeof buildPromptBrandingFromBrand>;
   briefEvidence?: GenerationBriefPersistedEvidence;
@@ -87,6 +90,7 @@ export interface ImageGenerationCompletionPlan {
 }
 
 export interface ImageGenerationProviderRequest {
+  providerInput?: Record<string, unknown>;
   brandPromptBranding: ImageGenerationContext['brandPromptBranding'];
   compiledDispatch?: ImageGenerationBriefDispatch;
   createImageDto: CreateImageDto;

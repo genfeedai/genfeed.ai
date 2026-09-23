@@ -151,6 +151,11 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'content',
   },
   {
+    name: 'enhance_prompt',
+    surfaces: ['agent', 'mcp'],
+    toolset: 'generation',
+  },
+  {
     name: 'get_generation_settings',
     surfaces: ['agent', 'mcp'],
     toolset: 'generation',

@@ -6,6 +6,10 @@ import {
 import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import {
+  PROMPT_ENHANCEMENT_MODEL,
+  PromptEnhancementService,
+} from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException } from '@nestjs/common';
@@ -21,6 +25,7 @@ describe('AiActionsService', () => {
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
+        PromptEnhancementService,
         AiActionsService,
         {
           provide: AgentContextAssemblyService,
@@ -209,6 +214,45 @@ describe('AiActionsService', () => {
       const result = await service.execute('org_123', dto);
 
       expect(result.result).toBe('Trimmed result');
+    });
+
+    it('delegates Enhance to the shared core while preserving assembled context and BYOK', async () => {
+      const dto: ExecuteAiActionDto = {
+        action: AiActionType.ENHANCE_PROMPT,
+        content: 'Original',
+        context: { category: 'MODELS_PROMPT_IMAGE' },
+      };
+      contextAssemblyService.assembleContext.mockResolvedValue({
+        brand: {},
+      } as never);
+      contextAssemblyService.buildSystemPrompt.mockReturnValue(
+        'Existing brand preamble',
+      );
+      byokService.resolveApiKey.mockResolvedValue({
+        apiKey: 'byok-fixture',
+      } as never);
+      openRouterService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Enhanced' } }],
+        usage: { total_tokens: 12 },
+      } as never);
+      const result = await service.execute('org_123', dto);
+      expect(result).toEqual({
+        result: 'Enhanced',
+        tokensUsed: 12,
+        isByok: true,
+      });
+      expect(openRouterService.chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: PROMPT_ENHANCEMENT_MODEL,
+          messages: [
+            expect.objectContaining({
+              content: expect.stringContaining('Existing brand preamble'),
+            }),
+            { content: 'Original', role: 'user' },
+          ],
+        }),
+        'byok-fixture',
+      );
     });
 
     it('includes cinematography lexicon guidance for enhance-prompt', async () => {

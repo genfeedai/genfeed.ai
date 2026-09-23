@@ -3,6 +3,7 @@
 import { IngredientStatus } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import type {
+  BaseGenerationPayload,
   GenerationResponse,
   SocketResult,
 } from '@genfeedai/contracts/interfaces/content/generation-payload.interface';
@@ -67,6 +68,7 @@ export interface UseStudioGenerationReturn {
   submit: (
     promptText: string,
     references?: StudioGenerationReferences,
+    options?: Pick<BaseGenerationPayload, 'harness'>,
   ) => Promise<void>;
 }
 
@@ -501,7 +503,11 @@ export function useStudioGeneration({
   ]);
 
   const submit = useCallback(
-    async (promptText: string, references: StudioGenerationReferences = {}) => {
+    async (
+      promptText: string,
+      references: StudioGenerationReferences = {},
+      options?: Pick<BaseGenerationPayload, 'harness'>,
+    ) => {
       if (submittingRef.current) {
         return;
       }
@@ -590,7 +596,12 @@ export function useStudioGeneration({
           case 'image': {
             const service = await getImagesService();
             const payload = buildImagePayload(
-              buildBaseGenerationPayload(promptData, modelKey, brandId),
+              {
+                ...buildBaseGenerationPayload(promptData, modelKey, brandId),
+                ...(options?.harness !== undefined
+                  ? { harness: options.harness }
+                  : {}),
+              },
               promptData,
             );
             const data = (await service.post(payload)) as GenerationResponse;
@@ -606,7 +617,16 @@ export function useStudioGeneration({
               videoReferences: references.videoReferenceIds,
             };
             const payload = buildVideoPayload(
-              buildBaseGenerationPayload(videoPromptData, modelKey, brandId),
+              {
+                ...buildBaseGenerationPayload(
+                  videoPromptData,
+                  modelKey,
+                  brandId,
+                ),
+                ...(options?.harness !== undefined
+                  ? { harness: options.harness }
+                  : {}),
+              },
               videoPromptData,
             );
             const data = (await service.post(payload)) as GenerationResponse;

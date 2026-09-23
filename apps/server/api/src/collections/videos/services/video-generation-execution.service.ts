@@ -257,7 +257,10 @@ export class VideoGenerationExecutionService {
       ),
       duration: context.createVideoDto.duration,
       extension: MetadataExtension.MP4,
-      generationPrompt: context.promptData.original,
+      generationPrompt:
+        context.generationHarness?.enhancedPrompt ??
+        context.promptData.original,
+      generationHarness: context.generationHarness,
       generationSeed: context.createVideoDto.seed,
       ...(context.generationSource
         ? { generationSource: context.generationSource }
