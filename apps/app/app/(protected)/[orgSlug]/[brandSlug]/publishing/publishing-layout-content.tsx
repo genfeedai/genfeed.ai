@@ -206,15 +206,16 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   return (
     <PostsLayoutContext.Provider value={mainContextValue}>
       <Container
+        // Page-width container: the toolbar compacts when the inspector
+        // narrows the page (see the `@…/publishing:` tiers below and in the
+        // posts library toolbar) instead of wrapping onto a second row.
+        className="@container/publishing"
         label="Publishing"
         description="Manage and publish across platforms."
         icon={Newspaper}
         titleVisibility="sr-only"
         right={
-          // One row that compacts as it narrows (e.g. inspector open): the
-          // filters node shrinks and "New post" collapses to its icon, instead
-          // of wrapping the view toggles onto a second line.
-          <div className="@container/publishing-actions flex min-w-0 flex-1 items-center justify-end gap-2">
+          <div className="flex min-w-0 items-center justify-end gap-2">
             {filtersNode}
             {viewToggleNode}
             {exportNode}
@@ -234,7 +235,7 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                   ariaLabel="New post"
                   icon={<Plus className="size-4" />}
                   label={
-                    <span className="hidden @[60rem]/publishing-actions:inline">
+                    <span className="hidden @[64rem]/publishing:inline">
                       New post
                     </span>
                   }
