@@ -124,17 +124,15 @@ describe('ApifyRunBudgetService', () => {
             const ambiguous = Math.min(charge, outstanding);
             if (ambiguous > 0) nextProvisional += ambiguous;
           }
-          if (
-            outstanding === 0 &&
-            nextProvisional > 0 &&
-            settled >= nextProvisional &&
-            next >= nextProvisional
-          ) {
-            nextRecognized = Math.min(
-              settled,
-              nextRecognized + nextProvisional,
-            );
-            next -= nextProvisional;
+          const unexplained = Math.max(0, settled - nextRecognized);
+          if (outstanding === 0 && nextProvisional > 0) {
+            if (unexplained >= nextProvisional && next >= nextProvisional) {
+              nextRecognized = Math.min(
+                settled,
+                nextRecognized + nextProvisional,
+              );
+              next -= nextProvisional;
+            }
             nextProvisional = 0;
           }
           counters[usageKey] = next;

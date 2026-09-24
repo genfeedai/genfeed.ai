@@ -121,7 +121,31 @@ redis.call('HSET', KEYS[2], 'booksReserved', '1')
 return 1
 `;
 
+// A provisional hold comes off the counter only when settled actuals that
+// are not already recognized cover that whole hold. Recognized dollars
+// stay explained. When the books are closed and this capacity does not
+// cover the hold, the hold is external: it stays on the counter and stops
+// being provisional, so a later settlement cannot spend it again.
+const RELEASE_UNRECOGNIZED_HOLD_SCRIPT = `
+local function releaseUnrecognizedHold(booked, held, known)
+  if held <= 0 then return held, known end
+  local unexplained = booked - known
+  if unexplained < 0 then unexplained = 0 end
+  if unexplained >= held and current >= held then
+    local nextRecognized = known + held
+    if nextRecognized > booked then nextRecognized = booked end
+    redis.call('INCRBY', KEYS[1], string.format('%.0f', -held))
+    redis.call('SET', KEYS[6], string.format('%.0f', nextRecognized), 'PX', ttl)
+    current = current - held
+    known = nextRecognized
+  end
+  redis.call('SET', KEYS[5], '0', 'PX', ttl)
+  return 0, known
+end
+`;
+
 const NOTE_SETTLED_RESEARCH_RESERVATION_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+${RELEASE_UNRECOGNIZED_HOLD_SCRIPT}
 if redis.call('TYPE', KEYS[2]).ok ~= 'hash' then return 0 end
 if redis.call('HGET', KEYS[2], 'booksSettled') == '1' then return 2 end
 if redis.call('HGET', KEYS[2], 'state') ~= 'settled' then return 0 end
@@ -140,24 +164,14 @@ if provisional == nil or recognized == nil then return 0 end
 redis.call('SET', KEYS[3], string.format('%.0f', outstandingNow), 'PX', ttl)
 redis.call('SET', KEYS[4], string.format('%.0f', settledNow), 'PX', ttl)
 redis.call('HSET', KEYS[2], 'booksSettled', '1')
--- Release the ambiguous hold only when booked actuals cover all of it.
--- Those dollars are already in the provider snapshot, so mark them
--- recognized. Otherwise a later refresh would treat our own charge as new
--- external spend. A hold we keep is external and must not be released by
--- a later settlement, so it stops being provisional.
-if outstandingNow == 0 and provisional > 0 then
-  if settledNow >= provisional and current >= provisional then
-    local nextRecognized = recognized + provisional
-    if nextRecognized > settledNow then nextRecognized = settledNow end
-    redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
-    redis.call('SET', KEYS[6], string.format('%.0f', nextRecognized), 'PX', ttl)
-  end
-  redis.call('SET', KEYS[5], '0', 'PX', ttl)
+if outstandingNow == 0 then
+  provisional, recognized = releaseUnrecognizedHold(settledNow, provisional, recognized)
 end
 return 1
 `;
 
 const IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+${RELEASE_UNRECOGNIZED_HOLD_SCRIPT}
 local provider = integer(ARGV[1])
 if provider == nil then return 0 end
 local settled = integer(redis.call('GET', KEYS[3]) or '0')
@@ -184,8 +198,9 @@ end
 -- absorbed yet is our own run appearing at the provider. It is not new
 -- external spend, including after a nonzero external baseline.
 -- The remainder is held immediately. The slice inside the open cap is
--- provisional and comes back out only when booked actuals cover that
--- slice. Dollars above the cap stay.
+-- provisional and comes back out only when unsettled actuals cover that
+-- whole slice. Recognized dollars cannot explain a new hold. Dollars
+-- above the cap stay.
 local unseen = settled - recognized
 if unseen < 0 then unseen = 0 end
 local explained = growth
@@ -208,15 +223,8 @@ if explained > 0 then
   redis.call('SET', KEYS[6], string.format('%.0f', recognized), 'PX', ttl)
 end
 redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
-if
-  outstanding == 0 and provisional > 0 and settled >= provisional and
-  current >= provisional
-then
-  local nextRecognized = recognized + provisional
-  if nextRecognized > settled then nextRecognized = settled end
-  redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
-  redis.call('SET', KEYS[5], '0', 'PX', ttl)
-  redis.call('SET', KEYS[6], string.format('%.0f', nextRecognized), 'PX', ttl)
+if outstanding == 0 then
+  provisional, recognized = releaseUnrecognizedHold(settled, provisional, recognized)
 end
 if baselined then return {3} end
 if charge > 0 then return {1, string.format('%.0f', charge)} end
@@ -424,7 +432,8 @@ export class CacheService {
   /**
    * Fold provider-account usage into the hosted counter. New provider
    * dollars are held immediately. The slice inside an open reservation cap
-   * is provisional and comes back out only when booked actuals cover it.
+   * is provisional and comes back out only when unsettled actuals cover
+   * that whole slice. Recognized dollars cannot explain a new hold.
    * Dollars above that cap stay. A reservation release never drops the
    * counter below provider usage already observed.
    */
