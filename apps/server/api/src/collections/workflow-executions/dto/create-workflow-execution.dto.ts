@@ -9,7 +9,9 @@ import {
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  IsDateString,
   IsEnum,
+  IsIn,
   IsInt,
   IsObject,
   IsOptional,
@@ -71,6 +73,18 @@ export class UpdateWorkflowExecutionDto {
 }
 
 export class WorkflowExecutionQueryDto extends BaseQueryDto {
+  @IsIn(['statistics'])
+  @IsOptional()
+  readonly view?: 'statistics';
+
+  @IsDateString()
+  @IsOptional()
+  readonly dayStart?: string;
+
+  @IsDateString()
+  @IsOptional()
+  readonly dayEnd?: string;
+
   @IsEntityId()
   @IsOptional()
   @ApiProperty({ description: 'Filter by workflow ID', required: false })

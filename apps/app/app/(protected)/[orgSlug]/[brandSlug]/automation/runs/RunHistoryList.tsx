@@ -3,6 +3,7 @@
 import { ComponentSize } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { RunHistoryListProps } from '@props/automation/run-history-list.props';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -15,7 +16,6 @@ import {
   formatExecutionDuration,
   formatExecutionRelativeTime,
   getExecutionCredits,
-  getExecutionLabel,
   getExecutionStatusLabel,
 } from './workflow-execution.helpers';
 
@@ -44,7 +44,10 @@ export default function RunHistoryList({
         render: (execution) => (
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {getExecutionLabel(execution, translate('unavailableWorkflow'))}
+              {getWorkflowExecutionLabel(
+                execution,
+                translate('unavailableWorkflow'),
+              )}
             </p>
             {execution.error ? (
               <p

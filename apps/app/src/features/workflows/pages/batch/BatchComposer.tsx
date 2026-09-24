@@ -6,6 +6,7 @@ import {
   formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import { getWorkflowLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
@@ -83,13 +84,6 @@ function getProgressPercent(execution: BatchExecutionSummary): number {
   );
 }
 
-function getWorkflowLabel(
-  workflowsById: Map<string, WorkflowSummary>,
-  workflowId: string,
-): string {
-  return workflowsById.get(workflowId)?.label ?? workflowId;
-}
-
 export default function BatchComposer({
   workflows,
   selectedWorkflowId,
@@ -130,7 +124,7 @@ export default function BatchComposer({
                 <SelectContent>
                   {workflows.map((workflow) => (
                     <SelectItem key={workflow.id} value={workflow.id}>
-                      {workflow.label || workflow.id}
+                      {getWorkflowLabel(workflow.label)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -294,7 +288,9 @@ export default function BatchComposer({
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-foreground">
-                      {getWorkflowLabel(workflowsById, execution.workflowId)}
+                      {getWorkflowLabel(
+                        workflowsById.get(execution.workflowId)?.label,
+                      )}
                     </p>
                     <p className="mt-1 text-xs text-muted-foreground">
                       <ClientFormattedDate

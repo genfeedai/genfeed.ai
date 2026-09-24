@@ -20,6 +20,7 @@ import type {
   ICredential,
   IWorkflowExecution,
 } from '@genfeedai/contracts/interfaces';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
@@ -358,9 +359,10 @@ function NeedsYouSurface({
                       value={getExecutionTimestamp(execution)}
                     />
                   }
-                  title={
-                    execution.workflow?.label ?? WORKFLOW_UNAVAILABLE_LABEL
-                  }
+                  title={getWorkflowExecutionLabel(
+                    execution,
+                    WORKFLOW_UNAVAILABLE_LABEL,
+                  )}
                   trailing={
                     <Button
                       asChild
@@ -798,18 +800,13 @@ export default function OperationalHomeSections({
     stats: executionStats,
   } = useWorkflowExecutions(
     { brandId, limit: 20, sort: '-createdAt' },
-    { enabled: Boolean(brandId) },
+    { organizationId, enabled: Boolean(brandId) },
   );
   const areExecutionsLoading = Boolean(brandId) && isWorkflowExecutionsLoading;
   const publishing = useHomePublications(organizationId, brandId);
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getBatchesService = useAuthedService((token: string) =>
     BatchesService.getInstance(token),
-  );
-  const activeExecutions = executions.filter(
-    (execution) =>
-      execution.status === WorkflowExecutionStatus.PENDING ||
-      execution.status === WorkflowExecutionStatus.RUNNING,
   );
   const failedExecutions = executions.filter(
     (execution) => execution.status === WorkflowExecutionStatus.FAILED,
@@ -866,13 +863,13 @@ export default function OperationalHomeSections({
           isLoading={areExecutionsLoading}
           label="Active"
           size="sm"
-          value={String(activeExecutions.length)}
+          value={String(executionStats.active)}
         />
         <MetricCard
           isLoading={areExecutionsLoading}
           label="Failed today"
           size="sm"
-          value={String(executionStats.failed)}
+          value={String(executionStats.failedToday)}
         />
         <MetricCard
           isLoading={credentialsLoading}

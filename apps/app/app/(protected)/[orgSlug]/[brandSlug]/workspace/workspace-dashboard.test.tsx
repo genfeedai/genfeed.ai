@@ -117,6 +117,8 @@ function makeStats(
     completed: 0,
     failed: 0,
     total: 0,
+    completedToday: 0,
+    failedToday: 0,
     totalCredits: 0,
     ...overrides,
   };
@@ -218,6 +220,8 @@ describe('workspace dashboard sections', () => {
           completed: 7,
           failed: 1,
           total: 13,
+          completedToday: 0,
+          failedToday: 0,
           totalCredits: 12.345,
         })}
         workspaceTasks={[

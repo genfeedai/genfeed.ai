@@ -1,4 +1,5 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import {
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
@@ -16,6 +17,7 @@ import {
   suppressWorkflowOutcomeNotification,
   type WorkflowExecutionCompletionRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
+import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import {
   composeEtaMetadata,
   readOptionalNumber,
@@ -25,6 +27,7 @@ import {
   type WorkflowExecutionProgressRow,
   type WorkflowExecutionProgressSnapshot,
 } from '@api/collections/workflow-executions/services/workflow-execution-runtime.util';
+import { readWorkflowExecutionSummary } from '@api/collections/workflow-executions/services/workflow-execution-summary.util';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere, withActionOriginMetadata } from '@api/index';
@@ -947,6 +950,20 @@ export class WorkflowExecutionsService extends BaseService<
     };
   }
 
+  getCustomerSummary(
+    organizationId: string,
+    query: WorkflowExecutionQueryDto,
+    dayStart: Date,
+    dayEnd: Date,
+  ) {
+    return readWorkflowExecutionSummary(
+      this.prisma,
+      buildCustomerExecutionWhere(organizationId, query),
+      dayStart,
+      dayEnd,
+    );
+  }
+
   @HandleErrors('get execution stats', 'workflow-executions')
   async getExecutionStats(
     workflowId: string,
@@ -959,7 +976,7 @@ export class WorkflowExecutionsService extends BaseService<
   }> {
     const executions = await this.prisma.workflowExecution.findMany({
       select: { durationMs: true, status: true },
-      where: scopedWhere(organizationId, { workflowId }),
+      where: buildCustomerExecutionWhere(organizationId, { workflowId }),
     });
 
     const total = executions.length;

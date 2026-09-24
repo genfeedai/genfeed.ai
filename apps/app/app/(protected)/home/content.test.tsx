@@ -202,6 +202,8 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
       completed: 0,
       failed: 0,
       total: 0,
+      completedToday: 0,
+      failedToday: 0,
       totalCredits: 0,
     },
   }),
