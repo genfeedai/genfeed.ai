@@ -166,4 +166,33 @@ describe('loadAuthorizedSkillVersions', () => {
     expect(loaded.has('skill-1')).toBe(false);
     expect(prisma.skillVersion.findMany).not.toHaveBeenCalled();
   });
+
+  it('drops a version row that belongs to a different skill', async () => {
+    const prisma = prismaFor({
+      assignments: [
+        {
+          skillId: 'skill-1',
+          skillVersionId: 'sv-assigned',
+          targetKind: 'organization',
+        },
+      ],
+      versions: [
+        {
+          contentHash: 'hash-sv-assigned',
+          id: 'sv-assigned',
+          instructionText: 'other skill',
+          skillId: 'skill-other',
+        },
+      ],
+    });
+
+    const loaded = await loadAuthorizedSkillVersions(
+      prisma as never,
+      actor,
+      [document],
+      new Set(),
+    );
+
+    expect(loaded.has('skill-1')).toBe(false);
+  });
 });
