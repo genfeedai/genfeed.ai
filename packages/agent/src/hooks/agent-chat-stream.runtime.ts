@@ -1,4 +1,5 @@
 import { isForeignRunEvent } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
+import { createProvisionalEventPool } from '@genfeedai/agent/hooks/agent-chat-stream.provisional';
 import type {
   AgentStreamEntry,
   AgentStreamRuntime,
@@ -39,6 +40,59 @@ const runtime = Object.assign(blankRuntime(), {
   disposeVisibleBridge: null as (() => void) | null,
 });
 
+const provisionalEvents = createProvisionalEventPool();
+const provisionalReceipts = new Map<
+  AgentStreamEntry,
+  { threadId: string; runId: string }
+>();
+function protectedProvisionalKeys() {
+  return new Set(
+    [...provisionalReceipts.values()].flatMap(({ threadId, runId }) => [
+      provisionalEvents.keyFor(threadId, runId),
+      provisionalEvents.keyFor(threadId),
+    ]),
+  );
+}
+function releaseProvisionalReceipt(entry: AgentStreamEntry) {
+  provisionalReceipts.delete(entry);
+  provisionalEvents.prune(protectedProvisionalKeys(), runtime.nextEntryId);
+}
+export function hasProvisionalAgentProgress(threadId: string, runId: string) {
+  return provisionalEvents.hasProgress(threadId, runId);
+}
+export function claimProvisionalAgentEvents(
+  entry: AgentStreamEntry,
+  threadId: string,
+  runId: string,
+) {
+  const claimed = provisionalEvents.claim(
+    threadId,
+    runId,
+    entry.createdAt,
+    protectedProvisionalKeys(),
+    runtime.nextEntryId,
+  );
+  entry.needsReconciliation ||= claimed.reconcile;
+  for (const { event, payload } of claimed.events) {
+    const handler = entry.handlers.get(event);
+    if (!handler) continue;
+    const data = payload as {
+      threadId?: string;
+      runId?: string;
+      inputRequestId?: string;
+    };
+    entry.bufferedEventsRef.current.push({
+      data: payload,
+      handler,
+      threadId: data.threadId,
+      runId: data.runId,
+      resolvedInputRequestId:
+        event === 'agent:input_resolved' ? data.inputRequestId : undefined,
+    });
+  }
+  releaseProvisionalReceipt(entry);
+}
+
 export function getAgentStreamRuntime() {
   return runtime;
 }
@@ -50,6 +104,8 @@ export function conversationProjection(state: AgentChatStore) {
     error: state.error,
     latestProposedPlan: state.latestProposedPlan,
     messages: state.messages,
+    messagesCursor: state.messagesCursor,
+    hasMoreMessages: state.hasMoreMessages,
     pendingInputRequest: state.pendingInputRequest,
     runStartedAt: state.runStartedAt,
     stream: state.stream,
@@ -158,20 +214,34 @@ export function createAgentStreamEntry(
       if (
         !owner ||
         !isCurrentAgentStreamEntry(owner) ||
-        owner.terminalAt !== null ||
         (!owner.isAwaitingRunIdRef.current &&
           (!next.activeRunId ||
-            next.activeRunId !== owner.activeStreamRunIdRef.current)) ||
+            next.activeRunId !==
+              (owner.activeStreamRunIdRef.current ??
+                owner.presentation.getState().activeRunId))) ||
         next.activeRunStatus === 'idle'
       )
         return;
       const patch: Partial<AgentChatStore> = {};
-      if (next.pendingInputRequest !== previous.pendingInputRequest)
+      if (
+        owner.terminalAt === null &&
+        next.pendingInputRequest !== previous.pendingInputRequest
+      )
         patch.pendingInputRequest = next.pendingInputRequest;
       if (next.messages !== previous.messages) patch.messages = next.messages;
-      if (next.activeRunStatus !== previous.activeRunStatus)
+      if (next.messagesCursor !== previous.messagesCursor)
+        patch.messagesCursor = next.messagesCursor;
+      if (next.hasMoreMessages !== previous.hasMoreMessages)
+        patch.hasMoreMessages = next.hasMoreMessages;
+      if (
+        owner.terminalAt === null &&
+        next.activeRunStatus !== previous.activeRunStatus
+      )
         patch.activeRunStatus = next.activeRunStatus;
-      if (next.stream.pendingUiActions !== previous.stream.pendingUiActions)
+      if (
+        owner.terminalAt === null &&
+        next.stream.pendingUiActions !== previous.stream.pendingUiActions
+      )
         patch.stream = {
           ...owner.presentation.getState().stream,
           pendingUiActions: next.stream.pendingUiActions,
@@ -185,6 +255,8 @@ export function createAgentStreamEntry(
     if (
       next.stream !== previous.stream ||
       next.messages !== previous.messages ||
+      next.messagesCursor !== previous.messagesCursor ||
+      next.hasMoreMessages !== previous.hasMoreMessages ||
       next.workEvents !== previous.workEvents ||
       next.pendingInputRequest !== previous.pendingInputRequest ||
       next.activeRunId !== previous.activeRunId ||
@@ -217,6 +289,7 @@ export function bindAgentStreamEntry(
   return true;
 }
 export function settleAgentStreamEntry(entry: AgentStreamEntry) {
+  releaseProvisionalReceipt(entry);
   if (!isCurrentAgentStreamEntry(entry)) return;
   if (entry.completionTimeoutRef.current)
     clearTimeout(entry.completionTimeoutRef.current);
@@ -229,6 +302,7 @@ export function settleAgentStreamEntry(entry: AgentStreamEntry) {
   pruneTerminalEntries();
 }
 export function disposeAgentStreamEntry(entry: AgentStreamEntry) {
+  releaseProvisionalReceipt(entry);
   entry.ownerGeneration += 1;
   entry.abortRef.current?.abort();
   runtime.entries.delete(entry.key);
@@ -248,7 +322,60 @@ function deliver(event: string, payload: unknown) {
     runId?: string;
     clientRequestId?: string;
   };
-  for (const entry of [...runtime.entries.values()]) {
+  const entries = [...runtime.entries.values()];
+  if (
+    event !== 'agent:turn_accepted' &&
+    data.threadId &&
+    !runtime.entries.has(data.threadId) &&
+    entries.some(
+      (entry) =>
+        entry.terminalAt === null && !entry.activeStreamThreadRef.current,
+    )
+  ) {
+    provisionalEvents.add(
+      event,
+      payload,
+      protectedProvisionalKeys(),
+      runtime.nextEntryId,
+    );
+  }
+  for (const entry of entries) {
+    if (!entry.activeStreamThreadRef.current) {
+      if (event === 'agent:turn_accepted') {
+        if (
+          data.clientRequestId !== entry.clientRequestId ||
+          !data.threadId ||
+          !data.runId ||
+          entry.terminalAt !== null
+        )
+          continue;
+        const receipt = provisionalReceipts.get(entry);
+        if (
+          receipt &&
+          (receipt.threadId !== data.threadId || receipt.runId !== data.runId)
+        )
+          continue;
+        if (!receipt)
+          provisionalReceipts.set(entry, {
+            threadId: data.threadId,
+            runId: data.runId,
+          });
+      } else {
+        const receipt = provisionalReceipts.get(entry);
+        if (
+          receipt &&
+          receipt.threadId === data.threadId &&
+          !isForeignRunEvent(data.runId, receipt.runId)
+        ) {
+          entry.hasProgress = true;
+          entry.revision += 1;
+          entry.presentation.setState((state) => ({
+            stream: { ...state.stream, acceptedReceipt: undefined },
+          }));
+        }
+        continue;
+      }
+    }
     if (
       entry.terminalAt !== null ||
       (entry.activeStreamThreadRef.current &&
@@ -318,6 +445,8 @@ export function subscribeAgentStreamEntry<T>(
   };
 }
 export function resetAgentStreamRuntime() {
+  provisionalReceipts.clear();
+  provisionalEvents.reset();
   for (const entry of [...runtime.entries.values()])
     disposeAgentStreamEntry(entry);
   for (const unsubscribe of runtime.physical.values()) unsubscribe();

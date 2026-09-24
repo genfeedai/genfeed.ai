@@ -6,7 +6,9 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import {
   bindAgentStreamEntry,
+  claimProvisionalAgentEvents,
   getAgentStreamRuntime,
+  hasProvisionalAgentProgress,
   isCurrentAgentStreamEntry,
   projectAgentStreamEntry,
   settleAgentStreamEntry,
@@ -337,6 +339,8 @@ export function createAgentStreamController(
       subscribe<AgentTurnAcceptedPayload>('agent:turn_accepted', (payload) => {
         if (
           payload.clientRequestId !== entry.clientRequestId ||
+          (!entry.activeStreamThreadRef.current &&
+            hasProvisionalAgentProgress(payload.threadId, payload.runId)) ||
           (entry.hasProgress &&
             (!entry.isAwaitingRunIdRef.current ||
               entry.needsReconciliation ||
@@ -548,6 +552,12 @@ export function createAgentStreamController(
         return;
       }
 
+      if (!entry.activeStreamThreadRef.current)
+        claimProvisionalAgentEvents(
+          entry,
+          response.threadId,
+          response.executionId,
+        );
       if (!bindAgentStreamEntry(entry, response.threadId)) return;
       entry.hasProgress =
         entry.needsReconciliation ||
@@ -846,6 +856,9 @@ export function createAgentStreamController(
         entry.needsReconciliation = false;
         presentationStore.setState({
           messages,
+          messagesCursor: null,
+          hasMoreMessages: false,
+          isLoadingOlderMessages: false,
           pendingInputRequest: mapSnapshotPendingInputRequest(snapshot),
           workEvents: mapSnapshotWorkEvents(snapshot),
           activeRunId: snapshot.activeRun?.runId ?? pending.runId,

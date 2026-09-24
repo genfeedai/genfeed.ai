@@ -312,6 +312,10 @@ it.each([2049, 1])(
       getMessages,
     });
     const sending = a.controller.sendMessage('A');
+    a.owner.presentation.setState({
+      messagesCursor: 'older-page',
+      hasMoreMessages: true,
+    });
     for (let i = 0; i < count; i++)
       emit('agent:token', 'a', {
         token: count === 1 ? 'x'.repeat(1_048_577) : 'x',
@@ -328,6 +332,10 @@ it.each([2049, 1])(
     );
     expect(a.owner.presentation.getState().stream.streamingContent).toBe('');
     expect(a.owner.completionTimeoutRef.current).toBeNull();
+    expect(a.owner.presentation.getState()).toMatchObject({
+      messagesCursor: null,
+      hasMoreMessages: false,
+    });
   },
 );
 it('ignores an overflow snapshot that resolves after a same-thread replacement', async () => {
@@ -510,4 +518,157 @@ it('cannot let an in-flight recovery erase a newly received question', async () 
     'awaiting_input',
   );
   expect(a.owner.completionTimeoutRef.current).toBeNull();
+});
+
+it.each([false, true])(
+  'retains independent pagination and older pages across navigation (terminal: %s)',
+  async (terminal) => {
+    useAgentChatStore
+      .getState()
+      .setMessagesPage({ messages: [], nextCursor: 'a-page-2', hasMore: true });
+    const a = entry('a');
+    await a.controller.sendMessage('A');
+    if (terminal) done('a');
+    useAgentChatStore.getState().setActiveThread('b');
+    useAgentChatStore
+      .getState()
+      .setMessagesPage({ messages: [], nextCursor: null, hasMore: false });
+    const b = entry('b');
+    await b.controller.sendMessage('B');
+    projectAgentStreamEntry(b.owner);
+    expect(useAgentChatStore.getState()).toMatchObject({
+      messagesCursor: null,
+      hasMoreMessages: false,
+    });
+    useAgentChatStore.getState().setActiveThread('a');
+    projectAgentStreamEntry(a.owner);
+    expect(useAgentChatStore.getState()).toMatchObject({
+      messagesCursor: 'a-page-2',
+      hasMoreMessages: true,
+    });
+    useAgentChatStore.getState().prependOlderMessages({
+      messages: [
+        { id: 'older-a', threadId: 'a', role: 'user', content: 'Older A' },
+      ],
+      nextCursor: 'a-page-3',
+      hasMore: true,
+    });
+    useAgentChatStore.getState().setActiveThread('b');
+    projectAgentStreamEntry(b.owner);
+    expect(useAgentChatStore.getState()).toMatchObject({
+      messagesCursor: null,
+      hasMoreMessages: false,
+    });
+    useAgentChatStore.getState().setActiveThread('a');
+    projectAgentStreamEntry(a.owner);
+    expect(useAgentChatStore.getState()).toMatchObject({
+      messagesCursor: 'a-page-3',
+      hasMoreMessages: true,
+    });
+    expect(useAgentChatStore.getState().messages[0].id).toBe('older-a');
+  },
+);
+
+it('keeps known A traffic out of an unknown B FIFO and replays B terminal last', async () => {
+  const a = entry('a');
+  await a.controller.sendMessage('A');
+  useAgentChatStore.getState().setActiveThread(null);
+  const ack = deferred<ReturnType<typeof accepted>>();
+  const getThreadSnapshot = vi.fn();
+  const b = entry(null, {
+    chatStream: vi.fn(() => ack.promise),
+    getThreadSnapshot,
+  });
+  const sending = b.controller.sendMessage('B');
+  emit('agent:token', 'b', { token: 'Own B' });
+  for (let i = 0; i < 2050; i++) emit('agent:token', 'a', { token: 'a' });
+  done('b');
+  ack.resolve(accepted('b'));
+  await sending;
+  expect(b.owner.needsReconciliation).toBe(false);
+  expect(getThreadSnapshot).not.toHaveBeenCalled();
+  expect(b.owner.presentation.getState().activeRunStatus).toBe('completed');
+  expect(b.owner.presentation.getState().messages.at(-1)?.content).toBe(
+    'answer-b',
+  );
+  expect(a.owner.presentation.getState().stream.isStreaming).toBe(true);
+});
+
+it('keeps two provisional FIFOs independent when one overflows', async () => {
+  useAgentChatStore.getState().setActiveThread(null);
+  const ackA = deferred<ReturnType<typeof accepted>>();
+  const ackB = deferred<ReturnType<typeof accepted>>();
+  const getThreadSnapshot = vi.fn().mockResolvedValue({
+    activeRun: { runId: 'run-a', status: 'completed' },
+    timeline: [],
+    pendingInputRequests: [],
+    pendingApprovals: [],
+  });
+  const a = entry(
+    null,
+    {
+      chatStream: vi.fn(() => ackA.promise),
+      getThreadSnapshot,
+      getMessages: vi.fn().mockResolvedValue([]),
+    },
+    'draft-a',
+  );
+  const sendingA = a.controller.sendMessage('A');
+  const b = entry(
+    null,
+    { chatStream: vi.fn(() => ackB.promise), getThreadSnapshot: vi.fn() },
+    'draft-b',
+  );
+  const sendingB = b.controller.sendMessage('B');
+  emit('agent:token', 'b', { token: 'Own B' });
+  emit('agent:token', 'a', { token: 'x'.repeat(1_048_577) });
+  expect(a.owner.needsReconciliation).toBe(false);
+  expect(b.owner.needsReconciliation).toBe(false);
+  done('b');
+  ackB.resolve(accepted('b'));
+  await sendingB;
+  expect(b.owner.presentation.getState().messages.at(-1)?.content).toBe(
+    'answer-b',
+  );
+  expect(b.owner.presentation.getState().activeRunStatus).toBe('completed');
+  ackA.resolve(accepted('a'));
+  await sendingA;
+  await Promise.resolve();
+  expect(getThreadSnapshot).toHaveBeenCalledWith('a');
+});
+
+it('keeps first accepted correlation protected after progress and a conflicting receipt', async () => {
+  useAgentChatStore.getState().setActiveThread(null);
+  const ack = deferred<ReturnType<typeof accepted>>();
+  const b = entry(
+    null,
+    { chatStream: vi.fn(() => ack.promise), getThreadSnapshot: vi.fn() },
+    'draft-protected',
+  );
+  const sending = b.controller.sendMessage('B');
+  emit('agent:token', 'b', { token: 'Before receipt' });
+  emit('agent:turn_accepted', 'b', {
+    clientRequestId: 'draft-protected',
+    organizationId: 'org',
+    userId: 'user',
+    acceptedAt: '2026-09-24T12:00:00Z',
+  });
+  expect(
+    b.owner.presentation.getState().stream.acceptedReceipt,
+  ).toBeUndefined();
+  emit('agent:turn_accepted', 'foreign', {
+    clientRequestId: 'draft-protected',
+    organizationId: 'org',
+    userId: 'user',
+    acceptedAt: '2026-09-24T12:00:00Z',
+  });
+  for (let i = 0; i < 60; i++)
+    emit('agent:token', `foreign-${i}`, { token: 'foreign' });
+  ack.resolve(accepted('b'));
+  await sending;
+  await vi.advanceTimersByTimeAsync(100);
+  expect(b.owner.needsReconciliation).toBe(false);
+  expect(b.owner.presentation.getState().stream.streamingContent).toBe(
+    'Before receipt',
+  );
 });
