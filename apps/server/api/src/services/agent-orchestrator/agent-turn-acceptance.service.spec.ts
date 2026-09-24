@@ -28,6 +28,8 @@ describe('AgentTurnAcceptanceService', () => {
     addMessage: vi.fn(),
   };
 
+  const streamPublisher = { publishTurnAccepted: vi.fn() };
+
   const threadEngine = { getSnapshot: vi.fn(), resolveInputRequest: vi.fn() };
   let service: AgentTurnAcceptanceService;
 
@@ -41,6 +43,7 @@ describe('AgentTurnAcceptanceService', () => {
       workflowRunner as never,
       agentMessagesService as never,
       threadEngine as never,
+      streamPublisher as never,
     );
     scopeService.prepareForTurn.mockResolvedValue({
       initialBrandId: 'brand-1',
@@ -72,6 +75,104 @@ describe('AgentTurnAcceptanceService', () => {
         }),
     );
     agentMessagesService.addMessage.mockResolvedValue({});
+  });
+
+  it('signals successful enqueue before a blocked user-message write or acknowledgement, without a worker', async () => {
+    let releaseEnqueue!: () => void;
+    let enteredEnqueue!: () => void;
+    let releaseMessage!: () => void;
+    let enteredMessage!: () => void;
+    const enqueueGate = new Promise<void>((resolve) => {
+      releaseEnqueue = resolve;
+    });
+    const enqueueEntered = new Promise<void>((resolve) => {
+      enteredEnqueue = resolve;
+    });
+    const messageGate = new Promise<void>((resolve) => {
+      releaseMessage = resolve;
+    });
+    const messageEntered = new Promise<void>((resolve) => {
+      enteredMessage = resolve;
+    });
+    workflowRunner.enqueueWorkflow.mockImplementationOnce(async () => {
+      enteredEnqueue();
+      await enqueueGate;
+      return { executionId: 'accepted-execution' };
+    });
+    agentMessagesService.addMessage.mockImplementationOnce(async () => {
+      enteredMessage();
+      await messageGate;
+      return {};
+    });
+    let acknowledged = false;
+    const turn = service
+      .accept(
+        { clientRequestId: 'accepted-request', content: 'Private prompt' },
+        { organizationId: 'org-1', userId: 'user-1' },
+      )
+      .then((result) => {
+        acknowledged = true;
+        return result;
+      });
+    try {
+      await enqueueEntered;
+      expect(streamPublisher.publishTurnAccepted).not.toHaveBeenCalled();
+      expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
+      releaseEnqueue();
+      await messageEntered;
+      expect(acknowledged).toBe(false);
+      expect(
+        streamPublisher.publishTurnAccepted,
+      ).toHaveBeenCalledExactlyOnceWith({
+        acceptedAt: expect.any(String),
+        clientRequestId: 'accepted-request',
+        organizationId: 'org-1',
+        runId: 'accepted-execution',
+        threadId: agentMessagesService.addMessage.mock.calls[0][0].room,
+        userId: 'user-1',
+      });
+      expect(
+        streamPublisher.publishTurnAccepted.mock.invocationCallOrder[0],
+      ).toBeLessThan(
+        agentMessagesService.addMessage.mock.invocationCallOrder[0],
+      );
+      expect(
+        Number.isNaN(
+          Date.parse(
+            streamPublisher.publishTurnAccepted.mock.calls[0][0].acceptedAt,
+          ),
+        ),
+      ).toBe(false);
+    } finally {
+      releaseEnqueue();
+      releaseMessage();
+      await turn;
+    }
+    expect(await turn).toMatchObject({
+      executionId: 'accepted-execution',
+      status: 'queued',
+    });
+  });
+
+  it('contains accepted publication failure and logs only a sanitized run identifier', async () => {
+    streamPublisher.publishTurnAccepted.mockRejectedValueOnce(
+      new Error('Bearer private-token Private prompt'),
+    );
+    workflowRunner.enqueueWorkflow.mockResolvedValueOnce({
+      executionId: 'run-1\n\t',
+    });
+    await expect(
+      service.accept(
+        { clientRequestId: 'failure-request', content: 'Private prompt' },
+        { organizationId: 'org-1', userId: 'user-1' },
+      ),
+    ).resolves.toMatchObject({ executionId: 'run-1\n\t', status: 'queued' });
+    expect(streamPublisher.publishTurnAccepted).toHaveBeenCalledOnce();
+    expect(agentMessagesService.addMessage).toHaveBeenCalledOnce();
+    expect(logger.warn).toHaveBeenCalledExactlyOnceWith(
+      'Agent turn accepted publication failed',
+      { runId: 'run-1' },
+    );
   });
 
   it.each(['snapshot', 'resolution'])(
@@ -352,6 +453,8 @@ describe('AgentTurnAcceptanceService', () => {
         { organizationId: 'org-1', userId: 'user-1' },
       ),
     ).rejects.toThrow('redis unavailable');
+    expect(streamPublisher.publishTurnAccepted).not.toHaveBeenCalled();
+    expect(agentMessagesService.addMessage).not.toHaveBeenCalled();
   });
 
   it('keeps the authorized existing thread and context version on retries', async () => {

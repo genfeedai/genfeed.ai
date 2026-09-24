@@ -447,6 +447,26 @@ describe('WebSocketGateway redis message dispatch', () => {
     });
   });
 
+  it('forwards the full turn accepted envelope to the user room through generic dispatch', () => {
+    const data = {
+      acceptedAt: '2026-09-24T10:00:00.000Z',
+      clientRequestId: 'request-1',
+      organizationId: 'org-1',
+      runId: 'run-1',
+      threadId: 'thread-1',
+      userId: USER_ID,
+    };
+    dispatch(
+      'agent-chat',
+      JSON.stringify({ data, type: 'agent:turn_accepted' }),
+    );
+    expect(serverTo).toHaveBeenCalledExactlyOnceWith(USER_ROOM);
+    expect(roomEmit).toHaveBeenCalledExactlyOnceWith(
+      'agent:turn_accepted',
+      data,
+    );
+  });
+
   it('ignores agent-chat events without a userId', () => {
     dispatch(
       'agent-chat',
