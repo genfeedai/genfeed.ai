@@ -78,6 +78,53 @@ describe('CacheService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('counter reservations', () => {
+    it('decodes atomic admission and terminal outcomes', async () => {
+      mockRedisClient.eval.mockResolvedValueOnce([1, '250000', '300000']);
+      await expect(
+        service.reserveCounterBudget('ledger', 'receipt', 4000000, 250000),
+      ).resolves.toEqual({
+        status: 'reserved',
+        reserved: 250000,
+        total: 300000,
+      });
+      mockRedisClient.eval.mockResolvedValueOnce(1).mockResolvedValueOnce(2);
+      await expect(
+        service.reconcileCounterReservation(
+          'ledger',
+          'receipt',
+          250000,
+          250000,
+        ),
+      ).resolves.toBe('settled');
+      await expect(
+        service.reconcileCounterReservation('ledger', 'receipt', 250000, 0),
+      ).resolves.toBe('duplicate');
+    });
+    it('fails closed before eval for invalid arguments and unavailable Redis', async () => {
+      await expect(
+        service.reserveCounterBudget('ledger', 'receipt', 0, 1),
+      ).resolves.toEqual({ status: 'unavailable' });
+      await expect(
+        service.reconcileCounterReservation('ledger', 'receipt', 1, NaN),
+      ).resolves.toBe('unavailable');
+      isClientReady = false;
+      await expect(
+        service.reserveCounterBudget('ledger', 'receipt', 10, 1),
+      ).resolves.toEqual({ status: 'unavailable' });
+      expect(mockRedisClient.eval).not.toHaveBeenCalled();
+    });
+    it('contains Redis errors', async () => {
+      mockRedisClient.eval.mockRejectedValue(new Error('offline'));
+      await expect(
+        service.reserveCounterBudget('ledger', 'receipt', 10, 1),
+      ).resolves.toEqual({ status: 'unavailable' });
+      await expect(
+        service.reconcileCounterReservation('ledger', 'receipt', 1, 0),
+      ).resolves.toBe('unavailable');
+    });
+  });
+
   describe('get', () => {
     it('returns parsed value', async () => {
       mockRedisClient.get.mockResolvedValue(JSON.stringify({ foo: 'bar' }));

@@ -57,8 +57,35 @@ describe('ApifyRunBudgetService', () => {
         return counters[key];
       }),
       get: vi.fn(async (key: string) => counters[key] ?? null),
-      set: vi.fn(async (key: string, value: number) => {
-        counters[key] = value;
+      reserveCounterBudget: vi.fn(
+        async (
+          key: string,
+          _receipt: string,
+          limit: number,
+          requested: number,
+        ) => {
+          if (counters[key] === undefined) return { status: 'unavailable' };
+          const reserved = Math.min(requested, limit - counters[key]);
+          if (reserved <= 0) return { status: 'exhausted' };
+          counters[key] += reserved;
+          return { status: 'reserved', reserved, total: counters[key] };
+        },
+      ),
+      reconcileCounterReservation: vi.fn(
+        async (
+          key: string,
+          receipt: string,
+          reserved: number,
+          actual: number,
+        ) => {
+          if (claims.has(receipt)) return 'duplicate';
+          claims.add(receipt);
+          counters[key] += actual - reserved;
+          return 'settled';
+        },
+      ),
+      initializeCounterBudget: vi.fn(async (key: string, value: number) => {
+        counters[key] ??= value;
         return true;
       }),
     };
@@ -101,7 +128,7 @@ describe('ApifyRunBudgetService', () => {
     );
 
     expect(decision.isAllowed).toBe(true);
-    expect(cacheService.incr).toHaveBeenCalledTimes(3);
+    expect(cacheService.incr).toHaveBeenCalledTimes(2);
   });
 
   it('sets an expiry on each counter so budgets roll over on their own', async () => {
@@ -173,7 +200,7 @@ describe('ApifyRunBudgetService', () => {
     expect(cacheService.incr).toHaveBeenCalledTimes(1);
   });
 
-  it('treats a non-positive cap as an explicitly disabled budget', async () => {
+  it('rejects a non-positive hosted cap', async () => {
     env.APIFY_MAX_RUNS_PER_HOUR = '0';
     env.APIFY_MAX_RUNS_PER_DAY = '0';
     env.APIFY_MAX_BILLING_PERIOD_USD = '0';
@@ -185,7 +212,7 @@ describe('ApifyRunBudgetService', () => {
       'test-token',
     );
 
-    expect(decision.isAllowed).toBe(true);
+    expect(decision.isAllowed).toBe(false);
     expect(cacheService.incr).not.toHaveBeenCalled();
   });
 
@@ -282,10 +309,10 @@ describe('ApifyRunBudgetService', () => {
 
     await service.consumeRun('hosted', 'apify/scraper', 'test-token');
 
-    const usageSet = cacheService.set.mock.calls.find(([key]) =>
-      String(key).startsWith('apify:billing-period-budget:hosted:'),
+    const usageSet = cacheService.initializeCounterBudget.mock.calls.find(
+      ([key]) => String(key).startsWith('apify:billing-period-budget:hosted:'),
     );
-    const ttl = usageSet?.[2]?.ttl as number | undefined;
+    const ttl = usageSet?.[2] as number | undefined;
     const secondsUntilReset = Math.ceil(
       (Date.parse('2026-09-26T23:59:59.999Z') - Date.now()) / 1000,
     );
@@ -374,6 +401,7 @@ describe('ApifyRunBudgetService', () => {
 
   it('retains and reports the reservation when Apify omits actual usage', async () => {
     const reservation = {
+      reservationKey: 'receipt',
       reservedMicroUsd: 250_000,
       usageKey: 'apify:billing-period-budget:hosted:2026-08-27',
     };
@@ -382,11 +410,93 @@ describe('ApifyRunBudgetService', () => {
 
     expect(cacheService.incr).not.toHaveBeenCalled();
     expect(loggerService.warn).toHaveBeenCalledWith(
-      'Apify actual usage unavailable; retaining the billing reservation',
-      {
-        reservedUsd: 0.25,
-        usageKey: reservation.usageKey,
-      },
+      'Apify billing reservation retained; verify receipt, actual usage and Redis budget storage',
     );
+  });
+
+  it.each(
+    [
+      'APIFY_MAX_RUNS_PER_HOUR',
+      'APIFY_MAX_RUNS_PER_DAY',
+      'APIFY_MAX_BILLING_PERIOD_USD',
+      'APIFY_MAX_TOTAL_CHARGE_USD_PER_RUN',
+    ].flatMap((key) =>
+      [
+        '0',
+        '-1',
+        'bad',
+        'NaN',
+        'Infinity',
+        ' ',
+        '9007199254740992',
+        '0.00000001',
+      ].map((value) => [key, value]),
+    ),
+  )('rejects invalid %s=%s before cache or HTTP', async (key, value) => {
+    env[key] = value;
+    const result = await build().consumeRun('hosted', 'actor', 'token');
+    expect(result.isAllowed).toBe(false);
+    expect(cacheService.incr).not.toHaveBeenCalled();
+    expect(httpService.get).not.toHaveBeenCalled();
+  });
+
+  it('settles zero delta once and retains actual overages', async () => {
+    const decision = await service.consumeRun('hosted', 'actor', 'token');
+    await service.reconcileRun(decision.reservation, 0.25);
+    await service.reconcileRun(decision.reservation, 0);
+    expect(counters[decision.reservation?.usageKey ?? '']).toBe(250_000);
+    const second = await service.consumeRun('hosted', 'actor', 'token');
+    await service.reconcileRun(second.reservation, 5);
+    expect(
+      (await service.consumeRun('hosted', 'actor', 'token')).isAllowed,
+    ).toBe(false);
+  });
+
+  it.each([undefined, NaN, Infinity, -1, Number.MAX_SAFE_INTEGER])(
+    'retains invalid actual usage %s',
+    async (actual) => {
+      const decision = await service.consumeRun('hosted', 'actor', 'token');
+      await service.reconcileRun(decision.reservation, actual);
+      expect(cacheService.reconcileCounterReservation).not.toHaveBeenCalled();
+      expect(counters[decision.reservation?.usageKey ?? '']).toBe(250_000);
+    },
+  );
+  it('preserves an existing cycle ledger when initialization markers are absent', async () => {
+    const key = 'apify:billing-period-budget:hosted:2026-08-27';
+    counters[key] = 3_900_000;
+    const decision = await service.consumeRun('hosted', 'actor', 'token');
+    expect(decision.maxTotalChargeUsd).toBe(0.1);
+    expect(counters[key]).toBe(4_000_000);
+  });
+
+  it.each([-1, NaN, Infinity, Number.MAX_SAFE_INTEGER])(
+    'rejects invalid provider baseline %s before initialization',
+    async (usage) => {
+      httpService.get.mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              totalUsageCreditsUsdAfterVolumeDiscount: usage,
+              usageCycle: {
+                startAt: '2026-08-27T00:00:00.000Z',
+                endAt: '2026-09-26T23:59:59.999Z',
+              },
+            },
+          },
+        }),
+      );
+      expect(
+        (await service.consumeRun('hosted', 'actor', 'token')).isAllowed,
+      ).toBe(false);
+      expect(cacheService.initializeCounterBudget).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves BYOK behavior with invalid hosted monetary configuration', async () => {
+    env.APIFY_MAX_BILLING_PERIOD_USD = 'bad';
+    expect(
+      (await build().consumeRun('byok:org', 'actor', 'token')).isAllowed,
+    ).toBe(true);
+    expect(httpService.get).not.toHaveBeenCalled();
   });
 });

@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { CacheService } from '@api/services/cache/cache.service';
 import type {
   ApifyMonthlyUsageResponse,
@@ -45,6 +46,7 @@ export class ApifyRunBudgetService {
   private static readonly PRIOR_PERIOD_RETENTION_SECONDS = 90 * 24 * 60 * 60;
 
   private readonly constructorName: string = String(this.constructor.name);
+  private hasValidHostedLimits = true;
   private readonly limits: ApifyRunBudgetLimits;
   private hostedBillingPeriod?: {
     endAtMs: number;
@@ -98,6 +100,16 @@ export class ApifyRunBudgetService {
     actorId: string,
     token: string,
   ): Promise<ApifyRunBudgetDecision> {
+    if (
+      scope === ApifyRunBudgetService.HOSTED_SCOPE &&
+      !this.hasValidHostedLimits
+    ) {
+      return {
+        isAllowed: false,
+        reason:
+          'Apify hosted budget configuration is invalid; hosted actor starts fail closed',
+      };
+    }
     const now = new Date();
 
     const daily = await this.consumeWindow({
@@ -139,28 +151,29 @@ export class ApifyRunBudgetService {
       return;
     }
 
-    if (actualUsageUsd === undefined) {
-      this.loggerService.warn(
-        'Apify actual usage unavailable; retaining the billing reservation',
-        {
-          reservedUsd:
-            reservation.reservedMicroUsd /
-            ApifyRunBudgetService.MICRO_USD_PER_USD,
-          usageKey: reservation.usageKey,
-        },
-      );
+    if (
+      actualUsageUsd === undefined ||
+      !Number.isFinite(actualUsageUsd) ||
+      actualUsageUsd < 0 ||
+      !Number.isSafeInteger(this.toMicroUsd(actualUsageUsd)) ||
+      !reservation.reservationKey
+    ) {
+      this.reportRetainedReservation();
       return;
     }
+    const result = await this.cacheService.reconcileCounterReservation(
+      reservation.usageKey,
+      reservation.reservationKey,
+      reservation.reservedMicroUsd,
+      this.toMicroUsd(actualUsageUsd),
+    );
+    if (result === 'unavailable') this.reportRetainedReservation();
+  }
 
-    if (!Number.isFinite(actualUsageUsd) || actualUsageUsd < 0) {
-      return;
-    }
-
-    const actualMicroUsd = this.toMicroUsd(actualUsageUsd);
-    const delta = actualMicroUsd - reservation.reservedMicroUsd;
-    if (delta === 0) return;
-
-    await this.cacheService.incr(reservation.usageKey, delta);
+  private reportRetainedReservation(): void {
+    this.loggerService.warn(
+      'Apify billing reservation retained; verify receipt, actual usage and Redis budget storage',
+    );
   }
 
   private async consumeHostedBillingPeriod(
@@ -168,13 +181,6 @@ export class ApifyRunBudgetService {
     token: string,
     now: Date,
   ): Promise<ApifyRunBudgetDecision> {
-    if (
-      this.limits.maxBillingPeriodUsd <= 0 ||
-      this.limits.maxTotalChargeUsdPerRun <= 0
-    ) {
-      return { isAllowed: true };
-    }
-
     const period = await this.ensureHostedBillingPeriod(token, now);
     if (!period) {
       return {
@@ -187,7 +193,11 @@ export class ApifyRunBudgetService {
     const currentMicroUsd = await this.cacheService.get<number>(
       period.usageKey,
     );
-    if (typeof currentMicroUsd !== 'number') {
+    if (
+      typeof currentMicroUsd !== 'number' ||
+      !Number.isSafeInteger(currentMicroUsd) ||
+      currentMicroUsd < 0
+    ) {
       return {
         isAllowed: false,
         reason:
@@ -204,32 +214,24 @@ export class ApifyRunBudgetService {
     const configuredReservationMicroUsd = this.toMicroUsd(
       this.limits.maxTotalChargeUsdPerRun,
     );
-    const remainingMicroUsd = limitMicroUsd - currentMicroUsd;
-    const reservedMicroUsd = Math.min(
-      configuredReservationMicroUsd,
-      remainingMicroUsd,
-    );
-
-    if (reservedMicroUsd <= 0) {
-      return this.billingPeriodExhausted(actorId, period.usageKey);
-    }
-
-    const reservedTotal = await this.cacheService.incr(
+    const reservationKey = `${period.usageKey}:reservation:${randomUUID()}`;
+    const result = await this.cacheService.reserveCounterBudget(
       period.usageKey,
-      reservedMicroUsd,
+      reservationKey,
+      limitMicroUsd,
+      configuredReservationMicroUsd,
     );
-    if (reservedTotal <= 0) {
+    if (result.status === 'exhausted')
+      return this.billingPeriodExhausted(actorId, period.usageKey);
+    if (result.status === 'unavailable') {
       return {
         isAllowed: false,
         reason:
           'Apify hosted billing-period budget is unavailable; hosted actor starts fail closed',
       };
     }
-
-    if (reservedTotal > limitMicroUsd) {
-      await this.cacheService.incr(period.usageKey, -reservedMicroUsd);
-      return this.billingPeriodExhausted(actorId, period.usageKey);
-    }
+    const reservedMicroUsd = result.reserved;
+    const reservedTotal = result.total;
 
     await this.reportBillingThresholds(
       period.usageKey,
@@ -241,7 +243,11 @@ export class ApifyRunBudgetService {
       isAllowed: true,
       maxTotalChargeUsd:
         reservedMicroUsd / ApifyRunBudgetService.MICRO_USD_PER_USD,
-      reservation: { reservedMicroUsd, usageKey: period.usageKey },
+      reservation: {
+        reservationKey,
+        reservedMicroUsd,
+        usageKey: period.usageKey,
+      },
     };
   }
 
@@ -275,6 +281,8 @@ export class ApifyRunBudgetService {
         !Number.isFinite(endAtMs) ||
         !Number.isFinite(startAtMs) ||
         !Number.isFinite(currentUsageUsd) ||
+        currentUsageUsd < 0 ||
+        !Number.isSafeInteger(this.toMicroUsd(currentUsageUsd)) ||
         endAtMs < now.getTime() ||
         startAtMs > now.getTime()
       ) {
@@ -287,7 +295,6 @@ export class ApifyRunBudgetService {
         ApifyRunBudgetService.HOSTED_SCOPE,
         periodId,
       );
-      const initializationKey = `${usageKey}:initialized`;
       const secondsUntilPeriodEnd = Math.max(
         1,
         Math.ceil((endAtMs - now.getTime()) / 1000) + 1,
@@ -298,26 +305,12 @@ export class ApifyRunBudgetService {
       const ttlSeconds =
         secondsUntilPeriodEnd +
         ApifyRunBudgetService.PRIOR_PERIOD_RETENTION_SECONDS;
-      const claim = await this.cacheService.claimOnce(
-        initializationKey,
+      const initialized = await this.cacheService.initializeCounterBudget(
+        usageKey,
+        this.toMicroUsd(currentUsageUsd),
         ttlSeconds,
       );
-
-      if (claim === 'unavailable') return null;
-      if (claim === 'claimed') {
-        const initialized = await this.cacheService.set(
-          usageKey,
-          this.toMicroUsd(currentUsageUsd),
-          { ttl: ttlSeconds },
-        );
-        if (!initialized) {
-          await this.cacheService.del(initializationKey);
-          return null;
-        }
-      } else {
-        const initializedUsage = await this.cacheService.get<number>(usageKey);
-        if (typeof initializedUsage !== 'number') return null;
-      }
+      if (!initialized) return null;
 
       this.hostedBillingPeriod = { endAtMs, usageKey };
       return { usageKey };
@@ -502,6 +495,20 @@ export class ApifyRunBudgetService {
     }
 
     const parsed = Number(raw);
+    const effective =
+      key === 'APIFY_MAX_RUNS_PER_DAY' || key === 'APIFY_MAX_RUNS_PER_HOUR'
+        ? parsed
+        : this.toMicroUsd(parsed);
+    if (
+      (typeof raw !== 'string' && typeof raw !== 'number') ||
+      (typeof raw === 'string' && raw.trim() === '') ||
+      !Number.isFinite(parsed) ||
+      parsed <= 0 ||
+      !Number.isSafeInteger(effective) ||
+      effective <= 0
+    ) {
+      this.hasValidHostedLimits = false;
+    }
     return Number.isFinite(parsed) ? parsed : fallback;
   }
 }

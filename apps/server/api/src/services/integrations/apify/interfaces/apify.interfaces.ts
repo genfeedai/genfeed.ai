@@ -58,6 +58,7 @@ export interface ApifyRunBudgetDecision {
 }
 
 export interface ApifyRunBudgetReservation {
+  reservationKey: string;
   reservedMicroUsd: number;
   usageKey: string;
 }
