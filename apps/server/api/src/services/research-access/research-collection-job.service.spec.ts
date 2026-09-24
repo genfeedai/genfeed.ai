@@ -8,7 +8,7 @@ import {
 describe('ResearchCollectionJobService', () => {
   const findFirst = vi.fn();
   const create = vi.fn();
-  const updateMany = vi.fn();
+  const updateMany = vi.fn().mockResolvedValue({ count: 1 });
   const prisma = {
     researchCollectionJob: { create, findFirst, updateMany },
   } as unknown as PrismaService;

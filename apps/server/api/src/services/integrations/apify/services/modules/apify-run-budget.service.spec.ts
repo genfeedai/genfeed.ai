@@ -93,9 +93,11 @@ describe('ApifyRunBudgetService', () => {
           const snapshotKey = `${usageKey}:snapshot`;
           const settledKey = `${usageKey}:settled`;
           const provisionalKey = `${usageKey}:provisional`;
+          const recognizedKey = `${usageKey}:recognized`;
           const outstanding = counters[`${usageKey}:outstanding`] ?? 0;
           const settled = counters[settledKey] ?? 0;
           const provisional = counters[provisionalKey] ?? 0;
+          const recognized = counters[recognizedKey] ?? 0;
           const current = counters[usageKey] ?? 0;
           const snapshot = counters[snapshotKey];
           let growth = 0;
@@ -111,28 +113,37 @@ describe('ApifyRunBudgetService', () => {
           } else {
             growth = providerMicro - snapshot;
           }
+          const unseen = Math.max(0, settled - recognized);
+          const explained = Math.min(growth, unseen);
+          const charge = growth - explained;
           let next = current;
           let nextProvisional = provisional;
-          if (growth > 0) {
-            next += growth;
-            const ambiguous = Math.min(growth, outstanding);
+          let nextRecognized = recognized + explained;
+          if (charge > 0) {
+            next += charge;
+            const ambiguous = Math.min(charge, outstanding);
             if (ambiguous > 0) nextProvisional += ambiguous;
           }
-          counters[usageKey] = next;
-          counters[snapshotKey] = providerMicro;
-          counters[provisionalKey] = nextProvisional;
           if (
             outstanding === 0 &&
             nextProvisional > 0 &&
             settled >= nextProvisional &&
             next >= nextProvisional
           ) {
-            counters[usageKey] = next - nextProvisional;
-            counters[provisionalKey] = 0;
+            nextRecognized = Math.min(
+              settled,
+              nextRecognized + nextProvisional,
+            );
+            next -= nextProvisional;
+            nextProvisional = 0;
           }
+          counters[usageKey] = next;
+          counters[snapshotKey] = providerMicro;
+          counters[provisionalKey] = nextProvisional;
+          counters[recognizedKey] = nextRecognized;
           if (isBaselined) return { status: 'baselined' };
-          if (growth > 0) {
-            return { externalMicroUsd: growth, status: 'applied' };
+          if (charge > 0) {
+            return { externalMicroUsd: charge, status: 'applied' };
           }
           return { status: 'unchanged' };
         },

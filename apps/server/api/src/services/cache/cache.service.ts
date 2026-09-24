@@ -135,19 +135,23 @@ if outstanding < reserved or settled > MAX - actual then return 0 end
 local settledNow = settled + actual
 local outstandingNow = outstanding - reserved
 local provisional = integer(redis.call('GET', KEYS[5]) or '0')
-if provisional == nil then return 0 end
+local recognized = integer(redis.call('GET', KEYS[6]) or '0')
+if provisional == nil or recognized == nil then return 0 end
 redis.call('SET', KEYS[3], string.format('%.0f', outstandingNow), 'PX', ttl)
 redis.call('SET', KEYS[4], string.format('%.0f', settledNow), 'PX', ttl)
 redis.call('HSET', KEYS[2], 'booksSettled', '1')
--- The ambiguous hold comes out only when our booked actuals cover it.
--- A provider total above those actuals stays on the counter: the open
--- cap was not proof that spend was ours. Releasing it here, in the same
--- write that closes the reservation, means a later refresh is not required.
-if
-  outstandingNow == 0 and provisional > 0 and settledNow >= provisional and
-  current >= provisional
-then
-  redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
+-- Release the ambiguous hold only when booked actuals cover all of it.
+-- Those dollars are already in the provider snapshot, so mark them
+-- recognized. Otherwise a later refresh would treat our own charge as new
+-- external spend. A hold we keep is external and must not be released by
+-- a later settlement, so it stops being provisional.
+if outstandingNow == 0 and provisional > 0 then
+  if settledNow >= provisional and current >= provisional then
+    local nextRecognized = recognized + provisional
+    if nextRecognized > settledNow then nextRecognized = settledNow end
+    redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
+    redis.call('SET', KEYS[6], string.format('%.0f', nextRecognized), 'PX', ttl)
+  end
   redis.call('SET', KEYS[5], '0', 'PX', ttl)
 end
 return 1
@@ -159,7 +163,8 @@ if provider == nil then return 0 end
 local settled = integer(redis.call('GET', KEYS[3]) or '0')
 local outstanding = integer(redis.call('GET', KEYS[4]) or '0')
 local provisional = integer(redis.call('GET', KEYS[5]) or '0')
-if settled == nil or outstanding == nil or provisional == nil then return 0 end
+local recognized = integer(redis.call('GET', KEYS[6]) or '0')
+if settled == nil or outstanding == nil or provisional == nil or recognized == nil then return 0 end
 local snapshotRaw = redis.call('GET', KEYS[2])
 local growth = 0
 local baselined = false
@@ -175,35 +180,46 @@ else
   if provider < snapshot then return {4} end
   growth = provider - snapshot
 end
--- Open reservations are a cap, not incurred spend. Every new provider
--- dollar goes on the counter immediately, so a reservation release cannot
--- drop the ledger below usage the provider already reported.
--- Only the slice inside the cap is provisional. Dollars above the cap are
--- external and stay. The provisional slice comes back out when booked
--- actuals cover it; if the provider total is higher, it stays, so external
--- spend inside the cap is not erased and our own run is not billed twice.
-local ambiguous = growth
+-- Growth already explained by settled charges that the snapshot has not
+-- absorbed yet is our own run appearing at the provider. It is not new
+-- external spend, including after a nonzero external baseline.
+-- The remainder is held immediately. The slice inside the open cap is
+-- provisional and comes back out only when booked actuals cover that
+-- slice. Dollars above the cap stay.
+local unseen = settled - recognized
+if unseen < 0 then unseen = 0 end
+local explained = growth
+if explained > unseen then explained = unseen end
+local charge = growth - explained
+local ambiguous = charge
 if ambiguous > outstanding then ambiguous = outstanding end
-if growth > 0 then
-  if current > MAX - growth then return 0 end
+if charge > 0 then
+  if current > MAX - charge then return 0 end
   if ambiguous > 0 and provisional > MAX - ambiguous then return 0 end
-  redis.call('INCRBY', KEYS[1], string.format('%.0f', growth))
-  current = current + growth
+  redis.call('INCRBY', KEYS[1], string.format('%.0f', charge))
+  current = current + charge
   if ambiguous > 0 then
     provisional = provisional + ambiguous
     redis.call('SET', KEYS[5], string.format('%.0f', provisional), 'PX', ttl)
   end
+end
+if explained > 0 then
+  recognized = recognized + explained
+  redis.call('SET', KEYS[6], string.format('%.0f', recognized), 'PX', ttl)
 end
 redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
 if
   outstanding == 0 and provisional > 0 and settled >= provisional and
   current >= provisional
 then
+  local nextRecognized = recognized + provisional
+  if nextRecognized > settled then nextRecognized = settled end
   redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
   redis.call('SET', KEYS[5], '0', 'PX', ttl)
+  redis.call('SET', KEYS[6], string.format('%.0f', nextRecognized), 'PX', ttl)
 end
 if baselined then return {3} end
-if growth > 0 then return {1, string.format('%.0f', growth)} end
+if charge > 0 then return {1, string.format('%.0f', charge)} end
 return {2}
 `;
 
@@ -398,6 +414,7 @@ export class CacheService {
         `${usageKey}:outstanding`,
         `${usageKey}:settled`,
         `${usageKey}:provisional`,
+        `${usageKey}:recognized`,
       ],
       [],
       true,
@@ -426,12 +443,13 @@ export class CacheService {
     try {
       const result = await this.client.eval(
         IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT,
-        5,
+        6,
         usageKey,
         `${usageKey}:snapshot`,
         `${usageKey}:settled`,
         `${usageKey}:outstanding`,
         `${usageKey}:provisional`,
+        `${usageKey}:recognized`,
         String(providerMicroUsd),
       );
       if (Array.isArray(result) && result[0] === 1) {

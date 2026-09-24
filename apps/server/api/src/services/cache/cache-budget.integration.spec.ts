@@ -241,6 +241,7 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
     keys.add(`${ledger}:settled`);
     keys.add(`${ledger}:outstanding`);
     keys.add(`${ledger}:provisional`);
+    keys.add(`${ledger}:recognized`);
     await redis.set(ledger, '0', 'PX', 60_000);
     await services[0].initializeCounterBudget(ledger, 0, 60);
     await services[0].importHostedAccountUsage(ledger, 0);
@@ -282,6 +283,7 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
     keys.add(`${ledger}:settled`);
     keys.add(`${ledger}:outstanding`);
     keys.add(`${ledger}:provisional`);
+    keys.add(`${ledger}:recognized`);
     await redis.set(ledger, '0', 'PX', 60_000);
     await services[0].initializeCounterBudget(ledger, 0, 60);
     await services[0].importHostedAccountUsage(ledger, 0);
@@ -320,6 +322,7 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
       keys.add(`${ledger}:settled`);
       keys.add(`${ledger}:outstanding`);
       keys.add(`${ledger}:provisional`);
+      keys.add(`${ledger}:recognized`);
       await redis.set(ledger, '0', 'PX', 60_000);
       await services[0].initializeCounterBudget(ledger, 0, 60);
       await services[0].importHostedAccountUsage(ledger, 0);
@@ -355,4 +358,56 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
       });
     },
   );
+
+  it('does not import our charge again after a nonzero external baseline', async () => {
+    const ledger = key();
+    const first = key();
+    const second = key();
+    for (const suffix of [
+      'snapshot',
+      'settled',
+      'outstanding',
+      'provisional',
+      'recognized',
+    ]) {
+      keys.add(`${ledger}:${suffix}`);
+    }
+    await redis.set(ledger, '50', 'PX', 60_000);
+    await services[0].initializeCounterBudget(ledger, 50, 60);
+    expect(await services[0].importHostedAccountUsage(ledger, 50)).toEqual({
+      status: 'baselined',
+    });
+    await services[0].reserveCounterBudget(ledger, first, 1_000, 100);
+    await services[0].noteResearchReservation(ledger, first, 100);
+    expect(
+      await services[0].reconcileCounterReservation(ledger, first, 100, 20),
+    ).toBe('settled');
+    expect(
+      await services[0].noteSettledResearchReservation(ledger, first),
+    ).toBe('noted');
+    expect(await redis.get(ledger)).toBe('70');
+
+    expect(await services[0].importHostedAccountUsage(ledger, 70)).toEqual({
+      status: 'unchanged',
+    });
+    expect(await redis.get(ledger)).toBe('70');
+
+    await services[0].reserveCounterBudget(ledger, second, 1_000, 100);
+    await services[0].noteResearchReservation(ledger, second, 100);
+    expect(
+      await services[0].reconcileCounterReservation(ledger, second, 100, 10),
+    ).toBe('settled');
+    expect(await services[0].importHostedAccountUsage(ledger, 80)).toEqual({
+      externalMicroUsd: 10,
+      status: 'applied',
+    });
+    expect(
+      await services[0].noteSettledResearchReservation(ledger, second),
+    ).toBe('noted');
+    expect(await redis.get(ledger)).toBe('80');
+    expect(await services[0].importHostedAccountUsage(ledger, 80)).toEqual({
+      status: 'unchanged',
+    });
+    expect(await redis.get(ledger)).toBe('80');
+  });
 });
