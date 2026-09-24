@@ -244,6 +244,33 @@ describe('ImageGenerationProviderDispatchService', () => {
     expect(plan?.kind).toBe('inline');
   });
 
+  it.each([
+    MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA,
+    MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+  ])(
+    'passes the requested LoRA through the %s provider dispatch',
+    async (model) => {
+      comfyUIService.generateImage.mockResolvedValue({
+        imageBuffer: Buffer.from('image'),
+      });
+      const context = buildContext({
+        model,
+        createImageDto: {
+          text: 'A product portrait',
+          model,
+          loraPath: 'styles/product.safetensors',
+        },
+      });
+      const plan = await service.dispatch(context);
+      await plan?.generationPromise;
+      expect(comfyUIService.generateImage).toHaveBeenCalledWith(
+        model,
+        expect.objectContaining({ loraPath: 'styles/product.safetensors' }),
+      );
+      expect(plan?.kind).toBe('inline');
+    },
+  );
+
   it('records realized provider dimensions instead of requested dimensions', async () => {
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
     filesClientService.uploadToS3.mockResolvedValueOnce({

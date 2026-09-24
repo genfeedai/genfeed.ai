@@ -29,6 +29,9 @@ export class GenfeedAiImageGenerationProviderAdapter
           {
             faceImage: request.referenceImageUrl || undefined,
             height: request.height,
+            ...(request.createImageDto.loraPath
+              ? { loraPath: request.createImageDto.loraPath }
+              : {}),
             prompt: request.prompt,
             seed: request.createImageDto.seed,
             width: request.width,

@@ -89,7 +89,7 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
         },
         handle: {
           description:
-            'Social media handle to resolve (e.g., "@shaylamonroe"). Will auto-resolve to brandId and credential.',
+            'Social media handle to resolve (e.g., "@example_person"). Will auto-resolve to brandId and credential.',
           type: 'string',
         },
         platforms: {

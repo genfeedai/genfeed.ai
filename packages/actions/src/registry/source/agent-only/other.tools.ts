@@ -97,7 +97,7 @@ export const AGENT_OTHER_TOOLS: SourceTool[] = [
       properties: {
         handle: {
           description:
-            'Social media handle to resolve (e.g., "@shaylamonroe" or "shaylamonroe")',
+            'Social media handle to resolve (e.g., "@example_person" or "example_person")',
           type: 'string',
         },
       },

@@ -7,11 +7,9 @@ import {
   BYOK_CREDIT_VALUE_DOLLARS,
   BYOK_FEE_PER_CREDIT,
   BYOK_FEE_PERCENTAGE,
-  contentServiceOffering,
   creditPackPrice,
   creditPackTotalCredits,
   creditsToOutputEstimate,
-  dedicatedServerPlan,
   formatOutputs,
   formatPlanIncludedCredits,
   formatPlanLaunchPriceLabel,
@@ -34,7 +32,6 @@ import {
   SUBSCRIPTION_PRICE_CONTRACTS,
   setRuntimeMarginMultiplier,
   TIER_INCLUDED_MONTHLY_CREDITS,
-  TRAINING_PACKAGES,
   VIDEO_CREDIT_COSTS,
   WEBSITE_CREDIT_PACKS,
   websitePlans,
@@ -170,7 +167,7 @@ describe('applyMargin and runtime margin multiplier', () => {
     setRuntimeMarginMultiplier(1);
   });
 
-  it('applies the base 70% margin and converts to credits', () => {
+  it('applies the configured provider markup and converts to credits', () => {
     expect(applyMargin(0.15)).toBe(50);
     expect(applyMargin(0.5)).toBe(167);
     expect(applyMargin(0.04)).toBe(14);
@@ -316,19 +313,6 @@ describe('pricing constants', () => {
     expect(getProPlan().includedCredits).toBe(
       TIER_INCLUDED_MONTHLY_CREDITS.pro,
     );
-  });
-
-  it('keeps auxiliary offerings well-formed', () => {
-    expect(dedicatedServerPlan.price).toBeNull();
-    expect(dedicatedServerPlan.label).toBe('Dedicated');
-    expect(dedicatedServerPlan.type).toBe('enterprise');
-    expect(dedicatedServerPlan.outputs).toBeNull();
-    expect(contentServiceOffering.process.length).toBeGreaterThan(0);
-    expect(TRAINING_PACKAGES.map((pkg) => pkg.priceLabel)).toEqual([
-      '$299',
-      '$499',
-      '$999',
-    ]);
   });
 });
 

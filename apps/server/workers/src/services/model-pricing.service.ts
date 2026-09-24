@@ -263,7 +263,7 @@ export class ModelPricingService {
   }
 
   /**
-   * Estimate cost from a known provider cost in USD using the 70% margin formula.
+   * Estimate cost from a known provider cost in USD using the configured provider markup.
    * Sell Price = providerCostUsd / 0.30, converted to credits.
    */
   estimateFromProviderCost(
@@ -274,7 +274,7 @@ export class ModelPricingService {
     const tierConfig = CATEGORY_TIER_MAP[category] || DEFAULT_TIER_CONFIG;
     const credits = applyMargin(providerCostUsd);
 
-    this.logger.log(`${context} applied 70% margin`, {
+    this.logger.log(`${context} applied provider markup`, {
       category,
       credits,
       providerCostUsd,

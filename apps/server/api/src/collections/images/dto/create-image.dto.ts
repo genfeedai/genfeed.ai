@@ -14,6 +14,8 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
+  MaxLength,
   ValidateIf,
   ValidateNested,
 } from 'class-validator';
@@ -96,6 +98,32 @@ export class CreateImageDto extends CreateIngredientDto {
       'The model to use for image generation. Can be a ModelKey enum value or a custom model path (e.g., Replicate destination or training model ID).',
   })
   readonly model?: string;
+
+  @ValidateIf(
+    (dto: CreateImageDto) =>
+      dto.loraPath !== undefined ||
+      dto.model === MODEL_KEYS.GENFEED_AI_Z_IMAGE_TURBO_LORA ||
+      dto.model === MODEL_KEYS.GENFEED_AI_FLUX2_DEV_PULID_LORA,
+  )
+  @Transform(({ value }: { value: unknown }) =>
+    typeof value === 'string' ? value.trim() : value,
+  )
+  @IsString()
+  @MaxLength(512)
+  @Matches(
+    /^(?:[a-zA-Z0-9_-][a-zA-Z0-9_. -]*\/)*[a-zA-Z0-9_-][a-zA-Z0-9_. -]*\.safetensors$/,
+    {
+      message:
+        'loraPath must be a relative .safetensors model name without traversal',
+    },
+  )
+  @ApiProperty({
+    description:
+      'Model file relative to the connected ComfyUI LoRA directory. Required for self-hosted LoRA image models.',
+    example: 'styles/product.safetensors',
+    required: false,
+  })
+  readonly loraPath?: string;
 
   @IsBoolean()
   @IsOptional()

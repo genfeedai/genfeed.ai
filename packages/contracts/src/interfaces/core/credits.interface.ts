@@ -6,7 +6,7 @@ import type { ActivitySource, ByokProvider } from '../..';
  * margin or provider-cost change (see PlatformSetting.marginMultiplier).
  */
 export interface CreditsPricingMetadata {
-  /** Runtime margin multiplier applied on top of the base 70% margin. */
+  /** Runtime margin multiplier applied on top of the base provider markup. */
   marginMultiplier: number;
   /** Model pricing type (flat / per-second / per-megapixel) used to price. */
   pricingType: string | null;

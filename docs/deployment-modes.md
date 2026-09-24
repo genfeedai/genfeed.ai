@@ -80,7 +80,7 @@ licensed-self-host bindings.
   locally.
 - **SaaS admin access is a platform role.** `/admin` is gated by
   `users.platformRole = 'SUPERADMIN'`, separate from organization owner/admin
-  roles. See [Platform Admin Role](platform-admin-role.md).
+  roles. Deployment operators manage `users.platformRole` separately.
 - **Product flags are PostHog in SaaS, on by default elsewhere.** Community and
   unsigned Desktop keep Replies (`reply_bot`) on with no PostHog call-home.
   Do not set `FEATURE_FLAG_DEFAULTS` / `NEXT_PUBLIC_FEATURE_FLAG_DEFAULTS` to

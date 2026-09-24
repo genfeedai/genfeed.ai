@@ -153,6 +153,11 @@ variable "image_digest" {
   }
 }
 
+variable "ignored_ssm_secret_names" {
+  description = "Retired or operator-only SSM names excluded from task secrets. Supply [] explicitly when none are excluded."
+  type        = set(string)
+}
+
 variable "content_harness_packages" {
   description = "Verified content harness module bundled into the private server image."
   type        = string

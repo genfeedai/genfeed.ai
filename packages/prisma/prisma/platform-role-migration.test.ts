@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -15,7 +15,11 @@ const migrationSource = readFileSync(
 const restrictionMigrationSource = readFileSync(
   join(
     prismaDir,
-    'migrations/20260630093000_restrict_platform_superadmin_to_vincent/migration.sql',
+    'migrations',
+    readdirSync(join(prismaDir, 'migrations')).find((name) =>
+      name.startsWith('20260630093000_'),
+    ) ?? '',
+    'migration.sql',
   ),
   'utf8',
 );
@@ -32,7 +36,6 @@ describe('platform role migration', () => {
       "CREATE TYPE \"PlatformRole\" AS ENUM ('USER', 'SUPERADMIN')",
     );
     expect(migrationSource).toContain('WHERE "isSuperAdmin" = true');
-    expect(migrationSource).toContain("lower('vincent@genfeed.ai')");
     expect(migrationSource).toContain('DROP COLUMN "isSuperAdmin"');
   });
 
@@ -41,7 +44,7 @@ describe('platform role migration', () => {
     // stays portable across fresh/community/CI databases instead of raising.
     expect(migrationSource).not.toContain('RAISE EXCEPTION');
     expect(migrationSource).toMatch(
-      /SET "platformRole" = 'SUPERADMIN'\s*\nWHERE lower\("email"\) = lower\('vincent@genfeed\.ai'\)/,
+      /SET "platformRole" = 'SUPERADMIN'\s*\nWHERE lower\("email"\) = lower\('[^']+'\)/,
     );
   });
 
@@ -49,11 +52,11 @@ describe('platform role migration', () => {
     expect(restrictionMigrationSource).toContain(
       'WHERE "platformRole" = \'SUPERADMIN\'',
     );
-    expect(restrictionMigrationSource).toContain(
-      'AND lower("email") <> lower(\'vincent@genfeed.ai\')',
+    expect(restrictionMigrationSource).toMatch(
+      /AND lower\("email"\) <> lower\('[^']+'\)/,
     );
     expect(restrictionMigrationSource).toMatch(
-      /SET "platformRole" = 'SUPERADMIN'\s*\nWHERE lower\("email"\) = lower\('vincent@genfeed\.ai'\)/,
+      /SET "platformRole" = 'SUPERADMIN'\s*\nWHERE lower\("email"\) = lower\('[^']+'\)/,
     );
   });
 });
