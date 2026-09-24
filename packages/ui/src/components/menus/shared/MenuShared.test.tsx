@@ -368,6 +368,34 @@ describe('MenuShared', () => {
     );
   });
 
+  it('prefers the specific destination over an overview root alias', () => {
+    mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
+    mockSearchParams.value = 'view=recent';
+    render(
+      <MenuShared
+        config={{
+          logoHref: '/',
+          items: [
+            {
+              href: '/workspace/overview',
+              label: 'Dashboard',
+              matchPaths: ['/workspace', '/workspace/overview'],
+            },
+            { href: '/workspace/inbox', label: 'Inbox' },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('Inbox (2)')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
+    expect(screen.getByText('Dashboard')).toHaveAttribute(
+      'data-active',
+      'false',
+    );
+  });
+
   it('keeps Inbox selected across query filters', () => {
     mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
     mockSearchParams.value = 'view=all&taskId=task-1';

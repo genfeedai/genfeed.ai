@@ -9,6 +9,7 @@ import {
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { isCsrfOriginAllowed } from 'next/dist/server/app-render/csrf-protection.js';
 import { hasRemoteMatch } from 'next/dist/shared/lib/match-remote-pattern.js';
+import { unstable_getResponseFromNextConfig } from 'next/experimental/testing/server';
 import { describe, expect, it } from 'vitest';
 import rootPackage from '../../package.json' with { type: 'json' };
 import config from './next.config';
@@ -18,6 +19,56 @@ const appDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(appDir, '../..');
 
 describe('app next.config', () => {
+  it.each([
+    [
+      '/acme/brand/workspace/inbox/all?taskId=t1',
+      '/acme/brand/workspace/inbox',
+      'view',
+      'all',
+    ],
+    [
+      '/acme/~/library/shelf/approved?folder=f1&view=list',
+      '/acme/~/library/assets',
+      'shelf',
+      'approved',
+    ],
+    [
+      '/admin/automation/models/image?organization=o1',
+      '/admin/automation/models',
+      'type',
+      'image',
+    ],
+    [
+      '/admin/content/ingredients/images?search=hero',
+      '/admin/content/ingredients',
+      'assetType',
+      'images',
+    ],
+    [
+      '/admin/configuration/tags/account?search=hero',
+      '/admin/configuration/tags',
+      'filter',
+      'account',
+    ],
+  ])(
+    'preserves context when redirecting %s',
+    async (source, pathname, key, value) => {
+      const response = await unstable_getResponseFromNextConfig({
+        url: `https://example.com${source}`,
+        nextConfig: { redirects: config.redirects },
+      });
+      expect(response.status).toBe(308);
+      const target = new URL(response.headers.get('location') ?? '');
+      expect(target.pathname).toBe(pathname);
+      expect(target.searchParams.get(key)).toBe(value);
+      new URL(`https://example.com${source}`).searchParams.forEach(
+        (entry, name) => {
+          expect(target.searchParams.get(name)).toBe(entry);
+        },
+      );
+    },
+  );
+
   it('keeps the API proxy open for bounded campaign generation', () => {
     expect(config.experimental?.proxyTimeout).toBe(300_000);
   });
