@@ -5,6 +5,7 @@ import type { PropsWithChildren, ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  accountsHook: vi.fn(),
   avatarHook: vi.fn(),
   close: vi.fn(),
   confirm: vi.fn(),
@@ -85,6 +86,10 @@ vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ brandId: 'brand-1', organizationId: 'org-1' }),
 }));
 
+vi.mock('@hooks/data/campaigns/use-campaign-accounts', () => ({
+  useCampaignAccounts: (...args: unknown[]) => mocks.accountsHook(...args),
+}));
+
 vi.mock('@hooks/data/ingredients/use-avatar-images/use-avatar-images', () => ({
   useAvatarImages: (...args: unknown[]) => mocks.avatarHook(...args),
 }));
@@ -155,9 +160,24 @@ describe('RemixBriefInspector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.run.value = run;
+    mocks.accountsHook.mockReturnValue({
+      accounts: [
+        {
+          id: 'credential-1',
+          brandId: 'brand-1',
+          platform: 'tiktok',
+          externalHandle: '@northstar',
+          isConnected: true,
+          isDeleted: false,
+        },
+      ],
+      isPending: false,
+      isError: false,
+    });
     mocks.avatarHook.mockReturnValue({
       avatars: [
         {
+          brandId: 'brand-1',
           id: 'avatar-row-1',
           metadataLabel: 'Avatar One',
           status: 'GENERATED',
@@ -169,6 +189,12 @@ describe('RemixBriefInspector', () => {
           status: 'GENERATED',
         },
         {
+          id: 'avatar-row-shared',
+          metadataLabel: 'Shared Avatar',
+          status: 'GENERATED',
+        },
+        {
+          brandId: 'brand-1',
           id: 'avatar-row-processing',
           metadataLabel: 'Processing Avatar',
           status: 'PROCESSING',
@@ -180,6 +206,7 @@ describe('RemixBriefInspector', () => {
       isLoading: false,
       voices: [
         {
+          brandId: 'brand-1',
           externalVoiceId: 'provider-voice-99',
           id: 'voice-row-1',
           metadataLabel: 'Voice One',
@@ -195,12 +222,20 @@ describe('RemixBriefInspector', () => {
           status: 'GENERATED',
         },
         {
+          externalVoiceId: 'shared-provider-voice',
+          id: 'voice-row-shared',
+          metadataLabel: 'Shared Voice',
+          status: 'GENERATED',
+        },
+        {
+          brandId: 'brand-1',
           externalVoiceId: 'failed-provider-voice',
           id: 'voice-row-failed',
           metadataLabel: 'Failed Voice',
           status: 'FAILED',
         },
         {
+          brandId: 'brand-1',
           id: 'voice-row-unusable',
           metadataLabel: 'Unusable Voice',
           status: 'VALIDATED',
@@ -322,6 +357,7 @@ describe('RemixBriefInspector', () => {
           avatarAssetId: '',
           callToAction: '',
           count: 2,
+          credentialId: '',
           fidelityMode: 'guided',
           hook: '',
           objective: 'Turn the hook into a square product image.',
@@ -360,6 +396,7 @@ describe('RemixBriefInspector', () => {
           avatarAssetId: '',
           callToAction: '',
           count: 2,
+          credentialId: '',
           fidelityMode: 'strict',
           hook: '',
           objective: 'Keep the source hook.',
@@ -450,6 +487,9 @@ describe('RemixBriefInspector', () => {
     expect(
       screen.queryByRole('option', { name: 'Other Brand Avatar' }),
     ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Shared Avatar' }),
+    ).not.toBeInTheDocument();
     fireEvent.keyDown(document, { key: 'Escape' });
 
     fireEvent.click(screen.getByRole('combobox', { name: 'Voice identity' }));
@@ -458,6 +498,9 @@ describe('RemixBriefInspector', () => {
     ).toBeVisible();
     expect(
       screen.queryByRole('option', { name: 'Failed Voice (elevenlabs)' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('option', { name: 'Shared Voice' }),
     ).not.toBeInTheDocument();
     expect(
       screen.queryByRole('option', { name: 'Unusable Voice' }),
@@ -477,6 +520,7 @@ describe('RemixBriefInspector', () => {
           avatarAssetId: 'avatar-row-1',
           callToAction: '',
           count: 2,
+          credentialId: '',
           fidelityMode: 'guided',
           hook: '',
           objective: 'Deliver the source hook through the brand avatar.',
@@ -493,4 +537,196 @@ describe('RemixBriefInspector', () => {
       speechVoiceId: 'voice-row-1',
     });
   });
+  it('selects a real destination without overriding the unchanged default identity', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identity: {
+          avatarAssetId: 'avatar-row-1',
+          speechVoiceId: 'voice-row-1',
+        },
+        output: { ...run.draft.output, kind: 'avatar' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Destination account' }),
+    );
+    fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    expect(mocks.accountsHook).toHaveBeenCalledWith('brand-1');
+    const edits = mocks.confirm.mock.calls[0][0];
+    expect(edits.target).toEqual({
+      kind: 'organic',
+      platform: 'tiktok',
+      credentialId: 'credential-1',
+    });
+    expect(edits).not.toHaveProperty('identity');
+  });
+
+  it('allows a destination persona to resolve until the user makes a partial identity edit', () => {
+    mocks.run.value = {
+      ...run,
+      draft: { ...run.draft, output: { ...run.draft.output, kind: 'avatar' } },
+    };
+    render(<RemixBriefInspector />);
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Destination account' }),
+    );
+    fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
+    expect(
+      screen.getByRole('button', { name: 'Continue to Studio' }),
+    ).toBeEnabled();
+    fireEvent.click(screen.getByRole('combobox', { name: 'Avatar identity' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Avatar One' }));
+    expect(
+      screen.getByRole('button', { name: 'Continue to Studio' }),
+    ).toBeDisabled();
+    fireEvent.click(screen.getByRole('combobox', { name: 'Voice identity' }));
+    fireEvent.click(
+      screen.getByRole('option', { name: 'Voice One (elevenlabs)' }),
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    expect(mocks.confirm).toHaveBeenCalledWith(
+      expect.objectContaining({
+        identity: {
+          avatarAssetId: 'avatar-row-1',
+          speechVoiceId: 'voice-row-1',
+        },
+      }),
+    );
+  });
+
+  it.each(['platform', 'defaults'])(
+    'omits the old credential when changing %s',
+    (change) => {
+      mocks.run.value = {
+        ...run,
+        draft: {
+          ...run.draft,
+          target: { ...run.draft.target, credentialId: 'credential-1' },
+        },
+      };
+      render(<RemixBriefInspector />);
+      fireEvent.click(
+        screen.getByRole('combobox', {
+          name:
+            change === 'platform' ? 'Target platform' : 'Destination account',
+        }),
+      );
+      fireEvent.click(
+        screen.getByRole('option', {
+          name: change === 'platform' ? 'Instagram' : 'Brand defaults',
+        }),
+      );
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue to Studio' }),
+      );
+      expect(mocks.confirm.mock.calls[0][0].target).toEqual({
+        kind: 'organic',
+        platform: change === 'platform' ? 'instagram' : 'tiktok',
+      });
+    },
+  );
+
+  it('explains an empty account list without inventing an account', () => {
+    mocks.accountsHook.mockReturnValue({ accounts: [], isPending: false });
+    render(<RemixBriefInspector />);
+    expect(
+      screen.getByText('No connected accounts for this platform'),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole('combobox', { name: 'Destination account' }),
+    );
+    expect(screen.getAllByRole('option')).toHaveLength(1);
+    expect(
+      screen.getByRole('option', { name: 'Brand defaults' }),
+    ).toBeVisible();
+  });
+
+  it.each([
+    ['organic', 'x', 'twitter'],
+    ['paid', 'x', 'x_ads'],
+    ['paid', 'meta', 'facebook'],
+    ['paid', 'google', 'google_ads'],
+    ['organic', 'instagram', 'instagram'],
+    ['organic', 'youtube', 'youtube'],
+    ['paid', 'tiktok', 'tiktok'],
+  ])(
+    'offers only connected exact-brand %s %s accounts',
+    (kind, platform, credentialPlatform) => {
+      mocks.run.value = {
+        ...run,
+        draft: { ...run.draft, target: { kind, platform } },
+      };
+      const account = {
+        id: 'correct',
+        brandId: 'brand-1',
+        platform: credentialPlatform,
+        externalName: 'Destination',
+        isConnected: true,
+        isDeleted: false,
+      };
+      mocks.accountsHook.mockReturnValue({
+        accounts: [
+          account,
+          { ...account, id: 'other-brand', brandId: 'brand-2' },
+          { ...account, id: 'shared', brandId: null },
+          { ...account, id: 'disconnected', isConnected: false },
+          { ...account, id: 'deleted', isDeleted: true },
+          {
+            ...account,
+            id: 'wrong-platform',
+            platform: credentialPlatform === 'twitter' ? 'x_ads' : 'twitter',
+          },
+        ],
+        isPending: false,
+      });
+      render(<RemixBriefInspector />);
+      fireEvent.click(
+        screen.getByRole('combobox', { name: 'Destination account' }),
+      );
+      expect(screen.getAllByRole('option')).toHaveLength(2);
+      fireEvent.click(screen.getByRole('option', { name: 'Destination' }));
+      fireEvent.click(
+        screen.getByRole('button', { name: 'Continue to Studio' }),
+      );
+      expect(mocks.confirm.mock.calls[0][0].target).toEqual({
+        kind,
+        platform,
+        credentialId: 'correct',
+      });
+    },
+  );
+  it('keeps an unavailable persisted destination for server validation', () => {
+    mocks.accountsHook.mockReturnValue({ accounts: [], isPending: false });
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        target: { ...run.draft.target, credentialId: 'disconnected-account' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    expect(mocks.confirm.mock.calls[0][0].target.credentialId).toBe(
+      'disconnected-account',
+    );
+  });
+
+  it.each([
+    [true, false, 'Loading connected accounts…'],
+    [false, true, 'Unable to load connected accounts.'],
+  ])(
+    'distinguishes loading and errors from no accounts',
+    (isPending, isError, message) => {
+      mocks.accountsHook.mockReturnValue({ accounts: [], isPending, isError });
+      render(<RemixBriefInspector />);
+      expect(screen.getByText(message)).toBeVisible();
+      expect(
+        screen.queryByText('No connected accounts for this platform'),
+      ).not.toBeInTheDocument();
+    },
+  );
 });

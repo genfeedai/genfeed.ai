@@ -2,6 +2,7 @@ import { AdCreativeMappingsModule } from '@api/collections/ad-creative-mappings/
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
 import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
@@ -67,6 +68,7 @@ import { Module } from '@nestjs/common';
     XAdsModule,
   ],
   providers: [
+    BrandRemixPersonaResolutionService,
     BrandRemixSourceResolverService,
     BrandRemixSourceMediaService,
     BrandRemixRunPlanningService,

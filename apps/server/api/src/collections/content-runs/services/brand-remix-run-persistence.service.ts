@@ -140,6 +140,7 @@ export class BrandRemixRunPersistenceService {
 
   async createOrReusePrefilledRun(params: {
     brandId: string;
+    isReusable?: boolean;
     config: BrandRemixRunConfig;
     organizationId: string;
     selector: BrandRemixSourceSelector;
@@ -150,12 +151,15 @@ export class BrandRemixRunPersistenceService {
           async (transaction) => {
             const client =
               transaction as unknown as ContentRunPersistenceClient;
-            const reusable = await this.findReusablePrefilledRun(
-              params.organizationId,
-              params.brandId,
-              params.selector,
-              client,
-            );
+            const reusable =
+              params.isReusable === false
+                ? null
+                : await this.findReusablePrefilledRun(
+                    params.organizationId,
+                    params.brandId,
+                    params.selector,
+                    client,
+                  );
             if (reusable) return reusable;
 
             return client.contentRun.create({

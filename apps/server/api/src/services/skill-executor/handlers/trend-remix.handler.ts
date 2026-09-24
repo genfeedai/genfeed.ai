@@ -1,4 +1,5 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import {
   type GeneratedContent,
@@ -8,7 +9,7 @@ import {
 import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /**
  * Caption budget for a channel the capability catalog does not describe.
@@ -50,14 +51,10 @@ export class TrendRemixHandler implements SkillHandler {
     const trend = await this.resolveTrend(context, params, platform);
 
     if (!trend) {
-      return {
-        confidence: 0.3,
-        content: 'No active trends found...',
-        metadata: {},
-        platforms: context.platforms,
-        skillSlug: 'trend-remix',
-        type: 'text',
-      };
+      throw new NotFoundException({
+        message:
+          'No eligible trend source is available. Choose an existing source and retry.',
+      });
     }
 
     const hashtags = Array.isArray(trend.metadata?.hashtags)
@@ -94,6 +91,7 @@ export class TrendRemixHandler implements SkillHandler {
       .filter((line): line is string => line !== null)
       .join('\n');
 
+    let content: string | undefined;
     try {
       const response = await this.llmDispatcherService.chatCompletion(
         {
@@ -107,51 +105,28 @@ export class TrendRemixHandler implements SkillHandler {
         context.organizationId,
       );
 
-      const content = response.choices[0]?.message?.content;
-
-      if (content) {
-        return {
-          confidence: 0.78,
-          content,
-          metadata: {
-            remixPackVariants: this.buildRemixPackVariants(
-              trend.topic,
-              platform,
-              content,
-              params,
-            ),
-            trendId: trend.id,
-            trendTopic: trend.topic,
-          },
-          platforms: context.platforms,
-          skillSlug: 'trend-remix',
-          type: 'text',
-        };
-      }
+      content = response.choices[0]?.message?.content?.trim();
     } catch (error: unknown) {
-      this.loggerService.warn('trend-remix LLM call failed, using fallback', {
-        error,
-      });
+      this.loggerService.warn('trend-remix LLM call failed', { error });
+      throw new ServiceUnavailableException(
+        'Trend remix generation failed. Retry the request.',
+      );
     }
 
-    const fallbackContent = [
-      `${trend.topic} — here's our take:`,
-      context.brandVoice
-        ? `Brought to you with ${context.brandVoice} energy.`
-        : '',
-      hashtags,
-    ]
-      .filter(Boolean)
-      .join('\n\n');
+    if (!content) {
+      throw new ServiceUnavailableException(
+        'Trend remix generation failed. Retry the request.',
+      );
+    }
 
     return {
-      confidence: 0.4,
-      content: fallbackContent,
+      confidence: 0.78,
+      content,
       metadata: {
         remixPackVariants: this.buildRemixPackVariants(
           trend.topic,
           platform,
-          fallbackContent,
+          content,
           params,
         ),
         trendId: trend.id,

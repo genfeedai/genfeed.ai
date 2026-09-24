@@ -5,6 +5,7 @@ import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
+  CredentialPlatform,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import {
@@ -23,6 +24,7 @@ import type {
   AgentArtifactReference,
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
+import { useCampaignAccounts } from '@hooks/data/campaigns/use-campaign-accounts';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
@@ -58,6 +60,7 @@ export type RemixEditorState = {
   avatarAssetId: string;
   callToAction: string;
   count: number;
+  credentialId: string;
   fidelityMode: BrandRemixRunView['draft']['fidelityMode'];
   hook: string;
   objective: string;
@@ -73,6 +76,7 @@ const EMPTY_EDITOR: RemixEditorState = {
   avatarAssetId: '',
   callToAction: '',
   count: 1,
+  credentialId: '',
   fidelityMode: 'guided',
   hook: '',
   objective: '',
@@ -101,6 +105,7 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
     avatarAssetId: identity?.avatarAssetId ?? '',
     callToAction: run.draft.intent.callToAction ?? '',
     count: run.draft.output.count,
+    credentialId: run.draft.target.credentialId ?? '',
     fidelityMode: run.draft.fidelityMode,
     hook: run.draft.intent.hook ?? '',
     objective: run.draft.intent.objective,
@@ -112,13 +117,48 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
   };
 }
 
+function hasIdentityEdits(
+  editor: RemixEditorState,
+  run: BrandRemixRunView,
+): boolean {
+  const identity =
+    'avatarAssetId' in run.draft.identity ? run.draft.identity : null;
+  return (
+    editor.avatarAssetId !== (identity?.avatarAssetId ?? '') ||
+    editor.speechVoiceId !== (identity?.speechVoiceId ?? '')
+  );
+}
+
+function getDestinationPlatform(
+  platform: RemixEditorState['targetPlatform'],
+  kind: BrandRemixRunView['draft']['target']['kind'],
+): CredentialPlatform {
+  const platforms: Record<
+    RemixEditorState['targetPlatform'],
+    CredentialPlatform
+  > = {
+    google: CredentialPlatform.GOOGLE_ADS,
+    instagram: CredentialPlatform.INSTAGRAM,
+    meta: CredentialPlatform.FACEBOOK,
+    tiktok: CredentialPlatform.TIKTOK,
+    x: kind === 'paid' ? CredentialPlatform.X_ADS : CredentialPlatform.TWITTER,
+    youtube: CredentialPlatform.YOUTUBE,
+  };
+  return platforms[platform];
+}
+
 export function buildRemixDraftEdits(
   editor: RemixEditorState,
   run: BrandRemixRunView,
 ): BrandRemixDraftEdits {
+  const { credentialId: _credentialId, ...target } = run.draft.target;
+  const destination = editor.credentialId
+    ? { credentialId: editor.credentialId }
+    : {};
   return {
     fidelityMode: editor.fidelityMode,
     ...(editor.outputKind === 'avatar' &&
+    hasIdentityEdits(editor, run) &&
     editor.avatarAssetId &&
     editor.speechVoiceId
       ? {
@@ -127,7 +167,9 @@ export function buildRemixDraftEdits(
             speechVoiceId: editor.speechVoiceId,
           },
         }
-      : editor.outputKind !== 'avatar' && 'avatarAssetId' in run.draft.identity
+      : editor.outputKind !== 'avatar' &&
+          run.draft.output.kind === 'avatar' &&
+          'avatarAssetId' in run.draft.identity
         ? {
             identity: {
               avatarAssetId: null,
@@ -169,18 +211,20 @@ export function buildRemixDraftEdits(
         role: reference.role,
       })),
     target:
-      run.draft.target.kind === 'paid'
+      target.kind === 'paid'
         ? {
-            ...run.draft.target,
+            ...target,
+            ...destination,
             platform: isBrandRemixAdPlatform(editor.targetPlatform)
               ? editor.targetPlatform
-              : run.draft.target.platform,
+              : target.platform,
           }
         : {
-            ...run.draft.target,
+            ...target,
+            ...destination,
             platform: isBrandRemixOrganicPlatform(editor.targetPlatform)
               ? editor.targetPlatform
-              : run.draft.target.platform,
+              : target.platform,
           },
   };
 }
@@ -257,17 +301,14 @@ function AvatarIdentityFields({
     () =>
       avatars.filter(
         (avatar) =>
-          isGenerationReadyAvatar(avatar) &&
-          (avatar.brandId == null || avatar.brandId === brandId),
+          isGenerationReadyAvatar(avatar) && avatar.brandId === brandId,
       ),
     [avatars, brandId],
   );
   const readyVoices = useMemo(
     () =>
       voices.filter(
-        (voice) =>
-          isGenerationReadyVoice(voice) &&
-          (voice.brandId == null || voice.brandId === brandId),
+        (voice) => isGenerationReadyVoice(voice) && voice.brandId === brandId,
       ),
     [brandId, voices],
   );
@@ -337,6 +378,12 @@ export default function RemixBriefInspector(): ReactElement {
   const translate = useTranslations('pages.remixBrief');
   const { close, confirm, error, isOpen, retry, run, status } =
     useDiscoveryRemix();
+  const { brandId } = useBrand();
+  const {
+    accounts,
+    isPending: isLoadingAccounts,
+    isError: isAccountsError,
+  } = useCampaignAccounts(brandId);
   const [editor, setEditor] = useState<RemixEditorState>(EMPTY_EDITOR);
   const [isPickingReference, setIsPickingReference] = useState(false);
   const [referenceRole, setReferenceRole] =
@@ -362,10 +409,22 @@ export default function RemixBriefInspector(): ReactElement {
         : [],
     [run],
   );
+  const destinationAccounts = accounts.filter(
+    (account) =>
+      account.brandId === brandId &&
+      account.isConnected &&
+      !account.isDeleted &&
+      account.platform ===
+        getDestinationPlatform(
+          editor.targetPlatform,
+          run?.draft.target.kind ?? 'organic',
+        ),
+  );
   const isSaving = status === 'saving';
   const isAvatarIdentityComplete =
     editor.outputKind !== 'avatar' ||
-    Boolean(editor.avatarAssetId && editor.speechVoiceId);
+    Boolean(editor.avatarAssetId && editor.speechVoiceId) ||
+    Boolean(editor.credentialId && run && !hasIdentityEdits(editor, run));
   const canContinue = Boolean(
     run && editor.objective.trim() && !isSaving && isAvatarIdentityComplete,
   );
@@ -617,6 +676,7 @@ export default function RemixBriefInspector(): ReactElement {
                     }
                     setEditor((current) => ({
                       ...current,
+                      credentialId: '',
                       targetPlatform: value,
                     }));
                     return;
@@ -626,6 +686,7 @@ export default function RemixBriefInspector(): ReactElement {
                   }
                   setEditor((current) => ({
                     ...current,
+                    credentialId: '',
                     targetPlatform: value,
                   }));
                 }}
@@ -719,6 +780,55 @@ export default function RemixBriefInspector(): ReactElement {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="remix-destination">Destination account</Label>
+              <Select
+                disabled={isLoadingAccounts}
+                value={editor.credentialId || 'brand-defaults'}
+                onValueChange={(value) =>
+                  setEditor((current) => ({
+                    ...current,
+                    credentialId: value === 'brand-defaults' ? '' : value,
+                  }))
+                }
+              >
+                <SelectTrigger
+                  id="remix-destination"
+                  aria-label="Destination account"
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="brand-defaults">Brand defaults</SelectItem>
+                  {destinationAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.externalHandle ||
+                        account.externalName ||
+                        account.externalId ||
+                        account.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Uses this account’s saved persona unless you choose an avatar
+                and voice. Publishing stays manual.
+              </p>
+              {isLoadingAccounts ? (
+                <p className="text-xs text-muted-foreground">
+                  Loading connected accounts…
+                </p>
+              ) : isAccountsError ? (
+                <p className="text-xs text-muted-foreground">
+                  Unable to load connected accounts.
+                </p>
+              ) : destinationAccounts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  No connected accounts for this platform
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">

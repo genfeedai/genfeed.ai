@@ -13,9 +13,10 @@ import {
   remixText,
   remixTruncate,
 } from '@api/collections/content-runs/services/brand-remix-run-helpers';
-import type {
-  ResolvedSource,
-  ResolvedSourceMedia,
+import {
+  GENERATION_READY_STATUSES,
+  type ResolvedSource,
+  type ResolvedSourceMedia,
 } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import {
   BRAND_REMIX_RUNTIME,
@@ -145,6 +146,7 @@ export class BrandRemixSourceResolverService {
         title,
       },
       sourceMedia: this.sourceMedia({
+        importPolicy: platform === 'youtube' ? 'embed_only' : 'unknown',
         imageUrls: hasVideo ? (thumbnailUrl ? [thumbnailUrl] : []) : mediaUrls,
         videoUrls: hasVideo ? mediaUrls : [],
       }),
@@ -163,7 +165,7 @@ export class BrandRemixSourceResolverService {
         id: true,
         ingredients: {
           select: { category: true, id: true, status: true },
-          where: { isDeleted: false },
+          where: scopedWhere(organizationId, { brandId }),
         },
         platform: true,
         url: true,
@@ -181,7 +183,7 @@ export class BrandRemixSourceResolverService {
     );
     const platform = remixSourcePlatform(post.platform);
     const readyIngredients = post.ingredients.filter((ingredient) =>
-      ['GENERATED', 'UPLOADED', 'VALIDATED'].includes(ingredient.status),
+      GENERATION_READY_STATUSES.has(ingredient.status),
     );
     const videoIds = readyIngredients
       .filter(
@@ -294,6 +296,7 @@ export class BrandRemixSourceResolverService {
         title,
       },
       sourceMedia: this.sourceMedia({
+        importPolicy: platform === 'youtube' ? 'embed_only' : 'unknown',
         imageUrls: remixMediaUrls(data.mediaUrls),
         videoUrls: remixMediaUrls(data.videoUrls),
       }),
@@ -467,6 +470,7 @@ export class BrandRemixSourceResolverService {
         title,
       },
       sourceMedia: this.sourceMedia({
+        importPolicy: platform === 'youtube' ? 'embed_only' : 'unknown',
         imageUrls: remixMediaUrls([
           ...(detail.imageUrls ?? []),
           ...(detail.creative?.imageUrls ?? []),
@@ -484,6 +488,7 @@ export class BrandRemixSourceResolverService {
   ): ResolvedSourceMedia {
     return {
       existingAssetIds: media.existingAssetIds ?? [],
+      importPolicy: media.importPolicy ?? 'unknown',
       imageUrls: media.imageUrls ?? [],
       videoUrls: media.videoUrls ?? [],
     };

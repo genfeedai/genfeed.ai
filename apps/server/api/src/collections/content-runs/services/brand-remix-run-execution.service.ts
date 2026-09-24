@@ -626,7 +626,11 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       brandId,
       config.draft,
     );
-    const readiness = this.planning.buildReadiness(brandContext, config.draft);
+    const readiness = this.planning.buildReadiness(
+      brandContext,
+      config.draft,
+      config.sourceSnapshot.media,
+    );
     if (readiness.state === 'blocked') {
       throw new ConflictException({
         detail: readiness.issues.map((issue) => issue.message).join('; '),

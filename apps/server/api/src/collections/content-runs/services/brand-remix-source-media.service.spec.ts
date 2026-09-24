@@ -1,4 +1,7 @@
-import type { ResolvedSource } from '@api/collections/content-runs/services/brand-remix-runs.types';
+import type {
+  ResolvedSource,
+  ResolvedSourceMedia,
+} from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSourceMediaService } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -12,7 +15,7 @@ import { BrandRemixAdPlatform } from '@genfeedai/contracts/api-types/contracts/b
 import type { LoggerService } from '@libs/logger/logger.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const source: ResolvedSource = {
+const source: ResolvedSource & { sourceMedia: ResolvedSourceMedia } = {
   recommendedOutputKind: 'video',
   snapshot: {
     capturedAt: '2026-09-10T12:00:00.000Z',
@@ -25,6 +28,8 @@ const source: ResolvedSource = {
     title: 'Winning ad',
   },
   sourceMedia: {
+    importPolicy: 'permitted',
+    importPermissionRef: 'permission-1',
     existingAssetIds: [],
     imageUrls: ['https://cdn.example/still.jpg?exp=1'],
     videoUrls: ['https://cdn.example/ad.mp4?token=keep-me'],
@@ -32,7 +37,7 @@ const source: ResolvedSource = {
 };
 
 describe('BrandRemixSourceMediaService', () => {
-  const ingredient = { findFirst: vi.fn() };
+  const ingredient = { findFirst: vi.fn(), updateMany: vi.fn() };
   const prisma = { ingredient } as unknown as PrismaService;
   const files = { uploadToS3: vi.fn() } as unknown as FilesClientService;
   const shared = {
@@ -43,6 +48,7 @@ describe('BrandRemixSourceMediaService', () => {
 
   beforeEach(() => {
     vi.resetAllMocks();
+    ingredient.updateMany.mockResolvedValue({ count: 1 });
     service = new BrandRemixSourceMediaService(prisma, files, shared, logger);
   });
 
@@ -110,13 +116,23 @@ describe('BrandRemixSourceMediaService', () => {
       organizationId: 'org-1',
       scope: 'USER',
       sourceActionId: 'remix-source:brand-1:saved_ad:saved-ad-1',
-      status: IngredientStatus.UPLOADED,
+      status: IngredientStatus.PROCESSING,
       userId: 'user-1',
     });
     expect(created).not.toHaveProperty('generationSource');
     expect(files.uploadToS3).toHaveBeenCalledWith('ing-1', 'videos', {
       type: FileInputType.URL,
       url: 'https://cdn.example/ad.mp4?token=keep-me',
+    });
+    expect(ingredient.updateMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        id: 'ing-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      data: { status: IngredientStatus.UPLOADED },
     });
     expect(result).toEqual({
       assetId: 'ing-1',
@@ -143,7 +159,227 @@ describe('BrandRemixSourceMediaService', () => {
       userId: 'user-1',
     });
 
-    expect(result).toEqual({ status: 'unavailable' });
+    expect(result).toEqual({ status: 'unavailable', reason: 'copy_failed' });
+    expect(ingredient.updateMany).toHaveBeenCalledWith({
+      where: {
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        id: 'ing-1',
+        isDeleted: false,
+        status: IngredientStatus.PROCESSING,
+      },
+      data: { status: IngredientStatus.FAILED },
+    });
     expect(logger.error).toHaveBeenCalled();
+  });
+
+  it.each([
+    [{ importPolicy: undefined }, 'import_not_permitted'],
+    [{ importPolicy: 'unknown' }, 'import_not_permitted'],
+    [{ importPolicy: 'embed_only' }, 'embed_only'],
+    [{ importPermissionRef: '' }, 'import_not_permitted'],
+    [
+      { importPermissionRef: 'https://cdn.example/permission' },
+      'import_not_permitted',
+    ],
+    [{ importExpiresAt: '2000-01-01T00:00:00.000Z' }, 'expired'],
+    [{ importExpiresAt: 'invalid' }, 'expired'],
+    [{ importExpiresAt: '2999-01-01' }, 'expired'],
+  ] as const)(
+    'checks current eligibility before even a ready cache lookup: %j',
+    async (overrides, reason) => {
+      ingredient.findFirst.mockResolvedValue({
+        id: 'cached',
+        category: IngredientCategory.VIDEO,
+      });
+      const result = await service.ingest({
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        userId: 'user-1',
+        source: {
+          ...source,
+          sourceMedia: { ...source.sourceMedia, ...overrides },
+        },
+      });
+      expect(result).toEqual({ status: 'unavailable', reason });
+      expect(ingredient.findFirst).not.toHaveBeenCalled();
+      expect(shared.createMediaDocumentsInternal).not.toHaveBeenCalled();
+      expect(files.uploadToS3).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each([
+    IngredientCategory.IMAGE,
+    IngredientCategory.VIDEO,
+    IngredientCategory.AVATAR,
+  ])('accepts authorized owned %s assets', async (category) => {
+    ingredient.findFirst.mockResolvedValue({ id: 'owned-1', category });
+    const result = await service.ingest({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+      source: {
+        ...source,
+        snapshot: {
+          ...source.snapshot,
+          selector: { kind: 'owned_post', postId: 'post-1' },
+        },
+        sourceMedia: {
+          ...source.sourceMedia,
+          importPolicy: 'unknown',
+          existingAssetIds: ['owned-1'],
+        },
+      },
+    });
+    expect(result).toEqual({
+      status: 'saved',
+      assetId: 'owned-1',
+      category:
+        category === IngredientCategory.IMAGE
+          ? IngredientCategory.IMAGE
+          : IngredientCategory.VIDEO,
+    });
+    expect(ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          organizationId: 'org-1',
+          brandId: 'brand-1',
+          id: 'owned-1',
+          isDeleted: false,
+          status: {
+            in: [
+              IngredientStatus.GENERATED,
+              IngredientStatus.UPLOADED,
+              IngredientStatus.VALIDATED,
+            ],
+          },
+        },
+      }),
+    );
+    expect(files.uploadToS3).not.toHaveBeenCalled();
+  });
+
+  it.each([null, { id: 'owned-1', category: IngredientCategory.AUDIO }])(
+    'rejects unavailable or unsupported owned assets without URL fallback',
+    async (asset) => {
+      ingredient.findFirst.mockResolvedValue(asset);
+      const result = await service.ingest({
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        userId: 'user-1',
+        source: {
+          ...source,
+          snapshot: {
+            ...source.snapshot,
+            selector: { kind: 'owned_post', postId: 'post-1' },
+          },
+          sourceMedia: {
+            ...source.sourceMedia,
+            existingAssetIds: ['owned-1'],
+          },
+        },
+      });
+      expect(result).toEqual({
+        status: 'unavailable',
+        reason: 'invalid_asset',
+      });
+      expect(ingredient.findFirst).toHaveBeenCalledTimes(1);
+      expect(shared.createMediaDocumentsInternal).not.toHaveBeenCalled();
+      expect(files.uploadToS3).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects existing IDs supplied by a non-owned source before database access', async () => {
+    const result = await service.ingest({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+      source: {
+        ...source,
+        sourceMedia: { ...source.sourceMedia, existingAssetIds: ['owned-1'] },
+      },
+    });
+    expect(result).toEqual({ status: 'unavailable', reason: 'invalid_asset' });
+    expect(ingredient.findFirst).not.toHaveBeenCalled();
+    expect(files.uploadToS3).not.toHaveBeenCalled();
+  });
+
+  it('accepts a future permission expiry and only searches ready cache records', async () => {
+    ingredient.findFirst.mockResolvedValue({
+      id: 'cached',
+      category: IngredientCategory.IMAGE,
+    });
+    const result = await service.ingest({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+      source: {
+        ...source,
+        sourceMedia: {
+          ...source.sourceMedia,
+          importExpiresAt: '2999-01-01T00:00:00.000Z',
+        },
+      },
+    });
+    expect(result.status).toBe('saved');
+    expect(ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          brandId: 'brand-1',
+          isDeleted: false,
+          category: {
+            in: [IngredientCategory.IMAGE, IngredientCategory.VIDEO],
+          },
+          status: {
+            in: [
+              IngredientStatus.GENERATED,
+              IngredientStatus.UPLOADED,
+              IngredientStatus.VALIDATED,
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('rejects invalid remote media before looking up cached ingredients', async () => {
+    const result = await service.ingest({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+      source: {
+        ...source,
+        sourceMedia: {
+          ...source.sourceMedia,
+          videoUrls: ['file:///private/video.mp4'],
+          imageUrls: [],
+        },
+      },
+    });
+    expect(result).toEqual({ status: 'unavailable', reason: 'invalid_asset' });
+    expect(ingredient.findFirst).not.toHaveBeenCalled();
+    expect(files.uploadToS3).not.toHaveBeenCalled();
+  });
+
+  it('does not report saved when the scoped upload completion transition fails', async () => {
+    ingredient.findFirst.mockResolvedValue(null);
+    (
+      shared.createMediaDocumentsInternal as ReturnType<typeof vi.fn>
+    ).mockResolvedValue({ ingredientData: { id: 'ing-1' } });
+    (files.uploadToS3 as ReturnType<typeof vi.fn>).mockResolvedValue({
+      size: 12,
+    });
+    ingredient.updateMany.mockResolvedValueOnce({ count: 0 });
+    const result = await service.ingest({
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      userId: 'user-1',
+      source,
+    });
+    expect(result).toEqual({ status: 'unavailable', reason: 'copy_failed' });
+    expect(ingredient.updateMany).toHaveBeenLastCalledWith(
+      expect.objectContaining({ data: { status: IngredientStatus.FAILED } }),
+    );
   });
 });

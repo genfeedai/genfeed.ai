@@ -10,14 +10,21 @@ import { BrandRemixRunPlanningService } from '@api/collections/content-runs/serv
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
 import { BrandRemixRunReviewService } from '@api/collections/content-runs/services/brand-remix-run-review.service';
 import { BrandRemixRunStateService } from '@api/collections/content-runs/services/brand-remix-run-state.service';
-import type { BrandRemixRunRecord } from '@api/collections/content-runs/services/brand-remix-runs.types';
-import { BrandRemixSourceMediaService } from '@api/collections/content-runs/services/brand-remix-source-media.service';
+import type {
+  BrandRemixRunRecord,
+  ResolvedBrandContext,
+} from '@api/collections/content-runs/services/brand-remix-runs.types';
+import {
+  BrandRemixSourceMediaService,
+  type RemixSourceMediaIngestResult,
+} from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
-import { ContentRunStatus } from '@genfeedai/contracts';
+import { ContentRunStatus, IngredientCategory } from '@genfeedai/contracts';
 import {
   BRAND_REMIX_RUN_CONTRACT,
   BRAND_REMIX_RUN_VERSION,
   type BrandRemixRunView,
+  type BrandRemixSourceSnapshot,
   brandRemixRunConfigSchema,
   createBrandRemixRunSchema,
   preparePausedMetaCampaignDraftSchema,
@@ -87,25 +94,17 @@ export class BrandRemixRunsService {
           brandId,
           input.source,
         );
-    if (
-      reusable &&
-      (ingestedSourceMedia.status !== 'saved' ||
-        this.persistedConfigHasSourceAsset(
-          reusable,
-          ingestedSourceMedia.assetId,
-        ))
-    ) {
-      return projectBrandRemixRun(
-        reusable,
+    const media = this.sourceMediaSnapshot(ingestedSourceMedia);
+    if (reusable) {
+      return this.refreshPrefilledSourceMedia(
+        organizationId,
+        brandId,
         brandContext,
-        this.persistence.parseConfig(reusable.config, reusable.id),
+        reusable,
+        userId ? media : undefined,
       );
     }
-    const defaults = this.planning.defaultDraft(
-      brandContext,
-      resolvedSource,
-      ingestedSourceMedia,
-    );
+    const defaults = this.planning.defaultDraft(brandContext, resolvedSource);
     const draft = await this.planning.resolveDraft(
       organizationId,
       brandId,
@@ -125,20 +124,26 @@ export class BrandRemixRunsService {
       readiness,
       recipeVersion: BRAND_REMIX_RUN_VERSION,
       revision: 1,
-      sourceSnapshot: resolvedSource.snapshot,
+      sourceSnapshot: {
+        ...resolvedSource.snapshot,
+        media,
+      },
       version: BRAND_REMIX_RUN_VERSION,
     });
     const persisted = await this.persistence.createOrReusePrefilledRun({
       brandId,
       config,
+      isReusable: !input.edits,
       organizationId,
       selector: input.source,
     });
 
-    return projectBrandRemixRun(
-      persisted,
+    return this.refreshPrefilledSourceMedia(
+      organizationId,
+      brandId,
       brandContext,
-      this.persistence.parseConfig(persisted.config, persisted.id),
+      persisted,
+      userId ? media : undefined,
     );
   }
 
@@ -199,7 +204,11 @@ export class BrandRemixRunsService {
       paidDraft: undefined,
       paidDraftOperation: undefined,
       phase: 'prefilled',
-      readiness: this.planning.buildReadiness(brandContext, draft),
+      readiness: this.planning.buildReadiness(
+        brandContext,
+        draft,
+        config.sourceSnapshot.media,
+      ),
       review: undefined,
       reviewClaim: undefined,
       revision: config.revision + 1,
@@ -259,13 +268,74 @@ export class BrandRemixRunsService {
     return this.paidDraft.prepare(organizationId, runId, userId, input);
   }
 
-  private persistedConfigHasSourceAsset(
+  private sourceMediaSnapshot(
+    media: RemixSourceMediaIngestResult,
+  ): NonNullable<BrandRemixSourceSnapshot['media']> {
+    if (media.status === 'saved') {
+      return {
+        status: 'saved',
+        assetId: media.assetId,
+        category:
+          media.category === IngredientCategory.IMAGE ? 'image' : 'video',
+        purpose: 'analysis_only',
+      };
+    }
+    if (media.status === 'unavailable') {
+      return {
+        status: 'unavailable',
+        reason: media.reason,
+        purpose: 'analysis_only',
+      };
+    }
+    return { status: 'skipped', purpose: 'analysis_only' };
+  }
+
+  private async refreshPrefilledSourceMedia(
+    organizationId: string,
+    brandId: string,
+    brandContext: ResolvedBrandContext,
     run: BrandRemixRunRecord,
-    assetId: string,
-  ): boolean {
+    media: BrandRemixSourceSnapshot['media'],
+  ): Promise<BrandRemixRunView> {
     const config = this.persistence.parseConfig(run.config, run.id);
-    return config.draft.references.some(
-      (reference) => reference.assetId === assetId,
+    await this.planning.assertDraftAssetsAuthorized(
+      organizationId,
+      brandId,
+      config.draft,
     );
+    if (
+      media === undefined ||
+      JSON.stringify(config.sourceSnapshot.media) === JSON.stringify(media)
+    ) {
+      return projectBrandRemixRun(run, brandContext, config);
+    }
+    if (config.phase !== 'prefilled') {
+      throw new ConflictException(
+        'The remix changed while preparing its source. Reload it and retry.',
+      );
+    }
+    const nextConfig = brandRemixRunConfigSchema.parse({
+      ...config,
+      sourceSnapshot: { ...config.sourceSnapshot, media },
+      readiness: this.planning.buildReadiness(
+        brandContext,
+        config.draft,
+        media,
+      ),
+      revision: config.revision + 1,
+    });
+    const updated = await this.persistence.compareAndSwapExactConfig({
+      expectedConfig: config,
+      nextConfig,
+      organizationId,
+      runId: run.id,
+      status: ContentRunStatus.PENDING,
+    });
+    if (!updated) {
+      throw new ConflictException(
+        'The remix changed while preparing its source. Reload it and retry.',
+      );
+    }
+    return projectBrandRemixRun(updated, brandContext, nextConfig);
   }
 }

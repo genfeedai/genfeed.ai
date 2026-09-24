@@ -182,6 +182,39 @@ export const brandRemixSourcePatternSchema = z
   })
   .strict();
 
+export const brandRemixSourceMediaSnapshotSchema = z.discriminatedUnion(
+  'status',
+  [
+    z
+      .object({
+        status: z.literal('saved'),
+        assetId: opaqueIdSchema,
+        category: z.enum(['image', 'video']),
+        purpose: z.literal('analysis_only'),
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal('unavailable'),
+        reason: z.enum([
+          'import_not_permitted',
+          'embed_only',
+          'expired',
+          'invalid_asset',
+          'copy_failed',
+        ]),
+        purpose: z.literal('analysis_only'),
+      })
+      .strict(),
+    z
+      .object({
+        status: z.literal('skipped'),
+        purpose: z.literal('analysis_only'),
+      })
+      .strict(),
+  ],
+);
+
 export const brandRemixSourceSnapshotSchema = z
   .object({
     authorHandle: shortTextSchema.optional(),
@@ -189,6 +222,7 @@ export const brandRemixSourceSnapshotSchema = z
     capturedAt: z.string().datetime(),
     destinationUrl: z.string().url().max(2_048).optional(),
     evidence: z.array(shortTextSchema).max(50).default([]),
+    media: brandRemixSourceMediaSnapshotSchema.optional(),
     metrics: z.record(z.string().trim().min(1).max(100), z.number().finite()),
     pattern: brandRemixSourcePatternSchema,
     platform: z.custom<BrandRemixSourcePlatform>(
@@ -205,6 +239,7 @@ export const brandRemixSourceSnapshotSchema = z
 export const brandRemixTargetSchema = z.discriminatedUnion('kind', [
   z
     .object({
+      credentialId: opaqueIdSchema.optional(),
       kind: z.literal('organic'),
       platform: z.enum(brandRemixOrganicPlatformValues),
     })
@@ -212,6 +247,7 @@ export const brandRemixTargetSchema = z.discriminatedUnion('kind', [
   z
     .object({
       channel: z.enum(['all', 'search', 'display', 'youtube']).optional(),
+      credentialId: opaqueIdSchema.optional(),
       kind: z.literal('paid'),
       placement: shortTextSchema.optional(),
       platform: z.enum(brandRemixAdPlatformValues),
@@ -298,6 +334,10 @@ export const brandRemixDraftSchema = z
   .object({
     fidelityMode: generationFidelityModeSchema,
     identity: brandRemixIdentitySchema,
+    identitySource: z
+      .enum(['explicit', 'account_persona', 'brand_default'])
+      .optional(),
+    identityPersonaId: opaqueIdSchema.optional(),
     intent: brandRemixIntentSchema,
     output: brandRemixOutputSchema,
     references: z.array(brandRemixReferenceSchema).max(20).default([]),

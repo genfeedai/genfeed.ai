@@ -2,6 +2,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
+import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import {
   remixOrganicPlatform,
   remixPaidPlatform,
@@ -35,6 +36,7 @@ import {
   type BrandRemixReadiness,
   type BrandRemixRunConfig,
   type BrandRemixSourceSelector,
+  type BrandRemixSourceSnapshot,
   brandRemixDraftSchema,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { GenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
@@ -49,6 +51,7 @@ export class BrandRemixRunPlanningService {
     private readonly brandsService: BrandsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly sourceResolver: BrandRemixSourceResolverService,
+    private readonly personaResolution: BrandRemixPersonaResolutionService,
   ) {}
 
   resolveSource(
@@ -117,7 +120,6 @@ export class BrandRemixRunPlanningService {
   defaultDraft(
     context: ResolvedBrandContext,
     source: ResolvedSource,
-    sourceMedia?: RemixSourceMediaIngestResult,
   ): BrandRemixDraft {
     const isPaidSource =
       source.snapshot.selector.kind === 'connected_ad' ||
@@ -149,19 +151,7 @@ export class BrandRemixRunPlanningService {
     const hookPattern =
       source.snapshot.pattern.hook?.replace(/[.!?]+$/, '') ??
       'performance-led hook';
-    const sourceReference =
-      sourceMedia?.status === 'saved'
-        ? [
-            {
-              assetId: sourceMedia.assetId,
-              role: this.sourceReferenceRole(outputKind, sourceMedia.category),
-            },
-          ]
-        : [];
-    const defaultReferences = this.mergeDefaultReferences(
-      sourceReference,
-      context.brandKit,
-    );
+    const defaultReferences = this.mergeDefaultReferences([], context.brandKit);
     const objective =
       outputKind === 'avatar'
         ? this.defaultAvatarSpeech(context)
@@ -169,6 +159,7 @@ export class BrandRemixRunPlanningService {
     return brandRemixDraftSchema.parse({
       fidelityMode: 'guided',
       identity: context.defaultIdentity,
+      identitySource: 'brand_default',
       intent: {
         callToAction: source.snapshot.pattern.callToAction,
         hook: source.snapshot.pattern.hook,
@@ -217,16 +208,42 @@ export class BrandRemixRunPlanningService {
     ) {
       intent.objective = this.defaultAvatarSpeech(context);
     }
+    const target = edits.target ?? current.target;
+    const targetChanged =
+      target.kind !== current.target.kind ||
+      target.platform !== current.target.platform ||
+      target.credentialId !== current.target.credentialId;
+    const explicitIdentity = edits.identity
+      ? edits.identity.avatarAssetId === null
+        ? {}
+        : edits.identity
+      : undefined;
+    const resolvedIdentity =
+      explicitIdentity !== undefined
+        ? {
+            identity: explicitIdentity,
+            source: 'explicit' as const,
+            personaId: undefined,
+          }
+        : targetChanged &&
+            current.identitySource !== undefined &&
+            current.identitySource !== 'explicit'
+          ? await this.personaResolution.resolve({
+              organizationId,
+              brandId,
+              credentialId: target.credentialId,
+              target,
+              defaultIdentity: context.defaultIdentity,
+            })
+          : undefined;
     const draft = brandRemixDraftSchema.parse({
       ...current,
       ...(edits.fidelityMode ? { fidelityMode: edits.fidelityMode } : {}),
-      ...(edits.identity
+      ...(resolvedIdentity
         ? {
-            identity:
-              'avatarAssetId' in edits.identity &&
-              edits.identity.avatarAssetId === null
-                ? {}
-                : edits.identity,
+            identity: resolvedIdentity.identity,
+            identitySource: resolvedIdentity.source,
+            identityPersonaId: resolvedIdentity.personaId,
           }
         : {}),
       intent,
@@ -241,7 +258,9 @@ export class BrandRemixRunPlanningService {
   buildReadiness(
     context: ResolvedBrandContext,
     draft: BrandRemixDraft,
-    sourceMedia?: RemixSourceMediaIngestResult,
+    sourceMedia?:
+      | RemixSourceMediaIngestResult
+      | BrandRemixSourceSnapshot['media'],
   ): BrandRemixReadiness {
     const issues: BrandRemixReadiness['issues'] = [];
     const hasStrictFidelityReference = draft.references.some((reference) =>
@@ -278,12 +297,15 @@ export class BrandRemixRunPlanningService {
         severity: 'blocked',
       });
     }
-    if (sourceMedia?.status === 'unavailable') {
+    if (
+      sourceMedia?.status === 'unavailable' ||
+      (sourceMedia?.status === 'skipped' && draft.output.kind !== 'copy')
+    ) {
       issues.push({
         code: 'source_media_unavailable',
         field: 'references',
         message:
-          'The source creative could not be copied onto Genfeed. Remix can still run, but the original pixels may vanish.',
+          'Pattern-only remix. Scene analysis requires permitted, accessible media. Source pixels and audio are not used in generated output.',
         severity: 'degraded',
       });
     }
@@ -318,6 +340,16 @@ export class BrandRemixRunPlanningService {
     brandId: string,
     draft: BrandRemixDraft,
   ): Promise<void> {
+    if (draft.target.credentialId) {
+      await this.personaResolution.resolve({
+        organizationId,
+        brandId,
+        credentialId: draft.target.credentialId,
+        target: draft.target,
+        defaultIdentity: {},
+        explicitIdentity: draft.identity,
+      });
+    }
     const referenceIds = [
       ...new Set(draft.references.map((reference) => reference.assetId)),
     ];
@@ -336,6 +368,7 @@ export class BrandRemixRunPlanningService {
               id: true,
               isCloned: true,
               sampleAudioUrl: true,
+              sourceActionId: true,
               status: true,
               voiceProvider: true,
             },
@@ -371,7 +404,11 @@ export class BrandRemixRunPlanningService {
       ...assets.map((asset) => asset.id),
     ]);
     const missingReferences = referenceIds.filter(
-      (referenceId) => !authorizedIds.has(referenceId),
+      (referenceId) =>
+        !authorizedIds.has(referenceId) ||
+        ingredientById
+          .get(referenceId)
+          ?.sourceActionId?.startsWith('remix-source:'),
     );
     if (missingReferences.length) {
       throw new BadRequestException({
@@ -380,7 +417,7 @@ export class BrandRemixRunPlanningService {
         title: 'Invalid remix references',
       });
     }
-    this.assertAvatarIdentity(draft, ingredientById);
+    this.assertAvatarIdentity(draft, ingredientById, brandId);
   }
 
   async assertGeneratedAssetsAuthorized(
@@ -535,19 +572,6 @@ export class BrandRemixRunPlanningService {
     };
   }
 
-  private sourceReferenceRole(
-    outputKind: BrandRemixDraft['output']['kind'],
-    category: IngredientCategory.IMAGE | IngredientCategory.VIDEO,
-  ): BrandRemixDraft['references'][number]['role'] {
-    if (
-      category === IngredientCategory.VIDEO &&
-      (outputKind === 'video' || outputKind === 'avatar')
-    ) {
-      return 'reference_video';
-    }
-    return 'subject';
-  }
-
   private mergeDefaultReferences(
     explicit: BrandRemixReferenceEdit[],
     brandKit: IBrandKitResolvedAssets,
@@ -631,17 +655,22 @@ export class BrandRemixRunPlanningService {
     ingredientById: Map<
       string,
       {
+        brandId: string | null;
         category: IngredientCategory | string;
         externalVoiceId: string | null;
         sampleAudioUrl: string | null;
         voiceProvider: string | null;
       }
     >,
+    brandId: string,
   ): void {
     if (!('avatarAssetId' in draft.identity)) return;
     const avatar = ingredientById.get(draft.identity.avatarAssetId);
     const voice = ingredientById.get(draft.identity.speechVoiceId);
-    if (avatar?.category !== IngredientCategory.AVATAR) {
+    if (
+      avatar?.category !== IngredientCategory.AVATAR ||
+      avatar.brandId !== brandId
+    ) {
       throw new BadRequestException({
         detail: 'The selected avatar must be a generation-ready brand avatar.',
         title: 'Invalid remix avatar',
@@ -649,6 +678,7 @@ export class BrandRemixRunPlanningService {
     }
     if (
       voice?.category !== IngredientCategory.VOICE ||
+      voice.brandId !== brandId ||
       !isMaterializableSavedVoice({
         externalVoiceId: voice.externalVoiceId,
         provider: voice.voiceProvider,
