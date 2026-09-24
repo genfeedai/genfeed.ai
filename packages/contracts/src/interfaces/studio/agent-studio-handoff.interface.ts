@@ -10,6 +10,8 @@ import type { StudioGenerateType } from './studio-generate.interface';
  * the brand's current identity (#4717), never re-resolved at consume.
  */
 export interface AgentStudioHandoffPayload {
+  requestedSkillSlugs?: string[];
+  harness?: boolean;
   aspectRatio?: string;
   /** Public URL of the brand identity's portrait, for an avatar handoff. */
   avatarPhotoUrl?: string;

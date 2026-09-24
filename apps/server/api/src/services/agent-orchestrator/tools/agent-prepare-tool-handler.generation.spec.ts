@@ -29,6 +29,32 @@ function createHandler(
 }
 
 describe('AgentPrepareToolHandler.prepareGeneration', () => {
+  it('preserves normalized selections and enhancement override on the review card', async () => {
+    const result = await createHandler().prepareGeneration(
+      {
+        generationType: 'video',
+        prompt: 'A coast',
+        requestedSkillSlugs: ['Cinema'],
+        harness: false,
+      },
+      ctx,
+    );
+    expect(result.nextActions?.[0].generationParams).toMatchObject({
+      requestedSkillSlugs: ['cinema'],
+      harness: false,
+    });
+    await expect(
+      createHandler().prepareGeneration(
+        {
+          generationType: 'image',
+          prompt: 'A coast',
+          requestedSkillSlugs: ['bad_slug'],
+        },
+        ctx,
+      ),
+    ).rejects.toThrow();
+  });
+
   it('prepares the first generate in a thread', async () => {
     const result = await createHandler().prepareGeneration(
       {

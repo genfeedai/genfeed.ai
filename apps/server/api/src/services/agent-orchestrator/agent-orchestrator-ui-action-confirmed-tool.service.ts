@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { mergeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
@@ -513,7 +514,16 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       params.payload.resolution.trim()
         ? params.payload.resolution.trim()
         : undefined;
+    const requestedSkillSlugs = mergeRequestedSkillSlugs(
+      params.context.requestedSkillSlugs,
+      params.payload?.requestedSkillSlugs,
+    );
+    const harness = params.payload?.harness;
+    if (harness !== undefined && typeof harness !== 'boolean')
+      throw new BadRequestException('harness must be a boolean');
     const commonToolPayload = {
+      ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
+      ...(harness !== undefined ? { harness } : {}),
       ...(aspectRatio ? { aspectRatio } : {}),
       prompt,
       ...(references && references.length > 0 ? { references } : {}),
@@ -570,6 +580,9 @@ export class AgentOrchestratorUiActionConfirmedToolService {
       toolPayload,
       {
         apiKeyContext: params.context.apiKeyContext,
+        ...(params.context.requestedSkillSlugs?.length
+          ? { requestedSkillSlugs: params.context.requestedSkillSlugs }
+          : {}),
         brandId: params.context.scope?.brandId,
         generationModelOverride: overrides.generationModelOverride,
         generationPriority:

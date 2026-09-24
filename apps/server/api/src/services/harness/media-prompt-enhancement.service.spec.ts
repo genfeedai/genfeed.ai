@@ -1,6 +1,7 @@
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
 import { PromptEnhancementResponseError } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { BadRequestException } from '@nestjs/common';
 import { describe, expect, it, vi } from 'vitest';
 
 function setup(enabled = true) {
@@ -56,6 +57,29 @@ const input = {
 };
 
 describe('MediaPromptEnhancementService', () => {
+  it('rejects selected skills when enhancement is disabled before any model work', async () => {
+    const { service, promptEnhancement, harness } = setup(false);
+    await expect(
+      service.enhance({ ...input, requestedSkillSlugs: ['cinema'] }),
+    ).rejects.toThrow('Enable enhancement');
+    expect(promptEnhancement.enhance).not.toHaveBeenCalled();
+    expect(harness.resolveBrief).not.toHaveBeenCalled();
+  });
+  it('forwards normalized selections and preserves actionable selection errors', async () => {
+    const { service, promptEnhancement } = setup();
+    const error = new BadRequestException('Remove unavailable selection');
+    promptEnhancement.enhance.mockRejectedValue(error);
+    await expect(
+      service.enhance({ ...input, requestedSkillSlugs: ['Cinema'] }),
+    ).rejects.toBe(error);
+    expect(promptEnhancement.enhance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        requestedSkillSlugs: ['cinema'],
+        contentType: 'image',
+      }),
+    );
+  });
+
   it('preserves exact caller bytes and makes no enhancement calls when disabled', async () => {
     const { service, harness, promptEnhancement, packs } = setup(false);
     expect(await service.enhance(input)).toEqual({

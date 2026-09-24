@@ -1,4 +1,8 @@
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
+import {
+  normalizeRequestedSkillSlugs,
+  unavailableRequestedSkill,
+} from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { resolveEnhancePromptSystemPrompt } from '@api/endpoints/ai-actions/prompts/cinematic-enhancement';
@@ -60,7 +64,11 @@ export class PromptEnhancementService {
     input: PromptEnhancementInput,
     options?: PromptEnhancementServerOptions,
   ): Promise<PromptEnhancementResult> {
-    if (input.promptId && input.brandId) {
+    const requestedSkillSlugs = normalizeRequestedSkillSlugs(
+      input.requestedSkillSlugs,
+    );
+    if (requestedSkillSlugs && !this.skills) throw unavailableRequestedSkill();
+    if (input.promptId && input.brandId && !requestedSkillSlugs) {
       const saved = await this.prompts.findOne({
         id: input.promptId,
         organizationId: input.organizationId,
@@ -93,10 +101,11 @@ export class PromptEnhancementService {
       )?.trim() ||
         fallback);
     const skillSections =
-      (await this.skills?.resolveRequestedSkillPromptSections(
+      (await this.skills?.resolveGenerationSkillPromptSections(
         input.organizationId,
         input.brandId,
-        input.requestedSkillSlugs,
+        requestedSkillSlugs,
+        { modality: input.contentType },
       )) ?? '';
     const response = await this.openRouter.chatCompletion(
       {

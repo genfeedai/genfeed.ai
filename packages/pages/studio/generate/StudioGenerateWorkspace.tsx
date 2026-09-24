@@ -106,6 +106,9 @@ export default function StudioGenerateWorkspace(): ReactElement {
     organizationId,
     settings: organizationSettings,
   } = useBrand();
+  const [recognizedSkillSlugs, setRecognizedSkillSlugs] = useState<string[]>(
+    [],
+  );
   const agentApiService = useAgentApiService();
   const {
     extraExtensions: characterMentionExtensions,
@@ -116,7 +119,10 @@ export default function StudioGenerateWorkspace(): ReactElement {
   const {
     extraExtensions: promptCommandExtensions,
     resolveSubmit: resolvePromptCommands,
-  } = usePromptCommandExtension({ surface: SkillSurface.STUDIO });
+  } = usePromptCommandExtension({
+    surface: SkillSurface.STUDIO,
+    recognizedSkillSlugs,
+  });
   const extraExtensions = useMemo(
     () => [...characterMentionExtensions, ...promptCommandExtensions],
     [characterMentionExtensions, promptCommandExtensions],
@@ -149,6 +155,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     undoEnhance,
   } = useStudioPromptEnhancement({
     brandId,
+    contentType: type === 'image' || type === 'video' ? type : undefined,
     modelKey: settings.modelKey,
     onPromptChange: setPrompt,
     prompt,
@@ -382,7 +389,15 @@ export default function StudioGenerateWorkspace(): ReactElement {
     }
     setAcceptedHandoffScope(handoffScope);
 
-    setPrompt(handoffPayload.prompt);
+    const handoffSlugs = handoffPayload.requestedSkillSlugs ?? [];
+    setRecognizedSkillSlugs((previous) => [
+      ...new Set([...previous, ...handoffSlugs]),
+    ]);
+    setPrompt(
+      [...handoffSlugs.map((slug) => `/${slug}`), handoffPayload.prompt].join(
+        ' ',
+      ),
+    );
     applyTypeSettings(
       handoffPayload.type,
       buildStudioSettingsPatchFromHandoff(handoffPayload),
@@ -632,6 +647,33 @@ export default function StudioGenerateWorkspace(): ReactElement {
     };
   }, [attachments, contentReferences, getCompletedAttachments, type]);
 
+  const rejectUnsupportedSkillSelection = useCallback(
+    (skillSlugs: string[]) => {
+      if (
+        skillSlugs.length &&
+        (remixRun || (type !== 'image' && type !== 'video'))
+      ) {
+        notificationsService.warning(
+          'Selected skills are supported for image and video generation. Remove the skill selections to continue here.',
+        );
+        return true;
+      }
+      return false;
+    },
+    [notificationsService.warning, remixRun, type],
+  );
+
+  const handleEnhancePrompt = useCallback(() => {
+    const { skillSlugs } = resolvePromptCommands(prompt);
+    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
+    return enhancePrompt();
+  }, [
+    enhancePrompt,
+    prompt,
+    rejectUnsupportedSkillSelection,
+    resolvePromptCommands,
+  ]);
+
   const handleSubmit = useCallback(() => {
     if (isUploading || isListening || isTranscribing) {
       return;
@@ -640,7 +682,8 @@ export default function StudioGenerateWorkspace(): ReactElement {
     // enhancement pass, never the generator, so they come off before either
     // path — a remix stores the prompt as its objective, so a token left in
     // here would reach generation the same way.
-    const { content } = resolvePromptCommands(prompt);
+    const { content, skillSlugs } = resolvePromptCommands(prompt);
+    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
 
     if (remixRun) {
       if (
@@ -675,11 +718,23 @@ export default function StudioGenerateWorkspace(): ReactElement {
         ...resolvedReferences,
         imageReferenceIds: prepared.referenceIds,
       },
-      enhancedPromptId && prepared.text === prompt
-        ? { promptId: enhancedPromptId }
+      skillSlugs.length ||
+        (isHandoffAccepted && handoffPayload?.harness !== undefined) ||
+        (enhancedPromptId && prepared.text === prompt)
+        ? {
+            ...(skillSlugs.length ? { requestedSkillSlugs: skillSlugs } : {}),
+            ...(isHandoffAccepted && handoffPayload?.harness !== undefined
+              ? { harness: handoffPayload.harness }
+              : {}),
+            ...(enhancedPromptId && prepared.text === prompt
+              ? { promptId: enhancedPromptId }
+              : {}),
+          }
         : undefined,
     );
   }, [
+    isHandoffAccepted,
+    handoffPayload,
     enhancedPromptId,
     isListening,
     isTranscribing,
@@ -689,6 +744,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     contentReferences,
     resolvedReferences,
     resolveCharacterMentions,
+    rejectUnsupportedSkillSelection,
     resolvePromptCommands,
     remixRun,
     settings,
@@ -1152,7 +1208,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   models={models}
                   onAddFiles={handleAddFiles}
                   onCancelEnhancePrompt={cancelEnhance}
-                  onEnhancePrompt={enhancePrompt}
+                  onEnhancePrompt={handleEnhancePrompt}
                   onOpenLibrary={handleOpenLibrary}
                   onPromptChange={setPrompt}
                   onPromptDocumentChange={(document) => {

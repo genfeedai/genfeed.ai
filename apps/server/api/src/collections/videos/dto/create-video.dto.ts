@@ -18,7 +18,9 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
+  MaxLength,
   Min,
   ValidateIf,
   ValidateNested,
@@ -203,6 +205,15 @@ export class ZoomConfigDto {
 }
 
 export class CreateVideoDto extends CreateIngredientDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  @MaxLength(160, { each: true })
+  @Matches(/^[a-z0-9][a-z0-9-]*$/i, { each: true })
+  @ApiProperty({ required: false, type: [String] })
+  readonly requestedSkillSlugs?: string[];
+
   @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsBoolean()
   @ApiProperty({

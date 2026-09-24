@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -50,6 +51,14 @@ export class AgentStudioHandoffController {
       modelKey: body.modelKey,
       outputs: body.outputs,
       prompt: body.prompt,
+      ...(body.requestedSkillSlugs?.length
+        ? {
+            requestedSkillSlugs: normalizeRequestedSkillSlugs(
+              body.requestedSkillSlugs,
+            ),
+          }
+        : {}),
+      ...(body.harness !== undefined ? { harness: body.harness } : {}),
       references: body.references,
       resolution: body.resolution,
       type: body.type,

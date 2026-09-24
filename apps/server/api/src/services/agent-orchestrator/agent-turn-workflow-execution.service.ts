@@ -2,6 +2,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/agent-runtime-workflow-definitions';
 import {
   type SystemWorkflowActionRequest,
@@ -261,6 +262,13 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
       ? {
           generationSettings: projectGenerationSettings(
             request.generationSettings,
+          ),
+        }
+      : {}),
+    ...(request.requestedSkillSlugs !== undefined
+      ? {
+          requestedSkillSlugs: normalizeRequestedSkillSlugs(
+            request.requestedSkillSlugs,
           ),
         }
       : {}),
@@ -642,6 +650,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
 
   private buildBaseContext(state: PreparedAgentTurnState): AgentChatContext {
     return {
+      ...(state.request.requestedSkillSlugs?.length
+        ? { requestedSkillSlugs: state.request.requestedSkillSlugs }
+        : {}),
       executionId: state.executionId,
       executionMode: 'background',
       organizationId: state.organizationId,
@@ -726,6 +737,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
             : {}),
           ...(settings?.prioritize ? { prioritize: settings.prioritize } : {}),
           prompt: state.request.content,
+          ...(state.request.requestedSkillSlugs?.length
+            ? { requestedSkillSlugs: state.request.requestedSkillSlugs }
+            : {}),
           ...(settings?.resolution ? { resolution: settings.resolution } : {}),
           sourceActionId,
         },

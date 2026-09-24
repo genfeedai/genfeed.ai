@@ -298,6 +298,9 @@ export class ImageGenerationService {
       model,
       harness: createImageDto.harness,
       promptId: createImageDto.promptId,
+      ...(createImageDto.requestedSkillSlugs?.length
+        ? { requestedSkillSlugs: createImageDto.requestedSkillSlugs }
+        : {}),
     });
     if (request.generationOriginalPrompt !== undefined) {
       if (

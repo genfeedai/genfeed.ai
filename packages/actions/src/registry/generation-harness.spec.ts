@@ -2,6 +2,24 @@ import { describe, expect, it } from 'vitest';
 import { getToolByName, getToolsForSurface } from './tool-registry';
 
 describe('generation harness catalog', () => {
+  it.each([
+    'generate_image',
+    'generate_video',
+    'enhance_prompt',
+    'prepare_generation',
+  ])('declares bounded skill selections on %s', (name) => {
+    expect(
+      getToolByName(name)?.parameters.properties.requestedSkillSlugs,
+    ).toMatchObject({
+      type: 'array',
+      maxItems: 8,
+      items: { type: 'string', maxLength: 160 },
+    });
+    expect(getToolByName(name)?.parameters.properties.harness).toMatchObject({
+      type: 'boolean',
+    });
+  });
+
   it.each(['agent', 'mcp'] as const)(
     'exposes the implemented preview on %s',
     (surface) => {

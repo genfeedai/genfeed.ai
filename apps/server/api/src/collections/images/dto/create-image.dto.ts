@@ -22,6 +22,15 @@ import {
 
 export class CreateImageDto extends CreateIngredientDto {
   @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  @MaxLength(160, { each: true })
+  @Matches(/^[a-z0-9][a-z0-9-]*$/i, { each: true })
+  @ApiProperty({ required: false, type: [String] })
+  readonly requestedSkillSlugs?: string[];
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
   @IsBoolean()
   @ApiProperty({
     description: 'Override prompt enhancement for this generation',

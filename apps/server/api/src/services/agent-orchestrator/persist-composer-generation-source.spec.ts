@@ -8,7 +8,11 @@ describe('persistComposerGenerationSource', () => {
     organizationId: 'org',
     userId: 'user',
     threadId: 'thread',
-    request: { content: 'A coast', threadId: 'thread' },
+    request: {
+      content: 'A coast',
+      threadId: 'thread',
+      requestedSkillSlugs: ['cinema'],
+    },
   };
   it('checks the owned active thread and retries with the same idempotent message id', async () => {
     const findOne = vi
@@ -40,7 +44,7 @@ describe('persistComposerGenerationSource', () => {
     );
     expect(addMessage.mock.calls[0][0].metadata.uiActions[0]).toMatchObject({
       generationType: 'video',
-      generationParams: { prompt: 'A coast' },
+      generationParams: { prompt: 'A coast', requestedSkillSlugs: ['cinema'] },
       data: { decision: 'pending', brandId: 'brand', scopeVersion: 2 },
     });
   });

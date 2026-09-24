@@ -16,6 +16,19 @@ export const OVERLAP_GENERATION_TOOLS: SourceTool[] = [
       type: 'object',
       required: ['prompt', 'contentType'],
       properties: {
+        requestedSkillSlugs: {
+          description:
+            'Explicit skill selections for this generation; additive to brand guidance.',
+          type: 'array',
+          maxItems: 8,
+          items: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 160,
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$',
+          },
+        },
+
         prompt: { type: 'string' },
         contentType: { type: 'string', enum: ['image', 'video'] },
         brandId: { type: 'string' },

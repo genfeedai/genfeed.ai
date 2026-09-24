@@ -22,7 +22,7 @@ function setup() {
     getRenderedPrompt: vi.fn().mockResolvedValue('Existing Studio template'),
   };
   const skills = {
-    resolveRequestedSkillPromptSections: vi.fn().mockResolvedValue(''),
+    resolveGenerationSkillPromptSections: vi.fn().mockResolvedValue(''),
   };
   const prompts = { findOne: vi.fn().mockResolvedValue(null) };
   const service = new PromptEnhancementService(
@@ -35,6 +35,38 @@ function setup() {
 }
 
 describe('PromptEnhancementService', () => {
+  it('bypasses saved text when new selections must be applied', async () => {
+    const { service, prompts, skills, openRouter } = setup();
+    prompts.findOne.mockResolvedValue({ id: 'saved' });
+    await service.enhance({
+      ...input,
+      promptId: 'saved',
+      contentType: 'video',
+      requestedSkillSlugs: ['Cinema'],
+    });
+    expect(prompts.findOne).not.toHaveBeenCalled();
+    expect(skills.resolveGenerationSkillPromptSections).toHaveBeenCalledWith(
+      'org',
+      'selected-brand',
+      ['cinema'],
+      { modality: 'video' },
+    );
+    expect(openRouter.chatCompletion).toHaveBeenCalledOnce();
+  });
+  it('rejects invalid or unresolved selections before a model call', async () => {
+    const { service, skills, openRouter } = setup();
+    await expect(
+      service.enhance({ ...input, requestedSkillSlugs: ['bad_slug'] }),
+    ).rejects.toThrow();
+    skills.resolveGenerationSkillPromptSections.mockRejectedValue(
+      new Error('Selected skill unavailable'),
+    );
+    await expect(
+      service.enhance({ ...input, requestedSkillSlugs: ['cinema'] }),
+    ).rejects.toThrow('Selected skill unavailable');
+    expect(openRouter.chatCompletion).not.toHaveBeenCalled();
+  });
+
   it('reuses only a completed enhancement with matching tenant, brand and exact text', async () => {
     const { service, prompts, openRouter } = setup();
     prompts.findOne.mockResolvedValue({ id: 'reviewed' });
@@ -61,7 +93,7 @@ describe('PromptEnhancementService', () => {
   });
   it('uses the existing model template, selected-brand skills, free model and Studio config', async () => {
     const { service, templates, skills, openRouter } = setup();
-    skills.resolveRequestedSkillPromptSections.mockResolvedValue(
+    skills.resolveGenerationSkillPromptSections.mockResolvedValue(
       'Selected skill',
     );
     expect(
@@ -81,10 +113,11 @@ describe('PromptEnhancementService', () => {
       {},
       'org',
     );
-    expect(skills.resolveRequestedSkillPromptSections).toHaveBeenCalledWith(
+    expect(skills.resolveGenerationSkillPromptSections).toHaveBeenCalledWith(
       'org',
       'selected-brand',
       ['cinema'],
+      { modality: 'image' },
     );
     expect(openRouter.chatCompletion).toHaveBeenCalledWith(
       {

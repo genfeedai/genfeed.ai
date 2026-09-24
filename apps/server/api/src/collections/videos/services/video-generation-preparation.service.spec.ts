@@ -1,9 +1,10 @@
 import { HttpException, HttpStatus } from '@nestjs/common';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
   assertSeedanceReferenceVideoDuration,
   createMissingPromptIdException,
   MISSING_PROMPT_ID_DETAIL,
+  VideoGenerationPreparationService,
 } from './video-generation-preparation.service';
 
 describe('createMissingPromptIdException', () => {
@@ -41,5 +42,53 @@ describe('assertSeedanceReferenceVideoDuration', () => {
       detail: 'Seedance reference videos may total at most 30 seconds',
       title: 'Invalid video reference duration',
     });
+  });
+});
+
+describe('video selection transport', () => {
+  it('sends explicit selections to central enhancement and stops on its validation error', async () => {
+    const error = new Error('Selected skill unavailable');
+    const enhance = vi.fn().mockRejectedValue(error);
+    const unused = {} as never;
+    const createMediaDocuments = vi.fn();
+    const service = new VideoGenerationPreparationService(
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      unused,
+      { createMediaDocuments } as never,
+      unused,
+      { enhance } as never,
+    );
+    await expect(
+      service.prepare({
+        brand: { id: 'brand-1' },
+        createVideoDto: {
+          text: 'A coast',
+          requestedSkillSlugs: ['cinema'],
+          harness: true,
+        },
+        model: 'video-model',
+        referenceIds: [],
+        request: {},
+        user: { organizationId: 'org-1' },
+      } as never),
+    ).rejects.toBe(error);
+    expect(enhance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        contentType: 'video',
+        requestedSkillSlugs: ['cinema'],
+        harness: true,
+        prompt: 'A coast',
+      }),
+    );
+    expect(createMediaDocuments).not.toHaveBeenCalled();
   });
 });

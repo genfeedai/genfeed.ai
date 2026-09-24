@@ -177,6 +177,32 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
     ...overrides,
   });
 
+  it('keeps current-turn selections even when model arguments omit them, without inheriting them on a later turn', async () => {
+    mediaGenerationHandler.generateImage.mockResolvedValue({
+      creditsUsed: 0,
+      success: true,
+    });
+    const parameters = { prompt: 'A coast', requestedSkillSlugs: ['detail'] };
+    await service.executeTool(
+      'generate_image',
+      parameters,
+      context({ requestedSkillSlugs: ['Cinema'] }),
+    );
+    expect(mediaGenerationHandler.generateImage).toHaveBeenLastCalledWith(
+      expect.objectContaining({ requestedSkillSlugs: ['cinema', 'detail'] }),
+      expect.anything(),
+    );
+    expect(parameters.requestedSkillSlugs).toEqual(['detail']);
+    await service.executeTool(
+      'generate_image',
+      { prompt: 'A forest' },
+      context(),
+    );
+    expect(
+      mediaGenerationHandler.generateImage.mock.calls.at(-1)?.[0],
+    ).not.toHaveProperty('requestedSkillSlugs');
+  });
+
   describe('Manual — confirms credit-spending, brand-context, and outbound', () => {
     it('docks the generation review card for generate_image instead of generating', async () => {
       agentThreadsService.findOne.mockResolvedValue({ mode: 'manual' });

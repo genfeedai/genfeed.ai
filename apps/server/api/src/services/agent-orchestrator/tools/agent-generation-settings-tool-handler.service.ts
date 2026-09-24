@@ -1,3 +1,4 @@
+import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { MediaPromptEnhancementService } from '@api/services/harness/media-prompt-enhancement.service';
@@ -54,7 +55,11 @@ export class AgentGenerationSettingsToolHandler {
       throw new BadRequestException('contentType must be image or video');
     if (params.harness !== undefined && typeof params.harness !== 'boolean')
       throw new BadRequestException('harness must be a boolean');
+    const requestedSkillSlugs = normalizeRequestedSkillSlugs(
+      params.requestedSkillSlugs,
+    );
     const receipt = await this.enhancement.enhance({
+      ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
       organizationId: ctx.organizationId,
       brandId,
       prompt: params.prompt,

@@ -72,6 +72,7 @@ export interface UseStudioGenerationReturn {
 }
 
 export interface StudioGenerationOptions {
+  requestedSkillSlugs?: string[];
   harness?: boolean;
   promptId?: string;
 }
@@ -602,6 +603,9 @@ export function useStudioGeneration({
             const payload = buildImagePayload(
               {
                 ...buildBaseGenerationPayload(promptData, modelKey, brandId),
+                ...(options?.requestedSkillSlugs?.length
+                  ? { requestedSkillSlugs: options.requestedSkillSlugs }
+                  : {}),
                 ...(options?.promptId ? { promptId: options.promptId } : {}),
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }
@@ -628,6 +632,9 @@ export function useStudioGeneration({
                   modelKey,
                   brandId,
                 ),
+                ...(options?.requestedSkillSlugs?.length
+                  ? { requestedSkillSlugs: options.requestedSkillSlugs }
+                  : {}),
                 ...(options?.promptId ? { promptId: options.promptId } : {}),
                 ...(options?.harness !== undefined
                   ? { harness: options.harness }

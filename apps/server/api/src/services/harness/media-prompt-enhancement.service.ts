@@ -1,3 +1,4 @@
+import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { GenerationHarnessSettingsService } from '@api/services/harness/generation-harness-settings.service';
 import { ContentHarnessService } from '@api/services/harness/harness.service';
 import { HarnessGenerationService } from '@api/services/harness/harness-generation.service';
@@ -9,13 +10,18 @@ import {
 import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import { buildMediaPromptFromHarness } from '@genfeedai/harness';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, ServiceUnavailableException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  ServiceUnavailableException,
+} from '@nestjs/common';
 
 export interface MediaPromptEnhancementInput {
   organizationId: string;
   brandId: string;
   prompt: string;
   promptId?: string;
+  requestedSkillSlugs?: string[];
   contentType: 'image' | 'video';
   model?: string;
   harness?: boolean;
@@ -34,6 +40,9 @@ export class MediaPromptEnhancementService {
   async enhance(
     input: MediaPromptEnhancementInput,
   ): Promise<GenerationHarnessReceipt> {
+    const requestedSkillSlugs = normalizeRequestedSkillSlugs(
+      input.requestedSkillSlugs,
+    );
     const preferences = await this.settings.get(
       input.organizationId,
       input.brandId,
@@ -47,7 +56,13 @@ export class MediaPromptEnhancementService {
       source,
       appliedPacks: [],
     };
-    if (!(input.harness ?? preferences.isEnabled)) return receipt;
+    if (!(input.harness ?? preferences.isEnabled)) {
+      if (requestedSkillSlugs?.length)
+        throw new BadRequestException(
+          'Enable enhancement or remove selected skills before generating.',
+        );
+      return receipt;
+    }
     let stage: 'brief' | 'provider' | 'response' | 'receipt' = 'brief';
     try {
       const brief = await this.harness.resolveBrief({
@@ -64,6 +79,7 @@ export class MediaPromptEnhancementService {
         brandId: input.brandId,
         userPrompt: input.prompt,
         promptId: input.promptId,
+        ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
         model: input.model,
         contentType: input.contentType,
       });
@@ -80,6 +96,7 @@ export class MediaPromptEnhancementService {
         ),
       };
     } catch (error: unknown) {
+      if (error instanceof BadRequestException) throw error;
       if (error instanceof PromptEnhancementResponseError) stage = 'response';
       this.logger.warn('Media prompt enhancement failed', {
         contentType: input.contentType === 'video' ? 'video' : 'image',

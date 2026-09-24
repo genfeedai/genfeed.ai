@@ -2,6 +2,7 @@ import type { IngredientFormat, RouterPriority } from '../..';
 import type { IIngredient } from '../index';
 
 export interface BaseGenerationPayload {
+  requestedSkillSlugs?: string[];
   text: string;
   model?: string;
   autoSelectModel?: boolean;

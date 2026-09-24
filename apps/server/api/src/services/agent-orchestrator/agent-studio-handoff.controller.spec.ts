@@ -39,6 +39,8 @@ describe('AgentStudioHandoffController', () => {
         brandId: 'brand-1',
         modelKey: 'openai/gpt-image-2',
         prompt: 'a red car',
+        requestedSkillSlugs: ['cinema'],
+        harness: false,
         type: 'image',
       } as CreateAgentStudioHandoffDto;
 
@@ -50,6 +52,8 @@ describe('AgentStudioHandoffController', () => {
           brandId: 'brand-1',
           modelKey: 'openai/gpt-image-2',
           prompt: 'a red car',
+          requestedSkillSlugs: ['cinema'],
+          harness: false,
           type: 'image',
         }),
       );
@@ -105,6 +109,8 @@ describe('AgentStudioHandoffController', () => {
         brandId: 'brand-1',
         modelKey: 'openai/gpt-image-2',
         prompt: 'a red car',
+        requestedSkillSlugs: ['cinema'],
+        harness: false,
         type: 'image',
       });
 
@@ -121,6 +127,8 @@ describe('AgentStudioHandoffController', () => {
         brandId: 'brand-1',
         modelKey: 'openai/gpt-image-2',
         prompt: 'a red car',
+        requestedSkillSlugs: ['cinema'],
+        harness: false,
         type: 'image',
       });
     });

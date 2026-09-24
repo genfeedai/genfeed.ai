@@ -89,6 +89,30 @@ describe('useStudioPromptEnhancement', () => {
     mockPromptsPost.mockResolvedValue({ id: 'prompt-123' });
   });
 
+  it('enhances Auto video with video modality and invalidates reuse on modality change', async () => {
+    const { result, rerender } = renderHook(
+      ({ contentType }: { contentType: 'image' | 'video' }) => {
+        const [prompt, setPrompt] = useState('A coast');
+        return useStudioPromptEnhancement({
+          brandId: 'brand-1',
+          modelKey: '',
+          contentType,
+          prompt,
+          onPromptChange: setPrompt,
+        });
+      },
+      { initialProps: { contentType: 'video' as 'image' | 'video' } },
+    );
+    await act(async () => result.current.enhancePrompt());
+    expect(mockPromptsPost.mock.calls[0][0].category).toBe(
+      'MODELS_PROMPT_VIDEO',
+    );
+    act(() => getSubscribedHandler().onCompleted('Enhanced coast'));
+    expect(result.current.enhancedPromptId).toBe('prompt-123');
+    rerender({ contentType: 'image' });
+    expect(result.current.enhancedPromptId).toBeUndefined();
+  });
+
   it('starts idle', () => {
     const { result } = renderHook(() =>
       useStudioPromptEnhancement({

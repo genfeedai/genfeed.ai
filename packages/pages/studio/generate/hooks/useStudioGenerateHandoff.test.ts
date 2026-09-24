@@ -35,6 +35,8 @@ const payload: AgentStudioHandoffPayload = {
   modelKey: 'provider/model-x',
   outputs: 2,
   prompt: 'A futuristic city at sunset',
+  requestedSkillSlugs: ['cinema'],
+  harness: false,
   type: 'image',
 };
 

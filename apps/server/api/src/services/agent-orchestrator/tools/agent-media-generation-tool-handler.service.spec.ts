@@ -1291,3 +1291,36 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     );
   });
 });
+
+describe('media tool skill transport', () => {
+  it.each(['image', 'video'] as const)(
+    'forwards normalized explicit skills on %s and rejects malformed selections',
+    async (kind) => {
+      const { gateway, handler } = createHandler();
+      const method = kind === 'image' ? 'generateImage' : 'generateVideo';
+      gateway[method].mockResolvedValue({
+        data: { id: 'queued', attributes: { status: 'processing' } },
+      });
+      await handler[method](
+        { prompt: 'A coast', requestedSkillSlugs: ['Cinema'], harness: true },
+        context,
+      );
+      expect(gateway[method]).toHaveBeenCalledWith(
+        expect.objectContaining({
+          body: expect.objectContaining({
+            requestedSkillSlugs: ['cinema'],
+            harness: true,
+          }),
+        }),
+      );
+      gateway[method].mockClear();
+      await expect(
+        handler[method](
+          { prompt: 'A coast', requestedSkillSlugs: ['bad_slug'] },
+          context,
+        ),
+      ).rejects.toThrow();
+      expect(gateway[method]).not.toHaveBeenCalled();
+    },
+  );
+});

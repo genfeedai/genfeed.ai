@@ -1,6 +1,7 @@
 import { createHash } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
+import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentScopeContextService } from '@api/index';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -76,6 +77,12 @@ export class AgentTurnAcceptanceService {
     request: AgentChatRequest & { clientRequestId: string },
     context: AgentChatContext,
   ): Promise<AgentTurnAcknowledgement> {
+    request = {
+      ...request,
+      requestedSkillSlugs: normalizeRequestedSkillSlugs(
+        request.requestedSkillSlugs,
+      ),
+    };
     const preparedScope = await this.scopeService.prepareForTurn({
       expectedContextVersion: request.expectedContextVersion,
       organizationId: context.organizationId,
@@ -138,6 +145,9 @@ export class AgentTurnAcceptanceService {
             : {}),
           ...(request.generationSettings
             ? { generationSettings: request.generationSettings }
+            : {}),
+          ...(request.requestedSkillSlugs
+            ? { requestedSkillSlugs: request.requestedSkillSlugs }
             : {}),
           ...(request.knowledgeSelection
             ? { knowledgeSelection: request.knowledgeSelection }
@@ -224,6 +234,9 @@ export class AgentTurnAcceptanceService {
           : {}),
         ...(request.generationSettings
           ? { generationSettings: request.generationSettings }
+          : {}),
+        ...(request.requestedSkillSlugs
+          ? { requestedSkillSlugs: request.requestedSkillSlugs }
           : {}),
         ...(request.knowledgeSelection
           ? { knowledgeSelection: request.knowledgeSelection }

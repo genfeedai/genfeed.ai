@@ -39,6 +39,7 @@ describe('AgentGenerationSettingsToolHandler', () => {
         contentType: 'image',
         harness: true,
         organizationId: 'foreign',
+        requestedSkillSlugs: ['Cinema'],
       },
       ctx,
     );
@@ -49,6 +50,7 @@ describe('AgentGenerationSettingsToolHandler', () => {
       contentType: 'image',
       harness: true,
       model: undefined,
+      requestedSkillSlugs: ['cinema'],
     });
     expect(result).toMatchObject({
       success: true,
@@ -81,6 +83,11 @@ describe('AgentGenerationSettingsToolHandler', () => {
 
   it.each([
     { prompt: '', contentType: 'image' },
+    {
+      prompt: 'A bicycle',
+      contentType: 'image',
+      requestedSkillSlugs: ['bad_slug'],
+    },
     { prompt: 'A bicycle', contentType: 'audio' },
     { prompt: 'A bicycle', contentType: 'image', harness: 'false' },
   ])(

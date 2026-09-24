@@ -14,6 +14,7 @@ import { useCallback, useMemo, useRef } from 'react';
 
 export interface UsePromptCommandExtensionOptions {
   baseCommands?: readonly PromptCommand[];
+  recognizedSkillSlugs?: readonly string[];
   isEnabled?: boolean;
   surface: SkillSurface;
 }
@@ -40,6 +41,7 @@ export interface UsePromptCommandExtensionReturn {
  */
 export function usePromptCommandExtension({
   baseCommands,
+  recognizedSkillSlugs,
   isEnabled,
   surface,
 }: UsePromptCommandExtensionOptions): UsePromptCommandExtensionReturn {
@@ -52,7 +54,9 @@ export function usePromptCommandExtension({
   const commandsRef = useRef(commands);
   commandsRef.current = commands;
   const skillSlugsRef = useRef(skillSlugs);
-  skillSlugsRef.current = skillSlugs;
+  skillSlugsRef.current = [
+    ...new Set([...skillSlugs, ...(recognizedSkillSlugs ?? [])]),
+  ];
 
   const extraExtensions = useMemo(
     () => [
