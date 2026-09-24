@@ -109,12 +109,12 @@ describe('explicit public discovery', () => {
     discover.mockResolvedValue({ status: 'empty', advertisers: [] });
     render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
     expect(discover).not.toHaveBeenCalled();
-    fireEvent.change(screen.getByLabelText('Public ad search'), {
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
       target: { value: 'coffee' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
     await screen.findByText(
-      'No matching creatives were returned for this search.',
+      'No matching saved creatives in the available sample.',
     );
     expect(discover).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -135,10 +135,10 @@ describe('explicit public discovery', () => {
     fireEvent.change(screen.getByLabelText('select-visual'), {
       target: { value: 'video' },
     });
-    fireEvent.change(screen.getByLabelText('Public ad search'), {
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
       target: { value: 'example.com' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
     await waitFor(() =>
       expect(discover).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -170,6 +170,8 @@ describe('explicit public discovery', () => {
             {
               id: 'a',
               adPerformanceId: 'canonical-ad',
+              freshness: 'saved',
+              observedAt: '2026-01-01T00:00:00.000Z',
               imageUrls: ['https://example.com/a.jpg'],
               videoUrls: [
                 'https://example.com/creative-video?mime_type=video_mp4',
@@ -183,10 +185,10 @@ describe('explicit public discovery', () => {
     });
     const onWatch = vi.fn().mockResolvedValue(true);
     render(<AdsPublicDiscoveryPanel onWatch={onWatch} isWatching={false} />);
-    fireEvent.change(screen.getByLabelText('Public ad search'), {
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
       target: { value: 'coffee' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
     await screen.findByText('Example');
     expect(screen.getByRole('img')).toHaveAttribute(
       'src',
@@ -240,10 +242,10 @@ describe('explicit public discovery', () => {
       ],
     });
     render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
-    fireEvent.change(screen.getByLabelText('Public ad search'), {
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
       target: { value: 'example.com' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
     expect(await screen.findByTitle('Public ad video preview')).toHaveAttribute(
       'src',
       'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
@@ -261,10 +263,10 @@ describe('explicit public discovery', () => {
     );
     const props = { onWatch: vi.fn(), isWatching: false };
     const view = render(<AdsPublicDiscoveryPanel {...props} />);
-    fireEvent.change(screen.getByLabelText('Public ad search'), {
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
       target: { value: 'coffee' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
     await waitFor(() => expect(discover).toHaveBeenCalledTimes(1));
     state.organizationId = 'other';
     view.rerender(<AdsPublicDiscoveryPanel {...props} />);
@@ -272,29 +274,24 @@ describe('explicit public discovery', () => {
     expect(discover).toHaveBeenCalledTimes(1);
     expect(
       screen.queryByText(
-        'No matching creatives were returned for this search.',
+        'No matching saved creatives in the available sample.',
       ),
     ).not.toBeInTheDocument();
     expect(discover.mock.calls[0][1].aborted).toBe(true);
   });
-  it('polls only a submitted pending search and stops at its result', async () => {
+  it('never polls a legacy pending response', async () => {
     discover
       .mockResolvedValueOnce({ status: 'pending', advertisers: [] })
       .mockResolvedValueOnce({ status: 'empty', advertisers: [] });
     render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
-    fireEvent.change(screen.getByLabelText('Public ad search'), {
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
       target: { value: 'coffee' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
     await screen.findByText(
-      'Searching the public archive. This can take a few minutes.',
+      'Saved data is unavailable for this request. Please try again later.',
     );
-    await screen.findByText(
-      'No matching creatives were returned for this search.',
-      {},
-      { timeout: 4500 },
-    );
-    expect(discover).toHaveBeenCalledTimes(2);
+    expect(discover).toHaveBeenCalledTimes(1);
   });
   it('distinguishes unconfigured search and displays Watch errors', async () => {
     discover.mockResolvedValue({
@@ -312,17 +309,61 @@ describe('explicit public discovery', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Could not watch advertiser',
     );
-    fireEvent.change(screen.getByLabelText('Public ad search'), {
+    fireEvent.change(screen.getByLabelText('Saved ad search'), {
       target: { value: 'coffee' },
     });
-    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
     await screen.findByText(
-      'Public archive search is not configured on this deployment.',
+      'Saved ads are temporarily unavailable. Please try again later.',
     );
     expect(
       screen.queryByText(
-        'No matching creatives were returned for this search.',
+        'No matching saved creatives in the available sample.',
       ),
     ).not.toBeInTheDocument();
   });
+  it.each(['stale', 'unknown', undefined])(
+    'disables Remix for %s freshness while preserving source links',
+    async (freshness) => {
+      discover.mockResolvedValue({
+        status: 'ready',
+        sampleCount: 1,
+        advertisers: [
+          {
+            id: 'a',
+            name: 'Saved',
+            creativeCount: 1,
+            samples: [
+              {
+                id: 'ad',
+                adPerformanceId: 'canonical',
+                freshness,
+                imageUrls: [],
+                videoUrls: [],
+                mediaUrls: [],
+                archiveUrl: 'https://example.com/archive',
+              },
+            ],
+          },
+        ],
+      });
+      render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
+      fireEvent.change(screen.getByLabelText('Saved ad search'), {
+        target: { value: 'coffee' },
+      });
+      fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
+      await screen.findByText('Saved');
+      expect(screen.getByRole('button', { name: 'Remix' })).toBeDisabled();
+      expect(
+        screen.getByRole('link', { name: 'View archive creative' }),
+      ).toHaveAttribute('href', 'https://example.com/archive');
+      expect(
+        screen.getByText(
+          freshness === 'stale'
+            ? 'Stale source — Remix unavailable'
+            : 'Source freshness unknown — Remix unavailable',
+        ),
+      ).toBeInTheDocument();
+    },
+  );
 });

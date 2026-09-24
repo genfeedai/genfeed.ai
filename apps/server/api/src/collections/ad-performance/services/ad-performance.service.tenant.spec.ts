@@ -102,6 +102,164 @@ describe('AdPerformanceService', () => {
     } as unknown as PrismaService);
   });
 
+  describe('saved Discovery sources', () => {
+    const query = {
+      organizationId: 'org-1',
+      brandId: 'brand-1',
+      platform: 'meta' as const,
+      keyword: 'coffee',
+      normalizedCountries: ['FR'],
+      mediaType: 'visual' as const,
+      limit: 24,
+    };
+    it('requires exact tenant, brand and discovery provenance on every read', async () => {
+      await service.findSavedDiscoverySources(query);
+      expect(adPerformance.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          take: 100,
+          orderBy: { id: 'asc' },
+          where: expect.objectContaining({
+            organizationId: 'org-1',
+            brandId: 'brand-1',
+            isDeleted: false,
+            scope: 'organization',
+            researchSource: 'meta_ads_library',
+            researchSnapshotKey: 'discovery:meta',
+            adPlatform: 'meta',
+            AND: expect.arrayContaining([
+              {
+                OR: [
+                  {
+                    data: {
+                      path: ['targetingCountries'],
+                      array_contains: ['FR'],
+                    },
+                  },
+                ],
+              },
+            ]),
+          }),
+        }),
+      );
+      expect(adPerformance.upsert).not.toHaveBeenCalled();
+    });
+    it('bounds the total hinted and fallback sample to five pages', async () => {
+      adPerformance.findMany.mockResolvedValue(
+        Array.from({ length: 100 }, (_, index) =>
+          buildRecord({ id: String(index), data: {} }),
+        ),
+      );
+      expect(
+        await service.findSavedDiscoverySources({
+          ...query,
+          cachedSourceIds: ['id'],
+        }),
+      ).toEqual([]);
+      expect(adPerformance.findMany).toHaveBeenCalledTimes(5);
+      expect(
+        adPerformance.findMany.mock.lastCall?.[0].where.AND,
+      ).toContainEqual({ id: { gt: '99' } });
+    });
+    it('filters unsafe media and video thumbnails, deduplicates and retains authoritative identity', async () => {
+      adPerformance.findMany.mockResolvedValue([
+        buildRecord({
+          externalAccountId: 'account',
+          externalAdId: 'video',
+          data: {
+            creativeType: 'video',
+            imageUrls: ['https://example.com/poster'],
+          },
+        }),
+        buildRecord({
+          externalAccountId: 'account',
+          externalAdId: 'bad',
+          data: { imageUrls: ['javascript:bad'] },
+        }),
+        buildRecord({
+          id: 'real',
+          externalAccountId: 'account',
+          externalAdId: 'image',
+          data: {
+            id: 'spoof',
+            imageUrls: [
+              'https://example.com/image',
+              'https://example.com/image',
+            ],
+          },
+        }),
+        buildRecord({
+          id: 'duplicate',
+          externalAccountId: 'account',
+          externalAdId: 'image',
+          data: { imageUrls: ['https://example.com/other'] },
+        }),
+      ]);
+      const result = await service.findSavedDiscoverySources({
+        ...query,
+        mediaType: 'image',
+      });
+      expect(result.map((row) => row.id)).toEqual(['real']);
+    });
+    it('uses exact Google domains after candidate filtering and never advertiser names', async () => {
+      adPerformance.findMany.mockResolvedValue(
+        [
+          'https://example.com/x',
+          'https://example.com.evil/x',
+          'https://sub.example.com',
+          'https://user@example.com',
+          'https://elsewhere.com',
+        ].map((url, index) =>
+          buildRecord({
+            id: String(index),
+            externalAccountId: 'AR123',
+            externalAdId: String(index),
+            data: {
+              advertiserName: 'example.com',
+              landingPageUrl: url,
+              imageUrls: ['https://example.com/a'],
+            },
+          }),
+        ),
+      );
+      expect(
+        (
+          await service.findSavedDiscoverySources({
+            ...query,
+            platform: 'google',
+            keyword: 'example.com',
+          })
+        ).map((row) => row.id),
+      ).toEqual(['0']);
+    });
+    it('falls back after unusable hints, preserving the same scope', async () => {
+      adPerformance.findMany.mockResolvedValueOnce([]).mockResolvedValueOnce([
+        buildRecord({
+          id: 'result',
+          externalAccountId: 'AR123',
+          externalAdId: 'CR123',
+          data: {
+            imageUrls: ['https://example.com/a'],
+            advertiserHandle: 'example.com',
+          },
+        }),
+      ]);
+      expect(
+        (
+          await service.findSavedDiscoverySources({
+            ...query,
+            platform: 'google',
+            keyword: 'example.com',
+            cachedSourceIds: ['deleted'],
+          })
+        )[0].id,
+      ).toBe('result');
+      expect(adPerformance.findMany).toHaveBeenCalledTimes(2);
+      expect(adPerformance.findMany.mock.calls[0][0].where.AND).toContainEqual({
+        id: { in: ['deleted'] },
+      });
+    });
+  });
+
   describe('findTopPerformers', () => {
     it('pushes platform, industry, scope, metric ordering, and limit into Prisma', async () => {
       adPerformance.findMany.mockResolvedValue([

@@ -14,7 +14,13 @@ import {
 } from '@api/collections/ad-performance/utils/ad-performance-identity.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { PAID_CREATIVE_RESEARCH_SOURCES } from '@genfeedai/integrations/ads';
+import type { AdsDiscoveryQuery } from '@genfeedai/contracts/interfaces/integrations/ads-discovery.interface';
+import {
+  type NormalizedPaidCreativeRecord,
+  PAID_CREATIVE_RESEARCH_SOURCES,
+  resolvePaidCreativeAdPlatform,
+  resolvePaidCreativeProvider,
+} from '@genfeedai/integrations/ads';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -71,6 +77,139 @@ type TopPerformerParams = {
   metric?: string;
   limit?: number;
 };
+
+export type SavedDiscoveryCreative = Pick<
+  NormalizedPaidCreativeRecord,
+  | 'externalAccountId'
+  | 'externalAdId'
+  | 'adFormat'
+  | 'advertiserHandle'
+  | 'advertiserName'
+  | 'archiveUrl'
+  | 'headlineText'
+  | 'bodyText'
+  | 'imageUrls'
+  | 'videoUrls'
+  | 'creativeMediaUrls'
+  | 'creativeType'
+  | 'fundingEntity'
+  | 'isHalted'
+  | 'landingPageUrl'
+  | 'presentationEndDate'
+  | 'presentationStartDate'
+  | 'reachEstimateMax'
+  | 'reachEstimateMin'
+  | 'targetingCountries'
+  | 'targetingCriteria'
+>;
+
+type SavedDiscoveryQuery = {
+  organizationId: string;
+  brandId: string;
+  platform: AdsDiscoveryQuery['platform'];
+  keyword: string;
+  normalizedCountries: string[];
+  mediaType: NonNullable<AdsDiscoveryQuery['mediaType']>;
+  limit: number;
+  cachedSourceIds?: string[];
+};
+
+function savedString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim() ? value : undefined;
+}
+function savedStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+export function savedDiscoveryUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  try {
+    const url = new URL(value);
+    return ['http:', 'https:'].includes(url.protocol) &&
+      !url.username &&
+      !url.password
+      ? value
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+function savedUrls(value: unknown): string[] {
+  return [
+    ...new Set(
+      savedStrings(value).flatMap((value) =>
+        savedDiscoveryUrl(value) ? [value] : [],
+      ),
+    ),
+  ];
+}
+export function projectSavedDiscoveryCreative(
+  row: Record<string, unknown>,
+): SavedDiscoveryCreative {
+  return {
+    externalAccountId: savedString(row.externalAccountId) ?? '',
+    externalAdId: savedString(row.externalAdId),
+    adFormat: savedString(row.adFormat),
+    advertiserHandle: savedString(row.advertiserHandle),
+    advertiserName: savedString(row.advertiserName),
+    archiveUrl: savedDiscoveryUrl(row.archiveUrl),
+    headlineText: savedString(row.headlineText),
+    bodyText: savedString(row.bodyText),
+    imageUrls: savedUrls(row.imageUrls),
+    videoUrls: savedUrls(row.videoUrls),
+    creativeMediaUrls: savedUrls(row.creativeMediaUrls),
+    creativeType:
+      row.creativeType === 'video'
+        ? 'video'
+        : row.creativeType === 'image'
+          ? 'image'
+          : undefined,
+    fundingEntity: savedString(row.fundingEntity),
+    isHalted: typeof row.isHalted === 'boolean' ? row.isHalted : undefined,
+    landingPageUrl: savedDiscoveryUrl(row.landingPageUrl),
+    presentationStartDate: savedString(row.presentationStartDate),
+    presentationEndDate: savedString(row.presentationEndDate),
+    reachEstimateMax:
+      typeof row.reachEstimateMax === 'number' &&
+      Number.isFinite(row.reachEstimateMax) &&
+      row.reachEstimateMax >= 0
+        ? row.reachEstimateMax
+        : undefined,
+    reachEstimateMin:
+      typeof row.reachEstimateMin === 'number' &&
+      Number.isFinite(row.reachEstimateMin) &&
+      row.reachEstimateMin >= 0
+        ? row.reachEstimateMin
+        : undefined,
+    targetingCountries: savedStrings(row.targetingCountries),
+    targetingCriteria: savedStrings(row.targetingCriteria),
+  };
+}
+export function savedDiscoveryMediaType(
+  row: SavedDiscoveryCreative,
+): 'image' | 'video' | undefined {
+  if (row.adFormat?.toLowerCase() === 'text') return undefined;
+  if (
+    row.videoUrls?.length ||
+    (row.creativeType === 'video' && row.imageUrls?.length)
+  )
+    return 'video';
+  return row.imageUrls?.length ? 'image' : undefined;
+}
+function savedHostname(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  try {
+    const url = new URL(value.includes('://') ? value : `https://${value}`);
+    return ['http:', 'https:'].includes(url.protocol) &&
+      !url.username &&
+      !url.password
+      ? url.hostname.toLowerCase()
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
 
 @Injectable()
 export class AdPerformanceService {
@@ -528,6 +667,112 @@ export class AdPerformanceService {
    * id (see `replaceResearchSnapshot`), so this is a direct membership filter
    * — no need to re-derive advertiser identity from ad content.
    */
+  async findSavedDiscoverySources(
+    params: SavedDiscoveryQuery,
+  ): Promise<AdPerformanceDocument[]> {
+    if (!params.organizationId || !params.brandId) return [];
+    const provider = resolvePaidCreativeProvider(params.platform);
+    const escapeLike = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+    const keyword = escapeLike(params.keyword);
+    const isGoogle =
+      params.platform === 'google' || params.platform === 'youtube';
+    const isAdvertiserId = /^AR\d+$/i.test(params.keyword);
+    const jsonContains = (field: string): Prisma.AdPerformanceWhereInput => ({
+      data: { path: [field], string_contains: keyword, mode: 'insensitive' },
+    });
+    const keywordWhere: Prisma.AdPerformanceWhereInput = isGoogle
+      ? isAdvertiserId
+        ? { externalAccountId: { equals: params.keyword, mode: 'insensitive' } }
+        : { OR: ['landingPageUrl', 'advertiserHandle'].map(jsonContains) }
+      : {
+          OR: [
+            { externalAccountId: { contains: keyword, mode: 'insensitive' } },
+            { headlineText: { contains: keyword, mode: 'insensitive' } },
+            ...[
+              'advertiserName',
+              'advertiserHandle',
+              'bodyText',
+              'creativeContent',
+            ].map(jsonContains),
+          ],
+        };
+    const countryWhere: Prisma.AdPerformanceWhereInput[] = params
+      .normalizedCountries.length
+      ? [
+          {
+            OR: params.normalizedCountries.map((country) => ({
+              data: { path: ['targetingCountries'], array_contains: [country] },
+            })),
+          },
+        ]
+      : [];
+    const hints = [...new Set(params.cachedSourceIds ?? [])]
+      .filter((id) => typeof id === 'string' && id.length > 0)
+      .slice(0, 500);
+    const results: AdPerformanceDocument[] = [];
+    const identities = new Set<string>();
+    const phases = hints.length ? [true, false] : [false];
+    let pages = 0;
+    for (const isHint of phases) {
+      let afterId: string | undefined;
+      for (; pages < 5; pages++) {
+        const rows = await this.prisma.adPerformance.findMany({
+          orderBy: { id: 'asc' },
+          take: 100,
+          where: scopedWhere(params.organizationId, {
+            brandId: params.brandId,
+            scope: 'organization',
+            researchSource: provider,
+            researchSnapshotKey: `discovery:${params.platform}`,
+            adPlatform: resolvePaidCreativeAdPlatform(provider),
+            AND: [
+              ...countryWhere,
+              ...(isHint ? [{ id: { in: hints } }] : [keywordWhere]),
+              ...(afterId ? [{ id: { gt: afterId } }] : []),
+            ],
+          }),
+        });
+        for (const original of rows) {
+          const row = this.normalizeRecord(original);
+          const creative = projectSavedDiscoveryCreative(row);
+          const media = savedDiscoveryMediaType(creative);
+          if (
+            !media ||
+            (params.mediaType !== 'visual' && media !== params.mediaType)
+          )
+            continue;
+          if (
+            !isHint &&
+            isGoogle &&
+            !isAdvertiserId &&
+            ![row.landingPageUrl, row.advertiserHandle].some(
+              (value) => savedHostname(value) === params.keyword.toLowerCase(),
+            )
+          )
+            continue;
+          const advertiser =
+            creative.externalAccountId ||
+            creative.advertiserHandle ||
+            savedHostname(creative.landingPageUrl);
+          if (!advertiser || !creative.externalAdId) continue;
+          const identity = JSON.stringify([advertiser, creative.externalAdId]);
+          if (identities.has(identity)) continue;
+          identities.add(identity);
+          results.push(row);
+          if (results.length >= Math.min(50, Math.max(1, params.limit)))
+            return results;
+        }
+        if (rows.length < 100) {
+          pages++;
+          break;
+        }
+        afterId = rows[rows.length - 1].id;
+      }
+      if (results.length) return results;
+    }
+    return results;
+  }
+
   async findByWatchedAdvertisers(params: {
     organizationId: string;
     brandId?: string;
