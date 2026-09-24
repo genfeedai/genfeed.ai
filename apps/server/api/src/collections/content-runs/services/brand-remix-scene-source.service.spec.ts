@@ -1,10 +1,11 @@
-import { describe, expect, it, vi } from 'vitest';
-import type { BrandRemixRunConfig } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
-import type { BrandRemixSourceResolverService } from './brand-remix-source-resolver.service';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import type { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
+import type { MediaUrlService } from '@api/services/media-urls/media-url.service';
+import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import type { BrandRemixRunConfig } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import { describe, expect, it, vi } from 'vitest';
 import { BrandRemixSceneSourceService } from './brand-remix-scene-source.service';
+import type { BrandRemixSourceResolverService } from './brand-remix-source-resolver.service';
+
 vi.mock('@api/index', () => ({
   scopedWhere: (organizationId: string, value: object) => ({
     ...value,
@@ -83,14 +84,15 @@ describe('authorized scene analysis source', () => {
   });
   it('analyzes attached Library media without probing the embed-only imported URL', async () => {
     const { service, probeMediaFromUrl } = setup();
+    const analysisSource = {
+      assetId: 'video',
+      assetUpdatedAt: '2026-09-24T00:00:00.000Z',
+    };
     const config = {
       sourceSnapshot: {
         selector: { kind: 'source_post', sourcePostId: 'source' },
       },
-      analysisSource: {
-        assetId: 'video',
-        assetUpdatedAt: '2026-09-24T00:00:00.000Z',
-      },
+      analysisSource,
     } as BrandRemixRunConfig;
     const result = await service.prepare('org', 'brand', config);
     expect(result.sourceAssetId).toBe('video');
@@ -98,7 +100,7 @@ describe('authorized scene analysis source', () => {
       'https://cdn.test/owned-video',
       'video',
     );
-    config.analysisSource!.assetUpdatedAt = '2026-09-23T00:00:00.000Z';
+    analysisSource.assetUpdatedAt = '2026-09-23T00:00:00.000Z';
     await expect(service.prepare('org', 'brand', config)).rejects.toThrow(
       'changed',
     );
