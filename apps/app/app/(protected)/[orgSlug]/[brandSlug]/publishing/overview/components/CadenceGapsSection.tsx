@@ -1,22 +1,16 @@
-import { ButtonSize } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewCadenceSectionProps } from '@props/publisher/publishing-overview.props';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { ListRow } from '@ui/lists/list-row/ListRow';
+import Badge from '@ui/display/badge/Badge';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import PublishingAccountRow from './PublishingAccountRow';
 import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 
 export default function CadenceGapsSection({
+  connections = [],
   onRetry,
   state,
 }: PublishingOverviewCadenceSectionProps) {
   const translate = useTranslations('pages.publishing.overview');
-  const { href } = useOrgUrl();
 
   return (
     <WorkspaceSurface
@@ -34,52 +28,41 @@ export default function CadenceGapsSection({
       >
         {(gaps) =>
           gaps.length > 0 ? (
-            <div>
+            <ul aria-label={translate('cadenceTitle')}>
               {gaps.map((gap) => (
-                <ListRow
+                <PublishingAccountRow
                   key={gap.credentialId}
-                  density="compact"
-                  leading={
-                    <PlatformBadge platform={gap.platform} showLabel={false} />
-                  }
-                  title={
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="min-w-0 truncate">
-                        {gap.accountLabel}
-                      </span>
-                      {gap.hasUpcoming ? (
-                        <Badge variant="success">
-                          {translate('cadenceScheduled')}
-                        </Badge>
-                      ) : null}
-                      {gap.needsReconnect ? (
-                        <Badge variant="destructive">
-                          {translate('cadenceReconnect')}
-                        </Badge>
-                      ) : gap.holdPublishing ? (
-                        <Badge variant="warning">
-                          {translate('cadenceHold')}
-                        </Badge>
-                      ) : null}
-                    </span>
+                  accountLabel={gap.accountLabel}
+                  connections={connections}
+                  credentialId={gap.credentialId}
+                  platform={gap.platform}
+                  reconnectLabel={
+                    gap.needsReconnect
+                      ? translate('cadenceReconnectAction')
+                      : undefined
                   }
                   meta={
                     gap.gapDays === null
                       ? translate('cadenceNeverPublished')
                       : translate('cadenceGapDays', { count: gap.gapDays })
                   }
-                  trailing={
-                    gap.needsReconnect ? (
-                      <Button asChild size={ButtonSize.SM} withWrapper={false}>
-                        <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
-                          {translate('cadenceReconnectAction')}
-                        </Link>
-                      </Button>
-                    ) : null
-                  }
-                />
+                >
+                  {gap.hasUpcoming ? (
+                    <Badge variant="success">
+                      {translate('cadenceScheduled')}
+                    </Badge>
+                  ) : null}
+                  {gap.needsReconnect ? (
+                    <Badge variant="warning">
+                      {translate('cadenceReconnect')}
+                    </Badge>
+                  ) : null}
+                  {gap.holdPublishing ? (
+                    <Badge variant="warning">{translate('cadenceHold')}</Badge>
+                  ) : null}
+                </PublishingAccountRow>
               ))}
-            </div>
+            </ul>
           ) : (
             <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
               {translate('cadenceEmpty')}

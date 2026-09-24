@@ -3,6 +3,8 @@ import type {
   IReleaseGroup,
 } from '@genfeedai/contracts/interfaces';
 
+import type { ReactNode } from 'react';
+import type { BrandDetailSocialConnection } from '../pages/brand-detail.props';
 import type { AsyncState } from '../shared/async-state.types';
 
 /** One SCHEDULED channel target due within the next 24 hours. */
@@ -49,10 +51,11 @@ export interface PublishingOverviewCadenceGap {
   holdPublishing: boolean;
   lastPublishedAt: string | null;
   needsReconnect: boolean;
-  platform: string;
+  platform: AccountHealthSummary['platform'];
 }
 
 export interface PublishingOverviewCadenceSectionProps {
+  connections?: BrandDetailSocialConnection[];
   onRetry: () => void;
   state: AsyncState<PublishingOverviewCadenceGap[]>;
 }
@@ -65,7 +68,7 @@ export interface PublishingOverviewHealthRow {
   holdPublishing: boolean;
   holdReason?: string;
   needsReconnect: boolean;
-  platform: string;
+  platform: AccountHealthSummary['platform'];
   publishedPosts: number;
   recentFailures: number;
   riskLevel: 'high' | 'low' | 'medium' | 'unknown';
@@ -74,6 +77,7 @@ export interface PublishingOverviewHealthRow {
 }
 
 export interface PublishingOverviewHealthSectionProps {
+  connections?: BrandDetailSocialConnection[];
   onRetry: () => void;
   state: AsyncState<PublishingOverviewHealthRow[]>;
 }
@@ -93,3 +97,13 @@ export type Next24hQueueBucket = 'near' | 'later';
 export type Next24hQueueItem = PublishingOverviewQueueItem;
 
 export type Next24hQueueGroup = PublishingOverviewQueueGroup;
+
+export interface PublishingAccountRowProps {
+  accountLabel: string;
+  children: ReactNode;
+  connections: BrandDetailSocialConnection[];
+  credentialId: string;
+  meta: ReactNode;
+  platform: AccountHealthSummary['platform'];
+  reconnectLabel?: string;
+}
