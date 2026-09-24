@@ -630,11 +630,13 @@ function PublishingSurface({
               })}
             </div>
           )}
-          <UpcomingScheduleBlock
-            brandId={brandId}
-            brandSlug={brandSlug}
-            orgSlug={orgSlug}
-          />
+          {publications.length > 0 && (
+            <UpcomingScheduleBlock
+              brandId={brandId}
+              brandSlug={brandSlug}
+              orgSlug={orgSlug}
+            />
+          )}
         </>
       )}
     </WorkspaceSurface>
