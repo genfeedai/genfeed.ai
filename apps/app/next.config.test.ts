@@ -18,6 +18,14 @@ import appPackage from './package.json' with { type: 'json' };
 const appDir = path.dirname(fileURLToPath(import.meta.url));
 const repoRoot = path.resolve(appDir, '../..');
 
+/** The test redirect helper may join repeated keys; production emits both. */
+function categoryValues(target: URL): string[] {
+  return target.searchParams
+    .getAll('categories')
+    .flatMap((value) => value.split(','))
+    .filter((value) => value.length > 0);
+}
+
 describe('app next.config', () => {
   it.each([
     [
@@ -68,6 +76,30 @@ describe('app next.config', () => {
       );
     },
   );
+
+  it('keeps an explicit categories query ahead of the type-seeded preset', async () => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: 'https://example.com/acme/brand/library/videos?categories=IMAGE&categories=GIF&folder=f1',
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).toBe(308);
+    const target = new URL(response.headers.get('location') ?? '');
+    expect(target.pathname).toBe('/acme/brand/library/assets');
+    expect(categoryValues(target)).toEqual(['IMAGE', 'GIF']);
+    expect(target.searchParams.get('folder')).toBe('f1');
+  });
+
+  it('applies the type preset only when the old route omits categories', async () => {
+    const response = await unstable_getResponseFromNextConfig({
+      url: 'https://example.com/acme/brand/library/videos?folder=f1',
+      nextConfig: { redirects: config.redirects },
+    });
+    expect(response.status).toBe(308);
+    const target = new URL(response.headers.get('location') ?? '');
+    expect(target.pathname).toBe('/acme/brand/library/assets');
+    expect(categoryValues(target)).toEqual(['VIDEO', 'VIDEO_EDIT']);
+    expect(target.searchParams.get('folder')).toBe('f1');
+  });
 
   it('keeps the API proxy open for bounded campaign generation', () => {
     expect(config.experimental?.proxyTimeout).toBe(300_000);
