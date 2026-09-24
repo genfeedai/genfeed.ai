@@ -4,7 +4,7 @@ description: Repurpose one piece of content into dozens of platform-optimized de
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Content Atomizer

@@ -5,7 +5,7 @@ Expert Instagram content strategist covering all formats: captions, carousels, R
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/instagram-content-creator
+bunx skills add genfeedai/skills/instagram-content-creator
 ```
 
 ## Usage

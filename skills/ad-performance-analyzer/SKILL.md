@@ -4,7 +4,7 @@ description: Analyze paid media performance, diagnose issues, and provide optimi
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Ad Performance Analyzer

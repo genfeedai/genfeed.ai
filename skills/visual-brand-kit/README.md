@@ -1,44 +1,39 @@
 # Visual Brand Kit
 
-Expert visual brand identity designer for AI-generated content. Creates comprehensive brand kits that ensure every generated image, video, and graphic is unmistakably on-brand.
+Create a visual identity system for AI-generated images, videos, graphics, and prompt presets.
 
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/visual-brand-kit
+bunx skills add genfeedai/skills/visual-brand-kit
 ```
 
 ## Usage
 
-```
-Create a brand kit for our wellness startup — earth tones, calm, approachable
-```
-
-```
-Define visual brand guidelines for an AI SaaS company
-```
-
-```
-Build a photography style guide for our e-commerce brand
+```text
+"Create a brand kit for our wellness startup"
+"Define visual guidelines for an AI SaaS company"
+"Build a photography style guide for our ecommerce brand"
+"Create prompt presets for our brand social media content"
 ```
 
-```
-Create prompt presets for our brand's social media content
-```
+## Boundary
 
-```
-Review these generated images against our brand kit
-```
+- Use for visual systems: colors, typography feel, photography style, lighting, composition, and prompt presets.
+- Use `brand-architect` before this when the brand name, positioning, or voice is not defined.
+- Use `image-prompt-engineer` when the visual system exists and the task is a specific generation prompt.
 
 ## What It Does
 
-- **Brand color system**: Primary, secondary, accent, neutrals with usage ratios (60/30/10)
-- **Photography style guide**: Subject treatment, backgrounds, color grading, lighting preferences
-- **Typography style definition**: Serif, sans-serif, slab, mono — matched to brand personality
-- **Composition templates**: Per-format layouts (1:1, 9:16, 16:9, carousel) with zone definitions
-- **Prompt presets**: Ready-to-use generation prompts for brand portraits, product shots, social graphics, hero images
-- **Consistency checklist**: Verify generated assets match the brand kit
-- **Genfeed integration**: Persists as brand context, referenced by all image generation tools
+- Defines primary, secondary, accent, neutral, and prompt-friendly color descriptors
+- Sets typography feel, photography/illustration style, lighting, and composition rules
+- Creates reusable prompt presets for portraits, products, social graphics, hero images, and carousels
+- Provides consistency checks for generated assets
+
+## Structure
+
+- `SKILL.md` - main instructions
+- `metadata.json` - triggers, tags, outputs, and references
 
 ## License
 

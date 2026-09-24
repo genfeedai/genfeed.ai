@@ -1,7 +1,7 @@
 {
   "name": "visual-brand-kit",
   "version": "1.0.0",
-  "description": "Create comprehensive visual brand identity systems for AI-generated content",
+  "description": "Create visual identity systems for AI-generated content",
   "author": "genfeedai",
   "license": "MIT",
   "triggers": [
@@ -14,7 +14,8 @@
     "brand kit for",
     "visual identity system",
     "design brand kit",
-    "brand photography style"
+    "brand photography style",
+    "prompt presets"
   ],
   "references": {},
   "outputs": ["text"],

@@ -1,33 +1,39 @@
 # Content Strategist
 
-Expert content marketing strategist and editorial planner. Builds comprehensive content strategies from audience definition through editorial calendar creation, with platform-specific cadence recommendations and KPI frameworks.
+Build editorial strategy from audience and pillars through platform roles, cadence, calendar, and KPI framework.
 
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/content-strategist
+bunx skills add genfeedai/skills/content-strategist
 ```
 
 ## Usage
 
-```
+```text
 "Build a content strategy for my B2B SaaS startup"
 "Create an editorial calendar for Q2"
-"What platforms should I prioritize for a DTC skincare brand?"
-"Help me define content pillars for my personal brand"
-"Set up a posting schedule I can actually maintain as a solo founder"
+"Define content pillars for my personal brand"
+"Set up a posting schedule I can sustain as a solo founder"
 ```
+
+## Boundary
+
+- Use for strategy and planning: audience, pillars, platform selection, cadence, calendar, and KPIs.
+- Use `content-factory-operator` for repeatable operations, production queues, review gates, and agency/client delivery systems.
+- Use `content-loop-orchestrator` to execute the automated Genfeed loop.
 
 ## What It Does
 
-- Walks through a 7-step content strategy creation process (audit, audience, pillars, platforms, cadence, calendar, KPIs)
-- Defines content pillars with the Educational/Inspirational/Entertaining/Promotional/Community framework
-- Provides a platform selection matrix with scoring criteria for 9 major platforms
-- Sets posting frequency recommendations with minimum viable, recommended, and aggressive cadences
-- Creates monthly content calendars with themes, weekly slots, and content types
-- Establishes KPI targets per platform with 6-month growth benchmarks
-- Includes a 5-day content batching workflow and repurposing matrix
-- Delivers platform-specific strategy notes for X, Instagram, LinkedIn, YouTube, and TikTok
+- Audits current content and defines primary and secondary audiences
+- Creates pillars, platform roles, content mix, cadence, and calendars
+- Builds KPI frameworks tied to leads, signups, demos, revenue influence, or audience growth
+- Feeds platform-specific creator skills with a clear editorial plan
+
+## Structure
+
+- `SKILL.md` - main instructions
+- `metadata.json` - triggers, tags, outputs, and references
 
 ## License
 

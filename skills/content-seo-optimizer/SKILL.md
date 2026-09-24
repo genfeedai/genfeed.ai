@@ -4,7 +4,7 @@ description: Analyze and optimize content for SEO with a 0-100 scoring rubric, p
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Content SEO Optimizer

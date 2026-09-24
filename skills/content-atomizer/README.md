@@ -5,7 +5,7 @@ Expert content repurposing strategist. Takes a single piece of source content an
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/content-atomizer
+bunx skills add genfeedai/skills/content-atomizer
 ```
 
 ## Usage

@@ -1,10 +1,10 @@
 ---
 name: ad-copy-creator
-description: Create high-converting ad copy for Meta, Google, LinkedIn, TikTok, and X using proven direct response frameworks. Triggers on "write ad copy", "create an ad", "write a facebook ad", "google ad copy", "ad headline", "write ad creative", "ad variants".
+description: Create paid ad copy for Meta, Google, LinkedIn, TikTok, and X using direct-response frameworks, platform limits, variants, and test plans. Triggers on ad headlines, ad creative, paid social ads, Google ads, and ad variants.
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Ad Copy Creator

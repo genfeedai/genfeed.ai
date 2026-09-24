@@ -65,7 +65,9 @@ function parseFrontmatter(content: string): SkillFrontmatter | null {
   };
 }
 
-function loadSkills(): SkillIndexEntry[] {
+function loadSkills(root: string): SkillIndexEntry[] {
+  const ROOT = root;
+  const SKILLS_DIR = join(root, 'skills');
   if (!existsSync(SKILLS_DIR)) {
     return [];
   }
@@ -94,15 +96,19 @@ function loadSkills(): SkillIndexEntry[] {
   return skills.sort((a, b) => a.slug.localeCompare(b.slug));
 }
 
-const skills = loadSkills();
-const index: SkillIndex = {
-  generatedAt: new Date().toISOString(),
-  skills,
-  total: skills.length,
-};
+export function renderSkillsIndex(root: string, generatedAt: string): string {
+  const skills = loadSkills(root);
+  const index: SkillIndex = {
+    generatedAt,
+    skills,
+    total: skills.length,
+  };
 
-writeFileSync(OUTPUT_PATH, `${JSON.stringify(index, null, 2)}\n`);
-
-console.log(
-  `Generated ${relative(ROOT, OUTPUT_PATH)} with ${skills.length} skills.`,
-);
+  return `${JSON.stringify(index, null, 2)}\n`;
+}
+if (import.meta.main) {
+  const lock = JSON.parse(
+    readFileSync(join(SKILLS_DIR, 'catalog.lock.json'), 'utf8'),
+  );
+  writeFileSync(OUTPUT_PATH, renderSkillsIndex(ROOT, lock.sourceCommittedAt));
+}

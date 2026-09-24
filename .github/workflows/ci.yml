@@ -250,6 +250,8 @@ jobs:
           fetch-depth: 0
       - name: Setup Bun environment
         uses: ./.github/actions/setup-bun-env
+      - name: Check pinned product skill catalog
+        run: bun run check:skills-catalog
       - name: Check formatting
         run: bun run format:check
       - name: Get changed files for secretlint

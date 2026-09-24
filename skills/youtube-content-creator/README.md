@@ -5,7 +5,7 @@ Expert YouTube content strategist covering SEO, retention, and growth. Creates t
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/youtube-content-creator
+bunx skills add genfeedai/skills/youtube-content-creator
 ```
 
 ## Usage

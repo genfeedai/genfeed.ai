@@ -67,6 +67,19 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
     definition: FirstPartySkillDefinition,
   ): Record<string, unknown> {
     return {
+      ...(definition.catalogOrigin
+        ? {
+            catalogOrigin: definition.catalogOrigin,
+            sourceRepository: definition.sourceRepository,
+            ...(definition.sourceCommit
+              ? { sourceCommit: definition.sourceCommit }
+              : {}),
+            sourcePath: definition.sourcePath,
+            sourcePackageHash: definition.sourcePackageHash,
+            instructionsHash: definition.instructionsHash,
+            catalogCompilerVersion: definition.catalogCompilerVersion,
+          }
+        : {}),
       category: definition.category,
       channels: definition.channels,
       defaultInstructions: definition.instructions,
@@ -85,21 +98,6 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
       version: definition.version,
       workflowStage: definition.workflowStage,
     };
-  }
-
-  private areSurfacesEqual(left: unknown, right: unknown): boolean {
-    const readSurfaces = (value: unknown): string[] =>
-      Array.isArray(value)
-        ? value.filter((entry): entry is string => typeof entry === 'string')
-        : [];
-
-    const before = readSurfaces(left);
-    const after = readSurfaces(right);
-
-    return (
-      before.length === after.length &&
-      before.every((surface, index) => surface === after[index])
-    );
   }
 
   private readConfig(row: { config: unknown }): Record<string, unknown> {
@@ -156,19 +154,20 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
       return 'skipped';
     }
 
-    const nextConfig = {
-      ...existingConfig,
-      ...this.buildCatalogConfig(definition),
-    };
+    const managedConfig = this.buildCatalogConfig(definition);
+    const nextConfig = { ...existingConfig, ...managedConfig };
+    if (definition.catalogOrigin && !definition.sourceCommit) {
+      delete nextConfig.sourceCommit;
+    }
 
     if (
       existing.isDeleted === false &&
-      existingConfig.defaultInstructions === nextConfig.defaultInstructions &&
-      existingConfig.systemPromptTemplate === nextConfig.systemPromptTemplate &&
-      existingConfig.version === nextConfig.version &&
-      existingConfig.description === nextConfig.description &&
-      existingConfig.name === nextConfig.name &&
-      this.areSurfacesEqual(existingConfig.surfaces, nextConfig.surfaces)
+      existing.label === definition.name &&
+      existingConfig.sourceCommit === nextConfig.sourceCommit &&
+      Object.entries(managedConfig).every(
+        ([key, value]) =>
+          JSON.stringify(existingConfig[key]) === JSON.stringify(value),
+      )
     ) {
       return 'skipped';
     }

@@ -1,6 +1,13 @@
 import type { BuiltInSkillIdentity } from '@api/collections/skills/constants/skill-catalog-identity';
 
 export interface FirstPartySkillDefinition extends BuiltInSkillIdentity {
+  catalogOrigin?: 'upstream' | 'application';
+  sourceRepository?: string;
+  sourceCommit?: string;
+  sourcePath?: string;
+  sourcePackageHash?: string;
+  instructionsHash?: string;
+  catalogCompilerVersion?: string;
   category: string;
   channels: string[];
   description: string;

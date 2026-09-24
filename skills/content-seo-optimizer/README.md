@@ -5,7 +5,7 @@ Expert SEO analyst and content optimizer. Scores content on a 0-100 rubric acros
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/content-seo-optimizer
+bunx skills add genfeedai/skills/content-seo-optimizer
 ```
 
 ## Usage

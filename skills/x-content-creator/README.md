@@ -5,7 +5,7 @@ Expert X/Twitter content strategist and copywriter. Creates high-performing twee
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/x-content-creator
+bunx skills add genfeedai/skills/x-content-creator
 ```
 
 ## Usage

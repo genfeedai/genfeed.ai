@@ -77,6 +77,25 @@
   },
   "overrides": [
     {
+      "includes": [
+        "skills/ad-copy-creator/**/*.json",
+        "skills/ad-performance-analyzer/**/*.json",
+        "skills/blog-content-creator/**/*.json",
+        "skills/competitor-analyzer/**/*.json",
+        "skills/content-atomizer/**/*.json",
+        "skills/content-seo-optimizer/**/*.json",
+        "skills/content-strategist/**/*.json",
+        "skills/instagram-content-creator/**/*.json",
+        "skills/newsletter-creator/**/*.json",
+        "skills/visual-brand-kit/**/*.json",
+        "skills/x-content-creator/**/*.json",
+        "skills/youtube-content-creator/**/*.json"
+      ],
+      "formatter": {
+        "enabled": false
+      }
+    },
+    {
       "includes": ["apps/app/src/features/workflows/**"],
       "linter": {
         "rules": {
