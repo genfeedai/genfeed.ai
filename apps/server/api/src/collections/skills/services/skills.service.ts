@@ -609,6 +609,7 @@ export class SkillsService {
       organizationId,
       true,
       userId,
+      brandId,
     );
 
     return {
@@ -669,13 +670,17 @@ export class SkillsService {
 
     const actorUserId = options.actorUserId;
     const grantIds = new Set(
-      await grantedSkillIds(this.prisma, organizationId, actorUserId),
+      await grantedSkillIds(this.prisma, organizationId, actorUserId, brandId),
     );
     // tenant-scope-ignore: caller visibility is organization, personal owner, grant, or trusted catalog, each with isDeleted false
     const all =
       // tenant-scope-ignore: resolution includes this organization, the caller's personal rows, explicit grants, and the trusted catalog
       await this.prisma.skill.findMany({
-        where: await this.visibleSkillWhere(organizationId, actorUserId),
+        where: await this.visibleSkillWhere(
+          organizationId,
+          actorUserId,
+          brandId,
+        ),
       });
 
     // Filter by enabled slugs (config.slug). Personal and granted rows stay
@@ -790,11 +795,15 @@ export class SkillsService {
     return {};
   }
 
-  private async visibleSkillRows(organizationId: string, userId?: string) {
+  private async visibleSkillRows(
+    organizationId: string,
+    userId?: string,
+    brandId?: string | null,
+  ) {
     if (userId) {
       // tenant-scope-ignore: caller visibility is this organization, the caller's personal rows, live grants, or the trusted catalog
       return this.prisma.skill.findMany({
-        where: await this.visibleSkillWhere(organizationId, userId),
+        where: await this.visibleSkillWhere(organizationId, userId, brandId),
       });
     }
     // tenant-scope-ignore: slug availability is this organization or the trusted built-in catalog, both with isDeleted false
@@ -812,12 +821,13 @@ export class SkillsService {
   private async visibleSkillWhere(
     organizationId: string,
     userId?: string,
+    brandId?: string | null,
   ): Promise<Prisma.SkillWhereInput> {
     this.requireOrganizationId(organizationId);
     return buildAccessibleSkillWhere(
       organizationId,
       userId,
-      await grantedSkillIds(this.prisma, organizationId, userId),
+      await grantedSkillIds(this.prisma, organizationId, userId, brandId),
     ) as Prisma.SkillWhereInput;
   }
 
@@ -865,12 +875,13 @@ export class SkillsService {
     organizationId: string,
     onlyEnabled = false,
     userId?: string,
+    brandId?: string | null,
   ): Promise<Set<string>> {
     this.requireOrganizationId(organizationId);
     const grantIds = new Set(
-      await grantedSkillIds(this.prisma, organizationId, userId),
+      await grantedSkillIds(this.prisma, organizationId, userId, brandId),
     );
-    const rows = await this.visibleSkillRows(organizationId, userId);
+    const rows = await this.visibleSkillRows(organizationId, userId, brandId);
 
     return new Set(
       rows

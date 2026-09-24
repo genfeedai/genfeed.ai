@@ -24,6 +24,12 @@ const versions: VersionRow[] = [
     instructionText: 'version two',
     skillId: 'skill-1',
   },
+  {
+    contentHash: 'hash-brand',
+    id: 'sv-brand',
+    instructionText: 'brand private body',
+    skillId: 'skill-1',
+  },
 ];
 
 const state = {
@@ -288,6 +294,135 @@ describe('SkillLibraryService authorized versions', () => {
         slug: 'hidden',
       }),
     ).rejects.toBeInstanceOf(ValidationException);
+  });
+
+  it('shows the shared body when another brand holds a private version grant', async () => {
+    state.grants = [
+      {
+        access: 'use_and_read',
+        recipientBrandId: 'brand-b',
+        recipientKind: 'brand',
+        recipientOrganizationId: 'org-1',
+        recipientUserId: null,
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-brand',
+      },
+    ];
+
+    const [visible] = await service.present(actor, [skillDocument()]);
+    const decision = await service.authorizeResolved(actor, [skillDocument()]);
+
+    expect(visible?.systemPromptTemplate).toBe('version one');
+    expect(visible?.canRead).toBe(true);
+    expect(decision.included[0]?.systemPromptTemplate).toBe('version one');
+    expect(decision.versions[0]?.skillVersionId).toBe('sv-1');
+
+    const [published] = await service.present(actor, [
+      skillDocument({
+        audience: 'public',
+        publishedVersionId: 'sv-1',
+        sharedVersionId: null,
+      }),
+    ]);
+    expect(published?.canRead).toBe(true);
+    expect(published?.systemPromptTemplate).toBe('version one');
+  });
+
+  it('shows a use_and_read grant and still hides a use-only grant from the document', async () => {
+    const privateSkill = skillDocument({
+      audience: 'private',
+      organizationId: null,
+      ownerKind: 'user',
+      ownerUserId: 'user-2',
+      sharedVersionId: null,
+    });
+    state.grants = [
+      {
+        access: 'use_and_read',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-1',
+      },
+    ];
+
+    const [readable] = await service.present(actor, [privateSkill]);
+    expect(readable?.canRead).toBe(true);
+    expect(readable?.canUse).toBe(true);
+    expect(readable?.systemPromptTemplate).toBe('version one');
+
+    state.grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-1',
+      },
+    ];
+    const [useOnly] = await service.present(actor, [privateSkill]);
+    const executed = await service.authorizeResolved(actor, [privateSkill]);
+
+    expect(useOnly?.canRead).toBe(false);
+    expect(useOnly?.canUse).toBe(true);
+    expect(useOnly?.systemPromptTemplate).toBeUndefined();
+    expect(executed.included[0]?.systemPromptTemplate).toBe('version one');
+  });
+
+  it('does not apply a grant addressed to another user, brand, or organization', async () => {
+    const privateSkill = skillDocument({
+      audience: 'private',
+      organizationId: null,
+      ownerKind: 'user',
+      ownerUserId: 'user-2',
+      publishedVersionId: null,
+      sharedVersionId: null,
+    });
+    const mismatches = [
+      {
+        access: 'use_and_read',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-other',
+      },
+      {
+        access: 'use',
+        recipientBrandId: 'brand-b',
+        recipientKind: 'brand',
+        recipientOrganizationId: 'org-1',
+        recipientUserId: null,
+      },
+      {
+        access: 'use_and_read',
+        recipientBrandId: null,
+        recipientKind: 'organization',
+        recipientOrganizationId: 'org-other',
+        recipientUserId: null,
+      },
+    ];
+
+    for (const grant of mismatches) {
+      state.grants = [
+        {
+          ...grant,
+          revokedAt: null,
+          skillId: 'skill-1',
+          skillVersionId: 'sv-brand',
+        },
+      ];
+      const visible = await service.present(actor, [privateSkill]);
+      const decision = await service.authorizeResolved(actor, [privateSkill]);
+      expect(visible).toEqual([]);
+      expect(decision.included).toEqual([]);
+    }
   });
 
   it('does not authorize a private skill after its grant is revoked', async () => {

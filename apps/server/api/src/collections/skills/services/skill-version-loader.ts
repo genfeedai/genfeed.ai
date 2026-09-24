@@ -1,4 +1,9 @@
 import { chooseAuthorizedVersionId } from '@api/collections/skills/policy/skill-authorized-version';
+import {
+  grantMatchesActor,
+  type SkillCapabilityGrant,
+  skillGrantRecipientClauses,
+} from '@api/collections/skills/policy/skill-capabilities';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
@@ -37,8 +42,50 @@ const TARGET_RANK: Record<string, number> = {
   user: 0,
 };
 
+interface GrantRow {
+  access?: string | null;
+  recipientBrandId?: string | null;
+  recipientKind?: string | null;
+  recipientOrganizationId?: string | null;
+  recipientUserId?: string | null;
+  revokedAt?: Date | null;
+  skillId: string;
+  skillVersionId: string;
+}
+
 function rankTarget(kind: string | null | undefined): number {
   return TARGET_RANK[kind ?? ''] ?? 9;
+}
+
+function asCapabilityGrant(grant: GrantRow): SkillCapabilityGrant {
+  const kind = grant.recipientKind;
+  return {
+    access: grant.access === 'use_and_read' ? 'use_and_read' : 'use',
+    isRevoked: grant.revokedAt != null,
+    recipientBrandId: grant.recipientBrandId ?? null,
+    recipientKind: kind === 'organization' || kind === 'brand' ? kind : 'user',
+    recipientOrganizationId: grant.recipientOrganizationId ?? null,
+    recipientUserId: grant.recipientUserId ?? null,
+  };
+}
+
+function grantVersionBySkill(
+  grants: readonly GrantRow[],
+  actor: VersionActor,
+): Map<string, string> {
+  const ranked = grants
+    .filter((grant) => grantMatchesActor(asCapabilityGrant(grant), actor))
+    .sort(
+      (left, right) =>
+        rankTarget(left.recipientKind) - rankTarget(right.recipientKind),
+    );
+  const chosen = new Map<string, string>();
+  for (const grant of ranked) {
+    if (!chosen.has(grant.skillId)) {
+      chosen.set(grant.skillId, grant.skillVersionId);
+    }
+  }
+  return chosen;
 }
 
 function instructionConfig(
@@ -83,18 +130,7 @@ export async function loadAuthorizedSkillVersions(
   const [grants, assignments] = await Promise.all([
     prisma.skillGrant.findMany({
       where: {
-        OR: [
-          { recipientUserId: actor.userId },
-          { recipientOrganizationId: actor.organizationId },
-          ...(actor.brandId
-            ? [
-                {
-                  recipientBrandId: actor.brandId,
-                  recipientOrganizationId: actor.organizationId,
-                },
-              ]
-            : []),
-        ],
+        OR: skillGrantRecipientClauses(actor),
         revokedAt: null,
         skillId: { in: ids },
       },
@@ -115,17 +151,7 @@ export async function loadAuthorizedSkillVersions(
       },
     }),
   ]);
-  const grantVersion = new Map<string, string>();
-  const rankedGrants = [...grants].sort(
-    (left, right) =>
-      rankTarget(left.recipientKind) - rankTarget(right.recipientKind),
-  );
-  for (const grant of rankedGrants) {
-    if (grant.revokedAt != null) continue;
-    if (!grantVersion.has(grant.skillId)) {
-      grantVersion.set(grant.skillId, grant.skillVersionId);
-    }
-  }
+  const grantVersion = grantVersionBySkill(grants, actor);
   const ranked = [...assignments].sort(
     (left, right) => rankTarget(left.targetKind) - rankTarget(right.targetKind),
   );

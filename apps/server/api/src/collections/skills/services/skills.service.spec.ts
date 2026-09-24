@@ -992,9 +992,31 @@ describe('SkillsService', () => {
     ]);
     expect(prisma.skillGrant.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ revokedAt: null }),
+        where: expect.objectContaining({
+          OR: expect.arrayContaining([
+            { recipientKind: 'user', recipientUserId: 'user-1' },
+            {
+              recipientKind: 'organization',
+              recipientOrganizationId: 'org-1',
+            },
+            {
+              recipientBrandId: 'brand-1',
+              recipientKind: 'brand',
+              recipientOrganizationId: 'org-1',
+            },
+          ]),
+          revokedAt: null,
+        }),
       }),
     );
+    for (const call of prisma.skillGrant.findMany.mock.calls) {
+      const or = (
+        call[0] as { where?: { OR?: Array<Record<string, unknown>> } }
+      ).where?.OR;
+      expect(
+        or?.every((clause) => typeof clause.recipientKind === 'string'),
+      ).toBe(true);
+    }
   });
 
   it('drops a granted skill after the grant is revoked', async () => {

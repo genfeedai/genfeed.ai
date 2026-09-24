@@ -58,6 +58,7 @@ describe('SkillRuntimeService version pins', () => {
           const included = docs.map((doc) => ({
             ...doc,
             contentHash: useFirstVersion ? 'hash-v1' : 'hash-v2',
+            id: String(doc.id),
             skillVersionId: useFirstVersion ? 'sv-1' : 'sv-2',
             systemPromptTemplate: useFirstVersion
               ? 'version one'
@@ -374,6 +375,7 @@ describe('SkillRuntimeService.resolveActiveSkills', () => {
         excluded: [],
         included: [
           {
+            contentHash: pins[0] ? 'hash-v1' : 'hash-v2',
             defaultInstructions: pins[0] ? 'assigned v1' : 'draft v2',
             id: 'skill-1',
             skillVersionId: pins[0]?.skillVersionId ?? 'sv-2',
@@ -425,8 +427,23 @@ describe('SkillRuntimeService.resolveActiveSkills', () => {
     expect(first[0]?.instructions).toBe('draft v2');
     expect(first[0]?.versionId).toBe('sv-2');
     expect(pinnedSkills).toEqual([
-      expect.objectContaining({ versionId: 'sv-2' }),
+      expect.objectContaining({
+        contentHash: 'hash-v2',
+        slug: 'hook-writer',
+        versionId: 'sv-2',
+      }),
     ]);
+    expect(authorizeResolved).toHaveBeenLastCalledWith(
+      expect.objectContaining({ userId: 'user-1' }),
+      expect.any(Array),
+      [
+        expect.objectContaining({
+          contentHash: 'hash-v2',
+          skillId: 'skill-1',
+          skillVersionId: 'sv-2',
+        }),
+      ],
+    );
     expect(retry[0]?.instructions).toBe('assigned v1');
     expect(retry[0]?.versionId).toBe('sv-2');
     expect(recordResolution).toHaveBeenLastCalledWith(

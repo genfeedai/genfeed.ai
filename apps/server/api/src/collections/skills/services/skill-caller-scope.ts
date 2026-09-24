@@ -1,3 +1,4 @@
+import { skillGrantRecipientClauses } from '@api/collections/skills/policy/skill-capabilities';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
@@ -6,15 +7,17 @@ export async function grantedSkillIds(
   prisma: PrismaService,
   organizationId: string,
   userId?: string,
+  brandId?: string | null,
 ): Promise<string[]> {
   if (!userId) return [];
   const grants = await prisma.skillGrant.findMany({
     select: { skillId: true },
     where: {
-      OR: [
-        { recipientUserId: userId },
-        { recipientOrganizationId: organizationId },
-      ],
+      OR: skillGrantRecipientClauses({
+        brandId,
+        organizationId,
+        userId,
+      }),
       revokedAt: null,
     },
   });

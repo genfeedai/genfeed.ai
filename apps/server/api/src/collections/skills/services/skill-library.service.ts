@@ -11,6 +11,7 @@ import {
 } from '@api/collections/skills/dto/skill-library.dto';
 import {
   CLOSED_SKILL_SOURCE_POLICY,
+  grantMatchesActor,
   PUBLIC_FREE_SOURCE_POLICY,
   resolveSkillCapabilities,
   type SkillAudience,
@@ -19,6 +20,7 @@ import {
   type SkillCapabilitySubject,
   type SkillOwnerKind,
   type SkillSourcePolicy,
+  skillGrantRecipientClauses,
 } from '@api/collections/skills/policy/skill-capabilities';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import {
@@ -816,18 +818,7 @@ export class SkillLibraryService {
   ): Promise<Map<string, SkillCapabilityGrant[]>> {
     const rows = await this.prisma.skillGrant.findMany({
       where: {
-        OR: [
-          { recipientUserId: actor.userId },
-          { recipientOrganizationId: actor.organizationId },
-          ...(actor.brandId
-            ? [
-                {
-                  recipientBrandId: actor.brandId,
-                  recipientOrganizationId: actor.organizationId,
-                },
-              ]
-            : []),
-        ],
+        OR: skillGrantRecipientClauses(actor),
         revokedAt: null,
         skillId: { in: skillIds },
       },
@@ -836,7 +827,7 @@ export class SkillLibraryService {
     for (const row of rows) {
       const grant: SkillCapabilityGrant = {
         access: row.access === 'use_and_read' ? 'use_and_read' : 'use',
-        isRevoked: false,
+        isRevoked: row.revokedAt != null,
         recipientBrandId: row.recipientBrandId,
         recipientKind:
           row.recipientKind === 'organization' || row.recipientKind === 'brand'
@@ -845,6 +836,7 @@ export class SkillLibraryService {
         recipientOrganizationId: row.recipientOrganizationId,
         recipientUserId: row.recipientUserId,
       };
+      if (!grantMatchesActor(grant, actor)) continue;
       grouped.set(row.skillId, [...(grouped.get(row.skillId) ?? []), grant]);
     }
     return grouped;

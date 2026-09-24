@@ -76,18 +76,21 @@ describe('loadAuthorizedSkillVersions', () => {
       grants: [
         {
           recipientKind: 'organization',
+          recipientOrganizationId: 'org-1',
           revokedAt: null,
           skillId: 'skill-1',
           skillVersionId: 'sv-org',
         },
         {
           recipientKind: 'user',
+          recipientUserId: 'user-1',
           revokedAt: null,
           skillId: 'skill-1',
           skillVersionId: 'sv-user',
         },
         {
           recipientKind: 'user',
+          recipientUserId: 'user-1',
           revokedAt: new Date('2026-09-01T00:00:00.000Z'),
           skillId: 'skill-1',
           skillVersionId: 'sv-revoked',
@@ -105,10 +108,148 @@ describe('loadAuthorizedSkillVersions', () => {
 
     expect(prisma.skillGrant.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
-        where: expect.objectContaining({ revokedAt: null }),
+        where: expect.objectContaining({
+          OR: [
+            { recipientKind: 'user', recipientUserId: 'user-1' },
+            {
+              recipientKind: 'organization',
+              recipientOrganizationId: 'org-1',
+            },
+            {
+              recipientBrandId: 'brand-1',
+              recipientKind: 'brand',
+              recipientOrganizationId: 'org-1',
+            },
+          ],
+          revokedAt: null,
+        }),
       }),
     );
     expect(loaded.get('skill-1')?.instructionText).toBe('granted body');
+  });
+
+  it('keeps the shared version when the only grant belongs to another recipient', async () => {
+    const shared = versionRow('version-shared', 'shared body');
+    const foreign = versionRow('version-brand-b', 'brand private body');
+    const mismatches = [
+      {
+        access: 'use_and_read',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-other',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'version-brand-b',
+      },
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'organization',
+        recipientOrganizationId: 'org-other',
+        recipientUserId: null,
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'version-brand-b',
+      },
+      {
+        access: 'use_and_read',
+        recipientBrandId: 'brand-b',
+        recipientKind: 'brand',
+        recipientOrganizationId: 'org-1',
+        recipientUserId: null,
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'version-brand-b',
+      },
+    ];
+
+    for (const grant of mismatches) {
+      const prisma = prismaFor({
+        grants: [grant],
+        versions: [shared, foreign],
+      });
+      const loaded = await loadAuthorizedSkillVersions(
+        prisma as never,
+        actor,
+        [{ ...document, sharedVersionId: 'version-shared' }],
+        new Set(),
+      );
+      expect(loaded.get('skill-1')?.id).toBe('version-shared');
+    }
+  });
+
+  it('uses a readable public version instead of another brand private grant', async () => {
+    const prisma = prismaFor({
+      grants: [
+        {
+          access: 'use_and_read',
+          recipientBrandId: 'brand-b',
+          recipientKind: 'brand',
+          recipientOrganizationId: 'org-1',
+          recipientUserId: null,
+          revokedAt: null,
+          skillId: 'skill-1',
+          skillVersionId: 'version-brand-b',
+        },
+      ],
+      versions: [
+        versionRow('version-shared', 'published body'),
+        versionRow('version-brand-b', 'brand private body'),
+      ],
+    });
+
+    const loaded = await loadAuthorizedSkillVersions(
+      prisma as never,
+      { brandId: 'brand-a', organizationId: 'org-1', userId: 'user-a' },
+      [
+        {
+          ...document,
+          audience: 'public',
+          publishedVersionId: 'version-shared',
+          sharedVersionId: null,
+        },
+      ],
+      new Set(),
+    );
+
+    expect(loaded.get('skill-1')).toMatchObject({
+      id: 'version-shared',
+      instructionText: 'published body',
+    });
+  });
+
+  it('still selects the caller brand grant ahead of the shared pointer', async () => {
+    const prisma = prismaFor({
+      grants: [
+        {
+          access: 'use',
+          recipientBrandId: 'brand-1',
+          recipientKind: 'brand',
+          recipientOrganizationId: 'org-1',
+          recipientUserId: null,
+          revokedAt: null,
+          skillId: 'skill-1',
+          skillVersionId: 'version-brand',
+        },
+      ],
+      versions: [
+        versionRow('version-shared', 'shared body'),
+        versionRow('version-brand', 'brand body'),
+      ],
+    });
+
+    const loaded = await loadAuthorizedSkillVersions(
+      prisma as never,
+      actor,
+      [{ ...document, sharedVersionId: 'version-shared' }],
+      new Set(),
+    );
+
+    expect(loaded.get('skill-1')).toMatchObject({
+      id: 'version-brand',
+      instructionText: 'brand body',
+    });
   });
 
   it('reuses a stored execution pin after the shared pointer moves', async () => {
