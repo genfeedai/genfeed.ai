@@ -28,6 +28,63 @@ redis.call('DEL', KEYS[1])
 return 1
 `;
 
+export type CounterBudgetReservationResult =
+  | { status: 'reserved'; reserved: number; total: number }
+  | { status: 'exhausted' | 'unavailable' };
+export type CounterReservationReconciliationResult =
+  | 'settled'
+  | 'duplicate'
+  | 'unavailable';
+
+const COUNTER_VALIDATION_SCRIPT = `
+local MAX = 9007199254740991
+local function integer(value)
+  if type(value) ~= 'string' or not string.match(value, '^%d+$') then return nil end
+  local number = tonumber(value)
+  if not number or number < 0 or number > MAX or number % 1 ~= 0 then return nil end
+  if string.format('%.0f', number) ~= value then return nil end
+  return number
+end
+if redis.call('TYPE', KEYS[1]).ok ~= 'string' then return 0 end
+local current = integer(redis.call('GET', KEYS[1]))
+local ttl = redis.call('PTTL', KEYS[1])
+if not current or ttl <= 0 then return 0 end
+`;
+
+const RESERVE_COUNTER_BUDGET_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+local limit = integer(ARGV[1])
+local requested = integer(ARGV[2])
+if not limit or limit <= 0 or not requested or requested <= 0 then return 0 end
+if redis.call('EXISTS', KEYS[2]) ~= 0 then return 0 end
+if current >= limit then return {2} end
+local reserved = math.min(requested, limit - current)
+local amount = string.format('%.0f', reserved)
+redis.call('INCRBY', KEYS[1], amount)
+redis.call('HSET', KEYS[2], 'usageKey', KEYS[1], 'reserved', amount, 'state', 'reserved')
+redis.call('PEXPIRE', KEYS[2], ttl)
+return {1, amount, string.format('%.0f', current + reserved)}
+`;
+
+const RECONCILE_COUNTER_RESERVATION_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+if redis.call('TYPE', KEYS[2]).ok ~= 'hash' or redis.call('PTTL', KEYS[2]) <= 0 then return 0 end
+local receipt = redis.call('HMGET', KEYS[2], 'usageKey', 'reserved', 'state', 'actualMicroUsd')
+local reserved = integer(receipt[2])
+local actual = integer(ARGV[2])
+if receipt[1] ~= KEYS[1] or not reserved or reserved <= 0 or receipt[2] ~= ARGV[1] or not actual then return 0 end
+if receipt[3] == 'settled' then
+  if not integer(receipt[4]) then return 0 end
+  return 2
+end
+if receipt[3] ~= 'reserved' then return 0 end
+local delta = actual - reserved
+if delta > 0 and current > MAX - delta then return 0 end
+local final = current + delta
+if final < 0 or final > MAX then return 0 end
+redis.call('INCRBY', KEYS[1], string.format('%.0f', delta))
+redis.call('HSET', KEYS[2], 'state', 'settled', 'actualMicroUsd', ARGV[2])
+return 1
+`;
+
 @Injectable()
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default
@@ -66,6 +123,88 @@ export class CacheService {
     details: Parameters<LoggerService['error']>[1],
   ): void {
     this.logger.error(`${this.constructorName} ${operation} error`, details);
+  }
+
+  async reserveCounterBudget(
+    usageKey: string,
+    reservationKey: string,
+    limit: number,
+    requested: number,
+  ): Promise<CounterBudgetReservationResult> {
+    if (
+      !this.isAvailable ||
+      !usageKey ||
+      !reservationKey ||
+      usageKey === reservationKey ||
+      !Number.isSafeInteger(limit) ||
+      limit <= 0 ||
+      !Number.isSafeInteger(requested) ||
+      requested <= 0
+    ) {
+      return { status: 'unavailable' };
+    }
+    try {
+      const result = await this.client.eval(
+        RESERVE_COUNTER_BUDGET_SCRIPT,
+        2,
+        usageKey,
+        reservationKey,
+        String(limit),
+        String(requested),
+      );
+      if (Array.isArray(result) && result[0] === 2)
+        return { status: 'exhausted' };
+      if (Array.isArray(result) && result[0] === 1) {
+        const reserved = Number(result[1]);
+        const total = Number(result[2]);
+        if (
+          Number.isSafeInteger(reserved) &&
+          reserved > 0 &&
+          Number.isSafeInteger(total) &&
+          total >= reserved &&
+          total <= limit
+        ) {
+          return { status: 'reserved', reserved, total };
+        }
+      }
+    } catch (error: unknown) {
+      this.logOperationError('reserveCounterBudget', { error });
+    }
+    return { status: 'unavailable' };
+  }
+
+  async reconcileCounterReservation(
+    usageKey: string,
+    reservationKey: string,
+    reserved: number,
+    actual: number,
+  ): Promise<CounterReservationReconciliationResult> {
+    if (
+      !this.isAvailable ||
+      !usageKey ||
+      !reservationKey ||
+      usageKey === reservationKey ||
+      !Number.isSafeInteger(reserved) ||
+      reserved <= 0 ||
+      !Number.isSafeInteger(actual) ||
+      actual < 0
+    )
+      return 'unavailable';
+    try {
+      const result = await this.client.eval(
+        RECONCILE_COUNTER_RESERVATION_SCRIPT,
+        2,
+        usageKey,
+        reservationKey,
+        String(reserved),
+        String(actual),
+      );
+      if (result === 1) return 'settled';
+      if (result === 2) return 'duplicate';
+    } catch (error: unknown) {
+      this.logOperationError('reconcileCounterReservation', { error });
+    }
+    return 'unavailable';
   }
 
   async get<T = unknown>(key: string): Promise<T | null> {
