@@ -1,10 +1,11 @@
+import {
+  BRAND_REMIX_RUN_CONTRACT,
+  brandRemixRunViewSchema,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import {
-  brandRemixRunViewSchema,
-  BRAND_REMIX_RUN_CONTRACT,
-} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import StudioRemixScenes from './StudioRemixScenes';
+
 vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
 vi.mock('@contexts/user/brand-context/brand-context', () => ({
   useBrand: () => ({ organizationId: 'org' }),
@@ -47,7 +48,7 @@ function fixture() {
     brand: { id: 'brand', name: 'Brand', contextMode: 'brand' },
     createdAt: '2026-09-24T00:00:00.000Z',
     updatedAt: '2026-09-24T00:00:00.000Z',
-    status: 'PENDING',
+    status: 'pending',
     contract: BRAND_REMIX_RUN_CONTRACT,
     version: 1,
     recipeVersion: 1,

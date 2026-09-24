@@ -13,9 +13,25 @@ import { ProcessorsModule } from '@workers/processors/processors.module';
 
 function unwrap(value: unknown): unknown {
   if (typeof value === 'function' && 'forwardRef' in value) {
+    const forwarded = (value as { forwardRef?: unknown }).forwardRef;
+    if (typeof forwarded === 'function' && forwarded !== value) {
+      return forwarded();
+    }
     return (value as () => unknown)();
   }
+  if (
+    value &&
+    typeof value === 'object' &&
+    'forwardRef' in value &&
+    typeof value.forwardRef === 'function'
+  ) {
+    return value.forwardRef();
+  }
   return value;
+}
+function typeName(value: unknown): string | undefined {
+  const resolved = unwrap(value);
+  return typeof resolved === 'function' ? resolved.name : undefined;
 }
 
 describe('ProcessorsModule scene registration', () => {
@@ -23,12 +39,12 @@ describe('ProcessorsModule scene registration', () => {
     const imports = (
       (Reflect.getMetadata(MODULE_METADATA.IMPORTS, ProcessorsModule) ??
         []) as unknown[]
-    ).map(unwrap);
-    const providers = (Reflect.getMetadata(
-      MODULE_METADATA.PROVIDERS,
-      ContentRunsModule,
-    ) ?? []) as unknown[];
-    expect(imports).toContain(ContentRunsModule);
-    expect(providers).toContain(BrandRemixSceneWorkflowService);
+    ).map(typeName);
+    const providers = (
+      (Reflect.getMetadata(MODULE_METADATA.PROVIDERS, ContentRunsModule) ??
+        []) as unknown[]
+    ).map(typeName);
+    expect(imports).toContain(ContentRunsModule.name);
+    expect(providers).toContain(BrandRemixSceneWorkflowService.name);
   });
 });
