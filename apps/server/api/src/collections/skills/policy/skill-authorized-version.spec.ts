@@ -94,6 +94,47 @@ describe('chooseAuthorizedVersionId', () => {
     ).toBe('sv-read-grant');
   });
 
+  it('reads a system catalog current version only when that source policy allows it', () => {
+    const systemPointer = {
+      audience: 'private',
+      currentVersionId: 'sv-system',
+      ownerKind: 'system',
+      publishedVersionId: null,
+      sharedVersionId: null,
+    };
+    expect(
+      chooseReadableVersionId({
+        allowsCatalogRead: true,
+        pointer: systemPointer,
+      }),
+    ).toBe('sv-system');
+    expect(
+      chooseReadableVersionId({
+        allowsCatalogRead: false,
+        pointer: systemPointer,
+      }),
+    ).toBeNull();
+    expect(
+      chooseReadableVersionId({
+        allowsCatalogRead: true,
+        pointer: { ...systemPointer, ownerKind: 'organization' },
+      }),
+    ).toBeNull();
+    expect(
+      chooseReadableVersionId({
+        allowsCatalogRead: true,
+        pointer: { ...systemPointer, ownerKind: 'user' },
+      }),
+    ).toBeNull();
+    expect(
+      chooseReadableVersionId({
+        allowsCatalogRead: true,
+        pointer: systemPointer,
+        readGrantVersionId: 'sv-read-grant',
+      }),
+    ).toBe('sv-read-grant');
+  });
+
   it('reads the captured system catalog version and not another owner draft', () => {
     const systemCatalog = {
       audience: 'private',
