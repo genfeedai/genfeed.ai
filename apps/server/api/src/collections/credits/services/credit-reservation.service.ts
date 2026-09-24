@@ -1,4 +1,5 @@
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import {
@@ -30,7 +31,6 @@ import { Injectable } from '@nestjs/common';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_SERIALIZATION_RETRIES = 3;
-const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 type ReserveCreditsInput = IReserveCreditsInput & {
@@ -381,7 +381,7 @@ export class CreditReservationService {
         });
       } catch (error: unknown) {
         if (
-          this.errorCode(error) !== PRISMA_SERIALIZATION_FAILURE ||
+          !isCreditTransactionConflict(error) ||
           attempt === MAX_SERIALIZATION_RETRIES - 1
         ) {
           throw error;

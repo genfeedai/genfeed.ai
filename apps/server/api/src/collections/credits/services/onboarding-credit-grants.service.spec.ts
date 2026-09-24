@@ -195,8 +195,40 @@ describe('OnboardingCreditGrantsService', () => {
       expect(ledger).toHaveLength(1);
     },
   );
+  it.each(['40001', '40P01'])(
+    'retries Prisma 7 adapter-pg conflicts with originalCode %s',
+    async (originalCode) => {
+      transaction.mockRejectedValueOnce({
+        code: 'P2010',
+        meta: {
+          driverAdapterError: Object.assign(new Error('DriverAdapterError'), {
+            cause: {
+              originalCode,
+              originalMessage:
+                'could not serialize access due to concurrent update',
+              kind: 'TransactionWriteConflict',
+            },
+          }),
+        },
+      });
+      await service.completeMissions('org', ['complete_company_info']);
+      expect(transaction).toHaveBeenCalledTimes(2);
+      expect(balance).toBe(25);
+      expect(ledger).toHaveLength(1);
+    },
+  );
   it.each([
     { code: 'P2010', meta: { code: '23505' } },
+    {
+      code: 'P2010',
+      meta: { driverAdapterError: { cause: { originalCode: '23505' } } },
+    },
+    {
+      code: 'P2010',
+      meta: { driverAdapterError: { cause: { originalCode: 40001 } } },
+    },
+    { code: 'P2010', meta: { driverAdapterError: { cause: null } } },
+    { code: 'P2010', meta: { driverAdapterError: null } },
     { code: 'P2010', meta: { code: 40001 } },
     { code: 'P2010', meta: null },
     { code: 'P2010', meta: '40001' },
@@ -215,6 +247,10 @@ describe('OnboardingCreditGrantsService', () => {
     expect(effects).not.toHaveBeenCalled();
   });
   it.each([
+    {
+      code: 'P2010',
+      meta: { driverAdapterError: { cause: { originalCode: '40001' } } },
+    },
     { code: 'P2034' },
     { code: 'P2010', meta: { code: '40001' } },
     { code: 'P2010', meta: { code: '40P01' } },
