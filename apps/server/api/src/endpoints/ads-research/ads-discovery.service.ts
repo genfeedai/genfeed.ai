@@ -358,45 +358,57 @@ export class AdsDiscoveryService {
         });
         const observedAt = new Date();
         const sourceIds = new Map<NormalizedPaidCreativeRecord, string>();
-        const provider = resolvePaidCreativeProvider(query.platform);
-        for (const creative of records) {
-          if (!creative.externalAdId) continue;
-          const source = await this.adPerformanceService.upsert({
-            ...creative,
-            adPlatform: creative.platform,
-            organizationId,
-            brandId: query.brandId,
-            scope: 'organization',
-            researchSource: provider,
-            researchFreshnessState: 'fresh',
-            researchObservedAt: observedAt,
-            researchSnapshotId: `${id}:${token}`,
-            researchSnapshotKey: `discovery:${query.platform}`,
-            sourceClassification: buildPaidCreativeReferenceClassification({
-              adFormat: creative.adFormat,
-              capturedAt: observedAt,
-              creativeType: creative.creativeType,
-              platform: query.platform,
-              provider,
-              sourceAuthor: creative.advertiserHandle,
-              sourceTimestamp: creative.presentationStartDate,
-              sourceTopic: creative.advertiserName ?? query.keyword,
-            }),
-          });
-          sourceIds.set(creative, source.id);
-        }
         const advertisers = groupDiscoveryAdvertisers(
           records,
           query.platform,
           observedAt,
-          sourceIds,
         );
         if (records.length && !advertisers.length)
           throw new Error('Unusable advertiser identities');
+        if (query.brandId) {
+          const provider = resolvePaidCreativeProvider(query.platform);
+          const remixable = records.filter((creative) =>
+            Boolean(creative.externalAdId),
+          );
+          const sources = await this.adPerformanceService.upsertBatchAtomic(
+            remixable.map((creative) => ({
+              ...creative,
+              adPlatform: creative.platform,
+              organizationId,
+              brandId: query.brandId,
+              scope: 'organization',
+              researchSource: provider,
+              researchFreshnessState: 'fresh',
+              researchObservedAt: observedAt,
+              researchSnapshotId: `${id}:${token}`,
+              researchSnapshotKey: `discovery:${query.platform}`,
+              sourceClassification: buildPaidCreativeReferenceClassification({
+                adFormat: creative.adFormat,
+                capturedAt: observedAt,
+                creativeType: creative.creativeType,
+                platform: query.platform,
+                provider,
+                sourceAuthor: creative.advertiserHandle,
+                sourceTimestamp: creative.presentationStartDate,
+                sourceTopic: creative.advertiserName ?? query.keyword,
+              }),
+            })),
+          );
+          remixable.forEach((creative, index) => {
+            sourceIds.set(creative, sources[index].id);
+          });
+        }
         const response: AdsDiscoveryResponse = {
           ...base,
           status: advertisers.length ? 'ready' : 'empty',
-          advertisers,
+          advertisers: query.brandId
+            ? groupDiscoveryAdvertisers(
+                records,
+                query.platform,
+                observedAt,
+                sourceIds,
+              )
+            : advertisers,
           sampleCount: advertisers.reduce(
             (sum, item) => sum + item.creativeCount,
             0,

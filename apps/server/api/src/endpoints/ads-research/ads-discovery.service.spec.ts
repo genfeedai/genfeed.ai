@@ -78,18 +78,19 @@ describe('public discovery', () => {
         },
       ),
     };
-    const upsert = vi.fn().mockImplementation(async (row) => ({
-      ...row,
-      id: `stored-${row.externalAdId}`,
-    }));
+    const upsertBatchAtomic = vi
+      .fn()
+      .mockImplementation(async (rows: Record<string, unknown>[]) =>
+        rows.map((row) => ({ ...row, id: `stored-${row.externalAdId}` })),
+      );
     const service = new AdsDiscoveryService(
       { resolve: () => adapter } as unknown as PaidCreativeProviderRegistry,
       cache as unknown as CacheService,
-      { upsert } as unknown as AdPerformanceService,
+      { upsertBatchAtomic } as unknown as AdPerformanceService,
     );
     return {
       service,
-      upsert,
+      upsertBatchAtomic,
       cache,
       adapter,
       data,
@@ -108,7 +109,7 @@ describe('public discovery', () => {
     ).toThrow();
   });
   it('reports failed source persistence as unavailable, never remixable results', async () => {
-    const { service, adapter, upsert, claims } = setup();
+    const { service, adapter, upsertBatchAtomic, claims } = setup();
     adapter.fetchCreatives.mockResolvedValue([
       normalizeMetaArchiveRecord({
         adArchiveID: '123',
@@ -118,14 +119,33 @@ describe('public discovery', () => {
         },
       }),
     ]);
-    upsert.mockRejectedValue(new Error('database unavailable'));
-    await service.discover('org-a', query);
+    upsertBatchAtomic.mockRejectedValue(new Error('database unavailable'));
+    const input = { ...query, brandId: 'brand-a' };
+    await service.discover('org-a', input);
     await vi.waitFor(() => expect(claims.size).toBe(0));
-    expect(await service.discover('org-a', query)).toMatchObject({
+    expect(await service.discover('org-a', input)).toMatchObject({
       status: 'unavailable',
       advertisers: [],
       reason: 'paid_creative_source_unavailable',
     });
+  });
+  it('keeps unbranded discovery preview-only without storing remix sources', async () => {
+    const { service, adapter, upsertBatchAtomic, claims } = setup();
+    adapter.fetchCreatives.mockResolvedValue([
+      normalizeMetaArchiveRecord({
+        adArchiveID: '123',
+        pageID: '456',
+        snapshot: {
+          images: [{ originalImageUrl: 'https://example.com/a.jpg' }],
+        },
+      }),
+    ]);
+    await service.discover('org-a', query);
+    await vi.waitFor(() => expect(claims.size).toBe(0));
+    const result = await service.discover('org-a', query);
+    expect(result.status).toBe('ready');
+    expect(result.advertisers[0].samples[0].adPerformanceId).toBeUndefined();
+    expect(upsertBatchAtomic).not.toHaveBeenCalled();
   });
   it('retains every creative returned for an advertiser', () => {
     const records = Array.from({ length: 6 }, (_, index) =>
@@ -144,7 +164,7 @@ describe('public discovery', () => {
     ).toHaveLength(6);
   });
   it('persists visual ads in the authorized brand and returns remix identities', async () => {
-    const { service, adapter, upsert, claims } = setup();
+    const { service, adapter, upsertBatchAtomic, claims } = setup();
     adapter.fetchCreatives.mockResolvedValue([
       normalizeMetaArchiveRecord({
         adArchiveID: 'image',
@@ -170,8 +190,8 @@ describe('public discovery', () => {
     const result = await service.discover('org-a', input);
     expect(result.status).toBe('ready');
     expect(result.sampleCount).toBe(1);
-    expect(upsert).toHaveBeenCalledTimes(1);
-    expect(upsert).toHaveBeenCalledWith(
+    expect(upsertBatchAtomic).toHaveBeenCalledTimes(1);
+    expect(upsertBatchAtomic).toHaveBeenCalledWith([
       expect.objectContaining({
         organizationId: 'org-a',
         brandId: 'brand-a',
@@ -179,7 +199,7 @@ describe('public discovery', () => {
         researchSource: 'meta_ads_library',
         externalAdId: 'image',
       }),
-    );
+    ]);
     expect(result.advertisers[0].samples[0]).toMatchObject({
       id: 'image',
       adPerformanceId: 'stored-image',

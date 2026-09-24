@@ -395,6 +395,21 @@ export class AdPerformanceService {
     return this.normalizeRecord(record);
   }
 
+  async upsertBatchAtomic(
+    records: Record<string, unknown>[],
+  ): Promise<AdPerformanceDocument[]> {
+    if (records.length === 0) return [];
+    return this.prisma.$transaction(async (transaction) => {
+      const sources: AdPerformanceDocument[] = [];
+      for (const record of records) {
+        sources.push(
+          await this.upsertWithDelegate(record, transaction.adPerformance),
+        );
+      }
+      return sources;
+    });
+  }
+
   async upsertBatch(records: Record<string, unknown>[]): Promise<number> {
     return this.upsertBatchWithDelegate(records, this.prisma.adPerformance);
   }
