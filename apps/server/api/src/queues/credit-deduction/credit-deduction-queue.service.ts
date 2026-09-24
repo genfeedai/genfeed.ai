@@ -31,7 +31,8 @@ export class CreditDeductionQueueService {
         idempotencyKey: data.idempotencyKey ?? randomUUID(),
       };
     await this.queue.add('deduct-credits', data, {
-      ...(data.settlementAssetId
+      ...(data.acceptedGeneration ? { removeOnFail: false } : {}),
+      ...(data.settlementAssetId || data.acceptedGeneration
         ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
         : {}),
       jobId: toBullMqJobId(
@@ -58,6 +59,10 @@ export class CreditDeductionQueueService {
         idempotencyKey: data.idempotencyKey ?? randomUUID(),
       };
     await this.queue.add('record-byok-usage', data, {
+      ...(data.acceptedGeneration
+        ? { attempts: 20_160, backoff: { delay: 30_000, type: 'fixed' } }
+        : {}),
+      ...(data.acceptedGeneration ? { removeOnFail: false } : {}),
       jobId: toBullMqJobId(
         data.idempotencyKey
           ? `byok-usage-${data.organizationId}-${data.idempotencyKey}`

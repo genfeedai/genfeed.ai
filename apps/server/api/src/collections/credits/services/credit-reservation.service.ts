@@ -1,4 +1,5 @@
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
+import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditTransactionsService } from '@api/collections/credits/services/credit-transactions.service';
 import { validatedWorkflowAccountingAttribution } from '@api/collections/workflow-executions/services/workflow-accounting.context';
 import {
@@ -30,7 +31,6 @@ import { Injectable } from '@nestjs/common';
 
 const DEFAULT_RESERVATION_TTL_MS = 2 * 60 * 60 * 1000;
 const MAX_SERIALIZATION_RETRIES = 3;
-const PRISMA_SERIALIZATION_FAILURE = 'P2034';
 const PRISMA_UNIQUE_CONSTRAINT_VIOLATION = 'P2002';
 
 type ReserveCreditsInput = IReserveCreditsInput & {
@@ -277,7 +277,9 @@ export class CreditReservationService {
     let expired = 0;
     for (const reservation of due) {
       try {
-        if (reservation.workloadType === LIVE_SESSION_WORKLOAD_TYPE) {
+        if (reservation.workloadType === 'interpolation') {
+          if (!(await this.reconcileInterpolation(reservation, now))) continue;
+        } else if (reservation.workloadType === LIVE_SESSION_WORKLOAD_TYPE) {
           await this.settleLiveSessionCeiling(reservation, now);
         } else {
           await this.release({
@@ -297,6 +299,73 @@ export class CreditReservationService {
 
     this.logger.log('Expired credit reservations', { expired });
     return expired;
+  }
+
+  private async reconcileInterpolation(
+    reservation: {
+      actorUserId: string | null;
+      amount: number;
+      id: string;
+      organizationId: string;
+      workloadId: string | null;
+    },
+    now: Date,
+  ): Promise<boolean> {
+    const ingredient = reservation.workloadId
+      ? await this.prisma.ingredient.findFirst({
+          where: {
+            id: reservation.workloadId,
+            organizationId: reservation.organizationId,
+            isDeleted: false,
+          },
+          select: {
+            status: true,
+            metadata: { select: { externalId: true, isDeleted: true } },
+          },
+        })
+      : null;
+    if (
+      ingredient?.metadata?.externalId &&
+      !ingredient.metadata.isDeleted &&
+      reservation.actorUserId
+    ) {
+      await this.settle({
+        actorUserId: reservation.actorUserId,
+        actualAmount: reservation.amount,
+        description: 'Accepted interpolation recovery',
+        organizationId: reservation.organizationId,
+        reservationId: reservation.id,
+        source: ActivitySource.VIDEO_GENERATION,
+      });
+      return true;
+    }
+    if (
+      ingredient &&
+      !ingredient.metadata?.externalId &&
+      ['FAILED', 'REJECTED'].includes(String(ingredient.status))
+    ) {
+      await this.release({
+        organizationId: reservation.organizationId,
+        reservationId: reservation.id,
+        reason: 'expiry',
+      });
+      return true;
+    }
+    await this.prisma.creditReservation.updateMany({
+      where: {
+        id: reservation.id,
+        organizationId: reservation.organizationId,
+        isDeleted: false,
+        status: CreditReservationStatus.RESERVED,
+      },
+      data: { expiresAt: new Date(now.getTime() + 60 * 60 * 1000) },
+    });
+    this.logger.warn('Interpolation hold requires operator reconciliation', {
+      organizationId: reservation.organizationId,
+      reservationId: reservation.id,
+      ingredientId: reservation.workloadId,
+    });
+    return false;
   }
 
   private async settleLiveSessionCeiling(
@@ -381,7 +450,7 @@ export class CreditReservationService {
         });
       } catch (error: unknown) {
         if (
-          this.errorCode(error) !== PRISMA_SERIALIZATION_FAILURE ||
+          !isCreditTransactionConflict(error) ||
           attempt === MAX_SERIALIZATION_RETRIES - 1
         ) {
           throw error;

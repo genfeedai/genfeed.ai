@@ -189,6 +189,19 @@ describe('OrganizationsSettingsController', () => {
   });
 
   describe('updateSettings', () => {
+    it.each(['onboardingJourneyMissions', 'onboardingJourneyCompletedAt'])(
+      'rejects externally authored %s before creating or updating settings',
+      async (field) => {
+        await expect(
+          controller.updateSettings(mockReq, testId('org'), { [field]: null }),
+        ).rejects.toMatchObject({ status: 400 });
+        expect(
+          mockOrganizationSettingsService.ensureForOrganization,
+        ).not.toHaveBeenCalled();
+        expect(mockOrganizationSettingsService.patch).not.toHaveBeenCalled();
+      },
+    );
+
     const organizationId = testId('org');
     const updateDto = {
       isWhitelabelEnabled: true,

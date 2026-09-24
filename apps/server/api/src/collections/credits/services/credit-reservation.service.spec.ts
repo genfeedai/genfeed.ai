@@ -18,9 +18,10 @@ describe('CreditReservationService', () => {
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     },
     creditTransaction: { updateMany: vi.fn() },
+    ingredient: { findFirst: vi.fn() },
     liveSession: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
   };
-  const logger = { error: vi.fn(), log: vi.fn() };
+  const logger = { error: vi.fn(), log: vi.fn(), warn: vi.fn() };
   const creditBalanceService = {
     applyDelta: vi.fn(),
     getOrCreateBalance: vi.fn(),
@@ -55,6 +56,8 @@ describe('CreditReservationService', () => {
       .mockResolvedValue({ count: 1 });
     prisma.creditTransaction.updateMany.mockReset();
     prisma.liveSession.updateMany.mockReset().mockResolvedValue({ count: 1 });
+    prisma.ingredient.findFirst.mockReset();
+    logger.warn.mockReset();
     logger.error.mockReset();
     logger.log.mockReset();
     creditBalanceService.applyDelta.mockReset();
@@ -112,6 +115,84 @@ describe('CreditReservationService', () => {
       },
     });
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
+  });
+
+  it.each(['40001', '40P01'])(
+    'retries reservation wallet conflicts with SQLSTATE %s',
+    async (sqlState) => {
+      prisma.creditReservation.findFirst.mockResolvedValue(null);
+      prisma.creditReservation.create.mockResolvedValue({
+        id: 'res_retry',
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
+        amount: 20,
+        settledAmount: null,
+        status: CreditReservationStatus.RESERVED,
+        idempotencyKey: 'retry_1',
+        workloadType: null,
+        workloadId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: new Date(),
+        isDeleted: false,
+      });
+      creditBalanceService.applyDelta.mockRejectedValueOnce({
+        code: 'P2010',
+        meta: {
+          driverAdapterError: Object.assign(new Error('DriverAdapterError'), {
+            cause: { originalCode: sqlState, kind: 'TransactionWriteConflict' },
+          }),
+        },
+      });
+      const result = await service.reserve({
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
+        amount: 20,
+        idempotencyKey: 'retry_1',
+      });
+      expect(result.id).toBe('res_retry');
+      expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(2);
+      expect(prisma.creditReservation.create).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not retry unrelated raw reservation errors', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    const error = { code: 'P2010', meta: { code: '23514' } };
+    creditBalanceService.applyDelta.mockRejectedValueOnce(error);
+    await expect(
+      service.reserve({
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
+        amount: 20,
+        idempotencyKey: 'retry_1',
+      }),
+    ).rejects.toBe(error);
+    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(1);
+    expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+  });
+
+  it('stops retrying raw reservation conflicts after three attempts', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    const error = { code: 'P2010', meta: { code: '40001' } };
+    creditBalanceService.applyDelta
+      .mockRejectedValueOnce(error)
+      .mockRejectedValueOnce(error)
+      .mockRejectedValueOnce(error);
+    await expect(
+      service.reserve({
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
+        amount: 20,
+        idempotencyKey: 'retry_1',
+      }),
+    ).rejects.toBe(error);
+    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(3);
+    expect(prisma.creditReservation.create).not.toHaveBeenCalled();
   });
 
   it('rejects settlement above the reserved amount', async () => {
@@ -310,6 +391,105 @@ describe('CreditReservationService', () => {
       },
     });
   });
+
+  it('settles accepted interpolation at its held quote without releasing it', async () => {
+    const reservation = {
+      id: 'hold',
+      organizationId: 'org_1',
+      actorUserId: 'user_1',
+      amount: 50,
+      workloadType: 'interpolation',
+      workloadId: 'asset',
+    };
+    prisma.creditReservation.findMany.mockResolvedValue([reservation]);
+    prisma.ingredient.findFirst.mockResolvedValue({
+      metadata: { externalId: 'provider-id', isDeleted: false },
+    });
+    const settle = vi.spyOn(service, 'settle').mockResolvedValue({} as never);
+    const release = vi.spyOn(service, 'release');
+    await expect(service.expireDue()).resolves.toBe(1);
+    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: { id: 'asset', organizationId: 'org_1', isDeleted: false },
+      }),
+    );
+    expect(settle).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        actualAmount: 50,
+        actorUserId: 'user_1',
+        organizationId: 'org_1',
+        reservationId: 'hold',
+      }),
+    );
+    expect(release).not.toHaveBeenCalled();
+  });
+
+  it('releases only confirmed failed unaccepted interpolation holds', async () => {
+    prisma.creditReservation.findMany.mockResolvedValue([
+      {
+        id: 'hold',
+        organizationId: 'org_1',
+        actorUserId: 'user_1',
+        amount: 5,
+        workloadType: 'interpolation',
+        workloadId: 'asset',
+      },
+    ]);
+    prisma.ingredient.findFirst.mockResolvedValue({
+      status: 'FAILED',
+      metadata: { externalId: null, isDeleted: false },
+    });
+    const release = vi.spyOn(service, 'release').mockResolvedValue({} as never);
+    await expect(service.expireDue()).resolves.toBe(1);
+    expect(release).toHaveBeenCalledExactlyOnceWith({
+      organizationId: 'org_1',
+      reservationId: 'hold',
+      reason: 'expiry',
+    });
+  });
+
+  it.each([null, { metadata: { externalId: null, isDeleted: false } }])(
+    'retains unknown or foreign interpolation holds and permits other expiry work',
+    async (asset) => {
+      const now = new Date('2026-09-24T10:00:00Z');
+      prisma.creditReservation.findMany.mockResolvedValue([
+        {
+          id: 'hold',
+          organizationId: 'org_1',
+          actorUserId: 'user_1',
+          amount: 50,
+          workloadType: 'interpolation',
+          workloadId: 'asset',
+        },
+        { id: 'ordinary', organizationId: 'org_2', workloadType: 'generation' },
+      ]);
+      prisma.ingredient.findFirst.mockResolvedValue(asset);
+      const settle = vi.spyOn(service, 'settle');
+      const release = vi
+        .spyOn(service, 'release')
+        .mockResolvedValue({} as never);
+      await expect(service.expireDue(now)).resolves.toBe(1);
+      expect(release).toHaveBeenCalledExactlyOnceWith({
+        organizationId: 'org_2',
+        reason: 'expiry',
+        reservationId: 'ordinary',
+      });
+      expect(settle).not.toHaveBeenCalled();
+      expect(prisma.creditReservation.updateMany).toHaveBeenCalledWith({
+        where: {
+          id: 'hold',
+          organizationId: 'org_1',
+          isDeleted: false,
+          status: CreditReservationStatus.RESERVED,
+        },
+        data: { expiresAt: new Date('2026-09-24T11:00:00Z') },
+      });
+      expect(logger.warn).toHaveBeenCalledWith(
+        'Interpolation hold requires operator reconciliation',
+        expect.objectContaining({ reservationId: 'hold' }),
+      );
+    },
+  );
 
   it('settles a due live-session reservation at the reserved ceiling', async () => {
     const reserved = {

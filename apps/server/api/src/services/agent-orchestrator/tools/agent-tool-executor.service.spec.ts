@@ -971,6 +971,20 @@ describe('AgentToolExecutorService', () => {
       credentialsService as never,
       batchGenerationService as never,
     );
+    const onboardingCreditGrantsService = {
+      completeMissions: vi
+        .fn()
+        .mockImplementation(async (_organizationId: string, ids: string[]) =>
+          organizationSettingsService
+            .normalizeJourneyState()
+            .map((mission: { id: string; isCompleted: boolean }) => ({
+              ...mission,
+              isCompleted: mission.isCompleted || ids.includes(mission.id),
+              rewardClaimed: false,
+              rewardCredits: 0,
+            })),
+        ),
+    };
     const onboardingHandler = new AgentOnboardingToolHandler(
       loggerService,
       configService as never,
@@ -979,6 +993,7 @@ describe('AgentToolExecutorService', () => {
       creditsUtilsService as never,
       contentGeneratorService as never,
       generationGateway as never,
+      onboardingCreditGrantsService as never,
       credentialsService as never,
       imagesService as never,
       organizationsService as never,
@@ -3873,7 +3888,7 @@ describe('AgentToolExecutorService', () => {
         type: 'onboarding_checklist_card',
       }),
     );
-    expect(organizationSettingsService.patch).toHaveBeenCalled();
+    expect(organizationSettingsService.patch).not.toHaveBeenCalled();
     expect(
       creditsUtilsService.addOrganizationCreditsWithExpiration,
     ).not.toHaveBeenCalled();
@@ -5633,6 +5648,7 @@ describe('AgentToolExecutorService', () => {
       {} as never,
       {} as never,
       generationGatewayWithoutScorer as never,
+      { completeMissions: vi.fn().mockResolvedValue([]) } as never,
       credentialsService as never,
       imagesService as never,
       organizationsService as never,

@@ -477,7 +477,11 @@ describe('PostsService.listContentMentions', () => {
 
   beforeEach(() => {
     prisma.post.findMany.mockReset();
-    service = new PostsService(prisma as never, logger as never);
+    service = new PostsService(
+      prisma as never,
+      logger as never,
+      { completeMissions: vi.fn().mockResolvedValue([]) } as never,
+    );
   });
 
   it('returns recent organization posts as content mentions', async () => {

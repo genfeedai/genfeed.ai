@@ -161,7 +161,32 @@ describe('AgentEndpointInvoker', () => {
       expect.objectContaining({ originalUrl: '/v1/images' }),
       [MemberRole.OWNER],
     );
+    expect(subscriptionGuard.assertActive).toHaveBeenCalledWith(
+      expect.objectContaining({ originalUrl: '/v1/images' }),
+      endpoint.creditsConfig,
+    );
     expect(creditsInterceptor.release).not.toHaveBeenCalled();
+  });
+
+  it('preserves the subscription gate when the endpoint has no credits config', async () => {
+    const endpoint = buildEndpoint({
+      creditsConfig: undefined,
+      hasCreditsInterceptor: false,
+    });
+    subscriptionGuard.assertActive.mockImplementation(() => {
+      throw new ForbiddenException('Active subscription required');
+    });
+
+    await expect(invoker.invoke(endpoint, invocation)).rejects.toThrow(
+      'Active subscription required',
+    );
+
+    expect(subscriptionGuard.assertActive).toHaveBeenCalledWith(
+      expect.objectContaining({ originalUrl: '/v1/images' }),
+      undefined,
+    );
+    expect(creditsGuard.admit).not.toHaveBeenCalled();
+    expect(endpoint.handle).not.toHaveBeenCalled();
   });
 
   it('validates the body against the endpoint DTO before the handler runs', async () => {

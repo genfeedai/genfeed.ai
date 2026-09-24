@@ -29,6 +29,35 @@ describe('CreditDeductionQueueService', () => {
     vi.useRealTimers();
   });
 
+  it.each(['deduct-credits', 'record-byok-usage'] as const)(
+    'retains accepted %s jobs with the seven day retry window',
+    async (type) => {
+      const data: CreditDeductionJobData = {
+        type,
+        amount: 5,
+        description: 'Interpolation',
+        organizationId: 'org',
+        source: ActivitySource.VIDEO_GENERATION,
+        idempotencyKey: 'interpolation-asset',
+        acceptedGeneration: {
+          ingredientId: 'asset',
+          externalId: 'provider-id',
+        },
+      };
+      if (type === 'deduct-credits') await service.queueDeduction(data);
+      else await service.queueByokUsage(data);
+      expect(queue.add).toHaveBeenCalledWith(
+        type,
+        data,
+        expect.objectContaining({
+          attempts: 20_160,
+          backoff: { delay: 30_000, type: 'fixed' },
+          removeOnFail: false,
+        }),
+      );
+    },
+  );
+
   describe('instantiation', () => {
     it('should be defined', () => {
       expect(service).toBeDefined();

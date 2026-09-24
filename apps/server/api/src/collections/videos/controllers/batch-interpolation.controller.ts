@@ -4,8 +4,6 @@ import { ActivityEntity } from '@api/collections/activities/entities/activity.en
 import { ActivitiesService } from '@api/collections/activities/services/activities.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { MetadataEntity } from '@api/collections/metadata/entities/metadata.entity';
-import { MetadataService } from '@api/collections/metadata/services/metadata.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
 import { PromptEntity } from '@api/collections/prompts/entities/prompt.entity';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
@@ -13,18 +11,22 @@ import {
   BatchInterpolationDto,
   InterpolationPairDto,
 } from '@api/collections/videos/dto/batch-interpolation.dto';
+import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
 import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
 import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import {
+  CreditsGuard,
+  type CreditsGuardRequest,
+} from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
 import { FailedGenerationService } from '@api/shared/services/failed-generation/failed-generation.service';
@@ -55,6 +57,7 @@ import {
   Req,
   SetMetadata,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -65,6 +68,7 @@ type InterpolationJobResult = {
 };
 
 type InterpolationContext = {
+  apiKey?: string;
   brand: NonNullable<Awaited<ReturnType<BrandsService['findOne']>>>;
   cameraPrompt: string;
   dto: BatchInterpolationDto;
@@ -88,17 +92,17 @@ export class BatchInterpolationController {
     private readonly failedGenerationService: FailedGenerationService,
     private readonly interpolationReferenceService: BatchInterpolationReferenceService,
     private readonly loggerService: LoggerService,
-    private readonly metadataService: MetadataService,
+    private readonly billing: BatchInterpolationBillingService,
     private readonly modelsService: ModelsService,
     private readonly promptsService: PromptsService,
     private readonly promptBuilderService: PromptBuilderService,
-    private readonly replicateService: ReplicateService,
     private readonly sharedService: SharedService,
     private readonly videosService: VideosService,
     private readonly websocketService: NotificationsPublisherService,
   ) {}
 
   @Post('interpolation')
+  @UseInterceptors(CreditsInterceptor)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,
@@ -111,7 +115,7 @@ export class BatchInterpolationController {
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createBatchInterpolation(
-    @Req() req: Request,
+    @Req() req: Request & Pick<CreditsGuardRequest, 'creditsConfig'>,
     @Body() dto: BatchInterpolationDto,
     @CurrentUser() user: User,
   ) {
@@ -189,11 +193,16 @@ export class BatchInterpolationController {
     const { height, width } = this.resolveDimensions(
       dto.format || IngredientFormat.LANDSCAPE,
     );
+    const apiKey = await this.billing.resolveApiKey(
+      req.creditsConfig,
+      user.organizationId,
+    );
     const context: InterpolationContext = {
+      apiKey,
       brand,
       cameraPrompt: dto.cameraPrompt || '',
       dto,
-      duration: dto.duration || 5,
+      duration: this.resolveDuration(dto.duration),
       groupId,
       height,
       model,
@@ -201,6 +210,18 @@ export class BatchInterpolationController {
       user,
       width,
     };
+    const initialCredits = req.creditsConfig;
+    if (initialCredits?.reservationId) {
+      await this.creditsUtilsService.releaseReservation({
+        organizationId: user.organizationId,
+        reservationId: initialCredits.reservationId,
+      });
+    }
+    if (initialCredits) {
+      delete initialCredits.reservationId;
+      initialCredits.amount = 0;
+    }
+
     const jobs = await Promise.all(
       pairs.map((pair, index) => this.processPair(pair, index, context)),
     );
@@ -227,6 +248,16 @@ export class BatchInterpolationController {
     };
 
     return serializeSingle(req, BatchInterpolationSerializer, result);
+  }
+
+  private resolveDuration(duration?: number): number {
+    if (!Number.isFinite(duration ?? 5) || (duration || 5) <= 0) {
+      throw new HttpException(
+        'Interpolation duration must be finite and positive',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return duration || 5;
   }
 
   private resolveDimensions(format: IngredientFormat): {
@@ -267,16 +298,6 @@ export class BatchInterpolationController {
         pair.prompt ||
         context.cameraPrompt ||
         'smooth transition, cinematic motion';
-      const promptData = await this.promptsService.create(
-        new PromptEntity({
-          brandId: context.user.brandId,
-          category: PromptCategory.MODELS_PROMPT_VIDEO,
-          organizationId: context.user.organizationId,
-          original: promptText,
-          status: PromptStatus.PROCESSING,
-          userId: context.user.userId ?? context.user.id,
-        }),
-      );
       const builtPrompt = await this.promptBuilderService.buildPrompt(
         context.dto.modelKey,
         {
@@ -292,6 +313,23 @@ export class BatchInterpolationController {
           width: context.width,
         },
         context.user.organizationId,
+      );
+      const amount = this.billing.quote(
+        context.model,
+        context.duration,
+        context.width,
+        context.height,
+        builtPrompt.input,
+      );
+      const promptData = await this.promptsService.create(
+        new PromptEntity({
+          brandId: context.user.brandId,
+          category: PromptCategory.MODELS_PROMPT_VIDEO,
+          organizationId: context.user.organizationId,
+          original: promptText,
+          status: PromptStatus.PROCESSING,
+          userId: context.user.id,
+        }),
       );
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(context.user, {
@@ -320,7 +358,7 @@ export class BatchInterpolationController {
           key: ActivityKey.VIDEO_PROCESSING,
           organizationId: context.user.organizationId,
           source: ActivitySource.VIDEO_GENERATION,
-          userId: context.user.userId ?? context.user.id,
+          userId: context.user.id,
           value: JSON.stringify({
             groupId: context.groupId,
             ingredientId,
@@ -347,7 +385,8 @@ export class BatchInterpolationController {
         taskId: ingredientId,
         userId: context.user.id,
       });
-      return this.dispatchPair({
+      return await this.dispatchPair({
+        amount,
         context,
         ingredientId,
         isLoopPair,
@@ -362,6 +401,7 @@ export class BatchInterpolationController {
   }
 
   private async dispatchPair(params: {
+    amount: number;
     context: InterpolationContext;
     ingredientId: string;
     isLoopPair: boolean;
@@ -370,10 +410,16 @@ export class BatchInterpolationController {
     promptParams: Record<string, unknown>;
   }): Promise<InterpolationJobResult> {
     const { context, ingredientId, isLoopPair, metadataId, pairIndex } = params;
-    const generationId = await this.replicateService.generateTextToVideo(
-      context.dto.modelKey,
-      params.promptParams,
-    );
+    const generationId = await this.billing.dispatch({
+      amount: params.amount,
+      apiKey: context.apiKey,
+      description: `Interpolation video - ${context.dto.modelKey} (pair ${pairIndex + 1}/${context.pairs.length})`,
+      ingredientId,
+      metadataId,
+      modelKey: context.dto.modelKey,
+      promptParams: params.promptParams,
+      user: context.user,
+    });
     if (!generationId) {
       await this.failedGenerationService.handleFailedVideoGeneration(
         this.videosService,
@@ -383,23 +429,6 @@ export class BatchInterpolationController {
         getUserRoomName(context.user.id),
       );
       return { id: ingredientId, pairIndex, status: 'failed' };
-    }
-    await this.metadataService.patch(
-      metadataId,
-      new MetadataEntity({ externalId: generationId }),
-    );
-    const modelData = await this.modelsService.findOne({
-      key: context.dto.modelKey,
-    });
-    const credits = modelData?.cost || 0;
-    if (credits > 0) {
-      await this.creditsUtilsService.deductCreditsFromOrganization(
-        context.user.organizationId,
-        context.user.userId ?? context.user.id,
-        credits,
-        `Interpolation video - ${context.dto.modelKey} (pair ${pairIndex + 1}/${context.pairs.length})`,
-        ActivitySource.VIDEO_GENERATION,
-      );
     }
     this.loggerService.log('Interpolation job started', {
       generationId,

@@ -448,41 +448,11 @@ export class CreditsUtilsService implements ICreditsUtilsService {
           CreditsUtilsService.BALANCE_TX_OPTIONS,
         );
 
-      if (!wasApplied) {
-        this.loggerService.log(`${url} credit grant already recorded`, {
-          idempotencyKey: options?.idempotencyKey,
-          organizationId,
-        });
-        // Replay of an already-applied grant: a prior attempt committed the
-        // balance/ledger write inside the serializable transaction but may
-        // have crashed before reaching the side effects below (e.g. a
-        // reaper-driven retry of a referral reward — see
-        // referrals.service.ts). Still ensure hasEverHadCredits and the
-        // access-bootstrap cache are correct on every replay; skip only the
-        // websocket balance emit, since that event was already delivered for
-        // this transaction key.
-        if (creditsToAdd > 0) {
-          await this.markOrganizationAsHavingCredits(organizationId);
-        }
-        await this.accessBootstrapCacheService.invalidateForOrganization(
-          organizationId,
-        );
-        return;
-      }
-
-      if (creditsToAdd > 0) {
-        await this.markOrganizationAsHavingCredits(organizationId);
-      }
-
-      // Balance is persisted to the credit-balance table above (epic #735,
-      // Phase C — no legacy auth provider identity write-back).
-      const websocketUrl = `/credits/${organizationId}`;
-      await this.websocketService.emit(websocketUrl, {
-        balance: newBalance,
+      await this.publishCreditAddition(organizationId, creditsToAdd, {
+        currentBalance,
+        newBalance,
+        wasApplied,
       });
-      await this.accessBootstrapCacheService.invalidateForOrganization(
-        organizationId,
-      );
 
       this.loggerService.log(`${url} credits added successfully`, {
         creditsAdded: creditsToAdd,
@@ -501,6 +471,30 @@ export class CreditsUtilsService implements ICreditsUtilsService {
       });
       throw error;
     }
+  }
+
+  async addPromotionalCreditsInTransaction(
+    input: AddCreditsCoreInput,
+    tx: PrismaTransactionClient,
+  ): Promise<CreditAdditionResult> {
+    return this.addCreditsCore(input, tx);
+  }
+
+  async publishCreditAddition(
+    organizationId: string,
+    creditsToAdd: number,
+    result: CreditAdditionResult,
+  ): Promise<void> {
+    if (creditsToAdd > 0)
+      await this.markOrganizationAsHavingCredits(organizationId);
+    if (result.wasApplied) {
+      await this.websocketService.emit(`/credits/${organizationId}`, {
+        balance: result.newBalance,
+      });
+    }
+    await this.accessBootstrapCacheService.invalidateForOrganization(
+      organizationId,
+    );
   }
 
   private async addCreditsCore(
