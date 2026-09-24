@@ -95,32 +95,11 @@ export default function AdsPublicDiscoveryPanel({
       return () => controller.abort();
     const run = async () => {
       setLoading(true);
-      const deadline = Date.now() + 180_000;
       try {
         const service = await getService();
-        while (!controller.signal.aborted) {
-          const result = await service.discover(request, controller.signal);
-          if (controller.signal.aborted) return;
-          setResponse(result);
-          if (result.status !== 'pending') break;
-          if (Date.now() >= deadline) {
-            setError(true);
-            break;
-          }
-          await new Promise<void>((resolve) => {
-            const onAbort = () => {
-              clearTimeout(timer);
-              resolve();
-            };
-            const timer = setTimeout(() => {
-              controller.signal.removeEventListener('abort', onAbort);
-              resolve();
-            }, 3000);
-            controller.signal.addEventListener('abort', onAbort, {
-              once: true,
-            });
-          });
-        }
+        if (controller.signal.aborted) return;
+        const result = await service.discover(request, controller.signal);
+        if (!controller.signal.aborted) setResponse(result);
       } catch {
         if (!controller.signal.aborted) setError(true);
       } finally {
@@ -268,11 +247,7 @@ export default function AdsPublicDiscoveryPanel({
               : current?.status === 'unsupported'
                 ? translate('unsupported')
                 : current?.status === 'unavailable'
-                  ? translate(
-                      current.reason === 'paid_creative_apify_token_missing'
-                        ? 'unconfigured'
-                        : 'unavailable',
-                    )
+                  ? translate('unavailable')
                   : null}
       </div>
       {current?.status === 'ready' ? (
@@ -394,17 +369,36 @@ export default function AdsPublicDiscoveryPanel({
                           {sample.headline}
                         </p>
                       ) : null}
+                      <p className="text-xs text-foreground/60">
+                        {translate(
+                          sample.freshness === 'saved'
+                            ? 'savedFreshness'
+                            : sample.freshness === 'stale'
+                              ? 'staleFreshness'
+                              : 'unknownFreshness',
+                        )}
+                        {sample.observedAt &&
+                        Number.isFinite(Date.parse(sample.observedAt)) &&
+                        Date.parse(sample.observedAt) <= Date.now()
+                          ? ` · ${translate('observedAt', { date: new Intl.DateTimeFormat(locale, { dateStyle: 'medium' }).format(new Date(sample.observedAt)) })}`
+                          : ''}
+                      </p>
                       <Button
                         size={ButtonSize.SM}
                         variant={ButtonVariant.SECONDARY}
                         disabled={
                           !brandId ||
                           !sample.adPerformanceId ||
+                          sample.freshness !== 'saved' ||
                           !remix ||
                           remix.status === 'preparing'
                         }
                         onClick={() => {
-                          if (sample.adPerformanceId && remix) {
+                          if (
+                            sample.adPerformanceId &&
+                            sample.freshness === 'saved' &&
+                            remix
+                          ) {
                             void remix.openRemix({
                               kind: 'public_ad',
                               adPerformanceId: sample.adPerformanceId,

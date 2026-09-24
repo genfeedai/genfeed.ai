@@ -12,6 +12,8 @@ export interface AdsDiscoveryQuery {
   platform: AdWatchlistPlatform;
 }
 export interface AdsDiscoverySample {
+  observedAt?: string;
+  freshness?: 'saved' | 'stale' | 'unknown';
   id: string;
   adPerformanceId?: string;
   mediaType?: 'image' | 'video';

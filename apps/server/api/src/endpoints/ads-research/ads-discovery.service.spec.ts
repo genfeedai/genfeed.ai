@@ -1,105 +1,230 @@
 import type { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
+import {
+  AdsDiscoveryService,
+  groupDiscoveryAdvertisers,
+  validateDiscoveryQuery,
+} from '@api/endpoints/ads-research/ads-discovery.service';
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { normalizeMetaArchiveRecord } from '@genfeedai/integrations/ads';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  AdsDiscoveryService,
-  groupDiscoveryAdvertisers,
-  validateDiscoveryQuery,
-} from './ads-discovery.service';
 
-describe('public discovery', () => {
-  const query = {
-    keyword: ' coffee ',
-    platform: AdsPlatform.META,
-    countries: 'fr,DE,FR',
-    limit: 24,
+const query = {
+  brandId: 'brand-a',
+  keyword: 'coffee',
+  platform: AdsPlatform.META,
+  countries: 'fr,DE,FR',
+  limit: 24,
+};
+const row = {
+  id: 'saved-id',
+  externalAccountId: '456',
+  externalAdId: '123',
+  advertiserName: 'Coffee',
+  imageUrls: ['https://example.com/a.jpg'],
+  presentationStartDate: '2026-01-01',
+  researchObservedAt: new Date('2026-01-11'),
+  researchFreshnessState: 'fresh',
+  isHalted: false,
+};
+function setup() {
+  const adapter = {
+    fetchCreatives: vi.fn(),
+    getReadiness: () => ({
+      available: false,
+      blockers: ['missing_token'],
+      documentationUrl: 'https://example.com',
+    }),
   };
-  function setup() {
-    let clock = 0;
-    const data = new Map<string, unknown>();
-    const resultExpiries = new Map<string, number>();
-    const claims = new Map<string, { token: string; expiresAt: number }>();
-    const owner = (key: string) => {
-      const claim = claims.get(key);
-      if (claim && claim.expiresAt <= clock) {
-        claims.delete(key);
-        return undefined;
+  const cache = {
+    get: vi.fn().mockResolvedValue(null),
+    acquireOwnedClaim: vi.fn(),
+    setOwnedClaimValue: vi.fn(),
+    releaseOwnedClaim: vi.fn(),
+  };
+  const sources = {
+    findSavedDiscoverySources: vi.fn().mockResolvedValue([row]),
+    upsertBatchAtomic: vi.fn(),
+  };
+  const service = new AdsDiscoveryService(
+    { resolve: () => adapter } as unknown as PaidCreativeProviderRegistry,
+    cache as unknown as CacheService,
+    sources as unknown as AdPerformanceService,
+  );
+  return { service, cache, sources, adapter };
+}
+describe('saved public discovery', () => {
+  it.each([
+    null,
+    { status: 'pending' },
+    { status: 'empty' },
+    { status: 'unavailable' },
+    { status: 'ready', advertisers: 'invalid' },
+  ])(
+    'reads saved rows despite cache state %j without any collection',
+    async (cached) => {
+      const { service, cache, sources, adapter } = setup();
+      cache.get.mockResolvedValue(cached);
+      for (let i = 0; i < 2; i++) {
+        const result = await service.discover('org-a', query);
+        expect(result.status).toBe('ready');
+        expect(result.advertisers[0].samples[0]).toMatchObject({
+          adPerformanceId: 'saved-id',
+          freshness: 'saved',
+          observedAt: '2026-01-11T00:00:00.000Z',
+        });
+        expect(result.advertisers[0].longevityDays).toBe(10);
       }
-      return claim?.token;
-    };
-    const fetchCreatives = vi.fn().mockResolvedValue([]);
-    const adapter = {
-      fetchCreatives,
-      getReadiness: vi.fn().mockReturnValue({
-        available: true,
-        blockers: [],
-        documentationUrl: 'https://example.com',
+      expect(adapter.fetchCreatives).not.toHaveBeenCalled();
+      expect(cache.acquireOwnedClaim).not.toHaveBeenCalled();
+      expect(cache.setOwnedClaimValue).not.toHaveBeenCalled();
+      expect(sources.upsertBatchAtomic).not.toHaveBeenCalled();
+    },
+  );
+  it('falls back to durable rows after cache failure and fails closed on DB errors', async () => {
+    const { service, cache, sources } = setup();
+    cache.get.mockRejectedValue(new Error('cache'));
+    expect((await service.discover('org-a', query)).status).toBe('ready');
+    sources.findSavedDiscoverySources.mockRejectedValue(new Error('DB'));
+    expect(await service.discover('org-a', query)).toMatchObject({
+      status: 'unavailable',
+      reason: 'saved_ads_unavailable',
+      advertisers: [],
+    });
+  });
+  it('passes only exact-request cached identities to the authorized saved query', async () => {
+    const { service, cache, sources } = setup();
+    cache.get.mockResolvedValue({
+      status: 'ready',
+      platform: 'meta',
+      query: 'coffee',
+      countries: ['DE', 'FR'],
+      advertisers: [
+        {
+          id: 'a',
+          name: 'A',
+          samples: [
+            {
+              id: 'ad',
+              adPerformanceId: 'saved-id',
+              imageUrls: ['https://example.com/a'],
+              videoUrls: [],
+              mediaUrls: [],
+            },
+          ],
+        },
+      ],
+    });
+    await service.discover('org-a', query);
+    expect(sources.findSavedDiscoverySources).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        cachedSourceIds: ['saved-id'],
+        normalizedCountries: ['DE', 'FR'],
       }),
-    };
-    const cache = {
-      get: vi.fn(async (key: string) => {
-        if ((resultExpiries.get(key) ?? Infinity) <= clock) data.delete(key);
-        return data.get(key) ?? null;
-      }),
-      acquireOwnedClaim: vi.fn(
-        async (
-          key: string,
-          token: string,
-          ttl: number,
-        ): Promise<'claimed' | 'duplicate' | 'unavailable'> => {
-          if (owner(key)) return 'duplicate';
-          claims.set(key, { token, expiresAt: clock + ttl * 1000 });
-          return 'claimed';
-        },
-      ),
-      setOwnedClaimValue: vi.fn(
-        async (
-          claimKey: string,
-          token: string,
-          resultKey: string,
-          value: unknown,
-          ttl: number,
-        ) => {
-          if (owner(claimKey) !== token) return false;
-          data.set(resultKey, value);
-          resultExpiries.set(resultKey, clock + ttl * 1000);
-          return true;
-        },
-      ),
-      releaseOwnedClaim: vi.fn(
-        async (claimKey: string, token: string, resultKeyToDelete?: string) => {
-          if (owner(claimKey) !== token) return false;
-          if (resultKeyToDelete) data.delete(resultKeyToDelete);
-          claims.delete(claimKey);
-          return true;
-        },
-      ),
-    };
-    const upsertBatchAtomic = vi
-      .fn()
-      .mockImplementation(async (rows: Record<string, unknown>[]) =>
-        rows.map((row) => ({ ...row, id: `stored-${row.externalAdId}` })),
-      );
-    const service = new AdsDiscoveryService(
-      { resolve: () => adapter } as unknown as PaidCreativeProviderRegistry,
-      cache as unknown as CacheService,
-      { upsertBatchAtomic } as unknown as AdPerformanceService,
     );
-    return {
-      service,
-      upsertBatchAtomic,
-      cache,
-      adapter,
-      data,
-      claims,
-      advance: (milliseconds: number) => {
-        clock += milliseconds;
-      },
-    };
-  }
+    cache.get.mockResolvedValue({
+      status: 'ready',
+      platform: 'meta',
+      query: 'other',
+      countries: ['DE', 'FR'],
+      advertisers: [],
+    });
+    await service.discover('org-a', query);
+    expect(
+      sources.findSavedDiscoverySources.mock.lastCall?.[0].cachedSourceIds,
+    ).toEqual([]);
+  });
+  it('keeps omitted brand cache-only and strips source IDs and inferred observation', async () => {
+    const { service, cache, sources } = setup();
+    cache.get.mockResolvedValue({
+      status: 'ready',
+      platform: 'meta',
+      query: 'coffee',
+      countries: ['DE', 'FR'],
+      advertisers: [
+        {
+          id: 'a',
+          name: 'A',
+          creativeCount: 1,
+          countries: ['FR'],
+          activeCreativeCount: 1,
+          longevityDays: 900,
+          samples: [
+            {
+              id: 'ad',
+              adPerformanceId: 'foreign',
+              observedAt: '2026-01-01',
+              freshness: 'saved',
+              imageUrls: ['https://example.com/a.jpg'],
+              videoUrls: [],
+              mediaUrls: [],
+            },
+          ],
+        },
+      ],
+    });
+    const result = await service.discover('org-a', {
+      ...query,
+      brandId: undefined,
+    });
+    expect(sources.findSavedDiscoverySources).not.toHaveBeenCalled();
+    expect(result.advertisers[0].samples[0]).toMatchObject({
+      freshness: 'unknown',
+    });
+    expect(result.advertisers[0].samples[0].adPerformanceId).toBeUndefined();
+    expect(result.advertisers[0].samples[0].observedAt).toBeUndefined();
+    expect(result.advertisers[0].activeCreativeCount).toBeUndefined();
+    expect(result.advertisers[0].longevityDays).toBeUndefined();
+  });
+  it.each([null, 'invalid', '2999-01-01'])(
+    'never invents observation for %s',
+    async (observed) => {
+      const { service, sources } = setup();
+      sources.findSavedDiscoverySources.mockResolvedValue([
+        { ...row, researchObservedAt: observed },
+      ]);
+      const result = await service.discover('org', query);
+      expect(result.advertisers[0].samples[0]).toMatchObject({
+        freshness: 'unknown',
+        adPerformanceId: 'saved-id',
+      });
+      expect(result.advertisers[0].longevityDays).toBeUndefined();
+      expect(result.advertisers[0].activeCreativeCount).toBeUndefined();
+    },
+  );
+  it('retains stale identity and reports truthful bounded misses', async () => {
+    const { service, sources } = setup();
+    sources.findSavedDiscoverySources
+      .mockResolvedValueOnce([{ ...row, researchFreshnessState: 'stale' }])
+      .mockResolvedValueOnce([]);
+    expect(
+      (await service.discover('org', query)).advertisers[0].samples[0],
+    ).toMatchObject({ freshness: 'stale', adPerformanceId: 'saved-id' });
+    expect(await service.discover('org', query)).toMatchObject({
+      status: 'empty',
+      reason: 'no_matching_saved_ads',
+    });
+  });
+  it('retains validation and direct grouping behavior', () => {
+    expect(validateDiscoveryQuery(query).normalizedCountries).toEqual([
+      'DE',
+      'FR',
+    ]);
+    expect(() => validateDiscoveryQuery({ ...query, limit: NaN })).toThrow();
+    const record = normalizeMetaArchiveRecord({
+      adArchiveID: '1',
+      pageID: '2',
+      snapshot: { pageName: 'Example' },
+    });
+    if (!record) throw new Error('fixture');
+    expect(
+      groupDiscoveryAdvertisers([record, record], AdsPlatform.META)[0]
+        .creativeCount,
+    ).toBe(1);
+  });
   it('rejects unsupported creative formats', () => {
     expect(() =>
       validateDiscoveryQuery({
@@ -107,88 +232,6 @@ describe('public discovery', () => {
         mediaType: 'text',
       } as unknown as typeof query),
     ).toThrow();
-  });
-  it('reports failed source persistence as unavailable, never remixable results', async () => {
-    const { service, adapter, upsertBatchAtomic, claims } = setup();
-    adapter.fetchCreatives.mockResolvedValue([
-      normalizeMetaArchiveRecord({
-        adArchiveID: '123',
-        pageID: '456',
-        snapshot: {
-          images: [{ originalImageUrl: 'https://example.com/a.jpg' }],
-        },
-      }),
-    ]);
-    upsertBatchAtomic.mockRejectedValue(new Error('database unavailable'));
-    const input = { ...query, brandId: 'brand-a' };
-    await service.discover('org-a', input);
-    await vi.waitFor(() => expect(claims.size).toBe(0));
-    expect(await service.discover('org-a', input)).toMatchObject({
-      status: 'unavailable',
-      advertisers: [],
-      reason: 'paid_creative_source_unavailable',
-    });
-  });
-  it('keeps unbranded discovery preview-only without storing remix sources', async () => {
-    const { service, adapter, upsertBatchAtomic, claims } = setup();
-    adapter.fetchCreatives.mockResolvedValue([
-      normalizeMetaArchiveRecord({
-        adArchiveID: '123',
-        pageID: '456',
-        snapshot: {
-          images: [{ originalImageUrl: 'https://example.com/a.jpg' }],
-        },
-      }),
-    ]);
-    await service.discover('org-a', query);
-    await vi.waitFor(() => expect(claims.size).toBe(0));
-    const result = await service.discover('org-a', query);
-    expect(result.status).toBe('ready');
-    expect(result.advertisers[0].samples[0].adPerformanceId).toBeUndefined();
-    expect(upsertBatchAtomic).not.toHaveBeenCalled();
-  });
-  it('persists exactly the first previewed creative and skips unidentifiable rows', async () => {
-    const { service, adapter, upsertBatchAtomic, claims } = setup();
-    adapter.fetchCreatives.mockResolvedValue([
-      normalizeMetaArchiveRecord({
-        adArchiveID: 'same',
-        pageID: '456',
-        snapshot: {
-          body: { text: 'First creative' },
-          images: [{ originalImageUrl: 'https://example.com/first.jpg' }],
-        },
-      }),
-      normalizeMetaArchiveRecord({
-        adArchiveID: 'same',
-        pageID: '456',
-        snapshot: {
-          body: { text: 'Later duplicate' },
-          images: [{ originalImageUrl: 'https://example.com/last.jpg' }],
-        },
-      }),
-      normalizeMetaArchiveRecord({
-        adArchiveID: 'unidentified',
-        snapshot: {
-          images: [{ originalImageUrl: 'https://example.com/hidden.jpg' }],
-        },
-      }),
-    ]);
-    const input = { ...query, brandId: 'brand-a' };
-    await service.discover('org-a', input);
-    await vi.waitFor(() => expect(claims.size).toBe(0));
-    const result = await service.discover('org-a', input);
-    expect(result.sampleCount).toBe(1);
-    expect(result.advertisers[0].samples[0]).toMatchObject({
-      imageUrls: ['https://example.com/first.jpg'],
-      adPerformanceId: 'stored-same',
-    });
-    expect(upsertBatchAtomic).toHaveBeenCalledWith([
-      expect.objectContaining({
-        externalAdId: 'same',
-        bodyText: 'First creative',
-        imageUrls: ['https://example.com/first.jpg'],
-      }),
-    ]);
   });
   it('retains every creative returned for an advertiser', () => {
     const records = Array.from({ length: 6 }, (_, index) =>
@@ -205,87 +248,6 @@ describe('public discovery', () => {
     expect(
       groupDiscoveryAdvertisers(normalized, AdsPlatform.META)[0].samples,
     ).toHaveLength(6);
-  });
-  it('persists visual ads in the authorized brand and returns remix identities', async () => {
-    const { service, adapter, upsertBatchAtomic, claims } = setup();
-    adapter.fetchCreatives.mockResolvedValue([
-      normalizeMetaArchiveRecord({
-        adArchiveID: 'image',
-        pageID: '456',
-        snapshot: {
-          displayFormat: 'IMAGE',
-          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
-        },
-      }),
-      normalizeMetaArchiveRecord({
-        adArchiveID: 'text',
-        pageID: '456',
-        snapshot: { displayFormat: 'TEXT', body: { text: 'Text only' } },
-      }),
-    ]);
-    const input = {
-      ...query,
-      brandId: 'brand-a',
-      mediaType: 'visual' as const,
-    };
-    await service.discover('org-a', input);
-    await vi.waitFor(() => expect(claims.size).toBe(0));
-    const result = await service.discover('org-a', input);
-    expect(result.status).toBe('ready');
-    expect(result.sampleCount).toBe(1);
-    expect(upsertBatchAtomic).toHaveBeenCalledTimes(1);
-    expect(upsertBatchAtomic).toHaveBeenCalledWith([
-      expect.objectContaining({
-        organizationId: 'org-a',
-        brandId: 'brand-a',
-        scope: 'organization',
-        researchSource: 'meta_ads_library',
-        externalAdId: 'image',
-      }),
-    ]);
-    expect(result.advertisers[0].samples[0]).toMatchObject({
-      id: 'image',
-      adPerformanceId: 'stored-image',
-    });
-  });
-  it('separates image/video searches and excludes video thumbnails from image-only results', async () => {
-    const { service, adapter, claims } = setup();
-    adapter.fetchCreatives.mockResolvedValue([
-      normalizeMetaArchiveRecord({
-        adArchiveID: 'image',
-        pageID: '456',
-        snapshot: {
-          displayFormat: 'IMAGE',
-          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
-        },
-      }),
-      normalizeMetaArchiveRecord({
-        adArchiveID: 'video',
-        pageID: '456',
-        snapshot: {
-          displayFormat: 'VIDEO',
-          images: [{ originalImageUrl: 'https://example.com/poster.jpg' }],
-          videos: [{ videoHdUrl: 'https://example.com/video' }],
-        },
-      }),
-    ]);
-    const images = { ...query, mediaType: 'image' as const };
-    const videos = { ...query, mediaType: 'video' as const };
-    await service.discover('org-a', images);
-    await vi.waitFor(() => expect(claims.size).toBe(0));
-    await service.discover('org-a', videos);
-    await vi.waitFor(() => expect(claims.size).toBe(0));
-    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(2);
-    expect(
-      (await service.discover('org-a', images)).advertisers[0].samples.map(
-        (sample) => sample.id,
-      ),
-    ).toEqual(['image']);
-    expect(
-      (await service.discover('org-a', videos)).advertisers[0].samples.map(
-        (sample) => sample.id,
-      ),
-    ).toEqual(['video']);
   });
   it('normalizes and rejects invalid runtime query values', () => {
     expect(validateDiscoveryQuery(query)).toMatchObject({
@@ -345,199 +307,65 @@ describe('public discovery', () => {
     expect(groups[0].activeCreativeCount).toBeUndefined();
     expect(groups[0].reachEstimateMin).toBeUndefined();
   });
-  it('claims before spending, caches empty outcomes for 24h and isolates tenants', async () => {
-    const { service, adapter, cache } = setup();
-    expect((await service.discover('org-a', query)).status).toBe('pending');
-    await vi.waitFor(() =>
-      expect(cache.setOwnedClaimValue).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({ status: 'empty' }),
-        86400,
-      ),
-    );
-    expect((await service.discover('org-a', query)).status).toBe('empty');
-    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
-    await service.discover('org-b', query);
-    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(2);
-  });
-  it('does not run concurrent duplicate searches', async () => {
-    const { service, adapter } = setup();
-    adapter.fetchCreatives.mockImplementation(() => new Promise(() => {}));
-    await Promise.all([
-      service.discover('org', query),
-      service.discover('org', query),
-    ]);
-    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
-  });
-  it('does not spend without cache or configuration and does not cache source failures as empty', async () => {
-    const { service, adapter, cache } = setup();
-    cache.acquireOwnedClaim.mockResolvedValue('unavailable');
-    expect((await service.discover('org', query)).reason).toBe(
-      'paid_creative_cache_unavailable',
-    );
-    expect(adapter.fetchCreatives).not.toHaveBeenCalled();
-    adapter.getReadiness.mockReturnValue({
-      available: false,
-      blockers: ['paid_creative_apify_token_missing'],
-      documentationUrl: 'https://example.com',
-    });
-    expect((await service.discover('org', query)).reason).toBe(
-      'paid_creative_apify_token_missing',
-    );
-    const failing = setup();
-    failing.adapter.fetchCreatives.mockRejectedValue(new Error('secret-token'));
-    await failing.service.discover('org', query);
-    await vi.waitFor(() =>
-      expect(failing.cache.setOwnedClaimValue).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.any(String),
-        expect.any(String),
-        expect.objectContaining({
-          status: 'unavailable',
-          reason: 'paid_creative_source_unavailable',
-        }),
-        60,
-      ),
-    );
-  });
-  it('reports an interrupted job after process restart without rerunning it', async () => {
-    const { service, adapter, data } = setup();
-    adapter.fetchCreatives.mockImplementation(() => new Promise(() => {}));
-    await service.discover('org', query);
-    const key = [...data.keys()][0];
-    data.set(key, {
-      ...(data.get(key) as object),
-      expiresAt: '2000-01-01T00:00:00Z',
-    });
-    expect((await service.discover('org', query)).reason).toBe(
-      'paid_creative_search_interrupted',
-    );
-    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
-  });
-  it('allows immediate retry after writing pending fails', async () => {
-    const { service, cache, adapter, data, claims } = setup();
-    cache.setOwnedClaimValue.mockImplementationOnce(
-      async (_claim, _token, key, value) => {
-        data.set(key, value);
-        return false;
-      },
-    );
-    expect((await service.discover('org', query)).reason).toBe(
-      'paid_creative_cache_unavailable',
-    );
-    expect(adapter.fetchCreatives).not.toHaveBeenCalled();
-    expect(data.size).toBe(0);
-    expect(claims.size).toBe(0);
-    expect((await service.discover('org', query)).status).toBe('pending');
-    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
-  });
-
-  it('retries after the 60 second failure result expires without waiting 300 seconds', async () => {
-    const { service, adapter, cache, claims, advance } = setup();
-    adapter.fetchCreatives.mockRejectedValueOnce(new Error('provider failed'));
-    await service.discover('org', query);
-    await vi.waitFor(() => expect(claims.size).toBe(0));
-    expect((await service.discover('org', query)).reason).toBe(
-      'paid_creative_source_unavailable',
-    );
-    advance(61_000);
-    expect((await service.discover('org', query)).status).toBe('pending');
-    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(2);
-    expect(cache.acquireOwnedClaim).toHaveBeenCalledTimes(2);
-  });
-
-  it('rechecks a result completed between the initial miss and claim acquisition', async () => {
-    const { service, adapter, cache, claims, data } = setup();
-    const completed = { id: 'completed', status: 'empty', advertisers: [] };
-    cache.get.mockImplementationOnce(async (key) => {
-      data.set(key, completed);
-      return null;
-    });
-    expect(await service.discover('org', query)).toBe(completed);
-    expect(adapter.fetchCreatives).not.toHaveBeenCalled();
-    expect(claims.size).toBe(0);
-    expect([...data.values()]).toEqual([completed]);
-  });
-
-  it.each([false, true])(
-    'keeps pending after terminal persistence failure (actor fails: %s) so polling does not spend again',
-    async (actorFails) => {
-      const { service, adapter, cache, claims } = setup();
-      if (actorFails)
-        adapter.fetchCreatives.mockRejectedValueOnce(
-          new Error('source failed'),
-        );
-      const write = cache.setOwnedClaimValue.getMockImplementation();
-      if (!write) throw new Error('Missing fixture writer');
-      cache.setOwnedClaimValue.mockImplementation(async (...args) =>
-        args[4] === (actorFails ? 60 : 86400) ? false : write(...args),
-      );
-      await service.discover('org', query);
-      await vi.waitFor(() => expect(claims.size).toBe(0));
-      expect((await service.discover('org', query)).status).toBe('pending');
-      expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
-    },
-  );
-
-  it.each([
-    { oldFails: false, newFinished: false },
-    { oldFails: true, newFinished: false },
-    { oldFails: false, newFinished: true },
-    { oldFails: true, newFinished: true },
-  ])(
-    'protects successor state when expired work completes: %o',
-    async ({ oldFails, newFinished }) => {
-      const { service, adapter, cache, claims, advance, data } = setup();
-      let finishOld = () => {};
-      let finishNew = () => {};
-      const creative = normalizeMetaArchiveRecord({
-        adArchiveID: 'new-ad',
-        pageID: 'new-advertiser',
-        snapshot: {
-          pageName: 'New result',
-          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
-        },
+  it.each([undefined, [], ['France'], ['DE']])(
+    'does not infer omitted-brand country evidence from request %j',
+    async (countries) => {
+      const { service, cache } = setup();
+      cache.get.mockResolvedValue({
+        status: 'ready',
+        platform: 'meta',
+        query: 'coffee',
+        countries: ['FR'],
+        advertisers: [
+          {
+            id: 'a',
+            name: 'A',
+            countries,
+            samples: [
+              {
+                id: 'ad',
+                imageUrls: ['https://example.com/a'],
+                videoUrls: [],
+                mediaUrls: [],
+              },
+            ],
+          },
+        ],
       });
-      if (!creative) throw new Error('Invalid fixture');
-      adapter.fetchCreatives
-        .mockImplementationOnce(
-          () =>
-            new Promise((resolve, reject) => {
-              finishOld = () =>
-                oldFails ? reject(new Error('old failure')) : resolve([]);
-            }),
-        )
-        .mockImplementationOnce(
-          () =>
-            new Promise((resolve) => {
-              finishNew = () => resolve([creative]);
-            }),
-        );
-      await service.discover('org', query);
-      const oldToken = [...claims.values()][0].token;
-      advance(301_000);
-      await service.discover('org', query);
-      const successor = [...claims.values()][0];
-      expect(successor.token).not.toBe(oldToken);
-      if (newFinished) {
-        finishNew();
-        await vi.waitFor(() => expect(claims.size).toBe(0));
-      }
-      const expected = [...data.values()][0];
-      const releases = cache.releaseOwnedClaim.mock.calls.length;
-      finishOld();
-      await vi.waitFor(() =>
-        expect(cache.releaseOwnedClaim.mock.calls.length).toBe(releases + 1),
-      );
-      expect([...data.values()][0]).toEqual(expected);
-      if (!newFinished) {
-        expect([...claims.values()][0]).toEqual(successor);
-        finishNew();
-        await vi.waitFor(() => expect(claims.size).toBe(0));
-      }
-      expect(adapter.fetchCreatives).toHaveBeenCalledTimes(2);
+      expect(
+        (
+          await service.discover('org', {
+            ...query,
+            brandId: undefined,
+            countries: 'FR',
+          })
+        ).status,
+      ).toBe('empty');
     },
   );
+  it.each(['2999-01-01', '2025-12-01', 'invalid'])(
+    'omits unobserved duration for invalid or scheduled end %s',
+    async (end) => {
+      const { service, sources } = setup();
+      sources.findSavedDiscoverySources.mockResolvedValue([
+        { ...row, researchObservedAt: undefined, presentationEndDate: end },
+      ]);
+      expect(
+        (await service.discover('org', query)).advertisers[0].longevityDays,
+      ).toBeUndefined();
+    },
+  );
+  it('bounds completed unobserved duration by actual end', async () => {
+    const { service, sources } = setup();
+    sources.findSavedDiscoverySources.mockResolvedValue([
+      {
+        ...row,
+        researchObservedAt: undefined,
+        presentationEndDate: '2026-01-06',
+      },
+    ]);
+    expect(
+      (await service.discover('org', query)).advertisers[0].longevityDays,
+    ).toBe(5);
+  });
 });

@@ -7,6 +7,11 @@ import {
   buildAdPerformanceBenchmarkFields,
 } from '@api/collections/ad-performance/utils/ad-performance-benchmark.util';
 import {
+  projectSavedDiscoveryCreative,
+  savedDiscoveryMediaType,
+  savedHostname,
+} from '@api/collections/ad-performance/utils/ad-performance-discovery.util';
+import {
   type AdPerformanceIdentityFields,
   buildAdPerformanceIdentityKeyFromData,
   readAdPerformanceDate,
@@ -14,7 +19,12 @@ import {
 } from '@api/collections/ad-performance/utils/ad-performance-identity.util';
 import { SERVER_TOKENS, type ServerPrisma } from '@api/server.dependencies';
 import { scopedWhere } from '@api/tenancy/scoped-where';
-import { PAID_CREATIVE_RESEARCH_SOURCES } from '@genfeedai/integrations/ads';
+import type { AdsDiscoveryQuery } from '@genfeedai/contracts/interfaces/integrations/ads-discovery.interface';
+import {
+  PAID_CREATIVE_RESEARCH_SOURCES,
+  resolvePaidCreativeAdPlatform,
+  resolvePaidCreativeProvider,
+} from '@genfeedai/integrations/ads';
 import { type Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { Inject, Injectable } from '@nestjs/common';
 
@@ -70,6 +80,17 @@ type TopPerformerParams = {
   scope?: string;
   metric?: string;
   limit?: number;
+};
+
+type SavedDiscoveryQuery = {
+  organizationId: string;
+  brandId: string;
+  platform: AdsDiscoveryQuery['platform'];
+  keyword: string;
+  normalizedCountries: string[];
+  mediaType: NonNullable<AdsDiscoveryQuery['mediaType']>;
+  limit: number;
+  cachedSourceIds?: string[];
 };
 
 @Injectable()
@@ -520,6 +541,112 @@ export class AdPerformanceService {
         return bMetric - aMetric;
       })
       .slice(0, limit);
+  }
+
+  async findSavedDiscoverySources(
+    params: SavedDiscoveryQuery,
+  ): Promise<AdPerformanceDocument[]> {
+    if (!params.organizationId || !params.brandId) return [];
+    const provider = resolvePaidCreativeProvider(params.platform);
+    const escapeLike = (value: string) => value.replace(/[\\%_]/g, '\\$&');
+    const keyword = escapeLike(params.keyword);
+    const isGoogle =
+      params.platform === 'google' || params.platform === 'youtube';
+    const isAdvertiserId = /^AR\d+$/i.test(params.keyword);
+    const jsonContains = (field: string): Prisma.AdPerformanceWhereInput => ({
+      data: { path: [field], string_contains: keyword, mode: 'insensitive' },
+    });
+    const keywordWhere: Prisma.AdPerformanceWhereInput = isGoogle
+      ? isAdvertiserId
+        ? { externalAccountId: { equals: params.keyword, mode: 'insensitive' } }
+        : { OR: ['landingPageUrl', 'advertiserHandle'].map(jsonContains) }
+      : {
+          OR: [
+            { externalAccountId: { contains: keyword, mode: 'insensitive' } },
+            { headlineText: { contains: keyword, mode: 'insensitive' } },
+            ...[
+              'advertiserName',
+              'advertiserHandle',
+              'bodyText',
+              'creativeContent',
+            ].map(jsonContains),
+          ],
+        };
+    const countryWhere: Prisma.AdPerformanceWhereInput[] = params
+      .normalizedCountries.length
+      ? [
+          {
+            OR: params.normalizedCountries.map((country) => ({
+              data: { path: ['targetingCountries'], array_contains: [country] },
+            })),
+          },
+        ]
+      : [];
+    const hints = [...new Set(params.cachedSourceIds ?? [])]
+      .filter((id) => typeof id === 'string' && id.length > 0)
+      .slice(0, 500);
+    const results: AdPerformanceDocument[] = [];
+    const identities = new Set<string>();
+    const phases = hints.length ? [true, false] : [false];
+    let pages = 0;
+    for (const isHint of phases) {
+      let afterId: string | undefined;
+      for (; pages < 5; pages++) {
+        const rows = await this.prisma.adPerformance.findMany({
+          orderBy: { id: 'asc' },
+          take: 100,
+          where: scopedWhere(params.organizationId, {
+            brandId: params.brandId,
+            scope: 'organization',
+            researchSource: provider,
+            researchSnapshotKey: `discovery:${params.platform}`,
+            adPlatform: resolvePaidCreativeAdPlatform(provider),
+            AND: [
+              ...countryWhere,
+              ...(isHint ? [{ id: { in: hints } }] : [keywordWhere]),
+              ...(afterId ? [{ id: { gt: afterId } }] : []),
+            ],
+          }),
+        });
+        for (const original of rows) {
+          const row = this.normalizeRecord(original);
+          const creative = projectSavedDiscoveryCreative(row);
+          const media = savedDiscoveryMediaType(creative);
+          if (
+            !media ||
+            (params.mediaType !== 'visual' && media !== params.mediaType)
+          )
+            continue;
+          if (
+            !isHint &&
+            isGoogle &&
+            !isAdvertiserId &&
+            ![row.landingPageUrl, row.advertiserHandle].some(
+              (value) => savedHostname(value) === params.keyword.toLowerCase(),
+            )
+          )
+            continue;
+          const advertiser =
+            creative.externalAccountId ||
+            creative.advertiserHandle ||
+            savedHostname(creative.landingPageUrl);
+          if (!advertiser || !creative.externalAdId) continue;
+          const identity = JSON.stringify([advertiser, creative.externalAdId]);
+          if (identities.has(identity)) continue;
+          identities.add(identity);
+          results.push(row);
+          if (results.length >= Math.min(50, Math.max(1, params.limit)))
+            return results;
+        }
+        if (rows.length < 100) {
+          pages++;
+          break;
+        }
+        afterId = rows[rows.length - 1].id;
+      }
+      if (results.length) return results;
+    }
+    return results;
   }
 
   /**
