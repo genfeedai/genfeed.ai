@@ -425,6 +425,7 @@ describe('capped autonomous credit preflight', () => {
         allowedToolNames: new Set(['generate_content']),
         assistantContent: '',
         context: { organizationId: 'org', userId: 'user', creditBudget: 5 },
+        generationPriority: RouterPriority.BALANCED,
         messages: [],
         model: 'model',
         policy: {} as never,

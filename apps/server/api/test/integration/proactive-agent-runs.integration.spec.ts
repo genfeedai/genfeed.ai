@@ -3,6 +3,7 @@ import { WorkflowExecutionsService } from '@api/collections/workflow-executions/
 import { AgentAutopilotWorkflowService } from '@api/collections/workflows/services/agent-autopilot-workflow.service';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
+import { AgentPublishDecision } from '@genfeedai/contracts';
 import { PLATFORM_SCHEDULE_CATALOG } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
 import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
@@ -261,6 +262,12 @@ describe('proactive organization to strategy run and attributed draft integratio
           .mockResolvedValue([{ content: 'Deterministic generated caption' }]),
       } as never,
       summary as never,
+      {
+        resolveForPost: vi.fn().mockResolvedValue({
+          result: { decision: AgentPublishDecision.DENIED },
+        }),
+      } as never,
+      { approveItems: vi.fn() } as never,
     );
     await processing.processBatch('batch', 'org');
     expect(batch).toMatchObject({ agentStrategyId: 'strategy' });

@@ -194,6 +194,7 @@ export interface ServerBrandMemorySync {
 
 export interface ServerPostAnalyticsRecord {
   brandId: string | null;
+  clicks: number | null;
   date: Date | string | number;
   id: string;
   engagementRate: number | null;
@@ -248,6 +249,11 @@ export interface ServerPrisma {
     findFirst(
       args: unknown,
     ): Promise<{ createdAt: Date; data: unknown } | null>;
+    upsert(args: {
+      where: Prisma.ContentPerformanceWhereUniqueInput;
+      create: Prisma.ContentPerformanceUncheckedCreateInput;
+      update: Prisma.ContentPerformanceUncheckedUpdateInput;
+    }): Promise<unknown>;
   };
   lifecycleEmailDelivery: {
     findFirst(args: unknown): Promise<{

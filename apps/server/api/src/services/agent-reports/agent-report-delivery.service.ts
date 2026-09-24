@@ -10,6 +10,7 @@ import {
 import { CacheService } from '@api/services/cache/cache.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { scopedWhere } from '@api/tenancy/scoped-where';
+import { BatchItemStatus } from '@genfeedai/contracts';
 import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/prisma';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
@@ -108,7 +109,7 @@ export class AgentReportDeliveryService {
         where: scopedWhere(input.organizationId, {
           brandId: strategy.brandId,
           reviewDecision: null,
-          status: 'COMPLETED',
+          status: BatchItemStatus.COMPLETED,
           data: { path: ['postId'], equals: post.id },
         }),
         orderBy: { createdAt: 'desc' },

@@ -9,6 +9,7 @@ export interface AgentPublishCredential {
 export interface AgentPublishContext {
   autonomyMode?: string;
   confirmationOrigin?: 'thread-ui-action';
+  isProactive?: boolean;
   organizationId: string;
   runId?: string;
   strategyId?: string;

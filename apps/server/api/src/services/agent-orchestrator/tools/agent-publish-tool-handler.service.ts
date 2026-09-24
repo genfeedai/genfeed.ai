@@ -271,8 +271,9 @@ export class AgentPublishToolHandler {
       return mediaGate.blockedResult;
     }
 
+    const ingredientBrandId = readOptionalString(ingredient.brandId);
     const publishPolicy = await this.resolvePublishPolicy({
-      brandId: ingredient.brandId ?? undefined,
+      brandId: ingredientBrandId,
       targets: resolvedTargets.targets,
       channelAllowsAutoPublish: resolvedTargets.targets.every((target) =>
         this.isCredentialConnected(credentialsById.get(target.credentialId)),
@@ -331,7 +332,7 @@ export class AgentPublishToolHandler {
       ctx.userId,
       {
         baseContent,
-        brandId: ingredient.brandId ?? undefined,
+        brandId: ingredientBrandId,
         idempotencyKey,
         media: [
           {
@@ -364,8 +365,7 @@ export class AgentPublishToolHandler {
       },
     );
     await this.writePublishAudit({
-      brandId:
-        typeof ingredient.brandId === 'string' ? ingredient.brandId : null,
+      brandId: ingredientBrandId ?? null,
       channels: createdPlatforms,
       ctx,
       policy: publishPolicy,
@@ -383,14 +383,14 @@ export class AgentPublishToolHandler {
       String(target.id),
     );
     if (requiresApproval && ctx.isProactive) {
-      if (!this.batchGenerationService || !ingredient.brandId) {
+      if (!this.batchGenerationService || !ingredientBrandId) {
         throw new Error(
           'Agent review queue is unavailable. Drafts were retained.',
         );
       }
       await this.batchGenerationService.createManualReviewBatch(
         {
-          brandId: ingredient.brandId,
+          brandId: ingredientBrandId,
           agentStrategyId: ctx.strategyId,
           items: (canonicalRelease.targets ?? []).map((target) => ({
             format: 'post',
