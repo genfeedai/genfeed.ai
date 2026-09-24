@@ -370,6 +370,7 @@ export function createAgentStreamController(
         },
         getPendingInputRequest: () =>
           presentationStore.getState().pendingInputRequest,
+        getWorkEvents: () => presentationStore.getState().workEvents,
         cleanupSubscriptions: releaseCompletedSubscriptions,
         clearCompletionWatchdog,
         clearPendingInputRequest,
@@ -514,6 +515,7 @@ export function createAgentStreamController(
       } catch (error: unknown) {
         if (
           !isCurrentAgentStreamEntry(entry) ||
+          entry.ownerGeneration !== sendGeneration ||
           signal.aborted ||
           !isAmbiguousAcknowledgementError(error)
         ) {
@@ -797,6 +799,7 @@ export function createAgentStreamController(
       return;
     }
     const generation = entry.ownerGeneration;
+    const revision = entry.revision;
     void Promise.all([
       apiService.getThreadSnapshot(pending.threadId),
       apiService.getMessages(pending.threadId, { limit: 100 }),
@@ -808,13 +811,19 @@ export function createAgentStreamController(
           entry.pendingCompletionRef.current !== pending
         )
           return;
-        entry.needsReconciliation = false;
+        if (entry.revision !== revision) {
+          scheduleCompletionWatchdog();
+          return;
+        }
         const status = mapSnapshotRunStatus(snapshot.activeRun?.status);
         if (
           snapshot.activeRun?.runId &&
           snapshot.activeRun.runId !== pending.runId
-        )
+        ) {
+          scheduleCompletionWatchdog();
           return;
+        }
+        entry.needsReconciliation = false;
         presentationStore.setState({
           messages,
           pendingInputRequest: mapSnapshotPendingInputRequest(snapshot),

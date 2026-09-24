@@ -39,6 +39,7 @@ export type StreamSubscriptionDeps = {
   bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
   bufferEvent?: (event: BufferedThreadEvent) => void;
   getPendingInputRequest?: () => AgentInputRequest | null;
+  getWorkEvents?: () => AgentWorkEvent[];
   isActuallyVisible?: (threadId: string) => boolean;
   cleanupSubscriptions: () => void;
   clearCompletionWatchdog: () => void;
@@ -137,6 +138,7 @@ export function attachAgentStreamSubscriptions(
     };
 
   const unsubscribers: Array<() => void> = [];
+  const completedRuns = new Set<string | null>();
 
   unsubscribers.push(
     deps.subscribe<AgentStreamStartPayload>(
@@ -248,13 +250,11 @@ export function attachAgentStreamSubscriptions(
       'agent:done',
       filterByThread((data) => {
         const payload = data as AgentStreamDonePayload;
-        if (deps.getPendingInputRequest?.()) {
-          deps.pendingCompletionRef.current = null;
-          deps.clearCompletionWatchdog();
-          deps.resetStreamState();
-          deps.setActiveRunStatus('awaiting_input');
-          return;
-        }
+        const completedRun = payload.runId ?? deps.activeStreamRunIdRef.current;
+        if (completedRuns.has(completedRun)) return;
+        completedRuns.add(completedRun);
+        const pendingInput = deps.getPendingInputRequest?.();
+        const retainedWork = pendingInput ? (deps.getWorkEvents?.() ?? []) : [];
 
         deps.pendingCompletionRef.current = null;
         deps.clearCompletionWatchdog();
@@ -285,8 +285,9 @@ export function attachAgentStreamSubscriptions(
           ...(lastGeneratedAsset
             ? { lastGeneratedAssetUrl: lastGeneratedAsset.url }
             : {}),
-          pendingInputCount: 0,
-          runStatus: 'completed',
+          pendingInputCount: pendingInput ? 1 : 0,
+          runStatus: pendingInput ? 'waiting_input' : 'completed',
+          ...(pendingInput ? { attentionState: 'needs-input' as const } : {}),
           // A first-run generated title lands with the same event that ends
           // the stream — no refetch needed for the sidebar to rename.
           ...(payload.threadTitle?.trim()
@@ -298,12 +299,15 @@ export function attachAgentStreamSubscriptions(
           deps.finalizeStream(assistantMessage);
           deps.setActiveRun(payload.runId ?? null, {
             startedAt: payload.startedAt ?? null,
-            status: 'completed',
+            status: pendingInput ? 'awaiting_input' : 'completed',
           });
           deps.setCreditsRemaining(payload.creditsRemaining);
-          deps.clearPendingInputRequest();
+          if (pendingInput) {
+            deps.setPendingInputRequest(pendingInput);
+            for (const event of retainedWork) deps.addWorkEvent(event);
+          } else deps.clearPendingInputRequest();
         }
-        deps.cleanupSubscriptions();
+        if (!pendingInput) deps.cleanupSubscriptions();
 
         Promise.resolve(
           deps.completeOnboardingIfNeeded(payload.toolCalls),

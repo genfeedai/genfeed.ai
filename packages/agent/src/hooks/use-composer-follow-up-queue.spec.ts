@@ -324,3 +324,113 @@ describe('useComposerFollowUpQueue', () => {
     expect(onDispatch).not.toHaveBeenCalled();
   });
 });
+
+describe('follow-up acknowledgement ownership', () => {
+  it.each([true, false])(
+    'settles A on accepted=%s after switching to B',
+    async (accepted) => {
+      let finish!: (accepted: boolean) => void;
+      const onDispatch = vi.fn(
+        () =>
+          new Promise<boolean>((resolve) => {
+            finish = resolve;
+          }),
+      );
+      const { result, rerender } = renderHook(
+        ({ threadId }) =>
+          useComposerFollowUpQueue({
+            threadId,
+            isBusy: false,
+            canAutoDispatch: false,
+            onDispatch,
+            onInterrupt: () => true,
+          }),
+        { initialProps: { threadId: 'a' } },
+      );
+      act(() => {
+        result.current.enqueue('A follow-up');
+      });
+      act(() => {
+        result.current.sendNow(result.current.queue[0].id);
+      });
+      rerender({ threadId: 'b' });
+      act(() => {
+        result.current.enqueue('B follow-up');
+      });
+      await act(async () => {
+        finish(accepted);
+      });
+      expect(result.current.queue.map((item) => item.content)).toEqual([
+        'B follow-up',
+      ]);
+      rerender({ threadId: 'a' });
+      expect(result.current.queue).toHaveLength(accepted ? 0 : 1);
+      if (!accepted) expect(result.current.queue[0].status).toBe('failed');
+    },
+  );
+  it('settles a migrated draft item using its immutable item identity', async () => {
+    let finish!: (accepted: boolean) => void;
+    const onDispatch = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ threadId }: { threadId: string | null }) =>
+        useComposerFollowUpQueue({
+          threadId,
+          isBusy: false,
+          canAutoDispatch: false,
+          onDispatch,
+          onInterrupt: () => true,
+        }),
+      { initialProps: { threadId: null as string | null } },
+    );
+    act(() => {
+      result.current.enqueue('Draft follow-up');
+    });
+    act(() => {
+      result.current.sendNow(result.current.queue[0].id);
+    });
+    rerender({ threadId: 'assigned' });
+    await act(async () => {
+      finish(true);
+    });
+    expect(result.current.queue).toHaveLength(0);
+  });
+  it('does not promote A through B after an awaited interruption', async () => {
+    let finish!: (cancelled: boolean) => void;
+    const onDispatch = vi.fn(() => true);
+    const onInterrupt = vi.fn(
+      () =>
+        new Promise<boolean>((resolve) => {
+          finish = resolve;
+        }),
+    );
+    const { result, rerender } = renderHook(
+      ({ threadId, isBusy }) =>
+        useComposerFollowUpQueue({
+          threadId,
+          isBusy,
+          canAutoDispatch: false,
+          onDispatch,
+          onInterrupt,
+        }),
+      { initialProps: { threadId: 'a', isBusy: true } },
+    );
+    act(() => {
+      result.current.enqueue('A urgent');
+    });
+    act(() => {
+      result.current.sendNow(result.current.queue[0].id);
+    });
+    rerender({ threadId: 'b', isBusy: false });
+    await act(async () => {
+      finish(true);
+    });
+    expect(onDispatch).not.toHaveBeenCalled();
+    rerender({ threadId: 'a', isBusy: false });
+    expect(result.current.queue[0].content).toBe('A urgent');
+  });
+});

@@ -280,3 +280,120 @@ describe('thread stream registry', () => {
     expect(vi.getTimerCount()).toBe(0);
   });
 });
+
+it.each([2049, 1])(
+  'reconciles overflow at %s events instead of replaying partial data',
+  async (count) => {
+    const response = deferred<ReturnType<typeof accepted>>();
+    const getThreadSnapshot = vi.fn().mockResolvedValue({
+      activeRun: { runId: 'run-a', status: 'completed' },
+      timeline: [],
+      pendingInputRequests: [],
+      pendingApprovals: [],
+      lastAssistantMessage: {
+        content: 'Persisted answer',
+        createdAt: '2026-09-24T12:00:01Z',
+      },
+    });
+    const getMessages = vi.fn().mockResolvedValue([
+      {
+        id: 'persisted',
+        threadId: 'a',
+        role: 'assistant',
+        content: 'Persisted answer',
+      },
+    ]);
+    const a = entry('a', {
+      chatStream: vi.fn(() => response.promise),
+      getThreadSnapshot,
+      getMessages,
+    });
+    const sending = a.controller.sendMessage('A');
+    for (let i = 0; i < count; i++)
+      emit('agent:token', 'a', {
+        token: count === 1 ? 'x'.repeat(1_048_577) : 'x',
+      });
+    expect(a.owner.bufferedEventsRef.current).toHaveLength(0);
+    expect(a.owner.needsReconciliation).toBe(true);
+    response.resolve(accepted('a'));
+    await sending;
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(getThreadSnapshot).toHaveBeenCalledWith('a');
+    expect(a.owner.presentation.getState().messages.at(-1)?.content).toBe(
+      'Persisted answer',
+    );
+    expect(a.owner.presentation.getState().stream.streamingContent).toBe('');
+    expect(a.owner.completionTimeoutRef.current).toBeNull();
+  },
+);
+it('ignores an overflow snapshot that resolves after a same-thread replacement', async () => {
+  const response = deferred<ReturnType<typeof accepted>>();
+  const snapshot = deferred<never>();
+  const a = entry('a', {
+    chatStream: vi.fn(() => response.promise),
+    getThreadSnapshot: vi.fn(() => snapshot.promise),
+    getMessages: vi.fn().mockResolvedValue([]),
+  });
+  const sending = a.controller.sendMessage('A');
+  emit('agent:token', 'a', { token: 'x'.repeat(1_048_577) });
+  response.resolve(accepted('a'));
+  await sending;
+  const next = entry('a');
+  await next.controller.sendMessage('replacement');
+  snapshot.reject(new Error('late'));
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(findAgentStreamEntry('a')).toBe(next.owner);
+  expect(next.owner.presentation.getState().error).toBeNull();
+  expect(next.owner.completionTimeoutRef.current).not.toBeNull();
+});
+it('keeps watchdog clocks independent and releases an early recovered owner', async () => {
+  const getA = vi.fn().mockResolvedValue([]);
+  const getB = vi.fn().mockResolvedValue([
+    {
+      id: 'answer',
+      threadId: 'b',
+      role: 'assistant',
+      content: 'Recovered',
+      metadata: { runId: 'run-b' },
+    },
+  ]);
+  const a = entry('a', { getMessages: getA });
+  await a.controller.sendMessage('A');
+  show('b');
+  const b = entry('b', { getMessages: getB });
+  await b.controller.sendMessage('B');
+  await vi.advanceTimersByTimeAsync(9_000);
+  emit('agent:token', 'a', { token: 'still going' });
+  await vi.advanceTimersByTimeAsync(1_000);
+  expect(getA).not.toHaveBeenCalled();
+  expect(getB).toHaveBeenCalledTimes(1);
+  expect(b.owner.completionTimeoutRef.current).toBeNull();
+  expect(a.owner.completionTimeoutRef.current).not.toBeNull();
+  expect(useAgentChatStore.getState().messages.at(-1)?.content).toBe(
+    'Recovered',
+  );
+});
+it('preserves visible UI mutations when another token arrives', async () => {
+  const a = entry('a');
+  await a.controller.sendMessage('A');
+  useAgentChatStore.getState().setActiveRunStatus('cancelling');
+  useAgentChatStore.getState().prependOlderMessages({
+    messages: [{ id: 'old', threadId: 'a', role: 'user', content: 'Older' }],
+    hasMore: false,
+    nextCursor: null,
+  });
+  emit('agent:token', 'a', { token: 'later' });
+  await vi.advanceTimersByTimeAsync(100);
+  expect(useAgentChatStore.getState().activeRunStatus).toBe('cancelling');
+  expect(useAgentChatStore.getState().messages[0].content).toBe('Older');
+});
+it('discards a scheduled global token batch on a synchronous thread switch', async () => {
+  useAgentChatStore.getState().setActiveRun('run-a');
+  useAgentChatStore.getState().appendStreamToken('foreign');
+  useAgentChatStore.getState().setActiveThread('b');
+  useAgentChatStore.getState().setActiveRun('run-b');
+  await vi.advanceTimersByTimeAsync(100);
+  expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
+});

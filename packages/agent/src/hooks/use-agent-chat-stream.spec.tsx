@@ -4,7 +4,6 @@ import { useAgentThreadList } from '@genfeedai/agent/components/useAgentThreadLi
 import {
   createAgentStreamEntry,
   findAgentStreamEntry,
-  getAgentStreamRuntime,
   resetAgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
@@ -446,8 +445,6 @@ describe('useAgentChatStream', () => {
   });
 
   it('adopts a live stream when no thread owns it yet', () => {
-    const streamRuntime = getAgentStreamRuntime();
-
     useAgentChatStore.setState({
       activeRunId: 'run-orphan',
       activeThreadId: 'thread-orphan',
@@ -480,8 +477,6 @@ describe('useAgentChatStream', () => {
   });
 
   it('adopts a restored run once the store marks the stream live', async () => {
-    const streamRuntime = getAgentStreamRuntime();
-
     useAgentChatStore.setState({
       activeRunId: 'run-restored',
       activeRunStatus: 'running',
@@ -494,9 +489,7 @@ describe('useAgentChatStream', () => {
       }),
     );
 
-    expect(
-      findAgentStreamEntry('thread-1')?.unsubscribersRef.current,
-    ).toHaveLength(0);
+    expect(findAgentStreamEntry('thread-1')).toBeUndefined();
 
     act(() => {
       useAgentChatStore.getState().markStreamLive();
@@ -648,7 +641,6 @@ describe('useAgentChatStream', () => {
   });
 
   it('stops holding events when a send is aborted before acknowledgement', async () => {
-    const streamRuntime = getAgentStreamRuntime();
     const controller = new AbortController();
     useAgentChatStore.setState({ activeThreadId: 'thread-1' });
     const apiService = createApiService({
@@ -666,16 +658,16 @@ describe('useAgentChatStream', () => {
       });
     });
 
-    expect(findAgentStreamEntry(null)?.isAwaitingRunIdRef.current).toBe(false);
-    expect(findAgentStreamEntry(null)?.unsubscribersRef.current).toHaveLength(
-      0,
+    expect(findAgentStreamEntry('thread-1')?.isAwaitingRunIdRef.current).toBe(
+      false,
     );
+    expect(
+      findAgentStreamEntry('thread-1')?.unsubscribersRef.current,
+    ).toHaveLength(0);
     expect(useAgentChatStore.getState().stream.isStreaming).toBe(false);
   });
 
   it('adopts a restored run on a thread the finished stream no longer listens to', () => {
-    const streamRuntime = getAgentStreamRuntime();
-
     useAgentChatStore.setState({
       activeRunId: 'run-b',
       activeRunStatus: 'running',
@@ -704,7 +696,6 @@ describe('useAgentChatStream', () => {
   });
 
   it('hands the stream over to the execution that continues an answered input', async () => {
-    const streamRuntime = getAgentStreamRuntime();
     useAgentChatStore.setState({
       activeRunId: 'run-ask',
       activeRunStatus: 'awaiting_input',
@@ -760,7 +751,6 @@ describe('useAgentChatStream', () => {
   });
 
   it('keeps a hidden input continuation owned until completion and then adopts the visible restore', () => {
-    const runtime = getAgentStreamRuntime();
     useAgentChatStore.setState({
       activeThreadId: 'thread-a',
       activeRunId: 'run-ask',
@@ -839,7 +829,6 @@ describe('useAgentChatStream', () => {
   it.each(['agent:done', 'agent:input_resolved'])(
     'replays %s after a failed handoff without restoring the resolved request',
     (event) => {
-      const runtime = getAgentStreamRuntime();
       const request = {
         threadId: 'thread-a',
         runId: 'run-ask',
@@ -903,7 +892,6 @@ describe('useAgentChatStream', () => {
     'preserves the visible transcript and buffered completion when a hidden run settles by %s',
     async (settlement) => {
       vi.useFakeTimers();
-      const runtime = getAgentStreamRuntime();
       const visibleMessage = {
         id: 'user-b',
         threadId: 'thread-b',
@@ -1000,7 +988,6 @@ describe('useAgentChatStream', () => {
     async (continuationEvent) => {
       const continued = continuationEvent === 'agent:input_resolved';
       vi.useFakeTimers();
-      const runtime = getAgentStreamRuntime();
       const request = {
         threadId: 'thread-a',
         runId: 'run-ask',
@@ -1086,7 +1073,6 @@ describe('useAgentChatStream', () => {
   );
 
   it('adopts the already-restored visible run immediately after a hidden handoff is rejected', () => {
-    const runtime = getAgentStreamRuntime();
     useAgentChatStore.setState({
       activeThreadId: 'thread-a',
       activeRunId: 'run-ask',
@@ -1141,7 +1127,6 @@ describe('useAgentChatStream', () => {
   it.each(['run-old', 'run-ask'])(
     'never mistakes uncorrelated %s events for the rejected answer continuation',
     (runId) => {
-      const runtime = getAgentStreamRuntime();
       const request = {
         threadId: 'thread-a',
         runId: 'run-ask',
@@ -1190,7 +1175,6 @@ describe('useAgentChatStream', () => {
   );
 
   it('ignores a handoff acknowledgement after another thread took the stream', async () => {
-    const streamRuntime = getAgentStreamRuntime();
     useAgentChatStore.setState({
       activeRunId: 'run-ask',
       activeRunStatus: 'awaiting_input',
@@ -1252,7 +1236,6 @@ describe('useAgentChatStream', () => {
   it.each(['thread-a', 'thread-b'])(
     'preserves a newer send on %s when an older send is rejected',
     async (nextThreadId) => {
-      const streamRuntime = getAgentStreamRuntime();
       let rejectFirst: (error: Error) => void = () => undefined;
       useAgentChatStore.setState({ activeThreadId: 'thread-a' });
       const apiService = createApiService({
@@ -1322,7 +1305,6 @@ describe('useAgentChatStream', () => {
   );
 
   it('keeps forceNewThread ownership while its acknowledgement is pending', async () => {
-    const runtime = getAgentStreamRuntime();
     useAgentChatStore.setState({ activeThreadId: 'thread-old' });
     let release: () => void = () => undefined;
     const gate = new Promise<void>((resolve) => {

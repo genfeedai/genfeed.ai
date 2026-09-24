@@ -1,3 +1,4 @@
+import { isForeignRunEvent } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import type {
   AgentStreamEntry,
   AgentStreamRuntime,
@@ -245,7 +246,15 @@ function deliver(event: string, payload: unknown) {
       continue;
     const handler = entry.handlers.get(event);
     if (!handler) continue;
-    if (event !== 'agent:turn_accepted') {
+    if (
+      event !== 'agent:turn_accepted' &&
+      !isForeignRunEvent(
+        data.runId,
+        entry.activeStreamRunIdRef.current ??
+          entry.presentation.getState().stream.acceptedReceipt?.runId ??
+          null,
+      )
+    ) {
       if (
         !entry.activeStreamRunIdRef.current ||
         !data.runId ||
