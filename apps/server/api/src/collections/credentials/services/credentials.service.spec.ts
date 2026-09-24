@@ -39,6 +39,9 @@ describe('CredentialsService', () => {
   let logger: Record<string, ReturnType<typeof vi.fn>>;
   let filesClient: { uploadToS3: ReturnType<typeof vi.fn> };
   let eventEmitter: { emit: ReturnType<typeof vi.fn> };
+  let accessBootstrapCache: {
+    invalidateForOrganization: ReturnType<typeof vi.fn>;
+  };
 
   const orgId = 'test-org-id';
   const brandId = 'test-brand-id';
@@ -92,13 +95,20 @@ describe('CredentialsService', () => {
     };
 
     eventEmitter = { emit: vi.fn() };
+    accessBootstrapCache = {
+      invalidateForOrganization: vi.fn().mockResolvedValue(undefined),
+    };
     service = new CredentialsService(
       prisma as never,
       logger as never,
       crypto,
       filesClient as never,
-      new ProviderAccountPurgeService(prisma as never),
+      new ProviderAccountPurgeService(
+        prisma as never,
+        accessBootstrapCache as never,
+      ),
       eventEmitter as unknown as EventEmitter2,
+      accessBootstrapCache as never,
     );
   });
 
@@ -182,22 +192,35 @@ describe('CredentialsService', () => {
   describe('provider callback purge', () => {
     it('irreversibly clears provider identity and tokens across matching rows', async () => {
       prisma.credential.findMany.mockResolvedValue([
-        { id: 'credential-1' },
-        { id: 'credential-2' },
+        { id: 'credential-1', organizationId: 'org-a' },
+        { id: 'credential-2', organizationId: 'org-b' },
+        { id: 'credential-3', organizationId: 'org-a' },
+        { id: 'credential-4', organizationId: null },
       ]);
-      prisma.credential.updateMany.mockResolvedValue({ count: 2 });
+      prisma.credential.updateMany.mockResolvedValue({ count: 4 });
 
       const count = await service.purgeProviderAccount(
         CredentialPlatform.THREADS,
         '  provider-user-1  ',
       );
 
-      expect(count).toBe(2);
+      expect(count).toBe(4);
+      // Each affected tenant's cached bootstrap drops the purged accounts once.
+      expect(accessBootstrapCache.invalidateForOrganization.mock.calls).toEqual(
+        [['org-a'], ['org-b']],
+      );
       expect(prisma.postAnalytics.deleteMany).toHaveBeenCalledWith({
         where: {
           platform: 'THREADS',
           post: {
-            credentialId: { in: ['credential-1', 'credential-2'] },
+            credentialId: {
+              in: [
+                'credential-1',
+                'credential-2',
+                'credential-3',
+                'credential-4',
+              ],
+            },
           },
         },
       });
@@ -209,7 +232,14 @@ describe('CredentialsService', () => {
           url: null,
         }),
         where: {
-          credentialId: { in: ['credential-1', 'credential-2'] },
+          credentialId: {
+            in: [
+              'credential-1',
+              'credential-2',
+              'credential-3',
+              'credential-4',
+            ],
+          },
           platform: CredentialPlatform.THREADS,
         },
       });
@@ -229,7 +259,14 @@ describe('CredentialsService', () => {
           warmupSignals: {},
         }),
         where: {
-          id: { in: ['credential-1', 'credential-2'] },
+          id: {
+            in: [
+              'credential-1',
+              'credential-2',
+              'credential-3',
+              'credential-4',
+            ],
+          },
           platform: 'THREADS',
         },
       });
@@ -241,6 +278,111 @@ describe('CredentialsService', () => {
       ).rejects.toThrow('external id');
 
       expect(prisma.credential.updateMany).not.toHaveBeenCalled();
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+  });
+
+  describe('access bootstrap invalidation', () => {
+    beforeEach(() => {
+      prisma.credential.update.mockImplementation(
+        (args: { data: Record<string, unknown>; where?: { id?: string } }) =>
+          Promise.resolve({
+            id: args.where?.id ?? 'existing-id',
+            organizationId: orgId,
+            ...args.data,
+          }),
+      );
+    });
+
+    it('invalidates the organization bootstrap when a credential is created', async () => {
+      await service.create({
+        brandId,
+        isConnected: true,
+        organizationId: orgId,
+        platform: CredentialPlatform.TWITTER,
+        userId: 'u1',
+      } as never);
+
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).toHaveBeenCalledWith(orgId);
+    });
+
+    it('invalidates the organization bootstrap on disconnect', async () => {
+      await service.patch('existing-id', { isConnected: false });
+
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).toHaveBeenCalledWith(orgId);
+    });
+
+    it('invalidates the organization bootstrap on soft delete', async () => {
+      await service.remove('existing-id');
+
+      expect(prisma.credential.update).toHaveBeenCalledWith(
+        expect.objectContaining({ data: { isDeleted: true } }),
+      );
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).toHaveBeenCalledWith(orgId);
+    });
+
+    it('keeps the bootstrap cached for writes it does not embed', async () => {
+      await service.patch('existing-id', {
+        oauthState: 'state-1',
+        refreshToken: 'refresh-token',
+      });
+
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the filtered organization after a bulk disconnect', async () => {
+      await service.patchAll(
+        { brandId, organizationId: orgId },
+        { isConnected: false },
+      );
+
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).toHaveBeenCalledWith(orgId);
+    });
+
+    it('skips invalidation when a bulk write matched no rows', async () => {
+      prisma.credential.updateMany.mockResolvedValue({ count: 0 });
+
+      await service.patchAll(
+        { brandId, organizationId: orgId },
+        { isConnected: false },
+      );
+
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).not.toHaveBeenCalled();
+    });
+
+    it('invalidates the organization bootstrap once a connection settles', async () => {
+      prisma.credential.findFirst.mockResolvedValue({
+        brandId,
+        externalId: null,
+        id: 'existing-id',
+        organizationId: orgId,
+        platform: 'TWITTER',
+      });
+
+      await service.connectAccount(
+        'existing-id',
+        orgId,
+        { handle: 'acme', id: 'provider-1', name: 'Acme' },
+        { accessToken: 'token' },
+      );
+
+      expect(
+        accessBootstrapCache.invalidateForOrganization,
+      ).toHaveBeenCalledWith(orgId);
     });
   });
 

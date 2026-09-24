@@ -17,6 +17,7 @@ import {
 import { getStudioGenerateTypeConfig } from '@pages/studio/generate/utils/studio-generate-types';
 import { IngredientsService } from '@services/content/ingredients.service';
 import { logger } from '@services/core/logger.service';
+import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 import Tabs from '@ui/navigation/tabs/Tabs';
 import { Button } from '@ui/primitives/button';
 import { Sparkles, X } from 'lucide-react';
@@ -46,6 +47,8 @@ export default function StudioGenerateInspector({
     [job.id, runJobs],
   );
   const ingredientId = job.ingredientId;
+  const [receiptAsset, setReceiptAsset] = useState<IIngredient | null>(null);
+  const [receiptError, setReceiptError] = useState(false);
   const [posts, setPosts] = useState<IPost[]>([]);
   const [children, setChildren] = useState<IIngredient[]>([]);
   const [isLoadingUsedIn, setIsLoadingUsedIn] = useState(false);
@@ -109,6 +112,28 @@ export default function StudioGenerateInspector({
     };
   }, [getIngredientsService, ingredientId]);
 
+  useEffect(() => {
+    const controller = new AbortController();
+    setReceiptAsset(null);
+    setReceiptError(false);
+    if (!ingredientId) return () => controller.abort();
+    void (async () => {
+      try {
+        const service = await getIngredientsService();
+        if (controller.signal.aborted) return;
+        const asset = await service.findOne(
+          ingredientId,
+          undefined,
+          controller.signal,
+        );
+        if (!controller.signal.aborted) setReceiptAsset(asset);
+      } catch {
+        if (!controller.signal.aborted) setReceiptError(true);
+      }
+    })();
+    return () => controller.abort();
+  }, [getIngredientsService, ingredientId]);
+
   return (
     <aside
       aria-label={translate('inspector.title')}
@@ -152,6 +177,18 @@ export default function StudioGenerateInspector({
           })
         }
       >
+        {activeTab === 'recipe' &&
+        receiptAsset &&
+        receiptAsset.id === ingredientId &&
+        receiptAsset.generationHarness ? (
+          <GenerationHarnessReceipt receipt={receiptAsset.generationHarness} />
+        ) : null}
+        {activeTab === 'recipe' && receiptError ? (
+          <p role="status" className="text-xs text-muted-foreground">
+            {translate('inspector.receiptLoadError')}
+          </p>
+        ) : null}
+
         {activeTab === 'recipe' ? (
           promptText ? (
             <pre className="whitespace-pre-wrap font-sans text-xs leading-relaxed text-foreground/80">

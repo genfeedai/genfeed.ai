@@ -161,6 +161,17 @@ export function toMcpMediaToolResult(
     });
   }
 
+  if (artifact && payload.generationHarness) {
+    content.push({
+      type: 'text',
+      text: JSON.stringify(
+        { generationHarness: payload.generationHarness },
+        null,
+        2,
+      ),
+    });
+  }
+
   return {
     content,
     structuredContent: {

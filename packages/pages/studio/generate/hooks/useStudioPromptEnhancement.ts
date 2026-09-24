@@ -56,6 +56,8 @@ export interface UseStudioPromptEnhancementResult {
   /** Never starts a generation — only replaces the composer's prompt text. */
   enhancePrompt: () => Promise<void>;
   isEnhancing: boolean;
+  /** Current text is the last successful Enhance result in this brand/model scope. */
+  enhancedPromptId?: string;
   /** Set only once an enhancement has actually replaced the prompt. */
   previousPrompt: string | null;
   /** Restores `previousPrompt` into the composer. */
@@ -89,6 +91,14 @@ export function useStudioPromptEnhancement({
 }: UseStudioPromptEnhancementParams): UseStudioPromptEnhancementResult {
   const [isEnhancing, setIsEnhancing] = useState(false);
   const [previousPrompt, setPreviousPrompt] = useState<string | null>(null);
+  const [successfulEnhancement, setSuccessfulEnhancement] = useState<{
+    text: string;
+    promptId: string;
+    brandId: string;
+    modelKey: string;
+  } | null>(null);
+  const scopeRef = useRef({ brandId, modelKey });
+  scopeRef.current = { brandId, modelKey };
   const promptRef = useRef(prompt);
   promptRef.current = prompt;
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -138,10 +148,33 @@ export function useStudioPromptEnhancement({
     setIsEnhancing(false);
   }, [clearPending]);
 
+  useEffect(() => {
+    setSuccessfulEnhancement((previous) =>
+      previous &&
+      previous.text === prompt &&
+      previous.brandId === brandId &&
+      previous.modelKey === modelKey
+        ? previous
+        : null,
+    );
+  }, [brandId, modelKey, prompt]);
+
+  const previousScopeRef = useRef({ brandId, modelKey });
+  useEffect(() => {
+    const previous = previousScopeRef.current;
+    previousScopeRef.current = { brandId, modelKey };
+    if (previous.brandId !== brandId || previous.modelKey !== modelKey) {
+      cancelEnhance();
+      setPreviousPrompt(null);
+      clearUndoTimeout();
+    }
+  }, [brandId, modelKey, cancelEnhance, clearUndoTimeout]);
+
   const undoEnhance = useCallback(() => {
     if (previousPrompt === null) {
       return;
     }
+    setSuccessfulEnhancement(null);
     onPromptChange(previousPrompt);
     setPreviousPrompt(null);
     clearUndoTimeout();
@@ -167,7 +200,10 @@ export function useStudioPromptEnhancement({
 
     const requestId = ++requestIdRef.current;
     const isStale = () =>
-      !isMountedRef.current || requestId !== requestIdRef.current;
+      !isMountedRef.current ||
+      requestId !== requestIdRef.current ||
+      scopeRef.current.brandId !== brandId ||
+      scopeRef.current.modelKey !== modelKey;
 
     clearPending();
     setIsEnhancing(true);
@@ -223,6 +259,12 @@ export function useStudioPromptEnhancement({
             // since the request was sent — never clobber a live edit with a
             // stale enhancement result.
             if (promptRef.current === originalPrompt) {
+              setSuccessfulEnhancement({
+                text: result,
+                promptId: created.id,
+                brandId,
+                modelKey,
+              });
               setPreviousPrompt(originalPrompt);
               onPromptChange(result);
               clearUndoTimeout();
@@ -276,6 +318,13 @@ export function useStudioPromptEnhancement({
     cancelEnhance,
     enhancePrompt,
     isEnhancing,
+    enhancedPromptId:
+      successfulEnhancement !== null &&
+      successfulEnhancement.text === prompt &&
+      successfulEnhancement.brandId === brandId &&
+      successfulEnhancement.modelKey === modelKey
+        ? successfulEnhancement.promptId
+        : undefined,
     previousPrompt,
     undoEnhance,
   };

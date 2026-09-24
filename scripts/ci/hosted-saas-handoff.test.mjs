@@ -34,18 +34,18 @@ const publicDeployVercel = readFileSync(
   'utf8',
 );
 
-const ENTRY_SECRETS = [
+const FRONTEND_SECRETS = [
   'VERCEL_TOKEN',
   'NEXT_PUBLIC_POSTHOG_KEY',
   'SENTRY_AUTH_TOKEN',
   'TURBO_TOKEN',
 ];
 const ENGINE_SECRETS = [
-  'VERCEL_TOKEN',
-  'NEXT_PUBLIC_POSTHOG_KEY',
-  'SENTRY_AUTH_TOKEN',
-  'TURBO_TOKEN',
+  ...FRONTEND_SECRETS,
+  'CONTENT_HARNESS_BUNDLE_URI',
+  'CONTENT_HARNESS_BUNDLE_SHA256',
 ];
+const ENTRY_SECRETS = ENGINE_SECRETS;
 
 // A skipped verify-suite must only be accepted when validate-release proved the
 // release SHA already carries green Full Suite evidence. A failed or
@@ -226,7 +226,7 @@ test('validates public source reachability and does not clone marketplace', () =
 test('maps only declared hosted SaaS secrets across each workflow boundary', () => {
   assert.deepEqual(workflowCallSecrets(publicDeployWorkflow), ENTRY_SECRETS);
   assert.deepEqual(workflowCallSecrets(publicDeployCore), ENGINE_SECRETS);
-  assert.deepEqual(workflowCallSecrets(publicDeployVercel), ENGINE_SECRETS);
+  assert.deepEqual(workflowCallSecrets(publicDeployVercel), FRONTEND_SECRETS);
 
   assert.deepEqual(
     jobSecretMapping(
@@ -244,7 +244,7 @@ test('maps only declared hosted SaaS secrets across each workflow boundary', () 
         './.github/workflows/_deploy-hosted-saas-vercel.yml',
       ),
     ),
-    ENGINE_SECRETS,
+    FRONTEND_SECRETS,
   );
   assert.doesNotMatch(publicDeployWorkflow, /secrets:\s*inherit/);
   assert.doesNotMatch(publicDeployCore, /secrets:\s*inherit/);
@@ -342,7 +342,7 @@ test('hosted SaaS owns the canonical browser app origin', () => {
     'utf8',
   );
   const internalEnv = servicesTf.slice(
-    servicesTf.indexOf('internal_env = ['),
+    servicesTf.indexOf('internal_env ='),
     servicesTf.indexOf('module "service"'),
   );
 
@@ -509,7 +509,7 @@ test('passes deploy values through env instead of interpolating into shell or JS
   assert.match(publicDeployCore, /SOURCE_SHA: \$\{\{ inputs\.source_sha \}\}/);
   assert.match(
     publicDeployCore,
-    /echo "TF_VAR_image_digest=\$digest" >> "\$GITHUB_ENV"/,
+    /run: bun ops\/scripts\/deploy\/hosted-saas\/prepare-server-image\.ts/,
   );
   assert.match(
     publicDeployCore,

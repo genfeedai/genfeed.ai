@@ -1,4 +1,7 @@
-import type { GenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
+import type {
+  GenerationBriefExemptionEvidence,
+  GenerationBriefPersistedEvidence,
+} from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import { generationBriefPersistedEvidenceSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief-compiler.contract';
 import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
 import { videoGenerationBriefPersistedEvidenceSchema } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
@@ -78,4 +81,21 @@ export function toRedactedVideoGenerationBriefProviderData(
   return Object.fromEntries(
     Object.entries(assertRedactedVideoGenerationBriefEvidence(evidence)),
   );
+}
+
+export function rawPromptBriefEvidence(
+  evidence:
+    | GenerationBriefPersistedEvidence
+    | VideoGenerationBriefPersistedEvidence,
+): GenerationBriefExemptionEvidence {
+  return {
+    compilerId: null,
+    compilerVersion: null,
+    modelKey: evidence.modelKey,
+    profileId: null,
+    profileVersion: null,
+    reason: 'raw_prompt_requested',
+    status: 'exempted',
+    surface: evidence.surface,
+  };
 }

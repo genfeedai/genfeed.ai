@@ -72,6 +72,7 @@ import type { RequestWithContext as ExpressRequest } from '@api/common/middlewar
 import { AccessBootstrapCacheService } from '@api/common/services/access-bootstrap-cache.service';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util';
+import type { MediaPromptEnhancementInput } from '@api/services/harness/media-prompt-enhancement.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -260,10 +261,7 @@ const createImageGenerationService = () => {
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
-    new ReplicateImageGenerationProviderAdapter(
-      promptBuilderService as never,
-      replicateService as never,
-    ),
+    new ReplicateImageGenerationProviderAdapter(replicateService as never),
     new SdxlImageGenerationProviderAdapter(),
     new HiggsFieldImageGenerationProviderAdapter(higgsFieldService as never),
   );
@@ -324,6 +322,18 @@ const createImageGenerationService = () => {
     } as never,
     {
       getPromptByKey: vi.fn().mockResolvedValue(null),
+    } as never,
+    {
+      enhance: vi
+        .fn()
+        .mockImplementation(async (input: MediaPromptEnhancementInput) => ({
+          originalPrompt: input.prompt,
+          enhancedPrompt: input.prompt,
+          brandId: input.brandId,
+          status: 'applied',
+          source: 'default',
+          appliedPacks: [],
+        })),
     } as never,
   );
 

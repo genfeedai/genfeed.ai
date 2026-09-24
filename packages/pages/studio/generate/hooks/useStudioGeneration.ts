@@ -67,7 +67,13 @@ export interface UseStudioGenerationReturn {
   submit: (
     promptText: string,
     references?: StudioGenerationReferences,
+    options?: StudioGenerationOptions,
   ) => Promise<void>;
+}
+
+export interface StudioGenerationOptions {
+  harness?: boolean;
+  promptId?: string;
 }
 
 export interface StudioGenerationReferences {
@@ -501,7 +507,11 @@ export function useStudioGeneration({
   ]);
 
   const submit = useCallback(
-    async (promptText: string, references: StudioGenerationReferences = {}) => {
+    async (
+      promptText: string,
+      references: StudioGenerationReferences = {},
+      options?: StudioGenerationOptions,
+    ) => {
       if (submittingRef.current) {
         return;
       }
@@ -590,7 +600,13 @@ export function useStudioGeneration({
           case 'image': {
             const service = await getImagesService();
             const payload = buildImagePayload(
-              buildBaseGenerationPayload(promptData, modelKey, brandId),
+              {
+                ...buildBaseGenerationPayload(promptData, modelKey, brandId),
+                ...(options?.promptId ? { promptId: options.promptId } : {}),
+                ...(options?.harness !== undefined
+                  ? { harness: options.harness }
+                  : {}),
+              },
               promptData,
             );
             const data = (await service.post(payload)) as GenerationResponse;
@@ -606,7 +622,17 @@ export function useStudioGeneration({
               videoReferences: references.videoReferenceIds,
             };
             const payload = buildVideoPayload(
-              buildBaseGenerationPayload(videoPromptData, modelKey, brandId),
+              {
+                ...buildBaseGenerationPayload(
+                  videoPromptData,
+                  modelKey,
+                  brandId,
+                ),
+                ...(options?.promptId ? { promptId: options.promptId } : {}),
+                ...(options?.harness !== undefined
+                  ? { harness: options.harness }
+                  : {}),
+              },
               videoPromptData,
             );
             const data = (await service.post(payload)) as GenerationResponse;

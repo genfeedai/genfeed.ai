@@ -52,9 +52,6 @@ describe('ImageGenerationProviderDispatchService', () => {
   const metadataService = {
     patch: vi.fn(),
   };
-  const promptBuilderService = {
-    buildPrompt: vi.fn(),
-  };
   const replicateService = {
     cancelPrediction: vi.fn().mockResolvedValue(undefined),
     generateTextToImage: vi.fn(),
@@ -80,10 +77,7 @@ describe('ImageGenerationProviderDispatchService', () => {
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
-    new ReplicateImageGenerationProviderAdapter(
-      promptBuilderService as never,
-      replicateService as never,
-    ),
+    new ReplicateImageGenerationProviderAdapter(replicateService as never),
     new SdxlImageGenerationProviderAdapter(),
     new HiggsFieldImageGenerationProviderAdapter(higgsFieldService as never),
   );
@@ -129,6 +123,7 @@ describe('ImageGenerationProviderDispatchService', () => {
       pendingIngredientIds: ['ingredient-1'],
       promptBuilderBrand: { label: 'Brand' },
       promptData: { id: 'prompt-1', original: 'A cinematic sunrise' },
+      providerInput: { prompt: 'provider prompt' },
       brandId: 'brand-1',
       organizationId: 'organization-1',
       userId: 'user-1',
@@ -277,9 +272,6 @@ describe('ImageGenerationProviderDispatchService', () => {
   );
 
   it('records realized provider dimensions instead of requested dimensions', async () => {
-    promptBuilderService.buildPrompt.mockResolvedValue({
-      input: { prompt: 'provider prompt' },
-    });
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
     filesClientService.uploadToS3.mockResolvedValueOnce({
       height: 720,
@@ -417,9 +409,6 @@ describe('ImageGenerationProviderDispatchService', () => {
   });
 
   it('keeps a colliding endpoint on Replicate when its provider is Replicate', async () => {
-    promptBuilderService.buildPrompt.mockResolvedValue({
-      input: { prompt: 'provider prompt' },
-    });
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
     const context = buildContext({
       model: 'google/nano-banana-2-lite',
@@ -507,9 +496,6 @@ describe('ImageGenerationProviderDispatchService', () => {
 
   it('normalizes batch Replicate outputs into indexed placeholders', async () => {
     const model = MODEL_KEYS.REPLICATE_BYTEDANCE_SEEDREAM_5_LITE;
-    promptBuilderService.buildPrompt.mockResolvedValue({
-      input: { prompt: 'provider prompt' },
-    });
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
     replicateService.getPrediction.mockResolvedValue({
       output: [
@@ -533,10 +519,9 @@ describe('ImageGenerationProviderDispatchService', () => {
     const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
-    expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+    expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
       model,
-      expect.objectContaining({ outputs: 3 }),
-      'organization-1',
+      context.providerInput,
     );
     expect(replicateService.generateTextToImage).toHaveBeenCalledTimes(1);
     expect(metadataService.patch.mock.calls).toEqual(
@@ -569,9 +554,6 @@ describe('ImageGenerationProviderDispatchService', () => {
 
   it('persists the Replicate job id before local polling so Stop can cancel it', async () => {
     const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
-    promptBuilderService.buildPrompt.mockResolvedValue({
-      input: { prompt: 'provider prompt' },
-    });
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
     replicateService.getPrediction.mockImplementation(async () => {
       expect(metadataService.patch).toHaveBeenCalledWith(
@@ -614,7 +596,6 @@ describe('ImageGenerationProviderDispatchService', () => {
     const plan = await service.dispatch(context);
     await plan?.generationPromise;
 
-    expect(promptBuilderService.buildPrompt).not.toHaveBeenCalled();
     expect(replicateService.generateTextToImage).toHaveBeenCalledWith(
       MODEL_KEYS.REPLICATE_BLACK_FOREST_LABS_FLUX_SCHNELL,
       compiledDispatch,
@@ -623,9 +604,6 @@ describe('ImageGenerationProviderDispatchService', () => {
 
   it('skips finalize when the ingredient is no longer processing', async () => {
     const model = MODEL_KEYS.REPLICATE_GOOGLE_IMAGEN_4;
-    promptBuilderService.buildPrompt.mockResolvedValue({
-      input: { prompt: 'provider prompt' },
-    });
     replicateService.generateTextToImage.mockResolvedValue('replicate-job');
     imagesService.findOne.mockResolvedValue({
       status: IngredientStatus.FAILED,

@@ -78,14 +78,42 @@ describe('AgentBrandInterviewToolHandler', () => {
     expect(result.error).toContain('brandId');
   });
 
-  it('fails closed when the interview service is unavailable', async () => {
+  it('fails closed when the interview service is not registered', async () => {
     const handler = new AgentBrandInterviewToolHandler(undefined);
     const result = await handler.getBrandCompleteness(
       { brandId: 'brand-1' },
       CTX,
     );
     expect(result.success).toBe(false);
-    expect(result.error).toContain('not available');
+    expect(result.error).toContain('deploy-gated');
+    expect(result.error).toContain('Brand interview');
+  });
+
+  it('uses the registered interview service when constructor injection is empty', async () => {
+    const getCompleteness = vi.fn().mockResolvedValue({
+      incompleteFieldKeys: [],
+      interviewableGapCount: 0,
+      overallScore: 80,
+    });
+    const moduleRef = {
+      get: vi.fn().mockReturnValue({ getCompleteness }),
+    };
+    const handler = new AgentBrandInterviewToolHandler(
+      undefined,
+      moduleRef as never,
+    );
+
+    const result = await handler.getBrandCompleteness(
+      { brandId: 'brand-1' },
+      CTX,
+    );
+
+    expect(result.success).toBe(true);
+    expect(result.data).toEqual(expect.objectContaining({ overallScore: 80 }));
+    expect(getCompleteness).toHaveBeenCalledWith('brand-1', CTX.organizationId);
+    expect(moduleRef.get).toHaveBeenCalledWith(expect.any(Function), {
+      strict: false,
+    });
   });
 
   it('submits an answer and returns progress', async () => {

@@ -8,10 +8,12 @@ import StudioGenerateInspector from './StudioGenerateInspector';
 const mocks = vi.hoisted(() => {
   const findChildren = vi.fn();
   const getPosts = vi.fn();
-  const service = { findChildren, getPosts };
+  const findOne = vi.fn();
+  const service = { findChildren, findOne, getPosts };
 
   return {
     findChildren,
+    findOne,
     getPosts,
     href: vi.fn((path: string) => `/acme/northstar${path}`),
     resolveService: async () => service,
@@ -72,8 +74,36 @@ const recipeJob = {
 describe('StudioGenerateInspector', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.findOne.mockResolvedValue({ id: 'ing-1' });
     mocks.getPosts.mockResolvedValue([]);
     mocks.findChildren.mockResolvedValue([]);
+  });
+
+  it('shows the stored submitted prompt receipt instead of inferring enhancement from the recipe', async () => {
+    mocks.findOne.mockResolvedValue({
+      id: 'ing-1',
+      generationHarness: {
+        originalPrompt: 'A founder',
+        enhancedPrompt: 'A founder beside a window.',
+        status: 'applied',
+        source: 'brand',
+        brandId: 'brand-1',
+        appliedPacks: [],
+      },
+    });
+    render(
+      <StudioGenerateInspector
+        job={recipeJob}
+        onClose={vi.fn()}
+        onSelect={vi.fn()}
+        onVary={vi.fn()}
+        runJobs={[recipeJob]}
+      />,
+    );
+    expect(
+      await screen.findByText('A founder beside a window.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Prompt enhanced')).toBeInTheDocument();
   });
 
   it('shows the enriched recipe instead of the raw composer text', () => {

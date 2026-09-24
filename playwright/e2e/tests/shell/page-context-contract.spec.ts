@@ -15,6 +15,8 @@ type PageContextContract = {
     | 'studio'
     | 'workspace';
   sectionLabel?: string;
+  /** Buttons matched by accessible name — survives icon-only compaction. */
+  pageButtons?: string[];
   pageLabels?: string[];
   sidebarLabels?: string[];
 };
@@ -49,7 +51,10 @@ const CONTRACTS: PageContextContract[] = [
     route: `${BRAND_BASE}/publishing`,
     currentApp: 'publishing',
     sectionLabel: 'Publishing',
-    pageLabels: ['Not posted', 'New post'],
+    pageLabels: ['Not posted'],
+    // With the inspector open the Publishing toolbar collapses New post to
+    // its icon, so assert the button rather than its visible text.
+    pageButtons: ['New post'],
   },
   {
     route: `${BRAND_BASE}/publishing/campaigns`,
@@ -109,6 +114,12 @@ test.describe('Shell page context contract', () => {
       for (const label of contract.sidebarLabels ?? []) {
         await expect(
           sidebar.getByText(label, { exact: true }).first(),
+        ).toBeVisible();
+      }
+
+      for (const name of contract.pageButtons ?? []) {
+        await expect(
+          authenticatedPage.getByRole('button', { exact: true, name }).first(),
         ).toBeVisible();
       }
 

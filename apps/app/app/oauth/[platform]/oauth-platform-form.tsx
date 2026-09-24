@@ -1,5 +1,6 @@
 'use client';
 
+import { clearClientProtectedBootstrapCache } from '@contexts/providers/protected-bootstrap/client-protected-bootstrap';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { useAuthIdentity } from '@hooks/auth/use-auth-identity/use-auth-identity';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -76,6 +77,11 @@ function OAuthPlatformFormContent({ platform }: OAuthPlatformFormProps) {
   const completeSuccess = useCallback(() => {
     setResult({ status: 'success' });
     clearStoredReturnTo();
+    // Every connect entry point (integrations page, agent setup panel, chat
+    // connect cards) lands here. Brand context embeds credentials in the
+    // protected bootstrap, so the page we return to must not reuse a client
+    // snapshot taken before this account existed.
+    clearClientProtectedBootstrapCache();
 
     setTimeout(() => {
       push(resolveReturnTo());

@@ -963,6 +963,7 @@ model Brand {
   isHighlighted            Boolean      @default(false)
   isFleetEnabled           Boolean      @default(false)
   defaultVideoModel        String?
+  isPromptEnhancementEnabled Boolean?
   defaultImageModel        String?
   defaultImageToVideoModel String?
   defaultMusicModel        String?
@@ -1604,6 +1605,7 @@ model OrganizationSetting {
   defaultModel                   String?
   defaultModelReview             String?
   defaultModelUpdate             String?
+  isPromptEnhancementEnabled      Boolean?
   defaultImageModel              String?
   defaultVideoModel              String?
   defaultImageToVideoModel       String?
@@ -2021,6 +2023,7 @@ model Ingredient {
   campaignWeek          Int?
   modelUsed             String?
   loraUsed              String?
+  generationHarness     Json?
   generationPrompt      String?
   negativePrompt        String?
   generationSeed        Int?

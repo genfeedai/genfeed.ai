@@ -8,6 +8,7 @@ import { AgentContextAssemblyService } from '@api/services/agent-context-assembl
 import { ByokService } from '@api/services/byok/byok.service';
 import { getDefaultModel } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
+import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { ByokProvider } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -27,6 +28,7 @@ export class AiActionsService {
     private readonly openRouterService: OpenRouterService,
     private readonly byokService: ByokService,
     private readonly loggerService: LoggerService,
+    private readonly promptEnhancementService: PromptEnhancementService,
   ) {}
 
   private async getByokApiKey(orgId: string): Promise<string | undefined> {
@@ -86,6 +88,12 @@ export class AiActionsService {
     const byokApiKey = await this.getByokApiKey(orgId);
 
     try {
+      if (dto.action === AiActionType.ENHANCE_PROMPT) {
+        return await this.promptEnhancementService.enhance(
+          { organizationId: orgId, userPrompt: dto.content },
+          { preparedSystemPrompt: systemPrompt, byokApiKey },
+        );
+      }
       const response = await this.openRouterService.chatCompletion(
         {
           max_tokens: 2000,

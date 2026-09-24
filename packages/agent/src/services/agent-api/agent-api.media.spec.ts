@@ -41,6 +41,29 @@ describe('agent-api.media', () => {
     mockFetch.mockReset();
   });
 
+  it('preserves the server generation receipt for the action card', async () => {
+    const generationHarness = {
+      originalPrompt: 'A cat',
+      enhancedPrompt: 'A cat beside a window.',
+      status: 'applied',
+      source: 'brand',
+      brandId: 'brand-1',
+      appliedPacks: [],
+    };
+    mockJsonApiResource(
+      {
+        id: 'image-1',
+        cdnUrl: 'https://cdn.test/image.png',
+        generationHarness,
+      },
+      'ingredient',
+    );
+    const result = await generateIngredient(makeApi(), 'image', {
+      text: 'A cat',
+    });
+    expect(result.generationHarness).toEqual(generationHarness);
+  });
+
   it('getModels fetches the active model catalog', async () => {
     mockJsonApiCollection([{ id: 'model-1', name: 'Test Model' }], 'model');
 

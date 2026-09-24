@@ -109,7 +109,10 @@ export class ImageGenerationProviderDispatchService {
       },
       organizationId: context.user.organizationId,
       outputs: context.outputs,
-      prompt: context.promptData.original,
+      prompt:
+        context.generationHarness?.enhancedPrompt ??
+        context.promptData.original,
+      providerInput: context.providerInput,
       promptBuilderBrand: context.promptBuilderBrand,
       promptId: context.promptData.id,
       referenceImageUrl: context.referenceImageUrl,
@@ -487,7 +490,10 @@ export class ImageGenerationProviderDispatchService {
       brandId: context.brand.id,
       category: IngredientCategory.IMAGE,
       extension: MetadataExtension.JPG,
-      generationPrompt: context.promptData.original,
+      generationPrompt:
+        context.generationHarness?.enhancedPrompt ??
+        context.promptData.original,
+      generationHarness: context.generationHarness,
       generationSeed: context.createImageDto.seed,
       ...(context.generationSource
         ? { generationSource: context.generationSource }

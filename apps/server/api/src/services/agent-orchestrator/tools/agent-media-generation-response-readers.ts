@@ -20,13 +20,20 @@ export function readMediaResponseString(
   response: Record<string, unknown>,
   key: string,
 ): string | undefined {
+  return readOptionalString(readMediaResponseValue(response, key));
+}
+
+export function readMediaResponseValue(
+  response: Record<string, unknown>,
+  key: string,
+): unknown {
   const data = isPlainMediaResponseRecord(response.data)
     ? response.data
     : undefined;
   const attributes = isPlainMediaResponseRecord(data?.attributes)
     ? data.attributes
     : undefined;
-  return readOptionalString(attributes?.[key] ?? data?.[key] ?? response[key]);
+  return attributes?.[key] ?? data?.[key] ?? response[key];
 }
 
 export function readArticleResource(

@@ -1,4 +1,5 @@
 import { BrandInterviewService } from '@api/collections/brands/brand-interview/services/brand-interview.service';
+import { resolveOptionalProvider } from '@api/helpers/utils/module-ref/resolve-optional-provider.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import type {
@@ -6,6 +7,10 @@ import type {
   AgentUiAction,
 } from '@genfeedai/contracts/interfaces';
 import { Injectable, Optional } from '@nestjs/common';
+import { ModuleRef } from '@nestjs/core';
+
+const BRAND_INTERVIEW_DEPLOY_GATE =
+  'Brand interview is deploy-gated: BrandInterviewService is not registered in this API process. This is not a plan or credit gate.';
 
 /**
  * Brand context interview tools (`start_brand_interview`,
@@ -25,8 +30,30 @@ type BrandInterviewToolName = (typeof BRAND_INTERVIEW_TOOLS)[number];
 export class AgentBrandInterviewToolHandler {
   constructor(
     @Optional()
-    private readonly brandInterviewService: BrandInterviewService | undefined,
+    private readonly brandInterviewService?: BrandInterviewService,
+    @Optional()
+    private readonly moduleRef?: ModuleRef,
   ) {}
+
+  /**
+   * Constructor injection is empty when the orchestrator module cycle resolves
+   * this handler before BrandInterviewModule. The service is still registered
+   * on the API, so resolve it from the container at call time.
+   */
+  private resolveBrandInterviewService(): BrandInterviewService | undefined {
+    return (
+      this.brandInterviewService ??
+      resolveOptionalProvider(this.moduleRef, BrandInterviewService)
+    );
+  }
+
+  private brandInterviewUnavailable(): AgentToolResult {
+    return {
+      creditsUsed: 0,
+      error: BRAND_INTERVIEW_DEPLOY_GATE,
+      success: false,
+    };
+  }
 
   /** Single dispatch entry so the executor route table stays flat. */
   execute(
@@ -50,12 +77,9 @@ export class AgentBrandInterviewToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.brandInterviewService) {
-      return {
-        creditsUsed: 0,
-        error: 'Brand interview service is not available in this environment.',
-        success: false,
-      };
+    const brandInterviewService = this.resolveBrandInterviewService();
+    if (!brandInterviewService) {
+      return this.brandInterviewUnavailable();
     }
 
     const brandId = readOptionalString(params.brandId);
@@ -67,7 +91,7 @@ export class AgentBrandInterviewToolHandler {
       };
     }
 
-    const result = await this.brandInterviewService.start(
+    const result = await brandInterviewService.start(
       brandId,
       ctx.organizationId,
       ctx.userId,
@@ -109,12 +133,9 @@ export class AgentBrandInterviewToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.brandInterviewService) {
-      return {
-        creditsUsed: 0,
-        error: 'Brand interview service is not available in this environment.',
-        success: false,
-      };
+    const brandInterviewService = this.resolveBrandInterviewService();
+    if (!brandInterviewService) {
+      return this.brandInterviewUnavailable();
     }
 
     const interviewId = readOptionalString(params.interviewId);
@@ -128,7 +149,7 @@ export class AgentBrandInterviewToolHandler {
       };
     }
 
-    const result = await this.brandInterviewService.submitAnswer(
+    const result = await brandInterviewService.submitAnswer(
       interviewId,
       ctx.organizationId,
       ctx.userId,
@@ -170,12 +191,9 @@ export class AgentBrandInterviewToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.brandInterviewService) {
-      return {
-        creditsUsed: 0,
-        error: 'Brand interview service is not available in this environment.',
-        success: false,
-      };
+    const brandInterviewService = this.resolveBrandInterviewService();
+    if (!brandInterviewService) {
+      return this.brandInterviewUnavailable();
     }
 
     const interviewId = readOptionalString(params.interviewId);
@@ -187,7 +205,7 @@ export class AgentBrandInterviewToolHandler {
       };
     }
 
-    const result = await this.brandInterviewService.skipField(
+    const result = await brandInterviewService.skipField(
       interviewId,
       ctx.organizationId,
       ctx.userId,
@@ -211,12 +229,9 @@ export class AgentBrandInterviewToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    if (!this.brandInterviewService) {
-      return {
-        creditsUsed: 0,
-        error: 'Brand interview service is not available in this environment.',
-        success: false,
-      };
+    const brandInterviewService = this.resolveBrandInterviewService();
+    if (!brandInterviewService) {
+      return this.brandInterviewUnavailable();
     }
 
     const brandId = readOptionalString(params.brandId);
@@ -228,7 +243,7 @@ export class AgentBrandInterviewToolHandler {
       };
     }
 
-    const result = await this.brandInterviewService.getCompleteness(
+    const result = await brandInterviewService.getCompleteness(
       brandId,
       ctx.organizationId,
     );

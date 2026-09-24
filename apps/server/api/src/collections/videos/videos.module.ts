@@ -47,6 +47,7 @@ import { QueuesModule } from '@api/queues/core/queues.module';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
 import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
+import { MediaPromptEnhancementModule } from '@api/services/harness/media-prompt-enhancement.module';
 import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenlabs.module';
 import { FalModule } from '@api/services/integrations/fal/fal.module';
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
@@ -82,6 +83,7 @@ import { Module } from '@nestjs/common';
     VideosCoreModule,
   ],
   imports: [
+    MediaPromptEnhancementModule,
     VideosCoreModule,
     ActivitiesModule,
     AssetsModule,
