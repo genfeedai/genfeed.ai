@@ -48,6 +48,8 @@ export class BrandRemixSceneGenerationService {
             if (!stage.assetId) await this.patch(organizationId, runId, operationId, scene.id, stageName, { assetId: found.id, state: 'submitted' });
             return false;
           }
+          const acceptedLine = pipeline.quote.items.find((item) => item.sceneId === scene.id && item.stage === stageName && item.attempt === stage.attempt);
+          if (acceptedLine) await this.billing.settle(organizationId, runId, operationId, acceptedLine, stageName === 'image' && acceptedLine.credits > 0);
           let actualDurationSeconds = saved.actualDurationSeconds;
           if (stageName === 'video') {
             const url = readIngredientMediaUrl(found) ?? (found.s3Key ? this.mediaUrls.buildUrl(found.s3Key) : undefined);
@@ -78,7 +80,7 @@ export class BrandRemixSceneGenerationService {
           const dimensions = resolveAgentGenerationDimensions(output.aspectRatio, DEFAULT_AGENT_IMAGE_ASPECT_RATIO);
           const response = await this.images.generateImage(user, { brandId, sourceActionId, model: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2, autoSelectModel: false, ...dimensions, outputs: 1, fidelityMode: 'guided', brandingMode: 'brand', isBrandingEnabled: true, waitForCompletion: false, references: references.map((reference) => reference.assetId), text: `Create a new original brand ad scene. ${scene.visualIntent}\nPreserve selected identity and authorized products. No source footage, text, watermarks, or competitor identity.`, } as CreateImageDto, request, onPlaceholderCreated, { groupId, groupIndex: 0, settleCreditsExternally: true }, async () => {
             const credits = request.creditsConfig;
-            if (!credits || (credits.isByokBypass ? 0 : credits.amount) !== line.credits || Boolean(credits.isByokBypass) !== (line.billingMode === 'byok') || (line.credits > 0 && !credits.reservationId)) throw new ConflictException('Image billing changed after the accepted quote.');
+            if (!credits || (credits.isByokBypass ? 0 : credits.amount) !== line.credits || Boolean(credits.isByokBypass) !== (line.billingMode === 'byok') || (line.credits > 0 && !credits.reservationId)) { if (credits?.reservationId) await this.billing.releaseImageReservation(organizationId, credits.reservationId); throw new ConflictException('Image billing changed after the accepted quote.'); }
             await this.billing.reserve(organizationId, runId, operationId, line, credits.reservationId);
           }, references);
           if (!response.data?.id) throw new ConflictException('Image provider returned no durable asset.');

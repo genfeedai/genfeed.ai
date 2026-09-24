@@ -50,7 +50,7 @@ export default function StudioRemixScenes({ run, actions, isWorking }: { run: Br
         for (const [assetId, update] of [[pipeline?.state === 'ready' ? pipeline.assembly?.assetId : undefined, setPreview], [run.analysisSource?.assetId, setSourcePreview]] as const) {
           if (!assetId) { update(undefined); continue; }
           const video = await service.findOne(assetId, {}, controller.signal);
-          if (!controller.signal.aborted) { update(video.cdnUrl ?? undefined); if (assetId === run.analysisSource?.assetId) setSourceLabel(video.label || t('analysisPreview')); }
+          if (!controller.signal.aborted) { update(video.cdnUrl ?? undefined); if (assetId === run.analysisSource?.assetId) setSourceLabel(getIngredientDisplayLabel(video) || t('analysisPreview')); }
         }
       } catch (error) { if (!controller.signal.aborted) setLibraryError(error instanceof Error ? error.message : t('libraryError')); }
     };
@@ -71,7 +71,7 @@ export default function StudioRemixScenes({ run, actions, isWorking }: { run: Br
     {run.analysisSource ? <p className="text-xs">{t('selectedSource', { id: sourceLabel ?? t('analysisPreview') })}</p> : null}
     {sourcePreview ? <VideoPlayer src={sourcePreview} ariaLabel={t('analysisPreview')} className="max-w-sm" /> : null}
     {libraryError ? <p role="alert">{libraryError}</p> : null}
-    <ContentLibraryPicker isOpen={isPickerOpen} onOpenChange={setPickerOpen} items={videos.map((video) => ({ id: video.id, contentType: 'video', contentTitle: video.label || video.id, thumbnailUrl: video.thumbnailUrl }))} onSelect={(item) => { setPickerOpen(false); void actions.attachSceneSource(item.id); }} />
+    <ContentLibraryPicker isOpen={isPickerOpen} onOpenChange={setPickerOpen} items={videos.map((video) => ({ id: video.id, contentType: 'video', contentTitle: getIngredientDisplayLabel(video), thumbnailUrl: video.thumbnailUrl }))} onSelect={(item) => { setPickerOpen(false); void actions.attachSceneSource(item.id); }} />
     <div role="status" aria-live="polite">{pipeline ? t('status', { state: pipeline.state }) : t('awaitingAnalysis')}</div>
     {pipeline?.error ? <p role="alert" className="text-sm text-destructive">{pipeline.error}</p> : null}
     <div className="flex flex-wrap gap-2">
@@ -80,7 +80,7 @@ export default function StudioRemixScenes({ run, actions, isWorking }: { run: Br
       {active ? <Button label={t('cancel')} isDisabled={isWorking} onClick={() => void actions.cancelScenes()} size={ButtonSize.SM} variant={ButtonVariant.SECONDARY} /> : null}
       {pipeline?.operation && !immutable ? <Button label={t('resume')} isDisabled={isWorking} onClick={() => void actions.resumeScenes()} size={ButtonSize.SM} variant={ButtonVariant.SECONDARY} /> : null}
     </div>
-    {pipeline?.quote && !active ? <div className="space-y-2 rounded-lg border border-border p-3">
+    {pipeline?.quote && pipeline.state === 'quoted' ? <div className="space-y-2 rounded-lg border border-border p-3">
       <p className="font-medium">{t('total', { credits: pipeline.quote.total })}</p>
       <p className="text-xs">{t('expires', { time: pipeline.quote.expiresAt })}</p>
       <ul className="space-y-1 text-xs">{pipeline.quote.items.map((line) => <li key={line.key}>{line.sceneId ? `${t('scene', { ordinal: storyboard.findIndex((scene) => scene.id === line.sceneId) + 1 })} · ` : ''}{line.stage} · {line.model} · {line.billingMode} · {line.credits}</li>)}</ul>
@@ -94,8 +94,8 @@ export default function StudioRemixScenes({ run, actions, isWorking }: { run: Br
       <Input label={t('narration')} value={scene.narration ?? ''} disabled={disabled} maxLength={1000} onChange={(event) => patch(index, { narration: event.target.value })} />
       <Input label={t('duration')} value={String(scene.durationSeconds ?? 5)} disabled={disabled} type="number" min={3} max={15} onChange={(event) => patch(index, { durationSeconds: Number(event.target.value) })} />
       <div className="grid gap-2 sm:grid-cols-2">
-        <OptionSelect ariaLabel={t('avatar')} placeholder={t('avatar')} value={scene.identity?.avatarAssetId ?? ''} options={avatarOptions} isDisabled={disabled || avatarsLoading} onChange={(value) => patch(index, { identity: { avatarAssetId: value, speechVoiceId: scene.identity?.speechVoiceId ?? '' } })} />
-        <OptionSelect ariaLabel={t('voice')} placeholder={t('voice')} value={scene.identity?.speechVoiceId ?? ''} options={voiceOptions} isDisabled={disabled || voicesLoading} onChange={(value) => patch(index, { identity: { avatarAssetId: scene.identity?.avatarAssetId ?? '', speechVoiceId: value } })} />
+        <OptionSelect ariaLabel={t('avatar')} placeholder={t('avatar')} value={scene.identity?.avatarAssetId ?? ''} options={avatarOptions} isDisabled={disabled || avatarsLoading} onChange={(value) => patch(index, { identity: { avatarAssetId: value ?? '', speechVoiceId: scene.identity?.speechVoiceId ?? '' } })} />
+        <OptionSelect ariaLabel={t('voice')} placeholder={t('voice')} value={scene.identity?.speechVoiceId ?? ''} options={voiceOptions} isDisabled={disabled || voicesLoading} onChange={(value) => patch(index, { identity: { avatarAssetId: scene.identity?.avatarAssetId ?? '', speechVoiceId: value ?? '' } })} />
       </div>
       <div className="flex flex-wrap gap-2">
         <Button label={t('up')} isDisabled={disabled || index === 0} onClick={() => move(index, -1)} size={ButtonSize.XS} variant={ButtonVariant.GHOST} />

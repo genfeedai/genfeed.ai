@@ -81,3 +81,9 @@ describe('scene façade spending and persistence boundaries', () => {
     expect(store.save).not.toHaveBeenCalled();
   });
 });
+
+vi.mock('@api/collections/content-runs/services/brand-remix-scene-store.service', () => ({ BrandRemixSceneStoreService: class {} }));
+vi.mock('@api/collections/content-runs/services/brand-remix-scene-quote.service', () => ({ BrandRemixSceneQuoteService: class {} }));
+vi.mock('@api/collections/content-runs/services/brand-remix-scene-source.service', () => ({ BrandRemixSceneSourceService: class {} }));
+vi.mock('@api/collections/content-runs/services/brand-remix-scene-workflow.service', () => ({ BrandRemixSceneWorkflowService: class {} }));
+vi.mock('@api/collections/credits/services/credits.utils.service', () => ({ CreditsUtilsService: class {} }));

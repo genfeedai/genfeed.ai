@@ -98,6 +98,8 @@ export const brandRemixScenePipelineSchema = z.object({
   }).strict().optional(),
   receipts: z.array(z.object({
     key: id,
+    operationId: id.optional(),
+    actorUserId: id.optional(),
     amount: z.number().nonnegative(),
     billingMode: z.enum(['platform', 'byok']),
     state: z.enum(['reserved', 'settled', 'released', 'uncertain']),
