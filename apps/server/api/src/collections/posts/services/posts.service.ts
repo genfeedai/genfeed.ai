@@ -1,8 +1,7 @@
 import process from 'node:process';
 import { CredentialEntity } from '@api/collections/credentials/entities/credential.entity';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { IngredientEntity } from '@api/collections/ingredients/entities/ingredient.entity';
-import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { UpdatePostDto } from '@api/collections/posts/dto/update-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
@@ -49,13 +48,11 @@ import type {
   KnowledgeReceipt,
   PopulateOption,
 } from '@genfeedai/contracts/interfaces';
-import type { IOnboardingJourneyMissionState } from '@genfeedai/contracts/types';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
-const ONBOARDING_JOURNEY_REWARD_EXPIRY_MS = 365 * 24 * 60 * 60 * 1000;
 const DEFAULT_CONTENT_MENTION_LIMIT = 50;
 const MAX_CONTENT_MENTION_LIMIT = 100;
 const PUBLISH_APPROVAL_MATERIAL_FIELDS = new Set<string>([
@@ -232,11 +229,9 @@ export class PostsService extends BaseService<
   constructor(
     public readonly prisma: PrismaService,
     public readonly logger: LoggerService,
+    private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
     @Optional() public readonly cacheService?: CacheService,
     @Optional() private readonly fileQueueService?: FileQueueService,
-    @Optional()
-    private readonly organizationSettingsService?: OrganizationSettingsService,
-    @Optional() private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional()
     private readonly publishApprovalsService?: PublishApprovalsService,
     @Optional()
@@ -714,62 +709,14 @@ export class PostsService extends BaseService<
   }
 
   private async completePublishFirstPostMission(
-    post: Pick<PostDocument, 'organizationId'>,
+    post: Pick<PostDocument, 'organizationId' | 'userId'>,
   ): Promise<void> {
-    if (!this.organizationSettingsService || !this.creditsUtilsService) {
-      return;
-    }
-
-    const organizationId = post.organizationId;
-    if (!organizationId) {
-      return;
-    }
-
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
-
-    if (!settings?.id) {
-      return;
-    }
-
-    const missions = this.organizationSettingsService.normalizeJourneyState(
-      settings.onboardingJourneyMissions as unknown as
-        | IOnboardingJourneyMissionState[]
-        | undefined,
-    );
-    const mission = missions.find((item) => item.id === 'publish_first_post');
-
-    if (!mission || mission.rewardClaimed) {
-      return;
-    }
-
-    const updatedMissions = missions.map((item) =>
-      item.id === 'publish_first_post'
-        ? {
-            ...item,
-            completedAt: item.completedAt ?? new Date(),
-            isCompleted: true,
-            rewardClaimed: true,
-          }
-        : item,
-    );
-    const journeyCompleted = updatedMissions.every((item) => item.isCompleted);
-
-    await this.organizationSettingsService.patch(String(settings.id), {
-      onboardingJourneyCompletedAt: journeyCompleted
-        ? settings.onboardingJourneyCompletedAt || new Date()
-        : null,
-      onboardingJourneyMissions: updatedMissions,
-    });
-
-    await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-      organizationId,
-      mission.rewardCredits,
-      'onboarding-journey',
-      'Onboarding journey reward: publish_first_post',
-      new Date(Date.now() + ONBOARDING_JOURNEY_REWARD_EXPIRY_MS),
-    );
+    if (post.organizationId)
+      await this.onboardingCreditGrantsService.completeMissions(
+        post.organizationId,
+        ['publish_first_post'],
+        post.userId ?? undefined,
+      );
   }
 
   @HandleErrors('get cached data', 'posts')

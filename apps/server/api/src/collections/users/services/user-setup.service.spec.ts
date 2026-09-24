@@ -1,7 +1,7 @@
 import type { BillingAccountsService } from '@api/collections/billing-accounts/services/billing-accounts.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -9,7 +9,6 @@ import { RolesService } from '@api/collections/roles/services/roles.service';
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import { OrganizationCategory } from '@genfeedai/contracts';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import { LoggerService } from '@libs/logger/logger.service';
 
 describe('UserSetupService', () => {
@@ -71,8 +70,8 @@ describe('UserSetupService', () => {
     ensureForOrganization: vi.fn(),
   };
 
-  const mockCreditsUtilsService = {
-    addOrganizationCreditsWithExpiration: vi.fn(),
+  const mockOnboardingCreditGrantsService = {
+    grantSignupGift: vi.fn(),
     getOrganizationCreditsWithExpiration: vi.fn(),
   };
 
@@ -93,7 +92,7 @@ describe('UserSetupService', () => {
       mockSettingsService as unknown as SettingsService,
       mockBillingAccountsService as unknown as BillingAccountsService,
       mockCreditBalanceService as unknown as CreditBalanceService,
-      mockCreditsUtilsService as unknown as CreditsUtilsService,
+      mockOnboardingCreditGrantsService as unknown as OnboardingCreditGrantsService,
       mockLogger as unknown as LoggerService,
     );
   });
@@ -134,13 +133,13 @@ describe('UserSetupService', () => {
       mockBillingAccountsService.ensureForOrganization.mockResolvedValue({
         id: 'ba_1',
       });
-      mockCreditsUtilsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
+      mockOnboardingCreditGrantsService.getOrganizationCreditsWithExpiration.mockResolvedValue(
         {
           credits: [],
           total: 0,
         },
       );
-      mockCreditsUtilsService.addOrganizationCreditsWithExpiration.mockResolvedValue(
+      mockOnboardingCreditGrantsService.grantSignupGift.mockResolvedValue(
         undefined,
       );
 
@@ -234,14 +233,8 @@ describe('UserSetupService', () => {
       await service.initializeUserResources(userId);
 
       expect(
-        mockCreditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).toHaveBeenCalledWith(
-        orgId.toString(),
-        ONBOARDING_SIGNUP_GIFT_CREDITS,
-        'onboarding-signup-gift',
-        'Signup gift credits',
-        expect.any(Date),
-      );
+        mockOnboardingCreditGrantsService.grantSignupGift,
+      ).toHaveBeenCalledWith(orgId.toString(), userId);
     });
 
     it('should call settingsService.create once for user settings', async () => {
@@ -404,8 +397,8 @@ describe('UserSetupService', () => {
 
         expect(mockOrganizationsService.create).not.toHaveBeenCalled();
         expect(
-          mockCreditsUtilsService.addOrganizationCreditsWithExpiration,
-        ).not.toHaveBeenCalled();
+          mockOnboardingCreditGrantsService.grantSignupGift,
+        ).toHaveBeenCalledWith(orgId.toString(), userId);
         expect(mockLogger.warn).toHaveBeenCalledWith(
           expect.stringContaining('Organization already exists'),
           expect.any(String),

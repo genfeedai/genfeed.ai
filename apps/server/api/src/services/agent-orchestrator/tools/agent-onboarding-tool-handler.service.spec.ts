@@ -79,6 +79,19 @@ function createHandler(options?: {
   const organizationsService = { patch: vi.fn() };
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const postsService = { findOne: vi.fn().mockResolvedValue(null) };
+  const onboardingCreditGrantsService = {
+    completeMissions: vi
+      .fn()
+      .mockImplementation(
+        async (_organizationId: string, ids: OnboardingJourneyMissionId[]) =>
+          missions.map((mission) => ({
+            ...mission,
+            isCompleted: mission.isCompleted || ids.includes(mission.id),
+            rewardClaimed: false,
+            rewardCredits: 0,
+          })),
+      ),
+  };
   const handler = new AgentOnboardingToolHandler(
     { error: vi.fn(), warn: vi.fn() } as never,
     configService as never,
@@ -87,6 +100,7 @@ function createHandler(options?: {
     creditsUtilsService as never,
     contentGeneratorService as never,
     generationGateway as never,
+    onboardingCreditGrantsService as never,
     credentialsService as never,
     imagesService as never,
     organizationsService as never,
@@ -100,6 +114,7 @@ function createHandler(options?: {
     creditsUtilsService,
     generationGateway,
     handler,
+    onboardingCreditGrantsService,
     organizationSettingsService,
     postsService,
   };
@@ -201,7 +216,7 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
         }),
       ]),
     );
-    expect(organizationSettingsService.patch).toHaveBeenCalled();
+    expect(organizationSettingsService.patch).not.toHaveBeenCalled();
     expect(
       creditsUtilsService.addOrganizationCreditsWithExpiration,
     ).not.toHaveBeenCalled();
@@ -398,70 +413,25 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
     expect(imageStep?.description).toContain('image provider API key');
   });
 
-  it.each([
-    'complete_company_info',
-    'connect_social_account',
-    'generate_first_image',
-    'generate_first_video',
-    'publish_first_post',
-  ] as OnboardingJourneyMissionId[])(
-    'persists %s without claiming or granting a reward',
+  it.each(ONBOARDING_JOURNEY_MISSIONS.map((mission) => mission.id))(
+    'delegates %s completion to the atomic grant service',
     async (missionId) => {
-      vi.stubEnv('GENFEED_CLOUD', undefined);
-      const { creditsUtilsService, handler, organizationSettingsService } =
-        createHandler();
-
+      const {
+        handler,
+        onboardingCreditGrantsService,
+        organizationSettingsService,
+      } = createHandler();
       await handler.completeJourneyMission(CONTEXT, missionId);
-
-      expect(organizationSettingsService.patch).toHaveBeenCalledWith(
-        'settings-1',
-        expect.objectContaining({
-          onboardingJourneyMissions: expect.arrayContaining([
-            expect.objectContaining({
-              id: missionId,
-              isCompleted: true,
-              rewardClaimed: false,
-              rewardCredits: 0,
-            }),
-          ]),
-        }),
-      );
       expect(
-        creditsUtilsService.addOrganizationCreditsWithExpiration,
-      ).not.toHaveBeenCalled();
+        onboardingCreditGrantsService.completeMissions,
+      ).toHaveBeenCalledWith(
+        CONTEXT.organizationId,
+        [missionId],
+        CONTEXT.userId,
+      );
+      expect(organizationSettingsService.patch).not.toHaveBeenCalled();
     },
   );
-
-  it('preserves cloud reward claiming behavior', async () => {
-    vi.stubEnv('GENFEED_CLOUD', '1');
-    const { creditsUtilsService, handler, organizationSettingsService } =
-      createHandler();
-
-    await handler.completeJourneyMission(CONTEXT, 'generate_first_image');
-
-    expect(organizationSettingsService.patch).toHaveBeenCalledWith(
-      'settings-1',
-      expect.objectContaining({
-        onboardingJourneyMissions: expect.arrayContaining([
-          expect.objectContaining({
-            id: 'generate_first_image',
-            isCompleted: true,
-            rewardClaimed: true,
-            rewardCredits: 15,
-          }),
-        ]),
-      }),
-    );
-    expect(
-      creditsUtilsService.addOrganizationCreditsWithExpiration,
-    ).toHaveBeenCalledWith(
-      CONTEXT.organizationId,
-      15,
-      'onboarding-journey',
-      'Onboarding journey reward: generate_first_image',
-      expect.any(Date),
-    );
-  });
 });
 
 describe('Agent onboarding first draft', () => {
