@@ -69,10 +69,27 @@ export class SkillsController {
     @Param('slug') idOrSlug: string,
   ) {
     const organization = this.requireOrganizationId(user);
+    const actor = this.actor(user);
+    const found = await this.skillsService.getSkillById(
+      organization,
+      idOrSlug,
+      actor.userId,
+    );
+    if (!found) {
+      throw new HttpException(
+        { detail: 'Skill not found', title: 'Not Found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
+    const [visible] = await this.skillLibrary.present(actor, [found]);
+    if (!visible) {
+      throw new HttpException(
+        { detail: 'Skill not found', title: 'Not Found' },
+        HttpStatus.NOT_FOUND,
+      );
+    }
 
-    const data = await this.skillsService.getSkillById(organization, idOrSlug);
-
-    return serializeSingle(req, SkillSerializer, data);
+    return serializeSingle(req, SkillSerializer, visible);
   }
 
   @Post('skills')
@@ -124,7 +141,12 @@ export class SkillsController {
     @Body() body: UpdateSkillDto,
   ) {
     const organization = this.requireOrganizationId(user);
-    const data = await this.skillsService.updateSkill(organization, id, body);
+    const data = await this.skillsService.updateSkill(
+      organization,
+      id,
+      body,
+      this.actor(user).userId,
+    );
 
     return serializeSingle(req, SkillSerializer, data);
   }

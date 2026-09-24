@@ -224,3 +224,19 @@ describe('AgentCampaignsService', () => {
     expect(result).toEqual(status);
   });
 });
+
+describe('SkillsService.exportSkill', () => {
+  it('returns the response body instead of the axios response', async () => {
+    const service = new SkillsService('export-token');
+    const body = {
+      contentHash: 'hash-v1',
+      instructions: 'version one',
+      versionId: 'sv-1',
+    };
+    const http = installMockHttp(service);
+    http.get.mockResolvedValue(axiosResponse(body));
+
+    await expect(service.exportSkill('skill-1')).resolves.toEqual(body);
+    expect(http.get).toHaveBeenCalledWith('/skill-1/export');
+  });
+});

@@ -214,7 +214,7 @@ describe('PromptsController', () => {
         mockUser.organizationId,
         mockUser.brandId,
         ['cinematic-prompting'],
-        { modality: 'image' },
+        { actorUserId: mockUser.userId, modality: 'image' },
       );
 
       const [{ messages }] = mockOpenRouterService.chatCompletion.mock.calls.at(
@@ -246,7 +246,7 @@ describe('PromptsController', () => {
         mockUser.organizationId,
         mockUser.brandId,
         undefined,
-        { modality: 'image' },
+        { actorUserId: mockUser.userId, modality: 'image' },
       );
 
       const [{ messages }] = mockOpenRouterService.chatCompletion.mock.calls.at(

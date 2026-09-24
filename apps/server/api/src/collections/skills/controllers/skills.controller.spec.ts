@@ -149,9 +149,11 @@ describe('SkillsController', () => {
 
     await controller.listSkills(mockReq, mockUser);
 
-    expect(mockService.listAllForOrg).toHaveBeenCalledWith('org-1', {
-      surface: undefined,
-    });
+    expect(mockService.listAllForOrg).toHaveBeenCalledWith(
+      'org-1',
+      { surface: undefined },
+      'user-1',
+    );
   });
 
   it('narrows the catalog to a composer surface', async () => {
@@ -159,9 +161,11 @@ describe('SkillsController', () => {
 
     await controller.listSkills(mockReq, mockUser, 'studio');
 
-    expect(mockService.listAllForOrg).toHaveBeenCalledWith('org-1', {
-      surface: SkillSurface.STUDIO,
-    });
+    expect(mockService.listAllForOrg).toHaveBeenCalledWith(
+      'org-1',
+      { surface: SkillSurface.STUDIO },
+      'user-1',
+    );
   });
 
   it('treats an empty surface as no filter', async () => {
@@ -169,9 +173,11 @@ describe('SkillsController', () => {
 
     await controller.listSkills(mockReq, mockUser, '');
 
-    expect(mockService.listAllForOrg).toHaveBeenCalledWith('org-1', {
-      surface: undefined,
-    });
+    expect(mockService.listAllForOrg).toHaveBeenCalledWith(
+      'org-1',
+      { surface: undefined },
+      'user-1',
+    );
   });
 
   it('rejects an unknown surface rather than returning the whole catalog', async () => {
@@ -190,6 +196,7 @@ describe('SkillsController', () => {
     expect(mockService.getSkillById).toHaveBeenCalledWith(
       'org-1',
       'youtube-script',
+      'user-1',
     );
   });
 
