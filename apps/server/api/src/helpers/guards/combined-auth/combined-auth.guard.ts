@@ -39,7 +39,8 @@ import { Observable } from 'rxjs';
  *
  * Order of checks:
  *  1. @Public() routes → allow immediately
- *  2. @OptionalAuth() routes → allow with no token; validate a presented token
+ *  2. @OptionalAuth() routes → allow only when Authorization is absent;
+ *     reject a presented invalid header; validate a bearer or API key
  *  3. LOCAL mode → allow and inject local identity for downstream guards/controllers
  *  4. HYBRID mode → opportunistic auth:
  *     - Has token? → validate (Better Auth or API key)
@@ -265,14 +266,19 @@ export class CombinedAuthGuard implements CanActivate {
       return true;
     }
 
-    // 2. Optional auth: a missing credential is allowed. A presented token is
-    // still validated so an authenticated caller keeps request.user.
+    // 2. Optional auth is anonymous only when the client sends no
+    // Authorization header. Basic, blank, and empty Bearer headers are
+    // presented credentials and must not fall through as anonymous.
     if (this.isOptionalAuthRoute(context)) {
+      if (request.headers.authorization === undefined) {
+        return true;
+      }
+
       const presentedToken = this.resolveBearerToken(
         request.headers.authorization,
       );
       if (!presentedToken) {
-        return true;
+        throw new UnauthorizedException('Unauthorized');
       }
 
       return this.resolveTokenGuard(context, presentedToken);

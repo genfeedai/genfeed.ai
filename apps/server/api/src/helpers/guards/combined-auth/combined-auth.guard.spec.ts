@@ -159,27 +159,95 @@ describe('CombinedAuthGuard', () => {
     expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
-  it('allows optional auth with no credential and validates a presented token', async () => {
+  function useOptionalAuth(authorization?: string) {
     reflector.getAllAndOverride.mockImplementation(
       (key: string) => key === OPTIONAL_AUTH_KEY,
     );
     (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
-      { headers: {} },
+      authorization === undefined
+        ? { headers: {} }
+        : { headers: { authorization } },
     );
+  }
+
+  it('allows optional auth when the Authorization header is absent', async () => {
+    useOptionalAuth();
 
     await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
     expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
 
+  it.each([
+    ['empty', ''],
+    ['blank', '   '],
+    ['basic', 'Basic abc'],
+    ['empty bearer', 'Bearer'],
+    ['blank bearer', 'Bearer   '],
+    ['malformed', 'Token abc'],
+  ])(
+    'rejects a presented %s Authorization header on optional auth',
+    async (_label, authorization) => {
+      useOptionalAuth(authorization);
+
+      await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+        UnauthorizedException,
+      );
+      expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+      expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+    },
+  );
+
+  it('rejects a bearer token the token guard refuses on optional auth', async () => {
+    useOptionalAuth('Bearer session-token');
+    betterAuthGuard.canActivate.mockRejectedValue(
+      new UnauthorizedException('Unauthorized'),
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('validates a bearer token on optional auth', async () => {
+    useOptionalAuth('Bearer session-token');
     betterAuthGuard.canActivate.mockResolvedValue(true);
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+    expect(betterAuthGuard.canActivate).toHaveBeenCalledWith(
+      mockExecutionContext,
+    );
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('validates an API key on optional auth', async () => {
+    useOptionalAuth('Bearer gf_1234567890abcdef');
+    apiKeyAuthGuard.canActivate.mockResolvedValue(true);
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+    expect(apiKeyAuthGuard.canActivate).toHaveBeenCalledWith(
+      mockExecutionContext,
+    );
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('rejects a gf_ key in the query on an optional-auth route', async () => {
+    reflector.getAllAndOverride.mockImplementation(
+      (key: string) => key === OPTIONAL_AUTH_KEY,
+    );
     (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
       {
-        headers: { authorization: 'Bearer session-token' },
-        user: { organizationId: 'org-1' },
+        headers: {},
+        query: { api_key: 'gf_live_should-not-be-here' },
       },
     );
 
-    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
-    expect(betterAuthGuard.canActivate).toHaveBeenCalled();
+    await expect(guard.canActivate(mockExecutionContext)).rejects.toThrow(
+      UnauthorizedException,
+    );
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+    expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
   });
 
   it('allows public routes without invoking auth guards', async () => {
