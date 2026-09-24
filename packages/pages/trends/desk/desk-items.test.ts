@@ -1,6 +1,9 @@
 import { SocialSourcePlatform } from '@genfeedai/contracts';
 import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
-import type { TrendContentItem } from '@props/trends/trends-page.props';
+import type {
+  TrendContentItem,
+  TrendSourceClassification,
+} from '@props/trends/trends-page.props';
 import { describe, expect, it } from 'vitest';
 import {
   isObservedTrendContent,
@@ -251,18 +254,19 @@ describe('toDeskItemFromViralVideo', () => {
 });
 
 describe('isObservedTrendContent', () => {
+  const classification: TrendSourceClassification = {
+    capturedAt: '2026-01-01',
+    confidence: 'low',
+    freshnessWindowDays: 7,
+    intendedUse: 'organic_trend_discovery',
+    sourceKind: 'public_platform_reference',
+    sourceLabel: 'LinkedIn',
+  };
   const seed = makeTrendItem({
     platform: 'linkedin',
     sourcePreviewState: undefined,
     sourceUrl: 'https://www.linkedin.com/company/openai/',
-    sourceClassification: {
-      capturedAt: '2026-01-01',
-      confidence: 'low',
-      freshnessWindowDays: 7,
-      intendedUse: 'organic_trend_discovery',
-      sourceKind: 'public_platform_reference',
-      sourceLabel: 'LinkedIn',
-    },
+    sourceClassification: classification,
   });
   it('excludes explicit fallback and legacy company seeds', () => {
     expect(isObservedTrendContent(seed)).toBe(false);
@@ -281,19 +285,19 @@ describe('isObservedTrendContent', () => {
     { mediaUrl: 'https://media.example/video.mp4' },
     {
       sourceClassification: {
-        ...seed.sourceClassification!,
+        ...classification,
         confidence: 'medium' as const,
       },
     },
     {
       sourceClassification: {
-        ...seed.sourceClassification!,
+        ...classification,
         sourceKind: 'owned_brand_reference' as const,
       },
     },
     {
       sourceClassification: {
-        ...seed.sourceClassification!,
+        ...classification,
         sourceKind: 'manual_curated_reference' as const,
       },
     },
