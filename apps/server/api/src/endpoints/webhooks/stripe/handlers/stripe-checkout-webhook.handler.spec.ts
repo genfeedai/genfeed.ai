@@ -16,6 +16,7 @@ import type { ManagedCheckoutResult } from '@api/services/integrations/stripe/se
 import { ManagedStripeCheckoutService } from '@api/services/integrations/stripe/services/managed-stripe-checkout.service';
 import type { StripeCheckoutSession } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { ActivitySource } from '@genfeedai/contracts';
 import {
@@ -84,6 +85,7 @@ describe('StripeCheckoutWebhookHandler', () => {
   const lifecycleEmailService = {
     recordCheckoutCompleted: vi.fn(),
   };
+  const notificationsService = { deliverEmail: vi.fn() };
   const referralsService = { recordPaygPurchase: vi.fn() };
 
   function subscription(
@@ -153,6 +155,7 @@ describe('StripeCheckoutWebhookHandler', () => {
           useValue: attributionTracker,
         },
         { provide: LifecycleEmailService, useValue: lifecycleEmailService },
+        { provide: NotificationsService, useValue: notificationsService },
         { provide: ReferralsService, useValue: referralsService },
       ],
     }).compile();
@@ -607,6 +610,57 @@ describe('StripeCheckoutWebhookHandler', () => {
           String(message).includes('skills-pro receipt created'),
         )?.[1],
       ).not.toHaveProperty('email');
+      const createCall = prisma.skillReceipt.create.mock.calls[0];
+      if (!createCall) {
+        throw new Error('expected a skill receipt create call');
+      }
+      const createdReceiptId = (
+        createCall[0] as { data: { receiptId: string } }
+      ).data.receiptId;
+      expect(notificationsService.deliverEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idempotencyKey: 'skills-pro/receipt/cs_skills_1',
+          subject: 'Your Skills Pro receipt',
+          text: expect.stringContaining(
+            `npx @genfeedai/skills-pro install ${createdReceiptId}`,
+          ),
+          to: 'buyer@example.com',
+        }),
+      );
+    });
+
+    it('stores the stripe customer id on the receipt', async () => {
+      prisma.skillReceipt.create.mockResolvedValue({});
+      const attributed = {
+        ...session,
+        customer: 'cus_skills',
+        id: 'cs_skills_attributed',
+      } as unknown as StripeCheckoutSession;
+
+      await handler.handleCheckoutCompleted(attributed, 'test');
+
+      expect(prisma.skillReceipt.create).toHaveBeenCalledWith({
+        data: expect.objectContaining({
+          data: expect.objectContaining({
+            stripeCustomerId: 'cus_skills',
+          }),
+        }),
+      });
+    });
+
+    it('does not create a receipt when the buyer email is missing', async () => {
+      const anonymous = {
+        ...session,
+        customer_details: {},
+        id: 'cs_skills_no_email',
+      } as unknown as StripeCheckoutSession;
+
+      await expect(
+        handler.handleCheckoutCompleted(anonymous, 'test'),
+      ).rejects.toThrow('missing a customer email');
+
+      expect(prisma.skillReceipt.create).not.toHaveBeenCalled();
+      expect(notificationsService.deliverEmail).not.toHaveBeenCalled();
     });
 
     it('does not create a duplicate skills-pro receipt when the session is already processed', async () => {
@@ -648,11 +702,19 @@ describe('StripeCheckoutWebhookHandler', () => {
     it('does not create a duplicate skills-pro receipt when a persisted receipt already has the session id', async () => {
       prisma.skillReceipt.findFirst.mockResolvedValueOnce({
         data: { stripeSessionId: 'cs_skills_1' },
+        receiptId: 'sk_rcpt_existing',
       });
 
       await handler.handleCheckoutCompleted(session, 'test');
 
       expect(prisma.skillReceipt.create).not.toHaveBeenCalled();
+      expect(notificationsService.deliverEmail).toHaveBeenCalledWith(
+        expect.objectContaining({
+          idempotencyKey: 'skills-pro/receipt/cs_skills_1',
+          text: expect.stringContaining('sk_rcpt_existing'),
+          to: 'buyer@example.com',
+        }),
+      );
       expect(loggerService.log).toHaveBeenCalledWith(
         expect.stringContaining('skills-pro receipt already exists'),
         expect.objectContaining({ sessionId: 'cs_skills_1' }),

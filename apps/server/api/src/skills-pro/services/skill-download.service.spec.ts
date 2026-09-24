@@ -283,6 +283,94 @@ describe('SkillDownloadService', () => {
       }),
     );
   });
+
+  it('verifies a receipt secret without claiming an organization', async () => {
+    findFirst.mockResolvedValueOnce(receipt({ organizationId: 'org-2' }));
+
+    await expect(service.verifyReceiptBearer('sk_rcpt_one')).resolves.toEqual({
+      email: 'buyer@example.com',
+      productType: 'skill',
+      skills: ['image-gen-pro'],
+      valid: true,
+    });
+    expect(updateMany).not.toHaveBeenCalled();
+    expect(findFirst).toHaveBeenCalledWith({
+      where: {
+        isDeleted: false,
+        OR: [
+          { receiptId: 'sk_rcpt_one' },
+          { data: { equals: 'sk_rcpt_one', path: ['receiptId'] } },
+        ],
+        status: 'completed',
+      },
+    });
+  });
+
+  it('does not verify an unknown or expired receipt secret', async () => {
+    findFirst.mockResolvedValueOnce(null);
+    await expect(
+      service.verifyReceiptBearer('sk_rcpt_missing'),
+    ).resolves.toEqual({
+      email: '',
+      productType: '',
+      skills: [],
+      valid: false,
+    });
+
+    findFirst.mockResolvedValueOnce(
+      receipt({ expiresAt: new Date(Date.now() - 1_000) }),
+    );
+    await expect(service.verifyReceiptBearer('sk_rcpt_one')).resolves.toEqual({
+      email: '',
+      productType: '',
+      skills: [],
+      valid: false,
+    });
+  });
+
+  it('downloads a receipt secret without claiming an organization', async () => {
+    findFirst.mockResolvedValueOnce(receipt({ organizationId: null }));
+    getRegistry.mockResolvedValue({ skills: [skill] });
+    getSkillBySlug.mockReturnValue(skill);
+    getPresignedDownloadUrl.mockResolvedValue('https://cdn.example/download');
+    updateMany.mockResolvedValueOnce({ count: 1 });
+
+    await expect(
+      service.getDownloadUrlBearer('sk_rcpt_one', 'image-gen-pro'),
+    ).resolves.toMatchObject({ downloadUrl: 'https://cdn.example/download' });
+    expect(updateMany).toHaveBeenCalledTimes(1);
+    expect(updateMany).toHaveBeenCalledWith({
+      data: {
+        downloadCount: { increment: 1 },
+        lastDownloadedAt: expect.any(Date),
+      },
+      where: {
+        id: 'db-receipt-1',
+        isDeleted: false,
+        organizationId: null,
+      },
+    });
+  });
+
+  it('does not download a skill the receipt secret does not grant', async () => {
+    findFirst.mockResolvedValueOnce(
+      receipt({ organizationId: null, skillSlugs: ['video-pro'] }),
+    );
+
+    await expect(
+      service.getDownloadUrlBearer('sk_rcpt_one', 'image-gen-pro'),
+    ).rejects.toThrow(ForbiddenException);
+    expect(getPresignedDownloadUrl).not.toHaveBeenCalled();
+  });
+
+  it('does not download an unknown receipt secret', async () => {
+    findFirst.mockResolvedValueOnce(null);
+
+    await expect(
+      service.getDownloadUrlBearer('sk_rcpt_missing', 'image-gen-pro'),
+    ).rejects.toThrow('Receipt not found or not completed');
+    expect(getPresignedDownloadUrl).not.toHaveBeenCalled();
+  });
 });
 
 import { createHash } from 'node:crypto';

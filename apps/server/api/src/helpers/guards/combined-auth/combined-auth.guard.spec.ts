@@ -1,5 +1,6 @@
 import type { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
 import type { RequestContextMiddleware } from '@api/common/middleware/request-context.middleware';
+import { OPTIONAL_AUTH_KEY } from '@api/helpers/decorators/optional-auth.decorator';
 import type { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -156,6 +157,29 @@ describe('CombinedAuthGuard', () => {
 
     await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
     expect(apiKeyAuthGuard.canActivate).not.toHaveBeenCalled();
+  });
+
+  it('allows optional auth with no credential and validates a presented token', async () => {
+    reflector.getAllAndOverride.mockImplementation(
+      (key: string) => key === OPTIONAL_AUTH_KEY,
+    );
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      { headers: {} },
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+    expect(betterAuthGuard.canActivate).not.toHaveBeenCalled();
+
+    betterAuthGuard.canActivate.mockResolvedValue(true);
+    (mockExecutionContext.switchToHttp().getRequest as vi.Mock).mockReturnValue(
+      {
+        headers: { authorization: 'Bearer session-token' },
+        user: { organizationId: 'org-1' },
+      },
+    );
+
+    await expect(guard.canActivate(mockExecutionContext)).resolves.toBe(true);
+    expect(betterAuthGuard.canActivate).toHaveBeenCalled();
   });
 
   it('allows public routes without invoking auth guards', async () => {
