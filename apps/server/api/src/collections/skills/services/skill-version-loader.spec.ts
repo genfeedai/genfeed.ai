@@ -234,6 +234,31 @@ describe('loadAuthorizedSkillVersions', () => {
 
     expect(loaded.size).toBe(0);
   });
+
+  it('lets the personal owner resolve the current version', async () => {
+    const prisma = loaderPrisma({
+      versions: [versionRow('sv-2', 'owner current')],
+    });
+
+    const loaded = await loadAuthorizedSkillVersions(
+      prisma as unknown as PrismaService,
+      actor,
+      [
+        {
+          audience: 'private',
+          currentVersionId: 'sv-2',
+          id: 'skill-1',
+          ownerKind: 'user',
+          ownerUserId: 'user-1',
+          publishedVersionId: null,
+          sharedVersionId: null,
+        },
+      ],
+      new Set(),
+    );
+
+    expect(loaded.get('skill-1')?.instructionText).toBe('owner current');
+  });
 });
 
 describe('applyAuthorizedVersionBody', () => {

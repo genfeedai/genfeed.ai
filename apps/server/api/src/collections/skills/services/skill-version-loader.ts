@@ -37,6 +37,10 @@ const TARGET_RANK: Record<string, number> = {
   user: 0,
 };
 
+function rankTarget(kind: string | null | undefined): number {
+  return TARGET_RANK[kind ?? ''] ?? 9;
+}
+
 function instructionConfig(
   config: Prisma.JsonValue,
   instructionText: string,
@@ -112,16 +116,18 @@ export async function loadAuthorizedSkillVersions(
     }),
   ]);
   const grantVersion = new Map<string, string>();
-  for (const grant of grants) {
+  const rankedGrants = [...grants].sort(
+    (left, right) =>
+      rankTarget(left.recipientKind) - rankTarget(right.recipientKind),
+  );
+  for (const grant of rankedGrants) {
     if (grant.revokedAt != null) continue;
     if (!grantVersion.has(grant.skillId)) {
       grantVersion.set(grant.skillId, grant.skillVersionId);
     }
   }
   const ranked = [...assignments].sort(
-    (left, right) =>
-      (TARGET_RANK[left.targetKind] ?? 9) -
-      (TARGET_RANK[right.targetKind] ?? 9),
+    (left, right) => rankTarget(left.targetKind) - rankTarget(right.targetKind),
   );
   const assignmentVersion = new Map<string, string>();
   for (const assignment of ranked) {

@@ -481,8 +481,18 @@ export class SkillLibraryService {
       if (!allowed.has(skillId)) continue;
       const version = versions.get(skillId);
       const pin = pins.find((item) => item.skillId === skillId);
-      if (pin && version && pin.contentHash !== version.contentHash) continue;
-      if (!version) continue;
+      if (pin && (!version || pin.contentHash !== version.contentHash)) {
+        continue;
+      }
+      if (!version) {
+        const isOwner =
+          document.ownerKind === 'system' ||
+          document.isBuiltIn === true ||
+          (document.ownerKind === 'user' &&
+            document.ownerUserId === actor.userId);
+        if (isOwner) included.push(document);
+        continue;
+      }
       included.push(applyAuthorizedVersionBody(document, version));
       recorded.push({
         contentHash: version.contentHash,

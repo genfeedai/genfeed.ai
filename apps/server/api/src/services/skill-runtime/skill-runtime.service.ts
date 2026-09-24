@@ -15,6 +15,7 @@ import {
   UNTRUSTED_ORG_SKILL_FRAMING,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type {
+  PinnedRuntimeSkill,
   ResolveActiveSkillsContext,
   ResolvedRuntimeSkill,
 } from '@genfeedai/contracts/interfaces/ai';
@@ -137,11 +138,34 @@ export class SkillRuntimeService {
     return this.buildSkillPromptSections(skills, requested);
   }
 
+  async collectAuthorizedPins(input: {
+    actorUserId?: string;
+    brandId?: string | null;
+    modality: string;
+    organizationId: string;
+    requestedSkillSlugs?: string[];
+  }): Promise<PinnedRuntimeSkill[]> {
+    const pins: PinnedRuntimeSkill[] = [];
+    if (!input.actorUserId || !input.requestedSkillSlugs?.length) return pins;
+    await this.resolveGenerationSkillPromptSections(
+      input.organizationId,
+      input.brandId,
+      input.requestedSkillSlugs,
+      {
+        actorUserId: input.actorUserId,
+        modality: input.modality,
+        pinnedSkills: pins,
+      },
+    );
+    return pins;
+  }
+
   async applyAuthorizedSkillPrompt(input: {
     actorUserId?: string;
     brandId?: string | null;
     modality: string;
     organizationId: string;
+    pinnedSkills?: PinnedRuntimeSkill[];
     prompt: string;
     requestedSkillSlugs?: string[];
   }): Promise<string> {
@@ -151,7 +175,11 @@ export class SkillRuntimeService {
       input.organizationId,
       input.brandId,
       requested,
-      { actorUserId: input.actorUserId, modality: input.modality },
+      {
+        actorUserId: input.actorUserId,
+        modality: input.modality,
+        ...(input.pinnedSkills ? { pinnedSkills: input.pinnedSkills } : {}),
+      },
     );
     return sections ? `${sections}\n\n${input.prompt}` : input.prompt;
   }
