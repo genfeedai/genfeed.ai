@@ -1,4 +1,5 @@
 import { BetterAuthGuard } from '@api/auth/better-auth/guards/better-auth.guard';
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import { AiActionsController } from '@api/endpoints/ai-actions/ai-actions.controller';
 import type { AiActionResult } from '@api/endpoints/ai-actions/ai-actions.service';
 import { AiActionsService } from '@api/endpoints/ai-actions/ai-actions.service';
@@ -53,9 +54,18 @@ describe('AiActionsController', () => {
 
       aiActionsService.execute.mockResolvedValue(expectedResult);
 
-      const result = await controller.execute(orgId, dto);
+      const user: AuthenticatedUser = {
+        brandId: 'brand_123',
+        id: 'user_123',
+        organizationId: orgId,
+        userId: 'user_123',
+      };
+      const result = await controller.execute(orgId, dto, user);
 
-      expect(aiActionsService.execute).toHaveBeenCalledWith(orgId, dto);
+      expect(aiActionsService.execute).toHaveBeenCalledWith(orgId, dto, {
+        brandId: 'brand_123',
+        userId: 'user_123',
+      });
       expect(result).toEqual(expectedResult);
     });
 

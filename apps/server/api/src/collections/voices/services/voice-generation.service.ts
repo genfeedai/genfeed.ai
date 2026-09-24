@@ -19,6 +19,7 @@ import {
   IngredientStatus,
   MetadataExtension,
 } from '@genfeedai/contracts';
+import type { PinnedRuntimeSkill } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import {
@@ -41,6 +42,7 @@ type VoiceGenerationParams = {
   brandId?: string;
   ingredientId: string;
   organizationId: string;
+  pinnedSkills?: PinnedRuntimeSkill[];
   requestedSkillSlugs?: string[];
   text: string;
   userId: string;
@@ -110,6 +112,7 @@ export class VoiceGenerationService implements OnModuleInit {
             'processing',
           );
           await this.enqueueGeneration({
+            brandId: user.brandId,
             ingredientId: String(accepted.id),
             organizationId: user.organizationId,
             requestedSkillSlugs: dto.requestedSkillSlugs,
@@ -149,6 +152,7 @@ export class VoiceGenerationService implements OnModuleInit {
     );
 
     await this.enqueueGeneration({
+      brandId: user.brandId,
       ingredientId,
       requestedSkillSlugs: dto.requestedSkillSlugs,
       organizationId: user.organizationId,
@@ -179,10 +183,24 @@ export class VoiceGenerationService implements OnModuleInit {
   private async enqueueGeneration(
     params: VoiceGenerationParams,
   ): Promise<void> {
+    const pinnedSkills = await this.pinsForVoice(params);
     await this.workflowRunner.enqueueWorkflow({
       actionType: 'voice.generate',
       canonicalId: 'voice.generate',
-      inputValues: params,
+      inputValues: {
+        ingredientId: params.ingredientId,
+        organizationId: params.organizationId,
+        text: params.text,
+        userId: params.userId,
+        voiceId: params.voiceId,
+        ...(params.requestedSkillSlugs?.length
+          ? {
+              ...(params.brandId ? { brandId: params.brandId } : {}),
+              requestedSkillSlugs: params.requestedSkillSlugs,
+            }
+          : {}),
+        ...(pinnedSkills.length > 0 ? { pinnedSkills } : {}),
+      },
       metadata: {
         ingredientId: params.ingredientId,
         retentionClass: 'ephemeral-processing',
@@ -332,7 +350,32 @@ export class VoiceGenerationService implements OnModuleInit {
       brandId: params.brandId,
       modality: 'audio',
       organizationId: params.organizationId,
+      ...(params.pinnedSkills?.length
+        ? { pinnedSkills: params.pinnedSkills }
+        : {}),
       prompt: params.text,
+      requestedSkillSlugs: params.requestedSkillSlugs,
+    });
+  }
+
+  private async pinsForVoice(
+    params: VoiceGenerationParams,
+  ): Promise<PinnedRuntimeSkill[]> {
+    if (params.pinnedSkills && params.pinnedSkills.length > 0) {
+      return params.pinnedSkills;
+    }
+    if (
+      !this.skillRuntime ||
+      !params.brandId ||
+      !params.requestedSkillSlugs?.length
+    ) {
+      return [];
+    }
+    return this.skillRuntime.collectAuthorizedPins({
+      actorUserId: params.userId,
+      brandId: params.brandId,
+      modality: 'audio',
+      organizationId: params.organizationId,
       requestedSkillSlugs: params.requestedSkillSlugs,
     });
   }

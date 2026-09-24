@@ -40,6 +40,7 @@ describe('PromptEnhancementService', () => {
     prompts.findOne.mockResolvedValue({ id: 'saved' });
     await service.enhance({
       ...input,
+      actorUserId: 'user',
       promptId: 'saved',
       contentType: 'video',
       requestedSkillSlugs: ['Cinema'],
@@ -49,7 +50,7 @@ describe('PromptEnhancementService', () => {
       'org',
       'selected-brand',
       ['cinema'],
-      { modality: 'video' },
+      { actorUserId: 'user', modality: 'video' },
     );
     expect(openRouter.chatCompletion).toHaveBeenCalledOnce();
   });
@@ -99,6 +100,7 @@ describe('PromptEnhancementService', () => {
     expect(
       await service.enhance({
         ...input,
+        actorUserId: 'user',
         model: 'provider/visual-model',
         requestedSkillSlugs: ['cinema'],
         contentType: 'image',
@@ -117,7 +119,7 @@ describe('PromptEnhancementService', () => {
       'org',
       'selected-brand',
       ['cinema'],
-      { modality: 'image' },
+      { actorUserId: 'user', modality: 'image' },
     );
     expect(openRouter.chatCompletion).toHaveBeenCalledWith(
       {

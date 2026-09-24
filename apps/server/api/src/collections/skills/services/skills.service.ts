@@ -21,6 +21,15 @@ import {
   type SkillDocument,
 } from '@api/collections/skills/schemas/skill.schema';
 import {
+  buildAccessibleSkillWhere,
+  buildBuiltInCatalogWhere,
+} from '@api/collections/skills/services/skill-access-where';
+import {
+  callerCanSeeSkill,
+  grantedSkillIds,
+  updateOwnedPersonalSkill,
+} from '@api/collections/skills/services/skill-caller-scope';
+import {
   normalizeRequestedSkillSlugs,
   unavailableRequestedSkill,
 } from '@api/collections/skills/utils/requested-skill-slugs.util';
@@ -43,6 +52,7 @@ export interface ListSkillsOptions {
 }
 
 export interface ResolveBrandSkillsOptions {
+  actorUserId?: string;
   agentType?: string;
   channel?: string;
   fallbackToDefaultCatalog?: boolean;
@@ -337,18 +347,23 @@ export class SkillsService {
     organizationId: string,
     idOrSlug: string,
     payload: UpdateSkillDto,
+    userId?: string,
   ): Promise<SkillDocument> {
     this.requireOrganizationId(organizationId);
     this.assertSkillStatus(payload.status);
-    const skill = await this.getSkillById(organizationId, idOrSlug);
+    const skill = await this.getSkillById(organizationId, idOrSlug, userId);
+    const isPersonalOwner =
+      userId !== undefined &&
+      skill?.ownerKind === 'user' &&
+      skill.ownerUserId === userId &&
+      skill.organizationId == null;
 
-    // `getSkillById` resolves through `buildAccessibleSkillWhere`, which also
-    // returns catalog-global skills (`organizationId: null`). Those are readable
-    // but not writable: the update below is organization-scoped, so a global —
-    // or any row this org does not own — must be absent, not a write attempt
-    // that only fails at the database. Customizing a global skill goes through
-    // `customizeSkill`, which forks it into an organization-owned copy.
-    if (!skill || skill.organizationId !== organizationId) {
+    // Catalog-global rows stay readable and are forked through customizeSkill.
+    // Another user's personal skill is not visible through this caller's where.
+    if (
+      !skill ||
+      (skill.organizationId !== organizationId && !isPersonalOwner)
+    ) {
       throw new NotFoundException('Skill', idOrSlug);
     }
 
@@ -380,10 +395,23 @@ export class SkillsService {
       mergedConfig.isEnabled = payload.status !== 'disabled';
     }
 
+    const label =
+      payload.name ?? (existingConfig['name'] as string | undefined);
+    if (isPersonalOwner && userId) {
+      const updated = await updateOwnedPersonalSkill(
+        this.prisma,
+        String(skill.id),
+        userId,
+        mergedConfig,
+        label,
+      );
+      return this.normalizeSkill(updated);
+    }
+
     const updated = await this.prisma.skill.update({
       data: {
         config: mergedConfig as Prisma.InputJsonValue,
-        label: payload.name ?? (existingConfig['name'] as string | undefined),
+        label,
         organizationId,
       },
       where: scopedWhere(organizationId, { id: String(skill.id) }),
@@ -400,13 +428,10 @@ export class SkillsService {
     this.requireOrganizationId(organizationId);
 
     const results =
-      // tenant-scope-ignore: visible skills are the organization, the caller's personal rows, or the trusted catalog
+      // tenant-scope-ignore: visible skills are the organization, the caller's personal rows, granted rows, or the trusted catalog
       await this.prisma.skill.findMany({
         orderBy: [{ createdAt: 'desc' }],
-        where: this.buildAccessibleSkillWhere(
-          organizationId,
-          userId,
-        ) as Prisma.SkillWhereInput,
+        where: await this.visibleSkillWhere(organizationId, userId),
       });
     const docs = results.map((r) => this.normalizeSkill(r));
     const { surface } = options;
@@ -421,11 +446,13 @@ export class SkillsService {
   async getAvailableForOrg(organizationId: string): Promise<SkillDocument[]> {
     this.requireOrganizationId(organizationId);
 
-    const allSkills = await this.prisma.skill.findMany({
-      where: this.buildAccessibleSkillWhere(
-        organizationId,
-      ) as Prisma.SkillWhereInput,
-    });
+    const allSkills =
+      // tenant-scope-ignore: the helper requires this organization or the trusted catalog, and isDeleted false
+      await this.prisma.skill.findMany({
+        where: buildAccessibleSkillWhere(
+          organizationId,
+        ) as Prisma.SkillWhereInput,
+      });
 
     const availableSkills: SkillDocument[] = [];
 
@@ -452,8 +479,10 @@ export class SkillsService {
   async getSkillById(
     organizationId: string,
     idOrSlug: string,
+    userId?: string,
   ): Promise<SkillDocument | null> {
     this.requireOrganizationId(organizationId);
+    const where = await this.visibleSkillWhere(organizationId, userId);
 
     const builtInIdentity = BUILT_IN_SKILL_CATALOG.find(
       ({ id, slug }) => id === idOrSlug || slug === idOrSlug,
@@ -463,7 +492,7 @@ export class SkillsService {
       // tenant-scope-ignore: trusted catalog lookup ORs this tenant with fixed migration-owned global ids; both arms require isDeleted false
       const builtIn = await this.prisma.skill.findFirst({
         where: {
-          ...this.buildAccessibleSkillWhere(organizationId),
+          ...where,
           id: builtInIdentity.id,
         } as Prisma.SkillWhereInput,
       });
@@ -471,19 +500,19 @@ export class SkillsService {
       return builtIn ? this.normalizeSkill(builtIn) : null;
     }
 
+    // tenant-scope-ignore: caller visibility is organization, personal owner, grant, or trusted catalog, each with isDeleted false
     const result = await this.prisma.skill.findFirst({
       where: {
-        ...this.buildAccessibleSkillWhere(organizationId),
+        ...where,
         OR: [{ id: idOrSlug }],
       } as Prisma.SkillWhereInput,
     });
 
     if (!result) {
       // Try by slug (stored in config.slug) — fall back to in-memory scan for slug match
+      // tenant-scope-ignore: caller visibility is organization, personal owner, grant, or trusted catalog, each with isDeleted false
       const all = await this.prisma.skill.findMany({
-        where: this.buildAccessibleSkillWhere(
-          organizationId,
-        ) as Prisma.SkillWhereInput,
+        where,
       });
       const bySlug = all.find((r) => {
         const cfg = this.getConfig(r);
@@ -549,6 +578,7 @@ export class SkillsService {
   async getBrandSkillSelection(
     organizationId: string,
     brandId: string,
+    userId?: string,
   ): Promise<IBrandEffectiveSkillSelection> {
     this.requireOrganizationId(organizationId);
 
@@ -578,6 +608,8 @@ export class SkillsService {
     const accessibleSkillSlugs = await this.getAccessibleSkillSlugSet(
       organizationId,
       true,
+      userId,
+      brandId,
     );
 
     return {
@@ -615,6 +647,7 @@ export class SkillsService {
     const selection = await this.getBrandSkillSelection(
       organizationId,
       brandId,
+      options.actorUserId,
     );
     const requested =
       normalizeRequestedSkillSlugs(options.requestedSlugs) ?? [];
@@ -635,19 +668,34 @@ export class SkillsService {
     enabledSlugs = [...new Set([...enabledSlugs, ...requested])];
     if (enabledSlugs.length === 0) return [];
 
-    const all = await this.prisma.skill.findMany({
-      where: this.buildAccessibleSkillWhere(
-        organizationId,
-      ) as Prisma.SkillWhereInput,
-    });
+    const actorUserId = options.actorUserId;
+    const grantIds = new Set(
+      await grantedSkillIds(this.prisma, organizationId, actorUserId, brandId),
+    );
+    // tenant-scope-ignore: caller visibility is organization, personal owner, grant, or trusted catalog, each with isDeleted false
+    const all =
+      // tenant-scope-ignore: resolution includes this organization, the caller's personal rows, explicit grants, and the trusted catalog
+      await this.prisma.skill.findMany({
+        where: await this.visibleSkillWhere(
+          organizationId,
+          actorUserId,
+          brandId,
+        ),
+      });
 
-    // Filter by enabled slugs (config.slug)
+    // Filter by enabled slugs (config.slug). Personal and granted rows stay
+    // caller-scoped; a null organization id is not enough to include a skill.
     const skills = all
       .filter(
         (row) =>
           !row.isDeleted &&
-          (row.organizationId === organizationId ||
-            this.isTrustedBuiltInSkill(row)),
+          callerCanSeeSkill(
+            row,
+            organizationId,
+            actorUserId,
+            grantIds,
+            this.isTrustedBuiltInSkill(row),
+          ),
       )
       .map((r) => this.normalizeSkill(r))
       .filter((doc) => {
@@ -730,6 +778,7 @@ export class SkillsService {
       ownerKind: row.ownerKind,
       ownerUserId: row.ownerUserId,
       publishedVersionId: row.publishedVersionId,
+      sharedVersionId: row.sharedVersionId,
       revision: row.revision,
       updatedAt: row.updatedAt,
     } as unknown as SkillDocument;
@@ -746,43 +795,40 @@ export class SkillsService {
     return {};
   }
 
-  private buildAccessibleSkillWhere(
+  private async visibleSkillRows(
     organizationId: string,
     userId?: string,
-  ): Record<string, unknown> {
-    this.requireOrganizationId(organizationId);
-    const visible = [{ organizationId }, this.buildBuiltInCatalogWhere()];
+    brandId?: string | null,
+  ) {
     if (userId) {
-      visible.unshift({
-        ownerKind: 'user',
-        ownerUserId: userId,
-      } as unknown as (typeof visible)[number]);
+      // tenant-scope-ignore: caller visibility is this organization, the caller's personal rows, live grants, or the trusted catalog
+      return this.prisma.skill.findMany({
+        where: await this.visibleSkillWhere(organizationId, userId, brandId),
+      });
     }
-
-    return {
-      AND: [
-        { isDeleted: false },
-        { isQuarantined: false },
-        {
-          OR: visible,
-        },
-      ],
-    };
+    // tenant-scope-ignore: slug availability is this organization or the trusted built-in catalog, both with isDeleted false
+    return this.prisma.skill.findMany({
+      where: {
+        AND: [
+          { isDeleted: false },
+          { isQuarantined: false },
+          { OR: [{ organizationId }, buildBuiltInCatalogWhere()] },
+        ],
+      },
+    });
   }
 
-  private buildBuiltInCatalogWhere(): Record<string, unknown> {
-    return {
-      AND: [
-        { organizationId: null },
-        { config: { equals: true, path: ['isBuiltIn'] } },
-        { config: { equals: 'built_in', path: ['source'] } },
-        {
-          OR: BUILT_IN_SKILL_CATALOG.map(({ id, slug }) => ({
-            AND: [{ id }, { config: { equals: slug, path: ['slug'] } }],
-          })),
-        },
-      ],
-    };
+  private async visibleSkillWhere(
+    organizationId: string,
+    userId?: string,
+    brandId?: string | null,
+  ): Promise<Prisma.SkillWhereInput> {
+    this.requireOrganizationId(organizationId);
+    return buildAccessibleSkillWhere(
+      organizationId,
+      userId,
+      await grantedSkillIds(this.prisma, organizationId, userId, brandId),
+    ) as Prisma.SkillWhereInput;
   }
 
   private assertConfiguredSkillSlugs(
@@ -828,31 +874,26 @@ export class SkillsService {
   private async getAccessibleSkillSlugSet(
     organizationId: string,
     onlyEnabled = false,
+    userId?: string,
+    brandId?: string | null,
   ): Promise<Set<string>> {
     this.requireOrganizationId(organizationId);
-
-    // tenant-scope-ignore: catalog read ORs this tenant with fixed migration-owned global ids and explicitly requires isDeleted false
-    const rows = await this.prisma.skill.findMany({
-      // Skills are either owned by this organization or immutable catalog
-      // entries with null ownership. Keep both arms explicit at this Prisma
-      // call so the tenant-scope guard can prove there is no foreign-org path.
-      where: {
-        AND: [
-          { isDeleted: false },
-          { isQuarantined: false },
-          {
-            OR: [{ organizationId }, this.buildBuiltInCatalogWhere()],
-          },
-        ],
-      },
-    });
+    const grantIds = new Set(
+      await grantedSkillIds(this.prisma, organizationId, userId, brandId),
+    );
+    const rows = await this.visibleSkillRows(organizationId, userId, brandId);
 
     return new Set(
       rows
         .filter(
           (row) =>
-            (row.organizationId === organizationId ||
-              this.isTrustedBuiltInSkill(row)) &&
+            callerCanSeeSkill(
+              row,
+              organizationId,
+              userId,
+              grantIds,
+              this.isTrustedBuiltInSkill(row),
+            ) &&
             (!onlyEnabled || this.isEnabledSkill(row)),
         )
         .map((row) => this.readString(this.getConfig(row).slug))
