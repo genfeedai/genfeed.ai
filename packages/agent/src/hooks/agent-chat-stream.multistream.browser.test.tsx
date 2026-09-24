@@ -8,7 +8,7 @@ import { useComposerFollowUpQueue } from '@genfeedai/agent/hooks/use-composer-fo
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
-import { Button } from '@ui/primitives';
+import { Button } from '@ui/primitives/button';
 import { page } from '@vitest/browser/context';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, expect, it, vi } from 'vitest';
