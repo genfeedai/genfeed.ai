@@ -375,6 +375,7 @@ export class AgentAutopilotWorkflowService {
       weeklyCreditBudget - creditsUsedThisWeek,
     );
     const objective = await this.buildSyntheticUserMessage(strategy);
+    let dispatchThreadId: string | undefined;
 
     try {
       const thread = await this.agentThreadsService.create({
@@ -385,6 +386,7 @@ export class AgentAutopilotWorkflowService {
         title: `Proactive · ${strategy.label ?? strategyId}`,
         userId: userId,
       });
+      dispatchThreadId = String(thread.id);
       const { executionId } = await this.workflowRunner.enqueueWorkflow({
         actionType: 'agent.turn.execute',
         canonicalId: 'agent.turn.execute',
@@ -393,7 +395,7 @@ export class AgentAutopilotWorkflowService {
             content: objective,
             creditBudget: remainingBudget,
             strategyId,
-            threadId: String(thread.id),
+            threadId: dispatchThreadId,
             ...(config.agentType ? { agentType: config.agentType } : {}),
             ...(config.autonomyMode
               ? { autonomyMode: config.autonomyMode }
@@ -407,7 +409,7 @@ export class AgentAutopilotWorkflowService {
           label: `Proactive: ${strategy.label}`,
           source: 'proactive',
           strategyId,
-          threadId: String(thread.id),
+          threadId: dispatchThreadId,
         },
         organizationId,
         source: 'proactive',
@@ -417,7 +419,12 @@ export class AgentAutopilotWorkflowService {
       await this.scheduleNextRun(strategyId, config.runFrequency);
       return executionId;
     } catch (error) {
-      await this.recordStrategyFailure(strategy, config, error);
+      await this.recordStrategyFailure(
+        strategy,
+        config,
+        error,
+        dispatchThreadId,
+      );
       return null;
     }
   }
@@ -426,9 +433,22 @@ export class AgentAutopilotWorkflowService {
     strategy: AgentStrategySnapshot,
     config: AgentStrategyConfig,
     error: unknown,
+    dispatchThreadId?: string,
   ): Promise<void> {
     await this.prisma.$transaction(async (transaction) => {
       await lockAgentStrategy(transaction, strategy.id);
+      if (dispatchThreadId) {
+        const execution = await transaction.workflowExecution.findFirst({
+          where: scopedWhere(strategy.organizationId, {
+            result: {
+              path: ['metadata', 'threadId'],
+              equals: dispatchThreadId,
+            },
+          }),
+          select: { id: true },
+        });
+        if (execution) return;
+      }
       const current = await transaction.agentStrategy.findFirst({
         where: scopedWhere(strategy.organizationId, { id: strategy.id }),
       });
