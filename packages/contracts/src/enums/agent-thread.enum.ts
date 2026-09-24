@@ -5,10 +5,10 @@ export enum AgentThreadStatus {
 
 /**
  * Per-thread agent mode (#4672). Replaces the old `planModeEnabled` boolean:
- * `AUTO` never confirms credit-spending/brand-context/gated actions (outbound
- * still confirms), `MANUAL` confirms all four action classes, and `PLAN`
- * drafts a plan and runs its approved steps like `AUTO` (outbound still
- * confirms). One is saved per user as their default for new threads.
+ * `AUTO` and `PLAN` retain all declared approval-required and outbound gates.
+ * `MANUAL` additionally confirms credit spending and brand context changes.
+ * `PLAN` drafts a plan and runs its approved steps with the same gates as `AUTO`.
+ * One is saved per user as their default for new threads.
  */
 export enum AgentThreadMode {
   AUTO = 'auto',

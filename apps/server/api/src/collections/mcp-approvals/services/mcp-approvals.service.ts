@@ -1,6 +1,7 @@
 import { CreateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/create-mcp-approval.dto';
 import { UpdateMcpApprovalDto } from '@api/collections/mcp-approvals/dto/update-mcp-approval.dto';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import {
   type ApiKeyPublishingContext,
   assertApiKeyPublishingScope,
@@ -11,7 +12,7 @@ import { NotificationsPublisherService } from '@api/services/notifications/publi
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions';
-import { McpApprovalStatus, Prisma } from '@genfeedai/prisma';
+import { McpApprovalStatus, Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -148,9 +149,21 @@ export class McpApprovalsService extends BaseService<
     decision: 'approve' | 'decline',
     result?: Record<string, unknown>,
     apiKeyContext?: ApiKeyPublishingContext,
+    transaction?: Prisma.TransactionClient,
   ): Promise<McpApprovalDocument> {
+    const delegate = transaction?.mcpApproval ?? this.delegate;
+    const findOwned = async () => {
+      if (!transaction) return this.findOneWithOrganization(id, organizationId);
+      const approval = await delegate.findFirst({
+        where: scopedWhere(organizationId, { id }),
+      });
+      if (!approval) {
+        throw new NotFoundException(`${this.constructor.name} not found`);
+      }
+      return approval;
+    };
     if (decision === 'approve') {
-      const approval = await this.findOneWithOrganization(id, organizationId);
+      const approval = await findOwned();
       if (isPublishingMcpApprovalTool(approval.toolName)) {
         assertApiKeyPublishingScope(apiKeyContext ?? {}, 'approve');
       }
@@ -166,7 +179,7 @@ export class McpApprovalsService extends BaseService<
     // the same approval cannot both succeed — whoever flips PENDING first wins,
     // and the loser's updateMany matches 0 rows. This is what lets the MCP layer
     // safely gate tool execution on a successful resolve (no double-execution).
-    const { count } = await this.delegate.updateMany({
+    const { count } = await delegate.updateMany({
       where: scopedWhere(organizationId, {
         id,
         status: McpApprovalStatus.PENDING,
@@ -174,19 +187,19 @@ export class McpApprovalsService extends BaseService<
       data: {
         status,
         resolvedAt: new Date(),
-        ...(result !== undefined && { result }),
+        ...(result !== undefined && { result: toPrismaJson(result) }),
       },
     });
 
     if (count === 0) {
       // Either the approval does not exist / is cross-org, or it was already
       // resolved by a concurrent caller. Distinguish the two for a clear error.
-      await this.findOneWithOrganization(id, organizationId);
+      await findOwned();
 
       throw new BadRequestException('Approval already resolved');
     }
 
-    return (await this.delegate.findFirst({
+    return (await delegate.findFirst({
       where: scopedWhere(organizationId, { id }),
     })) as McpApprovalDocument;
   }

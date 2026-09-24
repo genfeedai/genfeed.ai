@@ -18,7 +18,11 @@ import {
 import type { IAgentRunProjection } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 type ThreadRunStatus =
   | 'queued'
@@ -132,11 +136,17 @@ export class AgentThreadsService extends BaseService<
         if (updated.count !== 1)
           throw new NotFoundException('Thread', threadId);
       }
-      await transaction.setting.upsert({
-        where: { userId, isDeleted: false },
+      const setting = await transaction.setting.upsert({
+        where: { userId },
         create: { userId, agentMode: mode },
         update: { agentMode: mode },
+        select: { isDeleted: true },
       });
+      if (setting.isDeleted) {
+        throw new ConflictException(
+          'The user setting is deleted. Agent mode was not changed.',
+        );
+      }
       return { mode, threadId };
     });
   }
