@@ -45,3 +45,36 @@ describe('useWorkflowExecutions loading state', () => {
     await waitFor(() => expect(result.current.isRefreshing).toBe(false));
   });
 });
+
+describe('useWorkflowExecutions organization scope', () => {
+  it('clears executions and fetches again when collection organization changes', async () => {
+    listMock.mockReset();
+    listMock.mockResolvedValueOnce([
+      { id: 'org-one-execution', status: 'COMPLETED', creditsUsed: 0 },
+    ]);
+    const { result, rerender } = renderHook(
+      ({ organizationId }) =>
+        useWorkflowExecutions({ strategyId: 'agent-1' }, { organizationId }),
+      {
+        initialProps: { organizationId: 'org-1' },
+        wrapper: createQueryWrapper(),
+      },
+    );
+    await waitFor(() =>
+      expect(result.current.executions[0]?.id).toBe('org-one-execution'),
+    );
+    listMock.mockImplementation(() => new Promise(() => {}));
+    rerender({ organizationId: 'org-2' });
+    expect(result.current.executions).toEqual([]);
+    expect(result.current.isLoading).toBe(true);
+    await waitFor(() => expect(listMock).toHaveBeenCalledTimes(2));
+  });
+
+  it('does not fetch before an explicitly supplied organization scope resolves', () => {
+    listMock.mockReset();
+    renderHook(() => useWorkflowExecutions({}, { organizationId: '' }), {
+      wrapper: createQueryWrapper(),
+    });
+    expect(listMock).not.toHaveBeenCalled();
+  });
+});

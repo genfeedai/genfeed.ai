@@ -88,11 +88,32 @@ export class WorkflowExecutionsController {
     }
 
     if (query.brandId) {
-      match.workflow = {
-        brandId: query.brandId,
-        isDeleted: false,
-        organizationId,
-      };
+      match.AND = [
+        {
+          OR: [
+            {
+              workflow: {
+                brandId: query.brandId,
+                isDeleted: false,
+                organizationId,
+              },
+            },
+            {
+              AND: [
+                {
+                  result: { path: ['metadata', 'source'], equals: 'proactive' },
+                },
+                {
+                  result: {
+                    path: ['metadata', 'brandId'],
+                    equals: query.brandId,
+                  },
+                },
+              ],
+            },
+          ],
+        },
+      ];
     }
 
     if (query.status) {
