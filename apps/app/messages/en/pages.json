@@ -1469,6 +1469,7 @@
         "addSuccess": "Source added; ingestion started",
         "addError": "Failed to add source",
         "refreshSuccess": "Refresh queued",
+        "refreshUnavailable": "Could not refresh “{title}”. Check the source URL and availability, then try again.",
         "refreshError": "Failed to refresh source"
       },
       "picker": {
