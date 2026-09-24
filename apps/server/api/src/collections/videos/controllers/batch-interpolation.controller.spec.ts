@@ -41,6 +41,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
+import { CreditDeductionQueueService } from '@api/queues/credit-deduction/credit-deduction-queue.service';
+import { ByokService } from '@api/services/byok/byok.service';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
@@ -49,6 +51,7 @@ import { FailedGenerationService } from '@api/shared/services/failed-generation/
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { IngredientFormat } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { billCreditsFromProviderCost } from '@genfeedai/pricing';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -142,6 +145,9 @@ describe('BatchInterpolationController', () => {
     useTemplate: false,
   };
 
+  const byokService = { resolveApiKey: vi.fn() };
+  const creditQueue = { queueDeduction: vi.fn(), queueByokUsage: vi.fn() };
+
   let activitiesService: { create: ReturnType<typeof vi.fn> };
   let assetsService: { findOne: ReturnType<typeof vi.fn> };
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
@@ -166,6 +172,11 @@ describe('BatchInterpolationController', () => {
   };
 
   beforeEach(async () => {
+    byokService.resolveApiKey
+      .mockReset()
+      .mockResolvedValue({ apiKey: 'org-replicate-key' });
+    creditQueue.queueDeduction.mockReset().mockResolvedValue(undefined);
+    creditQueue.queueByokUsage.mockReset().mockResolvedValue(undefined);
     activitiesService = { create: vi.fn().mockResolvedValue(mockActivity) };
     assetsService = { findOne: vi.fn() };
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
@@ -211,6 +222,8 @@ describe('BatchInterpolationController', () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [BatchInterpolationController],
       providers: [
+        { provide: ByokService, useValue: byokService },
+        { provide: CreditDeductionQueueService, useValue: creditQueue },
         { provide: ActivitiesService, useValue: activitiesService },
         { provide: AssetsService, useValue: assetsService },
         BatchInterpolationReferenceService,
@@ -272,6 +285,82 @@ describe('BatchInterpolationController', () => {
 
   describe('createBatchInterpolation', () => {
     describe('happy path', () => {
+      it.each([undefined, 9])(
+        'reserves the provider-priced duration including default five seconds (%s)',
+        async (duration) => {
+          const model = {
+            ...mockModel,
+            cost: 0,
+            pricingType: 'per-second',
+            providerCostUsd: 0.1,
+          };
+          modelsService.findOne.mockResolvedValue(model);
+          const dto = { ...mockDto, duration };
+          await controller.createBatchInterpolation(mockReq, dto, mockUser);
+          const amount = billCreditsFromProviderCost(model, {
+            duration: duration ?? 5,
+            width: 1280,
+            height: 720,
+          });
+          expect(amount).toBeGreaterThan(0);
+          expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+            expect.objectContaining({ amount }),
+          );
+          expect(promptBuilderService.buildPrompt).toHaveBeenCalledWith(
+            expect.anything(),
+            expect.objectContaining({ duration: duration ?? 5 }),
+            organizationId,
+          );
+        },
+      );
+
+      it('uses the organization BYOK key and records one accepted usage without GEN holds', async () => {
+        const req = {
+          user: mockUser,
+          creditsConfig: {
+            amount: 5,
+            description: 'Batch',
+            isByokBypass: true,
+            provider: 'replicate',
+          },
+        } as CreditsGuardRequest;
+        await controller.createBatchInterpolation(req, mockDto, mockUser);
+        expect(byokService.resolveApiKey).toHaveBeenCalledWith(
+          organizationId,
+          'replicate',
+        );
+        expect(replicateService.generateTextToVideo).toHaveBeenCalledWith(
+          mockDto.modelKey,
+          expect.anything(),
+          'org-replicate-key',
+        );
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+        expect(creditQueue.queueByokUsage).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({
+            amount: 5,
+            idempotencyKey: `interpolation-${ingredientId}`,
+          }),
+        );
+      });
+
+      it('rejects missing BYOK keys before provider dispatch', async () => {
+        byokService.resolveApiKey.mockResolvedValue(undefined);
+        const req = {
+          user: mockUser,
+          creditsConfig: {
+            amount: 5,
+            description: 'Batch',
+            isByokBypass: true,
+            provider: 'replicate',
+          },
+        } as CreditsGuardRequest;
+        await expect(
+          controller.createBatchInterpolation(req, mockDto, mockUser),
+        ).rejects.toThrow();
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+      });
+
       it('should return jobs with processing status when generation succeeds', async () => {
         const result = await controller.createBatchInterpolation(
           mockReq,
