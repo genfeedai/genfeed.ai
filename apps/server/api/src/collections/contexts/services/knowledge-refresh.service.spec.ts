@@ -378,13 +378,11 @@ describe('KnowledgeRefreshService remote source failures', () => {
   const safeDetail =
     'The source could not be reached. Check its URL and availability, then try again.';
   beforeEach(() => {
-    vi.mocked(extractSourceText)
-      .mockReset()
-      .mockResolvedValue({
-        mimeType: 'text/html',
-        notModified: true,
-        text: '',
-      });
+    vi.mocked(extractSourceText).mockReset().mockResolvedValue({
+      mimeType: 'text/html',
+      notModified: true,
+      text: '',
+    });
   });
   it('returns safe 422 and marks only the scoped run/source failed without replacing current knowledge', async () => {
     const { service, prisma, logger, records, ingestWorkflow } = buildService();
