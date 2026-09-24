@@ -84,8 +84,8 @@ describe('ApifyRunBudgetService', () => {
           return 'settled';
         },
       ),
-      set: vi.fn(async (key: string, value: number) => {
-        counters[key] = value;
+      initializeCounterBudget: vi.fn(async (key: string, value: number) => {
+        counters[key] ??= value;
         return true;
       }),
     };
@@ -309,10 +309,10 @@ describe('ApifyRunBudgetService', () => {
 
     await service.consumeRun('hosted', 'apify/scraper', 'test-token');
 
-    const usageSet = cacheService.set.mock.calls.find(([key]) =>
-      String(key).startsWith('apify:billing-period-budget:hosted:'),
+    const usageSet = cacheService.initializeCounterBudget.mock.calls.find(
+      ([key]) => String(key).startsWith('apify:billing-period-budget:hosted:'),
     );
-    const ttl = usageSet?.[2]?.ttl as number | undefined;
+    const ttl = usageSet?.[2] as number | undefined;
     const secondsUntilReset = Math.ceil(
       (Date.parse('2026-09-26T23:59:59.999Z') - Date.now()) / 1000,
     );
@@ -461,4 +461,42 @@ describe('ApifyRunBudgetService', () => {
       expect(counters[decision.reservation?.usageKey ?? '']).toBe(250_000);
     },
   );
+  it('preserves an existing cycle ledger when initialization markers are absent', async () => {
+    const key = 'apify:billing-period-budget:hosted:2026-08-27';
+    counters[key] = 3_900_000;
+    const decision = await service.consumeRun('hosted', 'actor', 'token');
+    expect(decision.maxTotalChargeUsd).toBe(0.1);
+    expect(counters[key]).toBe(4_000_000);
+  });
+
+  it.each([-1, NaN, Infinity, Number.MAX_SAFE_INTEGER])(
+    'rejects invalid provider baseline %s before initialization',
+    async (usage) => {
+      httpService.get.mockReturnValueOnce(
+        of({
+          data: {
+            data: {
+              totalUsageCreditsUsdAfterVolumeDiscount: usage,
+              usageCycle: {
+                startAt: '2026-08-27T00:00:00.000Z',
+                endAt: '2026-09-26T23:59:59.999Z',
+              },
+            },
+          },
+        }),
+      );
+      expect(
+        (await service.consumeRun('hosted', 'actor', 'token')).isAllowed,
+      ).toBe(false);
+      expect(cacheService.initializeCounterBudget).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves BYOK behavior with invalid hosted monetary configuration', async () => {
+    env.APIFY_MAX_BILLING_PERIOD_USD = 'bad';
+    expect(
+      (await build().consumeRun('byok:org', 'actor', 'token')).isAllowed,
+    ).toBe(true);
+    expect(httpService.get).not.toHaveBeenCalled();
+  });
 });

@@ -54,6 +54,24 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
     await redis?.quit();
   });
 
+  it('initializes absent ledgers once and preserves existing values and expiry', async () => {
+    const ledger = key();
+    expect(await services[0].initializeCounterBudget(ledger, 70, 60)).toBe(
+      true,
+    );
+    const expiresAt = await redis.pexpiretime(ledger);
+    expect(await services[1].initializeCounterBudget(ledger, 0, 300)).toBe(
+      true,
+    );
+    expect(await redis.get(ledger)).toBe('70');
+    expect(await redis.pexpiretime(ledger)).toBe(expiresAt);
+    await redis.set(ledger, 'corrupt', 'PX', 60000);
+    expect(await services[0].initializeCounterBudget(ledger, 0, 60)).toBe(
+      false,
+    );
+    expect(await redis.get(ledger)).toBe('corrupt');
+  });
+
   it('admits concurrent callers without overspending and issues distinct receipts', async () => {
     const ledger = key();
     await redis.set(ledger, '0', 'PX', 60000);

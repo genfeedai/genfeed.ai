@@ -36,7 +36,7 @@ export type CounterReservationReconciliationResult =
   | 'duplicate'
   | 'unavailable';
 
-const COUNTER_VALIDATION_SCRIPT = `
+const COUNTER_INTEGER_SCRIPT = `
 local MAX = 9007199254740991
 local function integer(value)
   if type(value) ~= 'string' or not string.match(value, '^%d+$') then return nil end
@@ -45,10 +45,27 @@ local function integer(value)
   if string.format('%.0f', number) ~= value then return nil end
   return number
 end
+`;
+
+const COUNTER_VALIDATION_SCRIPT = `${COUNTER_INTEGER_SCRIPT}
 if redis.call('TYPE', KEYS[1]).ok ~= 'string' then return 0 end
 local current = integer(redis.call('GET', KEYS[1]))
 local ttl = redis.call('PTTL', KEYS[1])
 if not current or ttl <= 0 then return 0 end
+`;
+
+const INITIALIZE_COUNTER_BUDGET_SCRIPT = `${COUNTER_INTEGER_SCRIPT}
+local initial = integer(ARGV[1])
+local ttl = integer(ARGV[2])
+if not initial or not ttl or ttl <= 0 then return 0 end
+local kind = redis.call('TYPE', KEYS[1]).ok
+if kind == 'none' then
+  redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+  return 1
+end
+if kind ~= 'string' then return 0 end
+if not integer(redis.call('GET', KEYS[1])) or redis.call('PTTL', KEYS[1]) <= 0 then return 0 end
+return 1
 `;
 
 const RESERVE_COUNTER_BUDGET_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
@@ -123,6 +140,36 @@ export class CacheService {
     details: Parameters<LoggerService['error']>[1],
   ): void {
     this.logger.error(`${this.constructorName} ${operation} error`, details);
+  }
+
+  async initializeCounterBudget(
+    usageKey: string,
+    initialMicroUsd: number,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    if (
+      !this.isAvailable ||
+      !usageKey ||
+      !Number.isSafeInteger(initialMicroUsd) ||
+      initialMicroUsd < 0 ||
+      !Number.isSafeInteger(ttlSeconds) ||
+      ttlSeconds <= 0
+    )
+      return false;
+    try {
+      return (
+        (await this.client.eval(
+          INITIALIZE_COUNTER_BUDGET_SCRIPT,
+          1,
+          usageKey,
+          String(initialMicroUsd),
+          String(ttlSeconds),
+        )) === 1
+      );
+    } catch (error: unknown) {
+      this.logOperationError('initializeCounterBudget', { error });
+      return false;
+    }
   }
 
   async reserveCounterBudget(

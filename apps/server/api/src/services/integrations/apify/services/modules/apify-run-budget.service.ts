@@ -295,7 +295,6 @@ export class ApifyRunBudgetService {
         ApifyRunBudgetService.HOSTED_SCOPE,
         periodId,
       );
-      const initializationKey = `${usageKey}:initialized`;
       const secondsUntilPeriodEnd = Math.max(
         1,
         Math.ceil((endAtMs - now.getTime()) / 1000) + 1,
@@ -306,26 +305,12 @@ export class ApifyRunBudgetService {
       const ttlSeconds =
         secondsUntilPeriodEnd +
         ApifyRunBudgetService.PRIOR_PERIOD_RETENTION_SECONDS;
-      const claim = await this.cacheService.claimOnce(
-        initializationKey,
+      const initialized = await this.cacheService.initializeCounterBudget(
+        usageKey,
+        this.toMicroUsd(currentUsageUsd),
         ttlSeconds,
       );
-
-      if (claim === 'unavailable') return null;
-      if (claim === 'claimed') {
-        const initialized = await this.cacheService.set(
-          usageKey,
-          this.toMicroUsd(currentUsageUsd),
-          { ttl: ttlSeconds },
-        );
-        if (!initialized) {
-          await this.cacheService.del(initializationKey);
-          return null;
-        }
-      } else {
-        const initializedUsage = await this.cacheService.get<number>(usageKey);
-        if (typeof initializedUsage !== 'number') return null;
-      }
+      if (!initialized) return null;
 
       this.hostedBillingPeriod = { endAtMs, usageKey };
       return { usageKey };
