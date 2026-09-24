@@ -92,34 +92,44 @@ describe('ApifyRunBudgetService', () => {
         async (usageKey: string, providerMicro: number) => {
           const snapshotKey = `${usageKey}:snapshot`;
           const settledKey = `${usageKey}:settled`;
+          const provisionalKey = `${usageKey}:provisional`;
           const outstanding = counters[`${usageKey}:outstanding`] ?? 0;
           const settled = counters[settledKey] ?? 0;
+          const provisional = counters[provisionalKey] ?? 0;
           const current = counters[usageKey] ?? 0;
           const snapshot = counters[snapshotKey];
-          const unexplained =
-            snapshot === undefined
-              ? providerMicro - Math.max(0, current - outstanding)
-              : providerMicro - snapshot - settled;
-          if (unexplained < 0) {
-            if (snapshot === undefined) {
-              counters[snapshotKey] = providerMicro;
-              counters[settledKey] = 0;
-              return { status: 'baselined' };
-            }
+          let growth = 0;
+          let isBaselined = false;
+          if (snapshot === undefined) {
+            growth = Math.max(
+              0,
+              providerMicro - Math.max(0, current - outstanding),
+            );
+            isBaselined = true;
+          } else if (providerMicro < snapshot) {
             return { status: 'behind' };
+          } else {
+            growth = providerMicro - snapshot;
           }
-          const ours = Math.min(unexplained, outstanding);
-          const external = unexplained - ours;
-          if (external > 0) counters[usageKey] = current + external;
-          counters[snapshotKey] = providerMicro - ours;
-          counters[settledKey] = 0;
-          if (snapshot === undefined) return { status: 'baselined' };
-          if (external > 0) {
-            return { externalMicroUsd: external, status: 'applied' };
+          const isCovered = outstanding === 0 && providerMicro <= settled;
+          let next = current;
+          let nextProvisional = provisional;
+          if (growth > 0 && !isCovered) {
+            next += growth;
+            if (outstanding > 0) nextProvisional += growth;
           }
-          return unexplained === 0
-            ? { status: 'unchanged' }
-            : { status: 'behind' };
+          counters[usageKey] = next;
+          counters[snapshotKey] = providerMicro;
+          counters[provisionalKey] = nextProvisional;
+          if (isCovered && nextProvisional > 0 && next >= nextProvisional) {
+            counters[usageKey] = next - nextProvisional;
+            counters[provisionalKey] = 0;
+          }
+          if (isBaselined) return { status: 'baselined' };
+          if (growth > 0 && !isCovered) {
+            return { externalMicroUsd: growth, status: 'applied' };
+          }
+          return { status: 'unchanged' };
         },
       ),
       noteResearchReservation: vi.fn(
@@ -538,7 +548,7 @@ describe('ApifyRunBudgetService', () => {
     },
   );
 
-  it('does not import provider usage that still fits an open reservation', async () => {
+  it('holds provider usage inside an open reservation once', async () => {
     env.APIFY_MAX_BILLING_PERIOD_USD = '4';
     service = build();
     const first = await service.consumeRun('hosted', 'actor', 'token');
@@ -562,7 +572,7 @@ describe('ApifyRunBudgetService', () => {
     const second = await service.consumeRun('hosted', 'actor', 'token');
 
     expect(counters[usageKey]).toBe(
-      reserved + (second.reservation?.reservedMicroUsd ?? 0),
+      reserved + (second.reservation?.reservedMicroUsd ?? 0) + 50_000,
     );
     vi.advanceTimersByTime(6 * 60 * 1000);
     const beforeReplay = counters[usageKey];

@@ -104,8 +104,23 @@ local delta = actual - reserved
 if delta > 0 and current > MAX - delta then return 0 end
 local final = current + delta
 if final < 0 or final > MAX then return 0 end
-redis.call('INCRBY', KEYS[1], string.format('%.0f', delta))
+-- Withheld provider usage was hidden inside this reservation's cap.
+-- When the actual charge does not cover it, keep the whole withheld
+-- total: the reservation cap is not proof those dollars were ours.
+-- When the actual charge does cover it, adding it would bill our own
+-- run twice. Either way the hold is consumed here, not on a later refresh.
+local withheld = integer(redis.call('GET', KEYS[1] .. ':withheld') or '0')
+local floor = integer(redis.call('GET', KEYS[1] .. ':floor') or '0')
+if withheld == nil or floor == nil then return 0 end
+if withheld > actual then
+  if final > MAX - withheld then return 0 end
+  final = final + withheld
+  redis.call('SET', KEYS[1] .. ':snapshot', string.format('%.0f', floor), 'PX', ttl)
+end
+redis.call('INCRBY', KEYS[1], string.format('%.0f', final - current))
 redis.call('HSET', KEYS[2], 'state', 'settled', 'actualMicroUsd', ARGV[2])
+redis.call('SET', KEYS[1] .. ':withheld', '0', 'PX', ttl)
+redis.call('SET', KEYS[1] .. ':resolved', string.format('%.0f', floor), 'PX', ttl)
 return 1
 `;
 
@@ -132,61 +147,74 @@ local outstanding = integer(redis.call('GET', KEYS[3]) or '0')
 local settled = integer(redis.call('GET', KEYS[4]) or '0')
 if not reserved or not actual or not outstanding or not settled then return 0 end
 if outstanding < reserved or settled > MAX - actual then return 0 end
-redis.call('SET', KEYS[3], string.format('%.0f', outstanding - reserved), 'PX', ttl)
-redis.call('SET', KEYS[4], string.format('%.0f', settled + actual), 'PX', ttl)
+local settledNow = settled + actual
+local outstandingNow = outstanding - reserved
+local provider = integer(redis.call('GET', KEYS[5]) or '0')
+local provisional = integer(redis.call('GET', KEYS[6]) or '0')
+if provider == nil or provisional == nil then return 0 end
+redis.call('SET', KEYS[3], string.format('%.0f', outstandingNow), 'PX', ttl)
+redis.call('SET', KEYS[4], string.format('%.0f', settledNow), 'PX', ttl)
 redis.call('HSET', KEYS[2], 'booksSettled', '1')
+-- The provider total is fully explained by our actuals. The hold taken
+-- while the reservation was open was our own charge, so it comes back out
+-- in the same write that closes the reservation.
+if
+  outstandingNow == 0 and provider <= settledNow and provisional > 0 and
+  current >= provisional
+then
+  redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
+  redis.call('SET', KEYS[6], '0', 'PX', ttl)
+end
 return 1
 `;
 
 const IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
 local provider = integer(ARGV[1])
 if provider == nil then return 0 end
-local snapshotRaw = redis.call('GET', KEYS[2])
-if not snapshotRaw then
-  local outstanding = integer(redis.call('GET', KEYS[4]) or '0')
-  if outstanding == nil then return 0 end
-  local base = current - outstanding
-  if base < 0 then base = 0 end
-  local unexplained = provider - base
-  if unexplained < 0 then
-    redis.call('SET', KEYS[2], ARGV[1], 'PX', ttl)
-    redis.call('SET', KEYS[3], '0', 'PX', ttl)
-    return {3}
-  end
-  local ours = unexplained
-  if ours > outstanding then ours = outstanding end
-  local external = unexplained - ours
-  if external > 0 then
-    if current > MAX - external then return 0 end
-    redis.call('INCRBY', KEYS[1], string.format('%.0f', external))
-  end
-  redis.call('SET', KEYS[2], string.format('%.0f', provider - ours), 'PX', ttl)
-  redis.call('SET', KEYS[3], '0', 'PX', ttl)
-  return {3}
-end
-local snapshot = integer(snapshotRaw)
 local settled = integer(redis.call('GET', KEYS[3]) or '0')
 local outstanding = integer(redis.call('GET', KEYS[4]) or '0')
-if snapshot == nil or settled == nil or outstanding == nil then return 0 end
--- Provider usage can include our run before terminal settlement, and a
--- refresh can land between counter settlement and the outstanding-book note.
--- Attribute that overlap to the open reservation. Only the remainder is
--- external. Do not advance the snapshot through the attributed overlap, or
--- the later settlement is counted a second time.
-local unexplained = provider - snapshot - settled
-if unexplained < 0 then return {4} end
-local ours = unexplained
-if ours > outstanding then ours = outstanding end
-local external = unexplained - ours
-if external > 0 then
-  if current > MAX - external then return 0 end
-  redis.call('INCRBY', KEYS[1], string.format('%.0f', external))
+local provisional = integer(redis.call('GET', KEYS[5]) or '0')
+if settled == nil or outstanding == nil or provisional == nil then return 0 end
+local snapshotRaw = redis.call('GET', KEYS[2])
+local growth = 0
+local baselined = false
+if not snapshotRaw then
+  local base = current - outstanding
+  if base < 0 then base = 0 end
+  growth = provider - base
+  if growth < 0 then growth = 0 end
+  baselined = true
+else
+  local snapshot = integer(snapshotRaw)
+  if snapshot == nil then return 0 end
+  if provider < snapshot then return {4} end
+  growth = provider - snapshot
 end
-redis.call('SET', KEYS[2], string.format('%.0f', provider - ours), 'PX', ttl)
-redis.call('SET', KEYS[3], '0', 'PX', ttl)
-if external > 0 then return {1, string.format('%.0f', external)} end
-if unexplained == 0 then return {2} end
-return {4}
+-- Open reservations are a cap, not incurred spend. Hold every new provider
+-- dollar on the counter until settlement. The counter release subtracts only
+-- the unused reservation, so this hold cannot disappear in that write.
+-- Once nothing is open and settled actuals cover the provider total, that
+-- hold was our own charge and comes back out. Later provider growth that is
+-- still inside those actuals is not added again.
+local covered = outstanding == 0 and provider <= settled
+if growth > 0 and not covered then
+  if current > MAX - growth then return 0 end
+  if outstanding > 0 and provisional > MAX - growth then return 0 end
+  redis.call('INCRBY', KEYS[1], string.format('%.0f', growth))
+  current = current + growth
+  if outstanding > 0 then
+    provisional = provisional + growth
+    redis.call('SET', KEYS[5], string.format('%.0f', provisional), 'PX', ttl)
+  end
+end
+redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
+if covered and provisional > 0 and current >= provisional then
+  redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
+  redis.call('SET', KEYS[5], '0', 'PX', ttl)
+end
+if baselined then return {3} end
+if growth > 0 and not covered then return {1, string.format('%.0f', growth)} end
+return {2}
 `;
 
 export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
@@ -379,6 +407,8 @@ export class CacheService {
         reservationKey,
         `${usageKey}:outstanding`,
         `${usageKey}:settled`,
+        `${usageKey}:snapshot`,
+        `${usageKey}:provisional`,
       ],
       [],
       true,
@@ -386,10 +416,11 @@ export class CacheService {
   }
 
   /**
-   * Fold provider-account usage into the hosted counter. Growth that fits
-   * inside open reservations is not external, including a reading that
-   * arrives before terminal settlement or between the counter settlement
-   * and the outstanding-book note. Only the remainder is added, once.
+   * Fold provider-account usage into the hosted counter. Growth observed
+   * while a reservation is open is held in full, because that reservation is
+   * a cap rather than evidence the provider charge is ours. Settlement
+   * releases only the unused reservation. The hold comes back out when no
+   * reservation remains and settled actuals cover the provider total.
    */
   async importHostedAccountUsage(
     usageKey: string,
@@ -406,11 +437,12 @@ export class CacheService {
     try {
       const result = await this.client.eval(
         IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT,
-        4,
+        5,
         usageKey,
         `${usageKey}:snapshot`,
         `${usageKey}:settled`,
         `${usageKey}:outstanding`,
+        `${usageKey}:provisional`,
         String(providerMicroUsd),
       );
       if (Array.isArray(result) && result[0] === 1) {
