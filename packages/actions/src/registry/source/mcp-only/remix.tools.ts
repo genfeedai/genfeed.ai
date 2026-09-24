@@ -170,7 +170,6 @@ export const MCP_REMIX_TOOLS: SourceTool[] = [
         brandId: opaqueId,
         url: {
           type: 'string',
-          format: 'uri',
           pattern: '^https?://',
           maxLength: 512,
         },
