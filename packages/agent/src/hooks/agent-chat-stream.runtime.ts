@@ -75,9 +75,11 @@ export function findAgentStreamEntry(
 ): AgentStreamEntry | undefined {
   pruneTerminalEntries();
   if (threadId) return runtime.entries.get(threadId);
-  return [...runtime.entries.values()].findLast(
-    (entry) => !entry.activeStreamThreadRef.current,
-  );
+  return runtime.visibleDraftOwner &&
+    isCurrentAgentStreamEntry(runtime.visibleDraftOwner) &&
+    !runtime.visibleDraftOwner.activeStreamThreadRef.current
+    ? runtime.visibleDraftOwner
+    : undefined;
 }
 export function isCurrentAgentStreamEntry(entry: AgentStreamEntry) {
   return runtime.entries.get(entry.key) === entry;
@@ -141,8 +143,15 @@ export function createAgentStreamEntry(
     runtime.visibleDraftOwner = entry;
   runtime.disposeVisibleBridge ??= useAgentChatStore.subscribe(
     (next, previous) => {
-      if (runtime.projecting || next.activeThreadId !== previous.activeThreadId)
+      if (runtime.projecting) return;
+      if (next.activeThreadId !== previous.activeThreadId) {
+        if (
+          runtime.visibleDraftOwner &&
+          !runtime.visibleDraftOwner.activeStreamThreadRef.current
+        )
+          runtime.visibleDraftOwner = null;
         return;
+      }
       const owner = next.activeThreadId
         ? runtime.entries.get(next.activeThreadId)
         : runtime.visibleDraftOwner;
