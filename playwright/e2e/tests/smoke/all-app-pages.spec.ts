@@ -3,6 +3,7 @@ import { createServer, type Server, type ServerResponse } from 'node:http';
 import path from 'node:path';
 import type { Page, Response } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
+import { buildUnhandledApiMockBody } from '../../utils/api-interceptor';
 
 const appRoot = path.join(process.cwd(), 'apps/app/app');
 const routeFilter = process.env.GENFEED_E2E_ROUTE_FILTER;
@@ -315,6 +316,11 @@ function proactiveWorkspacePayload() {
 async function startMockApiServer(): Promise<Server | null> {
   const server = createServer((request, response) => {
     const url = request.url ?? '/';
+
+    if (new URL(url, 'http://localhost').pathname === '/v1/costs/summary') {
+      jsonResponse(response, buildUnhandledApiMockBody(url));
+      return;
+    }
 
     if (url.startsWith('/v1/health')) {
       jsonResponse(response, { status: 'ok' });
