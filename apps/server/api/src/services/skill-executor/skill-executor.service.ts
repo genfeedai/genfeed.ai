@@ -74,10 +74,15 @@ export class SkillWorkflowService implements OnModuleInit {
     }
 
     const startedAt = Date.now();
+    const pinnedContext = await this.contextWithPins(
+      skillSlug,
+      context,
+      userId,
+    );
     const execution = await this.workflowRunner.runWorkflow<GeneratedContent>({
       actionType: SKILL_ACTION_IDS[skillSlug],
       canonicalId: SKILL_WORKFLOW_IDS[skillSlug],
-      inputValues: { context, params },
+      inputValues: { context: pinnedContext, params },
       organizationId: context.organizationId,
       source: 'SkillWorkflowService.execute',
       userId,
@@ -110,6 +115,55 @@ export class SkillWorkflowService implements OnModuleInit {
       context,
       this.readRecord(request.input.params, 'params'),
     );
+  }
+
+  private async contextWithPins(
+    skillSlug: ExecutableSkillSlug,
+    context: SkillExecutionContext,
+    userId?: string,
+  ): Promise<SkillExecutionContext & { pinnedSkills?: unknown[] }> {
+    const existing = context as SkillExecutionContext & {
+      pinnedSkills?: unknown[];
+    };
+    if (
+      !userId ||
+      !this.skillLibrary ||
+      (Array.isArray(existing.pinnedSkills) && existing.pinnedSkills.length > 0)
+    ) {
+      return existing;
+    }
+    const skill = await this.skillsService.getSkillById(
+      context.organizationId,
+      skillSlug,
+      userId,
+    );
+    if (!skill) return existing;
+    const decision = await this.skillLibrary.authorizeResolved(
+      {
+        brandId: context.brandId,
+        organizationId: context.organizationId,
+        userId,
+      },
+      [skill],
+      [],
+    );
+    const version = decision.versions[0];
+    const executed = decision.included.find(
+      (item) => String(item.id) === String(skill.id),
+    );
+    if (!version || !executed) return existing;
+    return {
+      ...context,
+      pinnedSkills: [
+        {
+          contentHash: version.contentHash,
+          instructions:
+            executed.systemPromptTemplate ?? executed.defaultInstructions ?? '',
+          slug: String(skill.slug ?? skillSlug),
+          versionId: version.skillVersionId,
+        },
+      ],
+    };
   }
 
   private async assertSkillExecutable(

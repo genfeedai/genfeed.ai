@@ -39,8 +39,6 @@ export interface PinnedRuntimeSkill {
 
 export interface ResolveActiveSkillsContext {
   actorUserId?: string;
-  /** Reuses the versions resolved for this execution, including its retry. */
-  executionId?: string;
   /** Empty array collects pins. A non-empty array is the retry source. */
   pinnedSkills?: PinnedRuntimeSkill[];
   agentType?: string;
