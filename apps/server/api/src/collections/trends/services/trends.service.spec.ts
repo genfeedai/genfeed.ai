@@ -609,7 +609,7 @@ describe('TrendsService', () => {
             },
             {
               contentType: 'tweet',
-              id: 'source-c-fallback',
+              id: 'source-c',
               platform: 'twitter',
               sourceUrl: 'https://x.com/example/status/3',
               text: 'Tweet C',
@@ -642,7 +642,7 @@ describe('TrendsService', () => {
         trendTopic: '#AIAgents',
         trendViralityScore: 90,
       });
-      expect(result.items[1]?.sourcePreviewState).toBe('fallback');
+      expect(result.items[1]?.sourcePreviewState).toBe('live');
       expect(result.lockedPlatforms).toEqual(['instagram']);
     });
 
@@ -668,7 +668,7 @@ describe('TrendsService', () => {
       expect(result.items).toEqual([]);
     });
 
-    it('returns LinkedIn content when public reference previews are stored', async () => {
+    it('excludes historical LinkedIn public reference previews', async () => {
       vi.spyOn(service, 'getTrendsWithAccessControl').mockResolvedValue({
         connectedPlatforms: [],
         lockedPlatforms: ['linkedin'],
@@ -716,16 +716,7 @@ describe('TrendsService', () => {
 
       const result = await service.getTrendContent('org-1', 'brand-1');
 
-      expect(result.items).toHaveLength(1);
-      expect(result.items[0]).toMatchObject({
-        platform: 'linkedin',
-        sourceClassification: expect.objectContaining({
-          sourceKind: 'public_platform_reference',
-        }),
-        sourcePreviewState: 'fallback',
-        sourceUrl: 'https://www.linkedin.com/company/openai/',
-        trendTopic: '#openai',
-      });
+      expect(result.items).toEqual([]);
     });
 
     it('returns an empty feed when the trend corpus is empty (no synthetic seed)', async () => {

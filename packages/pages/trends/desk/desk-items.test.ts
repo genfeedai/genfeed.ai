@@ -3,6 +3,7 @@ import type { ISourcePost, ITrendVideo } from '@genfeedai/contracts/interfaces';
 import type { TrendContentItem } from '@props/trends/trends-page.props';
 import { describe, expect, it } from 'vitest';
 import {
+  isObservedTrendContent,
   toDeskItemFromSourcePost,
   toDeskItemFromTrend,
   toDeskItemFromViralVideo,
@@ -246,5 +247,59 @@ describe('toDeskItemFromViralVideo', () => {
     );
 
     expect(result.engagement).toBe(800 + 40 + 12000);
+  });
+});
+
+describe('isObservedTrendContent', () => {
+  const seed = makeTrendItem({
+    platform: 'linkedin',
+    sourcePreviewState: undefined,
+    sourceUrl: 'https://www.linkedin.com/company/openai/',
+    sourceClassification: {
+      capturedAt: '2026-01-01',
+      confidence: 'low',
+      freshnessWindowDays: 7,
+      intendedUse: 'organic_trend_discovery',
+      sourceKind: 'public_platform_reference',
+      sourceLabel: 'LinkedIn',
+    },
+  });
+  it('excludes explicit fallback and legacy company seeds', () => {
+    expect(isObservedTrendContent(seed)).toBe(false);
+    expect(
+      isObservedTrendContent(makeTrendItem({ sourcePreviewState: 'fallback' })),
+    ).toBe(false);
+    expect(
+      isObservedTrendContent(makeTrendItem({ id: 'trend-fallback-1' })),
+    ).toBe(false);
+  });
+  it.each([
+    { sourceUrl: 'https://www.linkedin.com/posts/observed' },
+    { sourceUrl: 'https://example.com/company/openai/' },
+    { sourceUrl: 'http://www.linkedin.com/company/openai/' },
+    { sourceUrl: 'https://www.linkedin.com/company/openai/posts/' },
+    { mediaUrl: 'https://media.example/video.mp4' },
+    {
+      sourceClassification: {
+        ...seed.sourceClassification!,
+        confidence: 'medium' as const,
+      },
+    },
+    {
+      sourceClassification: {
+        ...seed.sourceClassification!,
+        sourceKind: 'owned_brand_reference' as const,
+      },
+    },
+    {
+      sourceClassification: {
+        ...seed.sourceClassification!,
+        sourceKind: 'manual_reference' as const,
+      },
+    },
+  ])('preserves observed and non-seed content: %o', (overrides) => {
+    expect(
+      isObservedTrendContent(makeTrendItem({ ...seed, ...overrides })),
+    ).toBe(true);
   });
 });

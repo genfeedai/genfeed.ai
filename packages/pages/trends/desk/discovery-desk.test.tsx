@@ -203,6 +203,16 @@ describe('DiscoveryDesk', () => {
     });
   });
 
+  it('renders setup actions alongside readiness when no observed posts exist', () => {
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      items: [],
+    });
+    render(<DiscoveryDesk />);
+    expect(screen.getByTestId('desk-empty-state')).toBeInTheDocument();
+    expect(screen.getByTestId('discovery-readiness-cards')).toBeInTheDocument();
+  });
+
   it('puts search on the left of the module topbar', () => {
     render(<DiscoveryDesk />);
 
