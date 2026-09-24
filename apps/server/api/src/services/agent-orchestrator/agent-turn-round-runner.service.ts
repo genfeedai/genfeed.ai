@@ -8,7 +8,10 @@ import type {
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import type { ResolvedAgentExecutionPolicy } from '@api/services/agent-orchestrator/interfaces/agent-execution-policy.interface';
 import { AgentToolConfirmationService } from '@api/services/agent-orchestrator/tools/agent-tool-confirmation.service';
-import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
+import {
+  AgentToolExecutorService,
+  type ToolExecutionContext,
+} from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   type AgentArtifactCompletionMetadata,
   buildAgentArtifactCompletionMetadata as buildArtifactMetadata,
@@ -246,16 +249,13 @@ export class AgentTurnRoundRunnerService {
     const {
       allowedToolNames,
       assistantContent,
-      attachmentUrls,
       context,
-      generationPriority,
       messages,
       model,
       policy,
       source,
       state,
       strategy = {},
-      thinkingModel,
       threadId,
       toolCalls,
     } = params;
@@ -540,33 +540,10 @@ export class AgentTurnRoundRunnerService {
       const result = await this.toolExecutorService.executeTool(
         toolName,
         toolParams,
-        {
-          apiKeyContext: context.apiKeyContext,
-          attachmentUrls,
-          autonomyMode: policy.autonomyMode,
-          brandId: policy.brandId,
-          creditGovernance: policy.creditGovernance,
-          generationModelOverride: policy.generationModelOverride,
-          generationMode: context.generationMode,
-          generationPriority,
-          generationSettings: context.generationSettings,
-          knowledgeSelection: context.knowledgeSelection,
-          ...(context.requestedSkillSlugs?.length
-            ? { requestedSkillSlugs: context.requestedSkillSlugs }
-            : {}),
-          organizationId: context.organizationId,
-          platform: policy.platform,
-          qualityTier: policy.qualityTier,
-          reviewModelOverride: policy.reviewModelOverride,
-          runId: context.executionId,
-          hostSupportsApproval: context.hostSupportsApproval ?? true,
-          ...(preparedToolCall.confirmationContext ?? {}),
-          strategyId: context.strategyId,
-          thinkingModel,
-          threadId,
-          userId: context.userId,
-          validatedScope: policy.scope,
-        },
+        this.buildToolExecutionContext(
+          params,
+          preparedToolCall.confirmationContext,
+        ),
       );
       const modelVisibleResult =
         this.toolConfirmationService.buildModelVisibleResult(toolName, result);
@@ -793,6 +770,49 @@ export class AgentTurnRoundRunnerService {
 
     return { ...recovered, useIdentity: true };
   }
+  private buildToolExecutionContext(
+    params: ExecuteToolRoundParams,
+    confirmationContext: Awaited<
+      ReturnType<AgentToolConfirmationService['prepareToolCall']>
+    >['confirmationContext'],
+  ): ToolExecutionContext {
+    const {
+      attachmentUrls,
+      context,
+      generationPriority,
+      policy,
+      thinkingModel,
+      threadId,
+    } = params;
+    return {
+      apiKeyContext: context.apiKeyContext,
+      attachmentUrls,
+      autonomyMode: policy.autonomyMode,
+      brandId: policy.brandId,
+      creditGovernance: policy.creditGovernance,
+      generationModelOverride: policy.generationModelOverride,
+      generationMode: context.generationMode,
+      generationPriority,
+      generationSettings: context.generationSettings,
+      knowledgeSelection: context.knowledgeSelection,
+      ...(context.requestedSkillSlugs?.length
+        ? { requestedSkillSlugs: context.requestedSkillSlugs }
+        : {}),
+      organizationId: context.organizationId,
+      platform: policy.platform,
+      qualityTier: policy.qualityTier,
+      reviewModelOverride: policy.reviewModelOverride,
+      runId: context.executionId,
+      hostSupportsApproval: context.hostSupportsApproval ?? true,
+      ...(confirmationContext ?? {}),
+      strategyId: context.strategyId,
+      thinkingModel,
+      threadId,
+      userId: context.userId,
+      validatedScope: policy.scope,
+    };
+  }
+
   private recordRiskLevel(
     state: { highestRiskLevel: AgentToolRoundRiskLevel },
     riskLevel: string | undefined,

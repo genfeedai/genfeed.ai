@@ -117,16 +117,22 @@ export class AgentMediaAssetGenerationService {
     );
   }
 
-  async generateImage(
+  private normalizeMediaParams(
     params: Record<string, unknown>,
-    ctx: ToolExecutionContext,
-  ): Promise<AgentToolResult> {
-    params = {
+  ): Record<string, unknown> {
+    return {
       ...params,
       requestedSkillSlugs: normalizeRequestedSkillSlugs(
         params.requestedSkillSlugs,
       ),
     };
+  }
+
+  async generateImage(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    params = this.normalizeMediaParams(params);
     const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
     if ('error' in resolvedContext) {
       return resolvedContext.error;
@@ -435,12 +441,7 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    params = {
-      ...params,
-      requestedSkillSlugs: normalizeRequestedSkillSlugs(
-        params.requestedSkillSlugs,
-      ),
-    };
+    params = this.normalizeMediaParams(params);
     const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
     if ('error' in resolvedContext) {
       return resolvedContext.error;
