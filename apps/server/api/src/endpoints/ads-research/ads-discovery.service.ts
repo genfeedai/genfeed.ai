@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import type {
@@ -209,7 +209,6 @@ export function groupDiscoveryAdvertisers(
 
 @Injectable()
 export class AdsDiscoveryService {
-  private readonly inflight = new Map<string, Promise<void>>();
   constructor(
     private readonly registry: PaidCreativeProviderRegistry,
     private readonly cache: CacheService,
@@ -272,7 +271,9 @@ export class AdsDiscoveryService {
         };
       return cached;
     }
-    const claim = await this.cache.claimOnce(`${key}:claim`, 300);
+    const claimKey = `${key}:claim`;
+    const token = randomUUID();
+    const claim = await this.cache.acquireOwnedClaim(claimKey, token, 300);
     if (claim === 'unavailable')
       return {
         ...base,
@@ -285,17 +286,27 @@ export class AdsDiscoveryService {
         status: 'unavailable',
         reason: 'paid_creative_search_busy',
       };
+    const completedDuringClaim =
+      await this.cache.get<AdsDiscoveryResponse>(key);
+    if (completedDuringClaim) {
+      await this.cache.releaseOwnedClaim(claimKey, token);
+      return completedDuringClaim;
+    }
     const pending = {
       ...base,
       startedAt: new Date().toISOString(),
       expiresAt: new Date(Date.now() + 180_000).toISOString(),
     };
-    if (!(await this.cache.set(key, pending, { ttl: 300 })))
+    if (
+      !(await this.cache.setOwnedClaimValue(claimKey, token, key, pending, 300))
+    ) {
+      await this.cache.releaseOwnedClaim(claimKey, token, key);
       return {
         ...base,
         status: 'unavailable',
         reason: 'paid_creative_cache_unavailable',
       };
+    }
     const task = (async () => {
       try {
         const records = await adapter.fetchCreatives({
@@ -318,23 +329,30 @@ export class AdsDiscoveryService {
             0,
           ),
         };
-        await this.cache.set(key, response, { ttl: 86400 });
+        await this.cache.setOwnedClaimValue(
+          claimKey,
+          token,
+          key,
+          response,
+          86400,
+        );
       } catch {
-        await this.cache.set(
+        await this.cache.setOwnedClaimValue(
+          claimKey,
+          token,
           key,
           {
             ...base,
             status: 'unavailable',
             reason: 'paid_creative_source_unavailable',
           },
-          { ttl: 60 },
+          60,
         );
       } finally {
-        this.inflight.delete(key);
+        await this.cache.releaseOwnedClaim(claimKey, token);
       }
     })();
-    this.inflight.set(key, task);
-    void task.catch(() => this.inflight.delete(key));
+    void task.catch(() => undefined);
     return pending;
   }
 }

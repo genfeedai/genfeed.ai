@@ -25,6 +25,7 @@ describe('CacheService', () => {
 
     mockRedisClient = {
       del: vi.fn(),
+      eval: vi.fn(),
       exists: vi.fn(),
       expire: vi.fn(),
       flushdb: vi.fn(),
@@ -208,6 +209,112 @@ describe('CacheService', () => {
     it('returns false when the lock is already held', async () => {
       (mockRedisClient.set as vi.Mock).mockResolvedValue(null);
       await expect(service.acquireLock('resource', 60)).resolves.toBe(false);
+    });
+  });
+
+  describe('owned claims', () => {
+    it('stores a unique owner with expiry and distinguishes contention from failure', async () => {
+      (mockRedisClient.set as vi.Mock)
+        .mockResolvedValueOnce('OK')
+        .mockResolvedValueOnce(null)
+        .mockRejectedValueOnce(new Error('offline'));
+      await expect(
+        service.acquireOwnedClaim('claim', 'owner', 300),
+      ).resolves.toBe('claimed');
+      expect(mockRedisClient.set).toHaveBeenCalledWith(
+        'claim',
+        'owner',
+        'EX',
+        300,
+        'NX',
+      );
+      await expect(
+        service.acquireOwnedClaim('claim', 'other', 300),
+      ).resolves.toBe('duplicate');
+      await expect(
+        service.acquireOwnedClaim('claim', 'other', 300),
+      ).resolves.toBe('unavailable');
+    });
+    it('atomically fences result writes by owner and retains their TTL', async () => {
+      (mockRedisClient.eval as vi.Mock)
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(0);
+      await expect(
+        service.setOwnedClaimValue(
+          'claim',
+          'owner',
+          'result',
+          { status: 'empty' },
+          86400,
+        ),
+      ).resolves.toBe(true);
+      expect(mockRedisClient.eval).toHaveBeenCalledWith(
+        expect.stringMatching(
+          /GET.*KEYS\[1\][\s\S]*ARGV\[1\][\s\S]*return 0[\s\S]*SETEX/,
+        ),
+        2,
+        'claim',
+        'result',
+        'owner',
+        '{"status":"empty"}',
+        86400,
+      );
+      await expect(
+        service.setOwnedClaimValue('claim', 'expired', 'result', {}, 60),
+      ).resolves.toBe(false);
+      expect(mockRedisClient.setex).not.toHaveBeenCalled();
+    });
+    it('releases only the matching owner and optionally its partial pending result', async () => {
+      (mockRedisClient.eval as vi.Mock)
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(1)
+        .mockResolvedValueOnce(0);
+      await expect(service.releaseOwnedClaim('claim', 'owner')).resolves.toBe(
+        true,
+      );
+      expect(mockRedisClient.eval).toHaveBeenLastCalledWith(
+        expect.stringMatching(/GET.*KEYS\[1\][\s\S]*return 0[\s\S]*DEL/),
+        1,
+        'claim',
+        'owner',
+      );
+      await expect(
+        service.releaseOwnedClaim('claim', 'owner', 'pending'),
+      ).resolves.toBe(true);
+      expect(mockRedisClient.eval).toHaveBeenLastCalledWith(
+        expect.any(String),
+        2,
+        'claim',
+        'pending',
+        'owner',
+      );
+      await expect(
+        service.releaseOwnedClaim('claim', 'expired', 'new-pending'),
+      ).resolves.toBe(false);
+      expect(mockRedisClient.del).not.toHaveBeenCalled();
+    });
+    it('fails closed on Redis errors and skips commands when Redis is unready', async () => {
+      (mockRedisClient.eval as vi.Mock).mockRejectedValue(new Error('offline'));
+      await expect(
+        service.setOwnedClaimValue('claim', 'owner', 'result', {}, 60),
+      ).resolves.toBe(false);
+      await expect(service.releaseOwnedClaim('claim', 'owner')).resolves.toBe(
+        false,
+      );
+      expect(loggerService.error).toHaveBeenCalled();
+      vi.clearAllMocks();
+      isClientReady = false;
+      await expect(
+        service.acquireOwnedClaim('claim', 'owner', 300),
+      ).resolves.toBe('unavailable');
+      await expect(
+        service.setOwnedClaimValue('claim', 'owner', 'result', {}, 60),
+      ).resolves.toBe(false);
+      await expect(
+        service.releaseOwnedClaim('claim', 'owner', 'pending'),
+      ).resolves.toBe(false);
+      expect(mockRedisClient.set).not.toHaveBeenCalled();
+      expect(mockRedisClient.eval).not.toHaveBeenCalled();
     });
   });
 

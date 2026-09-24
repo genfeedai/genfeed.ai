@@ -17,8 +17,18 @@ describe('public discovery', () => {
     limit: 24,
   };
   function setup() {
-    const data = new Map<string, unknown>(),
-      claims = new Set<string>();
+    let clock = 0;
+    const data = new Map<string, unknown>();
+    const resultExpiries = new Map<string, number>();
+    const claims = new Map<string, { token: string; expiresAt: number }>();
+    const owner = (key: string) => {
+      const claim = claims.get(key);
+      if (claim && claim.expiresAt <= clock) {
+        claims.delete(key);
+        return undefined;
+      }
+      return claim?.token;
+    };
     const fetchCreatives = vi.fn().mockResolvedValue([]);
     const adapter = {
       fetchCreatives,
@@ -29,18 +39,41 @@ describe('public discovery', () => {
       }),
     };
     const cache = {
-      get: vi.fn(async (key: string) => data.get(key) ?? null),
-      set: vi.fn(async (key: string, value: unknown) => {
-        data.set(key, value);
-        return true;
+      get: vi.fn(async (key: string) => {
+        if ((resultExpiries.get(key) ?? Infinity) <= clock) data.delete(key);
+        return data.get(key) ?? null;
       }),
-      claimOnce: vi.fn(
+      acquireOwnedClaim: vi.fn(
         async (
           key: string,
+          token: string,
+          ttl: number,
         ): Promise<'claimed' | 'duplicate' | 'unavailable'> => {
-          if (claims.has(key)) return 'duplicate';
-          claims.add(key);
+          if (owner(key)) return 'duplicate';
+          claims.set(key, { token, expiresAt: clock + ttl * 1000 });
           return 'claimed';
+        },
+      ),
+      setOwnedClaimValue: vi.fn(
+        async (
+          claimKey: string,
+          token: string,
+          resultKey: string,
+          value: unknown,
+          ttl: number,
+        ) => {
+          if (owner(claimKey) !== token) return false;
+          data.set(resultKey, value);
+          resultExpiries.set(resultKey, clock + ttl * 1000);
+          return true;
+        },
+      ),
+      releaseOwnedClaim: vi.fn(
+        async (claimKey: string, token: string, resultKeyToDelete?: string) => {
+          if (owner(claimKey) !== token) return false;
+          if (resultKeyToDelete) data.delete(resultKeyToDelete);
+          claims.delete(claimKey);
+          return true;
         },
       ),
     };
@@ -48,7 +81,16 @@ describe('public discovery', () => {
       { resolve: () => adapter } as unknown as PaidCreativeProviderRegistry,
       cache as unknown as CacheService,
     );
-    return { service, cache, adapter, data };
+    return {
+      service,
+      cache,
+      adapter,
+      data,
+      claims,
+      advance: (milliseconds: number) => {
+        clock += milliseconds;
+      },
+    };
   }
   it('normalizes and rejects invalid runtime query values', () => {
     expect(validateDiscoveryQuery(query)).toMatchObject({
@@ -112,10 +154,12 @@ describe('public discovery', () => {
     const { service, adapter, cache } = setup();
     expect((await service.discover('org-a', query)).status).toBe('pending');
     await vi.waitFor(() =>
-      expect(cache.set).toHaveBeenCalledWith(
+      expect(cache.setOwnedClaimValue).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
         expect.any(String),
         expect.objectContaining({ status: 'empty' }),
-        { ttl: 86400 },
+        86400,
       ),
     );
     expect((await service.discover('org-a', query)).status).toBe('empty');
@@ -134,7 +178,7 @@ describe('public discovery', () => {
   });
   it('does not spend without cache or configuration and does not cache source failures as empty', async () => {
     const { service, adapter, cache } = setup();
-    cache.claimOnce.mockResolvedValue('unavailable');
+    cache.acquireOwnedClaim.mockResolvedValue('unavailable');
     expect((await service.discover('org', query)).reason).toBe(
       'paid_creative_cache_unavailable',
     );
@@ -151,13 +195,15 @@ describe('public discovery', () => {
     failing.adapter.fetchCreatives.mockRejectedValue(new Error('secret-token'));
     await failing.service.discover('org', query);
     await vi.waitFor(() =>
-      expect(failing.cache.set).toHaveBeenCalledWith(
+      expect(failing.cache.setOwnedClaimValue).toHaveBeenCalledWith(
+        expect.any(String),
+        expect.any(String),
         expect.any(String),
         expect.objectContaining({
           status: 'unavailable',
           reason: 'paid_creative_source_unavailable',
         }),
-        { ttl: 60 },
+        60,
       ),
     );
   });
@@ -175,4 +221,125 @@ describe('public discovery', () => {
     );
     expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
   });
+  it('allows immediate retry after writing pending fails', async () => {
+    const { service, cache, adapter, data, claims } = setup();
+    cache.setOwnedClaimValue.mockImplementationOnce(
+      async (_claim, _token, key, value) => {
+        data.set(key, value);
+        return false;
+      },
+    );
+    expect((await service.discover('org', query)).reason).toBe(
+      'paid_creative_cache_unavailable',
+    );
+    expect(adapter.fetchCreatives).not.toHaveBeenCalled();
+    expect(data.size).toBe(0);
+    expect(claims.size).toBe(0);
+    expect((await service.discover('org', query)).status).toBe('pending');
+    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
+  });
+
+  it('retries after the 60 second failure result expires without waiting 300 seconds', async () => {
+    const { service, adapter, cache, claims, advance } = setup();
+    adapter.fetchCreatives.mockRejectedValueOnce(new Error('provider failed'));
+    await service.discover('org', query);
+    await vi.waitFor(() => expect(claims.size).toBe(0));
+    expect((await service.discover('org', query)).reason).toBe(
+      'paid_creative_source_unavailable',
+    );
+    advance(61_000);
+    expect((await service.discover('org', query)).status).toBe('pending');
+    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(2);
+    expect(cache.acquireOwnedClaim).toHaveBeenCalledTimes(2);
+  });
+
+  it('rechecks a result completed between the initial miss and claim acquisition', async () => {
+    const { service, adapter, cache, claims, data } = setup();
+    const completed = { id: 'completed', status: 'empty', advertisers: [] };
+    cache.get.mockImplementationOnce(async (key) => {
+      data.set(key, completed);
+      return null;
+    });
+    expect(await service.discover('org', query)).toBe(completed);
+    expect(adapter.fetchCreatives).not.toHaveBeenCalled();
+    expect(claims.size).toBe(0);
+    expect([...data.values()]).toEqual([completed]);
+  });
+
+  it.each([false, true])(
+    'keeps pending after terminal persistence failure (actor fails: %s) so polling does not spend again',
+    async (actorFails) => {
+      const { service, adapter, cache, claims } = setup();
+      if (actorFails)
+        adapter.fetchCreatives.mockRejectedValueOnce(
+          new Error('source failed'),
+        );
+      const write = cache.setOwnedClaimValue.getMockImplementation();
+      if (!write) throw new Error('Missing fixture writer');
+      cache.setOwnedClaimValue.mockImplementation(async (...args) =>
+        args[4] === (actorFails ? 60 : 86400) ? false : write(...args),
+      );
+      await service.discover('org', query);
+      await vi.waitFor(() => expect(claims.size).toBe(0));
+      expect((await service.discover('org', query)).status).toBe('pending');
+      expect(adapter.fetchCreatives).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it.each([
+    { oldFails: false, newFinished: false },
+    { oldFails: true, newFinished: false },
+    { oldFails: false, newFinished: true },
+    { oldFails: true, newFinished: true },
+  ])(
+    'protects successor state when expired work completes: %o',
+    async ({ oldFails, newFinished }) => {
+      const { service, adapter, cache, claims, advance, data } = setup();
+      let finishOld = () => {};
+      let finishNew = () => {};
+      const creative = normalizeMetaArchiveRecord({
+        adArchiveID: 'new-ad',
+        pageID: 'new-advertiser',
+        snapshot: { pageName: 'New result' },
+      });
+      if (!creative) throw new Error('Invalid fixture');
+      adapter.fetchCreatives
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve, reject) => {
+              finishOld = () =>
+                oldFails ? reject(new Error('old failure')) : resolve([]);
+            }),
+        )
+        .mockImplementationOnce(
+          () =>
+            new Promise((resolve) => {
+              finishNew = () => resolve([creative]);
+            }),
+        );
+      await service.discover('org', query);
+      const oldToken = [...claims.values()][0].token;
+      advance(301_000);
+      await service.discover('org', query);
+      const successor = [...claims.values()][0];
+      expect(successor.token).not.toBe(oldToken);
+      if (newFinished) {
+        finishNew();
+        await vi.waitFor(() => expect(claims.size).toBe(0));
+      }
+      const expected = [...data.values()][0];
+      const releases = cache.releaseOwnedClaim.mock.calls.length;
+      finishOld();
+      await vi.waitFor(() =>
+        expect(cache.releaseOwnedClaim.mock.calls.length).toBe(releases + 1),
+      );
+      expect([...data.values()][0]).toEqual(expected);
+      if (!newFinished) {
+        expect([...claims.values()][0]).toEqual(successor);
+        finishNew();
+        await vi.waitFor(() => expect(claims.size).toBe(0));
+      }
+      expect(adapter.fetchCreatives).toHaveBeenCalledTimes(2);
+    },
+  );
 });
