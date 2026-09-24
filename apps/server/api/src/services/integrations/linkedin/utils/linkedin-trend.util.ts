@@ -6,7 +6,7 @@ export interface LinkedInTrendTopic {
   mentions: number;
   metadata: {
     sampleContent?: string;
-    source: 'public-reference' | 'public-scrape';
+    source: 'public-scrape';
     sourceClassification?: TrendSourceClassification;
     thumbnailUrl?: string;
     trendType: 'hashtag' | 'topic';
@@ -130,25 +130,6 @@ function extractTrendTerms(post: string): string[] {
   return Array.from(new Set(tokens)).slice(0, 3);
 }
 
-function getPublicReferenceLabel(sourceUrl: string): string {
-  try {
-    const parsed = new URL(sourceUrl);
-    const pathParts = parsed.pathname.split('/').filter(Boolean);
-    const slug = pathParts[pathParts.length - 1] || parsed.hostname;
-    return slug
-      .replace(/[-_]+/g, ' ')
-      .replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
-      .trim();
-  } catch {
-    return sourceUrl.replace(/^https?:\/\//, '').replace(/\/$/, '');
-  }
-}
-
-function toReferenceTopic(sourceLabel: string, index: number): string {
-  const token = sourceLabel.toLowerCase().replace(/[^a-z0-9]+/g, '');
-  return token ? `#${token}` : `#linkedinreference${index + 1}`;
-}
-
 export function resolveLinkedInTrendSourceUrls(configured: unknown): string[] {
   if (typeof configured === 'string' && configured.trim().length > 0) {
     const parsed = configured
@@ -234,40 +215,4 @@ export function buildLinkedInLiveTrendTopics(
       },
       topic,
     }));
-}
-
-export function buildLinkedInPublicReferenceTopics(
-  sourceUrls: readonly string[],
-): LinkedInTrendTopic[] {
-  const capturedAt = new Date();
-  const seenTopics = new Set<string>();
-
-  return sourceUrls.flatMap((sourceUrl, index) => {
-    const sourceLabel = getPublicReferenceLabel(sourceUrl);
-    const topic = toReferenceTopic(sourceLabel, index);
-    if (seenTopics.has(topic)) {
-      return [];
-    }
-    seenTopics.add(topic);
-
-    return [
-      {
-        growthRate: 20,
-        mentions: 1,
-        metadata: {
-          sampleContent: `Public LinkedIn reference source for ${sourceLabel}.`,
-          source: 'public-reference',
-          sourceClassification: buildSourceClassification({
-            capturedAt,
-            confidence: 'low',
-            sourceLabel,
-            sourceTopic: topic,
-          }),
-          trendType: 'topic',
-          urls: [sourceUrl],
-        },
-        topic,
-      },
-    ];
-  });
 }

@@ -66,29 +66,31 @@ describe('LinkedInTrendResolverService', () => {
     expect(trends[0]?.mentions).toBeGreaterThan(1);
   });
 
-  it('falls back to configured public reference topics when scraping yields no signal', async () => {
-    brandScraperService.scrapeLinkedIn.mockResolvedValue({
-      companyName: 'Empty',
-      recentPosts: [],
-      scrapedAt: new Date('2026-03-26T10:00:00.000Z'),
-      sourceUrl: 'https://www.linkedin.com/company/empty/',
-    });
+  it.each([undefined, 'https://www.linkedin.com/company/custom/'])(
+    'keeps %s seeds as inputs without inventing topics',
+    async (configured) => {
+      configService.get.mockReturnValue(configured);
+      brandScraperService.scrapeLinkedIn.mockResolvedValue({
+        recentPosts: [],
+        sourceUrl: 'https://www.linkedin.com/company/empty/',
+      });
+      expect(await service.resolve('org-123', 'brand-456')).toEqual([]);
+      if (configured)
+        expect(brandScraperService.scrapeLinkedIn).toHaveBeenCalledWith(
+          configured,
+        );
+      else
+        expect(brandScraperService.scrapeLinkedIn).toHaveBeenCalledWith(
+          'https://www.linkedin.com/company/openai/',
+        );
+      expect(loggerService.warn).toHaveBeenCalled();
+    },
+  );
 
-    const trends = await service.resolve('org-123', 'brand-456');
-
-    expect(trends.length).toBeGreaterThan(0);
-    expect(trends[0]).toEqual(
-      expect.objectContaining({
-        metadata: expect.objectContaining({
-          source: 'public-reference',
-          sourceClassification: expect.objectContaining({
-            intendedUse: 'organic_trend_discovery',
-            sourceKind: 'public_platform_reference',
-          }),
-        }),
-        topic: '#openai',
-      }),
+  it('returns no trends when every scrape fails', async () => {
+    brandScraperService.scrapeLinkedIn.mockRejectedValue(
+      new Error('unavailable'),
     );
-    expect(loggerService.warn).toHaveBeenCalled();
+    expect(await service.resolve()).toEqual([]);
   });
 });

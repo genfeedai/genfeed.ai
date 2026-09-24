@@ -54,7 +54,13 @@ export type SourceCollectContext = {
 export type SourceCollectResult = {
   posts: CollectedSourcePost[];
   /** Which provider fulfilled the request */
-  provider: 'brand-oauth' | 'app-bearer' | 'apify' | 'social-monitor' | 'none';
+  provider:
+    | 'brand-oauth'
+    | 'app-bearer'
+    | 'app-api-key'
+    | 'apify'
+    | 'social-monitor'
+    | 'none';
   platform: SocialSourcePlatform | string;
   handle: string;
 };
@@ -62,5 +68,6 @@ export type SourceCollectResult = {
 export type SourceProviderName =
   | 'brand-oauth'
   | 'app-bearer'
+  | 'app-api-key'
   | 'apify'
   | 'social-monitor';
