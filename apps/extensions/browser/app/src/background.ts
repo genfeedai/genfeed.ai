@@ -240,6 +240,7 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       return true;
 
     case 'listImportedPosts':
+    case 'openImportedRemix':
     case 'savePost':
       handleExtensionImportMessage(request, sendResponse);
       return true;

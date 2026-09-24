@@ -5,6 +5,7 @@ import { getCaptureBrand } from '~services/knowledge-capture.service';
 import {
   importSocialPost,
   listImportedSourcePosts,
+  resolveImportedRemixUrl,
   SocialPostImportError,
   UNSUPPORTED_POST_URL_MESSAGE,
 } from '~services/social-post-import.service';
@@ -17,6 +18,8 @@ type SendResponse = (response?: Record<string, unknown>) => void;
 interface ExtensionImportRequest {
   brandId?: unknown;
   event?: string;
+  platform?: unknown;
+  postId?: unknown;
   url?: unknown;
 }
 
@@ -70,6 +73,20 @@ async function runExtensionImportMessage(
   sendResponse: SendResponse,
 ): Promise<void> {
   const brandId = await resolveBrandId(request.brandId);
+  if (request.event === 'openImportedRemix') {
+    if (!brandId) {
+      sendResponse({ error: SELECT_BRAND_MESSAGE, success: false });
+      return;
+    }
+    const url = await resolveImportedRemixUrl({
+      brandId,
+      platform: readUrl(request.platform),
+      sourcePostId: readUrl(request.postId),
+    });
+    await Promise.resolve(chrome.tabs.create({ url }));
+    sendResponse({ success: true, url });
+    return;
+  }
   if (request.event === 'listImportedPosts') {
     if (!brandId) {
       sendResponse({ error: SELECT_BRAND_MESSAGE, success: false });

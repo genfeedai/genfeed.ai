@@ -85,8 +85,84 @@ describe('Imported posts panel', () => {
     ).toBe(false);
 
     fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
-    expect(chrome.tabs.create).toHaveBeenCalledWith({
-      url: expect.stringContaining('/discovery/overview?source=imported'),
-    });
+    await waitFor(() =>
+      expect(chrome.runtime.sendMessage).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId: 'brand-a',
+          event: 'openImportedRemix',
+          platform: 'twitter',
+          postId: 'post-1',
+        }),
+      ),
+    );
+    expect(chrome.tabs.create).not.toHaveBeenCalled();
+  });
+
+  it('ignores a deferred import after the selected brand changes', async () => {
+    let releaseSave: ((value: unknown) => void) | undefined;
+    vi.mocked(chrome.runtime.sendMessage).mockImplementation(
+      async (message) => {
+        if (
+          message.event === 'listImportedPosts' &&
+          message.brandId === 'brand-a'
+        ) {
+          return {
+            data: [
+              {
+                ...importedPost,
+                authorDisplayName: 'Ada',
+                authorHandle: 'ada',
+                id: 'post-a',
+                text: 'Brand A post',
+              },
+            ],
+            success: true,
+          };
+        }
+        if (
+          message.event === 'listImportedPosts' &&
+          message.brandId === 'brand-b'
+        ) {
+          return {
+            data: [
+              {
+                ...importedPost,
+                authorDisplayName: 'Bea',
+                authorHandle: 'bea',
+                id: 'post-b',
+                text: 'Brand B post',
+              },
+            ],
+            success: true,
+          };
+        }
+        if (message.event === 'savePost') {
+          return new Promise((resolve) => {
+            releaseSave = resolve;
+          });
+        }
+        return { success: true };
+      },
+    );
+
+    render(
+      <ImportedPostsPage
+        initialUrl="https://x.com/author/status/123"
+        onAddToKnowledge={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Choose Brand A' }));
+    expect(await screen.findByText('Brand A post')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Import post' }));
+    useBrandStore.getState().setActiveBrand('brand-b');
+    expect(await screen.findByText('Brand B post')).toBeInTheDocument();
+    expect(screen.queryByText('Brand A post')).toBeNull();
+
+    releaseSave?.({ deduplicated: false, success: true });
+    await waitFor(() =>
+      expect(screen.queryByText(/Generation did not start/)).toBeNull(),
+    );
+    expect(screen.getByText('Brand B post')).toBeInTheDocument();
+    expect(screen.queryByText('Brand A post')).toBeNull();
   });
 });

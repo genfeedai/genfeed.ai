@@ -239,6 +239,38 @@ describe('SourcePostsService', () => {
     expect(counts).toEqual({ 'source-1': 4, 'source-2': 2 });
   });
 
+  it('paginates imported posts after excluding newer non-imports', async () => {
+    sourcePost.findMany.mockResolvedValue([]);
+    sourcePost.count.mockResolvedValue(1);
+
+    await service.listByBrand(
+      { brandId: 'brand-1', organizationId: 'org-1' },
+      { limit: 100, sourceType: 'post' },
+    );
+
+    expect(sourcePost.findMany).toHaveBeenCalledWith({
+      orderBy: [{ publishedAt: 'desc' }, { collectedAt: 'desc' }],
+      skip: 0,
+      take: 100,
+      where: {
+        brandId: 'brand-1',
+        isDeleted: false,
+        organizationId: 'org-1',
+        source: {
+          brandId: 'brand-1',
+          isDeleted: false,
+          organizationId: 'org-1',
+          sourceType: 'post',
+        },
+      },
+    });
+    expect(sourcePost.count).toHaveBeenCalledWith({
+      where: expect.objectContaining({
+        source: expect.objectContaining({ sourceType: 'post' }),
+      }),
+    });
+  });
+
   it('filters source posts by the canonical sourceId without loading relations', async () => {
     sourcePost.findMany.mockResolvedValue([]);
     sourcePost.count.mockResolvedValue(0);

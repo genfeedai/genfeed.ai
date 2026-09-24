@@ -15,6 +15,7 @@ vi.mock('~services/auth.service', () => ({
 import {
   importSocialPost,
   listImportedSourcePosts,
+  resolveImportedRemixUrl,
 } from '../src/services/social-post-import.service';
 
 const root = path.dirname(fileURLToPath(import.meta.url));
@@ -140,39 +141,87 @@ describe('social post import service', () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('lists only posts from this brand import containers', async () => {
-    mocks.fetch.mockResolvedValueOnce(
-      jsonResponse({
-        posts: [
-          {
-            authorHandle: 'followed',
-            id: 'followed-post',
-            sourceId: 'account-1',
-            text: 'Timeline',
-          },
-          {
-            authorHandle: 'saved',
-            id: 'imported-post',
-            platform: 'instagram',
-            sourceId: 'container-1',
-            sourceUrl: 'https://instagram.com/p/abc',
-            text: 'Saved post',
-          },
-        ],
-        sources: [
-          { id: 'account-1', sourceType: 'account' },
-          { id: 'container-1', sourceType: 'post' },
-        ],
-      }),
-    );
+  it('loads imported posts from the filtered source-posts pages, not the brand feed', async () => {
+    mocks.fetch
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: [
+            {
+              attributes: {
+                authorHandle: 'saved',
+                platform: 'instagram',
+                sourceUrl: 'https://instagram.com/p/abc',
+                text: 'Saved post',
+              },
+              id: 'imported-post',
+              type: 'source-post',
+            },
+          ],
+          links: { pagination: { page: 1, pages: 2 } },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: [
+            {
+              attributes: { authorHandle: 'older', text: 'Older import' },
+              id: 'older-import',
+              type: 'source-post',
+            },
+          ],
+          links: { pagination: { page: 2, pages: 2 } },
+        }),
+      );
 
     const posts = await listImportedSourcePosts('brand-a');
 
-    expect(posts.map((post) => post.id)).toEqual(['imported-post']);
-    expect(String(mocks.fetch.mock.calls[0]?.[0])).toContain(
-      '/social-sources/feed?',
+    expect(posts.map((post) => post.id)).toEqual([
+      'imported-post',
+      'older-import',
+    ]);
+    const urls = mocks.fetch.mock.calls.map((call) => String(call[0]));
+    expect(urls[0]).toContain('/source-posts?');
+    expect(urls[0]).toContain('sourceType=post');
+    expect(urls[0]).toContain('brandId=brand-a');
+    expect(urls[0]).not.toContain('social-sources/feed');
+    expect(urls[1]).toContain('page=2');
+    expect(urls.every((url) => !url.includes('social-sources/feed'))).toBe(
+      true,
     );
-    expect(String(mocks.fetch.mock.calls[0]?.[0])).toContain('brandId=brand-a');
+  });
+
+  it('opens remix for the selected brand and source without collecting or generating', async () => {
+    mocks.fetch
+      .mockResolvedValueOnce(
+        jsonResponse({
+          data: {
+            attributes: { slug: 'moonrise' },
+            id: 'brand-a',
+            type: 'brand',
+          },
+        }),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse([
+          { id: 'org-1', isActive: true, label: 'Acme', slug: 'acme' },
+        ]),
+      );
+
+    const url = await resolveImportedRemixUrl({
+      brandId: 'brand-a',
+      platform: 'twitter',
+      sourcePostId: 'post-1',
+    });
+
+    expect(url).toBe(
+      'https://app.genfeed.ai/acme/moonrise/publishing/remix?platform=twitter&sourcePostId=post-1',
+    );
+    const urls = mocks.fetch.mock.calls.map((call) => String(call[0]));
+    expect(urls.some((item) => item.includes('/videos'))).toBe(false);
+    expect(urls.some((item) => item.includes('knowledge-sources'))).toBe(false);
+    expect(
+      urls.some((item) => item.includes('/social-sources/import-post')),
+    ).toBe(false);
   });
 
   it('does not mention Knowledge or generation endpoints', () => {
@@ -182,7 +231,7 @@ describe('social post import service', () => {
     );
     expect(source).not.toContain('knowledge-sources');
     expect(source).not.toContain('/videos');
-    expect(source).not.toContain('/posts');
+    expect(source).not.toContain("'/posts");
     expect(source).not.toContain('AgentTools');
   });
 });

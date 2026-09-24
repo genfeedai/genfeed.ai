@@ -41,6 +41,7 @@ beforeAll(async () => {
     },
     contextMenus: { onClicked: { addListener: vi.fn() } },
     tabs: {
+      create: vi.fn().mockResolvedValue({ id: 4 }),
       onUpdated: { addListener: vi.fn() },
       query: vi
         .fn()
@@ -161,6 +162,48 @@ describe('background user action routing', () => {
     expect(result.error).toMatch(/X, Instagram, or TikTok/);
     expect(mocks.fetch).not.toHaveBeenCalled();
     expect(mocks.generateText).not.toHaveBeenCalled();
+  });
+
+  it('opens the selected brand remix handoff without collecting or generating', async () => {
+    mocks.fetch
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          data: {
+            attributes: { slug: 'moonrise' },
+            id: 'brand-a',
+            type: 'brand',
+          },
+        }),
+      })
+      .mockResolvedValueOnce({
+        ok: true,
+        json: async () => [
+          { id: 'org-1', isActive: true, label: 'Acme', slug: 'acme' },
+        ],
+      });
+
+    const result = await dispatch({
+      brandId: 'brand-a',
+      event: 'openImportedRemix',
+      platform: 'twitter',
+      postId: 'post-1',
+    });
+
+    expect(result).toMatchObject({
+      success: true,
+      url: 'https://app.genfeed.ai/acme/moonrise/publishing/remix?platform=twitter&sourcePostId=post-1',
+    });
+    expect(chrome.tabs.create).toHaveBeenCalledWith({
+      url: 'https://app.genfeed.ai/acme/moonrise/publishing/remix?platform=twitter&sourcePostId=post-1',
+    });
+    const requestedUrls = mocks.fetch.mock.calls.map((call) => String(call[0]));
+    expect(requestedUrls.some((url) => url.includes('knowledge-sources'))).toBe(
+      false,
+    );
+    expect(requestedUrls.some((url) => url.includes('/videos'))).toBe(false);
+    expect(mocks.generateText).not.toHaveBeenCalled();
+    expect(mocks.execute).not.toHaveBeenCalled();
   });
 
   it('asks for a brand instead of importing into another brand', async () => {
