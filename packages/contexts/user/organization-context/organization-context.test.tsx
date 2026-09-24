@@ -9,6 +9,7 @@ import {
   screen,
   waitFor,
 } from '@testing-library/react';
+import { useState } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   RoutedOrganizationProvider,
@@ -100,6 +101,7 @@ const BRAVO_ACTIVE = ALPHA_ACTIVE.map((organization) => ({
 
 function ContextProbe() {
   const context = useRoutedOrganization();
+  const [switchResult, setSwitchResult] = useState<string | null | undefined>();
 
   return (
     <div>
@@ -108,6 +110,20 @@ function ContextProbe() {
         {context.confirmedOrganizationId ?? 'none'}
       </span>
       <span data-testid="is-confirmed">{String(context.isRouteConfirmed)}</span>
+      <span data-testid="switch-result">
+        {switchResult === undefined ? 'pending' : (switchResult ?? 'null')}
+      </span>
+      {['alpha', 'bravo', 'unknown'].map((slug) => (
+        <button
+          key={slug}
+          type="button"
+          onClick={async () => {
+            setSwitchResult(await context.switchOrganization(`org_${slug}`));
+          }}
+        >
+          Switch to {slug}
+        </button>
+      ))}
       <button type="button" onClick={context.retry}>
         Retry
       </button>
@@ -305,6 +321,223 @@ describe('RoutedOrganizationProvider', () => {
     );
     expect(switchOrganizationMock).toHaveBeenCalledTimes(1);
     expect(switchOrganizationMock).toHaveBeenCalledWith('org_bravo');
+  });
+
+  it('verifies an explicit switch and waits for the destination route before confirming requests', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockResolvedValue(BRAVO_ACTIVE);
+    const rendered = renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    rendered.queryClient.setQueryData(['tenant-data'], {
+      organizationId: 'org_alpha',
+    });
+    clearBootstrapCacheMock.mockClear();
+    cancelAndClearServicesMock.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to bravo' }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('switch-result')).toHaveTextContent('bravo'),
+    );
+    expect(switchOrganizationMock).toHaveBeenCalledWith('org_bravo');
+    expect(switchOrganizationMock).toHaveBeenCalledTimes(1);
+    expect(getOrganizationsServiceMock).toHaveBeenLastCalledWith({
+      forceRefresh: true,
+    });
+    expect(rendered.queryClient.getQueryData(['tenant-data'])).toBeUndefined();
+    expect(clearBootstrapCacheMock).toHaveBeenCalled();
+    expect(cancelAndClearServicesMock).toHaveBeenCalled();
+    expect(screen.getByTestId('status')).toHaveTextContent('switching');
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+
+    pathname = '/bravo/~/workspace/overview';
+    rendered.rerender(
+      <QueryClientProvider client={rendered.queryClient}>
+        <RoutedOrganizationProvider>
+          <ContextProbe />
+        </RoutedOrganizationProvider>
+      </QueryClientProvider>,
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('true');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_bravo');
+    expect(switchOrganizationMock).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ['alpha', 'alpha'],
+    ['unknown', 'null'],
+  ])(
+    'resolves an explicit %s target without switching the backend',
+    async (target, result) => {
+      getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+      renderProvider();
+      await waitFor(() =>
+        expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+      );
+      getOrganizationsServiceMock.mockClear();
+      getMyOrganizationsMock.mockClear();
+
+      fireEvent.click(
+        screen.getByRole('button', { name: `Switch to ${target}` }),
+      );
+
+      await waitFor(() =>
+        expect(screen.getByTestId('switch-result')).toHaveTextContent(result),
+      );
+      expect(switchOrganizationMock).not.toHaveBeenCalled();
+      expect(getOrganizationsServiceMock).not.toHaveBeenCalled();
+      expect(getMyOrganizationsMock).not.toHaveBeenCalled();
+      expect(screen.getByTestId('status')).toHaveTextContent('matched');
+      expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(
+        'org_alpha',
+      );
+    },
+  );
+
+  it('rejects an explicit target whose membership was revoked before switching', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockResolvedValueOnce(
+        ALPHA_ACTIVE.filter((organization) => organization.id === 'org_alpha'),
+      );
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to bravo' }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('switch-result')).toHaveTextContent('null'),
+    );
+    expect(screen.getByTestId('status')).toHaveTextContent('unauthorized');
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(switchOrganizationMock).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when an explicit switch never becomes active after revalidation', async () => {
+    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to bravo' }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('switch-result')).toHaveTextContent('null'),
+    );
+    expect(switchOrganizationMock).toHaveBeenCalledWith('org_bravo');
+    expect(getOrganizationsServiceMock).toHaveBeenLastCalledWith({
+      forceRefresh: true,
+    });
+    expect(screen.getByTestId('status')).toHaveTextContent('failed');
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(loggerWarnMock).toHaveBeenCalledWith(
+      'Routed organization context mismatch',
+      {
+        reportToSentry: true,
+        tags: {
+          eventType: 'organization-context-mismatch',
+          reason: 'switch-failed',
+        },
+      },
+    );
+  });
+
+  it('fails closed when the backend rejects an explicit switch', async () => {
+    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+    switchOrganizationMock.mockRejectedValueOnce(new Error('switch rejected'));
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch to bravo' }));
+
+    await waitFor(() =>
+      expect(screen.getByTestId('switch-result')).toHaveTextContent('null'),
+    );
+    expect(switchOrganizationMock).toHaveBeenCalledWith('org_bravo');
+    expect(screen.getByTestId('status')).toHaveTextContent('failed');
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('none');
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+  });
+
+  it('confirms a cross-tab refresh that retains the current route without navigation', async () => {
+    getMyOrganizationsMock.mockResolvedValue(ALPHA_ACTIVE);
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    getOrganizationsServiceMock.mockClear();
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'changed',
+        }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(getOrganizationsServiceMock).toHaveBeenCalledWith({
+        forceRefresh: true,
+      }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('true');
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('org_alpha');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith('org_alpha');
+    expect(replaceMock).not.toHaveBeenCalled();
+    expect(switchOrganizationMock).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when a cross-tab refresh has no active membership', async () => {
+    getMyOrganizationsMock
+      .mockResolvedValueOnce(ALPHA_ACTIVE)
+      .mockResolvedValueOnce(
+        ALPHA_ACTIVE.map((organization) => ({
+          ...organization,
+          isActive: false,
+        })),
+      );
+    renderProvider();
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('matched'),
+    );
+
+    act(() => {
+      window.dispatchEvent(
+        new StorageEvent('storage', {
+          key: 'genfeed:routed-organization-context:v1',
+          newValue: 'changed',
+        }),
+      );
+    });
+
+    await waitFor(() =>
+      expect(screen.getByTestId('status')).toHaveTextContent('failed'),
+    );
+    expect(screen.getByTestId('confirmed-id')).toHaveTextContent('none');
+    expect(screen.getByTestId('is-confirmed')).toHaveTextContent('false');
+    expect(setRequestOrganizationIdMock).toHaveBeenLastCalledWith(null);
+    expect(replaceMock).not.toHaveBeenCalled();
+    expect(switchOrganizationMock).not.toHaveBeenCalled();
   });
 
   it('moves another tab to the authoritative organization while preserving its current surface', async () => {
