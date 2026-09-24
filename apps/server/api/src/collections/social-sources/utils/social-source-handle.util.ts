@@ -1,6 +1,8 @@
 import { parseSocialPostUrl, SocialSourcePlatform } from '@genfeedai/contracts';
 import { BadRequestException } from '@nestjs/common';
 
+const YOUTUBE_CHANNEL_ID = /^UC[A-Za-z0-9_-]{22}$/;
+
 const SOCIAL_SOURCE_PLATFORMS = new Set<string>(
   Object.values(SocialSourcePlatform),
 );
@@ -11,7 +13,6 @@ const SOCIAL_SOURCE_PLATFORMS = new Set<string>(
  */
 const PROFILE_PATH_PREFIXES: Readonly<Record<string, ReadonlySet<string>>> = {
   [SocialSourcePlatform.LINKEDIN]: new Set(['in', 'company', 'school']),
-  [SocialSourcePlatform.YOUTUBE]: new Set(['c', 'channel', 'user']),
 };
 
 /**
@@ -56,6 +57,27 @@ export function normalizeHandle(platform: string, input: string): string {
         );
       }
       const segments = url.pathname.split('/').filter(Boolean);
+      if (platform === SocialSourcePlatform.YOUTUBE) {
+        if (segments.length === 2 && segments[0] === 'channel') {
+          const channelId = segments[1];
+          if (!channelId || !YOUTUBE_CHANNEL_ID.test(channelId)) {
+            throw new BadRequestException(
+              'YouTube profile URL must include a valid channel ID',
+            );
+          }
+          return channelId;
+        }
+        if (
+          segments.length === 1 &&
+          segments[0]?.startsWith('@') &&
+          segments[0] !== '@'
+        ) {
+          return normalizeHandle(platform, segments[0]);
+        }
+        throw new BadRequestException(
+          'YouTube profile URL must use /@handle or /channel/channelId',
+        );
+      }
       const prefixes = PROFILE_PATH_PREFIXES[platform];
       const path =
         prefixes && segments[0] && prefixes.has(segments[0].toLowerCase())
@@ -71,6 +93,13 @@ export function normalizeHandle(platform: string, input: string): string {
       throw error;
     }
     throw new BadRequestException('Profile URL is invalid');
+  }
+
+  if (
+    platform === SocialSourcePlatform.YOUTUBE &&
+    YOUTUBE_CHANNEL_ID.test(trimmed)
+  ) {
+    return trimmed;
   }
 
   const handle = trimmed
@@ -109,7 +138,9 @@ export function buildProfileUrl(platform: string, handle: string): string {
     case SocialSourcePlatform.TIKTOK:
       return `https://www.tiktok.com/@${cleanHandle}`;
     case SocialSourcePlatform.YOUTUBE:
-      return `https://www.youtube.com/@${cleanHandle}`;
+      return YOUTUBE_CHANNEL_ID.test(cleanHandle)
+        ? `https://www.youtube.com/channel/${cleanHandle}`
+        : `https://www.youtube.com/@${cleanHandle}`;
     case SocialSourcePlatform.LINKEDIN:
       return `https://www.linkedin.com/in/${cleanHandle}`;
     case SocialSourcePlatform.TWITTER:
