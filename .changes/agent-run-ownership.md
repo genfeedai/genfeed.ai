@@ -27,3 +27,9 @@ Handoff tokens also capture `previousRunId`. A rejected acknowledgement starts r
 only for an observed continuation execution; a rejection without one restores the
 request without an artificial timeout. Hidden recovery updates only its thread
 summary and releases ownership, preserving other threads' buffered events.
+
+Rejected handoffs adopt buffered continuations only when an `agent:input_resolved`
+event identifies the answered input request and a different execution. Buffered
+event adapters may carry `resolvedInputRequestId` for that event; arbitrary tokens
+or completions never establish continuation ownership. Releasing a hidden handoff
+immediately adopts any already-restored visible run and replays its retained buffer.

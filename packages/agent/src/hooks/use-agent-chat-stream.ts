@@ -468,13 +468,12 @@ export function useAgentChatStream(
   // *does* survive the remount — makes the new instance take over the live run.
   // A run restored after reload or navigation (`markStreamLive`) flips
   // `isStreaming` on and is adopted the same way.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: A hidden owner's summary settlement must retry adoption even when visible isStreaming stays true.
-  useEffect(() => {
-    if (!isReady || !activeThreadId || !isStreaming) {
+  const adoptVisibleStream = useCallback(() => {
+    const state = useAgentChatStore.getState();
+    const visibleThreadId = state.activeThreadId;
+    if (!isReady || !visibleThreadId || !state.stream.isStreaming) {
       return;
     }
-
-    const state = useAgentChatStore.getState();
 
     // The shared runtime already owns this stream — `sendMessage` attached the
     // subscriptions on this or another live instance. A finished stream keeps
@@ -489,18 +488,18 @@ export function useAgentChatStream(
 
     if (
       ownedThreadId &&
-      ownedThreadId !== activeThreadId &&
+      ownedThreadId !== visibleThreadId &&
       hasLiveSubscriptions
     ) {
       return;
     }
 
-    if (ownedThreadId === activeThreadId && hasLiveSubscriptions) {
+    if (ownedThreadId === visibleThreadId && hasLiveSubscriptions) {
       return;
     }
 
     streamRuntime.ownerGeneration += 1;
-    streamRuntime.activeStreamThreadRef.current = activeThreadId;
+    streamRuntime.activeStreamThreadRef.current = visibleThreadId;
     streamRuntime.activeStreamRunIdRef.current = state.activeRunId;
     streamRuntime.isAwaitingRunIdRef.current = false;
     attachSubscriptions();
@@ -509,19 +508,21 @@ export function useAgentChatStream(
       preAssistantIds: collectAssistantMessageIds(state.messages),
       runId: state.activeRunId,
       startedAt: state.runStartedAt,
-      threadId: activeThreadId,
+      threadId: visibleThreadId,
     };
     scheduleCompletionWatchdog();
-    flushBufferedEvents(activeThreadId);
+    flushBufferedEvents(visibleThreadId);
   }, [
-    activeThreadId,
     attachSubscriptions,
     flushBufferedEvents,
     isReady,
-    isStreaming,
     scheduleCompletionWatchdog,
-    threads,
   ]);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Store changes can make a restored visible run eligible for ownership.
+  useEffect(() => {
+    adoptVisibleStream();
+  }, [activeThreadId, adoptVisibleStream, isStreaming, threads]);
 
   const sendMessage = useCallback(
     async (content: string, sendOptions?: SendStreamMessageOptions) => {
@@ -834,7 +835,9 @@ export function useAgentChatStream(
         (event) =>
           event.threadId === handoff.threadId &&
           event.runId &&
-          event.runId !== handoff.previousRunId,
+          failedRequest &&
+          event.resolvedInputRequestId === failedRequest.inputRequestId &&
+          event.runId !== failedRequest.runId,
       );
       if (continuation?.runId) {
         if (failedRequest && isThreadVisible(handoff.threadId)) {
@@ -844,16 +847,8 @@ export function useAgentChatStream(
         return;
       }
 
-      // No durable continuation identity exists, so there is nothing to poll.
-      // An older asking run must not settle this unanswered handoff.
-      streamRuntime.bufferedEventsRef.current =
-        streamRuntime.bufferedEventsRef.current.filter(
-          (event) =>
-            event.threadId !== handoff.threadId ||
-            !event.runId ||
-            event.runId !== handoff.previousRunId,
-        );
-      flushBufferedEvents(handoff.threadId);
+      // Uncorrelated run ids cannot prove that this answer was accepted.
+      // Release only this handoff's events; other threads retain their buffer.
       streamRuntime.pendingCompletionRef.current = null;
       clearCompletionWatchdog();
       cleanupSubscriptions(true);
@@ -861,7 +856,9 @@ export function useAgentChatStream(
         const status = useAgentChatStore.getState().activeRunStatus;
         resetStreamState();
         setActiveRunStatus(status);
-      } else if (failedRequest) {
+      } else {
+        adoptVisibleStream();
+        if (!failedRequest) return;
         const thread = useAgentChatStore
           .getState()
           .threads.find((item) => item.id === handoff.threadId);
@@ -879,10 +876,10 @@ export function useAgentChatStream(
     },
     [
       adoptRun,
+      adoptVisibleStream,
       cleanupSubscriptions,
       clearCompletionWatchdog,
       clearPendingInputRequest,
-      flushBufferedEvents,
       isThreadVisible,
       resetStreamState,
       setPendingInputRequest,

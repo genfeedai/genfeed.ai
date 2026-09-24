@@ -68,6 +68,7 @@ export interface UseAgentChatStreamReturn {
 }
 
 export interface BufferedThreadEvent {
+  resolvedInputRequestId?: string;
   runId?: string;
   threadId?: string;
   data: unknown;

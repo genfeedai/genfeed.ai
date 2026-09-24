@@ -96,8 +96,13 @@ export function attachAgentStreamSubscriptions(
   // discarded as another run's) once it is — a slow earlier run on the same
   // thread must not flip Stop/WORKING back on or stream into this turn.
   const filterByThread =
-    (handler: (data: unknown) => void) => (data: unknown) => {
-      const payload = data as { runId?: string; threadId?: string };
+    (handler: (data: unknown) => void, isInputResolution = false) =>
+    (data: unknown) => {
+      const payload = data as {
+        runId?: string;
+        threadId?: string;
+        inputRequestId?: string;
+      };
 
       if (
         !deps.activeStreamThreadRef.current ||
@@ -106,6 +111,9 @@ export function attachAgentStreamSubscriptions(
         deps.bufferedEventsRef.current.push({
           data,
           handler,
+          resolvedInputRequestId: isInputResolution
+            ? payload.inputRequestId
+            : undefined,
           runId: payload.runId,
           threadId: payload.threadId,
         });
@@ -447,7 +455,7 @@ export function attachAgentStreamSubscriptions(
             threadId: payload.threadId,
           });
         }
-      }),
+      }, true),
     ),
   );
 

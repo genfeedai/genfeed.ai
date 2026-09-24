@@ -784,6 +784,16 @@ describe('useAgentChatStream', () => {
         handoff = result.current.beginRunHandoff('thread-a');
       });
       act(() => {
+        for (const handler of socketHandlers.get('agent:input_resolved') ??
+          []) {
+          handler({
+            threadId: 'thread-a',
+            runId: 'run-answer',
+            inputRequestId: 'input-a',
+            answer: 'yes',
+            timestamp: '2026-09-24T08:00:00Z',
+          });
+        }
         for (const handler of socketHandlers.get(event) ?? []) {
           handler({
             threadId: 'thread-a',
@@ -902,7 +912,7 @@ describe('useAgentChatStream', () => {
   it.each([null, 'agent:input_resolved', 'agent:token'])(
     'does not time out a rejected handoff; continuation received: %s',
     async (continuationEvent) => {
-      const continued = continuationEvent !== null;
+      const continued = continuationEvent === 'agent:input_resolved';
       vi.useFakeTimers();
       const runtime = getAgentStreamRuntime();
       const request = {
@@ -935,6 +945,15 @@ describe('useAgentChatStream', () => {
       });
       act(() => {
         if (continued) {
+          for (const handler of socketHandlers.get('agent:token') ?? []) {
+            handler({
+              threadId: 'thread-a',
+              runId: 'run-answer',
+              token: 'Early continuation',
+            });
+          }
+        }
+        if (continuationEvent) {
           for (const handler of socketHandlers.get(continuationEvent ?? '') ??
             []) {
             handler({
@@ -971,6 +990,99 @@ describe('useAgentChatStream', () => {
       if (continued)
         expect(getWorkflowExecution).toHaveBeenCalledWith('run-answer');
       else expect(getMessages).not.toHaveBeenCalled();
+    },
+  );
+
+  it('adopts the already-restored visible run immediately after a hidden handoff is rejected', () => {
+    const runtime = getAgentStreamRuntime();
+    useAgentChatStore.setState({
+      activeThreadId: 'thread-a',
+      activeRunId: 'run-ask',
+    });
+    const { result } = renderHook(() =>
+      useAgentChatStream({ apiService: createApiService({}) }),
+    );
+    let handoff: ReturnType<typeof result.current.beginRunHandoff>;
+    act(() => {
+      handoff = result.current.beginRunHandoff('thread-a');
+    });
+    act(() => {
+      useAgentChatStore.setState({
+        activeThreadId: 'thread-b',
+        activeRunId: 'run-b',
+        activeRunStatus: 'running',
+      });
+      useAgentChatStore.getState().markStreamLive();
+      for (const handler of socketHandlers.get('agent:token') ?? []) {
+        handler({ threadId: 'thread-b', runId: 'run-b', token: 'Visible' });
+      }
+    });
+    act(() => {
+      result.current.cancelRunHandoff(handoff);
+    });
+    expect(runtime.activeStreamThreadRef.current).toBe('thread-b');
+    expect(runtime.activeStreamRunIdRef.current).toBe('run-b');
+    expect(runtime.bufferedEventsRef.current).toHaveLength(0);
+    act(() => {
+      for (const handler of socketHandlers.get('agent:done') ?? []) {
+        handler({
+          threadId: 'thread-b',
+          runId: 'run-b',
+          fullContent: 'Visible answer',
+          toolCalls: [],
+          creditsRemaining: 8,
+        });
+      }
+    });
+    expect(useAgentChatStore.getState().messages.at(-1)?.content).toBe(
+      'Visible answer',
+    );
+    expect(useAgentChatStore.getState().activeRunStatus).toBe('completed');
+  });
+
+  it.each(['run-old', 'run-ask'])(
+    'never mistakes uncorrelated %s events for the rejected answer continuation',
+    (runId) => {
+      const runtime = getAgentStreamRuntime();
+      const request = {
+        threadId: 'thread-a',
+        runId: 'run-ask',
+        inputRequestId: 'input-a',
+        title: 'Choose',
+        prompt: 'Choose',
+        options: [],
+        allowFreeText: true,
+      };
+      useAgentChatStore.setState({
+        activeThreadId: 'thread-a',
+        activeRunId: 'run-ask',
+        activeRunStatus: 'awaiting_input',
+      });
+      const { result } = renderHook(() =>
+        useAgentChatStream({ apiService: createApiService({}) }),
+      );
+      runtime.activeStreamRunIdRef.current = 'run-other-thread';
+      let handoff: ReturnType<typeof result.current.beginRunHandoff>;
+      act(() => {
+        handoff = result.current.beginRunHandoff('thread-a');
+      });
+      act(() => {
+        for (const handler of socketHandlers.get('agent:done') ?? []) {
+          handler({
+            threadId: 'thread-a',
+            runId,
+            fullContent: 'Obsolete answer',
+            toolCalls: [],
+            creditsRemaining: 8,
+          });
+        }
+        result.current.cancelRunHandoff(handoff, request);
+      });
+      expect(runtime.activeStreamRunIdRef.current).toBeNull();
+      expect(runtime.pendingCompletionRef.current).toBeNull();
+      expect(runtime.completionTimeoutRef.current).toBeNull();
+      expect(useAgentChatStore.getState().pendingInputRequest).toEqual(request);
+      expect(useAgentChatStore.getState().messages).toHaveLength(0);
     },
   );
 
