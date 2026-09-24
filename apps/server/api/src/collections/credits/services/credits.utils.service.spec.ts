@@ -14,11 +14,9 @@ import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import type { EventEmitter2 } from '@nestjs/event-emitter';
 
 describe('CreditsUtilsService', () => {
   const loggerService = { error: vi.fn(), log: vi.fn() };
-  const eventEmitter = { emit: vi.fn() };
   const prisma = {
     brand: { findFirst: vi.fn() },
     creditTransaction: { findFirst: vi.fn() },
@@ -66,7 +64,6 @@ describe('CreditsUtilsService', () => {
   function buildService(): CreditsUtilsService {
     return new CreditsUtilsService(
       loggerService as unknown as LoggerService,
-      eventEmitter as unknown as EventEmitter2,
       prisma as unknown as PrismaService,
       billingAccountsService as unknown as BillingAccountsService,
       creditBalanceService as unknown as CreditBalanceService,
@@ -180,25 +177,6 @@ describe('CreditsUtilsService', () => {
       );
     });
 
-    it('preserves the charge reason in the activity event', async () => {
-      await buildService().deductCreditsFromOrganization(
-        'org_1',
-        'user_1',
-        1,
-        'AI brand profile generation',
-      );
-
-      expect(eventEmitter.emit).toHaveBeenCalledWith(
-        'credits.activity',
-        expect.objectContaining({
-          value: JSON.stringify({
-            description: 'AI brand profile generation',
-            value: 1,
-          }),
-        }),
-      );
-    });
-
     it('throws on insufficient credits without writing', async () => {
       const service = buildService();
       creditBalanceService.applyDelta.mockRejectedValue(
@@ -275,7 +253,6 @@ describe('CreditsUtilsService', () => {
         },
       });
       expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
       expect(websocketService.emit).not.toHaveBeenCalled();
     });
 
@@ -303,7 +280,6 @@ describe('CreditsUtilsService', () => {
       expect(
         accessBootstrapCacheService.invalidateForOrganization,
       ).toHaveBeenCalledWith('org_1');
-      expect(eventEmitter.emit).not.toHaveBeenCalled();
       expect(websocketService.emit).not.toHaveBeenCalled();
     });
   });

@@ -7,7 +7,8 @@
  * locale catalog without changing this persisted vocabulary.
  */
 
-import { ActivityKey } from './activity.enum';
+import { ActivityKey, ActivitySource } from './activity.enum';
+import { CreditTransactionCategory } from './credit.enum';
 
 /** Lifecycle phase of an activity event (template axis). */
 export type ActivityLifecycle =
@@ -57,6 +58,7 @@ export type ActivityMessageId =
   | 'activity.lifecycle.created'
   | 'activity.lifecycle.disconnected'
   | 'activity.lifecycle.skipped'
+  | 'activity.credits.change'
   | 'activity.credits.add'
   | 'activity.credits.remove'
   | 'activity.credits.reset'
@@ -68,6 +70,8 @@ export interface ActivityMessageDescriptor {
   id: ActivityMessageId;
   params: {
     amount: string;
+    count: number;
+    creditCategory: string;
     articleSubject: string;
     capitalizedSubject: string;
     fallbackSubject: string;
@@ -404,6 +408,8 @@ export function getActivityMessageDescriptor(
   const subjectLabel = getActivitySubjectLabel(parts.subject);
   const params = {
     amount: 'none',
+    count: 0,
+    creditCategory: 'none',
     articleSubject: withIndefiniteArticle(subjectLabel),
     capitalizedSubject: `${subjectLabel.charAt(0).toUpperCase()}${subjectLabel.slice(1)}`,
     fallbackSubject: humanizeToken(subjectLabel),
@@ -437,9 +443,118 @@ export function getActivityMessageDescriptor(
   }
 }
 
+const CREDIT_ACTIVITY_SOURCE_LABELS: Record<string, string> = {
+  [ActivitySource.BOT_GENERATION]: 'Agent conversation',
+  [ActivitySource.IMAGE_GENERATION]: 'Image generation',
+  [ActivitySource.VIDEO_GENERATION]: 'Video generation',
+  [ActivitySource.MUSIC_GENERATION]: 'Music generation',
+  [ActivitySource.ARTICLE_GENERATION]: 'Article generation',
+  [ActivitySource.VOICE_GENERATION]: 'Voice generation',
+  [ActivitySource.POST_GENERATION]: 'Post generation',
+  [ActivitySource.PROMPT_ENHANCEMENT]: 'Prompt enhancement',
+  [ActivitySource.PROMPT_REMIX]: 'Prompt remix',
+  [ActivitySource.TWEET_REPLY]: 'Tweet reply',
+  [ActivitySource.MODELS_TRAINING]: 'Model training',
+  [ActivitySource.IMAGE_EVALUATION]: 'Image evaluation',
+  [ActivitySource.VIDEO_EVALUATION]: 'Video evaluation',
+  [ActivitySource.ARTICLE_EVALUATION]: 'Article evaluation',
+  [ActivitySource.CONTENT_EVALUATION]: 'Content evaluation',
+  [ActivitySource.VIDEO_REFRAME]: 'Video reframe',
+  [ActivitySource.VIDEO_UPSCALE]: 'Video upscale',
+  [ActivitySource.IMAGE_REFRAME]: 'Image reframe',
+  [ActivitySource.IMAGE_UPSCALE]: 'Image upscale',
+  [ActivitySource.PROMPT_CREATION]: 'Prompt creation',
+  [ActivitySource.ARTICLE_ENHANCEMENT]: 'Article enhancement',
+  [ActivitySource.ARTICLE_REMIX]: 'Article remix',
+  [ActivitySource.POST_ENHANCEMENT]: 'Post enhancement',
+  [ActivitySource.AVATAR_GENERATION]: 'Avatar generation',
+  [ActivitySource.ASSET_GENERATION]: 'Asset generation',
+  [ActivitySource.POST]: 'Content publish',
+  [ActivitySource.SUBSCRIPTION]: 'Subscription credits',
+  [ActivitySource.PAY_AS_YOU_GO]: 'Credit purchase',
+  [ActivitySource.REFERRAL]: 'Referral reward',
+  [ActivitySource.BRAND_INTERVIEW]: 'Brand context interview',
+  [ActivitySource.EXPERT_FIRST_SYSTEM]: 'First content system generation',
+  [ActivitySource.TREND_SCAN]: 'Trend research',
+  [ActivitySource.ARTICLE_VIRALITY_ANALYSIS]: 'Article virality analysis',
+  [ActivitySource.ARTICLE_PROMPT_GENERATION]: 'Article prompt generation',
+};
+
+export function getCreditActivitySourceLabel(
+  source: string | undefined,
+): string | undefined {
+  return source ? CREDIT_ACTIVITY_SOURCE_LABELS[source] : undefined;
+}
+
+export function getCreditActivityKey(
+  category: string | null | undefined,
+): ActivityKey | undefined {
+  switch (category) {
+    case CreditTransactionCategory.ADD:
+    case CreditTransactionCategory.REFUND:
+    case CreditTransactionCategory.ROLLOVER:
+      return ActivityKey.CREDITS_ADD;
+    case CreditTransactionCategory.DEDUCT:
+    case CreditTransactionCategory.EXPIRE:
+    case CreditTransactionCategory.BYOK_USAGE:
+      return ActivityKey.CREDITS_REMOVE;
+    case CreditTransactionCategory.RESET:
+      return ActivityKey.CREDITS_RESET;
+    default:
+      return undefined;
+  }
+}
+
+export function getCreditActivityMessageDescriptor(
+  key: string,
+  value: string | undefined,
+  source?: string,
+): ActivityMessageDescriptor {
+  const parsed = parseCreditActivityValue(value);
+  const descriptor = getActivityMessageDescriptor(key);
+  const category =
+    parsed.category ??
+    (key === ActivityKey.CREDITS_ADD
+      ? CreditTransactionCategory.ADD
+      : key === ActivityKey.CREDITS_RESET
+        ? CreditTransactionCategory.RESET
+        : CreditTransactionCategory.DEDUCT);
+  const count =
+    parsed.amount === null
+      ? 0
+      : category === CreditTransactionCategory.RESET
+        ? parsed.amount
+        : Math.abs(parsed.amount);
+  return {
+    ...descriptor,
+    params: {
+      ...descriptor.params,
+      amount:
+        parsed.amount === null
+          ? 'none'
+          : count.toLocaleString('en-US', { maximumFractionDigits: 20 }),
+      count,
+      creditCategory: category,
+      source:
+        parsed.description ?? getCreditActivitySourceLabel(source) ?? 'none',
+    },
+  };
+}
+
+export function getCreditActivityChangeDescriptor(
+  key: string,
+  value: string | undefined,
+): ActivityMessageDescriptor | null {
+  const descriptor = getCreditActivityMessageDescriptor(key, value);
+  return descriptor.params.amount === 'none'
+    ? null
+    : { ...descriptor, id: 'activity.credits.change' };
+}
+
 /** Read the amount and charge reason from persisted credit activity values. */
 export function parseCreditActivityValue(value: string | undefined): {
   amount: number | null;
+  category?: CreditTransactionCategory;
   description: string | undefined;
 } {
   let payload: unknown;
@@ -460,11 +575,16 @@ export function parseCreditActivityValue(value: string | undefined): {
       : Number.NaN;
   const description =
     typeof record?.description === 'string'
-      ? record.description.trim()
+      ? record.description.replace(/^\[BYOK\]\s*/, '').trim()
       : undefined;
 
   return {
     amount: Number.isFinite(amount) ? amount : null,
+    ...(Object.values(CreditTransactionCategory).includes(
+      record?.category as CreditTransactionCategory,
+    )
+      ? { category: record?.category as CreditTransactionCategory }
+      : {}),
     description:
       description && !/^[{[]/.test(description) ? description : undefined,
   };
@@ -560,18 +680,55 @@ export function formatActivityMessage(
     case 'activity.lifecycle.disconnected':
       return `${descriptor.params.capitalizedSubject} disconnected`;
 
+    case 'activity.credits.change': {
+      const { count, creditCategory } = descriptor.params;
+      const amount = count.toLocaleString('en-US', {
+        maximumFractionDigits: 20,
+      });
+      const units = count === 1 ? 'credit' : 'credits';
+      if (creditCategory === CreditTransactionCategory.BYOK_USAGE)
+        return 'No credits charged';
+      if (creditCategory === CreditTransactionCategory.RESET)
+        return `Balance set to ${amount} ${units}`;
+      const isAddition = [
+        CreditTransactionCategory.ADD,
+        CreditTransactionCategory.REFUND,
+        CreditTransactionCategory.ROLLOVER,
+      ].includes(creditCategory as CreditTransactionCategory);
+      return `${isAddition ? '+' : '−'}${amount} ${units}`;
+    }
     case 'activity.credits.add':
-      return descriptor.params.amount === 'none'
-        ? 'Credits added'
-        : `${descriptor.params.amount} credits added`;
     case 'activity.credits.remove':
-      return descriptor.params.source === 'none'
-        ? 'Credit usage — details unavailable'
-        : descriptor.params.source;
+    case 'activity.credits.reset': {
+      const reason =
+        descriptor.params.source === 'none'
+          ? undefined
+          : descriptor.params.source;
+      switch (descriptor.params.creditCategory) {
+        case CreditTransactionCategory.REFUND:
+          return reason ? `Credit refund: ${reason}` : 'Credits refunded';
+        case CreditTransactionCategory.EXPIRE:
+          return reason ? `Credits expired: ${reason}` : 'Credits expired';
+        case CreditTransactionCategory.ROLLOVER:
+          return reason
+            ? `Credits rolled over: ${reason}`
+            : 'Credits rolled over';
+        case CreditTransactionCategory.RESET:
+          return reason
+            ? `Credit balance reset: ${reason}`
+            : 'Credit balance reset';
+        case CreditTransactionCategory.BYOK_USAGE:
+          return `${reason ?? 'AI usage'} (your API key)`;
+        default:
+          if (reason) return reason;
+          if (descriptor.id === 'activity.credits.add') return 'Credits added';
+          if (descriptor.id === 'activity.credits.reset')
+            return 'Credit balance reset';
+          return 'Credit usage — details unavailable';
+      }
+    }
     case 'activity.credits.remove_all':
       return 'Removed all credits';
-    case 'activity.credits.reset':
-      return 'Reset credits';
 
     case 'activity.post.ready':
       return 'Content is ready for review';

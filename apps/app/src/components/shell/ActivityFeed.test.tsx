@@ -95,6 +95,67 @@ describe('ActivityFeed', () => {
     });
   });
 
+  it.each([
+    ['add', 'credits-add', 5, 'Welcome reward', 'Welcome reward', '+5 credits'],
+    [
+      'refund',
+      'credits-add',
+      1,
+      'Failed generation',
+      'Credit refund: Failed generation',
+      '+1 credit',
+    ],
+    [
+      'expire',
+      'credits-remove',
+      5,
+      'Grant expired',
+      'Credits expired: Grant expired',
+      '−5 credits',
+    ],
+    [
+      'reset',
+      'credits-reset',
+      25,
+      'Renewal',
+      'Credit balance reset: Renewal',
+      'Balance set to 25 credits',
+    ],
+    [
+      'byok-usage',
+      'credits-remove',
+      500,
+      '[BYOK] Image generation',
+      'Image generation (your API key)',
+      'No credits charged',
+    ],
+    [
+      'deduct',
+      'credits-remove',
+      0.0001,
+      'Text generation',
+      'Text generation',
+      '−0.0001 credits',
+    ],
+  ])(
+    'localizes %s activity with the correct balance effect',
+    (category, key, value, description, title, change) => {
+      useActivitiesMock.mockReturnValue({
+        filteredActivities: [
+          activityFixture(1, {
+            key,
+            source: 'system',
+            value: JSON.stringify({ category, description, value }),
+          }),
+        ],
+        isLoading: false,
+      });
+      render(<ActivityFeed />);
+      expect(screen.getByText(title)).toBeInTheDocument();
+      expect(screen.getByText(change)).toBeInTheDocument();
+    },
+  );
+
   it('shows the saved reason for a system credit charge', () => {
     useActivitiesMock.mockReturnValue({
       filteredActivities: [
@@ -111,7 +172,7 @@ describe('ActivityFeed', () => {
     });
     render(<ActivityFeed />);
     expect(screen.getByText('AI brand profile generation')).toBeInTheDocument();
-    expect(screen.getByText('1 credit used')).toBeInTheDocument();
+    expect(screen.getByText('−1 credit')).toBeInTheDocument();
   });
 
   it('lists the last five activities and links to workspace activity', () => {
@@ -125,7 +186,7 @@ describe('ActivityFeed', () => {
     const rows = screen.getAllByTestId('topbar-activity-row');
     expect(rows).toHaveLength(5);
     expect(within(rows[0]).getByText('Prompt creation')).toBeInTheDocument();
-    expect(within(rows[0]).getByText('1 credit used')).toBeInTheDocument();
+    expect(within(rows[0]).getByText('−1 credit')).toBeInTheDocument();
     expect(
       within(rows[0]).getByTestId('activity-unread-dot'),
     ).toBeInTheDocument();

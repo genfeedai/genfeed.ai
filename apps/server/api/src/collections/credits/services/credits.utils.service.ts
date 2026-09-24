@@ -19,7 +19,6 @@ import { scopedWhere } from '@api/index';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
-  ActivityKey,
   ActivitySource,
   CreditTransactionCategory,
 } from '@genfeedai/contracts';
@@ -36,7 +35,6 @@ import type {
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { Injectable } from '@nestjs/common';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 
 type DeductCreditsCoreInput = {
   creditsToDeduct: number;
@@ -78,7 +76,6 @@ export class CreditsUtilsService implements ICreditsUtilsService {
 
   constructor(
     private readonly loggerService: LoggerService,
-    private readonly eventEmitter: EventEmitter2,
     private readonly prisma: PrismaService,
     private readonly billingAccountsService: BillingAccountsService,
     private readonly creditBalanceService: CreditBalanceService,
@@ -185,22 +182,6 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         );
         return;
       }
-
-      // Balance is persisted to the credit-balance table above (epic #735,
-      // Phase C — no legacy auth provider identity write-back).
-      const defaultBrand = await this.prisma.brand.findFirst({
-        select: { id: true },
-        where: scopedWhere(organizationId, {}),
-      });
-
-      this.eventEmitter.emit('credits.activity', {
-        brandId: String(defaultBrand?.id ?? organizationId),
-        key: ActivityKey.CREDITS_REMOVE,
-        organizationId: organizationId,
-        source,
-        userId: userId,
-        value: JSON.stringify({ description, value: creditsToDeduct }),
-      });
 
       const websocketUrl = `/credits/${organizationId}`;
       await this.websocketService.emit(websocketUrl, {

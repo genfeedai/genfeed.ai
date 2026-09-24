@@ -194,6 +194,9 @@ export class CreditReservationService {
         undefined,
         tx,
         {
+          actorUserId: input.actorUserId,
+          billingAccountId: reservation.billingAccountId,
+          reservationId: reservation.id,
           referenceId: reservation.id,
           referenceType: 'credit_reservation',
         },
