@@ -182,8 +182,6 @@ export function useLibrarySnapshotLinks(): Array<{
   );
 }
 
-export const WORKSPACE_CARD_GRID_GAP_CLASS =
-  'grid gap-3 md:grid-cols-2 xl:grid-cols-4';
 export const WORKSPACE_SECTION_STACK_CLASS = 'space-y-4';
 
 export const isTaskInInboxQueue = isTaskInWorkspaceInboxQueue;
