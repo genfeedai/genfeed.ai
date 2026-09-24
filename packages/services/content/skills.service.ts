@@ -138,7 +138,10 @@ export class SkillsService extends BaseService<
   }
 
   async exportSkill(id: string): Promise<Record<string, unknown>> {
-    return this.instance.get<Record<string, unknown>>(`/${id}/export`);
+    const response = await this.instance.get<Record<string, unknown>>(
+      `/${id}/export`,
+    );
+    return response.data;
   }
 
   async archiveSkill(id: string): Promise<void> {

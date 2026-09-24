@@ -22,10 +22,27 @@ export interface ResolvedRuntimeSkill {
 
   /** True when this skill is a catalog-global built-in identity. */
   isBuiltIn?: boolean;
+
+  /** Immutable version whose instructions were injected. */
+  contentHash?: string;
+
+  /** Immutable version executed for this resolution. */
+  versionId?: string;
+}
+
+export interface PinnedRuntimeSkill {
+  contentHash: string;
+  instructions: string;
+  slug: string;
+  versionId: string;
 }
 
 export interface ResolveActiveSkillsContext {
   actorUserId?: string;
+  /** Reuses the versions resolved for this execution, including its retry. */
+  executionId?: string;
+  /** Empty array collects pins. A non-empty array is the retry source. */
+  pinnedSkills?: PinnedRuntimeSkill[];
   agentType?: string;
   channel?: string;
   modality?: string;

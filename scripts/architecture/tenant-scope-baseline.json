@@ -1257,38 +1257,6 @@
       "reason": "missing-organization-id"
     },
     {
-      "delegate": "skill",
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "1ea490fbf271ea7723f8",
-      "method": "findFirst",
-      "model": "Skill",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "skill",
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "2e55940c43f62ee683d9",
-      "method": "findMany",
-      "model": "Skill",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "skill",
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "6713d526129eaf970858",
-      "method": "findMany",
-      "model": "Skill",
-      "reason": "unresolved-where"
-    },
-    {
-      "delegate": "skill",
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "ae11ad29b2a00003dbb0",
-      "method": "findMany",
-      "model": "Skill",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "socialConversation",
       "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "2903b8ca4f0e38496d22",

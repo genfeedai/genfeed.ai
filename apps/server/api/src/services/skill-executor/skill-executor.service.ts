@@ -104,6 +104,7 @@ export class SkillWorkflowService implements OnModuleInit {
       context.brandId,
       skillSlug,
       request.context.userId,
+      this.readRecord(request.input.context, 'context'),
     );
     return this.handlers[skillSlug].execute(
       context,
@@ -116,10 +117,12 @@ export class SkillWorkflowService implements OnModuleInit {
     brandId: string,
     skillSlug: ExecutableSkillSlug,
     userId: string,
+    rawContext: Record<string, unknown>,
   ): Promise<void> {
     const skill = await this.skillsService.getSkillById(
       organizationId,
       skillSlug,
+      userId,
     );
     if (
       !skill?.isEnabled ||
@@ -135,16 +138,55 @@ export class SkillWorkflowService implements OnModuleInit {
     );
     if (!this.skillLibrary || !userId) return;
     const actor = { brandId, organizationId, userId };
-    const decision = await this.skillLibrary.authorizeResolved(actor, [skill]);
+    const storedPins = Array.isArray(rawContext.pinnedSkills)
+      ? rawContext.pinnedSkills.flatMap((pin) => {
+          if (!pin || typeof pin !== 'object') return [];
+          const record = pin as Record<string, unknown>;
+          if (
+            typeof record.versionId !== 'string' ||
+            typeof record.contentHash !== 'string'
+          ) {
+            return [];
+          }
+          return [
+            {
+              contentHash: record.contentHash,
+              skillId: String(skill.id),
+              skillVersionId: record.versionId,
+            },
+          ];
+        })
+      : [];
+    const decision = await this.skillLibrary.authorizeResolved(
+      actor,
+      [skill],
+      storedPins,
+    );
     if (
       !decision.included.some((item) => String(item.id) === String(skill.id))
     ) {
       throw new NotFoundException(`Skill not found: ${skillSlug}`);
     }
+    if (storedPins.length === 0 && decision.versions[0]) {
+      const executed = decision.included.find(
+        (item) => String(item.id) === String(skill.id),
+      );
+      rawContext.pinnedSkills = [
+        {
+          contentHash: decision.versions[0].contentHash,
+          instructions:
+            executed?.systemPromptTemplate ??
+            executed?.defaultInstructions ??
+            '',
+          slug: String(skill.slug ?? skillSlug),
+          versionId: decision.versions[0].skillVersionId,
+        },
+      ];
+    }
     if (userId === SYSTEM_WORKFLOW_PRINCIPAL_ID) return;
     await this.skillLibrary.recordResolution(
       actor,
-      [String(skill.id)],
+      decision.versions,
       decision.excluded,
     );
   }

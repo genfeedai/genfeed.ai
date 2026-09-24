@@ -28,6 +28,108 @@ function skill(
   };
 }
 
+describe('SkillRuntimeService version pins', () => {
+  it('executes the authorized version and reuses that pin on retry', async () => {
+    const v1 = {
+      contentHash: 'hash-v1',
+      defaultInstructions: 'version one',
+      id: 'skill-1',
+      name: 'Voice',
+      skillVersionId: 'sv-1',
+      slug: 'voice',
+      systemPromptTemplate: 'version one',
+    };
+    const resolved = [{ skill: v1, targetSkill: v1 }];
+    const skillsService = {
+      resolveBrandSkills: vi.fn().mockResolvedValue(resolved),
+    };
+    let isActivated = false;
+    const skillLibrary = {
+      authorizeResolved: vi.fn(
+        async (
+          _actor: unknown,
+          docs: Array<Record<string, unknown>>,
+          pins: Array<{ skillVersionId: string }> = [],
+        ) => {
+          const pinned = pins[0]?.skillVersionId;
+          const useFirstVersion =
+            pinned === 'sv-1' || (pins.length === 0 && !isActivated);
+          if (pins.length === 0) isActivated = true;
+          const included = docs.map((doc) => ({
+            ...doc,
+            contentHash: useFirstVersion ? 'hash-v1' : 'hash-v2',
+            skillVersionId: useFirstVersion ? 'sv-1' : 'sv-2',
+            systemPromptTemplate: useFirstVersion
+              ? 'version one'
+              : 'version two',
+          }));
+          return {
+            excluded: [],
+            included,
+            versions: included.map((doc) => ({
+              contentHash: String(doc.contentHash),
+              skillId: String(doc.id),
+              skillVersionId: String(doc.skillVersionId),
+            })),
+          };
+        },
+      ),
+      recordResolution: vi.fn(),
+    };
+    const runtime = new SkillRuntimeService(
+      skillsService as never,
+      { warn: vi.fn() } as never,
+      skillLibrary as never,
+    );
+    const pins: Array<{
+      contentHash: string;
+      instructions: string;
+      slug: string;
+      versionId: string;
+    }> = [];
+    const first = await runtime.resolveActiveSkills('org-1', 'brand-1', [], {
+      actorUserId: 'user-1',
+      pinnedSkills: pins,
+    });
+    expect(first[0]?.instructions).toBe('version one');
+    expect(first[0]?.versionId).toBe('sv-1');
+    expect(pins).toEqual([
+      expect.objectContaining({
+        contentHash: 'hash-v1',
+        slug: 'voice',
+        versionId: 'sv-1',
+      }),
+    ]);
+    const retryPins = [
+      {
+        contentHash: 'hash-v1',
+        instructions: 'version one',
+        slug: 'voice',
+        versionId: 'sv-1',
+      },
+    ];
+    const retry = await runtime.resolveActiveSkills('org-1', 'brand-1', [], {
+      actorUserId: 'user-1',
+      pinnedSkills: retryPins,
+    });
+    expect(retry[0]?.instructions).toBe('version one');
+    expect(retry[0]?.versionId).toBe('sv-1');
+    const afterActivation = await runtime.resolveActiveSkills(
+      'org-1',
+      'brand-1',
+      [],
+      { actorUserId: 'user-1', pinnedSkills: [] },
+    );
+    expect(afterActivation[0]?.instructions).toBe('version two');
+    expect(afterActivation[0]?.versionId).toBe('sv-2');
+    expect(skillLibrary.recordResolution).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1' }),
+      [expect.objectContaining({ skillVersionId: 'sv-1' })],
+      [],
+    );
+  });
+});
+
 describe('SkillRuntimeService.buildSkillPromptSections', () => {
   it('frames sanitized skill instructions as authorized organization task guidance', () => {
     const sections = createService().buildSkillPromptSections([
@@ -247,6 +349,96 @@ describe('SkillRuntimeService.resolveActiveSkills', () => {
       modality: 'text',
       workflowStage: undefined,
     });
+  });
+
+  it('keeps the first resolved version on a retry after the live skill moves', async () => {
+    const resolveBrandSkills = vi.fn().mockResolvedValue([
+      {
+        priority: 1,
+        skill: {
+          defaultInstructions: 'draft v2',
+          id: 'skill-1',
+          slug: 'hook-writer',
+          systemPromptTemplate: 'draft v2',
+        },
+        targetSkill: null,
+        variant: null,
+      },
+    ]);
+    const authorizeResolved = vi.fn(
+      async (
+        _actor: unknown,
+        _docs: unknown,
+        pins: Array<{ skillVersionId: string }>,
+      ) => ({
+        excluded: [],
+        included: [
+          {
+            defaultInstructions: pins[0] ? 'assigned v1' : 'draft v2',
+            id: 'skill-1',
+            skillVersionId: pins[0]?.skillVersionId ?? 'sv-2',
+            slug: 'hook-writer',
+            systemPromptTemplate: pins[0] ? 'assigned v1' : 'draft v2',
+          },
+        ],
+        versions: [
+          {
+            contentHash: pins[0] ? 'hash-v1' : 'hash-v2',
+            skillId: 'skill-1',
+            skillVersionId: pins[0]?.skillVersionId ?? 'sv-2',
+          },
+        ],
+      }),
+    );
+    const recordResolution = vi.fn();
+    const service = new SkillRuntimeService(
+      { resolveBrandSkills } as never,
+      { warn: vi.fn() } as never,
+      { authorizeResolved, recordResolution } as never,
+    );
+    const pinnedSkills: Array<{
+      contentHash: string;
+      instructions: string;
+      slug: string;
+      versionId: string;
+    }> = [];
+
+    const first = await service.resolveActiveSkills(
+      'org-1',
+      'brand-1',
+      undefined,
+      {
+        actorUserId: 'user-1',
+        pinnedSkills,
+      },
+    );
+    const retry = await service.resolveActiveSkills(
+      'org-1',
+      'brand-1',
+      undefined,
+      {
+        actorUserId: 'user-1',
+        pinnedSkills,
+      },
+    );
+
+    expect(first[0]?.instructions).toBe('draft v2');
+    expect(first[0]?.versionId).toBe('sv-2');
+    expect(pinnedSkills).toEqual([
+      expect.objectContaining({ versionId: 'sv-2' }),
+    ]);
+    expect(retry[0]?.instructions).toBe('assigned v1');
+    expect(retry[0]?.versionId).toBe('sv-2');
+    expect(recordResolution).toHaveBeenLastCalledWith(
+      expect.objectContaining({ userId: 'user-1' }),
+      [
+        expect.objectContaining({
+          skillVersionId: 'sv-2',
+          contentHash: 'hash-v1',
+        }),
+      ],
+      [],
+    );
   });
 });
 

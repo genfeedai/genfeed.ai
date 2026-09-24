@@ -19,6 +19,8 @@ type SkillRow = {
   isDeleted: boolean;
   label: string;
   organizationId: string | null;
+  ownerKind?: string | null;
+  ownerUserId?: string | null;
 };
 
 function makeSkillRow(overrides: Partial<SkillRow> = {}): SkillRow {
@@ -49,6 +51,13 @@ describe('SkillsService', () => {
       findMany: vi.fn().mockResolvedValue([]),
       update: vi.fn(),
     },
+    skillGrant: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    $executeRaw: vi.fn(),
+    $transaction: vi.fn(async (fn: (tx: typeof prisma) => Promise<unknown>) =>
+      fn(prisma),
+    ),
   };
   const byokProviderFactoryService = { hasProviderAccess: vi.fn() };
   const loggerService = { debug: vi.fn(), error: vi.fn(), warn: vi.fn() };
@@ -79,6 +88,7 @@ describe('SkillsService', () => {
       }),
     );
     prisma.skill.findMany.mockResolvedValue([]);
+    prisma.skillGrant.findMany.mockResolvedValue([]);
     prisma.skill.update.mockImplementation(({ data }) =>
       Promise.resolve({ ...makeSkillRow(), config: data.config }),
     );
@@ -873,6 +883,146 @@ describe('SkillsService', () => {
 
     expect(prisma.skill.findFirst).not.toHaveBeenCalled();
     expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
+
+  it('lets the owner read and edit a personal skill and hides it from someone else', async () => {
+    const personal = makeSkillRow({
+      id: 'skill-personal',
+      organizationId: null,
+      ownerKind: 'user',
+      ownerUserId: 'user-1',
+    } as Partial<SkillRow>);
+    prisma.skill.findFirst.mockResolvedValue(personal);
+    prisma.skill.update.mockResolvedValue({
+      ...personal,
+      config: { ...personal.config, name: 'Mine' },
+    });
+
+    await expect(
+      service.getSkillById('org-1', 'skill-personal', 'user-1'),
+    ).resolves.toMatchObject({ id: 'skill-personal', ownerUserId: 'user-1' });
+    expect(JSON.stringify(prisma.skill.findFirst.mock.calls[0]?.[0])).toContain(
+      '"ownerUserId":"user-1"',
+    );
+    prisma.skill.findMany.mockResolvedValue([personal]);
+    await expect(service.listAllForOrg('org-1', {}, 'user-1')).resolves.toEqual(
+      [
+        expect.objectContaining({
+          id: 'skill-personal',
+          ownerUserId: 'user-1',
+        }),
+      ],
+    );
+    await expect(
+      service.updateSkill(
+        'org-1',
+        'skill-personal',
+        { name: 'Mine' },
+        'user-1',
+      ),
+    ).resolves.toMatchObject({ id: 'skill-personal' });
+    expect(prisma.skill.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.not.objectContaining({ organizationId: 'org-1' }),
+        where: { id: 'skill-personal' },
+      }),
+    );
+    expect(prisma.skill.update.mock.calls[0]?.[0].data).not.toHaveProperty(
+      'organizationId',
+    );
+
+    prisma.skill.findFirst.mockResolvedValue(null);
+    await expect(
+      service.getSkillById('org-1', 'skill-personal', 'user-2'),
+    ).resolves.toBeNull();
+    await expect(
+      service.updateSkill(
+        'org-1',
+        'skill-personal',
+        { name: 'Stolen' },
+        'user-2',
+      ),
+    ).rejects.toBeInstanceOf(NotFoundException);
+  });
+
+  it('resolves the caller personal skill and an active grant, not another personal skill', async () => {
+    prisma.skillGrant.findMany.mockResolvedValue([
+      { skillId: 'skill-granted' },
+    ]);
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: {
+        enabledSkills: ['org-skill', 'mine', 'theirs', 'granted'],
+      },
+      id: 'brand-1',
+    });
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: { isEnabled: true, slug: 'org-skill', source: 'custom' },
+        id: 'org-skill',
+      }),
+      makeSkillRow({
+        config: { isEnabled: true, slug: 'mine', source: 'custom' },
+        id: 'mine',
+        organizationId: null,
+        ownerKind: 'user',
+        ownerUserId: 'user-1',
+      } as Partial<SkillRow>),
+      makeSkillRow({
+        config: { isEnabled: true, slug: 'theirs', source: 'custom' },
+        id: 'theirs',
+        organizationId: null,
+        ownerKind: 'user',
+        ownerUserId: 'user-2',
+      } as Partial<SkillRow>),
+      makeSkillRow({
+        config: { isEnabled: true, slug: 'granted', source: 'custom' },
+        id: 'skill-granted',
+        organizationId: 'org-9',
+      }),
+    ]);
+
+    const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
+      actorUserId: 'user-1',
+    });
+
+    expect(resolved.map((entry) => String(entry.skill.id)).sort()).toEqual([
+      'mine',
+      'org-skill',
+      'skill-granted',
+    ]);
+    expect(prisma.skillGrant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ revokedAt: null }),
+      }),
+    );
+  });
+
+  it('drops a granted skill after the grant is revoked', async () => {
+    prisma.skillGrant.findMany.mockResolvedValue([]);
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: ['mine', 'granted'] },
+      id: 'brand-1',
+    });
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: { isEnabled: true, slug: 'mine', source: 'custom' },
+        id: 'mine',
+        organizationId: null,
+        ownerKind: 'user',
+        ownerUserId: 'user-1',
+      } as Partial<SkillRow>),
+      makeSkillRow({
+        config: { isEnabled: true, slug: 'granted', source: 'custom' },
+        id: 'skill-granted',
+        organizationId: 'org-9',
+      }),
+    ]);
+
+    const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
+      actorUserId: 'user-1',
+    });
+
+    expect(resolved.map((entry) => String(entry.skill.id))).toEqual(['mine']);
   });
 
   it('rejects a catalog-global skill instead of attempting the write', async () => {
