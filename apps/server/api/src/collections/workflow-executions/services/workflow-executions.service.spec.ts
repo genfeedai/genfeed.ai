@@ -1,4 +1,5 @@
 import { runWithActionOrigin } from '@api/index';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   ActionOrigin,
   WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
@@ -8,6 +9,7 @@ import {
   HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
 } from '@genfeedai/contracts/interfaces';
 import { WorkflowExecutionStatus as PrismaWorkflowExecutionStatus } from '@genfeedai/prisma';
+import { buildCustomerExecutionWhere } from './workflow-execution-query.util';
 import { WorkflowExecutionsService } from './workflow-executions.service';
 
 describe('WorkflowExecutionsService', () => {
@@ -331,11 +333,10 @@ describe('WorkflowExecutionsService', () => {
     });
     expect(prisma.workflowExecution.findMany).toHaveBeenCalledWith({
       select: { durationMs: true, status: true },
-      where: {
-        isDeleted: false,
-        organizationId: 'org-1',
-        workflowId: 'workflow-1',
-      },
+      where: scopedWhere(
+        'org-1',
+        buildCustomerExecutionWhere('org-1', { workflowId: 'workflow-1' }),
+      ),
     });
   });
 

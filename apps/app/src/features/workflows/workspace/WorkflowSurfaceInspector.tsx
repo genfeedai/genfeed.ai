@@ -371,7 +371,9 @@ export function WorkflowSurfaceInspector({
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
               {getWorkflowExecutionLabel(
-                execution ?? { workflow },
+                execution
+                  ? { ...execution, workflow: execution.workflow ?? workflow }
+                  : { workflow },
                 'Workflow run',
               )}
             </p>
