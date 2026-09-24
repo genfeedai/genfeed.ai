@@ -10,6 +10,7 @@ import { ResearchAccessService } from '@api/services/research-access/research-ac
 import {
   buildResearchCollectionRequestKey,
   RESEARCH_COLLECTION_JOB_STATUS,
+  RESEARCH_COLLECTION_LEASE_MS,
   type ResearchCollectionJobRecord,
   ResearchCollectionJobService,
 } from '@api/services/research-access/research-collection-job.service';
@@ -19,7 +20,6 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { firstValueFrom } from 'rxjs';
 
 const API_URL = 'https://api.apify.com/v2';
-const AMBIGUOUS_START_MS = 15 * 60 * 1000;
 const RUN_POLL_MS = 5_000;
 const RUN_WAIT_MS = 120_000;
 const TERMINAL_RUN_STATUSES = new Set([
@@ -67,7 +67,16 @@ export class ResearchCollectionRunner {
       requestKey,
     });
     if (job.upstreamRunId) return this.finishRecordedRun(job);
-    if (job.isRecovered) return this.recoverUnrecordedStart(job, actorId);
+    if (job.isRecovered) {
+      // The owner may still be resolving a token or waiting on the POST.
+      // An empty actor list is not evidence that start was rejected.
+      if (isCollectionLeaseActive(job, new Date())) {
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
+      return this.recoverUnrecordedStart(job, actorId);
+    }
     return this.startRun(job, actorId, input);
   }
 
@@ -95,7 +104,15 @@ export class ResearchCollectionRunner {
       this.baseService.assertRegisteredHostedActor(actorId);
     }
     const startedAt = new Date();
-    await this.jobs.markStarting(job, { scope, startAttemptedAt: startedAt });
+    const ownsStart = await this.jobs.markStarting(job, {
+      scope,
+      startAttemptedAt: startedAt,
+    });
+    if (!ownsStart) {
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
     const budget = await this.budget.consumeRun(scope, actorId, token.token);
     if (!budget.isAllowed) {
       await this.jobs.finish(job, {
@@ -107,7 +124,16 @@ export class ResearchCollectionRunner {
       );
     }
     if (budget.reservation) {
-      await this.jobs.attachReservation(job, budget.reservation);
+      const reserved = await this.jobs.attachReservation(
+        job,
+        budget.reservation,
+      );
+      if (!reserved) {
+        await this.releaseReservation(budget.reservation, 0);
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
     }
     const run = await this.startActorOrStop(
       job,
@@ -118,10 +144,15 @@ export class ResearchCollectionRunner {
       scope,
       startedAt,
     );
-    await this.jobs.attachRun(job, {
+    const recorded = await this.jobs.attachRun(job, {
       datasetId: run.defaultDatasetId,
       upstreamRunId: run.id,
     });
+    if (!recorded) {
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
     return this.finishRecordedRun({
       ...job,
       datasetId: run.defaultDatasetId,
@@ -161,13 +192,24 @@ export class ResearchCollectionRunner {
         });
         throw error;
       }
-      await this.jobs.markAmbiguous(job);
+      const leaseExpiresAt = await this.jobs.markAmbiguous(job);
       this.loggerService.warn(
         'Research collection start was ambiguous; refusing another actor start',
         { actorId, jobId: job.id, organizationId: job.organizationId },
       );
+      if (!leaseExpiresAt) {
+        throw new ServiceUnavailableException(
+          'research_collection_recovery_pending',
+        );
+      }
       return this.recoverUnrecordedStart(
-        { ...job, scope, startAttemptedAt: startedAt },
+        {
+          ...job,
+          leaseExpiresAt,
+          scope,
+          startAttemptedAt: startedAt,
+          status: RESEARCH_COLLECTION_JOB_STATUS.AMBIGUOUS,
+        },
         actorId,
       );
     }
@@ -226,46 +268,43 @@ export class ResearchCollectionRunner {
     job: ResearchCollectionJobRecord,
     actorId: string,
   ): Promise<never> {
-    const startedAt = job.startAttemptedAt?.getTime() ?? Date.now();
-    const expired = Date.now() - startedAt >= AMBIGUOUS_START_MS;
+    const now = new Date();
+    if (isCollectionLeaseActive(job, now)) {
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
     const runs = await this.listRecentRuns(actorId, job);
     if (runs === null) {
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );
     }
-    const sawRun = runs.some((run) => {
-      const started = Date.parse(run.startedAt);
-      return Number.isFinite(started) && started >= startedAt - 2_000;
-    });
-    if (!sawRun) {
-      await this.releaseReservation(this.reservationFrom(job), 0);
-      await this.jobs.finish(job, {
-        actualCostMicroUsd: 0,
-        reconciledAt: new Date(),
-        status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
-        terminalReason: 'start_not_recorded',
+    const startedAt = job.startAttemptedAt
+      ? job.startAttemptedAt.getTime()
+      : job.leaseExpiresAt
+        ? job.leaseExpiresAt.getTime() - RESEARCH_COLLECTION_LEASE_MS
+        : undefined;
+    const sawRun =
+      startedAt !== undefined &&
+      runs.some((run) => {
+        const started = Date.parse(run.startedAt);
+        return Number.isFinite(started) && started >= startedAt - 2_000;
       });
-      throw new ServiceUnavailableException(
-        'research_collection_start_unconfirmed',
-      );
-    }
-    if (!expired) {
+    // A listed run we did not record may still be this start. A legacy row
+    // has no start bound, so any listed run might be it.
+    if (sawRun || (startedAt === undefined && runs.length > 0)) {
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );
     }
-    const reserved = job.reservedMicroUsd;
-    await this.releaseReservation(
-      this.reservationFrom(job),
-      reserved === null ? undefined : reserved / 1_000_000,
-    );
-    await this.jobs.finish(job, {
-      actualCostMicroUsd: reserved,
-      reconciledAt: new Date(),
-      status: RESEARCH_COLLECTION_JOB_STATUS.UNRECONCILED,
-      terminalReason: 'unrecorded_start',
-    });
+    const released = await this.jobs.finishExpiredUnrecorded(job, now);
+    if (!released) {
+      throw new ServiceUnavailableException(
+        'research_collection_recovery_pending',
+      );
+    }
+    await this.releaseReservation(this.reservationFrom(job), 0);
     throw new ServiceUnavailableException(
       'research_collection_start_unconfirmed',
     );
@@ -377,6 +416,15 @@ export class ResearchCollectionRunner {
   private toMicroUsd(value: number): number {
     return Math.round(value * 1_000_000);
   }
+}
+
+function isCollectionLeaseActive(
+  job: ResearchCollectionJobRecord,
+  now: Date,
+): boolean {
+  return (
+    job.leaseExpiresAt !== null && job.leaseExpiresAt.getTime() > now.getTime()
+  );
 }
 
 function collectionTokenMode(

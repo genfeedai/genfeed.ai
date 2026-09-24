@@ -121,7 +121,31 @@ redis.call('HSET', KEYS[2], 'booksReserved', '1')
 return 1
 `;
 
+// A provisional hold comes off the counter only when settled actuals that
+// are not already recognized cover that whole hold. Recognized dollars
+// stay explained. When the books are closed and this capacity does not
+// cover the hold, the hold is external: it stays on the counter and stops
+// being provisional, so a later settlement cannot spend it again.
+const RELEASE_UNRECOGNIZED_HOLD_SCRIPT = `
+local function releaseUnrecognizedHold(booked, held, known)
+  if held <= 0 then return held, known end
+  local unexplained = booked - known
+  if unexplained < 0 then unexplained = 0 end
+  if unexplained >= held and current >= held then
+    local nextRecognized = known + held
+    if nextRecognized > booked then nextRecognized = booked end
+    redis.call('INCRBY', KEYS[1], string.format('%.0f', -held))
+    redis.call('SET', KEYS[6], string.format('%.0f', nextRecognized), 'PX', ttl)
+    current = current - held
+    known = nextRecognized
+  end
+  redis.call('SET', KEYS[5], '0', 'PX', ttl)
+  return 0, known
+end
+`;
+
 const NOTE_SETTLED_RESEARCH_RESERVATION_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+${RELEASE_UNRECOGNIZED_HOLD_SCRIPT}
 if redis.call('TYPE', KEYS[2]).ok ~= 'hash' then return 0 end
 if redis.call('HGET', KEYS[2], 'booksSettled') == '1' then return 2 end
 if redis.call('HGET', KEYS[2], 'state') ~= 'settled' then return 0 end
@@ -132,41 +156,79 @@ local outstanding = integer(redis.call('GET', KEYS[3]) or '0')
 local settled = integer(redis.call('GET', KEYS[4]) or '0')
 if not reserved or not actual or not outstanding or not settled then return 0 end
 if outstanding < reserved or settled > MAX - actual then return 0 end
-redis.call('SET', KEYS[3], string.format('%.0f', outstanding - reserved), 'PX', ttl)
-redis.call('SET', KEYS[4], string.format('%.0f', settled + actual), 'PX', ttl)
+local settledNow = settled + actual
+local outstandingNow = outstanding - reserved
+local provisional = integer(redis.call('GET', KEYS[5]) or '0')
+local recognized = integer(redis.call('GET', KEYS[6]) or '0')
+if provisional == nil or recognized == nil then return 0 end
+redis.call('SET', KEYS[3], string.format('%.0f', outstandingNow), 'PX', ttl)
+redis.call('SET', KEYS[4], string.format('%.0f', settledNow), 'PX', ttl)
 redis.call('HSET', KEYS[2], 'booksSettled', '1')
+if outstandingNow == 0 then
+  provisional, recognized = releaseUnrecognizedHold(settledNow, provisional, recognized)
+end
 return 1
 `;
 
 const IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+${RELEASE_UNRECOGNIZED_HOLD_SCRIPT}
 local provider = integer(ARGV[1])
-if not provider then return 0 end
-local snapshotRaw = redis.call('GET', KEYS[2])
-if not snapshotRaw then
-  redis.call('SET', KEYS[2], ARGV[1], 'PX', ttl)
-  redis.call('SET', KEYS[3], '0', 'PX', ttl)
-  if provider > current then
-    redis.call('INCRBY', KEYS[1], string.format('%.0f', provider - current))
-  end
-  return {3}
-end
-local snapshot = integer(snapshotRaw)
+if provider == nil then return 0 end
 local settled = integer(redis.call('GET', KEYS[3]) or '0')
-if not snapshot or not settled then return 0 end
-local external = provider - snapshot - settled
-if external > 0 then
-  if current > MAX - external then return 0 end
-  redis.call('INCRBY', KEYS[1], string.format('%.0f', external))
-  redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
-  redis.call('SET', KEYS[3], '0', 'PX', ttl)
-  return {1, string.format('%.0f', external)}
+local outstanding = integer(redis.call('GET', KEYS[4]) or '0')
+local provisional = integer(redis.call('GET', KEYS[5]) or '0')
+local recognized = integer(redis.call('GET', KEYS[6]) or '0')
+if settled == nil or outstanding == nil or provisional == nil or recognized == nil then return 0 end
+local snapshotRaw = redis.call('GET', KEYS[2])
+local growth = 0
+local baselined = false
+if not snapshotRaw then
+  local base = current - outstanding
+  if base < 0 then base = 0 end
+  growth = provider - base
+  if growth < 0 then growth = 0 end
+  baselined = true
+else
+  local snapshot = integer(snapshotRaw)
+  if snapshot == nil then return 0 end
+  if provider < snapshot then return {4} end
+  growth = provider - snapshot
 end
-if external == 0 then
-  redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
-  redis.call('SET', KEYS[3], '0', 'PX', ttl)
-  return {2}
+-- Growth already explained by settled charges that the snapshot has not
+-- absorbed yet is our own run appearing at the provider. It is not new
+-- external spend, including after a nonzero external baseline.
+-- The remainder is held immediately. The slice inside the open cap is
+-- provisional and comes back out only when unsettled actuals cover that
+-- whole slice. Recognized dollars cannot explain a new hold. Dollars
+-- above the cap stay.
+local unseen = settled - recognized
+if unseen < 0 then unseen = 0 end
+local explained = growth
+if explained > unseen then explained = unseen end
+local charge = growth - explained
+local ambiguous = charge
+if ambiguous > outstanding then ambiguous = outstanding end
+if charge > 0 then
+  if current > MAX - charge then return 0 end
+  if ambiguous > 0 and provisional > MAX - ambiguous then return 0 end
+  redis.call('INCRBY', KEYS[1], string.format('%.0f', charge))
+  current = current + charge
+  if ambiguous > 0 then
+    provisional = provisional + ambiguous
+    redis.call('SET', KEYS[5], string.format('%.0f', provisional), 'PX', ttl)
+  end
 end
-return {4}
+if explained > 0 then
+  recognized = recognized + explained
+  redis.call('SET', KEYS[6], string.format('%.0f', recognized), 'PX', ttl)
+end
+redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
+if outstanding == 0 then
+  provisional, recognized = releaseUnrecognizedHold(settled, provisional, recognized)
+end
+if baselined then return {3} end
+if charge > 0 then return {1, string.format('%.0f', charge)} end
+return {2}
 `;
 
 export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
@@ -359,6 +421,8 @@ export class CacheService {
         reservationKey,
         `${usageKey}:outstanding`,
         `${usageKey}:settled`,
+        `${usageKey}:provisional`,
+        `${usageKey}:recognized`,
       ],
       [],
       true,
@@ -366,10 +430,12 @@ export class CacheService {
   }
 
   /**
-   * Fold provider-account usage into the hosted counter. External spend is
-   * added once. Charges this process already settled are not added again.
-   * A missing snapshot adopts the provider total and raises the counter
-   * only when that total is already higher.
+   * Fold provider-account usage into the hosted counter. New provider
+   * dollars are held immediately. The slice inside an open reservation cap
+   * is provisional and comes back out only when unsettled actuals cover
+   * that whole slice. Recognized dollars cannot explain a new hold.
+   * Dollars above that cap stay. A reservation release never drops the
+   * counter below provider usage already observed.
    */
   async importHostedAccountUsage(
     usageKey: string,
@@ -386,10 +452,13 @@ export class CacheService {
     try {
       const result = await this.client.eval(
         IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT,
-        3,
+        6,
         usageKey,
         `${usageKey}:snapshot`,
         `${usageKey}:settled`,
+        `${usageKey}:outstanding`,
+        `${usageKey}:provisional`,
+        `${usageKey}:recognized`,
         String(providerMicroUsd),
       );
       if (Array.isArray(result) && result[0] === 1) {

@@ -92,31 +92,67 @@ describe('ApifyRunBudgetService', () => {
         async (usageKey: string, providerMicro: number) => {
           const snapshotKey = `${usageKey}:snapshot`;
           const settledKey = `${usageKey}:settled`;
-          if (counters[snapshotKey] === undefined) {
-            counters[snapshotKey] = providerMicro;
-            counters[settledKey] = 0;
-            if (providerMicro > (counters[usageKey] ?? 0)) {
-              counters[usageKey] = providerMicro;
+          const provisionalKey = `${usageKey}:provisional`;
+          const recognizedKey = `${usageKey}:recognized`;
+          const outstanding = counters[`${usageKey}:outstanding`] ?? 0;
+          const settled = counters[settledKey] ?? 0;
+          const provisional = counters[provisionalKey] ?? 0;
+          const recognized = counters[recognizedKey] ?? 0;
+          const current = counters[usageKey] ?? 0;
+          const snapshot = counters[snapshotKey];
+          let growth = 0;
+          let isBaselined = false;
+          if (snapshot === undefined) {
+            growth = Math.max(
+              0,
+              providerMicro - Math.max(0, current - outstanding),
+            );
+            isBaselined = true;
+          } else if (providerMicro < snapshot) {
+            return { status: 'behind' };
+          } else {
+            growth = providerMicro - snapshot;
+          }
+          const unseen = Math.max(0, settled - recognized);
+          const explained = Math.min(growth, unseen);
+          const charge = growth - explained;
+          let next = current;
+          let nextProvisional = provisional;
+          let nextRecognized = recognized + explained;
+          if (charge > 0) {
+            next += charge;
+            const ambiguous = Math.min(charge, outstanding);
+            if (ambiguous > 0) nextProvisional += ambiguous;
+          }
+          const unexplained = Math.max(0, settled - nextRecognized);
+          if (outstanding === 0 && nextProvisional > 0) {
+            if (unexplained >= nextProvisional && next >= nextProvisional) {
+              nextRecognized = Math.min(
+                settled,
+                nextRecognized + nextProvisional,
+              );
+              next -= nextProvisional;
             }
-            return { status: 'baselined' };
+            nextProvisional = 0;
           }
-          const external =
-            providerMicro - counters[snapshotKey] - (counters[settledKey] ?? 0);
-          if (external > 0) {
-            counters[usageKey] = (counters[usageKey] ?? 0) + external;
-            counters[snapshotKey] = providerMicro;
-            counters[settledKey] = 0;
-            return { externalMicroUsd: external, status: 'applied' };
+          counters[usageKey] = next;
+          counters[snapshotKey] = providerMicro;
+          counters[provisionalKey] = nextProvisional;
+          counters[recognizedKey] = nextRecognized;
+          if (isBaselined) return { status: 'baselined' };
+          if (charge > 0) {
+            return { externalMicroUsd: charge, status: 'applied' };
           }
-          if (external === 0) {
-            counters[snapshotKey] = providerMicro;
-            counters[settledKey] = 0;
-            return { status: 'unchanged' };
-          }
-          return { status: 'behind' };
+          return { status: 'unchanged' };
         },
       ),
-      noteResearchReservation: vi.fn(async () => 'noted'),
+      noteResearchReservation: vi.fn(
+        async (usageKey: string, _reservationKey: string, amount: number) => {
+          const outstandingKey = `${usageKey}:outstanding`;
+          counters[outstandingKey] = (counters[outstandingKey] ?? 0) + amount;
+          return 'noted';
+        },
+      ),
       noteSettledResearchReservation: vi.fn(async () => 'noted'),
       set: vi.fn(async (key: string, value: unknown) => {
         counters[key] = value === true ? 1 : 0;
@@ -526,7 +562,7 @@ describe('ApifyRunBudgetService', () => {
     },
   );
 
-  it('adds external provider usage once and does not replay it', async () => {
+  it('holds provider usage inside an open reservation once', async () => {
     env.APIFY_MAX_BILLING_PERIOD_USD = '4';
     service = build();
     const first = await service.consumeRun('hosted', 'actor', 'token');
@@ -550,7 +586,7 @@ describe('ApifyRunBudgetService', () => {
     const second = await service.consumeRun('hosted', 'actor', 'token');
 
     expect(counters[usageKey]).toBe(
-      reserved + 50_000 + (second.reservation?.reservedMicroUsd ?? 0),
+      reserved + (second.reservation?.reservedMicroUsd ?? 0) + 50_000,
     );
     vi.advanceTimersByTime(6 * 60 * 1000);
     const beforeReplay = counters[usageKey];

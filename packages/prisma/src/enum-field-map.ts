@@ -5205,6 +5205,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'id',
       'inflightRequestKey',
       'isDeleted',
+      'leaseExpiresAt',
+      'leaseToken',
       'organization',
       'organizationId',
       'reconciledAt',
