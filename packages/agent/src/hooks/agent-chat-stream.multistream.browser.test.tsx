@@ -9,9 +9,9 @@ import type { AgentApiService } from '@genfeedai/agent/services/agent-api.servic
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
 import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import { Button } from '@ui/primitives/button';
-import { page } from '@vitest/browser/context';
 import { NextIntlClientProvider } from 'next-intl';
 import { afterEach, expect, it, vi } from 'vitest';
+import { page } from 'vitest/browser';
 import { render } from 'vitest-browser-react';
 import agentMessages from '../../../../apps/app/messages/en/agent.json';
 import uiMessages from '../../../../apps/app/messages/en/ui.json';
