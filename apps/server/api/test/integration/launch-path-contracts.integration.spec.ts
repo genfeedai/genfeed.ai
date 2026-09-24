@@ -331,6 +331,9 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     const mediaHandler = readSourceOf('AgentMediaAssetGenerationService', {
       root: API_SRC,
     });
+    const enhancement = readSourceOf('MediaPromptEnhancementService', {
+      root: API_SRC,
+    });
     const ads = readSourceOf('AdsResearchService', { root: API_SRC });
     const config = readSourceOf('ConfigService', {
       root: 'packages/libs/config',
@@ -344,7 +347,25 @@ describe('launch-path contracts (hermetic E2E tier)', () => {
     expect(types).toContain("'ad-creative'");
     expect(types).toContain("'video'");
     expect(mediaPrompt).toContain('buildMediaPromptFromHarness');
-    expect(mediaHandler).toContain('applyBrandHarnessToPrompt');
+    expect(mediaHandler).toContain('this.generationGateway.generateImage(');
+    expect(mediaHandler).toContain('this.generationGateway.generateVideo(');
+    expect(enhancement).toContain('this.harness.resolveBrief(');
+    expect(enhancement).toContain('this.promptEnhancement.enhance(');
+    expect(enhancement).toContain('buildMediaPromptFromHarness(result, brief)');
+    for (const generationService of [
+      'ImageGenerationService',
+      'VideoGenerationPreparationService',
+    ]) {
+      const generation = readSourceOf(generationService, { root: API_SRC });
+      expect(generation).toContain(
+        'enhancementService: MediaPromptEnhancementService',
+      );
+      expect(generation).toContain('await this.enhanceGenerationPrompt(');
+      expect(generation).toContain('await this.enhancementService.enhance(');
+      expect(generation).toContain(
+        'generationPrompt: generationHarness.enhancedPrompt',
+      );
+    }
     expect(ads).toContain('resolveAdHarnessNotes');
     expect(ads).toContain("'ad-creative'");
   });
