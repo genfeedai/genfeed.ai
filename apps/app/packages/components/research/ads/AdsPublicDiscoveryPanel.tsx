@@ -8,7 +8,9 @@ import type {
   CreateAdWatchedAdvertiserInput,
 } from '@genfeedai/contracts/interfaces';
 import { AdsPlatform } from '@genfeedai/contracts/interfaces';
+import { publicAdYouTubeEmbedUrl } from '@genfeedai/integrations/ads';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useOptionalDiscoveryRemix } from '@pages/research/remix/DiscoveryRemixProvider';
 import { AdsResearchService } from '@services/ads/ads-research.service';
 import Card from '@ui/card/Card';
 import VideoPlayer from '@ui/display/video-player/VideoPlayer';
@@ -58,6 +60,7 @@ export default function AdsPublicDiscoveryPanel({
 }) {
   const translate = useTranslations('pages.adsResearch.discovery');
   const locale = useLocale();
+  const remix = useOptionalDiscoveryRemix();
   const { brandId, isReady, organizationId } = useBrand();
   const getService = useAuthedService((token: string) =>
     AdsResearchService.getInstance(token),
@@ -67,6 +70,8 @@ export default function AdsPublicDiscoveryPanel({
     AdsPlatform.META,
   );
   const [country, setCountry] = useState('all');
+  const [mediaType, setMediaType] =
+    useState<NonNullable<AdsDiscoveryQuery['mediaType']>>('visual');
   const [request, setRequest] = useState<
     AdsDiscoveryQuery & { nonce: number; organizationId: string }
   >();
@@ -148,6 +153,7 @@ export default function AdsPublicDiscoveryPanel({
             brandId: brandId || undefined,
             keyword: keyword.trim(),
             platform,
+            mediaType,
             countries: country === 'all' ? undefined : country,
             limit: 24,
             nonce: Date.now(),
@@ -157,7 +163,9 @@ export default function AdsPublicDiscoveryPanel({
         <Input
           aria-label={translate('queryLabel')}
           placeholder={translate(
-            platform === 'google' ? 'googlePlaceholder' : 'keywordPlaceholder',
+            platform === 'google' || platform === 'youtube'
+              ? 'googlePlaceholder'
+              : 'keywordPlaceholder',
           )}
           value={keyword}
           minLength={2}
@@ -184,9 +192,30 @@ export default function AdsPublicDiscoveryPanel({
             <SelectItem value="google">
               {translate('googleProvider')}
             </SelectItem>
+            <SelectItem value="youtube">
+              {translate('youtubeProvider')}
+            </SelectItem>
             <SelectItem value="tiktok">
               {translate('tiktokProvider')}
             </SelectItem>
+          </SelectContent>
+        </Select>
+        <Select
+          value={mediaType}
+          onValueChange={(value) =>
+            setMediaType(value as NonNullable<AdsDiscoveryQuery['mediaType']>)
+          }
+        >
+          <SelectTrigger
+            aria-label={translate('formatLabel')}
+            className="w-[180px]"
+          >
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="visual">{translate('visualFormat')}</SelectItem>
+            <SelectItem value="image">{translate('imageFormat')}</SelectItem>
+            <SelectItem value="video">{translate('videoFormat')}</SelectItem>
           </SelectContent>
         </Select>
         <Select value={country} onValueChange={setCountry}>
@@ -251,7 +280,12 @@ export default function AdsPublicDiscoveryPanel({
           <p className="text-xs text-foreground/60">
             {translate('sampleNotice', { count: current.sampleCount })}
           </p>
-          <div className="grid gap-3 md:grid-cols-2">
+          {!brandId ? (
+            <p className="text-xs text-foreground/60">
+              {translate('selectBrandToRemix')}
+            </p>
+          ) : null}
+          <div className="space-y-4">
             {current.advertisers.map((advertiser) => (
               <div
                 key={advertiser.id}
@@ -303,9 +337,12 @@ export default function AdsPublicDiscoveryPanel({
                     {translate('fundedBy', { name: advertiser.fundingEntity })}
                   </p>
                 ) : null}
-                <div className="flex flex-wrap gap-2">
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
                   {advertiser.samples.map((sample) => (
-                    <div key={sample.id} className="min-w-0 flex-1 space-y-1">
+                    <div
+                      key={sample.id}
+                      className="min-w-0 space-y-2 rounded-md border border-border p-2"
+                    >
                       {sample.imageUrls[0] ? (
                         <div className="relative h-28 overflow-hidden rounded-md">
                           <Image
@@ -318,7 +355,18 @@ export default function AdsPublicDiscoveryPanel({
                           />
                         </div>
                       ) : null}
-                      {sample.videoUrls[0] ? (
+                      {sample.videoUrls[0] &&
+                      publicAdYouTubeEmbedUrl(sample.videoUrls[0]) ? (
+                        <iframe
+                          src={publicAdYouTubeEmbedUrl(sample.videoUrls[0])}
+                          title={translate('videoPreview')}
+                          className="aspect-video w-full rounded-md border-0"
+                          loading="lazy"
+                          allow="encrypted-media; picture-in-picture; fullscreen"
+                          allowFullScreen
+                          referrerPolicy="strict-origin-when-cross-origin"
+                        />
+                      ) : sample.videoUrls[0] ? (
                         <VideoPlayer
                           src={sample.videoUrls[0]}
                           thumbnail={sample.imageUrls[0]}
@@ -335,11 +383,37 @@ export default function AdsPublicDiscoveryPanel({
                           }}
                         />
                       ) : null}
+                      {sample.mediaType === 'video' &&
+                      !sample.videoUrls.length ? (
+                        <p className="text-xs text-foreground/60">
+                          {translate('videoPreviewUnavailable')}
+                        </p>
+                      ) : null}
                       {sample.headline ? (
                         <p className="line-clamp-2 text-xs">
                           {sample.headline}
                         </p>
                       ) : null}
+                      <Button
+                        size={ButtonSize.SM}
+                        variant={ButtonVariant.SECONDARY}
+                        disabled={
+                          !brandId ||
+                          !sample.adPerformanceId ||
+                          !remix ||
+                          remix.status === 'preparing'
+                        }
+                        onClick={() => {
+                          if (sample.adPerformanceId && remix) {
+                            void remix.openRemix({
+                              kind: 'public_ad',
+                              adPerformanceId: sample.adPerformanceId,
+                            });
+                          }
+                        }}
+                      >
+                        {translate('remix')}
+                      </Button>
                       {sample.archiveUrl ? (
                         <a
                           className="text-xs underline"

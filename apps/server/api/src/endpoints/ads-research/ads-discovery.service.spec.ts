@@ -1,3 +1,4 @@
+import type { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { CacheService } from '@api/services/cache/cache.service';
 import type { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import { AdsPlatform } from '@genfeedai/contracts/interfaces';
@@ -77,12 +78,18 @@ describe('public discovery', () => {
         },
       ),
     };
+    const upsert = vi.fn().mockImplementation(async (row) => ({
+      ...row,
+      id: `stored-${row.externalAdId}`,
+    }));
     const service = new AdsDiscoveryService(
       { resolve: () => adapter } as unknown as PaidCreativeProviderRegistry,
       cache as unknown as CacheService,
+      { upsert } as unknown as AdPerformanceService,
     );
     return {
       service,
+      upsert,
       cache,
       adapter,
       data,
@@ -92,6 +99,131 @@ describe('public discovery', () => {
       },
     };
   }
+  it('rejects unsupported creative formats', () => {
+    expect(() =>
+      validateDiscoveryQuery({
+        ...query,
+        mediaType: 'text',
+      } as unknown as typeof query),
+    ).toThrow();
+  });
+  it('reports failed source persistence as unavailable, never remixable results', async () => {
+    const { service, adapter, upsert, claims } = setup();
+    adapter.fetchCreatives.mockResolvedValue([
+      normalizeMetaArchiveRecord({
+        adArchiveID: '123',
+        pageID: '456',
+        snapshot: {
+          images: [{ originalImageUrl: 'https://example.com/a.jpg' }],
+        },
+      }),
+    ]);
+    upsert.mockRejectedValue(new Error('database unavailable'));
+    await service.discover('org-a', query);
+    await vi.waitFor(() => expect(claims.size).toBe(0));
+    expect(await service.discover('org-a', query)).toMatchObject({
+      status: 'unavailable',
+      advertisers: [],
+      reason: 'paid_creative_source_unavailable',
+    });
+  });
+  it('retains every creative returned for an advertiser', () => {
+    const records = Array.from({ length: 6 }, (_, index) =>
+      normalizeMetaArchiveRecord({
+        adArchiveID: String(index),
+        pageID: '456',
+        snapshot: {
+          pageName: 'Example',
+          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
+        },
+      }),
+    );
+    const normalized = records.filter((record) => record !== undefined);
+    expect(
+      groupDiscoveryAdvertisers(normalized, AdsPlatform.META)[0].samples,
+    ).toHaveLength(6);
+  });
+  it('persists visual ads in the authorized brand and returns remix identities', async () => {
+    const { service, adapter, upsert, claims } = setup();
+    adapter.fetchCreatives.mockResolvedValue([
+      normalizeMetaArchiveRecord({
+        adArchiveID: 'image',
+        pageID: '456',
+        snapshot: {
+          displayFormat: 'IMAGE',
+          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
+        },
+      }),
+      normalizeMetaArchiveRecord({
+        adArchiveID: 'text',
+        pageID: '456',
+        snapshot: { displayFormat: 'TEXT', body: { text: 'Text only' } },
+      }),
+    ]);
+    const input = {
+      ...query,
+      brandId: 'brand-a',
+      mediaType: 'visual' as const,
+    };
+    await service.discover('org-a', input);
+    await vi.waitFor(() => expect(claims.size).toBe(0));
+    const result = await service.discover('org-a', input);
+    expect(result.status).toBe('ready');
+    expect(result.sampleCount).toBe(1);
+    expect(upsert).toHaveBeenCalledTimes(1);
+    expect(upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-a',
+        brandId: 'brand-a',
+        scope: 'organization',
+        researchSource: 'meta_ads_library',
+        externalAdId: 'image',
+      }),
+    );
+    expect(result.advertisers[0].samples[0]).toMatchObject({
+      id: 'image',
+      adPerformanceId: 'stored-image',
+    });
+  });
+  it('separates image/video searches and excludes video thumbnails from image-only results', async () => {
+    const { service, adapter, claims } = setup();
+    adapter.fetchCreatives.mockResolvedValue([
+      normalizeMetaArchiveRecord({
+        adArchiveID: 'image',
+        pageID: '456',
+        snapshot: {
+          displayFormat: 'IMAGE',
+          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
+        },
+      }),
+      normalizeMetaArchiveRecord({
+        adArchiveID: 'video',
+        pageID: '456',
+        snapshot: {
+          displayFormat: 'VIDEO',
+          images: [{ originalImageUrl: 'https://example.com/poster.jpg' }],
+          videos: [{ videoHdUrl: 'https://example.com/video' }],
+        },
+      }),
+    ]);
+    const images = { ...query, mediaType: 'image' as const };
+    const videos = { ...query, mediaType: 'video' as const };
+    await service.discover('org-a', images);
+    await vi.waitFor(() => expect(claims.size).toBe(0));
+    await service.discover('org-a', videos);
+    await vi.waitFor(() => expect(claims.size).toBe(0));
+    expect(adapter.fetchCreatives).toHaveBeenCalledTimes(2);
+    expect(
+      (await service.discover('org-a', images)).advertisers[0].samples.map(
+        (sample) => sample.id,
+      ),
+    ).toEqual(['image']);
+    expect(
+      (await service.discover('org-a', videos)).advertisers[0].samples.map(
+        (sample) => sample.id,
+      ),
+    ).toEqual(['video']);
+  });
   it('normalizes and rejects invalid runtime query values', () => {
     expect(validateDiscoveryQuery(query)).toMatchObject({
       keyword: 'coffee',
@@ -300,7 +432,10 @@ describe('public discovery', () => {
       const creative = normalizeMetaArchiveRecord({
         adArchiveID: 'new-ad',
         pageID: 'new-advertiser',
-        snapshot: { pageName: 'New result' },
+        snapshot: {
+          pageName: 'New result',
+          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
+        },
       });
       if (!creative) throw new Error('Invalid fixture');
       adapter.fetchCreatives

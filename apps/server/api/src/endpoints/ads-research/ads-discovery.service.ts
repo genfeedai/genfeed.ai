@@ -1,4 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
+import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
+import { buildPaidCreativeReferenceClassification } from '@api/collections/trends/utils/trend-source-classification.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import type {
@@ -12,6 +14,7 @@ import {
   normalizeAdvertiserHandle,
   normalizeGoogleAdvertiserQuery,
   resolvePaidCreativeLongevity,
+  resolvePaidCreativeProvider,
   TIKTOK_AD_LIBRARY_COUNTRIES,
 } from '@genfeedai/integrations/ads';
 import { BadRequestException, Injectable } from '@nestjs/common';
@@ -30,6 +33,9 @@ export function validateDiscoveryQuery(
   let keyword = typeof input.keyword === 'string' ? input.keyword.trim() : '';
   if (keyword.length < 2 || keyword.length > 120)
     throw new BadRequestException('Search must contain 2 to 120 characters');
+  const mediaType = input.mediaType ?? 'visual';
+  if (!['visual', 'image', 'video'].includes(mediaType))
+    throw new BadRequestException('mediaType must be visual, image or video');
   const limit = input.limit ?? 24;
   if (
     !Number.isFinite(limit) ||
@@ -74,7 +80,17 @@ export function validateDiscoveryQuery(
       );
     keyword = advertiser;
   }
-  return { ...input, keyword, limit, normalizedCountries };
+  return { ...input, keyword, limit, mediaType, normalizedCountries };
+}
+
+function creativeMediaType(
+  record: NormalizedPaidCreativeRecord,
+): 'image' | 'video' | undefined {
+  if (record.adFormat?.toLowerCase() === 'text') return undefined;
+  const hasVideo = Boolean(record.videoUrls?.length);
+  const hasImage = Boolean(record.imageUrls?.length);
+  if (!hasImage && !hasVideo) return undefined;
+  return hasVideo || record.creativeType === 'video' ? 'video' : 'image';
 }
 
 function domain(value?: string): string | undefined {
@@ -110,6 +126,7 @@ export function groupDiscoveryAdvertisers(
   records: NormalizedPaidCreativeRecord[],
   platform: AdsDiscoveryQuery['platform'],
   now = new Date(),
+  sourceIds: ReadonlyMap<NormalizedPaidCreativeRecord, string> = new Map(),
 ): AdsDiscoveryAdvertiser[] {
   const groups = new Map<string, NormalizedPaidCreativeRecord[]>();
   for (const record of records) {
@@ -181,7 +198,9 @@ export function groupDiscoveryAdvertisers(
       longevityDays: longevity?.daysLive,
       reachEstimateMin: row.reachEstimateMin,
       reachEstimateMax: row.reachEstimateMax,
-      samples: rows.slice(0, 3).map((item) => ({
+      samples: rows.map((item) => ({
+        adPerformanceId: sourceIds.get(item),
+        mediaType: creativeMediaType(item),
         id: item.externalAdId ?? '',
         archiveUrl:
           item.archiveUrl ??
@@ -212,6 +231,7 @@ export class AdsDiscoveryService {
   constructor(
     private readonly registry: PaidCreativeProviderRegistry,
     private readonly cache: CacheService,
+    private readonly adPerformanceService: AdPerformanceService,
   ) {}
 
   async discover(
@@ -230,6 +250,7 @@ export class AdsDiscoveryService {
           query.keyword.toLowerCase(),
           query.normalizedCountries,
           query.limit,
+          query.mediaType,
         ]),
       )
       .digest('hex');
@@ -257,7 +278,7 @@ export class AdsDiscoveryService {
       };
     if (!readiness.available)
       return { ...base, status: 'unavailable', reason: readiness.blockers[0] };
-    const key = `ads-discovery:v1:${id}`;
+    const key = `ads-discovery:v2:${id}`;
     const cached = await this.cache.get<AdsDiscoveryResponse>(key);
     if (cached) {
       if (
@@ -309,15 +330,67 @@ export class AdsDiscoveryService {
     }
     const task = (async () => {
       try {
-        const records = await adapter.fetchCreatives({
+        const fetched = await adapter.fetchCreatives({
           countries: query.normalizedCountries,
           limit: query.limit ?? 24,
           mode: 'keyword',
+          mediaType: query.mediaType,
           organizationId,
           platform: query.platform,
           query: query.keyword,
         });
-        const advertisers = groupDiscoveryAdvertisers(records, query.platform);
+        if (
+          !(await this.cache.setOwnedClaimValue(
+            claimKey,
+            token,
+            key,
+            pending,
+            300,
+          ))
+        )
+          return;
+        const records = fetched.filter((record) => {
+          const mediaType = creativeMediaType(record);
+          return (
+            mediaType &&
+            (query.mediaType === 'visual' || query.mediaType === mediaType)
+          );
+        });
+        const observedAt = new Date();
+        const sourceIds = new Map<NormalizedPaidCreativeRecord, string>();
+        const provider = resolvePaidCreativeProvider(query.platform);
+        for (const creative of records) {
+          if (!creative.externalAdId) continue;
+          const source = await this.adPerformanceService.upsert({
+            ...creative,
+            adPlatform: creative.platform,
+            organizationId,
+            brandId: query.brandId,
+            scope: 'organization',
+            researchSource: provider,
+            researchFreshnessState: 'fresh',
+            researchObservedAt: observedAt,
+            researchSnapshotId: `${id}:${token}`,
+            researchSnapshotKey: `discovery:${query.platform}`,
+            sourceClassification: buildPaidCreativeReferenceClassification({
+              adFormat: creative.adFormat,
+              capturedAt: observedAt,
+              creativeType: creative.creativeType,
+              platform: query.platform,
+              provider,
+              sourceAuthor: creative.advertiserHandle,
+              sourceTimestamp: creative.presentationStartDate,
+              sourceTopic: creative.advertiserName ?? query.keyword,
+            }),
+          });
+          sourceIds.set(creative, source.id);
+        }
+        const advertisers = groupDiscoveryAdvertisers(
+          records,
+          query.platform,
+          observedAt,
+          sourceIds,
+        );
         if (records.length && !advertisers.length)
           throw new Error('Unusable advertiser identities');
         const response: AdsDiscoveryResponse = {

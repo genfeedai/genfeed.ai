@@ -7,11 +7,14 @@ export interface AdsDiscoveryQuery {
   brandId?: string;
   countries?: string;
   keyword: string;
+  mediaType?: 'visual' | 'image' | 'video';
   limit?: number;
   platform: AdWatchlistPlatform;
 }
 export interface AdsDiscoverySample {
   id: string;
+  adPerformanceId?: string;
+  mediaType?: 'image' | 'video';
   archiveUrl?: string;
   headline?: string;
   mediaUrls: string[];

@@ -211,7 +211,7 @@
     },
     "discovery": {
       "title": "Search public competitor ads",
-      "description": "Search public archives without connecting an ad account. A search runs only when you submit.",
+      "description": "Find competitor image and video ads, preview them here, and remix a creative for your brand.",
       "queryLabel": "Public ad search",
       "googlePlaceholder": "Competitor website or Google advertiser ID",
       "keywordPlaceholder": "Keyword or competitor name",
@@ -239,6 +239,14 @@
       "viewMedia": "View media",
       "metaProvider": "Meta Ad Library",
       "googleProvider": "Google Ads Transparency",
+      "youtubeProvider": "YouTube Ads",
+      "formatLabel": "Ad format",
+      "visualFormat": "Images and videos",
+      "imageFormat": "Images only",
+      "videoFormat": "Videos only",
+      "remix": "Remix",
+      "selectBrandToRemix": "Select a brand to remix these ads.",
+      "videoPreviewUnavailable": "Video preview unavailable. You can still remix the available creative pattern.",
       "tiktokProvider": "TikTok Ads Library",
       "videoPreview": "Public ad video preview"
     }
