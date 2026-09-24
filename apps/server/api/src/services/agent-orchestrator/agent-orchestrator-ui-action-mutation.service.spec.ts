@@ -801,7 +801,11 @@ describe('persisted mutation approvals', () => {
     expect(approvals.resolve).toHaveBeenCalled();
     expect(executor.executeTool).not.toHaveBeenCalled();
   });
-  it.each([new Error('Provider rejected'), { reason: 'rejected' }])(
+  it.each([
+    new Error('Provider rejected'),
+    new Error(''),
+    { reason: 'rejected' },
+  ])(
     'settles thrown execution and rethrows the exact rejection %j',
     async (rejection) => {
       executor.executeTool.mockImplementationOnce(async () => {
