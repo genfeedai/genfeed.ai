@@ -1,6 +1,7 @@
 export type ModelBrandIconKey =
   | 'anthropic'
   | 'argil'
+  | 'bfl'
   | 'bytedance'
   | 'deepseek'
   | 'fal'
@@ -11,6 +12,12 @@ export type ModelBrandIconKey =
   | 'higgsfield'
   | 'ideogram'
   | 'kling'
+  | 'leonardo'
+  | 'mureka'
+  | 'pixverse'
+  | 'recraft'
+  | 'stability'
+  | 'vidu'
   | 'local'
   | 'luma'
   | 'meta'
@@ -40,7 +47,7 @@ export interface ModelBrandConfig {
 export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   anthropic: { color: '#D97757', iconKey: 'anthropic', label: 'Anthropic' },
   argil: { color: '#7C3AED', iconKey: 'argil', label: 'Argil' },
-  'black-forest-labs': { color: '#8B5CF6', iconKey: 'flux', label: 'BFL' },
+  'black-forest-labs': { color: '#8B5CF6', iconKey: 'bfl', label: 'BFL' },
   bytedance: { color: '#00F0FF', iconKey: 'bytedance', label: 'ByteDance' },
   deepseek: { color: '#4F46E5', iconKey: 'deepseek', label: 'DeepSeek' },
   'deepseek-ai': { color: '#4F46E5', iconKey: 'deepseek', label: 'DeepSeek' },
@@ -55,6 +62,12 @@ export const MODEL_BRANDS: Record<string, ModelBrandConfig> = {
   },
   'ideogram-ai': { color: '#FF6B35', iconKey: 'ideogram', label: 'Ideogram' },
   kwaivgi: { color: '#FF2D55', iconKey: 'kling', label: 'Kling' },
+  leonardoai: { color: '#6B7280', iconKey: 'leonardo', label: 'Leonardo' },
+  mureka: { color: '#6B7280', iconKey: 'mureka', label: 'Mureka' },
+  pixverse: { color: '#6B7280', iconKey: 'pixverse', label: 'PixVerse' },
+  'recraft-ai': { color: '#6B7280', iconKey: 'recraft', label: 'Recraft' },
+  sdxl: { color: '#6B7280', iconKey: 'stability', label: 'SDXL' },
+  vidu: { color: '#6B7280', iconKey: 'vidu', label: 'Vidu' },
   local: { color: '#64748B', iconKey: 'local', label: 'Self-hosted' },
   luma: { color: '#7C3AED', iconKey: 'luma', label: 'Luma' },
   meta: { color: '#0668E1', iconKey: 'meta', label: 'Meta' },

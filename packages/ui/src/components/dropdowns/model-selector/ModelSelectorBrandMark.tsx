@@ -9,7 +9,11 @@ export default function ModelSelectorBrandMark({
   return (
     <div
       className="flex size-5 shrink-0 items-center justify-center rounded border border-border"
-      style={{ backgroundColor: `${brandColor}1f`, color: brandColor }}
+      style={
+        BrandIcon
+          ? undefined
+          : { backgroundColor: `${brandColor}1f`, color: brandColor }
+      }
     >
       {BrandIcon ? (
         <BrandIcon className="size-3.5" data-testid={testId} />
