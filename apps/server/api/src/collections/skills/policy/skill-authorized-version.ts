@@ -42,3 +42,31 @@ export function chooseAuthorizedVersionId(
   }
   return null;
 }
+
+export interface ReadableVersionChoice {
+  pointer: AuthorizedVersionPointer;
+  readGrantVersionId?: string | null;
+}
+
+/**
+ * The body a caller may read. A use-only grant can select execution without
+ * making that different version readable.
+ */
+export function chooseReadableVersionId(
+  choice: ReadableVersionChoice,
+): string | null {
+  if (choice.readGrantVersionId) return choice.readGrantVersionId;
+  if (
+    choice.pointer.audience === 'organization' &&
+    choice.pointer.sharedVersionId
+  ) {
+    return choice.pointer.sharedVersionId;
+  }
+  if (
+    choice.pointer.audience === 'public' &&
+    choice.pointer.publishedVersionId
+  ) {
+    return choice.pointer.publishedVersionId;
+  }
+  return null;
+}

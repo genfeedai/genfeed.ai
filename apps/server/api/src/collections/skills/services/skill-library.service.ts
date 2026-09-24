@@ -24,6 +24,11 @@ import {
 } from '@api/collections/skills/policy/skill-capabilities';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import {
+  type RecordedSkillExclusion,
+  type RecordedSkillVersion,
+  resolutionItems,
+} from '@api/collections/skills/services/skill-resolution-evidence';
+import {
   applyAuthorizedVersionBody,
   loadAuthorizedSkillVersions,
 } from '@api/collections/skills/services/skill-version-loader';
@@ -51,11 +56,10 @@ export interface PinnedSkillExecution {
   skillVersionId: string;
 }
 
-export interface RecordedSkillVersion {
-  contentHash: string;
-  skillId: string;
-  skillVersionId: string;
-}
+export type {
+  RecordedSkillExclusion,
+  RecordedSkillVersion,
+} from '@api/collections/skills/services/skill-resolution-evidence';
 
 interface SkillRow {
   audience: string | null;
@@ -428,7 +432,9 @@ export class SkillLibraryService {
     const capabilityActor = await this.loadActor(actor);
     const ids = documents.map((document) => String(document.id));
     const grants = await this.grantsFor(actor, ids);
-    const versions = await this.loadAuthorizedVersions(actor, documents);
+    const versions = await this.loadAuthorizedVersions(actor, documents, {
+      purpose: 'read',
+    });
     const visible: SkillDocument[] = [];
     for (const document of documents) {
       const subject = this.subjectFromDocument(document);
@@ -465,7 +471,7 @@ export class SkillLibraryService {
     documents: SkillDocument[],
     pins: PinnedSkillExecution[] = [],
   ): Promise<{
-    excluded: Array<{ reason: string; skillId: string }>;
+    excluded: RecordedSkillExclusion[];
     included: SkillDocument[];
     versions: RecordedSkillVersion[];
   }> {
@@ -475,15 +481,41 @@ export class SkillLibraryService {
         .filter((document) => document.canUse !== false)
         .map((document) => String(document.id)),
     );
-    const versions = await this.loadAuthorizedVersions(actor, documents, pins);
+    const versions = await this.loadAuthorizedVersions(actor, documents, {
+      pins,
+    });
     const included: SkillDocument[] = [];
     const recorded: RecordedSkillVersion[] = [];
-    for (const document of documents) {
-      const skillId = String(document.id);
-      if (!allowed.has(skillId)) continue;
+    const excluded: RecordedSkillExclusion[] = [];
+    const deny = (skillId: string) => {
       const version = versions.get(skillId);
       const pin = pins.find((item) => item.skillId === skillId);
-      if (pin && (!version || pin.contentHash !== version.contentHash)) {
+      const attempted = version
+        ? {
+            contentHash:
+              pin &&
+              pin.skillVersionId === version.id &&
+              pin.contentHash !== version.contentHash
+                ? pin.contentHash
+                : version.contentHash,
+            skillVersionId: version.id,
+          }
+        : undefined;
+      excluded.push({
+        reason: 'access-revoked-or-unusable',
+        skillId,
+        ...(attempted ?? {}),
+      });
+    };
+    for (const document of documents) {
+      const skillId = String(document.id);
+      const version = versions.get(skillId);
+      const pin = pins.find((item) => item.skillId === skillId);
+      if (
+        !allowed.has(skillId) ||
+        (pin && pin.contentHash !== version?.contentHash)
+      ) {
+        deny(skillId);
         continue;
       }
       if (!version) {
@@ -493,6 +525,7 @@ export class SkillLibraryService {
           (document.ownerKind === 'user' &&
             document.ownerUserId === actor.userId);
         if (isOwner) included.push(document);
+        else deny(skillId);
         continue;
       }
       included.push(applyAuthorizedVersionBody(document, version));
@@ -502,52 +535,15 @@ export class SkillLibraryService {
         skillVersionId: version.id,
       });
     }
-    const includedIds = new Set(
-      included.map((document) => String(document.id)),
-    );
-    return {
-      excluded: documents
-        .filter((document) => !includedIds.has(String(document.id)))
-        .map((document) => ({
-          reason: 'access-revoked-or-unusable',
-          skillId: String(document.id),
-        })),
-      included,
-      versions: recorded,
-    };
+    return { excluded, included, versions: recorded };
   }
 
   async recordResolution(
     actor: SkillLibraryActor,
     included: RecordedSkillVersion[],
-    excluded: Array<{ reason: string; skillId: string }>,
+    excluded: readonly RecordedSkillExclusion[],
   ): Promise<void> {
-    const items = [
-      ...included.map((version) => ({
-        contentHash: version.contentHash,
-        exclusionReason: null,
-        inclusion: 'included',
-        origin: 'selection',
-        skillId: version.skillId,
-        skillVersionId: version.skillVersionId,
-      })),
-      ...excluded.flatMap((item) => {
-        const version = included.find(
-          (candidate) => candidate.skillId === item.skillId,
-        );
-        if (!version) return [];
-        return [
-          {
-            contentHash: version.contentHash,
-            exclusionReason: item.reason,
-            inclusion: 'excluded',
-            origin: 'selection',
-            skillId: item.skillId,
-            skillVersionId: version.skillVersionId,
-          },
-        ];
-      }),
-    ];
+    const items = resolutionItems(included, excluded);
     if (items.length === 0) return;
     await this.prisma.skillResolution.create({
       data: {
@@ -774,20 +770,25 @@ export class SkillLibraryService {
           }
         : null;
     }
-    const versions = await this.loadAuthorizedVersions(actor, [
-      this.toDocument(skill),
-    ]);
+    const versions = await this.loadAuthorizedVersions(
+      actor,
+      [this.toDocument(skill)],
+      { purpose: 'read' },
+    );
     return versions.get(skill.id) ?? null;
   }
 
   private loadAuthorizedVersions(
     actor: SkillLibraryActor,
     documents: SkillDocument[],
-    pins: PinnedSkillExecution[] = [],
-    canEditIds?: ReadonlySet<string>,
+    options: {
+      canEditIds?: ReadonlySet<string>;
+      pins?: PinnedSkillExecution[];
+      purpose?: 'execute' | 'read';
+    } = {},
   ) {
     const editable =
-      canEditIds ??
+      options.canEditIds ??
       new Set(
         documents
           .filter((document) => document.canEdit === true)
@@ -808,7 +809,8 @@ export class SkillLibraryService {
           null,
       })),
       editable,
-      pins,
+      options.pins ?? [],
+      options.purpose ?? 'execute',
     );
   }
 

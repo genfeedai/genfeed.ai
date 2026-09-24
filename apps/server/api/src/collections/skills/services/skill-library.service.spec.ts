@@ -30,6 +30,18 @@ const versions: VersionRow[] = [
     instructionText: 'brand private body',
     skillId: 'skill-1',
   },
+  {
+    contentHash: 'hash-denied',
+    id: 'sv-denied',
+    instructionText: 'pinned denial',
+    skillId: 'skill-2',
+  },
+  {
+    contentHash: 'hash-live',
+    id: 'sv-live',
+    instructionText: 'live draft',
+    skillId: 'skill-3',
+  },
 ];
 
 const state = {
@@ -51,6 +63,7 @@ const prisma = {
     findFirst: vi.fn(async () => ({ brands: [], roleKey: state.roleKey })),
   },
   skill: {
+    findMany: vi.fn(),
     create: vi.fn(async ({ data }: { data: Record<string, unknown> }) => ({
       audience: data.audience,
       brandId: data.brandId ?? null,
@@ -425,6 +438,96 @@ describe('SkillLibraryService authorized versions', () => {
     }
   });
 
+  it('shows the shared body when a matching use-only grant targets another version', async () => {
+    state.grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-brand',
+      },
+    ];
+
+    const [visible] = await service.present(actor, [skillDocument()]);
+    const decision = await service.authorizeResolved(actor, [skillDocument()]);
+
+    expect(visible?.systemPromptTemplate).toBe('version one');
+    expect(visible?.skillVersionId).toBe('sv-1');
+    expect(visible?.canRead).toBe(true);
+    expect(decision.included[0]?.systemPromptTemplate).toBe(
+      'brand private body',
+    );
+    expect(decision.versions[0]?.skillVersionId).toBe('sv-brand');
+  });
+
+  it('shows the published body when a public skill also has a use-only grant', async () => {
+    state.grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-brand',
+      },
+    ];
+    const published = skillDocument({
+      audience: 'public',
+      publishedVersionId: 'sv-1',
+      sharedVersionId: null,
+    });
+
+    const [visible] = await service.present(actor, [published]);
+    const decision = await service.authorizeResolved(actor, [published]);
+
+    expect(visible?.systemPromptTemplate).toBe('version one');
+    expect(decision.included[0]?.systemPromptTemplate).toBe(
+      'brand private body',
+    );
+  });
+
+  it('shows the use_and_read version and lets an owner keep the current draft', async () => {
+    state.grants = [
+      {
+        access: 'use_and_read',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-brand',
+      },
+    ];
+
+    const [readable] = await service.present(actor, [skillDocument()]);
+    expect(readable?.canRead).toBe(true);
+    expect(readable?.systemPromptTemplate).toBe('brand private body');
+
+    state.roleKey = 'admin';
+    state.grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-brand',
+      },
+    ];
+    const [owned] = await service.present(actor, [skillDocument()]);
+    expect(owned?.canEdit).toBe(true);
+    expect(owned?.systemPromptTemplate).toBe('version two');
+  });
+
   it('does not authorize a private skill after its grant is revoked', async () => {
     const foreign = skillDocument({
       audience: 'private',
@@ -442,5 +545,140 @@ describe('SkillLibraryService authorized versions', () => {
         where: expect.objectContaining({ revokedAt: null }),
       }),
     );
+  });
+
+  it('records a denied skill beside an allowed one without reading the live draft', async () => {
+    const denied = skillDocument({
+      audience: 'organization',
+      currentVersionId: 'sv-live',
+      id: 'skill-2',
+      isQuarantined: true,
+      sharedVersionId: 'sv-denied',
+    });
+    const decision = await service.authorizeResolved(actor, [
+      skillDocument(),
+      denied,
+    ]);
+
+    expect(decision.versions).toEqual([
+      {
+        contentHash: 'hash-v1',
+        skillId: 'skill-1',
+        skillVersionId: 'sv-1',
+      },
+    ]);
+    expect(decision.excluded).toEqual([
+      {
+        contentHash: 'hash-denied',
+        reason: 'access-revoked-or-unusable',
+        skillId: 'skill-2',
+        skillVersionId: 'sv-denied',
+      },
+    ]);
+    await service.recordResolution(actor, decision.versions, decision.excluded);
+    expect(prisma.skillResolution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          items: {
+            create: [
+              expect.objectContaining({
+                contentHash: 'hash-v1',
+                exclusionReason: null,
+                inclusion: 'included',
+                skillId: 'skill-1',
+                skillVersionId: 'sv-1',
+              }),
+              expect.objectContaining({
+                contentHash: 'hash-denied',
+                exclusionReason: 'access-revoked-or-unusable',
+                inclusion: 'excluded',
+                skillId: 'skill-2',
+                skillVersionId: 'sv-denied',
+              }),
+            ],
+          },
+        }),
+      }),
+    );
+    expect(
+      JSON.stringify(prisma.skillResolution.create.mock.calls),
+    ).not.toContain('sv-live');
+  });
+
+  it('records an all-denied revoked retry from the pinned version', async () => {
+    const revoked = skillDocument({
+      audience: 'private',
+      currentVersionId: 'sv-live',
+      id: 'skill-2',
+      organizationId: null,
+      ownerKind: 'user',
+      ownerUserId: 'user-2',
+      sharedVersionId: null,
+    });
+    const decision = await service.authorizeResolved(
+      actor,
+      [revoked],
+      [
+        {
+          contentHash: 'hash-denied',
+          skillId: 'skill-2',
+          skillVersionId: 'sv-denied',
+        },
+      ],
+    );
+
+    expect(decision.included).toEqual([]);
+    expect(decision.excluded).toEqual([
+      {
+        contentHash: 'hash-denied',
+        reason: 'access-revoked-or-unusable',
+        skillId: 'skill-2',
+        skillVersionId: 'sv-denied',
+      },
+    ]);
+    await service.recordResolution(actor, decision.versions, decision.excluded);
+    expect(prisma.skillResolution.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          items: {
+            create: [
+              {
+                contentHash: 'hash-denied',
+                exclusionReason: 'access-revoked-or-unusable',
+                inclusion: 'excluded',
+                origin: 'selection',
+                skillId: 'skill-2',
+                skillVersionId: 'sv-denied',
+              },
+            ],
+          },
+        }),
+      }),
+    );
+  });
+
+  it('keeps a versionless denial without inventing the current draft', async () => {
+    const unversioned = skillDocument({
+      audience: 'private',
+      currentVersionId: 'sv-live',
+      id: 'skill-3',
+      organizationId: null,
+      ownerKind: 'user',
+      ownerUserId: 'user-2',
+      publishedVersionId: null,
+      sharedVersionId: null,
+    });
+    const decision = await service.authorizeResolved(actor, [unversioned]);
+
+    expect(decision.included).toEqual([]);
+    expect(decision.excluded).toEqual([
+      {
+        reason: 'access-revoked-or-unusable',
+        skillId: 'skill-3',
+      },
+    ]);
+    await service.recordResolution(actor, decision.versions, decision.excluded);
+    expect(prisma.skillResolution.create).not.toHaveBeenCalled();
+    expect(prisma.skill.findMany).not.toHaveBeenCalled();
   });
 });

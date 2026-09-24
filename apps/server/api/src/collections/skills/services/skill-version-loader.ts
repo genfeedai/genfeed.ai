@@ -1,4 +1,7 @@
-import { chooseAuthorizedVersionId } from '@api/collections/skills/policy/skill-authorized-version';
+import {
+  chooseAuthorizedVersionId,
+  chooseReadableVersionId,
+} from '@api/collections/skills/policy/skill-authorized-version';
 import {
   grantMatchesActor,
   type SkillCapabilityGrant,
@@ -72,9 +75,16 @@ function asCapabilityGrant(grant: GrantRow): SkillCapabilityGrant {
 function grantVersionBySkill(
   grants: readonly GrantRow[],
   actor: VersionActor,
+  readableOnly: boolean,
 ): Map<string, string> {
   const ranked = grants
-    .filter((grant) => grantMatchesActor(asCapabilityGrant(grant), actor))
+    .filter((grant) => {
+      const capability = asCapabilityGrant(grant);
+      return (
+        grantMatchesActor(capability, actor) &&
+        (!readableOnly || capability.access === 'use_and_read')
+      );
+    })
     .sort(
       (left, right) =>
         rankTarget(left.recipientKind) - rankTarget(right.recipientKind),
@@ -123,6 +133,7 @@ export async function loadAuthorizedSkillVersions(
   documents: VersionedSkill[],
   editableIds: ReadonlySet<string>,
   pins: readonly SkillVersionPin[] = [],
+  purpose: 'execute' | 'read' = 'execute',
 ): Promise<Map<string, LoadedSkillVersion>> {
   const ids = documents.map((document) => String(document.id)).filter(Boolean);
   if (ids.length === 0) return new Map();
@@ -151,7 +162,7 @@ export async function loadAuthorizedSkillVersions(
       },
     }),
   ]);
-  const grantVersion = grantVersionBySkill(grants, actor);
+  const grantVersion = grantVersionBySkill(grants, actor, purpose === 'read');
   const ranked = [...assignments].sort(
     (left, right) => rankTarget(left.targetKind) - rankTarget(right.targetKind),
   );
@@ -164,21 +175,29 @@ export async function loadAuthorizedSkillVersions(
   const chosen = new Map<string, string>();
   for (const skill of documents) {
     const skillId = String(skill.id);
-    const versionId = chooseAuthorizedVersionId({
-      assignmentVersionId: assignmentVersion.get(skillId),
-      canEdit:
-        editableIds.has(skillId) ||
-        (skill.ownerKind === 'user' && skill.ownerUserId === actor.userId),
-      grantVersionId: grantVersion.get(skillId),
-      pinnedVersionId: pinBySkill.get(skillId)?.skillVersionId,
-      pointer: {
-        audience: skill.audience ?? null,
-        currentVersionId: skill.currentVersionId ?? null,
-        ownerKind: skill.ownerKind ?? null,
-        publishedVersionId: skill.publishedVersionId ?? null,
-        sharedVersionId: skill.sharedVersionId ?? null,
-      },
-    });
+    const pointer = {
+      audience: skill.audience ?? null,
+      currentVersionId: skill.currentVersionId ?? null,
+      ownerKind: skill.ownerKind ?? null,
+      publishedVersionId: skill.publishedVersionId ?? null,
+      sharedVersionId: skill.sharedVersionId ?? null,
+    };
+    const versionId =
+      purpose === 'read'
+        ? chooseReadableVersionId({
+            pointer,
+            readGrantVersionId: grantVersion.get(skillId),
+          })
+        : chooseAuthorizedVersionId({
+            assignmentVersionId: assignmentVersion.get(skillId),
+            canEdit:
+              editableIds.has(skillId) ||
+              (skill.ownerKind === 'user' &&
+                skill.ownerUserId === actor.userId),
+            grantVersionId: grantVersion.get(skillId),
+            pinnedVersionId: pinBySkill.get(skillId)?.skillVersionId,
+            pointer,
+          });
     if (versionId) chosen.set(skillId, versionId);
   }
   const rows =
