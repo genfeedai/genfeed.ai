@@ -298,16 +298,6 @@ export class BatchInterpolationController {
         pair.prompt ||
         context.cameraPrompt ||
         'smooth transition, cinematic motion';
-      const promptData = await this.promptsService.create(
-        new PromptEntity({
-          brandId: context.user.brandId,
-          category: PromptCategory.MODELS_PROMPT_VIDEO,
-          organizationId: context.user.organizationId,
-          original: promptText,
-          status: PromptStatus.PROCESSING,
-          userId: context.user.id,
-        }),
-      );
       const builtPrompt = await this.promptBuilderService.buildPrompt(
         context.dto.modelKey,
         {
@@ -323,6 +313,23 @@ export class BatchInterpolationController {
           width: context.width,
         },
         context.user.organizationId,
+      );
+      const amount = this.billing.quote(
+        context.model,
+        context.duration,
+        context.width,
+        context.height,
+        builtPrompt.input,
+      );
+      const promptData = await this.promptsService.create(
+        new PromptEntity({
+          brandId: context.user.brandId,
+          category: PromptCategory.MODELS_PROMPT_VIDEO,
+          organizationId: context.user.organizationId,
+          original: promptText,
+          status: PromptStatus.PROCESSING,
+          userId: context.user.id,
+        }),
       );
       const { metadataData, ingredientData } =
         await this.sharedService.createMediaDocuments(context.user, {
@@ -379,6 +386,7 @@ export class BatchInterpolationController {
         userId: context.user.id,
       });
       return await this.dispatchPair({
+        amount,
         context,
         ingredientId,
         isLoopPair,
@@ -393,6 +401,7 @@ export class BatchInterpolationController {
   }
 
   private async dispatchPair(params: {
+    amount: number;
     context: InterpolationContext;
     ingredientId: string;
     isLoopPair: boolean;
@@ -402,13 +411,7 @@ export class BatchInterpolationController {
   }): Promise<InterpolationJobResult> {
     const { context, ingredientId, isLoopPair, metadataId, pairIndex } = params;
     const generationId = await this.billing.dispatch({
-      amount: this.billing.quote(
-        context.model,
-        context.duration,
-        context.width,
-        context.height,
-        params.promptParams,
-      ),
+      amount: params.amount,
       apiKey: context.apiKey,
       description: `Interpolation video - ${context.dto.modelKey} (pair ${pairIndex + 1}/${context.pairs.length})`,
       ingredientId,
