@@ -1388,32 +1388,8 @@
       "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "548a274756bae308f5db",
-      "message": "Property 'jobs' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
       "fingerprint": "662c811d967b85c77f34",
       "message": "Property 'totalJobs' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "66ef9c7f2c37ab139b73",
-      "message": "Property 'jobs' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "704ddb50f0bdc832a6e3",
-      "message": "Property 'jobs' does not exist on type 'JsonApiSingleResponse<unknown>'.",
       "workspace": "api"
     },
     {
@@ -1434,14 +1410,6 @@
     },
     {
       "code": 2339,
-      "count": 2,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "b5d33775438aa1dc2a91",
-      "message": "Property 'jobs' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 2339,
       "count": 1,
       "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
       "fingerprint": "d7aea6a5a3b1b9254170",
@@ -1454,14 +1422,6 @@
       "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
       "fingerprint": "f138b8b7d0a113d6ca70",
       "message": "Property 'groupId' does not exist on type 'JsonApiSingleResponse<unknown>'.",
-      "workspace": "api"
-    },
-    {
-      "code": 7006,
-      "count": 1,
-      "file": "apps/server/api/src/collections/videos/controllers/batch-interpolation.controller.spec.ts",
-      "fingerprint": "d88783479331dd59817a",
-      "message": "Parameter 'job' implicitly has an 'any' type.",
       "workspace": "api"
     },
     {
