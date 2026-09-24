@@ -46,11 +46,7 @@ export abstract class ApifyArchiveProvider
   async fetchCreatives(
     request: PaidCreativeFetchRequest,
   ): Promise<NormalizedPaidCreativeRecord[]> {
-    return this.runArchive({
-      ...(request.countries ? { countries: request.countries } : {}),
-      limit: request.limit,
-      query: request.query,
-    });
+    return this.runArchive(request);
   }
 
   protected abstract runArchive(

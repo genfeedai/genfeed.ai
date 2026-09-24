@@ -35,7 +35,7 @@ export class PaidCreativeProviderRegistry {
         return this.googleAdsTransparencyProvider;
       case 'meta_ads_library':
         return this.metaAdLibraryProvider;
-      case 'tiktok_creative_center':
+      case 'tiktok_ads_library':
         return this.tikTokCreativeCenterProvider;
       default:
         return this.xAdsRepositoryProvider;

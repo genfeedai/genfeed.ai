@@ -168,7 +168,7 @@
       "watchCompetitors": "Competitors"
     },
     "connection": {
-      "description": "Showing public winners only. Connect Meta, Google/YouTube, or TikTok Ads to pull in your own campaigns.",
+      "description": "Connect an ad account to view your own campaigns and ads. Competitor research is available without connecting an account.",
       "title": "Connect accounts for your campaigns"
     },
     "dsaNotice": {
@@ -208,6 +208,39 @@
       "loading": "Loading watched competitors\u2026",
       "title": "Watched competitors",
       "watchCompetitor": "Watch competitor"
+    },
+    "discovery": {
+      "title": "Search public competitor ads",
+      "description": "Search public archives without connecting an ad account. A search runs only when you submit.",
+      "queryLabel": "Public ad search",
+      "googlePlaceholder": "Competitor website or Google advertiser ID",
+      "keywordPlaceholder": "Keyword or competitor name",
+      "providerLabel": "Public archive",
+      "countryLabel": "Search country",
+      "coveredRegions": "Covered regions",
+      "allCountries": "All countries",
+      "search": "Search public ads",
+      "searching": "Searching\u2026",
+      "tiktokCoverage": "TikTok Ads Library covers the EEA, United Kingdom and Switzerland; it is not a global ads inventory.",
+      "failed": "The search did not finish. Please submit again later.",
+      "pending": "Searching the public archive. This can take a few minutes.",
+      "empty": "No matching creatives were returned for this search.",
+      "unsupported": "This public archive does not support discovery.",
+      "unconfigured": "Public archive search is not configured on this deployment.",
+      "unavailable": "The public archive is temporarily unavailable. Please try again later.",
+      "sampleNotice": "{count} creatives in this returned sample. Counts are not the advertiser\u2019s complete inventory.",
+      "watch": "Watch",
+      "watching": "Watching",
+      "creativeCount": "{count} sampled creatives",
+      "activeCount": "{count} confirmed active",
+      "longevity": "Earliest sampled creative: {days} days",
+      "fundedBy": "Funded by {name}",
+      "viewCreative": "View archive creative",
+      "viewMedia": "View media",
+      "metaProvider": "Meta Ad Library",
+      "googleProvider": "Google Ads Transparency",
+      "tiktokProvider": "TikTok Ads Library",
+      "videoPreview": "Public ad video preview"
     }
   },
   "brandHarnessSettings": {

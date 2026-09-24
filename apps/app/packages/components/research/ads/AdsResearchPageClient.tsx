@@ -15,7 +15,6 @@ import {
 import { useResearchPagination } from '@pages/research/work-surface/ResearchWorkSurfaceProvider';
 import ButtonDropdown from '@ui/buttons/dropdown/button-dropdown/ButtonDropdown';
 import ButtonRefresh from '@ui/buttons/refresh/button-refresh/ButtonRefresh';
-import CardEmpty from '@ui/card/empty/CardEmpty';
 import Alert from '@ui/feedback/alert/Alert';
 import Container from '@ui/layout/container/Container';
 import ViewToggle from '@ui/navigation/view-toggle/ViewToggle';
@@ -32,6 +31,7 @@ import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
+import AdsPublicDiscoveryPanel from './AdsPublicDiscoveryPanel';
 import { AdsResearchAdGrid, AdsResearchAdTable } from './AdsResearchAdCards';
 import { DetailSidebar } from './AdsResearchDetailSidebar';
 import { AdsResearchFilterPanel } from './AdsResearchFilterPanel';
@@ -80,6 +80,9 @@ export default function AdsResearchPageClient() {
     allAds,
     busyAction,
     credentialOptions,
+    credentialsError,
+    isConnectionStateReady,
+    isReady,
     detail,
     detailError,
     detailLoading,
@@ -133,22 +136,28 @@ export default function AdsResearchPageClient() {
   // Called after the research hook so the ads queries keep their identity;
   // the watchlist is an independent concern layered on the same page.
   const watchlist = useAdsResearchWatchlist();
-  const [showWatchlist, setShowWatchlist] = useState(false);
+  const [showWatchlist, setShowWatchlist] = useState<boolean>();
   const { pageItems, pagination } = useResearchPagination(allAds);
 
   const hasCredentials = credentialOptions.length > 0;
-  const hasAds = allAds.length > 0;
-  // Brand Social is where Facebook + Google Ads OAuth connect live
-  // (`BrandDetailSocialMediaCard`). `/settings/organization/credentials` never shipped.
   const credentialsHref = href(APP_ROUTES.SETTINGS.SOCIAL);
-  /** Not set up at all — no ad platform connected and no public winners loaded. */
-  const isSetupEmpty =
-    source !== 'saved' && !isLoading && !hasCredentials && !hasAds;
-  /**
-   * Public research can still fill the list without a connected ad account.
-   * When we have public ads only, keep the list and show a slim connect strip.
-   */
-  const showConnectStrip = source !== 'saved' && !hasCredentials && hasAds;
+  const showConnectStrip =
+    source === 'my_accounts' &&
+    !isLoading &&
+    isConnectionStateReady &&
+    !hasCredentials &&
+    !resultsError &&
+    !accountsError;
+  const connectionError =
+    source === 'my_accounts' && !hasCredentials ? credentialsError : null;
+  const isWatchlistVisible =
+    showWatchlist ??
+    (isReady &&
+      source !== 'saved' &&
+      source !== 'my_accounts' &&
+      !isLoading &&
+      !resultsError &&
+      results.summary.publicCount === 0);
   const sourceLabel =
     source === 'saved'
       ? translate('swipeFile.saved')
@@ -158,9 +167,7 @@ export default function AdsResearchPageClient() {
           ? 'Public'
           : 'All';
 
-  // Setup empty = no credentials and no ads: hide chrome (tabs, view toggle,
-  // refresh). Only the connect empty state should compete for attention.
-  const headerRight = isSetupEmpty ? undefined : (
+  const headerRight = (
     <div className="flex items-center gap-2">
       <ViewToggle
         options={[
@@ -191,27 +198,27 @@ export default function AdsResearchPageClient() {
     <Container
       label="Ads"
       description="Find winning ads and remix for your brand."
-      headerTabs={
-        isSetupEmpty
-          ? undefined
-          : {
-              activeTab: effectivePlatform,
-              fullWidth: false,
-              items: [
-                { id: 'all', label: 'Overview' },
-                { id: AdsPlatform.META, label: 'Meta' },
-                { id: AdsPlatform.GOOGLE, label: 'Google + YouTube' },
-                { id: AdsPlatform.TIKTOK, label: 'TikTok' },
-                { id: AdsPlatform.X, label: 'X' },
-              ],
-              onTabChange: (value) =>
-                setPlatform(value as AdsResearchPlatform | 'all'),
-            }
-      }
+      headerTabs={{
+        activeTab: effectivePlatform,
+        fullWidth: false,
+        items: [
+          { id: 'all', label: 'Overview' },
+          { id: AdsPlatform.META, label: 'Meta' },
+          { id: AdsPlatform.GOOGLE, label: 'Google + YouTube' },
+          { id: AdsPlatform.TIKTOK, label: 'TikTok' },
+          { id: AdsPlatform.X, label: 'X' },
+        ],
+        onTabChange: (value) =>
+          setPlatform(value as AdsResearchPlatform | 'all'),
+      }}
       icon={Megaphone}
       right={headerRight}
     >
-      {(resultsError || accountsError || detailError || savedError) && (
+      {(resultsError ||
+        accountsError ||
+        connectionError ||
+        detailError ||
+        savedError) && (
         <Alert type={AlertCategory.ERROR} className="mb-4">
           <div className="space-y-1">
             <div className="font-medium">{translate('errors.title')}</div>
@@ -221,6 +228,7 @@ export default function AdsResearchPageClient() {
                   ? savedError.message
                   : undefined) ||
                 accountsError?.message ||
+                connectionError?.message ||
                 resultsError?.message ||
                 'Try refreshing the page.'}
             </div>
@@ -234,191 +242,172 @@ export default function AdsResearchPageClient() {
         </Alert>
       ) : null}
 
-      {isSetupEmpty ? (
-        <CardEmpty
-          icon={Megaphone}
-          label="Connect Meta, Google/YouTube, TikTok, or X Ads"
-          description="Meta uses Facebook OAuth. Google Ads covers Search, Display, and YouTube from one connection. TikTok Ads and X Ads need their own credentials. Public winners can appear without a connection; your campaigns load once an ad account is linked."
-          actions={
+      {/* Search left · filters / sort / counts right */}
+      <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+        <div className="w-full sm:max-w-xs lg:max-w-sm">
+          <FormSearchbar
+            value={search}
+            onSearch={setSearch}
+            placeholder="Search ads"
+            size={ComponentSize.MD}
+            className="w-full"
+          />
+        </div>
+
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          <Button
+            variant={
+              isWatchlistVisible ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+            }
+            size={ButtonSize.SM}
+            icon={<Eye className="size-4" />}
+            onClick={() => setShowWatchlist(!isWatchlistVisible)}
+          >
+            {translate('actions.watchCompetitors')}
+          </Button>
+          <Button
+            variant={
+              showFilters ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
+            }
+            size={ButtonSize.SM}
+            icon={<Filter className="size-4" />}
+            onClick={() => setShowFilters(!showFilters)}
+          >
+            {translate('actions.filters')}
+          </Button>
+          <ButtonDropdown
+            name="sort"
+            value={sortKey}
+            options={SORT_OPTIONS}
+            onChange={(_name, value) => setSortKey(value as AdSortKey)}
+            className="h-9 rounded-md bg-background-tertiary px-3 text-sm text-foreground shadow-border hover:bg-hover"
+          />
+          <div className="ml-1 flex flex-wrap items-center gap-x-4 gap-y-1">
+            {source === 'saved' ? (
+              <CompactStat
+                label={translate('swipeFile.saved')}
+                value={allAds.length}
+              />
+            ) : (
+              <>
+                <CompactStat
+                  label="Public"
+                  value={results.summary.publicCount}
+                />
+                <CompactStat
+                  label="My ads"
+                  value={results.summary.connectedCount}
+                />
+              </>
+            )}
+            <CompactStat label="Source" value={sourceLabel} />
+          </div>
+        </div>
+      </div>
+
+      {source === 'all' || source === 'public' ? (
+        <AdsPublicDiscoveryPanel
+          watchError={watchlist.addError}
+          onWatch={watchlist.addAdvertiser}
+          isWatching={watchlist.isAdding}
+        />
+      ) : null}
+
+      {isWatchlistVisible ? (
+        <AdsResearchWatchlistPanel
+          advertisers={watchlist.advertisers}
+          isAdding={watchlist.isAdding}
+          isLoading={watchlist.isLoading}
+          readiness={watchlist.readiness}
+          onAdd={watchlist.addAdvertiser}
+          onRemove={watchlist.removeAdvertiser}
+          {...(watchlist.addError ? { addError: watchlist.addError } : {})}
+          {...(watchlist.busyId ? { busyId: watchlist.busyId } : {})}
+          {...(watchlist.loadError ? { loadError: watchlist.loadError } : {})}
+        />
+      ) : null}
+
+      {showFilters ? (
+        <AdsResearchFilterPanel
+          adAccountId={adAccountId}
+          adAccounts={adAccounts}
+          channel={channel}
+          credentialId={credentialId}
+          credentialOptions={credentialOptions}
+          effectivePlatform={effectivePlatform}
+          industry={industry}
+          loginCustomerId={loginCustomerId}
+          metric={metric}
+          showChannelFilter={showChannelFilter}
+          source={source}
+          timeframe={timeframe}
+          onAdAccountChange={setAdAccountId}
+          onChannelChange={setChannel}
+          onCredentialChange={setCredentialId}
+          onIndustryChange={setIndustry}
+          onLoginCustomerIdChange={setLoginCustomerId}
+          onMetricChange={setMetric}
+          onSourceChange={setSource}
+          onTimeframeChange={setTimeframe}
+        />
+      ) : null}
+
+      {effectivePlatform === AdsPlatform.X ? <XAdsDsaNotice /> : null}
+
+      {showConnectStrip ? (
+        <Alert type={AlertCategory.INFO} className="mb-4">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <div className="font-medium">{translate('connection.title')}</div>
+              <div className="text-xs text-foreground/70">
+                {translate('connection.description')}
+              </div>
+            </div>
             <Button
               asChild
-              variant={ButtonVariant.DEFAULT}
+              variant={ButtonVariant.SECONDARY}
               size={ButtonSize.SM}
-              className="mt-1"
+              className="shrink-0"
             >
               <Link href={credentialsHref}>
                 {translate('actions.manageConnections')}
               </Link>
             </Button>
-          }
+          </div>
+        </Alert>
+      ) : null}
+
+      {hasCredentials && results.summary.reviewPolicy ? (
+        <p className="mb-4 text-xs text-foreground/45">
+          {translate('reviewPolicy')}
+        </p>
+      ) : null}
+
+      {viewType === ViewType.GRID ? (
+        <AdsResearchAdGrid
+          ads={[...pageItems]}
+          isSavedView={source === 'saved'}
+          isLoading={isLoading}
+          metric={metric}
+          search={search}
+          selectedKey={selectedKey}
+          onSelect={handleSelectAd}
+          onToggleSaved={toggleSaved}
+          savedMutating={savedMutating}
         />
       ) : (
-        <>
-          {/* Search left · filters / sort / counts right */}
-          <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <div className="w-full sm:max-w-xs lg:max-w-sm">
-              <FormSearchbar
-                value={search}
-                onSearch={setSearch}
-                placeholder="Search ads"
-                size={ComponentSize.MD}
-                className="w-full"
-              />
-            </div>
-
-            <div className="flex flex-wrap items-center justify-end gap-2">
-              <Button
-                variant={
-                  showWatchlist ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-                }
-                size={ButtonSize.SM}
-                icon={<Eye className="size-4" />}
-                onClick={() => setShowWatchlist(!showWatchlist)}
-              >
-                {translate('actions.watchCompetitors')}
-              </Button>
-              <Button
-                variant={
-                  showFilters ? ButtonVariant.SECONDARY : ButtonVariant.GHOST
-                }
-                size={ButtonSize.SM}
-                icon={<Filter className="size-4" />}
-                onClick={() => setShowFilters(!showFilters)}
-              >
-                {translate('actions.filters')}
-              </Button>
-              <ButtonDropdown
-                name="sort"
-                value={sortKey}
-                options={SORT_OPTIONS}
-                onChange={(_name, value) => setSortKey(value as AdSortKey)}
-                className="h-9 rounded-md bg-background-tertiary px-3 text-sm text-foreground shadow-border hover:bg-hover"
-              />
-              <div className="ml-1 flex flex-wrap items-center gap-x-4 gap-y-1">
-                {source === 'saved' ? (
-                  <CompactStat
-                    label={translate('swipeFile.saved')}
-                    value={allAds.length}
-                  />
-                ) : (
-                  <>
-                    <CompactStat
-                      label="Public"
-                      value={results.summary.publicCount}
-                    />
-                    <CompactStat
-                      label="Connected"
-                      value={results.summary.connectedCount}
-                    />
-                  </>
-                )}
-                <CompactStat label="Source" value={sourceLabel} />
-              </div>
-            </div>
-          </div>
-
-          {showWatchlist ? (
-            <AdsResearchWatchlistPanel
-              advertisers={watchlist.advertisers}
-              isAdding={watchlist.isAdding}
-              isLoading={watchlist.isLoading}
-              readiness={watchlist.readiness}
-              onAdd={watchlist.addAdvertiser}
-              onRemove={watchlist.removeAdvertiser}
-              {...(watchlist.addError ? { addError: watchlist.addError } : {})}
-              {...(watchlist.busyId ? { busyId: watchlist.busyId } : {})}
-              {...(watchlist.loadError
-                ? { loadError: watchlist.loadError }
-                : {})}
-            />
-          ) : null}
-
-          {showFilters ? (
-            <AdsResearchFilterPanel
-              adAccountId={adAccountId}
-              adAccounts={adAccounts}
-              channel={channel}
-              credentialId={credentialId}
-              credentialOptions={credentialOptions}
-              effectivePlatform={effectivePlatform}
-              industry={industry}
-              loginCustomerId={loginCustomerId}
-              metric={metric}
-              showChannelFilter={showChannelFilter}
-              source={source}
-              timeframe={timeframe}
-              onAdAccountChange={setAdAccountId}
-              onChannelChange={setChannel}
-              onCredentialChange={setCredentialId}
-              onIndustryChange={setIndustry}
-              onLoginCustomerIdChange={setLoginCustomerId}
-              onMetricChange={setMetric}
-              onSourceChange={setSource}
-              onTimeframeChange={setTimeframe}
-            />
-          ) : null}
-
-          {effectivePlatform === AdsPlatform.X ? <XAdsDsaNotice /> : null}
-
-          {showConnectStrip ? (
-            <Alert type={AlertCategory.INFO} className="mb-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <div className="font-medium">
-                    {translate('connection.title')}
-                  </div>
-                  <div className="text-xs text-foreground/70">
-                    {translate('connection.description')}
-                  </div>
-                </div>
-                <Button
-                  asChild
-                  variant={ButtonVariant.SECONDARY}
-                  size={ButtonSize.SM}
-                  className="shrink-0"
-                >
-                  <Link href={credentialsHref}>
-                    {translate('actions.manageConnections')}
-                  </Link>
-                </Button>
-              </div>
-            </Alert>
-          ) : null}
-
-          {hasCredentials && results.summary.reviewPolicy ? (
-            <p className="mb-4 text-xs text-foreground/45">
-              {translate('reviewPolicy')}
-            </p>
-          ) : null}
-
-          {viewType === ViewType.GRID ? (
-            <AdsResearchAdGrid
-              ads={[...pageItems]}
-              isSavedView={source === 'saved'}
-              isLoading={isLoading}
-              metric={metric}
-              search={search}
-              selectedKey={selectedKey}
-              onSelect={handleSelectAd}
-              onToggleSaved={toggleSaved}
-              savedMutating={savedMutating}
-            />
-          ) : (
-            <AdsResearchAdTable
-              ads={[...pageItems]}
-              isSavedView={source === 'saved'}
-              metric={metric}
-              search={search}
-              selectedKey={selectedKey}
-              onSelect={handleSelectAd}
-              onToggleSaved={toggleSaved}
-              savedMutating={savedMutating}
-            />
-          )}
-          {pagination ? <div className="mt-5">{pagination}</div> : null}
-        </>
+        <AdsResearchAdTable
+          ads={[...pageItems]}
+          isSavedView={source === 'saved'}
+          metric={metric}
+          search={search}
+          selectedKey={selectedKey}
+          onSelect={handleSelectAd}
+          onToggleSaved={toggleSaved}
+          savedMutating={savedMutating}
+        />
       )}
-
+      {pagination ? <div className="mt-5">{pagination}</div> : null}
       {selectedAd ? (
         <DetailSidebar
           detail={detail ?? null}

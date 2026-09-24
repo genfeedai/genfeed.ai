@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { AdsDiscoveryService } from '@api/endpoints/ads-research/ads-discovery.service';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
@@ -8,6 +9,10 @@ import { CollectionFilterUtil } from '@api/helpers/utils/collection-filter/colle
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { PaidCreativePlatformReadiness } from '@api/services/paid-creative-research/interfaces/paid-creative-research.interface';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
+import {
+  AdsPlatform,
+  type AdWatchlistPlatform,
+} from '@genfeedai/contracts/interfaces';
 import type {
   AdsChannel,
   AdsResearchMetric,
@@ -15,6 +20,7 @@ import type {
   AdsResearchSource,
   AdsResearchTimeframe,
 } from '@genfeedai/contracts/interfaces/integrations/ads-research.interface';
+import { AdsDiscoverySerializer } from '@genfeedai/serializers';
 import {
   BadRequestException,
   Body,
@@ -34,6 +40,7 @@ export class AdsResearchController {
   constructor(
     private readonly adsResearchService: AdsResearchService,
     private readonly paidCreativeProviderRegistry: PaidCreativeProviderRegistry,
+    private readonly adsDiscoveryService: AdsDiscoveryService,
   ) {}
 
   /**
@@ -44,6 +51,27 @@ export class AdsResearchController {
    * never produce creative and the UI has to say so instead of showing an
    * empty list that reads like "no competitor is running ads".
    */
+  @Get('discover')
+  async discover(
+    @CurrentUser() user: User,
+    @Query('brandId') brandId?: string,
+    @Query('keyword') keyword?: string,
+    @Query('platform') platform?: AdWatchlistPlatform,
+    @Query('countries') countries?: string,
+    @Query('limit') limit?: string,
+  ) {
+    const authorizedBrandId = this.resolveAuthorizedBrandId(user, brandId);
+    return AdsDiscoverySerializer.serialize(
+      await this.adsDiscoveryService.discover(user.organizationId, {
+        brandId: authorizedBrandId,
+        keyword: keyword ?? '',
+        platform: platform ?? AdsPlatform.META,
+        countries,
+        limit: limit === undefined ? undefined : Number(limit),
+      }),
+    );
+  }
+
   @Get('watchlist-readiness')
   listWatchlistReadiness(): PaidCreativePlatformReadiness[] {
     return this.paidCreativeProviderRegistry.getReadiness();

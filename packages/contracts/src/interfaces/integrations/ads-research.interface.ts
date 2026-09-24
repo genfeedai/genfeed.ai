@@ -245,6 +245,7 @@ export interface AdWatchedAdvertiser {
 }
 
 export interface CreateAdWatchedAdvertiserInput {
+  externalAdvertiserId?: string;
   advertiserHandle: string;
   advertiserName?: string;
   brandId?: string;

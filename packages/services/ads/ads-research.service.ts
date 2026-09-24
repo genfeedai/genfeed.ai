@@ -1,6 +1,8 @@
 import type {
   AdPack,
   AdsChannel,
+  AdsDiscoveryQuery,
+  AdsDiscoveryResponse,
   AdsResearchDetail,
   AdsResearchFilters,
   AdsResearchPlatform,
@@ -11,6 +13,10 @@ import type {
 } from '@genfeedai/contracts/interfaces';
 import { EnvironmentService } from '@services/core/environment.service';
 import { HTTPBaseService } from '@services/core/interceptor.service';
+import {
+  extractResource,
+  type JsonApiResponseDocument,
+} from '@services/core/json-api';
 
 export interface UnifiedAdAccountOption {
   id: string;
@@ -55,6 +61,15 @@ export class AdsResearchService extends HTTPBaseService {
       AdsResearchService,
       token,
     ) as AdsResearchService;
+  }
+
+  public async discover(
+    query: AdsDiscoveryQuery,
+    signal?: AbortSignal,
+  ): Promise<AdsDiscoveryResponse> {
+    return this.instance
+      .get<JsonApiResponseDocument>('discover', { params: query, signal })
+      .then((response) => extractResource<AdsDiscoveryResponse>(response.data));
   }
 
   public async list(filters: AdsResearchFilters): Promise<AdsResearchResponse> {

@@ -73,6 +73,9 @@ export interface NormalizedPaidCreativeRecord
   cpc?: number;
   cpm?: number;
   creativeContent?: string;
+  archiveUrl?: string;
+  imageUrls?: string[];
+  videoUrls?: string[];
   creativeMediaUrls?: string[];
   creativeType?: PaidCreativeType;
   ctr?: number;
@@ -204,6 +207,7 @@ export type PaidCreativeProvider =
   | 'google_ads_transparency_center'
   | 'manual_paid_reference'
   | 'meta_ads_library'
+  | 'tiktok_ads_library'
   | 'tiktok_creative_center'
   | 'x_ads_repository';
 

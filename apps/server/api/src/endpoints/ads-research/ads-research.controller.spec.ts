@@ -3,10 +3,12 @@ import { MembersService } from '@api/collections/members/services/members.servic
 import { AdsResearchController } from '@api/endpoints/ads-research/ads-research.controller';
 import { AdsResearchService } from '@api/endpoints/ads-research/ads-research.service';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ForbiddenException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AdsDiscoveryService } from './ads-discovery.service';
 
 describe('AdsResearchController', () => {
   let controller: AdsResearchController;
@@ -30,10 +32,26 @@ describe('AdsResearchController', () => {
     userId,
   } as unknown as User;
 
+  it('authorizes the brand before public discovery', async () => {
+    await expect(
+      controller.discover(mockUser, foreignBrandId, 'coffee', AdsPlatform.META),
+    ).rejects.toThrow(ForbiddenException);
+  });
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [AdsResearchController],
       providers: [
+        {
+          provide: AdsDiscoveryService,
+          useValue: {
+            discover: vi.fn().mockResolvedValue({
+              id: 'search',
+              status: 'empty',
+              advertisers: [],
+            }),
+          },
+        },
         {
           provide: AdsResearchService,
           useValue: {

@@ -9,6 +9,25 @@ export type ServiceCacheOptions = {
   ttl?: number;
 };
 
+const SET_OWNED_CLAIM_VALUE_SCRIPT = `
+if redis.call('GET', KEYS[1]) ~= ARGV[1] then
+  return 0
+end
+redis.call('SETEX', KEYS[2], ARGV[3], ARGV[2])
+return 1
+`;
+
+const RELEASE_OWNED_CLAIM_SCRIPT = `
+if redis.call('GET', KEYS[1]) ~= ARGV[1] then
+  return 0
+end
+if #KEYS > 1 then
+  redis.call('DEL', KEYS[2])
+end
+redis.call('DEL', KEYS[1])
+return 1
+`;
+
 @Injectable()
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default
@@ -338,6 +357,81 @@ export class CacheService {
       this.logOperationError('acquireLock', {
         error,
         lockKey,
+      });
+      return false;
+    }
+  }
+
+  async acquireOwnedClaim(
+    key: string,
+    token: string,
+    ttlSeconds: number,
+  ): Promise<'claimed' | 'duplicate' | 'unavailable'> {
+    if (!this.isAvailable) return 'unavailable';
+    try {
+      const result = await this.client.set(key, token, 'EX', ttlSeconds, 'NX');
+      return result === 'OK' ? 'claimed' : 'duplicate';
+    } catch (error: unknown) {
+      this.logOperationError('acquireOwnedClaim', { error, key });
+      return 'unavailable';
+    }
+  }
+
+  /** Write a result only while the caller still owns the expiring claim. */
+  async setOwnedClaimValue(
+    claimKey: string,
+    token: string,
+    resultKey: string,
+    value: unknown,
+    ttlSeconds: number,
+  ): Promise<boolean> {
+    if (!this.isAvailable) return false;
+    try {
+      return (
+        (await this.client.eval(
+          SET_OWNED_CLAIM_VALUE_SCRIPT,
+          2,
+          claimKey,
+          resultKey,
+          token,
+          JSON.stringify(value),
+          ttlSeconds,
+        )) === 1
+      );
+    } catch (error: unknown) {
+      this.logOperationError('setOwnedClaimValue', {
+        error,
+        claimKey,
+        resultKey,
+      });
+      return false;
+    }
+  }
+
+  /** Expired work cannot release a successor's claim or delete its result. */
+  async releaseOwnedClaim(
+    claimKey: string,
+    token: string,
+    resultKeyToDelete?: string,
+  ): Promise<boolean> {
+    if (!this.isAvailable) return false;
+    try {
+      const keys = resultKeyToDelete
+        ? [claimKey, resultKeyToDelete]
+        : [claimKey];
+      return (
+        (await this.client.eval(
+          RELEASE_OWNED_CLAIM_SCRIPT,
+          keys.length,
+          ...keys,
+          token,
+        )) === 1
+      );
+    } catch (error: unknown) {
+      this.logOperationError('releaseOwnedClaim', {
+        error,
+        claimKey,
+        resultKeyToDelete,
       });
       return false;
     }

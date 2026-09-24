@@ -63,7 +63,10 @@ export function normalizeMetaAdLibraryRecord(
     currency: undefined,
     dataConfidence: 0.3,
     date: row.startDate ?? '',
-    estimatedReach: normalizeMetaAdLibraryReach(row),
+    estimatedReach:
+      row.reachEstimateMin === undefined && row.reachEstimateMax === undefined
+        ? undefined
+        : normalizeMetaAdLibraryReach(row),
     externalAccountId: row.pageId ?? row.pageName ?? '',
     externalAdId: row.adArchiveId,
     externalAdSetId: undefined,
@@ -72,7 +75,7 @@ export function normalizeMetaAdLibraryRecord(
     granularity: 'ad',
     headlineText: row.headlineText,
     impressions: undefined,
-    isHalted: row.isActive === false,
+    isHalted: row.isActive === undefined ? undefined : !row.isActive,
     landingPageUrl: row.landingPageUrl,
     performanceScore: null,
     platform: 'meta',

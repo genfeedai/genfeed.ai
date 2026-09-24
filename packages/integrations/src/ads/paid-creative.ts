@@ -15,6 +15,7 @@ export const PAID_CREATIVE_RESEARCH_SOURCES = [
   'google_ads_transparency_center',
   'manual_paid_reference',
   'meta_ads_library',
+  'tiktok_ads_library',
   'tiktok_creative_center',
   'x_ads_repository',
 ] as const satisfies readonly PaidCreativeProvider[];
@@ -31,7 +32,7 @@ export const PAID_CREATIVE_PLATFORMS = [
 const PROVIDER_BY_PLATFORM = {
   google: 'google_ads_transparency_center',
   meta: 'meta_ads_library',
-  tiktok: 'tiktok_creative_center',
+  tiktok: 'tiktok_ads_library',
   x: 'x_ads_repository',
   // YouTube video ads are Google Ads creatives; the Google Ads Transparency
   // Center is their only public archive.
@@ -42,6 +43,7 @@ const AD_PLATFORM_BY_PROVIDER = {
   google_ads_transparency_center: 'google-ads',
   manual_paid_reference: 'meta',
   meta_ads_library: 'meta',
+  tiktok_ads_library: 'tiktok',
   tiktok_creative_center: 'tiktok',
   x_ads_repository: 'x_ads',
 } as const satisfies Record<PaidCreativeProvider, NormalizedAdPlatform>;
@@ -50,6 +52,7 @@ const SOURCE_LABEL_BY_PROVIDER = {
   google_ads_transparency_center: 'Google Ads Transparency Center',
   manual_paid_reference: 'Manual paid reference',
   meta_ads_library: 'Meta Ad Library',
+  tiktok_ads_library: 'TikTok Ads Library',
   tiktok_creative_center: 'TikTok Creative Center',
   x_ads_repository: 'X Ads Repository disclosure',
 } as const satisfies Record<PaidCreativeProvider, string>;
