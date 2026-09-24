@@ -246,6 +246,7 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
         if (revisedRun.readiness.state === 'blocked') {
           return revisedRun;
         }
+        if (revisedRun.scenePipeline || (['video', 'avatar'].includes(revisedRun.draft.output.kind) && (revisedRun.concept?.storyboard.length ?? 0) > 1)) return await service.quoteBrandRemixScenes(revisedRun.id, { expectedRevision: revisedRun.revision, operation: 'generate' });
         return await service.startBrandRemixRun(revisedRun.id, {
           expectedRevision: revisedRun.revision,
         });

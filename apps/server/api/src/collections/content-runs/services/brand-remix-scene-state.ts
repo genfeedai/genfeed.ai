@@ -71,3 +71,11 @@ export function invalidateScenePipeline(previous: BrandRemixRunConfig, next: Bra
   if (pipeline.assembly?.assetId) replaced.push(pipeline.assembly.assetId);
   return { ...pipeline, state: 'storyboard', quote: undefined, operation: undefined, assembly: undefined, error: undefined, scenes: retained, replacedAssetIds: [...new Set(replaced)] };
 }
+
+export function hasUnreconciledSceneWork(pipeline: BrandRemixScenePipeline | undefined): boolean {
+  if (!pipeline) return false;
+  const stages = Object.values(pipeline.scenes).flatMap((scene) => [scene.image, scene.video]);
+  if (pipeline.analysis) stages.push(pipeline.analysis.transcription, pipeline.analysis.rewrite);
+  if (pipeline.assembly) stages.push(pipeline.assembly.transcription);
+  return stages.some((stage) => ['claimed', 'submitted', 'uncertain'].includes(stage.state));
+}

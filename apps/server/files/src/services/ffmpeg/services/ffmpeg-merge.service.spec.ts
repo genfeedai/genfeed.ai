@@ -95,6 +95,27 @@ describe('FFmpegMergeService', () => {
     expect(service).toBeDefined();
   });
 
+  describe('mergeNormalizedVideos', () => {
+    it('normalizes every generated video/audio stream before ordered concatenation', async () => {
+      await service.mergeNormalizedVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', 1080, 1920);
+      const args = coreService.executeFFmpeg.mock.calls[0][0];
+      expect(args.join(' ')).toContain('scale=1080:1920');
+      expect(args.join(' ')).toContain('aresample=48000');
+      expect(args.join(' ')).toContain('[v0][a0][v1][a1]concat=n=2:v=1:a=1');
+      expect(args).not.toContain('-t');
+      expect(args).not.toContain('-shortest');
+    });
+    it('rejects missing speech audio before FFmpeg output', async () => {
+      coreService.probe.mockResolvedValue(makeProbeResult(5, false));
+      await expect(service.mergeNormalizedVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', 1080, 1920)).rejects.toThrow('speech audio');
+      expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
+    });
+    it('rejects unsafe dimensions rather than stretching or dropping speech', async () => {
+      await expect(service.mergeNormalizedVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', 0, 1920)).rejects.toThrow();
+      expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
+    });
+  });
+
   describe('mergeVideos', () => {
     it('should call executeFFmpeg with concat demuxer args', async () => {
       await service.mergeVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4');

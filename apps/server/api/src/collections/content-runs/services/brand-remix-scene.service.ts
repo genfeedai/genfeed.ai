@@ -8,7 +8,7 @@ import { BrandRemixSceneWorkflowService } from '@api/collections/content-runs/se
 import { assertSceneQuote, initialScenePipeline, isSceneOperationActive, stableSceneConcept } from '@api/collections/content-runs/services/brand-remix-scene-state';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { BrandRemixRunConfig, BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
-import { attachBrandRemixAnalysisSourceSchema, quoteBrandRemixScenesSchema, executeBrandRemixScenesSchema, controlBrandRemixScenesSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import { brandRemixSceneIdentitySchema, attachBrandRemixAnalysisSourceSchema, quoteBrandRemixScenesSchema, executeBrandRemixScenesSchema, controlBrandRemixScenesSchema } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { ConflictException, Injectable } from '@nestjs/common';
 
@@ -25,6 +25,7 @@ export class BrandRemixSceneService {
     this.editable(config);
     const pipeline = config.scenePipeline;
     const stages = Object.values(pipeline?.scenes ?? {}).flatMap((scene) => [scene.image, scene.video]);
+    if (pipeline?.assembly) stages.push(pipeline.assembly.transcription);
     if (pipeline?.analysis) stages.push(pipeline.analysis.transcription, pipeline.analysis.rewrite);
     if (stages.some((stage) => ['claimed', 'submitted', 'uncertain'].includes(stage.state))) throw new ConflictException('Reconcile accepted or uncertain provider work before replacing the analysis source.');
     const asset = input.assetId ? await this.source.libraryAsset(organizationId, brandId, input.assetId) : undefined;
@@ -52,7 +53,7 @@ export class BrandRemixSceneService {
     if (!pipeline || !quote || quote.id !== input.quoteId) throw new ConflictException('Accept a current scene quote first.');
     assertSceneQuote(config, quote);
     const fresh = await this.quotes.build(organizationId, brandId, config, { expectedRevision: config.revision, operation: quote.operation, sceneId: quote.sceneId, repairStage: quote.repairStage });
-    if (fresh.total > quote.total || fresh.items.some((item) => { const accepted = quote.items.find((candidate) => candidate.key === item.key); return !accepted || accepted.model !== item.model || accepted.billingMode !== item.billingMode || item.credits > accepted.credits; })) throw new ConflictException('Pricing or billing mode changed. Request a new quote.');
+    if (fresh.total !== quote.total || JSON.stringify(fresh.items) !== JSON.stringify(quote.items)) throw new ConflictException('Pricing or billing mode changed. Request a new quote.');
     if (quote.total > 0 && !await this.credits.checkOrganizationCreditsAvailable(organizationId, quote.total)) throw new ConflictException('Insufficient available credits for the complete accepted quote.');
     const operation = { id: randomUUID(), quoteId: quote.id, revision: config.revision, cancellationGeneration: pipeline.cancellationGeneration, startedAt: new Date().toISOString(), userId: user.userId, sequence: 0 };
     const next = structuredClone(pipeline);
@@ -68,13 +69,13 @@ export class BrandRemixSceneService {
       next.assembly = undefined;
       for (const scene of config.concept?.storyboard ?? []) {
         if (!scene.id) throw new ConflictException('Missing scene ID.');
-        const identity = scene.identity ?? config.draft.identity;
+        const identity = brandRemixSceneIdentitySchema.parse(scene.identity ?? config.draft.identity);
         if (!('avatarAssetId' in identity)) throw new ConflictException('Select an avatar and voice.');
         const saved = next.scenes[scene.id];
         const image = quote.items.find((line) => line.sceneId === scene.id && line.stage === 'image');
         const video = quote.items.find((line) => line.sceneId === scene.id && line.stage === 'video');
         const replacedAssetIds = [...(saved?.replacedAssetIds ?? []), ...(image && saved?.image.assetId ? [saved.image.assetId] : []), ...(video && saved?.video.assetId ? [saved.video.assetId] : [])];
-        next.scenes[scene.id] = { identity, referenceAssetIds: config.draft.references.map((reference) => reference.assetId), image: image ? { attempt: image.attempt, state: 'pending' } : saved?.image ?? { attempt: 1, state: 'pending' }, video: video ? { attempt: video.attempt, state: 'pending' } : saved?.video ?? { attempt: 1, state: 'pending' }, actualDurationSeconds: video ? undefined : saved?.actualDurationSeconds, replacedAssetIds };
+        next.scenes[scene.id] = { identity, referenceAssetIds: config.draft.references.map((reference) => reference.assetId), image: image ? { attempt: image.attempt, state: 'pending', groupId: `remix-${runId}-${scene.id}-image-${operation.id}` } : saved?.image ?? { attempt: 1, state: 'pending' }, video: video ? { attempt: video.attempt, state: 'pending', groupId: `remix-${runId}-${scene.id}-video-${operation.id}` } : saved?.video ?? { attempt: 1, state: 'pending' }, actualDurationSeconds: video ? undefined : saved?.actualDurationSeconds, replacedAssetIds };
       }
     }
     await this.store.save(organizationId, runId, config, { ...config, phase: 'generating', execution: undefined, scenePipeline: next });
@@ -85,6 +86,7 @@ export class BrandRemixSceneService {
     const input = controlBrandRemixScenesSchema.parse(body);
     const { config } = await this.store.read(organizationId, runId, input.expectedRevision);
     const pipeline = config.scenePipeline;
+    if (config.review || config.reviewClaim || ['in_review', 'approved', 'paid_draft_creating', 'paid_draft_ready'].includes(config.phase)) throw new ConflictException('Reviewed remix output is immutable.');
     if (!pipeline) throw new ConflictException('No scene pipeline exists.');
     await this.store.save(organizationId, runId, config, { ...config, phase: 'prefilled', scenePipeline: { ...pipeline, state: 'cancelled', cancellationGeneration: pipeline.cancellationGeneration + 1, error: 'Future dispatch is cancelled. Already accepted provider work may still finish.' } });
     return this.store.view(organizationId, runId);
@@ -94,8 +96,8 @@ export class BrandRemixSceneService {
     const { config } = await this.store.read(organizationId, runId, input.expectedRevision);
     const pipeline = config.scenePipeline;
     if (!pipeline?.operation || !pipeline.quote) throw new ConflictException('No accepted operation is available to resume.');
-    this.editable(config);
-    const operation = { ...pipeline.operation, cancellationGeneration: pipeline.cancellationGeneration, sequence: pipeline.operation.sequence + 1 };
+    if (config.review || config.reviewClaim) throw new ConflictException('Reviewed remix output is immutable.');
+    const operation = { ...pipeline.operation, resumedAt: new Date().toISOString(), cancellationGeneration: pipeline.cancellationGeneration, sequence: pipeline.operation.sequence + 1 };
     await this.store.save(organizationId, runId, config, { ...config, phase: 'generating', scenePipeline: { ...pipeline, operation, state: pipeline.quote.operation === 'analysis' ? 'analysing' : 'generating', error: undefined } });
     await this.workflow.enqueue(organizationId, runId, operation);
     return this.store.view(organizationId, runId);

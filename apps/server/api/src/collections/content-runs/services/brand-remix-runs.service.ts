@@ -1,4 +1,4 @@
-import { invalidateScenePipeline, isSceneOperationActive } from '@api/collections/content-runs/services/brand-remix-scene-state';
+import { hasUnreconciledSceneWork, invalidateScenePipeline, isSceneOperationActive } from '@api/collections/content-runs/services/brand-remix-scene-state';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   mergeBrandRemixConcept,
@@ -186,6 +186,7 @@ export class BrandRemixRunsService {
     if (config.revision !== input.expectedRevision) {
       throw staleRemixRevision(input.expectedRevision, config.revision);
     }
+    if (hasUnreconciledSceneWork(config.scenePipeline)) throw new ConflictException('Reconcile accepted or uncertain scene work before editing.');
     if (isSceneOperationActive(config.scenePipeline)) throw new ConflictException('Cancel the active scene operation before editing.');
     if (config.phase !== 'prefilled' && config.phase !== 'failed' && !(config.scenePipeline && config.phase === 'ready_for_review' && !config.review)) {
       throw new ConflictException({

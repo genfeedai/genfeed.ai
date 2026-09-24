@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
-import { assertScenePlan, sceneInputHash } from '@api/collections/content-runs/services/brand-remix-scene-state';
+import { assertOriginalNarration, assertScenePlan, sceneInputHash } from '@api/collections/content-runs/services/brand-remix-scene-state';
 import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
 import { ByokService } from '@api/services/byok/byok.service';
 import { ByokProvider, ModelCategory } from '@genfeedai/contracts';
@@ -26,9 +26,10 @@ export class BrandRemixSceneQuoteService {
       if (config.scenePipeline?.analysis?.rewrite.state !== 'ready') throw new ConflictException('Analyze the permitted source video before quoting scene generation.');
       await this.source.prepare(organizationId, brandId, config);
       assertScenePlan(config);
+      assertOriginalNarration(config.scenePipeline.analysis.transcript ?? '', config.concept?.storyboard.map((scene) => scene.narration ?? '').join(' ') ?? '');
       const output = config.draft.output;
       if (!('aspectRatio' in output)) throw new ConflictException('Select a video aspect ratio.');
-      const quote = await this.estimate.estimate({ organizationId, category: ModelCategory.IMAGE, modelKey: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2, aspectRatio: output.aspectRatio, outputs: 1 });
+      const quote = await this.estimate.estimate({ organizationId, category: ModelCategory.IMAGE, prompt: config.draft.intent.objective, modelKey: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2, aspectRatio: output.aspectRatio, outputs: 1 });
       if (!quote.isAvailable || quote.credits === null || quote.modelKey !== MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2) throw new ConflictException('Nano Banana 2 is unavailable or has no valid price.');
       const imageByok = await this.byok.isByokActiveForProvider(organizationId, ByokProvider.REPLICATE);
       const videoByok = await this.byok.isByokActiveForProvider(organizationId, ByokProvider.HEYGEN);

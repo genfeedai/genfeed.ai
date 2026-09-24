@@ -23,7 +23,7 @@ export class BrandRemixSceneSourceService {
     const permission = resolved.sourceMedia;
     const owned = config.sourceSnapshot.selector.kind === 'owned_post' && permission?.existingAssetIds.includes(media.assetId);
     if (!owned && (permission?.importPolicy !== 'permitted' || !permission.importPermissionRef || (permission.importExpiresAt && (!Number.isFinite(Date.parse(permission.importExpiresAt)) || Date.parse(permission.importExpiresAt) <= Date.now())))) throw new ConflictException('Source analysis permission is unavailable or expired.');
-    const asset = await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { brandId, id: media.assetId, category: 'VIDEO' }), include: { metadata: true } });
+    const asset = await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { brandId, id: media.assetId, category: 'VIDEO' as const }), include: { metadata: true } });
     if (!asset) throw new ConflictException('The saved source video is unavailable to this brand.');
     const url = readIngredientMediaUrl(asset) ?? (asset.s3Key ? this.mediaUrls.buildUrl(asset.s3Key) : undefined);
     if (!url) throw new ConflictException('The saved source video has no accessible media.');
@@ -32,7 +32,7 @@ export class BrandRemixSceneSourceService {
     return { sourceAssetId: asset.id, url, durationSeconds: probe.durationSeconds, sizeBytes: probe.sizeBytes };
   }
   async libraryAsset(organizationId: string, brandId: string, assetId: string) {
-    const asset = await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { brandId, id: assetId, category: 'VIDEO', scope: 'USER', status: { in: ['UPLOADED', 'GENERATED', 'VALIDATED'] } }), include: { metadata: true } });
+    const asset = await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { brandId, id: assetId, category: 'VIDEO' as const, scope: 'USER' as const, status: { in: ['UPLOADED' as const, 'GENERATED' as const, 'VALIDATED' as const] } }), include: { metadata: true } });
     if (!asset || asset.sourceActionId?.startsWith('remix-source:')) throw new ConflictException('Choose an available video from this brand Library.');
     const url = readIngredientMediaUrl(asset) ?? (asset.s3Key ? this.mediaUrls.buildUrl(asset.s3Key) : undefined);
     if (!url) throw new ConflictException('Library video has no accessible stored media.');

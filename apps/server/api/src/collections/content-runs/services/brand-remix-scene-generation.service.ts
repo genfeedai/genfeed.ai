@@ -38,12 +38,12 @@ export class BrandRemixSceneGenerationService {
         if (!pipeline?.operation || !pipeline.quote || !saved) throw new ConflictException('Missing accepted scene snapshot.');
         const stage = saved[stageName];
         if (stage.state === 'ready') continue;
-        const groupId = this.group(runId, scene.id, stageName, stage.attempt);
-        const category = stageName === 'image' ? 'IMAGE' : 'AVATAR';
+        const groupId = stage.groupId ?? this.group(runId, scene.id, stageName, stage.attempt);
+        const category = stageName === 'image' ? 'IMAGE' as const : 'AVATAR' as const;
         if (stage.state !== 'pending') {
           const found = stage.assetId ? await this.asset(organizationId, brandId, stage.assetId, groupId, category) : await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { brandId, groupId, category }), include: { metadata: true } });
           if (!found) throw new ConflictException('Provider acceptance is uncertain; no new paid attempt will be dispatched.');
-          if (found.status === 'FAILED') throw new ConflictException('Scene generation failed. Request an explicit repair quote.');
+          if (found.status === 'FAILED') { await this.patch(organizationId, runId, operationId, scene.id, stageName, { state: 'failed', assetId: found.id, error: 'Provider generation failed. Request a repair quote.' }); throw new ConflictException('Scene generation failed. Request an explicit repair quote.'); }
           if (!['GENERATED', 'VALIDATED'].includes(found.status ?? '')) {
             if (!stage.assetId) await this.patch(organizationId, runId, operationId, scene.id, stageName, { assetId: found.id, state: 'submitted' });
             return false;
@@ -53,7 +53,7 @@ export class BrandRemixSceneGenerationService {
             const url = readIngredientMediaUrl(found) ?? (found.s3Key ? this.mediaUrls.buildUrl(found.s3Key) : undefined);
             if (!url) throw new ConflictException('Completed scene video has no media URL.');
             const probe = await this.files.probeMediaFromUrl(url, 'video');
-            if (!probe.durationSeconds || probe.durationSeconds > 20 || !probe.width || !probe.height || !probe.audioCodec) throw new ConflictException('Scene needs repair: expected speech audio and a clip up to 20 seconds.');
+            if (!probe.durationSeconds || probe.durationSeconds > 20 || !probe.width || !probe.height || !probe.audioCodec) { await this.patch(organizationId, runId, operationId, scene.id, stageName, { state: 'failed', assetId: found.id, error: 'Repair required: missing speech or unsupported clip duration/dimensions.' }); throw new ConflictException('Scene needs repair: expected speech audio and a clip up to 20 seconds.'); }
             actualDurationSeconds = probe.durationSeconds;
           }
           await this.patch(organizationId, runId, operationId, scene.id, stageName, { state: 'ready', assetId: found.id }, actualDurationSeconds);
@@ -71,7 +71,7 @@ export class BrandRemixSceneGenerationService {
         if (!('aspectRatio' in output)) throw new ConflictException('Missing scene aspect ratio.');
         const user: AuthenticatedUser = { id: pipeline.operation.userId, userId: pipeline.operation.userId, organizationId, brandId };
         if (stageName === 'image') {
-          const sourceActionId = this.billing.key(runId, line);
+          const sourceActionId = this.billing.key(runId, operationId, line);
           const request = { user, body: { sourceActionId }, creditsConfig: { deferred: true } } as RequestWithContext & DeferredCreditsRequest;
           const references: ImageGenerationBriefReference[] = config.draft.references.flatMap(({ assetId, role, description }) => role === 'first_frame' || role === 'last_frame' || role === 'reference_video' ? [] : [{ assetId, role, description }]);
           references.push({ assetId: saved.identity.avatarAssetId, role: 'character', description: 'Preserve the selected saved brand persona.' });
@@ -86,7 +86,7 @@ export class BrandRemixSceneGenerationService {
           await this.patch(organizationId, runId, operationId, scene.id, stageName, { assetId: response.data.id, state: 'submitted' });
         } else {
           if (!saved.image.assetId || saved.image.state !== 'ready') throw new ConflictException('The generated scene still is not ready.');
-          const still = await this.asset(organizationId, brandId, saved.image.assetId, this.group(runId, scene.id, 'image', saved.image.attempt), 'IMAGE');
+          const still = await this.asset(organizationId, brandId, saved.image.assetId, saved.image.groupId ?? this.group(runId, scene.id, 'image', saved.image.attempt), 'IMAGE');
           if (!['GENERATED', 'VALIDATED'].includes(still.status ?? '')) throw new ConflictException('The generated scene still is no longer ready.');
           const photoUrl = readIngredientMediaUrl(still) ?? (still.s3Key ? this.mediaUrls.buildUrl(still.s3Key) : undefined);
           if (!photoUrl) throw new ConflictException('Generated scene still has no usable media URL.');

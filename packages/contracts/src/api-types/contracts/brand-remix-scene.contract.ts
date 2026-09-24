@@ -18,6 +18,7 @@ export const brandRemixSceneObservationSchema = z.object({
 export const brandRemixSceneStageSchema = z.object({
   attempt: z.number().int().positive(),
   state: z.enum(['pending', 'claimed', 'submitted', 'ready', 'failed', 'uncertain']),
+  groupId: id.optional(),
   claimToken: id.optional(),
   claimedAt: timestamp.optional(),
   assetId: id.optional(),
@@ -56,6 +57,7 @@ export const brandRemixScenePipelineSchema = z.object({
     revision: z.number().int().positive(),
     cancellationGeneration: z.number().int().nonnegative(),
     startedAt: timestamp,
+    resumedAt: timestamp.optional(),
     userId: id,
     sequence: z.number().int().nonnegative(),
   }).strict().optional(),

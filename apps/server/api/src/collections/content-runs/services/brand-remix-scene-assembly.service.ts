@@ -1,3 +1,4 @@
+import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { randomUUID } from 'node:crypto';
 import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
 import { BrandRemixSceneGenerationService } from '@api/collections/content-runs/services/brand-remix-scene-generation.service';
@@ -19,7 +20,7 @@ import { z } from 'zod';
 const persistedOutput = z.object({ success: z.literal(true), s3Key: z.string().min(1), duration: z.number().positive().optional(), width: z.number().positive().optional(), height: z.number().positive().optional(), size: z.number().positive().optional() });
 @Injectable()
 export class BrandRemixSceneAssemblyService {
-  constructor(private readonly store: BrandRemixSceneStoreService, private readonly generation: BrandRemixSceneGenerationService, private readonly billing: BrandRemixSceneBillingService, private readonly planning: BrandRemixRunPlanningService, private readonly queue: FileQueueService, private readonly whisper: WhisperService, private readonly mediaUrls: MediaUrlService, private readonly shared: SharedService, private readonly prisma: PrismaService) {}
+  constructor(private readonly files: FilesClientService, private readonly store: BrandRemixSceneStoreService, private readonly generation: BrandRemixSceneGenerationService, private readonly billing: BrandRemixSceneBillingService, private readonly planning: BrandRemixRunPlanningService, private readonly queue: FileQueueService, private readonly whisper: WhisperService, private readonly mediaUrls: MediaUrlService, private readonly shared: SharedService, private readonly prisma: PrismaService) {}
   async step(organizationId: string, runId: string, operationId: string): Promise<boolean> {
     const { config, brandId } = await this.store.fence(organizationId, runId, operationId);
     const pipeline = config.scenePipeline;
@@ -29,7 +30,7 @@ export class BrandRemixSceneAssemblyService {
     const clips = await Promise.all(sceneIds.map(async (sceneId) => {
       const scene = sceneId ? pipeline.scenes[sceneId] : undefined;
       if (!sceneId || !scene?.video.assetId || scene.video.state !== 'ready') throw new ConflictException('Complete every generated scene before assembly.');
-      const clip = await this.generation.asset(organizationId, brandId, scene.video.assetId, this.generation.group(runId, sceneId, 'video', scene.video.attempt), 'AVATAR');
+      const clip = await this.generation.asset(organizationId, brandId, scene.video.assetId, scene.video.groupId ?? this.generation.group(runId, sceneId, 'video', scene.video.attempt), 'AVATAR');
       if (!['GENERATED', 'VALIDATED'].includes(clip.status ?? '') || !clip.s3Key || !scene.actualDurationSeconds) throw new ConflictException('Completed scene storage or duration is unavailable.');
       const key = assertSafeObjectKey(clip.s3Key, (message) => new ConflictException(message));
       if (!key.startsWith('ingredients/avatars/') && !key.startsWith('ingredients/videos/')) throw new ConflictException('Invalid generated clip storage key.');
@@ -41,7 +42,7 @@ export class BrandRemixSceneAssemblyService {
     if (!assembly) {
       const create = async (index: number) => {
         const groupId = `remix-assembly-${runId}-${operationId}`;
-        const existing = await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { brandId, groupId, groupIndex: index, category: 'VIDEO' }) });
+        const existing = await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { brandId, groupId, groupIndex: index, category: 'VIDEO' as const }) });
         if (existing) return existing.id;
         const { ingredientData } = await this.shared.createMediaDocumentsInternal({ brandId, category: IngredientCategory.VIDEO, extension: MetadataExtension.MP4, organizationId, userId, groupId, groupIndex: index, sourceIds: orderedAssetIds, status: IngredientStatus.PROCESSING });
         return String(ingredientData.id);
@@ -92,7 +93,12 @@ export class BrandRemixSceneAssemblyService {
   }
   private safeVideoKey(key: string) { assertSafeObjectKey(key, (message) => new ConflictException(message)); if (!key.startsWith('ingredients/videos/')) throw new ConflictException('Files did not return a persisted video key.'); }
   private async persistAsset(organizationId: string, brandId: string, id: string, s3Key: string) {
-    const updated = await this.prisma.ingredient.updateMany({ where: scopedWhere(organizationId, { id, brandId, category: 'VIDEO' }), data: { status: IngredientStatus.GENERATED, s3Key } });
+    const asset = await this.prisma.ingredient.findFirst({ where: scopedWhere(organizationId, { id, brandId, category: 'VIDEO' as const }) });
+    if (!asset?.metadataId) throw new ConflictException('Composition metadata is unavailable.');
+    const probe = await this.files.probeMediaFromUrl(this.mediaUrls.buildUrl(s3Key), 'video');
+    if (!probe.durationSeconds || probe.durationSeconds > 90 || !probe.width || !probe.height || !probe.audioCodec || !probe.sizeBytes) throw new ConflictException('Composition requires valid generated speech and media metadata.');
+    await this.prisma.metadata.updateMany({ where: { id: asset.metadataId, isDeleted: false, ingredients: { some: scopedWhere(organizationId, { id, brandId }) } }, data: { result: s3Key, duration: probe.durationSeconds, width: probe.width, height: probe.height, size: probe.sizeBytes, hasAudio: true } });
+    const updated = await this.prisma.ingredient.updateMany({ where: scopedWhere(organizationId, { id, brandId, category: 'VIDEO' as const }), data: { status: IngredientStatus.GENERATED, s3Key } });
     if (updated.count !== 1) throw new ConflictException('Composition output is unavailable.');
   }
   private async patch(organizationId: string, runId: string, operationId: string, assembly: NonNullable<BrandRemixScenePipeline['assembly']>) {

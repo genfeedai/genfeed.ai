@@ -1,5 +1,6 @@
 'use client';
 
+import StudioRemixScenes, { type StudioRemixSceneActions } from '@pages/studio/generate/components/StudioRemixScenes';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import {
@@ -18,6 +19,7 @@ import { useTranslations } from 'next-intl';
 import type { ReactElement } from 'react';
 
 export interface StudioRemixRunPanelProps {
+  readonly sceneActions?: StudioRemixSceneActions;
   readonly error: string | null;
   readonly isWorking: boolean;
   readonly onPreparePaidDraft?: () => void;
@@ -34,6 +36,7 @@ function formatLabel(value: string): string {
 
 export default function StudioRemixRunPanel({
   error,
+  sceneActions,
   isWorking,
   onPreparePaidDraft,
   onReview,
@@ -141,6 +144,8 @@ export default function StudioRemixRunPanel({
           ) : null}
         </div>
       </div>
+
+      {sceneActions && ['video', 'avatar'].includes(run.draft.output.kind) ? <StudioRemixScenes run={run} actions={sceneActions} isWorking={isWorking} /> : null}
 
       {error ? <Alert type={AlertCategory.ERROR}>{error}</Alert> : null}
 

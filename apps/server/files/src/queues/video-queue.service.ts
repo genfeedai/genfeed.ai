@@ -124,6 +124,15 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addMergeJob(data: VideoJobData): Promise<Job<VideoJobData>> {
+    if (data.id === `remix-merge-${data.ingredientId}`) {
+      const existing = await this.getJob(data.id);
+      if (existing) {
+        if ((await existing.getState()) === 'failed') {
+          try { await existing.retry('failed'); } catch (error) { if ((await existing.getState()) === 'failed') throw error; }
+        }
+        return existing;
+      }
+    }
     return this.addJob(
       JOB_TYPES.MERGE_VIDEOS,
       data,
@@ -134,6 +143,15 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
   }
 
   async addCaptionsJob(data: VideoJobData): Promise<Job<VideoJobData>> {
+    if (data.id === `remix-captions-${data.ingredientId}`) {
+      const existing = await this.getJob(data.id);
+      if (existing) {
+        if ((await existing.getState()) === 'failed') {
+          try { await existing.retry('failed'); } catch (error) { if ((await existing.getState()) === 'failed') throw error; }
+        }
+        return existing;
+      }
+    }
     return this.addJob(
       JOB_TYPES.ADD_CAPTIONS,
       data,

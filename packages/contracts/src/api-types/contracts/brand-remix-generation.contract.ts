@@ -11,7 +11,7 @@ export const brandRemixGenerationQuoteSchema = z.object({
   expiresAt: z.string().datetime(),
   unitCredits: z.number().finite().nonnegative(),
   total: z.number().finite().nonnegative(),
-  count: z.number().int().positive(),
+  count: z.number().int().positive().max(8),
   billingMode: z.enum(['credits', 'byok']),
   provider: id.optional(),
   acceptedAt: z.string().datetime().optional(),

@@ -28,7 +28,7 @@ export class BrandRemixSceneWorkflowService implements OnModuleInit {
       const { config, brandId } = await this.store.fence(organizationId, runId, operationId);
       const pipeline = config.scenePipeline;
       if (!pipeline?.operation) return;
-      if (Date.now() - Date.parse(pipeline.operation.startedAt) > 30 * 60_000) throw new Error('Scene operation stalled after 30 minutes. Reconcile accepted work before continuing.');
+      if (Date.now() - Date.parse(pipeline.operation.resumedAt ?? pipeline.operation.startedAt) > 30 * 60_000) throw new Error('Scene operation stalled after 30 minutes. Reconcile accepted work before continuing.');
       await this.source.prepare(organizationId, brandId, config);
       const complete = pipeline.quote?.operation === 'analysis' ? await this.analysis.step(organizationId, runId, operationId) : await this.generation.step(organizationId, runId, operationId) && await this.assembly.step(organizationId, runId, operationId);
       if (complete) return;
