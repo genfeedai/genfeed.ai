@@ -7,11 +7,7 @@ import type {
   WorkflowExecutionDocument,
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
-import {
-  proactiveRunMetadata,
-  resolveProactiveConsumedCredits,
-  withProactiveConsumedCredits,
-} from '@api/collections/workflow-executions/services/proactive-run-accounting';
+import { recordProactiveRunCompletion } from '@api/collections/workflow-executions/services/proactive-run-accounting';
 import { readWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
@@ -41,10 +37,7 @@ import {
 } from '@api/shared/services/base/base.service';
 import type { AggregatePaginateResult } from '@api/types/aggregate-paginate-result';
 import { formatAgentError } from '@genfeedai/agent/server';
-import {
-  AgentStrategyRunStatus,
-  WorkflowExecutionStatus as SharedWorkflowExecutionStatus,
-} from '@genfeedai/contracts';
+import { WorkflowExecutionStatus as SharedWorkflowExecutionStatus } from '@genfeedai/contracts';
 import type {
   PopulateOption,
   WorkflowCostEstimate,
@@ -52,7 +45,6 @@ import type {
 import {
   Prisma,
   WorkflowExecutionStatus as PrismaWorkflowExecutionStatus,
-  toPrismaJson,
 } from '@genfeedai/prisma';
 import type { ExecutableNode } from '@genfeedai/workflows/engine';
 import type { AggregationOptions } from '@libs/interfaces/query.interface';
@@ -490,62 +482,12 @@ export class WorkflowExecutionsService extends BaseService<
           return null;
         }
 
-        // tenant-scope-ignore: this primary-key read follows a successful organization-scoped update in the same transaction
-        let updatedExecution = await transaction.workflowExecution.findUnique({
-          where: { id: executionId },
-        });
-
-        if (!updatedExecution) {
-          throw new Error(
-            `Workflow execution ${executionId} disappeared after its terminal transition`,
-          );
-        }
-
-        const proactive = proactiveRunMetadata(updatedExecution.result);
-        if (proactive) {
-          const creditsUsed = await resolveProactiveConsumedCredits(
-            transaction,
-            {
-              executionId,
-              organizationId: execution.organizationId,
-            },
-          );
-          const contentGenerated = await transaction.post.count({
-            where: {
-              workflowExecutionId: executionId,
-              agentStrategyId: proactive.strategyId,
-              organizationId: execution.organizationId,
-              isDeleted: false,
-            },
-          });
-          await this.agentStrategiesService.recordRun(
-            proactive.strategyId,
-            {
-              executionId,
-              startedAt: execution.startedAt ?? completedAt,
-              completedAt,
-              status: error
-                ? AgentStrategyRunStatus.FAILED
-                : AgentStrategyRunStatus.COMPLETED,
-              creditsUsed,
-              contentGenerated,
-              threadId: proactive.threadId,
-            },
-            execution.organizationId,
-            transaction,
-          );
-          updatedExecution = await transaction.workflowExecution.update({
-            where: scopedWhere(execution.organizationId, { id: executionId }),
-            data: {
-              result: toPrismaJson(
-                withProactiveConsumedCredits(
-                  updatedExecution.result,
-                  creditsUsed,
-                ),
-              ),
-            },
-          });
-        }
+        const updatedExecution = await recordProactiveRunCompletion(
+          transaction,
+          this.agentStrategiesService,
+          executionId,
+          { completedAt, failed: Boolean(error) },
+        );
 
         const durableDeliveryId = suppressWorkflowOutcomeNotification(
           execution.workflow.metadata,

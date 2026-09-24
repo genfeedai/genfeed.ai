@@ -36,7 +36,7 @@ import { NotificationDeliveryRecoveryModule } from '@workers/processors/api/queu
 import { PlatformScheduleRegistryService } from '@workers/scheduling/platform-schedule-registry.service';
 import { PLATFORM_SCHEDULE_QUEUE } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
-import { PlatformWorkflowSweepsService } from '@workers/scheduling/platform-workflow-sweeps.service';
+import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 
 @Module({
@@ -86,7 +86,7 @@ import { WorkflowContinuationReconcileService } from '@workers/scheduling/workfl
     ReplicateService,
     PlatformScheduleRegistryService,
     PlatformSchedulesProcessor,
-    PlatformWorkflowSweepsService,
+    PlatformWorkflowSchedulesService,
     WorkflowContinuationReconcileService,
   ],
 })

@@ -5,7 +5,7 @@ import { BatchGenerationCreationService } from '@api/services/batch-generation/b
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
 import { PLATFORM_SCHEDULE_CATALOG } from '@workers/scheduling/platform-schedules.constants';
 import { PlatformSchedulesProcessor } from '@workers/scheduling/platform-schedules.processor';
-import { PlatformWorkflowSweepsService } from '@workers/scheduling/platform-workflow-sweeps.service';
+import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import type { Job } from 'bullmq';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
@@ -169,14 +169,15 @@ describe('proactive organization to strategy run and attributed draft integratio
       } as never,
       logger as never,
     );
-    const sweeps = new PlatformWorkflowSweepsService(
+    const schedules = new PlatformWorkflowSchedulesService(
       prisma as never,
       runner as never,
       logger as never,
+      { reconcile: vi.fn() } as never,
     );
-    const processorArgs = Array.from({ length: 31 }, () => ({}));
+    const processorArgs = Array.from({ length: 30 }, () => ({}));
     processorArgs[0] = { isDevSchedulersEnabled: true };
-    processorArgs.push(sweeps);
+    processorArgs.push(schedules);
     const processor = new PlatformSchedulesProcessor(
       ...(processorArgs as ConstructorParameters<
         typeof PlatformSchedulesProcessor

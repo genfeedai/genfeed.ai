@@ -4,6 +4,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { WorkflowExecutionTrigger } from '@genfeedai/contracts';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
+import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
 
 const WORKFLOWS = {
   'analytics-sync': {
@@ -21,13 +22,18 @@ const WORKFLOWS = {
 } as const;
 
 @Injectable()
-export class PlatformWorkflowSweepsService {
+export class PlatformWorkflowSchedulesService {
   constructor(
     private readonly prisma: PrismaService,
     @Inject(SYSTEM_WORKFLOW_RUNNER)
     private readonly runner: SystemWorkflowRunnerService,
     private readonly logger: LoggerService,
+    private readonly continuations: WorkflowContinuationReconcileService,
   ) {}
+
+  async reconcileContinuations(): Promise<void> {
+    await this.continuations.reconcile();
+  }
 
   async sweep(
     templateId: keyof typeof WORKFLOWS,
@@ -78,7 +84,7 @@ export class PlatformWorkflowSweepsService {
             idempotencyKey: `platform:${templateId}:${organization.id}:${slot}`,
             organizationId: organization.id,
             userId: organization.userId,
-            source: 'PlatformWorkflowSweepsService',
+            source: 'PlatformWorkflowSchedulesService',
             trigger: WorkflowExecutionTrigger.SCHEDULED,
           });
         } catch (error) {

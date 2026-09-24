@@ -1,17 +1,19 @@
-import { PlatformWorkflowSweepsService } from '@workers/scheduling/platform-workflow-sweeps.service';
+import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-describe('PlatformWorkflowSweepsService', () => {
+describe('PlatformWorkflowSchedulesService', () => {
   const prisma = {
     organization: { findMany: vi.fn() },
     workflow: { findFirst: vi.fn() },
   };
   const runner = { enqueueWorkflow: vi.fn() };
   const logger = { error: vi.fn() };
-  const service = new PlatformWorkflowSweepsService(
+  const continuations = { reconcile: vi.fn() };
+  const service = new PlatformWorkflowSchedulesService(
     prisma as never,
     runner as never,
     logger as never,
+    continuations as never,
   );
   beforeEach(() => {
     vi.resetAllMocks();
@@ -20,6 +22,11 @@ describe('PlatformWorkflowSweepsService', () => {
     ]);
     prisma.workflow.findFirst.mockResolvedValue(null);
     runner.enqueueWorkflow.mockResolvedValue({ executionId: 'execution-1' });
+  });
+
+  it('delegates continuation reconciliation to its existing owner', async () => {
+    await service.reconcileContinuations();
+    expect(continuations.reconcile).toHaveBeenCalledOnce();
   });
 
   it('dispatches without installation with a stable scheduled-slot identity', async () => {

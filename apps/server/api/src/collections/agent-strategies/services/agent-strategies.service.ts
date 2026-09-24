@@ -253,13 +253,9 @@ export class AgentStrategiesService extends BaseService<
       const include = this.populateToInclude(populate);
       return this.normalizeDocument(
         await transaction.agentStrategy.update({
-          where: {
-            id,
-            organizationId: existing.organizationId,
-            isDeleted: false,
-          },
-          data: this.normalizeData(data) as Prisma.AgentStrategyUpdateInput,
           ...(include ? { include } : {}),
+          where: scopedWhere(existing.organizationId, { id }),
+          data: this.normalizeData(data) as Prisma.AgentStrategyUpdateInput,
         }),
       );
     });

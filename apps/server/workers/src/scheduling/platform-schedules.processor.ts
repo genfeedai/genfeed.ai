@@ -35,8 +35,7 @@ import {
   PLATFORM_SCHEDULED_TASKS,
   type PlatformScheduledTaskName,
 } from '@workers/scheduling/platform-schedules.constants';
-import { PlatformWorkflowSweepsService } from '@workers/scheduling/platform-workflow-sweeps.service';
-import { WorkflowContinuationReconcileService } from '@workers/scheduling/workflow-continuation-reconcile.service';
+import { PlatformWorkflowSchedulesService } from '@workers/scheduling/platform-workflow-schedules.service';
 import { ThreadCommentDeliveryService } from '@workers/services/thread-comment-delivery.service';
 import type { Job } from 'bullmq';
 
@@ -76,23 +75,25 @@ export class PlatformSchedulesProcessor extends WorkerHost {
     private readonly trends: CronTrendsService,
     private readonly videoCompletion: VideoCompletionService,
     private readonly workflowArtifacts: CronWorkflowArtifactsService,
-    private readonly workflowContinuation: WorkflowContinuationReconcileService,
     private readonly youtubeMessages: CronYoutubeMessagesService,
     private readonly youtubeStatus: CronYoutubeStatusService,
     private readonly logger: LoggerService,
     private readonly lifecycleEmails: CronLifecycleEmailsService,
     private readonly threadComments: ThreadCommentDeliveryService,
     private readonly oauthClientCleanup: CronOAuthClientCleanupService,
-    private readonly workflowSweeps: PlatformWorkflowSweepsService,
+    private readonly workflowSchedules: PlatformWorkflowSchedulesService,
   ) {
     super();
     this.handlers = {
       [PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES]: (job) =>
-        this.workflowSweeps.sweep('proactive-agent-strategies', job.timestamp),
+        this.workflowSchedules.sweep(
+          'proactive-agent-strategies',
+          job.timestamp,
+        ),
       [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC]: (job) =>
-        this.workflowSweeps.sweep('analytics-sync', job.timestamp),
+        this.workflowSchedules.sweep('analytics-sync', job.timestamp),
       [PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT]: (job) =>
-        this.workflowSweeps.sweep('content-loop-autopilot', job.timestamp),
+        this.workflowSchedules.sweep('content-loop-autopilot', job.timestamp),
       [PLATFORM_SCHEDULED_TASKS.LIFECYCLE_EMAILS]: () =>
         this.lifecycleEmails.processLifecycleEmails(),
       [PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE]: () =>
@@ -152,7 +153,7 @@ export class PlatformSchedulesProcessor extends WorkerHost {
       [PLATFORM_SCHEDULED_TASKS.WORKFLOW_ARTIFACT_CLEANUP]: () =>
         this.workflowArtifacts.queueExpiredArtifactCleanup(),
       [PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE]: () =>
-        this.workflowContinuation.reconcile(),
+        this.workflowSchedules.reconcileContinuations(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES]: () =>
         this.youtubeMessages.syncYoutubeMessages(),
       [PLATFORM_SCHEDULED_TASKS.YOUTUBE_STATUS]: () =>
