@@ -58,6 +58,36 @@ describe('TrendQueryService', () => {
     service = module.get(TrendQueryService);
   });
 
+  describe('historical LinkedIn reference seeds', () => {
+    const seed = makeDoc('seed', {
+      platform: 'linkedin',
+      metadata: { source: 'public-reference' },
+    });
+    const observed = makeDoc('observed', {
+      platform: 'linkedin',
+      metadata: { source: 'public-scrape' },
+    });
+    it.each(['findActiveTrends', 'findLastGoodTrends'] as const)(
+      'excludes seeds from %s without deleting them',
+      async (method) => {
+        prisma.trend.findMany.mockResolvedValue([seed, observed]);
+        const result = await service[method]({
+          brandId: null,
+          organizationId: null,
+        });
+        expect(result.map((trend) => String(trend.id))).toEqual(['observed']);
+        expect(prisma.trend.updateMany).not.toHaveBeenCalled();
+      },
+    );
+    it('excludes direct seed reads without widening the destructive purge', async () => {
+      prisma.trend.findFirst.mockResolvedValue(seed);
+      expect(await service.getTrendById('seed')).toBeNull();
+      prisma.trend.findMany.mockResolvedValue([seed]);
+      expect(await service.purgeSyntheticTrendRows()).toEqual({ purged: 0 });
+      expect(prisma.trend.updateMany).not.toHaveBeenCalled();
+    });
+  });
+
   describe('findActiveTrends', () => {
     it('drops non-current and expired docs and sorts by virality desc', async () => {
       prisma.trend.findMany.mockResolvedValue([
