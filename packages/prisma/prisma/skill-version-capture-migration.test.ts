@@ -213,14 +213,14 @@ describePostgres('skill version capture on PostgreSQL', () => {
       await client.query(
         `INSERT INTO skills (id, label, config)
          VALUES (
-           'cskillbuiltincontentwrite',
+           skill_builtin_id('content-writing'),
            'Writing',
            '{"isBuiltIn":true,"source":"built_in","slug":"content-writing","systemPromptTemplate":"Write"}'::jsonb
          )`,
       );
       await client.query('COMMIT');
       const system = await client.query<{ ownerKind: string }>(
-        `SELECT "ownerKind" FROM skills WHERE id = 'cskillbuiltincontentwrite'`,
+        `SELECT "ownerKind" FROM skills WHERE id = skill_builtin_id('content-writing')`,
       );
       expect(system.rows[0]?.ownerKind).toBe('system');
 
@@ -229,7 +229,7 @@ describePostgres('skill version capture on PostgreSQL', () => {
           `INSERT INTO skill_versions (
              id, "skillId", "versionNumber", format, payload, "contentHash", "instructionHash"
            ) VALUES (
-             'forged-version', 'cskillbuiltincontentwrite', 9, 'genfeed.skill.authored.v1',
+             'forged-version', skill_builtin_id('content-writing'), 9, 'genfeed.skill.authored.v1',
              '{}'::jsonb, 'sha256:skill-v1:00', 'sha256:skill-instruction-v1:00'
            )`,
         ),
@@ -238,7 +238,7 @@ describePostgres('skill version capture on PostgreSQL', () => {
       await expect(
         client.query(
           `UPDATE skill_versions SET "instructionText" = 'changed'
-           WHERE "skillId" = 'cskillbuiltincontentwrite'`,
+           WHERE "skillId" = skill_builtin_id('content-writing')`,
         ),
       ).rejects.toThrow(/immutable/);
     });

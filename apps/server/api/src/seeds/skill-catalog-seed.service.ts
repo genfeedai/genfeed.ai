@@ -121,11 +121,11 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
     });
 
     if (!existing) {
-      // tenant-scope-ignore: first-party catalog rows are organizationId-null
       await withSkillWriteSession(
         this.prisma,
         { origin: 'provisioning' },
         (tx) =>
+          // tenant-scope-ignore: first-party catalog rows are organizationId-null
           tx.skill.create({
             data: {
               config: this.buildCatalogConfig(
@@ -180,8 +180,8 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
       return 'skipped';
     }
 
-    // tenant-scope-ignore: updates the same migration-owned global catalog id
     await withSkillWriteSession(this.prisma, { origin: 'provisioning' }, (tx) =>
+      // tenant-scope-ignore: updates the same migration-owned global catalog id
       tx.skill.update({
         data: {
           config: nextConfig as Prisma.InputJsonValue,
