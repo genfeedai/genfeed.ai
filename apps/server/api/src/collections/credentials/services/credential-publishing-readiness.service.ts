@@ -7,6 +7,7 @@ import {
   type CredentialPlatform,
   fromPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { getRequiredPublishScopes } from '@genfeedai/contracts/constants';
 import type {
   IPublishingDiagnostic,
@@ -157,7 +158,7 @@ export class CredentialPublishingReadinessService {
       checkedAt,
     );
 
-    return buildCredentialTokenPublishingReadiness({
+    const readiness = buildCredentialTokenPublishingReadiness({
       accessToken: credential.accessToken,
       accessTokenExpiresAt: credential.accessTokenExpiry,
       accessTokenSecret: credential.accessTokenSecret,
@@ -178,6 +179,8 @@ export class CredentialPublishingReadinessService {
         ...permissionSignals.diagnostics,
       ],
     });
+
+    return this.applyChannelCapability(readiness, checkedAt);
   }
 
   /**
@@ -268,30 +271,85 @@ export class CredentialPublishingReadinessService {
 
         return [
           row.id,
-          buildCredentialTokenPublishingReadiness({
-            accessToken: row.accessToken,
-            accessTokenExpiresAt: row.accessTokenExpiry,
-            accessTokenSecret: row.accessTokenSecret,
-            appReviewStatus: signals.appReviewStatus,
-            callbackUrlStatus: signals.callbackUrlStatus,
-            credentialId: row.id,
-            isConnected: row.isConnected,
-            oauthToken: row.oauthToken,
-            oauthTokenSecret: row.oauthTokenSecret,
-            permissionScopeStatus: permissionSignals.status,
-            providerKey: platform,
-            refreshToken: row.refreshToken,
-            refreshTokenExpiresAt: row.refreshTokenExpiry,
-            setupDiagnostics: [
-              ...signals.diagnostics,
-              ...permissionSignals.diagnostics,
-            ],
-          }),
+          this.applyChannelCapability(
+            buildCredentialTokenPublishingReadiness({
+              accessToken: row.accessToken,
+              accessTokenExpiresAt: row.accessTokenExpiry,
+              accessTokenSecret: row.accessTokenSecret,
+              appReviewStatus: signals.appReviewStatus,
+              callbackUrlStatus: signals.callbackUrlStatus,
+              credentialId: row.id,
+              isConnected: row.isConnected,
+              oauthToken: row.oauthToken,
+              oauthTokenSecret: row.oauthTokenSecret,
+              permissionScopeStatus: permissionSignals.status,
+              providerKey: platform,
+              refreshToken: row.refreshToken,
+              refreshTokenExpiresAt: row.refreshTokenExpiry,
+              setupDiagnostics: [
+                ...signals.diagnostics,
+                ...permissionSignals.diagnostics,
+              ],
+            }),
+            checkedAt,
+          ),
         ];
       },
     );
 
     return new Map(entries);
+  }
+
+  private applyChannelCapability(
+    readiness: IPublishingProviderReadiness,
+    checkedAt: string,
+  ): IPublishingProviderReadiness {
+    const capability = getChannelCapability(readiness.providerKey);
+    if (
+      capability?.status === 'supported' &&
+      capability.publishModes.includes('scheduled')
+    ) {
+      return readiness;
+    }
+
+    const capabilityStatus =
+      capability?.status === 'hidden' || capability?.status === 'planned'
+        ? capability.status
+        : 'unsupported';
+    const label = capability?.label ?? readiness.providerKey;
+    const message =
+      capabilityStatus === 'hidden'
+        ? `${label} scheduling is unavailable until live publishing is verified.`
+        : capabilityStatus === 'planned'
+          ? `${label} scheduling is planned and is not available yet.`
+          : `${label} scheduling is not supported.`;
+    const requiredAction =
+      'Choose a supported scheduling channel. Reconnecting this account does not enable scheduling.';
+
+    return {
+      ...readiness,
+      canSchedule: false,
+      diagnostics: [
+        ...readiness.diagnostics,
+        {
+          checkedAt,
+          classification: 'unknown',
+          code: 'scheduler_channel_unavailable',
+          correctiveAction: requiredAction,
+          details: {
+            capabilityStatus,
+            credentialCanSchedule: readiness.canSchedule,
+          },
+          isRetryable: false,
+          message,
+          scope: 'provider',
+          severity: 'error',
+        },
+      ],
+      isRetryable: false,
+      requiredAction,
+      state: 'blocked',
+    };
   }
 
   private resolvePermissionSignals(

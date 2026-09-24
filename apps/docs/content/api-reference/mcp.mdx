@@ -157,6 +157,24 @@ The CLI equivalents are `gf connect <platform>`, `gf gen image --brand --context
 and `gf status <id>`. Client evidence lives in the repository file
 `docs/external-agent-content-journey.md`.
 
+## Publishing readiness
+
+Before scheduling, call `list_scheduler_capabilities` and
+`list_brand_publishing_readiness` for the selected brand. A connected account
+alone does not make its channel schedulable. Readiness combines credential
+health with the canonical scheduler capability catalog.
+
+A `supported` channel retains its credential and setup checks. A `hidden`
+channel has a backend integration but cannot be scheduled until live publishing
+is verified; a `planned` channel has no available scheduling path. Both return
+`canSchedule: false`, `state: "blocked"`, and a
+`scheduler_channel_unavailable` diagnostic. Uncatalogued channels also fail
+closed. Existing token, permission, and setup diagnostics remain available.
+
+Facebook remains hidden. Reconnecting a healthy Facebook account does not enable
+scheduling; choose a supported channel. This is a product capability restriction,
+not evidence that the provider has banned the account.
+
 ## Tool errors
 
 A gating failure is a tool result with `isError: true`. `structuredContent`

@@ -3,11 +3,15 @@ import { CredentialPublishingReadinessService } from '@api/collections/credentia
 import { PublishingProviderSetupService } from '@api/collections/publishing-setup/services/publishing-provider-setup.service';
 import type { QuotaCheckResult } from '@api/services/quota/quota.service';
 import { CredentialPlatform } from '@genfeedai/contracts';
+import { publishingProviderReadinessSchema } from '@genfeedai/contracts/api-types/contracts/publishing-readiness.contract';
 import type { ConfigService } from '@libs/config/config.service';
 
 const ORGANIZATION_ID = 'org-1';
 
 const HEALTHY_ENV: Record<string, string> = {
+  FACEBOOK_APP_ID: 'facebook-app-identifier',
+  FACEBOOK_APP_SECRET: 'facebook-app-secret-value',
+  FACEBOOK_REDIRECT_URI: 'https://app.example.com/oauth/facebook',
   GENFEEDAI_API_PUBLIC_URL: 'https://api.example.com',
   GENFEEDAI_APP_URL: 'https://app.example.com',
   TWITTER_CLIENT_ID: 'twitter-app-identifier',
@@ -358,6 +362,157 @@ describe('CredentialPublishingReadinessService', () => {
       'Reconnect the provider account before publishing.',
     );
   });
+
+  describe.each(['individual', 'credentials', 'brand'] as const)(
+    'scheduler support through %s readiness',
+    (entryPoint) => {
+      async function resolvePlatform(
+        platform: CredentialPlatform,
+        overrides: Record<string, unknown> = {},
+      ) {
+        const row = buildRow({ ...overrides, platform });
+        findMany.mockResolvedValue([row]);
+        const service = build();
+        if (entryPoint === 'individual') {
+          return service.resolve({
+            credential: row as unknown as CredentialDocument,
+            organizationId: ORGANIZATION_ID,
+            platform,
+          });
+        }
+        if (entryPoint === 'credentials') {
+          const readiness = await service.resolveForCredentials(
+            { credential: { findMany } } as never,
+            ORGANIZATION_ID,
+            ['cred-1'],
+          );
+          return readiness.get('cred-1');
+        }
+        return (await service.resolveForBrand(ORGANIZATION_ID, 'brand-1'))[0];
+      }
+
+      it.each([
+        {
+          platform: CredentialPlatform.FACEBOOK,
+          status: 'hidden',
+          message:
+            'Facebook scheduling is unavailable until live publishing is verified.',
+        },
+        {
+          platform: CredentialPlatform.THREADS,
+          status: 'planned',
+          message: 'Threads scheduling is planned and is not available yet.',
+        },
+        {
+          platform: CredentialPlatform.GOOGLE_ADS,
+          status: 'unsupported',
+          message: 'google_ads scheduling is not supported.',
+        },
+      ])(
+        'blocks $status scheduling while preserving healthy tokens',
+        async ({ platform, status, message }) => {
+          const readiness = await resolvePlatform(platform);
+
+          expect(publishingProviderReadinessSchema.parse(readiness)).toEqual(
+            readiness,
+          );
+          expect(readiness).toMatchObject({
+            canSchedule: false,
+            isRetryable: false,
+            providerKey: platform,
+            requiredAction:
+              'Choose a supported scheduling channel. Reconnecting this account does not enable scheduling.',
+            state: 'blocked',
+            tokenFreshness: 'pass',
+          });
+          expect(
+            readiness?.diagnostics.filter(
+              (entry) => entry.code === 'scheduler_channel_unavailable',
+            ),
+          ).toEqual([
+            {
+              checkedAt: expect.any(String),
+              classification: 'unknown',
+              code: 'scheduler_channel_unavailable',
+              correctiveAction: readiness?.requiredAction,
+              details: {
+                capabilityStatus: status,
+                credentialCanSchedule: true,
+              },
+              isRetryable: false,
+              message,
+              scope: 'provider',
+              severity: 'error',
+            },
+          ]);
+        },
+      );
+
+      it('keeps a supported healthy channel schedulable', async () => {
+        const readiness = await resolvePlatform(CredentialPlatform.TWITTER);
+
+        expect(publishingProviderReadinessSchema.parse(readiness)).toEqual(
+          readiness,
+        );
+        expect(readiness).toMatchObject({
+          canSchedule: true,
+          state: 'publish_capable',
+          tokenFreshness: 'pass',
+        });
+        expect(
+          readiness?.diagnostics.some(
+            (entry) => entry.code === 'scheduler_channel_unavailable',
+          ),
+        ).toBe(false);
+      });
+
+      it('retains expired token and missing permission diagnostics alongside the channel restriction', async () => {
+        const readiness = await resolvePlatform(CredentialPlatform.FACEBOOK, {
+          accessTokenExpiry: new Date('2000-01-01T00:00:00.000Z'),
+          grantedScopes: ['pages_show_list'],
+          grantedScopesCapturedAt: new Date('2026-08-14T00:00:00.000Z'),
+        });
+
+        expect(publishingProviderReadinessSchema.parse(readiness)).toEqual(
+          readiness,
+        );
+        expect(readiness).toMatchObject({
+          canSchedule: false,
+          isRetryable: false,
+          permissionScopeStatus: 'fail',
+          state: 'blocked',
+          tokenFreshness: 'fail',
+        });
+        expect(readiness?.diagnostics[0]).toMatchObject({
+          classification: 'expired_credential',
+          code: 'credential_reconnect_required',
+          correctiveAction: 'Reconnect the provider account before publishing.',
+          isRetryable: true,
+          scope: 'credential',
+        });
+        expect(
+          readiness?.diagnostics.find(
+            (entry) => entry.code === 'credential_missing_permission_scope',
+          ),
+        ).toMatchObject({
+          classification: 'missing_permission_scope',
+          correctiveAction: expect.any(String),
+          details: {
+            grantedScopes: ['pages_show_list'],
+            missingScopes: ['pages_manage_posts'],
+            requiredScopes: ['pages_manage_posts'],
+          },
+        });
+        expect(readiness?.diagnostics.at(-1)).toMatchObject({
+          code: 'scheduler_channel_unavailable',
+          details: { capabilityStatus: 'hidden', credentialCanSchedule: false },
+        });
+        expect(readiness?.requiredAction).toBe(
+          'Choose a supported scheduling channel. Reconnecting this account does not enable scheduling.',
+        );
+      });
+    },
+  );
 
   describe('permissionScopeStatus', () => {
     it('stays unknown when granted scopes were never captured', async () => {
