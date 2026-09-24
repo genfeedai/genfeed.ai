@@ -1,22 +1,9 @@
-import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
-import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
-import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
-import { RouterModule } from '@api/services/router/router.module';
-import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
-import { WhisperModule } from '@api/services/whisper/whisper.module';
-import { BrandRemixSceneBillingService } from '@api/collections/content-runs/services/brand-remix-scene-billing.service';
-import { BrandRemixSceneAssemblyService } from '@api/collections/content-runs/services/brand-remix-scene-assembly.service';
-import { BrandRemixSceneGenerationService } from '@api/collections/content-runs/services/brand-remix-scene-generation.service';
-import { BrandRemixSceneAnalysisService } from '@api/collections/content-runs/services/brand-remix-scene-analysis.service';
-import { BrandRemixSceneWorkflowService } from '@api/collections/content-runs/services/brand-remix-scene-workflow.service';
-import { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
-import { BrandRemixSceneQuoteService } from '@api/collections/content-runs/services/brand-remix-scene-quote.service';
-import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
-import { BrandRemixSceneService } from '@api/collections/content-runs/services/brand-remix-scene.service';
 import { AdCreativeMappingsModule } from '@api/collections/ad-creative-mappings/ad-creative-mappings.module';
 import { BrandsCoreModule } from '@api/collections/brands/brands-core.module';
 import { ContentIntelligenceModule } from '@api/collections/content-intelligence/content-intelligence.module';
+import { BrandRemixGenerationController } from '@api/collections/content-runs/controllers/brand-remix-generation.controller';
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
+import { BrandRemixGenerationService } from '@api/collections/content-runs/services/brand-remix-generation.service';
 import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
 import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
@@ -30,6 +17,15 @@ import {
   BRAND_REMIX_RUNTIME,
   systemBrandRemixRuntime,
 } from '@api/collections/content-runs/services/brand-remix-runtime';
+import { BrandRemixSceneService } from '@api/collections/content-runs/services/brand-remix-scene.service';
+import { BrandRemixSceneAnalysisService } from '@api/collections/content-runs/services/brand-remix-scene-analysis.service';
+import { BrandRemixSceneAssemblyService } from '@api/collections/content-runs/services/brand-remix-scene-assembly.service';
+import { BrandRemixSceneBillingService } from '@api/collections/content-runs/services/brand-remix-scene-billing.service';
+import { BrandRemixSceneGenerationService } from '@api/collections/content-runs/services/brand-remix-scene-generation.service';
+import { BrandRemixSceneQuoteService } from '@api/collections/content-runs/services/brand-remix-scene-quote.service';
+import { BrandRemixSceneSourceService } from '@api/collections/content-runs/services/brand-remix-scene-source.service';
+import { BrandRemixSceneStoreService } from '@api/collections/content-runs/services/brand-remix-scene-store.service';
+import { BrandRemixSceneWorkflowService } from '@api/collections/content-runs/services/brand-remix-scene-workflow.service';
 import { BrandRemixSourceMediaService } from '@api/collections/content-runs/services/brand-remix-source-media.service';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
@@ -51,12 +47,18 @@ import { BatchGenerationModule } from '@api/services/batch-generation/batch-gene
 import { ByokModule } from '@api/services/byok/byok.module';
 import { ContentOptimizationModule } from '@api/services/content-optimization/content-optimization.module';
 import { FilesClientModule } from '@api/services/files-microservice/client/files-client.module';
+import { FileQueueModule } from '@api/services/files-microservice/queue/file-queue.module';
 import { MetaAdsModule } from '@api/services/integrations/meta-ads/meta-ads.module';
+import { OpenRouterModule } from '@api/services/integrations/openrouter/openrouter.module';
 import { XAdsModule } from '@api/services/integrations/x-ads/x-ads.module';
+import { MediaUrlsModule } from '@api/services/media-urls/media-urls.module';
+import { AgentGenerationEstimateService } from '@api/services/router/agent-generation-estimate.service';
+import { RouterModule } from '@api/services/router/router.module';
+import { WhisperModule } from '@api/services/whisper/whisper.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  controllers: [ContentRunsController],
+  controllers: [BrandRemixGenerationController, ContentRunsController],
   exports: [
     BrandRemixSceneService,
     BrandRemixRunsService,
@@ -106,6 +108,7 @@ import { Module } from '@nestjs/common';
     BrandRemixRunPersistenceService,
     BrandRemixRunStateService,
     BrandRemixRunProviderDispatchService,
+    BrandRemixGenerationService,
     BrandRemixRunExecutionService,
     BrandRemixRunReviewService,
     BrandRemixRunPaidDraftService,

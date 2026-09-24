@@ -235,6 +235,55 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation
 | `agent-chat` | Chat with the account and coordinate work across agents: send messages, list and transfer conversations, and request assets from another agent. |
 | `skills-pro` | Verify and install entitled Skills Pro packs. |
 
+### Saved remix handoff
+
+Imported-post remix is not on the bare MCP URL. Reconnect with an explicit
+profile so discovery includes the inspiration, content, generation, analytics,
+brand, and scheduler toolsets:
+
+```text
+https://mcp.genfeed.ai/mcp?toolsets=inspiration,content,generation,analytics,brand,scheduler
+```
+
+`core` is still added automatically. The bare default profile and its tool cap
+stay unchanged. Omitting `toolsets` still lists every tool.
+
+Call the actions in this order. Saving, importing, reading, editing, attaching,
+and quoting never dispatch generation, publish, or add brand Knowledge.
+
+1. `import_source_post` — public X, Instagram, or TikTok URL plus explicit
+   `brandId`. Approval is required. Unsupported, private, or missing inputs fail
+   closed. The result is the imported source identity and whether it was reused.
+2. `create_remix_concept` — `brandId` and `sourcePostId`. Creates or reuses the
+   canonical saved concept and returns its current revision.
+3. `update_remix_concept` — `runId`, `expectedRevision`, and at least one edit.
+   A stale revision fails instead of overwriting.
+4. `attach_remix_analysis_source` — optional, for video or avatar output.
+   Pass a same-brand Library video id, or `null` to clear it. The Library video
+   is the analyzed media. The imported post URL, author, and selector stay
+   provenance. Attachment does not spend credits.
+5. `quote_remix_generation` — persists an exact quote for `expectedRevision`
+   and does not start work. Read it back with `get_remix_run` before approval.
+   Image and copy accept only `operation: "generate"` and reject scene or repair
+   fields. Image requires `model`. Copy ignores caller models and uses the
+   canonical background model at one credit per variant. Video and avatar reject
+   `model` and quote `analysis`, `generate`, or `repair` on the scene pipeline.
+   A quote expires 15 minutes after it is saved. Price, model, BYOK, source, or
+   recipe changes require a new quote.
+6. `start_remix_generation` — approval-required. Pass the persisted `quoteId`
+   and the same revision. A repeated accepted call returns the same canonical
+   run and does not buy the attempt again.
+7. `get_remix_run` — safe reconnect. Returns revision, lineage, quotes, receipts,
+   and artifacts without starting another run.
+8. `control_remix_generation` — approval-required `cancel` or `resume` for an
+   existing video or avatar scene pipeline. Image and copy have no control
+   action.
+
+Image and copy execute through the generic generation quote. Video and avatar
+execute through the scene pipeline. Single-scene legacy video or avatar start
+is not an unquoted shortcut. Live native-client acceptance, paid provider
+calls, and real publishing are not claimed here.
+
 ### Discover tools outside your selection
 
 Three read-only meta tools, always in `core`, let an agent find a tool that

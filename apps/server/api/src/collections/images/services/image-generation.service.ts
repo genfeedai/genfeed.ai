@@ -427,6 +427,12 @@ export class ImageGenerationService {
     const approvedQuote = (request as unknown as DeferredCreditsRequest)
       .creditsConfig?.approvedImageQuote;
     if (approvedQuote) {
+      if (!validationOrgId) {
+        throw new HttpException(
+          'An organization is required to honor an approved image quote.',
+          HttpStatus.CONFLICT,
+        );
+      }
       if (
         model !== approvedQuote.model ||
         registeredModel?.key !== approvedQuote.model
