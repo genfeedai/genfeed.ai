@@ -438,6 +438,46 @@ describe('SkillLibraryService authorized versions', () => {
     }
   });
 
+  it('shows the captured system catalog body and still executes a different use-only grant', async () => {
+    const catalog = skillDocument({
+      audience: 'private',
+      currentVersionId: 'sv-1',
+      isBuiltIn: true,
+      organizationId: null,
+      ownerKind: 'system',
+      publishedVersionId: null,
+      sharedVersionId: null,
+      source: 'built_in',
+    });
+
+    const [visible] = await service.present(actor, [catalog]);
+
+    expect(visible?.canRead).toBe(true);
+    expect(visible?.canUse).toBe(true);
+    expect(visible?.canExport).toBe(false);
+    expect(visible?.systemPromptTemplate).toBe('version one');
+
+    state.grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'sv-brand',
+      },
+    ];
+    const [withGrant] = await service.present(actor, [catalog]);
+    const decision = await service.authorizeResolved(actor, [catalog]);
+
+    expect(withGrant?.systemPromptTemplate).toBe('version one');
+    expect(decision.included[0]?.systemPromptTemplate).toBe(
+      'brand private body',
+    );
+  });
+
   it('shows the shared body when a matching use-only grant targets another version', async () => {
     state.grants = [
       {

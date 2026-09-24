@@ -94,6 +94,36 @@ describe('chooseAuthorizedVersionId', () => {
     ).toBe('sv-read-grant');
   });
 
+  it('reads the captured system catalog version and not another owner draft', () => {
+    const systemCatalog = {
+      audience: 'private',
+      currentVersionId: 'sv-catalog',
+      ownerKind: 'system',
+      publishedVersionId: null,
+      sharedVersionId: null,
+    };
+
+    expect(chooseReadableVersionId({ pointer: systemCatalog })).toBe(
+      'sv-catalog',
+    );
+    expect(
+      chooseReadableVersionId({
+        pointer: { ...systemCatalog, ownerKind: 'organization' },
+      }),
+    ).toBeNull();
+    expect(
+      chooseReadableVersionId({
+        pointer: { ...systemCatalog, ownerKind: 'user' },
+      }),
+    ).toBeNull();
+    expect(
+      chooseReadableVersionId({
+        pointer: systemCatalog,
+        readGrantVersionId: 'sv-read-grant',
+      }),
+    ).toBe('sv-read-grant');
+  });
+
   it('hides the current draft from a caller who only has a missing publication', () => {
     expect(
       chooseAuthorizedVersionId({

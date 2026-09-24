@@ -50,7 +50,9 @@ export interface ReadableVersionChoice {
 
 /**
  * The body a caller may read. A use-only grant can select execution without
- * making that different version readable.
+ * making that different version readable. Trusted system catalog rows are
+ * private and unpublished, so their captured current version is the readable
+ * body. Other owners do not fall through to a current draft.
  */
 export function chooseReadableVersionId(
   choice: ReadableVersionChoice,
@@ -67,6 +69,9 @@ export function chooseReadableVersionId(
     choice.pointer.publishedVersionId
   ) {
     return choice.pointer.publishedVersionId;
+  }
+  if (choice.pointer.ownerKind === 'system') {
+    return choice.pointer.currentVersionId;
   }
   return null;
 }

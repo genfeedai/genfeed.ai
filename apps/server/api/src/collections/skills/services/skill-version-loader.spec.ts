@@ -403,4 +403,51 @@ describe('loadAuthorizedSkillVersions', () => {
 
     expect(loaded.get('skill-1')?.instructionText).toBe('granted read body');
   });
+
+  it('reads the system catalog version while a use-only grant still selects execution', async () => {
+    const skill = [
+      {
+        audience: 'private',
+        currentVersionId: 'version-catalog',
+        id: 'skill-1',
+        ownerKind: 'system',
+        publishedVersionId: null,
+        sharedVersionId: null,
+      },
+    ];
+    const versions = [
+      versionRow('version-catalog', 'catalog body'),
+      versionRow('version-use-only', 'use only body'),
+    ];
+    const grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'version-use-only',
+      },
+    ];
+
+    const readable = await loadAuthorizedSkillVersions(
+      prismaFor({ versions }) as never,
+      actor,
+      skill,
+      new Set(),
+      [],
+      'read',
+    );
+    const executed = await loadAuthorizedSkillVersions(
+      prismaFor({ grants, versions }) as never,
+      actor,
+      skill,
+      new Set(),
+    );
+
+    expect(readable.get('skill-1')?.instructionText).toBe('catalog body');
+    expect(executed.get('skill-1')?.instructionText).toBe('use only body');
+  });
 });
