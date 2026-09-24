@@ -411,7 +411,7 @@ export class AgentOrchestratorUiActionMutationService {
                       : 'running',
               ...(result?.success
                 ? { error: undefined }
-                : result?.error
+                : result?.error !== undefined
                   ? { error: result.error }
                   : {}),
             },
