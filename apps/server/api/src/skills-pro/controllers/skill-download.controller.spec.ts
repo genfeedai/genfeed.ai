@@ -172,12 +172,19 @@ describe('SkillDownloadController', () => {
     expect(JSON.stringify(result)).not.toContain('private');
   });
 
-  it('rejects install without an organization context', () => {
-    expect(() =>
+  it('rejects install without an organization context', async () => {
+    await expect(
       controller.installSkill(request, {} as AuthenticatedUser, {
         receiptId: 'sk_rcpt_one',
         skillSlug: 'image-gen-pro',
       }),
-    ).toThrow();
+    ).rejects.toMatchObject({
+      response: {
+        detail: 'Organization context is required',
+        title: 'Forbidden',
+      },
+      status: 403,
+    });
+    expect(installSkill).not.toHaveBeenCalled();
   });
 });
