@@ -1,4 +1,5 @@
 import { KnowledgeRefreshService } from '@api/collections/contexts/services/knowledge-refresh.service';
+import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
 import {
   KnowledgeRefreshRunStatus,
   KnowledgeSourceKind,
@@ -60,8 +61,11 @@ function buildService() {
       return (ops as (tx: unknown) => Promise<unknown>)(prisma);
     }),
   };
-  const logger = { log: vi.fn() };
+  const logger = { log: vi.fn(), warn: vi.fn() };
   return {
+    prisma,
+    logger,
+    ingestWorkflow,
     records,
     service: new KnowledgeRefreshService(
       prisma as never,
@@ -367,5 +371,123 @@ describe('KnowledgeRefreshService', () => {
       refreshRunId: 'run-new',
       sourceId: 'source-1',
     });
+  });
+});
+
+describe('KnowledgeRefreshService remote source failures', () => {
+  const safeDetail =
+    'The source could not be reached. Check its URL and availability, then try again.';
+  beforeEach(() => {
+    vi.mocked(extractSourceText).mockReset().mockResolvedValue({
+      mimeType: 'text/html',
+      notModified: true,
+      text: '',
+    });
+  });
+  it('returns safe 422 and marks only the scoped run/source failed without replacing current knowledge', async () => {
+    const { service, prisma, logger, records, ingestWorkflow } = buildService();
+    vi.mocked(extractSourceText).mockRejectedValue(
+      Object.assign(
+        new Error(
+          'getaddrinfo ENOTFOUND private.invalid https://private.invalid/path?token=secret',
+        ),
+        { code: 'ENOTFOUND' },
+      ),
+    );
+    await expect(
+      service.refresh(actor, 'source-1', 'tick-network', { force: true }),
+    ).rejects.toMatchObject({ status: 422, message: safeDetail });
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'run-1',
+        sourceId: 'source-1',
+        organizationId: 'org-1',
+        isDeleted: false,
+      },
+      data: expect.objectContaining({
+        status: KnowledgeRefreshRunStatus.FAILED,
+        error: safeDetail,
+        nextAttemptAt: expect.any(Date),
+      }),
+    });
+    expect(prisma.knowledgeSource.updateMany).toHaveBeenLastCalledWith({
+      where: { id: 'source-1', organizationId: 'org-1', isDeleted: false },
+      data: expect.objectContaining({
+        lastSyncError: safeDetail,
+        syncState: 'FAILED',
+        consecutiveFailures: 1,
+      }),
+    });
+    expect(records.createCandidateVersion).not.toHaveBeenCalled();
+    expect(ingestWorkflow.enqueueIngest).not.toHaveBeenCalled();
+    expect(prisma.knowledgeSourceVersion.findFirst).not.toHaveBeenCalled();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'Knowledge refresh source unavailable',
+      {
+        networkCode: 'ENOTFOUND',
+        organizationId: 'org-1',
+        runId: 'run-1',
+        sourceId: 'source-1',
+      },
+    );
+    const stored =
+      JSON.stringify(prisma.knowledgeSource.updateMany.mock.calls) +
+      JSON.stringify(prisma.knowledgeSourceRefreshRun.updateMany.mock.calls) +
+      JSON.stringify(logger.warn.mock.calls);
+    expect(stored).not.toContain('private.invalid');
+    expect(stored).not.toContain('token=secret');
+    expect(stored).not.toContain('retrievalState');
+    expect(stored).not.toContain('isCurrent');
+  });
+  it('reuses the same failed tick through CAS and allows a later successful retry', async () => {
+    const { service, prisma, records, ingestWorkflow } = buildService();
+    vi.mocked(extractSourceText)
+      .mockRejectedValueOnce(
+        Object.assign(new Error('dns'), { code: 'ENOTFOUND' }),
+      )
+      .mockRejectedValueOnce(
+        Object.assign(new Error('dns'), { code: 'ENOTFOUND' }),
+      );
+    await expect(
+      service.refresh(actor, 'source-1', 'same-tick', { force: true }),
+    ).rejects.toMatchObject({ status: 422 });
+    prisma.knowledgeSourceRefreshRun.findFirst.mockResolvedValue({
+      id: 'run-1',
+      status: KnowledgeRefreshRunStatus.FAILED,
+    });
+    await expect(
+      service.refresh(actor, 'source-1', 'same-tick', { force: true }),
+    ).rejects.toMatchObject({ status: 422 });
+    await expect(
+      service.refresh(actor, 'source-1', 'same-tick', { force: true }),
+    ).resolves.toMatchObject({ refreshRunId: 'run-1', sourceId: 'source-1' });
+    expect(prisma.knowledgeSourceRefreshRun.create).toHaveBeenCalledTimes(1);
+    expect(prisma.knowledgeSourceRefreshRun.updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          id: 'run-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+          OR: expect.arrayContaining([
+            { status: KnowledgeRefreshRunStatus.FAILED },
+          ]),
+        }),
+        data: expect.objectContaining({ attemptCount: { increment: 1 } }),
+      }),
+    );
+    expect(records.createCandidateVersion).not.toHaveBeenCalled();
+    expect(ingestWorkflow.enqueueIngest).not.toHaveBeenCalled();
+  });
+  it.each([
+    new TypeError('programming failure'),
+    Object.assign(new Error('database unavailable'), { code: 'ETIMEDOUT' }),
+  ])('preserves non-extraction failures unchanged: %j', async (error) => {
+    const { service, records, logger } = buildService();
+    records.getCurrentVersion.mockRejectedValue(error);
+    await expect(
+      service.refresh(actor, 'source-1', 'db-tick', { force: true }),
+    ).rejects.toBe(error);
+    expect(extractSourceText).not.toHaveBeenCalled();
+    expect(logger.warn).not.toHaveBeenCalled();
   });
 });

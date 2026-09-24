@@ -25,6 +25,7 @@ import { KnowledgeSourcesService } from '@services/content/knowledge-sources.ser
 import { KnowledgeSpacesService } from '@services/content/knowledge-spaces.service';
 import { logger } from '@services/core/logger.service';
 import { NotificationsService } from '@services/core/notifications.service';
+import { isServiceOperationError } from '@services/core/operation-error';
 import AppTable from '@ui/display/table/Table';
 import Alert from '@ui/feedback/alert/Alert';
 import { Button } from '@ui/primitives/button';
@@ -127,6 +128,17 @@ export default function KnowledgeSourcesList({
         notifications.success(translate('refreshSuccess'));
         await refresh();
       } catch (refreshError) {
+        if (
+          isServiceOperationError(refreshError) &&
+          refreshError.status === 422 &&
+          refreshError.category === 'Knowledge source unavailable'
+        ) {
+          notifications.error(
+            translate('refreshUnavailable', { title: source.title }),
+          );
+          await refresh();
+          return;
+        }
         logger.error('Failed to refresh knowledge source', refreshError);
         notifications.error(translate('refreshError'));
       }

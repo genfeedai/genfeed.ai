@@ -3,8 +3,11 @@ import type { KnowledgeActor } from '@api/collections/contexts/interfaces/knowle
 import { hashKnowledgeContent } from '@api/collections/contexts/services/knowledge-capture.service';
 import { KnowledgeRecordsService } from '@api/collections/contexts/services/knowledge-records.service';
 import { KnowledgeSourceIngestWorkflowService } from '@api/collections/contexts/services/knowledge-source-ingest-workflow.service';
-import { extractSourceText } from '@api/collections/contexts/utils/extract-source-text.util';
 import { softDeleteKnowledgeChunks } from '@api/collections/contexts/utils/knowledge-chunk.util';
+import {
+  extractKnowledgeRefreshSourceText,
+  KnowledgeSourceUnavailableException,
+} from '@api/collections/contexts/utils/knowledge-refresh-source-error.util';
 import { WorkflowExecutionQueueService } from '@api/collections/workflows/services/workflow-execution-queue.service';
 import { WorkflowsService } from '@api/collections/workflows/services/workflows.service';
 import { scopedWhere } from '@api/index';
@@ -236,6 +239,14 @@ export class KnowledgeRefreshService {
       return await this.executeClaimedRun(actor, sourceId, claimed.runId);
     } catch (error: unknown) {
       await this.failRun(claimed.runId, actor.organizationId, sourceId, error);
+      if (error instanceof KnowledgeSourceUnavailableException) {
+        this.logger.warn('Knowledge refresh source unavailable', {
+          networkCode: error.networkCode,
+          organizationId: actor.organizationId,
+          runId: claimed.runId,
+          sourceId,
+        });
+      }
       throw error;
     }
   }
@@ -258,7 +269,7 @@ export class KnowledgeRefreshService {
       source.kind === KnowledgeSourceKind.RSS
         ? KnowledgeBaseCategory.RSS
         : KnowledgeBaseCategory.URL;
-    const extracted = await extractSourceText({
+    const extracted = await extractKnowledgeRefreshSourceText({
       category,
       conditional: {
         etag: source.etag ?? undefined,
@@ -710,6 +721,8 @@ export class KnowledgeRefreshService {
   }
 
   private toSafeError(error: unknown): string {
+    if (error instanceof KnowledgeSourceUnavailableException)
+      return error.message;
     const message = error instanceof Error ? error.message : String(error);
     if (/404|410|gone/i.test(message)) return SAFE_ERRORS.missing;
     if (/401|403|denied/i.test(message)) return SAFE_ERRORS.denied;
