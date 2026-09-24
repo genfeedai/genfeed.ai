@@ -38,6 +38,11 @@ describe('SkillWorkflowService', () => {
       isEnabled: true,
       status: 'published',
     });
+    skillLibrary.authorizeResolved.mockResolvedValue({
+      excluded: [],
+      included: [],
+      versions: [],
+    });
     runner.runWorkflow.mockResolvedValue({
       provenance: { executionId: 'execution-1' },
       result: {
@@ -90,6 +95,56 @@ describe('SkillWorkflowService', () => {
       }),
     );
     expect(result).toMatchObject({ executionId: 'execution-1' });
+  });
+
+  it('stores the authorized version on the workflow input before execution', async () => {
+    const builtIn = BUILT_IN_SKILL_CATALOG.find(
+      (entry) => entry.slug === 'content-writing',
+    );
+    if (!builtIn) throw new Error('Missing content-writing fixture');
+    skillLibrary.authorizeResolved.mockResolvedValue({
+      excluded: [],
+      included: [
+        {
+          ...builtIn,
+          defaultInstructions: 'version one',
+          systemPromptTemplate: 'version one',
+        },
+      ],
+      versions: [
+        {
+          contentHash: 'hash-v1',
+          skillId: builtIn.id,
+          skillVersionId: 'sv-1',
+        },
+      ],
+    });
+    await service.execute(
+      'content-writing',
+      {
+        brandId: 'brand-1',
+        brandVoice: 'Direct',
+        organizationId: 'org-1',
+        platforms: ['instagram'],
+      },
+      { topic: 'launch' },
+      'user-1',
+    );
+    expect(runner.runWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues: expect.objectContaining({
+          context: expect.objectContaining({
+            pinnedSkills: [
+              expect.objectContaining({
+                contentHash: 'hash-v1',
+                slug: 'content-writing',
+                versionId: 'sv-1',
+              }),
+            ],
+          }),
+        }),
+      }),
+    );
   });
 
   it('pins the authorized version onto the workflow input and reuses it', async () => {

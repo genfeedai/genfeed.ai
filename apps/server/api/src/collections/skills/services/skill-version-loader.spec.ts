@@ -1,11 +1,5 @@
-import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
-import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { describe, expect, it, vi } from 'vitest';
-import {
-  applyAuthorizedVersionBody,
-  loadAuthorizedSkillVersions,
-  type SkillVersionPin,
-} from './skill-version-loader';
+import { loadAuthorizedSkillVersions } from './skill-version-loader';
 
 const actor = {
   brandId: 'brand-1',
@@ -13,19 +7,19 @@ const actor = {
   userId: 'user-1',
 };
 
-function versionRow(id: string, instructionText: string, skillId = 'skill-1') {
+function versionRow(id: string, instructionText: string) {
   return {
     contentHash: `hash-${id}`,
     id,
     instructionText,
-    skillId,
+    skillId: 'skill-1',
   };
 }
 
-function loaderPrisma(input: {
-  assignments?: Record<string, unknown>[];
-  grants?: Record<string, unknown>[];
-  versions?: Record<string, unknown>[];
+function prismaFor(input: {
+  assignments?: Array<Record<string, unknown>>;
+  grants?: Array<Record<string, unknown>>;
+  versions?: Array<ReturnType<typeof versionRow>>;
 }) {
   return {
     skillAssignment: {
@@ -35,221 +29,133 @@ function loaderPrisma(input: {
       findMany: vi.fn().mockResolvedValue(input.grants ?? []),
     },
     skillVersion: {
-      findMany: vi.fn().mockResolvedValue(input.versions ?? []),
+      findMany: vi.fn(async ({ where }: { where: { id: { in: string[] } } }) =>
+        (input.versions ?? []).filter((row) => where.id.in.includes(row.id)),
+      ),
     },
   };
 }
 
-const publishedSkill = {
+const document = {
   audience: 'organization',
-  currentVersionId: 'sv-2',
+  currentVersionId: 'sv-draft',
   id: 'skill-1',
   ownerKind: 'organization',
   publishedVersionId: null,
-  sharedVersionId: 'sv-1',
+  sharedVersionId: 'sv-shared',
 };
 
 describe('loadAuthorizedSkillVersions', () => {
-  it('loads the assigned v1 body after the live skill moves to v2', async () => {
-    const prisma = loaderPrisma({
+  it('keeps an assigned version ahead of the current draft', async () => {
+    const prisma = prismaFor({
       assignments: [
         {
           skillId: 'skill-1',
-          skillVersionId: 'sv-1',
+          skillVersionId: 'sv-assigned',
           targetKind: 'organization',
         },
       ],
-      versions: [
-        versionRow('sv-1', 'assigned v1'),
-        versionRow('sv-2', 'draft v2'),
-      ],
+      versions: [versionRow('sv-assigned', 'assigned body')],
     });
 
     const loaded = await loadAuthorizedSkillVersions(
-      prisma as unknown as PrismaService,
+      prisma as never,
       actor,
-      [publishedSkill],
-      new Set(),
+      [document],
+      new Set(['skill-1']),
     );
 
     expect(loaded.get('skill-1')).toMatchObject({
-      contentHash: 'hash-sv-1',
-      id: 'sv-1',
-      instructionText: 'assigned v1',
-    });
-    expect(prisma.skillVersion.findMany).toHaveBeenCalledWith({
-      where: { id: { in: ['sv-1'] } },
-    });
-    expect(prisma.skillGrant.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ revokedAt: null }),
-      }),
-    );
-  });
-
-  it('asks for unrevoked grants and does not fall through to the current draft', async () => {
-    const prisma = loaderPrisma({
-      versions: [versionRow('sv-2', 'draft v2')],
-    });
-
-    const loaded = await loadAuthorizedSkillVersions(
-      prisma as unknown as PrismaService,
-      actor,
-      [
-        {
-          ...publishedSkill,
-          audience: 'private',
-          ownerKind: 'user',
-          ownerUserId: 'user-2',
-          sharedVersionId: null,
-        },
-      ],
-      new Set(),
-    );
-
-    expect(loaded.size).toBe(0);
-    expect(prisma.skillVersion.findMany).not.toHaveBeenCalled();
-    expect(prisma.skillGrant.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({ revokedAt: null }),
-      }),
-    );
-  });
-
-  it('keeps a retry pin after activation moves the assignment', async () => {
-    const pins: SkillVersionPin[] = [
-      {
-        contentHash: 'hash-sv-1',
-        skillId: 'skill-1',
-        skillVersionId: 'sv-1',
-      },
-    ];
-    const prisma = loaderPrisma({
-      assignments: [
-        {
-          skillId: 'skill-1',
-          skillVersionId: 'sv-2',
-          targetKind: 'organization',
-        },
-      ],
-      versions: [
-        versionRow('sv-1', 'first execution'),
-        versionRow('sv-2', 'activated v2'),
-      ],
-    });
-
-    const loaded = await loadAuthorizedSkillVersions(
-      prisma as unknown as PrismaService,
-      actor,
-      [publishedSkill],
-      new Set(),
-      pins,
-    );
-
-    expect(loaded.get('skill-1')?.instructionText).toBe('first execution');
-    expect(prisma.skillVersion.findMany).toHaveBeenCalledWith({
-      where: { id: { in: ['sv-1'] } },
+      id: 'sv-assigned',
+      instructionText: 'assigned body',
     });
   });
 
-  it('follows an explicit activation on a later run that has no pin', async () => {
-    const prisma = loaderPrisma({
-      assignments: [
+  it('prefers the caller grant over an organization grant and ignores a revoked grant', async () => {
+    const prisma = prismaFor({
+      grants: [
         {
-          skillId: 'skill-1',
-          skillVersionId: 'sv-2',
-          targetKind: 'organization',
-        },
-      ],
-      versions: [
-        versionRow('sv-1', 'shared v1'),
-        versionRow('sv-2', 'activated v2'),
-      ],
-    });
-
-    const loaded = await loadAuthorizedSkillVersions(
-      prisma as unknown as PrismaService,
-      actor,
-      [publishedSkill],
-      new Set(),
-    );
-
-    expect(loaded.get('skill-1')?.instructionText).toBe('activated v2');
-  });
-
-  it('lets a user assignment beat a brand assignment and an organization assignment', async () => {
-    const prisma = loaderPrisma({
-      assignments: [
-        {
+          recipientKind: 'organization',
+          revokedAt: null,
           skillId: 'skill-1',
           skillVersionId: 'sv-org',
-          targetKind: 'organization',
         },
         {
-          skillId: 'skill-1',
-          skillVersionId: 'sv-brand',
-          targetKind: 'brand',
-        },
-        {
+          recipientKind: 'user',
+          revokedAt: null,
           skillId: 'skill-1',
           skillVersionId: 'sv-user',
-          targetKind: 'user',
+        },
+        {
+          recipientKind: 'user',
+          revokedAt: new Date('2026-09-01T00:00:00.000Z'),
+          skillId: 'skill-1',
+          skillVersionId: 'sv-revoked',
         },
       ],
-      versions: [
-        versionRow('sv-org', 'organization copy'),
-        versionRow('sv-brand', 'brand copy'),
-        versionRow('sv-user', 'user copy'),
-      ],
+      versions: [versionRow('sv-user', 'granted body')],
     });
 
     const loaded = await loadAuthorizedSkillVersions(
-      prisma as unknown as PrismaService,
+      prisma as never,
       actor,
-      [publishedSkill],
+      [{ ...document, sharedVersionId: 'sv-shared' }],
       new Set(),
     );
 
-    expect(loaded.get('skill-1')?.instructionText).toBe('user copy');
+    expect(prisma.skillGrant.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ revokedAt: null }),
+      }),
+    );
+    expect(loaded.get('skill-1')?.instructionText).toBe('granted body');
   });
 
-  it('drops a version row that belongs to a different skill', async () => {
-    const prisma = loaderPrisma({
+  it('reuses a stored execution pin after the shared pointer moves', async () => {
+    const prisma = prismaFor({
       assignments: [
         {
           skillId: 'skill-1',
-          skillVersionId: 'sv-1',
+          skillVersionId: 'sv-activated',
           targetKind: 'organization',
         },
       ],
-      versions: [versionRow('sv-1', 'someone else', 'skill-other')],
+      versions: [versionRow('sv-first', 'first body')],
     });
 
     const loaded = await loadAuthorizedSkillVersions(
-      prisma as unknown as PrismaService,
+      prisma as never,
       actor,
-      [publishedSkill],
+      [document],
       new Set(),
+      [
+        {
+          contentHash: 'hash-sv-first',
+          skillId: 'skill-1',
+          skillVersionId: 'sv-first',
+        },
+      ],
     );
 
-    expect(loaded.size).toBe(0);
+    expect(loaded.get('skill-1')).toMatchObject({
+      id: 'sv-first',
+      instructionText: 'first body',
+    });
   });
 
-  it('lets the personal owner resolve the current version', async () => {
-    const prisma = loaderPrisma({
-      versions: [versionRow('sv-2', 'owner current')],
+  it('does not load the current draft for a caller who only has publication access', async () => {
+    const prisma = prismaFor({
+      versions: [versionRow('sv-draft', 'draft body')],
     });
 
     const loaded = await loadAuthorizedSkillVersions(
-      prisma as unknown as PrismaService,
+      prisma as never,
       actor,
       [
         {
-          audience: 'private',
-          currentVersionId: 'sv-2',
-          id: 'skill-1',
-          ownerKind: 'user',
-          ownerUserId: 'user-1',
+          ...document,
+          audience: 'public',
+          currentVersionId: 'sv-draft',
           publishedVersionId: null,
           sharedVersionId: null,
         },
@@ -257,37 +163,7 @@ describe('loadAuthorizedSkillVersions', () => {
       new Set(),
     );
 
-    expect(loaded.get('skill-1')?.instructionText).toBe('owner current');
-  });
-});
-
-describe('applyAuthorizedVersionBody', () => {
-  it('replaces the live instruction fields with the authorized version', () => {
-    const document = {
-      config: {
-        defaultInstructions: 'draft body',
-        description: 'live description',
-        systemPromptTemplate: 'draft body',
-      },
-      defaultInstructions: 'draft body',
-      id: 'skill-1',
-      systemPromptTemplate: 'draft body',
-    } as SkillDocument;
-
-    const projected = applyAuthorizedVersionBody(document, {
-      contentHash: 'hash-sv-1',
-      id: 'sv-1',
-      instructionText: 'assigned v1',
-    });
-
-    expect(projected.systemPromptTemplate).toBe('assigned v1');
-    expect(projected.defaultInstructions).toBe('assigned v1');
-    expect(projected.skillVersionId).toBe('sv-1');
-    expect(projected.contentHash).toBe('hash-sv-1');
-    expect(projected.config).toMatchObject({
-      defaultInstructions: 'assigned v1',
-      description: 'live description',
-      systemPromptTemplate: 'assigned v1',
-    });
+    expect(loaded.has('skill-1')).toBe(false);
+    expect(prisma.skillVersion.findMany).not.toHaveBeenCalled();
   });
 });
