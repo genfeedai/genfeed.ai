@@ -203,12 +203,10 @@ describe('restoreThreadFromSnapshot', () => {
         return snapshot;
       });
       const restore = restoreThreadFromSnapshot('thread-1', deps as never);
-      useAgentChatStore
-        .getState()
-        .updateThread('thread-1', {
-          runStatus: terminal,
-          attentionState: 'updated',
-        });
+      useAgentChatStore.getState().updateThread('thread-1', {
+        runStatus: terminal,
+        attentionState: 'updated',
+      });
       release();
       await restore;
       expect(deps.updateThreadSummary).not.toHaveBeenCalled();
