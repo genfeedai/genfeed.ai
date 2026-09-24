@@ -15,6 +15,7 @@ import {
 } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { AgentFailureReason, MemberRole } from '@genfeedai/contracts';
 import {
   buildSystemEmailHtml,
@@ -145,47 +146,7 @@ export class WorkflowNotificationDeliveryService {
       return;
     }
 
-    if (
-      delivery.topic === AGENT_STATUS_NOTIFICATION_TOPIC &&
-      delivery.event.sourceType === 'agent_run' &&
-      (delivery.channel === 'telegram' || delivery.channel === 'discord')
-    ) {
-      if (delivery.user.isDeleted) {
-        await this.skip(
-          deliveryId,
-          delivery.organizationId,
-          'recipient_unavailable',
-        );
-        return;
-      }
-      try {
-        if (!this.agentReportDelivery)
-          throw new Error('Agent report delivery unavailable');
-        const outcome = await this.agentReportDelivery.deliver({
-          organizationId: delivery.organizationId,
-          userId: delivery.userId,
-          channel: delivery.channel,
-          idempotencyKey: delivery.idempotencyKey,
-          payload: delivery.event.payload,
-        });
-        if (outcome.status === 'skipped')
-          await this.skip(deliveryId, delivery.organizationId, outcome.reason);
-        else
-          await this.markDelivered(
-            deliveryId,
-            delivery.organizationId,
-            outcome.providerMessageId,
-          );
-      } catch (error) {
-        await this.recordFailure(
-          deliveryId,
-          delivery.organizationId,
-          delivery.attemptCount,
-          error,
-        );
-      }
-      return;
-    }
+    if (await this.deliverAgentMessagingReport(deliveryId, delivery)) return;
 
     const isAgentRun = delivery.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
     const isAgentReview =
@@ -295,6 +256,62 @@ export class WorkflowNotificationDeliveryService {
         error,
       );
     }
+  }
+
+  private async deliverAgentMessagingReport(
+    deliveryId: string,
+    delivery: {
+      attemptCount: number;
+      channel: string;
+      event: { payload: unknown; sourceType: string };
+      idempotencyKey: string;
+      organizationId: string;
+      topic: string;
+      user: { isDeleted: boolean };
+      userId: string;
+    },
+  ): Promise<boolean> {
+    if (
+      delivery.topic !== AGENT_STATUS_NOTIFICATION_TOPIC ||
+      delivery.event.sourceType !== 'agent_run' ||
+      (delivery.channel !== 'telegram' && delivery.channel !== 'discord')
+    )
+      return false;
+    if (delivery.user.isDeleted) {
+      await this.skip(
+        deliveryId,
+        delivery.organizationId,
+        'recipient_unavailable',
+      );
+      return true;
+    }
+    try {
+      if (!this.agentReportDelivery)
+        throw new Error('Agent report delivery unavailable');
+      const outcome = await this.agentReportDelivery.deliver({
+        organizationId: delivery.organizationId,
+        userId: delivery.userId,
+        channel: delivery.channel,
+        idempotencyKey: delivery.idempotencyKey,
+        payload: delivery.event.payload,
+      });
+      if (outcome.status === 'skipped')
+        await this.skip(deliveryId, delivery.organizationId, outcome.reason);
+      else
+        await this.markDelivered(
+          deliveryId,
+          delivery.organizationId,
+          outcome.providerMessageId,
+        );
+    } catch (error) {
+      await this.recordFailure(
+        deliveryId,
+        delivery.organizationId,
+        delivery.attemptCount,
+        error,
+      );
+    }
+    return true;
   }
 
   async recoverDueDeliveries(): Promise<number> {
@@ -467,11 +484,9 @@ export class WorkflowNotificationDeliveryService {
       member.role.key !== MemberRole.ADMIN &&
       member.brands.length > 0;
     const strategy = await this.prisma.agentStrategy.findFirst({
-      where: {
+      where: scopedWhere(organizationId, {
         id: strategyId,
-        organizationId,
         ...(requireOwner ? { userId } : {}),
-        isDeleted: false,
         OR: [
           { brandId: null },
           {
@@ -486,7 +501,7 @@ export class WorkflowNotificationDeliveryService {
             },
           },
         ],
-      },
+      }),
       select: { id: true },
     });
     return Boolean(strategy);

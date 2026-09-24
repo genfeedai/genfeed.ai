@@ -180,19 +180,19 @@
     "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
   },
   {
-    "actual": 622,
+    "actual": 592,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
   },
   {
-    "actual": 416,
+    "actual": 390,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-sync-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"
   },
   {
-    "actual": 433,
+    "actual": 410,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-round-runner.service.ts",
     "metric": "method-lines",
     "symbol": "AgentTurnRoundRunnerService.executeToolRound"
@@ -202,12 +202,6 @@
     "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
     "metric": "constructor-dependencies",
     "symbol": "AgentTurnWorkflowExecutionService.constructor"
-  },
-  {
-    "actual": 194,
-    "file": "apps/server/api/src/services/agent-orchestrator/agent-turn-workflow-execution.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentTurnWorkflowExecutionService.execute"
   },
   {
     "actual": 206,
@@ -228,19 +222,13 @@
     "symbol": "AgentPrepareToolHandler.prepareClipWorkflowRun"
   },
   {
-    "actual": 1256,
+    "actual": 1144,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts"
   },
   {
-    "actual": 153,
-    "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
-    "metric": "method-lines",
-    "symbol": "AgentPublishToolHandler.createPost"
-  },
-  {
-    "actual": 255,
+    "actual": 220,
     "file": "apps/server/api/src/services/agent-orchestrator/tools/agent-publish-tool-handler.service.ts",
     "metric": "method-lines",
     "symbol": "AgentPublishToolHandler.publishConfirmedContent"
@@ -312,12 +300,6 @@
     "symbol": "YoutubeAuthService.refreshToken"
   },
   {
-    "actual": 168,
-    "file": "apps/server/api/src/services/notifications/inbox/notification-inbox.service.ts",
-    "metric": "method-lines",
-    "symbol": "NotificationInboxService.list"
-  },
-  {
     "actual": 186,
     "file": "apps/server/api/src/services/prompt-builder/prompt-builder.service.ts",
     "metric": "method-lines",
@@ -348,7 +330,7 @@
     "symbol": "DesktopSyncService.pushAssets"
   },
   {
-    "actual": 1017,
+    "actual": 1016,
     "file": "apps/server/discord/src/services/discord-bot-manager.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/discord/src/services/discord-bot-manager.service.ts"
@@ -360,7 +342,7 @@
     "symbol": "ToolRegistryService.handleLegacyTool"
   },
   {
-    "actual": 1027,
+    "actual": 1016,
     "file": "apps/server/telegram/src/services/telegram-bot-manager.service.ts",
     "metric": "file-lines",
     "symbol": "apps/server/telegram/src/services/telegram-bot-manager.service.ts"

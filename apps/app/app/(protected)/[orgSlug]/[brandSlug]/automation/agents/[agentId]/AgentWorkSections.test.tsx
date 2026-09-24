@@ -33,6 +33,12 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
 vi.mock('@services/content/posts.service', () => ({
   PostsService: { getInstance: () => ({ findAll: mocks.posts }) },
 }));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import(
+    '../../../../../../../tests/next-intl.stub'
+  );
+  return { useTranslations: translateFromCatalog };
+});
 vi.mock('@services/automation/agent-strategies.service', () => ({
   AgentStrategiesService: {
     getInstance: () => ({

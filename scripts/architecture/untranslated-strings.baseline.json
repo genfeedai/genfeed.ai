@@ -31,7 +31,6 @@
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/PlaybookSection.tsx": 3,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/TrendingTopicsSection.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/analytics/trends/TrendsPageHeader.tsx": 8,
-    "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/[agentId]/AgentDetailPage.tsx": 13,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/[agentId]/AgentOpportunityPanel.tsx": 6,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/[agentId]/AgentWorkflowBindCard.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/[brandSlug]/automation/agents/AgentHubPage.tsx": 7,

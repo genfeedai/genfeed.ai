@@ -136,76 +136,97 @@ export class AgentReportDeliveryService {
         throw new Error('Agent report approval storage unavailable');
       buttons.push({ token, label: (post.label || 'Draft').slice(0, 45) });
     }
-    const token = this.crypto.decrypt(integration.encryptedToken);
-    const text =
-      payload.summary.slice(0, 1600) +
-      (posts.length
-        ? '\nReview the drafts below. Approval follows the normal publishing review policy.'
-        : '');
-    try {
-      if (input.channel === 'telegram') {
-        const response = await firstValueFrom(
-          this.http.post<{ ok: boolean; result?: { message_id: number } }>(
-            `https://api.telegram.org/bot${token}/sendMessage`,
-            {
-              chat_id: binding.channelId,
-              text,
-              reply_markup: {
-                inline_keyboard: buttons.map((button) => [
-                  {
-                    text: `Approve ${button.label}`,
-                    callback_data: `agent-review:${button.token}:approve`,
-                  },
-                  {
-                    text: 'Reject',
-                    callback_data: `agent-review:${button.token}:reject`,
-                  },
-                ]),
-              },
-            },
-            { timeout: 15000 },
-          ),
-        );
-        if (!response.data.ok || !response.data.result)
-          throw new Error('Provider rejected report');
-        return {
-          status: 'delivered',
-          providerMessageId: String(response.data.result.message_id),
-        };
-      }
+    return postAgentReportMessage({
+      buttons,
+      channel: input.channel,
+      channelId: binding.channelId,
+      http: this.http,
+      idempotencyKey: input.idempotencyKey,
+      summary: payload.summary,
+      token: this.crypto.decrypt(integration.encryptedToken),
+      hasPosts: posts.length > 0,
+    });
+  }
+}
+
+async function postAgentReportMessage(input: {
+  buttons: Array<{ token: string; label: string }>;
+  channel: string;
+  channelId: string;
+  hasPosts: boolean;
+  http: HttpService;
+  idempotencyKey: string;
+  summary: string;
+  token: string;
+}): Promise<AgentReportDeliveryResult> {
+  const text =
+    input.summary.slice(0, 1600) +
+    (input.hasPosts
+      ? '\nReview the drafts below. Approval follows the normal publishing review policy.'
+      : '');
+  try {
+    if (input.channel === 'telegram') {
       const response = await firstValueFrom(
-        this.http.post<{ id: string }>(
-          `https://discord.com/api/v10/channels/${encodeURIComponent(binding.channelId)}/messages`,
+        input.http.post<{ ok: boolean; result?: { message_id: number } }>(
+          `https://api.telegram.org/bot${input.token}/sendMessage`,
           {
-            content: text,
-            allowed_mentions: { parse: [] },
-            nonce: input.idempotencyKey.slice(-25),
-            enforce_nonce: true,
-            components: buttons.map((button) => ({
-              type: 1,
-              components: [
+            chat_id: input.channelId,
+            text,
+            reply_markup: {
+              inline_keyboard: input.buttons.map((button) => [
                 {
-                  type: 2,
-                  style: 3,
-                  label: `Approve ${button.label}`.slice(0, 80),
-                  custom_id: `agent-review:${button.token}:approve`,
+                  text: `Approve ${button.label}`,
+                  callback_data: `agent-review:${button.token}:approve`,
                 },
                 {
-                  type: 2,
-                  style: 4,
-                  label: 'Reject',
-                  custom_id: `agent-review:${button.token}:reject`,
+                  text: 'Reject',
+                  callback_data: `agent-review:${button.token}:reject`,
                 },
-              ],
-            })),
+              ]),
+            },
           },
-          { headers: { Authorization: `Bot ${token}` }, timeout: 15000 },
+          { timeout: 15000 },
         ),
       );
-      if (!response.data.id) throw new Error('Provider rejected report');
-      return { status: 'delivered', providerMessageId: response.data.id };
-    } catch {
-      throw new Error('Agent report provider request failed');
+      if (!response.data.ok || !response.data.result)
+        throw new Error('Provider rejected report');
+      return {
+        status: 'delivered',
+        providerMessageId: String(response.data.result.message_id),
+      };
     }
+    const response = await firstValueFrom(
+      input.http.post<{ id: string }>(
+        `https://discord.com/api/v10/channels/${encodeURIComponent(input.channelId)}/messages`,
+        {
+          content: text,
+          allowed_mentions: { parse: [] },
+          nonce: input.idempotencyKey.slice(-25),
+          enforce_nonce: true,
+          components: input.buttons.map((button) => ({
+            type: 1,
+            components: [
+              {
+                type: 2,
+                style: 3,
+                label: `Approve ${button.label}`.slice(0, 80),
+                custom_id: `agent-review:${button.token}:approve`,
+              },
+              {
+                type: 2,
+                style: 4,
+                label: 'Reject',
+                custom_id: `agent-review:${button.token}:reject`,
+              },
+            ],
+          })),
+        },
+        { headers: { Authorization: `Bot ${input.token}` }, timeout: 15000 },
+      ),
+    );
+    if (!response.data.id) throw new Error('Provider rejected report');
+    return { status: 'delivered', providerMessageId: response.data.id };
+  } catch {
+    throw new Error('Agent report provider request failed');
   }
 }

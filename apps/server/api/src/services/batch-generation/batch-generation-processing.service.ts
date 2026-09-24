@@ -230,58 +230,88 @@ export class BatchGenerationProcessingService {
     }
 
     if (batchRecord.agentStrategyId) {
-      for (const item of batchItems) {
-        if (
-          !item.postId ||
-          !item.scheduledDate ||
-          item.status !== BatchItemStatus.COMPLETED ||
-          (item.reviewDecision && item.reviewDecision !== ReviewDecision.UNSET)
-        )
-          continue;
-        const policy = await this.autonomousPublishPolicy.resolveForPost({
-          organizationId: orgId,
-          postId: item.postId,
-        });
-        if (policy.result.decision === AgentPublishDecision.PERMITTED) {
-          try {
-            await this.reviewService.approveItems(
-              batchId,
-              [item.id],
-              orgId,
-              batchRecord.userId,
-              true,
-            );
-          } catch (error) {
-            this.logger.error(
-              'Autonomous approval failed; draft remains in review',
-              error,
-              { batchId, postId: item.postId },
-            );
-          }
-        }
-      }
+      await this.approvePermittedDrafts(
+        batchId,
+        orgId,
+        batchRecord.userId,
+        batchItems,
+      );
     }
     const updatedBatch = await this.findScopedBatch(batchId, orgId);
-
-    this.logger.log(`Batch processing complete: ${batchId}`, {
+    await this.reportBatchComplete({
       batchId,
       completedCount,
       failedCount,
-      status: finalStatus,
+      finalStatus,
+      options,
+      totalCount,
+    });
+    return this.summaryService.toBatchSummary(updatedBatch);
+  }
+
+  private async reportBatchComplete(input: {
+    batchId: string;
+    completedCount: number;
+    failedCount: number;
+    finalStatus: BatchStatus;
+    options?: BatchProcessOptions;
+    totalCount: number;
+  }): Promise<void> {
+    this.logger.log(`Batch processing complete: ${input.batchId}`, {
+      batchId: input.batchId,
+      completedCount: input.completedCount,
+      failedCount: input.failedCount,
+      status: input.finalStatus,
     });
     await this.invokeLifecycleCallback(
       'onBatchCompleted',
       () =>
-        options?.onBatchCompleted?.({
-          batchId,
-          completedCount,
-          failedCount,
-          status: finalStatus,
-          totalCount,
+        input.options?.onBatchCompleted?.({
+          batchId: input.batchId,
+          completedCount: input.completedCount,
+          failedCount: input.failedCount,
+          status: input.finalStatus,
+          totalCount: input.totalCount,
         }),
-      { batchId },
+      { batchId: input.batchId },
     );
-    return this.summaryService.toBatchSummary(updatedBatch);
+  }
+
+  private async approvePermittedDrafts(
+    batchId: string,
+    orgId: string,
+    userId: string,
+    batchItems: BatchItemFull[],
+  ): Promise<void> {
+    for (const item of batchItems) {
+      if (
+        !item.postId ||
+        !item.scheduledDate ||
+        item.status !== BatchItemStatus.COMPLETED ||
+        (item.reviewDecision && item.reviewDecision !== ReviewDecision.UNSET)
+      )
+        continue;
+      const policy = await this.autonomousPublishPolicy.resolveForPost({
+        organizationId: orgId,
+        postId: item.postId,
+      });
+      if (policy.result.decision !== AgentPublishDecision.PERMITTED) continue;
+      try {
+        await this.reviewService.approveItems(
+          batchId,
+          [item.id],
+          orgId,
+          userId,
+          true,
+        );
+      } catch (error) {
+        this.logger.error(
+          'Autonomous approval failed; draft remains in review',
+          error,
+          { batchId, postId: item.postId },
+        );
+      }
+    }
   }
 
   private async processItems(

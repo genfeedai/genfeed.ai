@@ -525,6 +525,108 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     };
   }
 
+  private async runPreparedTurn(input: {
+    context: AgentChatContext;
+    generationPriority: ResolvedAgentExecutionPolicy['generationPriority'];
+    model: string;
+    policy: ResolvedAgentExecutionPolicy;
+    request: AgentChatRequest & { threadId: string };
+    resolved: Awaited<
+      ReturnType<
+        AgentTurnWorkflowExecutionService['contextService']['resolveSystemPromptAndModel']
+      >
+    >;
+    seedTitle: string;
+    startedAt: string;
+    state: PreparedAgentTurnState;
+    turnCost: number;
+  }): Promise<void> {
+    const {
+      context,
+      generationPriority,
+      model,
+      policy,
+      request,
+      resolved,
+      seedTitle,
+      startedAt,
+      state,
+      turnCost,
+    } = input;
+    const host = {
+      maybeUpdateThreadTitle: (params: {
+        context: AgentChatContext;
+        seedTitle: string;
+        threadId: string;
+        title: string | null;
+      }) =>
+        maybeUpdateThreadTitle({
+          ...params,
+          agentThreadsService: this.agentThreadsService,
+        }),
+    };
+    const handledPlanMode =
+      request.source !== 'proactive' &&
+      request.creditBudget === undefined &&
+      (await this.planModeService.tryHandlePlanModeTurnStream(
+        {
+          context,
+          model,
+          request,
+          resolvedMemories: resolved.memories ?? [],
+          seedTitle,
+          startedAt,
+          systemPromptOverride: resolved.systemPrompt,
+          threadId: state.threadId,
+          turnCost,
+        },
+        host,
+      ));
+    if (handledPlanMode) return;
+    const handledDeterministically =
+      request.source !== 'proactive' &&
+      request.creditBudget === undefined &&
+      ((await this.batchService.tryHandleBatchGenerationTurnStream(
+        {
+          context,
+          model,
+          policy,
+          requestContent: request.content,
+          seedTitle,
+          startedAt,
+          threadId: state.threadId,
+        },
+        host,
+      )) ||
+        (await this.recurringTaskService.tryHandleRecurringTaskDraftTurnStream({
+          context,
+          model,
+          requestContent: request.content,
+          seedTitle,
+          startedAt,
+          threadId: state.threadId,
+        })));
+    if (handledDeterministically) return;
+    await this.publishTurnPhase(state, 'waiting_for_lane');
+    await this.executionLaneService.runExclusive(state.threadId, () =>
+      this.streamLoopService.runStreamLoop(
+        context,
+        state.threadId,
+        resolved.systemPrompt,
+        model,
+        turnCost,
+        policy,
+        generationPriority,
+        resolved.memories ?? [],
+        request.agentType,
+        request.source,
+        seedTitle,
+        startedAt,
+        request.attachments,
+      ),
+    );
+  }
+
   async execute(
     state: PreparedAgentTurnState,
   ): Promise<AgentTurnWorkflowResult> {
@@ -649,82 +751,18 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       userId: state.userId,
     });
 
-    const host = {
-      maybeUpdateThreadTitle: (params: {
-        context: AgentChatContext;
-        seedTitle: string;
-        threadId: string;
-        title: string | null;
-      }) =>
-        maybeUpdateThreadTitle({
-          ...params,
-          agentThreadsService: this.agentThreadsService,
-        }),
-    };
-    const handledPlanMode =
-      request.source !== 'proactive' &&
-      request.creditBudget === undefined &&
-      (await this.planModeService.tryHandlePlanModeTurnStream(
-        {
-          context,
-          model,
-          request,
-          resolvedMemories: resolved.memories ?? [],
-          seedTitle,
-          startedAt,
-          systemPromptOverride: resolved.systemPrompt,
-          threadId: state.threadId,
-          turnCost,
-        },
-        host,
-      ));
-    if (!handledPlanMode) {
-      const handledDeterministically =
-        request.source !== 'proactive' &&
-        request.creditBudget === undefined &&
-        ((await this.batchService.tryHandleBatchGenerationTurnStream(
-          {
-            context,
-            model,
-            policy,
-            requestContent: request.content,
-            seedTitle,
-            startedAt,
-            threadId: state.threadId,
-          },
-          host,
-        )) ||
-          (await this.recurringTaskService.tryHandleRecurringTaskDraftTurnStream(
-            {
-              context,
-              model,
-              requestContent: request.content,
-              seedTitle,
-              startedAt,
-              threadId: state.threadId,
-            },
-          )));
-      if (!handledDeterministically) {
-        await this.publishTurnPhase(state, 'waiting_for_lane');
-        await this.executionLaneService.runExclusive(state.threadId, () =>
-          this.streamLoopService.runStreamLoop(
-            context,
-            state.threadId,
-            resolved.systemPrompt,
-            model,
-            turnCost,
-            policy,
-            generationPriority,
-            resolved.memories ?? [],
-            request.agentType,
-            request.source,
-            seedTitle,
-            startedAt,
-            request.attachments,
-          ),
-        );
-      }
-    }
+    await this.runPreparedTurn({
+      context,
+      generationPriority,
+      model,
+      policy,
+      request,
+      resolved,
+      seedTitle,
+      startedAt,
+      state,
+      turnCost,
+    });
 
     return this.readCompletedTurn(state.threadId, state.organizationId, model);
   }

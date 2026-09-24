@@ -9,6 +9,7 @@ import {
   type WorkflowOutcome,
 } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   type FormattedAgentError,
   formatAgentError,
@@ -93,7 +94,7 @@ export async function recordAgentReviewOutcome(
       : {}),
   };
   const event = await transaction.notificationEvent.upsert({
-    where: { deduplicationKey },
+    where: scopedWhere(input.organizationId, { deduplicationKey }),
     update: {},
     create: {
       actorUserId: input.userId,
@@ -107,13 +108,13 @@ export async function recordAgentReviewOutcome(
     },
   });
   const delivery = await transaction.notificationDelivery.upsert({
-    where: {
+    where: scopedWhere(input.organizationId, {
       eventId_userId_channel: {
         eventId: event.id,
         userId: input.userId,
         channel: EMAIL_NOTIFICATION_CHANNEL,
       },
-    },
+    }),
     update: {},
     create: {
       eventId: event.id,
@@ -217,13 +218,13 @@ export class WorkflowNotificationOutboxService {
     if (isAgentRun && input.strategyId && input.summary) {
       for (const channel of ['telegram', 'discord']) {
         await transaction.notificationDelivery.upsert({
-          where: {
+          where: scopedWhere(input.organizationId, {
             eventId_userId_channel: {
               eventId: event.id,
               userId: input.workflowOwnerUserId,
               channel,
             },
-          },
+          }),
           update: {},
           create: {
             eventId: event.id,

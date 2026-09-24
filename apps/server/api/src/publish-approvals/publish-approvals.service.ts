@@ -11,6 +11,10 @@ import {
 } from '@api/publish-approvals/publish-approval-contract.codec';
 import { digestPublishApprovalValue } from '@api/publish-approvals/publish-approval-integrity';
 import {
+  findPublishApprovalOrThrow,
+  PublishApprovalNotFoundException,
+} from '@api/publish-approvals/publish-approval-lookup';
+import {
   assertApprovalMediaReady,
   withMediaWarningProvenance,
   withMediaWarnings,
@@ -35,12 +39,7 @@ import type {
   PublishExecutionClaim,
 } from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
-import {
-  ConflictException,
-  ForbiddenException,
-  HttpException,
-  HttpStatus,
-} from '@nestjs/common';
+import { ConflictException, ForbiddenException } from '@nestjs/common';
 
 export type {
   ClaimPublishExecutionParams,
@@ -49,21 +48,6 @@ export type {
   CreatePostPublishApprovalParams,
   PublishExecutionClaim,
 } from '@genfeedai/contracts/interfaces';
-
-class PublishApprovalNotFoundException extends HttpException {
-  constructor(resource: string, identifier: string) {
-    const detail = `${resource} with identifier '${identifier}' not found`;
-    super(
-      {
-        detail,
-        source: { parameter: identifier },
-        title: 'Resource Not Found',
-      },
-      HttpStatus.NOT_FOUND,
-    );
-    this.message = detail;
-  }
-}
 
 const ACTIVE_APPROVAL_STATUSES = [
   PublishApprovalStatus.APPROVED,
@@ -981,21 +965,16 @@ export class PublishApprovalsService {
     return post;
   }
 
-  private async getApprovalOrThrow(
+  private getApprovalOrThrow(
     organizationId: string,
     approvalId: string,
     postId?: string,
   ): Promise<PublishApprovalRow> {
-    const approval = (await this.prisma.publishApproval.findFirst({
-      where: {
-        id: approvalId,
-        organizationId,
-        ...(postId ? { postId } : {}),
-      },
-    })) as PublishApprovalRow | null;
-    if (!approval) {
-      throw new PublishApprovalNotFoundException('PublishApproval', approvalId);
-    }
-    return approval;
+    return findPublishApprovalOrThrow(
+      this.prisma.publishApproval,
+      organizationId,
+      approvalId,
+      postId,
+    );
   }
 }

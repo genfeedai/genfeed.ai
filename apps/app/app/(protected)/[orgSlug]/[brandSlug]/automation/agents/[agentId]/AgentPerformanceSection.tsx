@@ -7,6 +7,7 @@ import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-pol
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import { AgentStrategiesService } from '@services/automation/agent-strategies.service';
 import { useQuery } from '@tanstack/react-query';
+import { useTranslations } from 'next-intl';
 
 export default function AgentPerformanceSection({
   agentId,
@@ -45,70 +46,80 @@ export default function AgentPerformanceSection({
         new Date(b.periodEnd).getTime() - new Date(a.periodEnd).getTime(),
     )[0];
   const metrics = snapshot.data;
+  const detail = useTranslations('common.automation.agentDetail');
+  const unavailable = detail('unavailable');
 
   return (
     <div className="grid gap-6 lg:grid-cols-2">
       <section
-        aria-label="Agent performance"
+        aria-label={detail('performanceLabel')}
         className="space-y-3 rounded border border-border p-4"
       >
-        <h2 className="text-lg font-semibold">Performance</h2>
+        <h2 className="text-lg font-semibold">{detail('performanceTitle')}</h2>
         {snapshot.isLoading ? (
-          <p role="status">Loading agent performance…</p>
+          <p role="status">{detail('loadingPerformance')}</p>
         ) : snapshot.isError ? (
           <p role="alert" className="text-sm text-destructive">
-            Could not load agent performance.
+            {detail('performanceError')}
           </p>
         ) : metrics ? (
           <>
             <p className="text-sm">
-              {metrics.generatedCount} generated · {metrics.publishedCount}{' '}
-              published · {metrics.creditsSpent} credits
+              {detail('counts', {
+                generated: metrics.generatedCount,
+                published: metrics.publishedCount,
+                credits: metrics.creditsSpent,
+              })}
             </p>
             <p className="text-sm">
-              {metrics.impressions} impressions · {metrics.clicks} clicks ·{' '}
-              {metrics.visits ?? 'Unavailable'} visits
+              {detail('engagement', {
+                impressions: metrics.impressions,
+                clicks: metrics.clicks,
+                visits: metrics.visits ?? unavailable,
+              })}
             </p>
             <p className="text-xs text-muted-foreground">
-              Attributed to content from this agent.
+              {detail('attributed')}
             </p>
             {metrics.sampling?.truncated && (
               <p className="text-xs text-muted-foreground">
-                Partial sample: {metrics.sampling.postsSampled} of{' '}
-                {metrics.sampling.matchedPosts} posts and{' '}
-                {metrics.sampling.measurementsSampled} of{' '}
-                {metrics.sampling.matchedMeasurements} measurements.
+                {detail('partialSample', {
+                  postsSampled: metrics.sampling.postsSampled,
+                  matchedPosts: metrics.sampling.matchedPosts,
+                  measurementsSampled: metrics.sampling.measurementsSampled,
+                  matchedMeasurements: metrics.sampling.matchedMeasurements,
+                })}
               </p>
             )}
             {metrics.impressions === 0 &&
               metrics.clicks === 0 &&
               (metrics.visits ?? 0) === 0 && (
                 <p className="text-sm text-muted-foreground">
-                  No measured performance yet.
+                  {detail('noMeasuredPerformance')}
                 </p>
               )}
             {metrics.topTopics.length > 0 && (
               <p className="text-sm">
-                Top topics: {metrics.topTopics.join(', ')}
+                {detail('topTopics', { topics: metrics.topTopics.join(', ') })}
               </p>
             )}
           </>
         ) : (
           <p className="text-sm text-muted-foreground">
-            No performance snapshot yet.
+            {detail('noSnapshot')}
           </p>
         )}
       </section>
       <section
-        aria-label="Daily agent report"
+        aria-label={detail('reportLabel')}
         className="space-y-3 rounded border border-border p-4"
       >
-        <h2 className="text-lg font-semibold">Latest daily report</h2>
+        <h2 className="text-lg font-semibold">{detail('latestReport')}</h2>
         {reports.isLoading ? (
-          <p role="status">Loading daily report…</p>
+          <p role="status">{detail('loadingReport')}</p>
         ) : reports.isError ? (
           <p role="alert" className="text-sm text-destructive">
-            Could not load daily report.
+            {detail('reportError')}
           </p>
         ) : daily ? (
           <>
@@ -123,21 +134,25 @@ export default function AgentPerformanceSection({
             </p>
             {daily.summary && <p className="text-sm">{daily.summary}</p>}
             <p className="text-sm">
-              {daily.generatedCount} generated · {daily.publishedCount}{' '}
-              published · {daily.creditsSpent} credits
+              {detail('counts', {
+                generated: daily.generatedCount,
+                published: daily.publishedCount,
+                credits: daily.creditsSpent,
+              })}
             </p>
-            <h3 className="text-sm font-medium">
-              Measured content performance
-            </h3>
+            <h3 className="text-sm font-medium">{detail('measuredTitle')}</h3>
             <p className="text-xs text-muted-foreground">
               {daily.metadata?.measurementBasis ||
-                'Performance measurement period unavailable.'}
+                detail('measurementUnavailable')}
             </p>
             <p className="text-sm">
-              {daily.impressions} impressions · {daily.clicks} clicks ·{' '}
-              {daily.visits ?? 'Unavailable'} visits attributed to this agent.
+              {detail('attributedVisits', {
+                impressions: daily.impressions,
+                clicks: daily.clicks,
+                visits: daily.visits ?? unavailable,
+              })}
             </p>
-            <h3 className="text-sm font-medium">Recommendations</h3>
+            <h3 className="text-sm font-medium">{detail('recommendations')}</h3>
             {daily.allocationChanges.length > 0 ? (
               <ul className="list-disc space-y-1 pl-5 text-sm">
                 {daily.allocationChanges.map((change) => (
@@ -146,20 +161,24 @@ export default function AgentPerformanceSection({
               </ul>
             ) : (
               <p className="text-sm text-muted-foreground">
-                No allocation recommendations yet.
+                {detail('noRecommendations')}
               </p>
             )}
             {daily.topHooks.length > 0 && (
-              <p className="text-sm">Top hooks: {daily.topHooks.join(', ')}</p>
+              <p className="text-sm">
+                {detail('topHooks', { hooks: daily.topHooks.join(', ') })}
+              </p>
             )}
             {daily.bestPostingWindows.length > 0 && (
               <p className="text-sm">
-                Best posting windows: {daily.bestPostingWindows.join(', ')}
+                {detail('bestWindows', {
+                  windows: daily.bestPostingWindows.join(', '),
+                })}
               </p>
             )}
           </>
         ) : (
-          <p className="text-sm text-muted-foreground">No daily report yet.</p>
+          <p className="text-sm text-muted-foreground">{detail('noReport')}</p>
         )}
       </section>
     </div>

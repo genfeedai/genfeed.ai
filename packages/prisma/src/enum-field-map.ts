@@ -502,6 +502,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
       'policies',
       'preferredWorkflowId',
       'preferredWorkflowTemplateId',
+      'thread',
       'updatedAt',
       'user',
       'userId',
@@ -571,6 +572,8 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
   },
   AgentThread: {
     allFields: [
+      'agentStrategy',
+      'agentStrategyId',
       'brand',
       'brandId',
       'config',
@@ -612,6 +615,7 @@ export const PRISMA_MODEL_METADATA: Readonly<Record<string, ModelFieldMeta>> = {
     ],
     enumFields: {},
     relationIdFields: {
+      agentStrategy: 'agentStrategyId',
       brand: 'brandId',
       organization: 'organizationId',
       user: 'userId',

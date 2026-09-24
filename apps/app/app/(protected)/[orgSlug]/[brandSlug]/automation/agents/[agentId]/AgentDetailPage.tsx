@@ -52,6 +52,7 @@ const AGENT_EXECUTION_PAGE_SIZE = 20;
 
 function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const translate = useTranslations('common.automation.agentHub');
+  const detail = useTranslations('common.automation.agentDetail');
   const notificationsService = NotificationsService.getInstance();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -246,7 +247,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
   if (!isReady || isStrategyLoading) {
     return (
-      <Container label="Agent Detail" icon={Cpu}>
+      <Container label={detail('title')} icon={Cpu}>
         <div className="h-64 animate-pulse rounded bg-foreground/5" />
       </Container>
     );
@@ -254,9 +255,9 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
   if (isStrategyError) {
     return (
-      <Container label="Agent Detail" icon={Cpu}>
+      <Container label={detail('title')} icon={Cpu}>
         <p role="alert" className="text-destructive">
-          Could not load this agent.
+          {detail('loadError')}
         </p>
       </Container>
     );
@@ -264,11 +265,11 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
   if (!strategy) {
     return (
-      <Container label="Agent Detail" icon={Cpu}>
+      <Container label={detail('title')} icon={Cpu}>
         <div className="py-16 text-center text-foreground/50">
-          Agent not found.{' '}
+          {detail('notFound')}{' '}
           <Link href={href(APP_ROUTES.AUTOMATION.AGENTS)} className="underline">
-            Back to Agent Hub
+            {detail('backToHub')}
           </Link>
         </div>
       </Container>
@@ -285,7 +286,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           <Button
             label={
               <>
-                <ArrowLeft /> Agents
+                <ArrowLeft /> {detail('agents')}
               </>
             }
             size={ButtonSize.SM}
@@ -312,7 +313,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
             onClick={() => setIsPolicyOpen(true)}
           />
           <Button
-            label="Run workflow"
+            label={detail('runWorkflow')}
             icon={<Workflow />}
             size={ButtonSize.SM}
             variant={ButtonVariant.DEFAULT}
@@ -354,27 +355,31 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
         />
 
         <KPISection
-          title="Usage"
+          title={detail('usage')}
           gridCols={{ desktop: 4, mobile: 2, tablet: 4 }}
           items={[
             {
-              description: `Budget: ${strategy.dailyCreditBudget}`,
-              label: 'Credits Today',
+              description: detail('budget', {
+                amount: strategy.dailyCreditBudget,
+              }),
+              label: detail('creditsToday'),
               value: strategy.creditsUsedToday,
             },
             {
-              description: `Budget: ${strategy.weeklyCreditBudget}`,
-              label: 'Credits This Week',
+              description: detail('budget', {
+                amount: strategy.weeklyCreditBudget,
+              }),
+              label: detail('creditsThisWeek'),
               value: strategy.creditsUsedThisWeek,
             },
             {
-              description: 'Latest runs for this agent',
-              label: 'Recent executions',
+              description: detail('recentRunsDescription'),
+              label: detail('recentExecutions'),
               value: executions.length,
             },
             {
-              description: 'Consecutive errors',
-              label: 'Failures',
+              description: detail('consecutiveErrors'),
+              label: detail('failures'),
               value: strategy.consecutiveFailures,
               valueClassName:
                 strategy.consecutiveFailures > 0
@@ -430,7 +435,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 
         {isExecutionsError ? (
           <p role="alert" className="text-sm text-destructive">
-            Could not load agent executions.
+            {detail('executionsError')}
           </p>
         ) : (
           <WorkflowExecutionHistorySection

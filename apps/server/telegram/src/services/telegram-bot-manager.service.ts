@@ -24,6 +24,10 @@ import { RedisService } from '@libs/redis/redis.service';
 import { HttpService } from '@nestjs/axios';
 import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@telegram/config/config.service';
+import {
+  handleTelegramAgentReview,
+  presentTelegramWorkflowOutputs,
+} from '@telegram/services/telegram-agent-review';
 import { Bot, type Context, InlineKeyboard } from 'grammy';
 import { firstValueFrom } from 'rxjs';
 
@@ -386,34 +390,10 @@ export class TelegramBotManager
   }
 
   private async handleCallbackQuery(ctx: Context, orgId: string) {
+    if (await handleTelegramAgentReview(this.internalApiClient, ctx, orgId))
+      return;
     const data = ctx.callbackQuery?.data;
     const chatId = ctx.chat?.id?.toString();
-    const reviewMatch = data?.match(
-      /^agent-review:([a-f0-9]{32}):(approve|reject)$/,
-    );
-    if (reviewMatch && reviewMatch[0] === data) {
-      await ctx.answerCallbackQuery();
-      const remoteUserId = ctx.from?.id?.toString();
-      const failureMessage =
-        'This review could not be completed. It may have expired or you may not be authorized. Please review the content in the app.';
-      if (!chatId || !remoteUserId) {
-        await ctx.reply(failureMessage);
-        return;
-      }
-      try {
-        const result = await this.internalApiClient.resolveAgentReportReview({
-          organizationId: orgId,
-          remoteUserId,
-          channelId: chatId,
-          token: reviewMatch[1],
-          decision: reviewMatch[2] === 'approve' ? 'approve' : 'reject',
-        });
-        await ctx.reply(result.message);
-      } catch {
-        await ctx.reply(failureMessage);
-      }
-      return;
-    }
     if (!data || !chatId) {
       return;
     }
@@ -1007,27 +987,10 @@ export class TelegramBotManager
         return;
       }
 
-      const outputs = extractWorkflowOutputsFromExecution(execution);
-
-      if (outputs.length > 0) {
-        for (const output of outputs) {
-          if (output.type === 'image' && output.url) {
-            await ctx.replyWithPhoto(output.url, {
-              caption: output.caption || 'Generated image',
-            });
-          } else if (output.type === 'video' && output.url) {
-            await ctx.replyWithVideo(output.url, {
-              caption: output.caption || 'Generated video',
-            });
-          } else if (output.text) {
-            await ctx.reply(output.text);
-          } else if (output.url) {
-            await ctx.reply(output.url);
-          }
-        }
-      } else {
-        await ctx.reply('Workflow completed successfully.');
-      }
+      await presentTelegramWorkflowOutputs(
+        ctx,
+        extractWorkflowOutputsFromExecution(execution),
+      );
 
       this.deleteSession(chatId);
     } catch (error) {

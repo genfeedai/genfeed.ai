@@ -271,7 +271,11 @@ it.each([false, true])(
     const eventKey = expired ? 'agent.review.expired' : 'agent.review.changed';
     expect(tx.notificationEvent.upsert).toHaveBeenLastCalledWith(
       expect.objectContaining({
-        where: { deduplicationKey: `${eventKey}/org/strategy/decision` },
+        where: {
+          deduplicationKey: `${eventKey}/org/strategy/decision`,
+          isDeleted: false,
+          organizationId: 'org',
+        },
         update: {},
         create: expect.objectContaining({
           eventKey,

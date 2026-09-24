@@ -549,12 +549,14 @@ export class AgentAutopilotWorkflowService {
       });
       if (!current)
         throw new Error('Agent strategy is no longer active in this scope');
-      // tenant-scope-ignore: include the deleted identity so it must be explicitly reactivated, never replaced
-      // Include deleted threads: a persistent identity must be explicitly reactivated.
+      // Deleted threads stay visible so a persistent identity is reactivated, not replaced.
       const thread = await transaction.agentThread.findFirst({
         where: {
           agentStrategyId: strategy.id,
-          organizationId: strategy.organizationId,
+          OR: [
+            scopedWhere(strategy.organizationId, { isDeleted: false }),
+            scopedWhere(strategy.organizationId, { isDeleted: true }),
+          ],
         },
       });
       if (thread) {

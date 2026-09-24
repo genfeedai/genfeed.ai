@@ -190,171 +190,18 @@ export class NotificationInboxService {
       include: { event: true },
     });
     const page = rows.slice(0, PAGE_LIMIT);
-    const isAdmin =
-      member.role.key === MemberRole.OWNER ||
-      member.role.key === MemberRole.ADMIN;
-    const restrictToAssignedBrands = !isAdmin && member.brands.length > 0;
-    const sourceAccessWhere = {
+    const {
+      accessibleStrategies,
+      sources,
+      strategyIdFor: strategyIdFromPayload,
+      threads,
+    } = await loadInboxAssociations({
+      member,
       organizationId,
-      isDeleted: false,
+      page,
+      prisma: this.prisma,
       userId,
-      OR: [
-        { brandId: null },
-        {
-          brand: {
-            is: {
-              organizationId,
-              isDeleted: false,
-              ...(restrictToAssignedBrands
-                ? { id: { in: member.brands.map((brand) => brand.id) } }
-                : {}),
-            },
-          },
-        },
-      ],
-    } satisfies Prisma.WorkflowWhereInput & Prisma.AgentThreadWhereInput;
-    const runIds = [
-      ...new Set(
-        page
-          .filter((row) =>
-            ['agent_run', 'workflow_execution'].includes(row.event.sourceType),
-          )
-          .map((row) => row.event.sourceId),
-      ),
-    ];
-    const executions = await this.prisma.workflowExecution.findMany({
-      where: {
-        organizationId,
-        isDeleted: false,
-        id: { in: runIds },
-        OR: [
-          { userId },
-          {
-            workflow: {
-              is: { userId, organizationId, isDeleted: false },
-            },
-          },
-        ],
-        workflow: {
-          is: {
-            organizationId,
-            isDeleted: false,
-            OR: sourceAccessWhere.OR,
-          },
-        },
-      },
-      select: {
-        id: true,
-        workflowId: true,
-        workflow: {
-          select: {
-            label: true,
-            metadata: true,
-            brand: { select: { slug: true } },
-          },
-        },
-        ingredients: {
-          where: {
-            organizationId,
-            isDeleted: false,
-            ...(restrictToAssignedBrands
-              ? {
-                  OR: [
-                    { brandId: null },
-                    {
-                      brandId: {
-                        in: member.brands.map((brand) => brand.id),
-                      },
-                    },
-                  ],
-                }
-              : {}),
-          },
-          orderBy: { createdAt: 'desc' },
-          select: {
-            id: true,
-            category: true,
-            brand: { select: { slug: true } },
-          },
-          take: 1,
-        },
-      },
     });
-    const sources = new Map(executions.map((source) => [source.id, source]));
-    const threadEvents = await this.prisma.agentThreadEvent.findMany({
-      where: {
-        organizationId,
-        isDeleted: false,
-        runId: { in: runIds },
-        thread: { is: sourceAccessWhere },
-      },
-      select: {
-        runId: true,
-        thread: {
-          select: {
-            id: true,
-            title: true,
-            agentStrategyId: true,
-            brand: { select: { slug: true } },
-          },
-        },
-      },
-      orderBy: { sequence: 'desc' },
-    });
-    const threads = new Map<string, (typeof threadEvents)[number]['thread']>();
-    for (const event of threadEvents) {
-      const runId = event.runId;
-      if (!runId || threads.has(runId)) {
-        continue;
-      }
-      threads.set(runId, event.thread);
-    }
-
-    const strategyIdFromPayload = (
-      row: (typeof page)[number],
-    ): string | undefined => {
-      const payload = row.event.payload;
-      return row.topic === 'agent.status' &&
-        ['agent_run', 'agent_strategy'].includes(row.event.sourceType) &&
-        payload &&
-        typeof payload === 'object' &&
-        !Array.isArray(payload) &&
-        typeof payload.strategyId === 'string' &&
-        (row.event.sourceType !== 'agent_strategy' ||
-          payload.strategyId === row.event.sourceId)
-        ? payload.strategyId
-        : undefined;
-    };
-    const strategyIds = [
-      ...new Set(
-        [
-          ...page.map(strategyIdFromPayload),
-          ...[...threads.values()].map((thread) => thread.agentStrategyId),
-        ].filter((id): id is string => typeof id === 'string' && id.length > 0),
-      ),
-    ];
-    const reviewStrategyIds = page
-      .filter(
-        (row) =>
-          row.topic === 'agent.status' &&
-          row.event.sourceType === 'agent_strategy',
-      )
-      .map(strategyIdFromPayload)
-      .filter((id): id is string => Boolean(id));
-    const strategies = strategyIds.length
-      ? await this.prisma.agentStrategy.findMany({
-          where: {
-            ...sourceAccessWhere,
-            userId: undefined,
-            id: { in: strategyIds },
-            AND: [{ OR: [{ userId }, { id: { in: reviewStrategyIds } }] }],
-          },
-          select: { id: true, label: true, brand: { select: { slug: true } } },
-        })
-      : [];
-    const accessibleStrategies = new Map(
-      strategies.map((strategy) => [strategy.id, strategy]),
-    );
 
     const docs = page.map((row) => {
       const source = sources.get(row.event.sourceId);
@@ -411,4 +258,197 @@ export class NotificationInboxService {
         hasMore && last ? `${last.occurredAt.toISOString()}|${last.id}` : null,
     };
   }
+}
+
+async function loadInboxAssociations<
+  T extends {
+    event: {
+      payload: Prisma.JsonValue;
+      sourceId: string;
+      sourceType: string;
+    };
+    topic: string;
+  },
+>(input: {
+  member: {
+    brands: Array<{ id: string }>;
+    role: { key: string };
+  };
+  organizationId: string;
+  page: T[];
+  prisma: PrismaService;
+  userId: string;
+}) {
+  const { member, organizationId, page, prisma, userId } = input;
+  const isAdmin =
+    member.role.key === MemberRole.OWNER ||
+    member.role.key === MemberRole.ADMIN;
+  const restrictToAssignedBrands = !isAdmin && member.brands.length > 0;
+  const sourceAccessWhere = {
+    organizationId,
+    isDeleted: false,
+    userId,
+    OR: [
+      { brandId: null },
+      {
+        brand: {
+          is: {
+            organizationId,
+            isDeleted: false,
+            ...(restrictToAssignedBrands
+              ? { id: { in: member.brands.map((brand) => brand.id) } }
+              : {}),
+          },
+        },
+      },
+    ],
+  } satisfies Prisma.WorkflowWhereInput & Prisma.AgentThreadWhereInput;
+  const runIds = [
+    ...new Set(
+      page
+        .filter((row) =>
+          ['agent_run', 'workflow_execution'].includes(row.event.sourceType),
+        )
+        .map((row) => row.event.sourceId),
+    ),
+  ];
+  const executions = await prisma.workflowExecution.findMany({
+    where: {
+      organizationId,
+      isDeleted: false,
+      id: { in: runIds },
+      OR: [
+        { userId },
+        {
+          workflow: {
+            is: { userId, organizationId, isDeleted: false },
+          },
+        },
+      ],
+      workflow: {
+        is: {
+          organizationId,
+          isDeleted: false,
+          OR: sourceAccessWhere.OR,
+        },
+      },
+    },
+    select: {
+      id: true,
+      workflowId: true,
+      workflow: {
+        select: {
+          label: true,
+          metadata: true,
+          brand: { select: { slug: true } },
+        },
+      },
+      ingredients: {
+        where: {
+          organizationId,
+          isDeleted: false,
+          ...(restrictToAssignedBrands
+            ? {
+                OR: [
+                  { brandId: null },
+                  {
+                    brandId: {
+                      in: member.brands.map((brand) => brand.id),
+                    },
+                  },
+                ],
+              }
+            : {}),
+        },
+        orderBy: { createdAt: 'desc' },
+        select: {
+          id: true,
+          category: true,
+          brand: { select: { slug: true } },
+        },
+        take: 1,
+      },
+    },
+  });
+  const sources = new Map(executions.map((source) => [source.id, source]));
+  const threadEvents = await prisma.agentThreadEvent.findMany({
+    where: {
+      organizationId,
+      isDeleted: false,
+      runId: { in: runIds },
+      thread: { is: sourceAccessWhere },
+    },
+    select: {
+      runId: true,
+      thread: {
+        select: {
+          id: true,
+          title: true,
+          agentStrategyId: true,
+          brand: { select: { slug: true } },
+        },
+      },
+    },
+    orderBy: { sequence: 'desc' },
+  });
+  const threads = new Map<string, (typeof threadEvents)[number]['thread']>();
+  for (const event of threadEvents) {
+    const runId = event.runId;
+    if (!runId || threads.has(runId)) {
+      continue;
+    }
+    threads.set(runId, event.thread);
+  }
+
+  const strategyIdFromPayload = (
+    row: (typeof page)[number],
+  ): string | undefined => {
+    const payload = row.event.payload;
+    return row.topic === 'agent.status' &&
+      ['agent_run', 'agent_strategy'].includes(row.event.sourceType) &&
+      payload &&
+      typeof payload === 'object' &&
+      !Array.isArray(payload) &&
+      typeof payload.strategyId === 'string' &&
+      (row.event.sourceType !== 'agent_strategy' ||
+        payload.strategyId === row.event.sourceId)
+      ? payload.strategyId
+      : undefined;
+  };
+  const strategyIds = [
+    ...new Set(
+      [
+        ...page.map(strategyIdFromPayload),
+        ...[...threads.values()].map((thread) => thread.agentStrategyId),
+      ].filter((id): id is string => typeof id === 'string' && id.length > 0),
+    ),
+  ];
+  const reviewStrategyIds = page
+    .filter(
+      (row) =>
+        row.topic === 'agent.status' &&
+        row.event.sourceType === 'agent_strategy',
+    )
+    .map(strategyIdFromPayload)
+    .filter((id): id is string => Boolean(id));
+  const strategies = strategyIds.length
+    ? await prisma.agentStrategy.findMany({
+        where: {
+          ...sourceAccessWhere,
+          userId: undefined,
+          id: { in: strategyIds },
+          AND: [{ OR: [{ userId }, { id: { in: reviewStrategyIds } }] }],
+        },
+        select: { id: true, label: true, brand: { select: { slug: true } } },
+      })
+    : [];
+  const accessibleStrategies = new Map(
+    strategies.map((strategy) => [strategy.id, strategy]),
+  );
+  return {
+    accessibleStrategies,
+    sources,
+    strategyIdFor: strategyIdFromPayload,
+    threads,
+  };
 }

@@ -6,7 +6,6 @@ import {
 import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import {
-  AgentPublishDecision,
   BatchItemStatus,
   BatchStatus,
   PersistedReviewDecision,
@@ -15,7 +14,6 @@ import {
 } from '@genfeedai/contracts';
 import type {
   IBatchSummary,
-  IPublishApproval,
   VideoContinuityQaReport,
 } from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
@@ -45,6 +43,10 @@ import {
   resolveBatchItems,
   toBatchWithConfig,
 } from '@api/services/batch-generation/batch-generation.types';
+import {
+  appendApprovedReviewEvent,
+  pinApprovedDrafts,
+} from '@api/services/batch-generation/batch-generation-review-approval';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import {
   batchItemRowsInclude,
@@ -255,83 +257,22 @@ export class BatchGenerationReviewService {
       autonomous,
       expectedPostVersions,
     } = params;
-    const versionPinIds = new Map<string, string>();
-    const publishApprovals = new Map<string, IPublishApproval>();
-
-    for (const postId of selectedPostIds) {
-      const item = batchItems.find((candidate) => candidate.postId === postId);
-      const post = await transaction.post.findFirst({
-        where: scopedWhere(orgId, {
-          id: postId,
-          targetExecutionState: TargetExecutionState.DRAFT,
-        }),
-      });
-      if (!post)
-        throw new BadRequestException('Only a current draft can be approved');
-      this.assertExpectedPostVersion(
-        post.id,
-        post.updatedAt,
-        expectedPostVersions,
-      );
-      if (autonomous) {
-        const policy = await this.autonomousPublishPolicy.resolveForPost(
-          { organizationId: orgId, postId },
-          transaction,
-        );
-        if (
-          policy.result.decision !== AgentPublishDecision.PERMITTED ||
-          !item?.scheduledDate ||
-          !post.credentialId
-        )
-          throw new BadRequestException(
-            'Autonomous publication requires explicit policy, destination and schedule',
-          );
-      }
-      if (item && !autonomous)
-        await this.autonomousPublishPolicy.recordReviewDecision(
-          {
-            organizationId: orgId,
-            postId,
-            userId: createdByUserId,
-            decision: ReviewDecision.APPROVED,
-            previousDecision: item.reviewDecision,
-            generatedCaption: item.caption,
-            hasRewriteHistory: Boolean(item.reviewEvents?.length),
-          },
-          transaction,
-        );
-      if (item?.scheduledDate) {
-        const approval =
-          await this.publishApprovalsService.createForCurrentPost({
-            actorUserId: createdByUserId,
-            mode: 'scheduled',
-            organizationId: orgId,
-            postId,
-            provenance: {
-              batchId,
-              reviewItemId: item.id,
-              surface: 'review-queue',
-            },
-            transaction,
-          });
-        publishApprovals.set(postId, approval);
-        versionPinIds.set(postId, approval.artifactVersionPinId);
-      } else {
-        const versionPin =
-          await this.agentArtifactReferenceService.createOrReuseVersionPin({
-            createdByUserId,
-            reference: {
-              ...(batchRecord.brandId ? { brandId: batchRecord.brandId } : {}),
-              kind: 'post',
-              organizationId: orgId,
-              recordId: postId,
-              serializer: 'post',
-            },
-            transaction,
-          });
-        versionPinIds.set(postId, versionPin.id);
-      }
-    }
+    const { publishApprovals, versionPinIds } = await pinApprovedDrafts({
+      agentArtifactReferenceService: this.agentArtifactReferenceService,
+      assertExpectedPostVersion: (postId, updatedAt, expected) =>
+        this.assertExpectedPostVersion(postId, updatedAt, expected),
+      autonomous,
+      autonomousPublishPolicy: this.autonomousPublishPolicy,
+      batchId,
+      batchItems,
+      batchRecord,
+      createdByUserId,
+      expectedPostVersions,
+      orgId,
+      publishApprovalsService: this.publishApprovalsService,
+      selectedPostIds,
+      transaction,
+    });
 
     const postIdsToSchedule: string[] = [];
 
@@ -351,7 +292,7 @@ export class BatchGenerationReviewService {
         item.reviewFeedback = undefined;
         item.versionPinId = versionPinId;
         item.reviewedAt = reviewedAt;
-        this.appendApprovedReviewEvent(
+        appendApprovedReviewEvent(
           item,
           reviewedAt,
           createdByUserId,
@@ -422,23 +363,6 @@ export class BatchGenerationReviewService {
       throw new NotFoundException('Batch', batchId);
     }
     return toBatchWithConfig(updated);
-  }
-
-  private appendApprovedReviewEvent(
-    item: BatchItemFull,
-    reviewedAt: string,
-    reviewerId: string,
-    versionPinId?: string,
-  ): void {
-    item.reviewEvents = [
-      ...(item.reviewEvents ?? []),
-      {
-        decision: ReviewDecision.APPROVED,
-        reviewedAt,
-        reviewerId,
-        ...(versionPinId ? { versionPinId } : {}),
-      },
-    ];
   }
 
   private toReviewInboxItemSummary(row: {

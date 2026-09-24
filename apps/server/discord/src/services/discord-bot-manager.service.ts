@@ -1,4 +1,9 @@
 import { ConfigService } from '@discord/config/config.service';
+import {
+  handleDiscordAgentReview,
+  loadDiscordOrgWorkflows,
+  rememberDiscordIntegration,
+} from '@discord/services/discord-manager-fetches';
 import { formatAgentFailureMessage } from '@genfeedai/agent/server';
 import { IntegrationPlatform } from '@genfeedai/contracts';
 import {
@@ -519,31 +524,10 @@ export class DiscordBotManager
     orgId: string,
   ): Promise<void> {
     const customId = interaction.customId;
-    const reviewMatch = customId.match(
-      /^agent-review:([a-f0-9]{32}):(approve|reject)$/,
-    );
-    if (reviewMatch && reviewMatch[0] === customId) {
-      await interaction.deferReply({ ephemeral: true });
-      const failureMessage =
-        'This review could not be completed. It may have expired or you may not be authorized. Please review the content in the app.';
-      if (!interaction.channelId || !interaction.user.id) {
-        await interaction.editReply({ content: failureMessage });
-        return;
-      }
-      try {
-        const result = await this.internalApiClient.resolveAgentReportReview({
-          organizationId: orgId,
-          remoteUserId: interaction.user.id,
-          channelId: interaction.channelId,
-          token: reviewMatch[1],
-          decision: reviewMatch[2] === 'approve' ? 'approve' : 'reject',
-        });
-        await interaction.editReply({ content: result.message });
-      } catch {
-        await interaction.editReply({ content: failureMessage });
-      }
+    if (
+      await handleDiscordAgentReview(this.internalApiClient, interaction, orgId)
+    )
       return;
-    }
 
     if (customId.startsWith('wf:')) {
       const workflowId = customId.slice(3);
@@ -988,56 +972,45 @@ export class DiscordBotManager
   }
 
   protected async fetchAndAddIntegration(integrationId: string): Promise<void> {
-    try {
-      const integration =
-        await this.internalApiClient.fetchIntegration(integrationId);
-      if (!integration) {
-        this.logger.warn(
-          `Unable to normalize Discord integration payload: ${integrationId}`,
-        );
-        return;
-      }
-      await this.addIntegration(integration);
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch and add integration ${integrationId}:`,
-        this.sanitizeErrorForLog(error),
-      );
-    }
+    await rememberDiscordIntegration({
+      apply: (integration) => this.addIntegration(integration),
+      integrationId,
+      load: () => this.internalApiClient.fetchIntegration(integrationId),
+      logError: (error) =>
+        this.logger.error(
+          `Failed to fetch and add integration ${integrationId}:`,
+          this.sanitizeErrorForLog(error),
+        ),
+      warn: (message) => this.logger.warn(message),
+    });
   }
 
   protected async fetchAndUpdateIntegration(
     integrationId: string,
   ): Promise<void> {
-    try {
-      const integration =
-        await this.internalApiClient.fetchIntegration(integrationId);
-      if (!integration) {
-        this.logger.warn(
-          `Unable to normalize Discord integration payload: ${integrationId}`,
-        );
-        return;
-      }
-      await this.updateIntegration(integration);
-    } catch (error) {
-      this.logger.error(
-        `Failed to fetch and update integration ${integrationId}:`,
-        this.sanitizeErrorForLog(error),
-      );
-    }
+    await rememberDiscordIntegration({
+      apply: (integration) => this.updateIntegration(integration),
+      integrationId,
+      load: () => this.internalApiClient.fetchIntegration(integrationId),
+      logError: (error) =>
+        this.logger.error(
+          `Failed to fetch and update integration ${integrationId}:`,
+          this.sanitizeErrorForLog(error),
+        ),
+      warn: (message) => this.logger.warn(message),
+    });
   }
 
   private async fetchOrgWorkflows(
     orgId: string,
   ): Promise<WorkflowDefinition[]> {
-    try {
-      return await this.internalApiClient.fetchOrgWorkflows(orgId);
-    } catch (error) {
-      this.logger.error(
-        'Failed to fetch workflows:',
-        this.sanitizeErrorForLog(error),
-      );
-      return [];
-    }
+    return loadDiscordOrgWorkflows({
+      load: () => this.internalApiClient.fetchOrgWorkflows(orgId),
+      logError: (error) =>
+        this.logger.error(
+          'Failed to fetch workflows:',
+          this.sanitizeErrorForLog(error),
+        ),
+    });
   }
 }
