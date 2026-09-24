@@ -111,22 +111,27 @@ describe('ApifyRunBudgetService', () => {
           } else {
             growth = providerMicro - snapshot;
           }
-          const isCovered = outstanding === 0 && providerMicro <= settled;
           let next = current;
           let nextProvisional = provisional;
-          if (growth > 0 && !isCovered) {
+          if (growth > 0) {
             next += growth;
-            if (outstanding > 0) nextProvisional += growth;
+            const ambiguous = Math.min(growth, outstanding);
+            if (ambiguous > 0) nextProvisional += ambiguous;
           }
           counters[usageKey] = next;
           counters[snapshotKey] = providerMicro;
           counters[provisionalKey] = nextProvisional;
-          if (isCovered && nextProvisional > 0 && next >= nextProvisional) {
+          if (
+            outstanding === 0 &&
+            nextProvisional > 0 &&
+            settled >= nextProvisional &&
+            next >= nextProvisional
+          ) {
             counters[usageKey] = next - nextProvisional;
             counters[provisionalKey] = 0;
           }
           if (isBaselined) return { status: 'baselined' };
-          if (growth > 0 && !isCovered) {
+          if (growth > 0) {
             return { externalMicroUsd: growth, status: 'applied' };
           }
           return { status: 'unchanged' };

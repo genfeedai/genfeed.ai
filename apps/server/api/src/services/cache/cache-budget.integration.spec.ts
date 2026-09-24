@@ -297,6 +297,14 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
       status: 'unchanged',
     });
     expect(await redis.get(ledger)).toBe('230');
+
+    expect(
+      await services[0].reconcileCounterReservation(ledger, receipt, 100, 100),
+    ).toBe('settled');
+    expect(
+      await services[0].noteSettledResearchReservation(ledger, receipt),
+    ).toBe('noted');
+    expect(await redis.get(ledger)).toBe('130');
   });
 
   it.each([

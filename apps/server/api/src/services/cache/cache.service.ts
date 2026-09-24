@@ -104,23 +104,8 @@ local delta = actual - reserved
 if delta > 0 and current > MAX - delta then return 0 end
 local final = current + delta
 if final < 0 or final > MAX then return 0 end
--- Withheld provider usage was hidden inside this reservation's cap.
--- When the actual charge does not cover it, keep the whole withheld
--- total: the reservation cap is not proof those dollars were ours.
--- When the actual charge does cover it, adding it would bill our own
--- run twice. Either way the hold is consumed here, not on a later refresh.
-local withheld = integer(redis.call('GET', KEYS[1] .. ':withheld') or '0')
-local floor = integer(redis.call('GET', KEYS[1] .. ':floor') or '0')
-if withheld == nil or floor == nil then return 0 end
-if withheld > actual then
-  if final > MAX - withheld then return 0 end
-  final = final + withheld
-  redis.call('SET', KEYS[1] .. ':snapshot', string.format('%.0f', floor), 'PX', ttl)
-end
-redis.call('INCRBY', KEYS[1], string.format('%.0f', final - current))
+redis.call('INCRBY', KEYS[1], string.format('%.0f', delta))
 redis.call('HSET', KEYS[2], 'state', 'settled', 'actualMicroUsd', ARGV[2])
-redis.call('SET', KEYS[1] .. ':withheld', '0', 'PX', ttl)
-redis.call('SET', KEYS[1] .. ':resolved', string.format('%.0f', floor), 'PX', ttl)
 return 1
 `;
 
@@ -149,21 +134,21 @@ if not reserved or not actual or not outstanding or not settled then return 0 en
 if outstanding < reserved or settled > MAX - actual then return 0 end
 local settledNow = settled + actual
 local outstandingNow = outstanding - reserved
-local provider = integer(redis.call('GET', KEYS[5]) or '0')
-local provisional = integer(redis.call('GET', KEYS[6]) or '0')
-if provider == nil or provisional == nil then return 0 end
+local provisional = integer(redis.call('GET', KEYS[5]) or '0')
+if provisional == nil then return 0 end
 redis.call('SET', KEYS[3], string.format('%.0f', outstandingNow), 'PX', ttl)
 redis.call('SET', KEYS[4], string.format('%.0f', settledNow), 'PX', ttl)
 redis.call('HSET', KEYS[2], 'booksSettled', '1')
--- The provider total is fully explained by our actuals. The hold taken
--- while the reservation was open was our own charge, so it comes back out
--- in the same write that closes the reservation.
+-- The ambiguous hold comes out only when our booked actuals cover it.
+-- A provider total above those actuals stays on the counter: the open
+-- cap was not proof that spend was ours. Releasing it here, in the same
+-- write that closes the reservation, means a later refresh is not required.
 if
-  outstandingNow == 0 and provider <= settledNow and provisional > 0 and
+  outstandingNow == 0 and provisional > 0 and settledNow >= provisional and
   current >= provisional
 then
   redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
-  redis.call('SET', KEYS[6], '0', 'PX', ttl)
+  redis.call('SET', KEYS[5], '0', 'PX', ttl)
 end
 return 1
 `;
@@ -190,30 +175,35 @@ else
   if provider < snapshot then return {4} end
   growth = provider - snapshot
 end
--- Open reservations are a cap, not incurred spend. Hold every new provider
--- dollar on the counter until settlement. The counter release subtracts only
--- the unused reservation, so this hold cannot disappear in that write.
--- Once nothing is open and settled actuals cover the provider total, that
--- hold was our own charge and comes back out. Later provider growth that is
--- still inside those actuals is not added again.
-local covered = outstanding == 0 and provider <= settled
-if growth > 0 and not covered then
+-- Open reservations are a cap, not incurred spend. Every new provider
+-- dollar goes on the counter immediately, so a reservation release cannot
+-- drop the ledger below usage the provider already reported.
+-- Only the slice inside the cap is provisional. Dollars above the cap are
+-- external and stay. The provisional slice comes back out when booked
+-- actuals cover it; if the provider total is higher, it stays, so external
+-- spend inside the cap is not erased and our own run is not billed twice.
+local ambiguous = growth
+if ambiguous > outstanding then ambiguous = outstanding end
+if growth > 0 then
   if current > MAX - growth then return 0 end
-  if outstanding > 0 and provisional > MAX - growth then return 0 end
+  if ambiguous > 0 and provisional > MAX - ambiguous then return 0 end
   redis.call('INCRBY', KEYS[1], string.format('%.0f', growth))
   current = current + growth
-  if outstanding > 0 then
-    provisional = provisional + growth
+  if ambiguous > 0 then
+    provisional = provisional + ambiguous
     redis.call('SET', KEYS[5], string.format('%.0f', provisional), 'PX', ttl)
   end
 end
 redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
-if covered and provisional > 0 and current >= provisional then
+if
+  outstanding == 0 and provisional > 0 and settled >= provisional and
+  current >= provisional
+then
   redis.call('INCRBY', KEYS[1], string.format('%.0f', -provisional))
   redis.call('SET', KEYS[5], '0', 'PX', ttl)
 end
 if baselined then return {3} end
-if growth > 0 and not covered then return {1, string.format('%.0f', growth)} end
+if growth > 0 then return {1, string.format('%.0f', growth)} end
 return {2}
 `;
 
@@ -407,7 +397,6 @@ export class CacheService {
         reservationKey,
         `${usageKey}:outstanding`,
         `${usageKey}:settled`,
-        `${usageKey}:snapshot`,
         `${usageKey}:provisional`,
       ],
       [],
@@ -416,11 +405,11 @@ export class CacheService {
   }
 
   /**
-   * Fold provider-account usage into the hosted counter. Growth observed
-   * while a reservation is open is held in full, because that reservation is
-   * a cap rather than evidence the provider charge is ours. Settlement
-   * releases only the unused reservation. The hold comes back out when no
-   * reservation remains and settled actuals cover the provider total.
+   * Fold provider-account usage into the hosted counter. New provider
+   * dollars are held immediately. The slice inside an open reservation cap
+   * is provisional and comes back out only when booked actuals cover it.
+   * Dollars above that cap stay. A reservation release never drops the
+   * counter below provider usage already observed.
    */
   async importHostedAccountUsage(
     usageKey: string,
