@@ -8,6 +8,7 @@
  * - SkillCatalogSeedService provisions first-party product SKILL.md rows.
  */
 
+import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
 import { ModelCatalogSeedService } from '@api/seeds/model-catalog-seed.service';
 import { SelfHostedSeedService } from '@api/seeds/self-hosted-seed.service';
 import { SkillCatalogSeedService } from '@api/seeds/skill-catalog-seed.service';
@@ -15,7 +16,7 @@ import { LoggerModule } from '@libs/logger/logger.module';
 import { Module } from '@nestjs/common';
 
 @Module({
-  imports: [LoggerModule],
+  imports: [LoggerModule, SkillsCoreModule],
   providers: [
     ModelCatalogSeedService,
     SelfHostedSeedService,

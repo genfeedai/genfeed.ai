@@ -1289,14 +1289,6 @@
       "reason": "unresolved-where"
     },
     {
-      "delegate": "skill",
-      "file": "apps/server/api/src/collections/skills/services/skills.service.ts",
-      "fingerprint": "b41f0655e58dd57d745a",
-      "method": "findMany",
-      "model": "Skill",
-      "reason": "unresolved-where"
-    },
-    {
       "delegate": "socialConversation",
       "file": "apps/server/api/src/collections/social-inbox/services/social-inbox-action.service.ts",
       "fingerprint": "2903b8ca4f0e38496d22",

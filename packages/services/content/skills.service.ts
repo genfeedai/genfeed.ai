@@ -73,6 +73,13 @@ export class Skill {
   source!: SkillSource;
   sourceListingId?: string;
   status!: SkillStatus;
+  canEdit?: boolean;
+  canExport?: boolean;
+  canFork?: boolean;
+  canPublish?: boolean;
+  canRead?: boolean;
+  canShare?: boolean;
+  canUse?: boolean;
   /** Composer surfaces this skill is offered on; derived client-side when absent. */
   surfaces?: string[];
   systemPromptTemplate?: string;
@@ -128,5 +135,19 @@ export class SkillsService extends BaseService<
 
   async updateSkill(id: string, input: Partial<SkillInput>): Promise<Skill> {
     return this.patch(id, input);
+  }
+
+  async exportSkill(id: string): Promise<Record<string, unknown>> {
+    return this.instance.get<Record<string, unknown>>(`/${id}/export`);
+  }
+
+  async archiveSkill(id: string): Promise<void> {
+    await this.instance.post(`/${id}/archive`, {});
+  }
+
+  async rollbackSkill(id: string, versionId: string): Promise<Skill> {
+    return this.instance
+      .post<JsonApiResponseDocument>(`/${id}/rollback`, { versionId })
+      .then((response) => this.mapOne(response.data));
   }
 }

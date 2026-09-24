@@ -600,6 +600,14 @@ model User {
   // Ownership relations (what this user owns)
   organizations             Organization[]
   brands                    Brand[]
+  ownedSkills               Skill[]                 @relation("skill_owner_user")
+  skillVersionsCreated      SkillVersion[]          @relation("skill_version_created_by")
+  skillGrantsReceived       SkillGrant[]            @relation("skill_grant_recipient_user")
+  skillGrantsCreated        SkillGrant[]            @relation("skill_grant_granted_by")
+  skillAssignments          SkillAssignment[]       @relation("skill_assignment_user")
+  skillPublications         SkillPublication[]      @relation("skill_publication_actor")
+  skillResolutions          SkillResolution[]
+  generationPromptSnapshots GenerationPromptSnapshot[]
   members                   Member[]
   invitationsSent           Invitation[]              @relation("invitation_invited_by")
   invitationsAccepted       Invitation[]              @relation("invitation_accepted_by")
@@ -868,6 +876,10 @@ model Organization {
   contextBases                  ContextBase[]
   contextEntries                ContextEntry[]
   skills                        Skill[]
+  receivedSkillGrants           SkillGrant[]              @relation("skill_grant_recipient_org")
+  skillAssignments              SkillAssignment[]
+  skillResolutions              SkillResolution[]
+  generationPromptSnapshots     GenerationPromptSnapshot[]
   skillReceipts                 SkillReceipt[]
   templates                     Template[]
   templateUsages                TemplateUsage[]
@@ -1065,6 +1077,11 @@ model Brand {
   bots                       Bot[]
   livestreamBotSessions      LivestreamBotSession[]
   studioLooks                StudioLook[]
+  ownedSkills                Skill[]                      @relation("skill_owner_brand")
+  receivedSkillGrants        SkillGrant[]                 @relation("skill_grant_recipient_brand")
+  skillAssignments           SkillAssignment[]            @relation("skill_assignment_brand")
+  skillResolutions           SkillResolution[]            @relation("skill_resolution_brand")
+  generationPromptSnapshots  GenerationPromptSnapshot[]   @relation("prompt_snapshot_brand")
 
   @@unique([id, organizationId], map: "brands_id_organizationId_key")
   @@index([isDefault])
@@ -6287,19 +6304,215 @@ model ContextEntry {
   @@map("context_entries")
 }
 
+/// Customer and catalog instruction skill. Ownership, audience, grants, and
+/// assignments are separate. Instruction bodies live on immutable versions.
 model Skill {
-  id             String        @id @default(cuid())
-  organizationId String?
-  organization   Organization? @relation(fields: [organizationId], references: [id])
-  label          String?
-  config         Json          @default("{}")
-  isDeleted      Boolean       @default(false)
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
-  sourceMemories AgentMemory[]
+  id                   String        @id @default(cuid())
+  organizationId       String?
+  organization         Organization? @relation(fields: [organizationId], references: [id])
+  /// system, user, organization, or brand. Null only while quarantined.
+  ownerKind            String?
+  ownerUserId          String?
+  ownerUser            User?         @relation("skill_owner_user", fields: [ownerUserId], references: [id], onDelete: Restrict)
+  brandId              String?
+  brand                Brand?        @relation("skill_owner_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  /// private, organization, or public. Public is an explicit publication.
+  audience             String?
+  isQuarantined        Boolean       @default(false)
+  latestVersionNumber  Int           @default(0)
+  revision             Int           @default(0)
+  currentVersionId     String?
+  currentVersion       SkillVersion? @relation("skill_current_version", fields: [currentVersionId], references: [id], onDelete: Restrict)
+  sharedVersionId      String?
+  sharedVersion        SkillVersion? @relation("skill_shared_version", fields: [sharedVersionId], references: [id], onDelete: Restrict)
+  publishedVersionId   String?
+  publishedVersion     SkillVersion? @relation("skill_published_version", fields: [publishedVersionId], references: [id], onDelete: Restrict)
+  label                String?
+  config               Json          @default("{}")
+  isDeleted            Boolean       @default(false)
+  createdAt            DateTime      @default(now())
+  updatedAt            DateTime      @updatedAt
+  sourceMemories       AgentMemory[]
+  versions             SkillVersion[] @relation("skill_versions")
+  grants               SkillGrant[]
+  assignments          SkillAssignment[]
+  publications         SkillPublication[]
+  resolutionItems      SkillResolutionItem[]
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([ownerUserId, isDeleted])
+  @@index([organizationId, brandId, isDeleted])
   @@map("skills")
+}
+
+/// Append-only instruction snapshot. Capture is the only insert path.
+model SkillVersion {
+  id                     String   @id
+  skillId                String
+  skill                  Skill    @relation("skill_versions", fields: [skillId], references: [id], onDelete: Restrict)
+  versionNumber          Int
+  format                 String
+  payload                Json
+  instructionText        String   @default("")
+  instructionSourceField String?
+  instructionUsable      Boolean  @default(false)
+  contentHash            String
+  instructionHash        String
+  createdById            String?
+  createdBy              User?    @relation("skill_version_created_by", fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt              DateTime @default(now())
+
+  currentFor      Skill[]               @relation("skill_current_version")
+  sharedFor       Skill[]               @relation("skill_shared_version")
+  publishedFor    Skill[]               @relation("skill_published_version")
+  grants          SkillGrant[]
+  assignments     SkillAssignment[]
+  publications    SkillPublication[]
+  resolutionItems SkillResolutionItem[]
+
+  @@unique([skillId, versionNumber])
+  @@unique([id, skillId])
+  @@index([skillId, versionNumber(sort: Desc)])
+  @@map("skill_versions")
+}
+
+/// Version-pinned use or use-and-read grant. Revocation is `revokedAt`.
+model SkillGrant {
+  id                        String    @id @default(cuid())
+  skillId                   String
+  skill                     Skill     @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  skillVersionId            String
+  skillVersion              SkillVersion @relation(fields: [skillVersionId, skillId], references: [id, skillId], onDelete: Restrict)
+  recipientKind             String
+  recipientUserId           String?
+  recipientUser             User?     @relation("skill_grant_recipient_user", fields: [recipientUserId], references: [id], onDelete: Restrict)
+  recipientOrganizationId   String?
+  recipientOrganization     Organization? @relation("skill_grant_recipient_org", fields: [recipientOrganizationId], references: [id], onDelete: Restrict)
+  recipientBrandId          String?
+  recipientBrand            Brand?    @relation("skill_grant_recipient_brand", fields: [recipientBrandId, recipientOrganizationId], references: [id, organizationId], onDelete: Restrict)
+  /// use or use_and_read. Use does not authorize reading instructions.
+  access                    String    @default("use")
+  grantedById               String?
+  grantedBy                 User?     @relation("skill_grant_granted_by", fields: [grantedById], references: [id], onDelete: Restrict)
+  revokedAt                 DateTime?
+  createdAt                 DateTime  @default(now())
+
+  @@index([skillId, skillVersionId, revokedAt])
+  @@index([recipientUserId, revokedAt])
+  @@index([recipientOrganizationId, revokedAt])
+  @@map("skill_grants")
+}
+
+/// Pinned application of a permitted version to a user, organization, or brand.
+model SkillAssignment {
+  id               String       @id @default(cuid())
+  skillId          String
+  skill            Skill        @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  skillVersionId   String
+  skillVersion     SkillVersion @relation(fields: [skillVersionId, skillId], references: [id, skillId], onDelete: Restrict)
+  targetKind       String
+  organizationId   String
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  brandId          String?
+  brand            Brand?       @relation("skill_assignment_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  userId           String?
+  user             User?        @relation("skill_assignment_user", fields: [userId], references: [id], onDelete: Restrict)
+  isEnabled        Boolean      @default(true)
+  isDeleted        Boolean      @default(false)
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted, isEnabled])
+  @@index([organizationId, userId, isDeleted])
+  @@index([organizationId, brandId, isDeleted])
+  @@map("skill_assignments")
+}
+
+/// Append-only publish and unpublish audit.
+model SkillPublication {
+  id             String       @id @default(cuid())
+  skillId        String
+  skill          Skill        @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  skillVersionId String
+  skillVersion   SkillVersion @relation(fields: [skillVersionId, skillId], references: [id, skillId], onDelete: Restrict)
+  action         String
+  audience       String
+  actorUserId    String?
+  actor          User?        @relation("skill_publication_actor", fields: [actorUserId], references: [id], onDelete: Restrict)
+  createdAt      DateTime     @default(now())
+
+  @@index([skillId, createdAt(sort: Desc)])
+  @@map("skill_publications")
+}
+
+/// Metadata-only record of one resolution. Instruction text is not stored here.
+model SkillResolution {
+  id             String    @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  userId         String
+  user           User      @relation(fields: [userId], references: [id], onDelete: Restrict)
+  brandId        String?
+  brand          Brand?    @relation("skill_resolution_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  isDeleted      Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  items          SkillResolutionItem[]
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, userId, isDeleted])
+  @@map("skill_resolutions")
+}
+
+model SkillResolutionItem {
+  id               String          @id @default(cuid())
+  resolutionId     String
+  resolution       SkillResolution @relation(fields: [resolutionId], references: [id], onDelete: Restrict)
+  skillId          String
+  skill            Skill           @relation(fields: [skillId], references: [id], onDelete: Restrict)
+  skillVersionId   String
+  skillVersion     SkillVersion    @relation(fields: [skillVersionId, skillId], references: [id, skillId], onDelete: Restrict)
+  contentHash      String
+  origin           String
+  inclusion        String
+  exclusionReason  String?
+  createdAt        DateTime        @default(now())
+
+  @@index([resolutionId])
+  @@map("skill_resolution_items")
+}
+
+/// Encrypted application-submitted prompt evidence. Shared logs store the id and hash.
+model GenerationPromptSnapshot {
+  id                  String       @id @default(cuid())
+  organizationId      String
+  organization        Organization @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  userId              String
+  user                User         @relation(fields: [userId], references: [id], onDelete: Restrict)
+  brandId             String?
+  brand               Brand?       @relation("prompt_snapshot_brand", fields: [brandId, organizationId], references: [id, organizationId], onDelete: Restrict)
+  resolutionId        String?
+  workflowExecutionId String?
+  providerAttemptRef  String?
+  format              String
+  contentHash         String
+  ciphertext          String
+  retentionState      String       @default("retained")
+  isDeleted           Boolean      @default(false)
+  createdAt           DateTime     @default(now())
+
+  @@index([organizationId, isDeleted, createdAt(sort: Desc)])
+  @@index([organizationId, userId, isDeleted])
+  @@map("generation_prompt_snapshots")
+}
+
+/// Duplicate-slug and capture findings recorded when a uniqueness index cannot be enforced yet.
+model SkillMigrationFinding {
+  id        String   @id
+  kind      String
+  detail    Json
+  createdAt DateTime @default(now())
+
+  @@map("skill_migration_findings")
 }
 
 model SkillReceipt {

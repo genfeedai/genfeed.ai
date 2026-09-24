@@ -9,10 +9,16 @@
 import type { FirstPartySkillDefinition } from '@api/collections/skills/catalog/first-party-skill.types';
 import { loadFirstPartySkillDefinitions } from '@api/collections/skills/catalog/first-party-skill-loader';
 import { isBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
+import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Injectable,
+  type OnApplicationBootstrap,
+  Optional,
+} from '@nestjs/common';
 
 export type SkillCatalogSeedResult = {
   inserted: number;
@@ -27,11 +33,13 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    @Optional() private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     try {
       await this.reconcileCatalog();
+      await this.skillLibrary?.backfillExistingOrganizations();
     } catch (error) {
       this.logger.error(
         'First-party skill catalog seed failed — agent skills may be incomplete',
@@ -120,16 +128,23 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
     });
 
     if (!existing) {
-      // tenant-scope-ignore: first-party catalog rows are organizationId-null
-      await this.prisma.skill.create({
-        data: {
-          config: this.buildCatalogConfig(definition) as Prisma.InputJsonValue,
-          id: definition.id,
-          isDeleted: false,
-          label: definition.name,
-          organizationId: null,
-        },
-      });
+      await withSkillWriteSession(
+        this.prisma,
+        { origin: 'provisioning' },
+        (tx) =>
+          // tenant-scope-ignore: first-party catalog rows are organizationId-null
+          tx.skill.create({
+            data: {
+              config: this.buildCatalogConfig(
+                definition,
+              ) as Prisma.InputJsonValue,
+              id: definition.id,
+              isDeleted: false,
+              label: definition.name,
+              organizationId: null,
+            },
+          }),
+      );
       return 'inserted';
     }
 
@@ -172,16 +187,18 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
       return 'skipped';
     }
 
-    // tenant-scope-ignore: updates the same migration-owned global catalog id
-    await this.prisma.skill.update({
-      data: {
-        config: nextConfig as Prisma.InputJsonValue,
-        isDeleted: false,
-        label: definition.name,
-        organizationId: null,
-      },
-      where: { id: definition.id },
-    });
+    await withSkillWriteSession(this.prisma, { origin: 'provisioning' }, (tx) =>
+      // tenant-scope-ignore: updates the same migration-owned global catalog id
+      tx.skill.update({
+        data: {
+          config: nextConfig as Prisma.InputJsonValue,
+          isDeleted: false,
+          label: definition.name,
+          organizationId: null,
+        },
+        where: { id: definition.id },
+      }),
+    );
 
     return 'updated';
   }

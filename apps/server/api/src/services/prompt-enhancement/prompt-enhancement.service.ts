@@ -23,6 +23,7 @@ const DEFAULT_TEXT_SYSTEM_PROMPT =
   'You are an expert AI assistant. Follow the instructions carefully and provide high-quality responses.';
 
 export interface PromptEnhancementInput {
+  actorUserId?: string;
   organizationId: string;
   brandId?: string | null;
   userPrompt: string;
@@ -105,16 +106,23 @@ export class PromptEnhancementService {
         input.organizationId,
         input.brandId,
         requestedSkillSlugs,
-        { modality: input.contentType },
+        { actorUserId: input.actorUserId, modality: input.contentType },
       )) ?? '';
+    const systemContent = skillSections
+      ? `${basePrompt}\n\n${skillSections}`
+      : basePrompt;
+    await this.skills?.recordPromptEvidence?.({
+      actorUserId: input.actorUserId,
+      brandId: input.brandId,
+      organizationId: input.organizationId,
+      prompt: `${systemContent}\n\n${input.userPrompt}`,
+    });
     const response = await this.openRouter.chatCompletion(
       {
         max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
         messages: [
           {
-            content: skillSections
-              ? `${basePrompt}\n\n${skillSections}`
-              : basePrompt,
+            content: systemContent,
             role: 'system',
           },
           { content: input.userPrompt, role: 'user' },

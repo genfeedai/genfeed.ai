@@ -60,20 +60,23 @@ describe('SkillDownloadController', () => {
     },
   );
 
-  it('keeps install on the authenticated guard path', () => {
-    const context = {
-      getClass: () => SkillDownloadController,
-      getHandler: () => SkillDownloadController.prototype.installSkill,
-    } as unknown as ExecutionContext;
+  it.each(['installSkill', 'rollbackSkill'] as const)(
+    'keeps %s on the authenticated guard path',
+    (method) => {
+      const context = {
+        getClass: () => SkillDownloadController,
+        getHandler: () => SkillDownloadController.prototype[method],
+      } as unknown as ExecutionContext;
 
-    expect(isPublicRoute(new Reflector(), context)).toBe(false);
-    expect(
-      Reflect.getMetadata(
-        OPTIONAL_AUTH_KEY,
-        SkillDownloadController.prototype.installSkill,
-      ),
-    ).toBeUndefined();
-  });
+      expect(isPublicRoute(new Reflector(), context)).toBe(false);
+      expect(
+        Reflect.getMetadata(
+          OPTIONAL_AUTH_KEY,
+          SkillDownloadController.prototype[method],
+        ),
+      ).toBeUndefined();
+    },
+  );
 
   it('verifies the receipt inside the current organization', async () => {
     verifyReceipt.mockResolvedValue({

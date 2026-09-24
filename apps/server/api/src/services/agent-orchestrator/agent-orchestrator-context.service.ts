@@ -192,7 +192,7 @@ export class AgentOrchestratorContextService {
 
     const { resolvedSkills, skillPromptSuffix } = await this.resolveTurnSkills(
       request,
-      context.organizationId,
+      context,
       policy,
       strategy?.skillSlugs,
     );
@@ -675,7 +675,7 @@ export class AgentOrchestratorContextService {
 
   private async resolveTurnSkills(
     request: AgentChatRequest,
-    organizationId: string,
+    context: AgentChatContext,
     policy: ResolvedAgentExecutionPolicy,
     strategySkillSlugs: string[] | undefined,
   ): Promise<{
@@ -685,10 +685,11 @@ export class AgentOrchestratorContextService {
     const resolvedSkills =
       this.skillRuntimeService && policy.brandId
         ? await this.skillRuntimeService.resolveActiveSkills(
-            organizationId,
+            context.organizationId,
             policy.brandId,
             strategySkillSlugs,
             {
+              actorUserId: context.userId,
               agentType: request.agentType,
               channel: policy.platform,
               modality: this.inferSkillModality(request),

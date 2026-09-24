@@ -3,17 +3,30 @@ import { IsModelKeyOrTraining } from '@api/helpers/validators/model-key-or-train
 import { RouterPriority } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsEnum,
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class CreateMusicDto extends CreateIngredientDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  @MaxLength(160, { each: true })
+  @Matches(/^[a-z0-9][a-z0-9-]*$/i, { each: true })
+  @ApiProperty({ required: false, type: [String] })
+  readonly requestedSkillSlugs?: string[];
+
   @IsBoolean()
   @IsOptional()
   @ApiProperty({

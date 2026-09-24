@@ -8,6 +8,7 @@ import { AGENT_RUNTIME_ACTION_IDS } from '@api/collections/workflows/services/ag
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ElevenLabsService } from '@api/services/integrations/elevenlabs/services/elevenlabs.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { SharedService } from '@api/shared/services/shared/shared.service';
 import { PopulatePatterns } from '@api/shared/utils/populate/populate.util';
 import {
@@ -25,6 +26,7 @@ import {
   HttpStatus,
   Injectable,
   type OnModuleInit,
+  Optional,
 } from '@nestjs/common';
 
 export type VoiceGenerationActionResult = {
@@ -39,6 +41,7 @@ type VoiceGenerationParams = {
   brandId?: string;
   ingredientId: string;
   organizationId: string;
+  requestedSkillSlugs?: string[];
   text: string;
   userId: string;
   voiceId: string;
@@ -57,6 +60,7 @@ export class VoiceGenerationService implements OnModuleInit {
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly activitiesService: ActivitiesService,
     private readonly notifications: NotificationsPublisherService,
+    @Optional() private readonly skillRuntime?: SkillRuntimeService,
   ) {}
 
   onModuleInit(): void {
@@ -108,6 +112,7 @@ export class VoiceGenerationService implements OnModuleInit {
           await this.enqueueGeneration({
             ingredientId: String(accepted.id),
             organizationId: user.organizationId,
+            requestedSkillSlugs: dto.requestedSkillSlugs,
             text: dto.text,
             userId: user.userId ?? user.id,
             voiceId: dto.voiceId,
@@ -145,6 +150,7 @@ export class VoiceGenerationService implements OnModuleInit {
 
     await this.enqueueGeneration({
       ingredientId,
+      requestedSkillSlugs: dto.requestedSkillSlugs,
       organizationId: user.organizationId,
       text: dto.text,
       userId: user.userId ?? user.id,
@@ -310,6 +316,27 @@ export class VoiceGenerationService implements OnModuleInit {
     };
   }
 
+  private async spokenText(params: VoiceGenerationParams): Promise<string> {
+    if (!params.requestedSkillSlugs?.length) return params.text;
+    if (!this.skillRuntime) {
+      throw new HttpException(
+        {
+          detail: 'Selected skills are unavailable for this voice generation',
+          title: 'Skill unavailable',
+        },
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return this.skillRuntime.applyAuthorizedSkillPrompt({
+      actorUserId: params.userId,
+      brandId: params.brandId,
+      modality: 'audio',
+      organizationId: params.organizationId,
+      prompt: params.text,
+      requestedSkillSlugs: params.requestedSkillSlugs,
+    });
+  }
+
   private async executeGeneration(
     params: VoiceGenerationParams,
   ): Promise<IngredientDocument> {
@@ -321,7 +348,7 @@ export class VoiceGenerationService implements OnModuleInit {
     try {
       result = await this.elevenLabsService.generateAndUploadAudio(
         params.voiceId,
-        params.text,
+        await this.spokenText(params),
         params.ingredientId,
         params.organizationId,
         params.userId,

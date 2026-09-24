@@ -36,6 +36,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
+  { name: 'archive_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   {
     name: 'assign_knowledge_purpose',
     surfaces: ['agent', 'mcp', 'workflow'],
@@ -119,6 +120,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'scheduler',
   },
+  { name: 'create_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   {
     name: 'create_social_reply_draft',
     surfaces: ['mcp'],
@@ -150,7 +152,9 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'workflows',
   },
+  { name: 'export_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'fetch_x_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
+  { name: 'fork_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'generate_ad_pack', surfaces: ['agent'], toolset: 'ads' },
   { name: 'generate_as_identity', surfaces: ['agent'], toolset: 'generation' },
   { name: 'generate_clips', surfaces: ['mcp'], toolset: 'clips' },
@@ -396,6 +400,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'prepare_workflow_trigger', surfaces: ['agent'], toolset: 'ui' },
   { name: 'present_payment_options', surfaces: ['agent'], toolset: 'ui' },
   { name: 'present_work_object', surfaces: ['agent'], toolset: 'ui' },
+  { name: 'publish_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'rate_content', surfaces: ['agent'], toolset: 'content' },
   { name: 'rate_ingredient', surfaces: ['agent'], toolset: 'ui' },
   {
@@ -423,6 +428,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp', 'workflow'],
     toolset: 'knowledge',
   },
+  { name: 'rollback_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
   { name: 'save_brand_voice_profile', surfaces: ['agent'], toolset: 'brand' },
   { name: 'save_dashboard_layout', surfaces: ['agent'], toolset: 'ui' },
   { name: 'schedule_post', surfaces: ['agent'], toolset: 'content' },

@@ -33,6 +33,7 @@ import { MurekaModule } from '@api/services/integrations/mureka/mureka.module';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { PromptBuilderModule } from '@api/services/prompt-builder/prompt-builder.module';
 import { RouterModule } from '@api/services/router/router.module';
+import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { IngredientCompletionModule } from '@api/shared/services/poll-until/ingredient-completion.module';
 import { Module } from '@nestjs/common';
@@ -61,6 +62,7 @@ import { Module } from '@nestjs/common';
     PromptsModule,
     ReplicateModule,
     RouterModule,
+    SkillRuntimeModule,
     IngredientCompletionModule,
     WebhooksMediaModule,
   ],

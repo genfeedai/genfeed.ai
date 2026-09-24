@@ -1,5 +1,6 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { SkillsController } from '@api/collections/skills/controllers/skills.controller';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SkillSurface } from '@genfeedai/contracts';
@@ -37,6 +38,12 @@ describe('SkillsController', () => {
         {
           provide: SkillsService,
           useValue: mockService,
+        },
+        {
+          provide: SkillLibraryService,
+          useValue: {
+            present: vi.fn(async (_actor, docs) => docs),
+          },
         },
       ],
     })

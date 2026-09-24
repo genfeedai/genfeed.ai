@@ -42,6 +42,7 @@ export class AiActionsService {
   async execute(
     orgId: string,
     dto: ExecuteAiActionDto,
+    actor?: { brandId?: string | null; userId?: string },
   ): Promise<AiActionResult> {
     const promptConfig = AI_ACTION_PROMPTS[dto.action];
 
@@ -90,7 +91,12 @@ export class AiActionsService {
     try {
       if (dto.action === AiActionType.ENHANCE_PROMPT) {
         return await this.promptEnhancementService.enhance(
-          { organizationId: orgId, userPrompt: dto.content },
+          {
+            actorUserId: actor?.userId,
+            brandId: actor?.brandId,
+            organizationId: orgId,
+            userPrompt: dto.content,
+          },
           { preparedSystemPrompt: systemPrompt, byokApiKey },
         );
       }

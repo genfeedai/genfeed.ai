@@ -18,6 +18,84 @@ export class SkillsProClient {
     );
   }
 
+  createScopedSkill(
+    body: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'creating scoped skill',
+      async (http) => {
+        const response = await http.post('/skills/scoped', body);
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to create skill'),
+    );
+  }
+
+  forkSkill(skillId: string): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'forking skill',
+      async (http) => {
+        const response = await http.post(`/skills/${skillId}/fork`, {});
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to fork skill'),
+    );
+  }
+
+  exportSkill(skillId: string): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'exporting skill',
+      async (http) => {
+        const response = await http.get(`/skills/${skillId}/export`);
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to export skill'),
+    );
+  }
+
+  publishSkill(
+    skillId: string,
+    audience: 'organization' | 'public',
+  ): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'publishing skill',
+      async (http) => {
+        const response = await http.post(`/skills/${skillId}/publish`, {
+          audience,
+        });
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to publish skill'),
+    );
+  }
+
+  rollbackSkill(
+    skillId: string,
+    versionId: string,
+  ): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'rolling back skill',
+      async (http) => {
+        const response = await http.post(`/skills/${skillId}/rollback`, {
+          versionId,
+        });
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to roll back skill'),
+    );
+  }
+
+  archiveSkill(skillId: string): Promise<Record<string, unknown>> {
+    return this.base.request(
+      'archiving skill',
+      async (http) => {
+        const response = await http.post(`/skills/${skillId}/archive`, {});
+        return this.base.unwrapObject<Record<string, unknown>>(response);
+      },
+      this.base.failWithDetail('Failed to archive skill'),
+    );
+  }
+
   installSkill(
     receiptId: string,
     skillSlug: string,

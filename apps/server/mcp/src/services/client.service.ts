@@ -171,6 +171,30 @@ export class ClientService {
     return this.skillsPro.installSkill(receiptId, skillSlug);
   }
 
+  createScopedSkill(body: Record<string, unknown>) {
+    return this.skillsPro.createScopedSkill(body);
+  }
+
+  forkSkill(skillId: string) {
+    return this.skillsPro.forkSkill(skillId);
+  }
+
+  exportSkill(skillId: string) {
+    return this.skillsPro.exportSkill(skillId);
+  }
+
+  publishSkill(skillId: string, audience: 'organization' | 'public') {
+    return this.skillsPro.publishSkill(skillId, audience);
+  }
+
+  archiveSkill(skillId: string) {
+    return this.skillsPro.archiveSkill(skillId);
+  }
+
+  rollbackSkill(skillId: string, versionId: string) {
+    return this.skillsPro.rollbackSkill(skillId, versionId);
+  }
+
   postAttributes<TResponse>(
     endpoint: string,
     payload: Record<string, unknown>,

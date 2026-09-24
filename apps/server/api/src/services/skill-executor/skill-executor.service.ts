@@ -1,5 +1,7 @@
 import { isExecutableBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
+import { SYSTEM_WORKFLOW_PRINCIPAL_ID } from '@api/collections/workflows/system-workflow.contract';
 import {
   type SystemWorkflowActionRequest,
   SystemWorkflowRunnerService,
@@ -24,7 +26,7 @@ import {
   SKILL_ACTION_IDS,
   SKILL_WORKFLOW_IDS,
 } from '@api/services/skill-executor/skill-workflow-definition';
-import { Injectable, type OnModuleInit } from '@nestjs/common';
+import { Injectable, type OnModuleInit, Optional } from '@nestjs/common';
 
 @Injectable()
 export class SkillWorkflowService implements OnModuleInit {
@@ -38,6 +40,7 @@ export class SkillWorkflowService implements OnModuleInit {
     imageGenerationHandler: ImageGenerationHandler,
     trendDiscoveryHandler: TrendDiscoveryHandler,
     trendRemixHandler: TrendRemixHandler,
+    @Optional() private readonly skillLibrary?: SkillLibraryService,
   ) {
     this.handlers = {
       'content-geo-optimizer': contentGeoOptimizerHandler,
@@ -100,6 +103,7 @@ export class SkillWorkflowService implements OnModuleInit {
       context.organizationId,
       context.brandId,
       skillSlug,
+      request.context.userId,
     );
     return this.handlers[skillSlug].execute(
       context,
@@ -111,6 +115,7 @@ export class SkillWorkflowService implements OnModuleInit {
     organizationId: string,
     brandId: string,
     skillSlug: ExecutableSkillSlug,
+    userId: string,
   ): Promise<void> {
     const skill = await this.skillsService.getSkillById(
       organizationId,
@@ -127,6 +132,20 @@ export class SkillWorkflowService implements OnModuleInit {
       organizationId,
       brandId,
       skillSlug,
+    );
+    if (!this.skillLibrary || !userId) return;
+    const actor = { brandId, organizationId, userId };
+    const decision = await this.skillLibrary.authorizeResolved(actor, [skill]);
+    if (
+      !decision.included.some((item) => String(item.id) === String(skill.id))
+    ) {
+      throw new NotFoundException(`Skill not found: ${skillSlug}`);
+    }
+    if (userId === SYSTEM_WORKFLOW_PRINCIPAL_ID) return;
+    await this.skillLibrary.recordResolution(
+      actor,
+      [String(skill.id)],
+      decision.excluded,
     );
   }
 

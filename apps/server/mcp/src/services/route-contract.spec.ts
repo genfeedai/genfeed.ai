@@ -163,6 +163,10 @@ const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
     file: 'skills-pro/controllers/skill-download.controller.ts',
     prefix: 'skills-pro',
   },
+  skillLibrary: {
+    file: 'collections/skills/controllers/skill-library.controller.ts',
+    prefix: 'skills',
+  },
 };
 
 interface ContractRoute {
@@ -184,6 +188,42 @@ interface ContractRoute {
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
   // ── Skills Pro organization entitlements ──
+  {
+    method: 'Post',
+    sub: 'scoped',
+    controller: 'skillLibrary',
+    tools: ['create_skill'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/fork',
+    controller: 'skillLibrary',
+    tools: ['fork_skill'],
+  },
+  {
+    method: 'Get',
+    sub: ':id/export',
+    controller: 'skillLibrary',
+    tools: ['export_skill'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/publish',
+    controller: 'skillLibrary',
+    tools: ['publish_skill'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/archive',
+    controller: 'skillLibrary',
+    tools: ['archive_skill'],
+  },
+  {
+    method: 'Post',
+    sub: ':id/rollback',
+    controller: 'skillLibrary',
+    tools: ['rollback_skill'],
+  },
   {
     method: 'Post',
     sub: 'verify',

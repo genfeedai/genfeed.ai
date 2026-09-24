@@ -21,6 +21,7 @@ import { profileCommand } from '@/commands/profile';
 import { publishCommand } from '@/commands/publish';
 import { scheduleCommand } from '@/commands/schedule';
 import { signupCommand } from '@/commands/signup';
+import { skillCommand } from '@/commands/skill';
 import { statusCommand } from '@/commands/status';
 import { templateCommand } from '@/commands/template';
 import { threadsCommand } from '@/commands/threads';
@@ -72,6 +73,7 @@ export function createProgram(): Command {
     .addCommand(templateCommand)
     .addCommand(insightsCommand)
     .addCommand(scheduleCommand)
+    .addCommand(skillCommand)
     .addCommand(performanceCommand)
     .addCommand(postsCommand)
     .addCommand(connectCommand)

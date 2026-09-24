@@ -235,6 +235,7 @@ export class SkillsService {
       where: {
         config: { equals: sourceListingId, path: ['sourceListingId'] },
         isDeleted: false,
+        isQuarantined: false,
         organizationId,
       },
     });
@@ -394,15 +395,19 @@ export class SkillsService {
   async listAllForOrg(
     organizationId: string,
     options: ListSkillsOptions = {},
+    userId?: string,
   ): Promise<SkillDocument[]> {
     this.requireOrganizationId(organizationId);
 
-    const results = await this.prisma.skill.findMany({
-      orderBy: [{ createdAt: 'desc' }],
-      where: this.buildAccessibleSkillWhere(
-        organizationId,
-      ) as Prisma.SkillWhereInput,
-    });
+    const results =
+      // tenant-scope-ignore: visible skills are the organization, the caller's personal rows, or the trusted catalog
+      await this.prisma.skill.findMany({
+        orderBy: [{ createdAt: 'desc' }],
+        where: this.buildAccessibleSkillWhere(
+          organizationId,
+          userId,
+        ) as Prisma.SkillWhereInput,
+      });
     const docs = results.map((r) => this.normalizeSkill(r));
     const { surface } = options;
 
@@ -716,9 +721,16 @@ export class SkillsService {
       isDefault:
         row.organizationId === null &&
         isDefaultFirstPartySkillSlug(config.slug),
+      audience: row.audience,
+      currentVersionId: row.currentVersionId,
       isDeleted: row.isDeleted,
+      isQuarantined: row.isQuarantined,
       label: row.label,
       organizationId: row.organizationId,
+      ownerKind: row.ownerKind,
+      ownerUserId: row.ownerUserId,
+      publishedVersionId: row.publishedVersionId,
+      revision: row.revision,
       updatedAt: row.updatedAt,
     } as unknown as SkillDocument;
   }
@@ -736,14 +748,23 @@ export class SkillsService {
 
   private buildAccessibleSkillWhere(
     organizationId: string,
+    userId?: string,
   ): Record<string, unknown> {
     this.requireOrganizationId(organizationId);
+    const visible = [{ organizationId }, this.buildBuiltInCatalogWhere()];
+    if (userId) {
+      visible.unshift({
+        ownerKind: 'user',
+        ownerUserId: userId,
+      } as unknown as (typeof visible)[number]);
+    }
 
     return {
       AND: [
         { isDeleted: false },
+        { isQuarantined: false },
         {
-          OR: [{ organizationId }, this.buildBuiltInCatalogWhere()],
+          OR: visible,
         },
       ],
     };
@@ -818,6 +839,7 @@ export class SkillsService {
       where: {
         AND: [
           { isDeleted: false },
+          { isQuarantined: false },
           {
             OR: [{ organizationId }, this.buildBuiltInCatalogWhere()],
           },

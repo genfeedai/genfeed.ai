@@ -525,6 +525,7 @@ describe('SkillsService', () => {
       where: {
         AND: [
           { isDeleted: false },
+          { isQuarantined: false },
           {
             OR: [
               { organizationId: 'org-1' },
