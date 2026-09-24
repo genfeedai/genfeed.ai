@@ -272,7 +272,7 @@ it('keeps A and B live through navigation and drains B once after completion in 
   });
   await expect
     .element(page.getByTestId('sidebar-a'))
-    .toHaveTextContent('Alpha complete');
+    .toMatchTextContent(/Alpha complete/);
   await expect
     .element(
       page.getByTestId('sidebar-a').getByRole('status', { name: 'Running' }),
@@ -280,10 +280,10 @@ it('keeps A and B live through navigation and drains B once after completion in 
     .not.toBeInTheDocument();
   await expect
     .element(page.getByTestId('messages'))
-    .toHaveTextContent('Follow-up complete');
+    .toMatchTextContent(/Follow-up complete/);
   await expect
     .element(page.getByTestId('messages'))
-    .not.toHaveTextContent('Alpha complete');
+    .not.toMatchTextContent(/Alpha complete/);
   expect(dispatches.filter((item) => item === 'b:Follow-up')).toHaveLength(1);
   await expect
     .element(page.getByText('Working…', { exact: true }))
@@ -299,9 +299,11 @@ it('keeps A and B live through navigation and drains B once after completion in 
     timestamp: new Date().toISOString(),
   });
   await expect
-    .element(page.getByText('Choose a direction', { exact: true }))
+    .element(
+      page.getByRole('heading', { name: 'Choose direction', exact: true }),
+    )
     .toBeVisible();
-  await page.getByRole('button', { name: 'Continue', exact: true }).click();
+  await page.getByRole('button', { name: /Continue/ }).click();
   emit('agent:done', 'b', 'continued-input', {
     fullContent: 'Input continuation complete',
     toolCalls: [],
@@ -309,9 +311,11 @@ it('keeps A and B live through navigation and drains B once after completion in 
   });
   await expect
     .element(page.getByTestId('messages'))
-    .toHaveTextContent('Input continuation complete');
+    .toMatchTextContent(/Input continuation complete/);
   await expect
-    .element(page.getByText('Choose a direction', { exact: true }))
+    .element(
+      page.getByRole('heading', { name: 'Choose direction', exact: true }),
+    )
     .not.toBeInTheDocument();
   await expect
     .element(page.getByRole('button', { name: 'Stop agent' }))
