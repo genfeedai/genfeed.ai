@@ -349,6 +349,7 @@ export const brandRemixDraftSchema = z
 export const brandRemixReadinessIssueCodeValues = [
   'organization_defaults',
   'invalid_destination',
+  'invalid_identity',
   'missing_avatar',
   'missing_ads_management',
   'missing_ads_write',
@@ -367,6 +368,7 @@ export const brandRemixReadinessIssueSchema = z
     code: z.enum(brandRemixReadinessIssueCodeValues),
     field: z.enum([
       'intent',
+      'identity',
       'output',
       'target',
       'fidelityMode',

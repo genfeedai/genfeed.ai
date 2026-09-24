@@ -497,4 +497,82 @@ describe('BrandRemixRunPlanningService', () => {
       planning.assertDraftAssetsAuthorized('org-1', 'brand-1', repaired),
     ).resolves.toBeUndefined();
   });
+  it.each([undefined, 'explicit', 'account_persona'] as const)(
+    'preserves invalid frozen %s identity for repair while save and dispatch remain strict',
+    async (identitySource) => {
+      vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+        { id: 'avatar-1', brandId: null, category: IngredientCategory.AVATAR },
+        {
+          id: 'voice-1',
+          brandId: null,
+          category: IngredientCategory.VOICE,
+          externalVoiceId: 'voice-external-1',
+        },
+      ] as never);
+      const current = {
+        ...snapshotDraft,
+        identitySource,
+        identityPersonaId:
+          identitySource === 'account_persona' ? 'persona-1' : undefined,
+        identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+      };
+      const prepared = await planning.preparePersistedDraft(
+        'org-1',
+        'brand-1',
+        brandContext,
+        current,
+        undefined,
+      );
+      expect(prepared.draft).toEqual(current);
+      expect(prepared.readiness).toMatchObject({
+        state: 'blocked',
+        issues: [
+          { code: 'invalid_identity', field: 'identity', severity: 'blocked' },
+        ],
+      });
+      await expect(
+        planning.resolveDraft('org-1', 'brand-1', brandContext, current, {
+          intent: { objective: 'Keep invalid identity' },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        planning.assertDraftAssetsAuthorized('org-1', 'brand-1', current),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      const cleared = await planning.resolveDraft(
+        'org-1',
+        'brand-1',
+        brandContext,
+        current,
+        { identity: { avatarAssetId: null, speechVoiceId: null } },
+      );
+      expect(cleared.identity).toEqual({});
+      expect(cleared.identitySource).toBe('explicit');
+      vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+        {
+          id: 'avatar-2',
+          brandId: 'brand-1',
+          category: IngredientCategory.AVATAR,
+        },
+        {
+          id: 'voice-2',
+          brandId: 'brand-1',
+          category: IngredientCategory.VOICE,
+          externalVoiceId: 'voice-external-2',
+        },
+      ] as never);
+      const replaced = await planning.resolveDraft(
+        'org-1',
+        'brand-1',
+        brandContext,
+        current,
+        { identity: { avatarAssetId: 'avatar-2', speechVoiceId: 'voice-2' } },
+      );
+      expect(replaced.identity).toEqual({
+        avatarAssetId: 'avatar-2',
+        speechVoiceId: 'voice-2',
+      });
+      expect(replaced.identitySource).toBe('explicit');
+      expect(replaced.identityPersonaId).toBeUndefined();
+    },
+  );
 });

@@ -395,9 +395,26 @@ export class BrandRemixRunPlanningService {
     await this.assertDraftReferencesAndIdentityAuthorized(
       organizationId,
       brandId,
-      sanitized,
+      { ...sanitized, identity: {} },
     );
     const readiness = this.buildReadiness(context, sanitized, media);
+    try {
+      await this.assertDraftReferencesAndIdentityAuthorized(
+        organizationId,
+        brandId,
+        { ...sanitized, references: [] },
+      );
+    } catch (error) {
+      if (!(error instanceof BadRequestException)) throw error;
+      readiness.issues.push({
+        code: 'invalid_identity',
+        field: 'identity',
+        severity: 'blocked',
+        message:
+          'The saved identity is unavailable for this brand. Clear it or choose a valid brand avatar and voice.',
+      });
+      readiness.state = 'blocked';
+    }
     try {
       await this.assertDestinationAuthorized(
         organizationId,

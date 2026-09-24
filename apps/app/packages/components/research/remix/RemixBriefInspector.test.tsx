@@ -565,10 +565,54 @@ describe('RemixBriefInspector', () => {
     expect(edits).not.toHaveProperty('identity');
   });
 
+  it('keeps incomplete avatar identity blocked for an unchanged destination', () => {
+    mocks.run.value = {
+      ...run,
+      draft: {
+        ...run.draft,
+        identitySource: 'brand_default',
+        output: { ...run.draft.output, kind: 'avatar' },
+        target: { ...run.draft.target, credentialId: 'credential-1' },
+      },
+    };
+    render(<RemixBriefInspector />);
+    expect(
+      screen.getByRole('button', { name: 'Continue to Studio' }),
+    ).toBeDisabled();
+    expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  it.each(['explicit', undefined] as const)(
+    'does not expect a destination persona to replace frozen %s identity',
+    (identitySource) => {
+      mocks.run.value = {
+        ...run,
+        draft: {
+          ...run.draft,
+          identitySource,
+          output: { ...run.draft.output, kind: 'avatar' },
+        },
+      };
+      render(<RemixBriefInspector />);
+      fireEvent.click(
+        screen.getByRole('combobox', { name: 'Destination account' }),
+      );
+      fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
+      expect(
+        screen.getByRole('button', { name: 'Continue to Studio' }),
+      ).toBeDisabled();
+      expect(mocks.confirm).not.toHaveBeenCalled();
+    },
+  );
+
   it('allows a destination persona to resolve until the user makes a partial identity edit', () => {
     mocks.run.value = {
       ...run,
-      draft: { ...run.draft, output: { ...run.draft.output, kind: 'avatar' } },
+      draft: {
+        ...run.draft,
+        identitySource: 'brand_default',
+        output: { ...run.draft.output, kind: 'avatar' },
+      },
     };
     render(<RemixBriefInspector />);
     fireEvent.click(

@@ -424,7 +424,14 @@ export default function RemixBriefInspector(): ReactElement {
   const isAvatarIdentityComplete =
     editor.outputKind !== 'avatar' ||
     Boolean(editor.avatarAssetId && editor.speechVoiceId) ||
-    Boolean(editor.credentialId && run && !hasIdentityEdits(editor, run));
+    Boolean(
+      editor.credentialId &&
+        run &&
+        editor.credentialId !== run.draft.target.credentialId &&
+        run.draft.identitySource !== undefined &&
+        run.draft.identitySource !== 'explicit' &&
+        !hasIdentityEdits(editor, run),
+    );
   const canContinue = Boolean(
     run && editor.objective.trim() && !isSaving && isAvatarIdentityComplete,
   );
