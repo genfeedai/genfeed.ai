@@ -12,6 +12,10 @@ import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util
 import type { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  CreditReservationStatus,
+  CreditTransactionCategory,
+} from '@genfeedai/contracts';
+import {
   type IOnboardingJourneyMissionState,
   ONBOARDING_JOURNEY_MISSIONS,
 } from '@genfeedai/contracts/types';
@@ -61,6 +65,8 @@ describe.skipIf(!connectionString)(
     let organizationIds: [string, string];
     let billingAccountIds: [string, string];
     let credits: CreditsUtilsService;
+    let reservations: CreditReservationService;
+    let balance: CreditBalanceService;
     let transaction: TransactionUtil;
     let service: OnboardingCreditGrantsService;
 
@@ -113,7 +119,7 @@ describe.skipIf(!connectionString)(
       }
       const prismaService = db as unknown as PrismaService;
       transaction = new TransactionUtil(prismaService, logger);
-      const balance = new CreditBalanceService(prismaService, logger);
+      balance = new CreditBalanceService(prismaService, logger);
       const ledger = new CreditTransactionsService(
         prismaService,
         logger,
@@ -130,19 +136,20 @@ describe.skipIf(!connectionString)(
         patch: (id: string, data: { hasEverHadCredits: boolean }) =>
           db.organizationSetting.update({ where: { id }, data }),
       } as unknown as OrganizationSettingsService;
+      reservations = new CreditReservationService(
+        prismaService,
+        logger,
+        balance,
+        ledger,
+        transaction,
+      );
       credits = new CreditsUtilsService(
         logger,
         new EventEmitter2(),
         prismaService,
         new BillingAccountsService(prismaService, logger),
         balance,
-        new CreditReservationService(
-          prismaService,
-          logger,
-          balance,
-          ledger,
-          transaction,
-        ),
+        reservations,
         ledger,
         settings,
         socket as unknown as NotificationsPublisherService,
@@ -163,6 +170,9 @@ describe.skipIf(!connectionString)(
       if (!organizationIds) return;
       const db = database();
       await db.creditTransaction.deleteMany({
+        where: { organizationId: { in: organizationIds } },
+      });
+      await db.creditReservation.deleteMany({
         where: { organizationId: { in: organizationIds } },
       });
       await db.creditBalance.deleteMany({
@@ -274,6 +284,103 @@ describe.skipIf(!connectionString)(
             row.source === 'onboarding-journey' && row.actorUserId === userId,
         ),
       ).toBe(true);
+    }, 30_000);
+
+    it('reserves and settles parallel workloads once with exact wallet totals', async () => {
+      const org = organizationIds[0];
+      const db = database();
+      await db.creditBalance.updateMany({
+        where: { organizationId: org, isDeleted: false },
+        data: { balance: 100 },
+      });
+      const overlapWalletWrites = () => {
+        let arrivals = 0;
+        let release: () => void = () => {};
+        const ready = new Promise<void>((resolve) => {
+          release = resolve;
+        });
+        const apply = balance.applyDelta.bind(balance);
+        return vi
+          .spyOn(balance, 'applyDelta')
+          .mockImplementation(async (...args) => {
+            arrivals += 1;
+            if (arrivals === 2) release();
+            if (arrivals <= 2) await ready;
+            return apply(...args);
+          });
+      };
+      const reserveBarrier = overlapWalletWrites();
+      const held = await Promise.all(
+        [20, 30].map((amount, index) =>
+          reservations.reserve({
+            organizationId: org,
+            billingAccountId: billingAccountIds[0],
+            actorUserId: userId,
+            amount,
+            idempotencyKey: `${org}:reservation:${index}`,
+          }),
+        ),
+      );
+      reserveBarrier.mockRestore();
+      expect(
+        await db.creditReservation.count({
+          where: {
+            organizationId: org,
+            isDeleted: false,
+            status: CreditReservationStatus.RESERVED,
+          },
+        }),
+      ).toBe(2);
+      expect(
+        await db.creditBalance.findFirstOrThrow({
+          where: { organizationId: org, isDeleted: false },
+        }),
+      ).toMatchObject({ balance: 100, heldAmount: 50 });
+      const settleInputs = held.map((reservation, index) => ({
+        organizationId: org,
+        reservationId: reservation.id,
+        actorUserId: userId,
+        actualAmount: index === 0 ? 15 : 25,
+        description: 'PostgreSQL concurrent settlement',
+      }));
+      const settlementBarrier = overlapWalletWrites();
+      await Promise.all(
+        settleInputs.map((input) => reservations.settle(input)),
+      );
+      settlementBarrier.mockRestore();
+      await Promise.all(
+        settleInputs.map((input) => reservations.settle(input)),
+      );
+      expect(
+        await db.creditBalance.findFirstOrThrow({
+          where: { organizationId: org, isDeleted: false },
+        }),
+      ).toMatchObject({ balance: 60, heldAmount: 0 });
+      const settled = await db.creditReservation.findMany({
+        where: { organizationId: org, isDeleted: false },
+      });
+      expect(settled).toHaveLength(2);
+      expect(
+        settled.every(
+          (reservation) =>
+            reservation.status === CreditReservationStatus.SETTLED,
+        ),
+      ).toBe(true);
+      expect(
+        settled.reduce(
+          (sum, reservation) => sum + (reservation.settledAmount ?? 0),
+          0,
+        ),
+      ).toBe(40);
+      const deductions = await db.creditTransaction.findMany({
+        where: {
+          organizationId: org,
+          isDeleted: false,
+          category: CreditTransactionCategory.DEDUCT,
+        },
+      });
+      expect(deductions).toHaveLength(2);
+      expect(deductions.reduce((sum, entry) => sum + entry.amount, 0)).toBe(40);
     }, 30_000);
 
     it('rolls back mission claims, real ledger entries and wallet writes on a pre-commit failure', async () => {

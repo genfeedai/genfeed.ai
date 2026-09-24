@@ -114,6 +114,82 @@ describe('CreditReservationService', () => {
     expect(creditBalanceService.applyDelta).not.toHaveBeenCalled();
   });
 
+  it.each(['40001', '40P01'])(
+    'retries reservation wallet conflicts with SQLSTATE %s',
+    async (sqlState) => {
+      prisma.creditReservation.findFirst.mockResolvedValue(null);
+      prisma.creditReservation.create.mockResolvedValue({
+        id: 'res_retry',
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
+        amount: 20,
+        settledAmount: null,
+        status: CreditReservationStatus.RESERVED,
+        idempotencyKey: 'retry_1',
+        workloadType: null,
+        workloadId: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        expiresAt: new Date(),
+        isDeleted: false,
+      });
+      creditBalanceService.applyDelta.mockRejectedValueOnce({
+        code: 'P2010',
+        meta: {
+          driverAdapterError: Object.assign(new Error('DriverAdapterError'), {
+            cause: { originalCode: sqlState, kind: 'TransactionWriteConflict' },
+          }),
+        },
+      });
+      const result = await service.reserve({
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
+        amount: 20,
+        idempotencyKey: 'retry_1',
+      });
+      expect(result.id).toBe('res_retry');
+      expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(2);
+      expect(prisma.creditReservation.create).toHaveBeenCalledTimes(1);
+    },
+  );
+
+  it('does not retry unrelated raw reservation errors', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    const error = { code: 'P2010', meta: { code: '23514' } };
+    creditBalanceService.applyDelta.mockRejectedValueOnce(error);
+    await expect(
+      service.reserve({
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        amount: 20,
+        idempotencyKey: 'retry_1',
+      }),
+    ).rejects.toBe(error);
+    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(1);
+    expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+  });
+
+  it('stops retrying raw reservation conflicts after three attempts', async () => {
+    prisma.creditReservation.findFirst.mockResolvedValue(null);
+    const error = { code: 'P2010', meta: { code: '40001' } };
+    creditBalanceService.applyDelta
+      .mockRejectedValueOnce(error)
+      .mockRejectedValueOnce(error)
+      .mockRejectedValueOnce(error);
+    await expect(
+      service.reserve({
+        organizationId: 'org_1',
+        billingAccountId: 'ba_1',
+        amount: 20,
+        idempotencyKey: 'retry_1',
+      }),
+    ).rejects.toBe(error);
+    expect(transactionUtil.runInTransaction).toHaveBeenCalledTimes(3);
+    expect(prisma.creditReservation.create).not.toHaveBeenCalled();
+  });
+
   it('rejects settlement above the reserved amount', async () => {
     prisma.creditReservation.findFirst.mockResolvedValue({
       amount: 20,

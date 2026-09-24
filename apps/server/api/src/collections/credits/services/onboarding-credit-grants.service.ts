@@ -1,3 +1,4 @@
+import { isCreditTransactionConflict } from '@api/collections/credits/services/credit-transaction-conflict';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import {
@@ -172,17 +173,6 @@ export class OnboardingCreditGrantsService {
     return outcome.missions;
   }
 
-  private isTransactionConflict(error: unknown): boolean {
-    if (!error || typeof error !== 'object' || !('code' in error)) return false;
-    if (error.code === 'P2034') return true;
-    if (error.code !== 'P2010' || !('meta' in error)) return false;
-    const metadata = error.meta;
-    if (!metadata || typeof metadata !== 'object' || !('code' in metadata))
-      return false;
-    // Prisma exposes raw wallet UPDATE conflicts as P2010 plus PostgreSQL SQLSTATE.
-    return metadata.code === '40001' || metadata.code === '40P01';
-  }
-
   private async runSerializable<T>(
     operation: (tx: PrismaTransactionClient) => Promise<T>,
   ): Promise<T> {
@@ -192,7 +182,7 @@ export class OnboardingCreditGrantsService {
           isolationLevel: 'Serializable',
         });
       } catch (error: unknown) {
-        if (!this.isTransactionConflict(error) || attempt === 2) throw error;
+        if (!isCreditTransactionConflict(error) || attempt === 2) throw error;
       }
     }
     throw new Error('Onboarding grant exhausted serialization retries');
