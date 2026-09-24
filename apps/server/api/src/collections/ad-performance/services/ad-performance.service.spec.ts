@@ -28,8 +28,11 @@ describe('AdPerformanceService', () => {
   const findFirst = vi.fn();
   const upsert = vi.fn();
   const update = vi.fn();
+  const transactionUpsert = vi.fn();
+  const transaction = vi.fn();
 
   const prisma = {
+    $transaction: transaction,
     adPerformance: { findFirst, findMany, update, upsert },
   } as unknown as ServerPrisma;
 
@@ -37,6 +40,12 @@ describe('AdPerformanceService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    transaction.mockImplementation(async (callback) =>
+      callback({ adPerformance: { upsert: transactionUpsert } }),
+    );
+    transactionUpsert.mockImplementation(async ({ create }) =>
+      makeRow(create.data, { ...create, id: `stored-${create.externalAdId}` }),
+    );
     service = new AdPerformanceService(prisma);
     findMany.mockResolvedValue([]);
     findFirst.mockResolvedValue(null);
@@ -276,6 +285,42 @@ describe('AdPerformanceService', () => {
       expect(created).toBe(false);
       expect(result.id).toBe('perf-tombstone');
       expect(result.isDeleted).toBe(false);
+    });
+  });
+
+  describe('upsertBatchAtomic', () => {
+    it('returns canonical IDs in input order using only the transaction delegate', async () => {
+      const rows = await service.upsertBatchAtomic([
+        { organizationId: 'org-1', brandId: 'brand-1', externalAdId: 'first' },
+        { organizationId: 'org-1', brandId: 'brand-1', externalAdId: 'second' },
+      ]);
+      expect(rows.map((row) => row.id)).toEqual([
+        'stored-first',
+        'stored-second',
+      ]);
+      expect(transaction).toHaveBeenCalledTimes(1);
+      expect(upsert).not.toHaveBeenCalled();
+      expect(transactionUpsert).toHaveBeenCalledTimes(2);
+    });
+    it('rejects the transaction when a later row fails instead of returning partial sources', async () => {
+      transactionUpsert
+        .mockResolvedValueOnce(makeRow())
+        .mockRejectedValueOnce(new Error('second write failed'));
+      await expect(
+        service.upsertBatchAtomic([
+          { organizationId: 'org-1', externalAdId: 'first' },
+          { organizationId: 'org-1', externalAdId: 'second' },
+        ]),
+      ).rejects.toThrow('second write failed');
+      expect(transaction).toHaveBeenCalledTimes(1);
+      await expect(transaction.mock.results[0].value).rejects.toThrow(
+        'second write failed',
+      );
+      expect(upsert).not.toHaveBeenCalled();
+    });
+    it('does not start a transaction for empty results', async () => {
+      await expect(service.upsertBatchAtomic([])).resolves.toEqual([]);
+      expect(transaction).not.toHaveBeenCalled();
     });
   });
 

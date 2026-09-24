@@ -7,6 +7,7 @@ import {
   normalizeGoogleAdsTransparencyRecord,
   normalizeMetaArchiveRecord,
   normalizeTikTokAdsLibraryRecord,
+  publicAdYouTubeEmbedUrl,
 } from './public-archive';
 
 describe('published public archive contracts', () => {
@@ -97,5 +98,42 @@ describe('published public archive contracts', () => {
       videoUrls: ['https://example.com/video'],
       targetingCountries: ['France'],
     });
+  });
+});
+
+describe('Google creative media URLs', () => {
+  it('separates playable media from posters in known actor URL fields', () => {
+    const row = normalizeGoogleAdsTransparencyRecord({
+      creativeId: 'CR123',
+      format: 'VIDEO',
+      previewUrl: 'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+      variants: [
+        {
+          images: [
+            'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+            'https://example.com/ad.mp4?signature=example',
+          ],
+        },
+      ],
+    });
+    expect(row?.imageUrls).toEqual([
+      'https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg',
+    ]);
+    expect(row?.videoUrls).toEqual([
+      'https://www.youtube.com/watch?v=dQw4w9WgXcQ',
+      'https://example.com/ad.mp4?signature=example',
+    ]);
+  });
+  it('builds embeds only from recognized YouTube hosts and valid video IDs', () => {
+    expect(publicAdYouTubeEmbedUrl('https://youtu.be/dQw4w9WgXcQ')).toBe(
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+    );
+    for (const url of [
+      'https://youtube.com.evil.test/watch?v=dQw4w9WgXcQ',
+      'javascript:alert(1)',
+      'https://youtube.com/watch?v=bad',
+      'invalid',
+    ])
+      expect(publicAdYouTubeEmbedUrl(url)).toBeUndefined();
   });
 });

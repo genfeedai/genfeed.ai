@@ -16,6 +16,10 @@ const state = vi.hoisted(() => ({
   isReady: true,
 }));
 const discover = vi.hoisted(() => vi.fn());
+const openRemix = vi.hoisted(() => vi.fn());
+vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
+  useOptionalDiscoveryRemix: () => ({ openRemix, status: 'idle' }),
+}));
 const getService = vi.hoisted(() => vi.fn());
 const videoPlayer = vi.hoisted(() => vi.fn());
 vi.mock('@ui/display/video-player/VideoPlayer', () => ({
@@ -66,7 +70,24 @@ vi.mock('@ui/primitives/input', () => ({
   Input: (props: Record<string, unknown>) => <input {...props} />,
 }));
 vi.mock('@ui/primitives/select', () => ({
-  Select: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+  Select: ({
+    children,
+    value,
+    onValueChange,
+  }: {
+    children: ReactNode;
+    value: string;
+    onValueChange: (value: string) => void;
+  }) => (
+    <div>
+      <input
+        aria-label={`select-${value}`}
+        value={value}
+        onChange={(event) => onValueChange(event.target.value)}
+      />
+      {children}
+    </div>
+  ),
   SelectContent: ({ children }: { children: ReactNode }) => (
     <div>{children}</div>
   ),
@@ -105,6 +126,30 @@ describe('explicit public discovery', () => {
     );
     expect(discover.mock.calls[0][0].credentialId).toBeUndefined();
   });
+  it('submits YouTube and video filters without an owned account', async () => {
+    discover.mockResolvedValue({ status: 'empty', advertisers: [] });
+    render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
+    fireEvent.change(screen.getByLabelText('select-meta'), {
+      target: { value: 'youtube' },
+    });
+    fireEvent.change(screen.getByLabelText('select-visual'), {
+      target: { value: 'video' },
+    });
+    fireEvent.change(screen.getByLabelText('Public ad search'), {
+      target: { value: 'example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    await waitFor(() =>
+      expect(discover).toHaveBeenCalledWith(
+        expect.objectContaining({
+          platform: 'youtube',
+          mediaType: 'video',
+          keyword: 'example.com',
+        }),
+        expect.any(AbortSignal),
+      ),
+    );
+  });
   it('renders known media, sample count and stable Watch input', async () => {
     const watchInput = {
       advertiserHandle: '123',
@@ -124,6 +169,7 @@ describe('explicit public discovery', () => {
           samples: [
             {
               id: 'a',
+              adPerformanceId: 'canonical-ad',
               imageUrls: ['https://example.com/a.jpg'],
               videoUrls: [
                 'https://example.com/creative-video?mime_type=video_mp4',
@@ -163,9 +209,47 @@ describe('explicit public discovery', () => {
       }),
       undefined,
     );
+    fireEvent.click(screen.getByRole('button', { name: 'Remix' }));
+    expect(openRemix).toHaveBeenCalledWith({
+      kind: 'public_ad',
+      adPerformanceId: 'canonical-ad',
+    });
+    expect(onWatch).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole('button', { name: 'Watch' }));
     await waitFor(() => expect(onWatch).toHaveBeenCalledWith(watchInput));
     await screen.findByRole('button', { name: 'Watching' });
+  });
+  it('embeds YouTube videos and disables Remix without a canonical source', async () => {
+    discover.mockResolvedValue({
+      status: 'ready',
+      sampleCount: 1,
+      advertisers: [
+        {
+          id: 'youtube:123',
+          name: 'YouTube competitor',
+          creativeCount: 1,
+          samples: [
+            {
+              id: 'creative',
+              imageUrls: [],
+              videoUrls: ['https://youtu.be/dQw4w9WgXcQ'],
+              mediaUrls: [],
+            },
+          ],
+        },
+      ],
+    });
+    render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
+    fireEvent.change(screen.getByLabelText('Public ad search'), {
+      target: { value: 'example.com' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Search public ads' }));
+    expect(await screen.findByTitle('Public ad video preview')).toHaveAttribute(
+      'src',
+      'https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ',
+    );
+    expect(screen.getByRole('button', { name: 'Remix' })).toBeDisabled();
+    expect(videoPlayer).not.toHaveBeenCalled();
   });
   it('cancels old tenant results without replaying a paid search', async () => {
     let resolve: (value: unknown) => void = () => {};

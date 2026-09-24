@@ -12,6 +12,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 export interface PaidCreativeFetchParams {
   countries?: string[];
+  mediaType?: 'visual' | 'image' | 'video';
   externalAdvertiserId?: string;
   limit: number;
   mode?: 'keyword' | 'advertiser';
@@ -42,6 +43,8 @@ export class ApifyAdsService {
         ad_type: 'all',
         country: country ?? 'ALL',
       });
+      if (params.mediaType === 'image' || params.mediaType === 'video')
+        search.set('media_type', params.mediaType);
       const pageId = params.externalAdvertiserId ?? params.query;
       if (params.mode === 'advertiser' && /^\d+$/.test(pageId)) {
         search.set('search_type', 'page');
@@ -123,6 +126,8 @@ export class ApifyAdsService {
           : 'https://adstransparency.google.com/',
       );
       url.searchParams.set('region', country ?? 'anywhere');
+      if (params.mediaType === 'image' || params.mediaType === 'video')
+        url.searchParams.set('format', params.mediaType.toUpperCase());
       if (!query.startsWith('AR')) url.searchParams.set('domain', query);
       if (params.platform === 'youtube')
         url.searchParams.set('platform', 'YOUTUBE');

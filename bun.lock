@@ -175,6 +175,7 @@
         "@genfeedai/contracts": "workspace:*",
         "@genfeedai/harness": "*",
         "@genfeedai/helpers": "*",
+        "@genfeedai/integrations": "workspace:*",
         "@genfeedai/next-config": "*",
         "@genfeedai/pricing": "*",
         "@genfeedai/styles": "*",

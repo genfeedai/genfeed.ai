@@ -16,6 +16,7 @@ describe('app frontend build graph', () => {
       '//#env:check',
       '@genfeedai/auth-client#build',
       '@genfeedai/config#build',
+      '@genfeedai/integrations#build',
       '@genfeedai/pricing#build',
     ]);
     expect(turbo.tasks.build.dependsOn).not.toContain('^build');

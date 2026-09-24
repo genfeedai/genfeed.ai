@@ -59,12 +59,17 @@ export class AdsResearchController {
     @Query('platform') platform?: AdWatchlistPlatform,
     @Query('countries') countries?: string,
     @Query('limit') limit?: string,
+    @Query('mediaType') mediaType?: 'visual' | 'image' | 'video',
   ) {
-    const authorizedBrandId = this.resolveAuthorizedBrandId(user, brandId);
+    const authorizedBrandId =
+      brandId === undefined
+        ? undefined
+        : this.resolveAuthorizedBrandId(user, brandId);
     return AdsDiscoverySerializer.serialize(
       await this.adsDiscoveryService.discover(user.organizationId, {
         brandId: authorizedBrandId,
         keyword: keyword ?? '',
+        mediaType,
         platform: platform ?? AdsPlatform.META,
         countries,
         limit: limit === undefined ? undefined : Number(limit),

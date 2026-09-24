@@ -77,6 +77,30 @@ describe('public archive transports', () => {
       quickSearch: false,
     });
   });
+  it('requests media filters upstream for Meta and YouTube', async () => {
+    const { service, runActorForOrg } = setup();
+    await service.fetchMetaAdLibraryCreatives({
+      query: 'coffee',
+      mediaType: 'image',
+      limit: 10,
+      organizationId: 'org',
+    });
+    expect(
+      new URL(
+        runActorForOrg.mock.calls[0][2].startUrls[0].url,
+      ).searchParams.get('media_type'),
+    ).toBe('image');
+    await service.fetchGoogleAdsTransparencyCreatives({
+      query: 'example.com',
+      platform: 'youtube',
+      mediaType: 'video',
+      limit: 10,
+      organizationId: 'org',
+    });
+    const url = new URL(runActorForOrg.mock.calls[1][2].startUrls[0].url);
+    expect(url.searchParams.get('format')).toBe('VIDEO');
+    expect(url.searchParams.get('platform')).toBe('YOUTUBE');
+  });
   it('fails nonempty unknown shapes and provider failures instead of reporting empty', async () => {
     const { service, runActorForOrg } = setup([{ unexpected: true }]);
     await expect(

@@ -201,6 +201,48 @@ export function normalizeTikTokAdsLibraryRecord(
   };
 }
 
+export function publicAdYouTubeEmbedUrl(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    if (!['https:', 'http:'].includes(url.protocol)) return undefined;
+    const host = url.hostname.toLowerCase();
+    const segments = url.pathname.split('/').filter(Boolean);
+    const id =
+      host === 'youtu.be'
+        ? segments[0]
+        : [
+              'youtube.com',
+              'www.youtube.com',
+              'm.youtube.com',
+              'www.youtube-nocookie.com',
+              'youtube-nocookie.com',
+            ].includes(host)
+          ? url.pathname === '/watch'
+            ? url.searchParams.get('v')
+            : ['embed', 'shorts'].includes(segments[0])
+              ? segments[1]
+              : undefined
+          : undefined;
+    return id && /^[A-Za-z0-9_-]{11}$/.test(id)
+      ? `https://www.youtube-nocookie.com/embed/${id}`
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function isGoogleVideoUrl(value: string): boolean {
+  if (publicAdYouTubeEmbedUrl(value)) return true;
+  const url = new URL(value);
+  return (
+    /\.(mp4|webm|mov|m4v)$/i.test(url.pathname) ||
+    /video[/_]/i.test(
+      url.searchParams.get('mime') ?? url.searchParams.get('mime_type') ?? '',
+    ) ||
+    url.hostname.endsWith('.googlevideo.com')
+  );
+}
+
 /** Wire fixtures: https://apify.com/lexis-solutions/google-ads-scraper */
 export function normalizeGoogleAdsTransparencyRecord(
   value: unknown,
@@ -218,8 +260,8 @@ export function normalizeGoogleAdsTransparencyRecord(
   return {
     adFormat: format,
     archiveUrl: safeUrls([row.url])[0],
-    imageUrls: media,
-    videoUrls: [],
+    imageUrls: media.filter((url) => !isGoogleVideoUrl(url)),
+    videoUrls: media.filter(isGoogleVideoUrl),
     bodyText: text(...variants.map((variant) => variant.textContent)),
     creativeContent: text(...variants.map((variant) => variant.textContent)),
     advertiserHandle: text(row.advertiserId),

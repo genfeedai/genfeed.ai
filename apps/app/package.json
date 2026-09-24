@@ -6,6 +6,7 @@
     "@genfeedai/client": "*",
     "@genfeedai/config": "*",
     "@genfeedai/harness": "*",
+    "@genfeedai/integrations": "workspace:*",
     "@genfeedai/helpers": "*",
     "@genfeedai/next-config": "*",
     "@genfeedai/pricing": "*",
