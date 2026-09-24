@@ -336,4 +336,71 @@ describe('loadAuthorizedSkillVersions', () => {
 
     expect(loaded.has('skill-1')).toBe(false);
   });
+
+  it('keeps a use-only grant for execution and the shared version for reading', async () => {
+    const grants = [
+      {
+        access: 'use',
+        recipientBrandId: null,
+        recipientKind: 'user',
+        recipientOrganizationId: null,
+        recipientUserId: 'user-1',
+        revokedAt: null,
+        skillId: 'skill-1',
+        skillVersionId: 'version-use-only',
+      },
+    ];
+    const versions = [
+      versionRow('version-shared', 'shared body'),
+      versionRow('version-use-only', 'use only body'),
+    ];
+    const skill = [{ ...document, sharedVersionId: 'version-shared' }];
+    const executed = await loadAuthorizedSkillVersions(
+      prismaFor({ grants, versions }) as never,
+      actor,
+      skill,
+      new Set(),
+    );
+    const readable = await loadAuthorizedSkillVersions(
+      prismaFor({ grants, versions }) as never,
+      actor,
+      skill,
+      new Set(),
+      [],
+      'read',
+    );
+
+    expect(executed.get('skill-1')?.instructionText).toBe('use only body');
+    expect(readable.get('skill-1')?.instructionText).toBe('shared body');
+  });
+
+  it('reads a use_and_read grant version instead of the shared pointer', async () => {
+    const loaded = await loadAuthorizedSkillVersions(
+      prismaFor({
+        grants: [
+          {
+            access: 'use_and_read',
+            recipientBrandId: null,
+            recipientKind: 'user',
+            recipientOrganizationId: null,
+            recipientUserId: 'user-1',
+            revokedAt: null,
+            skillId: 'skill-1',
+            skillVersionId: 'version-read',
+          },
+        ],
+        versions: [
+          versionRow('version-shared', 'shared body'),
+          versionRow('version-read', 'granted read body'),
+        ],
+      }) as never,
+      actor,
+      [{ ...document, sharedVersionId: 'version-shared' }],
+      new Set(),
+      [],
+      'read',
+    );
+
+    expect(loaded.get('skill-1')?.instructionText).toBe('granted read body');
+  });
 });

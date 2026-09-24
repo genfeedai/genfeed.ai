@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { chooseAuthorizedVersionId } from './skill-authorized-version';
+import {
+  chooseAuthorizedVersionId,
+  chooseReadableVersionId,
+} from './skill-authorized-version';
 
 const pointer = {
   audience: 'organization',
@@ -69,6 +72,26 @@ describe('chooseAuthorizedVersionId', () => {
         },
       }),
     ).toBe('sv-current');
+  });
+
+  it('reads the shared or published version instead of a different use-only grant', () => {
+    expect(chooseReadableVersionId({ pointer })).toBe('sv-shared');
+    expect(
+      chooseReadableVersionId({
+        pointer: {
+          ...pointer,
+          audience: 'public',
+          publishedVersionId: 'sv-public',
+          sharedVersionId: null,
+        },
+      }),
+    ).toBe('sv-public');
+    expect(
+      chooseReadableVersionId({
+        pointer,
+        readGrantVersionId: 'sv-read-grant',
+      }),
+    ).toBe('sv-read-grant');
   });
 
   it('hides the current draft from a caller who only has a missing publication', () => {
