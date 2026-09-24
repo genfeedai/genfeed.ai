@@ -406,6 +406,47 @@ describe('BatchInterpolationController', () => {
         );
       });
 
+      it.each([
+        {
+          name: 'fixed frames without catalog duration',
+          input: { num_frames: 81 },
+        },
+        { name: 'negative duration', input: { duration: -1 } },
+        {
+          name: 'nonfinite duration',
+          input: { duration: Number.POSITIVE_INFINITY },
+        },
+        { name: 'invalid width', input: { width: 0 } },
+        { name: 'invalid height', input: { height: Number.NaN } },
+      ])(
+        'rejects $name before persisting processing records',
+        async ({ input }) => {
+          modelsService.findOne.mockResolvedValue({
+            ...mockModel,
+            pricingType: 'per-second',
+            defaultDuration: null,
+          });
+          promptBuilderService.buildPrompt.mockResolvedValue({ input });
+          const result = await controller.createBatchInterpolation(
+            mockReq,
+            mockDto,
+            mockUser,
+          );
+          expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
+            id: '',
+            status: 'failed',
+          });
+          expect(promptsService.create).not.toHaveBeenCalled();
+          expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+          expect(activitiesService.create).not.toHaveBeenCalled();
+          expect(
+            websocketService.publishBackgroundTaskUpdate,
+          ).not.toHaveBeenCalled();
+          expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+          expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+        },
+      );
+
       it('does not dispatch unpriced fixed-frame per-second models', async () => {
         modelsService.findOne.mockResolvedValue({
           ...mockModel,
