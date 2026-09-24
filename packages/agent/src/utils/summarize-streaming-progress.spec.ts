@@ -232,3 +232,36 @@ describe('turn preparation progress', () => {
     },
   );
 });
+
+it('shows acceptance below every meaningful progress phase', () => {
+  const stream = {
+    ...idleStream,
+    isStreaming: true,
+    acceptedReceipt: { acceptedAt: '2026-09-24T12:00:00Z' },
+  };
+  expect(summarizeStreamingProgress(stream, []).label).toBe('Request accepted');
+  expect(
+    summarizeStreamingProgress({ ...stream, streamingContent: 'Reply' }, [])
+      .label,
+  ).toBe('Answering');
+  expect(
+    summarizeStreamingProgress(
+      { ...stream, streamingReasoning: 'Check sources' },
+      [],
+    ).label,
+  ).toBe('Thinking');
+  expect(
+    summarizeStreamingProgress(stream, [workEvent({ phase: 'preparing' })])
+      .label,
+  ).toBe('Preparing response');
+  expect(
+    summarizeStreamingProgress(stream, [
+      workEvent({ phase: 'waiting_for_lane' }),
+    ]).label,
+  ).toBe('Preparing to continue');
+  expect(
+    summarizeStreamingProgress(stream, [
+      workEvent({ event: AgentWorkEventType.INPUT_REQUESTED }),
+    ]).label,
+  ).toBe('Waiting for input');
+});

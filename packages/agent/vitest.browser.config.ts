@@ -12,9 +12,46 @@ const CLIENT_SERIALIZERS_MOCK = path.resolve(
 );
 
 export default defineConfig({
-  optimizeDeps: { exclude: ['next/link'] },
+  define: { 'process.env': JSON.stringify({ NODE_ENV: 'test' }) },
+  optimizeDeps: { include: ['next/link'] },
   resolve: {
     alias: [
+      {
+        find: /^@genfeedai\/contracts$/,
+        replacement: path.resolve(__dirname, '../contracts/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/contracts\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/$1'),
+      },
+      {
+        find: /^@api-types\/(.*)$/,
+        replacement: path.resolve(__dirname, '../contracts/src/api-types/$1'),
+      },
+      {
+        find: /^@genfeedai\/config$/,
+        replacement: path.resolve(__dirname, '../config/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/config\/(.*)$/,
+        replacement: path.resolve(__dirname, '../config/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/auth-client$/,
+        replacement: path.resolve(__dirname, '../auth-client/src/index.ts'),
+      },
+      {
+        find: /^@genfeedai\/auth-client\/(.*)$/,
+        replacement: path.resolve(__dirname, '../auth-client/src/$1'),
+      },
+      {
+        find: /^@genfeedai\/hooks$/,
+        replacement: path.resolve(__dirname, '../hooks'),
+      },
+      {
+        find: /^@genfeedai\/hooks\/(.*)$/,
+        replacement: path.resolve(__dirname, '../hooks/$1'),
+      },
       {
         find: /^@genfeedai\/client\/models$/,
         replacement: CLIENT_MODELS_MOCK,

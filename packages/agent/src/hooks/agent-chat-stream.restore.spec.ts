@@ -1,5 +1,6 @@
 import { restoreThreadFromSnapshot } from '@genfeedai/agent/hooks/agent-chat-stream.restore';
 import {
+  createAgentStreamEntry,
   getAgentStreamRuntime,
   resetAgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
@@ -240,6 +241,34 @@ describe('restoreThreadFromSnapshot', () => {
       expect(deps.updateThreadSummary).not.toHaveBeenCalled();
       expect(deps.setActiveRun).not.toHaveBeenCalled();
       expect(deps.markStreamLive).not.toHaveBeenCalled();
+    },
+  );
+  it.each(['new-entry', 'later-event'] as const)(
+    'rejects reconnect hydration after %s changes the registry owner',
+    async (change) => {
+      const entry =
+        change === 'later-event'
+          ? createAgentStreamEntry('thread-1', 'existing-request')
+          : null;
+      const deps = makeDeps(
+        makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
+      );
+      let release: (snapshot: AgentThreadSnapshot) => void = () => {};
+      deps.apiService.getThreadSnapshot.mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            release = resolve;
+          }),
+      );
+      const restoring = restoreThreadFromSnapshot('thread-1', deps as never);
+      if (entry) entry.revision += 1;
+      else createAgentStreamEntry('thread-1', 'new-request');
+      release(
+        makeSnapshot({ runId: 'run-1', startedAt: null, status: 'running' }),
+      );
+      await restoring;
+      expect(deps.setMessages).not.toHaveBeenCalled();
+      expect(deps.updateThreadSummary).not.toHaveBeenCalled();
     },
   );
 });

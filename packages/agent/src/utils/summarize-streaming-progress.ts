@@ -8,6 +8,7 @@ import {
 } from '@genfeedai/agent/models/agent-chat.model';
 
 interface StreamStateLike {
+  acceptedReceipt?: { acceptedAt: string };
   activeToolCalls: AgentToolCall[];
   isStreaming: boolean;
   streamingContent: string;
@@ -136,6 +137,8 @@ export function summarizeStreamingProgress(
   ) {
     return { label: 'Preparing to continue' };
   }
+
+  if (streamState.acceptedReceipt) return { label: 'Request accepted' };
 
   return { label: 'Thinking' };
 }

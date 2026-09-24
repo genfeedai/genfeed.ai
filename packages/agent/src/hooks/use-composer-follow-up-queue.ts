@@ -51,7 +51,10 @@ export function useComposerFollowUpQueue({
   const [isInterrupting, setIsInterrupting] = useState(false);
   const threadKey = getComposerFollowUpThreadKey(threadId);
   const previousThreadKeyRef = useRef(threadKey);
-  const pendingPromoteIdRef = useRef<string | null>(null);
+  const pendingPromoteIdRef = useRef<{
+    id: string;
+    threadId: string | null;
+  } | null>(null);
   const dispatchingIdRef = useRef<string | null>(null);
   const autoDispatchLatchRef = useRef<string | null>(null);
   const onDispatchRef = useRef(onDispatch);
@@ -62,6 +65,7 @@ export function useComposerFollowUpQueue({
   if (previousThreadKeyRef.current !== threadKey) {
     const previousKey = previousThreadKeyRef.current;
     previousThreadKeyRef.current = threadKey;
+    autoDispatchLatchRef.current = null;
     if (
       previousKey === UNASSIGNED_COMPOSER_FOLLOW_UP_THREAD_KEY &&
       threadId &&
@@ -85,9 +89,10 @@ export function useComposerFollowUpQueue({
         return false;
       }
 
+      const dispatchThreadId = threadIdRef.current;
       const snapshot = getComposerFollowUpQueue(
         queuesByThreadRef.current,
-        threadIdRef.current,
+        dispatchThreadId,
       );
       const item = snapshot.find((entry) => entry.id === id);
       if (!item || item.status === 'sending') {
@@ -98,9 +103,9 @@ export function useComposerFollowUpQueue({
       setQueuesByThread((current) =>
         setComposerFollowUpQueue(
           current,
-          threadIdRef.current,
+          dispatchThreadId,
           markComposerFollowUpStatus(
-            getComposerFollowUpQueue(current, threadIdRef.current),
+            getComposerFollowUpQueue(current, dispatchThreadId),
             id,
             'sending',
           ),
@@ -116,18 +121,20 @@ export function useComposerFollowUpQueue({
       }
 
       setQueuesByThread((current) => {
-        const currentQueue = getComposerFollowUpQueue(
-          current,
-          threadIdRef.current,
+        // A new draft may migrate while acknowledgement is pending. The item
+        // identity names that one queue, never the currently visible thread.
+        const settledKey = Object.keys(current).find((key) =>
+          current[key]?.some((entry) => entry.id === id),
         );
+        const settledThreadId =
+          settledKey === UNASSIGNED_COMPOSER_FOLLOW_UP_THREAD_KEY
+            ? null
+            : (settledKey ?? dispatchThreadId);
+        const currentQueue = getComposerFollowUpQueue(current, settledThreadId);
         const nextQueue = accepted
           ? removeComposerFollowUp(currentQueue, id)
           : markComposerFollowUpStatus(currentQueue, id, 'failed');
-        return setComposerFollowUpQueue(
-          current,
-          threadIdRef.current,
-          nextQueue,
-        );
+        return setComposerFollowUpQueue(current, settledThreadId, nextQueue);
       });
       dispatchingIdRef.current = null;
       return accepted;
@@ -245,7 +252,7 @@ export function useComposerFollowUpQueue({
         return;
       }
 
-      pendingPromoteIdRef.current = id;
+      pendingPromoteIdRef.current = { id, threadId };
       setIsInterrupting(true);
       void Promise.resolve(onInterruptRef.current()).then((cancelled) => {
         if (cancelled) {
@@ -255,7 +262,7 @@ export function useComposerFollowUpQueue({
         setIsInterrupting(false);
       });
     },
-    [dispatch, isBusy, isInterrupting, isReadOnly, queue],
+    [dispatch, isBusy, isInterrupting, isReadOnly, queue, threadId],
   );
 
   const promoteOldest = useCallback(() => {
@@ -277,8 +284,8 @@ export function useComposerFollowUpQueue({
     const pendingId = pendingPromoteIdRef.current;
     pendingPromoteIdRef.current = null;
     setIsInterrupting(false);
-    if (pendingId) {
-      void dispatch(pendingId);
+    if (pendingId && pendingId.threadId === threadIdRef.current) {
+      void dispatch(pendingId.id);
     }
   }, [dispatch, isBusy, isInterrupting]);
 
