@@ -149,6 +149,21 @@ describe('Activity', () => {
       ).toBe('8 credits used');
     });
 
+    it('uses the stored charge reason for structured credit activities', () => {
+      expect(
+        createActivity({
+          key: ActivityKey.CREDITS_REMOVE,
+          value: JSON.stringify({
+            description: 'AI brand profile generation',
+            value: 1,
+          }),
+        }).label,
+      ).toBe('AI brand profile generation');
+      expect(
+        createActivity({ key: ActivityKey.CREDITS_REMOVE, value: '1' }).label,
+      ).toBe('1 credit used');
+    });
+
     it('never returns the raw wire key for unknown activity keys', () => {
       const activity = createActivity({
         key: 'unknown-widget-failed',

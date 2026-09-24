@@ -95,6 +95,25 @@ describe('ActivityFeed', () => {
     });
   });
 
+  it('shows the saved reason for a system credit charge', () => {
+    useActivitiesMock.mockReturnValue({
+      filteredActivities: [
+        activityFixture(1, {
+          key: ActivityKey.CREDITS_REMOVE,
+          source: 'system',
+          value: JSON.stringify({
+            description: 'AI brand profile generation',
+            value: 1,
+          }),
+        }),
+      ],
+      isLoading: false,
+    });
+    render(<ActivityFeed />);
+    expect(screen.getByText('AI brand profile generation')).toBeInTheDocument();
+    expect(screen.getByText('1 credit used')).toBeInTheDocument();
+  });
+
   it('lists the last five activities and links to workspace activity', () => {
     render(<ActivityFeed />);
 

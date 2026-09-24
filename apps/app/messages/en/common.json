@@ -52,7 +52,7 @@
     "creditUsageLabel": "Credit usage",
     "credits": {
       "add": "{amount, select, none {Credits added} other {{amount} credits added}}",
-      "remove": "{amount, select, none {{source, select, none {Credit deduction} other {{source}}}} other {{source, select, none {{amount} credits used} other {{source} \u00b7 {amount} credits used}}}}",
+      "remove": "{source, select, none {Credit usage — details unavailable} other {{source}}}",
       "remove_all": "Removed all credits",
       "reset": "Reset credits"
     },

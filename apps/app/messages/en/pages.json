@@ -2270,7 +2270,7 @@
     }
   },
   "activities": {
-    "credits": "{amount} credits",
+    "credits": "{amount, plural, one {# credit} other {# credits}}",
     "selected": "{count} selected",
     "clearSelection": "Clear selection"
   },

@@ -26,6 +26,7 @@ import { useTranslations } from 'next-intl';
 import { useCallback, useMemo, useState } from 'react';
 
 import {
+  getActivityCreditAmount,
   getActivityDescription,
   getActivityDestinationPath,
   getActivityDetailText,
@@ -161,9 +162,8 @@ export default function ActivitiesList({
         key: 'cost',
         render: (a: IActivity) => {
           if (!isCreditActivity(a.key)) return null;
-          const parsed = parseActivityValue(a.value);
-          const amount = (parsed?.value as string) || a.value;
-          if (!amount) return null;
+          const amount = getActivityCreditAmount(a);
+          if (amount === null) return null;
           return (
             <span className="text-sm text-foreground/70">
               {translate('credits', { amount })}

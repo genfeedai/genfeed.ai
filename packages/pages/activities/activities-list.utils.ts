@@ -9,6 +9,7 @@ import {
   IngredientCategory,
   Platform,
   parseActivityKey,
+  parseCreditActivityValue,
 } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -87,6 +88,11 @@ const ACTIVITY_SOURCE_LABELS: Record<string, string> = {
   [ActivitySource.AVATAR_GENERATION]: 'Avatar generation',
   [ActivitySource.ASSET_GENERATION]: 'Asset generation',
   [ActivitySource.POST]: 'Content publish',
+  [ActivitySource.BRAND_INTERVIEW]: 'Brand context interview',
+  [ActivitySource.EXPERT_FIRST_SYSTEM]: 'First content system generation',
+  [ActivitySource.TREND_SCAN]: 'Trend research',
+  [ActivitySource.ARTICLE_VIRALITY_ANALYSIS]: 'Article virality analysis',
+  [ActivitySource.ARTICLE_PROMPT_GENERATION]: 'Article prompt generation',
 };
 
 export function getActivitySourceLabel(
@@ -243,23 +249,10 @@ export function getActivityMediaPreviewUrl(
   return undefined;
 }
 
-function parseCreditAmount(value: string | undefined): number | null {
-  if (!value?.trim()) {
-    return null;
-  }
-  const parsed = parseActivityValue(value);
-  const raw =
-    typeof parsed?.value === 'string' || typeof parsed?.value === 'number'
-      ? String(parsed.value)
-      : value;
-  const amount = Number(raw);
-  return Number.isFinite(amount) ? amount : null;
-}
-
 export function getActivityCreditAmount(
   activity: Pick<IActivity, 'value'>,
 ): number | null {
-  return parseCreditAmount(activity.value);
+  return parseCreditActivityValue(activity.value).amount;
 }
 
 /**
@@ -285,7 +278,7 @@ export function getActivityDescription(
   }
 
   if (isCreditActivity(key)) {
-    const amount = parseCreditAmount(activity.value);
+    const { amount, description } = parseCreditActivityValue(activity.value);
     const amountLabel = amount !== null ? amount.toLocaleString('en-US') : null;
     const sourceLabel = activity.source
       ? getActivitySourceLabel(activity.source)
@@ -296,7 +289,7 @@ export function getActivityDescription(
       params: {
         ...descriptor.params,
         amount: amountLabel ?? 'none',
-        source: sourceLabel ?? 'none',
+        source: description ?? sourceLabel ?? 'none',
       },
     };
 

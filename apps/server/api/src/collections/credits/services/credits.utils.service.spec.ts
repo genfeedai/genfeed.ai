@@ -180,6 +180,25 @@ describe('CreditsUtilsService', () => {
       );
     });
 
+    it('preserves the charge reason in the activity event', async () => {
+      await buildService().deductCreditsFromOrganization(
+        'org_1',
+        'user_1',
+        1,
+        'AI brand profile generation',
+      );
+
+      expect(eventEmitter.emit).toHaveBeenCalledWith(
+        'credits.activity',
+        expect.objectContaining({
+          value: JSON.stringify({
+            description: 'AI brand profile generation',
+            value: 1,
+          }),
+        }),
+      );
+    });
+
     it('throws on insufficient credits without writing', async () => {
       const service = buildService();
       creditBalanceService.applyDelta.mockRejectedValue(
