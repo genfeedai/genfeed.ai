@@ -62,6 +62,7 @@ describe('PromptsController', () => {
 
   const mockPrompt = {
     _id: testId('prompt'),
+    id: testId('prompt'),
     isDeleted: false,
     organization: testId('org'),
     original: 'Test prompt',
