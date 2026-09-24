@@ -14,7 +14,7 @@ import type { IngredientsLayoutProps } from '@props/content/ingredients-layout.p
 import { useUploadModal } from '@providers/global-modals/global-modals.provider';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { ReactNode } from 'react';
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   INGREDIENT_CONFIGS,
   INGREDIENT_LABELS,
@@ -68,7 +68,8 @@ export function useIngredientsLayout({
 }: Pick<IngredientsLayoutProps, 'scope' | 'defaultType'>) {
   const pathname = usePathname();
   const router = useRouter();
-  const searchParams = useSearchParams();
+  const search = useSearchParams()?.toString() ?? '';
+  const searchParams = useMemo(() => new URLSearchParams(search), [search]);
   const { brands, brandId } = useBrand();
   const { openUpload } = useUploadModal();
 
@@ -85,7 +86,17 @@ export function useIngredientsLayout({
 
     // Determine ingredient type from pathname for default format
     const routeIngredientType =
-      searchParams?.get('assetType') ?? getIngredientTypeFromPathname(pathname);
+      [
+        'videos',
+        'images',
+        'gifs',
+        'musics',
+        'avatars',
+        'voices',
+        'ingredients',
+      ].find((value) => value === searchParams?.get('assetType')) ??
+      (searchParams?.has('assetType') ? 'videos' : null) ??
+      getIngredientTypeFromPathname(pathname);
 
     // Default format to "all" (empty string) - don't force format filter
     const defaultFormat = formatParam || '';
@@ -131,12 +142,27 @@ export function useIngredientsLayout({
     () => getInitialState().filters,
   );
   const [query, setQuery] = useState<IFilters>(() => getInitialState().query);
+  useEffect(() => {
+    const next = getInitialState();
+    setFilters(next.filters);
+    setQuery(next.query);
+  }, [getInitialState]);
   const [selectedIngredientType, setIngredientType] = useState(
     defaultType ?? 'videos',
   );
   const routeIngredientType = useMemo(
     () =>
-      searchParams?.get('assetType') ?? getIngredientTypeFromPathname(pathname),
+      [
+        'videos',
+        'images',
+        'gifs',
+        'musics',
+        'avatars',
+        'voices',
+        'ingredients',
+      ].find((value) => value === searchParams?.get('assetType')) ??
+      (searchParams?.has('assetType') ? 'videos' : null) ??
+      getIngredientTypeFromPathname(pathname),
     [pathname, searchParams],
   );
   const ingredientType =

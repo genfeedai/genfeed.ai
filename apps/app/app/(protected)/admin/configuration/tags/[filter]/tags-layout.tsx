@@ -50,7 +50,10 @@ export default function TagsLayout({
         tabs
           ? {
               activeTab: filterHref(
-                new URLSearchParams(search).get('filter') ?? 'all',
+                ['all', 'default', 'organization', 'account'].find(
+                  (value) =>
+                    value === new URLSearchParams(search).get('filter'),
+                ) ?? 'all',
               ),
               fullWidth: false,
               tabs,

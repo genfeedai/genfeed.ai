@@ -77,7 +77,18 @@ export default function IngredientsLayout({
             : {
                 headerTabs: {
                   activeTab: typeHref(
-                    new URLSearchParams(search).get('assetType') ?? 'videos',
+                    [
+                      'videos',
+                      'images',
+                      'gifs',
+                      'musics',
+                      'avatars',
+                      'voices',
+                      'ingredients',
+                    ].find(
+                      (value) =>
+                        value === new URLSearchParams(search).get('assetType'),
+                    ) ?? 'videos',
                   ),
                   fullWidth: false,
                   tabs: [

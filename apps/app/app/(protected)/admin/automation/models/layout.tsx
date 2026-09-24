@@ -78,7 +78,9 @@ function ModelsLayoutContent({ children }: LayoutProps) {
           APP_ROUTES.ADMIN.AUTOMATION.MODELS,
           searchParamsString,
           'type',
-          searchParams?.get('type') ?? 'all',
+          ['all', 'image', 'video', 'music', 'text', 'other'].find(
+            (value) => value === searchParams?.get('type'),
+          ) ?? 'all',
         ),
         fullWidth: false,
         tabs: [
