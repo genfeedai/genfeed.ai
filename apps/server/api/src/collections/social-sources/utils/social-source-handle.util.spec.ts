@@ -4,7 +4,11 @@ import {
   toSocialSourcePlatform,
 } from '@api/collections/social-sources/utils/social-source-handle.util';
 import { SocialSourcePlatform } from '@genfeedai/contracts';
+import { testId } from '@helpers/testing/test-id.helper';
 import { BadRequestException } from '@nestjs/common';
+
+const channelId = `UC${testId('channel').slice(1, 23).replace('channel', 'ChAnNeL')}`;
+const secondChannelId = `UC${testId('channel', 2).slice(-22)}`;
 
 describe('social-source-handle.util', () => {
   describe('toSocialSourcePlatform', () => {
@@ -46,12 +50,12 @@ describe('social-source-handle.util', () => {
       expect(
         normalizeHandle(
           SocialSourcePlatform.YOUTUBE,
-          'https://www.youtube.com/channel/UCaBcDeFgHiJkLmNoPqRsTuV',
+          `https://www.youtube.com/channel/${channelId}`,
         ),
-      ).toBe('UCaBcDeFgHiJkLmNoPqRsTuV');
+      ).toBe(channelId);
     });
 
-    it.each(['UCaBcDeFgHiJkLmNoPqRsTuV', 'UCabcdefghijklmnopqrstuv'])(
+    it.each([channelId, secondChannelId])(
       'preserves case-sensitive channel ID %s through repeated normalization and URL round trips',
       (channelId) => {
         const platform = SocialSourcePlatform.YOUTUBE;
@@ -68,8 +72,8 @@ describe('social-source-handle.util', () => {
 
     it('keeps @ channel-ID-shaped values as handles through repeated normalization', () => {
       const platform = SocialSourcePlatform.YOUTUBE;
-      const handle = '@UCaBcDeFgHiJkLmNoPqRsTuV';
-      const normalized = 'ucabcdefghijklmnopqrstuv';
+      const handle = `@${channelId}`;
+      const normalized = channelId.toLowerCase();
       const profileUrl = `https://www.youtube.com/@${normalized}`;
       expect(normalizeHandle(platform, handle)).toBe(normalized);
       expect(buildProfileUrl(platform, handle)).toBe(profileUrl);
@@ -84,7 +88,7 @@ describe('social-source-handle.util', () => {
 
     it.each([
       'https://www.youtube.com/channel/UC12345',
-      'https://www.youtube.com/channel/ucabcdefghijklmnopqrstuv',
+      `https://www.youtube.com/channel/${channelId.toLowerCase()}`,
       'https://www.youtube.com/channel/',
       'https://www.youtube.com/user/Genfeed',
       'https://www.youtube.com/c/Genfeed',
@@ -126,8 +130,8 @@ describe('social-source-handle.util', () => {
       (platform, input, expectedUrl) => {
         expect(normalizeHandle(platform, input)).toBe('genfeed');
         expect(buildProfileUrl(platform, input)).toBe(expectedUrl);
-        expect(normalizeHandle(platform, '@UCaBcDeFgHiJkLmNoPqRsTuV')).toBe(
-          'ucabcdefghijklmnopqrstuv',
+        expect(normalizeHandle(platform, `@${channelId}`)).toBe(
+          channelId.toLowerCase(),
         );
       },
     );
