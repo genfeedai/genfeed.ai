@@ -163,6 +163,7 @@ describe('CreditReservationService', () => {
       service.reserve({
         organizationId: 'org_1',
         billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
         amount: 20,
         idempotencyKey: 'retry_1',
       }),
@@ -182,6 +183,7 @@ describe('CreditReservationService', () => {
       service.reserve({
         organizationId: 'org_1',
         billingAccountId: 'ba_1',
+        actorUserId: 'user_1',
         amount: 20,
         idempotencyKey: 'retry_1',
       }),
