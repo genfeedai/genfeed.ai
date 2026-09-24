@@ -242,6 +242,88 @@ describe.skipIf(!connectionString)(
       ).toBe(1);
     }, 30_000);
 
+    it('accepts concurrent signup retries for the same organization with one welcome grant', async () => {
+      overlapFirstGrantAttempts();
+      const org = organizationIds[0];
+      const outcomes = await Promise.allSettled([
+        service.grantSignupGift(org, userId),
+        service.grantSignupGift(org, userId),
+      ]);
+      expect(outcomes).toEqual([
+        { status: 'fulfilled', value: undefined },
+        { status: 'fulfilled', value: undefined },
+      ]);
+      const rows = await database().creditTransaction.findMany({
+        where: { organizationId: org, isDeleted: false },
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        amount: 25,
+        source: 'onboarding-signup-gift',
+        actorUserId: userId,
+        idempotencyKey: `onboarding:welcome:${userId}`,
+        referenceId: userId,
+      });
+      expect(
+        await database().creditBalance.findFirstOrThrow({
+          where: { organizationId: org, isDeleted: false },
+        }),
+      ).toMatchObject({ balance: 25, heldAmount: 0 });
+      await service.grantSignupGift(org, userId);
+      expect(
+        await database().creditTransaction.count({
+          where: { organizationId: org, isDeleted: false },
+        }),
+      ).toBe(1);
+    }, 30_000);
+
+    it('accepts concurrent completion of the same mission with one claim and reward', async () => {
+      overlapFirstGrantAttempts();
+      const org = organizationIds[0];
+      const outcomes = await Promise.allSettled([
+        service.completeMissions(org, ['complete_company_info'], userId),
+        service.completeMissions(org, ['complete_company_info'], userId),
+      ]);
+      expect(
+        outcomes.filter((outcome) => outcome.status === 'rejected'),
+      ).toEqual([]);
+      const settings = await database().organizationSetting.findUniqueOrThrow({
+        where: { organizationId: org },
+      });
+      const missions =
+        settings.onboardingJourneyMissions as unknown as IOnboardingJourneyMissionState[];
+      expect(missions.filter((mission) => mission.rewardClaimed)).toEqual([
+        expect.objectContaining({
+          id: 'complete_company_info',
+          isCompleted: true,
+          rewardClaimed: true,
+          rewardCredits: 25,
+        }),
+      ]);
+      const rows = await database().creditTransaction.findMany({
+        where: { organizationId: org, isDeleted: false },
+      });
+      expect(rows).toHaveLength(1);
+      expect(rows[0]).toMatchObject({
+        amount: 25,
+        source: 'onboarding-journey',
+        actorUserId: userId,
+        idempotencyKey: `onboarding:mission:${org}:complete_company_info`,
+        referenceId: 'complete_company_info',
+      });
+      expect(
+        await database().creditBalance.findFirstOrThrow({
+          where: { organizationId: org, isDeleted: false },
+        }),
+      ).toMatchObject({ balance: 25, heldAmount: 0 });
+      await service.completeMissions(org, ['complete_company_info'], userId);
+      expect(
+        await database().creditTransaction.count({
+          where: { organizationId: org, isDeleted: false },
+        }),
+      ).toBe(1);
+    }, 30_000);
+
     it('merges parallel different missions with exact ledger and wallet totals', async () => {
       overlapFirstGrantAttempts();
       const org = organizationIds[0];
