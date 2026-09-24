@@ -1,21 +1,61 @@
 # External agent content journey
 
-Evidence matrix for #4463 / #4468. Live client rows stay open until an
-authenticated run is recorded. Automated tests in this repository are the
-reproducible substitute until those live rows pass.
+Evidence matrix for #4463 / #4468, updated 2026-09-24. Live client rows remain
+open until the required authenticated journey is recorded. Automated tests
+provide reproducible coverage; they do not substitute for live acceptance.
 
-## Supported clients
+## Client evidence
 
-| Client | Version recorded | Auth | Brand | Context | Generate | Reconnect | Image | Video | Status |
-| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
-| Genfeed CLI | `gf` workspace | Browser OAuth login | `gf brand` / `--brand` | `--context` (transient) | `gf gen image` / `gf gen video` | `gf status <id>` | File download | File download | Automated: connect, brand, wait recovery |
-| Codex | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | `get_job_status` / tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Codex session not run in this change |
-| Grok | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` / `generate_video` | `get_job_status` / tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Grok session not run in this change |
-| Claude Code | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Claude Code session not run in this change |
-| Claude Desktop | not run | MCP browser OAuth | `list_brands` then `brandId` | `selectedContext` | `generate_image` | tool reconnect | Resource link + structured artifact + text | File/open link | Blocked: live Claude Desktop session not run in this change |
+| Client / run | Date | Observed result | Not verified / blocker |
+| --- | --- | --- | --- |
+| Genfeed CLI (`gf` workspace) | Source coverage only | Automated coverage for connection, explicit brand selection, and media wait recovery. | Live browser OAuth, media delivery, and reconnect acceptance remain unverified. |
+| Installed Codex connector | 2026-09-24 | Read pass: `list_brands` returned one brand; scheduler capability and readiness reads returned results. Explicit `get_brand` failed with “Brand was not found in this organization”. Facebook readiness returned `canSchedule: true` despite hidden scheduler capability. | Client version and deployed SHA were not observed. Merged #5017 needs a deployed `get_brand` retest; #5126 addresses the readiness mismatch. OAuth, two-brand isolation, media generation, costs, and reconnect were not verified. |
+| Cursor / Grok Bot | 2026-09-23 | Recorded tool-read pass. | Registration and token exchange were inferred, not directly observed; refresh was untested. This is separate from native Grok acceptance. |
+| Native Grok | Latest #4889 clarification | Blocked at human terms acknowledgement. | No native OAuth or media pass may be inferred from Cursor / Grok Bot. |
+| Claude Code | Not run | No live acceptance recorded in this matrix. | OAuth, brand/context handling, generation, media delivery, and reconnect remain unverified. |
+| Claude Desktop | Not run | No live acceptance recorded in this matrix. | OAuth, brand/context handling, generation, media delivery, and reconnect remain unverified. |
 
-A fallback can pass only when it is the documented supported behavior. Video
-never claims inline playback.
+The 2026-09-24 Codex read was not a new browser OAuth handshake. Authenticated
+reads, including manual API-key reads, do not prove registration, consent, token
+refresh, or reconnection. The single returned brand does not prove two-brand
+isolation. Before live acceptance, obtain owner consent for the relevant account
+and a quoted, approved budget for paid media generation. Record client version,
+deployed SHA, observed behavior, and cost evidence in the authorized run. The
+read-only run established only the observations listed in the matrix above.
+
+Expected client behavior remains explicit brand selection (`list_brands` then
+`brandId`, or `gf brand` / `--brand`) and transient context (`selectedContext` or
+`--context`). Image delivery may use a resource link, structured artifact, and
+text fallback; video uses a file or open link and never claims inline playback.
+A fallback passes only when it is the documented supported behavior and is
+observed in the client.
+
+## Available action journey
+
+The curated MCP catalog exposes the actions below. This is source availability,
+not a live pass. Use
+`https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler`
+or `?profile=full` to advertise the exposed content loop; `core` is always
+included. The default profile advertises only `core`, `scheduler`, and `content`.
+Tools may require explicit discovery selection, permissions, mutation approval,
+or approved spending. Selecting a profile does not authorize writes or costs.
+
+| Stage | Existing curated MCP actions | Availability / acceptance boundary |
+| --- | --- | --- |
+| Discover tools and select a brand | `search_tools`, `describe_tool`, `list_brands`, `get_brand` | Exposed; explicit brand lookup still needs the deployed #5017 retest. |
+| Research | `search_articles`, `search_x_posts`, `get_trends` | Exposed through content and analytics; does not establish generic URL import. |
+| Upload local media | `request_media_upload`, `complete_media_upload` | Exposed; reservation and completion are writes. Upload the bytes using the returned instructions between these calls. |
+| Generic URL import | None | Absent from the curated catalog; unavailable, not passed. Coordinate the gap with #4069 / #4959. |
+| Save or manage concepts | None | Saved-concept CRUD is absent from the curated catalog; unavailable, not passed. Coordinate with #4069 / #4959. |
+| Generate media | `generate_image`, `generate_video` | Exposed through generation; requires owner consent and a quoted, approved paid budget for live acceptance. |
+| Inspect progress | `get_job_status`, `get_video_status` | Exposed; live wait/reconnect recovery remains unverified. |
+| Retrieve output | `list_images`, `list_videos`, `get_post` | Exposed; verify the actual client artifact or supported fallback. |
+| Prepare and schedule | `list_scheduler_capabilities`, `list_brand_publishing_readiness`, `validate_scheduler_target`, `create_scheduled_release` | Exposed; readiness must agree with scheduler support. Creating a release is a write and retains approval checks. |
+| Inspect analytics | `get_analytics`, `get_content_analytics`, `get_video_analytics` | Exposed through analytics; requires scoped account data and live verification. |
+
+This document adds no actions or schemas and does not change the independently
+packaged public agent distribution. Private activation evidence remains separate
+from public client and directory acceptance.
 
 ## Automated coverage
 
@@ -66,8 +106,10 @@ environment before claiming hosted activation.
 
 ## Closing rule
 
-#4468 and parent #4463 stay open until every required client row is `passed` or
-an exact access blocker is recorded here. Source inspection is not a live pass.
+#4468 and parent #4463 remain open until required live acceptance is complete.
+Record exact access blockers without treating them as passes. Source inspection
+and automated coverage are not live passes; #4976 directory submission and Human
+Review gates also remain separate from this documentation repair.
 
 ## Shared generation preferences
 
