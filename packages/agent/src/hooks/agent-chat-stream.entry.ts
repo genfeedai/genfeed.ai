@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import {
   bindAgentStreamEntry,
+  getAgentStreamRuntime,
   isCurrentAgentStreamEntry,
   projectAgentStreamEntry,
   settleAgentStreamEntry,
@@ -68,7 +69,11 @@ export function createAgentStreamController(
   const activeThreadId = entry.activeStreamThreadRef.current;
 
   const setActiveThread = (threadId: string | null) => {
-    if (useAgentChatStore.getState().activeThreadId === activeThreadId) {
+    if (
+      useAgentChatStore.getState().activeThreadId === activeThreadId &&
+      (activeThreadId !== null ||
+        getAgentStreamRuntime().visibleDraftOwner === entry)
+    ) {
       useAgentChatStore.getState().setActiveThread(threadId);
       projectAgentStreamEntry(entry);
     }
@@ -76,7 +81,13 @@ export function createAgentStreamController(
   const upsertThread = useAgentChatStore.getState().upsertThread;
   const setError = presentationStore.getState().setError;
   const setMessages = presentationStore.getState().setMessages;
-  const setCreditsRemaining = presentationStore.getState().setCreditsRemaining;
+  const setCreditsRemaining = (credits: number) => {
+    if (
+      useAgentChatStore.getState().activeThreadId ===
+      entry.activeStreamThreadRef.current
+    )
+      useAgentChatStore.getState().setCreditsRemaining(credits);
+  };
   const clearMessages = presentationStore.getState().clearMessages;
   const isStreaming = presentationStore.getState().stream.isStreaming;
   const addWorkEvent = presentationStore.getState().addWorkEvent;
@@ -196,7 +207,6 @@ export function createAgentStreamController(
     patch?: Partial<
       Pick<
         AgentThread,
-        AgentTurnAcceptedPayload,
         'attentionState' | 'lastActivityAt' | 'pendingInputCount' | 'runStatus'
       >
     >,
@@ -627,6 +637,14 @@ export function createAgentStreamController(
   // events from the moment the answer is posted, then pin the stream to the
   // execution the server names so its events are not dropped as foreign.
   const beginRunHandoff = (threadId: string): AgentRunHandoff => {
+    if (useAgentChatStore.getState().activeThreadId === threadId) {
+      const visible = useAgentChatStore.getState();
+      presentationStore.setState({
+        pendingInputRequest: visible.pendingInputRequest,
+        messages: visible.messages,
+        stream: visible.stream,
+      });
+    }
     entry.terminalAt = null;
     streamRuntime.ownerGeneration += 1;
     const handoff: AgentRunHandoff = {
@@ -733,7 +751,7 @@ export function createAgentStreamController(
     streamRuntime.pendingCompletionRef.current = null;
     clearCompletionWatchdog();
     cleanupSubscriptions(true);
-    entry.activeStreamRunIdRef.current = handoff.previousRunId;
+
     if (failedRequest)
       updateThreadSummary(handoff.threadId, {
         runStatus: 'waiting_input',

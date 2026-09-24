@@ -2,6 +2,8 @@
 
 import { useAgentThreadList } from '@genfeedai/agent/components/useAgentThreadList';
 import {
+  createAgentStreamEntry,
+  findAgentStreamEntry,
   getAgentStreamRuntime,
   resetAgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
@@ -402,8 +404,8 @@ describe('useAgentChatStream', () => {
     window.removeEventListener('agent:threads:refresh', refreshListener);
   });
 
-  it('does not adopt a stream owned by a different thread', () => {
-    const streamRuntime = getAgentStreamRuntime();
+  it('adopts another visible thread without changing the first owner', () => {
+    const streamRuntime = createAgentStreamEntry('thread-a', 'request-a');
     const ownedUnsub = vi.fn();
     streamRuntime.activeStreamThreadRef.current = 'thread-a';
     streamRuntime.unsubscribersRef.current = [ownedUnsub];
@@ -439,7 +441,8 @@ describe('useAgentChatStream', () => {
       'thread-a',
     );
     expect(streamRuntime.unsubscribersRef.current).toEqual([ownedUnsub]);
-    expect(socketHandlers.size).toBe(0);
+    expect(findAgentStreamEntry('thread-b')).toBeDefined();
+    expect(socketHandlers.get('agent:token')).toHaveLength(1);
   });
 
   it('adopts a live stream when no thread owns it yet', () => {
@@ -464,11 +467,16 @@ describe('useAgentChatStream', () => {
       }),
     );
 
-    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-orphan');
-    expect(streamRuntime.pendingCompletionRef.current?.threadId).toBe(
-      'thread-orphan',
-    );
-    expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
+    expect(
+      findAgentStreamEntry('thread-orphan')?.activeStreamThreadRef.current,
+    ).toBe('thread-orphan');
+    expect(
+      findAgentStreamEntry('thread-orphan')?.pendingCompletionRef.current
+        ?.threadId,
+    ).toBe('thread-orphan');
+    expect(
+      findAgentStreamEntry('thread-orphan')?.unsubscribersRef.current.length,
+    ).toBeGreaterThan(0);
   });
 
   it('adopts a restored run once the store marks the stream live', async () => {
@@ -486,15 +494,23 @@ describe('useAgentChatStream', () => {
       }),
     );
 
-    expect(streamRuntime.unsubscribersRef.current).toHaveLength(0);
+    expect(
+      findAgentStreamEntry('thread-1')?.unsubscribersRef.current,
+    ).toHaveLength(0);
 
     act(() => {
       useAgentChatStore.getState().markStreamLive();
     });
 
-    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-1');
-    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-restored');
-    expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
+    expect(
+      findAgentStreamEntry('thread-1')?.activeStreamThreadRef.current,
+    ).toBe('thread-1');
+    expect(findAgentStreamEntry('thread-1')?.activeStreamRunIdRef.current).toBe(
+      'run-restored',
+    );
+    expect(
+      findAgentStreamEntry('thread-1')?.unsubscribersRef.current.length,
+    ).toBeGreaterThan(0);
 
     act(() => {
       for (const handler of socketHandlers.get('agent:token') ?? []) {
@@ -650,14 +666,15 @@ describe('useAgentChatStream', () => {
       });
     });
 
-    expect(streamRuntime.isAwaitingRunIdRef.current).toBe(false);
-    expect(streamRuntime.unsubscribersRef.current).toHaveLength(0);
+    expect(findAgentStreamEntry(null)?.isAwaitingRunIdRef.current).toBe(false);
+    expect(findAgentStreamEntry(null)?.unsubscribersRef.current).toHaveLength(
+      0,
+    );
     expect(useAgentChatStore.getState().stream.isStreaming).toBe(false);
   });
 
   it('adopts a restored run on a thread the finished stream no longer listens to', () => {
     const streamRuntime = getAgentStreamRuntime();
-    streamRuntime.activeStreamThreadRef.current = 'thread-previous';
 
     useAgentChatStore.setState({
       activeRunId: 'run-b',
@@ -675,9 +692,15 @@ describe('useAgentChatStream', () => {
       useAgentChatStore.getState().markStreamLive();
     });
 
-    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-b');
-    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-b');
-    expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
+    expect(
+      findAgentStreamEntry('thread-b')?.activeStreamThreadRef.current,
+    ).toBe('thread-b');
+    expect(findAgentStreamEntry('thread-b')?.activeStreamRunIdRef.current).toBe(
+      'run-b',
+    );
+    expect(
+      findAgentStreamEntry('thread-b')?.unsubscribersRef.current.length,
+    ).toBeGreaterThan(0);
   });
 
   it('hands the stream over to the execution that continues an answered input', async () => {
@@ -723,7 +746,9 @@ describe('useAgentChatStream', () => {
     });
 
     const state = useAgentChatStore.getState();
-    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-answer');
+    expect(findAgentStreamEntry('thread-1')?.activeStreamRunIdRef.current).toBe(
+      'run-answer',
+    );
     expect(state.activeRunId).toBe('run-answer');
     expect(state.activeRunStatus).toBe('running');
     expect(state.stream.isStreaming).toBe(true);
@@ -767,12 +792,18 @@ describe('useAgentChatStream', () => {
     act(() => {
       result.current.adoptRun(handoff, 'run-answer', null);
     });
-    expect(runtime.activeStreamRunIdRef.current).toBe('run-answer');
-    expect(runtime.pendingCompletionRef.current).toMatchObject({
+    expect(findAgentStreamEntry('thread-a')?.activeStreamRunIdRef.current).toBe(
+      'run-answer',
+    );
+    expect(
+      findAgentStreamEntry('thread-a')?.pendingCompletionRef.current,
+    ).toMatchObject({
       threadId: 'thread-a',
       runId: 'run-answer',
     });
-    expect(runtime.unsubscribersRef.current.length).toBeGreaterThan(0);
+    expect(
+      findAgentStreamEntry('thread-a')?.unsubscribersRef.current.length,
+    ).toBeGreaterThan(0);
     expect(useAgentChatStore.getState().activeRunId).toBe('run-b');
     expect(
       useAgentChatStore.getState().threads.find((t) => t.id === 'thread-a')
@@ -794,9 +825,15 @@ describe('useAgentChatStream', () => {
         ?.runStatus,
     ).toBe('completed');
     expect(useAgentChatStore.getState().messages).toEqual([]);
-    expect(runtime.activeStreamThreadRef.current).toBe('thread-b');
-    expect(runtime.activeStreamRunIdRef.current).toBe('run-b');
-    expect(runtime.unsubscribersRef.current.length).toBeGreaterThan(0);
+    expect(
+      findAgentStreamEntry('thread-b')?.activeStreamThreadRef.current,
+    ).toBe('thread-b');
+    expect(findAgentStreamEntry('thread-b')?.activeStreamRunIdRef.current).toBe(
+      'run-b',
+    );
+    expect(
+      findAgentStreamEntry('thread-b')?.unsubscribersRef.current.length,
+    ).toBeGreaterThan(0);
   });
 
   it.each(['agent:done', 'agent:input_resolved'])(
@@ -820,7 +857,6 @@ describe('useAgentChatStream', () => {
       const { result } = renderHook(() =>
         useAgentChatStream({ apiService: createApiService({}) }),
       );
-      runtime.activeStreamRunIdRef.current = 'run-ask';
       let handoff: ReturnType<typeof result.current.beginRunHandoff>;
       act(() => {
         handoff = result.current.beginRunHandoff('thread-a');
@@ -850,8 +886,12 @@ describe('useAgentChatStream', () => {
         }
         result.current.cancelRunHandoff(handoff, request);
       });
-      expect(runtime.isAwaitingRunIdRef.current).toBe(false);
-      expect(runtime.activeStreamRunIdRef.current).not.toBe('run-ask');
+      expect(findAgentStreamEntry('thread-a')?.isAwaitingRunIdRef.current).toBe(
+        false,
+      );
+      expect(
+        findAgentStreamEntry('thread-a')?.activeStreamRunIdRef.current,
+      ).not.toBe('run-ask');
       expect(useAgentChatStore.getState().pendingInputRequest).toBeNull();
       expect(useAgentChatStore.getState().activeRunStatus).toBe(
         event === 'agent:done' ? 'completed' : 'running',
@@ -946,8 +986,12 @@ describe('useAgentChatStream', () => {
         useAgentChatStore.getState().threads.find((t) => t.id === 'thread-a')
           ?.runStatus,
       ).toBe('completed');
-      expect(runtime.pendingCompletionRef.current).toBeNull();
-      expect(runtime.completionTimeoutRef.current).toBeNull();
+      expect(
+        findAgentStreamEntry('thread-a')?.pendingCompletionRef.current,
+      ).toBeNull();
+      expect(
+        findAgentStreamEntry('thread-a')?.completionTimeoutRef.current,
+      ).toBeNull();
     },
   );
 
@@ -1010,14 +1054,20 @@ describe('useAgentChatStream', () => {
         }
         result.current.cancelRunHandoff(handoff, request);
       });
-      expect(runtime.activeStreamRunIdRef.current).toBe(
-        continued ? 'run-answer' : null,
-      );
+      expect(
+        findAgentStreamEntry('thread-a')?.activeStreamRunIdRef.current,
+      ).toBe(continued ? 'run-answer' : null);
       if (continued) {
-        expect(runtime.pendingCompletionRef.current?.runId).toBe('run-answer');
+        expect(
+          findAgentStreamEntry('thread-a')?.pendingCompletionRef.current?.runId,
+        ).toBe('run-answer');
       } else {
-        expect(runtime.pendingCompletionRef.current).toBeNull();
-        expect(runtime.completionTimeoutRef.current).toBeNull();
+        expect(
+          findAgentStreamEntry('thread-a')?.pendingCompletionRef.current,
+        ).toBeNull();
+        expect(
+          findAgentStreamEntry('thread-a')?.completionTimeoutRef.current,
+        ).toBeNull();
       }
       await act(async () => {
         await vi.advanceTimersByTimeAsync(100_000);
@@ -1062,9 +1112,15 @@ describe('useAgentChatStream', () => {
     act(() => {
       result.current.cancelRunHandoff(handoff);
     });
-    expect(runtime.activeStreamThreadRef.current).toBe('thread-b');
-    expect(runtime.activeStreamRunIdRef.current).toBe('run-b');
-    expect(runtime.bufferedEventsRef.current).toHaveLength(0);
+    expect(
+      findAgentStreamEntry('thread-b')?.activeStreamThreadRef.current,
+    ).toBe('thread-b');
+    expect(findAgentStreamEntry('thread-b')?.activeStreamRunIdRef.current).toBe(
+      'run-b',
+    );
+    expect(
+      findAgentStreamEntry('thread-b')?.bufferedEventsRef.current,
+    ).toHaveLength(0);
     act(() => {
       for (const handler of socketHandlers.get('agent:done') ?? []) {
         handler({
@@ -1103,7 +1159,6 @@ describe('useAgentChatStream', () => {
       const { result } = renderHook(() =>
         useAgentChatStream({ apiService: createApiService({}) }),
       );
-      runtime.activeStreamRunIdRef.current = 'run-other-thread';
       let handoff: ReturnType<typeof result.current.beginRunHandoff>;
       act(() => {
         handoff = result.current.beginRunHandoff('thread-a');
@@ -1120,9 +1175,15 @@ describe('useAgentChatStream', () => {
         }
         result.current.cancelRunHandoff(handoff, request);
       });
-      expect(runtime.activeStreamRunIdRef.current).toBeNull();
-      expect(runtime.pendingCompletionRef.current).toBeNull();
-      expect(runtime.completionTimeoutRef.current).toBeNull();
+      expect(
+        findAgentStreamEntry('thread-a')?.activeStreamRunIdRef.current,
+      ).toBeNull();
+      expect(
+        findAgentStreamEntry('thread-a')?.pendingCompletionRef.current,
+      ).toBeNull();
+      expect(
+        findAgentStreamEntry('thread-a')?.completionTimeoutRef.current,
+      ).toBeNull();
       expect(useAgentChatStore.getState().pendingInputRequest).toEqual(request);
       expect(useAgentChatStore.getState().messages).toHaveLength(0);
     },
@@ -1163,8 +1224,11 @@ describe('useAgentChatStream', () => {
     await act(async () => {
       await result.current.sendMessage('Plan next week');
     });
-    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-b');
-    const liveSubscriptionCount = streamRuntime.unsubscribersRef.current.length;
+    expect(
+      findAgentStreamEntry('thread-b')?.activeStreamThreadRef.current,
+    ).toBe('thread-b');
+    const liveSubscriptionCount =
+      findAgentStreamEntry('thread-b')?.unsubscribersRef.current.length;
 
     act(() => {
       if (handoff) {
@@ -1173,11 +1237,15 @@ describe('useAgentChatStream', () => {
       }
     });
 
-    expect(streamRuntime.activeStreamThreadRef.current).toBe('thread-b');
-    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-b');
-    expect(streamRuntime.unsubscribersRef.current).toHaveLength(
-      liveSubscriptionCount,
+    expect(
+      findAgentStreamEntry('thread-b')?.activeStreamThreadRef.current,
+    ).toBe('thread-b');
+    expect(findAgentStreamEntry('thread-b')?.activeStreamRunIdRef.current).toBe(
+      'run-b',
     );
+    expect(
+      findAgentStreamEntry('thread-b')?.unsubscribersRef.current,
+    ).toHaveLength(liveSubscriptionCount);
     expect(useAgentChatStore.getState().activeRunId).toBe('run-b');
   });
 
@@ -1235,9 +1303,15 @@ describe('useAgentChatStream', () => {
       });
 
       const state = useAgentChatStore.getState();
-      expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-b');
-      expect(streamRuntime.pendingCompletionRef.current?.runId).toBe('run-b');
-      expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
+      expect(
+        findAgentStreamEntry(nextThreadId)?.activeStreamRunIdRef.current,
+      ).toBe('run-b');
+      expect(
+        findAgentStreamEntry(nextThreadId)?.pendingCompletionRef.current?.runId,
+      ).toBe('run-b');
+      expect(
+        findAgentStreamEntry(nextThreadId)?.unsubscribersRef.current.length,
+      ).toBeGreaterThan(0);
       expect(state.activeRunId).toBe('run-b');
       expect(state.activeRunStatus).toBe('running');
       expect(state.error).toBeNull();
@@ -1268,23 +1342,29 @@ describe('useAgentChatStream', () => {
     });
     const layout = renderHook(() => useAgentChatStream({ apiService }));
     renderHook(() => useAgentChatStream({ apiService }));
-    const initialGeneration = runtime.ownerGeneration;
+
     let send = Promise.resolve();
     act(() => {
       send = layout.result.current.sendMessage('New topic', {
         forceNewThread: true,
       });
     });
-    expect(runtime.ownerGeneration).toBe(initialGeneration + 1);
-    expect(runtime.isAwaitingRunIdRef.current).toBe(true);
-    expect(runtime.activeStreamThreadRef.current).toBeNull();
+    expect(findAgentStreamEntry(null)?.ownerGeneration).toBe(1);
+    expect(findAgentStreamEntry(null)?.isAwaitingRunIdRef.current).toBe(true);
+    expect(
+      findAgentStreamEntry(null)?.activeStreamThreadRef.current,
+    ).toBeNull();
     expect(socketHandlers.get('agent:token')).toHaveLength(1);
     await act(async () => {
       release();
       await send;
     });
-    expect(runtime.activeStreamThreadRef.current).toBe('thread-new');
-    expect(runtime.activeStreamRunIdRef.current).toBe('run-new');
+    expect(
+      findAgentStreamEntry('thread-new')?.activeStreamThreadRef.current,
+    ).toBe('thread-new');
+    expect(
+      findAgentStreamEntry('thread-new')?.activeStreamRunIdRef.current,
+    ).toBe('run-new');
     expect(useAgentChatStore.getState().activeThreadId).toBe('thread-new');
     expect(socketHandlers.get('agent:token')).toHaveLength(1);
   });
@@ -2152,7 +2232,7 @@ describe('useAgentChatStream', () => {
     });
 
     expect(apiService.getThreadSnapshot).not.toHaveBeenCalled();
-    expect(apiService.getMessages).not.toHaveBeenCalled();
+    expect(apiService.getMessages).toHaveBeenCalledTimes(1);
 
     const state = useAgentChatStore.getState();
 

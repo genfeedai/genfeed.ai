@@ -51,6 +51,17 @@ export function useAgentChatStream(
     return entry.controller;
   }, []);
 
+  runtime.ensureVisibleEntry = () => {
+    const state = useAgentChatStore.getState();
+    if (
+      isReady &&
+      state.activeThreadId &&
+      state.stream.isStreaming &&
+      !findAgentStreamEntry(state.activeThreadId)
+    ) {
+      controller(createAgentStreamEntry(state.activeThreadId, requestId()));
+    }
+  };
   useEffect(() => {
     runtime.mountCount += 1;
     return () => {
@@ -114,6 +125,10 @@ export function useAgentChatStream(
     isStreaming,
     sendMessage: async (content, sendOptions) => {
       if (sendOptions?.signal?.aborted) return;
+      if (sendOptions?.forceNewThread) {
+        useAgentChatStore.getState().setActiveThread(null);
+        useAgentChatStore.getState().resetActiveConversationState();
+      }
       const threadId = sendOptions?.forceNewThread
         ? null
         : useAgentChatStore.getState().activeThreadId;

@@ -30,6 +30,10 @@ const runtime = Object.assign(blankRuntime(), {
   connectionState: 'connecting',
   managerIdentity: null as unknown,
   nextEntryId: 0,
+  visibleDraftOwner: null as AgentStreamEntry | null,
+  projecting: false,
+  ensureVisibleEntry: null as (() => void) | null,
+  disposeVisibleBridge: null as (() => void) | null,
 });
 
 export function getAgentStreamRuntime() {
@@ -75,17 +79,26 @@ export function findAgentStreamEntry(
 export function isCurrentAgentStreamEntry(entry: AgentStreamEntry) {
   return runtime.entries.get(entry.key) === entry;
 }
-export function projectAgentStreamEntry(entry: AgentStreamEntry) {
-  if (
-    !isCurrentAgentStreamEntry(entry) ||
-    useAgentChatStore.getState().activeThreadId !==
-      entry.activeStreamThreadRef.current
-  )
-    return;
-  useAgentChatStore.disposeStreamTokens();
-  useAgentChatStore.setState(
-    conversationProjection(entry.presentation.getState()),
+export function ownsVisibleAgentStreamEntry(entry: AgentStreamEntry) {
+  return (
+    isCurrentAgentStreamEntry(entry) &&
+    useAgentChatStore.getState().activeThreadId ===
+      entry.activeStreamThreadRef.current &&
+    (entry.activeStreamThreadRef.current !== null ||
+      runtime.visibleDraftOwner === entry)
   );
+}
+export function projectAgentStreamEntry(entry: AgentStreamEntry) {
+  if (!ownsVisibleAgentStreamEntry(entry)) return;
+  useAgentChatStore.disposeStreamTokens();
+  runtime.projecting = true;
+  try {
+    useAgentChatStore.setState(
+      conversationProjection(entry.presentation.getState()),
+    );
+  } finally {
+    runtime.projecting = false;
+  }
 }
 export function createAgentStreamEntry(
   threadId: string | null,
@@ -121,6 +134,39 @@ export function createAgentStreamEntry(
   };
   entry.activeStreamThreadRef.current = threadId;
   runtime.entries.set(entry.key, entry);
+  if (threadId === null && visible.activeThreadId === null)
+    runtime.visibleDraftOwner = entry;
+  runtime.disposeVisibleBridge ??= useAgentChatStore.subscribe(
+    (next, previous) => {
+      if (runtime.projecting || next.activeThreadId !== previous.activeThreadId)
+        return;
+      const owner = next.activeThreadId
+        ? runtime.entries.get(next.activeThreadId)
+        : runtime.visibleDraftOwner;
+      if (
+        !owner ||
+        !isCurrentAgentStreamEntry(owner) ||
+        owner.terminalAt !== null ||
+        (!owner.isAwaitingRunIdRef.current &&
+          (!next.activeRunId ||
+            next.activeRunId !== owner.activeStreamRunIdRef.current)) ||
+        next.activeRunStatus === 'idle'
+      )
+        return;
+      const patch: Partial<AgentChatStore> = {};
+      if (next.pendingInputRequest !== previous.pendingInputRequest)
+        patch.pendingInputRequest = next.pendingInputRequest;
+      if (next.messages !== previous.messages) patch.messages = next.messages;
+      if (next.activeRunStatus !== previous.activeRunStatus)
+        patch.activeRunStatus = next.activeRunStatus;
+      if (next.stream.pendingUiActions !== previous.stream.pendingUiActions)
+        patch.stream = {
+          ...owner.presentation.getState().stream,
+          pendingUiActions: next.stream.pendingUiActions,
+        };
+      if (Object.keys(patch).length) owner.presentation.setState(patch);
+    },
+  );
   // Only named conversation fields are projected; private store actions never
   // replace global actions, navigation, persisted settings or sidebar state.
   entry.disposeProjection = presentation.subscribe((next, previous) => {
@@ -184,6 +230,7 @@ export function disposeAgentStreamEntry(entry: AgentStreamEntry) {
   entry.disposeProjection();
 }
 function deliver(event: string, payload: unknown) {
+  runtime.ensureVisibleEntry?.();
   const data = payload as {
     threadId?: string;
     runId?: string;
@@ -257,6 +304,10 @@ export function resetAgentStreamRuntime() {
   runtime.physical.clear();
   runtime.transport = null;
   runtime.managerIdentity = null;
+  runtime.visibleDraftOwner = null;
+  runtime.ensureVisibleEntry = null;
+  runtime.disposeVisibleBridge?.();
+  runtime.disposeVisibleBridge = null;
   Object.assign(runtime, blankRuntime());
 }
 
