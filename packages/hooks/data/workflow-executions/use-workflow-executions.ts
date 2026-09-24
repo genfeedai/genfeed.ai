@@ -14,6 +14,7 @@ import { useCallback, useMemo } from 'react';
 
 export interface UseWorkflowExecutionsOptions {
   enabled?: boolean;
+  organizationId?: string;
 }
 
 export interface UseWorkflowExecutionsReturn {
@@ -33,7 +34,10 @@ export function useWorkflowExecutions(
   const { getToken, isLoaded, orgId, userId } = useAuthIdentity();
   // orgId stays null until the organization plugin lands; key on the session.
   const isIdentityReady = isLoaded && Boolean(userId);
-  const isEnabled = isIdentityReady && (options.enabled ?? true);
+  const isScopeReady =
+    options.organizationId === undefined || Boolean(options.organizationId);
+  const isEnabled =
+    isIdentityReady && isScopeReady && (options.enabled ?? true);
   const {
     data = [],
     isPending,
@@ -46,7 +50,7 @@ export function useWorkflowExecutions(
     queryKey: [
       'workflow-executions',
       userId ?? 'anonymous',
-      orgId ?? 'no-org',
+      options.organizationId ?? orgId ?? 'no-org',
       params,
     ],
     queryFn: async () => {

@@ -152,11 +152,35 @@ describe('WorkflowExecutionsController', () => {
           where: {
             isDeleted: false,
             organizationId,
-            workflow: {
-              brandId: 'brand-from-another-org',
-              isDeleted: false,
-              organizationId,
-            },
+            AND: [
+              {
+                OR: [
+                  {
+                    workflow: {
+                      brandId: 'brand-from-another-org',
+                      isDeleted: false,
+                      organizationId,
+                    },
+                  },
+                  {
+                    AND: [
+                      {
+                        result: {
+                          path: ['metadata', 'source'],
+                          equals: 'proactive',
+                        },
+                      },
+                      {
+                        result: {
+                          path: ['metadata', 'brandId'],
+                          equals: 'brand-from-another-org',
+                        },
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
           },
         }),
         expect.any(Object),
