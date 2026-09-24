@@ -5,6 +5,7 @@ import {
   AlertCategory,
   ButtonSize,
   ButtonVariant,
+  CredentialPlatform,
   IngredientStatus,
 } from '@genfeedai/contracts';
 import {
@@ -23,6 +24,7 @@ import type {
   AgentArtifactReference,
   IAvatar,
 } from '@genfeedai/contracts/interfaces';
+import { useCampaignAccounts } from '@hooks/data/campaigns/use-campaign-accounts';
 import { useAvatarImages } from '@hooks/data/ingredients/use-avatar-images/use-avatar-images';
 import type { Voice } from '@models/ingredients/voice.model';
 import { useVoiceCatalog } from '@pages/library/voices/hooks/use-voice-catalog';
@@ -58,6 +60,7 @@ export type RemixEditorState = {
   avatarAssetId: string;
   callToAction: string;
   count: number;
+  credentialId: string;
   fidelityMode: BrandRemixRunView['draft']['fidelityMode'];
   hook: string;
   objective: string;
@@ -73,6 +76,7 @@ const EMPTY_EDITOR: RemixEditorState = {
   avatarAssetId: '',
   callToAction: '',
   count: 1,
+  credentialId: '',
   fidelityMode: 'guided',
   hook: '',
   objective: '',
@@ -101,6 +105,7 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
     avatarAssetId: identity?.avatarAssetId ?? '',
     callToAction: run.draft.intent.callToAction ?? '',
     count: run.draft.output.count,
+    credentialId: run.draft.target.credentialId ?? '',
     fidelityMode: run.draft.fidelityMode,
     hook: run.draft.intent.hook ?? '',
     objective: run.draft.intent.objective,
@@ -112,13 +117,48 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
   };
 }
 
+function hasIdentityEdits(
+  editor: RemixEditorState,
+  run: BrandRemixRunView,
+): boolean {
+  const identity =
+    'avatarAssetId' in run.draft.identity ? run.draft.identity : null;
+  return (
+    editor.avatarAssetId !== (identity?.avatarAssetId ?? '') ||
+    editor.speechVoiceId !== (identity?.speechVoiceId ?? '')
+  );
+}
+
+function getDestinationPlatform(
+  platform: RemixEditorState['targetPlatform'],
+  kind: BrandRemixRunView['draft']['target']['kind'],
+): CredentialPlatform {
+  const platforms: Record<
+    RemixEditorState['targetPlatform'],
+    CredentialPlatform
+  > = {
+    google: CredentialPlatform.GOOGLE_ADS,
+    instagram: CredentialPlatform.INSTAGRAM,
+    meta: CredentialPlatform.FACEBOOK,
+    tiktok: CredentialPlatform.TIKTOK,
+    x: kind === 'paid' ? CredentialPlatform.X_ADS : CredentialPlatform.TWITTER,
+    youtube: CredentialPlatform.YOUTUBE,
+  };
+  return platforms[platform];
+}
+
 export function buildRemixDraftEdits(
   editor: RemixEditorState,
   run: BrandRemixRunView,
 ): BrandRemixDraftEdits {
+  const { credentialId: _credentialId, ...target } = run.draft.target;
+  const destination = editor.credentialId
+    ? { credentialId: editor.credentialId }
+    : {};
   return {
     fidelityMode: editor.fidelityMode,
     ...(editor.outputKind === 'avatar' &&
+    hasIdentityEdits(editor, run) &&
     editor.avatarAssetId &&
     editor.speechVoiceId
       ? {
@@ -127,7 +167,9 @@ export function buildRemixDraftEdits(
             speechVoiceId: editor.speechVoiceId,
           },
         }
-      : editor.outputKind !== 'avatar' && 'avatarAssetId' in run.draft.identity
+      : editor.outputKind !== 'avatar' &&
+          run.draft.output.kind === 'avatar' &&
+          'avatarAssetId' in run.draft.identity
         ? {
             identity: {
               avatarAssetId: null,
@@ -169,18 +211,20 @@ export function buildRemixDraftEdits(
         role: reference.role,
       })),
     target:
-      run.draft.target.kind === 'paid'
+      target.kind === 'paid'
         ? {
-            ...run.draft.target,
+            ...target,
+            ...destination,
             platform: isBrandRemixAdPlatform(editor.targetPlatform)
               ? editor.targetPlatform
-              : run.draft.target.platform,
+              : target.platform,
           }
         : {
-            ...run.draft.target,
+            ...target,
+            ...destination,
             platform: isBrandRemixOrganicPlatform(editor.targetPlatform)
               ? editor.targetPlatform
-              : run.draft.target.platform,
+              : target.platform,
           },
   };
 }
@@ -257,17 +301,14 @@ function AvatarIdentityFields({
     () =>
       avatars.filter(
         (avatar) =>
-          isGenerationReadyAvatar(avatar) &&
-          (avatar.brandId == null || avatar.brandId === brandId),
+          isGenerationReadyAvatar(avatar) && avatar.brandId === brandId,
       ),
     [avatars, brandId],
   );
   const readyVoices = useMemo(
     () =>
       voices.filter(
-        (voice) =>
-          isGenerationReadyVoice(voice) &&
-          (voice.brandId == null || voice.brandId === brandId),
+        (voice) => isGenerationReadyVoice(voice) && voice.brandId === brandId,
       ),
     [brandId, voices],
   );
@@ -281,7 +322,7 @@ function AvatarIdentityFields({
         }
         value={avatarAssetId || 'none'}
       >
-        <SelectTrigger aria-label="Avatar identity">
+        <SelectTrigger aria-label={translate('identity.avatarLabel')}>
           <SelectValue
             placeholder={
               isLoadingAvatars
@@ -308,7 +349,7 @@ function AvatarIdentityFields({
         }
         value={speechVoiceId || 'none'}
       >
-        <SelectTrigger aria-label="Voice identity">
+        <SelectTrigger aria-label={translate('identity.voiceLabel')}>
           <SelectValue
             placeholder={
               isLoadingVoices
@@ -337,6 +378,12 @@ export default function RemixBriefInspector(): ReactElement {
   const translate = useTranslations('pages.remixBrief');
   const { close, confirm, error, isOpen, retry, run, status } =
     useDiscoveryRemix();
+  const { brandId } = useBrand();
+  const {
+    accounts,
+    isPending: isLoadingAccounts,
+    isError: isAccountsError,
+  } = useCampaignAccounts(brandId);
   const [editor, setEditor] = useState<RemixEditorState>(EMPTY_EDITOR);
   const [isPickingReference, setIsPickingReference] = useState(false);
   const [referenceRole, setReferenceRole] =
@@ -362,10 +409,29 @@ export default function RemixBriefInspector(): ReactElement {
         : [],
     [run],
   );
+  const destinationAccounts = accounts.filter(
+    (account) =>
+      account.brandId === brandId &&
+      account.isConnected &&
+      !account.isDeleted &&
+      account.platform ===
+        getDestinationPlatform(
+          editor.targetPlatform,
+          run?.draft.target.kind ?? 'organic',
+        ),
+  );
   const isSaving = status === 'saving';
   const isAvatarIdentityComplete =
     editor.outputKind !== 'avatar' ||
-    Boolean(editor.avatarAssetId && editor.speechVoiceId);
+    Boolean(editor.avatarAssetId && editor.speechVoiceId) ||
+    Boolean(
+      editor.credentialId &&
+        run &&
+        editor.credentialId !== run.draft.target.credentialId &&
+        run.draft.identitySource !== undefined &&
+        run.draft.identitySource !== 'explicit' &&
+        !hasIdentityEdits(editor, run),
+    );
   const canContinue = Boolean(
     run && editor.objective.trim() && !isSaving && isAvatarIdentityComplete,
   );
@@ -398,7 +464,7 @@ export default function RemixBriefInspector(): ReactElement {
       </p>
       <div className="flex items-center gap-2">
         <Button
-          label="Cancel"
+          label={translate('actions.cancel')}
           onClick={close}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
@@ -406,7 +472,7 @@ export default function RemixBriefInspector(): ReactElement {
         <Button
           isDisabled={!canContinue}
           isLoading={isSaving}
-          label="Continue to Studio"
+          label={translate('actions.continue')}
           onClick={() => {
             void confirm(buildRemixDraftEdits(editor, run));
           }}
@@ -420,7 +486,7 @@ export default function RemixBriefInspector(): ReactElement {
   return (
     <ContextInspector
       bodyClassName="p-5"
-      description="Keep the winning pattern. Replace the execution with your brand, assets, and identity."
+      description={translate('description')}
       footer={footer}
       isOpen={isOpen}
       onOpenChange={(open) => {
@@ -454,7 +520,7 @@ export default function RemixBriefInspector(): ReactElement {
             {!run ? (
               <div className="flex gap-2 pt-2">
                 <Button
-                  label="Retry"
+                  label={translate('actions.retry')}
                   onClick={() => {
                     void retry();
                   }}
@@ -462,7 +528,7 @@ export default function RemixBriefInspector(): ReactElement {
                   variant={ButtonVariant.SECONDARY}
                 />
                 <Button
-                  label="Close"
+                  label={translate('actions.close')}
                   onClick={close}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
@@ -553,7 +619,7 @@ export default function RemixBriefInspector(): ReactElement {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
-                label="Hook"
+                label={translate('intent.hook')}
                 onChange={(event) =>
                   setEditor((current) => ({
                     ...current,
@@ -563,7 +629,7 @@ export default function RemixBriefInspector(): ReactElement {
                 value={editor.hook}
               />
               <Input
-                label="Call to action"
+                label={translate('intent.callToAction')}
                 onChange={(event) =>
                   setEditor((current) => ({
                     ...current,
@@ -574,7 +640,7 @@ export default function RemixBriefInspector(): ReactElement {
               />
             </div>
             <Input
-              label="Visual direction"
+              label={translate('intent.visualDirection')}
               onChange={(event) =>
                 setEditor((current) => ({
                   ...current,
@@ -617,6 +683,7 @@ export default function RemixBriefInspector(): ReactElement {
                     }
                     setEditor((current) => ({
                       ...current,
+                      credentialId: '',
                       targetPlatform: value,
                     }));
                     return;
@@ -626,12 +693,13 @@ export default function RemixBriefInspector(): ReactElement {
                   }
                   setEditor((current) => ({
                     ...current,
+                    credentialId: '',
                     targetPlatform: value,
                   }));
                 }}
                 value={editor.targetPlatform}
               >
-                <SelectTrigger aria-label="Target platform">
+                <SelectTrigger aria-label={translate('output.targetPlatform')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -654,7 +722,7 @@ export default function RemixBriefInspector(): ReactElement {
                 }
                 value={editor.outputKind}
               >
-                <SelectTrigger aria-label="Output type">
+                <SelectTrigger aria-label={translate('output.outputType')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -682,7 +750,7 @@ export default function RemixBriefInspector(): ReactElement {
                   }
                   value={editor.aspectRatio}
                 >
-                  <SelectTrigger aria-label="Aspect ratio">
+                  <SelectTrigger aria-label={translate('output.aspectRatio')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -703,7 +771,7 @@ export default function RemixBriefInspector(): ReactElement {
                 }
                 value={String(editor.count)}
               >
-                <SelectTrigger aria-label="Number of variations">
+                <SelectTrigger aria-label={translate('output.variationCount')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -719,6 +787,58 @@ export default function RemixBriefInspector(): ReactElement {
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="remix-destination">
+                {translate('destination.label')}
+              </Label>
+              <Select
+                disabled={isLoadingAccounts}
+                value={editor.credentialId || 'brand-defaults'}
+                onValueChange={(value) =>
+                  setEditor((current) => ({
+                    ...current,
+                    credentialId: value === 'brand-defaults' ? '' : value,
+                  }))
+                }
+              >
+                <SelectTrigger
+                  id="remix-destination"
+                  aria-label={translate('destination.label')}
+                >
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="brand-defaults">
+                    {translate('destination.brandDefaults')}
+                  </SelectItem>
+                  {destinationAccounts.map((account) => (
+                    <SelectItem key={account.id} value={account.id}>
+                      {account.externalHandle ||
+                        account.externalName ||
+                        account.externalId ||
+                        account.id}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {translate('destination.help')}
+              </p>
+              {isLoadingAccounts ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('destination.loading')}
+                </p>
+              ) : isAccountsError ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('destination.error')}
+                </p>
+              ) : destinationAccounts.length === 0 ? (
+                <p className="text-xs text-muted-foreground">
+                  {translate('destination.empty')}
+                </p>
+              ) : null}
             </div>
 
             <div className="space-y-2">
@@ -802,7 +922,7 @@ export default function RemixBriefInspector(): ReactElement {
               </div>
               <Button
                 icon={<Library className="size-4" />}
-                label="Add Library asset"
+                label={translate('references.addLibraryAsset')}
                 onClick={() => setIsPickingReference((current) => !current)}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
@@ -869,7 +989,7 @@ export default function RemixBriefInspector(): ReactElement {
                     value={referenceRole}
                   >
                     <SelectTrigger
-                      aria-label="Reference role"
+                      aria-label={translate('references.referenceRole')}
                       className="w-44"
                       id="remix-reference-role"
                     >

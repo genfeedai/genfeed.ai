@@ -1,5 +1,6 @@
 import type { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
+import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
 import { BrandRemixRunPaidDraftService } from '@api/collections/content-runs/services/brand-remix-run-paid-draft.service';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
@@ -71,6 +72,7 @@ export function assembleBrandRemixRunsGraph(
     collaborators.brandsService,
     collaborators.organizationSettingsService,
     sourceResolver,
+    new BrandRemixPersonaResolutionService(collaborators.prisma),
   );
   const state = new BrandRemixRunStateService(
     collaborators.prisma,

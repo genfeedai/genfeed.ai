@@ -54,6 +54,9 @@ export interface ResolvedBrandContext {
 }
 
 export interface ResolvedSourceMedia {
+  importPolicy?: 'permitted' | 'embed_only' | 'unknown';
+  importPermissionRef?: string;
+  importExpiresAt?: string;
   existingAssetIds: string[];
   imageUrls: string[];
   videoUrls: string[];

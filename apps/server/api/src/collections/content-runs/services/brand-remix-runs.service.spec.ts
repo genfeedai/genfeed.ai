@@ -363,7 +363,7 @@ describe('BrandRemixRunsService', () => {
       expect(result.source).toBeUndefined();
     });
 
-    it('pins ingested source media as an explicit remix reference', async () => {
+    it('keeps ingested source media analysis-only and outside generation references', async () => {
       ingestSourceMedia.mockResolvedValue({
         assetId: 'source-asset-1',
         category: IngredientCategory.VIDEO,
@@ -414,15 +414,24 @@ describe('BrandRemixRunsService', () => {
         }),
         userId: 'user-1',
       });
-      expect(result.draft.references[0]).toEqual({
+      expect(
+        result.draft.references.some(
+          (reference) => reference.assetId === 'source-asset-1',
+        ),
+      ).toBe(false);
+      expect(result.sourceSnapshot.media).toEqual({
         assetId: 'source-asset-1',
-        role: 'reference_video',
-        source: 'explicit',
+        category: 'video',
+        status: 'saved',
+        purpose: 'analysis_only',
       });
     });
 
     it('marks source media unavailable without blocking a guided remix', async () => {
-      ingestSourceMedia.mockResolvedValue({ status: 'unavailable' });
+      ingestSourceMedia.mockResolvedValue({
+        status: 'unavailable',
+        reason: 'copy_failed',
+      });
       contentRun.create.mockImplementation(({ data }) =>
         Promise.resolve(makeRun(data.config as Record<string, unknown>)),
       );
@@ -704,10 +713,7 @@ describe('BrandRemixRunsService', () => {
       expect(contentRun.updateMany).toHaveBeenCalledWith({
         data: expect.objectContaining({ config: expect.any(Object) }),
         where: expect.objectContaining({
-          AND: expect.arrayContaining([
-            { config: { equals: 1, path: ['revision'] } },
-            { config: { equals: 'prefilled', path: ['phase'] } },
-          ]),
+          config: { equals: created.config },
           id: 'run-1',
           isDeleted: false,
           organizationId: 'org-1',
@@ -983,6 +989,271 @@ describe('BrandRemixRunsService', () => {
         }),
       });
       expect(contentRun.create).toHaveBeenCalledTimes(1);
+    });
+
+    it.each([false, true])(
+      'refreshes unavailable media on reuse including a transaction race (%s)',
+      async (transactionRace) => {
+        const existing = await createPersistedRun();
+        const config = brandRemixRunConfigSchema.parse(existing.config);
+        const saved = makeRun({
+          ...config,
+          sourceSnapshot: {
+            ...config.sourceSnapshot,
+            media: {
+              status: 'saved',
+              assetId: 'source-asset-1',
+              category: 'video',
+              purpose: 'analysis_only',
+            },
+          },
+        });
+        const readStored = installExactConfigStore(saved);
+        if (transactionRace) contentRun.findFirst.mockResolvedValueOnce(null);
+        ingestSourceMedia.mockResolvedValue({
+          status: 'unavailable',
+          reason: 'import_not_permitted',
+        });
+        const result = await service.create(
+          'org-1',
+          'brand-1',
+          { source: { kind: 'source_post', sourcePostId: 'source-post-1' } },
+          'user-1',
+        );
+        expect(result.revision).toBe(config.revision + 1);
+        expect(result.sourceSnapshot.media).toEqual({
+          status: 'unavailable',
+          reason: 'import_not_permitted',
+          purpose: 'analysis_only',
+        });
+        expect(result.draft).toEqual(config.draft);
+        expect(result.readiness.issues).toContainEqual(
+          expect.objectContaining({ code: 'source_media_unavailable' }),
+        );
+        expect(readStored().config).toMatchObject({
+          revision: config.revision + 1,
+        });
+        expect(contentRun.create).toHaveBeenCalledTimes(1);
+      },
+    );
+
+    it('preserves saved metadata when ingestion is not attempted', async () => {
+      const existing = await createPersistedRun();
+      const config = brandRemixRunConfigSchema.parse(existing.config);
+      const media = {
+        status: 'saved',
+        assetId: 'source-asset-1',
+        category: 'video',
+        purpose: 'analysis_only',
+      };
+      installExactConfigStore(
+        makeRun({
+          ...config,
+          readiness: { state: 'ready', issues: [] },
+          sourceSnapshot: { ...config.sourceSnapshot, media },
+        }),
+      );
+      const result = await service.create('org-1', 'brand-1', {
+        source: { kind: 'source_post', sourcePostId: 'source-post-1' },
+      });
+      expect(result.sourceSnapshot.media).toEqual(media);
+      expect(result.revision).toBe(config.revision);
+      expect(contentRun.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('replaces saved metadata when attempted ingestion finds no media', async () => {
+      const existing = await createPersistedRun();
+      const config = brandRemixRunConfigSchema.parse(existing.config);
+      installExactConfigStore(
+        makeRun({
+          ...config,
+          sourceSnapshot: {
+            ...config.sourceSnapshot,
+            media: {
+              status: 'saved',
+              assetId: 'source-asset-1',
+              category: 'video',
+              purpose: 'analysis_only',
+            },
+          },
+        }),
+      );
+      ingestSourceMedia.mockResolvedValue({ status: 'skipped' });
+      const result = await service.create(
+        'org-1',
+        'brand-1',
+        { source: { kind: 'source_post', sourcePostId: 'source-post-1' } },
+        'user-1',
+      );
+      expect(result.sourceSnapshot.media).toEqual({
+        status: 'skipped',
+        purpose: 'analysis_only',
+      });
+      expect(result.revision).toBe(config.revision + 1);
+    });
+
+    it('conflicts when a reused recipe changes during source refresh', async () => {
+      const existing = await createPersistedRun();
+      contentRun.findFirst.mockResolvedValue(existing);
+      contentRun.updateMany.mockResolvedValue({ count: 0 });
+      ingestSourceMedia.mockResolvedValue({
+        status: 'unavailable',
+        reason: 'expired',
+      });
+      await expect(
+        service.create(
+          'org-1',
+          'brand-1',
+          { source: { kind: 'source_post', sourcePostId: 'source-post-1' } },
+          'user-1',
+        ),
+      ).rejects.toBeInstanceOf(ConflictException);
+      expect(contentRun.updateMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            config: { equals: existing.config },
+          }),
+        }),
+      );
+    });
+
+    it.each(['prepare', 'revise'] as const)(
+      'removes legacy imported references on %s even when the inspector resubmits them',
+      async (action) => {
+        const existing = await createPersistedRun({
+          draft: {
+            identity: {},
+            references: [
+              {
+                assetId: 'legacy-source-1',
+                role: 'reference_video',
+                source: 'explicit',
+              },
+            ],
+          },
+        });
+        const readStored = installExactConfigStore(existing);
+        vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+          {
+            id: 'legacy-source-1',
+            brandId: 'brand-1',
+            sourceActionId: 'remix-source:old',
+            category: IngredientCategory.VIDEO,
+          },
+        ] as never);
+        const result =
+          action === 'prepare'
+            ? await service.create('org-1', 'brand-1', {
+                source: { kind: 'source_post', sourcePostId: 'source-post-1' },
+              })
+            : await service.revise('org-1', 'run-1', {
+                expectedRevision: 1,
+                edits: {
+                  references: [
+                    { assetId: 'legacy-source-1', role: 'reference_video' },
+                  ],
+                },
+              });
+        expect(
+          result.draft.references.some(
+            (reference) => reference.assetId === 'legacy-source-1',
+          ),
+        ).toBe(false);
+        expect(
+          brandRemixRunConfigSchema
+            .parse(readStored().config)
+            .draft.references.some(
+              (reference) => reference.assetId === 'legacy-source-1',
+            ),
+        ).toBe(false);
+        expect(result.revision).toBe(2);
+      },
+    );
+
+    it('rejects newly introduced imported references during revision', async () => {
+      const existing = await createPersistedRun({ draft: { identity: {} } });
+      installExactConfigStore(existing);
+      vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+        {
+          id: 'new-source-1',
+          brandId: 'brand-1',
+          sourceActionId: 'remix-source:new',
+          category: IngredientCategory.VIDEO,
+        },
+      ] as never);
+      await expect(
+        service.revise('org-1', 'run-1', {
+          expectedRevision: 1,
+          edits: {
+            references: [{ assetId: 'new-source-1', role: 'reference_video' }],
+          },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      expect(contentRun.updateMany).not.toHaveBeenCalled();
+    });
+
+    it('persists repairable readiness for a disconnected destination without changing its identity', async () => {
+      const existing = await createPersistedRun({
+        draft: {
+          target: {
+            kind: 'organic',
+            platform: 'instagram',
+            credentialId: 'disconnected-1',
+          },
+        },
+      });
+      const stored = installExactConfigStore(existing);
+      vi.mocked(prisma.credential.findFirst).mockResolvedValue(null);
+      const result = await service.create('org-1', 'brand-1', {
+        source: { kind: 'source_post', sourcePostId: 'source-post-1' },
+      });
+      expect(result.readiness.state).toBe('blocked');
+      expect(result.readiness.issues).toContainEqual(
+        expect.objectContaining({
+          code: 'invalid_destination',
+          field: 'target',
+        }),
+      );
+      expect(result.draft).toEqual(
+        brandRemixRunConfigSchema.parse(existing.config).draft,
+      );
+      expect(
+        brandRemixRunConfigSchema.parse(stored().config).readiness.state,
+      ).toBe('blocked');
+      await expect(
+        service.revise('org-1', 'run-1', {
+          expectedRevision: result.revision,
+          edits: { intent: { objective: 'Still disconnected' } },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      const repaired = await service.revise('org-1', 'run-1', {
+        expectedRevision: result.revision,
+        edits: { target: { kind: 'organic', platform: 'instagram' } },
+      });
+      expect(repaired.draft.target.credentialId).toBeUndefined();
+      expect(
+        repaired.readiness.issues.some(
+          (issue) => issue.code === 'invalid_destination',
+        ),
+      ).toBe(false);
+    });
+
+    it('creates a separate run when explicit edits accompany a reused source', async () => {
+      const existing = await createPersistedRun();
+      contentRun.findFirst.mockResolvedValue(existing);
+      const result = await service.create('org-1', 'brand-1', {
+        source: { kind: 'source_post', sourcePostId: 'source-post-1' },
+        edits: {
+          identity: { avatarAssetId: null, speechVoiceId: null },
+          intent: { objective: 'My explicit creative direction.' },
+        },
+      });
+      expect(contentRun.create).toHaveBeenCalledTimes(2);
+      expect(result.draft.intent.objective).toBe(
+        'My explicit creative direction.',
+      );
+      expect(result.draft.identity).toEqual({});
+      expect(result.draft.identitySource).toBe('explicit');
     });
 
     it('serializes the final reuse-or-create boundary for rapid Remix clicks', async () => {
@@ -1347,6 +1618,11 @@ describe('BrandRemixRunsService', () => {
         draft: { fidelityMode: 'guided' },
         readiness: {
           issues: [
+            expect.objectContaining({
+              code: 'source_media_unavailable',
+              severity: 'degraded',
+              message: expect.stringContaining('Pattern-only remix'),
+            }),
             expect.objectContaining({
               code: 'unsupported_reference_role',
               severity: 'degraded',
@@ -3119,6 +3395,11 @@ describe('BrandRemixRunsService', () => {
         readiness: {
           issues: [
             expect.objectContaining({
+              code: 'source_media_unavailable',
+              severity: 'degraded',
+              message: expect.stringContaining('Pattern-only remix'),
+            }),
+            expect.objectContaining({
               code: 'missing_ads_write',
               field: 'target',
               severity: 'blocked',
@@ -3211,6 +3492,11 @@ describe('BrandRemixRunsService', () => {
         phase: 'approved',
         readiness: {
           issues: [
+            expect.objectContaining({
+              code: 'source_media_unavailable',
+              severity: 'degraded',
+              message: expect.stringContaining('Pattern-only remix'),
+            }),
             expect.objectContaining({
               code: 'missing_ads_management',
               field: 'target',

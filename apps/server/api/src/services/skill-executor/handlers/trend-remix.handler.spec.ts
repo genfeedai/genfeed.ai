@@ -1,9 +1,11 @@
 import { TrendsService } from '@api/collections/trends/services/trends.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { LlmDispatcherService } from '@api/services/integrations/llm/llm-dispatcher.service';
 import { TrendRemixHandler } from '@api/services/skill-executor/handlers/trend-remix.handler';
 import { LoggerService } from '@libs/logger/logger.service';
+import { ServiceUnavailableException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('TrendRemixHandler', () => {
   let handler: TrendRemixHandler;
@@ -51,7 +53,7 @@ describe('TrendRemixHandler', () => {
   };
 
   beforeEach(async () => {
-    vi.clearAllMocks();
+    vi.resetAllMocks();
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -138,42 +140,92 @@ describe('TrendRemixHandler', () => {
     );
   });
 
-  it('returns low-confidence fallback when no trends exist', async () => {
+  it('rejects missing trends before any billable provider call', async () => {
     mockTrendsService.getTrendsWithAccessControl.mockResolvedValue({
       connectedPlatforms: [],
       lockedPlatforms: [],
       trends: [],
     });
 
-    const result = await handler.execute(baseContext, {});
-
-    expect(result.content).toBe('No active trends found...');
-    expect(result.confidence).toBe(0.3);
-    expect(result.skillSlug).toBe('trend-remix');
-    expect(result.type).toBe('text');
+    await expect(handler.execute(baseContext, {})).rejects.toThrow(
+      new NotFoundException({
+        message:
+          'No eligible trend source is available. Choose an existing source and retry.',
+      }),
+    );
     expect(mockLlmDispatcherService.chatCompletion).not.toHaveBeenCalled();
   });
 
-  it('falls back gracefully on LLM failure', async () => {
-    mockTrendsService.getTrendsWithAccessControl.mockResolvedValue({
-      connectedPlatforms: ['instagram'],
-      lockedPlatforms: [],
-      trends: [mockTrend],
-    });
+  it.each([null, { ...mockTrend, organizationId: 'other-org' }])(
+    'rejects unavailable explicit trend %j before any provider call',
+    async (trend) => {
+      mockTrendsService.getTrendById.mockResolvedValue(trend);
+      await expect(
+        handler.execute(baseContext, { trendId: 'trend-id-1' }),
+      ).rejects.toThrow(NotFoundException);
+      expect(mockLlmDispatcherService.chatCompletion).not.toHaveBeenCalled();
+    },
+  );
 
-    mockLlmDispatcherService.chatCompletion.mockRejectedValue(
-      new Error('LLM provider unavailable'),
+  it('logs provider failures and rejects with a retryable error', async () => {
+    mockTrendsService.getTrendById.mockResolvedValue(mockTrend);
+    const error = new Error('LLM provider unavailable');
+    mockLlmDispatcherService.chatCompletion.mockRejectedValue(error);
+
+    await expect(
+      handler.execute(baseContext, { trendId: 'trend-id-1' }),
+    ).rejects.toThrow(
+      new ServiceUnavailableException(
+        'Trend remix generation failed. Retry the request.',
+      ),
     );
-
-    const result = await handler.execute(baseContext, {});
-
-    expect(result.confidence).toBe(0.4);
-    expect(result.content).toContain('AI-generated art');
-    expect(result.skillSlug).toBe('trend-remix');
-    expect(result.type).toBe('text');
     expect(mockLoggerService.warn).toHaveBeenCalledWith(
-      'trend-remix LLM call failed, using fallback',
-      expect.objectContaining({ error: expect.any(Error) }),
+      'trend-remix LLM call failed',
+      { error },
+    );
+  });
+
+  it.each(['', null, undefined, '  \n\t '])(
+    'rejects empty provider output %j instead of returning a draft',
+    async (content) => {
+      mockTrendsService.getTrendById.mockResolvedValue(mockTrend);
+      mockLlmDispatcherService.chatCompletion.mockResolvedValue({
+        choices: [{ message: { content } }],
+      });
+      await expect(
+        handler.execute(baseContext, { trendId: 'trend-id-1' }),
+      ).rejects.toThrow(
+        new ServiceUnavailableException(
+          'Trend remix generation failed. Retry the request.',
+        ),
+      );
+    },
+  );
+
+  it('rejects a provider response without choices', async () => {
+    mockTrendsService.getTrendById.mockResolvedValue(mockTrend);
+    mockLlmDispatcherService.chatCompletion.mockResolvedValue({ choices: [] });
+    await expect(
+      handler.execute(baseContext, { trendId: 'trend-id-1' }),
+    ).rejects.toThrow(ServiceUnavailableException);
+  });
+
+  it('preserves real generated content after trimming surrounding whitespace', async () => {
+    mockTrendsService.getTrendById.mockResolvedValue(mockTrend);
+    mockLlmDispatcherService.chatCompletion.mockResolvedValue({
+      choices: [
+        { message: { content: '  Real content\nwith a line break.  ' } },
+      ],
+    });
+    const result = await handler.execute(baseContext, {
+      trendId: 'trend-id-1',
+    });
+    expect(result.content).toBe('Real content\nwith a line break.');
+    expect(result.metadata.remixPackVariants).toContainEqual(
+      expect.objectContaining({
+        content: result.content,
+        format: 'post-thread',
+      }),
     );
   });
 

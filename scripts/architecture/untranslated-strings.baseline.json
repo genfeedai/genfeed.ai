@@ -256,7 +256,6 @@
     "apps/app/packages/components/research/ads/AdsResearchFilterPanel.tsx": 27,
     "apps/app/packages/components/research/ads/AdsResearchPageClient.tsx": 17,
     "apps/app/packages/components/research/ads/AdsResearchWatchlistPanel.tsx": 9,
-    "apps/app/packages/components/research/remix/RemixBriefInspector.tsx": 16,
     "apps/app/src/components/desktop/DesktopLocalProviderSettings.tsx": 7,
     "apps/app/src/components/models/ModelBrowserModal.tsx": 10,
     "apps/app/src/components/shell/AppProtectedTopbar.tsx": 2,

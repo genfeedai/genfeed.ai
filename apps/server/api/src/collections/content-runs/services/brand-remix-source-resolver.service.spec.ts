@@ -52,6 +52,7 @@ describe('BrandRemixSourceResolverService', () => {
 
     expect(resolved.recommendedOutputKind).toBe('copy');
     expect(resolved.snapshot.platform).toBe('x');
+    expect(resolved.sourceMedia?.importPolicy).toBe('unknown');
   });
 
   it('scopes owned-post resolution to organization, brand, and live rows', async () => {
@@ -166,6 +167,8 @@ describe('BrandRemixSourceResolverService', () => {
       'https://files.example/copied.jpg',
     );
     expect(resolved.snapshot.selector.kind).toBe('saved_ad');
+    expect(resolved.sourceMedia?.importPolicy).toBe('unknown');
+    expect(resolved.sourceMedia?.importPermissionRef).toBeUndefined();
   });
 
   it('authorizes connected ads against organization and brand before provider reads', async () => {
@@ -187,7 +190,7 @@ describe('BrandRemixSourceResolverService', () => {
       usagePolicy: 'remixable',
     });
 
-    await resolver.resolveSource('org-1', 'brand-1', {
+    const resolved = await resolver.resolveSource('org-1', 'brand-1', {
       adAccountId: 'act-1',
       adId: 'ad-1',
       credentialId: 'credential-1',
@@ -205,9 +208,30 @@ describe('BrandRemixSourceResolverService', () => {
         }),
       }),
     );
+    expect(resolved.sourceMedia?.importPolicy).toBe('unknown');
+    expect(resolved.sourceMedia?.importPermissionRef).toBeUndefined();
     expect(adsResearchService.getAdDetail).toHaveBeenCalledWith(
       'org-1',
       expect.objectContaining({ brandId: 'brand-1', id: 'ad-1' }),
     );
+  });
+
+  it('classifies YouTube sources as embed-only regardless of public media URLs', async () => {
+    (prisma.sourcePost.findFirst as ReturnType<typeof vi.fn>).mockResolvedValue(
+      {
+        id: 'video-1',
+        platform: 'youtube',
+        text: 'Video example',
+        contentType: 'video',
+        mediaUrls: ['https://cdn.example/video.mp4'],
+        thumbnailUrl: null,
+      },
+    );
+    const resolved = await resolver.resolveSource('org-1', 'brand-1', {
+      kind: 'source_post',
+      sourcePostId: 'video-1',
+    });
+    expect(resolved.sourceMedia?.importPolicy).toBe('embed_only');
+    expect(resolved.sourceMedia?.importPermissionRef).toBeUndefined();
   });
 });

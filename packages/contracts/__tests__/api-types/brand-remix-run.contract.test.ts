@@ -3,12 +3,15 @@ import {
   BrandRemixAdPlatform,
   BrandRemixOrganicPlatform,
   brandRemixAdPlatformValues,
+  brandRemixDraftEditsSchema,
   brandRemixExecutionSchema,
   brandRemixOrganicPlatformValues,
   brandRemixOutputSchema,
   brandRemixReadinessSchema,
   brandRemixRunViewSchema,
+  brandRemixSourceMediaSnapshotSchema,
   brandRemixSourcePlatformValues,
+  brandRemixTargetSchema,
   createBrandRemixRunSchema,
   isBrandRemixAdPlatform,
   isBrandRemixOrganicPlatform,
@@ -454,5 +457,65 @@ describe('brand remix platform enums', () => {
     );
     expect(isBrandRemixSourcePlatform('twitter')).toBe(false);
     expect(isBrandRemixSourcePlatform('linkedin')).toBe(false);
+  });
+});
+
+describe('analysis-only source snapshot and identity provenance', () => {
+  test('accepts durable analysis media without transport or permission fields', () => {
+    const media = {
+      status: 'saved',
+      assetId: 'source-1',
+      category: 'video',
+      purpose: 'analysis_only',
+    };
+    expect(brandRemixSourceMediaSnapshotSchema.safeParse(media).success).toBe(
+      true,
+    );
+    for (const extra of [
+      { url: 'https://example.com/video.mp4' },
+      { importPermitted: true },
+      { purpose: 'generation_reference' },
+    ]) {
+      expect(
+        brandRemixSourceMediaSnapshotSchema.safeParse({ ...media, ...extra })
+          .success,
+      ).toBe(false);
+    }
+    expect(
+      brandRemixSourceMediaSnapshotSchema.safeParse({
+        status: 'unavailable',
+        reason: 'import_not_permitted',
+        purpose: 'analysis_only',
+      }).success,
+    ).toBe(true);
+    expect(
+      brandRemixSourceMediaSnapshotSchema.safeParse({
+        status: 'unavailable',
+        purpose: 'analysis_only',
+      }).success,
+    ).toBe(false);
+  });
+
+  test('accepts destination credentials but rejects edits to server identity provenance', () => {
+    for (const kind of ['organic', 'paid']) {
+      expect(
+        brandRemixTargetSchema.safeParse({
+          kind,
+          platform: 'tiktok',
+          credentialId: 'credential-1',
+        }).success,
+      ).toBe(true);
+    }
+    for (const provenance of [
+      { identitySource: 'account_persona' },
+      { identityPersonaId: 'persona-1' },
+    ]) {
+      expect(
+        brandRemixDraftEditsSchema.safeParse({
+          ...provenance,
+          intent: { objective: 'Original work' },
+        }).success,
+      ).toBe(false);
+    }
   });
 });

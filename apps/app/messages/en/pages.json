@@ -1330,10 +1330,15 @@
       "chooseVoice": "Choose a voice",
       "help": "Avatar output needs a durable avatar and a usable speech voice.",
       "incomplete": "Choose both an avatar and a voice to continue.",
-      "title": "Avatar identity"
+      "title": "Avatar identity",
+      "avatarLabel": "Avatar identity",
+      "voiceLabel": "Voice identity"
     },
     "intent": {
-      "spokenScriptHelp": "This script is spoken exactly as written by the avatar."
+      "spokenScriptHelp": "This script is spoken exactly as written by the avatar.",
+      "hook": "Hook",
+      "callToAction": "Call to action",
+      "visualDirection": "Visual direction"
     },
     "loading": {
       "description": "Resolving brand defaults and the source pattern.",
@@ -1351,7 +1356,11 @@
         "video": "Video"
       },
       "variationCountMany": "{count} variations",
-      "variationCountOne": "1 variation"
+      "variationCountOne": "1 variation",
+      "targetPlatform": "Target platform",
+      "outputType": "Output type",
+      "aspectRatio": "Aspect ratio",
+      "variationCount": "Number of variations"
     },
     "readiness": {
       "readyDescription": "Ready to continue into Studio."
@@ -1363,12 +1372,30 @@
       "help": "Attach Library assets the remix should follow.",
       "managedByBrand": "Brand default",
       "roleLabel": "Role",
-      "title": "References"
+      "title": "References",
+      "addLibraryAsset": "Add Library asset",
+      "referenceRole": "Reference role"
     },
     "source": {
       "patternTitle": "Source pattern"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "continue": "Continue to Studio",
+      "retry": "Retry",
+      "close": "Close"
+    },
+    "description": "Keep the winning pattern. Replace the execution with your brand, assets, and identity.",
+    "destination": {
+      "label": "Destination account",
+      "brandDefaults": "Brand defaults",
+      "help": "Uses this account\u2019s saved persona unless you choose an avatar and voice. Publishing stays manual.",
+      "loading": "Loading connected accounts\u2026",
+      "error": "Unable to load connected accounts.",
+      "empty": "No connected accounts for this platform"
     }
   },
+
   "library": {
     "browser": {
       "toolbar": {

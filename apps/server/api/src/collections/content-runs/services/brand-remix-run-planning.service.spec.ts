@@ -1,8 +1,9 @@
+import type { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import type { ResolvedBrandContext } from '@api/collections/content-runs/services/brand-remix-runs.types';
 import { BrandRemixSourceResolverService } from '@api/collections/content-runs/services/brand-remix-source-resolver.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { IngredientStatus } from '@genfeedai/contracts';
+import { IngredientCategory, IngredientStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixDraft,
   BrandRemixOrganicPlatform,
@@ -37,6 +38,7 @@ describe('BrandRemixRunPlanningService', () => {
     assertConnectedCredential: vi.fn(),
     resolveSource: vi.fn(),
   };
+  const personaResolution = { resolve: vi.fn() };
   let planning: BrandRemixRunPlanningService;
 
   beforeEach(() => {
@@ -46,6 +48,7 @@ describe('BrandRemixRunPlanningService', () => {
       brandsService as never,
       organizationSettingsService as never,
       sourceResolver as unknown as BrandRemixSourceResolverService,
+      personaResolution as unknown as BrandRemixPersonaResolutionService,
     );
   });
 
@@ -281,4 +284,295 @@ describe('BrandRemixRunPlanningService', () => {
       }),
     );
   });
+  const snapshotDraft: BrandRemixDraft = {
+    fidelityMode: 'guided',
+    identity: {},
+    identitySource: 'brand_default',
+    intent: { objective: 'Create original work.' },
+    output: { kind: 'copy', count: 1 },
+    references: [],
+    reviewRequired: true,
+    target: { kind: 'organic', platform: BrandRemixOrganicPlatform.INSTAGRAM },
+  };
+
+  it('explains pattern-only video when media is skipped without degrading copy', () => {
+    const media = { status: 'skipped', purpose: 'analysis_only' } as const;
+    const video = planning.buildReadiness(
+      brandContext,
+      {
+        ...snapshotDraft,
+        output: { kind: 'video', count: 1, aspectRatio: '9:16' },
+      },
+      media,
+    );
+    expect(video.state).toBe('degraded');
+    expect(video.issues).toContainEqual(
+      expect.objectContaining({
+        code: 'source_media_unavailable',
+        message: expect.stringContaining('Pattern-only remix'),
+      }),
+    );
+    const copy = planning.buildReadiness(brandContext, snapshotDraft, media);
+    expect(copy.state).toBe('ready');
+    expect(copy.issues).toEqual([]);
+  });
+
+  it('resolves account identity only when the destination changes', async () => {
+    personaResolution.resolve.mockResolvedValue({
+      identity: {},
+      source: 'account_persona',
+      personaId: 'persona-1',
+    });
+    const draft = await planning.resolveDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      snapshotDraft,
+      {
+        target: { ...snapshotDraft.target, credentialId: 'credential-1' },
+      },
+    );
+    expect(draft.identitySource).toBe('account_persona');
+    expect(draft.identityPersonaId).toBe('persona-1');
+    expect(personaResolution.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({
+        credentialId: 'credential-1',
+        defaultIdentity: {},
+      }),
+    );
+    personaResolution.resolve.mockClear();
+    await planning.resolveDraft('org-1', 'brand-1', brandContext, draft, {
+      intent: { objective: 'Updated original work.' },
+    });
+    expect(personaResolution.resolve).toHaveBeenCalledTimes(1);
+    expect(personaResolution.resolve).toHaveBeenCalledWith(
+      expect.objectContaining({ explicitIdentity: {} }),
+    );
+  });
+
+  it('preserves explicit clears and legacy snapshots when destinations change', async () => {
+    const cleared = await planning.resolveDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      snapshotDraft,
+      { identity: { avatarAssetId: null, speechVoiceId: null } },
+    );
+    expect(cleared.identitySource).toBe('explicit');
+    for (const current of [
+      cleared,
+      { ...snapshotDraft, identitySource: undefined },
+    ]) {
+      const draft = await planning.resolveDraft(
+        'org-1',
+        'brand-1',
+        brandContext,
+        current,
+        { target: { kind: 'organic', platform: BrandRemixOrganicPlatform.X } },
+      );
+      expect(draft.identity).toEqual({});
+    }
+    expect(personaResolution.resolve).not.toHaveBeenCalled();
+  });
+
+  it('rejects organization-shared identity assets', async () => {
+    vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+      { id: 'avatar-1', brandId: null, category: IngredientCategory.AVATAR },
+      {
+        id: 'voice-1',
+        brandId: 'brand-1',
+        category: IngredientCategory.VOICE,
+        externalVoiceId: 'voice-external-1',
+      },
+    ] as never);
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', {
+        ...snapshotDraft,
+        identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('rejects legacy imported source pixels as generation references', async () => {
+    vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+      { id: 'source-1', sourceActionId: 'remix-source:source_post:1' },
+    ] as never);
+    vi.mocked(prisma.asset.findMany).mockResolvedValue([]);
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', {
+        ...snapshotDraft,
+        references: [
+          { assetId: 'source-1', role: 'subject', source: 'explicit' },
+        ],
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('normalizes invalid implicit defaults but rejects the same explicit identity', async () => {
+    vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+      { id: 'avatar-1', brandId: null, category: IngredientCategory.AVATAR },
+      {
+        id: 'voice-1',
+        brandId: 'other-brand',
+        category: IngredientCategory.VOICE,
+        externalVoiceId: 'voice-external-1',
+      },
+    ] as never);
+    const current = {
+      ...snapshotDraft,
+      identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+    };
+    const normalized = await planning.resolveDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      current,
+    );
+    expect(normalized.identity).toEqual({});
+    expect(planning.buildReadiness(brandContext, normalized).state).toBe(
+      'ready',
+    );
+    expect(
+      planning.buildReadiness(brandContext, {
+        ...normalized,
+        output: { kind: 'avatar', count: 1, aspectRatio: '9:16' },
+      }).state,
+    ).toBe('blocked');
+    await expect(
+      planning.resolveDraft('org-1', 'brand-1', brandContext, {
+        ...current,
+        identitySource: 'explicit',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      planning.resolveDraft('org-1', 'brand-1', brandContext, {
+        ...current,
+        identitySource: 'account_persona',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('allows repairing a disconnected stored destination while preserving strict save and generation checks', async () => {
+    personaResolution.resolve.mockRejectedValue(
+      new BadRequestException('Disconnected'),
+    );
+    const current = {
+      ...snapshotDraft,
+      target: { ...snapshotDraft.target, credentialId: 'disconnected-1' },
+    };
+    const prepared = await planning.preparePersistedDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      current,
+      undefined,
+    );
+    expect(prepared.draft.target.credentialId).toBe('disconnected-1');
+    expect(prepared.readiness).toMatchObject({
+      state: 'blocked',
+      issues: [
+        { code: 'invalid_destination', field: 'target', severity: 'blocked' },
+      ],
+    });
+    await expect(
+      planning.resolveDraft('org-1', 'brand-1', brandContext, current, {
+        intent: { objective: 'Keep destination' },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', current),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    personaResolution.resolve.mockResolvedValue({
+      identity: {},
+      source: 'brand_default',
+    });
+    const repaired = await planning.resolveDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      current,
+      { target: snapshotDraft.target },
+    );
+    expect(repaired.target.credentialId).toBeUndefined();
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', repaired),
+    ).resolves.toBeUndefined();
+  });
+  it.each([undefined, 'explicit', 'account_persona'] as const)(
+    'preserves invalid frozen %s identity for repair while save and dispatch remain strict',
+    async (identitySource) => {
+      vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+        { id: 'avatar-1', brandId: null, category: IngredientCategory.AVATAR },
+        {
+          id: 'voice-1',
+          brandId: null,
+          category: IngredientCategory.VOICE,
+          externalVoiceId: 'voice-external-1',
+        },
+      ] as never);
+      const current = {
+        ...snapshotDraft,
+        identitySource,
+        identityPersonaId:
+          identitySource === 'account_persona' ? 'persona-1' : undefined,
+        identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+      };
+      const prepared = await planning.preparePersistedDraft(
+        'org-1',
+        'brand-1',
+        brandContext,
+        current,
+        undefined,
+      );
+      expect(prepared.draft).toEqual(current);
+      expect(prepared.readiness).toMatchObject({
+        state: 'blocked',
+        issues: [
+          { code: 'invalid_identity', field: 'identity', severity: 'blocked' },
+        ],
+      });
+      await expect(
+        planning.resolveDraft('org-1', 'brand-1', brandContext, current, {
+          intent: { objective: 'Keep invalid identity' },
+        }),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      await expect(
+        planning.assertDraftAssetsAuthorized('org-1', 'brand-1', current),
+      ).rejects.toBeInstanceOf(BadRequestException);
+      const cleared = await planning.resolveDraft(
+        'org-1',
+        'brand-1',
+        brandContext,
+        current,
+        { identity: { avatarAssetId: null, speechVoiceId: null } },
+      );
+      expect(cleared.identity).toEqual({});
+      expect(cleared.identitySource).toBe('explicit');
+      vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+        {
+          id: 'avatar-2',
+          brandId: 'brand-1',
+          category: IngredientCategory.AVATAR,
+        },
+        {
+          id: 'voice-2',
+          brandId: 'brand-1',
+          category: IngredientCategory.VOICE,
+          externalVoiceId: 'voice-external-2',
+        },
+      ] as never);
+      const replaced = await planning.resolveDraft(
+        'org-1',
+        'brand-1',
+        brandContext,
+        current,
+        { identity: { avatarAssetId: 'avatar-2', speechVoiceId: 'voice-2' } },
+      );
+      expect(replaced.identity).toEqual({
+        avatarAssetId: 'avatar-2',
+        speechVoiceId: 'voice-2',
+      });
+      expect(replaced.identitySource).toBe('explicit');
+      expect(replaced.identityPersonaId).toBeUndefined();
+    },
+  );
 });
