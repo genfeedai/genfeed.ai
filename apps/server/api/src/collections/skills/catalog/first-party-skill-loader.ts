@@ -218,11 +218,15 @@ export function loadFirstPartySkillDefinitions(
   return definitions.sort((left, right) => left.slug.localeCompare(right.slug));
 }
 
-export function loadFirstPartySkillIdentities(
-  skillsDir: string | null = resolveProductSkillsDirectory(),
-) {
-  return loadFirstPartySkillDefinitions(skillsDir).map(({ id, slug }) => ({
-    id,
-    slug,
-  }));
+export function loadFirstPartySkillIdentities(skillsDir?: string | null) {
+  try {
+    return loadFirstPartySkillDefinitions(skillsDir).map(({ id, slug }) => ({
+      id,
+      slug,
+    }));
+  } catch {
+    // Module initialization may retain only the fixed handlers. Bootstrap uses
+    // the strict definitions loader to report invalid artifacts without seeding.
+    return [];
+  }
 }
