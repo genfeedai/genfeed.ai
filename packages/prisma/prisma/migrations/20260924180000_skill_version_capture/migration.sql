@@ -1,7 +1,7 @@
 -- Release A of the scoped skill library (#5104).
 -- Expands ownership and immutable version storage, and captures legacy config
 -- writes. New private organization/brand lifecycle stays off until every reader
--- is policy-aware. Hashes use core sha256, not pgcrypto.
+-- is policy-aware. Hashes use core pg_catalog.sha256.
 
 CREATE FUNCTION skill_stable_json(value JSONB)
 RETURNS TEXT
