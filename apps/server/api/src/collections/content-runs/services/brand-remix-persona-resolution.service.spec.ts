@@ -2,6 +2,7 @@ import { BrandRemixPersonaResolutionService } from '@api/collections/content-run
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BrandRemixAdPlatform,
+  type BrandRemixDraft,
   BrandRemixOrganicPlatform,
   type BrandRemixTarget,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
@@ -92,7 +93,7 @@ describe('BrandRemixPersonaResolutionService', () => {
     expect(prisma.persona.findMany).not.toHaveBeenCalled();
   });
 
-  it.each([
+  it.each<BrandRemixDraft['identity']>([
     {},
     { avatarAssetId: 'explicit-avatar', speechVoiceId: 'explicit-voice' },
   ])(

@@ -322,7 +322,7 @@ function AvatarIdentityFields({
         }
         value={avatarAssetId || 'none'}
       >
-        <SelectTrigger aria-label="Avatar identity">
+        <SelectTrigger aria-label={translate('identity.avatarLabel')}>
           <SelectValue
             placeholder={
               isLoadingAvatars
@@ -349,7 +349,7 @@ function AvatarIdentityFields({
         }
         value={speechVoiceId || 'none'}
       >
-        <SelectTrigger aria-label="Voice identity">
+        <SelectTrigger aria-label={translate('identity.voiceLabel')}>
           <SelectValue
             placeholder={
               isLoadingVoices
@@ -457,7 +457,7 @@ export default function RemixBriefInspector(): ReactElement {
       </p>
       <div className="flex items-center gap-2">
         <Button
-          label="Cancel"
+          label={translate('actions.cancel')}
           onClick={close}
           size={ButtonSize.SM}
           variant={ButtonVariant.GHOST}
@@ -465,7 +465,7 @@ export default function RemixBriefInspector(): ReactElement {
         <Button
           isDisabled={!canContinue}
           isLoading={isSaving}
-          label="Continue to Studio"
+          label={translate('actions.continue')}
           onClick={() => {
             void confirm(buildRemixDraftEdits(editor, run));
           }}
@@ -479,7 +479,7 @@ export default function RemixBriefInspector(): ReactElement {
   return (
     <ContextInspector
       bodyClassName="p-5"
-      description="Keep the winning pattern. Replace the execution with your brand, assets, and identity."
+      description={translate('description')}
       footer={footer}
       isOpen={isOpen}
       onOpenChange={(open) => {
@@ -513,7 +513,7 @@ export default function RemixBriefInspector(): ReactElement {
             {!run ? (
               <div className="flex gap-2 pt-2">
                 <Button
-                  label="Retry"
+                  label={translate('actions.retry')}
                   onClick={() => {
                     void retry();
                   }}
@@ -521,7 +521,7 @@ export default function RemixBriefInspector(): ReactElement {
                   variant={ButtonVariant.SECONDARY}
                 />
                 <Button
-                  label="Close"
+                  label={translate('actions.close')}
                   onClick={close}
                   size={ButtonSize.SM}
                   variant={ButtonVariant.GHOST}
@@ -612,7 +612,7 @@ export default function RemixBriefInspector(): ReactElement {
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
               <Input
-                label="Hook"
+                label={translate('intent.hook')}
                 onChange={(event) =>
                   setEditor((current) => ({
                     ...current,
@@ -622,7 +622,7 @@ export default function RemixBriefInspector(): ReactElement {
                 value={editor.hook}
               />
               <Input
-                label="Call to action"
+                label={translate('intent.callToAction')}
                 onChange={(event) =>
                   setEditor((current) => ({
                     ...current,
@@ -633,7 +633,7 @@ export default function RemixBriefInspector(): ReactElement {
               />
             </div>
             <Input
-              label="Visual direction"
+              label={translate('intent.visualDirection')}
               onChange={(event) =>
                 setEditor((current) => ({
                   ...current,
@@ -692,7 +692,7 @@ export default function RemixBriefInspector(): ReactElement {
                 }}
                 value={editor.targetPlatform}
               >
-                <SelectTrigger aria-label="Target platform">
+                <SelectTrigger aria-label={translate('output.targetPlatform')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -715,7 +715,7 @@ export default function RemixBriefInspector(): ReactElement {
                 }
                 value={editor.outputKind}
               >
-                <SelectTrigger aria-label="Output type">
+                <SelectTrigger aria-label={translate('output.outputType')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -743,7 +743,7 @@ export default function RemixBriefInspector(): ReactElement {
                   }
                   value={editor.aspectRatio}
                 >
-                  <SelectTrigger aria-label="Aspect ratio">
+                  <SelectTrigger aria-label={translate('output.aspectRatio')}>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -764,7 +764,7 @@ export default function RemixBriefInspector(): ReactElement {
                 }
                 value={String(editor.count)}
               >
-                <SelectTrigger aria-label="Number of variations">
+                <SelectTrigger aria-label={translate('output.variationCount')}>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -783,7 +783,9 @@ export default function RemixBriefInspector(): ReactElement {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="remix-destination">Destination account</Label>
+              <Label htmlFor="remix-destination">
+                {translate('destination.label')}
+              </Label>
               <Select
                 disabled={isLoadingAccounts}
                 value={editor.credentialId || 'brand-defaults'}
@@ -796,12 +798,14 @@ export default function RemixBriefInspector(): ReactElement {
               >
                 <SelectTrigger
                   id="remix-destination"
-                  aria-label="Destination account"
+                  aria-label={translate('destination.label')}
                 >
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="brand-defaults">Brand defaults</SelectItem>
+                  <SelectItem value="brand-defaults">
+                    {translate('destination.brandDefaults')}
+                  </SelectItem>
                   {destinationAccounts.map((account) => (
                     <SelectItem key={account.id} value={account.id}>
                       {account.externalHandle ||
@@ -813,20 +817,19 @@ export default function RemixBriefInspector(): ReactElement {
                 </SelectContent>
               </Select>
               <p className="text-xs text-muted-foreground">
-                Uses this account’s saved persona unless you choose an avatar
-                and voice. Publishing stays manual.
+                {translate('destination.help')}
               </p>
               {isLoadingAccounts ? (
                 <p className="text-xs text-muted-foreground">
-                  Loading connected accounts…
+                  {translate('destination.loading')}
                 </p>
               ) : isAccountsError ? (
                 <p className="text-xs text-muted-foreground">
-                  Unable to load connected accounts.
+                  {translate('destination.error')}
                 </p>
               ) : destinationAccounts.length === 0 ? (
                 <p className="text-xs text-muted-foreground">
-                  No connected accounts for this platform
+                  {translate('destination.empty')}
                 </p>
               ) : null}
             </div>
@@ -912,7 +915,7 @@ export default function RemixBriefInspector(): ReactElement {
               </div>
               <Button
                 icon={<Library className="size-4" />}
-                label="Add Library asset"
+                label={translate('references.addLibraryAsset')}
                 onClick={() => setIsPickingReference((current) => !current)}
                 size={ButtonSize.SM}
                 variant={ButtonVariant.SECONDARY}
@@ -979,7 +982,7 @@ export default function RemixBriefInspector(): ReactElement {
                     value={referenceRole}
                   >
                     <SelectTrigger
-                      aria-label="Reference role"
+                      aria-label={translate('references.referenceRole')}
                       className="w-44"
                       id="remix-reference-role"
                     >

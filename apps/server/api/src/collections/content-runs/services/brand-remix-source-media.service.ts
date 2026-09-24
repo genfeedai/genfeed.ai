@@ -60,41 +60,8 @@ export class BrandRemixSourceMediaService {
   async ingest(
     input: RemixSourceMediaIngestInput,
   ): Promise<RemixSourceMediaIngestResult> {
-    const existingAssetId = input.source.sourceMedia?.existingAssetIds[0];
     if (input.source.sourceMedia?.existingAssetIds.length) {
-      if (
-        !existingAssetId ||
-        input.source.snapshot.selector.kind !== 'owned_post'
-      ) {
-        return { status: 'unavailable', reason: 'invalid_asset' };
-      }
-      const existing = await this.prisma.ingredient.findFirst({
-        select: { category: true, id: true },
-        where: scopedWhere(input.organizationId, {
-          brandId: input.brandId,
-          id: existingAssetId,
-          status: {
-            in: [...GENERATION_READY_STATUSES] as IngredientStatus[],
-          },
-        }),
-      });
-      if (
-        existing &&
-        (existing.category === IngredientCategory.IMAGE ||
-          existing.category === IngredientCategory.VIDEO ||
-          existing.category === IngredientCategory.AVATAR)
-      ) {
-        return {
-          assetId: existing.id,
-          category:
-            existing.category === IngredientCategory.VIDEO ||
-            existing.category === IngredientCategory.AVATAR
-              ? IngredientCategory.VIDEO
-              : IngredientCategory.IMAGE,
-          status: 'saved',
-        };
-      }
-      return { status: 'unavailable', reason: 'invalid_asset' };
+      return this.resolveOwnedAsset(input);
     }
 
     const media = input.source.sourceMedia;
@@ -210,6 +177,45 @@ export class BrandRemixSourceMediaService {
       });
       return { status: 'unavailable', reason: 'copy_failed' };
     }
+  }
+
+  private async resolveOwnedAsset(
+    input: RemixSourceMediaIngestInput,
+  ): Promise<RemixSourceMediaIngestResult> {
+    const existingAssetId = input.source.sourceMedia?.existingAssetIds[0];
+    if (
+      !existingAssetId ||
+      input.source.snapshot.selector.kind !== 'owned_post'
+    ) {
+      return { status: 'unavailable', reason: 'invalid_asset' };
+    }
+    const existing = await this.prisma.ingredient.findFirst({
+      select: { category: true, id: true },
+      where: scopedWhere(input.organizationId, {
+        brandId: input.brandId,
+        id: existingAssetId,
+        status: {
+          in: [...GENERATION_READY_STATUSES] as IngredientStatus[],
+        },
+      }),
+    });
+    if (
+      existing &&
+      (existing.category === IngredientCategory.IMAGE ||
+        existing.category === IngredientCategory.VIDEO ||
+        existing.category === IngredientCategory.AVATAR)
+    ) {
+      return {
+        assetId: existing.id,
+        category:
+          existing.category === IngredientCategory.VIDEO ||
+          existing.category === IngredientCategory.AVATAR
+            ? IngredientCategory.VIDEO
+            : IngredientCategory.IMAGE,
+        status: 'saved',
+      };
+    }
+    return { status: 'unavailable', reason: 'invalid_asset' };
   }
 
   private sourceActionId(input: RemixSourceMediaIngestInput): string {

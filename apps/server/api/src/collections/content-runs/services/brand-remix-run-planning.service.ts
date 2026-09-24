@@ -42,7 +42,11 @@ import {
 import type { GenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { generationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { IBrandKitResolvedAssets } from '@genfeedai/contracts/interfaces';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 @Injectable()
 export class BrandRemixRunPlanningService {
@@ -333,6 +337,31 @@ export class BrandRemixRunPlanningService {
           ? 'degraded'
           : 'ready',
     };
+  }
+
+  async assertReadyForGeneration(
+    organizationId: string,
+    brandId: string,
+    brandContext: ResolvedBrandContext,
+    config: BrandRemixRunConfig,
+  ): Promise<BrandRemixReadiness> {
+    await this.assertDraftAssetsAuthorized(
+      organizationId,
+      brandId,
+      config.draft,
+    );
+    const readiness = this.buildReadiness(
+      brandContext,
+      config.draft,
+      config.sourceSnapshot.media,
+    );
+    if (readiness.state === 'blocked') {
+      throw new ConflictException({
+        detail: readiness.issues.map((issue) => issue.message).join('; '),
+        title: 'Remix generation is blocked',
+      });
+    }
+    return readiness;
   }
 
   async assertDraftAssetsAuthorized(

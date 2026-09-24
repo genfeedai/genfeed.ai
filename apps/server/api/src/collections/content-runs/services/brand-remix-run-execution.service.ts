@@ -621,22 +621,12 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
       });
     }
 
-    await this.planning.assertDraftAssetsAuthorized(
+    const readiness = await this.planning.assertReadyForGeneration(
       organizationId,
       brandId,
-      config.draft,
-    );
-    const readiness = this.planning.buildReadiness(
       brandContext,
-      config.draft,
-      config.sourceSnapshot.media,
+      config,
     );
-    if (readiness.state === 'blocked') {
-      throw new ConflictException({
-        detail: readiness.issues.map((issue) => issue.message).join('; '),
-        title: 'Remix generation is blocked',
-      });
-    }
 
     await this.planning.resolveSource(
       organizationId,
