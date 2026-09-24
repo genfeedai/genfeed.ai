@@ -160,6 +160,31 @@ describe('BrandAssetAutofillService', () => {
   });
 
   describe('fillFromWebsite', () => {
+    it.each([
+      ['TWITTER', 'twitter profile image'],
+      ['DEVTO', 'devto profile image'],
+      ['FUTURE_NETWORK', 'future_network profile image'],
+    ])(
+      'labels connected %s avatars with the real platform mapper',
+      async (platform, label) => {
+        credentialFindMany.mockResolvedValue([
+          {
+            externalAvatar: 'https://cdn.genfeed.ai/social-avatars/credential',
+            platform,
+          },
+        ]);
+        await service.fillFromWebsite(SCOPE, scraped({}));
+        expect(importedCandidates()).toEqual([
+          expect.objectContaining({
+            label,
+            replaceExisting: false,
+            role: 'logo',
+            sourceType: 'system',
+          }),
+        ]);
+      },
+    );
+
     it('ranks connected-account avatars ahead of the website logo chain', async () => {
       credentialFindMany.mockResolvedValue([
         {

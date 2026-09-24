@@ -370,6 +370,9 @@ describe('UploadService', () => {
       expect(mockHttpService.get).toHaveBeenCalledWith(
         'https://example.com/image.jpg',
         expect.objectContaining({
+          maxBodyLength: 200 * 1024 * 1024,
+          maxContentLength: 200 * 1024 * 1024,
+          maxRedirects: 0,
           responseType: 'stream',
           timeout: 60000,
         }),
