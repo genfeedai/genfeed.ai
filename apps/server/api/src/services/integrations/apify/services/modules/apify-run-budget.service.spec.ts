@@ -92,31 +92,43 @@ describe('ApifyRunBudgetService', () => {
         async (usageKey: string, providerMicro: number) => {
           const snapshotKey = `${usageKey}:snapshot`;
           const settledKey = `${usageKey}:settled`;
-          if (counters[snapshotKey] === undefined) {
-            counters[snapshotKey] = providerMicro;
-            counters[settledKey] = 0;
-            if (providerMicro > (counters[usageKey] ?? 0)) {
-              counters[usageKey] = providerMicro;
+          const outstanding = counters[`${usageKey}:outstanding`] ?? 0;
+          const settled = counters[settledKey] ?? 0;
+          const current = counters[usageKey] ?? 0;
+          const snapshot = counters[snapshotKey];
+          const unexplained =
+            snapshot === undefined
+              ? providerMicro - Math.max(0, current - outstanding)
+              : providerMicro - snapshot - settled;
+          if (unexplained < 0) {
+            if (snapshot === undefined) {
+              counters[snapshotKey] = providerMicro;
+              counters[settledKey] = 0;
+              return { status: 'baselined' };
             }
-            return { status: 'baselined' };
+            return { status: 'behind' };
           }
-          const external =
-            providerMicro - counters[snapshotKey] - (counters[settledKey] ?? 0);
+          const ours = Math.min(unexplained, outstanding);
+          const external = unexplained - ours;
+          if (external > 0) counters[usageKey] = current + external;
+          counters[snapshotKey] = providerMicro - ours;
+          counters[settledKey] = 0;
+          if (snapshot === undefined) return { status: 'baselined' };
           if (external > 0) {
-            counters[usageKey] = (counters[usageKey] ?? 0) + external;
-            counters[snapshotKey] = providerMicro;
-            counters[settledKey] = 0;
             return { externalMicroUsd: external, status: 'applied' };
           }
-          if (external === 0) {
-            counters[snapshotKey] = providerMicro;
-            counters[settledKey] = 0;
-            return { status: 'unchanged' };
-          }
-          return { status: 'behind' };
+          return unexplained === 0
+            ? { status: 'unchanged' }
+            : { status: 'behind' };
         },
       ),
-      noteResearchReservation: vi.fn(async () => 'noted'),
+      noteResearchReservation: vi.fn(
+        async (usageKey: string, _reservationKey: string, amount: number) => {
+          const outstandingKey = `${usageKey}:outstanding`;
+          counters[outstandingKey] = (counters[outstandingKey] ?? 0) + amount;
+          return 'noted';
+        },
+      ),
       noteSettledResearchReservation: vi.fn(async () => 'noted'),
       set: vi.fn(async (key: string, value: unknown) => {
         counters[key] = value === true ? 1 : 0;
@@ -526,7 +538,7 @@ describe('ApifyRunBudgetService', () => {
     },
   );
 
-  it('adds external provider usage once and does not replay it', async () => {
+  it('does not import provider usage that still fits an open reservation', async () => {
     env.APIFY_MAX_BILLING_PERIOD_USD = '4';
     service = build();
     const first = await service.consumeRun('hosted', 'actor', 'token');
@@ -550,7 +562,7 @@ describe('ApifyRunBudgetService', () => {
     const second = await service.consumeRun('hosted', 'actor', 'token');
 
     expect(counters[usageKey]).toBe(
-      reserved + 50_000 + (second.reservation?.reservedMicroUsd ?? 0),
+      reserved + (second.reservation?.reservedMicroUsd ?? 0),
     );
     vi.advanceTimersByTime(6 * 60 * 1000);
     const beforeReplay = counters[usageKey];

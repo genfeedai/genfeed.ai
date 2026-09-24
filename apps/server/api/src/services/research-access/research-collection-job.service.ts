@@ -1,8 +1,11 @@
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { Injectable } from '@nestjs/common';
 
 const MICRO_USD_COLUMN_MAX = 2_147_483_647;
+
+/** How long the owner may resolve a token, reserve budget, and start the actor. */
+export const RESEARCH_COLLECTION_LEASE_MS = 15 * 60 * 1000;
 
 export const RESEARCH_COLLECTION_JOB_STATUS = {
   AMBIGUOUS: 'ambiguous',
@@ -19,6 +22,8 @@ export interface ResearchCollectionJobRecord {
   actorId: string;
   datasetId: string | null;
   id: string;
+  leaseExpiresAt: Date | null;
+  leaseToken: string | null;
   organizationId: string;
   reconciledAt: Date | null;
   requestKey: string;
@@ -81,6 +86,8 @@ function readJob(
     actorId: row.actorId,
     datasetId: row.datasetId,
     id: row.id,
+    leaseExpiresAt: row.leaseExpiresAt,
+    leaseToken: row.leaseToken,
     organizationId: row.organizationId,
     reconciledAt: row.reconciledAt,
     requestKey: row.requestKey,
@@ -110,11 +117,16 @@ export class ResearchCollectionJobService {
     );
     if (existing) return { ...existing, isRecovered: true };
     try {
+      const now = new Date();
       const created = await this.prisma.researchCollectionJob.create({
         data: {
           actorId: input.actorId,
           inflightRequestKey: input.requestKey,
           isDeleted: false,
+          leaseExpiresAt: new Date(
+            now.getTime() + RESEARCH_COLLECTION_LEASE_MS,
+          ),
+          leaseToken: randomUUID(),
           organizationId: input.organizationId,
           requestKey: input.requestKey,
           scope: 'pending',
@@ -133,12 +145,21 @@ export class ResearchCollectionJobService {
     }
   }
 
+  /**
+   * Move REQUESTED to STARTING only while this owner still holds an
+   * unexpired lease. A zero count means another caller finished or
+   * replaced the row; the caller must not start an actor.
+   */
   async markStarting(
     job: ResearchCollectionJobRecord,
     input: { scope: string; startAttemptedAt: Date },
-  ): Promise<void> {
-    await this.prisma.researchCollectionJob.updateMany({
+  ): Promise<boolean> {
+    if (!job.leaseToken) return false;
+    const updated = await this.prisma.researchCollectionJob.updateMany({
       data: {
+        leaseExpiresAt: new Date(
+          input.startAttemptedAt.getTime() + RESEARCH_COLLECTION_LEASE_MS,
+        ),
         scope: input.scope,
         startAttemptedAt: input.startAttemptedAt,
         status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
@@ -146,10 +167,13 @@ export class ResearchCollectionJobService {
       where: {
         id: job.id,
         isDeleted: false,
+        leaseExpiresAt: { gt: input.startAttemptedAt },
+        leaseToken: job.leaseToken,
         organizationId: job.organizationId,
         status: RESEARCH_COLLECTION_JOB_STATUS.REQUESTED,
       },
     });
+    return updated.count === 1;
   }
 
   async attachReservation(
@@ -159,8 +183,9 @@ export class ResearchCollectionJobService {
       reservedMicroUsd: number;
       usageKey: string;
     },
-  ): Promise<void> {
-    await this.prisma.researchCollectionJob.updateMany({
+  ): Promise<boolean> {
+    if (!job.leaseToken) return false;
+    const updated = await this.prisma.researchCollectionJob.updateMany({
       data: {
         reservationKey: reservation.reservationKey,
         reservedMicroUsd: microUsdColumn(reservation.reservedMicroUsd),
@@ -169,16 +194,21 @@ export class ResearchCollectionJobService {
       where: {
         id: job.id,
         isDeleted: false,
+        leaseToken: job.leaseToken,
         organizationId: job.organizationId,
+        status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+        upstreamRunId: null,
       },
     });
+    return updated.count === 1;
   }
 
   async attachRun(
     job: ResearchCollectionJobRecord,
     run: { datasetId: string; upstreamRunId: string },
-  ): Promise<void> {
-    await this.prisma.researchCollectionJob.updateMany({
+  ): Promise<boolean> {
+    if (!job.leaseToken) return false;
+    const updated = await this.prisma.researchCollectionJob.updateMany({
       data: {
         datasetId: run.datasetId,
         status: RESEARCH_COLLECTION_JOB_STATUS.RUNNING,
@@ -187,21 +217,37 @@ export class ResearchCollectionJobService {
       where: {
         id: job.id,
         isDeleted: false,
+        leaseToken: job.leaseToken,
         organizationId: job.organizationId,
+        status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
         upstreamRunId: null,
       },
     });
+    return updated.count === 1;
   }
 
-  async markAmbiguous(job: ResearchCollectionJobRecord): Promise<void> {
-    await this.prisma.researchCollectionJob.updateMany({
-      data: { status: RESEARCH_COLLECTION_JOB_STATUS.AMBIGUOUS },
+  /**
+   * The owner is still inside the start call. Refresh the lease so a
+   * duplicate that has not seen a run cannot finish the row.
+   */
+  async markAmbiguous(job: ResearchCollectionJobRecord): Promise<Date | null> {
+    if (!job.leaseToken) return null;
+    const leaseExpiresAt = new Date(Date.now() + RESEARCH_COLLECTION_LEASE_MS);
+    const updated = await this.prisma.researchCollectionJob.updateMany({
+      data: {
+        leaseExpiresAt,
+        status: RESEARCH_COLLECTION_JOB_STATUS.AMBIGUOUS,
+      },
       where: {
         id: job.id,
         isDeleted: false,
+        leaseToken: job.leaseToken,
         organizationId: job.organizationId,
+        status: RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+        upstreamRunId: null,
       },
     });
+    return updated.count === 1 ? leaseExpiresAt : null;
   }
 
   async finish(
@@ -212,8 +258,9 @@ export class ResearchCollectionJobService {
       status: string;
       terminalReason?: string | null;
     },
-  ): Promise<void> {
-    await this.prisma.researchCollectionJob.updateMany({
+  ): Promise<boolean> {
+    if (!job.leaseToken) return false;
+    const updated = await this.prisma.researchCollectionJob.updateMany({
       data: {
         actualCostMicroUsd: microUsdColumn(input.actualCostMicroUsd),
         inflightRequestKey: null,
@@ -224,9 +271,47 @@ export class ResearchCollectionJobService {
       where: {
         id: job.id,
         isDeleted: false,
+        leaseToken: job.leaseToken,
         organizationId: job.organizationId,
+        upstreamRunId: job.upstreamRunId,
       },
     });
+    return updated.count === 1;
+  }
+
+  /**
+   * Finish a start that never recorded a run, and only after its lease has
+   * expired. A still-active owner does not match this update.
+   */
+  async finishExpiredUnrecorded(
+    job: ResearchCollectionJobRecord,
+    now: Date,
+  ): Promise<boolean> {
+    const updated = await this.prisma.researchCollectionJob.updateMany({
+      data: {
+        actualCostMicroUsd: 0,
+        inflightRequestKey: null,
+        reconciledAt: now,
+        status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
+        terminalReason: 'start_not_recorded',
+      },
+      where: {
+        id: job.id,
+        inflightRequestKey: job.requestKey,
+        isDeleted: false,
+        OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
+        organizationId: job.organizationId,
+        status: {
+          in: [
+            RESEARCH_COLLECTION_JOB_STATUS.AMBIGUOUS,
+            RESEARCH_COLLECTION_JOB_STATUS.REQUESTED,
+            RESEARCH_COLLECTION_JOB_STATUS.STARTING,
+          ],
+        },
+        upstreamRunId: null,
+      },
+    });
+    return updated.count === 1;
   }
 
   private async findInflight(

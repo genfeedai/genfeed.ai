@@ -233,4 +233,65 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
     expect(await redis.pttl(old)).toBeGreaterThan(59000);
     expect(await redis.pttl(receipt)).toBeGreaterThan(59000);
   });
+
+  it('does not import our run when the provider reports it before settlement', async () => {
+    const ledger = key();
+    const receipt = key();
+    keys.add(`${ledger}:snapshot`);
+    keys.add(`${ledger}:settled`);
+    keys.add(`${ledger}:outstanding`);
+    await redis.set(ledger, '0', 'PX', 60_000);
+    await services[0].initializeCounterBudget(ledger, 0, 60);
+    await services[0].importHostedAccountUsage(ledger, 0);
+    expect(
+      await services[0].reserveCounterBudget(ledger, receipt, 1_000, 100),
+    ).toEqual({ reserved: 100, status: 'reserved', total: 100 });
+    expect(
+      await services[0].noteResearchReservation(ledger, receipt, 100),
+    ).toBe('noted');
+
+    expect(await services[0].importHostedAccountUsage(ledger, 20)).toEqual({
+      status: 'behind',
+    });
+    expect(await redis.get(ledger)).toBe('100');
+
+    expect(
+      await services[0].reconcileCounterReservation(ledger, receipt, 100, 20),
+    ).toBe('settled');
+    expect(await redis.get(ledger)).toBe('20');
+    expect(await services[0].importHostedAccountUsage(ledger, 20)).toEqual({
+      status: 'behind',
+    });
+    expect(await redis.get(ledger)).toBe('20');
+    expect(
+      await services[0].noteSettledResearchReservation(ledger, receipt),
+    ).toBe('noted');
+    expect(await services[0].importHostedAccountUsage(ledger, 20)).toEqual({
+      status: 'unchanged',
+    });
+    expect(await redis.get(ledger)).toBe('20');
+  });
+
+  it('imports only provider usage above open reservations', async () => {
+    const ledger = key();
+    const receipt = key();
+    keys.add(`${ledger}:snapshot`);
+    keys.add(`${ledger}:settled`);
+    keys.add(`${ledger}:outstanding`);
+    await redis.set(ledger, '0', 'PX', 60_000);
+    await services[0].initializeCounterBudget(ledger, 0, 60);
+    await services[0].importHostedAccountUsage(ledger, 0);
+    await services[0].reserveCounterBudget(ledger, receipt, 1_000, 100);
+    await services[0].noteResearchReservation(ledger, receipt, 100);
+
+    expect(await services[0].importHostedAccountUsage(ledger, 130)).toEqual({
+      externalMicroUsd: 30,
+      status: 'applied',
+    });
+    expect(await redis.get(ledger)).toBe('130');
+    expect(await services[0].importHostedAccountUsage(ledger, 130)).toEqual({
+      status: 'behind',
+    });
+    expect(await redis.get(ledger)).toBe('130');
+  });
 });

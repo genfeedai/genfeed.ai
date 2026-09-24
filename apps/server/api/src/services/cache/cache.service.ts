@@ -140,32 +140,52 @@ return 1
 
 const IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
 local provider = integer(ARGV[1])
-if not provider then return 0 end
+if provider == nil then return 0 end
 local snapshotRaw = redis.call('GET', KEYS[2])
 if not snapshotRaw then
-  redis.call('SET', KEYS[2], ARGV[1], 'PX', ttl)
-  redis.call('SET', KEYS[3], '0', 'PX', ttl)
-  if provider > current then
-    redis.call('INCRBY', KEYS[1], string.format('%.0f', provider - current))
+  local outstanding = integer(redis.call('GET', KEYS[4]) or '0')
+  if outstanding == nil then return 0 end
+  local base = current - outstanding
+  if base < 0 then base = 0 end
+  local unexplained = provider - base
+  if unexplained < 0 then
+    redis.call('SET', KEYS[2], ARGV[1], 'PX', ttl)
+    redis.call('SET', KEYS[3], '0', 'PX', ttl)
+    return {3}
   end
+  local ours = unexplained
+  if ours > outstanding then ours = outstanding end
+  local external = unexplained - ours
+  if external > 0 then
+    if current > MAX - external then return 0 end
+    redis.call('INCRBY', KEYS[1], string.format('%.0f', external))
+  end
+  redis.call('SET', KEYS[2], string.format('%.0f', provider - ours), 'PX', ttl)
+  redis.call('SET', KEYS[3], '0', 'PX', ttl)
   return {3}
 end
 local snapshot = integer(snapshotRaw)
 local settled = integer(redis.call('GET', KEYS[3]) or '0')
-if not snapshot or not settled then return 0 end
-local external = provider - snapshot - settled
+local outstanding = integer(redis.call('GET', KEYS[4]) or '0')
+if snapshot == nil or settled == nil or outstanding == nil then return 0 end
+-- Provider usage can include our run before terminal settlement, and a
+-- refresh can land between counter settlement and the outstanding-book note.
+-- Attribute that overlap to the open reservation. Only the remainder is
+-- external. Do not advance the snapshot through the attributed overlap, or
+-- the later settlement is counted a second time.
+local unexplained = provider - snapshot - settled
+if unexplained < 0 then return {4} end
+local ours = unexplained
+if ours > outstanding then ours = outstanding end
+local external = unexplained - ours
 if external > 0 then
   if current > MAX - external then return 0 end
   redis.call('INCRBY', KEYS[1], string.format('%.0f', external))
-  redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
-  redis.call('SET', KEYS[3], '0', 'PX', ttl)
-  return {1, string.format('%.0f', external)}
 end
-if external == 0 then
-  redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
-  redis.call('SET', KEYS[3], '0', 'PX', ttl)
-  return {2}
-end
+redis.call('SET', KEYS[2], string.format('%.0f', provider - ours), 'PX', ttl)
+redis.call('SET', KEYS[3], '0', 'PX', ttl)
+if external > 0 then return {1, string.format('%.0f', external)} end
+if unexplained == 0 then return {2} end
 return {4}
 `;
 
@@ -366,10 +386,10 @@ export class CacheService {
   }
 
   /**
-   * Fold provider-account usage into the hosted counter. External spend is
-   * added once. Charges this process already settled are not added again.
-   * A missing snapshot adopts the provider total and raises the counter
-   * only when that total is already higher.
+   * Fold provider-account usage into the hosted counter. Growth that fits
+   * inside open reservations is not external, including a reading that
+   * arrives before terminal settlement or between the counter settlement
+   * and the outstanding-book note. Only the remainder is added, once.
    */
   async importHostedAccountUsage(
     usageKey: string,
@@ -386,10 +406,11 @@ export class CacheService {
     try {
       const result = await this.client.eval(
         IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT,
-        3,
+        4,
         usageKey,
         `${usageKey}:snapshot`,
         `${usageKey}:settled`,
+        `${usageKey}:outstanding`,
         String(providerMicroUsd),
       );
       if (Array.isArray(result) && result[0] === 1) {

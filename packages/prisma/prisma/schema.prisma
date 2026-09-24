@@ -5562,6 +5562,9 @@ model ResearchCollectionJob {
   reconciledAt       DateTime?
   terminalReason     String?
   startAttemptedAt   DateTime?
+  /// Owner fence. A duplicate may not finish the row until this instant.
+  leaseToken         String?
+  leaseExpiresAt     DateTime?
   isDeleted          Boolean      @default(false)
   createdAt          DateTime     @default(now())
   updatedAt          DateTime     @updatedAt
