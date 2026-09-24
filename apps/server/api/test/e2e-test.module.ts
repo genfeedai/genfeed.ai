@@ -161,6 +161,10 @@ export const EXTERNAL_SERVICE_MOCK_PROVIDERS = [
     useFactory: () => createMockHttpService(),
   },
   {
+    provide: EventEmitter2,
+    useFactory: () => createMockEventEmitter(),
+  },
+  {
     provide: 'REDIS_CLIENT',
     useFactory: () => createMockRedisService(),
   },
@@ -724,10 +728,6 @@ export class E2ETestModule {
         {
           provide: CredentialCryptoService,
           useFactory: () => createMockCryptoService(),
-        },
-        {
-          provide: EventEmitter2,
-          useFactory: () => createMockEventEmitter(),
         },
         {
           provide: RedisService,

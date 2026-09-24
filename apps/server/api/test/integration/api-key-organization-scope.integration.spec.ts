@@ -8,6 +8,7 @@ import { ApiKeysService } from '@api/collections/api-keys/services/api-keys.serv
 import type { McpConnectionVerificationService } from '@api/collections/api-keys/services/mcp-connection-verification.service';
 import type { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { createMockConfigService } from '@api-test/mocks/external-services.mocks';
 import { ApiKeyCategory } from '@genfeedai/contracts';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -50,12 +51,10 @@ const query: ApiKeysQueryDto = {
 };
 
 const config = {
-  get: (key: string) =>
-    key === 'DATABASE_URL'
-      ? databaseUrl
-      : key === 'GENFEED_CLOUD'
-        ? 'true'
-        : undefined,
+  ...createMockConfigService({
+    DATABASE_URL: databaseUrl,
+    GENFEED_CLOUD: 'true',
+  }),
   isProduction: false,
 } as unknown as ConfigService;
 const logger = {
