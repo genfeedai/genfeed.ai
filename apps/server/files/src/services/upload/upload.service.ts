@@ -205,6 +205,7 @@ export class UploadService {
         this.httpService.get<Readable>(remoteUrl, {
           maxBodyLength: 200 * 1024 * 1024,
           maxContentLength: 200 * 1024 * 1024,
+          maxRedirects: 0,
           responseType: 'stream',
           timeout: 60000,
         }),

@@ -1069,6 +1069,75 @@ describe('BrandsService', () => {
       });
     });
 
+    it('cleans up a rejected first logo before importing the later safe candidate', async () => {
+      assetDelegate.findFirst.mockResolvedValue(null);
+      assetDelegate.create
+        .mockResolvedValueOnce({ id: 'asset_rejected' })
+        .mockResolvedValueOnce({ id: 'asset_safe' });
+      filesClientService.uploadToS3
+        .mockRejectedValueOnce(new Error('redirect rejected'))
+        .mockResolvedValueOnce({
+          publicUrl: 'https://cdn.example.com/logos/asset_safe',
+          size: 42_000,
+        });
+
+      const result = await service.importBrandKitAssets(
+        brandId,
+        organizationId,
+        userId,
+        {
+          assets: [
+            {
+              candidateId: 'redirecting',
+              role: 'logo',
+              sourceUrl: 'https://acme.example/redirect.png',
+              replaceExisting: false,
+            },
+            {
+              candidateId: 'safe',
+              role: 'logo',
+              sourceUrl: 'https://acme.example/safe.png',
+              replaceExisting: false,
+            },
+          ],
+        },
+      );
+
+      expect(filesClientService.uploadToS3).toHaveBeenNthCalledWith(
+        1,
+        'asset_rejected',
+        'logos',
+        { type: 'url', url: 'https://acme.example/redirect.png' },
+      );
+      expect(filesClientService.uploadToS3).toHaveBeenNthCalledWith(
+        2,
+        'asset_safe',
+        'logos',
+        { type: 'url', url: 'https://acme.example/safe.png' },
+      );
+      expect(assetDelegate.update).toHaveBeenNthCalledWith(1, {
+        data: { isDeleted: true },
+        where: { id: 'asset_rejected' },
+      });
+      expect(assetDelegate.update.mock.invocationCallOrder[0]).toBeLessThan(
+        filesClientService.uploadToS3.mock.invocationCallOrder[1],
+      );
+      expect(assetDelegate.updateMany).not.toHaveBeenCalled();
+      expect(result).toMatchObject({
+        failedCandidateIds: ['redirecting'],
+        importedAssetIds: ['asset_safe'],
+        status: 'partial',
+        results: [
+          {
+            candidateId: 'redirecting',
+            status: 'failed',
+            diagnostics: [{ code: 'brand_kit_asset_import_failed' }],
+          },
+          { candidateId: 'safe', assetId: 'asset_safe', status: 'imported' },
+        ],
+      });
+    });
+
     it('removes the created asset record when remote upload fails', async () => {
       assetDelegate.findFirst.mockResolvedValueOnce(null);
       filesClientService.uploadToS3.mockRejectedValueOnce(

@@ -183,7 +183,7 @@ export class BrandAssetAutofillService {
       return credentials.flatMap((credential) =>
         this.toSocialCandidates(
           [credential.externalAvatar],
-          `${fromPrismaCredentialPlatform(credential.platform)} profile image`,
+          `${fromPrismaCredentialPlatform(credential.platform) ?? String(credential.platform).toLowerCase()} profile image`,
         ),
       );
     } catch (error: unknown) {
