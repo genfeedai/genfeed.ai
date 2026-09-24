@@ -293,6 +293,7 @@ export class SkillsService {
       configSchema: baseConfig['configSchema'],
       defaultInstructions: baseConfig['defaultInstructions'],
       description: payload.description?.trim() || baseConfig['description'],
+      files: baseConfig['files'],
       inputSchema: baseConfig['inputSchema'],
       isBuiltIn: false,
       isEnabled: true,
@@ -305,6 +306,7 @@ export class SkillsService {
       source: 'customized',
       sourceListingId: baseConfig['sourceListingId'],
       status: 'draft',
+      surfaces: baseConfig['surfaces'],
       systemPromptTemplate: baseConfig['systemPromptTemplate'],
       toolOverrides: baseConfig['toolOverrides'],
       version: baseConfig['version'],
@@ -679,6 +681,7 @@ export class SkillsService {
     const config = this.getConfig(row);
     return {
       ...config,
+      config,
       id: row.id,
       createdAt: row.createdAt,
       // Built-in slugs the runtime injects while the brand has no explicit
