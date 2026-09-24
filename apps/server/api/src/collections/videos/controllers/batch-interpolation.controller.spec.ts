@@ -60,6 +60,18 @@ import { firstValueFrom, from } from 'rxjs';
 
 const mockBuildReferenceImageUrls = vi.mocked(buildReferenceImageUrls);
 
+type BatchResponseFixture = {
+  groupId: string;
+  isMergeEnabled: boolean;
+  jobs: { id: string; pairIndex: number; status: string }[];
+  totalJobs: number;
+};
+
+// The serializer mock above returns the raw fixture instead of JSON:API data.
+function readBatchResponseFixture(response: unknown): BatchResponseFixture {
+  return response as BatchResponseFixture;
+}
+
 describe('BatchInterpolationController', () => {
   let controller: BatchInterpolationController;
 
@@ -366,10 +378,12 @@ describe('BatchInterpolationController', () => {
 
         const result = await batchPromise;
 
-        expect(result.jobs).toHaveLength(2);
-        expect(result.jobs.every((job) => job.status === 'processing')).toBe(
-          true,
-        );
+        expect(readBatchResponseFixture(result).jobs).toHaveLength(2);
+        expect(
+          readBatchResponseFixture(result).jobs.every(
+            (job) => job.status === 'processing',
+          ),
+        ).toBe(true);
       });
 
       it('reserves each pair before dispatch and settles accepted generation once', async () => {
@@ -497,7 +511,9 @@ describe('BatchInterpolationController', () => {
             mockDto,
             mockUser,
           );
-          expect(result.jobs[0].status).toBe('failed');
+          expect(readBatchResponseFixture(result).jobs[0].status).toBe(
+            'failed',
+          );
           expect(
             creditsUtilsService.releaseReservation,
           ).toHaveBeenCalledExactlyOnceWith({
@@ -517,7 +533,7 @@ describe('BatchInterpolationController', () => {
           mockDto,
           mockUser,
         );
-        expect(result.jobs[0].status).toBe('failed');
+        expect(readBatchResponseFixture(result).jobs[0].status).toBe('failed');
         expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
         expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
       });
@@ -531,7 +547,7 @@ describe('BatchInterpolationController', () => {
           mockDto,
           mockUser,
         );
-        expect(result.jobs[0].status).toBe('failed');
+        expect(readBatchResponseFixture(result).jobs[0].status).toBe('failed');
         expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(1);
         expect(
           creditsUtilsService.settleReservation.mock.invocationCallOrder[0],
@@ -548,7 +564,7 @@ describe('BatchInterpolationController', () => {
           mockDto,
           mockUser,
         );
-        expect(result.jobs[0].status).toBe('failed');
+        expect(readBatchResponseFixture(result).jobs[0].status).toBe('failed');
         expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
         expect(metadataService.patch).not.toHaveBeenCalled();
       });
@@ -682,7 +698,7 @@ describe('BatchInterpolationController', () => {
           mockUser,
         );
 
-        expect(result.jobs[0]).toMatchObject({
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
           pairIndex: 0,
           status: 'failed',
         });
@@ -707,7 +723,7 @@ describe('BatchInterpolationController', () => {
           mockUser,
         );
 
-        expect(result.jobs[0]).toMatchObject({
+        expect(readBatchResponseFixture(result).jobs[0]).toMatchObject({
           id: '',
           pairIndex: 0,
           status: 'failed',
@@ -743,9 +759,11 @@ describe('BatchInterpolationController', () => {
           mockUser,
         );
 
-        expect(result.jobs).toHaveLength(2);
-        expect(result.jobs[0].status).toBe('failed');
-        expect(result.jobs[1].status).toBe('processing');
+        expect(readBatchResponseFixture(result).jobs).toHaveLength(2);
+        expect(readBatchResponseFixture(result).jobs[0].status).toBe('failed');
+        expect(readBatchResponseFixture(result).jobs[1].status).toBe(
+          'processing',
+        );
       });
     });
 

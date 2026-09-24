@@ -108,14 +108,19 @@ describe('SubscriptionGuard', () => {
     vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue(
       SubscriptionTier.FREE,
     );
-    const ctx = buildContext(buildUser(), { amount: 10 });
+    const ctx = buildContext(buildUser(), {
+      amount: 10,
+      description: 'Metered request',
+    });
     expect(guard.canActivate(ctx)).toBe(true);
     expect(authProviderUtil.getStripeSubscriptionStatus).not.toHaveBeenCalled();
   });
 
   it('requires authentication even when the route has credits metadata', () => {
     expect(() =>
-      guard.canActivate(buildContext(undefined, { amount: 10 })),
+      guard.canActivate(
+        buildContext(undefined, { amount: 10, description: 'Metered request' }),
+      ),
     ).toThrow(
       new HttpException(
         { detail: 'Authentication required', title: 'Unauthorized' },
@@ -128,9 +133,11 @@ describe('SubscriptionGuard', () => {
     class MeteredController {}
     const handler = () => {};
     Reflect.defineMetadata(CREDITS_KEY, { amount: 10 }, MeteredController);
-    const ctx = buildContext(buildUser());
-    ctx.getClass = () => MeteredController;
-    ctx.getHandler = () => handler;
+    const ctx = {
+      ...buildContext(buildUser()),
+      getClass: () => MeteredController,
+      getHandler: () => handler,
+    } as unknown as ExecutionContext;
     expect(guard.canActivate(ctx)).toBe(true);
     Reflect.defineMetadata(CREDITS_KEY, { amount: 20 }, handler);
     const assertActive = vi.spyOn(guard, 'assertActive');
