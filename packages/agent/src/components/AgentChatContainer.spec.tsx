@@ -606,6 +606,70 @@ describe('AgentChatContainer', () => {
     );
   });
 
+  it.each(
+    (['completed', 'failed', 'cancelled'] as const).flatMap((terminal) =>
+      ['RUNNING', 'PENDING'].map((status) => ({ terminal, status })),
+    ),
+  )(
+    'does not revive $terminal after delayed $status execution recovery',
+    async ({ terminal, status }) => {
+      let release: () => void = () => undefined;
+      const gate = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      const apiService = createApiService({
+        getActiveWorkflowExecutions: vi.fn(async () => {
+          await gate;
+          return [{ id: 'run-1', metadata: { threadId: 'thread-1' }, status }];
+        }),
+      });
+      storeState.activeRunId = 'run-1';
+      storeState.activeRunStatus = 'running';
+      render(
+        <AgentChatContainer apiService={apiService as never} isStreaming />,
+      );
+      await waitFor(() =>
+        expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledOnce(),
+      );
+      storeState.activeRunStatus = terminal;
+      await act(async () => {
+        release();
+        await gate;
+      });
+      expect(storeState.setActiveRun).not.toHaveBeenCalled();
+      expect(storeState.markStreamLive).not.toHaveBeenCalled();
+    },
+  );
+
+  it('does not replace a newer owned run with a delayed matching execution', async () => {
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const apiService = createApiService({
+      getActiveWorkflowExecutions: vi.fn(async () => {
+        await gate;
+        return [
+          {
+            id: 'run-1',
+            metadata: { threadId: 'thread-1' },
+            status: 'RUNNING',
+          },
+        ];
+      }),
+    });
+    render(<AgentChatContainer apiService={apiService as never} isStreaming />);
+    await waitFor(() =>
+      expect(apiService.getActiveWorkflowExecutions).toHaveBeenCalledOnce(),
+    );
+    storeState.activeRunId = 'run-new';
+    await act(async () => {
+      release();
+      await gate;
+    });
+    expect(storeState.setActiveRun).not.toHaveBeenCalled();
+    expect(storeState.markStreamLive).not.toHaveBeenCalled();
+  });
   it('reconciles a terminal snapshot run that arrives after the first active execution query', async () => {
     const apiService = createApiService();
     storeState.activeRunId = null;

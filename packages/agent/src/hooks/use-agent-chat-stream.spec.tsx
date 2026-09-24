@@ -782,14 +782,14 @@ describe('useAgentChatStream', () => {
       act(() => {
         useAgentChatStore.getState().updateThread(nextThreadId, {
           attentionState: 'needs-input',
-          runStatus: 'awaiting_input',
+          runStatus: 'waiting_input',
         });
       });
       const threadBeforeRejection = useAgentChatStore
         .getState()
         .threads.find((thread) => thread.id === nextThreadId);
       expect(threadBeforeRejection?.attentionState).toBe('needs-input');
-      expect(threadBeforeRejection?.runStatus).toBe('awaiting_input');
+      expect(threadBeforeRejection?.runStatus).toBe('waiting_input');
       await act(async () => {
         rejectFirst(new Error('provider unavailable'));
         await firstSend;
@@ -808,6 +808,47 @@ describe('useAgentChatStream', () => {
     },
   );
 
+  it('keeps forceNewThread ownership while its acknowledgement is pending', async () => {
+    const runtime = getAgentStreamRuntime();
+    useAgentChatStore.setState({ activeThreadId: 'thread-old' });
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const apiService = createApiService({
+      chatStream: vi.fn(async () => {
+        await gate;
+        return {
+          brandId: null,
+          contextVersion: 1,
+          executionId: 'run-new',
+          queuedAt: '2026-09-24T07:00:00.000Z',
+          threadId: 'thread-new',
+        };
+      }),
+    });
+    const layout = renderHook(() => useAgentChatStream({ apiService }));
+    renderHook(() => useAgentChatStream({ apiService }));
+    const initialGeneration = runtime.ownerGeneration;
+    let send = Promise.resolve();
+    act(() => {
+      send = layout.result.current.sendMessage('New topic', {
+        forceNewThread: true,
+      });
+    });
+    expect(runtime.ownerGeneration).toBe(initialGeneration + 1);
+    expect(runtime.isAwaitingRunIdRef.current).toBe(true);
+    expect(runtime.activeStreamThreadRef.current).toBeNull();
+    expect(socketHandlers.get('agent:token')).toHaveLength(1);
+    await act(async () => {
+      release();
+      await send;
+    });
+    expect(runtime.activeStreamThreadRef.current).toBe('thread-new');
+    expect(runtime.activeStreamRunIdRef.current).toBe('run-new');
+    expect(useAgentChatStore.getState().activeThreadId).toBe('thread-new');
+    expect(socketHandlers.get('agent:token')).toHaveLength(1);
+  });
   it('keeps one stream owner when the hook is mounted twice (layout + page)', async () => {
     // The persistent agent layout and the per-route chat container each mount
     // this hook. Sending from one instance used to make the other "adopt" the

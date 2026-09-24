@@ -14,3 +14,5 @@ that identity when replaying events or recovering assistant messages.
 The chat store adds `markStreamLive` for server-adopted runs. Thread input responses
 include the accepted execution identity for handoff. Existing message metadata
 without a run ID remains supported.
+
+Async execution and snapshot restores now retain a local ownership guard and discard responses after newer local run or thread updates. Pending new-thread acknowledgements retain ownership until their execution ID arrives.

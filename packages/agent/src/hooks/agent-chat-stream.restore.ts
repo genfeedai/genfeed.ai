@@ -1,3 +1,4 @@
+import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream.restore-guard';
 import type { AgentThread } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -50,10 +51,15 @@ export async function restoreThreadFromSnapshot(
   threadId: string,
   deps: RestoreThreadFromSnapshotDeps,
 ): Promise<void> {
+  const canRestore = captureAgentRunRestore(threadId);
   const [snapshot, messages] = await Promise.all([
     deps.apiService.getThreadSnapshot(threadId),
     deps.apiService.getMessages(threadId, { limit: 100 }),
   ]);
+
+  if (!canRestore(snapshot.activeRun?.runId ?? null)) {
+    return;
+  }
 
   const state = useAgentChatStore.getState();
   const existingThread = state.threads.find((thread) => thread.id === threadId);

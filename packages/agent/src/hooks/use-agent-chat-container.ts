@@ -2,6 +2,7 @@ import type { ExtractedMention } from '@genfeedai/agent/components/AgentChatInpu
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import { handleAgentUiAction } from '@genfeedai/agent/hooks/agent-chat-container.ui-actions';
+import { captureAgentRunRestore } from '@genfeedai/agent/hooks/agent-chat-stream.restore-guard';
 import type { AgentRunHandoff } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import { useAgentChat } from '@genfeedai/agent/hooks/use-agent-chat';
 import { useAgentChatStream } from '@genfeedai/agent/hooks/use-agent-chat-stream';
@@ -1015,6 +1016,7 @@ export function useAgentChatContainer({
     if (!activeThreadId) return;
     const controller = new AbortController();
     const restoredRunId = activeRunId;
+    const canRestore = captureAgentRunRestore(activeThreadId);
 
     apiService
       .getActiveWorkflowExecutions(controller.signal, {
@@ -1029,6 +1031,10 @@ export function useAgentChatContainer({
         const matchingExecution = executions.find(
           (execution) => execution.metadata?.threadId === activeThreadId,
         );
+
+        if (!canRestore(matchingExecution?.id ?? null)) {
+          return;
+        }
 
         if (!matchingExecution) {
           const state = useAgentChatStore.getState();

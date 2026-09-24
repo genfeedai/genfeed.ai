@@ -467,6 +467,10 @@ export function useAgentChatStream(
     // The shared runtime already owns this stream — `sendMessage` attached the
     // subscriptions on this or another live instance. A finished stream keeps
     // its thread id but no listeners, so it does not block adopting this one.
+    if (streamRuntime.isAwaitingRunIdRef.current) {
+      return;
+    }
+
     const ownedThreadId = streamRuntime.activeStreamThreadRef.current;
     const hasLiveSubscriptions =
       streamRuntime.unsubscribersRef.current.length > 0;
