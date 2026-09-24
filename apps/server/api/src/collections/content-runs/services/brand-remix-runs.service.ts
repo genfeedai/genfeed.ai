@@ -1,3 +1,4 @@
+import { invalidateScenePipeline, isSceneOperationActive } from '@api/collections/content-runs/services/brand-remix-scene-state';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   mergeBrandRemixConcept,
@@ -185,7 +186,8 @@ export class BrandRemixRunsService {
     if (config.revision !== input.expectedRevision) {
       throw staleRemixRevision(input.expectedRevision, config.revision);
     }
-    if (config.phase !== 'prefilled' && config.phase !== 'failed') {
+    if (isSceneOperationActive(config.scenePipeline)) throw new ConflictException('Cancel the active scene operation before editing.');
+    if (config.phase !== 'prefilled' && config.phase !== 'failed' && !(config.scenePipeline && config.phase === 'ready_for_review' && !config.review)) {
       throw new ConflictException({
         detail:
           'A generated remix is immutable. Create another remix from the same source to vary it.',
@@ -239,6 +241,8 @@ export class BrandRemixRunsService {
       ...config,
       ...(concept ? { concept } : {}),
       draft,
+      scenePipeline: invalidateScenePipeline(config, { ...config, draft, concept }),
+      generationQuote: undefined,
       execution: undefined,
       generationClaim: undefined,
       paidDraft: undefined,
@@ -278,6 +282,9 @@ export class BrandRemixRunsService {
       body,
       'start',
     );
+    const run = await this.persistence.requireRun(organizationId, runId);
+    const config = this.persistence.parseConfig(run.config, runId);
+    if (config.scenePipeline || (['video', 'avatar'].includes(config.draft.output.kind) && (config.concept?.storyboard.length ?? 0) > 1)) throw new ConflictException('Use the scene quote and explicit acceptance flow to generate this complete ad.');
     return this.execution.start(organizationId, runId, user, request, input);
   }
 

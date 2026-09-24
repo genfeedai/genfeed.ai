@@ -1,5 +1,6 @@
 'use client';
 
+import type { QuoteBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
 import type {
   BrandRemixDraftEdits,
@@ -32,6 +33,12 @@ export type StudioRemixRunStatus =
   | 'error';
 
 export interface UseStudioRemixRunResult {
+  readonly saveScenes: (edits: BrandRemixDraftEdits) => Promise<void>;
+  readonly attachSceneSource: (assetId: string | null) => Promise<void>;
+  readonly quoteScenes: (input: Omit<QuoteBrandRemixScenes, 'expectedRevision'>) => Promise<void>;
+  readonly executeScenes: () => Promise<void>;
+  readonly cancelScenes: () => Promise<void>;
+  readonly resumeScenes: () => Promise<void>;
   readonly error: string | null;
   readonly preparePausedDraft: (
     input: PreparePausedMetaCampaignDraft,
@@ -247,6 +254,13 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
     [getContentRunsService, perform, run],
   );
 
+  const saveScenes = useCallback(async (edits: BrandRemixDraftEdits) => { if (run) await perform(async () => (await getContentRunsService()).reviseBrandRemixRun(run.id, { expectedRevision: run.revision, edits })); }, [run, perform, getContentRunsService]);
+  const attachSceneSource = useCallback(async (assetId: string | null) => { if (run) await perform(async () => (await getContentRunsService()).attachBrandRemixAnalysisSource(run.id, { expectedRevision: run.revision, assetId })); }, [run, perform, getContentRunsService]);
+  const quoteScenes = useCallback(async (input: Omit<QuoteBrandRemixScenes, 'expectedRevision'>) => { if (run) await perform(async () => (await getContentRunsService()).quoteBrandRemixScenes(run.id, { ...input, expectedRevision: run.revision })); }, [run, perform, getContentRunsService]);
+  const executeScenes = useCallback(async () => { if (run?.scenePipeline?.quote) await perform(async () => (await getContentRunsService()).executeBrandRemixScenes(run.id, { expectedRevision: run.revision, quoteId: run.scenePipeline!.quote!.id })); }, [run, perform, getContentRunsService]);
+  const cancelScenes = useCallback(async () => { if (run) await perform(async () => (await getContentRunsService()).cancelBrandRemixScenes(run.id, { expectedRevision: run.revision })); }, [run, perform, getContentRunsService]);
+  const resumeScenes = useCallback(async () => { if (run) await perform(async () => (await getContentRunsService()).resumeBrandRemixScenes(run.id, { expectedRevision: run.revision })); }, [run, perform, getContentRunsService]);
+
   const vary = useCallback(async () => {
     if (!run || !brandId) {
       return;
@@ -299,6 +313,7 @@ export function useStudioRemixRun(): UseStudioRemixRunResult {
   );
 
   return {
+    saveScenes, attachSceneSource, quoteScenes, executeScenes, cancelScenes, resumeScenes,
     error,
     preparePausedDraft,
     refresh,

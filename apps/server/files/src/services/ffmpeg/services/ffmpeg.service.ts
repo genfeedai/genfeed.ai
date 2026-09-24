@@ -336,6 +336,10 @@ export class FFmpegService {
     return this.merge.concatenateVideos(inputPaths, outputPath, options);
   }
 
+  async mergeNormalizedVideos(inputPaths: string[], outputPath: string, width: number, height: number): Promise<void> {
+    return this.merge.mergeNormalizedVideos(inputPaths, outputPath, width, height);
+  }
+
   async mergeVideos(
     videoPaths: string[],
     outputPath: string,

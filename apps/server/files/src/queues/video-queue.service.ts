@@ -129,6 +129,7 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       data,
       'merge',
       `${data.params.sourceIds?.length} videos`,
+      data.id === `remix-merge-${data.ingredientId}` ? data.id : undefined,
     );
   }
 
@@ -138,7 +139,7 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       data,
       'captions',
       undefined,
-      getRawCutJobId(data),
+      data.id === `remix-captions-${data.ingredientId}` ? data.id : getRawCutJobId(data),
     );
   }
 
