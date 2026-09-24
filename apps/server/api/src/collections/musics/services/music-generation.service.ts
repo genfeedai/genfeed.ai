@@ -17,6 +17,7 @@ import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-def
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { RouterService } from '@api/services/router/router.service';
+import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
 import { IngredientCompletionService } from '@api/shared/services/poll-until/ingredient-completion.service';
 import { PollTimeoutException } from '@api/shared/services/poll-until/poll-until.exception';
 import { SharedService } from '@api/shared/services/shared/shared.service';
@@ -37,6 +38,7 @@ import {
   HttpException,
   HttpStatus,
   Injectable,
+  Optional,
 } from '@nestjs/common';
 
 const MUSIC_COMPLETION_TIMEOUT_MS = 180_000;
@@ -85,6 +87,7 @@ export class MusicGenerationService {
     private readonly routerService: RouterService,
     private readonly sharedService: SharedService,
     private readonly webhooksService: WebhooksService,
+    @Optional() private readonly skillRuntime?: SkillRuntimeService,
   ) {}
 
   async generateMusic(
@@ -108,12 +111,12 @@ export class MusicGenerationService {
     // schemas — every text-to-music model responds to genre language in
     // plain prompt text, so it is folded in once here instead of each
     // provider adapter needing its own (inconsistent) handling.
-    const effectiveText = this.applyStyle(
-      createMusicDto.text,
-      createMusicDto.style,
-    );
-
     const brandId = createMusicDto.brandId || user.brandId;
+    const effectiveText = await this.composePrompt(
+      user,
+      brandId,
+      createMusicDto,
+    );
     const brand = await this.brandsService.findOne({
       id: brandId,
       organizationId: user.organizationId,
@@ -240,6 +243,28 @@ export class MusicGenerationService {
    * text instead. Folding it in once, here, means every provider adapter
    * gets it for free without each needing its own prompt-composition logic.
    */
+  private async composePrompt(
+    user: User,
+    brandId: string,
+    createMusicDto: CreateMusicDto,
+  ): Promise<string> {
+    const styled = this.applyStyle(createMusicDto.text, createMusicDto.style);
+    if (!createMusicDto.requestedSkillSlugs?.length) return styled;
+    if (!this.skillRuntime) {
+      throw new BadRequestException(
+        'Selected skills are unavailable for this music generation',
+      );
+    }
+    return this.skillRuntime.applyAuthorizedSkillPrompt({
+      actorUserId: user.userId ?? user.id,
+      brandId,
+      modality: 'audio',
+      organizationId: user.organizationId,
+      prompt: styled,
+      requestedSkillSlugs: createMusicDto.requestedSkillSlugs,
+    });
+  }
+
   private applyStyle(text: string, style: string | undefined): string {
     const trimmedStyle = style?.trim();
     return trimmedStyle ? `${text} (style: ${trimmedStyle})` : text;

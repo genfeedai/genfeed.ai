@@ -25,6 +25,7 @@ export interface ResolvedRuntimeSkill {
 }
 
 export interface ResolveActiveSkillsContext {
+  actorUserId?: string;
   agentType?: string;
   channel?: string;
   modality?: string;

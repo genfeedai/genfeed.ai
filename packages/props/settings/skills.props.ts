@@ -23,7 +23,9 @@ export type SkillDetailCardProps = {
 };
 
 export type SkillDetailSheetProps = SkillDetailCardProps & {
+  onArchiveSkill?: () => void;
   onClose: () => void;
+  onExportSkill?: () => void;
   onOpenTestInChat: () => void;
 };
 

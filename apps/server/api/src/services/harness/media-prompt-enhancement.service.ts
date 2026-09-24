@@ -17,6 +17,7 @@ import {
 } from '@nestjs/common';
 
 export interface MediaPromptEnhancementInput {
+  actorUserId?: string;
   organizationId: string;
   brandId: string;
   prompt: string;
@@ -75,6 +76,7 @@ export class MediaPromptEnhancementService {
       if (!brief) throw new Error('Harness brief is unavailable');
       stage = 'provider';
       const { result } = await this.promptEnhancement.enhance({
+        actorUserId: input.actorUserId,
         organizationId: input.organizationId,
         brandId: input.brandId,
         userPrompt: input.prompt,

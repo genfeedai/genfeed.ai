@@ -169,6 +169,40 @@ describe('resolveSkillCapabilities', () => {
     expect(capabilities.canPublish).toBe(false);
   });
 
+  it('lets a member use a system catalog skill without governing it', () => {
+    const capabilities = resolveSkillCapabilities(
+      {
+        ...personal,
+        audience: 'private',
+        ownerKind: 'system',
+        ownerUserId: null,
+      },
+      otherMember,
+      [],
+      PUBLIC_FREE_SOURCE_POLICY,
+    );
+
+    expect(capabilities.canUse).toBe(true);
+    expect(capabilities.canRead).toBe(true);
+    expect(capabilities.canEdit).toBe(false);
+    expect(capabilities.canShare).toBe(false);
+  });
+
+  it('lets the owner read a closed-license skill without granting export', () => {
+    const capabilities = resolveSkillCapabilities(
+      personal,
+      owner,
+      [],
+      CLOSED_SKILL_SOURCE_POLICY,
+    );
+
+    expect(capabilities.canRead).toBe(true);
+    expect(capabilities.canEdit).toBe(true);
+    expect(capabilities.canExport).toBe(true);
+    expect(capabilities.canShare).toBe(false);
+    expect(capabilities.canPublish).toBe(false);
+  });
+
   it('blocks every capability for a quarantined row', () => {
     const capabilities = resolveSkillCapabilities(
       { ...privateOrg, isQuarantined: true, ownerKind: null },

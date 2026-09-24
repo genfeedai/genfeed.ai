@@ -475,8 +475,10 @@
     },
     "skills": {
       "actions": {
+        "archive": "Uninstall",
         "customize": "Customize",
         "customizing": "Customizing\u2026",
+        "export": "Export",
         "openAgent": "Open Agent",
         "refresh": "Refresh",
         "saveVariant": "Save variant",
@@ -506,7 +508,9 @@
       "errors": {
         "authenticationUnavailable": "Authentication token unavailable",
         "brandUnavailable": "The selected brand is unavailable for this settings route.",
+        "archiveFailed": "Failed to uninstall the selected skill.",
         "customizeFailed": "Failed to create an organization-owned skill variant.",
+        "exportFailed": "Failed to export the selected skill.",
         "loadFailed": "Failed to load the agent skill catalog.",
         "updateFailed": "Failed to update the selected skill variant."
       },

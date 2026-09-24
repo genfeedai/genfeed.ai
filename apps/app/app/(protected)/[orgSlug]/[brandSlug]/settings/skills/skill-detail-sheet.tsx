@@ -9,8 +9,10 @@ import SkillDetailCard from './SkillDetailCard';
 
 export default function SkillDetailSheet({
   customizing,
+  onArchiveSkill,
   onClose,
   onCustomize,
+  onExportSkill,
   onOpenTestInChat,
   onSaveSkill,
   onSkillDraftChange,
@@ -24,12 +26,28 @@ export default function SkillDetailSheet({
     <EntityOverlayShell
       actions={
         selectedSkill ? (
-          <Button
-            icon={<FlaskConical className="size-4" />}
-            label={translate('actions.testWithAgent')}
-            onClick={onOpenTestInChat}
-            variant={ButtonVariant.SECONDARY}
-          />
+          <>
+            {selectedSkill.canExport && onExportSkill ? (
+              <Button
+                label={translate('actions.export')}
+                onClick={onExportSkill}
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
+            {selectedSkill.canEdit && onArchiveSkill ? (
+              <Button
+                label={translate('actions.archive')}
+                onClick={onArchiveSkill}
+                variant={ButtonVariant.SECONDARY}
+              />
+            ) : null}
+            <Button
+              icon={<FlaskConical className="size-4" />}
+              label={translate('actions.testWithAgent')}
+              onClick={onOpenTestInChat}
+              variant={ButtonVariant.SECONDARY}
+            />
+          </>
         ) : null
       }
       badges={

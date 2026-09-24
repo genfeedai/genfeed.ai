@@ -6,6 +6,7 @@ import { OrganizationSettingsService } from '@api/collections/organization-setti
 import type { OrganizationDocument } from '@api/collections/organizations/schemas/organization.schema';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
 import { RolesService } from '@api/collections/roles/services/roles.service';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { UserAccessCacheService } from '@api/common/services/user-access-cache.service';
 import { PlanLimitExceededException } from '@api/exceptions/business-logic.exception';
@@ -44,6 +45,7 @@ export class OrganizationsOperationsService {
     private readonly rolesService: RolesService,
     private readonly usersService: UsersService,
     private readonly userAccessCacheService: UserAccessCacheService,
+    private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
   async canUserReadEntity(
@@ -193,6 +195,7 @@ export class OrganizationsOperationsService {
       planTier: settings?.subscriptionTier ?? null,
       userId,
     });
+    await this.skillLibrary?.attachSharedDefaults(organizationId, userId);
 
     await this.usersService.patch(userId, {
       lastUsedOrganizationId: organizationId,

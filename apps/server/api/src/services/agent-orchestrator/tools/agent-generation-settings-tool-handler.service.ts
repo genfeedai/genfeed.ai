@@ -60,6 +60,7 @@ export class AgentGenerationSettingsToolHandler {
     );
     const receipt = await this.enhancement.enhance({
       ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
+      actorUserId: ctx.userId,
       organizationId: ctx.organizationId,
       brandId,
       prompt: params.prompt,

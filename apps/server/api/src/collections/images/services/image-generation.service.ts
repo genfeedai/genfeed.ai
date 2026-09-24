@@ -291,6 +291,7 @@ export class ImageGenerationService {
     promptOriginalText: string,
   ) {
     const generationHarness = await this.enhancementService.enhance({
+      actorUserId: user.userId ?? user.id,
       organizationId: user.organizationId,
       brandId,
       prompt: promptOriginalText,

@@ -9,11 +9,16 @@
 import type { FirstPartySkillDefinition } from '@api/collections/skills/catalog/first-party-skill.types';
 import { loadFirstPartySkillDefinitions } from '@api/collections/skills/catalog/first-party-skill-loader';
 import { isBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, type OnApplicationBootstrap } from '@nestjs/common';
+import {
+  Injectable,
+  type OnApplicationBootstrap,
+  Optional,
+} from '@nestjs/common';
 
 export type SkillCatalogSeedResult = {
   inserted: number;
@@ -28,11 +33,13 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
+    @Optional() private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
   async onApplicationBootstrap(): Promise<void> {
     try {
       await this.reconcileCatalog();
+      await this.skillLibrary?.backfillExistingOrganizations();
     } catch (error) {
       this.logger.error(
         'First-party skill catalog seed failed — agent skills may be incomplete',

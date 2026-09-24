@@ -176,15 +176,20 @@ export function resolveSkillCapabilities(
     subject.hasPublishedVersion &&
     sourcePolicy.allowsRead;
 
+  const trustedCatalog = subject.ownerKind === 'system';
   const canRead =
-    sourcePolicy.allowsRead &&
-    (isGovernor || hasReadGrant || organizationCanSee || publicCanRead);
+    isGovernor ||
+    hasReadGrant ||
+    organizationCanSee ||
+    publicCanRead ||
+    (trustedCatalog && sourcePolicy.allowsRead);
   const canUse =
     isGovernor ||
     hasUse ||
     hasReadGrant ||
     organizationCanSee ||
-    (subject.audience === 'public' && subject.hasPublishedVersion);
+    (subject.audience === 'public' && subject.hasPublishedVersion) ||
+    trustedCatalog;
 
   return {
     canUse,
@@ -192,7 +197,7 @@ export function resolveSkillCapabilities(
     canEdit: isGovernor,
     canShare: isGovernor && sourcePolicy.allowsShare,
     canPublish: isGovernor && sourcePolicy.allowsPublicPublication,
-    canFork: canRead && sourcePolicy.allowsDerivatives,
-    canExport: canRead && sourcePolicy.allowsExport,
+    canFork: isGovernor || (canRead && sourcePolicy.allowsDerivatives),
+    canExport: isGovernor || (canRead && sourcePolicy.allowsExport),
   };
 }

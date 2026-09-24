@@ -1,5 +1,5 @@
-import { ApiProperty } from '@nestjs/swagger';
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString, MaxLength } from 'class-validator';
 
 export class DownloadSkillDto {
   @IsString()
@@ -17,4 +17,20 @@ export class DownloadSkillDto {
     description: 'Entitled skill slug to download or install',
   })
   readonly skillSlug!: string;
+}
+
+export class RollbackInstalledSkillDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(120)
+  @ApiProperty({ description: 'Installed Skills Pro slug to roll back' })
+  readonly skillSlug!: string;
+
+  @IsOptional()
+  @IsString()
+  @ApiPropertyOptional({
+    description:
+      'Captured version to restore. Omit to restore the previous one.',
+  })
+  readonly versionId?: string;
 }

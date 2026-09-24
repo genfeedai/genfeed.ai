@@ -396,6 +396,7 @@ export class VideoGenerationPreparationService {
     promptText: string,
   ) {
     const generationHarness = await this.enhancementService.enhance({
+      actorUserId: user.userId ?? user.id,
       organizationId: user.organizationId,
       brandId,
       prompt: promptText,

@@ -34,6 +34,7 @@ export async function enhanceCreatedPrompt(
 ): Promise<void> {
   try {
     const { result } = await deps.promptEnhancementService.enhance({
+      actorUserId: input.userId,
       brandId: input.brandId,
       contentType: input.contentType,
       organizationId: input.organizationId,

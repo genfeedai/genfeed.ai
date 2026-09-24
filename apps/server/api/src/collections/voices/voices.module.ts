@@ -28,6 +28,7 @@ import { ElevenLabsModule } from '@api/services/integrations/elevenlabs/elevenla
 import { HeyGenModule } from '@api/services/integrations/heygen/heygen.module';
 import { ManagedInferenceRuntimeModule } from '@api/services/integrations/managed-inference-runtime/managed-inference-runtime.module';
 import { NotificationsPublisherModule } from '@api/services/notifications/publisher/notifications-publisher.module';
+import { SkillRuntimeModule } from '@api/services/skill-runtime/skill-runtime.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { Module } from '@nestjs/common';
 
@@ -53,6 +54,7 @@ import { Module } from '@nestjs/common';
     HeyGenModule,
     NotificationsPublisherModule,
     QueuesModule,
+    SkillRuntimeModule,
     VotesModule,
     WorkflowsCoreModule,
   ],

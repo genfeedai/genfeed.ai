@@ -16,13 +16,20 @@ interface SkillWriteClient {
  */
 export async function withSkillWriteSession<T>(
   prisma: SkillWriteClient,
-  input: { actorUserId?: string | null; origin: SkillWriteOrigin },
+  input: {
+    actorUserId?: string | null;
+    activateVersionId?: string | null;
+    origin: SkillWriteOrigin;
+  },
   write: (tx: Prisma.TransactionClient) => Promise<T>,
 ): Promise<T> {
   return prisma.$transaction(async (tx) => {
     await tx.$executeRaw`SELECT set_config('genfeed.skill_write_origin', ${input.origin}, true)`;
     if (input.actorUserId) {
       await tx.$executeRaw`SELECT set_config('genfeed.skill_actor_id', ${input.actorUserId}, true)`;
+    }
+    if (input.activateVersionId) {
+      await tx.$executeRaw`SELECT set_config('genfeed.skill_activate_version_id', ${input.activateVersionId}, true)`;
     }
     return write(tx);
   });

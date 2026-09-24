@@ -21,6 +21,7 @@ import { OrganizationsOperationsService } from '@api/collections/organizations/s
 import { PostsCoreModule } from '@api/collections/posts/posts-core.module';
 import { RolesModule } from '@api/collections/roles/roles.module';
 import { SettingsModule } from '@api/collections/settings/settings.module';
+import { SkillsCoreModule } from '@api/collections/skills/skills-core.module';
 import { SubscriptionsModule } from '@api/collections/subscriptions/subscriptions.module';
 import { TagsModule } from '@api/collections/tags/tags.module';
 import { UsersCoreModule } from '@api/collections/users/users-core.module';
@@ -60,6 +61,7 @@ import { Module } from '@nestjs/common';
     PostsCoreModule,
     RolesModule,
     SettingsModule,
+    SkillsCoreModule,
     SubscriptionsModule,
     TagsModule,
     UsersCoreModule,

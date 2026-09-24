@@ -1,12 +1,16 @@
 import { ApiProperty } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 export class GenerateVoiceDto {
@@ -16,6 +20,15 @@ export class GenerateVoiceDto {
     required: true,
   })
   readonly text!: string;
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  @MaxLength(160, { each: true })
+  @Matches(/^[a-z0-9][a-z0-9-]*$/i, { each: true })
+  @ApiProperty({ required: false, type: [String] })
+  readonly requestedSkillSlugs?: string[];
 
   @IsString()
   @ApiProperty({

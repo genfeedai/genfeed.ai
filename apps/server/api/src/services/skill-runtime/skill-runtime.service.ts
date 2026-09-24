@@ -1,4 +1,5 @@
 import { isTrustedProductSkill } from '@api/collections/skills/constants/skill-validation.constant';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import {
   type ResolveBrandSkillsOptions,
   type ResolvedBrandSkill,
@@ -18,7 +19,7 @@ import type {
   ResolvedRuntimeSkill,
 } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 /** Legacy truncation limit for optional skill instructions. */
 export const MAX_INSTRUCTIONS_PER_SKILL = 24_000;
@@ -29,6 +30,7 @@ export class SkillRuntimeService {
   constructor(
     private readonly skillsService: SkillsService,
     private readonly logger: LoggerService,
+    @Optional() private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
   /**
@@ -50,10 +52,15 @@ export class SkillRuntimeService {
       workflowStage: context.workflowStage,
     };
 
-    const brandSkills = await this.skillsService.resolveBrandSkills(
+    const brandSkills = await this.keepAuthorizedSkills(
       organizationId,
       brandId,
-      options,
+      context,
+      await this.skillsService.resolveBrandSkills(
+        organizationId,
+        brandId,
+        options,
+      ),
     );
 
     if (brandSkills.length === 0) {
@@ -129,6 +136,49 @@ export class SkillRuntimeService {
       },
     );
     return this.buildSkillPromptSections(skills, requested);
+  }
+
+  async applyAuthorizedSkillPrompt(input: {
+    actorUserId?: string;
+    brandId?: string | null;
+    modality: string;
+    organizationId: string;
+    prompt: string;
+    requestedSkillSlugs?: string[];
+  }): Promise<string> {
+    const requested = normalizeRequestedSkillSlugs(input.requestedSkillSlugs);
+    if (!requested?.length) return input.prompt;
+    const sections = await this.resolveGenerationSkillPromptSections(
+      input.organizationId,
+      input.brandId,
+      requested,
+      { actorUserId: input.actorUserId, modality: input.modality },
+    );
+    return sections ? `${sections}\n\n${input.prompt}` : input.prompt;
+  }
+
+  async recordPromptEvidence(input: {
+    actorUserId?: string;
+    brandId?: string | null;
+    organizationId: string;
+    prompt: string;
+  }): Promise<void> {
+    if (!input.actorUserId || !this.skillLibrary) return;
+    try {
+      await this.skillLibrary.recordPromptSnapshot({
+        actor: {
+          brandId: input.brandId,
+          organizationId: input.organizationId,
+          userId: input.actorUserId,
+        },
+        prompt: input.prompt,
+      });
+    } catch (error) {
+      this.logger.error(
+        'Failed to record the generation prompt snapshot',
+        error,
+      );
+    }
   }
 
   buildSkillPromptSections(
@@ -270,6 +320,33 @@ export class SkillRuntimeService {
 
   private readString(value: unknown): string | undefined {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
+  }
+
+  private async keepAuthorizedSkills(
+    organizationId: string,
+    brandId: string,
+    context: ResolveActiveSkillsContext,
+    skills: ResolvedBrandSkill[],
+  ): Promise<ResolvedBrandSkill[]> {
+    if (!context.actorUserId || !this.skillLibrary) return skills;
+    const actor = {
+      brandId,
+      organizationId,
+      userId: context.actorUserId,
+    };
+    const decision = await this.skillLibrary.authorizeResolved(
+      actor,
+      skills.map((skill) => skill.skill),
+    );
+    await this.skillLibrary.recordResolution(
+      actor,
+      decision.included.map((document) => String(document.id)),
+      decision.excluded,
+    );
+    const allowed = new Set(
+      decision.included.map((document) => String(document.id)),
+    );
+    return skills.filter((skill) => allowed.has(String(skill.skill.id)));
   }
 
   private applyStrategyPriority(

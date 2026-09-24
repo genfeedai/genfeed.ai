@@ -2,10 +2,16 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
-import { DownloadSkillDto } from '@api/skills-pro/dto/download-skill.dto';
+import {
+  DownloadSkillDto,
+  RollbackInstalledSkillDto,
+} from '@api/skills-pro/dto/download-skill.dto';
 import { VerifyReceiptDto } from '@api/skills-pro/dto/verify-receipt.dto';
 import { SkillDownloadService } from '@api/skills-pro/services/skill-download.service';
-import { SkillsProInstallationSerializer } from '@genfeedai/serializers';
+import {
+  SkillSerializer,
+  SkillsProInstallationSerializer,
+} from '@genfeedai/serializers';
 import {
   Body,
   Controller,
@@ -64,6 +70,32 @@ export class SkillDownloadController {
     );
 
     return serializeSingle(request, SkillsProInstallationSerializer, installed);
+  }
+
+  @Post('rollback')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: 'Restore an installed Skills Pro skill to an earlier version',
+  })
+  async rollbackSkill(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: RollbackInstalledSkillDto,
+  ) {
+    const userId = user.userId;
+    if (!userId) {
+      throw new HttpException(
+        { detail: 'User context is required', title: 'Forbidden' },
+        HttpStatus.FORBIDDEN,
+      );
+    }
+    const restored = await this.skillDownloadService.rollbackInstalledSkill(
+      this.requireOrganizationId(user),
+      userId,
+      dto.skillSlug,
+      dto.versionId,
+    );
+    return serializeSingle(request, SkillSerializer, restored);
   }
 
   private requireOrganizationId(user: User): string {

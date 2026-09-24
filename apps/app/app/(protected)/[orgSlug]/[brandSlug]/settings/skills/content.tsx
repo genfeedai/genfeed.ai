@@ -337,6 +337,51 @@ export default function BrandSettingsSkillsPage() {
     translate,
   ]);
 
+  const handleExportSkill = useCallback(async () => {
+    if (!selectedSkill?.canExport) return;
+    try {
+      const service = await getSkillsService();
+      const exported = await service.exportSkill(selectedSkill.id);
+      const blob = new Blob([JSON.stringify(exported, null, 2)], {
+        type: 'application/json',
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = `${selectedSkill.slug}.skill.json`;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    } catch {
+      dispatch({
+        type: 'SAVE_ERROR',
+        message: translate('errors.exportFailed'),
+      });
+    }
+  }, [getSkillsService, selectedSkill, translate]);
+
+  const handleArchiveSkill = useCallback(async () => {
+    if (!isScopeMatch || !selectedSkill?.canEdit) return;
+    dispatch({ type: 'SAVE_START' });
+    try {
+      const service = await getSkillsService();
+      await service.archiveSkill(selectedSkill.id);
+      await refreshCatalog();
+      dispatch({ type: 'CLEAR_SELECTED_SKILL' });
+      closeModal(ModalEnum.SKILL);
+    } catch {
+      dispatch({
+        type: 'SAVE_ERROR',
+        message: translate('errors.archiveFailed'),
+      });
+    }
+  }, [
+    getSkillsService,
+    isScopeMatch,
+    refreshCatalog,
+    selectedSkill,
+    translate,
+  ]);
+
   const handleOpenTestInChat = useCallback(() => {
     if (!selectedSkill) {
       return;
@@ -438,7 +483,9 @@ export default function BrandSettingsSkillsPage() {
 
       <SkillDetailSheet
         customizing={isCustomizing}
+        onArchiveSkill={() => void handleArchiveSkill()}
         onClose={handleCloseDetail}
+        onExportSkill={() => void handleExportSkill()}
         onCustomize={() => void handleCustomize()}
         onOpenTestInChat={handleOpenTestInChat}
         onSaveSkill={() => void handleSaveSkill()}

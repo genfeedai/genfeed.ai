@@ -5,6 +5,7 @@ import {
   ImportSkillDto,
   UpdateSkillDto,
 } from '@api/collections/skills/dto/skill.dto';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
@@ -33,7 +34,10 @@ import type { Request } from 'express';
 @Controller()
 @UseGuards(RolesGuard)
 export class SkillsController {
-  constructor(private readonly skillsService: SkillsService) {}
+  constructor(
+    private readonly skillsService: SkillsService,
+    private readonly skillLibrary: SkillLibraryService,
+  ) {}
 
   @Get('skills')
   async listSkills(
@@ -43,9 +47,17 @@ export class SkillsController {
   ) {
     const organization = this.requireOrganizationId(user);
 
-    const docs = await this.skillsService.listAllForOrg(organization, {
-      surface: this.parseSurfaceFilter(surface),
-    });
+    const actor = this.actor(user);
+    const docs = await this.skillLibrary.present(
+      actor,
+      await this.skillsService.listAllForOrg(
+        organization,
+        {
+          surface: this.parseSurfaceFilter(surface),
+        },
+        actor.userId,
+      ),
+    );
 
     return serializeCollection(req, SkillSerializer, { docs });
   }
@@ -139,6 +151,14 @@ export class SkillsController {
     }
 
     return parsed;
+  }
+
+  private actor(user: User) {
+    return {
+      brandId: user.brandId,
+      organizationId: this.requireOrganizationId(user),
+      userId: user.userId,
+    };
   }
 
   private requireOrganizationId(user: User): string {

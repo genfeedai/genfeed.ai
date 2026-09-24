@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import { inferFirstPartySkillTaxonomy } from '@api/collections/skills/catalog/first-party-skill-taxonomy';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -9,7 +10,12 @@ import { SkillRegistryService } from '@api/skills-pro/services/skill-registry.se
 import { parseSkillsProPack } from '@api/skills-pro/utils/skill-pack-archive.util';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { ForbiddenException, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 const DOWNLOAD_URL_TTL_SECONDS = 900;
 const MAX_PACK_DOWNLOAD_BYTES = 1_000_000;
@@ -46,6 +52,7 @@ export class SkillDownloadService {
     private readonly filesClientService: FilesClientService,
     private readonly prisma: PrismaService,
     private readonly skillsService: SkillsService,
+    @Optional() private readonly skillLibrary?: SkillLibraryService,
   ) {}
 
   @HandleErrors('verify receipt', 'skills-pro')
@@ -180,6 +187,59 @@ export class SkillDownloadService {
       status: 'installed',
       version: installed.version ?? skill.version,
     };
+  }
+
+  @HandleErrors('roll back installed skill', 'skills-pro')
+  async rollbackInstalledSkill(
+    organizationId: string,
+    userId: string,
+    skillSlug: string,
+    versionId?: string,
+  ) {
+    if (!this.skillLibrary) {
+      throw new ConflictException('Skill rollback is unavailable');
+    }
+    const installed = await this.prisma.skill.findFirst({
+      where: {
+        config: {
+          equals: `skills-pro:${skillSlug}`,
+          path: ['sourceListingId'],
+        },
+        isDeleted: false,
+        organizationId,
+      },
+    });
+    if (!installed) throw new NotFoundException('Skill', skillSlug);
+    const targetVersionId =
+      versionId ??
+      (await this.previousVersionId(installed.id, installed.currentVersionId));
+    return this.skillLibrary.rollback(
+      { organizationId, userId },
+      installed.id,
+      { versionId: targetVersionId },
+    );
+  }
+
+  private async previousVersionId(
+    skillId: string,
+    currentVersionId: string | null,
+  ): Promise<string> {
+    const current = currentVersionId
+      ? await this.prisma.skillVersion.findFirst({
+          where: { id: currentVersionId, skillId },
+        })
+      : null;
+    const previous = await this.prisma.skillVersion.findFirst({
+      orderBy: { versionNumber: 'desc' },
+      where: {
+        skillId,
+        ...(current ? { versionNumber: { lt: current.versionNumber } } : {}),
+      },
+    });
+    if (!previous) {
+      throw new ConflictException('No earlier skill version to restore');
+    }
+    return previous.id;
   }
 
   private async authorizeSkill(
