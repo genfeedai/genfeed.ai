@@ -147,6 +147,49 @@ describe('public discovery', () => {
     expect(result.advertisers[0].samples[0].adPerformanceId).toBeUndefined();
     expect(upsertBatchAtomic).not.toHaveBeenCalled();
   });
+  it('persists exactly the first previewed creative and skips unidentifiable rows', async () => {
+    const { service, adapter, upsertBatchAtomic, claims } = setup();
+    adapter.fetchCreatives.mockResolvedValue([
+      normalizeMetaArchiveRecord({
+        adArchiveID: 'same',
+        pageID: '456',
+        snapshot: {
+          body: { text: 'First creative' },
+          images: [{ originalImageUrl: 'https://example.com/first.jpg' }],
+        },
+      }),
+      normalizeMetaArchiveRecord({
+        adArchiveID: 'same',
+        pageID: '456',
+        snapshot: {
+          body: { text: 'Later duplicate' },
+          images: [{ originalImageUrl: 'https://example.com/last.jpg' }],
+        },
+      }),
+      normalizeMetaArchiveRecord({
+        adArchiveID: 'unidentified',
+        snapshot: {
+          images: [{ originalImageUrl: 'https://example.com/hidden.jpg' }],
+        },
+      }),
+    ]);
+    const input = { ...query, brandId: 'brand-a' };
+    await service.discover('org-a', input);
+    await vi.waitFor(() => expect(claims.size).toBe(0));
+    const result = await service.discover('org-a', input);
+    expect(result.sampleCount).toBe(1);
+    expect(result.advertisers[0].samples[0]).toMatchObject({
+      imageUrls: ['https://example.com/first.jpg'],
+      adPerformanceId: 'stored-same',
+    });
+    expect(upsertBatchAtomic).toHaveBeenCalledWith([
+      expect.objectContaining({
+        externalAdId: 'same',
+        bodyText: 'First creative',
+        imageUrls: ['https://example.com/first.jpg'],
+      }),
+    ]);
+  });
   it('retains every creative returned for an advertiser', () => {
     const records = Array.from({ length: 6 }, (_, index) =>
       normalizeMetaArchiveRecord({

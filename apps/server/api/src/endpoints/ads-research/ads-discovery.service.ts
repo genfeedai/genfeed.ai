@@ -122,6 +122,29 @@ function archiveUrl(
   return undefined;
 }
 
+function discoveryAdvertiserIdentity(
+  record: NormalizedPaidCreativeRecord,
+): string | undefined {
+  return (
+    record.externalAccountId ||
+    record.advertiserHandle ||
+    domain(record.landingPageUrl)
+  );
+}
+
+function selectDiscoveryCreatives(
+  records: NormalizedPaidCreativeRecord[],
+): NormalizedPaidCreativeRecord[] {
+  const selected = new Map<string, NormalizedPaidCreativeRecord>();
+  for (const record of records) {
+    const advertiser = discoveryAdvertiserIdentity(record);
+    if (!advertiser || !record.externalAdId) continue;
+    const key = JSON.stringify([advertiser, record.externalAdId]);
+    if (!selected.has(key)) selected.set(key, record);
+  }
+  return [...selected.values()];
+}
+
 export function groupDiscoveryAdvertisers(
   records: NormalizedPaidCreativeRecord[],
   platform: AdsDiscoveryQuery['platform'],
@@ -130,10 +153,7 @@ export function groupDiscoveryAdvertisers(
 ): AdsDiscoveryAdvertiser[] {
   const groups = new Map<string, NormalizedPaidCreativeRecord[]>();
   for (const record of records) {
-    const identity =
-      record.externalAccountId ||
-      record.advertiserHandle ||
-      domain(record.landingPageUrl);
+    const identity = discoveryAdvertiserIdentity(record);
     if (!identity || !record.externalAdId) continue;
     const key = `${platform}:${identity}`;
     const group = groups.get(key) ?? [];
@@ -244,11 +264,8 @@ export class AdsDiscoveryService {
     const sourceIds = new Map<NormalizedPaidCreativeRecord, string>();
     if (!query.brandId) return sourceIds;
     const provider = resolvePaidCreativeProvider(query.platform);
-    const remixable = records.filter((creative) =>
-      Boolean(creative.externalAdId),
-    );
     const sources = await this.adPerformanceService.upsertBatchAtomic(
-      remixable.map((creative) => ({
+      records.map((creative) => ({
         ...creative,
         adPlatform: creative.platform,
         organizationId,
@@ -271,7 +288,7 @@ export class AdsDiscoveryService {
         }),
       })),
     );
-    remixable.forEach((creative, index) => {
+    records.forEach((creative, index) => {
       sourceIds.set(creative, sources[index].id);
     });
     return sourceIds;
@@ -284,21 +301,22 @@ export class AdsDiscoveryService {
     fetched: NormalizedPaidCreativeRecord[],
     snapshotId: string,
   ): Promise<AdsDiscoveryResponse> {
-    const records = fetched.filter((record) => {
+    const visual = fetched.filter((record) => {
       const mediaType = creativeMediaType(record);
       return (
         mediaType &&
         (query.mediaType === 'visual' || query.mediaType === mediaType)
       );
     });
+    const records = selectDiscoveryCreatives(visual);
+    if (visual.length && !records.length)
+      throw new Error('Unusable advertiser identities');
     const observedAt = new Date();
     const advertisers = groupDiscoveryAdvertisers(
       records,
       query.platform,
       observedAt,
     );
-    if (records.length && !advertisers.length)
-      throw new Error('Unusable advertiser identities');
     const sourceIds = await this.persistDiscoverySources(
       organizationId,
       query,
