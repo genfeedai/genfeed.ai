@@ -8,9 +8,10 @@ export type DiscoveryDeskItemKind = 'trend' | 'source_post' | 'viral_video';
 /**
  * `trends` = public platform trend surface, `following` = creators the brand
  * follows via Social Sources, `owned` = the brand's own connected accounts
- * (source classification `owned_brand_reference`).
+ * (source classification `owned_brand_reference`), `imported` = a single post
+ * saved by URL or the extension for remix. Imported is not brand Knowledge.
  */
-export type DiscoveryDeskSource = 'trends' | 'following' | 'owned';
+export type DiscoveryDeskSource = 'trends' | 'following' | 'owned' | 'imported';
 
 export type DiscoveryDeskSort =
   | 'velocity'

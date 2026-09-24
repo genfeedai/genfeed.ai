@@ -1,1 +1,1 @@
-export { KnowledgeCapturePage as IdeaDraftPage } from '~components/pages/KnowledgeCapturePage';
+export { ImportedPostsPage as IdeaDraftPage } from '~components/pages/ImportedPostsPage';

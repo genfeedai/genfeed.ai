@@ -106,15 +106,70 @@ describe('background user action routing', () => {
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 
-  it('opens social capture review before writing authenticated content', async () => {
+  it('imports a supported post for the selected brand without generation or Knowledge', async () => {
+    mocks.fetch.mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        deduplicated: false,
+        post: {
+          id: 'source-post-1',
+          authorDisplayName: 'Author',
+          authorHandle: 'author',
+          platform: 'twitter',
+          sourceUrl: 'https://x.com/author/status/123',
+          text: 'Original post',
+          collectedAt: '2026-09-24T00:00:00.000Z',
+        },
+        source: { id: 'container-1', sourceType: 'post' },
+      }),
+    });
     const result = await dispatch({
+      brandId: 'brand-a',
       event: 'savePost',
       platform: 'twitter',
-      postId: 'post-id',
+      postId: '123',
       url: 'https://x.com/author/status/123',
     });
-    expect(result.success).toBe(true);
+    expect(result).toMatchObject({
+      deduplicated: false,
+      success: true,
+      post: { authorHandle: 'author', id: 'source-post-1' },
+    });
+    expect(mocks.fetch).toHaveBeenCalledWith(
+      'https://api.genfeed.ai/v1/social-sources/import-post?brandId=brand-a',
+      expect.objectContaining({
+        method: 'POST',
+        body: JSON.stringify({ url: 'https://x.com/author/status/123' }),
+      }),
+    );
+    const requestedUrls = mocks.fetch.mock.calls.map((call) => String(call[0]));
+    expect(requestedUrls.some((url) => url.includes('knowledge-sources'))).toBe(
+      false,
+    );
+    expect(mocks.generateText).not.toHaveBeenCalled();
+    expect(mocks.execute).not.toHaveBeenCalled();
     expect(mocks.openPanel).toHaveBeenCalledWith({ tabId: 1 });
+  });
+
+  it('does not import when the post URL is unsupported', async () => {
+    const result = await dispatch({
+      brandId: 'brand-a',
+      event: 'savePost',
+      url: 'https://example.com/not-a-post',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/X, Instagram, or TikTok/);
+    expect(mocks.fetch).not.toHaveBeenCalled();
+    expect(mocks.generateText).not.toHaveBeenCalled();
+  });
+
+  it('asks for a brand instead of importing into another brand', async () => {
+    const result = await dispatch({
+      event: 'savePost',
+      url: 'https://x.com/author/status/123',
+    });
+    expect(result.success).toBe(false);
+    expect(result.error).toMatch(/Select a brand/);
     expect(mocks.fetch).not.toHaveBeenCalled();
   });
 

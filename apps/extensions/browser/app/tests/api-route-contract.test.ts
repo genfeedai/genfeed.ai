@@ -44,6 +44,8 @@ const apiRoutes = new Set(
 const routes = [
   ['POST', 'agent-tools/:name/execute'],
   ['POST', 'knowledge-sources'],
+  ['POST', 'social-sources/import-post'],
+  ['GET', 'social-sources/feed'],
   ['POST', 'posts'],
   ['POST', 'prompts/tweet'],
   ['POST', 'images'],
@@ -91,13 +93,14 @@ describe('extension API route contract', () => {
       'services/auth.service.ts',
       'services/agent-tools.service.ts',
       'services/theme-settings.service.ts',
+      'services/social-post-import.service.ts',
       'components/settings/ConnectedAccounts.tsx',
     ];
     for (const file of files) {
       const source = readFileSync(resolve(extensionRoot, file), 'utf8');
       const endpoints = Array.from(
         source.matchAll(
-          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|videos|threads|brands|contexts|credentials|users|services)[^'"`]*)['"`]/g,
+          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|videos|threads|brands|contexts|credentials|users|services|social-sources)[^'"`]*)['"`]/g,
         ),
         (match) => normalizeRoute(match[1]),
       );

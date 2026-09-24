@@ -843,7 +843,7 @@ export function createSaveButton(
 ): HTMLButtonElement {
   const button = document.createElement('button');
   button.className = 'genfeed-btn genfeed-save-btn';
-  button.title = 'Save to Genfeed';
+  button.title = 'Import post';
   button.innerHTML = icons.bookmark;
   button.setAttribute('data-post-id', postId);
   button.setAttribute('data-platform', platform);
@@ -863,28 +863,28 @@ export function createSaveButton(
 
       if (response?.success) {
         button.innerHTML = icons.check;
-        button.title = 'Review this capture in the Genfeed panel';
+        button.title = response.deduplicated ? 'Already imported' : 'Imported';
         setTimeout(() => {
           button.innerHTML = originalContent;
-          button.title = 'Save to Genfeed';
+          button.title = 'Import post';
           button.disabled = false;
         }, 3000);
       } else {
         button.innerHTML = icons.x;
-        button.title = response?.error || 'Failed to save';
+        button.title = response?.error || 'Import failed';
         setTimeout(() => {
           button.innerHTML = originalContent;
-          button.title = 'Save to Genfeed';
+          button.title = 'Import post';
           button.disabled = false;
         }, 2000);
       }
     } catch (error) {
       logger.error('Error saving post', error);
       button.innerHTML = icons.x;
-      button.title = 'Error saving';
+      button.title = 'Import failed';
       setTimeout(() => {
         button.innerHTML = originalContent;
-        button.title = 'Save to Genfeed';
+        button.title = 'Import post';
         button.disabled = false;
       }, 2000);
     }

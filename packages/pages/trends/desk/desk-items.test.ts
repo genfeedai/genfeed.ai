@@ -172,6 +172,21 @@ describe('toDeskItemFromSourcePost', () => {
     expect(result.matchedTrends).toEqual([]);
   });
 
+  it('labels a URL import as imported, not following or owned', () => {
+    const result = toDeskItemFromSourcePost(makeSourcePost(), {
+      isImportedPost: true,
+      isOwnAccount: true,
+    });
+
+    expect(result.source).toBe('imported');
+    expect(result.authorHandle).toBe('builder');
+    expect(result.sourceUrl).toBe('https://x.com/builder/status/1');
+    expect(result.remixSelector).toEqual({
+      kind: 'source_post',
+      sourcePostId: 'post-1',
+    });
+  });
+
   it('sources own-account posts under "owned" so they read as imported, not generated', () => {
     const result = toDeskItemFromSourcePost(makeSourcePost(), {
       isOwnAccount: true,

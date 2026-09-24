@@ -66,4 +66,14 @@ describe('SidePanel', () => {
     expect(source).toContain('useExtensionTheme();');
     expect(source).not.toContain("setAttribute('data-theme', 'dark')");
   });
+
+  it('keeps Add to Knowledge off the import route', () => {
+    const sidepanelPath = path.resolve(testDir, '../src/sidepanel.tsx');
+    const source = readFileSync(sidepanelPath, 'utf8');
+
+    expect(source).toContain('KnowledgeCapturePage');
+    expect(source).toContain("type: 'addToKnowledge'");
+    expect(source).not.toContain('captureSave');
+    expect(source).not.toContain("event: 'savePost'");
+  });
 });

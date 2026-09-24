@@ -10,6 +10,10 @@ import {
   type PlatformConfig,
 } from '~platforms/config';
 import {
+  attachImportMenuItem,
+  attachViewedPostImport,
+} from '~platforms/import-post-control';
+import {
   createButtonContainer,
   createGenFeedDropdown,
   injectGlobalStyles,
@@ -56,6 +60,8 @@ function initializePlatformIntegration(): void {
       return;
     }
 
+    attachViewedPostImport(currentPlatform, platformName);
+
     const submitButton = platform.selectors.submitButton
       ? document.querySelector(platform.selectors.submitButton)
       : null;
@@ -89,6 +95,12 @@ function initializePlatformIntegration(): void {
     const buttonContainer = createButtonContainer();
 
     const dropdown = createGenFeedDropdown(postId, platformName, { postUrl });
+    attachImportMenuItem({
+      dropdown,
+      platform: platformName,
+      postId,
+      postUrl,
+    });
     dropdown.style.marginRight = '8px';
     buttonContainer.appendChild(dropdown);
 

@@ -316,7 +316,7 @@ describe('UI Helpers', () => {
         'https://twitter.com/test/status/123',
       );
 
-      expect(button.title).toBe('Save to Genfeed');
+      expect(button.title).toBe('Import post');
     });
   });
 
