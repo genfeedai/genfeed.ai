@@ -13,8 +13,8 @@ import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
+import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import { ApiKeyScope, ContentCampaignStatus } from '@genfeedai/contracts';
-import type { ExecutionContext } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
 import { delay, firstValueFrom, of } from 'rxjs';
@@ -107,7 +107,8 @@ describe('CampaignsController', () => {
       ).toBeUndefined();
       vi.useFakeTimers();
       try {
-        const context = { getHandler: () => handler } as ExecutionContext;
+        const context = createMockExecutionContext();
+        vi.mocked(context.getHandler).mockReturnValue(handler);
         const interceptor = new TimeoutInterceptor(new Reflector());
         const response = firstValueFrom(
           interceptor.intercept(context, {
