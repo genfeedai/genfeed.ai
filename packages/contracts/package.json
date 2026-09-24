@@ -1,21 +1,21 @@
 {
   "dependencies": {
-    "zod": "4.5.4"
+    "zod": "4.6.5"
   },
   "description": "Shared contracts for Genfeed enums, constants, interfaces, API types, queues, and desktop IPC",
   "devDependencies": {
     "@types/node": "24.13.3",
-    "@types/react": "19.2.18",
-    "@types/react-dom": "19.2.7",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
     "@typescript/native": "npm:typescript@7.0.2",
     "@xyflow/react": "12.11.6",
-    "next": "16.3.4",
+    "next": "16.3.6",
     "openapi-typescript": "7.13.0",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "react-hook-form": "7.87.0",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hook-form": "7.88.0",
     "typescript": "6.0.3",
-    "vitest": "5.0.0"
+    "vitest": "5.0.1"
   },
   "exports": {
     ".": {

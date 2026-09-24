@@ -5,12 +5,12 @@
     "@genfeedai/models": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@remotion/player": "4.0.522",
+    "@remotion/player": "4.0.528",
     "@tiptap/core": "3.31.3"
   },
   "description": "Shared prop and view-model contracts for Genfeed UI surfaces",
   "devDependencies": {
-    "vitest": "5.0.0"
+    "vitest": "5.0.1"
   },
   "exports": {
     "./*": "./*"

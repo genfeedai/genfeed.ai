@@ -168,7 +168,7 @@ jobs:
       # the release as an asset. cliff.toml owns grouping and PR links.
       - name: Generate release notes
         if: ${{ inputs.recovery_run_id == '' }}
-        uses: orhun/git-cliff-action@3d96a18cc4ec17e9dc69ddcc424ccafaf1f78ce2 # v4.9.0
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         with:
           config: cliff.toml
           args: --unreleased --tag ${{ inputs.tag }} --strip header
@@ -177,7 +177,7 @@ jobs:
 
       - name: Generate full changelog
         if: ${{ inputs.recovery_run_id == '' }}
-        uses: orhun/git-cliff-action@3d96a18cc4ec17e9dc69ddcc424ccafaf1f78ce2 # v4.9.0
+        uses: orhun/git-cliff-action@a9a95522b26fe6403f7bb24031f21fb573d0f5ff # v4.9.1
         with:
           config: cliff.toml
           args: --tag ${{ inputs.tag }}
@@ -700,7 +700,7 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@37fe631027851001ddb9b187196cc803df7f5f0e # v4.3.0
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
 
       - name: Advance stable Community channels
         run: |
