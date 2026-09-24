@@ -237,7 +237,7 @@
       "watching": "Watching",
       "creativeCount": "{count} sampled creatives",
       "activeCount": "{count} active when observed",
-      "longevity": "Earliest saved creative: {days} observed days",
+      "longevity": "Earliest saved creative: {days} days",
       "fundedBy": "Funded by {name}",
       "viewCreative": "View archive creative",
       "viewMedia": "View media",

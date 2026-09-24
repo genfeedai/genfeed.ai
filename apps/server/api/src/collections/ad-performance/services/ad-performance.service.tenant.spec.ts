@@ -1,6 +1,7 @@
 import type { AdPerformance } from '@api/collections/ad-performance/schemas/ad-performance.schema';
 import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { AdsPlatform } from '@genfeedai/contracts/interfaces';
 import { PAID_CREATIVE_RESEARCH_SOURCES } from '@genfeedai/integrations/ads';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -106,7 +107,7 @@ describe('AdPerformanceService', () => {
     const query = {
       organizationId: 'org-1',
       brandId: 'brand-1',
-      platform: 'meta' as const,
+      platform: AdsPlatform.META,
       keyword: 'coffee',
       normalizedCountries: ['FR'],
       mediaType: 'visual' as const,
@@ -225,7 +226,7 @@ describe('AdPerformanceService', () => {
         (
           await service.findSavedDiscoverySources({
             ...query,
-            platform: 'google',
+            platform: AdsPlatform.GOOGLE,
             keyword: 'example.com',
           })
         ).map((row) => row.id),
@@ -247,7 +248,7 @@ describe('AdPerformanceService', () => {
         (
           await service.findSavedDiscoverySources({
             ...query,
-            platform: 'google',
+            platform: AdsPlatform.GOOGLE,
             keyword: 'example.com',
             cachedSourceIds: ['deleted'],
           })

@@ -1,10 +1,10 @@
 import { createHash } from 'node:crypto';
+import { AdPerformanceService } from '@api/collections/ad-performance/services/ad-performance.service';
 import {
-  AdPerformanceService,
   projectSavedDiscoveryCreative,
   type SavedDiscoveryCreative,
   savedDiscoveryMediaType,
-} from '@api/collections/ad-performance/services/ad-performance.service';
+} from '@api/collections/ad-performance/utils/ad-performance-discovery.util';
 import { CacheService } from '@api/services/cache/cache.service';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
 import type {
