@@ -11,15 +11,54 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { ORIGINAL_BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-catalog-identity';
+import {
+  mergeBuiltInSkillCatalog,
+  ORIGINAL_BUILT_IN_SKILL_CATALOG,
+} from '@api/collections/skills/constants/skill-catalog-identity';
 import { describe, expect, it } from 'vitest';
 
 import {
   loadFirstPartySkillDefinitions,
+  loadFirstPartySkillIdentities,
   resolveProductSkillsDirectory,
 } from './first-party-skill-loader';
 
 describe('first-party skill loader', () => {
+  it.each([
+    'missing-directory',
+    'missing-lock',
+    'corrupt-lock',
+    'undeclared-file',
+  ])(
+    'fails closed without throwing during identity discovery for %s',
+    (failure) => {
+      const fixture = mkdtempSync(join(tmpdir(), 'catalog-identities-'));
+      try {
+        cpSync(resolveProductSkillsDirectory() as string, fixture, {
+          recursive: true,
+        });
+        if (failure === 'missing-directory')
+          rmSync(fixture, { recursive: true });
+        else if (failure === 'missing-lock')
+          rmSync(join(fixture, 'catalog.lock.json'));
+        else if (failure === 'corrupt-lock')
+          writeFileSync(join(fixture, 'catalog.lock.json'), '{invalid');
+        else
+          writeFileSync(
+            join(fixture, 'ad-copy-creator', 'undeclared.md'),
+            'unverified',
+          );
+        expect(() => loadFirstPartySkillDefinitions(fixture)).toThrow();
+        expect(loadFirstPartySkillIdentities(fixture)).toEqual([]);
+        expect(
+          mergeBuiltInSkillCatalog(loadFirstPartySkillIdentities(fixture)),
+        ).toEqual(ORIGINAL_BUILT_IN_SKILL_CATALOG);
+      } finally {
+        rmSync(fixture, { recursive: true, force: true });
+      }
+    },
+  );
+
   it('reports verified local provenance and rejects tampered or missing locks', () => {
     const directory = resolveProductSkillsDirectory() as string;
     const definitions = loadFirstPartySkillDefinitions(directory);

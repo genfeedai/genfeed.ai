@@ -1,4 +1,8 @@
+import { cpSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import type { FirstPartySkillDefinition } from '@api/collections/skills/catalog/first-party-skill.types';
+import * as firstPartySkillLoader from '@api/collections/skills/catalog/first-party-skill-loader';
 import { ORIGINAL_BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-catalog-identity';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -67,6 +71,46 @@ describe('SkillCatalogSeedService', () => {
       logger as unknown as LoggerService,
     );
   });
+
+  it.each(['missing-lock', 'corrupt-lock', 'undeclared-file'])(
+    'logs bootstrap failure and performs no writes for %s',
+    async (failure) => {
+      const fixture = mkdtempSync(join(tmpdir(), 'catalog-bootstrap-'));
+      const strictLoader = firstPartySkillLoader.loadFirstPartySkillDefinitions;
+      let loaderSpy: ReturnType<typeof vi.spyOn> | undefined;
+      try {
+        cpSync(
+          firstPartySkillLoader.resolveProductSkillsDirectory() as string,
+          fixture,
+          { recursive: true },
+        );
+        if (failure === 'missing-lock')
+          rmSync(join(fixture, 'catalog.lock.json'));
+        else if (failure === 'corrupt-lock')
+          writeFileSync(join(fixture, 'catalog.lock.json'), '{invalid');
+        else
+          writeFileSync(
+            join(fixture, 'ad-copy-creator', 'undeclared.md'),
+            'unverified',
+          );
+        loaderSpy = vi
+          .spyOn(firstPartySkillLoader, 'loadFirstPartySkillDefinitions')
+          .mockImplementation(() => strictLoader(fixture));
+        await expect(service.onApplicationBootstrap()).resolves.toBeUndefined();
+        expect(logger.error).toHaveBeenCalledWith(
+          'First-party skill catalog seed failed — agent skills may be incomplete',
+          expect.any(Error),
+          'SkillCatalogSeedService',
+        );
+        expect(prisma.skill.findUnique).not.toHaveBeenCalled();
+        expect(prisma.skill.create).not.toHaveBeenCalled();
+        expect(prisma.skill.update).not.toHaveBeenCalled();
+      } finally {
+        loaderSpy?.mockRestore();
+        rmSync(fixture, { recursive: true, force: true });
+      }
+    },
+  );
 
   it('inserts missing first-party catalog rows with the compact identity', async () => {
     const result = await service.reconcileCatalog([imagePrompt]);
