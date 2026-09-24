@@ -575,6 +575,138 @@ describe('SkillsService', () => {
     expect(prisma.skill.findMany).not.toHaveBeenCalled();
   });
 
+  it.each([
+    { name: 'Renamed' },
+    { defaultInstructions: 'Revised instructions' },
+    { status: 'disabled' as const },
+    { status: 'published' as const },
+  ])('preserves untouched configuration when patching %j', async (patch) => {
+    const original = makeSkillRow({
+      config: {
+        ...makeSkillRow().config,
+        baseSkillId: 'base-skill',
+        category: 'copywriting',
+        channels: ['youtube'],
+        config: { extension: 'must not replace raw config' },
+        defaultInstructions: 'Original instructions',
+        files: [{ content: 'Reference', path: 'references/guide.md' }],
+        id: 'extension-id',
+        integrity: { algorithm: 'sha256', checksum: 'abc' },
+        isEnabled: false,
+        metadata: { provenance: { revision: 7 } },
+        modalities: ['text'],
+        organizationId: 'extension-org',
+        source: 'customized',
+        sourceListingId: 'catalog:hook-writer',
+        status: 'disabled',
+        surfaces: ['agent'],
+        systemPromptTemplate: 'Original template',
+        version: '2.0.0',
+        workflowStage: 'creation',
+      },
+    });
+    const snapshot = structuredClone(original);
+    prisma.skill.findFirst.mockResolvedValue(original);
+
+    const updated = await service.updateSkill('org-1', original.id, patch);
+
+    const expectedConfig = {
+      ...original.config,
+      ...patch,
+      ...('status' in patch ? { isEnabled: patch.status !== 'disabled' } : {}),
+    };
+    expect(prisma.skill.update).toHaveBeenCalledWith({
+      data: {
+        config: expectedConfig,
+        label: 'name' in patch ? patch.name : original.config.name,
+        organizationId: 'org-1',
+      },
+      where: { id: original.id, isDeleted: false, organizationId: 'org-1' },
+    });
+    expect(updated).toMatchObject({
+      ...expectedConfig,
+      config: expectedConfig,
+      id: original.id,
+      organizationId: 'org-1',
+    });
+    expect(original).toEqual(snapshot);
+  });
+
+  it.each(['built_in', 'custom'] as const)(
+    'inherits supported content when forking a %s skill',
+    async (source) => {
+      const inherited = {
+        category: 'copywriting',
+        channels: ['youtube'],
+        configSchema: { type: 'object' },
+        defaultInstructions: 'Write with evidence',
+        description: 'Source description',
+        files: [{ content: 'Reference', path: 'references/guide.md' }],
+        inputSchema: { type: 'string' },
+        modalities: ['text'],
+        outputSchema: { type: 'string' },
+        requiredProviders: ['openai'],
+        reviewDefaults: { requireApproval: true },
+        sourceListingId: 'catalog:writing',
+        surfaces: ['agent'],
+        systemPromptTemplate: 'Source template',
+        toolOverrides: { search: true },
+        version: '2.0.0',
+        workflowStage: 'creation',
+      };
+      const original = makeSkillRow({
+        config: {
+          ...inherited,
+          integrity: { algorithm: 'sha256', checksum: 'abc' },
+          isBuiltIn: source === 'built_in',
+          isEnabled: false,
+          name: 'Source Writer',
+          slug: source === 'built_in' ? 'content-writing' : 'source-writer',
+          source,
+          status: 'disabled',
+        },
+        id:
+          source === 'built_in'
+            ? BUILT_IN_CONTENT_WRITING_SKILL_ID
+            : 'source-skill',
+        organizationId: source === 'built_in' ? null : 'org-1',
+      });
+      const snapshot = structuredClone(original);
+      prisma.skill.findFirst.mockResolvedValue(original);
+
+      const fork = await service.customizeSkill('org-1', original.id, {});
+
+      expect(prisma.skill.create).toHaveBeenCalledWith({
+        data: {
+          config: expect.objectContaining({
+            ...inherited,
+            baseSkillId: original.id,
+            isBuiltIn: false,
+            isEnabled: true,
+            name: 'Source Writer Custom',
+            slug: expect.stringMatching(
+              new RegExp(`^${original.config.slug}--custom-`),
+            ),
+            source: 'customized',
+            status: 'draft',
+          }),
+          isDeleted: false,
+          label: 'Source Writer Custom',
+          organizationId: 'org-1',
+        },
+      });
+      expect(fork).toMatchObject({ ...inherited, organizationId: 'org-1' });
+      expect(fork.id).not.toBe(original.id);
+      expect(fork).toHaveProperty('integrity', undefined);
+      expect(
+        prisma.skill.create.mock.calls[0][0].data.config.integrity,
+      ).toBeUndefined();
+      expect(prisma.skill.update).not.toHaveBeenCalled();
+      expect(prisma.brand.findFirst).not.toHaveBeenCalled();
+      expect(original).toEqual(snapshot);
+    },
+  );
+
   it('updates a skill the organization owns', async () => {
     prisma.skill.findFirst.mockResolvedValue(makeSkillRow());
 
