@@ -1,6 +1,5 @@
 import { createHash } from 'node:crypto';
 import type { GenerateCampaignPlanDto } from '@api/collections/campaigns/dto/generate-campaign-plan.dto';
-import { toCampaign } from '@api/collections/campaigns/services/campaign.utils';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { ModelsService } from '@api/collections/models/services/models.service';
@@ -83,18 +82,12 @@ export class CampaignPlanningService {
     });
     if (!brand) throw new NotFoundException('Brand', dto.brandId);
     if (dto.idempotencyKey) {
-      const existing = await this.prisma.campaign.findFirst({
-        where: scopedWhere(organizationId, {
-          idempotencyKey: dto.idempotencyKey,
-        }),
-      });
-      if (existing) {
-        if (existing.brandId !== dto.brandId)
-          throw new BadRequestException(
-            'Campaign request belongs to another brand',
-          );
-        return toCampaign(existing);
-      }
+      const existing = await this.campaigns.findIdempotentCampaign(
+        organizationId,
+        dto.brandId,
+        dto.idempotencyKey,
+      );
+      if (existing) return existing;
     }
     const model = await this.models.findOne({
       key: baseModelKey(DEFAULT_TEXT_MODEL),

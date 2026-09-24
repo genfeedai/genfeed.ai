@@ -6,7 +6,7 @@ import {
   ContentCampaignLifecycleAction,
   ContentCampaignStatus,
 } from '@genfeedai/contracts';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, ConflictException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const ORG_ID = 'org-1';
@@ -161,6 +161,57 @@ describe('CampaignsService', () => {
     });
   });
 
+  it('returns a typed conflict when a create collision belongs to a deleted campaign', async () => {
+    asMock(prisma.campaign.create).mockRejectedValue({ code: 'P2002' });
+    asMock(prisma.campaign.findFirst)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce(
+        campaignRow({ isDeleted: true, idempotencyKey: 'deleted-key' }),
+      );
+    await expect(
+      service.create(ORG_ID, USER_ID, {
+        brandId: BRAND_ID,
+        name: 'Q4 launch',
+        idempotencyKey: 'deleted-key',
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(prisma.campaign.findFirst).toHaveBeenLastCalledWith({
+      select: { id: true },
+      where: {
+        organizationId: ORG_ID,
+        idempotencyKey: 'deleted-key',
+        isDeleted: true,
+      },
+    });
+    expect(prisma.campaign.update).not.toHaveBeenCalled();
+  });
+  it('never replays another brand’s campaign after an idempotency collision', async () => {
+    asMock(prisma.campaign.create).mockRejectedValue({ code: 'P2002' });
+    asMock(prisma.campaign.findFirst).mockResolvedValue(
+      campaignRow({ brandId: OTHER_BRAND_ID }),
+    );
+    await expect(
+      service.create(ORG_ID, USER_ID, {
+        brandId: BRAND_ID,
+        name: 'Q4 launch',
+        idempotencyKey: 'replay-1',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+  it('does not recover a collision from another tenant or an unrelated unique constraint', async () => {
+    asMock(prisma.campaign.create).mockRejectedValue({ code: 'P2002' });
+    asMock(prisma.campaign.findFirst).mockResolvedValue(null);
+    await expect(
+      service.create(OTHER_ORG_ID, USER_ID, {
+        brandId: BRAND_ID,
+        name: 'Q4 launch',
+        idempotencyKey: 'replay-1',
+      }),
+    ).rejects.toEqual({ code: 'P2002' });
+    for (const [query] of asMock(prisma.campaign.findFirst).mock.calls) {
+      expect(query.where.organizationId).toBe(OTHER_ORG_ID);
+    }
+  });
   it('rethrows a unique violation that carries no idempotency key', async () => {
     asMock(prisma.campaign.create).mockRejectedValue({ code: 'P2002' });
 
