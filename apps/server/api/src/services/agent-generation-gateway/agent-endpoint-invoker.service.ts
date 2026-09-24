@@ -68,7 +68,7 @@ export class AgentEndpointInvoker {
       await this.rolesGuard.assertRoles(request, endpoint.requiredRoles);
     }
 
-    this.subscriptionGuard.assertActive(request);
+    this.subscriptionGuard.assertActive(request, endpoint.creditsConfig);
 
     await this.creditsGuard.admit(
       request,

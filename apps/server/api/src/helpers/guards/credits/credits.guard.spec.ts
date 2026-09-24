@@ -1,16 +1,21 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import type { ModelsService } from '@api/collections/models/services/models.service';
-import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
+import {
+  BusinessLogicException,
+  InsufficientCreditsException,
+} from '@api/exceptions/business-logic.exception';
 import {
   CREDITS_DEFER_MODEL_RESOLUTION_KEY,
   CREDITS_KEY,
 } from '@api/helpers/decorators/credits/credits.decorator';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import type { ByokService } from '@api/services/byok/byok.service';
 import {
   ActivitySource,
   ByokProvider,
   ModelProvider,
+  SubscriptionTier,
 } from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
@@ -93,6 +98,48 @@ describe('CreditsGuard', () => {
   it('should be defined', () => {
     expect(guard).toBeDefined();
   });
+
+  it.each([true, false])(
+    'enforces credits after Free metered subscription deferral (funded: %s)',
+    async (funded) => {
+      const config = { amount: 10, description: 'Image generation' };
+      vi.spyOn(reflector, 'getAllAndOverride').mockImplementation((key) =>
+        key === CREDITS_KEY ? config : undefined,
+      );
+      creditsUtilsService.checkOrganizationCreditsAvailable.mockResolvedValue(
+        funded,
+      );
+      creditsUtilsService.getOrganizationCreditsBalance.mockResolvedValue(
+        funded ? 100 : 5,
+      );
+      const context = createContext();
+      context.switchToHttp().getRequest().user.subscriptionTier =
+        SubscriptionTier.FREE;
+      const subscriptionGuard = new SubscriptionGuard(loggerService, reflector);
+      expect(subscriptionGuard.canActivate(context)).toBe(true);
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.getOrganizationCreditsBalance,
+      ).not.toHaveBeenCalled();
+
+      if (funded) {
+        await expect(guard.canActivate(context)).resolves.toBe(true);
+        expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+          expect.objectContaining({ amount: 10, organizationId: orgId }),
+        );
+        expect(
+          context.switchToHttp().getRequest().creditsConfig.reservationId,
+        ).toBe('reservation-1');
+      } else {
+        await expect(guard.canActivate(context)).rejects.toBeInstanceOf(
+          InsufficientCreditsException,
+        );
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      }
+    },
+  );
 
   it('returns true when no credits config on the handler', async () => {
     vi.spyOn(reflector, 'getAllAndOverride').mockReturnValue(undefined);

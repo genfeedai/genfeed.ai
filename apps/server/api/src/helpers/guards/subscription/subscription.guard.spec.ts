@@ -1,13 +1,16 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
 import * as authProviderUtil from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   type ExecutionContext,
   HttpException,
   HttpStatus,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import { Test } from '@nestjs/testing';
 import { vi } from 'vitest';
 
@@ -17,9 +20,17 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
   getSubscriptionTier: vi.fn(),
 }));
 
-function buildContext(user?: User | null): ExecutionContext {
+function buildContext(
+  user?: User | null,
+  creditsConfig?: CreditsConfig,
+): ExecutionContext {
+  const handler = () => {};
+  if (creditsConfig)
+    Reflect.defineMetadata(CREDITS_KEY, creditsConfig, handler);
   const request = { user };
   return {
+    getClass: () => SubscriptionGuard,
+    getHandler: () => handler,
     switchToHttp: () => ({
       getRequest: () => request,
     }),
@@ -55,6 +66,7 @@ describe('SubscriptionGuard', () => {
     const module = await Test.createTestingModule({
       providers: [
         SubscriptionGuard,
+        Reflector,
         { provide: LoggerService, useValue: mockLogger },
       ],
     }).compile();
@@ -90,6 +102,42 @@ describe('SubscriptionGuard', () => {
   it('throws 401 when user is undefined', () => {
     const ctx = buildContext(undefined);
     expect(() => guard.canActivate(ctx)).toThrow(HttpException);
+  });
+
+  it('defers authenticated Free metered requests to credit admission', () => {
+    vi.mocked(authProviderUtil.getSubscriptionTier).mockReturnValue(
+      SubscriptionTier.FREE,
+    );
+    const ctx = buildContext(buildUser(), { amount: 10 });
+    expect(guard.canActivate(ctx)).toBe(true);
+    expect(authProviderUtil.getStripeSubscriptionStatus).not.toHaveBeenCalled();
+  });
+
+  it('requires authentication even when the route has credits metadata', () => {
+    expect(() =>
+      guard.canActivate(buildContext(undefined, { amount: 10 })),
+    ).toThrow(
+      new HttpException(
+        { detail: 'Authentication required', title: 'Unauthorized' },
+        HttpStatus.UNAUTHORIZED,
+      ),
+    );
+  });
+
+  it('resolves class credits metadata with handler metadata taking precedence', () => {
+    class MeteredController {}
+    const handler = () => {};
+    Reflect.defineMetadata(CREDITS_KEY, { amount: 10 }, MeteredController);
+    const ctx = buildContext(buildUser());
+    ctx.getClass = () => MeteredController;
+    ctx.getHandler = () => handler;
+    expect(guard.canActivate(ctx)).toBe(true);
+    Reflect.defineMetadata(CREDITS_KEY, { amount: 20 }, handler);
+    const assertActive = vi.spyOn(guard, 'assertActive');
+    expect(guard.canActivate(ctx)).toBe(true);
+    expect(assertActive).toHaveBeenCalledWith(expect.anything(), {
+      amount: 20,
+    });
   });
 
   it('allows super admins regardless of subscription status', () => {

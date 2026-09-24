@@ -1,10 +1,12 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { CREDITS_KEY } from '@api/helpers/decorators/credits/credits.decorator';
 import {
   getIsSuperAdmin,
   getStripeSubscriptionStatus,
   getSubscriptionTier,
 } from '@api/helpers/utils/auth/auth.util';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
+import type { CreditsConfig } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   CanActivate,
@@ -13,6 +15,7 @@ import {
   HttpStatus,
   Injectable,
 } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
 export interface SubscriptionGuardRequest extends Omit<Request, 'user'> {
@@ -21,11 +24,20 @@ export interface SubscriptionGuardRequest extends Omit<Request, 'user'> {
 
 @Injectable()
 export class SubscriptionGuard implements CanActivate {
-  constructor(private readonly loggerService: LoggerService) {}
+  constructor(
+    private readonly loggerService: LoggerService,
+    private readonly reflector: Reflector,
+  ) {}
 
   canActivate(context: ExecutionContext): boolean {
+    const creditsConfig = this.reflector.getAllAndOverride<CreditsConfig>(
+      CREDITS_KEY,
+      [context.getHandler(), context.getClass()],
+    );
+
     return this.assertActive(
       context.switchToHttp().getRequest<SubscriptionGuardRequest>(),
+      creditsConfig,
     );
   }
 
@@ -33,7 +45,10 @@ export class SubscriptionGuard implements CanActivate {
    * Explicit-input subscription check. Shared by the HTTP guard adapter above
    * and by the in-process agent generation gateway.
    */
-  assertActive(request: SubscriptionGuardRequest): boolean {
+  assertActive(
+    request: SubscriptionGuardRequest,
+    creditsConfig?: CreditsConfig,
+  ): boolean {
     const user = request.user;
 
     if (!user) {
@@ -45,6 +60,11 @@ export class SubscriptionGuard implements CanActivate {
         },
         HttpStatus.UNAUTHORIZED,
       );
+    }
+
+    // Metered routes enforce balance and model access downstream.
+    if (creditsConfig) {
+      return true;
     }
 
     if (user.isApiKey === true) {
