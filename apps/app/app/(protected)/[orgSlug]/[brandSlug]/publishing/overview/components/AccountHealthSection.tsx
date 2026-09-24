@@ -1,14 +1,8 @@
-import { ButtonSize } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
-import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { PublishingOverviewHealthSectionProps } from '@props/publisher/publishing-overview.props';
-import PlatformBadge from '@ui/display/platform-badge/PlatformBadge';
-import { ListRow } from '@ui/lists/list-row/ListRow';
+import Badge from '@ui/display/badge/Badge';
 import { WorkspaceSurface } from '@ui/overview/WorkspaceSurface';
-import { Badge } from '@ui/primitives/badge';
-import { Button } from '@ui/primitives/button';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import PublishingAccountRow from './PublishingAccountRow';
 import PublishingOverviewAsyncSection from './PublishingOverviewAsyncSection';
 
 const STATE_BADGE_VARIANT = {
@@ -36,11 +30,11 @@ const RISK_MESSAGE_KEYS = {
 } as const;
 
 export default function AccountHealthSection({
+  connections = [],
   onRetry,
   state,
 }: PublishingOverviewHealthSectionProps) {
   const translate = useTranslations('pages.publishing.overview');
-  const { href } = useOrgUrl();
 
   return (
     <WorkspaceSurface
@@ -58,39 +52,18 @@ export default function AccountHealthSection({
       >
         {(rows) =>
           rows.length > 0 ? (
-            <div>
+            <ul aria-label={translate('healthTitle')}>
               {rows.map((row) => (
-                <ListRow
+                <PublishingAccountRow
                   key={row.credentialId}
-                  density="compact"
-                  leading={
-                    <PlatformBadge platform={row.platform} showLabel={false} />
-                  }
-                  title={
-                    <span className="flex flex-wrap items-center gap-2">
-                      <span className="min-w-0 truncate">
-                        {row.accountLabel}
-                      </span>
-                      <Badge variant={STATE_BADGE_VARIANT[row.state]}>
-                        {translate(STATE_MESSAGE_KEYS[row.state])}
-                      </Badge>
-                      {row.riskLevel === 'high' ||
-                      row.riskLevel === 'medium' ? (
-                        <Badge variant={RISK_BADGE_VARIANT[row.riskLevel]}>
-                          {translate(RISK_MESSAGE_KEYS[row.riskLevel])}
-                        </Badge>
-                      ) : null}
-                      {row.needsReconnect ? (
-                        <Badge variant="destructive">
-                          {translate('healthReconnect')}
-                        </Badge>
-                      ) : null}
-                      {row.holdPublishing ? (
-                        <Badge variant="warning">
-                          {translate('healthHold')}
-                        </Badge>
-                      ) : null}
-                    </span>
+                  accountLabel={row.accountLabel}
+                  connections={connections}
+                  credentialId={row.credentialId}
+                  platform={row.platform}
+                  reconnectLabel={
+                    row.needsReconnect
+                      ? translate('healthReconnectAction')
+                      : undefined
                   }
                   meta={
                     <span className="flex flex-wrap gap-x-3 gap-y-1">
@@ -106,18 +79,26 @@ export default function AccountHealthSection({
                       </span>
                     </span>
                   }
-                  trailing={
-                    row.needsReconnect ? (
-                      <Button asChild size={ButtonSize.SM} withWrapper={false}>
-                        <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
-                          {translate('healthReconnectAction')}
-                        </Link>
-                      </Button>
-                    ) : null
-                  }
-                />
+                >
+                  <Badge variant={STATE_BADGE_VARIANT[row.state]}>
+                    {translate(STATE_MESSAGE_KEYS[row.state])}
+                  </Badge>
+                  {row.riskLevel === 'high' || row.riskLevel === 'medium' ? (
+                    <Badge variant={RISK_BADGE_VARIANT[row.riskLevel]}>
+                      {translate(RISK_MESSAGE_KEYS[row.riskLevel])}
+                    </Badge>
+                  ) : null}
+                  {row.needsReconnect ? (
+                    <Badge variant="warning">
+                      {translate('healthReconnect')}
+                    </Badge>
+                  ) : null}
+                  {row.holdPublishing ? (
+                    <Badge variant="warning">{translate('healthHold')}</Badge>
+                  ) : null}
+                </PublishingAccountRow>
               ))}
-            </div>
+            </ul>
           ) : (
             <p className="px-4 py-3 text-sm text-muted-foreground sm:px-5">
               {translate('healthEmpty')}

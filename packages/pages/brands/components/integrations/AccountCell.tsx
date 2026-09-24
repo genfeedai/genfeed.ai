@@ -16,9 +16,14 @@ export default function AccountCell({ connection }: AccountCellProps) {
     <span className="flex min-w-0 items-center gap-3">
       <AccountAvatar connection={connection} />
       <span className="min-w-0 text-left">
-        <span className="block truncate text-sm font-medium">{label}</span>
+        <span className="block truncate text-sm font-medium" title={label}>
+          {label}
+        </span>
         {connection.handle ? (
-          <span className="block truncate text-xs text-muted-foreground">
+          <span
+            className="block truncate text-xs text-muted-foreground"
+            title={connection.handle}
+          >
             @{connection.handle.replace(/^@/, '')}
           </span>
         ) : null}

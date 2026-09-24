@@ -63,6 +63,24 @@ describe('PlatformBadge', () => {
     );
   });
 
+  it.each([
+    ['instagram', 'bg-platform-instagram'],
+    ['facebook', 'bg-platform-facebook'],
+    ['linkedin', 'bg-platform-linkedin'],
+    ['youtube', 'bg-platform-youtube'],
+    ['tiktok', 'bg-platform-tiktok'],
+    ['twitter', 'bg-black'],
+    ['x', 'bg-black'],
+    ['threads', 'bg-platform-threads'],
+  ])('renders a solid %s marker with a white icon', (platform, background) => {
+    const { container } = render(
+      <PlatformBadge platform={platform} showLabel={false} variant="solid" />,
+    );
+    expect(container.firstElementChild).toHaveClass(background, 'text-white');
+    expect(container.querySelector('svg')).toHaveClass('text-white');
+    expect(container.querySelector('.sr-only')).toBeInTheDocument();
+  });
+
   it.each(['devto', 'ghost', 'threads'])(
     'keeps the near-black %s identity legible on the dark canvas',
     (platform) => {

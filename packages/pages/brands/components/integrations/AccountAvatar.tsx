@@ -30,8 +30,8 @@ const FALLBACK_TEXT_CLASSNAME = {
 } as const;
 
 const BADGE_SIZE_CLASSNAME = {
-  md: 'size-4',
-  sm: 'size-3.5',
+  md: 'size-5 [&_svg]:size-3',
+  sm: 'size-4.5 [&_svg]:size-3',
 } as const;
 
 /**
@@ -66,10 +66,11 @@ export default function AccountAvatar({
           {getConnectionInitials(connection)}
         </AvatarFallback>
       </Avatar>
-      <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5 shadow-border-strong">
+      <span className="absolute -bottom-1 -right-1 flex rounded-full bg-background p-0.5">
         <PlatformBadge
           platform={connection.platform}
           showLabel={false}
+          variant="solid"
           className={`${BADGE_SIZE_CLASSNAME[size]} justify-center rounded-full p-0`}
         />
       </span>

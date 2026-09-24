@@ -1,5 +1,6 @@
 'use client';
 
+import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { BatchItemStatus, TargetExecutionState } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
@@ -20,6 +21,7 @@ import { ReleaseGroupsService } from '@services/content/release-groups.service';
 import { CredentialsService } from '@services/organization/credentials.service';
 import { useQuery } from '@tanstack/react-query';
 import KPISection from '@ui/kpi/kpi-section/KPISection';
+import { buildSocialConnections } from '@ui/modals/brands/brand/ModalBrand.types';
 import { OverviewContent } from '@ui/overview/OverviewLayout';
 import { Calendar, ClipboardCheck, List, Send } from 'lucide-react';
 import { useMemo } from 'react';
@@ -82,6 +84,11 @@ async function fetchPublicationTotal(
 
 export default function PublishingOverviewPage() {
   const { href } = useOrgUrl();
+  const { credentials } = useBrand();
+  const connections = useMemo(
+    () => buildSocialConnections({ credentials }),
+    [credentials],
+  );
   const collectionScope = useCollectionScope();
   const { brandId, organizationId } = collectionScope;
   const isCollectionReady = isCollectionFetchReady(collectionScope);
@@ -405,10 +412,15 @@ export default function PublishingOverviewPage() {
           {isBrandReady ? (
             <>
               <AccountHealthSection
+                connections={connections}
                 onRetry={retryAccountHealth}
                 state={accountHealthState}
               />
-              <CadenceGapsSection onRetry={retryCadence} state={cadenceState} />
+              <CadenceGapsSection
+                connections={connections}
+                onRetry={retryCadence}
+                state={cadenceState}
+              />
             </>
           ) : null}
         </div>
