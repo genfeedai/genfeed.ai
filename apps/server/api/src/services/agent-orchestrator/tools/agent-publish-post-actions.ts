@@ -5,6 +5,8 @@ import type { PostsService } from '@api/collections/posts/services/posts.service
 import { resolveConfirmedPublishTargets } from '@api/services/agent-orchestrator/tools/agent-publish-confirmed-targets.util';
 import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
+  collectInvalidTargetBlockers,
+  formatTargetBlockersError,
   readCredentialId,
   toCanonicalChannelTarget,
 } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';

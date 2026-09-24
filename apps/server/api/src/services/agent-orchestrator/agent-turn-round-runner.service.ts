@@ -268,7 +268,7 @@ export class AgentTurnRoundRunnerService {
     context: AgentChatContext;
     messages: ExecuteToolRoundParams['messages'];
     preflightCreditCost: number;
-    requestedToolName: string;
+    requestedToolName: CuratedActionName;
     startTime: number;
     state: AgentToolRoundState;
     strategy: AgentToolRoundStrategy;

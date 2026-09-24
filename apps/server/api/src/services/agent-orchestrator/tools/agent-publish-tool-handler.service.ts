@@ -326,7 +326,7 @@ export class AgentPublishToolHandler {
     const shouldPublishNow =
       !scheduledAt &&
       (publishPolicy.result.decision === AgentPublishDecision.PERMITTED ||
-        isCardConfirmed);
+        ctx.confirmationOrigin === 'thread-ui-action');
     const release = await this.postGroupsService.create(
       ctx.organizationId,
       ctx.userId,
