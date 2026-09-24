@@ -106,6 +106,22 @@ describe('ActivitiesList', () => {
     ];
   });
 
+  it('shows what a credit paid for with a singular cost', () => {
+    mockActivities = [
+      buildActivity({
+        key: ActivityKey.CREDITS_REMOVE,
+        value: JSON.stringify({
+          description: 'Onboarding preview image',
+          value: 1,
+        }),
+      }),
+    ];
+    render(<ActivitiesList scope={PageScope.ORGANIZATION} />);
+    expect(screen.getByText('Onboarding preview image')).toBeInTheDocument();
+    expect(screen.getByText('1 credit')).toBeInTheDocument();
+    expect(screen.queryByText('1 credits used')).not.toBeInTheDocument();
+  });
+
   it('renders the activities container', () => {
     const { container } = render(
       <ActivitiesList

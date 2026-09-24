@@ -3,6 +3,7 @@ import {
   ActivityKey,
   formatActivityMessage,
   getActivityMessageDescriptor,
+  parseCreditActivityValue,
 } from '@genfeedai/contracts';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { User } from '@models/auth/user.model';
@@ -15,16 +16,20 @@ function formatCreditLabel(
     return null;
   }
 
-  const amount = Number(value);
-  if (!Number.isFinite(amount)) {
+  const { amount, description } = parseCreditActivityValue(value);
+  if (key === ActivityKey.CREDITS_REMOVE && description) {
+    return description;
+  }
+  if (amount === null) {
     return null;
   }
 
   const amountLabel = amount.toLocaleString();
+  const unit = amount === 1 ? 'credit' : 'credits';
   if (key === ActivityKey.CREDITS_ADD) {
-    return `${amountLabel} credits added`;
+    return `${amountLabel} ${unit} added`;
   }
-  return `${amountLabel} credits used`;
+  return `${amountLabel} ${unit} used`;
 }
 
 export class Activity extends BaseActivity {

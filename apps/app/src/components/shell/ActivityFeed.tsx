@@ -134,11 +134,8 @@ export function ActivityFeedContent({
                       count: creditAmount,
                     })
                   : null;
-              const title = isSimpleCreditChange
-                ? (sourceLabel ??
-                  translate(
-                    isCreditAdded ? 'creditBalanceLabel' : 'creditUsageLabel',
-                  ))
+              const title = isCreditAdded
+                ? (sourceLabel ?? translate('creditBalanceLabel'))
                 : getActivityDescription(activity, activityMessageFormatter);
               const detail = isSimpleCreditChange ? creditDetail : sourceLabel;
               const destination = getActivityHref?.(activity);

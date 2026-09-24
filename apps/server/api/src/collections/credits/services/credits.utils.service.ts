@@ -199,7 +199,7 @@ export class CreditsUtilsService implements ICreditsUtilsService {
         organizationId: organizationId,
         source,
         userId: userId,
-        value: String(creditsToDeduct),
+        value: JSON.stringify({ description, value: creditsToDeduct }),
       });
 
       const websocketUrl = `/credits/${organizationId}`;

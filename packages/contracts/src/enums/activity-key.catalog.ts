@@ -437,6 +437,39 @@ export function getActivityMessageDescriptor(
   }
 }
 
+/** Read the amount and charge reason from persisted credit activity values. */
+export function parseCreditActivityValue(value: string | undefined): {
+  amount: number | null;
+  description: string | undefined;
+} {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(value ?? '');
+  } catch {
+    payload = value;
+  }
+  const record =
+    payload !== null && typeof payload === 'object' && !Array.isArray(payload)
+      ? (payload as Record<string, unknown>)
+      : undefined;
+  const rawAmount = record ? record.value : payload;
+  const amount =
+    typeof rawAmount === 'number' ||
+    (typeof rawAmount === 'string' && rawAmount.trim())
+      ? Number(rawAmount)
+      : Number.NaN;
+  const description =
+    typeof record?.description === 'string'
+      ? record.description.trim()
+      : undefined;
+
+  return {
+    amount: Number.isFinite(amount) ? amount : null,
+    description:
+      description && !/^[{[]/.test(description) ? description : undefined,
+  };
+}
+
 /** English fallback for non-app consumers that do not own a locale catalog. */
 export function formatActivityMessage(
   descriptor: ActivityMessageDescriptor,
@@ -532,13 +565,8 @@ export function formatActivityMessage(
         ? 'Credits added'
         : `${descriptor.params.amount} credits added`;
     case 'activity.credits.remove':
-      if (descriptor.params.amount !== 'none') {
-        return descriptor.params.source === 'none'
-          ? `${descriptor.params.amount} credits used`
-          : `${descriptor.params.source} · ${descriptor.params.amount} credits used`;
-      }
       return descriptor.params.source === 'none'
-        ? 'Credit deduction'
+        ? 'Credit usage — details unavailable'
         : descriptor.params.source;
     case 'activity.credits.remove_all':
       return 'Removed all credits';
