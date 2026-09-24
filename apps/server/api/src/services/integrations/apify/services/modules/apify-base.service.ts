@@ -230,6 +230,40 @@ export class ApifyBaseService {
   }
 
   /**
+   * Resolve the token for a research collection. `hosted-only` and
+   * `byok-only` never fall across accounts, so a retry cannot bill a
+   * different token than the run it is trying to recover.
+   */
+  async resolveCollectionToken(
+    orgId: string,
+    mode: 'byok-only' | 'hosted-only' | 'prefer-byok',
+  ): Promise<{ source: 'byok' | 'hosted'; token: string } | null> {
+    if (mode !== 'hosted-only' && this.byokProviderFactory) {
+      const resolution = await this.byokProviderFactory.resolveProvider(
+        orgId,
+        ByokProvider.APIFY,
+      );
+      if (resolution.source === 'byok' && resolution.apiKey) {
+        return { source: 'byok', token: resolution.apiKey };
+      }
+    }
+    if (mode === 'byok-only') return null;
+    const token = this.getApiToken();
+    return token ? { source: 'hosted', token } : null;
+  }
+
+  assertRegisteredHostedActor(actorId: string): void {
+    if (this.configService.get('NODE_ENV') !== 'production') return;
+    if (this.resolveActorRegistration(actorId)) return;
+    this.loggerService.error(
+      `${this.constructorName} blocked unregistered hosted Apify actor ${actorId}`,
+    );
+    throw new ServiceUnavailableException(
+      `Apify actor ${actorId} is not registered for hosted production execution`,
+    );
+  }
+
+  /**
    * Run an Apify actor for a specific organization.
    * Resolves BYOK key first, falls back to global token.
    * Returns empty array if no token is available from either source.
@@ -239,29 +273,11 @@ export class ApifyBaseService {
     actorId: string,
     input: object,
   ): Promise<{ data: T[]; source: ByokResolutionResult['source'] }> {
-    let token: string | null = null;
-    let source: ByokResolutionResult['source'] = 'hosted';
-
-    if (this.byokProviderFactory) {
-      const resolution = await this.byokProviderFactory.resolveProvider(
-        orgId,
-        ByokProvider.APIFY,
-      );
-
-      if (resolution.source === 'byok' && resolution.apiKey) {
-        token = resolution.apiKey;
-        source = 'byok';
-      }
-    }
-
-    if (!token) {
-      token = this.getApiToken();
-      source = 'hosted';
-    }
-
-    if (!token) {
+    const resolved = await this.resolveCollectionToken(orgId, 'prefer-byok');
+    if (!resolved) {
       return { data: [], source: 'hosted' };
     }
+    const { source, token } = resolved;
 
     const data = await this.executeActor<T>({
       actorId,
@@ -294,17 +310,8 @@ export class ApifyBaseService {
     token: string;
   }): Promise<T[]> {
     const registration = this.resolveActorRegistration(actorId);
-    if (
-      scope === ApifyBaseService.HOSTED_SCOPE &&
-      this.configService.get('NODE_ENV') === 'production' &&
-      !registration
-    ) {
-      this.loggerService.error(
-        `${this.constructorName} blocked unregistered hosted Apify actor ${actorId}`,
-      );
-      throw new ServiceUnavailableException(
-        `Apify actor ${actorId} is not registered for hosted production execution`,
-      );
+    if (scope === ApifyBaseService.HOSTED_SCOPE) {
+      this.assertRegisteredHostedActor(actorId);
     }
 
     const suspension = this.getActiveAccountLimitSuspension(scope);
@@ -460,17 +467,14 @@ export class ApifyBaseService {
     throw new Error(`Actor run ${runId} timed out after ${maxWaitMs}ms`);
   }
 
-  private buildActorRunUrl(
-    actorId: string,
-    maxTotalChargeUsd?: number,
-  ): string {
+  buildActorRunUrl(actorId: string, maxTotalChargeUsd?: number): string {
     const url = `${this.apiUrl}/acts/${this.normalizeActorId(actorId)}/runs`;
     return maxTotalChargeUsd === undefined
       ? url
       : `${url}?maxTotalChargeUsd=${encodeURIComponent(String(maxTotalChargeUsd))}`;
   }
 
-  private normalizeActorId(actorId: string): string {
+  normalizeActorId(actorId: string): string {
     if (this.actorPathPattern.test(actorId)) {
       return encodeURIComponent(actorId.replace('/', '~'));
     }

@@ -7,6 +7,7 @@ import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-resear
 import { TikTokCreativeCenterProvider } from '@api/services/paid-creative-research/providers/tiktok-creative-center.provider';
 import { XAdsRepositoryProvider } from '@api/services/paid-creative-research/providers/x-ads-repository.provider';
 import { PaidCreativeResearchIngestionService } from '@api/services/paid-creative-research/services/paid-creative-research-ingestion.service';
+import { ResearchAccessModule } from '@api/services/research-access/research-access.module';
 import { createServiceModule } from '@api/shared/service-module.factory';
 
 /**
@@ -31,6 +32,7 @@ export const PaidCreativeResearchModule = createServiceModule(
       AdPerformanceModule,
       AdWatchedAdvertisersCoreModule,
       ApifyModule,
+      ResearchAccessModule,
     ],
     additionalProviders: [
       GoogleAdsTransparencyProvider,

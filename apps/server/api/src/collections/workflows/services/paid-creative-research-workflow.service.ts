@@ -34,7 +34,20 @@ export class PaidCreativeResearchWorkflowService {
     private readonly paidCreativeResearchIngestionService: PaidCreativeResearchIngestionService,
   ) {}
 
-  preparePaidCreativeResearch(organizationId: string): Record<string, unknown> {
+  async preparePaidCreativeResearch(
+    organizationId: string,
+  ): Promise<Record<string, unknown>> {
+    const access =
+      await this.paidCreativeResearchIngestionService.assertCollectionAccess(
+        organizationId,
+      );
+    if (!access.isAllowed) {
+      return {
+        available: false,
+        organizationId,
+        reason: access.reason,
+      };
+    }
     const readiness = this.paidCreativeResearchIngestionService.getReadiness();
     const availablePlatforms = readiness.filter((entry) => entry.available);
     return {

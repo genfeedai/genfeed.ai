@@ -7,6 +7,8 @@ import type {
   PaidCreativePlatformReadiness,
 } from '@api/services/paid-creative-research/interfaces/paid-creative-research.interface';
 import { PaidCreativeProviderRegistry } from '@api/services/paid-creative-research/providers/paid-creative-provider.registry';
+import { ResearchAccessService } from '@api/services/research-access/research-access.service';
+import type { ResearchAccessDecision } from '@api/services/research-access/research-paid-access';
 import type {
   NormalizedPaidCreativeRecord,
   PaidCreativePlatform,
@@ -17,7 +19,7 @@ import {
   resolvePaidCreativeProvider,
 } from '@genfeedai/integrations/ads';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 
 /** Ads pulled per advertiser per run. Transparency archives are long tails. */
 const DEFAULT_CREATIVE_LIMIT = 50;
@@ -62,7 +64,14 @@ export class PaidCreativeResearchIngestionService {
     private readonly adWatchedAdvertisersService: AdWatchedAdvertisersService,
     private readonly loggerService: LoggerService,
     private readonly providerRegistry: PaidCreativeProviderRegistry,
+    private readonly researchAccessService: ResearchAccessService,
   ) {}
+
+  assertCollectionAccess(
+    organizationId: string,
+  ): Promise<ResearchAccessDecision> {
+    return this.researchAccessService.decide(organizationId);
+  }
 
   getReadiness(): PaidCreativePlatformReadiness[] {
     return this.providerRegistry.getReadiness();
@@ -97,6 +106,18 @@ export class PaidCreativeResearchIngestionService {
       );
     }
 
+    const access = await this.assertCollectionAccess(organizationId);
+    if (!access.isAllowed) {
+      return this.denyCollection(
+        organizationId,
+        advertiser,
+        platform,
+        access.reason === 'research_subscription_unverified'
+          ? 'research_subscription_unverified'
+          : 'research_paid_access_required',
+      );
+    }
+
     const adapter = this.providerRegistry.resolve(platform);
     const readiness = adapter.getReadiness();
     if (!readiness.available) {
@@ -127,6 +148,15 @@ export class PaidCreativeResearchIngestionService {
             : (advertiser.externalAdvertiserId ?? advertiser.advertiserHandle),
       });
     } catch (error: unknown) {
+      const accessCode = collectionAccessErrorCode(error);
+      if (accessCode) {
+        return this.denyCollection(
+          organizationId,
+          advertiser,
+          platform,
+          accessCode,
+        );
+      }
       this.loggerService.error(
         `${this.logContext} fetch failed for advertiser ${advertiser.id}`,
         error,
@@ -281,6 +311,26 @@ export class PaidCreativeResearchIngestionService {
     };
   }
 
+  private async denyCollection(
+    organizationId: string,
+    advertiser: WatchedAdvertiserScope,
+    platform: string,
+    errorCode: PaidCreativeIngestionErrorCode,
+  ): Promise<PaidCreativeIngestionResult> {
+    await this.recordOutcome(advertiser.id, organizationId, {
+      errorCode,
+      freshnessState: 'unavailable',
+      status: 'unavailable',
+    });
+    return {
+      advertiserId: advertiser.id,
+      errorCode,
+      platform,
+      recordCount: 0,
+      status: 'unavailable',
+    };
+  }
+
   /**
    * Keep the previous snapshot but stop presenting it as current. The stale
    * transition is scoped to `researchSource`, so a failed Meta run leaves an
@@ -339,4 +389,18 @@ export class PaidCreativeResearchIngestionService {
       );
     }
   }
+}
+
+function collectionAccessErrorCode(
+  error: unknown,
+): 'research_paid_access_required' | 'research_subscription_unverified' | null {
+  if (!(error instanceof ServiceUnavailableException)) return null;
+  const response = error.getResponse();
+  if (
+    response === 'research_paid_access_required' ||
+    response === 'research_subscription_unverified'
+  ) {
+    return response;
+  }
+  return null;
 }

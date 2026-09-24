@@ -40,6 +40,8 @@ export class ApifyRunBudgetService {
   private static readonly HOSTED_SCOPE = 'hosted';
   private static readonly MICRO_USD_PER_USD = 1_000_000;
   private static readonly MONTHLY_USAGE_TIMEOUT_MS = 15_000;
+  /** How often the hosted ledger re-reads provider account usage. */
+  private static readonly ACCOUNT_USAGE_REFRESH_MS = 5 * 60 * 1000;
 
   private static readonly HOUR_WINDOW_SECONDS = 60 * 60;
   private static readonly DAY_WINDOW_SECONDS = 24 * 60 * 60;
@@ -52,6 +54,7 @@ export class ApifyRunBudgetService {
     endAtMs: number;
     usageKey: string;
   };
+  private lastHostedUsageRefreshAtMs = 0;
 
   /**
    * Windows already reported as exhausted, so a saturated budget produces one
@@ -167,7 +170,22 @@ export class ApifyRunBudgetService {
       reservation.reservedMicroUsd,
       this.toMicroUsd(actualUsageUsd),
     );
-    if (result === 'unavailable') this.reportRetainedReservation();
+    if (result === 'unavailable') {
+      this.reportRetainedReservation();
+      return;
+    }
+    const noted = await this.cacheService.noteSettledResearchReservation(
+      reservation.usageKey,
+      reservation.reservationKey,
+    );
+    if (noted === 'unavailable') {
+      await this.cacheService.set(
+        `${reservation.usageKey}:books-unhealthy`,
+        true,
+        { ttl: ApifyRunBudgetService.PRIOR_PERIOD_RETENTION_SECONDS },
+      );
+      this.reportRetainedReservation();
+    }
   }
 
   private reportRetainedReservation(): void {
@@ -187,6 +205,15 @@ export class ApifyRunBudgetService {
         isAllowed: false,
         reason:
           'Apify hosted billing-period budget is unavailable; hosted actor starts fail closed',
+      };
+    }
+    if (
+      await this.cacheService.get<boolean>(`${period.usageKey}:books-unhealthy`)
+    ) {
+      return {
+        isAllowed: false,
+        reason:
+          'Apify hosted cost books are unverified; hosted actor starts fail closed',
       };
     }
 
@@ -232,6 +259,24 @@ export class ApifyRunBudgetService {
     }
     const reservedMicroUsd = result.reserved;
     const reservedTotal = result.total;
+    const noted = await this.cacheService.noteResearchReservation(
+      period.usageKey,
+      reservationKey,
+      reservedMicroUsd,
+    );
+    if (noted === 'unavailable') {
+      await this.cacheService.reconcileCounterReservation(
+        period.usageKey,
+        reservationKey,
+        reservedMicroUsd,
+        0,
+      );
+      return {
+        isAllowed: false,
+        reason:
+          'Apify hosted cost books are unavailable; hosted actor starts fail closed',
+      };
+    }
 
     await this.reportBillingThresholds(
       period.usageKey,
@@ -255,9 +300,13 @@ export class ApifyRunBudgetService {
     token: string,
     now: Date,
   ): Promise<{ usageKey: string } | null> {
+    const refreshDue =
+      now.getTime() - this.lastHostedUsageRefreshAtMs >=
+      ApifyRunBudgetService.ACCOUNT_USAGE_REFRESH_MS;
     if (
       this.hostedBillingPeriod &&
-      now.getTime() <= this.hostedBillingPeriod.endAtMs
+      now.getTime() <= this.hostedBillingPeriod.endAtMs &&
+      !refreshDue
     ) {
       return { usageKey: this.hostedBillingPeriod.usageKey };
     }
@@ -311,7 +360,13 @@ export class ApifyRunBudgetService {
         ttlSeconds,
       );
       if (!initialized) return null;
+      const imported = await this.cacheService.importHostedAccountUsage(
+        usageKey,
+        this.toMicroUsd(currentUsageUsd),
+      );
+      if (imported.status === 'unavailable') return null;
 
+      this.lastHostedUsageRefreshAtMs = now.getTime();
       this.hostedBillingPeriod = { endAtMs, usageKey };
       return { usageKey };
     } catch (error: unknown) {

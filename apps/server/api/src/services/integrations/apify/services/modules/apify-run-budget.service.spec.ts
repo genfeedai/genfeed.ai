@@ -88,6 +88,40 @@ describe('ApifyRunBudgetService', () => {
         counters[key] ??= value;
         return true;
       }),
+      importHostedAccountUsage: vi.fn(
+        async (usageKey: string, providerMicro: number) => {
+          const snapshotKey = `${usageKey}:snapshot`;
+          const settledKey = `${usageKey}:settled`;
+          if (counters[snapshotKey] === undefined) {
+            counters[snapshotKey] = providerMicro;
+            counters[settledKey] = 0;
+            if (providerMicro > (counters[usageKey] ?? 0)) {
+              counters[usageKey] = providerMicro;
+            }
+            return { status: 'baselined' };
+          }
+          const external =
+            providerMicro - counters[snapshotKey] - (counters[settledKey] ?? 0);
+          if (external > 0) {
+            counters[usageKey] = (counters[usageKey] ?? 0) + external;
+            counters[snapshotKey] = providerMicro;
+            counters[settledKey] = 0;
+            return { externalMicroUsd: external, status: 'applied' };
+          }
+          if (external === 0) {
+            counters[snapshotKey] = providerMicro;
+            counters[settledKey] = 0;
+            return { status: 'unchanged' };
+          }
+          return { status: 'behind' };
+        },
+      ),
+      noteResearchReservation: vi.fn(async () => 'noted'),
+      noteSettledResearchReservation: vi.fn(async () => 'noted'),
+      set: vi.fn(async (key: string, value: unknown) => {
+        counters[key] = value === true ? 1 : 0;
+        return true;
+      }),
     };
 
     httpService = {
@@ -491,6 +525,53 @@ describe('ApifyRunBudgetService', () => {
       expect(cacheService.initializeCounterBudget).not.toHaveBeenCalled();
     },
   );
+
+  it('adds external provider usage once and does not replay it', async () => {
+    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
+    service = build();
+    const first = await service.consumeRun('hosted', 'actor', 'token');
+    const usageKey = first.reservation?.usageKey ?? '';
+    const reserved = first.reservation?.reservedMicroUsd ?? 0;
+    vi.advanceTimersByTime(6 * 60 * 1000);
+    httpService.get.mockReturnValue(
+      of({
+        data: {
+          data: {
+            totalUsageCreditsUsdAfterVolumeDiscount: 0.05,
+            usageCycle: {
+              endAt: '2026-09-26T23:59:59.999Z',
+              startAt: '2026-08-27T00:00:00.000Z',
+            },
+          },
+        },
+      }),
+    );
+
+    const second = await service.consumeRun('hosted', 'actor', 'token');
+
+    expect(counters[usageKey]).toBe(
+      reserved + 50_000 + (second.reservation?.reservedMicroUsd ?? 0),
+    );
+    vi.advanceTimersByTime(6 * 60 * 1000);
+    const beforeReplay = counters[usageKey];
+    const third = await service.consumeRun('hosted', 'actor', 'token');
+    expect(counters[usageKey]).toBe(
+      beforeReplay + (third.reservation?.reservedMicroUsd ?? 0),
+    );
+  });
+
+  it('fails closed when hosted cost books are unverified', async () => {
+    env.APIFY_MAX_BILLING_PERIOD_USD = '4';
+    service = build();
+    const first = await service.consumeRun('hosted', 'actor', 'token');
+    counters[`${first.reservation?.usageKey}:books-unhealthy`] = 1;
+    vi.advanceTimersByTime(6 * 60 * 1000);
+
+    const decision = await service.consumeRun('hosted', 'actor', 'token');
+
+    expect(decision.isAllowed).toBe(false);
+    expect(decision.reason).toContain('cost books');
+  });
 
   it('preserves BYOK behavior with invalid hosted monetary configuration', async () => {
     env.APIFY_MAX_BILLING_PERIOD_USD = 'bad';

@@ -44,6 +44,7 @@ function buildCreative(
 }
 
 type Harness = {
+  access: { decide: ReturnType<typeof vi.fn> };
   adPerformanceService: {
     markResearchSnapshotStale: ReturnType<typeof vi.fn>;
     replaceResearchSnapshot: ReturnType<typeof vi.fn>;
@@ -85,8 +86,14 @@ function buildHarness(
       .fn()
       .mockReturnValue(adapter as unknown as PaidCreativeProviderAdapter),
   };
+  const access = {
+    decide: vi
+      .fn()
+      .mockResolvedValue({ isAllowed: true, reason: 'active_paid' }),
+  };
 
   return {
+    access,
     adPerformanceService,
     adWatchedAdvertisersService,
     adapter,
@@ -100,6 +107,7 @@ function buildHarness(
         warn: vi.fn(),
       } as unknown as LoggerService,
       providerRegistry as unknown as PaidCreativeProviderRegistry,
+      access as never,
     ),
   };
 }
@@ -132,6 +140,25 @@ const META_ADVERTISER = {
 };
 
 describe('PaidCreativeResearchIngestionService (#3537)', () => {
+  it('does not collect when paid access is missing', async () => {
+    const harness = buildHarness([META_ADVERTISER]);
+    harness.access.decide.mockResolvedValue({
+      isAllowed: false,
+      reason: 'research_paid_access_required',
+    });
+
+    const results = await executeAtomicIngestionBatch(harness, 'org-1');
+
+    expect(results[0]).toMatchObject({
+      errorCode: 'research_paid_access_required',
+      status: 'unavailable',
+    });
+    expect(harness.adapter.fetchCreatives).not.toHaveBeenCalled();
+    expect(
+      harness.adPerformanceService.markResearchSnapshotStale,
+    ).not.toHaveBeenCalled();
+  });
+
   afterEach(() => {
     vi.clearAllMocks();
   });

@@ -1,4 +1,4 @@
-import { ApifyBaseService } from '@api/services/integrations/apify/services/modules/apify-base.service';
+import { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import {
   type NormalizedPaidCreativeRecord,
   normalizeGoogleAdsTransparencyRecord,
@@ -30,8 +30,8 @@ export class ApifyAdsService {
   };
 
   constructor(
-    private readonly baseService: ApifyBaseService,
     private readonly loggerService: LoggerService,
+    private readonly researchCollectionRunner: ResearchCollectionRunner,
   ) {}
 
   async fetchMetaAdLibraryCreatives(
@@ -207,16 +207,24 @@ export class ApifyAdsService {
     organizationId?: string,
   ): Promise<unknown[]> {
     try {
-      return organizationId
-        ? (
-            await this.baseService.runActorForOrg<unknown>(
-              organizationId,
-              actor,
-              input,
-            )
-          ).data
-        : await this.baseService.runActor<unknown>(actor, input);
-    } catch {
+      return await this.researchCollectionRunner.run(
+        organizationId,
+        actor,
+        input,
+      );
+    } catch (error: unknown) {
+      if (error instanceof ServiceUnavailableException) {
+        const response = error.getResponse();
+        if (
+          response === 'research_paid_access_required' ||
+          response === 'research_subscription_unverified' ||
+          response === 'research_collection_recovery_pending' ||
+          response === 'research_collection_cost_unverified' ||
+          response === 'research_collection_start_unconfirmed'
+        ) {
+          throw error;
+        }
+      }
       this.loggerService.error('Paid creative source failed', { actor });
       throw new ServiceUnavailableException('paid_creative_source_unavailable');
     }
