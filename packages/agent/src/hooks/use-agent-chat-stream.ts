@@ -119,15 +119,24 @@ export function useAgentChatStream(
     }
   }, []);
 
-  const cleanupSubscriptions = useCallback(() => {
+  const cleanupSubscriptions = useCallback((preserveOtherThreads = false) => {
     for (const unsub of streamRuntime.unsubscribersRef.current) {
       unsub();
     }
     streamRuntime.unsubscribersRef.current = [];
-    streamRuntime.bufferedEventsRef.current = [];
+    streamRuntime.bufferedEventsRef.current = preserveOtherThreads
+      ? streamRuntime.bufferedEventsRef.current.filter(
+          (event) =>
+            event.threadId !== streamRuntime.activeStreamThreadRef.current,
+        )
+      : [];
     streamRuntime.activeStreamRunIdRef.current = null;
     streamRuntime.isAwaitingRunIdRef.current = false;
   }, []);
+
+  const releaseCompletedSubscriptions = useCallback(() => {
+    cleanupSubscriptions(true);
+  }, [cleanupSubscriptions]);
 
   const flushBufferedEvents = useCallback((threadId: string) => {
     streamRuntime.bufferedEventsRef.current = flushBufferedEventsForThread(
@@ -336,7 +345,7 @@ export function useAgentChatStream(
     async (pending: PendingStreamCompletion) => {
       await resolveStreamFromMessagesFn(pending, {
         apiService,
-        cleanupSubscriptions,
+        cleanupSubscriptions: releaseCompletedSubscriptions,
         clearCompletionWatchdog,
         clearPendingInputRequest,
         clearPendingCompletion: (current) => {
@@ -358,7 +367,7 @@ export function useAgentChatStream(
     },
     [
       apiService,
-      cleanupSubscriptions,
+      releaseCompletedSubscriptions,
       clearCompletionWatchdog,
       clearPendingInputRequest,
       resetStreamState,
@@ -394,7 +403,7 @@ export function useAgentChatStream(
         addWorkEvent,
         appendStreamToken,
         bufferedEventsRef: streamRuntime.bufferedEventsRef,
-        cleanupSubscriptions,
+        cleanupSubscriptions: releaseCompletedSubscriptions,
         clearCompletionWatchdog,
         clearPendingInputRequest,
         resolvePendingInputRequest,
@@ -423,7 +432,7 @@ export function useAgentChatStream(
     addPendingUiActions,
     addWorkEvent,
     appendStreamToken,
-    cleanupSubscriptions,
+    releaseCompletedSubscriptions,
     clearCompletionWatchdog,
     clearPendingInputRequest,
     resolvePendingInputRequest,
@@ -744,6 +753,9 @@ export function useAgentChatStream(
           useAgentChatStore.getState().messages,
         ),
         previousPending: streamRuntime.pendingCompletionRef.current,
+        previousRunId:
+          streamRuntime.activeStreamRunIdRef.current ??
+          useAgentChatStore.getState().activeRunId,
         threadId,
       };
       // The asking run's watchdog must not recover (and so complete) the
@@ -818,21 +830,64 @@ export function useAgentChatStream(
       ) {
         setPendingInputRequest(failedRequest);
       }
-      streamRuntime.pendingCompletionRef.current = {
-        initiatedAt: Date.now(),
-        preAssistantIds: handoff.preAssistantIds,
-        runId: null,
-        startedAt: null,
-        threadId: handoff.threadId,
-      };
-      scheduleCompletionWatchdog();
+      const continuation = streamRuntime.bufferedEventsRef.current.findLast(
+        (event) =>
+          event.threadId === handoff.threadId &&
+          event.runId &&
+          event.runId !== handoff.previousRunId,
+      );
+      if (continuation?.runId) {
+        if (failedRequest && isThreadVisible(handoff.threadId)) {
+          clearPendingInputRequest(failedRequest.inputRequestId);
+        }
+        adoptRun(handoff, continuation.runId, null);
+        return;
+      }
+
+      // No durable continuation identity exists, so there is nothing to poll.
+      // An older asking run must not settle this unanswered handoff.
+      streamRuntime.bufferedEventsRef.current =
+        streamRuntime.bufferedEventsRef.current.filter(
+          (event) =>
+            event.threadId !== handoff.threadId ||
+            !event.runId ||
+            event.runId !== handoff.previousRunId,
+        );
       flushBufferedEvents(handoff.threadId);
+      streamRuntime.pendingCompletionRef.current = null;
+      clearCompletionWatchdog();
+      cleanupSubscriptions(true);
+      if (isThreadVisible(handoff.threadId)) {
+        const status = useAgentChatStore.getState().activeRunStatus;
+        resetStreamState();
+        setActiveRunStatus(status);
+      } else if (failedRequest) {
+        const thread = useAgentChatStore
+          .getState()
+          .threads.find((item) => item.id === handoff.threadId);
+        if (
+          !thread?.runStatus ||
+          !['completed', 'failed', 'cancelled'].includes(thread.runStatus)
+        ) {
+          updateThreadSummary(handoff.threadId, {
+            runStatus: 'waiting_input',
+            pendingInputCount: 1,
+            attentionState: 'needs-input',
+          });
+        }
+      }
     },
     [
+      adoptRun,
+      cleanupSubscriptions,
+      clearCompletionWatchdog,
+      clearPendingInputRequest,
       flushBufferedEvents,
       isThreadVisible,
-      scheduleCompletionWatchdog,
+      resetStreamState,
       setPendingInputRequest,
+      setActiveRunStatus,
+      updateThreadSummary,
     ],
   );
 

@@ -50,7 +50,7 @@ export async function resolveStreamFromMessages(
 ): Promise<void> {
   const hasExceededGracePeriod =
     Date.now() - pending.initiatedAt >= STREAM_COMPLETION_GRACE_PERIOD_MS;
-  let shouldKeepWaiting = false;
+  let settled = false;
 
   try {
     const messages = await deps.apiService.getMessages(pending.threadId, {
@@ -82,7 +82,6 @@ export async function resolveStreamFromMessages(
         persistedExecution?.status === WorkflowExecutionStatus.PENDING ||
         persistedExecution?.status === WorkflowExecutionStatus.RUNNING
       ) {
-        shouldKeepWaiting = true;
         deps.updateThreadSummary(pending.threadId, {
           runStatus:
             persistedExecution.status === WorkflowExecutionStatus.PENDING
@@ -99,8 +98,11 @@ export async function resolveStreamFromMessages(
       );
     }
 
-    deps.resetStreamState();
-    deps.setMessages(messages);
+    settled = true;
+    if (deps.isThreadVisible(pending.threadId)) {
+      deps.resetStreamState();
+      deps.setMessages(messages);
+    }
     const lastGeneratedAsset = extractLastGeneratedAssetFromMetadata(
       recoveredAssistantMessage.metadata,
     );
@@ -132,6 +134,7 @@ export async function resolveStreamFromMessages(
       return;
     }
 
+    settled = true;
     deps.updateThreadSummary(pending.threadId, {
       attentionState: deps.isThreadVisible(pending.threadId) ? null : 'updated',
       lastActivityAt: new Date().toISOString(),
@@ -153,11 +156,7 @@ export async function resolveStreamFromMessages(
       deps.resetStreamState();
     }
   } finally {
-    if (
-      deps.isCurrentPending(pending) &&
-      hasExceededGracePeriod &&
-      !shouldKeepWaiting
-    ) {
+    if (deps.isCurrentPending(pending) && settled) {
       deps.clearPendingCompletion(pending);
       deps.clearCompletionWatchdog();
       deps.cleanupSubscriptions();

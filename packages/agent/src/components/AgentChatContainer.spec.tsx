@@ -26,6 +26,7 @@ const adoptRun = vi.fn();
 const beginRunHandoff = vi.fn((threadId: string) => ({
   generation: 1,
   previousPending: null,
+  previousRunId: null,
   threadId,
 }));
 const cancelRunHandoff = vi.fn();

@@ -22,3 +22,8 @@ Input handoffs retain their captured assistant-message baseline even after navig
 buffered continuation events replay so an already-resolved prompt cannot reappear.
 Hidden continuations keep their subscriptions and completion tracking; once they
 settle, an already-restored visible run can acquire the released stream ownership.
+
+Handoff tokens also capture `previousRunId`. A rejected acknowledgement starts recovery
+only for an observed continuation execution; a rejection without one restores the
+request without an artificial timeout. Hidden recovery updates only its thread
+summary and releases ownership, preserving other threads' buffered events.

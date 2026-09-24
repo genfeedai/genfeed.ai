@@ -41,6 +41,7 @@ export interface AgentRunHandoff {
   generation: number;
   preAssistantIds: Set<string>;
   previousPending: PendingStreamCompletion | null;
+  previousRunId: string | null;
   threadId: string;
 }
 
