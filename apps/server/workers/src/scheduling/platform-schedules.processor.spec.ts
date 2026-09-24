@@ -48,13 +48,25 @@ describe('PlatformSchedulesProcessor', () => {
     reconcileRawCutClips: handler(),
   };
   const workflowArtifacts = { queueExpiredArtifactCleanup: handler() };
-  const workflowContinuation = { reconcile: handler() };
   const youtubeMessages = { syncYoutubeMessages: handler() };
   const youtubeStatus = { checkScheduledYoutubeVideos: handler() };
+  const workflowSchedules = {
+    sweep: handler(),
+    reconcileContinuations: handler(),
+  };
   const logger = { debug: vi.fn() };
 
   const cases: Array<[PlatformScheduledTaskName, ReturnType<typeof handler>]> =
     [
+      [
+        PLATFORM_SCHEDULED_TASKS.PROACTIVE_AGENT_STRATEGIES,
+        workflowSchedules.sweep,
+      ],
+      [PLATFORM_SCHEDULED_TASKS.ANALYTICS_SYNC, workflowSchedules.sweep],
+      [
+        PLATFORM_SCHEDULED_TASKS.CONTENT_LOOP_AUTOPILOT,
+        workflowSchedules.sweep,
+      ],
       [
         PLATFORM_SCHEDULED_TASKS.BATCH_CREDIT_SETTLEMENT_RECONCILE,
         batchGeneration.reconcileSettlementShortfalls,
@@ -158,7 +170,7 @@ describe('PlatformSchedulesProcessor', () => {
       ],
       [
         PLATFORM_SCHEDULED_TASKS.WORKFLOW_CONTINUATION_RECONCILE,
-        workflowContinuation.reconcile,
+        workflowSchedules.reconcileContinuations,
       ],
       [
         PLATFORM_SCHEDULED_TASKS.YOUTUBE_MESSAGES,
@@ -200,13 +212,13 @@ describe('PlatformSchedulesProcessor', () => {
       trends as never,
       video as never,
       workflowArtifacts as never,
-      workflowContinuation as never,
       youtubeMessages as never,
       youtubeStatus as never,
       logger as never,
       lifecycleEmails as never,
       threadComments as never,
       oauthClientCleanup as never,
+      workflowSchedules as never,
     );
   });
 
@@ -220,6 +232,17 @@ describe('PlatformSchedulesProcessor', () => {
     await processor.process({ name: taskName } as Job);
 
     expect(expected).toHaveBeenCalledOnce();
+  });
+
+  it('passes the scheduled timestamp to the canonical sweep', async () => {
+    await processor.process({
+      name: 'analytics-sync',
+      timestamp: 123456,
+    } as Job);
+    expect(workflowSchedules.sweep).toHaveBeenCalledWith(
+      'analytics-sync',
+      123456,
+    );
   });
 
   it('fails closed for unknown task names', async () => {

@@ -5,8 +5,8 @@
  */
 
 import { ActivitiesModule } from '@api/collections/activities/activities.module';
+import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/agent-strategies-core.module';
 import { AgentStrategiesController } from '@api/collections/agent-strategies/controllers/agent-strategies.controller';
-import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
 import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
 import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
@@ -28,13 +28,14 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [AgentStrategiesController],
   exports: [
-    AgentStrategiesService,
+    AgentStrategiesCoreModule,
     AgentStrategyAutopilotService,
     AgentStrategyOpportunitiesService,
     AgentStrategyReportsService,
     AgentStrategyWorkflowRunService,
   ],
   imports: [
+    AgentStrategiesCoreModule,
     ActivitiesModule,
     ContentGatewayModule,
     BatchGenerationModule,
@@ -47,7 +48,6 @@ import { Module } from '@nestjs/common';
     TrendsModule,
   ],
   providers: [
-    AgentStrategiesService,
     AgentStrategyOpportunitiesService,
     AgentStrategyReportsService,
     AgentStrategyAutopilotExecutionService,

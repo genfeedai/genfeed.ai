@@ -51,20 +51,22 @@ export class BatchGenerationCreationService {
     userId: string,
     orgId: string,
     idempotencyKey?: string,
+    strategyId?: string,
   ): Promise<IBatchSummary> {
     if (idempotencyKey) {
       return runIdempotent(this.cacheService, idempotencyKey, () =>
-        this.doCreateBatch(dto, userId, orgId),
+        this.doCreateBatch(dto, userId, orgId, strategyId),
       );
     }
 
-    return this.doCreateBatch(dto, userId, orgId);
+    return this.doCreateBatch(dto, userId, orgId, strategyId);
   }
 
   private async doCreateBatch(
     dto: CreateBatchDto,
     userId: string,
     orgId: string,
+    strategyId?: string,
   ): Promise<IBatchSummary> {
     // Verify brand exists and belongs to org
     const brand = await this.brandsService.findOne({
@@ -74,6 +76,19 @@ export class BatchGenerationCreationService {
 
     if (!brand) {
       throw new NotFoundException('Brand', dto.brandId);
+    }
+
+    if (strategyId) {
+      const strategy = await this.prisma.agentStrategy.findFirst({
+        where: {
+          id: strategyId,
+          organizationId: orgId,
+          brandId: dto.brandId,
+          isDeleted: false,
+        },
+        select: { id: true },
+      });
+      if (!strategy) throw new NotFoundException('Agent strategy', strategyId);
     }
 
     const platforms = this.normalizeBatchPlatforms(dto.platforms);
@@ -113,6 +128,7 @@ export class BatchGenerationCreationService {
     const batch = await withBatchWriteTransaction(this.prisma, async (tx) => {
       const created = (await tx.batch.create({
         data: {
+          agentStrategyId: strategyId ?? null,
           brandId: dto.brandId,
           config: config as Prisma.InputJsonValue,
           isDeleted: false,

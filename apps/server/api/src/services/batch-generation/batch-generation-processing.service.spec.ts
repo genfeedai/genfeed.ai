@@ -144,6 +144,22 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     service = module.get(BatchGenerationProcessingService);
   });
 
+  it('attributes every generated draft to its batch strategy', async () => {
+    batchDelegate.findFirst.mockResolvedValue({
+      ...batchRecord,
+      agentStrategyId: 'strategy',
+      items: [{ ...baseItem }, { ...baseItem, id: 'item-2' }],
+    });
+    await service.processBatch('batch-1', 'org-1');
+    expect(postsService.create).toHaveBeenCalledTimes(2);
+    for (const [post] of postsService.create.mock.calls) {
+      expect(post).toMatchObject({
+        agentStrategyId: 'strategy',
+        targetExecutionState: TargetExecutionState.DRAFT,
+      });
+    }
+  });
+
   it('resolves a connected brand credential with Prisma SCREAMING platform', async () => {
     await service.processBatch('batch-1', 'org-1');
 

@@ -1,3 +1,4 @@
+import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import {
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
@@ -6,6 +7,7 @@ import type {
   WorkflowExecutionDocument,
   WorkflowNodeResult,
 } from '@api/collections/workflow-executions/schemas/workflow-execution.schema';
+import { recordProactiveRunCompletion } from '@api/collections/workflow-executions/services/proactive-run-accounting';
 import { readWorkflowAccounting } from '@api/collections/workflow-executions/services/workflow-accounting';
 import { captureMissingWorkflowCostEstimate } from '@api/collections/workflow-executions/services/workflow-cost-estimate';
 import { normalizeWorkflowExecution } from '@api/collections/workflow-executions/services/workflow-execution-normalization';
@@ -127,6 +129,7 @@ export class WorkflowExecutionsService extends BaseService<
     readonly logger: LoggerService,
     private readonly workflowEventWebhookService: WorkflowEventWebhookService,
     private readonly workflowNotificationOutboxService: WorkflowNotificationOutboxService,
+    private readonly agentStrategiesService: AgentStrategiesService,
   ) {
     super(prisma, 'workflowExecution', logger);
   }
@@ -479,18 +482,12 @@ export class WorkflowExecutionsService extends BaseService<
           return null;
         }
 
-        // tenant-scope-ignore: this primary-key read follows a successful organization-scoped update in the same transaction
-        const updatedExecution = await transaction.workflowExecution.findUnique(
-          {
-            where: { id: executionId },
-          },
+        const updatedExecution = await recordProactiveRunCompletion(
+          transaction,
+          this.agentStrategiesService,
+          executionId,
+          { completedAt, failed: Boolean(error) },
         );
-
-        if (!updatedExecution) {
-          throw new Error(
-            `Workflow execution ${executionId} disappeared after its terminal transition`,
-          );
-        }
 
         const durableDeliveryId = suppressWorkflowOutcomeNotification(
           execution.workflow.metadata,

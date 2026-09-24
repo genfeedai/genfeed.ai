@@ -223,7 +223,7 @@ export class AgentProactiveToolHandler {
     _ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
     // This is a bookkeeping tool — the actual state update happens
-    // in the CronProactiveAgentService after the agent run completes.
+    // atomically in WorkflowExecutionsService.completeExecution using persisted consumed-credit evidence.
     // Here we just acknowledge the summary for the thread record.
     return {
       creditsUsed: 0,

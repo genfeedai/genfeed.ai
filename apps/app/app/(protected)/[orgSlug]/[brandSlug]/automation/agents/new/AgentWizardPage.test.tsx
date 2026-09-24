@@ -361,6 +361,7 @@ describe('AgentWizardPage', () => {
           autoPublishConfidenceThreshold: 0.9,
           brandId: 'brand-1',
           dailyCreditBudget: 750,
+          weeklyCreditBudget: 3750,
           isActive: false,
           label: 'Launch Video Agent',
           minCreditThreshold: 125,

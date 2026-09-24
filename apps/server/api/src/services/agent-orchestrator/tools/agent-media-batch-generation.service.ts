@@ -258,6 +258,7 @@ export class AgentMediaBatchGenerationService {
         },
         ctx.userId,
         ctx.organizationId,
+        ...(ctx.strategyId ? ([undefined, ctx.strategyId] as const) : []),
       );
     } catch (error) {
       return {
