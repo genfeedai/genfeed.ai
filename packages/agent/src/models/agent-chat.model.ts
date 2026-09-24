@@ -768,3 +768,13 @@ export interface AgentInputResolvedPayload {
   timestamp: string;
   userId: string;
 }
+
+/** Receipt of a queued turn; execution ownership still comes from the ACK. */
+export interface AgentTurnAcceptedPayload {
+  organizationId: string;
+  userId: string;
+  threadId: string;
+  runId: string;
+  clientRequestId: string;
+  acceptedAt: string;
+}

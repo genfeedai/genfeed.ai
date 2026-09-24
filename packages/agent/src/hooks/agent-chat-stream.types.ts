@@ -38,6 +38,7 @@ export interface SendStreamMessageOptions {
 
 /** Ownership token for handing a thread's stream to a continuing execution. */
 export interface AgentRunHandoff {
+  owner?: AgentStreamEntry;
   generation: number;
   preAssistantIds: Set<string>;
   previousPending: PendingStreamCompletion | null;
@@ -110,3 +111,22 @@ export interface AgentStreamRuntime {
 
 export const STREAM_COMPLETION_POLL_INTERVAL_MS = 10_000;
 export const STREAM_COMPLETION_GRACE_PERIOD_MS = 90_000;
+
+export interface AgentStreamEntry extends AgentStreamRuntime {
+  key: string;
+  clientRequestId: string;
+  createdAt: number;
+  terminalAt: number | null;
+  revision: number;
+  bufferBytes: number;
+  needsReconciliation: boolean;
+  hasProgress: boolean;
+  abortRef: MutableRefObject<AbortController | null>;
+  presentation: ReturnType<
+    typeof import('@genfeedai/agent/stores/agent-chat.store').createAgentChatStore
+  >;
+  handlers: Map<string, (payload: unknown) => void>;
+  disposeProjection: () => void;
+  controller: UseAgentChatStreamReturn | null;
+  recover: (() => void) | null;
+}

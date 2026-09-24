@@ -1,5 +1,10 @@
 import { useAgentSetupStatus } from '@genfeedai/agent/components/useAgentSetupStatus';
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
+import {
+  captureAgentStreamHydration,
+  findAgentStreamEntry,
+  projectAgentStreamEntry,
+} from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
 import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
 import type { SuggestedAction } from '@genfeedai/agent/models/agent-suggested-action.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
@@ -404,8 +409,12 @@ export function useAgentFullPage({
 
     // Cache hit: show the thread immediately and revalidate underneath. Only a
     // genuinely unseen thread gets the blank track and the skeleton.
+    const retainedEntry = findAgentStreamEntry(threadId);
     const hasVisibleConversation =
-      shouldPreserveVisibleThread || restoreCachedConversation(threadId);
+      Boolean(retainedEntry) ||
+      shouldPreserveVisibleThread ||
+      restoreCachedConversation(threadId);
+    if (retainedEntry) projectAgentStreamEntry(retainedEntry);
     if (!hasVisibleConversation) {
       resetActiveConversationState();
     }
@@ -420,8 +429,9 @@ export function useAgentFullPage({
     // never be a dependency of the switch effect.
     const liveState = useAgentChatStore.getState();
     const hasLiveLocalRun =
-      shouldPreserveVisibleThread &&
-      (liveState.stream.isStreaming || liveState.activeRunId !== null);
+      Boolean(retainedEntry && retainedEntry.terminalAt === null) ||
+      (shouldPreserveVisibleThread &&
+        (liveState.stream.isStreaming || liveState.activeRunId !== null));
 
     let hasReportedLoadFailure = false;
     const reportLoadFailure = (error: unknown) => {
@@ -491,6 +501,7 @@ export function useAgentFullPage({
         isCacheFresh: isThreadDataFresh,
       });
 
+      const canHydrate = captureAgentStreamHydration(threadId);
       const hydrationFlight =
         existingFlight ??
         (plan.shouldFetchMessages
@@ -511,9 +522,12 @@ export function useAgentFullPage({
 
       const messagesRequest = hydrationFlight
         ? hydrationFlight.promise.then(({ page }) => {
-            if (!controller.signal.aborted) {
+            if (!controller.signal.aborted && canHydrate()) {
               resetStreamState();
               setMessagesPage(page);
+              const retained = findAgentStreamEntry(threadId);
+              if (retained)
+                retained.presentation.getState().setMessagesPage(page);
               setIsLoadingThread(false);
             }
             return page.messages;
@@ -545,7 +559,7 @@ export function useAgentFullPage({
       if (snapshotRequest) {
         Promise.all([messagesRequest, snapshotRequest])
           .then(([, snapshot]) => {
-            if (controller.signal.aborted) {
+            if (controller.signal.aborted || !canHydrate()) {
               return;
             }
             setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
@@ -557,6 +571,19 @@ export function useAgentFullPage({
             setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
             setWorkEvents(mapSnapshotWorkEvents(snapshot));
             setError(readSnapshotRunError(snapshot));
+            const retained = findAgentStreamEntry(threadId);
+            if (retained)
+              retained.presentation.setState({
+                activeRunId: snapshot.activeRun?.runId ?? null,
+                activeRunStatus: mapSnapshotRunStatus(
+                  snapshot.activeRun?.status,
+                ),
+                latestProposedPlan: snapshot.latestProposedPlan ?? null,
+                pendingInputRequest: mapSnapshotPendingInputRequest(snapshot),
+                runStartedAt: snapshot.activeRun?.startedAt ?? null,
+                workEvents: mapSnapshotWorkEvents(snapshot),
+                error: readSnapshotRunError(snapshot),
+              });
           })
           .catch(reportLoadFailure);
       }
@@ -568,7 +595,7 @@ export function useAgentFullPage({
       if (threadRequest && snapshotRequest) {
         Promise.all([threadRequest, messagesRequest, snapshotRequest])
           .then(([thread, msgs, snapshot]) => {
-            if (controller.signal.aborted) {
+            if (controller.signal.aborted || !canHydrate()) {
               return;
             }
             setActiveThreadStatus(thread.status);
@@ -604,7 +631,7 @@ export function useAgentFullPage({
       } else if (threadRequest) {
         threadRequest
           .then((thread) => {
-            if (controller.signal.aborted) {
+            if (controller.signal.aborted || !canHydrate()) {
               return;
             }
             setActiveThreadStatus(thread.status);

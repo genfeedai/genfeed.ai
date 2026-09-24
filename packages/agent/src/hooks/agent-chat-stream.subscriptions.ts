@@ -37,6 +37,9 @@ export type StreamSubscriptionDeps = {
   addWorkEvent: (event: AgentWorkEvent) => void;
   appendStreamToken: (token: string) => void;
   bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
+  bufferEvent?: (event: BufferedThreadEvent) => void;
+  getPendingInputRequest?: () => AgentInputRequest | null;
+  isActuallyVisible?: (threadId: string) => boolean;
   cleanupSubscriptions: () => void;
   clearCompletionWatchdog: () => void;
   clearPendingInputRequest: (inputRequestId?: string) => void;
@@ -108,7 +111,7 @@ export function attachAgentStreamSubscriptions(
         !deps.activeStreamThreadRef.current ||
         deps.isAwaitingRunIdRef.current
       ) {
-        deps.bufferedEventsRef.current.push({
+        const bufferedEvent: BufferedThreadEvent = {
           data,
           handler,
           resolvedInputRequestId: isInputResolution
@@ -116,7 +119,9 @@ export function attachAgentStreamSubscriptions(
             : undefined,
           runId: payload.runId,
           threadId: payload.threadId,
-        });
+        };
+        if (deps.bufferEvent) deps.bufferEvent(bufferedEvent);
+        else deps.bufferedEventsRef.current.push(bufferedEvent);
         return;
       }
 
@@ -243,6 +248,13 @@ export function attachAgentStreamSubscriptions(
       'agent:done',
       filterByThread((data) => {
         const payload = data as AgentStreamDonePayload;
+        if (deps.getPendingInputRequest?.()) {
+          deps.pendingCompletionRef.current = null;
+          deps.clearCompletionWatchdog();
+          deps.resetStreamState();
+          deps.setActiveRunStatus('awaiting_input');
+          return;
+        }
 
         deps.pendingCompletionRef.current = null;
         deps.clearCompletionWatchdog();
@@ -263,7 +275,9 @@ export function attachAgentStreamSubscriptions(
           payload.metadata,
         );
         deps.updateThreadSummary(payload.threadId, {
-          attentionState: deps.isThreadVisible(payload.threadId)
+          attentionState: (deps.isActuallyVisible ?? deps.isThreadVisible)(
+            payload.threadId,
+          )
             ? null
             : 'updated',
           lastActivityAt: assistantMessage.createdAt,
@@ -311,7 +325,9 @@ export function attachAgentStreamSubscriptions(
         const nextStatus =
           payload.error === 'Agent run cancelled' ? 'cancelled' : 'failed';
         deps.updateThreadSummary(payload.threadId, {
-          attentionState: deps.isThreadVisible(payload.threadId)
+          attentionState: (deps.isActuallyVisible ?? deps.isThreadVisible)(
+            payload.threadId,
+          )
             ? null
             : 'updated',
           lastActivityAt: new Date().toISOString(),
@@ -335,7 +351,9 @@ export function attachAgentStreamSubscriptions(
         const payload = data as AgentStreamUIBlocksPayload;
         deps.touchCompletionWatchdog();
         deps.markThreadRunning(payload.threadId);
-        if (deps.isThreadVisible(payload.threadId)) {
+        if (
+          (deps.isActuallyVisible ?? deps.isThreadVisible)(payload.threadId)
+        ) {
           applyDashboardOperation(
             payload.operation,
             payload.blocks,
@@ -394,7 +412,7 @@ export function attachAgentStreamSubscriptions(
       'agent:input_request',
       filterByThread((data) => {
         const payload = data as AgentInputRequestPayload;
-        deps.touchCompletionWatchdog();
+        deps.clearCompletionWatchdog();
         deps.updateThreadSummary(payload.threadId, {
           attentionState: 'needs-input',
           lastActivityAt: payload.timestamp,

@@ -5,6 +5,7 @@ import type {
   AgentProposedPlan,
   AgentThread,
   AgentToolCall,
+  AgentTurnAcceptedPayload,
   AgentUiAction,
   AgentWorkEvent,
 } from '@genfeedai/agent/models/agent-chat.model';
@@ -147,6 +148,7 @@ const DEFAULT_ONBOARDING_STEPS: OnboardingChecklistStep[] =
   );
 
 interface AgentStreamState {
+  acceptedReceipt?: AgentTurnAcceptedPayload;
   isStreaming: boolean;
   streamingContent: string;
   streamingReasoning: string;
@@ -447,831 +449,872 @@ function schedulePendingStreamFlush(flush: () => void): () => void {
 // (`payload.fullContent` in agent-chat-stream.subscriptions.ts) — this
 // buffer only ever affects the live-typing display, never the persisted
 // message, so discarding it on reset is safe.
-let pendingStreamTokens: string[] = [];
-let cancelPendingStreamFlush: (() => void) | null = null;
+export function createAgentChatStore(options: { ephemeral?: boolean } = {}) {
+  let pendingStreamTokens: string[] = [];
+  let pendingStreamOwner: {
+    threadId: string | null;
+    runId: string | null;
+  } | null = null;
+  let cancelPendingStreamFlush: (() => void) | null = null;
 
-function flushPendingStreamTokens(): void {
-  cancelPendingStreamFlush = null;
-  if (pendingStreamTokens.length === 0) {
-    return;
-  }
-  const chunk = pendingStreamTokens.join('');
-  pendingStreamTokens = [];
-  useAgentChatStore.setState((state) => ({
-    stream: {
-      ...state.stream,
-      streamingContent: state.stream.streamingContent + chunk,
-    },
-  }));
-}
-
-// Called from every `stream` reset path so a flush already in flight cannot
-// land after the reset and resurrect stale streaming content.
-function discardPendingStreamTokens(): void {
-  pendingStreamTokens = [];
-  if (cancelPendingStreamFlush) {
-    cancelPendingStreamFlush();
+  function flushPendingStreamTokens(): void {
     cancelPendingStreamFlush = null;
+    if (pendingStreamTokens.length === 0) {
+      return;
+    }
+    const owner = pendingStreamOwner;
+    if (
+      !owner ||
+      owner.threadId !== store.getState().activeThreadId ||
+      owner.runId !== store.getState().activeRunId
+    ) {
+      pendingStreamTokens = [];
+      return;
+    }
+    const chunk = pendingStreamTokens.join('');
+    pendingStreamTokens = [];
+    store.setState((state) => ({
+      stream: {
+        ...state.stream,
+        streamingContent: state.stream.streamingContent + chunk,
+      },
+    }));
   }
-}
 
-export const useAgentChatStore = create<AgentChatStore>((set, get) => ({
-  activeRunId: null,
-  activeRunStatus: 'idle',
-  activeThreadId: null,
-  addActiveToolCall: (toolCall) =>
-    set((state) => {
-      const existingIndex = state.stream.activeToolCalls.findIndex(
-        (item) => item.id === toolCall.id,
-      );
+  // Called from every `stream` reset path so a flush already in flight cannot
+  // land after the reset and resurrect stale streaming content.
+  function discardPendingStreamTokens(): void {
+    pendingStreamTokens = [];
+    if (cancelPendingStreamFlush) {
+      cancelPendingStreamFlush();
+      cancelPendingStreamFlush = null;
+    }
+  }
 
-      if (existingIndex === -1) {
-        return {
-          stream: {
-            ...state.stream,
-            activeToolCalls: [...state.stream.activeToolCalls, toolCall],
-          },
-        };
-      }
-
-      const activeToolCalls = [...state.stream.activeToolCalls];
-      activeToolCalls[existingIndex] = {
-        ...activeToolCalls[existingIndex],
-        ...toolCall,
-      };
-
-      return {
-        stream: {
-          ...state.stream,
-          activeToolCalls,
-        },
-      };
-    }),
-  addMemoryEntry: (entry) =>
-    set((state) => ({ memoryEntries: [entry, ...state.memoryEntries] })),
-  addMessage: (message) =>
-    set((state) => ({
-      latestProposedPlan:
-        message.metadata?.proposedPlan ?? state.latestProposedPlan,
-      messages: [...state.messages, message],
-    })),
-  setUiActionStatus: (actionId, status) =>
-    set((state) => {
-      let messagesChanged = false;
-      const messages = state.messages.map((message) => {
-        const uiActions = message.metadata?.uiActions;
-        if (
-          !uiActions?.some(
-            (action) => action.id === actionId && action.status !== status,
-          )
-        ) {
-          return message;
-        }
-
-        messagesChanged = true;
-        return {
-          ...message,
-          metadata: {
-            ...message.metadata,
-            uiActions: uiActions.map((action) =>
-              action.id === actionId ? { ...action, status } : action,
-            ),
-          },
-        };
-      });
-      const pendingUiActions = state.stream.pendingUiActions.map((action) =>
-        action.id === actionId && action.status !== status
-          ? { ...action, status }
-          : action,
-      );
-      const pendingChanged = pendingUiActions.some(
-        (action, index) => action !== state.stream.pendingUiActions[index],
-      );
-
-      return {
-        messages: messagesChanged ? messages : state.messages,
-        stream: pendingChanged
-          ? { ...state.stream, pendingUiActions }
-          : state.stream,
-      };
-    }),
-  addPendingUiActions: (actions) =>
-    set((state) => {
-      const pendingUiActions = [...state.stream.pendingUiActions];
-
-      for (const action of actions) {
-        const existingIndex = pendingUiActions.findIndex(
-          (item) => item.id === action.id,
+  const store = create<AgentChatStore>((set, get) => ({
+    activeRunId: null,
+    activeRunStatus: 'idle',
+    activeThreadId: null,
+    addActiveToolCall: (toolCall) =>
+      set((state) => {
+        const existingIndex = state.stream.activeToolCalls.findIndex(
+          (item) => item.id === toolCall.id,
         );
 
         if (existingIndex === -1) {
-          pendingUiActions.push(action);
-        } else {
-          pendingUiActions[existingIndex] = {
-            ...pendingUiActions[existingIndex],
-            ...action,
+          return {
+            stream: {
+              ...state.stream,
+              activeToolCalls: [...state.stream.activeToolCalls, toolCall],
+            },
           };
         }
-      }
 
-      return {
-        stream: {
-          ...state.stream,
-          pendingUiActions,
-        },
-      };
-    }),
-  addWorkEvent: (event) =>
-    set((state) => {
-      const existingIndex = state.workEvents.findIndex((item) => {
-        if (item.id === event.id) {
-          return true;
-        }
-        // Prefer toolCallId / inputRequestId matches so lifecycle updates
-        // (started → progress → completed) collapse onto one event even if an
-        // older client still minted event-prefixed ids.
-        if (
-          event.toolCallId &&
-          item.toolCallId &&
-          item.toolCallId === event.toolCallId
-        ) {
-          return true;
-        }
-        if (
-          event.inputRequestId &&
-          item.inputRequestId &&
-          item.inputRequestId === event.inputRequestId
-        ) {
-          return true;
-        }
-        return false;
-      });
-
-      if (existingIndex === -1) {
-        return { workEvents: [...state.workEvents, event] };
-      }
-
-      const next = [...state.workEvents];
-      next[existingIndex] = {
-        ...next[existingIndex],
-        ...event,
-        // Keep the original id so selectors stay stable across updates.
-        id: next[existingIndex].id,
-      };
-      return { workEvents: next };
-    }),
-  appendStreamToken: (token) => {
-    pendingStreamTokens.push(token);
-    if (!cancelPendingStreamFlush) {
-      cancelPendingStreamFlush = schedulePendingStreamFlush(
-        flushPendingStreamTokens,
-      );
-    }
-  },
-  beginOverlaySession: (overlayId) =>
-    set((state) => {
-      if (state.overlayActiveIds.includes(overlayId)) {
-        return state;
-      }
-
-      const nextOverlayActiveIds = [...state.overlayActiveIds, overlayId];
-
-      if (state.overlayActiveIds.length > 0) {
-        return { overlayActiveIds: nextOverlayActiveIds };
-      }
-
-      if (!state.isOpen) {
-        return {
-          overlayActiveIds: nextOverlayActiveIds,
-          overlayAutoCollapsedAgent: false,
-          userChangedAgentDuringOverlay: false,
-          wasAgentOpenBeforeOverlay: false,
+        const activeToolCalls = [...state.stream.activeToolCalls];
+        activeToolCalls[existingIndex] = {
+          ...activeToolCalls[existingIndex],
+          ...toolCall,
         };
-      }
 
-      return {
-        isOpen: false,
-        overlayActiveIds: nextOverlayActiveIds,
-        overlayAutoCollapsedAgent: true,
-        userChangedAgentDuringOverlay: false,
-        wasAgentOpenBeforeOverlay: true,
-      };
-    }),
-  cacheConversation: (threadId) =>
-    set((state) => {
-      // Nothing worth re-showing, and caching an empty conversation would let a
-      // later switch skip the loading skeleton while showing a blank track.
-      if (state.messages.length === 0) {
-        return state;
-      }
+        return {
+          stream: {
+            ...state.stream,
+            activeToolCalls,
+          },
+        };
+      }),
+    addMemoryEntry: (entry) =>
+      set((state) => ({ memoryEntries: [entry, ...state.memoryEntries] })),
+    addMessage: (message) =>
+      set((state) => ({
+        latestProposedPlan:
+          message.metadata?.proposedPlan ?? state.latestProposedPlan,
+        messages: [...state.messages, message],
+      })),
+    setUiActionStatus: (actionId, status) =>
+      set((state) => {
+        let messagesChanged = false;
+        const messages = state.messages.map((message) => {
+          const uiActions = message.metadata?.uiActions;
+          if (
+            !uiActions?.some(
+              (action) => action.id === actionId && action.status !== status,
+            )
+          ) {
+            return message;
+          }
 
-      // Re-inserting moves the thread to the end of the key order, which is what
-      // makes the eviction below least-recently-cached rather than arbitrary.
-      const { [threadId]: _evicted, ...retained } =
-        state.conversationCacheByThread;
-      const next: Record<string, CachedConversation> = {
-        ...retained,
-        [threadId]: {
-          cachedAt: Date.now(),
-          error: state.error,
-          hasMoreMessages: state.hasMoreMessages,
-          latestProposedPlan: state.latestProposedPlan,
-          messages: state.messages,
-          messagesCursor: state.messagesCursor,
-          pendingInputRequest: state.pendingInputRequest,
-          workEvents: state.workEvents,
-        },
-      };
+          messagesChanged = true;
+          return {
+            ...message,
+            metadata: {
+              ...message.metadata,
+              uiActions: uiActions.map((action) =>
+                action.id === actionId ? { ...action, status } : action,
+              ),
+            },
+          };
+        });
+        const pendingUiActions = state.stream.pendingUiActions.map((action) =>
+          action.id === actionId && action.status !== status
+            ? { ...action, status }
+            : action,
+        );
+        const pendingChanged = pendingUiActions.some(
+          (action, index) => action !== state.stream.pendingUiActions[index],
+        );
 
-      const threadIds = Object.keys(next);
-      for (const staleId of threadIds.slice(
-        0,
-        Math.max(0, threadIds.length - CONVERSATION_CACHE_LIMIT),
-      )) {
-        delete next[staleId];
-      }
+        return {
+          messages: messagesChanged ? messages : state.messages,
+          stream: pendingChanged
+            ? { ...state.stream, pendingUiActions }
+            : state.stream,
+        };
+      }),
+    addPendingUiActions: (actions) =>
+      set((state) => {
+        const pendingUiActions = [...state.stream.pendingUiActions];
 
-      return { conversationCacheByThread: next };
-    }),
-  clearComposerSeed: () => set({ composerSeed: null }),
-  clearConversationCache: () => set({ conversationCacheByThread: {} }),
-  clearMessages: () =>
-    set({
-      activeRunId: null,
-      activeRunStatus: 'idle',
-      composerSeed: null,
-      draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
-      hasExplicitDraftAgentMode: false,
-      error: null,
-      latestProposedPlan: null,
-      hasMoreMessages: false,
-      isGenerating: false,
-      isLoadingOlderMessages: false,
-      messages: [],
-      messagesCursor: null,
-      pendingInputRequest: null,
-      runStartedAt: null,
-      threadUiBusyById: {},
-      workEvents: [],
-    }),
-  clearStaleActiveRun: () => {
-    discardPendingStreamTokens();
-    set({
-      activeRunId: null,
-      activeRunStatus: 'idle',
-      isGenerating: false,
-      runStartedAt: null,
-      stream: { ...DEFAULT_STREAM_STATE },
-    });
-  },
-  clearPendingInputRequest: (inputRequestId) =>
-    set((state) =>
-      !inputRequestId ||
-      state.pendingInputRequest?.inputRequestId === inputRequestId
-        ? { pendingInputRequest: null }
-        : {},
-    ),
-  resolvePendingInputRequest: (threadId, inputRequestId, timestamp) => {
-    let resolved = false;
-    set((state) => {
-      if (
-        state.activeThreadId !== threadId ||
-        state.pendingInputRequest?.threadId !== threadId ||
-        state.pendingInputRequest.inputRequestId !== inputRequestId
-      )
-        return state;
-      resolved = true;
-      return {
-        pendingInputRequest: null,
-        activeRunStatus: 'running',
-        threads: state.threads.map((thread) =>
-          thread.id === threadId
-            ? {
-                ...thread,
-                attentionState: 'running',
-                lastActivityAt: timestamp,
-                pendingInputCount: 0,
-                runStatus: 'running',
-              }
-            : thread,
-        ),
-      };
-    });
-    return resolved;
-  },
-  clearThreadAttention: (threadId) =>
-    set((state) => ({
-      threads: state.threads.map((thread) =>
-        thread.id === threadId ? { ...thread, attentionState: null } : thread,
-      ),
-    })),
-  composerSeed: null,
-  conversationCacheByThread: {},
-  creditsRemaining: null,
-  draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
-  savedAgentMode: null,
-  hasExplicitDraftAgentMode: false,
-  endOverlaySession: (overlayId) =>
-    set((state) => {
-      if (!state.overlayActiveIds.includes(overlayId)) {
-        return state;
-      }
+        for (const action of actions) {
+          const existingIndex = pendingUiActions.findIndex(
+            (item) => item.id === action.id,
+          );
 
-      const nextOverlayActiveIds = state.overlayActiveIds.filter(
-        (activeOverlayId) => activeOverlayId !== overlayId,
-      );
+          if (existingIndex === -1) {
+            pendingUiActions.push(action);
+          } else {
+            pendingUiActions[existingIndex] = {
+              ...pendingUiActions[existingIndex],
+              ...action,
+            };
+          }
+        }
 
-      if (nextOverlayActiveIds.length > 0) {
-        return { overlayActiveIds: nextOverlayActiveIds };
-      }
-
-      const shouldRestoreAgent =
-        state.overlayAutoCollapsedAgent &&
-        state.wasAgentOpenBeforeOverlay &&
-        !state.userChangedAgentDuringOverlay &&
-        !state.isOpen;
-
-      return {
-        isOpen: shouldRestoreAgent ? true : state.isOpen,
-        overlayActiveIds: [],
-        overlayAutoCollapsedAgent: false,
-        userChangedAgentDuringOverlay: false,
-        wasAgentOpenBeforeOverlay: false,
-      };
-    }),
-  error: null,
-  finalizeStream: (message) => {
-    // The assistant message below is server-authoritative
-    // (`payload.fullContent` in agent-chat-stream.subscriptions.ts), never the
-    // locally buffered `streamingContent` — a stale in-flight flush landing
-    // after this must not resurrect pre-finalize streaming text (#2517).
-    discardPendingStreamTokens();
-    set((state) => {
-      const mergedUiActions = [
-        ...(message.metadata?.uiActions ?? []),
-        ...state.stream.pendingUiActions,
-      ].filter((action, index, actions) => {
-        // Prefer later copies so tool_complete pending + done metadata with the
-        // same semantic key collapse to one card.
-        const lastWithKey = actions.findLastIndex((candidate) => {
-          if (candidate.id && action.id && candidate.id === action.id) {
+        return {
+          stream: {
+            ...state.stream,
+            pendingUiActions,
+          },
+        };
+      }),
+    addWorkEvent: (event) =>
+      set((state) => {
+        const existingIndex = state.workEvents.findIndex((item) => {
+          if (item.id === event.id) {
             return true;
           }
-          // Snapshot cards re-minted with Date.now() ids still share type+title.
+          // Prefer toolCallId / inputRequestId matches so lifecycle updates
+          // (started → progress → completed) collapse onto one event even if an
+          // older client still minted event-prefixed ids.
           if (
-            candidate.type === action.type &&
-            (action.type === 'analytics_snapshot_card' ||
-              action.type === 'completion_summary_card') &&
-            candidate.title === action.title
+            event.toolCallId &&
+            item.toolCallId &&
+            item.toolCallId === event.toolCallId
+          ) {
+            return true;
+          }
+          if (
+            event.inputRequestId &&
+            item.inputRequestId &&
+            item.inputRequestId === event.inputRequestId
           ) {
             return true;
           }
           return false;
         });
-        return lastWithKey === index;
-      });
 
-      return {
-        activeRunId: null,
-        activeRunStatus: 'completed',
-        latestProposedPlan:
-          message.metadata?.proposedPlan ?? state.latestProposedPlan,
-        messages: [
-          ...state.messages,
-          {
-            ...message,
-            metadata:
-              mergedUiActions.length > 0
-                ? {
-                    ...(message.metadata ?? {}),
-                    uiActions: mergedUiActions,
-                  }
-                : message.metadata,
+        if (existingIndex === -1) {
+          return { workEvents: [...state.workEvents, event] };
+        }
+
+        const next = [...state.workEvents];
+        next[existingIndex] = {
+          ...next[existingIndex],
+          ...event,
+          // Keep the original id so selectors stay stable across updates.
+          id: next[existingIndex].id,
+        };
+        return { workEvents: next };
+      }),
+    appendStreamToken: (token) => {
+      const state = get();
+      if (
+        pendingStreamOwner?.threadId !== state.activeThreadId ||
+        pendingStreamOwner?.runId !== state.activeRunId
+      ) {
+        discardPendingStreamTokens();
+      }
+      pendingStreamOwner = {
+        threadId: state.activeThreadId,
+        runId: state.activeRunId,
+      };
+      pendingStreamTokens.push(token);
+      if (!cancelPendingStreamFlush) {
+        cancelPendingStreamFlush = schedulePendingStreamFlush(
+          flushPendingStreamTokens,
+        );
+      }
+    },
+    beginOverlaySession: (overlayId) =>
+      set((state) => {
+        if (state.overlayActiveIds.includes(overlayId)) {
+          return state;
+        }
+
+        const nextOverlayActiveIds = [...state.overlayActiveIds, overlayId];
+
+        if (state.overlayActiveIds.length > 0) {
+          return { overlayActiveIds: nextOverlayActiveIds };
+        }
+
+        if (!state.isOpen) {
+          return {
+            overlayActiveIds: nextOverlayActiveIds,
+            overlayAutoCollapsedAgent: false,
+            userChangedAgentDuringOverlay: false,
+            wasAgentOpenBeforeOverlay: false,
+          };
+        }
+
+        return {
+          isOpen: false,
+          overlayActiveIds: nextOverlayActiveIds,
+          overlayAutoCollapsedAgent: true,
+          userChangedAgentDuringOverlay: false,
+          wasAgentOpenBeforeOverlay: true,
+        };
+      }),
+    cacheConversation: (threadId) =>
+      set((state) => {
+        // Nothing worth re-showing, and caching an empty conversation would let a
+        // later switch skip the loading skeleton while showing a blank track.
+        if (state.messages.length === 0) {
+          return state;
+        }
+
+        // Re-inserting moves the thread to the end of the key order, which is what
+        // makes the eviction below least-recently-cached rather than arbitrary.
+        const { [threadId]: _evicted, ...retained } =
+          state.conversationCacheByThread;
+        const next: Record<string, CachedConversation> = {
+          ...retained,
+          [threadId]: {
+            cachedAt: Date.now(),
+            error: state.error,
+            hasMoreMessages: state.hasMoreMessages,
+            latestProposedPlan: state.latestProposedPlan,
+            messages: state.messages,
+            messagesCursor: state.messagesCursor,
+            pendingInputRequest: state.pendingInputRequest,
+            workEvents: state.workEvents,
           },
-        ],
+        };
+
+        const threadIds = Object.keys(next);
+        for (const staleId of threadIds.slice(
+          0,
+          Math.max(0, threadIds.length - CONVERSATION_CACHE_LIMIT),
+        )) {
+          delete next[staleId];
+        }
+
+        return { conversationCacheByThread: next };
+      }),
+    clearComposerSeed: () => set({ composerSeed: null }),
+    clearConversationCache: () => set({ conversationCacheByThread: {} }),
+    clearMessages: () =>
+      set({
+        activeRunId: null,
+        activeRunStatus: 'idle',
+        composerSeed: null,
+        draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
+        hasExplicitDraftAgentMode: false,
+        error: null,
+        latestProposedPlan: null,
+        hasMoreMessages: false,
+        isGenerating: false,
+        isLoadingOlderMessages: false,
+        messages: [],
+        messagesCursor: null,
         pendingInputRequest: null,
-        // Clear tool lifecycle rows so sticky "Running get_analytics 15%" cannot
-        // outlive the completed turn.
+        runStartedAt: null,
+        threadUiBusyById: {},
+        workEvents: [],
+      }),
+    clearStaleActiveRun: () => {
+      discardPendingStreamTokens();
+      set({
+        activeRunId: null,
+        activeRunStatus: 'idle',
+        isGenerating: false,
         runStartedAt: null,
         stream: { ...DEFAULT_STREAM_STATE },
-        workEvents: [],
-      };
-    });
-  },
-  markStreamLive: () =>
-    set((state) =>
-      state.stream.isStreaming
-        ? state
-        : { stream: { ...state.stream, isStreaming: true } },
-    ),
-  isConversationCacheFresh: (threadId) => {
-    const cached = get().conversationCacheByThread[threadId];
-    if (!cached) {
-      return false;
-    }
-    return Date.now() - cached.cachedAt < CONVERSATION_CACHE_FRESHNESS_MS;
-  },
-  isGenerating: false,
-  isLoadingOlderMessages: false,
-  isOpen: readPanelPreference(),
-  latestProposedPlan: null,
-  hasMoreMessages: false,
-  memoryEntries: [],
-  messages: [],
-  messagesCursor: null,
-  modelCosts: {},
-  onboardingCompletionPercent: 0,
-  onboardingEarnedCredits: 0,
-  onboardingSignupGiftCredits: ONBOARDING_SIGNUP_GIFT_CREDITS,
-  onboardingSteps: DEFAULT_ONBOARDING_STEPS,
-  onboardingTotalJourneyCredits: ONBOARDING_JOURNEY_TOTAL_CREDITS,
-  onboardingTotalVisibleCredits: ONBOARDING_TOTAL_VISIBLE_CREDITS,
-  overlayActiveIds: [],
-  overlayAutoCollapsedAgent: false,
-  pageContext: null,
-  pendingInputRequest: null,
-  primeConversationCache: (threadId, data) =>
-    set((state) => {
-      // The active thread's live state is the source of truth; a prefetch
-      // that lands after the user has already navigated there must never
-      // clobber it with a slightly-stale snapshot.
-      if (threadId === state.activeThreadId) {
-        return state;
-      }
-
-      // Same recency-by-reinsertion + LRU eviction as `cacheConversation`.
-      const { [threadId]: _evicted, ...retained } =
-        state.conversationCacheByThread;
-      const next: Record<string, CachedConversation> = {
-        ...retained,
-        [threadId]: {
-          ...data,
-          cachedAt: Date.now(),
-        },
-      };
-
-      const threadIds = Object.keys(next);
-      for (const staleId of threadIds.slice(
-        0,
-        Math.max(0, threadIds.length - CONVERSATION_CACHE_LIMIT),
-      )) {
-        delete next[staleId];
-      }
-
-      return { conversationCacheByThread: next };
-    }),
-  removeMemoryEntry: (entryId) =>
-    set((state) => ({
-      memoryEntries: state.memoryEntries.filter((item) => item.id !== entryId),
-    })),
-  resetActiveConversationState: () => {
-    discardPendingStreamTokens();
-    set({
-      activeRunId: null,
-      activeRunStatus: 'idle',
-      composerSeed: null,
-      draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
-      hasExplicitDraftAgentMode: false,
-      error: null,
-      latestProposedPlan: null,
-      hasMoreMessages: false,
-      isGenerating: false,
-      isLoadingOlderMessages: false,
-      messages: [],
-      messagesCursor: null,
-      pendingInputRequest: null,
-      runStartedAt: null,
-      stream: { ...DEFAULT_STREAM_STATE },
-      threadUiBusyById: {},
-      workEvents: [],
-    });
-  },
-  resetStreamState: () => {
-    discardPendingStreamTokens();
-    set((state) => ({
-      activeRunStatus:
-        state.activeRunStatus === 'cancelling' ? 'cancelling' : 'idle',
-      stream: { ...DEFAULT_STREAM_STATE },
-      workEvents: [],
-    }));
-  },
-  restoreCachedConversation: (threadId) => {
-    const cached = get().conversationCacheByThread[threadId];
-
-    if (!cached) {
-      return false;
-    }
-
-    // Mirrors resetActiveConversationState for everything the cache does not
-    // carry, so no run/stream state leaks across from the thread being left.
-    discardPendingStreamTokens();
-    set({
-      activeRunId: null,
-      activeRunStatus: 'idle',
-      composerSeed: null,
-      draftAgentMode:
-        get().threads.find((thread) => thread.id === threadId)?.mode ??
-        get().savedAgentMode ??
-        DEFAULT_AGENT_THREAD_MODE,
-      hasExplicitDraftAgentMode: false,
-      error: cached.error,
-      latestProposedPlan: cached.latestProposedPlan,
-      hasMoreMessages: cached.hasMoreMessages,
-      isGenerating: false,
-      isLoadingOlderMessages: false,
-      messages: cached.messages,
-      messagesCursor: cached.messagesCursor,
-      pendingInputRequest: cached.pendingInputRequest,
-      runStartedAt: null,
-      stream: { ...DEFAULT_STREAM_STATE },
-      threadUiBusyById: {},
-      workEvents: cached.workEvents,
-    });
-
-    return true;
-  },
-  runStartedAt: null,
-  seedComposer: (content, threadId = null) =>
-    set({
-      composerSeed: {
-        content,
-        nonce: Date.now(),
-        threadId,
-      },
-    }),
-  setActiveRun: (runId, options) =>
-    set({
-      activeRunId: runId,
-      activeRunStatus: options?.status ?? (runId ? 'running' : 'idle'),
-      runStartedAt: options?.startedAt ?? null,
-    }),
-  setActiveRunStatus: (status) => set({ activeRunStatus: status }),
-  setActiveThread: (id) =>
-    set((state) => {
-      // `/agent/new` creates the thread while the store still has `null`, then
-      // the URL catches up. Keep the live stream for that handoff. Switching
-      // from one real thread to another must not keep the previous generation
-      // card in `pendingUiActions`.
-      if (state.activeThreadId === id || !state.activeThreadId) {
-        if (!state.activeThreadId && id) {
-          // Carry the composer-built ("__new__") setup over onto the freshly
-          // created thread's own scope, for both generation types the agent
-          // composer can produce — mirrors adoptNewThreadGenerationPrefs.
-          adoptNewScopeSetup(
-            buildAgentGenerationSetupScope(state.activeThreadId, 'image'),
-            buildAgentGenerationSetupScope(id, 'image'),
-          );
-          adoptNewScopeSetup(
-            buildAgentGenerationSetupScope(state.activeThreadId, 'video'),
-            buildAgentGenerationSetupScope(id, 'video'),
-          );
-        }
-        return { activeThreadId: id };
-      }
-
-      return {
-        activeThreadId: id,
-        stream: { ...DEFAULT_STREAM_STATE },
-      };
-    }),
-  setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
-  setDraftAgentMode: (mode) => set({ draftAgentMode: mode }),
-  setError: (error) =>
-    set((state) => ({
-      error,
-      // Credit/limit failures should not leave the composer stuck on Stop.
-      ...(error
-        ? {
-            activeRunStatus:
-              state.activeRunStatus === 'running' ||
-              state.activeRunStatus === 'cancelling'
-                ? 'failed'
-                : state.activeRunStatus,
-            isGenerating: false,
-          }
-        : {}),
-    })),
-  setIsGenerating: (generating) => set({ isGenerating: generating }),
-  setIsLoadingOlderMessages: (loading) =>
-    set({ isLoadingOlderMessages: loading }),
-  setIsOpen: (open) => {
-    persistPanelPreference(open);
-    set((state) => ({
-      isOpen: open,
-      userChangedAgentDuringOverlay:
-        state.overlayActiveIds.length > 0
-          ? true
-          : state.userChangedAgentDuringOverlay,
-    }));
-  },
-  setLatestProposedPlan: (plan) => set({ latestProposedPlan: plan }),
-  setMemoryEntries: (entries) => set({ memoryEntries: entries }),
-  setMessages: (messages) =>
-    set({
-      hasMoreMessages: false,
-      isLoadingOlderMessages: false,
-      latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
-      messages,
-      messagesCursor: null,
-    }),
-  setMessagesPage: (page) =>
-    set({
-      hasMoreMessages: page.hasMore,
-      isLoadingOlderMessages: false,
-      latestProposedPlan: deriveLatestProposedPlanFromMessages(page.messages),
-      messages: page.messages,
-      messagesCursor: page.nextCursor,
-    }),
-  prependOlderMessages: (page) =>
-    set((state) => {
-      const currentIds = new Set(state.messages.map((message) => message.id));
-      const olderMessages = page.messages.filter(
-        (message) => !currentIds.has(message.id),
-      );
-      const messages = [...olderMessages, ...state.messages];
-
-      return {
-        hasMoreMessages: page.hasMore,
-        latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
-        messages,
-        messagesCursor: page.nextCursor,
-      };
-    }),
-  setModelCosts: (costs) => set({ modelCosts: costs }),
-  setOnboardingChecklist: (payload) =>
-    set({
-      onboardingCompletionPercent: payload.completionPercent ?? 0,
-      onboardingEarnedCredits: payload.earnedCredits ?? 0,
-      onboardingSignupGiftCredits: payload.signupGiftCredits ?? 0,
-      onboardingSteps: payload.steps,
-      onboardingTotalJourneyCredits:
-        payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS,
-      onboardingTotalVisibleCredits:
-        payload.totalOnboardingCreditsVisible ??
-        (payload.signupGiftCredits ?? 0) +
-          (payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS),
-    }),
-  setOnboardingStepStatus: (stepId, status) =>
-    set((state) => ({
-      onboardingSteps: state.onboardingSteps.map((step) =>
-        step.id === stepId ? { ...step, status } : step,
+      });
+    },
+    clearPendingInputRequest: (inputRequestId) =>
+      set((state) =>
+        !inputRequestId ||
+        state.pendingInputRequest?.inputRequestId === inputRequestId
+          ? { pendingInputRequest: null }
+          : {},
       ),
-    })),
-  setPageContext: (context) => set({ pageContext: context }),
-  setPendingInputRequest: (request) => set({ pendingInputRequest: request }),
-  setRunStartedAt: (startedAt) => set({ runStartedAt: startedAt }),
-  setSocketConnectionState: (socketConnectionState) =>
-    set({ socketConnectionState }),
-  setStreamingReasoning: (content) =>
-    set((state) => ({
-      stream: { ...state.stream, streamingReasoning: content },
-    })),
-  setThreadPrompt: (threadId, prompt) =>
-    set((state) => ({
-      threadPrompts: {
-        ...state.threadPrompts,
-        [threadId]: prompt,
-      },
-    })),
-  setThreads: (threads) => set({ threads }),
-  setThreadUiBusy: (threadId, busy) =>
-    set((state) => {
-      if (!threadId) {
-        return state;
-      }
-
-      if (busy) {
+    resolvePendingInputRequest: (threadId, inputRequestId, timestamp) => {
+      let resolved = false;
+      set((state) => {
+        if (
+          state.activeThreadId !== threadId ||
+          state.pendingInputRequest?.threadId !== threadId ||
+          state.pendingInputRequest.inputRequestId !== inputRequestId
+        )
+          return state;
+        resolved = true;
         return {
-          threadUiBusyById: {
-            ...state.threadUiBusyById,
-            [threadId]: true,
+          pendingInputRequest: null,
+          activeRunStatus: 'running',
+          threads: state.threads.map((thread) =>
+            thread.id === threadId
+              ? {
+                  ...thread,
+                  attentionState: 'running',
+                  lastActivityAt: timestamp,
+                  pendingInputCount: 0,
+                  runStatus: 'running',
+                }
+              : thread,
+          ),
+        };
+      });
+      return resolved;
+    },
+    clearThreadAttention: (threadId) =>
+      set((state) => ({
+        threads: state.threads.map((thread) =>
+          thread.id === threadId ? { ...thread, attentionState: null } : thread,
+        ),
+      })),
+    composerSeed: null,
+    conversationCacheByThread: {},
+    creditsRemaining: null,
+    draftAgentMode: DEFAULT_AGENT_THREAD_MODE,
+    savedAgentMode: null,
+    hasExplicitDraftAgentMode: false,
+    endOverlaySession: (overlayId) =>
+      set((state) => {
+        if (!state.overlayActiveIds.includes(overlayId)) {
+          return state;
+        }
+
+        const nextOverlayActiveIds = state.overlayActiveIds.filter(
+          (activeOverlayId) => activeOverlayId !== overlayId,
+        );
+
+        if (nextOverlayActiveIds.length > 0) {
+          return { overlayActiveIds: nextOverlayActiveIds };
+        }
+
+        const shouldRestoreAgent =
+          state.overlayAutoCollapsedAgent &&
+          state.wasAgentOpenBeforeOverlay &&
+          !state.userChangedAgentDuringOverlay &&
+          !state.isOpen;
+
+        return {
+          isOpen: shouldRestoreAgent ? true : state.isOpen,
+          overlayActiveIds: [],
+          overlayAutoCollapsedAgent: false,
+          userChangedAgentDuringOverlay: false,
+          wasAgentOpenBeforeOverlay: false,
+        };
+      }),
+    error: null,
+    finalizeStream: (message) => {
+      // The assistant message below is server-authoritative
+      // (`payload.fullContent` in agent-chat-stream.subscriptions.ts), never the
+      // locally buffered `streamingContent` — a stale in-flight flush landing
+      // after this must not resurrect pre-finalize streaming text (#2517).
+      discardPendingStreamTokens();
+      set((state) => {
+        const mergedUiActions = [
+          ...(message.metadata?.uiActions ?? []),
+          ...state.stream.pendingUiActions,
+        ].filter((action, index, actions) => {
+          // Prefer later copies so tool_complete pending + done metadata with the
+          // same semantic key collapse to one card.
+          const lastWithKey = actions.findLastIndex((candidate) => {
+            if (candidate.id && action.id && candidate.id === action.id) {
+              return true;
+            }
+            // Snapshot cards re-minted with Date.now() ids still share type+title.
+            if (
+              candidate.type === action.type &&
+              (action.type === 'analytics_snapshot_card' ||
+                action.type === 'completion_summary_card') &&
+              candidate.title === action.title
+            ) {
+              return true;
+            }
+            return false;
+          });
+          return lastWithKey === index;
+        });
+
+        return {
+          activeRunId: null,
+          activeRunStatus: 'completed',
+          latestProposedPlan:
+            message.metadata?.proposedPlan ?? state.latestProposedPlan,
+          messages: [
+            ...state.messages,
+            {
+              ...message,
+              metadata:
+                mergedUiActions.length > 0
+                  ? {
+                      ...(message.metadata ?? {}),
+                      uiActions: mergedUiActions,
+                    }
+                  : message.metadata,
+            },
+          ],
+          pendingInputRequest: null,
+          // Clear tool lifecycle rows so sticky "Running get_analytics 15%" cannot
+          // outlive the completed turn.
+          runStartedAt: null,
+          stream: { ...DEFAULT_STREAM_STATE },
+          workEvents: [],
+        };
+      });
+    },
+    markStreamLive: () =>
+      set((state) =>
+        state.stream.isStreaming
+          ? state
+          : { stream: { ...state.stream, isStreaming: true } },
+      ),
+    isConversationCacheFresh: (threadId) => {
+      const cached = get().conversationCacheByThread[threadId];
+      if (!cached) {
+        return false;
+      }
+      return Date.now() - cached.cachedAt < CONVERSATION_CACHE_FRESHNESS_MS;
+    },
+    isGenerating: false,
+    isLoadingOlderMessages: false,
+    isOpen: options.ephemeral ? false : readPanelPreference(),
+    latestProposedPlan: null,
+    hasMoreMessages: false,
+    memoryEntries: [],
+    messages: [],
+    messagesCursor: null,
+    modelCosts: {},
+    onboardingCompletionPercent: 0,
+    onboardingEarnedCredits: 0,
+    onboardingSignupGiftCredits: ONBOARDING_SIGNUP_GIFT_CREDITS,
+    onboardingSteps: DEFAULT_ONBOARDING_STEPS,
+    onboardingTotalJourneyCredits: ONBOARDING_JOURNEY_TOTAL_CREDITS,
+    onboardingTotalVisibleCredits: ONBOARDING_TOTAL_VISIBLE_CREDITS,
+    overlayActiveIds: [],
+    overlayAutoCollapsedAgent: false,
+    pageContext: null,
+    pendingInputRequest: null,
+    primeConversationCache: (threadId, data) =>
+      set((state) => {
+        // The active thread's live state is the source of truth; a prefetch
+        // that lands after the user has already navigated there must never
+        // clobber it with a slightly-stale snapshot.
+        if (threadId === state.activeThreadId) {
+          return state;
+        }
+
+        // Same recency-by-reinsertion + LRU eviction as `cacheConversation`.
+        const { [threadId]: _evicted, ...retained } =
+          state.conversationCacheByThread;
+        const next: Record<string, CachedConversation> = {
+          ...retained,
+          [threadId]: {
+            ...data,
+            cachedAt: Date.now(),
           },
         };
-      }
 
-      const { [threadId]: _, ...remaining } = state.threadUiBusyById;
-      return {
-        threadUiBusyById: remaining,
-      };
-    }),
-  setWorkEvents: (events) => set({ workEvents: events }),
-  socketConnectionState: 'connecting',
-  stream: { ...DEFAULT_STREAM_STATE },
-  threadPrompts: {},
-  threads: [],
-  threadUiBusyById: {},
-  terminalSessionsByThread: loadPersistedSessionsByThread(),
-  activeTerminalSessionByThread: {},
-  setTerminalSessionsByThread: (map) => {
-    persistSessionsByThread(map);
-    set({ terminalSessionsByThread: new Map(map) });
-  },
-  addTerminalSession: (threadKey, session) =>
-    set((state) => {
-      const next = new Map(state.terminalSessionsByThread);
-      const existing = next.get(threadKey) ?? [];
-      if (!existing.some((s) => s.id === session.id)) {
-        next.set(threadKey, [...existing, session]);
-      }
-      persistSessionsByThread(next);
-      return { terminalSessionsByThread: next };
-    }),
-  removeTerminalSession: (threadKey, sessionId) =>
-    set((state) => {
-      const next = new Map(state.terminalSessionsByThread);
-      const filtered = (next.get(threadKey) ?? []).filter(
-        (s) => s.id !== sessionId,
-      );
-      if (filtered.length === 0) {
-        next.delete(threadKey);
-      } else {
-        next.set(threadKey, filtered);
-      }
-      persistSessionsByThread(next);
-
-      // If the active session was killed, fall back to the first remaining one
-      const currentActive = state.activeTerminalSessionByThread[threadKey];
-      if (currentActive === sessionId) {
-        const nextActive = filtered[0];
-        const nextActiveMap = { ...state.activeTerminalSessionByThread };
-        if (nextActive) {
-          nextActiveMap[threadKey] = nextActive.id;
-        } else {
-          delete nextActiveMap[threadKey];
+        const threadIds = Object.keys(next);
+        for (const staleId of threadIds.slice(
+          0,
+          Math.max(0, threadIds.length - CONVERSATION_CACHE_LIMIT),
+        )) {
+          delete next[staleId];
         }
-        return {
-          terminalSessionsByThread: next,
-          activeTerminalSessionByThread: nextActiveMap,
-        };
+
+        return { conversationCacheByThread: next };
+      }),
+    removeMemoryEntry: (entryId) =>
+      set((state) => ({
+        memoryEntries: state.memoryEntries.filter(
+          (item) => item.id !== entryId,
+        ),
+      })),
+    resetActiveConversationState: () => {
+      discardPendingStreamTokens();
+      set({
+        activeRunId: null,
+        activeRunStatus: 'idle',
+        composerSeed: null,
+        draftAgentMode: get().savedAgentMode ?? DEFAULT_AGENT_THREAD_MODE,
+        hasExplicitDraftAgentMode: false,
+        error: null,
+        latestProposedPlan: null,
+        hasMoreMessages: false,
+        isGenerating: false,
+        isLoadingOlderMessages: false,
+        messages: [],
+        messagesCursor: null,
+        pendingInputRequest: null,
+        runStartedAt: null,
+        stream: { ...DEFAULT_STREAM_STATE },
+        threadUiBusyById: {},
+        workEvents: [],
+      });
+    },
+    resetStreamState: () => {
+      discardPendingStreamTokens();
+      set((state) => ({
+        activeRunStatus:
+          state.activeRunStatus === 'cancelling' ? 'cancelling' : 'idle',
+        stream: { ...DEFAULT_STREAM_STATE },
+        workEvents: [],
+      }));
+    },
+    restoreCachedConversation: (threadId) => {
+      const cached = get().conversationCacheByThread[threadId];
+
+      if (!cached) {
+        return false;
       }
 
-      return { terminalSessionsByThread: next };
-    }),
-  setActiveTerminalSession: (threadKey, sessionId) =>
-    set((state) => ({
-      activeTerminalSessionByThread: {
-        ...state.activeTerminalSessionByThread,
-        [threadKey]: sessionId,
-      },
-    })),
-  toggleOpen: () =>
-    set(() => {
-      const state = get();
-      const next = !state.isOpen;
-      persistPanelPreference(next);
-      return {
-        isOpen: next,
+      // Mirrors resetActiveConversationState for everything the cache does not
+      // carry, so no run/stream state leaks across from the thread being left.
+      discardPendingStreamTokens();
+      set({
+        activeRunId: null,
+        activeRunStatus: 'idle',
+        composerSeed: null,
+        draftAgentMode:
+          get().threads.find((thread) => thread.id === threadId)?.mode ??
+          get().savedAgentMode ??
+          DEFAULT_AGENT_THREAD_MODE,
+        hasExplicitDraftAgentMode: false,
+        error: cached.error,
+        latestProposedPlan: cached.latestProposedPlan,
+        hasMoreMessages: cached.hasMoreMessages,
+        isGenerating: false,
+        isLoadingOlderMessages: false,
+        messages: cached.messages,
+        messagesCursor: cached.messagesCursor,
+        pendingInputRequest: cached.pendingInputRequest,
+        runStartedAt: null,
+        stream: { ...DEFAULT_STREAM_STATE },
+        threadUiBusyById: {},
+        workEvents: cached.workEvents,
+      });
+
+      return true;
+    },
+    runStartedAt: null,
+    seedComposer: (content, threadId = null) =>
+      set({
+        composerSeed: {
+          content,
+          nonce: Date.now(),
+          threadId,
+        },
+      }),
+    setActiveRun: (runId, options) =>
+      set({
+        activeRunId: runId,
+        activeRunStatus: options?.status ?? (runId ? 'running' : 'idle'),
+        runStartedAt: options?.startedAt ?? null,
+      }),
+    setActiveRunStatus: (status) => set({ activeRunStatus: status }),
+    setActiveThread: (id) =>
+      set((state) => {
+        // `/agent/new` creates the thread while the store still has `null`, then
+        // the URL catches up. Keep the live stream for that handoff. Switching
+        // from one real thread to another must not keep the previous generation
+        // card in `pendingUiActions`.
+        if (state.activeThreadId === id || !state.activeThreadId) {
+          if (!state.activeThreadId && id) {
+            // Carry the composer-built ("__new__") setup over onto the freshly
+            // created thread's own scope, for both generation types the agent
+            // composer can produce — mirrors adoptNewThreadGenerationPrefs.
+            adoptNewScopeSetup(
+              buildAgentGenerationSetupScope(state.activeThreadId, 'image'),
+              buildAgentGenerationSetupScope(id, 'image'),
+            );
+            adoptNewScopeSetup(
+              buildAgentGenerationSetupScope(state.activeThreadId, 'video'),
+              buildAgentGenerationSetupScope(id, 'video'),
+            );
+          }
+          return { activeThreadId: id };
+        }
+
+        return {
+          activeThreadId: id,
+          activeRunId: null,
+          activeRunStatus: 'idle',
+          runStartedAt: null,
+          stream: { ...DEFAULT_STREAM_STATE },
+        };
+      }),
+    setCreditsRemaining: (credits) => set({ creditsRemaining: credits }),
+    setDraftAgentMode: (mode) => set({ draftAgentMode: mode }),
+    setError: (error) =>
+      set((state) => ({
+        error,
+        // Credit/limit failures should not leave the composer stuck on Stop.
+        ...(error
+          ? {
+              activeRunStatus:
+                state.activeRunStatus === 'running' ||
+                state.activeRunStatus === 'cancelling'
+                  ? 'failed'
+                  : state.activeRunStatus,
+              isGenerating: false,
+            }
+          : {}),
+      })),
+    setIsGenerating: (generating) => set({ isGenerating: generating }),
+    setIsLoadingOlderMessages: (loading) =>
+      set({ isLoadingOlderMessages: loading }),
+    setIsOpen: (open) => {
+      persistPanelPreference(open);
+      set((state) => ({
+        isOpen: open,
         userChangedAgentDuringOverlay:
           state.overlayActiveIds.length > 0
             ? true
             : state.userChangedAgentDuringOverlay,
-      };
-    }),
-  updateActiveToolCall: (toolCallId, update) =>
-    set((state) => ({
-      stream: {
-        ...state.stream,
-        activeToolCalls: state.stream.activeToolCalls.map((tc) =>
-          tc.id === toolCallId ? { ...tc, ...update } : tc,
-        ),
-      },
-    })),
-  updateThread: (threadId, update) =>
-    set((state) => ({
-      threads: sortThreads(
-        state.threads.map((thread) =>
-          thread.id === threadId
-            ? {
-                ...thread,
-                ...update,
-                updatedAt:
-                  update.updatedAt ?? update.lastActivityAt ?? thread.updatedAt,
-              }
-            : thread,
-        ),
-      ),
-    })),
-  upsertThread: (thread) =>
-    set((state) => {
-      if (!isRenderableThreadId(thread.id)) {
-        // Never store threads without a usable id — they would render as
-        // /agent/undefined links downstream.
-        return state;
-      }
+      }));
+    },
+    setLatestProposedPlan: (plan) => set({ latestProposedPlan: plan }),
+    setMemoryEntries: (entries) => set({ memoryEntries: entries }),
+    setMessages: (messages) =>
+      set({
+        hasMoreMessages: false,
+        isLoadingOlderMessages: false,
+        latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
+        messages,
+        messagesCursor: null,
+      }),
+    setMessagesPage: (page) =>
+      set({
+        hasMoreMessages: page.hasMore,
+        isLoadingOlderMessages: false,
+        latestProposedPlan: deriveLatestProposedPlanFromMessages(page.messages),
+        messages: page.messages,
+        messagesCursor: page.nextCursor,
+      }),
+    prependOlderMessages: (page) =>
+      set((state) => {
+        const currentIds = new Set(state.messages.map((message) => message.id));
+        const olderMessages = page.messages.filter(
+          (message) => !currentIds.has(message.id),
+        );
+        const messages = [...olderMessages, ...state.messages];
 
-      const existingIndex = state.threads.findIndex(
-        (item) => item.id === thread.id,
-      );
-      const next =
-        existingIndex === -1
-          ? [thread, ...state.threads]
-          : state.threads.map((item, index) =>
-              index === existingIndex ? { ...item, ...thread } : item,
-            );
+        return {
+          hasMoreMessages: page.hasMore,
+          latestProposedPlan: deriveLatestProposedPlanFromMessages(messages),
+          messages,
+          messagesCursor: page.nextCursor,
+        };
+      }),
+    setModelCosts: (costs) => set({ modelCosts: costs }),
+    setOnboardingChecklist: (payload) =>
+      set({
+        onboardingCompletionPercent: payload.completionPercent ?? 0,
+        onboardingEarnedCredits: payload.earnedCredits ?? 0,
+        onboardingSignupGiftCredits: payload.signupGiftCredits ?? 0,
+        onboardingSteps: payload.steps,
+        onboardingTotalJourneyCredits:
+          payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS,
+        onboardingTotalVisibleCredits:
+          payload.totalOnboardingCreditsVisible ??
+          (payload.signupGiftCredits ?? 0) +
+            (payload.totalJourneyCredits ?? ONBOARDING_JOURNEY_TOTAL_CREDITS),
+      }),
+    setOnboardingStepStatus: (stepId, status) =>
+      set((state) => ({
+        onboardingSteps: state.onboardingSteps.map((step) =>
+          step.id === stepId ? { ...step, status } : step,
+        ),
+      })),
+    setPageContext: (context) => set({ pageContext: context }),
+    setPendingInputRequest: (request) => set({ pendingInputRequest: request }),
+    setRunStartedAt: (startedAt) => set({ runStartedAt: startedAt }),
+    setSocketConnectionState: (socketConnectionState) =>
+      set({ socketConnectionState }),
+    setStreamingReasoning: (content) =>
+      set((state) => ({
+        stream: { ...state.stream, streamingReasoning: content },
+      })),
+    setThreadPrompt: (threadId, prompt) =>
+      set((state) => ({
+        threadPrompts: {
+          ...state.threadPrompts,
+          [threadId]: prompt,
+        },
+      })),
+    setThreads: (threads) => set({ threads }),
+    setThreadUiBusy: (threadId, busy) =>
+      set((state) => {
+        if (!threadId) {
+          return state;
+        }
 
-      return { threads: sortThreads(next) };
-    }),
-  userChangedAgentDuringOverlay: false,
-  wasAgentOpenBeforeOverlay: false,
-  workEvents: [],
-}));
+        if (busy) {
+          return {
+            threadUiBusyById: {
+              ...state.threadUiBusyById,
+              [threadId]: true,
+            },
+          };
+        }
+
+        const { [threadId]: _, ...remaining } = state.threadUiBusyById;
+        return {
+          threadUiBusyById: remaining,
+        };
+      }),
+    setWorkEvents: (events) => set({ workEvents: events }),
+    socketConnectionState: 'connecting',
+    stream: { ...DEFAULT_STREAM_STATE },
+    threadPrompts: {},
+    threads: [],
+    threadUiBusyById: {},
+    terminalSessionsByThread: options.ephemeral
+      ? new Map()
+      : loadPersistedSessionsByThread(),
+    activeTerminalSessionByThread: {},
+    setTerminalSessionsByThread: (map) => {
+      persistSessionsByThread(map);
+      set({ terminalSessionsByThread: new Map(map) });
+    },
+    addTerminalSession: (threadKey, session) =>
+      set((state) => {
+        const next = new Map(state.terminalSessionsByThread);
+        const existing = next.get(threadKey) ?? [];
+        if (!existing.some((s) => s.id === session.id)) {
+          next.set(threadKey, [...existing, session]);
+        }
+        persistSessionsByThread(next);
+        return { terminalSessionsByThread: next };
+      }),
+    removeTerminalSession: (threadKey, sessionId) =>
+      set((state) => {
+        const next = new Map(state.terminalSessionsByThread);
+        const filtered = (next.get(threadKey) ?? []).filter(
+          (s) => s.id !== sessionId,
+        );
+        if (filtered.length === 0) {
+          next.delete(threadKey);
+        } else {
+          next.set(threadKey, filtered);
+        }
+        persistSessionsByThread(next);
+
+        // If the active session was killed, fall back to the first remaining one
+        const currentActive = state.activeTerminalSessionByThread[threadKey];
+        if (currentActive === sessionId) {
+          const nextActive = filtered[0];
+          const nextActiveMap = { ...state.activeTerminalSessionByThread };
+          if (nextActive) {
+            nextActiveMap[threadKey] = nextActive.id;
+          } else {
+            delete nextActiveMap[threadKey];
+          }
+          return {
+            terminalSessionsByThread: next,
+            activeTerminalSessionByThread: nextActiveMap,
+          };
+        }
+
+        return { terminalSessionsByThread: next };
+      }),
+    setActiveTerminalSession: (threadKey, sessionId) =>
+      set((state) => ({
+        activeTerminalSessionByThread: {
+          ...state.activeTerminalSessionByThread,
+          [threadKey]: sessionId,
+        },
+      })),
+    toggleOpen: () =>
+      set(() => {
+        const state = get();
+        const next = !state.isOpen;
+        persistPanelPreference(next);
+        return {
+          isOpen: next,
+          userChangedAgentDuringOverlay:
+            state.overlayActiveIds.length > 0
+              ? true
+              : state.userChangedAgentDuringOverlay,
+        };
+      }),
+    updateActiveToolCall: (toolCallId, update) =>
+      set((state) => ({
+        stream: {
+          ...state.stream,
+          activeToolCalls: state.stream.activeToolCalls.map((tc) =>
+            tc.id === toolCallId ? { ...tc, ...update } : tc,
+          ),
+        },
+      })),
+    updateThread: (threadId, update) =>
+      set((state) => ({
+        threads: sortThreads(
+          state.threads.map((thread) =>
+            thread.id === threadId
+              ? {
+                  ...thread,
+                  ...update,
+                  updatedAt:
+                    update.updatedAt ??
+                    update.lastActivityAt ??
+                    thread.updatedAt,
+                }
+              : thread,
+          ),
+        ),
+      })),
+    upsertThread: (thread) =>
+      set((state) => {
+        if (!isRenderableThreadId(thread.id)) {
+          // Never store threads without a usable id — they would render as
+          // /agent/undefined links downstream.
+          return state;
+        }
+
+        const existingIndex = state.threads.findIndex(
+          (item) => item.id === thread.id,
+        );
+        const next =
+          existingIndex === -1
+            ? [thread, ...state.threads]
+            : state.threads.map((item, index) =>
+                index === existingIndex ? { ...item, ...thread } : item,
+              );
+
+        return { threads: sortThreads(next) };
+      }),
+    userChangedAgentDuringOverlay: false,
+    wasAgentOpenBeforeOverlay: false,
+    workEvents: [],
+  }));
+
+  return Object.assign(store, {
+    disposeStreamTokens: discardPendingStreamTokens,
+  });
+}
+
+export const useAgentChatStore = createAgentChatStore();
