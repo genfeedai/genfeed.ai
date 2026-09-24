@@ -2,11 +2,11 @@
   "dependencies": {
     "@genfeedai/config": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
-    "@tanstack/react-query": "5.102.8",
+    "@tanstack/react-query": "5.103.2",
     "@tiptap/core": "3.31.3",
-    "lucide-react": "1.42.0",
-    "next-intl": "4.14.2",
-    "react": "19.2.8",
+    "lucide-react": "1.48.0",
+    "next-intl": "4.14.7",
+    "react": "19.3.0",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Shared page-level compositions for Genfeed applications",
@@ -16,8 +16,8 @@
     "@testing-library/user-event": "14.6.7",
     "@vitejs/plugin-react": "6.1.1",
     "jsdom": "29.1.1",
-    "react-dom": "19.2.8",
-    "vitest": "5.0.0"
+    "react-dom": "19.3.0",
+    "vitest": "5.0.1"
   },
   "exports": {
     "./*": "./*"

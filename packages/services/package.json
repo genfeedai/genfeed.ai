@@ -5,11 +5,11 @@
     "@genfeedai/contracts": "workspace:*",
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/serializers": "workspace:*",
-    "zod": "4.5.4"
+    "zod": "4.6.5"
   },
   "description": "Shared client-facing services and orchestration helpers for Genfeed applications",
   "devDependencies": {
-    "vitest": "5.0.0"
+    "vitest": "5.0.1"
   },
   "exports": {
     "./*": "./*"

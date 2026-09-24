@@ -2,9 +2,9 @@
   "dependencies": {
     "@genfeedai/helpers": "workspace:*",
     "@genfeedai/pricing": "workspace:*",
-    "dotenv": "17.4.2",
+    "dotenv": "18.0.3",
     "jose": "^6.2.12",
-    "joi": "18.2.8"
+    "joi": "18.2.9"
   },
   "devDependencies": {
     "@types/node": "24.13.3",
