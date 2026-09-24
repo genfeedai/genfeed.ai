@@ -110,9 +110,9 @@ export function DeskEmptyState({
           />
         </div>
       }
-      description="The Desk stays empty until you connect publishing accounts or follow creators. No fake demo corpus — only signals you actually own."
+      description="No saved observed posts are available for this brand yet. Coverage depends on connected accounts and followed creators."
       icon={TrendingUp}
-      label="Warm this workspace with real sources"
+      label="No saved posts yet"
     />
   );
 }

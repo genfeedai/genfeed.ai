@@ -294,7 +294,7 @@ describe('isObservedTrendContent', () => {
     {
       sourceClassification: {
         ...seed.sourceClassification!,
-        sourceKind: 'manual_reference' as const,
+        sourceKind: 'manual_curated_reference' as const,
       },
     },
   ])('preserves observed and non-seed content: %o', (overrides) => {

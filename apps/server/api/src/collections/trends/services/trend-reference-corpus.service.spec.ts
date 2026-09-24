@@ -610,6 +610,49 @@ describe('TrendReferenceCorpusService', () => {
     ]);
   });
 
+  it.each([
+    {
+      sourceClassification: {
+        confidence: 'medium',
+        sourceKind: 'public_platform_reference',
+      },
+    },
+    {
+      sourceClassification: {
+        confidence: 'low',
+        sourceKind: 'owned_brand_reference',
+      },
+    },
+    {
+      sourceClassification: {
+        confidence: 'low',
+        sourceKind: 'manual_curated_reference',
+      },
+    },
+    { mediaUrl: 'https://example.com/media.mp4' },
+    { canonicalUrl: 'https://www.linkedin.com/posts/real-post' },
+    { canonicalUrl: 'https://example.com/company/openai/' },
+  ])('preserves non-seed references: %o', async (overrides) => {
+    const observed = referenceRows[0];
+    prisma.trendSourceReference.findMany.mockResolvedValueOnce([
+      {
+        ...observed,
+        data: {
+          ...observed.data,
+          platform: 'linkedin',
+          canonicalUrl: 'https://www.linkedin.com/company/openai/',
+          sourceClassification: {
+            confidence: 'low',
+            sourceKind: 'public_platform_reference',
+          },
+          ...overrides,
+        },
+      },
+    ]);
+    const corpus = await service.getReferenceCorpus('org_1', 'brand_1');
+    expect(corpus.items.map((item) => item.id)).toEqual([observed.id]);
+  });
+
   it('derives prompt-ready reference packs with source traceability and regeneration metadata', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-13T00:00:00.000Z'));

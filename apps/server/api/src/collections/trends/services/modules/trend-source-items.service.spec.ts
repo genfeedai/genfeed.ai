@@ -56,6 +56,15 @@ describe('TrendSourceItemsService', () => {
       expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
     });
 
+    it('does not use trend creation time for an observed post with no publication date', async () => {
+      apify.searchInstagramByHashtag.mockResolvedValue([
+        { id: 'ig-undated', shortCode: 'undated', caption: 'Observed post' },
+      ]);
+      const [item] = await service.fetchTrendSourceItems(makeTrend(), 5);
+      expect(item.publishedAt).toBeUndefined();
+      expect(item.sourceClassification?.sourceTimestamp).toBeUndefined();
+    });
+
     it('returns [] for an unsupported platform', async () => {
       const trend = makeTrend({ platform: 'pinterest' });
 

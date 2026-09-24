@@ -59,7 +59,7 @@ export class TrendQueryService {
     }
 
     if (
-      this.isSyntheticTrendData(doc.data as unknown as Record<string, unknown>)
+      this.isUnobservedTrendData(doc.data as unknown as Record<string, unknown>)
     ) {
       return null;
     }
@@ -95,7 +95,7 @@ export class TrendQueryService {
 
     return activeGlobalTrends.filter(
       (doc) =>
-        !this.isSyntheticTrendData(
+        !this.isUnobservedTrendData(
           doc.data as unknown as Record<string, unknown>,
         ),
     ).length;
@@ -148,6 +148,18 @@ export class TrendQueryService {
     } as unknown as TrendDocument);
   }
 
+  private isUnobservedTrendData(data: Record<string, unknown> | null): boolean {
+    if (this.isSyntheticTrendData(data)) return true;
+    const metadata = data?.metadata;
+    return (
+      data?.platform === 'linkedin' &&
+      !!metadata &&
+      typeof metadata === 'object' &&
+      'source' in metadata &&
+      metadata.source === 'public-reference'
+    );
+  }
+
   private isSyntheticTrendData(data: Record<string, unknown> | null): boolean {
     if (!data || typeof data !== 'object') {
       return false;
@@ -193,7 +205,7 @@ export class TrendQueryService {
     return docs
       .filter((doc) => {
         const d = doc.data as unknown as Record<string, unknown>;
-        if (this.isSyntheticTrendData(d)) {
+        if (this.isUnobservedTrendData(d)) {
           return false;
         }
         if (options.activeOnly) {

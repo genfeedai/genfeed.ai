@@ -81,35 +81,15 @@ export class TrendSourcePreviewService {
   }
 
   /**
-   * Fetch live source items for a trend (falling back to synthesized items)
+   * Read stored observed source items for a trend
    * and annotate them with reference IDs.
    */
   async getAnnotatedSourceItems(
     trend: TrendEntity,
     limit: number,
   ): Promise<TrendSourceItem[]> {
-    try {
-      const items = await this.trendSourceItemsService.fetchTrendSourceItems(
-        trend,
-        limit,
-      );
-      if (items.length > 0) {
-        return this.trendReferenceCorpusService.annotateSourceItemsWithReferenceIds(
-          items,
-        );
-      }
-    } catch (error: unknown) {
-      this.loggerService.warn('Failed to fetch live trend source items', {
-        error: error instanceof Error ? error.message : String(error),
-        platform: trend.platform,
-        trendId: trend.id,
-      });
-    }
-
     return this.trendReferenceCorpusService.annotateSourceItemsWithReferenceIds(
-      this.trendSourceItemsService
-        .buildFallbackTrendSourceItems(trend)
-        .slice(0, limit),
+      this.trendSourceItemsService.getStoredTrendSourcePreview(trend, limit),
     );
   }
 
@@ -311,7 +291,7 @@ export class TrendSourcePreviewService {
     const refresh =
       (options.refresh ?? false) && (await this.claimRefreshCooldown(scope));
     const cacheKey = this.cacheService.generateKey(
-      'trends:content',
+      'trends:content:v2',
       scope.organizationId || 'global',
       scope.brandId || 'global',
       platform || 'all',
@@ -327,15 +307,7 @@ export class TrendSourcePreviewService {
 
     const result = await loadAccessControl();
 
-    const trends = refresh
-      ? await this.precomputeTrendSourcePreview(result.trends, {
-          force: true,
-          limit: TREND_SOURCE_PREVIEW_LIMIT,
-          writeScope: {
-            organizationId: scope.organizationId?.trim() || null,
-          },
-        })
-      : result.trends;
+    const trends = result.trends;
     if (refresh) {
       // Refresh repopulates only the current key; bust shared content tags so
       // other trends:content:* variants don't keep serving stale previews.
@@ -485,11 +457,8 @@ export class TrendSourcePreviewService {
       return cachedItems;
     }
 
-    const fallbackItems = this.trendSourceItemsService
-      .buildFallbackTrendSourceItems(trend)
-      .slice(0, limit);
     if (!options.allowLiveFetch) {
-      return fallbackItems;
+      return [];
     }
 
     try {
@@ -509,7 +478,7 @@ export class TrendSourcePreviewService {
       });
     }
 
-    return fallbackItems;
+    return [];
   }
 
   private buildTrendContentItems(
@@ -528,10 +497,7 @@ export class TrendSourcePreviewService {
           trend,
           TREND_SOURCE_PREVIEW_LIMIT,
         );
-      const sourceItems =
-        storedItems.length > 0
-          ? storedItems
-          : this.trendSourceItemsService.buildFallbackTrendSourceItems(trend);
+      const sourceItems = storedItems;
 
       for (const sourceItem of sourceItems) {
         const contentItem: TrendContentItem = {

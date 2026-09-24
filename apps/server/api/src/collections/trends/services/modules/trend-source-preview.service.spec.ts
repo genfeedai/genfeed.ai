@@ -127,6 +127,20 @@ describe('TrendSourcePreviewService', () => {
     });
   });
 
+  it('returns an empty detail preview without manufacturing or collecting posts', async () => {
+    const fetchSpy = vi.spyOn(sourceItems, 'fetchTrendSourceItems');
+    const result = await service.buildTrendDiscoveryItem(
+      makeTrend({
+        metadata: {
+          urls: ['https://example.com'],
+          sampleContent: 'not a post',
+        },
+      }),
+    );
+    expect(result.sourcePreview).toEqual([]);
+    expect(fetchSpy).not.toHaveBeenCalled();
+  });
+
   describe('getTrendContent', () => {
     const trendA = makeTrend({
       id: 'a',
@@ -186,6 +200,13 @@ describe('TrendSourcePreviewService', () => {
       expect(result.items.map((i) => i.contentRank)).toEqual([1, 2]);
       expect(result.totalTrends).toBe(2);
       expect(cache.set).toHaveBeenCalledOnce();
+      expect(cache.generateKey).toHaveBeenCalledWith(
+        'trends:content:v2',
+        'org',
+        'global',
+        'all',
+        10,
+      );
     });
 
     it('hydrates a global preview without persisting it during a tenant refresh', async () => {
@@ -553,7 +574,7 @@ describe('TrendSourcePreviewService', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it('claims the cooldown before spending Apify runs on a refresh', async () => {
+    it('claims the cooldown before refreshing saved content', async () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
 
       await service.getTrendContent(

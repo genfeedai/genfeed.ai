@@ -445,7 +445,17 @@ export default function DiscoveryDesk() {
         !isLoading &&
         !currentError &&
         items.length === 0 ? (
-          <DiscoveryReadinessCards summary={summary} />
+          <>
+            <DiscoveryReadinessCards summary={summary} />
+            <DeskEmptyState
+              followingHref={followingHref}
+              hasSearch={false}
+              isRefreshing={isRefreshing}
+              onClearSearch={() => setSearch('')}
+              onRefresh={handleRefresh}
+              publishingHref={publishingHref}
+            />
+          </>
         ) : null}
 
         {!isFollowingView && hasDeskItems ? (
