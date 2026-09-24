@@ -3,6 +3,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { AgentScopeContextService } from '@api/index';
+import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
 import type {
   AgentChatContext,
   AgentChatRequest,
@@ -16,7 +17,10 @@ import {
   DEFAULT_AGENT_THREAD_MODE,
   normalizeAgentThreadMode,
 } from '@genfeedai/contracts';
-import { toAgentScopeMetadata } from '@genfeedai/contracts/interfaces';
+import {
+  toAgentScopeMetadata,
+  type ValidatedAgentScope,
+} from '@genfeedai/contracts/interfaces';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
@@ -63,6 +67,7 @@ export class AgentTurnAcceptanceService {
     private readonly workflowRunner: SystemWorkflowRunnerService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly threadEngine: AgentThreadEngineService,
+    private readonly streamPublisher: AgentStreamPublisherService,
     @Optional()
     private readonly settingsService?: SettingsService,
   ) {}
@@ -160,6 +165,48 @@ export class AgentTurnAcceptanceService {
       userId: context.userId,
     });
 
+    await this.publishTurnAccepted({
+      clientRequestId: request.clientRequestId,
+      organizationId: context.organizationId,
+      runId: executionId,
+      threadId,
+      userId: context.userId,
+    });
+
+    await this.persistUserMessage(
+      request,
+      context,
+      scope,
+      threadId,
+      executionId,
+    );
+
+    this.logger.log('Agent turn workflow accepted', {
+      clientRequestId: request.clientRequestId,
+      executionId,
+      organizationId: context.organizationId,
+      threadId,
+    });
+
+    return {
+      brandId: thread.brandId ?? undefined,
+      clientRequestId: request.clientRequestId,
+      contextId,
+      contextVersion,
+      executionId,
+      queuedAt,
+      status: 'queued',
+      threadId,
+    };
+  }
+
+  private async persistUserMessage(
+    request: AgentChatRequest,
+    context: AgentChatContext,
+    scope: ValidatedAgentScope,
+    threadId: string,
+    executionId: string,
+  ): Promise<void> {
     // Acceptance owns the durable user turn. Persisting it only inside the
     // execution left titled, zero-message threads whenever provider
     // resolution failed before the generation loop reached its own idempotent
@@ -198,24 +245,24 @@ export class AgentTurnAcceptanceService {
       room: threadId,
       userId: context.userId,
     });
+  }
 
-    this.logger.log('Agent turn workflow accepted', {
-      clientRequestId: request.clientRequestId,
-      executionId,
-      organizationId: context.organizationId,
-      threadId,
-    });
-
-    return {
-      brandId: thread.brandId ?? undefined,
-      clientRequestId: request.clientRequestId,
-      contextId,
-      contextVersion,
-      executionId,
-      queuedAt,
-      status: 'queued',
-      threadId,
-    };
+  private async publishTurnAccepted(
+    data: Omit<
+      Parameters<AgentStreamPublisherService['publishTurnAccepted']>[0],
+      'acceptedAt'
+    >,
+  ): Promise<void> {
+    try {
+      await this.streamPublisher.publishTurnAccepted({
+        ...data,
+        acceptedAt: new Date().toISOString(),
+      });
+    } catch {
+      this.logger.warn('Agent turn accepted publication failed', {
+        runId: data.runId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 128),
+      });
+    }
   }
 
   /**
