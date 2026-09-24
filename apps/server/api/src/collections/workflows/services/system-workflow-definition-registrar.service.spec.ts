@@ -22,23 +22,17 @@ describe('system workflow definition registrar contract', () => {
   });
 });
 
-it('registers fallback templates without dropping graph inputs', () => {
+it('leaves the analytics parent to its domain owner while retaining shared graphs', () => {
   const runner = { registerWorkflow: vi.fn() };
   new SystemWorkflowDefinitionRegistrarService(runner as never).onModuleInit();
   const definitions = runner.registerWorkflow.mock.calls.map(
     ([definition]) => definition,
   );
-  const analytics = definitions.find(
-    (definition) => definition.canonicalId === 'analytics-sync',
-  );
   expect(
-    analytics.definition.inputVariables.map(
-      (input: { key: string }) => input.key,
+    definitions.some(
+      (definition) => definition.canonicalId === 'analytics-sync',
     ),
-  ).toEqual(['brandId', 'since']);
-  expect(
-    analytics.definition.nodes.map((node: { id: string }) => node.id),
-  ).toContain('sync-each-item');
+  ).toBe(false);
   expect(
     definitions.find(
       (definition) => definition.canonicalId === 'content-loop-autopilot',

@@ -12,7 +12,6 @@ import { AD_SYNC_CHILD_WORKFLOWS } from '@api/collections/workflows/templates/ad
 import {
   ANALYTICS_COLLECTION_CHILD_WORKFLOWS,
   ANALYTICS_GENERIC_CHILD_WORKFLOWS,
-  ANALYTICS_SYNC_WORKFLOW_TEMPLATES,
 } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
 import { CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES } from '@api/collections/workflows/templates/content-loop-autopilot-workflows.template';
 import type { WorkflowTemplate } from '@api/collections/workflows/templates/workflow-templates';
@@ -25,9 +24,6 @@ export class SystemWorkflowDefinitionRegistrarService implements OnModuleInit {
 
   onModuleInit(): void {
     const templates: Array<WorkflowTemplate & { schedule: string }> = [
-      ...ANALYTICS_SYNC_WORKFLOW_TEMPLATES.filter(
-        (template) => template.id === 'analytics-sync',
-      ),
       ...CONTENT_LOOP_AUTOPILOT_WORKFLOW_TEMPLATES,
     ];
     const definitions = [
