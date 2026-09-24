@@ -235,6 +235,7 @@ export class SkillsService {
       where: {
         config: { equals: sourceListingId, path: ['sourceListingId'] },
         isDeleted: false,
+        isQuarantined: false,
         organizationId,
       },
     });
@@ -742,6 +743,7 @@ export class SkillsService {
     return {
       AND: [
         { isDeleted: false },
+        { isQuarantined: false },
         {
           OR: [{ organizationId }, this.buildBuiltInCatalogWhere()],
         },
@@ -818,6 +820,7 @@ export class SkillsService {
       where: {
         AND: [
           { isDeleted: false },
+          { isQuarantined: false },
           {
             OR: [{ organizationId }, this.buildBuiltInCatalogWhere()],
           },

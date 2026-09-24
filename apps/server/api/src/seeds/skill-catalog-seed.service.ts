@@ -9,6 +9,7 @@
 import type { FirstPartySkillDefinition } from '@api/collections/skills/catalog/first-party-skill.types';
 import { loadFirstPartySkillDefinitions } from '@api/collections/skills/catalog/first-party-skill-loader';
 import { isBuiltInSkillIdentity } from '@api/collections/skills/constants/skill-validation.constant';
+import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -121,15 +122,22 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
 
     if (!existing) {
       // tenant-scope-ignore: first-party catalog rows are organizationId-null
-      await this.prisma.skill.create({
-        data: {
-          config: this.buildCatalogConfig(definition) as Prisma.InputJsonValue,
-          id: definition.id,
-          isDeleted: false,
-          label: definition.name,
-          organizationId: null,
-        },
-      });
+      await withSkillWriteSession(
+        this.prisma,
+        { origin: 'provisioning' },
+        (tx) =>
+          tx.skill.create({
+            data: {
+              config: this.buildCatalogConfig(
+                definition,
+              ) as Prisma.InputJsonValue,
+              id: definition.id,
+              isDeleted: false,
+              label: definition.name,
+              organizationId: null,
+            },
+          }),
+      );
       return 'inserted';
     }
 
@@ -173,15 +181,17 @@ export class SkillCatalogSeedService implements OnApplicationBootstrap {
     }
 
     // tenant-scope-ignore: updates the same migration-owned global catalog id
-    await this.prisma.skill.update({
-      data: {
-        config: nextConfig as Prisma.InputJsonValue,
-        isDeleted: false,
-        label: definition.name,
-        organizationId: null,
-      },
-      where: { id: definition.id },
-    });
+    await withSkillWriteSession(this.prisma, { origin: 'provisioning' }, (tx) =>
+      tx.skill.update({
+        data: {
+          config: nextConfig as Prisma.InputJsonValue,
+          isDeleted: false,
+          label: definition.name,
+          organizationId: null,
+        },
+        where: { id: definition.id },
+      }),
+    );
 
     return 'updated';
   }

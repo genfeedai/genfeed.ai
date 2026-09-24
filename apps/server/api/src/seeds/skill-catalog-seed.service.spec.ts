@@ -40,6 +40,8 @@ const geo: FirstPartySkillDefinition = {
 
 describe('SkillCatalogSeedService', () => {
   let prisma: {
+    $executeRaw: ReturnType<typeof vi.fn>;
+    $transaction: ReturnType<typeof vi.fn>;
     skill: {
       create: ReturnType<typeof vi.fn>;
       findUnique: ReturnType<typeof vi.fn>;
@@ -55,12 +57,17 @@ describe('SkillCatalogSeedService', () => {
 
   beforeEach(() => {
     prisma = {
+      $executeRaw: vi.fn().mockResolvedValue(0),
+      $transaction: vi.fn(),
       skill: {
         create: vi.fn().mockResolvedValue({}),
         findUnique: vi.fn().mockResolvedValue(null),
         update: vi.fn().mockResolvedValue({}),
       },
     };
+    prisma.$transaction.mockImplementation(
+      (fn: (tx: typeof prisma) => unknown) => fn(prisma),
+    );
     logger = {
       error: vi.fn(),
       log: vi.fn(),
