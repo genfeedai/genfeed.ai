@@ -7,6 +7,7 @@ import {
 } from '@contexts/models/models-context/models-context';
 import { ButtonVariant, ModalEnum } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import type { LayoutProps } from '@props/layout/layout.props';
 import AdminOrgBrandFilter from '@ui/content/admin-filters/AdminOrgBrandFilter';
@@ -73,24 +74,66 @@ function ModelsLayoutContent({ children }: LayoutProps) {
       description="Manage AI models, their configurations, and availability settings"
       icon={Cpu}
       headerTabs={{
+        activeTab: createFilterHref(
+          APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+          searchParamsString,
+          'type',
+          searchParams?.get('type') ?? 'all',
+        ),
         fullWidth: false,
         tabs: [
-          { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/all`, label: 'All' },
           {
-            href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/image`,
+            href: createFilterHref(
+              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+              searchParamsString,
+              'type',
+              'all',
+            ),
+            label: 'All',
+          },
+          {
+            href: createFilterHref(
+              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+              searchParamsString,
+              'type',
+              'image',
+            ),
             label: 'Image',
           },
           {
-            href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/video`,
+            href: createFilterHref(
+              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+              searchParamsString,
+              'type',
+              'video',
+            ),
             label: 'Video',
           },
           {
-            href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/music`,
+            href: createFilterHref(
+              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+              searchParamsString,
+              'type',
+              'music',
+            ),
             label: 'Music',
           },
-          { href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/text`, label: 'Text' },
           {
-            href: `${APP_ROUTES.ADMIN.AUTOMATION.MODELS}/other`,
+            href: createFilterHref(
+              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+              searchParamsString,
+              'type',
+              'text',
+            ),
+            label: 'Text',
+          },
+          {
+            href: createFilterHref(
+              APP_ROUTES.ADMIN.AUTOMATION.MODELS,
+              searchParamsString,
+              'type',
+              'other',
+            ),
             label: 'Other',
           },
         ],

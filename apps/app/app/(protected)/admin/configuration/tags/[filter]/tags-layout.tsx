@@ -1,29 +1,41 @@
+'use client';
+
 import { PageScope } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import type { ITagsLayoutProps } from '@props/admin/tags.props';
 import Container from '@ui/layout/container/Container';
 import { Tag } from 'lucide-react';
+import { useSearchParams } from 'next/navigation';
 
 export default function TagsLayout({
   children,
   scope,
   rightActions,
 }: ITagsLayoutProps) {
+  const search = useSearchParams()?.toString() ?? '';
+  const filterHref = (filter: string) =>
+    createFilterHref(
+      APP_ROUTES.ADMIN.CONFIGURATION.TAGS,
+      search,
+      'filter',
+      filter,
+    );
   // Both customer and admin views navigate the same tag categories.
   const tabs =
     scope === PageScope.ORGANIZATION || scope === PageScope.SUPERADMIN
       ? [
-          { href: APP_ROUTES.ADMIN.CONFIGURATION.TAGS_ALL, label: 'All' },
+          { href: filterHref('all'), label: 'All' },
           {
-            href: `${APP_ROUTES.ADMIN.CONFIGURATION.TAGS}/default`,
+            href: filterHref('default'),
             label: 'Default',
           },
           {
-            href: `${APP_ROUTES.ADMIN.CONFIGURATION.TAGS}/organization`,
+            href: filterHref('organization'),
             label: 'Organization',
           },
           {
-            href: `${APP_ROUTES.ADMIN.CONFIGURATION.TAGS}/account`,
+            href: filterHref('account'),
             label: 'Account',
           },
         ]
@@ -37,6 +49,9 @@ export default function TagsLayout({
       headerTabs={
         tabs
           ? {
+              activeTab: filterHref(
+                new URLSearchParams(search).get('filter') ?? 'all',
+              ),
               fullWidth: false,
               tabs,
             }

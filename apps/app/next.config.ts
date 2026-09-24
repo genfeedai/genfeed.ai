@@ -145,6 +145,87 @@ function appHomeRedirects(
   ];
 }
 
+const filterRouteRedirects = [
+  ['/workspace/inbox/all', '/workspace/inbox?view=all'],
+  ['/workspace/inbox/recent', '/workspace/inbox?view=recent'],
+  ['/workspace/inbox/unread', '/workspace/inbox?view=unread'],
+  ['/settings/models/all', '/settings/models?type=all'],
+  ['/settings/models/images', '/settings/models?type=images'],
+  ['/settings/models/videos', '/settings/models?type=videos'],
+  ['/settings/models/text', '/settings/models?type=text'],
+  ['/settings/models/trainings', '/settings/models?type=trainings'],
+  ['/library/recent', '/library/assets?place=recent'],
+  ['/library/starred', '/library/assets?place=starred'],
+  ['/library/trash', '/library/assets?place=trash'],
+  ['/library/shelf/generating', '/library/assets?shelf=generating'],
+  ['/library/shelf/unsorted', '/library/assets?shelf=unsorted'],
+  ['/library/shelf/needs-review', '/library/assets?shelf=needs-review'],
+  ['/library/shelf/approved', '/library/assets?shelf=approved'],
+  ['/library/shelf/failed', '/library/assets?shelf=failed'],
+  ['/library/shelf/archived', '/library/assets?shelf=archived'],
+  ['/library/images', '/library/assets?categories=IMAGE&categories=IMAGE_EDIT'],
+  ['/library/videos', '/library/assets?categories=VIDEO&categories=VIDEO_EDIT'],
+  ['/library/gifs', '/library/assets?categories=GIF'],
+  ['/library/avatars', '/library/assets?categories=AVATAR'],
+  ['/library/music', '/library/assets?categories=MUSIC&categories=AUDIO'],
+].flatMap(([source, destination]) =>
+  ['', '/:orgSlug/:brandSlug', '/:orgSlug/~'].map((prefix) => ({
+    source: `${prefix}${source}`,
+    destination: `${prefix}${destination}`,
+    permanent: true,
+  })),
+);
+
+const adminFilterRouteRedirects = [
+  ['/admin/automation/models/all', '/admin/automation/models?type=all'],
+  ['/admin/automation/models/image', '/admin/automation/models?type=image'],
+  ['/admin/automation/models/video', '/admin/automation/models?type=video'],
+  ['/admin/automation/models/music', '/admin/automation/models?type=music'],
+  ['/admin/automation/models/text', '/admin/automation/models?type=text'],
+  ['/admin/automation/models/other', '/admin/automation/models?type=other'],
+  [
+    '/admin/content/ingredients/videos',
+    '/admin/content/ingredients?assetType=videos',
+  ],
+  [
+    '/admin/content/ingredients/images',
+    '/admin/content/ingredients?assetType=images',
+  ],
+  [
+    '/admin/content/ingredients/gifs',
+    '/admin/content/ingredients?assetType=gifs',
+  ],
+  [
+    '/admin/content/ingredients/musics',
+    '/admin/content/ingredients?assetType=musics',
+  ],
+  [
+    '/admin/content/ingredients/avatars',
+    '/admin/content/ingredients?assetType=avatars',
+  ],
+  [
+    '/admin/content/ingredients/voices',
+    '/admin/content/ingredients?assetType=voices',
+  ],
+  [
+    '/admin/content/ingredients/ingredients',
+    '/admin/content/ingredients?assetType=ingredients',
+  ],
+  ['/admin/configuration/tags/all', '/admin/configuration/tags?filter=all'],
+  [
+    '/admin/configuration/tags/default',
+    '/admin/configuration/tags?filter=default',
+  ],
+  [
+    '/admin/configuration/tags/organization',
+    '/admin/configuration/tags?filter=organization',
+  ],
+  [
+    '/admin/configuration/tags/account',
+    '/admin/configuration/tags?filter=account',
+  ],
+].map(([source, destination]) => ({ source, destination, permanent: true }));
+
 const config = createAppNextConfig({
   // Defense in depth alongside app/robots.txt/route.ts and root metadata: the
   // header also covers responses that carry no HTML head (API routes, redirects,
@@ -194,37 +275,8 @@ const config = createAppNextConfig({
       source: `${APP_ROUTES.ADMIN.ROOT}/overview`,
     },
 
-    {
-      destination: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-      permanent: false,
-      source: APP_ROUTES.WORKSPACE.INBOX,
-    },
-    {
-      // Cloud org/brand-scoped inbox index has no page (only [view]); redirect
-      // to the unread view so `/:org/:brand/workspace/inbox` doesn't 404.
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.INBOX,
-      ),
-    },
-    {
-      destination: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-      ),
-      permanent: false,
-      source: createOrganizationAppRoute(
-        ':orgSlug',
-        APP_ROUTES.WORKSPACE.INBOX,
-      ),
-    },
+    ...filterRouteRedirects,
+    ...adminFilterRouteRedirects,
     // Agent CTAs historically emitted bare `/review` (and route-rewrite scoped
     // it to `/:org/:brand/review`) — that page never existed. Send both dead
     // shapes to Publishing Review so stored thread links stop 404ing.

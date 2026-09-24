@@ -171,45 +171,27 @@ describe('app next.config', () => {
     });
   });
 
-  it('redirects /workspace/inbox to /workspace/inbox/unread', async () => {
-    const redirects = await config.redirects?.();
-    const inboxRedirect = redirects?.find(
-      (redirect) => redirect.source === APP_ROUTES.WORKSPACE.INBOX,
-    );
-
-    expect(inboxRedirect).toEqual({
-      destination: APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-      permanent: false,
-      source: APP_ROUTES.WORKSPACE.INBOX,
-    });
-  });
-
-  it('redirects org/brand-scoped /:orgSlug/:brandSlug/workspace/inbox to its unread view', async () => {
-    const redirects = await config.redirects?.();
-    const scopedInboxRedirect = redirects?.find(
-      (redirect) =>
-        redirect.source ===
-        createBrandAppRoute(
-          ':orgSlug',
-          ':brandSlug',
-          APP_ROUTES.WORKSPACE.INBOX,
+  it.each(['', '/:orgSlug/:brandSlug', '/:orgSlug/~'])(
+    'redirects old filter paths under %s without redirecting the canonical inbox',
+    async (prefix) => {
+      const redirects = await config.redirects?.();
+      expect(redirects).toContainEqual({
+        source: `${prefix}/workspace/inbox/all`,
+        destination: `${prefix}/workspace/inbox?view=all`,
+        permanent: true,
+      });
+      expect(
+        redirects?.some(
+          (entry) => entry.source === `${prefix}/workspace/inbox`,
         ),
-    );
-
-    expect(scopedInboxRedirect).toEqual({
-      destination: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.INBOX_UNREAD,
-      ),
-      permanent: false,
-      source: createBrandAppRoute(
-        ':orgSlug',
-        ':brandSlug',
-        APP_ROUTES.WORKSPACE.INBOX,
-      ),
-    });
-  });
+      ).toBe(false);
+      expect(redirects).toContainEqual({
+        source: `${prefix}/library/shelf/approved`,
+        destination: `${prefix}/library/assets?shelf=approved`,
+        permanent: true,
+      });
+    },
+  );
 
   it.each([
     APP_ROUTES.WORKSPACE.ROOT,

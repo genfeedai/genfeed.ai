@@ -346,6 +346,51 @@ describe('MenuShared', () => {
     ).not.toBeInTheDocument();
   });
 
+  it.each(['all', 'recent'])('keeps Inbox selected on its %s alias', (view) => {
+    mockPathname.value = `/acme/moonrise-studio/workspace/inbox/${view}`;
+    render(
+      <MenuShared
+        config={{
+          logoHref: '/',
+          items: [
+            {
+              href: '/workspace/inbox/unread',
+              label: 'Inbox',
+              matchPaths: ['/workspace/inbox'],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('Inbox (2)')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
+  });
+
+  it('keeps Inbox selected across query filters', () => {
+    mockPathname.value = '/acme/moonrise-studio/workspace/inbox';
+    mockSearchParams.value = 'view=all&taskId=task-1';
+    render(
+      <MenuShared
+        config={{
+          logoHref: '/',
+          items: [
+            {
+              href: '/workspace/inbox?view=unread',
+              label: 'Inbox',
+              matchPaths: ['/workspace/inbox'],
+            },
+          ],
+        }}
+      />,
+    );
+    expect(screen.getByText('Inbox (2)')).toHaveAttribute(
+      'data-active',
+      'true',
+    );
+  });
+
   it('attaches the unread workspace task count to the inbox row', () => {
     const inboxConfig: MenuShellConfig = {
       items: [

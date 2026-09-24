@@ -31,6 +31,42 @@ class MockIntersectionObserver {
 vi.stubGlobal('IntersectionObserver', MockIntersectionObserver);
 
 describe('Tabs', () => {
+  it('matches query tabs independently of query order and unrelated filters', () => {
+    mockPathname = '/workspace/inbox';
+    mockSearch = 'taskId=task-1&view=all';
+    const { rerender } = render(
+      <Tabs
+        items={[
+          { href: '/workspace/inbox?view=unread', label: 'Unread' },
+          { href: '/workspace/inbox?view=all', label: 'All' },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('link', { name: 'All' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    expect(screen.getByRole('link', { name: 'Unread' })).toHaveAttribute(
+      'data-state',
+      'inactive',
+    );
+    mockSearch = 'view=unread';
+    rerender(
+      <Tabs
+        items={[
+          { href: '/workspace/inbox?view=unread', label: 'Unread' },
+          { href: '/workspace/inbox?view=all', label: 'All' },
+        ]}
+      />,
+    );
+    expect(screen.getByRole('link', { name: 'Unread' })).toHaveAttribute(
+      'data-state',
+      'active',
+    );
+    mockPathname = '/dashboard';
+    mockSearch = '';
+  });
+
   it('prefers an explicit activeTab for navigation tabs', () => {
     mockPathname = '/content/posts';
     mockSearch = '';

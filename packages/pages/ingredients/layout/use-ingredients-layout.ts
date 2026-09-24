@@ -84,7 +84,8 @@ export function useIngredientsLayout({
     const brandParam = searchParams?.get('brand');
 
     // Determine ingredient type from pathname for default format
-    const routeIngredientType = getIngredientTypeFromPathname(pathname);
+    const routeIngredientType =
+      searchParams?.get('assetType') ?? getIngredientTypeFromPathname(pathname);
 
     // Default format to "all" (empty string) - don't force format filter
     const defaultFormat = formatParam || '';
@@ -134,8 +135,9 @@ export function useIngredientsLayout({
     defaultType ?? 'videos',
   );
   const routeIngredientType = useMemo(
-    () => getIngredientTypeFromPathname(pathname),
-    [pathname],
+    () =>
+      searchParams?.get('assetType') ?? getIngredientTypeFromPathname(pathname),
+    [pathname, searchParams],
   );
   const ingredientType =
     defaultType ?? routeIngredientType ?? selectedIngredientType;
@@ -145,7 +147,18 @@ export function useIngredientsLayout({
 
   const updateURLFromFilters = useCallback(
     (newFilters: IFiltersState) => {
-      const params = new URLSearchParams();
+      const params = new URLSearchParams(searchParams?.toString() ?? '');
+      for (const key of [
+        'search',
+        'status',
+        'format',
+        'type',
+        'provider',
+        'sort',
+        'brand',
+        'page',
+      ])
+        params.delete(key);
       // Prefer route defaultType (videos/images/…) — filters.type is often empty.
       const typeForDefaults =
         defaultType ||

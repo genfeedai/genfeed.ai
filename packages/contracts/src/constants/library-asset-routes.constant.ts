@@ -67,5 +67,8 @@ export function createLibraryAssetRoute(
     return route;
   }
 
-  return `${route}?${LIBRARY_ASSET_QUERY_KEY}=${encodeURIComponent(assetId)}`;
+  const [pathname, search = ''] = route.split('?');
+  const params = new URLSearchParams(search);
+  params.set(LIBRARY_ASSET_QUERY_KEY, assetId);
+  return `${pathname}?${params.toString()}`;
 }

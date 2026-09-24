@@ -52,12 +52,13 @@ export function useMenuShared({
         return false;
       }
 
-      const itemPathname = item.href.split('?')[0] ?? item.href;
-      if (item.isExactMatch && pathname !== itemPathname) {
-        return false;
-      }
-
-      return isActive(item.href, item.matchSearchParams);
+      return [item.href, ...(item.matchPaths ?? [])].some((path) => {
+        const itemPathname = path.split('?')[0] ?? path;
+        return (
+          (!item.isExactMatch || pathname === itemPathname) &&
+          isActive(path, item.matchSearchParams)
+        );
+      });
     },
     [isActive, pathname, routeScope],
   );
