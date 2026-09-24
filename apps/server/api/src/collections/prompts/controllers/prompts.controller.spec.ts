@@ -32,7 +32,7 @@ import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.in
 import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
-import { PromptCategory } from '@genfeedai/contracts';
+import { PromptCategory, PromptStatus } from '@genfeedai/contracts';
 import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
@@ -84,7 +84,7 @@ describe('PromptsController', () => {
   };
 
   const mockSkillRuntimeService = {
-    resolveRequestedSkillPromptSections: vi.fn().mockResolvedValue(''),
+    resolveGenerationSkillPromptSections: vi.fn().mockResolvedValue(''),
   };
 
   beforeEach(async () => {
@@ -188,7 +188,7 @@ describe('PromptsController', () => {
 
     it('appends picked skill instructions to the enhancement system prompt', async () => {
       mockPromptsService.create.mockResolvedValue(mockPrompt);
-      mockSkillRuntimeService.resolveRequestedSkillPromptSections.mockResolvedValueOnce(
+      mockSkillRuntimeService.resolveGenerationSkillPromptSections.mockResolvedValueOnce(
         '## Skill: Cinematic Prompting',
       );
 
@@ -208,10 +208,13 @@ describe('PromptsController', () => {
       );
 
       expect(
-        mockSkillRuntimeService.resolveRequestedSkillPromptSections,
-      ).toHaveBeenCalledWith(mockUser.organizationId, mockUser.brandId, [
-        'cinematic-prompting',
-      ]);
+        mockSkillRuntimeService.resolveGenerationSkillPromptSections,
+      ).toHaveBeenCalledWith(
+        mockUser.organizationId,
+        mockUser.brandId,
+        ['cinematic-prompting'],
+        { modality: 'image' },
+      );
 
       const [{ messages }] = mockOpenRouterService.chatCompletion.mock.calls.at(
         -1,
@@ -219,7 +222,7 @@ describe('PromptsController', () => {
       expect(messages[0].content).toContain('## Skill: Cinematic Prompting');
     });
 
-    it('enhances without skills when none were picked', async () => {
+    it('resolves media defaults when no skills were picked', async () => {
       mockPromptsService.create.mockResolvedValue(mockPrompt);
 
       await controller.create(
@@ -237,11 +240,12 @@ describe('PromptsController', () => {
       );
 
       expect(
-        mockSkillRuntimeService.resolveRequestedSkillPromptSections,
+        mockSkillRuntimeService.resolveGenerationSkillPromptSections,
       ).toHaveBeenCalledWith(
         mockUser.organizationId,
         mockUser.brandId,
         undefined,
+        { modality: 'image' },
       );
 
       const [{ messages }] = mockOpenRouterService.chatCompletion.mock.calls.at(
@@ -250,10 +254,10 @@ describe('PromptsController', () => {
       expect(messages[0].content).not.toContain('## Skill:');
     });
 
-    it('still enhances when skill resolution fails', async () => {
+    it('does not invoke the model when selected skill resolution fails', async () => {
       mockPromptsService.create.mockResolvedValue(mockPrompt);
-      mockSkillRuntimeService.resolveRequestedSkillPromptSections.mockResolvedValueOnce(
-        '',
+      mockSkillRuntimeService.resolveGenerationSkillPromptSections.mockRejectedValueOnce(
+        new Error('Selected skill unavailable'),
       );
 
       await controller.create(
@@ -268,8 +272,12 @@ describe('PromptsController', () => {
       );
 
       await vi.waitFor(() =>
-        expect(mockOpenRouterService.chatCompletion).toHaveBeenCalled(),
+        expect(mockPromptsService.patch).toHaveBeenCalledWith(
+          mockPrompt.id,
+          expect.objectContaining({ status: PromptStatus.FAILED }),
+        ),
       );
+      expect(mockOpenRouterService.chatCompletion).not.toHaveBeenCalled();
     });
 
     it('stores a skipped prompt as generated without calling the enhancement provider', async () => {

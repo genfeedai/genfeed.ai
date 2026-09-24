@@ -197,6 +197,20 @@ export const AGENT_UI_TOOLS: SourceTool[] = [
     name: 'prepare_generation',
     parameters: {
       properties: {
+        requestedSkillSlugs: {
+          description:
+            'Explicit skill selections for this generation; additive to brand guidance.',
+          type: 'array',
+          maxItems: 8,
+          items: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 160,
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$',
+          },
+        },
+        harness: { type: 'boolean' },
+
         aspectRatio: {
           description: 'Suggested aspect ratio (e.g., "1:1", "16:9", "9:16")',
           type: 'string',

@@ -233,10 +233,17 @@ describe('agent turn first signal', () => {
         request: {
           ...h.state.request,
           generationMode: AgentGenerationMode.IMAGE,
+          requestedSkillSlugs: ['cinema'],
         },
       }),
     ).resolves.toMatchObject({ content: 'Image generation accepted.' });
-    expect(h.uiAction.handleThreadUiAction).toHaveBeenCalledOnce();
+    expect(h.uiAction.handleThreadUiAction).toHaveBeenCalledWith(
+      expect.objectContaining({
+        payload: expect.objectContaining({ requestedSkillSlugs: ['cinema'] }),
+      }),
+      expect.objectContaining({ requestedSkillSlugs: ['cinema'] }),
+      expect.anything(),
+    );
     expect(h.publisher.publishTurnPhase).not.toHaveBeenCalled();
     expect(h.settings.findOne).not.toHaveBeenCalled();
     expect(h.context.resolveSystemPromptAndModel).not.toHaveBeenCalled();

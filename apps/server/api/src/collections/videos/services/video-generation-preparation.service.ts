@@ -403,6 +403,9 @@ export class VideoGenerationPreparationService {
       model,
       harness: createVideoDto.harness,
       promptId: createVideoDto.promptId,
+      ...(createVideoDto.requestedSkillSlugs?.length
+        ? { requestedSkillSlugs: createVideoDto.requestedSkillSlugs }
+        : {}),
     });
     if (request.generationOriginalPrompt !== undefined) {
       if (

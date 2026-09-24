@@ -115,7 +115,11 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
     await runner.executeToolRound({
       allowedToolNames: new Set(toolNames),
       assistantContent: null,
-      context: { organizationId, userId: 'user-1' },
+      context: {
+        organizationId,
+        userId: 'user-1',
+        requestedSkillSlugs: ['cinema'],
+      },
       generationPriority: RouterPriority.BALANCED,
       messages,
       model: 'test-model',
@@ -185,6 +189,7 @@ describe('AgentTurnRoundRunnerService campaign confirmations', () => {
 
     const [toolName, toolParams, executionContext] = executeTool.mock.calls[0];
     expect(toolName).toBe('start_outreach_sequence');
+    expect(executionContext.requestedSkillSlugs).toEqual(['cinema']);
     expect(toolParams).toEqual({ campaignId: 'campaign-1' });
     expect(executionContext).not.toHaveProperty('confirmationOrigin');
     expect(executionContext).not.toHaveProperty('sourceActionId');

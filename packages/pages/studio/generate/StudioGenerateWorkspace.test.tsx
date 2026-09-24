@@ -276,7 +276,7 @@ vi.mock('@services/core/notifications.service', () => ({
       error: vi.fn(),
       info: mocks.notify,
       success: vi.fn(),
-      warning: vi.fn(),
+      warning: mocks.notify,
     }),
   },
 }));
@@ -431,6 +431,81 @@ describe('StudioGenerateWorkspace', () => {
       document.querySelector('[data-composer-top-fade]'),
     );
   });
+
+  it('represents handoff selections as removable tokens and invalidates the harness override on scope change', async () => {
+    mocks.handoff.value = {
+      isLoading: false,
+      payload: {
+        brandId: 'brand-1',
+        type: 'image',
+        prompt: 'A coast',
+        modelKey: 'provider/model',
+        requestedSkillSlugs: ['cinema'],
+        harness: false,
+      },
+    };
+    const { rerender } = render(<StudioGenerateWorkspace />);
+    await waitFor(() =>
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        '/cinema A coast',
+      ),
+    );
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('A coast'));
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'A coast',
+      expect.anything(),
+      { harness: false },
+    );
+    mocks.brandId.value = 'brand-2';
+    rerender(<StudioGenerateWorkspace />);
+    act(() =>
+      mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('Other coast'),
+    );
+    act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+    expect(mocks.submit).toHaveBeenLastCalledWith(
+      'Other coast',
+      expect.anything(),
+      undefined,
+    );
+  });
+
+  it.each(['image', 'video'])(
+    'strips commands and submits selected skills for %s',
+    (type) => {
+      mocks.type.value = type;
+      mocks.resolvePromptCommands.mockReturnValueOnce({
+        content: 'A coast',
+        skillSlugs: ['cinema'],
+      });
+      render(<StudioGenerateWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('/cinema A coast'),
+      );
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      expect(mocks.submit).toHaveBeenCalledWith('A coast', expect.anything(), {
+        requestedSkillSlugs: ['cinema'],
+      });
+    },
+  );
+  it.each(['music', 'avatar', 'voice', 'remix'])(
+    'visibly blocks skill selections for %s',
+    (type) => {
+      if (type === 'remix') mocks.remixRun.value = remixRun;
+      else mocks.type.value = type;
+      mocks.resolvePromptCommands.mockReturnValueOnce({
+        content: 'A coast',
+        skillSlugs: ['cinema'],
+      });
+      render(<StudioGenerateWorkspace />);
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      expect(mocks.notify).toHaveBeenCalledWith(
+        expect.stringContaining('Selected skills'),
+      );
+      expect(mocks.submit).not.toHaveBeenCalled();
+      expect(mocks.startRemix).not.toHaveBeenCalled();
+    },
+  );
 
   it('submits completed Agent-style attachments as generation references', () => {
     render(<StudioGenerateWorkspace />);

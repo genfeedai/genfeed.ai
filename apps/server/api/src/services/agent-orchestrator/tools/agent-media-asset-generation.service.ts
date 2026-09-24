@@ -1,4 +1,5 @@
 import { PersonasService } from '@api/collections/personas/services/personas.service';
+import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { IMAGE_GENERATION_RESULT_ERROR } from '@api/services/agent-orchestrator/agent-image-generation-result.constant';
 import {
   AGENT_GENERATION_GATEWAY,
@@ -120,6 +121,12 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    params = {
+      ...params,
+      requestedSkillSlugs: normalizeRequestedSkillSlugs(
+        params.requestedSkillSlugs,
+      ),
+    };
     const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
     if ('error' in resolvedContext) {
       return resolvedContext.error;
@@ -271,6 +278,9 @@ export class AgentMediaAssetGenerationService {
       text: input.prompt,
       waitForCompletion: false,
       width: dimensions.width,
+      ...(input.params.requestedSkillSlugs
+        ? { requestedSkillSlugs: input.params.requestedSkillSlugs }
+        : {}),
       ...(typeof input.params.harness === 'boolean'
         ? { harness: input.params.harness }
         : {}),
@@ -425,6 +435,12 @@ export class AgentMediaAssetGenerationService {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    params = {
+      ...params,
+      requestedSkillSlugs: normalizeRequestedSkillSlugs(
+        params.requestedSkillSlugs,
+      ),
+    };
     const resolvedContext = await this.resolveMediaBrandContext(params, ctx);
     if ('error' in resolvedContext) {
       return resolvedContext.error;
@@ -482,6 +498,8 @@ export class AgentMediaAssetGenerationService {
     });
     const promptPreview = rawPrompt.substring(0, 80);
     let response: Record<string, unknown>;
+    if (params.requestedSkillSlugs)
+      body.requestedSkillSlugs = params.requestedSkillSlugs;
     if (typeof params.harness === 'boolean') body.harness = params.harness;
     try {
       response = toMediaResponseRecord(

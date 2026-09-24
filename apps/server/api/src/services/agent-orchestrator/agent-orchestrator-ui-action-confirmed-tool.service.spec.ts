@@ -246,11 +246,27 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
       ...request,
       payload: { ...request.payload, model: 'other-model' },
     });
-    expect(executeTool).toHaveBeenCalledTimes(3);
+    await service.execute('confirm_generate_media', {
+      ...request,
+      payload: {
+        ...request.payload,
+        requestedSkillSlugs: ['Cinema'],
+        harness: true,
+      },
+    });
+    expect(executeTool).toHaveBeenLastCalledWith(
+      'generate_video',
+      expect.objectContaining({
+        requestedSkillSlugs: ['cinema'],
+        harness: true,
+      }),
+      expect.anything(),
+    );
+    expect(executeTool).toHaveBeenCalledTimes(4);
     expect(
       new Set(executeTool.mock.calls.map((call) => call[2].sourceActionId))
         .size,
-    ).toBe(3);
+    ).toBe(4);
     for (const call of finalizeStructuredAssistantTurn.mock.calls)
       expect(call[0]).toMatchObject({
         result: {
@@ -265,7 +281,7 @@ describe('AgentOrchestratorUiActionConfirmedToolService', () => {
     await expect(
       service.execute('confirm_generate_media', request),
     ).rejects.toThrow('declined');
-    expect(executeTool).toHaveBeenCalledTimes(3);
+    expect(executeTool).toHaveBeenCalledTimes(4);
   });
   it('uses trusted brand voice confirmation and rejects an unexecuted pending result', async () => {
     const executeTool = vi.fn().mockResolvedValue({

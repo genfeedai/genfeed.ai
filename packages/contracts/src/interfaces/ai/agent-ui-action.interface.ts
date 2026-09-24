@@ -208,6 +208,8 @@ export interface AgentClipRunIdentity {
  * snapshot when the sender already resolved them.
  */
 export interface AgentGenerationActionParams {
+  requestedSkillSlugs?: string[];
+  harness?: boolean;
   aspectRatio?: string;
   avatarPhotoUrl?: string;
   duration?: number;

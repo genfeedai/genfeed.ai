@@ -1534,7 +1534,7 @@ describe('GenerationActionCard', () => {
     ).toBeInTheDocument();
   });
 
-  it('routes composer generation through the persisted thread UI action', async () => {
+  it('routes composer selections and enhancement through the persisted thread UI action', async () => {
     const onUiAction = vi.fn().mockResolvedValue(undefined);
 
     renderGenerationActionCard(
@@ -1543,6 +1543,8 @@ describe('GenerationActionCard', () => {
           generationParams: {
             aspectRatio: '9:16',
             prompt: 'Editorial portrait with restrained studio lighting.',
+            requestedSkillSlugs: ['cinema'],
+            harness: false,
           },
           generationType: 'image',
           id: 'action-7',
@@ -1564,6 +1566,8 @@ describe('GenerationActionCard', () => {
           generationType: 'image',
           prompt: 'Editorial portrait with restrained studio lighting.',
           sourceActionId: 'action-7',
+          requestedSkillSlugs: ['cinema'],
+          harness: false,
         }),
       );
     });
@@ -2084,7 +2088,11 @@ describe('GenerationActionCard', () => {
     renderGenerationActionCard(
       <GenerationActionCard
         action={{
-          generationParams: { prompt: 'A portrait at golden hour.' },
+          generationParams: {
+            prompt: 'A portrait at golden hour.',
+            requestedSkillSlugs: ['cinema'],
+            harness: true,
+          },
           generationType: 'image',
           id: 'action-studio-slot',
           title: 'Generate Image',
@@ -2109,6 +2117,8 @@ describe('GenerationActionCard', () => {
         expect.objectContaining({
           modelKey: 'provider/nano-banana',
           prompt: 'A portrait at golden hour.',
+          requestedSkillSlugs: ['cinema'],
+          harness: true,
           type: 'image',
         }),
       );

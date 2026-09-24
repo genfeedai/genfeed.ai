@@ -1,3 +1,4 @@
+import { mergeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import {
   type ApiKeyPublishingContext,
@@ -99,6 +100,7 @@ export interface ToolExecutionContext {
   generationSettings?: AgentGenerationSettings;
   /** Explicit Knowledge selection chosen for this turn. */
   knowledgeSelection?: KnowledgeSelection;
+  requestedSkillSlugs?: string[];
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   thinkingModel?: string;
   generationModelOverride?: string | null;
@@ -325,6 +327,23 @@ export class AgentToolExecutorService implements OnModuleInit {
     parameters: Record<string, unknown>,
     context: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    if (
+      [
+        'generate_image',
+        'generate_video',
+        'enhance_prompt',
+        'prepare_generation',
+      ].includes(toolName)
+    ) {
+      const requestedSkillSlugs = mergeRequestedSkillSlugs(
+        context.requestedSkillSlugs,
+        parameters.requestedSkillSlugs,
+      );
+      parameters = { ...parameters };
+      if (requestedSkillSlugs)
+        parameters.requestedSkillSlugs = requestedSkillSlugs;
+      else delete parameters.requestedSkillSlugs;
+    }
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
     try {
       return await runWithActionOrigin(

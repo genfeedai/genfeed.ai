@@ -642,13 +642,21 @@ describe('ImageGenerationService', () => {
       });
       await service.generateImage(
         buildUser(),
-        baseDto({ promptId, text: 'Reviewed text' }),
+        baseDto({
+          promptId,
+          text: 'Reviewed text',
+          requestedSkillSlugs: ['cinema'],
+        }),
         buildRequest(),
       );
       expect(promptsService.patch).not.toHaveBeenCalled();
       expect(promptsService.create).not.toHaveBeenCalled();
       expect(enhancementService.enhance).toHaveBeenCalledWith(
-        expect.objectContaining({ promptId, prompt: 'Reviewed text' }),
+        expect.objectContaining({
+          promptId,
+          prompt: 'Reviewed text',
+          requestedSkillSlugs: ['cinema'],
+        }),
       );
     });
 

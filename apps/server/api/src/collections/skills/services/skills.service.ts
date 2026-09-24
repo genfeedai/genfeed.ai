@@ -20,6 +20,10 @@ import {
   SKILL_STATUSES,
   type SkillDocument,
 } from '@api/collections/skills/schemas/skill.schema';
+import {
+  normalizeRequestedSkillSlugs,
+  unavailableRequestedSkill,
+} from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import { scopedWhere } from '@api/index';
@@ -31,7 +35,7 @@ import type { IBrandEffectiveSkillSelection } from '@genfeedai/contracts/interfa
 import { isSkillOnSurface } from '@genfeedai/helpers';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 export interface ListSkillsOptions {
   /** Narrow the catalog to skills offered on one composer surface. */
@@ -605,25 +609,24 @@ export class SkillsService {
       organizationId,
       brandId,
     );
+    const requested =
+      normalizeRequestedSkillSlugs(options.requestedSlugs) ?? [];
     let enabledSlugs = selection.enabledSlugs;
 
     if (selection.isUsingDefaults) {
-      if (!options.fallbackToDefaultCatalog) {
-        return [];
-      }
-
       // A turn packs the context-relevant subset of the defaults, never the
       // whole default set.
-      enabledSlugs = resolveDefaultFirstPartySkillSlugs({
-        agentType: options.agentType,
-        channel: options.channel,
-        modality: options.modality,
-      }).filter((slug) => selection.enabledSlugs.includes(slug));
+      enabledSlugs = options.fallbackToDefaultCatalog
+        ? resolveDefaultFirstPartySkillSlugs({
+            agentType: options.agentType,
+            channel: options.channel,
+            modality: options.modality,
+          }).filter((slug) => selection.enabledSlugs.includes(slug))
+        : [];
     }
 
-    if (enabledSlugs.length === 0) {
-      return [];
-    }
+    enabledSlugs = [...new Set([...enabledSlugs, ...requested])];
+    if (enabledSlugs.length === 0) return [];
 
     const all = await this.prisma.skill.findMany({
       where: this.buildAccessibleSkillWhere(
@@ -633,6 +636,12 @@ export class SkillsService {
 
     // Filter by enabled slugs (config.slug)
     const skills = all
+      .filter(
+        (row) =>
+          !row.isDeleted &&
+          (row.organizationId === organizationId ||
+            this.isTrustedBuiltInSkill(row)),
+      )
       .map((r) => this.normalizeSkill(r))
       .filter((doc) => {
         const slug = this.readString(doc.slug);
@@ -660,6 +669,17 @@ export class SkillsService {
         continue;
       }
 
+      const existing = resolvedSkills.find(
+        (entry) => entry.skill.slug === skillSlug,
+      );
+      if (existing) {
+        if (String(existing.skill.id) !== String(skillDoc.id)) {
+          throw new BadRequestException(
+            'Duplicate skill configuration is available for this generation. Resolve duplicate skill slugs before generating.',
+          );
+        }
+        continue;
+      }
       resolvedSkills.push({
         priority: enabledSlugs.indexOf(skillSlug),
         skill: skillDoc,
@@ -668,6 +688,13 @@ export class SkillsService {
       });
     }
 
+    if (
+      requested.some(
+        (slug) => !resolvedSkills.some((entry) => entry.skill.slug === slug),
+      )
+    ) {
+      throw unavailableRequestedSkill();
+    }
     return resolvedSkills.sort((left, right) => left.priority - right.priority);
   }
 
@@ -853,8 +880,6 @@ export class SkillsService {
   ): boolean {
     const modalities = this.readStringArray(skill.modalities);
     const channels = this.readStringArray(skill.channels);
-    const skillSlug = this.readString(skill.slug);
-
     if (!skill.isEnabled || skill.status === 'disabled') {
       return false;
     }
@@ -880,14 +905,6 @@ export class SkillsService {
       options.workflowStage &&
       skill.workflowStage &&
       skill.workflowStage !== options.workflowStage
-    ) {
-      return false;
-    }
-
-    if (
-      options.requestedSlugs &&
-      options.requestedSlugs.length > 0 &&
-      (!skillSlug || !options.requestedSlugs.includes(skillSlug))
     ) {
       return false;
     }

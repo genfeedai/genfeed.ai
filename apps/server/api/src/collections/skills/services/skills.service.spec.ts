@@ -152,6 +152,128 @@ describe('SkillsService', () => {
     },
   );
 
+  it.each([true, false])(
+    'rejects ambiguous eligible slug identities for explicit=%s',
+    async (explicit) => {
+      prisma.brand.findFirst.mockResolvedValue({
+        agentConfig: {
+          enabledSkills: explicit ? [] : ['hook-writer'],
+          useDefaultSkills: false,
+        },
+      });
+      prisma.skill.findMany.mockResolvedValue([
+        makeSkillRow(),
+        makeSkillRow({ id: 'other-skill' }),
+      ]);
+      await expect(
+        service.resolveBrandSkills('org-1', 'brand-1', {
+          requestedSlugs: explicit ? ['hook-writer'] : undefined,
+        }),
+      ).rejects.toThrow('Duplicate skill configuration');
+    },
+  );
+  it('deduplicates the same canonical row and ignores ineligible duplicate slugs', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: ['hook-writer'], useDefaultSkills: false },
+    });
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow(),
+      makeSkillRow(),
+      makeSkillRow({ id: 'foreign', organizationId: 'org-2' }),
+      makeSkillRow({
+        id: 'disabled',
+        config: { ...makeSkillRow().config, isEnabled: false },
+      }),
+      makeSkillRow({
+        id: 'text',
+        config: { ...makeSkillRow().config, modalities: ['text'] },
+      }),
+    ]);
+    const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
+      modality: 'image',
+      requestedSlugs: ['hook-writer'],
+    });
+    expect(resolved.map((entry) => entry.skill.id)).toEqual(['skill-1']);
+  });
+  it('rejects provider-ineligible explicit selections', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: [], useDefaultSkills: false },
+    });
+    prisma.skill.findMany.mockResolvedValue([
+      makeSkillRow({
+        config: { ...makeSkillRow().config, requiredProviders: ['openai'] },
+      }),
+    ]);
+    byokProviderFactoryService.hasProviderAccess.mockResolvedValue(false);
+    await expect(
+      service.resolveBrandSkills('org-1', 'brand-1', {
+        requestedSlugs: ['hook-writer'],
+      }),
+    ).rejects.toThrow('A selected skill is unavailable');
+  });
+
+  it('adds an accessible library selection to persistent brand skills without changing assignments', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: ['hook-writer'], useDefaultSkills: false },
+    });
+    const library = makeSkillRow({
+      id: 'library',
+      config: {
+        ...makeSkillRow().config,
+        slug: 'cinema',
+        modalities: ['image'],
+      },
+    });
+    prisma.skill.findMany.mockResolvedValue([makeSkillRow(), library]);
+    const resolved = await service.resolveBrandSkills('org-1', 'brand-1', {
+      modality: 'image',
+      requestedSlugs: ['Cinema', 'cinema'],
+    });
+    expect(resolved.map((entry) => entry.skill.slug)).toEqual([
+      'hook-writer',
+      'cinema',
+    ]);
+    expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
+  it.each([
+    { config: { ...makeSkillRow().config, isEnabled: false } },
+    { config: { ...makeSkillRow().config, modalities: ['text'] } },
+    { organizationId: 'org-foreign' },
+    { isDeleted: true },
+  ])(
+    'rejects unavailable selected skills without exposing foreign content',
+    async (overrides) => {
+      prisma.brand.findFirst.mockResolvedValue({
+        agentConfig: { enabledSkills: [], useDefaultSkills: false },
+      });
+      prisma.skill.findMany.mockResolvedValue([makeSkillRow(overrides)]);
+      await expect(
+        service.resolveBrandSkills('org-1', 'brand-1', {
+          modality: 'image',
+          requestedSlugs: ['hook-writer'],
+        }),
+      ).rejects.toThrow('A selected skill is unavailable');
+    },
+  );
+  it('keeps explicitly disabled defaults off while allowing a temporary selection', async () => {
+    prisma.brand.findFirst.mockResolvedValue({
+      agentConfig: { enabledSkills: [], useDefaultSkills: false },
+    });
+    prisma.skill.findMany.mockResolvedValue([makeSkillRow()]);
+    expect(
+      await service.resolveBrandSkills('org-1', 'brand-1', {
+        fallbackToDefaultCatalog: true,
+      }),
+    ).toEqual([]);
+    expect(
+      (
+        await service.resolveBrandSkills('org-1', 'brand-1', {
+          requestedSlugs: ['hook-writer'],
+        })
+      ).map((entry) => entry.skill.slug),
+    ).toEqual(['hook-writer']);
+  });
+
   it('flags built-in default skills in the organization catalog', async () => {
     prisma.skill.findMany.mockResolvedValue([
       makeSkillRow({

@@ -551,6 +551,9 @@ export class AgentTurnRoundRunnerService {
           generationPriority,
           generationSettings: context.generationSettings,
           knowledgeSelection: context.knowledgeSelection,
+          ...(context.requestedSkillSlugs?.length
+            ? { requestedSkillSlugs: context.requestedSkillSlugs }
+            : {}),
           organizationId: context.organizationId,
           platform: policy.platform,
           qualityTier: policy.qualityTier,

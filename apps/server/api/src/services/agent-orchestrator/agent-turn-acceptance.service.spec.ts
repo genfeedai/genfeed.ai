@@ -77,6 +77,44 @@ describe('AgentTurnAcceptanceService', () => {
     agentMessagesService.addMessage.mockResolvedValue({});
   });
 
+  it('persists only the current turn normalized explicit selections', async () => {
+    const context = { organizationId: 'org-1', userId: 'user-1' };
+    await service.accept(
+      {
+        clientRequestId: 'skills-turn',
+        content: 'A coast',
+        requestedSkillSlugs: ['Cinema', 'cinema'],
+      },
+      context,
+    );
+    expect(
+      workflowRunner.enqueueWorkflow.mock.calls[0][0].inputValues.request
+        .requestedSkillSlugs,
+    ).toEqual(['cinema']);
+    expect(
+      agentMessagesService.addMessage.mock.calls[0][0].metadata
+        .requestedSkillSlugs,
+    ).toEqual(['cinema']);
+    await service.accept(
+      { clientRequestId: 'next-turn', content: 'A forest' },
+      context,
+    );
+    expect(
+      workflowRunner.enqueueWorkflow.mock.calls[1][0].inputValues.request,
+    ).not.toHaveProperty('requestedSkillSlugs');
+    await expect(
+      service.accept(
+        {
+          clientRequestId: 'bad-turn',
+          content: 'A coast',
+          requestedSkillSlugs: ['bad_slug'],
+        },
+        context,
+      ),
+    ).rejects.toThrow();
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledTimes(2);
+  });
+
   it('signals successful enqueue before a blocked user-message write or acknowledgement, without a worker', async () => {
     let releaseEnqueue!: () => void;
     let enteredEnqueue!: () => void;

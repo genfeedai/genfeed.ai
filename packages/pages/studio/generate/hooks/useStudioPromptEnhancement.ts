@@ -36,6 +36,7 @@ const MODEL_CATEGORY_TO_PROMPT_CATEGORY: Record<
 
 export interface UseStudioPromptEnhancementParams {
   brandId: string;
+  contentType?: 'image' | 'video';
   modelKey: string;
   onPromptChange: (text: string) => void;
   prompt: string;
@@ -84,6 +85,7 @@ export interface UseStudioPromptEnhancementResult {
  */
 export function useStudioPromptEnhancement({
   brandId,
+  contentType,
   modelKey,
   onPromptChange,
   prompt,
@@ -96,9 +98,10 @@ export function useStudioPromptEnhancement({
     promptId: string;
     brandId: string;
     modelKey: string;
+    contentType?: 'image' | 'video';
   } | null>(null);
-  const scopeRef = useRef({ brandId, modelKey });
-  scopeRef.current = { brandId, modelKey };
+  const scopeRef = useRef({ brandId, contentType, modelKey });
+  scopeRef.current = { brandId, contentType, modelKey };
   const promptRef = useRef(prompt);
   promptRef.current = prompt;
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -153,22 +156,27 @@ export function useStudioPromptEnhancement({
       previous &&
       previous.text === prompt &&
       previous.brandId === brandId &&
-      previous.modelKey === modelKey
+      previous.modelKey === modelKey &&
+      previous.contentType === contentType
         ? previous
         : null,
     );
-  }, [brandId, modelKey, prompt]);
+  }, [brandId, contentType, modelKey, prompt]);
 
-  const previousScopeRef = useRef({ brandId, modelKey });
+  const previousScopeRef = useRef({ brandId, contentType, modelKey });
   useEffect(() => {
     const previous = previousScopeRef.current;
-    previousScopeRef.current = { brandId, modelKey };
-    if (previous.brandId !== brandId || previous.modelKey !== modelKey) {
+    previousScopeRef.current = { brandId, contentType, modelKey };
+    if (
+      previous.brandId !== brandId ||
+      previous.modelKey !== modelKey ||
+      previous.contentType !== contentType
+    ) {
       cancelEnhance();
       setPreviousPrompt(null);
       clearUndoTimeout();
     }
-  }, [brandId, modelKey, cancelEnhance, clearUndoTimeout]);
+  }, [brandId, contentType, modelKey, cancelEnhance, clearUndoTimeout]);
 
   const undoEnhance = useCallback(() => {
     if (previousPrompt === null) {
@@ -203,7 +211,8 @@ export function useStudioPromptEnhancement({
       !isMountedRef.current ||
       requestId !== requestIdRef.current ||
       scopeRef.current.brandId !== brandId ||
-      scopeRef.current.modelKey !== modelKey;
+      scopeRef.current.modelKey !== modelKey ||
+      scopeRef.current.contentType !== contentType;
 
     clearPending();
     setIsEnhancing(true);
@@ -215,9 +224,13 @@ export function useStudioPromptEnhancement({
       }
 
       const modelCapability = MODEL_OUTPUT_CAPABILITIES[modelKey];
-      const promptCategory = modelCapability
-        ? MODEL_CATEGORY_TO_PROMPT_CATEGORY[modelCapability.category]
-        : PromptCategory.MODELS_PROMPT_IMAGE;
+      const promptCategory = contentType
+        ? contentType === 'video'
+          ? PromptCategory.MODELS_PROMPT_VIDEO
+          : PromptCategory.MODELS_PROMPT_IMAGE
+        : modelCapability
+          ? MODEL_CATEGORY_TO_PROMPT_CATEGORY[modelCapability.category]
+          : PromptCategory.MODELS_PROMPT_IMAGE;
 
       const created = await service.post(
         new Prompt({
@@ -264,6 +277,7 @@ export function useStudioPromptEnhancement({
                 promptId: created.id,
                 brandId,
                 modelKey,
+                contentType,
               });
               setPreviousPrompt(originalPrompt);
               onPromptChange(result);
@@ -303,6 +317,7 @@ export function useStudioPromptEnhancement({
       setIsEnhancing(false);
     }
   }, [
+    contentType,
     brandId,
     clearPending,
     clearUndoTimeout,
@@ -322,7 +337,8 @@ export function useStudioPromptEnhancement({
       successfulEnhancement !== null &&
       successfulEnhancement.text === prompt &&
       successfulEnhancement.brandId === brandId &&
-      successfulEnhancement.modelKey === modelKey
+      successfulEnhancement.modelKey === modelKey &&
+      successfulEnhancement.contentType === contentType
         ? successfulEnhancement.promptId
         : undefined,
     previousPrompt,

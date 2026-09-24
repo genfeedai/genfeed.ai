@@ -657,6 +657,12 @@ export function useGenerationActionCard({
     try {
       if (onUiAction) {
         const outcome = await onUiAction('confirm_generate_media', {
+          ...(initParams?.requestedSkillSlugs?.length
+            ? { requestedSkillSlugs: initParams.requestedSkillSlugs }
+            : {}),
+          ...(initParams?.harness !== undefined
+            ? { harness: initParams.harness }
+            : {}),
           aspectRatio,
           duration: requestDuration,
           endFrame: endFrameId ?? undefined,
@@ -727,7 +733,15 @@ export function useGenerationActionCard({
 
       const result = await apiService.generateIngredient(
         generationType,
-        body,
+        {
+          ...body,
+          ...(initParams?.requestedSkillSlugs?.length
+            ? { requestedSkillSlugs: initParams.requestedSkillSlugs }
+            : {}),
+          ...(initParams?.harness !== undefined
+            ? { harness: initParams.harness }
+            : {}),
+        },
         controller.signal,
       );
       setResultId(result.id);
@@ -762,6 +776,7 @@ export function useGenerationActionCard({
       }
     }
   }, [
+    initParams,
     activeThreadId,
     action.id,
     brandId,
@@ -900,6 +915,12 @@ export function useGenerationActionCard({
     }
     try {
       const { id } = await apiService.createStudioHandoff({
+        ...(initParams?.requestedSkillSlugs?.length
+          ? { requestedSkillSlugs: initParams.requestedSkillSlugs }
+          : {}),
+        ...(initParams?.harness !== undefined
+          ? { harness: initParams.harness }
+          : {}),
         aspectRatio,
         brandId,
         duration: generationType === 'video' ? duration : undefined,
@@ -935,6 +956,7 @@ export function useGenerationActionCard({
       setComposerError('Failed to open in Studio. Try again.');
     }
   }, [
+    initParams,
     activeHref,
     apiService,
     aspectRatio,

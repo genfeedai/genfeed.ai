@@ -100,6 +100,19 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     name: 'generate_image',
     parameters: {
       properties: {
+        requestedSkillSlugs: {
+          description:
+            'Explicit skill selections for this generation; additive to brand guidance.',
+          type: 'array',
+          maxItems: 8,
+          items: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 160,
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$',
+          },
+        },
+
         harness: {
           type: 'boolean',
           description:
@@ -260,6 +273,19 @@ export const OVERLAP_TOOLS: SourceTool[] = [
     name: 'generate_video',
     parameters: {
       properties: {
+        requestedSkillSlugs: {
+          description:
+            'Explicit skill selections for this generation; additive to brand guidance.',
+          type: 'array',
+          maxItems: 8,
+          items: {
+            type: 'string',
+            minLength: 1,
+            maxLength: 160,
+            pattern: '^[a-zA-Z0-9][a-zA-Z0-9-]*$',
+          },
+        },
+
         harness: {
           type: 'boolean',
           description:

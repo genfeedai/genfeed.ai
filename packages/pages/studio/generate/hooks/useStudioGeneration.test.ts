@@ -199,18 +199,20 @@ describe('useStudioGeneration request payloads', () => {
         await result.current.submit(
           'Reviewed result',
           {},
-          { promptId: 'reviewed-prompt-id' },
+          { promptId: 'reviewed-prompt-id', requestedSkillSlugs: ['cinema'] },
         );
       });
       const post = type === 'image' ? mockImagesPost : mockVideosPost;
       expect(post.mock.calls[0]?.[0]).toMatchObject({
         promptId: 'reviewed-prompt-id',
+        requestedSkillSlugs: ['cinema'],
       });
       expect(post.mock.calls[0]?.[0]).not.toHaveProperty('harness');
       await act(async () => {
         await result.current.submit('Other prompt');
       });
       expect(post.mock.calls[1]?.[0]).not.toHaveProperty('promptId');
+      expect(post.mock.calls[1]?.[0]).not.toHaveProperty('requestedSkillSlugs');
       expect(post.mock.calls[1]?.[0]).not.toHaveProperty('harness');
     },
   );

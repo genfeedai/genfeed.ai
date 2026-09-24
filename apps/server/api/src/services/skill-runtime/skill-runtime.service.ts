@@ -4,6 +4,10 @@ import {
   type ResolvedBrandSkill,
   SkillsService,
 } from '@api/collections/skills/services/skills.service';
+import {
+  normalizeRequestedSkillSlugs,
+  unavailableRequestedSkill,
+} from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   sanitizeAgentUntrustedInput,
@@ -56,7 +60,10 @@ export class SkillRuntimeService {
       return [];
     }
 
-    const filtered = this.applyStrategyFilter(brandSkills, strategySkillSlugs);
+    const filtered = this.applyStrategyPriority(
+      brandSkills,
+      strategySkillSlugs,
+    );
 
     return filtered.map((resolved) => this.toRuntimeSkill(resolved));
   }
@@ -64,8 +71,8 @@ export class SkillRuntimeService {
   /**
    * Skill instructions for slugs the operator picked in a composer.
    *
-   * A slug the brand has not enabled resolves to nothing. Failures return an
-   * empty string so the caller can keep its base system prompt.
+   * Legacy requested-only formatting for non-generation callers. Failures
+   * return an empty string so the caller can keep its base system prompt.
    */
   async resolveRequestedSkillPromptSections(
     organizationId: string,
@@ -83,7 +90,9 @@ export class SkillRuntimeService {
         undefined,
         { requestedSkillSlugs },
       );
-      return this.buildSkillPromptSections(skills);
+      return this.buildSkillPromptSections(
+        skills.filter((skill) => requestedSkillSlugs.includes(skill.slug)),
+      );
     } catch (error) {
       this.logger.error(
         'Failed to resolve requested skill prompt sections',
@@ -99,10 +108,40 @@ export class SkillRuntimeService {
    * as untrusted org input. Org-custom / imported / customized forks stay
    * sanitized and framed. Enforces per-skill and total character limits.
    */
-  buildSkillPromptSections(skills: ResolvedRuntimeSkill[]): string {
-    if (skills.length === 0) {
+  async resolveGenerationSkillPromptSections(
+    organizationId: string,
+    brandId: string | null | undefined,
+    requestedSkillSlugs: string[] | undefined,
+    context: ResolveActiveSkillsContext = {},
+  ): Promise<string> {
+    const requested = normalizeRequestedSkillSlugs(requestedSkillSlugs);
+    if (!isEntityId(brandId)) {
+      if (requested?.length) throw unavailableRequestedSkill();
       return '';
     }
+    const skills = await this.resolveActiveSkills(
+      organizationId,
+      brandId,
+      undefined,
+      {
+        ...context,
+        requestedSkillSlugs: requested,
+      },
+    );
+    return this.buildSkillPromptSections(skills, requested);
+  }
+
+  buildSkillPromptSections(
+    skills: ResolvedRuntimeSkill[],
+    requiredSlugs: string[] = [],
+  ): string {
+    if (
+      requiredSlugs.some((slug) => !skills.some((skill) => skill.slug === slug))
+    )
+      throw unavailableRequestedSkill();
+    if (skills.length === 0) return '';
+    const required = new Set(requiredSlugs);
+    const included = new Set<string>();
 
     const trustedSections: string[] = [];
     const untrustedSections: string[] = [];
@@ -110,14 +149,16 @@ export class SkillRuntimeService {
 
     for (const skill of skills) {
       if (!skill.instructions) {
+        if (required.has(skill.slug)) throw unavailableRequestedSkill();
         continue;
       }
 
       const isTrusted = isTrustedProductSkill(skill);
       const preparedInstructions = isTrusted
-        ? skill.instructions
+        ? skill.instructions.trim()
         : sanitizeAgentUntrustedInput(skill.instructions);
       if (!preparedInstructions) {
+        if (required.has(skill.slug)) throw unavailableRequestedSkill();
         continue;
       }
 
@@ -128,6 +169,7 @@ export class SkillRuntimeService {
         : preparedInstructions;
 
       if (wasTruncated) {
+        if (required.has(skill.slug)) throw unavailableRequestedSkill();
         this.logger.warn(
           `Skill ${skill.slug} instructions truncated at ${MAX_INSTRUCTIONS_PER_SKILL} chars`,
           'SkillRuntimeService',
@@ -149,9 +191,12 @@ export class SkillRuntimeService {
       } else {
         untrustedSections.push(section);
       }
+      included.add(skill.slug);
       totalLength += section.length;
     }
 
+    if (requiredSlugs.some((slug) => !included.has(slug)))
+      throw unavailableRequestedSkill();
     const blocks: string[] = [];
 
     if (trustedSections.length > 0) {
@@ -164,7 +209,10 @@ export class SkillRuntimeService {
       );
     }
 
-    return blocks.join('\n\n');
+    const output = blocks.join('\n\n');
+    if (requiredSlugs.length && output.length > MAX_TOTAL_SKILL_INSTRUCTIONS)
+      throw unavailableRequestedSkill();
+    return output;
   }
 
   /**
@@ -199,7 +247,7 @@ export class SkillRuntimeService {
     return typeof value === 'string' && value.length > 0 ? value : undefined;
   }
 
-  private applyStrategyFilter(
+  private applyStrategyPriority(
     brandSkills: ResolvedBrandSkill[],
     strategySkillSlugs?: string[],
   ): ResolvedBrandSkill[] {
@@ -209,10 +257,11 @@ export class SkillRuntimeService {
 
     const slugSet = new Set(strategySkillSlugs);
 
-    return brandSkills.filter((resolved) => {
-      const slug = resolved.skill.slug;
-      return typeof slug === 'string' && slugSet.has(slug);
-    });
+    return [...brandSkills].sort(
+      (left, right) =>
+        Number(slugSet.has(String(right.skill.slug))) -
+        Number(slugSet.has(String(left.skill.slug))),
+    );
   }
 
   private toRuntimeSkill(resolved: ResolvedBrandSkill): ResolvedRuntimeSkill {

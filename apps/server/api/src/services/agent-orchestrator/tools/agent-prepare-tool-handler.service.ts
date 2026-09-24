@@ -2,6 +2,7 @@ import { AgentMessagesService } from '@api/collections/agent-messages/services/a
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { resolveClipIdentity } from '@api/collections/clip-projects/services/clip-identity-resolution.util';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
+import { normalizeRequestedSkillSlugs } from '@api/collections/skills/utils/requested-skill-slugs.util';
 import { ExternalVoiceCatalogService } from '@api/collections/voices/services/external-voice-catalog.service';
 import { VoicesService } from '@api/collections/voices/services/voices.service';
 import { toVoiceCatalogWireFormat } from '@api/collections/voices/utils/voice-provider.util';
@@ -29,7 +30,12 @@ import type {
   AgentToolResult,
   AgentUiActionCta,
 } from '@genfeedai/contracts/interfaces';
-import { Inject, Injectable, Optional } from '@nestjs/common';
+import {
+  BadRequestException,
+  Inject,
+  Injectable,
+  Optional,
+} from '@nestjs/common';
 
 interface AgentBrandsServiceLike {
   findOne: (
@@ -62,6 +68,11 @@ export class AgentPrepareToolHandler {
     params: Record<string, unknown>,
     ctx?: ToolExecutionContext,
   ): Promise<AgentToolResult> {
+    const requestedSkillSlugs = normalizeRequestedSkillSlugs(
+      params.requestedSkillSlugs,
+    );
+    if (params.harness !== undefined && typeof params.harness !== 'boolean')
+      throw new BadRequestException('harness must be a boolean');
     const requestedGenerationType =
       params.generationType as ThreadGenerationType;
     const generationType = isExplicitAgentMediaGenerationMode(
@@ -107,6 +118,10 @@ export class AgentPrepareToolHandler {
         {
           description: `Review and adjust parameters before generating`,
           generationParams: {
+            ...(requestedSkillSlugs ? { requestedSkillSlugs } : {}),
+            ...(typeof params.harness === 'boolean'
+              ? { harness: params.harness }
+              : {}),
             aspectRatio: aspectRatio || '1:1',
             duration: generationType === 'video' ? duration || 5 : undefined,
             model,

@@ -3,15 +3,18 @@ import type { StudioGenerateType } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
+  IsArray,
   IsBoolean,
   IsIn,
   IsNotEmpty,
   IsNumber,
   IsOptional,
   IsString,
+  Matches,
   Max,
   MaxLength,
   Min,
+  ValidateIf,
 } from 'class-validator';
 
 /** Generous enough for any real Agent-resolved prompt; bounds the record
@@ -36,6 +39,20 @@ const STUDIO_GENERATE_TYPES = [
  * request.
  */
 export class CreateAgentStudioHandoffDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsArray()
+  @ArrayMaxSize(8)
+  @IsString({ each: true })
+  @MaxLength(160, { each: true })
+  @Matches(/^[a-z0-9][a-z0-9-]*$/i, { each: true })
+  @ApiProperty({ required: false, type: [String] })
+  readonly requestedSkillSlugs?: string[];
+
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsBoolean()
+  @ApiProperty({ required: false })
+  readonly harness?: boolean;
+
   @IsIn(STUDIO_GENERATE_TYPES)
   @ApiProperty({ enum: STUDIO_GENERATE_TYPES })
   readonly type!: StudioGenerateType;

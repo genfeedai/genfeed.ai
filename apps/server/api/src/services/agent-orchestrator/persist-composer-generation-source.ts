@@ -58,6 +58,9 @@ export async function persistComposerGenerationSource(
           generationParams: {
             ...state.request.generationSettings,
             prompt: state.request.content,
+            ...(state.request.requestedSkillSlugs?.length
+              ? { requestedSkillSlugs: state.request.requestedSkillSlugs }
+              : {}),
           },
           data: {
             decision: 'pending',
