@@ -348,6 +348,7 @@ export const brandRemixDraftSchema = z
 
 export const brandRemixReadinessIssueCodeValues = [
   'organization_defaults',
+  'invalid_destination',
   'missing_avatar',
   'missing_ads_management',
   'missing_ads_write',

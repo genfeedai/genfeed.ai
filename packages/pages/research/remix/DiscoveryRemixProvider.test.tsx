@@ -109,7 +109,7 @@ describe('DiscoveryRemixProvider', () => {
     });
   });
 
-  it('starts a ready remix and sends it to Studio without a brief prompt', async () => {
+  it('opens a ready brief for destination selection without starting generation', async () => {
     const { result } = renderHook(() => useDiscoveryRemix(), { wrapper });
 
     await act(async () => {
@@ -119,14 +119,11 @@ describe('DiscoveryRemixProvider', () => {
     expect(mocks.createBrandRemixRun).toHaveBeenCalledWith('brand-1', {
       source,
     });
-    expect(mocks.startBrandRemixRun).toHaveBeenCalledWith('run-1', {
-      expectedRevision: 1,
-    });
-    expect(mocks.push).toHaveBeenCalledWith(
-      '/acme/northstar/studio/generate?run=run-1',
-    );
-    expect(result.current.isOpen).toBe(false);
-    expect(result.current.status).toBe('idle');
+    expect(mocks.startBrandRemixRun).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(result.current.run).toEqual(run);
+    expect(result.current.isOpen).toBe(true);
+    expect(result.current.status).toBe('ready');
   });
 
   it('deduplicates rapid preparation requests for the same source selector', async () => {
@@ -178,10 +175,6 @@ describe('DiscoveryRemixProvider', () => {
   });
 
   it('persists reviewed edits before navigating with only the opaque run id', async () => {
-    mocks.createBrandRemixRun.mockResolvedValueOnce({
-      ...run,
-      readiness: { issues: [], state: 'blocked' },
-    });
     mocks.reviseBrandRemixRun.mockResolvedValueOnce({
       ...run,
       readiness: { issues: [], state: 'ready' },
@@ -195,17 +188,28 @@ describe('DiscoveryRemixProvider', () => {
     await act(async () => {
       await result.current.confirm({
         intent: { objective: 'Keep the proof and sharpen the product reveal.' },
+        target: {
+          kind: 'organic',
+          platform: 'tiktok',
+          credentialId: 'destination-1',
+        },
       });
     });
 
     expect(mocks.reviseBrandRemixRun).toHaveBeenCalledWith('run-1', {
       edits: {
+        target: {
+          kind: 'organic',
+          platform: 'tiktok',
+          credentialId: 'destination-1',
+        },
         intent: {
           objective: 'Keep the proof and sharpen the product reveal.',
         },
       },
       expectedRevision: 1,
     });
+    expect(mocks.startBrandRemixRun).not.toHaveBeenCalled();
     expect(mocks.push).toHaveBeenCalledWith(
       '/acme/northstar/studio/generate?run=run-1',
     );

@@ -407,4 +407,94 @@ describe('BrandRemixRunPlanningService', () => {
       }),
     ).rejects.toBeInstanceOf(BadRequestException);
   });
+  it('normalizes invalid implicit defaults but rejects the same explicit identity', async () => {
+    vi.mocked(prisma.ingredient.findMany).mockResolvedValue([
+      { id: 'avatar-1', brandId: null, category: IngredientCategory.AVATAR },
+      {
+        id: 'voice-1',
+        brandId: 'other-brand',
+        category: IngredientCategory.VOICE,
+        externalVoiceId: 'voice-external-1',
+      },
+    ] as never);
+    const current = {
+      ...snapshotDraft,
+      identity: { avatarAssetId: 'avatar-1', speechVoiceId: 'voice-1' },
+    };
+    const normalized = await planning.resolveDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      current,
+    );
+    expect(normalized.identity).toEqual({});
+    expect(planning.buildReadiness(brandContext, normalized).state).toBe(
+      'ready',
+    );
+    expect(
+      planning.buildReadiness(brandContext, {
+        ...normalized,
+        output: { kind: 'avatar', count: 1, aspectRatio: '9:16' },
+      }).state,
+    ).toBe('blocked');
+    await expect(
+      planning.resolveDraft('org-1', 'brand-1', brandContext, {
+        ...current,
+        identitySource: 'explicit',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      planning.resolveDraft('org-1', 'brand-1', brandContext, {
+        ...current,
+        identitySource: 'account_persona',
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+  });
+
+  it('allows repairing a disconnected stored destination while preserving strict save and generation checks', async () => {
+    personaResolution.resolve.mockRejectedValue(
+      new BadRequestException('Disconnected'),
+    );
+    const current = {
+      ...snapshotDraft,
+      target: { ...snapshotDraft.target, credentialId: 'disconnected-1' },
+    };
+    const prepared = await planning.preparePersistedDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      current,
+      undefined,
+    );
+    expect(prepared.draft.target.credentialId).toBe('disconnected-1');
+    expect(prepared.readiness).toMatchObject({
+      state: 'blocked',
+      issues: [
+        { code: 'invalid_destination', field: 'target', severity: 'blocked' },
+      ],
+    });
+    await expect(
+      planning.resolveDraft('org-1', 'brand-1', brandContext, current, {
+        intent: { objective: 'Keep destination' },
+      }),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', current),
+    ).rejects.toBeInstanceOf(BadRequestException);
+    personaResolution.resolve.mockResolvedValue({
+      identity: {},
+      source: 'brand_default',
+    });
+    const repaired = await planning.resolveDraft(
+      'org-1',
+      'brand-1',
+      brandContext,
+      current,
+      { target: snapshotDraft.target },
+    );
+    expect(repaired.target.credentialId).toBeUndefined();
+    await expect(
+      planning.assertDraftAssetsAuthorized('org-1', 'brand-1', repaired),
+    ).resolves.toBeUndefined();
+  });
 });

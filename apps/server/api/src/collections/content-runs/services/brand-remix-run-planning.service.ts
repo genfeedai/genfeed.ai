@@ -195,6 +195,11 @@ export class BrandRemixRunPlanningService {
     current: BrandRemixDraft,
     edits?: BrandRemixDraftEdits,
   ): Promise<BrandRemixDraft> {
+    current = await this.normalizeImplicitIdentity(
+      organizationId,
+      brandId,
+      current,
+    );
     if (!edits) {
       await this.assertDraftAssetsAuthorized(organizationId, brandId, current);
       return current;
@@ -240,7 +245,7 @@ export class BrandRemixRunPlanningService {
               defaultIdentity: context.defaultIdentity,
             })
           : undefined;
-    const draft = brandRemixDraftSchema.parse({
+    let draft = brandRemixDraftSchema.parse({
       ...current,
       ...(edits.fidelityMode ? { fidelityMode: edits.fidelityMode } : {}),
       ...(resolvedIdentity
@@ -255,6 +260,11 @@ export class BrandRemixRunPlanningService {
       references,
       ...(edits.target ? { target: edits.target } : {}),
     });
+    draft = await this.normalizeImplicitIdentity(
+      organizationId,
+      brandId,
+      draft,
+    );
     await this.assertDraftAssetsAuthorized(organizationId, brandId, draft);
     return draft;
   }
@@ -339,6 +349,98 @@ export class BrandRemixRunPlanningService {
     };
   }
 
+  async sanitizePersistedDraft(
+    organizationId: string,
+    brandId: string,
+    draft: BrandRemixDraft,
+  ): Promise<BrandRemixDraft> {
+    const referenceIds = draft.references.map((reference) => reference.assetId);
+    const imported = referenceIds.length
+      ? await this.prisma.ingredient.findMany({
+          select: { id: true, sourceActionId: true },
+          where: scopedWhere(organizationId, {
+            brandId,
+            id: { in: referenceIds },
+            sourceActionId: { startsWith: 'remix-source:' },
+          }),
+        })
+      : [];
+    const importedIds = new Set(
+      imported
+        .filter((ingredient) =>
+          ingredient.sourceActionId?.startsWith('remix-source:'),
+        )
+        .map((ingredient) => ingredient.id),
+    );
+    return this.normalizeImplicitIdentity(organizationId, brandId, {
+      ...draft,
+      references: draft.references.filter(
+        (reference) => !importedIds.has(reference.assetId),
+      ),
+    });
+  }
+
+  async preparePersistedDraft(
+    organizationId: string,
+    brandId: string,
+    context: ResolvedBrandContext,
+    draft: BrandRemixDraft,
+    media: BrandRemixSourceSnapshot['media'],
+  ): Promise<{ draft: BrandRemixDraft; readiness: BrandRemixReadiness }> {
+    const sanitized = await this.sanitizePersistedDraft(
+      organizationId,
+      brandId,
+      draft,
+    );
+    await this.assertDraftReferencesAndIdentityAuthorized(
+      organizationId,
+      brandId,
+      sanitized,
+    );
+    const readiness = this.buildReadiness(context, sanitized, media);
+    try {
+      await this.assertDestinationAuthorized(
+        organizationId,
+        brandId,
+        sanitized,
+      );
+    } catch (error) {
+      if (!(error instanceof BadRequestException)) throw error;
+      readiness.issues.push({
+        code: 'invalid_destination',
+        field: 'target',
+        severity: 'blocked',
+        message:
+          'The saved destination account is unavailable. Clear it or choose a connected account for this brand and platform.',
+      });
+      readiness.state = 'blocked';
+    }
+    return { draft: sanitized, readiness };
+  }
+
+  private async normalizeImplicitIdentity(
+    organizationId: string,
+    brandId: string,
+    draft: BrandRemixDraft,
+  ): Promise<BrandRemixDraft> {
+    if (
+      draft.identitySource !== 'brand_default' ||
+      !('avatarAssetId' in draft.identity)
+    )
+      return draft;
+    try {
+      await this.assertDraftReferencesAndIdentityAuthorized(
+        organizationId,
+        brandId,
+        { ...draft, references: [] },
+      );
+      return draft;
+    } catch (error) {
+      if (!(error instanceof BadRequestException)) throw error;
+      return { ...draft, identity: {}, identityPersonaId: undefined };
+    }
+  }
+
   async assertReadyForGeneration(
     organizationId: string,
     brandId: string,
@@ -369,6 +471,19 @@ export class BrandRemixRunPlanningService {
     brandId: string,
     draft: BrandRemixDraft,
   ): Promise<void> {
+    await this.assertDestinationAuthorized(organizationId, brandId, draft);
+    await this.assertDraftReferencesAndIdentityAuthorized(
+      organizationId,
+      brandId,
+      draft,
+    );
+  }
+
+  private async assertDestinationAuthorized(
+    organizationId: string,
+    brandId: string,
+    draft: BrandRemixDraft,
+  ): Promise<void> {
     if (draft.target.credentialId) {
       await this.personaResolution.resolve({
         organizationId,
@@ -379,6 +494,13 @@ export class BrandRemixRunPlanningService {
         explicitIdentity: draft.identity,
       });
     }
+  }
+
+  private async assertDraftReferencesAndIdentityAuthorized(
+    organizationId: string,
+    brandId: string,
+    draft: BrandRemixDraft,
+  ): Promise<void> {
     const referenceIds = [
       ...new Set(draft.references.map((reference) => reference.assetId)),
     ];

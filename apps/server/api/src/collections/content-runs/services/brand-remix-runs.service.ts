@@ -189,12 +189,35 @@ export class BrandRemixRunsService {
       organizationId,
       brandId,
     );
+    const sanitized = await this.planning.sanitizePersistedDraft(
+      organizationId,
+      brandId,
+      config.draft,
+    );
+    const removedIds = new Set(
+      config.draft.references
+        .filter(
+          (reference) =>
+            !sanitized.references.some(
+              (retained) => retained.assetId === reference.assetId,
+            ),
+        )
+        .map((reference) => reference.assetId),
+    );
+    const edits = input.edits.references
+      ? {
+          ...input.edits,
+          references: input.edits.references.filter(
+            (reference) => !removedIds.has(reference.assetId),
+          ),
+        }
+      : input.edits;
     const draft = await this.planning.resolveDraft(
       organizationId,
       brandId,
       brandContext,
-      config.draft,
-      input.edits,
+      sanitized,
+      edits,
     );
     const nextConfig = brandRemixRunConfigSchema.parse({
       ...config,
@@ -213,15 +236,16 @@ export class BrandRemixRunsService {
       reviewClaim: undefined,
       revision: config.revision + 1,
     });
-    const updated = await this.persistence.compareAndSwapConfig({
-      expectedPhase: config.phase,
-      expectedRevision: input.expectedRevision,
+    const updated = await this.persistence.compareAndSwapExactConfig({
+      expectedConfig: config,
       nextConfig,
       organizationId,
       runId,
       status: ContentRunStatus.PENDING,
     });
 
+    if (!updated)
+      throw staleRemixRevision(input.expectedRevision, config.revision);
     return projectBrandRemixRun(updated, brandContext, nextConfig);
   }
 
@@ -298,14 +322,19 @@ export class BrandRemixRunsService {
     media: BrandRemixSourceSnapshot['media'],
   ): Promise<BrandRemixRunView> {
     const config = this.persistence.parseConfig(run.config, run.id);
-    await this.planning.assertDraftAssetsAuthorized(
+    const nextMedia = media ?? config.sourceSnapshot.media;
+    const prepared = await this.planning.preparePersistedDraft(
       organizationId,
       brandId,
+      brandContext,
       config.draft,
+      nextMedia,
     );
     if (
-      media === undefined ||
-      JSON.stringify(config.sourceSnapshot.media) === JSON.stringify(media)
+      JSON.stringify(config.sourceSnapshot.media) ===
+        JSON.stringify(nextMedia) &&
+      JSON.stringify(config.draft) === JSON.stringify(prepared.draft) &&
+      JSON.stringify(config.readiness) === JSON.stringify(prepared.readiness)
     ) {
       return projectBrandRemixRun(run, brandContext, config);
     }
@@ -316,12 +345,9 @@ export class BrandRemixRunsService {
     }
     const nextConfig = brandRemixRunConfigSchema.parse({
       ...config,
-      sourceSnapshot: { ...config.sourceSnapshot, media },
-      readiness: this.planning.buildReadiness(
-        brandContext,
-        config.draft,
-        media,
-      ),
+      draft: prepared.draft,
+      sourceSnapshot: { ...config.sourceSnapshot, media: nextMedia },
+      readiness: prepared.readiness,
       revision: config.revision + 1,
     });
     const updated = await this.persistence.compareAndSwapExactConfig({
