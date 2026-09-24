@@ -208,3 +208,8 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 - [Unified generation experience](spec-unified-generation-experience.md) · [decisions](decisions-unified-generation-experience.md) — shared generation status, account-aware platform previews, live activity (#4601)
 
 - [feedback_post_drafting_without_accounts](feedback_post_drafting_without_accounts.md) — Direct writing and generation before account connection; structured brand context (#5042)
+
+## Import and remix feature inventory
+
+- [Product feature map](reference_product_feature_map.md) — product-wide documentation entry points and dated import/extension/concept/original-ad implementation evidence; canonical gaps stay in GitHub.
+- [Imported / Generated / Knowledge](feedback_imported_generated_knowledge_boundary.md) — user correction: import posts for remix as sources; Knowledge is brand context and generated posts are separate outputs.
