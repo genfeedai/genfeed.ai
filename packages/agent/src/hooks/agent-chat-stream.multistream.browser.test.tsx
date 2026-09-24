@@ -16,6 +16,11 @@ import { render } from 'vitest-browser-react';
 import agentMessages from '../../../../apps/app/messages/en/agent.json';
 import uiMessages from '../../../../apps/app/messages/en/ui.json';
 
+vi.mock('@genfeedai/helpers', async () => {
+  const { cn } = await import('@genfeedai/helpers/formatting/cn/cn.util');
+  return { cn };
+});
+
 const transport = vi.hoisted(() => {
   const handlers = new Map<string, (data: unknown) => void>();
   const manager = {};

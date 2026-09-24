@@ -116,6 +116,9 @@ describe('thread stream registry', () => {
     expect(a.owner.completionTimeoutRef.current).not.toBeNull();
     const bState = useAgentChatStore.getState().messages;
     done('a');
+    expect(a.owner.presentation.getState().messages.at(-1)?.content).toBe(
+      'answer-a',
+    );
     expect(useAgentChatStore.getState().messages).toBe(bState);
     expect(
       useAgentChatStore.getState().threads.find((t) => t.id === 'a')

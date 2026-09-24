@@ -2,6 +2,7 @@ import { resolveStreamFromMessages as resolveStreamFromMessagesFn } from '@genfe
 import {
   collectAssistantMessageIds,
   flushBufferedEventsForThread,
+  isForeignRunEvent,
 } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import {
   bindAgentStreamEntry,
@@ -251,10 +252,15 @@ export function createAgentStreamController(
     );
 
     if (hasCompletedOnboarding && onOnboardingCompleted) {
+      const generation = entry.ownerGeneration;
       try {
         await onOnboardingCompleted();
       } catch {
-        if (!isCurrentAgentStreamEntry(entry)) return;
+        if (
+          !isCurrentAgentStreamEntry(entry) ||
+          entry.ownerGeneration !== generation
+        )
+          return;
         setError(
           'Could not finish setup. Use Skip to workspace to try again, or sign in again if your session expired.',
         );
@@ -331,7 +337,14 @@ export function createAgentStreamController(
       subscribe<AgentTurnAcceptedPayload>('agent:turn_accepted', (payload) => {
         if (
           payload.clientRequestId !== entry.clientRequestId ||
-          entry.hasProgress ||
+          (entry.hasProgress &&
+            (!entry.isAwaitingRunIdRef.current ||
+              entry.needsReconciliation ||
+              entry.bufferedEventsRef.current.some(
+                (event) =>
+                  event.threadId === payload.threadId &&
+                  !isForeignRunEvent(event.runId, payload.runId),
+              ))) ||
           entry.terminalAt !== null ||
           (entry.activeStreamRunIdRef.current &&
             payload.runId !== entry.activeStreamRunIdRef.current) ||
@@ -536,6 +549,13 @@ export function createAgentStreamController(
       }
 
       if (!bindAgentStreamEntry(entry, response.threadId)) return;
+      entry.hasProgress =
+        entry.needsReconciliation ||
+        entry.bufferedEventsRef.current.some(
+          (event) =>
+            event.threadId === response.threadId &&
+            !isForeignRunEvent(event.runId, response.executionId),
+        );
       presentationStore.setState({ activeThreadId: response.threadId });
       streamRuntime.activeStreamThreadRef.current = response.threadId;
       streamRuntime.activeStreamRunIdRef.current = response.executionId;
@@ -607,7 +627,7 @@ export function createAgentStreamController(
           streamRuntime.pendingCompletionRef.current = null;
           clearCompletionWatchdog();
           resetStreamState();
-          cleanupSubscriptions();
+          releaseCompletedSubscriptions();
           if (currentActiveThreadId) {
             updateThreadSummary(currentActiveThreadId, {
               attentionState: null,
@@ -631,7 +651,7 @@ export function createAgentStreamController(
       setError(serializeAgentError(err));
       setActiveRunStatus('failed');
       resetStreamState();
-      cleanupSubscriptions();
+      releaseCompletedSubscriptions();
     }
   };
 
