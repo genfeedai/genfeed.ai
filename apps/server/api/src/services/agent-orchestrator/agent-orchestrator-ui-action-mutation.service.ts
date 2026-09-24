@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { McpApprovalDocument } from '@api/collections/mcp-approvals/schemas/mcp-approval.schema';
 import { McpApprovalsService } from '@api/collections/mcp-approvals/services/mcp-approvals.service';
+import { assertApiKeyAgentPublishingScope } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionFinalizerService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-finalizer.service';
 import { AgentToolExecutorService } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
@@ -133,6 +134,13 @@ export class AgentOrchestratorUiActionMutationService {
     if (approval.status === 'APPROVED' && action === 'decline_mutation') {
       throw new ConflictException('This action was already approved.');
     }
+    if (action === 'confirm_mutation') {
+      assertApiKeyAgentPublishingScope(
+        context.apiKeyContext ?? {},
+        approval.toolName,
+        args,
+      );
+    }
     const status = action === 'confirm_mutation' ? 'approved' : 'declined';
     const admittedCard = await this.updateProposalCards(
       sourceActionId,
@@ -143,22 +151,7 @@ export class AgentOrchestratorUiActionMutationService {
     );
     const result: AgentToolResult =
       status === 'approved'
-        ? await this.executor.executeTool(
-            approval.toolName as CuratedActionName,
-            args,
-            {
-              apiKeyContext: context.apiKeyContext,
-              approvedApprovalId: approvalId,
-              brandId: scope.brandId,
-              hostSupportsApproval: true,
-              organizationId: context.organizationId,
-              userId: context.userId,
-              threadId,
-              validatedScope: scope,
-              runId: context.executionId,
-              generationPriority: context.generationPriority,
-            },
-          )
+        ? await this.executeApprovedMutation(approval, args, params, scope)
         : { creditsUsed: 0, success: true };
     const resolvedCard =
       status === 'declined'
@@ -177,6 +170,48 @@ export class AgentOrchestratorUiActionMutationService {
       result,
       resolvedCard,
     );
+  }
+
+  private async executeApprovedMutation(
+    approval: McpApprovalDocument,
+    args: Record<string, unknown>,
+    params: ThreadUiActionExecutionParams,
+    scope: NonNullable<ThreadUiActionExecutionParams['context']['scope']>,
+  ): Promise<AgentToolResult> {
+    const { context, threadId } = params;
+    try {
+      return await this.executor.executeTool(
+        approval.toolName as CuratedActionName,
+        args,
+        {
+          apiKeyContext: context.apiKeyContext,
+          approvedApprovalId: approval.id,
+          brandId: scope.brandId,
+          hostSupportsApproval: true,
+          organizationId: context.organizationId,
+          userId: context.userId,
+          threadId,
+          validatedScope: scope,
+          runId: context.executionId,
+          generationPriority: context.generationPriority,
+        },
+      );
+    } catch (error: unknown) {
+      await this.updateProposalCards(
+        `mutation-approval:${approval.id}`,
+        'approved',
+        {
+          success: false,
+          creditsUsed: 0,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Approved action execution failed.',
+        },
+        params,
+      );
+      throw error;
+    }
   }
 
   private finalizeMutationResult(
@@ -374,7 +409,11 @@ export class AgentOrchestratorUiActionMutationService {
                         )
                       ? data.executionStatus
                       : 'running',
-              ...(result?.error ? { error: result.error } : {}),
+              ...(result?.success
+                ? { error: undefined }
+                : result?.error
+                  ? { error: result.error }
+                  : {}),
             },
           };
           resolvedCard ??= resolved;
