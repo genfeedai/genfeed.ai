@@ -13,12 +13,11 @@ import type {
   ApifyYouTubeVideo,
 } from '@api/services/integrations/apify/interfaces/apify.interfaces';
 import { ApifyService } from '@api/services/integrations/apify/services/apify.service';
-import { Platform } from '@genfeedai/contracts';
 import { Injectable } from '@nestjs/common';
 
 /**
  * Owns the trend "source item" subsystem: live Apify fetch + per-platform
- * normalization, fallback synthesis, and the stored source-preview accessors.
+ * normalization and the stored source-preview accessors.
  *
  * Extracted from TrendsService (issue #752). The five previously copy-pasted
  * per-platform fetchers are collapsed behind a single dispatch table in
@@ -127,67 +126,18 @@ export class TrendSourceItemsService {
   }
 
   /**
-   * Synthesize fallback source items from trend metadata when no live items
-   * are available.
-   */
-  buildFallbackTrendSourceItems(trend: TrendEntity): TrendSourceItem[] {
-    const mediaUrl =
-      typeof trend.metadata?.videoUrl === 'string'
-        ? trend.metadata.videoUrl
-        : undefined;
-    const sourceUrls = Array.isArray(trend.metadata?.urls)
-      ? trend.metadata.urls.filter(
-          (url): url is string => typeof url === 'string' && !!url,
-        )
-      : [];
-    const resolvedSourceUrls =
-      sourceUrls.length > 0 ? sourceUrls : mediaUrl ? [mediaUrl] : [];
-    return resolvedSourceUrls.map((sourceUrl, index) => ({
-      authorHandle:
-        typeof trend.metadata?.creatorHandle === 'string'
-          ? trend.metadata.creatorHandle
-          : undefined,
-      contentType:
-        trend.platform === Platform.TWITTER
-          ? 'tweet'
-          : trend.metadata?.videoUrl
-            ? 'video'
-            : 'post',
-      id: `${trend.id}-fallback-${index + 1}`,
-      mediaUrl,
-      platform: trend.platform,
-      publishedAt: trend.createdAt?.toISOString(),
-      sourceUrl,
-      sourceClassification: this.resolveSourceClassification(
-        {
-          authorHandle:
-            typeof trend.metadata?.creatorHandle === 'string'
-              ? trend.metadata.creatorHandle
-              : undefined,
-          platform: trend.platform,
-          publishedAt: trend.createdAt?.toISOString(),
-        },
-        trend,
-      ),
-      text:
-        typeof trend.metadata?.sampleContent === 'string'
-          ? trend.metadata.sampleContent
-          : trend.topic,
-      thumbnailUrl:
-        typeof trend.metadata?.thumbnailUrl === 'string'
-          ? trend.metadata.thumbnailUrl
-          : undefined,
-      title: trend.topic,
-    }));
-  }
-
-  /**
    * Read the cached source-preview items stored on a trend's metadata.
    */
   getStoredTrendSourcePreview(
     trend: TrendEntity,
     limit: number = TREND_SOURCE_PREVIEW_LIMIT,
   ): TrendSourceItem[] {
+    if (
+      trend.platform === 'linkedin' &&
+      trend.metadata?.source === 'public-reference'
+    )
+      return [];
+
     const cachedItems = trend.metadata?.sourcePreviewCache;
     if (!Array.isArray(cachedItems)) {
       return [];
@@ -195,6 +145,7 @@ export class TrendSourceItemsService {
 
     return cachedItems
       .filter((item): item is TrendSourceItem => this.isTrendSourceItem(item))
+      .filter((item) => !/-fallback-[1-9]\d*$/.test(item.id))
       .slice(0, limit);
   }
 
@@ -442,7 +393,7 @@ export class TrendSourceItemsService {
           : undefined),
       sourceKind: 'public_platform_reference',
       sourceLabel: this.getPlatformSourceLabel(item.platform),
-      sourceTimestamp: item.publishedAt ?? trend.createdAt?.toISOString(),
+      sourceTimestamp: item.publishedAt,
       sourceTopic: trend.topic,
       value: item.sourceClassification ?? trend.metadata?.sourceClassification,
     });

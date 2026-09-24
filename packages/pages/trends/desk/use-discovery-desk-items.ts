@@ -21,6 +21,7 @@ import type {
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useMemo } from 'react';
 import {
+  isObservedTrendContent,
   toDeskItemFromSourcePost,
   toDeskItemFromTrend,
   toDeskItemFromViralVideo,
@@ -145,7 +146,9 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
         .map((source) => source.id),
     );
     return [
-      ...trendContent.items.map(toDeskItemFromTrend),
+      ...trendContent.items
+        .filter(isObservedTrendContent)
+        .map(toDeskItemFromTrend),
       ...followingFeed.posts.map((post) =>
         toDeskItemFromSourcePost(post, {
           isOwnAccount: ownAccountSourceIds.has(post.sourceId),

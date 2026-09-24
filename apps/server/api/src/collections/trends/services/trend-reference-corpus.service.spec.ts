@@ -569,6 +569,120 @@ describe('TrendReferenceCorpusService', () => {
     ]);
   });
 
+  it('excludes explicit fallback references from corpus and prompt packs', async () => {
+    const observed = referenceRows[0];
+    const legacy = {
+      ...observed,
+      id: 'legacy',
+      data: {
+        ...observed.data,
+        platform: 'linkedin',
+        canonicalUrl: 'https://www.linkedin.com/company/openai/',
+        sourcePreviewState: 'fallback',
+        sourceClassification: {
+          ...(observed.data.sourceClassification as Record<string, unknown>),
+          confidence: 'low',
+        },
+      },
+    };
+    const fallback = {
+      ...observed,
+      id: 'ref-fallback-1',
+      data: { ...observed.data },
+    };
+    prisma.trendSourceReference.findMany.mockResolvedValueOnce([
+      legacy,
+      fallback,
+      observed,
+    ]);
+    const corpus = await service.getReferenceCorpus('org_1', 'brand_1');
+    expect(corpus.items.map((item) => item.id)).toEqual([observed.id]);
+    prisma.trendSourceReference.findMany.mockResolvedValueOnce([
+      legacy,
+      fallback,
+      observed,
+    ]);
+    const packs = await service.getPromptReferencePacks('org_1', 'brand_1', {
+      types: ['references'],
+    });
+    expect(packs.packs.flatMap((pack) => pack.sourceReferenceIds)).toEqual([
+      observed.id,
+    ]);
+  });
+
+  it.each(['live', 'empty', undefined] as const)(
+    'preserves low-confidence company references with %s state in corpus and prompt packs',
+    async (sourcePreviewState) => {
+      const observed = referenceRows[0];
+      const company = {
+        ...observed,
+        data: {
+          ...observed.data,
+          platform: 'linkedin',
+          canonicalUrl: 'https://www.linkedin.com/company/openai/',
+          sourcePreviewState,
+          sourceClassification: {
+            ...(observed.data.sourceClassification as Record<string, unknown>),
+            confidence: 'low',
+          },
+        },
+      };
+      prisma.trendSourceReference.findMany.mockResolvedValueOnce([company]);
+      const corpus = await service.getReferenceCorpus('org_1', 'brand_1');
+      expect(corpus.items.map((item) => item.id)).toEqual([observed.id]);
+      prisma.trendSourceReference.findMany.mockResolvedValueOnce([company]);
+      const packs = await service.getPromptReferencePacks('org_1', 'brand_1', {
+        types: ['references'],
+      });
+      expect(packs.packs.flatMap((pack) => pack.sourceReferenceIds)).toEqual([
+        observed.id,
+      ]);
+    },
+  );
+
+  it.each([
+    {
+      sourceClassification: {
+        confidence: 'medium',
+        sourceKind: 'public_platform_reference',
+      },
+    },
+    {
+      sourceClassification: {
+        confidence: 'low',
+        sourceKind: 'owned_brand_reference',
+      },
+    },
+    {
+      sourceClassification: {
+        confidence: 'low',
+        sourceKind: 'manual_curated_reference',
+      },
+    },
+    { mediaUrl: 'https://example.com/media.mp4' },
+    { canonicalUrl: 'https://www.linkedin.com/posts/real-post' },
+    { canonicalUrl: 'https://example.com/company/openai/' },
+  ])('preserves non-seed references: %o', async (overrides) => {
+    const observed = referenceRows[0];
+    prisma.trendSourceReference.findMany.mockResolvedValueOnce([
+      {
+        ...observed,
+        data: {
+          ...observed.data,
+          platform: 'linkedin',
+          canonicalUrl: 'https://www.linkedin.com/company/openai/',
+          sourceClassification: {
+            confidence: 'low',
+            sourceKind: 'public_platform_reference',
+          },
+          ...overrides,
+        },
+      },
+    ]);
+    const corpus = await service.getReferenceCorpus('org_1', 'brand_1');
+    expect(corpus.items.map((item) => item.id)).toEqual([observed.id]);
+  });
+
   it('derives prompt-ready reference packs with source traceability and regeneration metadata', async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-06-13T00:00:00.000Z'));

@@ -111,7 +111,19 @@ vi.mock('@pages/trends/desk/use-discovery-desk-items', () => ({
 }));
 
 vi.mock('@pages/trends/desk/desk-empty-states', () => ({
-  DeskEmptyState: () => <div data-testid="desk-empty-state" />,
+  DeskEmptyState: ({
+    followingHref,
+    publishingHref,
+  }: {
+    followingHref: string;
+    publishingHref: string;
+  }) => (
+    <div
+      data-testid="desk-empty-state"
+      data-following-href={followingHref}
+      data-publishing-href={publishingHref}
+    />
+  ),
   DiscoveryReadinessCards: () => (
     <div data-testid="discovery-readiness-cards" />
   ),
@@ -201,6 +213,23 @@ describe('DiscoveryDesk', () => {
         totalTrends: 2,
       },
     });
+  });
+
+  it('renders setup actions alongside readiness when no observed posts exist', () => {
+    mocks.useDiscoveryDeskItems.mockReturnValue({
+      ...mocks.useDiscoveryDeskItems(),
+      items: [],
+    });
+    render(<DiscoveryDesk />);
+    expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
+      'data-following-href',
+      '/org-1/brand-1/discovery/overview?source=following',
+    );
+    expect(screen.getByTestId('desk-empty-state')).toHaveAttribute(
+      'data-publishing-href',
+      '/org-1/settings/publishing',
+    );
+    expect(screen.getByTestId('discovery-readiness-cards')).toBeInTheDocument();
   });
 
   it('puts search on the left of the module topbar', () => {

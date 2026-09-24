@@ -19,6 +19,13 @@ import type { TrendContentItem } from '@props/trends/trends-page.props';
  */
 const HAS_REMIX_SURFACE = true;
 
+export function isObservedTrendContent(item: TrendContentItem): boolean {
+  return (
+    item.sourcePreviewState !== 'fallback' &&
+    !/-fallback-[1-9]\d*$/.test(item.id)
+  );
+}
+
 function sumMetrics(metrics: DiscoveryDeskItemMetrics): number {
   return (
     (metrics.views ?? 0) +

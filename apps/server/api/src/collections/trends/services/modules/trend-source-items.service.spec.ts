@@ -56,6 +56,15 @@ describe('TrendSourceItemsService', () => {
       expect(apify.searchInstagramByHashtag).not.toHaveBeenCalled();
     });
 
+    it('does not use trend creation time for an observed post with no publication date', async () => {
+      apify.searchInstagramByHashtag.mockResolvedValue([
+        { id: 'ig-undated', shortCode: 'undated', caption: 'Observed post' },
+      ]);
+      const [item] = await service.fetchTrendSourceItems(makeTrend(), 5);
+      expect(item.publishedAt).toBeUndefined();
+      expect(item.sourceClassification?.sourceTimestamp).toBeUndefined();
+    });
+
     it('returns [] for an unsupported platform', async () => {
       const trend = makeTrend({ platform: 'pinterest' });
 
@@ -225,44 +234,48 @@ describe('TrendSourceItemsService', () => {
     });
   });
 
-  describe('buildFallbackTrendSourceItems', () => {
-    it('synthesizes one item per metadata url', () => {
+  describe('observed stored previews', () => {
+    const observed = {
+      contentType: 'post',
+      id: 'live-1',
+      platform: 'linkedin',
+      sourceUrl: 'https://www.linkedin.com/posts/observed',
+      publishedAt: '2025-12-01T00:00:00.000Z',
+    };
+    it('excludes generated fallback IDs before applying the limit and preserves live dates', () => {
       const trend = makeTrend({
         metadata: {
-          sampleContent: 'sample',
-          sourceClassification: {
-            capturedAt: '2026-06-09T00:00:00.000Z',
-            confidence: 'low',
-            freshnessWindowDays: 7,
-            intendedUse: 'organic_trend_discovery',
-            sourceKind: 'public_platform_reference',
-            sourceLabel: 'YouTube',
-            sourceTopic: '#ai',
-          },
-          urls: ['https://a.com', 'https://b.com'],
+          sourcePreviewCache: [
+            { ...observed, id: 'trend-1-fallback-1' },
+            observed,
+          ],
         },
-        platform: 'youtube',
       });
-
-      const items = service.buildFallbackTrendSourceItems(trend);
-
-      expect(items).toHaveLength(2);
-      expect(items[0]).toMatchObject({
-        contentType: 'post',
-        id: 'trend-1-fallback-1',
-        sourceClassification: expect.objectContaining({
-          platform: 'youtube',
-          sourceKind: 'public_platform_reference',
-          sourceTimestamp: '2026-01-01T00:00:00.000Z',
-        }),
-        sourceUrl: 'https://a.com',
-        text: 'sample',
-      });
+      expect(service.getStoredTrendSourcePreview(trend, 1)).toEqual([observed]);
     });
-
-    it('returns [] when there are no urls or media', () => {
+    it('excludes historical LinkedIn public-reference metadata', () => {
       expect(
-        service.buildFallbackTrendSourceItems(makeTrend({ metadata: {} })),
+        service.getStoredTrendSourcePreview(
+          makeTrend({
+            platform: 'linkedin',
+            metadata: {
+              source: 'public-reference',
+              sourcePreviewCache: [observed],
+            },
+          }),
+        ),
+      ).toEqual([]);
+    });
+    it('does not manufacture posts from metadata urls or sample content', () => {
+      expect(
+        service.getStoredTrendSourcePreview(
+          makeTrend({
+            metadata: {
+              urls: ['https://example.com'],
+              sampleContent: 'invented',
+            },
+          }),
+        ),
       ).toEqual([]);
     });
   });

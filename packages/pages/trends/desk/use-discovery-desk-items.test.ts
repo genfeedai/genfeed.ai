@@ -34,7 +34,8 @@ vi.mock('@genfeedai/services/social/social-sources.service', () => ({
   SocialSourcesService: { getInstance: vi.fn() },
 }));
 
-vi.mock('./desk-items', () => ({
+vi.mock('./desk-items', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('./desk-items')>()),
   toDeskItemFromSourcePost: (post: { id: string }) => ({
     key: `source_post:${post.id}`,
     kind: 'source_post',
@@ -93,6 +94,26 @@ describe('useDiscoveryDeskItems', () => {
     mockGetSocialSourcesService.mockResolvedValue({
       getFollowingFeed: mockGetFollowingFeed,
     });
+  });
+
+  it('filters saved synthetic content before combining selectable desk items', async () => {
+    mockGetTrendContent.mockResolvedValue({
+      items: [
+        TREND_ITEM,
+        { id: 'seed-fallback-1' },
+        { id: 'legacy', sourcePreviewState: 'fallback' },
+      ],
+      summary: SUMMARY,
+    });
+    const { result } = renderHook(() => useDiscoveryDeskItems(), {
+      wrapper: createQueryWrapper(),
+    });
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    expect(result.current.items.map((item) => item.key)).toEqual([
+      'trend:trend-1',
+      'source_post:post-1',
+      'viral_video:video-1',
+    ]);
   });
 
   it('combines trend content, the following feed, and viral videos into one item list', async () => {

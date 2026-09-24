@@ -98,35 +98,47 @@ describe('TrendSourcePreviewService', () => {
   });
 
   describe('getAnnotatedSourceItems', () => {
-    it('returns annotated live items when the fetch yields data', async () => {
-      vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([
-        {
-          contentType: 'post',
-          id: 'live-1',
-          platform: 'instagram',
-          sourceUrl: 'https://live',
-        },
-      ]);
-
-      const result = await service.getAnnotatedSourceItems(makeTrend(), 5);
-
-      expect(result.map((i) => i.id)).toEqual(['live-1']);
-    });
-
-    it('falls back to synthesized items when the live fetch throws', async () => {
-      vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockRejectedValue(
-        new Error('apify down'),
+    it('annotates only saved observed items without starting collection', async () => {
+      const fetchSpy = vi.spyOn(sourceItems, 'fetchTrendSourceItems');
+      const observed = {
+        contentType: 'post',
+        id: 'live-1',
+        platform: 'instagram',
+        sourceUrl: 'https://live',
+        publishedAt: '2025-12-01T00:00:00.000Z',
+      };
+      const result = await service.getAnnotatedSourceItems(
+        makeTrend({ metadata: { sourcePreviewCache: [observed] } }),
+        5,
       );
-
-      const trend = makeTrend({
-        metadata: { sampleContent: 's', urls: ['https://fallback'] },
-      });
-
-      const result = await service.getAnnotatedSourceItems(trend, 5);
-
-      expect(result).toHaveLength(1);
-      expect(result[0]?.id).toBe('trend-1-fallback-1');
+      expect(result).toEqual([observed]);
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
+    it('returns an empty saved preview without synthesizing or collecting', async () => {
+      const fetchSpy = vi.spyOn(sourceItems, 'fetchTrendSourceItems');
+      const result = await service.getAnnotatedSourceItems(
+        makeTrend({
+          metadata: { sampleContent: 's', urls: ['https://fallback'] },
+        }),
+        5,
+      );
+      expect(result).toEqual([]);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    });
+  });
+
+  it('returns an empty detail preview without manufacturing or collecting posts', async () => {
+    const fetchSpy = vi.spyOn(sourceItems, 'fetchTrendSourceItems');
+    const result = await service.buildTrendDiscoveryItem(
+      makeTrend({
+        metadata: {
+          urls: ['https://example.com'],
+          sampleContent: 'not a post',
+        },
+      }),
+    );
+    expect(result.sourcePreview).toEqual([]);
+    expect(fetchSpy).not.toHaveBeenCalled();
   });
 
   describe('getTrendContent', () => {
@@ -188,6 +200,13 @@ describe('TrendSourcePreviewService', () => {
       expect(result.items.map((i) => i.contentRank)).toEqual([1, 2]);
       expect(result.totalTrends).toBe(2);
       expect(cache.set).toHaveBeenCalledOnce();
+      expect(cache.generateKey).toHaveBeenCalledWith(
+        'trends:content:v2',
+        'org',
+        'global',
+        'all',
+        10,
+      );
     });
 
     it('hydrates a global preview without persisting it during a tenant refresh', async () => {
@@ -555,7 +574,7 @@ describe('TrendSourcePreviewService', () => {
       expect(fetchSpy).not.toHaveBeenCalled();
     });
 
-    it('claims the cooldown before spending Apify runs on a refresh', async () => {
+    it('claims the cooldown before refreshing saved content', async () => {
       vi.spyOn(sourceItems, 'fetchTrendSourceItems').mockResolvedValue([]);
 
       await service.getTrendContent(
@@ -588,7 +607,7 @@ describe('TrendSourcePreviewService', () => {
       expect(cache.claimOnce).not.toHaveBeenCalled();
     });
 
-    it('still refreshes when the cooldown cannot be claimed because Redis is down', async () => {
+    it('refreshes saved reads without collection when Redis is down', async () => {
       cache.claimOnce.mockResolvedValue('unavailable');
       const fetchSpy = vi
         .spyOn(sourceItems, 'fetchTrendSourceItems')
@@ -604,7 +623,7 @@ describe('TrendSourcePreviewService', () => {
         }),
       );
 
-      expect(fetchSpy).toHaveBeenCalled();
+      expect(fetchSpy).not.toHaveBeenCalled();
     });
   });
 });

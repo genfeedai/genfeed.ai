@@ -289,11 +289,16 @@ export class TrendReferenceCorpusService {
         isDeleted: false,
       },
     });
-    const classificationFiltered = docs.filter((doc) =>
-      this.shouldIncludeReferenceByClassification(
-        doc.data as unknown as TrendReferenceRecordData,
-        options,
-      ),
+    const classificationFiltered = docs.filter(
+      (doc) =>
+        this.isObservedReference(
+          doc.id,
+          doc.data as unknown as TrendReferenceRecordData,
+        ) &&
+        this.shouldIncludeReferenceByClassification(
+          doc.data as unknown as TrendReferenceRecordData,
+          options,
+        ),
     );
     // More matches exist if this page filled `limit` with matches to spare, or
     // if the over-fetch window itself was saturated (matches may lie past it).
@@ -357,6 +362,12 @@ export class TrendReferenceCorpusService {
     // ids rather than the full `limit * 4` over-fetched page (#1112 P2).
     const emptyRemixCounts = new Map<string, number>();
     const promptReadyReferences = docs
+      .filter((doc) =>
+        this.isObservedReference(
+          doc.id,
+          doc.data as unknown as TrendReferenceRecordData,
+        ),
+      )
       .map((doc) =>
         this.toReferenceRecord(
           doc.id,
@@ -575,6 +586,15 @@ export class TrendReferenceCorpusService {
 
   private getExpandedReferenceLimit(limit: number): number {
     return Math.min(MAX_REFERENCE_QUERY_LIMIT, Math.max(limit * 4, limit + 20));
+  }
+
+  private isObservedReference(
+    id: string,
+    data: TrendReferenceRecordData,
+  ): boolean {
+    return (
+      data.sourcePreviewState !== 'fallback' && !/-fallback-[1-9]\d*$/.test(id)
+    );
   }
 
   private shouldIncludeReferenceByClassification(
