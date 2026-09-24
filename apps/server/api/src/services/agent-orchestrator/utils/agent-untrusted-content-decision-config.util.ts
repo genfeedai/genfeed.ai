@@ -36,8 +36,8 @@ export function resolveUntrustedContentDecisionConfig(
   const rawMode = String(
     configService.get('UNTRUSTED_CONTENT_DECISION_MODE') ?? '',
   ).trim();
-  const mode: TypedDecisionMode =
-    rawMode === 'live' || rawMode === 'shadow' ? rawMode : 'off';
+  // Hand-built configuration cannot bypass the closed live activation boundary.
+  const mode: TypedDecisionMode = rawMode === 'shadow' ? 'shadow' : 'off';
 
   const rawConfidence = Number(
     configService.get('UNTRUSTED_CONTENT_MIN_CONFIDENCE'),
