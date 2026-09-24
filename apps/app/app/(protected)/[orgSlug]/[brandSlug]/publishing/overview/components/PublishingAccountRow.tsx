@@ -22,13 +22,17 @@ export default function PublishingAccountRow({
   ) ?? { credentialId, name: accountLabel, platform };
 
   return (
-    <li className="flex flex-col gap-3 border-b border-border px-4 py-3 last:border-b-0 sm:flex-row sm:items-start sm:px-5">
-      <div className="min-w-0 flex-1 space-y-2">
-        <AccountCell connection={connection} />
-        <div className="flex flex-wrap items-center gap-2 empty:hidden">
-          {children}
+    <li className="flex flex-col gap-2 border-b border-border px-4 py-2.5 last:border-b-0 sm:flex-row sm:items-center sm:px-5">
+      <div className="min-w-0 flex-1 space-y-1">
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+          <div className="min-w-0 max-w-full sm:max-w-64">
+            <AccountCell connection={connection} />
+          </div>
+          <div className="flex max-w-full flex-wrap items-center gap-1 empty:hidden">
+            {children}
+          </div>
         </div>
-        <div className="text-xs text-muted-foreground">{meta}</div>
+        <div className="text-xs text-muted-foreground sm:pl-11">{meta}</div>
       </div>
       {reconnectLabel ? (
         <Button
@@ -36,7 +40,7 @@ export default function PublishingAccountRow({
           size={ButtonSize.SM}
           variant={ButtonVariant.SECONDARY}
           withWrapper={false}
-          className="self-start shrink-0"
+          className="self-start shrink-0 sm:self-center"
         >
           <Link href={href(APP_ROUTES.SETTINGS.SOCIAL)}>
             {reconnectLabel}
