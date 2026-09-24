@@ -447,7 +447,10 @@ describe('deferred collection start', () => {
     ).rejects.toThrow('research_collection_recovery_pending');
     expect(http.post).toHaveBeenCalledTimes(1);
     expect(budget.reconcileRun).not.toHaveBeenCalled();
-    expect(row?.inflightRequestKey).toEqual(expect.any(String));
+    // Closures assign `row`. Read its declared type; control flow otherwise
+    // keeps the null initializer and treats this property as `never`.
+    const readRow = (): Record<string, unknown> | null => row;
+    expect(readRow()?.inflightRequestKey).toEqual(expect.any(String));
     releasePost({
       data: {
         data: {
