@@ -18,7 +18,6 @@ import {
 import type {
   IActivity,
   ICredential,
-  IReleaseGroup,
   IWorkflowExecution,
 } from '@genfeedai/contracts/interfaces';
 import { getPublishingPostHref } from '@helpers/content/posts.helper';
@@ -34,6 +33,7 @@ import {
 import type {
   NeedsYouItem,
   OperationalHomeSectionsProps,
+  PublishingSurfaceProps,
   ReviewInboxItem,
 } from '@props/home/operational-home-sections.props';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
@@ -568,17 +568,9 @@ function PublishingSurface({
   isLoading,
   onRetry,
   orgSlug,
-}: {
-  brandId?: string;
-  brandSlug?: string;
-  publications: IReleaseGroup[];
-  isError: boolean;
-  isLoading: boolean;
-  onRetry: () => Promise<void>;
-  orgSlug: string;
-}) {
+}: PublishingSurfaceProps) {
   const translate = useTranslations('common');
-  const translatePosts = useTranslations('pages.publishing');
+  const translatePosts = useTranslations('pages.posts.list');
   const brandSetupHref = createOrganizationAppRoute(
     orgSlug,
     APP_ROUTES.SETTINGS.BRANDS,
