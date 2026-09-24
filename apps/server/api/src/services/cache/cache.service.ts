@@ -61,11 +61,17 @@ local ttl = integer(ARGV[2])
 if not initial or not ttl or ttl <= 0 then return 0 end
 local kind = redis.call('TYPE', KEYS[1]).ok
 if kind == 'none' then
+  if redis.call('EXISTS', KEYS[2]) ~= 0 then return 0 end
   redis.call('SET', KEYS[1], ARGV[1], 'EX', ARGV[2])
+  redis.call('SET', KEYS[2], '1', 'EX', ARGV[2])
   return 1
 end
 if kind ~= 'string' then return 0 end
-if not integer(redis.call('GET', KEYS[1])) or redis.call('PTTL', KEYS[1]) <= 0 then return 0 end
+local remaining = redis.call('PTTL', KEYS[1])
+if not integer(redis.call('GET', KEYS[1])) or remaining <= 0 then return 0 end
+if redis.call('EXISTS', KEYS[2]) == 0 then
+  redis.call('SET', KEYS[2], '1', 'PX', remaining)
+end
 return 1
 `;
 
@@ -161,8 +167,9 @@ export class CacheService {
       return (
         (await this.client.eval(
           INITIALIZE_COUNTER_BUDGET_SCRIPT,
-          1,
+          2,
           usageKey,
+          `${usageKey}:initialized`,
           String(initialMicroUsd),
           String(ttlSeconds),
         )) === 1

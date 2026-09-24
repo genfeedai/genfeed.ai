@@ -27,6 +27,7 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
   const key = () => {
     const value = `test:budget:${randomUUID()}`;
     keys.add(value);
+    keys.add(`${value}:initialized`);
     return value;
   };
   beforeAll(async () => {
@@ -60,16 +61,29 @@ describe.skipIf(!redisUrl)('atomic counter budget with isolated Redis', () => {
       true,
     );
     const expiresAt = await redis.pexpiretime(ledger);
+    expect(await redis.get(`${ledger}:initialized`)).toBe('1');
+    await redis.del(`${ledger}:initialized`);
     expect(await services[1].initializeCounterBudget(ledger, 0, 300)).toBe(
       true,
     );
     expect(await redis.get(ledger)).toBe('70');
     expect(await redis.pexpiretime(ledger)).toBe(expiresAt);
+    expect(await redis.pexpiretime(`${ledger}:initialized`)).toBe(expiresAt);
     await redis.set(ledger, 'corrupt', 'PX', 60000);
     expect(await services[0].initializeCounterBudget(ledger, 0, 60)).toBe(
       false,
     );
     expect(await redis.get(ledger)).toBe('corrupt');
+  });
+
+  it('does not recreate a lost ledger while its continuity marker remains', async () => {
+    const ledger = key();
+    await redis.set(`${ledger}:initialized`, '1', 'PX', 60000);
+    expect(await services[0].initializeCounterBudget(ledger, 0, 60)).toBe(
+      false,
+    );
+    expect(await redis.exists(ledger)).toBe(0);
+    expect(await redis.get(`${ledger}:initialized`)).toBe('1');
   });
 
   it('admits concurrent callers without overspending and issues distinct receipts', async () => {
