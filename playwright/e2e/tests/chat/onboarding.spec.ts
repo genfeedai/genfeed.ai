@@ -1,4 +1,4 @@
-import { orgPath } from '@e2e/utils/app-chrome';
+import { brandPath, orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { Page } from '@playwright/test';
 import { expect, test } from '../../fixtures/auth.fixture';
@@ -344,6 +344,7 @@ test.describe('Agent Onboarding', () => {
       authenticatedPage,
     }) => {
       const threadId = 'thread-onboarding-voice-e2e';
+      let initialTurnRequest: Record<string, unknown> | undefined;
       let uiActionRequest:
         | {
             action: string;
@@ -353,7 +354,7 @@ test.describe('Agent Onboarding', () => {
 
       await mockThreads(authenticatedPage, [
         {
-          brandId: 'brand-voice-1',
+          brandId: 'brand-1',
           contextVersion: 1,
           id: threadId,
           messageContent: 'I drafted a voice profile for your approval.',
@@ -368,13 +369,13 @@ test.describe('Agent Onboarding', () => {
             ],
             uiActions: [
               {
-                brandId: 'brand-voice-1',
+                brandId: 'brand-1',
                 ctas: [
                   {
                     action: 'confirm_save_brand_voice_profile',
                     label: 'Approve and save',
                     payload: {
-                      brandId: 'brand-voice-1',
+                      brandId: 'brand-1',
                       sourceActionId: 'brand-voice-card-e2e',
                       voiceProfile: {
                         audience: ['startup operators'],
@@ -390,7 +391,7 @@ test.describe('Agent Onboarding', () => {
                   },
                 ],
                 data: {
-                  brandId: 'brand-voice-1',
+                  brandId: 'brand-1',
                   voiceProfile: {
                     audience: ['startup operators'],
                     doNotSoundLike: ['corporate jargon'],
@@ -415,6 +416,10 @@ test.describe('Agent Onboarding', () => {
       await authenticatedPage.route(
         '**/agent/threads/turns/stream',
         async (route) => {
+          initialTurnRequest = route.request().postDataJSON() as Record<
+            string,
+            unknown
+          >;
           await route.fulfill({
             body: JSON.stringify({
               channel: 'socket',
@@ -437,7 +442,7 @@ test.describe('Agent Onboarding', () => {
 
           await route.fulfill({
             body: JSON.stringify({
-              brandId: 'brand-voice-1',
+              brandId: 'brand-1',
               contextVersion: 1,
               creditsRemaining: 118,
               creditsUsed: 0,
@@ -464,7 +469,7 @@ test.describe('Agent Onboarding', () => {
         },
       );
 
-      const onboardingPath = orgPath(APP_ROUTES.AGENT.ONBOARDING);
+      const onboardingPath = brandPath(APP_ROUTES.AGENT.ONBOARDING);
       const threadPath = `${onboardingPath}/${threadId}`;
 
       await authenticatedPage.goto(onboardingPath);
@@ -472,6 +477,11 @@ test.describe('Agent Onboarding', () => {
       await expect
         .poll(() => new URL(authenticatedPage.url()).pathname)
         .toBe(threadPath);
+      expect(initialTurnRequest).toMatchObject({
+        agentMode: 'auto',
+        brandId: 'brand-1',
+        source: 'onboarding',
+      });
 
       // Prove the promoted thread route is durable, then interact with the
       // server-hydrated card. The route transition and the initial local turn
@@ -502,10 +512,10 @@ test.describe('Agent Onboarding', () => {
 
       expect(uiActionRequest).toEqual({
         action: 'confirm_save_brand_voice_profile',
-        brandId: 'brand-voice-1',
+        brandId: 'brand-1',
         expectedContextVersion: 1,
         payload: {
-          brandId: 'brand-voice-1',
+          brandId: 'brand-1',
           sourceActionId: 'brand-voice-card-e2e',
           voiceProfile: {
             audience: ['startup operators'],
