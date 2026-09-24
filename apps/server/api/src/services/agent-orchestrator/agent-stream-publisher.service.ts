@@ -207,16 +207,13 @@ export class AgentStreamPublisherService {
     await this.agentThreadEngineService.appendEvent(params);
   }
 
-  async publishTurnPhase(data: {
+  private async authorizeTurnSignal(data: {
     organizationId: string;
-    phase: 'preparing' | 'waiting_for_lane';
-    runId: string;
     threadId: string;
-    timestamp: string;
     userId: string;
   }): Promise<void> {
     if (!this.agentThreadsService) {
-      throw new Error('Threads service is required to publish turn phases');
+      throw new Error('Threads service is required to publish turn signals');
     }
     if (!EntityIdUtil.isValid(data.threadId)) {
       throw new BadRequestException('Invalid threadId');
@@ -227,7 +224,6 @@ export class AgentStreamPublisherService {
     if (!data.userId || data.userId.trim() === '') {
       throw new BadRequestException('Invalid userId');
     }
-    // Keep phases transient: this run has not acquired the execution lane.
     const thread = await this.agentThreadsService.findOne({
       id: data.threadId,
       organizationId: data.organizationId,
@@ -237,6 +233,33 @@ export class AgentStreamPublisherService {
     if (!thread) {
       throw new NotFoundException(`Thread "${data.threadId}" not found`);
     }
+  }
+
+  async publishTurnAccepted(data: {
+    acceptedAt: string;
+    clientRequestId: string;
+    organizationId: string;
+    runId: string;
+    threadId: string;
+    userId: string;
+  }): Promise<void> {
+    await this.authorizeTurnSignal(data);
+    await this.redisService.publish(CHANNEL, {
+      data,
+      type: 'agent:turn_accepted',
+    });
+  }
+
+  async publishTurnPhase(data: {
+    organizationId: string;
+    phase: 'preparing' | 'waiting_for_lane';
+    runId: string;
+    threadId: string;
+    timestamp: string;
+    userId: string;
+  }): Promise<void> {
+    // Keep phases transient: this run has not acquired the execution lane.
+    await this.authorizeTurnSignal(data);
     const label =
       data.phase === 'preparing'
         ? 'Agent preparing response'

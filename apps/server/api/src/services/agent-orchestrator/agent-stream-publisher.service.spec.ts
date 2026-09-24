@@ -63,6 +63,7 @@ describe('AgentStreamPublisherService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockRedisService.publish.mockReset();
     mockAgentThreadsService.findOne.mockReset();
     mockAgentThreadEngineService.appendEvent.mockReset();
     mockAgentThreadEngineService.appendEvent.mockResolvedValue(undefined);
@@ -262,6 +263,109 @@ describe('AgentStreamPublisherService', () => {
         ([, payload]) => payload.data.token,
       );
       expect(tokens).toEqual(expect.arrayContaining(['from-a', 'from-b']));
+    });
+  });
+
+  describe('publishTurnAccepted', () => {
+    const data = {
+      acceptedAt: '2026-09-24T10:00:00.000Z',
+      clientRequestId: 'client-request-1',
+      organizationId: testId('org'),
+      runId: 'run-1',
+      threadId: testId('thread'),
+      userId: 'opaque-user-id',
+    };
+
+    beforeEach(() => {
+      mockAgentThreadsService.findOne.mockResolvedValue({
+        organizationId: data.organizationId,
+      });
+    });
+
+    it('authorizes an opaque user and emits only the accepted envelope without persistence', async () => {
+      await service.publishTurnAccepted(data);
+      expect(mockAgentThreadsService.findOne).toHaveBeenCalledExactlyOnceWith({
+        id: data.threadId,
+        isDeleted: false,
+        organizationId: data.organizationId,
+        userId: data.userId,
+      });
+      expect(mockRedisService.publish).toHaveBeenCalledExactlyOnceWith(
+        CHANNEL,
+        {
+          data,
+          type: 'agent:turn_accepted',
+        },
+      );
+      expect(
+        mockAgentThreadsService.findOne.mock.invocationCallOrder[0],
+      ).toBeLessThan(mockRedisService.publish.mock.invocationCallOrder[0]);
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+    });
+
+    it.each([
+      { threadId: 'invalid' },
+      { organizationId: 'invalid' },
+      { userId: '' },
+      { userId: ' \n\t' },
+    ])(
+      'rejects invalid scope %j before lookup or publication',
+      async (invalid) => {
+        await expect(
+          service.publishTurnAccepted({ ...data, ...invalid }),
+        ).rejects.toThrow();
+        expect(mockAgentThreadsService.findOne).not.toHaveBeenCalled();
+        expect(mockRedisService.publish).not.toHaveBeenCalled();
+        expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each([
+      'foreign organization',
+      'foreign user',
+      'deleted thread',
+      'missing thread',
+    ])('rejects %s when scoped authorization finds no thread', async () => {
+      mockAgentThreadsService.findOne.mockResolvedValueOnce(null);
+      await expect(service.publishTurnAccepted(data)).rejects.toThrow();
+      expect(mockAgentThreadsService.findOne).toHaveBeenCalledExactlyOnceWith({
+        id: data.threadId,
+        isDeleted: false,
+        organizationId: data.organizationId,
+        userId: data.userId,
+      });
+      expect(mockRedisService.publish).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+    });
+
+    it('fails closed without the threads service', async () => {
+      const withoutThreads = new AgentStreamPublisherService(
+        mockRedisService as unknown as PublisherDependencies[0],
+        mockLoggerService as unknown as PublisherDependencies[1],
+      );
+      await expect(withoutThreads.publishTurnAccepted(data)).rejects.toThrow();
+      expect(mockRedisService.publish).not.toHaveBeenCalled();
+    });
+
+    it('does not publish when authorization throws', async () => {
+      mockAgentThreadsService.findOne.mockRejectedValueOnce(
+        new Error('Access denied'),
+      );
+      await expect(service.publishTurnAccepted(data)).rejects.toThrow(
+        'Access denied',
+      );
+      expect(mockRedisService.publish).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+    });
+
+    it('propagates transport failure for the acceptance helper to contain', async () => {
+      mockRedisService.publish.mockRejectedValueOnce(
+        new Error('Redis unavailable'),
+      );
+      await expect(service.publishTurnAccepted(data)).rejects.toThrow(
+        'Redis unavailable',
+      );
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
   });
 
