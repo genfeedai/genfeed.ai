@@ -1,4 +1,8 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import {
+  mergeBrandRemixConcept,
+  seedBrandRemixConcept,
+} from '@api/collections/content-runs/services/brand-remix-concept';
 import { BrandRemixRunExecutionService } from '@api/collections/content-runs/services/brand-remix-run-execution.service';
 import {
   parseBrandRemixPayload,
@@ -118,6 +122,11 @@ export class BrandRemixRunsService {
       ingestedSourceMedia,
     );
     const config = brandRemixRunConfigSchema.parse({
+      concept: seedBrandRemixConcept({
+        objective: draft.intent.objective,
+        pattern: resolvedSource.snapshot.pattern,
+        savedAt: new Date().toISOString(),
+      }),
       contract: BRAND_REMIX_RUN_CONTRACT,
       draft,
       phase: 'prefilled',
@@ -219,8 +228,16 @@ export class BrandRemixRunsService {
       sanitized,
       edits,
     );
+    const concept = input.edits.concept
+      ? mergeBrandRemixConcept(
+          config.concept,
+          input.edits.concept,
+          new Date().toISOString(),
+        )
+      : config.concept;
     const nextConfig = brandRemixRunConfigSchema.parse({
       ...config,
+      ...(concept ? { concept } : {}),
       draft,
       execution: undefined,
       generationClaim: undefined,
@@ -330,7 +347,15 @@ export class BrandRemixRunsService {
       config.draft,
       nextMedia,
     );
+    const concept =
+      config.concept ??
+      seedBrandRemixConcept({
+        objective: prepared.draft.intent.objective,
+        pattern: config.sourceSnapshot.pattern,
+        savedAt: new Date().toISOString(),
+      });
     if (
+      config.concept &&
       JSON.stringify(config.sourceSnapshot.media) ===
         JSON.stringify(nextMedia) &&
       JSON.stringify(config.draft) === JSON.stringify(prepared.draft) &&
@@ -345,6 +370,7 @@ export class BrandRemixRunsService {
     }
     const nextConfig = brandRemixRunConfigSchema.parse({
       ...config,
+      concept,
       draft: prepared.draft,
       sourceSnapshot: { ...config.sourceSnapshot, media: nextMedia },
       readiness: prepared.readiness,
