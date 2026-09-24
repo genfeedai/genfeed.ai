@@ -702,13 +702,14 @@
       "viewAll": "View all"
     },
     "credentials": {
+      "addBrand": "Add a brand",
       "empty": "No accounts are connected yet.",
       "loading": "Loading credential health...",
       "manage": "Manage accounts",
       "reconnect": "Reconnect"
     },
     "publishing": {
-      "empty": "Nothing is ready to publish.",
+      "empty": "No posts yet. Create a post to start publishing.",
       "open": "Open publishing"
     },
     "schedule": {
