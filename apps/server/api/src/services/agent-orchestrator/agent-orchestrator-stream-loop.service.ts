@@ -26,6 +26,7 @@ import { mergeAgentArtifactCompletionMetadata } from '@api/services/agent-orches
 import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
+import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import { readAgentRunPublicError } from '@api/services/agent-orchestrator/utils/agent-run-failure.util';
@@ -485,40 +486,34 @@ export class AgentOrchestratorStreamLoopService {
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
-            metadata: {
-              ...artifactMetadata,
-              ...buildAgentScopeMetadata(context),
-              ...buildAgentRoutingMetadata({
-                autoRouting: latestAutoRouting,
-                defaultModelKey,
-                model,
-                prompt: latestUserMessage,
-                source,
-              }),
+            metadata: buildPersistedAgentResponseMetadata(
+              {
+                ...artifactMetadata,
+                ...buildAgentScopeMetadata(context),
+                ...buildAgentRoutingMetadata({
+                  autoRouting: latestAutoRouting,
+                  defaultModelKey,
+                  model,
+                  prompt: latestUserMessage,
+                  source,
+                }),
+                isFallbackContent: normalizedContent.isFallback,
+                memoryEntries: memoryEntriesForResponse,
+                memoryInfluence,
+                ...buildResolvedModelMetadata(model, Array.from(actualModels)),
+                reasoning,
+                reviewRequired: toolRoundState.reviewRequired,
+                riskLevel: toolRoundState.highestRiskLevel,
+                ...(enhancedUiActions.suggestedActions.length
+                  ? { suggestedActions: enhancedUiActions.suggestedActions }
+                  : {}),
+                totalCreditsUsed: toolRoundState.totalCreditsUsed,
+                uiActions: enhancedUiActions.uiActions,
+              },
               creditsRemaining,
-              isFallbackContent: normalizedContent.isFallback,
-              memoryEntries: memoryEntriesForResponse,
-              memoryInfluence,
-              ...buildResolvedModelMetadata(model, Array.from(actualModels)),
-              reasoning,
-              reviewRequired: toolRoundState.reviewRequired,
-              riskLevel: toolRoundState.highestRiskLevel,
-              // Ties the reply to its run so stream recovery never adopts a
-              // concurrent run's answer.
-              ...(context.executionId ? { runId: context.executionId } : {}),
-              ...(enhancedUiActions.suggestedActions.length
-                ? { suggestedActions: enhancedUiActions.suggestedActions }
-                : {}),
-              tokenUsage: response.usage
-                ? {
-                    completion: response.usage.completion_tokens,
-                    prompt: response.usage.prompt_tokens,
-                    total: response.usage.total_tokens,
-                  }
-                : undefined,
-              totalCreditsUsed: toolRoundState.totalCreditsUsed,
-              uiActions: enhancedUiActions.uiActions,
-            },
+              context.executionId,
+              response.usage,
+            ),
             organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,

@@ -157,6 +157,28 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     );
   });
 
+  it('preserves review history in both the persisted and returned plan', async () => {
+    const reviewMetadata = {
+      lastReviewAction: 'request_changes' as const,
+      revisionNote: 'Keep the original budget',
+    };
+    const result = await service.generatePlanModeResponse(
+      { ...baseParams, reviewMetadata },
+      host,
+    );
+
+    expect(result.message.metadata?.proposedPlan).toEqual(
+      expect.objectContaining(reviewMetadata),
+    );
+    expect(agentMessagesService.addMessage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        metadata: expect.objectContaining({
+          proposedPlan: expect.objectContaining(reviewMetadata),
+        }),
+      }),
+    );
+  });
+
   it('treats a thread with no mode field as not plan-enabled', async () => {
     agentThreadsService.findOne.mockResolvedValue({});
 

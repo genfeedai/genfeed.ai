@@ -12,11 +12,13 @@ import type {
   AgentChatRequest,
   AgentChatResult,
 } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
+import type { AgentPlanReviewMetadata } from '@api/services/agent-orchestrator/interfaces/agent-plan-review-metadata.interface';
 import {
   type AgentAutoRoutingRound,
   resolveAgentAutoRoutingRound,
 } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
+import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import {
   buildAgentRoutingMetadata,
@@ -164,10 +166,7 @@ export class AgentOrchestratorPlanModeService {
     params: {
       context: AgentChatContext;
       model: string;
-      reviewMetadata?: {
-        lastReviewAction?: 'approve' | 'request_changes';
-        revisionNote?: string;
-      };
+      reviewMetadata?: AgentPlanReviewMetadata;
       request: AgentChatRequest;
       resolvedMemories: AgentMemoryDocument[];
       seedTitle: string;
@@ -238,17 +237,10 @@ export class AgentOrchestratorPlanModeService {
     const envelope = this.extractPlanEnvelope({
       assistantContent: sanitizeAgentOutputText(choice.message.content || ''),
       prompt: params.request.content,
+      reviewMetadata: params.reviewMetadata,
       seedTitle: params.seedTitle,
     });
-    const plan = {
-      ...envelope.plan,
-      ...(params.reviewMetadata?.lastReviewAction
-        ? { lastReviewAction: params.reviewMetadata.lastReviewAction }
-        : {}),
-      ...(params.reviewMetadata?.revisionNote
-        ? { revisionNote: params.reviewMetadata.revisionNote }
-        : {}),
-    };
+    const plan = envelope.plan;
 
     await host.maybeUpdateThreadTitle({
       context: params.context,
@@ -292,13 +284,11 @@ export class AgentOrchestratorPlanModeService {
     await this.agentMessagesService.addMessage({
       brandId: params.context.scope?.brandId,
       content,
-      metadata: {
+      metadata: buildPersistedAgentResponseMetadata(
+        assistantMetadata,
         creditsRemaining,
-        ...assistantMetadata,
-        ...(params.context.executionId
-          ? { runId: params.context.executionId }
-          : {}),
-      },
+        params.context.executionId,
+      ),
       organizationId: params.context.organizationId,
       role: AgentMessageRole.ASSISTANT,
       room: params.threadId,
@@ -428,6 +418,7 @@ export class AgentOrchestratorPlanModeService {
   private extractPlanEnvelope(params: {
     assistantContent: string;
     prompt: string;
+    reviewMetadata?: AgentPlanReviewMetadata;
     seedTitle: string;
   }): {
     title: string | null;
@@ -439,6 +430,8 @@ export class AgentOrchestratorPlanModeService {
       steps?: Record<string, unknown>[];
       status: 'awaiting_approval';
       awaitingApproval: true;
+      lastReviewAction?: AgentPlanReviewMetadata['lastReviewAction'];
+      revisionNote?: string;
     };
   } {
     const trimmed = params.assistantContent.trim();
@@ -484,6 +477,12 @@ export class AgentOrchestratorPlanModeService {
         id: `plan-${Date.now()}`,
         status: 'awaiting_approval',
         ...(steps ? { steps } : {}),
+        ...(params.reviewMetadata?.lastReviewAction
+          ? { lastReviewAction: params.reviewMetadata.lastReviewAction }
+          : {}),
+        ...(params.reviewMetadata?.revisionNote
+          ? { revisionNote: params.reviewMetadata.revisionNote }
+          : {}),
       },
       summary,
       title,

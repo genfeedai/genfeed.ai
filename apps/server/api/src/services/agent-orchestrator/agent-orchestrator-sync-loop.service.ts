@@ -26,6 +26,7 @@ import { mergeAgentArtifactCompletionMetadata } from '@api/services/agent-orches
 import { resolveAgentAutoRoutingRound } from '@api/services/agent-orchestrator/utils/agent-auto-routing-round.util';
 import { normalizeFinalAssistantContent } from '@api/services/agent-orchestrator/utils/agent-final-content.util';
 import { runReservedAgentLlmRound } from '@api/services/agent-orchestrator/utils/agent-llm-round-reservation.util';
+import { buildPersistedAgentResponseMetadata } from '@api/services/agent-orchestrator/utils/agent-persisted-response-metadata.util';
 import { buildResolvedModelMetadata } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { buildAgentRoutingMetadata } from '@api/services/agent-orchestrator/utils/agent-routing-policy.util';
 import { buildAgentScopeMetadata } from '@api/services/agent-orchestrator/utils/agent-scope-metadata.util';
@@ -369,18 +370,12 @@ export class AgentOrchestratorSyncLoopService {
           await this.agentMessagesService.addMessage({
             brandId: context.scope?.brandId,
             content,
-            metadata: {
+            metadata: buildPersistedAgentResponseMetadata(
+              assistantMetadata,
               creditsRemaining,
-              ...assistantMetadata,
-              ...(context.executionId ? { runId: context.executionId } : {}),
-              tokenUsage: response.usage
-                ? {
-                    completion: response.usage.completion_tokens,
-                    prompt: response.usage.prompt_tokens,
-                    total: response.usage.total_tokens,
-                  }
-                : undefined,
-            },
+              context.executionId,
+              response.usage,
+            ),
             organizationId: context.organizationId,
             role: AgentMessageRole.ASSISTANT,
             room: threadId,
