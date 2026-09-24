@@ -81,6 +81,7 @@ import { TransactionUtil } from '@api/helpers/utils/transaction/transaction.util
 import { StripeService } from '@api/services/integrations/stripe/services/stripe.service';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
+import { SystemEventsService } from '@api/services/system-events/system-events.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   createTestMember,
@@ -245,6 +246,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
   let redisPublisherDouble: ReturnType<typeof createRedisPublisherDouble>;
   let billingAccountsService: BillingAccountsService;
   let subscriptionsById: Map<string, ISubscriptionOssReadModel>;
+  const recordStripeEvent = vi.fn().mockResolvedValue(undefined);
 
   beforeAll(async () => {
     redisPublisherDouble = createRedisPublisherDouble();
@@ -259,6 +261,10 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
       },
       controllers: [StripeWebhookController],
       providers: [
+        {
+          provide: SystemEventsService,
+          useValue: { recordStripeEvent },
+        },
         StripeService,
         {
           provide: SubscriptionCreditGrantService,
@@ -354,6 +360,7 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
   });
 
   beforeEach(async () => {
+    recordStripeEvent.mockReset().mockResolvedValue(undefined);
     await dbHelper.clearDatabase();
     subscriptionsById.clear();
   });
@@ -581,6 +588,48 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
     },
   );
 
+  it('retries a signed monthly invoice after recording fails without consuming idempotency or granting credits early', async () => {
+    const stripeSubscriptionId = `sub_${generateIdString()}`;
+    const { organizationId } = await seedOrganizationWithSubscription({
+      plan: SubscriptionPlan.MONTHLY,
+      stripeSubscriptionId,
+    });
+    const payload = buildInvoicePaidEventPayload({
+      eventId: `evt_${generateIdString()}`,
+      invoiceId: `in_${generateIdString()}`,
+      stripeSubscriptionId,
+    });
+    const request = signAndBuildRequest(payload);
+    const recorderError = new Error('Event recording unavailable');
+    recordStripeEvent.mockRejectedValueOnce(recorderError);
+    redisPublisherDouble.set.mockClear();
+
+    await expect(controller.handleStripe(request)).rejects.toBe(recorderError);
+
+    expect(
+      await prisma.creditTransaction.count({
+        where: { organizationId, isDeleted: false },
+      }),
+    ).toBe(0);
+    expect(redisPublisherDouble.set).not.toHaveBeenCalled();
+
+    await expect(controller.handleStripe(request)).resolves.toEqual({
+      success: true,
+    });
+
+    expect(
+      await prisma.creditTransaction.count({
+        where: { organizationId, isDeleted: false },
+      }),
+    ).toBe(1);
+    const balance = await prisma.creditBalance.findFirst({
+      where: { organizationId, isDeleted: false },
+    });
+    expect(balance?.balance).toBe(TIER_INCLUDED_MONTHLY_CREDITS.pro);
+    expect(recordStripeEvent).toHaveBeenCalledTimes(2);
+    expect(redisPublisherDouble.set).toHaveBeenCalledTimes(1);
+  });
+
   it('processes a monthly invoice.paid webhook exactly once when the identical Stripe event is replayed (Redis-level idempotency)', async () => {
     const stripeSubscriptionId = `sub_${generateIdString()}`;
     const { organizationId } = await seedOrganizationWithSubscription({
@@ -588,8 +637,9 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
       stripeSubscriptionId,
     });
 
+    const eventId = `evt_${generateIdString()}`;
     const payload = buildInvoicePaidEventPayload({
-      eventId: `evt_${generateIdString()}`,
+      eventId,
       invoiceId: `in_${generateIdString()}`,
       stripeSubscriptionId,
     });
@@ -603,6 +653,15 @@ describe('Stripe webhook subscription credit grant (#1398 real-backend E2E)', ()
 
     expect(firstResult).toEqual({ success: true });
     expect(secondResult).toEqual({ success: true });
+    expect(recordStripeEvent).toHaveBeenCalledTimes(2);
+    expect(recordStripeEvent).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({ id: eventId, type: 'invoice.paid' }),
+    );
+    expect(recordStripeEvent).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ id: eventId, type: 'invoice.paid' }),
+    );
 
     const transactions = await prisma.creditTransaction.findMany({
       where: {
