@@ -120,6 +120,24 @@ describe('VideoGenerationService', () => {
       create: vi.fn().mockResolvedValue({ id: 'prompt-doc' }),
       findOne: vi.fn(),
     };
+    const enhancementService = {
+      enhance: vi
+        .fn()
+        .mockImplementation(
+          async (input: {
+            prompt: string;
+            brandId: string;
+            harness?: boolean;
+          }) => ({
+            originalPrompt: input.prompt,
+            enhancedPrompt: input.prompt,
+            brandId: input.brandId,
+            status: input.harness === false ? 'skipped' : 'applied',
+            source: input.harness === undefined ? 'default' : 'request',
+            appliedPacks: [],
+          }),
+        ),
+    };
     const promptBuilderService = {
       buildPrompt: vi.fn().mockResolvedValue({
         input: { prompt: 'built-prompt' },
@@ -242,6 +260,7 @@ describe('VideoGenerationService', () => {
       routerService as never,
       sharedService as never,
       templatesService as never,
+      enhancementService as never,
     );
     const creditsService = new VideoGenerationCreditsService(
       creditsUtilsService as never,
@@ -299,6 +318,7 @@ describe('VideoGenerationService', () => {
       service,
       sharedService,
       templatesService,
+      enhancementService,
       videosService,
     };
   };
@@ -344,9 +364,88 @@ describe('VideoGenerationService', () => {
     vi.clearAllMocks();
   });
 
-  it('returns the accepted source-action asset without dispatching the provider again', async () => {
-    const { klingAIService, service, sharedService, videosService } =
+  it('enhances once and stores the exact prompt sent to the video provider', async () => {
+    const { service, enhancementService, klingAIService, sharedService } =
       createService();
+    enhancementService.enhance.mockResolvedValue({
+      originalPrompt: 'A bicycle',
+      enhancedPrompt: 'Track a red bicycle at dusk',
+      brandId: RESOLVED_BRAND,
+      status: 'applied',
+      source: 'brand',
+      appliedPacks: [],
+    });
+    await service.generateVideo(
+      buildUser(),
+      baseDto({ text: 'A bicycle' }),
+      buildRequest(),
+    );
+    expect(enhancementService.enhance).toHaveBeenCalledTimes(1);
+    const providerPrompt =
+      klingAIService.queueGenerateTextToVideo.mock.calls[0][0];
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        generationPrompt: providerPrompt,
+        generationHarness: expect.objectContaining({
+          originalPrompt: 'A bicycle',
+          enhancedPrompt: providerPrompt,
+          status: 'applied',
+        }),
+      }),
+    );
+  });
+
+  it('preserves caller bytes through video compilation when disabled', async () => {
+    const { service, klingAIService, sharedService } = createService();
+    const prompt = '  Track THIS bicycle.\n';
+    await service.generateVideo(
+      buildUser(),
+      baseDto({ text: prompt, harness: false, style: 'cinematic' }),
+      buildRequest(),
+    );
+    expect(klingAIService.queueGenerateTextToVideo.mock.calls[0][0]).toBe(
+      prompt,
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        generationHarness: expect.objectContaining({
+          originalPrompt: prompt,
+          enhancedPrompt: prompt,
+          status: 'skipped',
+          appliedPacks: [],
+        }),
+        generationSource: 'generation-brief-exemption:raw_prompt_requested',
+        providerData: expect.objectContaining({
+          status: 'exempted',
+          reason: 'raw_prompt_requested',
+        }),
+      }),
+    );
+  });
+
+  it('does not persist or dispatch media after video enhancement fails', async () => {
+    const { service, enhancementService, klingAIService, sharedService } =
+      createService();
+    enhancementService.enhance.mockRejectedValue(
+      new Error('Enhancement unavailable'),
+    );
+    await expect(
+      service.generateVideo(buildUser(), baseDto(), buildRequest()),
+    ).rejects.toThrow('Enhancement unavailable');
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
+  });
+
+  it('returns the accepted source-action asset without dispatching the provider again', async () => {
+    const {
+      klingAIService,
+      service,
+      sharedService,
+      videosService,
+      enhancementService,
+    } = createService();
     videosService.findOne.mockResolvedValue({
       id: 'video-accepted',
       metadata: { externalId: 'provider-job-1' },
@@ -363,6 +462,7 @@ describe('VideoGenerationService', () => {
     );
 
     expect(response).toMatchObject({ data: { id: 'video-accepted' } });
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
     expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
     expect(klingAIService.queueGenerateTextToVideo).not.toHaveBeenCalled();
   });

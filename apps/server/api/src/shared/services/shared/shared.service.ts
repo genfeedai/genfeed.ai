@@ -160,6 +160,9 @@ const buildIngredientCreateDto = (
   ...(input.bookmarkId !== undefined ? { bookmarkId: input.bookmarkId } : {}),
   ...(ownership.brandId ? { brandId: ownership.brandId } : {}),
   category: input.category,
+  ...(input.generationHarness !== undefined
+    ? { generationHarness: input.generationHarness }
+    : {}),
   ...(input.generationPrompt !== undefined
     ? { generationPrompt: input.generationPrompt }
     : {}),

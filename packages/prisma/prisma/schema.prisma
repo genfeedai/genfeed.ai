@@ -963,6 +963,7 @@ model Brand {
   isHighlighted            Boolean      @default(false)
   isFleetEnabled           Boolean      @default(false)
   defaultVideoModel        String?
+  isPromptEnhancementEnabled Boolean?
   defaultImageModel        String?
   defaultImageToVideoModel String?
   defaultMusicModel        String?
@@ -1604,6 +1605,7 @@ model OrganizationSetting {
   defaultModel                   String?
   defaultModelReview             String?
   defaultModelUpdate             String?
+  isPromptEnhancementEnabled      Boolean?
   defaultImageModel              String?
   defaultVideoModel              String?
   defaultImageToVideoModel       String?
@@ -2021,6 +2023,7 @@ model Ingredient {
   campaignWeek          Int?
   modelUsed             String?
   loraUsed              String?
+  generationHarness     Json?
   generationPrompt      String?
   negativePrompt        String?
   generationSeed        Int?
@@ -7371,4 +7374,33 @@ model OutlierPostPerformance {
   @@index([organizationId, brandId, isDeleted, outlierRatio], map: "outlier_post_performances_org_brand_ratio_idx")
   @@index([organizationId, platform, accountId, outlierTier, isDeleted], map: "outlier_post_performances_org_platform_account_tier_idx")
   @@map("outlier_post_performances")
+}
+
+/// Deployment-wide outbound events, configured by the operator rather than tenants.
+model SystemEventWebhook {
+  skippedAt DateTime?
+  id             String   @id
+  type           String
+  payload        String
+  occurredAt     DateTime
+  attempts       Int      @default(0)
+  nextAttemptAt  DateTime @default(now())
+  deliveredAt    DateTime?
+  leaseUntil     DateTime?
+  leaseToken     String?
+  lastStatusCode Int?
+  isDeleted      Boolean @default(false)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([isDeleted, deliveredAt, nextAttemptAt])
+  @@map("system_event_webhooks")
+}
+
+model SystemNotificationSettings {
+  id String @id
+  enabled Boolean @default(true)
+  eventTypes String[]
+  updatedAt DateTime @updatedAt
+  @@map("system_notification_settings")
 }

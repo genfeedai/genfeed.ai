@@ -993,9 +993,88 @@ Tweet 3: Tech innovation is changing the world.`,
 
       expect(mockPostsService.findOne).toHaveBeenCalledWith({ id: postId });
       expect(mockCredentialsService.findOne).toHaveBeenCalled();
-      expect(mockQuotaService.verifyQuota).toHaveBeenCalled();
+      expect(mockQuotaService.verifyQuota).not.toHaveBeenCalled();
       expect(mockPostsService.addThreadReply).toHaveBeenCalled();
       expect(result).toBeDefined();
+    });
+
+    it('inherits the account platform for a legacy root without a platform', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        platform: null,
+      });
+      await controller.addThreadReply(mockRequest, mockUser, postId, {
+        ...createPostDto,
+        platform: CredentialPlatform.TWITTER,
+      });
+      expect(mockPostsService.addThreadReply).toHaveBeenCalledWith(
+        postId,
+        expect.objectContaining({ platform: 'twitter' }),
+      );
+    });
+    it('retains the root brand and exact account for legacy cross-brand threads', async () => {
+      mockCredentialsService.findOne.mockResolvedValueOnce({
+        ...mockCredential,
+        brandId: 'older-account-brand',
+      });
+      await controller.addThreadReply(
+        mockRequest,
+        mockUser,
+        postId,
+        createPostDto,
+      );
+      expect(mockCredentialsService.findOne).toHaveBeenCalledWith({
+        id: credentialId,
+        organizationId,
+        isDeleted: false,
+      });
+      expect(mockPostsService.addThreadReply).toHaveBeenCalledWith(
+        postId,
+        expect.objectContaining({ brandId, credentialId }),
+      );
+    });
+    it('rejects a reply using another account', async () => {
+      await expect(
+        controller.addThreadReply(mockRequest, mockUser, postId, {
+          ...createPostDto,
+          credentialId: 'another-account',
+        }),
+      ).rejects.toThrow();
+      expect(mockPostsService.addThreadReply).not.toHaveBeenCalled();
+    });
+    it('rejects scheduling a reply under an account-free root', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        credentialId: null,
+      });
+      await expect(
+        controller.addThreadReply(mockRequest, mockUser, postId, {
+          ...createPostDto,
+          credentialId: undefined,
+          targetExecutionState: TargetExecutionState.SCHEDULED,
+        }),
+      ).rejects.toThrow();
+      expect(mockPostsService.addThreadReply).not.toHaveBeenCalled();
+    });
+    it('saves an account-free thread reply using the parent platform', async () => {
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        credentialId: null,
+      });
+      await controller.addThreadReply(mockRequest, mockUser, postId, {
+        ...createPostDto,
+        credentialId: undefined,
+      });
+      expect(mockCredentialsService.findOne).not.toHaveBeenCalled();
+      expect(mockQuotaService.verifyQuota).not.toHaveBeenCalled();
+      expect(mockPostsService.addThreadReply).toHaveBeenCalledWith(
+        postId,
+        expect.objectContaining({
+          platform: 'twitter',
+          credentialId: undefined,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+      );
     });
 
     it.each([
@@ -1114,6 +1193,10 @@ Tweet 3: Tech innovation is changing the world.`,
         platform: CredentialPlatform.THREADS,
       });
 
+      mockPostsService.findOne.mockResolvedValueOnce({
+        ...mockPost,
+        platform: CredentialPlatform.THREADS,
+      });
       const scheduledTextDto = {
         ...createPostDto,
         category: PostCategory.TEXT,

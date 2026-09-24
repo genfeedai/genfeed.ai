@@ -1,9 +1,5 @@
 import { AgentModeDropdown } from '@genfeedai/agent/components/AgentModeDropdown';
-import { CONVERSATION_COMPOSER_ACTIONS } from '@genfeedai/agent/constants/conversation-composer-actions.constant';
-import type {
-  ConversationComposerActionName,
-  ConversationComposerGenerationMode,
-} from '@genfeedai/agent/models/conversation-composer.model';
+import type { ConversationComposerGenerationMode } from '@genfeedai/agent/models/conversation-composer.model';
 import {
   AgentGenerationMode,
   type AgentThreadMode,
@@ -12,19 +8,11 @@ import {
   inferAgentMediaGenerationModeFromPrompt,
 } from '@genfeedai/contracts';
 import { cn } from '@helpers/formatting/cn/cn.util';
+import GenerationHarnessSettingsPopover from '@ui/dropdowns/generation-setup/GenerationHarnessSettingsPopover';
 import { Button } from '@ui/primitives/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuShortcut,
-  DropdownMenuTrigger,
-} from '@ui/primitives/dropdown-menu';
 import PromptBarReferenceControls from '@ui/prompt-bars/components/toolbar/PromptBarReferenceControls';
 import PromptBarVoiceControl from '@ui/prompt-bars/components/toolbar/PromptBarVoiceControl';
-import { ArrowUp, Square, Zap } from 'lucide-react';
-import { useTranslations } from 'next-intl';
+import { ArrowUp, Square } from 'lucide-react';
 import { memo, type ReactElement, useEffect } from 'react';
 
 export interface AgentChatInputToolbarProps {
@@ -42,7 +30,6 @@ export interface AgentChatInputToolbarProps {
   onAgentModeChange: (mode: AgentThreadMode) => void;
   onInsertReference: () => void;
   onGenerationModeChange: (mode: ConversationComposerGenerationMode) => void;
-  onSelectAction: (actionName: ConversationComposerActionName) => void;
   onSend: () => void;
   onStartListening: () => void;
   onStop: (() => void | Promise<void>) | undefined;
@@ -69,7 +56,6 @@ function AgentChatInputToolbarInner({
   onAgentModeChange,
   onInsertReference,
   onGenerationModeChange,
-  onSelectAction,
   onSend,
   onStartListening,
   onStop,
@@ -80,7 +66,6 @@ function AgentChatInputToolbarInner({
   willQueueFollowUp = false,
   density = 'default',
 }: AgentChatInputToolbarProps): ReactElement {
-  const translate = useTranslations('agent.composerToolbar');
   const isCompact = density === 'compact';
 
   // The Agent infers output type from the prompt itself (#4672) — there is no
@@ -202,6 +187,11 @@ function AgentChatInputToolbarInner({
           onChange={onAgentModeChange}
         />
 
+        <GenerationHarnessSettingsPopover
+          className={controlSize}
+          isDisabled={disabled || showStop}
+        />
+
         <PromptBarReferenceControls
           density={density}
           isAttachmentDisabled={disabled}
@@ -209,56 +199,6 @@ function AgentChatInputToolbarInner({
           onAddFiles={onAddFiles}
           onOpenLibrary={onInsertReference}
         />
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button
-              ariaLabel={translate('actionsAria')}
-              className={cn('shrink-0', controlSize)}
-              icon={<Zap className="size-4" />}
-              isDisabled={disabled || !hasEditor}
-              size={ButtonSize.ICON}
-              tooltip={translate('actionsAria')}
-              variant={ButtonVariant.GHOST}
-              withWrapper={false}
-            />
-          </DropdownMenuTrigger>
-          <DropdownMenuContent
-            align="start"
-            className="w-56"
-            side="top"
-            sideOffset={8}
-          >
-            <DropdownMenuLabel className="flex flex-col gap-0.5 normal-case tracking-normal">
-              <span className="text-xs font-semibold text-foreground">
-                {translate('actions')}
-              </span>
-              <span className="text-2xs font-normal leading-4 text-muted-foreground">
-                {translate('actionsDescription')}
-              </span>
-            </DropdownMenuLabel>
-            {CONVERSATION_COMPOSER_ACTIONS.map((action) => (
-              <DropdownMenuItem
-                key={action.name}
-                onSelect={() => {
-                  onSelectAction(action.name);
-                }}
-              >
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-xs font-medium text-foreground">
-                    {action.label}
-                  </p>
-                  <p className="truncate text-2xs text-muted-foreground">
-                    {action.description}
-                  </p>
-                </div>
-                <DropdownMenuShortcut className="normal-case tracking-normal">
-                  /{action.name}
-                </DropdownMenuShortcut>
-              </DropdownMenuItem>
-            ))}
-          </DropdownMenuContent>
-        </DropdownMenu>
       </div>
 
       {/* Trailing: stop (replaces mic) + optional queue send */}

@@ -35,7 +35,7 @@ describe('hosted SaaS Vercel deployment contract', () => {
     expect(vercel).toContain(`awk '!/^(API_URL|NEXT_PUBLIC_GENFEED_CLOUD|`);
     expect(vercel).toContain(`printf 'API_URL=https://api.%s\\n' "$DOMAIN"`);
     expect(turbo).toContain(
-      `"env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*"]`,
+      `"env": ["API_URL", "E2E_COVERAGE", "NEXT_PUBLIC_*", "NODE_ENV"]`,
     );
     expect(core).toContain(
       `app-auth-proxy|https://\${APP_HOST}/v1/auth/get-session|null`,

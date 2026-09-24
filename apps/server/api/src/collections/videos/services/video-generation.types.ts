@@ -76,6 +76,7 @@ export interface ResolvedVideoGenerationRequest {
 }
 
 export interface VideoGenerationContext extends ResolvedVideoGenerationRequest {
+  generationHarness?: GenerationHarnessReceipt;
   abortSignal: AbortSignal;
   briefEvidence?: VideoGenerationBriefPersistedEvidence;
   compiledDispatch?: Record<string, unknown>;
@@ -101,3 +102,4 @@ import type { SharedService } from '@api/shared/services/shared/shared.service';
 import type { ModelProvider } from '@genfeedai/contracts';
 import type { VideoGenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import type { VideoGenerationBriefPersistedEvidence } from '@genfeedai/contracts/api-types/contracts/video-generation-brief-compiler.contract';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';

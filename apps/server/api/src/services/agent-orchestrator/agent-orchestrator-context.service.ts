@@ -207,11 +207,11 @@ export class AgentOrchestratorContextService {
         policy,
         preparedScope,
         resolvedSkills,
-        systemPrompt: composeAgentGuardrails(
-          isSelfHostedDeployment()
-            ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
-            : ONBOARDING_SYSTEM_PROMPT,
-        ),
+        systemPrompt: this.composeOnboardingSystemPrompt({
+          brandContext,
+          brandId: policy.brandId,
+          replyStyle,
+        }),
       };
     }
 
@@ -395,6 +395,30 @@ export class AgentOrchestratorContextService {
 
     return history;
   }
+  private composeOnboardingSystemPrompt(input: {
+    brandContext:
+      | Parameters<AgentContextAssemblyService['buildSystemPrompt']>[1]
+      | null;
+    brandId?: string;
+    replyStyle?: string;
+  }): string {
+    const onboardingPrompt = isSelfHostedDeployment()
+      ? COMMUNITY_ONBOARDING_SYSTEM_PROMPT
+      : ONBOARDING_SYSTEM_PROMPT;
+    const scopedPrompt = input.brandId
+      ? `${onboardingPrompt}\n\nCurrent brand ID: ${input.brandId}. Use this saved brand; do not create a duplicate.`
+      : onboardingPrompt;
+    return composeAgentGuardrails(
+      input.brandContext
+        ? this.contextAssemblyService.buildSystemPrompt(
+            scopedPrompt,
+            input.brandContext,
+            { replyStyle: input.replyStyle },
+          )
+        : scopedPrompt,
+    );
+  }
+
   /**
    * Resolve messages and optional compressed context for a thread.
    * If compaction is available, returns windowed messages + compressed context.

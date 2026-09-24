@@ -104,6 +104,48 @@ describe('useAgentChatStream', () => {
     ).not.toThrow();
   });
 
+  it('surfaces a failed onboarding-completion callback without an unhandled rejection', async () => {
+    const apiService = createApiService({
+      chatStream: vi.fn().mockResolvedValue({
+        threadId: 'thread-onboarding',
+        executionId: 'run-onboarding',
+        queuedAt: '2026-09-23T12:00:00.000Z',
+        contextVersion: 1,
+      }),
+    });
+    const onOnboardingCompleted = vi
+      .fn()
+      .mockRejectedValue(new Error('Session expired'));
+    const { result } = renderHook(() =>
+      useAgentChatStream({ apiService, onOnboardingCompleted }),
+    );
+    await act(async () => {
+      await result.current.sendMessage('Skip setup');
+    });
+    await act(async () => {
+      for (const handler of socketHandlers.get('agent:done') ?? [])
+        handler({
+          threadId: 'thread-onboarding',
+          runId: 'run-onboarding',
+          fullContent: 'Setup finished.',
+          metadata: {},
+          creditsRemaining: 10,
+          toolCalls: [
+            {
+              toolName: 'complete_onboarding',
+              status: 'completed',
+              creditsUsed: 0,
+              durationMs: 1,
+            },
+          ],
+        });
+    });
+    await waitFor(() => expect(onOnboardingCompleted).toHaveBeenCalled());
+    expect(useAgentChatStore.getState().error).toContain(
+      'Could not finish setup',
+    );
+  });
+
   it('buffers early socket events until the stream response provides the thread id', async () => {
     const startedAt = '2026-03-09T10:00:00.000Z';
     const apiService = createApiService({

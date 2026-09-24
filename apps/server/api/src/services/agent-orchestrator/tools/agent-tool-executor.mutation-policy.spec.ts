@@ -151,6 +151,7 @@ describe('AgentToolExecutorService mutation policy', () => {
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
+      generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     service.onModuleInit();
   });

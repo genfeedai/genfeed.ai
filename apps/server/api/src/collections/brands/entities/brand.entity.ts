@@ -37,6 +37,7 @@ export class BrandEntity extends BaseEntity implements Brand {
 
   declare readonly defaultVideoModel: BrandDocument['defaultVideoModel'];
   declare readonly defaultImageModel: BrandDocument['defaultImageModel'];
+  declare readonly isPromptEnhancementEnabled: BrandDocument['isPromptEnhancementEnabled'];
   declare readonly defaultImageToVideoModel: BrandDocument['defaultImageToVideoModel'];
   declare readonly defaultMusicModel: BrandDocument['defaultMusicModel'];
 

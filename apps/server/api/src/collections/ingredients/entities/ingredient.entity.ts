@@ -33,6 +33,7 @@ export class IngredientEntity extends BaseEntity implements Ingredient {
   declare readonly campaignWeek: Ingredient['campaignWeek'];
   declare readonly modelUsed: Ingredient['modelUsed'];
   declare readonly loraUsed: Ingredient['loraUsed'];
+  declare readonly generationHarness: Ingredient['generationHarness'];
   declare readonly generationPrompt: Ingredient['generationPrompt'];
   declare readonly negativePrompt: Ingredient['negativePrompt'];
   declare readonly generationSeed: Ingredient['generationSeed'];

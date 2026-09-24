@@ -4,6 +4,30 @@ import {
 } from './media-artifact.helper';
 
 describe('media artifact helper', () => {
+  it.each(['image', 'video'])(
+    'includes the stored %s prompt receipt for text-only MCP clients',
+    (kind) => {
+      const receipt = {
+        originalPrompt: 'A bicycle',
+        enhancedPrompt: 'A red bicycle at dusk',
+        status: 'applied',
+        source: 'brand',
+        brandId: 'brand-1',
+        appliedPacks: [{ id: 'test-pack', version: '1' }],
+      };
+      const result = toMcpMediaToolResult({
+        id: 'asset-1',
+        kind,
+        status: 'PROCESSING',
+        generationHarness: receipt,
+      });
+      expect(result.content).toContainEqual({
+        type: 'text',
+        text: JSON.stringify({ generationHarness: receipt }, null, 2),
+      });
+      expect(result.structuredContent.data.generationHarness).toEqual(receipt);
+    },
+  );
   it('exposes a resource link for native image rendering plus structured metadata and text fallback', () => {
     const result = toMcpMediaToolResult({
       id: 'img-1',

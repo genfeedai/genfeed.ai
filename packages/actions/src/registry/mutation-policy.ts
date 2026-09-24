@@ -59,6 +59,8 @@ export const MUTATION_POLICY_BY_NAME: Readonly<
   Record<string, ToolMutationPolicy>
 > = {
   ai_action: 'direct',
+  enhance_prompt: 'direct',
+  set_generation_settings: 'direct',
   analyze_clip_project: 'approval-required',
   approve_social_draft: 'approval-required',
   archive_knowledge_source: 'direct',

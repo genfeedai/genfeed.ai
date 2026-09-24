@@ -3,6 +3,7 @@
 import type { IPrompt } from '@genfeedai/contracts/interfaces';
 import type { IngredientTabsPromptsProps } from '@genfeedai/props/content/ingredient.props';
 import Card from '@ui/card/Card';
+import GenerationHarnessReceipt from '@ui/ingredients/tabs/prompts/GenerationHarnessReceipt';
 
 export default function IngredientTabsPrompts({
   ingredient,
@@ -12,7 +13,10 @@ export default function IngredientTabsPrompts({
   const promptRows = [
     {
       label: 'Original',
-      value: ingredient?.promptText || 'No prompt available.',
+      value:
+        ingredient?.generationHarness?.originalPrompt ||
+        ingredient?.promptText ||
+        'No prompt available.',
     },
     { label: 'Style', value: prompt?.style || 'None' },
     { label: 'Mood', value: prompt?.mood || 'None' },
@@ -48,6 +52,10 @@ export default function IngredientTabsPrompts({
           {promptRows[0].value}
         </span>
       </Card>
+
+      {ingredient?.generationHarness ? (
+        <GenerationHarnessReceipt receipt={ingredient.generationHarness} />
+      ) : null}
 
       {/* Remaining rows: 2 columns */}
       <div className="grid grid-cols-2 gap-4">

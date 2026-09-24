@@ -7,6 +7,7 @@ import type { IngredientDocument } from '@api/collections/ingredients/schemas/in
 import type { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import type { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import type { PostDocument } from '@api/collections/posts/post.schema';
+import { assertPostBrandAccess } from '@api/collections/posts/services/post-draft-scope.util';
 import type { PostsService } from '@api/collections/posts/services/posts.service';
 import type { QuotaService } from '@api/services/quota/quota.service';
 import {
@@ -20,6 +21,7 @@ import {
   PostVisibility,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import { getSupportedPostVisibilities } from '@genfeedai/contracts/api-types/contracts/channel-capabilities.contract';
 import { resolveDefaultTargetExecutionState } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type { LoggerService } from '@libs/logger/logger.service';
@@ -77,18 +79,32 @@ export async function createPost({
   dependencies,
   identity,
 }: PostCreateParams): Promise<PostDocument> {
+  if (createPostDto.brandId) {
+    await assertPostBrandAccess(
+      dependencies.postsService.prisma,
+      createPostDto.brandId,
+      identity.organizationId,
+    );
+    identity = { ...identity, brandId: createPostDto.brandId };
+  }
   const requestedExecutionState = resolveDefaultTargetExecutionState({
     scheduledDate: createPostDto.scheduledDate,
     targetExecutionState: createPostDto.targetExecutionState,
   });
   const requestedVisibility = createPostDto.visibility ?? PostVisibility.PUBLIC;
-  const credential = await dependencies.credentialsService.findOne({
-    id: createPostDto.credentialId,
-    isConnected: true,
-    organizationId: identity.organizationId,
-  });
+  const credential = createPostDto.credentialId
+    ? await dependencies.credentialsService.findOne({
+        id: createPostDto.credentialId,
+        ...(requestedExecutionState !== TargetExecutionState.DRAFT
+          ? { isConnected: true }
+          : {}),
+        isDeleted: false,
+        ...(createPostDto.brandId ? { brandId: createPostDto.brandId } : {}),
+        organizationId: identity.organizationId,
+      })
+    : null;
 
-  if (!credential) {
+  if (createPostDto.credentialId && !credential) {
     throw new HttpException(
       {
         detail: 'Credential not found',
@@ -98,9 +114,31 @@ export async function createPost({
     );
   }
 
-  const domainPlatform = fromPrismaCredentialPlatform(
-    String(credential.platform ?? ''),
-  );
+  if (!createPostDto.brandId && credential?.brandId) {
+    identity = { ...identity, brandId: credential.brandId };
+  }
+
+  if (!credential && requestedExecutionState !== TargetExecutionState.DRAFT) {
+    throw new HttpException(
+      'Connect an account before scheduling or publishing',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+  const domainPlatform = credential
+    ? fromPrismaCredentialPlatform(String(credential.platform ?? ''))
+    : createPostDto.platform;
+  if (!domainPlatform) {
+    throw new HttpException(
+      'Choose a channel for this draft',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
+  if (!credential && !getChannelCapability(domainPlatform)) {
+    throw new HttpException(
+      'Select a supported publishing channel',
+      HttpStatus.BAD_REQUEST,
+    );
+  }
   const textOnlyPlatforms = new Set([
     CredentialPlatform.THREADS,
     CredentialPlatform.TWITTER,
@@ -116,7 +154,7 @@ export async function createPost({
   ) {
     throw new HttpException(
       {
-        detail: `${credential.platform} does not support ${requestedVisibility} visibility.`,
+        detail: `${domainPlatform} does not support ${requestedVisibility} visibility.`,
         title: 'Unsupported post visibility',
       },
       HttpStatus.BAD_REQUEST,
@@ -130,7 +168,7 @@ export async function createPost({
   ) {
     throw new HttpException(
       {
-        detail: `${credential.platform} requires media when scheduling. Please add at least one image or video.`,
+        detail: `${domainPlatform} requires media when scheduling. Please add at least one image or video.`,
         title: 'Text-only posts not supported',
       },
       HttpStatus.BAD_REQUEST,
@@ -144,7 +182,7 @@ export async function createPost({
   ) {
     throw new HttpException(
       {
-        detail: `${credential.platform} requires at least one image or video when scheduling.`,
+        detail: `${domainPlatform} requires at least one image or video when scheduling.`,
         title: 'Media required when scheduling',
       },
       HttpStatus.BAD_REQUEST,
@@ -206,18 +244,23 @@ export async function createPost({
     [firstIngredient = null] = campaignIngredients;
   }
 
-  await dependencies.quotaService.verifyQuota(
-    credential,
-    identity.organizationId,
-  );
+  if (credential && requestedExecutionState !== TargetExecutionState.DRAFT) {
+    await dependencies.quotaService.verifyQuota(
+      credential,
+      identity.organizationId,
+    );
+  }
 
   let effectiveExecutionState = requestedExecutionState;
   let warmupHoldReason: string | undefined;
-  if (requestedExecutionState === TargetExecutionState.SCHEDULED) {
+  if (
+    credential &&
+    requestedExecutionState === TargetExecutionState.SCHEDULED
+  ) {
     const publishGate =
       await dependencies.accountHealthService.evaluateScheduledPublishGate({
         brandId: identity.brandId,
-        credentialId: createPostDto.credentialId,
+        credentialId: credential.id,
         organizationId: identity.organizationId,
       });
 
@@ -233,11 +276,11 @@ export async function createPost({
     category:
       createPostDto.category || getPostCategoryFromIngredient(firstIngredient),
     credentialId: createPostDto.credentialId,
-    description: createPostDto.description || credential.description || '',
+    description: createPostDto.description || credential?.description || '',
     ingredients: ingredientIds,
     label:
       createPostDto.label?.trim() ||
-      credential.label ||
+      credential?.label ||
       (createPostDto.description?.trim()
         ? extractLabelFromText(createPostDto.description.trim())
         : ''),
@@ -272,7 +315,11 @@ export async function createPost({
     }),
   );
 
-  if (!warmupHoldReason && domainPlatform === CredentialPlatform.YOUTUBE) {
+  if (
+    effectiveExecutionState !== TargetExecutionState.DRAFT &&
+    !warmupHoldReason &&
+    domainPlatform === CredentialPlatform.YOUTUBE
+  ) {
     dependencies.postsService.handleYoutubePost(data).catch((error) => {
       dependencies.loggerService.error(
         `Failed to trigger YouTube upload for post ${data.id}: ${error.message}`,

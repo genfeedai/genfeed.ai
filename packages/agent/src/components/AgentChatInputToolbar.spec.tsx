@@ -20,7 +20,6 @@ function buildDefaultProps(
     onAgentModeChange: vi.fn(),
     onGenerationModeChange: vi.fn(),
     onInsertReference: vi.fn(),
-    onSelectAction: vi.fn(),
     onSend: vi.fn(),
     onStartListening: vi.fn(),
     onStop: undefined,
@@ -45,7 +44,9 @@ describe('AgentChatInputToolbar', () => {
       screen.getByRole('button', { name: 'Agent mode: Manual' }),
     ).toBeTruthy();
     expect(screen.getByLabelText('Add context')).toBeTruthy();
-    expect(screen.getByLabelText('Open workspace shortcuts')).toBeTruthy();
+    expect(
+      screen.queryByLabelText('Open workspace shortcuts'),
+    ).not.toBeInTheDocument();
 
     // No Type/Agent-pick/Brand-voice/Prompt-enhance controls survive.
     expect(

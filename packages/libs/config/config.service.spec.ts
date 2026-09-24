@@ -7,6 +7,9 @@ describe('ConfigService', () => {
 
   beforeEach(() => {
     // Mock environment variables for testing
+    delete env.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID;
+    delete env.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY;
+    delete env.GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS;
     env.NODE_ENV = 'test';
     env.SENTRY_ENVIRONMENT = 'test';
     env.SENTRY_DSN = 'https://test@sentry.io/test';
@@ -21,6 +24,7 @@ describe('ConfigService', () => {
     env.AWS_ACCESS_KEY_ID = 'test-key';
     env.AWS_SECRET_ACCESS_KEY = 'test-secret';
     delete env.DB_MODE;
+    delete env.CONTENT_HARNESS_PACKAGES;
     env.PORT = '3010';
     env.GOOGLE_OAUTH_CLIENT_ID = 'test-client-id';
     env.GOOGLE_OAUTH_CLIENT_SECRET = 'test-client-secret';
@@ -84,9 +88,13 @@ describe('ConfigService', () => {
   });
 
   afterEach(() => {
+    delete env.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID;
+    delete env.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY;
+    delete env.GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS;
     // Clean up environment variables
     delete env.DATABASE_URL;
     delete env.NODE_ENV;
+    delete env.CONTENT_HARNESS_PACKAGES;
   });
 
   describe('constructor', () => {
@@ -102,6 +110,28 @@ describe('ConfigService', () => {
       delete env.DATABASE_URL;
 
       expect(() => new ConfigService()).toThrow(/DATABASE_URL/);
+    });
+  });
+
+  describe('content harness configuration', () => {
+    it.each([
+      '@example/content-pack',
+      '@example/one, @example/two',
+      '/usr/src/app/content-harness/index.cjs',
+    ])('accepts the supported module specifier %s', (specifier) => {
+      env.CONTENT_HARNESS_PACKAGES = specifier;
+      expect(new ConfigService().get('CONTENT_HARNESS_PACKAGES')).toBe(
+        specifier,
+      );
+    });
+
+    it.each([
+      '/tmp/untrusted.cjs',
+      '../pack.cjs',
+      'https://example.com/pack.cjs',
+    ])('rejects unsupported module locations %s', (specifier) => {
+      env.CONTENT_HARNESS_PACKAGES = specifier;
+      expect(() => new ConfigService()).toThrow(/CONTENT_HARNESS_PACKAGES/);
     });
   });
 
@@ -147,6 +177,72 @@ describe('ConfigService', () => {
       const service = new ConfigService();
 
       expect(service.get('DB_MODE')).toBe('production');
+    });
+  });
+
+  describe('CDN signing configuration', () => {
+    it.each([undefined, '', '  \n\t  '])(
+      'keeps signing disabled when both inputs are absent: %j',
+      (value) => {
+        if (value !== undefined) {
+          env.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID = value;
+          env.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY = value;
+        }
+        const service = new ConfigService();
+
+        expect(service.isCdnSigningEnabled).toBe(false);
+        expect(service.mediaUrlConfig).toEqual({
+          cdnUrl: 'http://localhost:3002',
+        });
+      },
+    );
+
+    it.each([
+      ['configured-key-pair', undefined],
+      [undefined, 'configured-private-key'],
+      ['configured-key-pair', ''],
+      ['', 'configured-private-key'],
+      ['configured-key-pair', '  \n\t '],
+      ['  \n\t ', 'configured-private-key'],
+    ])('rejects partial signing inputs (%j, %j)', (keyPairId, privateKey) => {
+      if (keyPairId !== undefined) {
+        env.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID = keyPairId;
+      }
+      if (privateKey !== undefined) {
+        env.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY = privateKey;
+      }
+      const service = new ConfigService();
+      const error =
+        'GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID and GENFEEDAI_CDN_SIGNING_PRIVATE_KEY must both be configured or both be unset';
+
+      expect(() => service.mediaUrlConfig).toThrow(new Error(error));
+      expect(() => service.isCdnSigningEnabled).toThrow(new Error(error));
+    });
+
+    it('preserves PEM contents while trimming outer signing-input whitespace', () => {
+      const privateKey =
+        '-----BEGIN PRIVATE KEY-----\n  preserved-content\n-----END PRIVATE KEY-----';
+      env.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID = '  configured-key-pair\n';
+      env.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY = `  ${privateKey}\n\t`;
+      env.GENFEEDAI_CDN_SIGNED_URL_TTL_SECONDS = '1200';
+      const service = new ConfigService();
+
+      expect(service.isCdnSigningEnabled).toBe(true);
+      expect(service.mediaUrlConfig).toEqual({
+        cdnUrl: 'http://localhost:3002',
+        signing: {
+          keyPairId: 'configured-key-pair',
+          privateKey,
+          ttlSeconds: 1200,
+        },
+      });
+    });
+
+    it('retains the default signed URL lifetime', () => {
+      env.GENFEEDAI_CDN_SIGNING_KEY_PAIR_ID = 'configured-key-pair';
+      env.GENFEEDAI_CDN_SIGNING_PRIVATE_KEY = 'configured-private-key';
+
+      expect(new ConfigService().mediaUrlConfig.signing?.ttlSeconds).toBe(900);
     });
   });
 

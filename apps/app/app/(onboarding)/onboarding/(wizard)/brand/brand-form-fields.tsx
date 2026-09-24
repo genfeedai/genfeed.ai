@@ -58,14 +58,15 @@ function ChipGroup({
 
 export default function BrandFormFields({
   brandName,
-  organizationName,
+  step,
+  canContinue,
   targetAudience,
   tone,
   websiteUrl,
   errorMessage,
   submitting,
   onBrandNameChange,
-  onOrganizationNameChange,
+  onBack,
   onTargetAudienceChange,
   onToneChange,
   onWebsiteUrlChange,
@@ -102,93 +103,87 @@ export default function BrandFormFields({
   ];
 
   return (
-    <div className="step-form max-w-md space-y-6">
-      {/* Name */}
-      <div>
-        <label
-          htmlFor="brand-name"
-          className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
-        >
-          {translate('fields.name.label')}
-          <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
-            {translate('fields.required')}
-          </span>
-        </label>
-        <Input
-          id="brand-name"
-          type="text"
-          value={brandName}
-          onChange={(e) => onBrandNameChange(e.target.value)}
-          placeholder={translate('fields.name.placeholder')}
-          required
-          className="h-12 rounded-none border-border bg-background-tertiary px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
-        />
-      </div>
+    <form
+      className="step-form max-w-md space-y-6"
+      onSubmit={(event) => {
+        event.preventDefault();
+        onContinue();
+      }}
+    >
+      {step === 2 && (
+        <>
+          {/* Website URL */}
+          <div>
+            <label
+              htmlFor="brand-website-url"
+              className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
+            >
+              {translate('fields.website.label')}
+              <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
+                {translate('fields.optional')}
+              </span>
+            </label>
+            <div className="relative">
+              <Globe className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-800" />
+              <Input
+                id="brand-website-url"
+                type="text"
+                inputMode="url"
+                autoComplete="url"
+                value={websiteUrl}
+                onChange={(e) => onWebsiteUrlChange(e.target.value)}
+                placeholder={translate('fields.website.placeholder')}
+                className="h-12 rounded-none border-border bg-background-tertiary px-4 pl-12 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
+              />
+            </div>
+            <p className="text-xs text-gray-800 mt-1.5">
+              {translate('fields.website.help')}
+            </p>
+          </div>
 
-      {/* Organization Name */}
-      <div>
-        <label
-          htmlFor="organization-name"
-          className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
-        >
-          {translate('fields.organization.label')}
-          <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
-            {translate('fields.required')}
-          </span>
-        </label>
-        <Input
-          id="organization-name"
-          type="text"
-          value={organizationName}
-          onChange={(e) => onOrganizationNameChange(e.target.value)}
-          placeholder={translate('fields.organization.placeholder')}
-          required
-          className="h-12 rounded-none border-border bg-background-tertiary px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
-        />
-      </div>
+          {/* Name */}
+          <div>
+            <label
+              htmlFor="brand-name"
+              className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
+            >
+              {translate('fields.name.label')}
+              <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
+                {translate('fields.required')}
+              </span>
+            </label>
+            <Input
+              id="brand-name"
+              type="text"
+              value={brandName}
+              onChange={(e) => onBrandNameChange(e.target.value)}
+              placeholder={translate('fields.name.placeholder')}
+              required
+              className="h-12 rounded-none border-border bg-background-tertiary px-4 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
+            />
+          </div>
+        </>
+      )}
 
-      {/* Website URL */}
-      <div>
-        <label
-          htmlFor="brand-website-url"
-          className="block text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2"
-        >
-          {translate('fields.website.label')}
-          <span className="text-gray-800 font-normal normal-case tracking-normal ml-1">
-            {translate('fields.optional')}
-          </span>
-        </label>
-        <div className="relative">
-          <Globe className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-gray-800" />
-          <Input
-            id="brand-website-url"
-            type="url"
-            value={websiteUrl}
-            onChange={(e) => onWebsiteUrlChange(e.target.value)}
-            placeholder={translate('fields.website.placeholder')}
-            className="h-12 rounded-none border-border bg-background-tertiary px-4 pl-12 text-sm text-foreground placeholder:text-muted-foreground focus-visible:border-border-strong focus-visible:ring-0"
+      {step === 3 && (
+        <>
+          <ChipGroup
+            label={translate('audience.label')}
+            optionalLabel={translate('fields.optional')}
+            options={audienceOptions}
+            value={targetAudience}
+            onChange={onTargetAudienceChange}
           />
-        </div>
-        <p className="text-xs text-gray-800 mt-1.5">
-          {translate('fields.website.help')}
-        </p>
-      </div>
 
-      <ChipGroup
-        label={translate('audience.label')}
-        optionalLabel={translate('fields.optional')}
-        options={audienceOptions}
-        value={targetAudience}
-        onChange={onTargetAudienceChange}
-      />
-
-      <ChipGroup
-        label={translate('tone.label')}
-        optionalLabel={translate('fields.optional')}
-        options={toneOptions}
-        value={tone}
-        onChange={onToneChange}
-      />
+          <ChipGroup
+            label={translate('tone.label')}
+            optionalLabel={translate('fields.optional')}
+            options={toneOptions}
+            value={tone}
+            onChange={onToneChange}
+          />
+        </>
+      )}
 
       <div hidden={!errorMessage}>
         {errorMessage ? (
@@ -203,27 +198,35 @@ export default function BrandFormFields({
 
       {/* Continue button */}
       <div className="step-actions">
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
+          {step > 1 && (
+            <Button
+              variant={ButtonVariant.SECONDARY}
+              label={translate('actions.back')}
+              isDisabled={submitting}
+              onClick={onBack}
+            />
+          )}
           <Button
             variant={ButtonVariant.DEFAULT}
             size={ButtonSize.DEFAULT}
             label={translate('actions.continue')}
             icon={<ArrowRight className="size-4" />}
             isLoading={submitting}
-            isDisabled={!brandName.trim() || !organizationName.trim()}
-            onClick={onContinue}
+            isDisabled={!canContinue || submitting}
+            type="submit"
             className="rounded-none px-5"
           />
           <Button
             variant={ButtonVariant.SECONDARY}
             size={ButtonSize.DEFAULT}
             label={translate('actions.skip')}
-            isLoading={submitting}
+            isDisabled={submitting}
             onClick={onSkip}
             className="rounded-none px-5"
           />
         </div>
       </div>
-    </div>
+    </form>
   );
 }

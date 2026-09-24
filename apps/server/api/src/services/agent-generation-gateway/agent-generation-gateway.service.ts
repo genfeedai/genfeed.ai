@@ -345,13 +345,15 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
           source: ActivitySource.IMAGE_GENERATION,
         },
         dto: CreateImageDto,
-        handle: ({ dto, request, user }) =>
-          this.imageGenerationService.generateImage(
+        handle: ({ dto, request, user }) => {
+          request.generationOriginalPrompt = input.originalPrompt;
+          return this.imageGenerationService.generateImage(
             user,
             dto,
             request,
             input.onPlaceholderCreated,
-          ),
+          );
+        },
         hasCreditsInterceptor: true,
         hasRolesGuard: true,
         modelValidation: { category: ModelCategory.IMAGE },
@@ -396,13 +398,15 @@ export class AgentGenerationGatewayService implements IAgentGenerationGateway {
           source: ActivitySource.VIDEO_GENERATION,
         },
         dto: CreateVideoDto,
-        handle: ({ dto, request, user }) =>
-          this.videoGenerationService.generateVideo(
+        handle: ({ dto, request, user }) => {
+          request.generationOriginalPrompt = input.originalPrompt;
+          return this.videoGenerationService.generateVideo(
             user,
             dto,
             request,
             input.onPlaceholderCreated,
-          ),
+          );
+        },
         hasCreditsInterceptor: true,
         hasRolesGuard: true,
         modelValidation: { category: ModelCategory.VIDEO },

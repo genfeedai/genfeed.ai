@@ -20,6 +20,7 @@ const INGREDIENT_SCALAR_FIELDS = [
   'generationCompletedAt',
   'generationError',
   'generationProgress',
+  'generationHarness',
   'generationPrompt',
   'generationSeed',
   'generationSource',

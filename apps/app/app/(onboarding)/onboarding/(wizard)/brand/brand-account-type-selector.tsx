@@ -13,6 +13,7 @@ const ACCOUNT_TYPES = [
 
 export default function BrandAccountTypeSelector({
   accountType,
+  disabled,
   onSelect,
 }: BrandAccountTypeSelectorProps) {
   const translate = useTranslations('pages.onboarding.brand.accountTypes');
@@ -26,6 +27,8 @@ export default function BrandAccountTypeSelector({
         {ACCOUNT_TYPES.map(({ category, icon: Icon, key }) => (
           <Button
             key={category}
+            isDisabled={disabled}
+            aria-pressed={accountType === category}
             variant={ButtonVariant.UNSTYLED}
             withWrapper={false}
             onClick={() => onSelect(category)}

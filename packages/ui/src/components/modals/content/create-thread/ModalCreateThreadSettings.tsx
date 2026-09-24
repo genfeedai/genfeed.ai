@@ -1,11 +1,14 @@
 'use client';
 
+import { TargetExecutionState } from '@genfeedai/contracts';
+
 import { getPostLifecycleOptions } from '@genfeedai/helpers/content/posts.helper';
 import type { ModalCreateThreadSettingsProps } from '@genfeedai/props/modals/modal.props';
 import FormDateTimePicker from '@ui/primitives/date-time-picker';
 import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { SelectField } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 
 export default function ModalCreateThreadSettings({
   form,
@@ -13,6 +16,7 @@ export default function ModalCreateThreadSettings({
   credentialOptions,
   browserTimezone,
 }: ModalCreateThreadSettingsProps) {
+  const translate = useTranslations('ui.postDraft');
   return (
     <div className="bg-secondary shadow-border p-4 space-y-4">
       <h3 className="font-semibold">Thread Settings</h3>
@@ -24,9 +28,20 @@ export default function ModalCreateThreadSettings({
         >
           <SelectField
             name="credentialId"
+            onChange={(event) => {
+              if (!event.target.value) {
+                form.setValue('scheduledDate', '');
+                form.setValue(
+                  'targetExecutionState',
+                  TargetExecutionState.DRAFT,
+                  { shouldValidate: true },
+                );
+              }
+            }}
             control={form.control}
             placeholder="Select platform account"
           >
+            <option value="">{translate('noAccount')}</option>
             {credentialOptions.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -44,33 +59,35 @@ export default function ModalCreateThreadSettings({
         />
       </FormControl>
 
-      <div className="grid grid-cols-2 gap-4">
-        <FormControl
-          label="Scheduled Date (Optional)"
-          error={form.formState.errors.scheduledDate?.message}
-        >
-          <FormDateTimePicker
-            value={form.watch('scheduledDate')}
-            timezone={browserTimezone}
-            onChange={(value) =>
-              form.setValue('scheduledDate', value ? value.toISOString() : '')
-            }
-          />
-        </FormControl>
+      {form.watch('credentialId') && (
+        <div className="grid grid-cols-2 gap-4">
+          <FormControl
+            label="Scheduled Date (Optional)"
+            error={form.formState.errors.scheduledDate?.message}
+          >
+            <FormDateTimePicker
+              value={form.watch('scheduledDate')}
+              timezone={browserTimezone}
+              onChange={(value) =>
+                form.setValue('scheduledDate', value ? value.toISOString() : '')
+              }
+            />
+          </FormControl>
 
-        <FormControl
-          label="Lifecycle"
-          error={form.formState.errors.targetExecutionState?.message}
-        >
-          <SelectField name="targetExecutionState" control={form.control}>
-            {getPostLifecycleOptions().map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </SelectField>
-        </FormControl>
-      </div>
+          <FormControl
+            label="Lifecycle"
+            error={form.formState.errors.targetExecutionState?.message}
+          >
+            <SelectField name="targetExecutionState" control={form.control}>
+              {getPostLifecycleOptions().map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </SelectField>
+          </FormControl>
+        </div>
+      )}
     </div>
   );
 }

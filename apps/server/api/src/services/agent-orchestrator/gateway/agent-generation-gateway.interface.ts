@@ -37,6 +37,8 @@ export interface AgentGenerationCreditsAttribution {
 }
 
 export interface AgentGenerationInput {
+  /** Server-owned caller text, before authorized selected context is appended. */
+  originalPrompt?: string;
   body: Record<string, unknown>;
   creditsAttribution?: AgentGenerationCreditsAttribution;
   /**

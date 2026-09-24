@@ -1,4 +1,5 @@
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
+import type Stripe from 'stripe';
 
 export type StripeWebhookEvent = {
   data: { object: unknown };
@@ -51,7 +52,7 @@ export function getEmailLogMetadata(email: string | null | undefined): {
  * historical events. The value may also arrive as an expanded object.
  */
 export function extractInvoiceSubscriptionId(
-  invoice: StripeInvoice,
+  invoice: Stripe.Invoice,
 ): string | undefined {
   const parentPath = (
     invoice as unknown as {

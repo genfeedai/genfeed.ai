@@ -75,6 +75,10 @@ describe('curated Agent action catalog', () => {
       ...collectRouteCaseMembers(WORK_OBJECT_HANDLER_PATH, 'execute'),
       ...collectRouteCaseMembers(INSTAGRAM_HANDLER_PATH, 'execute'),
       ...collectRouteCaseMembers(X_ACTIONS_HANDLER_PATH, 'execute'),
+      ...collectRouteCaseMembers(
+        resolve(HERE, 'agent-generation-settings-tool-handler.service.ts'),
+        'execute',
+      ),
     ]);
     const executorNames = memberNames;
     const missing = getToolsForSurface('agent')

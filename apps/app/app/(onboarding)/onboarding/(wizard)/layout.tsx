@@ -20,13 +20,15 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
   const segment = pathname.split('/').pop();
   const isCountedStep =
     !!segment && (steps as readonly string[]).includes(segment);
-  const showCloudFooter = isCountedStep && segment !== 'summary';
+  const isBrandSetup = segment === 'brand';
+  const showCloudFooter =
+    isCountedStep && segment !== 'summary' && !isBrandSetup;
 
   return (
     <div className="min-h-screen bg-background">
       <div className="container mx-auto px-6 py-8">
         {/* Logo */}
-        <div className="flex items-center gap-3 mb-12">
+        <div className="flex items-center gap-3 mb-8">
           {logoUrl && (
             <Image
               src={logoUrl}
@@ -45,7 +47,7 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
 
         {/* Progress — only on counted steps (brand, plan) */}
         <div className="max-w-4xl mx-auto">
-          {isCountedStep ? (
+          {isCountedStep && !isBrandSetup ? (
             <OnboardingProgress
               currentStep={currentStepIndex}
               totalSteps={stepLabels.length}
@@ -54,7 +56,7 @@ function OnboardingLayoutInner({ children }: LayoutProps) {
           ) : null}
 
           {/* Step content */}
-          <div className="mt-12">{children}</div>
+          <div className={isBrandSetup ? 'mt-6' : 'mt-12'}>{children}</div>
 
           {showCloudFooter ? (
             <p className="mt-8 text-sm text-muted-foreground">

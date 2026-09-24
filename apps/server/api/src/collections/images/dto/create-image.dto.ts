@@ -14,10 +14,19 @@ import {
   IsNumber,
   IsOptional,
   IsString,
+  ValidateIf,
   ValidateNested,
 } from 'class-validator';
 
 export class CreateImageDto extends CreateIngredientDto {
+  @ValidateIf((_object, value: unknown) => value !== undefined)
+  @IsBoolean()
+  @ApiProperty({
+    description: 'Override prompt enhancement for this generation',
+    required: false,
+  })
+  readonly harness?: boolean;
+
   @IsString()
   @ApiProperty({ description: 'Image generation prompt', required: true })
   readonly text!: string;

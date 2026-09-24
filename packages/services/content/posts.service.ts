@@ -13,6 +13,8 @@ import type {
   GenerateSourcePostVariationsInput,
   IPostVariationMeta,
   IPostVariationResult,
+  PostDraftGenerationInput,
+  PostDraftGenerationResult,
   ScoreSeoRequest,
   SocialGenerationFormat,
 } from '@genfeedai/contracts/interfaces';
@@ -82,6 +84,17 @@ export class PostsService extends BaseService<
   /**
    * Enhance post content using AI
    */
+  public async generateDraftText(
+    data: PostDraftGenerationInput,
+  ): Promise<PostDraftGenerationResult> {
+    const response = await this.instance.post<PostDraftGenerationResult>(
+      '/draft-generations',
+      data,
+      { timeout: 120_000 },
+    );
+    return response.data;
+  }
+
   public async enhance(
     id: string,
     prompt: string,
@@ -207,7 +220,9 @@ export class PostsService extends BaseService<
    */
   public async createThread(data: {
     posts: Array<{
-      credentialId: string;
+      brandId?: string;
+      credentialId?: string;
+      platform?: Platform;
       description: string;
       ingredients: string[];
       label: string;

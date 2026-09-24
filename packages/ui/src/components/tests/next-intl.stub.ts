@@ -244,6 +244,16 @@ const UI_TEST_MESSAGES = {
     evaluationCard: {
       persuasion: 'Persuasion',
     },
+    postDraft: {
+      topic: 'What do you want to post about?',
+      placeholder: 'Describe an idea, announcement, or topic',
+      generate: 'Generate draft',
+      generating: 'Generating…',
+      failed: 'Could not generate a draft. Please try again.',
+      platform: 'Channel',
+      account: 'Publishing account',
+      noAccount: 'Draft only — connect an account later',
+    },
     createThread: {
       addPost: 'Add comment / post',
       attachMedia: 'Attach media',

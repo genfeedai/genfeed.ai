@@ -14,7 +14,7 @@ import {
   useAgentChatStore,
   useAgentChatStream,
 } from '@genfeedai/agent';
-import { AgentThreadStatus } from '@genfeedai/contracts';
+import { AgentThreadMode, AgentThreadStatus } from '@genfeedai/contracts';
 import {
   APP_ROUTES,
   createBrandAppRoute,
@@ -176,15 +176,15 @@ function AgentWorkspaceLayoutClientContent({
       return;
     }
 
-    completedRef.current = true;
-
     const effectiveToken = await resolveAuthToken(getToken);
-    if (effectiveToken) {
-      // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
-      await UsersService.getInstance(effectiveToken).patchMe({
-        isOnboardingCompleted: true,
-      });
+    if (!effectiveToken) {
+      throw new Error('Please sign in again to finish setup.');
     }
+    // Onboarding completion cascade lives behind PATCH /users/me (REST audit #1354).
+    await UsersService.getInstance(effectiveToken).patchMe({
+      isOnboardingCompleted: true,
+    });
+    completedRef.current = true;
     await getToken({ forceRefresh: true }).catch(() => null);
   }, [getToken]);
 
@@ -240,14 +240,12 @@ function AgentWorkspaceLayoutClientContent({
     }
   }, [isJourneyRoute, isUnthreadedRoute, prefillPrompt]);
 
-  // Resume onboarding after a reload or restart: a bare visit to the entry
-  // route carries no prefill prompt, so nothing would bootstrap a thread and
-  // the operator would silently start over. Reopen the newest onboarding
-  // thread instead; a first-time operator has none and falls through to the
-  // empty composer.
+  // Resume an existing draft before starting generation, including after reload.
   useEffect(() => {
     if (
       !effectiveIsLoaded ||
+      !isBrandScopeResolved ||
+      !organizationId ||
       !isOnboardingEntryRoute ||
       prefillPrompt ||
       activeThreadId ||
@@ -258,48 +256,84 @@ function AgentWorkspaceLayoutClientContent({
 
     hasAttemptedResumeRef.current = true;
     const controller = new AbortController();
-
+    let started = false;
     void agentApiService
       .getThreads(
-        {
-          source: ONBOARDING_THREAD_SOURCE,
-          status: AgentThreadStatus.ACTIVE,
-        },
+        { source: ONBOARDING_THREAD_SOURCE, status: AgentThreadStatus.ACTIVE },
         controller.signal,
       )
-      .then((threads) => {
-        if (controller.signal.aborted) {
+      .then(async (threads) => {
+        if (controller.signal.aborted) return;
+        const liveState = useAgentChatStore.getState();
+        if (
+          liveState.activeThreadId ||
+          liveState.messages.length > 0 ||
+          liveState.isGenerating ||
+          liveState.stream.isStreaming
+        )
+          return;
+        const resumable = mostRecentAuthorizedThread(
+          threads.filter(
+            (thread) => thread.source === ONBOARDING_THREAD_SOURCE,
+          ),
+          organizationId,
+          brands,
+        );
+        if (resumable) {
+          if (pendingNavigationThreadRef.current !== resumable.id) {
+            pendingNavigationThreadRef.current = resumable.id;
+            newRouteBaselineThreadRef.current = resumable.id;
+            replace(
+              activeHref(`${APP_ROUTES.AGENT.ONBOARDING}/${resumable.id}`),
+            );
+          }
           return;
         }
-
-        // The source filter is applied server-side, but the client repeats it
-        // so an instance that predates the query parameter still resumes the
-        // right thread instead of the newest standard one.
-        const resumable = threads
-          .filter((thread) => thread.source === ONBOARDING_THREAD_SOURCE)
-          .sort((left, right) =>
-            right.updatedAt.localeCompare(left.updatedAt),
-          )[0];
-
-        if (!resumable || pendingNavigationThreadRef.current === resumable.id) {
-          return;
-        }
-
-        pendingNavigationThreadRef.current = resumable.id;
-        newRouteBaselineThreadRef.current = resumable.id;
-        replace(activeHref(`${APP_ROUTES.AGENT.ONBOARDING}/${resumable.id}`));
+        const selectedBrand = brands.find(
+          (brand) =>
+            getBrandOrganizationId(brand) === organizationId &&
+            (!brandId || getBrandEntityId(brand) === brandId),
+        );
+        started = true;
+        // The stream outlives the entry route when its new thread gets a URL.
+        await sendMessage(
+          'Create my first post: one image and one tweet based on my saved brand. Show me the draft before asking me to connect an account.',
+          {
+            ...(selectedBrand
+              ? { brandId: getBrandEntityId(selectedBrand) }
+              : {}),
+            agentMode: AgentThreadMode.AUTO,
+            forceNewThread: true,
+            source: ONBOARDING_THREAD_SOURCE,
+          },
+        );
       })
-      .catch(() => undefined);
-
-    return () => controller.abort();
+      .catch(() => {
+        if (!controller.signal.aborted) {
+          useAgentChatStore
+            .getState()
+            .setError(
+              'We could not open your first draft. Try Create my first post again, or skip setup to open your workspace.',
+            );
+        }
+      });
+    return () => {
+      controller.abort();
+      if (!started) hasAttemptedResumeRef.current = false;
+    };
   }, [
     activeHref,
     activeThreadId,
     agentApiService,
+    brandId,
+    brands,
     effectiveIsLoaded,
+    isBrandScopeResolved,
     isOnboardingEntryRoute,
+    organizationId,
     prefillPrompt,
     replace,
+    sendMessage,
   ]);
 
   // Allow another resume attempt once the operator leaves the entry route.

@@ -1,6 +1,9 @@
 import { AgentMediaArtifactPreview } from '@genfeedai/agent/components/AgentMediaArtifactPreview';
 import { AgentTextArtifactPreview } from '@genfeedai/agent/components/AgentTextArtifactPreview';
-import type { AgentUiAction } from '@genfeedai/agent/models/agent-chat.model';
+import type {
+  AgentUiAction,
+  AgentUiActionHandler,
+} from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { collectConnectPlatforms } from '@genfeedai/agent/utils/collapse-oauth-connect-cards';
 import { normalizeAgentAssetHref } from '@genfeedai/agent/utils/normalize-agent-app-href';
@@ -167,9 +170,11 @@ export function ContentPreviewCard({
   action,
   apiService,
   onCopy,
+  onUiAction,
 }: {
   action: AgentUiAction;
   apiService?: AgentApiService;
+  onUiAction?: AgentUiActionHandler;
   onCopy?: (content: string) => void | Promise<void>;
 }): ReactElement {
   const translate = useTranslations('agent.messageCards');
@@ -274,6 +279,9 @@ export function ContentPreviewCard({
 
   return (
     <div className="mt-2 space-y-2">
+      {action.description ? (
+        <p className="text-sm text-muted-foreground">{action.description}</p>
+      ) : null}
       {isThreadPreview ? (
         <AgentTextArtifactPreview
           data={{
@@ -377,6 +385,21 @@ export function ContentPreviewCard({
       {action.ctas && action.ctas.length > 0 && (
         <div className="flex flex-wrap gap-2">
           {action.ctas.map((cta) => {
+            if (cta.action) {
+              return (
+                <Button
+                  key={`${action.id}-content-preview-cta-${cta.label}`}
+                  variant={ButtonVariant.SECONDARY}
+                  size={ButtonSize.SM}
+                  isDisabled={!onUiAction || isProcessing}
+                  onClick={() => {
+                    void onUiAction?.(cta.action as string, cta.payload);
+                  }}
+                >
+                  {cta.label}
+                </Button>
+              );
+            }
             if (!cta.href) {
               return null;
             }

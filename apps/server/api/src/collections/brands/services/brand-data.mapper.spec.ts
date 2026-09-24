@@ -1,3 +1,4 @@
+import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type {
   LinkedInScrapedData,
@@ -245,6 +246,24 @@ describe('BrandDataMapper', () => {
 
       expect(result).toEqual(config);
     });
+
+    it.each([undefined, { tone: 'direct' }])(
+      'normalizes stored text audiences when scraping has no audience',
+      (brandVoice) => {
+        const result = mapper.mergeExtractedVoice(
+          {
+            voice: { audience: 'Founders' },
+          } as unknown as BrandAgentConfig,
+          {
+            brandVoice,
+            scrapedAt: new Date(),
+            sourceUrl: 'https://example.com',
+          } as IExtractedBrandData,
+        );
+
+        expect(result.voice?.audience).toEqual(['Founders']);
+      },
+    );
 
     it('merges the extracted voice over the existing voice', () => {
       const config = {

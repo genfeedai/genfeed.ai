@@ -155,6 +155,7 @@ describe('AgentToolExecutorService — #4672 agent-mode confirmation matrix', ()
     );
     Object.assign(service, {
       workObjects: { assertReady: vi.fn().mockResolvedValue(undefined) },
+      generationSettingsHandler: { handles: vi.fn().mockReturnValue(false) },
     });
     service.onModuleInit();
   });

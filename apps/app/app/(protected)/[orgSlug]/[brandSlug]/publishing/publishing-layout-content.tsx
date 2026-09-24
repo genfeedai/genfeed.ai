@@ -22,23 +22,13 @@ import Container from '@ui/layout/container/Container';
 import { LazyModalCreateThread, LazyModalPost } from '@ui/lazy/modal/LazyModal';
 import { Button } from '@ui/primitives/button';
 import { Dropdown } from '@ui/primitives/dropdown';
+import { DropdownMenuItem } from '@ui/primitives/dropdown-menu';
 import { Newspaper, Plus } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import type { ReactNode } from 'react';
-import { Suspense, useCallback, useMemo, useReducer } from 'react';
+import { Suspense, useCallback, useMemo, useReducer, useState } from 'react';
 import { useOpenAgentComposer } from '@/hooks/use-open-agent-composer';
-
-function buildNewPostAgentPrompt(brandLabel?: string | null): string {
-  const trimmedLabel = brandLabel?.trim();
-  // Brand labels are user-supplied — quote via JSON.stringify so a `"` in the
-  // name cannot break out of the clause and restructure the prompt.
-  const brandClause = trimmedLabel
-    ? `my brand ${JSON.stringify(trimmedLabel)} (already selected in the workspace — do not ask which brand to use)`
-    : 'my currently selected brand (do not ask which brand to use)';
-
-  return `Help me generate a new post for ${brandClause} — draft the content, pick the best channels, and prepare it for review or scheduling.`;
-}
 
 const initialPublishingLayoutState: PublishingLayoutState = {
   refreshFn: null,
@@ -93,7 +83,9 @@ const NOOP_POSTS_LAYOUT_CONTEXT_VALUE = {
 function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   const { refresh } = useRouter();
   const pathname = usePathname();
-  const { credentials, selectedBrand } = useBrand();
+  const { credentials } = useBrand();
+  const [creationPlatform, setCreationPlatform] =
+    useState<CredentialPlatform>();
   const openAgentComposer = useOpenAgentComposer();
   const translate = useTranslations('pages.publishing.layout');
 
@@ -130,8 +122,9 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
   }, [refreshFn, refresh]);
 
   const handleNewPost = useCallback(() => {
-    openAgentComposer(buildNewPostAgentPrompt(selectedBrand?.label));
-  }, [openAgentComposer, selectedBrand?.label]);
+    setCreationPlatform(undefined);
+    openModal(ModalEnum.POST_CREATE);
+  }, []);
 
   const xCredentials = useMemo(
     () =>
@@ -244,58 +237,48 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
                 />
               }
             >
-              <div className="flex flex-col gap-1 p-1">
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('socialPost')}
-                  onClick={handleNewPost}
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('article')}
-                  onClick={() =>
-                    openAgentComposer(
-                      'Help me write a new long-form article for my brand.',
-                    )
-                  }
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('newsletter')}
-                  onClick={() =>
-                    openAgentComposer(
-                      'Help me write a new newsletter for my brand.',
-                    )
-                  }
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('xLongPost')}
-                  onClick={handleNewLongPost}
-                  isDisabled={xCredentials.length === 0}
-                />
-                <Button
-                  withWrapper={false}
-                  size={ButtonSize.SM}
-                  variant={ButtonVariant.GHOST}
-                  className="w-full justify-start"
-                  label={translate('xThread')}
-                  onClick={handleNewThread}
-                  isDisabled={xCredentials.length === 0}
-                />
-              </div>
+              <DropdownMenuItem onSelect={handleNewPost}>
+                {translate('socialPost')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() => {
+                  setCreationPlatform(CredentialPlatform.TWITTER);
+                  openModal(ModalEnum.POST_CREATE);
+                }}
+              >
+                {translate('xPost')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  openAgentComposer(
+                    'Help me write a new long-form article for my brand.',
+                  )
+                }
+              >
+                {translate('article')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  openAgentComposer(
+                    'Help me write a new newsletter for my brand.',
+                  )
+                }
+              >
+                {translate('newsletter')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleNewLongPost}>
+                {translate('xLongPost')}
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={handleNewThread}>
+                {translate('xThread')}
+              </DropdownMenuItem>
+              <DropdownMenuItem
+                onSelect={() =>
+                  openAgentComposer('Draft a social post for my brand.')
+                }
+              >
+                {translate('askAgent')}
+              </DropdownMenuItem>
             </Dropdown>
           </div>
         }
@@ -303,6 +286,14 @@ function PublishingLayoutContentContent({ children }: { children: ReactNode }) {
         {children}
       </Container>
       <LazyModalPost
+        key={creationPlatform ?? 'social'}
+        modalId={ModalEnum.POST_CREATE}
+        credentials={creationPlatform ? xCredentials : credentials}
+        defaultPlatform={creationPlatform}
+        onConfirm={handleRefresh}
+      />
+      <LazyModalPost
+        defaultPlatform={CredentialPlatform.TWITTER}
         credentials={xCredentials}
         modalId={ModalEnum.POST_LONG_FORM}
         postFormat={PostFormat.LONG_FORM}

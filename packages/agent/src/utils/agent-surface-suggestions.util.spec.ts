@@ -35,6 +35,16 @@ describe('resolveBrandSurfaceSuggestions', () => {
     ).toBe(true);
   });
 
+  it('uses a stored text audience without crashing the agent panel', () => {
+    const suggestions = resolveBrandSurfaceSuggestions('/agent', {
+      strategy: { topics: ['Product launches'] },
+      voice: { audience: 'Founders', tone: 'direct' },
+    } as unknown as IBrandAgentConfig);
+
+    expect(suggestions).toHaveLength(3);
+    expect(suggestions[0]?.prompt).toContain('Founders');
+  });
+
   it('adapts the same profile to another prompt-bar surface', () => {
     const suggestions = resolveBrandSurfaceSuggestions('/calendar', profile);
 

@@ -1,36 +1,28 @@
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PromptsService } from '@api/collections/prompts/services/prompts.service';
-import { TemplatesService } from '@api/collections/templates/services/templates.service';
-import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
-import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
-import { SkillRuntimeService } from '@api/services/skill-runtime/skill-runtime.service';
+import { PromptEnhancementService } from '@api/services/prompt-enhancement/prompt-enhancement.service';
 import { PromptStatus, Status } from '@genfeedai/contracts';
-import { AGENT_CHAT_MODEL_KEYS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
-
-const PROMPT_ENHANCEMENT_MODEL = AGENT_CHAT_MODEL_KEYS.NEMOTRON_3_ULTRA_FREE;
-const DEFAULT_TEXT_SYSTEM_PROMPT =
-  'You are an expert AI assistant. Follow the instructions carefully and provide high-quality responses.';
 
 type EnhanceCreatedPromptDeps = {
   creditsUtilsService: CreditsUtilsService;
   loggerService: LoggerService;
-  openRouterService: OpenRouterService;
+  promptEnhancementService: PromptEnhancementService;
   promptsService: PromptsService;
-  skillRuntimeService: SkillRuntimeService | undefined;
-  templatesService: TemplatesService | undefined;
   websocketService: NotificationsPublisherService;
 };
 
 type EnhanceCreatedPromptInput = {
+  contentType?: 'image' | 'video';
   brandId: string | null | undefined;
   chargedCredits: number;
   organizationId: string;
   promptId: string;
   requestedSkillSlugs: string[] | undefined;
-  systemPromptKey: string;
+  model?: string;
+  systemPromptKey?: string;
   url: string;
   userId: string;
   userPrompt: string;
@@ -41,32 +33,16 @@ export async function enhanceCreatedPrompt(
   input: EnhanceCreatedPromptInput,
 ): Promise<void> {
   try {
-    const systemPromptPromise = deps.templatesService
-      ? deps.templatesService
-          .getRenderedPrompt(input.systemPromptKey, {}, input.organizationId)
-          .catch(() => DEFAULT_TEXT_SYSTEM_PROMPT)
-      : Promise.resolve(DEFAULT_TEXT_SYSTEM_PROMPT);
-    const skillSections =
-      (await deps.skillRuntimeService?.resolveRequestedSkillPromptSections(
-        input.organizationId,
-        input.brandId,
-        input.requestedSkillSlugs,
-      )) ?? '';
-    const basePrompt = await systemPromptPromise;
-    const systemPrompt = skillSections
-      ? `${basePrompt}\n\n${skillSections}`
-      : basePrompt;
-    const response = await deps.openRouterService.chatCompletion({
-      max_tokens: TEXT_GENERATION_LIMITS.promptEnhancement,
-      messages: [
-        { content: systemPrompt, role: 'system' },
-        { content: input.userPrompt, role: 'user' },
-      ],
-      model: PROMPT_ENHANCEMENT_MODEL,
-      temperature: 0.8,
+    const { result } = await deps.promptEnhancementService.enhance({
+      brandId: input.brandId,
+      contentType: input.contentType,
+      organizationId: input.organizationId,
+      requestedSkillSlugs: input.requestedSkillSlugs,
+      model: input.model,
+      systemPromptKey: input.systemPromptKey,
+      userPrompt: input.userPrompt,
     });
-    const result = response.choices[0]?.message?.content?.trim() ?? '';
-    deps.loggerService.log(`${input.url} succeeded`, { result });
+    deps.loggerService.log(`${input.url} succeeded`);
     await deps.promptsService.patch(input.promptId, {
       enhanced: result,
       status: PromptStatus.GENERATED,

@@ -133,6 +133,24 @@ const createService = () => {
     findOne: vi.fn().mockResolvedValue(null),
     patch: vi.fn().mockResolvedValue({ id: 'prompt-doc', original: 'built' }),
   };
+  const enhancementService = {
+    enhance: vi
+      .fn()
+      .mockImplementation(
+        async (input: {
+          prompt: string;
+          brandId: string;
+          harness?: boolean;
+        }) => ({
+          originalPrompt: input.prompt,
+          enhancedPrompt: input.prompt,
+          brandId: input.brandId,
+          status: input.harness === false ? 'skipped' : 'applied',
+          source: input.harness === undefined ? 'default' : 'request',
+          appliedPacks: [],
+        }),
+      ),
+  };
   const promptBuilderService = {
     buildPrompt: vi.fn().mockResolvedValue({
       input: { prompt: 'built-prompt' },
@@ -253,10 +271,7 @@ const createService = () => {
     new KlingAiImageGenerationProviderAdapter(klingAIService as never),
     new FalImageGenerationProviderAdapter(falService as never),
     new LeonardoImageGenerationProviderAdapter(leonardoaiService as never),
-    new ReplicateImageGenerationProviderAdapter(
-      promptBuilderService as never,
-      replicateService as never,
-    ),
+    new ReplicateImageGenerationProviderAdapter(replicateService as never),
     new SdxlImageGenerationProviderAdapter(),
     new HiggsFieldImageGenerationProviderAdapter(higgsFieldService as never),
   );
@@ -316,6 +331,7 @@ const createService = () => {
       cancelProcessingIngredient: vi.fn(),
     } as never,
     templatesService as never,
+    enhancementService as never,
   );
 
   return {
@@ -335,6 +351,7 @@ const createService = () => {
     service,
     sharedService,
     templatesService,
+    enhancementService,
   };
 };
 
@@ -367,9 +384,117 @@ beforeEach(() => {
 });
 
 describe('ImageGenerationService', () => {
-  it('returns the accepted source-action asset without dispatching the provider again', async () => {
-    const { imagesService, replicateService, service, sharedService } =
+  it('enhances once and persists the exact compiled provider prompt for every output', async () => {
+    const { service, enhancementService, replicateService, sharedService } =
       createService();
+    enhancementService.enhance.mockResolvedValue({
+      originalPrompt: 'A bicycle',
+      enhancedPrompt: 'A red bicycle at dusk',
+      brandId: RESOLVED_BRAND,
+      status: 'applied',
+      source: 'brand',
+      appliedPacks: [{ id: 'test-pack', version: '1' }],
+    });
+    await service.generateImage(
+      buildUser(),
+      baseDto({ text: 'A bicycle', outputs: 2 }),
+      buildRequest(),
+    );
+    expect(enhancementService.enhance).toHaveBeenCalledTimes(1);
+    expect(enhancementService.enhance).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: ORG,
+        brandId: RESOLVED_BRAND,
+        prompt: 'A bicycle',
+        contentType: 'image',
+      }),
+    );
+    const providerPrompt =
+      replicateService.generateTextToImage.mock.calls[0][1].prompt;
+    expect(providerPrompt).toContain('A red bicycle at dusk');
+    await vi.waitFor(() =>
+      expect(sharedService.createMediaDocuments.mock.calls).toHaveLength(2),
+    );
+    for (const [, document] of sharedService.createMediaDocuments.mock.calls) {
+      expect(document).toMatchObject({
+        generationPrompt: providerPrompt,
+        generationHarness: {
+          originalPrompt: 'A bicycle',
+          enhancedPrompt: providerPrompt,
+          status: 'applied',
+          appliedPacks: [{ id: 'test-pack', version: '1' }],
+        },
+      });
+    }
+  });
+
+  it('preserves caller bytes through compilation and provider dispatch when off', async () => {
+    const { service, replicateService, sharedService } = createService();
+    const prompt = '  Keep THIS sentence.\n';
+    await service.generateImage(
+      buildUser(),
+      baseDto({
+        text: prompt,
+        harness: false,
+        style: 'cinematic',
+        isBrandingEnabled: true,
+      }),
+      buildRequest(),
+    );
+    expect(replicateService.generateTextToImage.mock.calls[0][1].prompt).toBe(
+      prompt,
+    );
+    expect(sharedService.createMediaDocuments).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.objectContaining({
+        generationHarness: expect.objectContaining({
+          originalPrompt: prompt,
+          enhancedPrompt: prompt,
+          status: 'skipped',
+          appliedPacks: [],
+        }),
+        generationSource: 'generation-brief-exemption:raw_prompt_requested',
+        providerData: expect.objectContaining({
+          status: 'exempted',
+          reason: 'raw_prompt_requested',
+        }),
+      }),
+    );
+  });
+
+  it('does not create or dispatch media after enhancement failure', async () => {
+    const { service, enhancementService, replicateService, sharedService } =
+      createService();
+    enhancementService.enhance.mockRejectedValue(
+      new Error('Enhancement unavailable'),
+    );
+    await expect(
+      service.generateImage(buildUser(), baseDto(), buildRequest()),
+    ).rejects.toThrow('Enhancement unavailable');
+    expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
+  it('rejects selected context in raw mode instead of silently changing the prompt', async () => {
+    const { service, replicateService } = createService();
+    await expect(
+      service.generateImage(
+        buildUser(),
+        baseDto({ harness: false, text: 'Raw prompt plus context' }),
+        buildRequest({ generationOriginalPrompt: 'Raw prompt' }),
+      ),
+    ).rejects.toThrow('Remove selected context');
+    expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
+  });
+
+  it('returns the accepted source-action asset without dispatching the provider again', async () => {
+    const {
+      imagesService,
+      replicateService,
+      service,
+      sharedService,
+      enhancementService,
+    } = createService();
     imagesService.findOne.mockResolvedValue({
       id: 'ing-accepted',
       metadata: { externalId: 'provider-job-1' },
@@ -387,6 +512,7 @@ describe('ImageGenerationService', () => {
     );
 
     expect(response).toMatchObject({ data: { id: 'ing-accepted' } });
+    expect(enhancementService.enhance).not.toHaveBeenCalled();
     expect(sharedService.createMediaDocuments).not.toHaveBeenCalled();
     expect(replicateService.generateTextToImage).not.toHaveBeenCalled();
   });
@@ -504,6 +630,28 @@ describe('ImageGenerationService', () => {
   });
 
   describe('prompt persistence', () => {
+    it('keeps a reviewed enhancement reusable without changing its status', async () => {
+      const promptId = testId('prompt');
+      const { service, promptsService, enhancementService } = createService();
+      promptsService.findOne.mockResolvedValue({
+        id: promptId,
+        original: 'Raw idea',
+        enhanced: 'Reviewed text',
+        status: PromptStatus.GENERATED,
+        isSkipEnhancement: false,
+      });
+      await service.generateImage(
+        buildUser(),
+        baseDto({ promptId, text: 'Reviewed text' }),
+        buildRequest(),
+      );
+      expect(promptsService.patch).not.toHaveBeenCalled();
+      expect(promptsService.create).not.toHaveBeenCalled();
+      expect(enhancementService.enhance).toHaveBeenCalledWith(
+        expect.objectContaining({ promptId, prompt: 'Reviewed text' }),
+      );
+    });
+
     it('reuses a submitted prompt document instead of creating a duplicate', async () => {
       const promptId = testId('prompt');
       const { service, promptsService } = createService();

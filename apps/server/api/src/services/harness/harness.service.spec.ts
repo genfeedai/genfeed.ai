@@ -122,86 +122,74 @@ describe('ContentHarnessService', () => {
     });
   });
 
-  it('warns and skips a resolved pack that fails while loading', async () => {
+  it('fails startup when a configured pack fails while loading', async () => {
     const { logger, service } = createService(EXTERNAL_PACK_SPECIFIER);
-    const moduleLoadError = Object.assign(
-      new Error("Cannot find module 'transitive-package'"),
-      { code: 'MODULE_NOT_FOUND' },
+    injectRuntimeRequire(
+      service,
+      createRuntimeRequire(
+        () => {
+          throw new Error('private module details');
+        },
+        () => '/virtual/acme/dist/index.js',
+      ),
     );
-    const runtimeRequire = createRuntimeRequire(
-      () => {
-        throw moduleLoadError;
-      },
-      () => '/virtual/acme/dist/index.js',
+    await expect(service.onModuleInit()).rejects.toThrow('failed activation');
+    expect(JSON.stringify(logger.warn.mock.calls)).not.toContain(
+      'private module details',
     );
-    injectRuntimeRequire(service, runtimeRequire);
-
-    await expect(service.listLoadedPackIds()).resolves.toEqual([
-      'core-baseline',
-      'platform-x',
-      'brand-fidelity',
-      'viral-psychology',
-    ]);
-    expect(logger.warn).toHaveBeenCalledWith(
-      'ContentHarnessService external content harness packs not activated',
-      {
-        external: [
-          {
-            error: "Cannot find module 'transitive-package'",
-            specifier: EXTERNAL_PACK_SPECIFIER,
-            state: 'load_failed',
-          },
-        ],
-      },
+    await expect(service.listLoadedPackIds()).rejects.toThrow(
+      'failed activation',
     );
   });
 
-  it('warns and skips an unresolvable pack specifier', async () => {
-    const { logger, service } = createService('@acme/missing-pack');
-    const notFound = Object.assign(
-      new Error("Cannot find module '@acme/missing-pack'"),
-      { code: 'MODULE_NOT_FOUND' },
-    );
+  it('fails startup when a configured pack cannot be resolved', async () => {
+    const { service } = createService('@acme/missing-pack');
     const runtimeRequire = createRuntimeRequire(
+      () => ({}),
       () => {
-        throw notFound;
-      },
-      () => {
-        throw notFound;
+        throw Object.assign(new Error('missing'), { code: 'MODULE_NOT_FOUND' });
       },
     );
     injectRuntimeRequire(service, runtimeRequire);
-
-    await expect(service.listLoadedPackIds()).resolves.toEqual([
-      'core-baseline',
-      'platform-x',
-      'brand-fidelity',
-      'viral-psychology',
-    ]);
-    expect(logger.warn).toHaveBeenCalledWith(
-      'ContentHarnessService external content harness packs not activated',
-      {
-        external: [{ specifier: '@acme/missing-pack', state: 'unresolvable' }],
-      },
-    );
+    await expect(service.onModuleInit()).rejects.toThrow('failed activation');
     expect(runtimeRequire).not.toHaveBeenCalled();
   });
 
-  it('reports a module without a valid pack export as invalid', async () => {
+  it('fails startup for an invalid export', async () => {
     const { service } = createService(EXTERNAL_PACK_SPECIFIER);
     injectRuntimeRequire(
       service,
       createRuntimeRequire(
-        () => ({ default: { id: 'not-a-pack' } }),
-        () => '/virtual/acme/dist/index.js',
+        () => ({ default: { id: 'invalid' } }),
+        () => '/virtual/invalid.js',
       ),
     );
+    await expect(service.onModuleInit()).rejects.toThrow('failed activation');
+  });
 
-    const report = await service.getActivationReport();
+  it('accepts a named pack export even when default is unrelated', async () => {
+    const { logger, service } = createService(EXTERNAL_PACK_SPECIFIER);
+    injectRuntimeRequire(
+      service,
+      createRuntimeRequire(
+        () => ({ default: {}, CONTENT_HARNESS_PACK: EXTERNAL_PACK }),
+        () => '/virtual/valid.js',
+      ),
+    );
+    await service.onModuleInit();
+    expect(await service.listLoadedPackVersions()).toContainEqual({
+      id: 'acme-tone',
+      version: '1.0.0',
+    });
+    expect(JSON.stringify(logger.log.mock.calls)).not.toContain(
+      'Sound like Acme.',
+    );
+  });
 
-    expect(report.external).toEqual([
-      { specifier: EXTERNAL_PACK_SPECIFIER, state: 'invalid' },
-    ]);
-    expect(report.loadedPackIds).not.toContain('not-a-pack');
+  it('rejects an explicitly configured empty package list', async () => {
+    const { service } = createService(' , ');
+    await expect(service.onModuleInit()).rejects.toThrow(
+      'must name at least one package',
+    );
   });
 });

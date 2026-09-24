@@ -23,6 +23,8 @@ import type { NextFunction, Request, Response } from 'express';
 export interface RequestWithContext extends Request {
   user?: AuthenticatedUser;
   context?: IRequestContext;
+  /** Set by the in-process gateway before authorized selected context is appended. */
+  generationOriginalPrompt?: string;
 }
 
 const SELF_HOSTED_CONTEXT_CACHE_KEY = `${RC_PREFIX}:self-hosted`;

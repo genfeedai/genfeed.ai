@@ -131,7 +131,6 @@ export function AgentChatInput({
     handleRemoveAttachment,
     handleRemoveReference,
     handleInsertReference,
-    handleSelectAction,
     handleSelectContentReference,
     handleSend,
     handleShellPointerDown,
@@ -249,7 +248,6 @@ export function AgentChatInput({
           onAgentModeChange={onAgentModeChange}
           onInsertReference={handleInsertReference}
           onGenerationModeChange={setGenerationMode}
-          onSelectAction={handleSelectAction}
           onSend={handleToolbarSend}
           onStartListening={startListening}
           onStop={onStop}

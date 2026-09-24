@@ -18,7 +18,7 @@ import {
 } from '@genfeedai/harness';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { Injectable, type OnModuleInit } from '@nestjs/common';
 
 type PackModule = {
   CONTENT_HARNESS_PACK?: unknown;
@@ -107,7 +107,7 @@ function resolveModuleSpecifier(
 }
 
 @Injectable()
-export class ContentHarnessService {
+export class ContentHarnessService implements OnModuleInit {
   private readonly constructorName = String(this.constructor.name);
   private packLoadPromise: Promise<RegistryLoad> | null = null;
   private readonly runtimeRequireContext = createRuntimeRequireContext();
@@ -117,9 +117,20 @@ export class ContentHarnessService {
     private readonly logger: LoggerService,
   ) {}
 
+  async onModuleInit(): Promise<void> {
+    await this.getRegistryLoad();
+  }
+
   async composeBrief(input: ContentHarnessInput): Promise<ContentHarnessBrief> {
     const registry = await this.getRegistry();
     return await composeContentHarnessBrief(registry, input);
+  }
+
+  async listLoadedPackVersions(): Promise<
+    Array<{ id: string; version: string }>
+  > {
+    const registry = await this.getRegistry();
+    return registry.list().map(({ id, version }) => ({ id, version }));
   }
 
   async listLoadedPackIds(): Promise<string[]> {
@@ -175,16 +186,26 @@ export class ContentHarnessService {
       loadedPackIds: registry.list().map((pack) => pack.id),
     };
 
-    if (external.some((item) => item.state !== 'loaded')) {
+    const failures = external.filter((item) => item.state !== 'loaded');
+    if (failures.length > 0) {
       this.logger.warn(
-        `${this.constructorName} external content harness packs not activated`,
-        { external },
+        `${this.constructorName} configured content harness packs failed activation`,
+        {
+          external: failures.map(({ specifier, state }) => ({
+            specifier,
+            state,
+          })),
+        },
+      );
+      throw new Error(
+        'Configured content harness packs failed activation; refusing to start with fallback packs.',
       );
     }
 
     this.logger.log(`${this.constructorName} loaded content harness packs`, {
       external,
       packIds: activation.loadedPackIds,
+      packs: registry.list().map(({ id, version }) => ({ id, version })),
     });
 
     return { activation, registry };
@@ -196,13 +217,18 @@ export class ContentHarnessService {
       return [];
     }
 
-    return value
+    const specifiers = value
       .split(',')
       .map((item) => item.trim())
       .filter(
         (item, index, array) =>
           item.length > 0 && array.indexOf(item) === index,
       );
+    if (specifiers.length === 0)
+      throw new Error(
+        'CONTENT_HARNESS_PACKAGES must name at least one package when configured.',
+      );
+    return specifiers;
   }
 
   private loadPackFromModuleSpecifier(specifier: string): {
@@ -228,7 +254,9 @@ export class ContentHarnessService {
         this.runtimeRequireContext.require,
         resolvedSpecifier,
       );
-      const candidate = imported.default ?? imported.CONTENT_HARNESS_PACK;
+      const candidate = isContentHarnessPack(imported.default)
+        ? imported.default
+        : imported.CONTENT_HARNESS_PACK;
 
       if (!isContentHarnessPack(candidate)) {
         return this.failedActivation(specifier, 'invalid');

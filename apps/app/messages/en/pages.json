@@ -489,6 +489,7 @@
       "close": "Close inspector",
       "emptyHistory": "No other outputs in this run.",
       "emptyRecipe": "No recipe is attached to this generation yet.",
+      "receiptLoadError": "Could not load the submitted prompt. Reopen this asset to retry.",
       "emptyUsedIn": "This asset has not been used in a post yet.",
       "history": "History",
       "loading": "Loading\u2026",
@@ -962,6 +963,8 @@
       "newPost": "New post",
       "newsletter": "Newsletter",
       "socialPost": "Social post",
+      "xPost": "X post",
+      "askAgent": "Ask agent",
       "title": "Publishing",
       "xLongPost": "X long post",
       "xThread": "X thread"
@@ -1423,7 +1426,8 @@
       },
       "actions": {
         "continue": "Continue",
-        "skip": "Skip Onboarding"
+        "skip": "Skip Onboarding",
+        "back": "Back"
       },
       "audience": {
         "label": "Who is this for?",
@@ -1443,7 +1447,7 @@
       },
       "fields": {
         "name": {
-          "label": "Name",
+          "label": "Brand name",
           "placeholder": "Your name or brand"
         },
         "optional": "(optional)",
@@ -1465,6 +1469,21 @@
           "minimal": "Minimal",
           "playful": "Playful",
           "professional": "Professional"
+        }
+      },
+      "steps": {
+        "progress": "Brand setup \u00b7 Step {current} of {total}",
+        "1": {
+          "title": "What do you create for?",
+          "description": "Choose the profile that fits you. You can change it later."
+        },
+        "2": {
+          "title": "Make it yours.",
+          "description": "Add your website and confirm your name. We\u2019ll use the same name for your brand and workspace."
+        },
+        "3": {
+          "title": "Give it your voice.",
+          "description": "Choose an audience and tone, or continue with these blank. You can refine your first draft together."
         }
       }
     },

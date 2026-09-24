@@ -1,5 +1,5 @@
-import type { BrandAgentConfig } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
+import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { type ContentPlanItemDocument } from '@api/collections/content-plan-items/schemas/content-plan-item.schema';
 import {
   ContentPlanItemsService,
@@ -62,14 +62,7 @@ export class ContentPlannerService {
       throw new BadRequestException('Brand not found');
     }
 
-    const agentConfig =
-      brand.agentConfig &&
-      typeof brand.agentConfig === 'object' &&
-      !Array.isArray(brand.agentConfig)
-        ? (brand.agentConfig as BrandAgentConfig)
-        : undefined;
-    const voice = agentConfig?.voice;
-    const strategy = agentConfig?.strategy;
+    const { voice, strategy } = resolveEffectiveBrandAgentConfig({ brand });
 
     // Real performance grounding: own history (Genfeed + imported posts) when
     // there is enough of it, otherwise a cold-start brief from competitor ads,
@@ -176,7 +169,7 @@ export class ContentPlannerService {
       ? `Brand Voice:
 - Tone: ${voice.tone ?? 'professional'}
 - Style: ${voice.style ?? 'informative'}
-- Audience: ${voice.audience?.join(', ') ?? 'general'}
+- Audience: ${voice.audience?.join(', ') || 'general'}
 - Values: ${voice.values?.join(', ') ?? 'quality'}`
       : 'Brand Voice: Professional and engaging';
 

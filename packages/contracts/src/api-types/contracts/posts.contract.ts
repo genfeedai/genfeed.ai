@@ -7,6 +7,7 @@
 
 import { z } from 'zod';
 import {
+  Platform,
   PostCategory,
   PostFormat,
   PostFrequency,
@@ -34,8 +35,11 @@ import {
  */
 export type CreatePostRequest = Omit<
   components['schemas']['CreatePostDto'],
-  'status'
+  'status' | 'credentialId'
 > & {
+  brandId?: string;
+  credentialId?: string;
+  platform?: Platform;
   format?: PostFormat;
 };
 
@@ -59,8 +63,10 @@ export type UpdatePostRequest = Omit<
  * Use with react-hook-form's zodResolver for form validation
  */
 export const createPostSchema = z.object({
+  brandId: entityIdSchema.optional(),
   category: z.nativeEnum(PostCategory).optional(),
-  credentialId: entityIdSchema,
+  credentialId: entityIdSchema.optional(),
+  platform: z.nativeEnum(Platform).optional(),
   description: z.string().min(1),
   externalId: optionalStringSchema,
   externalShortcode: optionalStringSchema,

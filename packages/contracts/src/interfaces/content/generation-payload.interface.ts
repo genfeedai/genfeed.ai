@@ -5,6 +5,7 @@ export interface BaseGenerationPayload {
   text: string;
   model?: string;
   autoSelectModel?: boolean;
+  harness?: boolean;
   prioritize?: RouterPriority;
   brand?: string;
   references: string[];
@@ -49,6 +50,7 @@ export interface MusicGenerationPayload {
   text: string;
   model?: string;
   autoSelectModel?: boolean;
+  harness?: boolean;
   prioritize?: RouterPriority;
   duration?: number;
   instrumental?: boolean;

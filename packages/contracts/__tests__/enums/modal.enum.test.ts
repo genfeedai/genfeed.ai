@@ -3,11 +3,8 @@ import { ModalEnum } from '../../src/enums/modal.enum';
 
 describe('modal.enum', () => {
   describe('ModalEnum', () => {
-    it('should have 62 members', () => {
-      // 63 -> 62: ModalEnum.BRAND_INSTAGRAM was deleted along with
-      // ModalBrandInstagram/LazyModalBrandInstagram (unwired, unused — see
-      // #4695, commit 2550287b4). Nothing else was removed.
-      expect(Object.values(ModalEnum)).toHaveLength(62);
+    it('should have 63 members', () => {
+      expect(Object.values(ModalEnum)).toHaveLength(63);
     });
 
     it('should have correct values', () => {
@@ -49,6 +46,7 @@ describe('modal.enum', () => {
       expect(ModalEnum.MUSIC).toBe('modal-music');
       expect(ModalEnum.ONBOARDING).toBe('modal-onboarding');
       expect(ModalEnum.POST).toBe('modal-post');
+      expect(ModalEnum.POST_CREATE).toBe('modal-post-create');
       expect(ModalEnum.POST_LONG_FORM).toBe('modal-post-long-form');
       expect(ModalEnum.POST_BATCH).toBe('modal-post-batch');
       expect(ModalEnum.POST_METADATA).toBe('modal-post-metadata');

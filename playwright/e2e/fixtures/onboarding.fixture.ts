@@ -550,6 +550,7 @@ async function startOnboardingSession(
   context: BrowserContext,
   options: {
     accountType?: string;
+    baseURL?: string;
     registerExtraMocks?: (page: Page) => Promise<void>;
   } = {},
 ): Promise<() => void> {
@@ -564,6 +565,16 @@ async function startOnboardingSession(
 
   // Set up authentication cookies
   await setupAuthCookies(context);
+  const baseUrl = options.baseURL;
+  if (baseUrl) {
+    const domain = new URL(baseUrl).hostname;
+    const cookies = await context.cookies();
+    await context.addCookies(
+      cookies
+        .filter((cookie) => cookie.domain === 'localhost')
+        .map((cookie) => ({ ...cookie, domain })),
+    );
+  }
 
   // Inject Better Auth auth state BEFORE any page loads
   await injectBetterAuthState(page);
@@ -600,13 +611,14 @@ async function startOnboardingSession(
 }
 
 export const test = base.extend<OnboardingFixtures>({
-  expertOnboardingPage: async ({ page, context }, runFixture) => {
+  expertOnboardingPage: async ({ page, context, baseURL }, runFixture) => {
     const expertState = createExpertPathMockState();
     const assertNoBlockedRequests = await startOnboardingSession(
       page,
       context,
       {
         accountType: OrganizationCategory.EXPERT,
+        baseURL,
         registerExtraMocks: (target) =>
           setupExpertPathApiMocks(target, expertState),
       },
@@ -616,8 +628,12 @@ export const test = base.extend<OnboardingFixtures>({
     assertNoBlockedRequests();
   },
 
-  onboardingPage: async ({ page, context }, runFixture) => {
-    const assertNoBlockedRequests = await startOnboardingSession(page, context);
+  onboardingPage: async ({ page, context, baseURL }, runFixture) => {
+    const assertNoBlockedRequests = await startOnboardingSession(
+      page,
+      context,
+      { baseURL },
+    );
 
     await runFixture(page);
     assertNoBlockedRequests();

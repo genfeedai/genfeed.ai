@@ -1,4 +1,5 @@
 export * from '@serializers/server/admin/announcement.serializer';
 export * from '@serializers/server/admin/business-analytics.serializer';
 export * from '@serializers/server/admin/email-performance.serializer';
+export * from '@serializers/server/admin/system-notification-overview.serializer';
 export * from '@serializers/server/admin/warmup-account.serializer';

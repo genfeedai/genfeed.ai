@@ -10,6 +10,7 @@ import {
   QualityStatus,
   TransformationCategory,
 } from '@genfeedai/contracts';
+import type { GenerationHarnessReceipt } from '@genfeedai/contracts/interfaces';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -145,6 +146,8 @@ export class CreateIngredientDto {
   @IsOptional()
   @ApiProperty({ required: false })
   readonly generationPrompt?: string;
+
+  readonly generationHarness?: GenerationHarnessReceipt;
 
   @IsString()
   @IsOptional()

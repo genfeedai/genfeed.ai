@@ -14,6 +14,7 @@ import {
 import { type PostDocument } from '@api/collections/posts/post.schema';
 import {
   extractPostGenerationLabel,
+  isValidPostLength,
   parsePostGenerationContent,
 } from '@api/collections/posts/services/post-generation-text.util';
 import { PostThreadGenerationService } from '@api/collections/posts/services/post-thread-generation.service';
@@ -39,12 +40,15 @@ import {
   SystemPromptKey,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { getChannelCapability } from '@genfeedai/contracts/api-types/contracts';
 import type {
   AccountPublishingContext,
+  PostDraftGenerationInput,
+  PostDraftGenerationResult,
   SocialGenerationFormat,
 } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
 /**
  * Identity fields threaded through the generation pipeline. Derived from
@@ -654,6 +658,81 @@ export class PostGenerationService {
    * Enhance a post description using AI. Returns the enhanced description; the
    * caller is responsible for persisting and serializing the result.
    */
+  async generateDraftText(
+    dto: PostDraftGenerationInput,
+    identity: GenerationMetadata,
+  ): Promise<PostDraftGenerationResult> {
+    if (!getChannelCapability(dto.platform)) {
+      throw new BadRequestException('Select a supported publishing channel');
+    }
+    if (!dto.prompt.trim()) {
+      throw new BadRequestException('Describe what the post should be about');
+    }
+    const context = await this.accountPublishingContextService.resolveDraft({
+      brandId: dto.brandId,
+      organizationId: identity.organizationId,
+      platform: dto.platform,
+    });
+    if (dto.format === PostFormat.LONG_FORM) {
+      if (dto.platform !== CredentialPlatform.TWITTER) {
+        throw new BadRequestException('Long posts are only supported for X');
+      }
+      context.constraints = {
+        ...context.constraints,
+        maxCharacters: 25000,
+        maxWeightedCharacters: undefined,
+        usesWeightedCharacters: false,
+      };
+    }
+    const limit =
+      context.constraints.maxWeightedCharacters ??
+      context.constraints.maxCharacters ??
+      5000;
+    const { input } = await this.promptBuilderService.buildPrompt(
+      DEFAULT_MINI_TEXT_MODEL,
+      {
+        modelCategory: ModelCategory.TEXT,
+        maxTokens: Math.max(
+          TEXT_GENERATION_LIMITS.postTweetGeneration,
+          Math.ceil(limit / 2),
+        ),
+        prompt: [
+          `Write one ${dto.platform} post, at most ${limit} characters.`,
+          'Use the supplied brand context as reference data. Return only the finished post text, without explanations.',
+          `Brand context: ${JSON.stringify(context.brand)}`,
+          `Request: ${dto.prompt.trim()}`,
+        ].join('\n'),
+        systemPromptTemplate: this.getSystemPromptForPlatform(dto.platform),
+        temperature: 0.8,
+        useTemplate: false,
+      },
+      identity.organizationId,
+    );
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const description = (
+        await this.replicateService.generateTextCompletionSync(
+          DEFAULT_MINI_TEXT_MODEL,
+          input,
+        )
+      )?.trim();
+      if (!description) {
+        throw new BadRequestException('No draft was generated. Try again.');
+      }
+      if (
+        isValidPostLength(
+          description,
+          limit,
+          context.constraints.usesWeightedCharacters,
+        )
+      ) {
+        return { description };
+      }
+    }
+    throw new BadRequestException(
+      'The generated draft exceeds the channel limit. Try a shorter topic.',
+    );
+  }
+
   async enhanceDescription(
     post: PostDocument,
     dto: EnhancePostDto,

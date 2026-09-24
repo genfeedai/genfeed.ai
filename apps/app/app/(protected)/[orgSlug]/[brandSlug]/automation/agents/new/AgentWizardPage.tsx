@@ -10,6 +10,7 @@ import type {
   IAgentWizardFormData,
   IBrand,
 } from '@genfeedai/contracts/interfaces';
+import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import {
   isBrandResourceReady,
@@ -73,12 +74,11 @@ function buildInitialForm(
   selectedBrand: IBrand | undefined,
 ): IAgentWizardFormData {
   const config = selectedBrand?.agentConfig;
+  const audience = normalizeBrandAudience(config?.voice?.audience);
   const voiceSegments = [
     config?.voice?.tone ? `Tone: ${config.voice.tone}` : '',
     config?.voice?.style ? `Style: ${config.voice.style}` : '',
-    config?.voice?.audience?.length
-      ? `Audience: ${config.voice.audience.join(', ')}`
-      : '',
+    audience.length ? `Audience: ${audience.join(', ')}` : '',
     config?.persona ? `Persona: ${config.persona}` : '',
   ].filter(Boolean);
 

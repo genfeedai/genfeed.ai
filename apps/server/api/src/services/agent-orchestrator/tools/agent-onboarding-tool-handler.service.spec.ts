@@ -1,6 +1,10 @@
 import { AgentOnboardingToolHandler } from '@api/services/agent-orchestrator/tools/agent-onboarding-tool-handler.service';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
-import { TargetExecutionState } from '@genfeedai/contracts';
+import {
+  ContentIntelligencePlatform,
+  RouterPriority,
+  TargetExecutionState,
+} from '@genfeedai/contracts';
 import type { AgentUiAction } from '@genfeedai/contracts/interfaces';
 import {
   ONBOARDING_JOURNEY_MISSIONS,
@@ -60,7 +64,9 @@ function createHandler(options?: {
   const credentialsService = { findOne: vi.fn().mockResolvedValue(null) };
   const imagesService = { findOne: vi.fn().mockResolvedValue(null) };
   const contentGeneratorService = {
-    generateText: vi.fn().mockResolvedValue({ text: 'Generated tweet' }),
+    generateContentWorkflow: vi
+      .fn()
+      .mockResolvedValue([{ content: 'Generated tweet' }]),
   };
   const generationGateway = {
     generateImage: vi.fn().mockResolvedValue({
@@ -74,7 +80,7 @@ function createHandler(options?: {
   const usersService = { findOne: vi.fn(), patch: vi.fn() };
   const postsService = { findOne: vi.fn().mockResolvedValue(null) };
   const handler = new AgentOnboardingToolHandler(
-    { error: vi.fn() } as never,
+    { error: vi.fn(), warn: vi.fn() } as never,
     configService as never,
     brandsService as never,
     postsService as never,
@@ -89,6 +95,8 @@ function createHandler(options?: {
   );
 
   return {
+    brandsService,
+    contentGeneratorService,
     creditsUtilsService,
     generationGateway,
     handler,
@@ -453,5 +461,273 @@ describe('AgentOnboardingToolHandler Community behavior', () => {
       'Onboarding journey reward: generate_first_image',
       expect.any(Date),
     );
+  });
+});
+
+describe('Agent onboarding first draft', () => {
+  it('generates exactly one brand-grounded tweet and cost-priority image before connection', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const {
+      handler,
+      brandsService,
+      contentGeneratorService,
+      generationGateway,
+    } = createHandler({
+      brand: {
+        id: 'brand-1',
+        label: 'Acme Bikes',
+        description: 'Handmade commuter bicycles',
+      },
+    });
+    generationGateway.generateImage.mockResolvedValue({
+      data: {
+        id: undefined,
+        attributes: { url: 'https://cdn.example.com/first-post.png' },
+      },
+    } as never);
+    const result = await handler.generateOnboardingContent(
+      { brandId: 'brand-1' },
+      CONTEXT,
+    );
+    expect(brandsService.findOne).toHaveBeenCalledWith({
+      id: 'brand-1',
+      organizationId: 'organization-1',
+      isDeleted: false,
+    });
+    expect(
+      contentGeneratorService.generateContentWorkflow,
+    ).toHaveBeenCalledExactlyOnceWith(
+      'user-1',
+      'organization-1',
+      expect.objectContaining({
+        brandId: 'brand-1',
+        platform: ContentIntelligencePlatform.TWITTER,
+        variationsCount: 1,
+        topic: expect.stringContaining('Handmade commuter bicycles'),
+      }),
+    );
+    expect(generationGateway.generateImage).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          prioritize: RouterPriority.COST,
+          prompt: expect.stringContaining('Generated tweet'),
+        }),
+        principal: {
+          brandId: 'brand-1',
+          organizationId: 'organization-1',
+          userId: 'user-1',
+        },
+      }),
+    );
+    expect(result.success).toBe(true);
+    expect(result.data?.isComplete).toBe(true);
+    expect(result.nextActions).toHaveLength(1);
+    expect(result.nextActions?.[0]).toMatchObject({
+      type: 'content_preview_card',
+      brandId: 'brand-1',
+      tweets: ['Generated tweet'],
+      images: ['https://cdn.example.com/first-post.png'],
+      ctas: expect.arrayContaining([
+        expect.objectContaining({ label: 'Looks good', action: 'send_prompt' }),
+      ]),
+    });
+  });
+
+  it.each([null, '', '   '])(
+    'treats empty optional generation fields as absent: %s',
+    async (empty) => {
+      vi.stubEnv('GENFEED_CLOUD', '1');
+      const { handler, contentGeneratorService, generationGateway } =
+        createHandler({ brand: { id: 'brand-1', label: 'Acme' } });
+      const result = await handler.generateOnboardingContent(
+        { brandId: empty, retryTweet: empty },
+        { ...CONTEXT, brandId: 'brand-1' },
+      );
+      expect(
+        contentGeneratorService.generateContentWorkflow,
+      ).toHaveBeenCalledOnce();
+      expect(generationGateway.generateImage).toHaveBeenCalledOnce();
+      expect(result.data?.tweets).toEqual(['Generated tweet']);
+    },
+  );
+
+  it.each([42, {}, 'x'.repeat(281)])(
+    'rejects malformed retry text before spending credits: %s',
+    async (retryTweet) => {
+      vi.stubEnv('GENFEED_CLOUD', '1');
+      const { handler, contentGeneratorService, generationGateway } =
+        createHandler({ brand: { id: 'brand-1' } });
+      const result = await handler.generateOnboardingContent(
+        { retryTweet },
+        { ...CONTEXT, brandId: 'brand-1' },
+      );
+      expect(result.success).toBe(false);
+      expect(
+        contentGeneratorService.generateContentWorkflow,
+      ).not.toHaveBeenCalled();
+      expect(generationGateway.generateImage).not.toHaveBeenCalled();
+    },
+  );
+
+  it('preserves the tweet and an honest retry when image generation fails', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler, generationGateway } = createHandler({
+      brand: { id: 'brand-1', label: 'Acme' },
+    });
+    generationGateway.generateImage.mockRejectedValue(
+      new Error('Provider unavailable'),
+    );
+    const result = await handler.generateOnboardingContent(
+      { brandId: 'brand-1' },
+      CONTEXT,
+    );
+    expect(result.data).toMatchObject({
+      tweets: ['Generated tweet'],
+      images: [],
+      isComplete: false,
+    });
+    expect(result.nextActions?.[0].ctas).toEqual([
+      expect.objectContaining({ label: 'Retry image' }),
+    ]);
+    expect(result.nextActions?.[0].description).toContain(
+      'could not be generated',
+    );
+  });
+
+  it('applies requested refinements to both the tweet and the image', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler, contentGeneratorService, generationGateway } =
+      createHandler({ brand: { id: 'brand-1' } });
+    await handler.generateOnboardingContent(
+      { direction: 'Use a calmer tone and focus on commuter bikes.' },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(
+      contentGeneratorService.generateContentWorkflow,
+    ).toHaveBeenCalledWith(
+      'user-1',
+      'organization-1',
+      expect.objectContaining({
+        additionalContext: expect.arrayContaining([
+          'Apply these requested changes: Use a calmer tone and focus on commuter bikes.',
+        ]),
+      }),
+    );
+    expect(generationGateway.generateImage).toHaveBeenCalledWith(
+      expect.objectContaining({
+        body: expect.objectContaining({
+          prompt: expect.stringContaining(
+            'Use a calmer tone and focus on commuter bikes.',
+          ),
+        }),
+      }),
+    );
+  });
+
+  it('does not generate an image for an invalid over-length tweet', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler, contentGeneratorService, generationGateway } =
+      createHandler({ brand: { id: 'brand-1' } });
+    contentGeneratorService.generateContentWorkflow.mockResolvedValue([
+      { content: 'x'.repeat(281) },
+    ]);
+    const result = await handler.generateOnboardingContent(
+      {},
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(result.success).toBe(false);
+    expect(result.error).toContain('tweet length limit');
+    expect(generationGateway.generateImage).not.toHaveBeenCalled();
+  });
+
+  it('retries only the image at cost priority using the current thread brand', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler, contentGeneratorService, generationGateway } =
+      createHandler({ brand: { id: 'brand-1', label: 'Acme' } });
+    generationGateway.generateImage.mockResolvedValue({
+      data: {
+        id: undefined,
+        attributes: { url: 'https://cdn.example.com/retry.png' },
+      },
+    } as never);
+    const result = await handler.generateOnboardingContent(
+      { retryTweet: 'Keep this approved text' },
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(
+      contentGeneratorService.generateContentWorkflow,
+    ).not.toHaveBeenCalled();
+    expect(generationGateway.generateImage).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        body: expect.objectContaining({ prioritize: RouterPriority.COST }),
+      }),
+    );
+    expect(result.data).toMatchObject({
+      isComplete: true,
+      tweets: ['Keep this approved text'],
+      images: ['https://cdn.example.com/retry.png'],
+    });
+  });
+
+  it('explains insufficient image credits without discarding the tweet', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler, generationGateway } = createHandler({
+      brand: { id: 'brand-1' },
+    });
+    generationGateway.generateImage.mockRejectedValue(
+      new Error('Insufficient credits'),
+    );
+    const result = await handler.generateOnboardingContent(
+      {},
+      { ...CONTEXT, brandId: 'brand-1' },
+    );
+    expect(result.nextActions?.[0].description).toContain('not enough credits');
+    expect(result.data?.tweets).toEqual(['Generated tweet']);
+  });
+
+  it('does not report a missing image URL as a completed draft', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler } = createHandler({ brand: { id: 'brand-1' } });
+    const result = await handler.generateOnboardingContent(
+      { brandId: 'brand-1' },
+      CONTEXT,
+    );
+    expect(result.data?.isComplete).toBe(false);
+  });
+
+  it('does not generate for an unavailable or differently scoped brand', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler, contentGeneratorService, generationGateway } =
+      createHandler();
+    expect(
+      (
+        await handler.generateOnboardingContent(
+          { brandId: 'other-brand' },
+          { ...CONTEXT, brandId: 'brand-1' },
+        )
+      ).success,
+    ).toBe(false);
+    expect(
+      (await handler.generateOnboardingContent({ brandId: 'brand-1' }, CONTEXT))
+        .success,
+    ).toBe(false);
+    expect(
+      contentGeneratorService.generateContentWorkflow,
+    ).not.toHaveBeenCalled();
+    expect(generationGateway.generateImage).not.toHaveBeenCalled();
+  });
+
+  it('does not spend an image generation when text generation fails', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const { handler, contentGeneratorService, generationGateway } =
+      createHandler({ brand: { id: 'brand-1' } });
+    contentGeneratorService.generateContentWorkflow.mockRejectedValue(
+      new Error('Text provider unavailable'),
+    );
+    expect(
+      (await handler.generateOnboardingContent({ brandId: 'brand-1' }, CONTEXT))
+        .success,
+    ).toBe(false);
+    expect(generationGateway.generateImage).not.toHaveBeenCalled();
   });
 });

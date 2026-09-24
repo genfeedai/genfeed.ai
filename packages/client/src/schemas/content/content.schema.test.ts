@@ -169,13 +169,13 @@ describe('content schemas', () => {
       ).toBe(true);
     });
 
-    it('rejects empty credential', () => {
+    it('accepts an account-free draft', () => {
       expect(
         postModalSchema.safeParse({
           credentialId: '',
           description: 'D',
         }).success,
-      ).toBe(false);
+      ).toBe(true);
     });
 
     it('requires a date before scheduling a post', () => {

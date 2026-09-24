@@ -66,6 +66,50 @@ describe('resolveEffectiveBrandAgentConfig', () => {
     expect(result.platformOverrideApplied).toBe(true);
   });
 
+  it.each([
+    { audience: ' Founders, operators ', expected: ['Founders, operators'] },
+    {
+      audience: ['founders', 'operators'],
+      expected: ['founders', 'operators'],
+    },
+    {
+      audience: [' founders ', null, 42, '', 'operators'],
+      expected: ['founders', 'operators'],
+    },
+    { audience: '', expected: [] },
+    { audience: null, expected: [] },
+    { audience: 42, expected: [] },
+    { audience: { label: 'founders' }, expected: [] },
+    { audience: [], expected: [] },
+    { audience: undefined, expected: undefined },
+  ])('normalizes stored audience $audience', ({ audience, expected }) => {
+    const brand = { agentConfig: { voice: { audience, tone: 'direct' } } };
+    const result = resolveEffectiveBrandAgentConfig({ brand: brand as never });
+
+    expect(result.voice).toEqual({ audience: expected, tone: 'direct' });
+    expect(brand.agentConfig.voice.audience).toEqual(audience);
+  });
+
+  it.each([
+    { audience: 'Executives', expected: ['Executives'] },
+    { audience: [], expected: [] },
+  ])(
+    'normalizes platform audience overrides after merging',
+    ({ audience, expected }) => {
+      const result = resolveEffectiveBrandAgentConfig({
+        brand: {
+          agentConfig: {
+            platformOverrides: { linkedin: { voice: { audience } } },
+            voice: { audience: ['founders'], tone: 'direct' },
+          },
+        } as never,
+        platform: 'linkedin',
+      });
+
+      expect(result.voice).toEqual({ audience: expected, tone: 'direct' });
+    },
+  );
+
   it('preserves brand and organization identity defaults as separate sources', () => {
     const brandVoiceId = testId('id', 1);
     const organizationVoiceId = testId('id', 1);

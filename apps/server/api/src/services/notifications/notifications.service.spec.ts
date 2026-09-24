@@ -91,6 +91,38 @@ describe('NotificationsService', () => {
     vi.clearAllMocks();
   });
 
+  it('sends system notifications only to this deployment notifications service with acknowledgement', async () => {
+    const event = {
+      version: 1 as const,
+      id: 'user.created/u1',
+      type: 'user.created' as const,
+      occurredAt: new Date().toISOString(),
+      data: { objectId: 'u1' },
+    };
+    mockSafeFetch.mockResolvedValue(
+      new Response(JSON.stringify({ delivered: true }), { status: 200 }),
+    );
+    await service.deliverSystemNotification(event);
+    expect(mockSafeFetch).toHaveBeenCalledWith(
+      new URL('http://notifications:3011/v1/internal/system-notifications'),
+      expect.objectContaining({
+        headers: {
+          Authorization: 'Bearer internal-api-key',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(event),
+      }),
+      expect.objectContaining({
+        maxRedirects: 0,
+        allowedOrigins: ['http://notifications:3011'],
+      }),
+    );
+    mockSafeFetch.mockResolvedValue(new Response('{}', { status: 200 }));
+    await expect(service.deliverSystemNotification(event)).rejects.toThrow(
+      'not acknowledged',
+    );
+  });
+
   it('should be defined', () => {
     expect(service).toBeDefined();
   });

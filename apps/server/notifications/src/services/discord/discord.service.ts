@@ -4,11 +4,16 @@ import type {
   IIngredientNotificationData,
   IUserCreatedPayload,
 } from '@genfeedai/contracts/interfaces';
+import type { SystemEvent } from '@libs/interfaces/system-event.interface';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { ConfigService } from '@notifications/config/config.service';
 import { DiscordBotService } from '@notifications/services/discord/discord-bot.service';
+import {
+  discordMessage,
+  discordWebhookUrl,
+} from '@notifications/services/discord/system-notification.util';
 import {
   ActionRowBuilder,
   ButtonBuilder,
@@ -31,6 +36,42 @@ export class DiscordService {
     // double-warned on every boot with Discord disabled.
     if (this.configService.isDiscordEnabled()) {
       this.loggerService.log('Discord service initialized with bot webhooks');
+    }
+  }
+
+  systemNotificationStatus() {
+    return {
+      webhookConfigured: Boolean(
+        discordWebhookUrl(
+          this.configService.get('SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL') ||
+            '',
+        ),
+      ),
+    };
+  }
+
+  async sendSystemNotification(event: SystemEvent): Promise<void> {
+    const url = discordWebhookUrl(
+      this.configService.get('SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL') || '',
+    );
+    if (!url)
+      throw new ServiceUnavailableException(
+        'System notification destination is not configured',
+      );
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        redirect: 'error',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(discordMessage(event)),
+        signal: AbortSignal.timeout(10_000),
+      });
+      await response.body?.cancel();
+      if (!response.ok) throw new Error('Provider rejected delivery');
+    } catch {
+      throw new ServiceUnavailableException(
+        'System notification delivery failed',
+      );
     }
   }
 

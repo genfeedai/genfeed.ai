@@ -1,6 +1,7 @@
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { ValidationPipe } from '@api/helpers/pipes/validation.pipe';
 import {
+  Platform,
   PostFormat,
   PostVisibility,
   TargetExecutionState,
@@ -13,6 +14,17 @@ describe('CreatePostDto', () => {
 
   it('should be defined', () => {
     expect(CreatePostDto).toBeDefined();
+  });
+
+  it('accepts a platform draft without a credential', async () => {
+    const dto = Object.assign(new CreatePostDto(), {
+      platform: Platform.TWITTER,
+      description: 'Draft',
+      ingredients: [],
+      label: '',
+      targetExecutionState: TargetExecutionState.DRAFT,
+    });
+    expect(await validate(dto)).toHaveLength(0);
   });
 
   describe('validation', () => {

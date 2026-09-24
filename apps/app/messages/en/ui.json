@@ -1,9 +1,41 @@
 {
+  "postDraft": {
+    "topic": "What do you want to post about?",
+    "placeholder": "Describe an idea, announcement, or topic",
+    "generate": "Generate draft",
+    "generating": "Generating…",
+    "failed": "Could not generate a draft. Please try again.",
+    "platform": "Channel",
+    "account": "Publishing account",
+    "noAccount": "Draft only — connect an account later"
+  },
   "analyticsTrends": {
     "median": "Median",
     "ratio": "Ratio",
     "whyItWorks": "Why it works",
     "notEvaluated": "Not evaluated"
+  },
+  "generationHarness": {
+    "appliedContext": "Applied context",
+    "brand": "This brand",
+    "brandLabel": "Brand prompt enhancement",
+    "description": "Improve image and video prompts automatically. These preferences apply in Studio and all connected agents.",
+    "enhancementSkipped": "Enhancement skipped",
+    "inherit": "Inherit",
+    "loading": "Loading settings…",
+    "off": "Off",
+    "on": "On",
+    "organizationDefault": "Organization default",
+    "organizationLabel": "Organization prompt enhancement",
+    "promptEnhanced": "Prompt enhanced",
+    "refresh": "Refresh settings",
+    "requestOverride": "This generation’s override",
+    "resetOrganization": "Reset organization default",
+    "settings": "Prompt enhancement settings",
+    "sourcePreference": "{source} preference",
+    "submittedPrompt": "Submitted prompt",
+    "systemDefault": "System default",
+    "title": "Prompt enhancement"
   },
   "dateRangePicker": {
     "quickRanges": "Quick date ranges"
