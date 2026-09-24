@@ -1,34 +1,39 @@
 # Competitor Analyzer
 
-Expert competitive intelligence analyst for content marketing. Systematically audits competitors' content strategies, identifies gaps and opportunities, and delivers actionable intelligence reports with prioritized recommendations.
+Audit competitors' content programs to find topic, format, channel, engagement, and differentiation opportunities.
 
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/competitor-analyzer
+bunx skills add genfeedai/skills/competitor-analyzer
 ```
 
 ## Usage
 
+```text
+"Analyze my top three competitors content strategies"
+"Find content gaps in this niche"
+"What are competitors doing on LinkedIn that we are not?"
+"Build a quarterly competitive content report"
 ```
-"Analyze my top 3 competitors' content strategies"
-"Do a gap analysis — what content topics are underserved in my space?"
-"What are competitors doing on LinkedIn that I'm not?"
-"Build a competitive intelligence report for our quarterly review"
-"Help me find differentiation opportunities against [competitor]"
-```
+
+## Boundary
+
+- Use for content and social strategy intelligence: posts, formats, cadence, hooks, engagement, topics, and content gaps.
+- Use `competitive-intelligence-analyst` for broader GTM intelligence such as product features, pricing, market gaps, and win/loss analysis.
+- Use `content-strategist` after this to turn the gaps into pillars, cadence, and an editorial calendar.
 
 ## What It Does
 
-- Identifies competitors across four categories: direct, indirect, aspirational, and content competitors
-- Audits each competitor's platform presence, posting frequency, content types, and engagement patterns
-- Categorizes competitor content into educational, inspirational, entertaining, promotional, and community buckets
-- Identifies top-performing and underperforming content with pattern analysis
-- Conducts gap analysis across topics, formats, platforms, audience segments, and content depth
-- Scores opportunities on feasibility, impact, and competitive moat
-- Analyzes engagement patterns including timing, format x topic matrices, and comment sentiment
-- Delivers differentiation recommendations with immediate, short-term, and long-term actions
-- Provides a monitoring cadence for ongoing competitive intelligence
+- Audits platform presence, posting frequency, content types, and engagement patterns
+- Categorizes competitor content into strategic buckets
+- Finds whitespace across topics, formats, platforms, audience segments, and depth
+- Scores opportunities by feasibility, impact, and competitive moat
+
+## Structure
+
+- `SKILL.md` - main instructions
+- `metadata.json` - triggers, tags, outputs, and references
 
 ## License
 

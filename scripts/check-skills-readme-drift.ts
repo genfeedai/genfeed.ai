@@ -26,8 +26,7 @@ interface ProductSkill {
 }
 
 function fail(message: string): never {
-  console.error(message);
-  process.exit(1);
+  throw new Error(message);
 }
 
 function unquote(value: string): string {
@@ -82,7 +81,8 @@ function parseFrontmatter(skillPath: string): ProductSkill {
   };
 }
 
-function loadProductSkills(): ProductSkill[] {
+function loadProductSkills(root: string = ROOT): ProductSkill[] {
+  const SKILLS_DIR = join(root, 'skills');
   if (!existsSync(SKILLS_DIR)) {
     fail('skills/ directory does not exist.');
   }
@@ -125,7 +125,8 @@ function renderSkillsSection(skills: ProductSkill[]): string {
 }
 
 function replaceSkillsSection(readme: string, expectedSection: string): string {
-  const sectionRe = /(## Skills\r?\n\r?\n)([\s\S]*?)(\r?\n## Adding a skill)/;
+  const sectionRe =
+    /(## Skills\r?\n\r?\n)([\s\S]*?)(\r?\n## (?:Catalog ownership and source updates|Adding a skill))/;
   if (!sectionRe.test(readme)) {
     fail(
       'skills/README.md must contain "## Skills" before "## Adding a skill".',
@@ -169,7 +170,7 @@ function main(): void {
   }
 
   const currentSection = readme.match(
-    /## Skills\r?\n\r?\n([\s\S]*?)\r?\n## Adding a skill/,
+    /## Skills\r?\n\r?\n([\s\S]*?)\r?\n## (?:Catalog ownership and source updates|Adding a skill)/,
   )?.[1];
   const currentNames = currentSection
     ? parseReadmeSkillNames(currentSection)
@@ -191,4 +192,11 @@ function main(): void {
   process.exit(1);
 }
 
-main();
+export function renderSkillsReadme(root: string): string {
+  return replaceSkillsSection(
+    readFileSync(join(root, 'skills', 'README.md'), 'utf8'),
+    renderSkillsSection(loadProductSkills(root)),
+  );
+}
+
+if (import.meta.main) main();

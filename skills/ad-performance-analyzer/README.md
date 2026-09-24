@@ -5,7 +5,7 @@ Expert paid media analyst and optimization strategist. Diagnoses ad performance 
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/ad-performance-analyzer
+bunx skills add genfeedai/skills/ad-performance-analyzer
 ```
 
 ## Usage

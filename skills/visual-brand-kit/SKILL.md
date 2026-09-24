@@ -1,10 +1,10 @@
 ---
 name: visual-brand-kit
-description: Create comprehensive visual brand identity systems for AI-generated content. Triggers on "create a brand kit", "visual brand identity", "brand style guide", "define brand visuals", "brand colors and style", "create visual guidelines", "brand photography style".
+description: 'Create visual identity systems for AI-generated content: colors, typography feel, photography style, composition rules, and prompt presets. Triggers on brand kits, visual guidelines, image style, and brand photography.'
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Visual Brand Kit

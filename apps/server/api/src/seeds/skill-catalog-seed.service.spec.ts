@@ -132,30 +132,72 @@ describe('SkillCatalogSeedService', () => {
     expect(prisma.skill.update).not.toHaveBeenCalled();
   });
 
-  it('is idempotent when catalog content is unchanged', async () => {
+  it('is idempotent with a complete managed projection and preserves extensions', async () => {
+    await service.reconcileCatalog([imagePrompt]);
+    const data = prisma.skill.create.mock.calls[0][0].data;
     prisma.skill.findUnique.mockResolvedValue({
-      config: {
-        defaultInstructions: imagePrompt.instructions,
-        description: imagePrompt.description,
-        isBuiltIn: true,
-        name: imagePrompt.name,
-        slug: imagePrompt.slug,
-        source: 'built_in',
-        surfaces: imagePrompt.surfaces,
-        systemPromptTemplate: imagePrompt.instructions,
-        version: imagePrompt.version,
-      },
-      id: imagePrompt.id,
-      isDeleted: false,
-      organizationId: null,
+      ...data,
+      config: { ...data.config, extension: { b: 2, a: 1 } },
     });
+    expect(await service.reconcileCatalog([imagePrompt])).toEqual({
+      inserted: 0,
+      skipped: 1,
+      updated: 0,
+    });
+    expect(prisma.skill.update).not.toHaveBeenCalled();
+  });
 
-    const first = await service.reconcileCatalog([imagePrompt]);
-    const second = await service.reconcileCatalog([imagePrompt]);
+  it.each([
+    'category',
+    'channels',
+    'modalities',
+    'workflowStage',
+    'sourcePackageHash',
+    'instructionsHash',
+    'sourceCommit',
+    'catalogCompilerVersion',
+  ])(
+    'reconciles a change only to %s while preserving config extensions',
+    async (field) => {
+      const definition: FirstPartySkillDefinition = {
+        ...imagePrompt,
+        catalogOrigin: 'upstream',
+        sourceRepository: 'https://github.com/genfeedai/skills',
+        sourceCommit: 'a'.repeat(40),
+        sourcePath: imagePrompt.slug,
+        sourcePackageHash: 'package',
+        instructionsHash: 'instructions',
+        catalogCompilerVersion: 'compiler',
+      };
+      await service.reconcileCatalog([definition]);
+      const data = prisma.skill.create.mock.calls[0][0].data;
+      prisma.skill.findUnique.mockResolvedValue({
+        ...data,
+        config: { ...data.config, [field]: 'old', extension: { keep: true } },
+      });
+      expect(await service.reconcileCatalog([definition])).toEqual({
+        inserted: 0,
+        skipped: 0,
+        updated: 1,
+      });
+      expect(prisma.skill.update.mock.calls[0][0].data.config).toMatchObject({
+        ...data.config,
+        extension: { keep: true },
+      });
+    },
+  );
 
-    expect(first).toEqual({ inserted: 0, skipped: 1, updated: 0 });
-    expect(second).toEqual({ inserted: 0, skipped: 1, updated: 0 });
-    expect(prisma.skill.create).not.toHaveBeenCalled();
+  it('does not overwrite a customized global row', async () => {
+    prisma.skill.findUnique.mockResolvedValue({
+      id: imagePrompt.id,
+      organizationId: null,
+      config: { slug: imagePrompt.slug, source: 'customized', isBuiltIn: true },
+    });
+    expect(await service.reconcileCatalog([imagePrompt])).toEqual({
+      inserted: 0,
+      skipped: 1,
+      updated: 0,
+    });
     expect(prisma.skill.update).not.toHaveBeenCalled();
   });
 

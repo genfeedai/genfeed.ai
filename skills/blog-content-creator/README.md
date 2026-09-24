@@ -5,7 +5,7 @@ Expert SEO blog writer and content strategist. Creates blog posts in six proven 
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/blog-content-creator
+bunx skills add genfeedai/skills/blog-content-creator
 ```
 
 ## Usage

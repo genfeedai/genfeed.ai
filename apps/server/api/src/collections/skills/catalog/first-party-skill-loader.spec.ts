@@ -1,4 +1,14 @@
-import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import { ORIGINAL_BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-catalog-identity';
@@ -10,6 +20,45 @@ import {
 } from './first-party-skill-loader';
 
 describe('first-party skill loader', () => {
+  it('reports verified local provenance and rejects tampered or missing locks', () => {
+    const directory = resolveProductSkillsDirectory() as string;
+    const definitions = loadFirstPartySkillDefinitions(directory);
+    expect(
+      definitions.find((skill) => skill.slug === 'ad-copy-creator'),
+    ).toMatchObject({
+      catalogOrigin: 'upstream',
+      sourceRepository: 'https://github.com/genfeedai/skills',
+      sourceCommit: '21bc4b59b98db27e0fe5032412ae173a7409e11b',
+      sourcePath: 'ad-copy-creator',
+      catalogCompilerVersion: 'legacy-v1-char-caps',
+      sourcePackageHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+      instructionsHash: expect.stringMatching(/^[a-f0-9]{64}$/),
+    });
+    expect(
+      definitions.find((skill) => skill.slug === 'workflow-creator'),
+    ).toMatchObject({
+      catalogOrigin: 'application',
+      sourceRepository: 'https://github.com/genfeedai/genfeed.ai',
+      sourcePath: 'skills/workflow-creator',
+    });
+    const fixture = mkdtempSync(join(tmpdir(), 'catalog-loader-'));
+    try {
+      cpSync(directory, fixture, { recursive: true });
+      writeFileSync(join(fixture, 'ad-copy-creator', 'SKILL.md'), 'tampered');
+      expect(() => loadFirstPartySkillDefinitions(fixture)).toThrow(
+        'integrity',
+      );
+      rmSync(join(fixture, 'catalog.lock.json'));
+      expect(() => loadFirstPartySkillDefinitions(fixture)).toThrow();
+      expect(
+        loadFirstPartySkillDefinitions(fixture, { allowLegacyFixture: true })[0]
+          .catalogOrigin,
+      ).toBeUndefined();
+    } finally {
+      rmSync(fixture, { recursive: true, force: true });
+    }
+  });
+
   it('loads every skills/*/SKILL.md directory as a catalog definition', () => {
     const skillsDir = resolveProductSkillsDirectory();
     expect(skillsDir).toBeTruthy();

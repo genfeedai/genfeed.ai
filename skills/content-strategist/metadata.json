@@ -1,7 +1,7 @@
 {
   "name": "content-strategist",
   "version": "1.0.0",
-  "description": "Build comprehensive content strategies including audience definition, content pillars, platform selection, posting cadence, and editorial calendars",
+  "description": "Build editorial content strategy, platform cadence, calendars, and KPI frameworks",
   "author": "genfeedai",
   "license": "MIT",
   "triggers": [

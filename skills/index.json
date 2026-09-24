@@ -1,8 +1,8 @@
 {
-  "generatedAt": "2026-09-17T07:47:55.952Z",
+  "generatedAt": "2026-09-23T07:00:18.000Z",
   "skills": [
     {
-      "description": "Create high-converting ad copy for Meta, Google, LinkedIn, TikTok, and X using proven direct response frameworks. Triggers on \"write ad copy\", \"create an ad\", \"write a facebook ad\", \"google ad copy\", \"ad headline\", \"write ad creative\", \"ad variants\".",
+      "description": "Create paid ad copy for Meta, Google, LinkedIn, TikTok, and X using direct-response frameworks, platform limits, variants, and test plans. Triggers on ad headlines, ad creative, paid social ads, Google ads, and ad variants.",
       "path": "skills/ad-copy-creator/SKILL.md",
       "slug": "ad-copy-creator"
     },
@@ -32,7 +32,7 @@
       "slug": "cinematic-prompting"
     },
     {
-      "description": "Analyze competitors' content strategies, identify gaps and opportunities, and deliver actionable competitive intelligence reports. Triggers on \"analyze competitor\", \"competitive analysis\", \"competitor content\", \"gap analysis\", \"what are competitors doing\", \"competitor research\".",
+      "description": "Audit competitors' content strategy across platforms, formats, topics, engagement patterns, and content gaps. Triggers on competitor content audits, social/content gap analysis, posting analysis, and competitive content reports.",
       "path": "skills/competitor-analyzer/SKILL.md",
       "slug": "competitor-analyzer"
     },
@@ -57,7 +57,7 @@
       "slug": "content-seo-optimizer"
     },
     {
-      "description": "Build comprehensive content strategies including audience definition, content pillars, platform selection, posting cadence, editorial calendars, and KPI frameworks. Triggers on \"content strategy\", \"editorial calendar\", \"content plan\", \"what should I post\", \"posting schedule\", \"content pillars\".",
+      "description": "Build editorial content strategy: audience, pillars, platform roles, cadence, calendar, and KPI framework. Triggers on content strategy, editorial calendars, content plans, posting schedules, and content pillars.",
       "path": "skills/content-strategist/SKILL.md",
       "slug": "content-strategist"
     },
@@ -137,7 +137,7 @@
       "slug": "tiktok-warmup"
     },
     {
-      "description": "Create comprehensive visual brand identity systems for AI-generated content. Triggers on \"create a brand kit\", \"visual brand identity\", \"brand style guide\", \"define brand visuals\", \"brand colors and style\", \"create visual guidelines\", \"brand photography style\".",
+      "description": "Create visual identity systems for AI-generated content: colors, typography feel, photography style, composition rules, and prompt presets. Triggers on brand kits, visual guidelines, image style, and brand photography.",
       "path": "skills/visual-brand-kit/SKILL.md",
       "slug": "visual-brand-kit"
     },

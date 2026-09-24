@@ -4,7 +4,7 @@ description: Create YouTube content including titles, descriptions, tags, thumbn
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # YouTube Content Creator

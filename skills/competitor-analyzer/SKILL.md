@@ -1,10 +1,10 @@
 ---
 name: competitor-analyzer
-description: Analyze competitors' content strategies, identify gaps and opportunities, and deliver actionable competitive intelligence reports. Triggers on "analyze competitor", "competitive analysis", "competitor content", "gap analysis", "what are competitors doing", "competitor research".
+description: Audit competitors' content strategy across platforms, formats, topics, engagement patterns, and content gaps. Triggers on competitor content audits, social/content gap analysis, posting analysis, and competitive content reports.
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Competitor Analyzer

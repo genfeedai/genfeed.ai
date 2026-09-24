@@ -49,6 +49,8 @@
     "setup:skills": "scripts/setup-skills.sh",
     "setup:skills:sync": "scripts/setup-skills.sh --sync",
     "check:skills": "scripts/setup-skills.sh --check",
+    "skills:sync": "bun run scripts/sync-product-skills.ts",
+    "check:skills-catalog": "bun run scripts/sync-product-skills.ts --check",
     "check:skills-readme": "bun run scripts/check-skills-readme-drift.ts",
     "posthog:funnel-alerts": "bun run scripts/posthog/setup-funnel-alerts.ts",
     "build": "bunx turbo run build --filter='./packages/*' --concurrency=1",

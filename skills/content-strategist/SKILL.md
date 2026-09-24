@@ -1,10 +1,10 @@
 ---
 name: content-strategist
-description: Build comprehensive content strategies including audience definition, content pillars, platform selection, posting cadence, editorial calendars, and KPI frameworks. Triggers on "content strategy", "editorial calendar", "content plan", "what should I post", "posting schedule", "content pillars".
+description: 'Build editorial content strategy: audience, pillars, platform roles, cadence, calendar, and KPI framework. Triggers on content strategy, editorial calendars, content plans, posting schedules, and content pillars.'
 license: MIT
 metadata:
   author: genfeedai
-  version: "1.0.0"
+  version: 1.0.0
 ---
 
 # Content Strategist

@@ -1,31 +1,38 @@
 # Ad Copy Creator
 
-Expert direct response copywriter and ad creative strategist. Creates high-converting ad copy across Meta, Google, LinkedIn, TikTok, and X using proven frameworks like PAS, AIDA, BAB, StoryBrand, 4Ps, and QUEST.
+Create paid ad copy with direct-response frameworks, platform-specific constraints, variants, and test plans.
 
 ## Installation
 
 ```bash
-npx skills add genfeedai/skills/ad-copy-creator
+bunx skills add genfeedai/skills/ad-copy-creator
 ```
 
 ## Usage
 
+```text
+"Write 5 Meta ad variants for this offer"
+"Create Google RSA headlines and descriptions for a SaaS free trial"
+"Draft a TikTok ad script for this fitness app"
+"Create LinkedIn sponsored content for this B2B analytics platform"
 ```
-"Write Facebook ad copy for our new project management tool"
-"Create 5 Google RSA headlines for a SaaS free trial"
-"Write a TikTok ad script for a fitness app"
-"Create ad variants using PAS framework for our coaching program"
-"Write LinkedIn sponsored content for a B2B analytics platform"
-```
+
+## Boundary
+
+- Use for paid ad units, ad creative variants, platform character limits, and A/B test plans.
+- Use `copywriter` for landing pages, website copy, CTAs, pricing copy, onboarding text, and other non-ad conversion copy.
 
 ## What It Does
 
-- Writes platform-optimized ad copy with correct character limits for Meta, Google RSA, LinkedIn, TikTok, and X
-- Applies proven direct response frameworks: PAS, AIDA, BAB, StoryBrand, 4Ps, QUEST
-- Generates 3-5 variants per brief with different hooks, angles, and CTAs
-- Provides A/B testing recommendations and optimization guidance
-- Includes headline formulas, power words, and CTA templates
-- Formats output with ad brief summary, variants, and testing recommendations
+- Applies PAS, AIDA, BAB, StoryBrand, 4Ps, QUEST, and other direct-response frameworks
+- Formats copy for Meta, Google, LinkedIn, TikTok, and X
+- Generates distinct angles, hooks, CTAs, and test hypotheses
+- Keeps ad messages focused on one audience, one pain, one promise, and one action
+
+## Structure
+
+- `SKILL.md` - main instructions
+- `metadata.json` - triggers, tags, outputs, and references
 
 ## License
 

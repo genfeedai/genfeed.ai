@@ -9,10 +9,9 @@ import type {
   FirstPartySkillMetadata,
 } from './first-party-skill.types';
 import { inferFirstPartySkillTaxonomy } from './first-party-skill-taxonomy';
+import { compileSkill, validateCatalogLock } from './skill-catalog-artifact';
 
 const FRONTMATTER_RE = /^---\r?\n([\s\S]*?)\r?\n---/;
-const MAX_REFERENCE_FILE_BYTES = 8_000;
-const MAX_TOTAL_REFERENCE_BYTES = 16_000;
 const SKILLS_SENTINEL = join('image-prompt-engineer', 'SKILL.md');
 
 function titleizeSkillSlug(slug: string): string {
@@ -127,46 +126,6 @@ function parseMetadataJson(skillDir: string): FirstPartySkillMetadata {
   }
 }
 
-function loadReferencedMarkdown(skillDir: string): string {
-  const referencesDir = join(skillDir, 'references');
-  if (!existsSync(referencesDir) || !statSync(referencesDir).isDirectory()) {
-    return '';
-  }
-
-  const sections: string[] = [];
-  let totalBytes = 0;
-
-  for (const entry of readdirSync(referencesDir).sort()) {
-    if (!entry.endsWith('.md')) {
-      continue;
-    }
-
-    const filePath = join(referencesDir, entry);
-    if (!statSync(filePath).isFile()) {
-      continue;
-    }
-
-    const contents = readFileSync(filePath, 'utf-8').trim();
-    if (!contents || contents.length > MAX_REFERENCE_FILE_BYTES) {
-      continue;
-    }
-
-    if (totalBytes + contents.length > MAX_TOTAL_REFERENCE_BYTES) {
-      break;
-    }
-
-    sections.push(`## Referenced: ${entry}\n\n${contents}`);
-    totalBytes += contents.length;
-  }
-
-  return sections.join('\n\n');
-}
-
-function extractSkillBody(content: string): string {
-  const match = content.match(FRONTMATTER_RE);
-  return (match ? content.slice(match[0].length) : content).trim();
-}
-
 export function resolveProductSkillsDirectory(
   startDir: string = process.cwd(),
 ): string | null {
@@ -199,11 +158,16 @@ export function resolveProductSkillsDirectory(
 
 export function loadFirstPartySkillDefinitions(
   skillsDir: string | null = resolveProductSkillsDirectory(),
+  options: { allowLegacyFixture?: boolean } = {},
 ): FirstPartySkillDefinition[] {
   if (!skillsDir || !existsSync(skillsDir)) {
-    return [];
+    if (options.allowLegacyFixture) return [];
+    throw new Error('Product skill catalog directory is missing');
   }
 
+  const lock = options.allowLegacyFixture
+    ? undefined
+    : validateCatalogLock(skillsDir);
   const definitions: FirstPartySkillDefinition[] = [];
 
   for (const entry of readdirSync(skillsDir)) {
@@ -223,12 +187,22 @@ export function loadFirstPartySkillDefinitions(
     const slug = basename(skillDir);
     const identity = builtInSkillIdentityForSlug(slug);
     const taxonomy = inferFirstPartySkillTaxonomy(slug, metadata);
-    const body = extractSkillBody(content);
-    const referenced = loadReferencedMarkdown(skillDir);
-    const instructions = referenced ? `${body}\n\n${referenced}` : body;
+    const { instructions } = compileSkill(skillDir);
+    const provenance = lock?.skills.find((skill) => skill.slug === slug);
 
     definitions.push({
       ...identity,
+      ...(provenance
+        ? {
+            catalogOrigin: provenance.ownership,
+            sourceRepository: provenance.sourceRepository,
+            sourceCommit: provenance.sourceCommit,
+            sourcePath: provenance.sourcePath,
+            sourcePackageHash: provenance.packageHash,
+            instructionsHash: provenance.instructionsHash,
+            catalogCompilerVersion: lock?.compilerVersion,
+          }
+        : {}),
       category: taxonomy.category,
       channels: taxonomy.channels,
       description: metadata.description ?? frontmatter?.description ?? '',
