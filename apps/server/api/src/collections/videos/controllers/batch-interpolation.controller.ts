@@ -197,17 +197,12 @@ export class BatchInterpolationController {
       req.creditsConfig,
       user.organizationId,
     );
-    if (!Number.isFinite(dto.duration ?? 5) || (dto.duration || 5) <= 0)
-      throw new HttpException(
-        'Interpolation duration must be finite and positive',
-        HttpStatus.BAD_REQUEST,
-      );
     const context: InterpolationContext = {
       apiKey,
       brand,
       cameraPrompt: dto.cameraPrompt || '',
       dto,
-      duration: dto.duration || 5,
+      duration: this.resolveDuration(dto.duration),
       groupId,
       height,
       model,
@@ -253,6 +248,16 @@ export class BatchInterpolationController {
     };
 
     return serializeSingle(req, BatchInterpolationSerializer, result);
+  }
+
+  private resolveDuration(duration?: number): number {
+    if (!Number.isFinite(duration ?? 5) || (duration || 5) <= 0) {
+      throw new HttpException(
+        'Interpolation duration must be finite and positive',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+    return duration || 5;
   }
 
   private resolveDimensions(format: IngredientFormat): {
