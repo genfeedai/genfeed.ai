@@ -1,4 +1,11 @@
-import { IsIn, IsInt, IsOptional, IsString, Min, ValidateIf } from 'class-validator';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Min,
+  ValidateIf,
+} from 'class-validator';
 export class ControlBrandRemixScenesDto {
   @IsInt()
   @Min(1)

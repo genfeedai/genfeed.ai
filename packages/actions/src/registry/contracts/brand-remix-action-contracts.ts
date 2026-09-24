@@ -150,11 +150,13 @@ const VARIANT_CREDIT = state({
 
 const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'brand-remix.scene-step': contract(
-    state({ job: state({
-      organizationId: { type: 'string', minLength: 1 },
-      runId: { type: 'string', minLength: 1 },
-      operationId: { type: 'string', minLength: 1 },
-    }) }),
+    state({
+      job: state({
+        organizationId: { type: 'string', minLength: 1 },
+        runId: { type: 'string', minLength: 1 },
+        operationId: { type: 'string', minLength: 1 },
+      }),
+    }),
     state({ handled: BOOLEAN_SCHEMA }),
   ),
   'brand-remix.generate.adopt-orphans': contract(

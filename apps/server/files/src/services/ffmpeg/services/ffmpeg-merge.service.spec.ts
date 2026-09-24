@@ -97,7 +97,12 @@ describe('FFmpegMergeService', () => {
 
   describe('mergeNormalizedVideos', () => {
     it('normalizes every generated video/audio stream before ordered concatenation', async () => {
-      await service.mergeNormalizedVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', 1080, 1920);
+      await service.mergeNormalizedVideos(
+        ['/tmp/a.mp4', '/tmp/b.mp4'],
+        '/tmp/out.mp4',
+        1080,
+        1920,
+      );
       const args = coreService.executeFFmpeg.mock.calls[0][0];
       expect(args.join(' ')).toContain('scale=1080:1920');
       expect(args.join(' ')).toContain('aresample=48000');
@@ -107,11 +112,25 @@ describe('FFmpegMergeService', () => {
     });
     it('rejects missing speech audio before FFmpeg output', async () => {
       coreService.probe.mockResolvedValue(makeProbeResult(5, false));
-      await expect(service.mergeNormalizedVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', 1080, 1920)).rejects.toThrow('speech audio');
+      await expect(
+        service.mergeNormalizedVideos(
+          ['/tmp/a.mp4', '/tmp/b.mp4'],
+          '/tmp/out.mp4',
+          1080,
+          1920,
+        ),
+      ).rejects.toThrow('speech audio');
       expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
     });
     it('rejects unsafe dimensions rather than stretching or dropping speech', async () => {
-      await expect(service.mergeNormalizedVideos(['/tmp/a.mp4', '/tmp/b.mp4'], '/tmp/out.mp4', 0, 1920)).rejects.toThrow();
+      await expect(
+        service.mergeNormalizedVideos(
+          ['/tmp/a.mp4', '/tmp/b.mp4'],
+          '/tmp/out.mp4',
+          0,
+          1920,
+        ),
+      ).rejects.toThrow();
       expect(coreService.executeFFmpeg).not.toHaveBeenCalled();
     });
   });

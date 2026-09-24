@@ -128,7 +128,11 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       const existing = await this.getJob(data.id);
       if (existing) {
         if ((await existing.getState()) === 'failed') {
-          try { await existing.retry('failed'); } catch (error) { if ((await existing.getState()) === 'failed') throw error; }
+          try {
+            await existing.retry('failed');
+          } catch (error) {
+            if ((await existing.getState()) === 'failed') throw error;
+          }
         }
         return existing;
       }
@@ -147,7 +151,11 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       const existing = await this.getJob(data.id);
       if (existing) {
         if ((await existing.getState()) === 'failed') {
-          try { await existing.retry('failed'); } catch (error) { if ((await existing.getState()) === 'failed') throw error; }
+          try {
+            await existing.retry('failed');
+          } catch (error) {
+            if ((await existing.getState()) === 'failed') throw error;
+          }
         }
         return existing;
       }
@@ -157,7 +165,9 @@ export class VideoQueueService extends BaseQueueService<VideoJobData> {
       data,
       'captions',
       undefined,
-      data.id === `remix-captions-${data.ingredientId}` ? data.id : getRawCutJobId(data),
+      data.id === `remix-captions-${data.ingredientId}`
+        ? data.id
+        : getRawCutJobId(data),
     );
   }
 

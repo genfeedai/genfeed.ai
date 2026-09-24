@@ -1,5 +1,10 @@
 import { BrandRemixSceneService } from '@api/collections/content-runs/services/brand-remix-scene.service';
-import { AttachBrandRemixAnalysisSourceDto, ControlBrandRemixScenesDto, ExecuteBrandRemixScenesDto, QuoteBrandRemixScenesDto } from '@api/collections/content-runs/dto/brand-remix-scene.dto';
+import {
+  AttachBrandRemixAnalysisSourceDto,
+  ControlBrandRemixScenesDto,
+  ExecuteBrandRemixScenesDto,
+  QuoteBrandRemixScenesDto,
+} from '@api/collections/content-runs/dto/brand-remix-scene.dto';
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import {
   CreateBrandRemixRunDto,
@@ -51,29 +56,85 @@ export class ContentRunsController {
   ) {}
 
   @Patch('content-runs/:id/remix/scenes/source')
-  async attachSceneSource(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: User, @Body() body: AttachBrandRemixAnalysisSourceDto) {
-    return serializeSingle(req, ContentRunSerializer, await this.brandRemixScenes.attachSource(user.organizationId, id, user, body));
+  async attachSceneSource(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: AttachBrandRemixAnalysisSourceDto,
+  ) {
+    return serializeSingle(
+      req,
+      ContentRunSerializer,
+      await this.brandRemixScenes.attachSource(
+        user.organizationId,
+        id,
+        user,
+        body,
+      ),
+    );
   }
   @Post('content-runs/:id/remix/scenes/quote')
   @UseGuards(SubscriptionGuard)
-  async quoteScenes(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: User, @Body() body: QuoteBrandRemixScenesDto) {
-    return serializeSingle(req, ContentRunSerializer, await this.brandRemixScenes.quote(user.organizationId, id, user, body));
+  async quoteScenes(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: QuoteBrandRemixScenesDto,
+  ) {
+    return serializeSingle(
+      req,
+      ContentRunSerializer,
+      await this.brandRemixScenes.quote(user.organizationId, id, user, body),
+    );
   }
   @Post('content-runs/:id/remix/scenes/execute')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @DeferCreditsUntilModelResolution()
-  async executeScenes(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: User, @Body() body: ExecuteBrandRemixScenesDto) {
-    return serializeSingle(req, ContentRunSerializer, await this.brandRemixScenes.execute(user.organizationId, id, user, req, body));
+  async executeScenes(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: ExecuteBrandRemixScenesDto,
+  ) {
+    return serializeSingle(
+      req,
+      ContentRunSerializer,
+      await this.brandRemixScenes.execute(
+        user.organizationId,
+        id,
+        user,
+        req,
+        body,
+      ),
+    );
   }
   @Post('content-runs/:id/remix/scenes/cancel')
-  async cancelScenes(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: User, @Body() body: ControlBrandRemixScenesDto) {
-    return serializeSingle(req, ContentRunSerializer, await this.brandRemixScenes.cancel(user.organizationId, id, body));
+  async cancelScenes(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: ControlBrandRemixScenesDto,
+  ) {
+    return serializeSingle(
+      req,
+      ContentRunSerializer,
+      await this.brandRemixScenes.cancel(user.organizationId, id, body),
+    );
   }
   @Post('content-runs/:id/remix/scenes/resume')
   @UseGuards(SubscriptionGuard, CreditsGuard)
   @DeferCreditsUntilModelResolution()
-  async resumeScenes(@Req() req: Request, @Param('id') id: string, @CurrentUser() user: User, @Body() body: ControlBrandRemixScenesDto) {
-    return serializeSingle(req, ContentRunSerializer, await this.brandRemixScenes.resume(user.organizationId, id, user, body));
+  async resumeScenes(
+    @Req() req: Request,
+    @Param('id') id: string,
+    @CurrentUser() user: User,
+    @Body() body: ControlBrandRemixScenesDto,
+  ) {
+    return serializeSingle(
+      req,
+      ContentRunSerializer,
+      await this.brandRemixScenes.resume(user.organizationId, id, user, body),
+    );
   }
 
   @Get('brands/:brandId/content-runs')

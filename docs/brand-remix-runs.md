@@ -57,7 +57,9 @@ required input blocks generation with an actionable readiness issue.
 
 Strict fidelity must not silently degrade. Until a generation route can enforce
 the selected references deterministically, Strict requests remain blocked
-before provider dispatch and consume no credits.
+before provider dispatch and consume no credits. Scene remix stills and avatar
+clips are guided-only, so a strict request is rejected before quote, dispatch,
+and final provenance. Guided output is never labeled strict.
 
 Provider routing follows the normal execution boundary: organization BYOK,
 configured server providers, then an explicit supported managed-cloud route.

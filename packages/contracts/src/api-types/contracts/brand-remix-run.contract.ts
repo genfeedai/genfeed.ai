@@ -1,5 +1,10 @@
 import { brandRemixGenerationQuoteSchema } from './brand-remix-generation.contract';
-import { brandRemixAnalysisSourceSchema, brandRemixSceneIdentitySchema, brandRemixSceneObservationSchema, brandRemixScenePipelineSchema } from './brand-remix-scene.contract';
+import {
+  brandRemixAnalysisSourceSchema,
+  brandRemixSceneIdentitySchema,
+  brandRemixSceneObservationSchema,
+  brandRemixScenePipelineSchema,
+} from './brand-remix-scene.contract';
 /**
  * Durable brand-remix run contract.
  *

@@ -1,6 +1,8 @@
 'use client';
 
-import StudioRemixScenes, { type StudioRemixSceneActions } from '@pages/studio/generate/components/StudioRemixScenes';
+import StudioRemixScenes, {
+  type StudioRemixSceneActions,
+} from '@pages/studio/generate/components/StudioRemixScenes';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { BrandRemixRunView } from '@genfeedai/contracts/api-types/contracts';
 import {
@@ -145,7 +147,13 @@ export default function StudioRemixRunPanel({
         </div>
       </div>
 
-      {sceneActions && ['video', 'avatar'].includes(run.draft.output.kind) ? <StudioRemixScenes run={run} actions={sceneActions} isWorking={isWorking} /> : null}
+      {sceneActions && ['video', 'avatar'].includes(run.draft.output.kind) ? (
+        <StudioRemixScenes
+          run={run}
+          actions={sceneActions}
+          isWorking={isWorking}
+        />
+      ) : null}
 
       {error ? <Alert type={AlertCategory.ERROR}>{error}</Alert> : null}
 
