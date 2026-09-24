@@ -569,7 +569,7 @@ describe('TrendReferenceCorpusService', () => {
     ]);
   });
 
-  it('excludes fallback and legacy company references from corpus and prompt packs', async () => {
+  it('excludes explicit fallback references from corpus and prompt packs', async () => {
     const observed = referenceRows[0];
     const legacy = {
       ...observed,
@@ -578,7 +578,7 @@ describe('TrendReferenceCorpusService', () => {
         ...observed.data,
         platform: 'linkedin',
         canonicalUrl: 'https://www.linkedin.com/company/openai/',
-        sourcePreviewState: undefined,
+        sourcePreviewState: 'fallback',
         sourceClassification: {
           ...(observed.data.sourceClassification as Record<string, unknown>),
           confidence: 'low',
@@ -587,8 +587,8 @@ describe('TrendReferenceCorpusService', () => {
     };
     const fallback = {
       ...observed,
-      id: 'fallback',
-      data: { ...observed.data, sourcePreviewState: 'fallback' },
+      id: 'ref-fallback-1',
+      data: { ...observed.data },
     };
     prisma.trendSourceReference.findMany.mockResolvedValueOnce([
       legacy,
@@ -609,6 +609,36 @@ describe('TrendReferenceCorpusService', () => {
       observed.id,
     ]);
   });
+
+  it.each(['live', 'empty', undefined] as const)(
+    'preserves low-confidence company references with %s state in corpus and prompt packs',
+    async (sourcePreviewState) => {
+      const observed = referenceRows[0];
+      const company = {
+        ...observed,
+        data: {
+          ...observed.data,
+          platform: 'linkedin',
+          canonicalUrl: 'https://www.linkedin.com/company/openai/',
+          sourcePreviewState,
+          sourceClassification: {
+            ...(observed.data.sourceClassification as Record<string, unknown>),
+            confidence: 'low',
+          },
+        },
+      };
+      prisma.trendSourceReference.findMany.mockResolvedValueOnce([company]);
+      const corpus = await service.getReferenceCorpus('org_1', 'brand_1');
+      expect(corpus.items.map((item) => item.id)).toEqual([observed.id]);
+      prisma.trendSourceReference.findMany.mockResolvedValueOnce([company]);
+      const packs = await service.getPromptReferencePacks('org_1', 'brand_1', {
+        types: ['references'],
+      });
+      expect(packs.packs.flatMap((pack) => pack.sourceReferenceIds)).toEqual([
+        observed.id,
+      ]);
+    },
+  );
 
   it.each([
     {

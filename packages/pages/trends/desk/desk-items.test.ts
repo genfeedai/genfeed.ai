@@ -268,8 +268,10 @@ describe('isObservedTrendContent', () => {
     sourceUrl: 'https://www.linkedin.com/company/openai/',
     sourceClassification: classification,
   });
-  it('excludes explicit fallback and legacy company seeds', () => {
-    expect(isObservedTrendContent(seed)).toBe(false);
+  it('excludes explicit fallback state and generated fallback IDs', () => {
+    expect(
+      isObservedTrendContent({ ...seed, sourcePreviewState: 'fallback' }),
+    ).toBe(false);
     expect(
       isObservedTrendContent(makeTrendItem({ sourcePreviewState: 'fallback' })),
     ).toBe(false);
@@ -277,6 +279,14 @@ describe('isObservedTrendContent', () => {
       isObservedTrendContent(makeTrendItem({ id: 'trend-fallback-1' })),
     ).toBe(false);
   });
+  it.each(['live', 'empty', undefined] as const)(
+    'preserves low-confidence company references with %s preview state',
+    (sourcePreviewState) => {
+      expect(isObservedTrendContent({ ...seed, sourcePreviewState })).toBe(
+        true,
+      );
+    },
+  );
   it.each([
     { sourceUrl: 'https://www.linkedin.com/posts/observed' },
     { sourceUrl: 'https://example.com/company/openai/' },
