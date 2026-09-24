@@ -61,7 +61,10 @@ export class AdsResearchController {
     @Query('limit') limit?: string,
     @Query('mediaType') mediaType?: 'visual' | 'image' | 'video',
   ) {
-    const authorizedBrandId = this.resolveAuthorizedBrandId(user, brandId);
+    const authorizedBrandId =
+      brandId === undefined
+        ? undefined
+        : this.resolveAuthorizedBrandId(user, brandId);
     return AdsDiscoverySerializer.serialize(
       await this.adsDiscoveryService.discover(user.organizationId, {
         brandId: authorizedBrandId,

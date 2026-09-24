@@ -12,6 +12,7 @@ import { AdsDiscoveryService } from './ads-discovery.service';
 
 describe('AdsResearchController', () => {
   let controller: AdsResearchController;
+  let discoveryService: { discover: ReturnType<typeof vi.fn> };
   let providerRegistry: { getReadiness: ReturnType<typeof vi.fn> };
   let service: {
     createRemixWorkflow: ReturnType<typeof vi.fn>;
@@ -31,6 +32,24 @@ describe('AdsResearchController', () => {
     organizationId,
     userId,
   } as unknown as User;
+
+  it('keeps discovery preview-only when the request omits the session brand', async () => {
+    await controller.discover(mockUser, undefined, 'coffee', AdsPlatform.META);
+
+    expect(discoveryService.discover).toHaveBeenCalledWith(
+      organizationId,
+      expect.objectContaining({ brandId: undefined }),
+    );
+  });
+
+  it('passes an explicitly authorized discovery brand', async () => {
+    await controller.discover(mockUser, brandId, 'coffee', AdsPlatform.META);
+
+    expect(discoveryService.discover).toHaveBeenCalledWith(
+      organizationId,
+      expect.objectContaining({ brandId }),
+    );
+  });
 
   it('authorizes the brand before public discovery', async () => {
     await expect(
@@ -101,6 +120,7 @@ describe('AdsResearchController', () => {
     }).compile();
 
     controller = module.get(AdsResearchController);
+    discoveryService = module.get(AdsDiscoveryService);
     providerRegistry = module.get(PaidCreativeProviderRegistry);
     service = module.get(AdsResearchService);
   });
