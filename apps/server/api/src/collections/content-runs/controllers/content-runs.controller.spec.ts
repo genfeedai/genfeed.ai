@@ -2,6 +2,7 @@ import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticat
 import { ContentRunsController } from '@api/collections/content-runs/controllers/content-runs.controller';
 import { CreateBrandRemixRunDto } from '@api/collections/content-runs/dto/brand-remix-run.dto';
 import { BrandRemixRunsService } from '@api/collections/content-runs/services/brand-remix-runs.service';
+import { BrandRemixSceneService } from '@api/collections/content-runs/services/brand-remix-scene.service';
 import { ContentRunRecommendationsService } from '@api/collections/content-runs/services/content-run-recommendations.service';
 import { ContentRunsService } from '@api/collections/content-runs/services/content-runs.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
@@ -56,6 +57,10 @@ describe('ContentRunsController', () => {
         {
           provide: ContentRunRecommendationsService,
           useValue: mockRecommendationsService,
+        },
+        {
+          provide: BrandRemixSceneService,
+          useValue: {},
         },
         {
           provide: BrandRemixRunsService,
