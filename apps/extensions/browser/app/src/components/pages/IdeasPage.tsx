@@ -1,1 +1,1 @@
-export { KnowledgeCapturePage as default } from '~components/pages/KnowledgeCapturePage';
+export { ImportedPostsPage as default } from '~components/pages/ImportedPostsPage';

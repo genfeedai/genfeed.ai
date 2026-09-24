@@ -5,7 +5,8 @@ import { ChatContainer } from '~components/chat/ChatContainer';
 import { CreatePanel } from '~components/create/CreatePanel';
 import { ThreadList } from '~components/history/ThreadList';
 import { type ActiveTab, SidebarNav } from '~components/navigation/SidebarNav';
-import { IdeaDraftPage } from '~components/pages/IdeaDraftPage';
+import { IdeaDraftPage as ImportedPostsPage } from '~components/pages/IdeaDraftPage';
+import { KnowledgeCapturePage } from '~components/pages/KnowledgeCapturePage';
 import { RemixPage } from '~components/pages/RemixPage';
 import { ReplyPage } from '~components/pages/ReplyPage';
 import { SettingsPanel } from '~components/settings/SettingsPanel';
@@ -16,6 +17,7 @@ import type { CaptureMode } from '~models/knowledge-capture.model';
 import { authService, getJWTToken } from '~services/auth.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
 import type { ExtensionMessage } from '~types/extension';
+import { extensionIdeaTab } from '~utils/extension-idea-tab.util';
 import { logger } from '~utils/logger.util';
 
 import '~style.css';
@@ -36,6 +38,7 @@ interface PanelState {
 }
 
 type PanelAction =
+  | { type: 'addToKnowledge'; url: string }
   | { type: 'openMode'; payload: ExtensionMessage }
   | { type: 'setActiveTab'; activeTab: ActiveTab };
 
@@ -48,7 +51,7 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
     case 'openMode': {
       const { type, content, url } = action.payload;
       const activeTabByMessage: Record<ExtensionMessage['type'], ActiveTab> = {
-        IDEA: 'idea',
+        IDEA: extensionIdeaTab(action.payload),
         REMIX: 'remix',
         REPLY: 'reply',
       };
@@ -61,6 +64,14 @@ function panelReducer(state: PanelState, action: PanelAction): PanelState {
         captureMode: action.payload.captureMode,
       };
     }
+    case 'addToKnowledge':
+      return {
+        ...state,
+        activeTab: 'knowledge',
+        captureMode: 'link',
+        pendingContent: '',
+        pendingUrl: action.url,
+      };
     case 'setActiveTab':
       return { ...state, activeTab: action.activeTab };
     default:
@@ -75,8 +86,10 @@ function SidePanelRoute({
   pendingUrl,
   captureMode,
   onActiveTabChange,
+  onAddToKnowledge,
 }: PanelState & {
   onActiveTabChange: (activeTab: ActiveTab) => void;
+  onAddToKnowledge: (url: string) => void;
 }): ReactElement {
   switch (activeTab) {
     case 'chat':
@@ -95,7 +108,14 @@ function SidePanelRoute({
       );
     case 'idea':
       return (
-        <IdeaDraftPage
+        <ImportedPostsPage
+          initialUrl={pendingUrl}
+          onAddToKnowledge={onAddToKnowledge}
+        />
+      );
+    case 'knowledge':
+      return (
+        <KnowledgeCapturePage
           initialMode={captureMode}
           initialContent={pendingContent}
           initialUrl={pendingUrl}
@@ -228,7 +248,13 @@ function SidePanelContent() {
     <div className="flex h-screen bg-background text-foreground">
       <SidebarNav activeTab={panelState.activeTab} onTabChange={setActiveTab} />
       <main className="flex-1 overflow-hidden">
-        <SidePanelRoute {...panelState} onActiveTabChange={setActiveTab} />
+        <SidePanelRoute
+          {...panelState}
+          onActiveTabChange={setActiveTab}
+          onAddToKnowledge={(url) =>
+            dispatchPanel({ type: 'addToKnowledge', url })
+          }
+        />
       </main>
     </div>
   );

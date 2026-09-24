@@ -76,6 +76,7 @@ const SOURCE_VALUES: readonly DiscoveryDeskSource[] = [
   'trends',
   'following',
   'owned',
+  'imported',
 ];
 
 const SORT_VALUES: readonly DiscoveryDeskSort[] = [
@@ -346,7 +347,8 @@ export default function DiscoveryDesk() {
                   if (
                     value === 'all' ||
                     value === 'trends' ||
-                    value === 'owned'
+                    value === 'owned' ||
+                    value === 'imported'
                   ) {
                     handleSourceChange(value);
                   }
@@ -355,6 +357,10 @@ export default function DiscoveryDesk() {
                   { id: 'all', label: translateDesk('sourceTabs.all') },
                   { id: 'trends', label: translateDesk('sourceTabs.trends') },
                   { id: 'owned', label: translateDesk('sourceTabs.owned') },
+                  {
+                    id: 'imported',
+                    label: translateDesk('sourceTabs.imported'),
+                  },
                 ],
               }
             : undefined

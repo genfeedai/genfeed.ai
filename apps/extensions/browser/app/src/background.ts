@@ -9,6 +9,7 @@ import {
   isGenfeedAuthUrl,
 } from '~services/environment.service';
 import { initializeErrorTracking } from '~services/error-tracking.service';
+import { handleExtensionImportMessage } from '~services/extension-import-message';
 import {
   discardKnowledgeCapture,
   enqueueKnowledgeCapture,
@@ -238,16 +239,9 @@ chrome.runtime.onMessage.addListener((request, _sender, sendResponse) => {
       checkAuthentication(sendResponse);
       return true;
 
+    case 'listImportedPosts':
     case 'savePost':
-      savePostToGenfeed(
-        request.postId,
-        request.url,
-        sendResponse,
-        request.platform || 'twitter',
-        request.brandId,
-      ).catch((error) =>
-        sendError(sendResponse, 'Could not open this capture', error),
-      );
+      handleExtensionImportMessage(request, sendResponse);
       return true;
 
     case 'saveBookmark':
@@ -472,25 +466,6 @@ async function captureCurrentTab(mode: CaptureMode = 'page', url?: string) {
       'This page does not allow capture. Save its link or select another page.',
     );
   return prepareKnowledgeSnapshot(result[0].result);
-}
-
-async function savePostToGenfeed(
-  _postId: string,
-  url: string,
-  sendResponse: SendResponse,
-  platform = 'twitter',
-  _brandId?: string,
-): Promise<void> {
-  await handleShortcutMode(
-    'IDEA',
-    {
-      content: '',
-      url: sanitizeCaptureUrl(url),
-      platform,
-      captureMode: 'social',
-    },
-    sendResponse,
-  );
 }
 
 interface GenerateReplyParams {

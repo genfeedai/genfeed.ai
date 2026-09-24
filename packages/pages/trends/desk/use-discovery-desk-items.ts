@@ -145,12 +145,18 @@ export function useDiscoveryDeskItems(): UseDiscoveryDeskItemsReturn {
         .filter((source) => source.sourceType === SocialSourceType.OWN_ACCOUNT)
         .map((source) => source.id),
     );
+    const importedSourceIds = new Set(
+      followingFeed.sources
+        .filter((source) => source.sourceType === SocialSourceType.POST)
+        .map((source) => source.id),
+    );
     return [
       ...trendContent.items
         .filter(isObservedTrendContent)
         .map(toDeskItemFromTrend),
       ...followingFeed.posts.map((post) =>
         toDeskItemFromSourcePost(post, {
+          isImportedPost: importedSourceIds.has(post.sourceId),
           isOwnAccount: ownAccountSourceIds.has(post.sourceId),
         }),
       ),

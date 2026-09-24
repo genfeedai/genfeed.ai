@@ -211,6 +211,9 @@ function FollowingDeckPost({
             <Text as="p" className="truncate" size="sm" weight="semibold">
               {displayName || handle || item.platform}
             </Text>
+            {item.source === 'imported' ? (
+              <Badge variant="ghost">{translate('imported')}</Badge>
+            ) : null}
             {getPlatformIcon(item.platform, 'size-3.5 shrink-0 opacity-60')}
           </div>
           <Text as="p" className="truncate" color="subtle-60" size="xs">
