@@ -6,6 +6,13 @@ describe('ContentRunSerializer brand remix projection', () => {
   it('emits the hydrated run fields needed to restore an editable Studio session', () => {
     const output = ContentRunSerializer.serialize({
       brand: { contextMode: 'brand', id: 'brand-1', name: 'Acme' },
+      concept: {
+        angle: 'Lead with proof.',
+        hook: 'Reveal before naming the product.',
+        savedAt: '2026-08-20T10:00:00.000Z',
+        script: 'Create an original product reveal.',
+        storyboard: [{ ordinal: 1, visualIntent: 'Product close-up.' }],
+      },
       contract: 'brand-remix-run',
       draft: {
         fidelityMode: 'guided',
@@ -48,6 +55,7 @@ describe('ContentRunSerializer brand remix projection', () => {
     expect(contentRunAttributes).toEqual(
       expect.arrayContaining([
         'brand',
+        'concept',
         'contract',
         'draft',
         'execution',
@@ -63,6 +71,10 @@ describe('ContentRunSerializer brand remix projection', () => {
     );
     expect(output.data.attributes).toMatchObject({
       brand: { contextMode: 'brand', id: 'brand-1', name: 'Acme' },
+      concept: expect.objectContaining({
+        angle: 'Lead with proof.',
+        script: 'Create an original product reveal.',
+      }),
       contract: 'brand-remix-run',
       phase: 'prefilled',
       readiness: { issues: [], state: 'ready' },

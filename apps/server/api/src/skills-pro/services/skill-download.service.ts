@@ -29,6 +29,7 @@ interface EntitlementReceipt {
   data: unknown;
   expiresAt: Date | null;
   id: string;
+  organizationId: string | null;
   productType: string;
   skillSlugs: string[];
 }
@@ -89,6 +90,31 @@ export class SkillDownloadService {
     };
   }
 
+  @HandleErrors('verify receipt secret', 'skills-pro')
+  async verifyReceiptBearer(receiptId: string): Promise<{
+    valid: boolean;
+    productType: string;
+    skills: string[];
+    email: string;
+  }> {
+    this.loggerService.log(`${this.constructorName} verifyReceiptBearer`);
+
+    const receipt = await this.findReceiptBySecret(receiptId);
+    if (!receipt) {
+      return { email: '', productType: '', skills: [], valid: false };
+    }
+
+    const skills = await this.resolveEntitledSkillSlugs(receipt);
+    const data = this.readReceiptData(receipt.data);
+
+    return {
+      email: data.email ?? '',
+      productType: receipt.productType,
+      skills,
+      valid: true,
+    };
+  }
+
   @HandleErrors('get download url', 'skills-pro')
   async getDownloadUrl(
     organizationId: string,
@@ -117,6 +143,45 @@ export class SkillDownloadService {
       organizationId,
       skillSlug,
     });
+
+    return {
+      checksum: skill.checksum ?? '',
+      downloadUrl,
+      expiresIn: DOWNLOAD_URL_TTL_SECONDS,
+      skill: {
+        name: skill.name,
+        slug: skill.slug,
+        version: skill.version,
+      },
+    };
+  }
+
+  @HandleErrors('get download url by receipt secret', 'skills-pro')
+  async getDownloadUrlBearer(
+    receiptId: string,
+    skillSlug: string,
+  ): Promise<{
+    checksum: string;
+    downloadUrl: string;
+    expiresIn: number;
+    skill: { slug: string; name: string; version: string };
+  }> {
+    const { receipt, skill } = await this.authorizeSkillBearer(
+      receiptId,
+      skillSlug,
+    );
+    const downloadUrl = await this.filesClientService.getPresignedDownloadUrl(
+      skill.s3Key,
+      'skills',
+      DOWNLOAD_URL_TTL_SECONDS,
+    );
+
+    await this.recordDownload(receipt.organizationId, receipt.id);
+
+    this.loggerService.log(
+      `${this.constructorName} bearer download URL generated`,
+      { skillSlug },
+    );
 
     return {
       checksum: skill.checksum ?? '',
@@ -251,6 +316,18 @@ export class SkillDownloadService {
       organizationId,
       receiptId,
     );
+    return this.authorizeReceiptSkill(receipt, skillSlug);
+  }
+
+  private async authorizeSkillBearer(receiptId: string, skillSlug: string) {
+    const receipt = await this.findReceiptBySecret(receiptId);
+    return this.authorizeReceiptSkill(receipt, skillSlug);
+  }
+
+  private async authorizeReceiptSkill(
+    receipt: EntitlementReceipt | null,
+    skillSlug: string,
+  ) {
     if (!receipt) {
       throw new NotFoundException({
         message: 'Receipt not found or not completed',
@@ -271,12 +348,9 @@ export class SkillDownloadService {
     return { receipt, skill };
   }
 
-  private async findOrClaimCompletedReceipt(
-    organizationId: string,
-    receiptId: string,
-  ): Promise<EntitlementReceipt | null> {
+  private async findCompletedReceiptCandidate(receiptId: string) {
     // tenant-scope-ignore: an opaque globally unique bearer receipt is looked up once so an authenticated organization can atomically claim it before data is returned
-    const candidate = await this.prisma.skillReceipt.findFirst({
+    return this.prisma.skillReceipt.findFirst({
       where: {
         isDeleted: false,
         OR: [
@@ -286,11 +360,32 @@ export class SkillDownloadService {
         status: 'completed',
       },
     });
+  }
 
-    if (
-      !candidate ||
-      (candidate.expiresAt && candidate.expiresAt.getTime() < Date.now())
-    ) {
+  private isReceiptExpired(receipt: { expiresAt: Date | null }): boolean {
+    return Boolean(
+      receipt.expiresAt && receipt.expiresAt.getTime() < Date.now(),
+    );
+  }
+
+  private async findReceiptBySecret(
+    receiptId: string,
+  ): Promise<EntitlementReceipt | null> {
+    const candidate = await this.findCompletedReceiptCandidate(receiptId);
+    if (!candidate || this.isReceiptExpired(candidate)) {
+      return null;
+    }
+
+    return candidate;
+  }
+
+  private async findOrClaimCompletedReceipt(
+    organizationId: string,
+    receiptId: string,
+  ): Promise<EntitlementReceipt | null> {
+    const candidate = await this.findCompletedReceiptCandidate(receiptId);
+
+    if (!candidate || this.isReceiptExpired(candidate)) {
       return null;
     }
 
@@ -349,7 +444,7 @@ export class SkillDownloadService {
   }
 
   private async recordDownload(
-    organizationId: string,
+    organizationId: string | null,
     receiptId: string,
   ): Promise<void> {
     // sql-risk-audit: ignore bulk-write-tenant-review -- This is a single-row counter update constrained by both receipt id and authenticated organizationId.

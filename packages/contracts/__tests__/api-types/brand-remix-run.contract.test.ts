@@ -3,6 +3,7 @@ import {
   BrandRemixAdPlatform,
   BrandRemixOrganicPlatform,
   brandRemixAdPlatformValues,
+  brandRemixConceptSchema,
   brandRemixDraftEditsSchema,
   brandRemixExecutionSchema,
   brandRemixOrganicPlatformValues,
@@ -16,6 +17,7 @@ import {
   isBrandRemixAdPlatform,
   isBrandRemixOrganicPlatform,
   isBrandRemixSourcePlatform,
+  isCompleteBrandRemixConcept,
   pausedMetaCampaignDraftSchema,
   reviseBrandRemixRunSchema,
 } from '../../src/api-types/contracts/brand-remix-run.contract';
@@ -517,5 +519,41 @@ describe('analysis-only source snapshot and identity provenance', () => {
         }).success,
       ).toBe(false);
     }
+  });
+
+  test('stores an editable concept on the versioned run without a second model', () => {
+    const concept = brandRemixConceptSchema.parse({
+      angle: 'Lead with the founder outcome.',
+      hook: 'Outcome-led relevance hook.',
+      savedAt: '2026-08-20T10:00:00.000Z',
+      script: 'Meet Acme and make the next step obvious.',
+      storyboard: [{ ordinal: 1, visualIntent: 'Founder holds the product.' }],
+    });
+    const edits = brandRemixDraftEditsSchema.parse({
+      concept: {
+        angle: concept.angle,
+        hook: concept.hook,
+        script: concept.script,
+        storyboard: concept.storyboard,
+      },
+    });
+
+    expect(isCompleteBrandRemixConcept(concept)).toBe(true);
+    expect(edits.concept?.storyboard).toHaveLength(1);
+    expect(isCompleteBrandRemixConcept({ ...concept, storyboard: [] })).toBe(
+      false,
+    );
+    expect(
+      brandRemixConceptSchema.safeParse({
+        ...concept,
+        storyboard: [
+          {
+            assetId: 'source-frame-1',
+            ordinal: 1,
+            visualIntent: 'Founder holds the product.',
+          },
+        ],
+      }).success,
+    ).toBe(false);
   });
 });

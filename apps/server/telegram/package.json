@@ -10,7 +10,7 @@
   },
   "description": "Genfeed Telegram Service",
   "devDependencies": {
-    "unplugin-swc": "1.6.0"
+    "unplugin-swc": "2.0.0"
   },
   "main": "../dist/apps/telegram/main.js",
   "name": "@genfeedai/telegram",

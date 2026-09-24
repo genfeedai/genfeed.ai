@@ -1,14 +1,14 @@
 {
   "dependencies": {
     "better-auth": "1.6.29",
-    "zod": "4.5.4",
+    "zod": "4.6.5",
     "@genfeedai/contracts": "workspace:*"
   },
   "description": "Genfeed.ai first-party Better Auth client, epic #735",
   "devDependencies": {
     "@types/node": "24.13.3",
-    "@types/react": "19.2.18",
-    "react": "19.2.8",
+    "@types/react": "19.3.0",
+    "react": "19.3.0",
     "@typescript/native": "npm:typescript@7.0.2"
   },
   "exports": {

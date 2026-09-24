@@ -4,6 +4,7 @@ import {
   RequestContextMiddleware,
   type RequestWithContext,
 } from '@api/common/middleware/request-context.middleware';
+import { OPTIONAL_AUTH_KEY } from '@api/helpers/decorators/optional-auth.decorator';
 import { REQUIRES_CLOUD_AUTH_KEY } from '@api/helpers/decorators/requires-cloud-auth.decorator';
 import { ApiKeyAuthGuard } from '@api/helpers/guards/api-key/api-key.guard';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -38,12 +39,13 @@ import { Observable } from 'rxjs';
  *
  * Order of checks:
  *  1. @Public() routes → allow immediately
- *  2. LOCAL mode → allow and inject local identity for downstream guards/controllers
- *  3. HYBRID mode → opportunistic auth:
+ *  2. @OptionalAuth() routes → allow with no token; validate a presented token
+ *  3. LOCAL mode → allow and inject local identity for downstream guards/controllers
+ *  4. HYBRID mode → opportunistic auth:
  *     - Has token? → validate (Better Auth or API key)
  *     - No token? → allow and inject local identity
  *     - @RequiresCloudAuth() routes → require valid token
- *  4. CLOUD mode → require auth (Better Auth or API key)
+ *  5. CLOUD mode → require auth (Better Auth or API key)
  */
 interface CachedIdentity {
   defaultBrand: Brand;
@@ -215,6 +217,15 @@ export class CombinedAuthGuard implements CanActivate {
     return this.cachedIdentity;
   }
 
+  private isOptionalAuthRoute(context: ExecutionContext): boolean {
+    return (
+      this.reflector?.getAllAndOverride<boolean>(OPTIONAL_AUTH_KEY, [
+        context.getHandler(),
+        context.getClass(),
+      ]) ?? false
+    );
+  }
+
   private requiresCloudAuth(context: ExecutionContext): boolean {
     return (
       this.reflector?.getAllAndOverride<boolean>(REQUIRES_CLOUD_AUTH_KEY, [
@@ -254,7 +265,20 @@ export class CombinedAuthGuard implements CanActivate {
       return true;
     }
 
-    // 2. LOCAL mode: skip all auth and inject a default local identity
+    // 2. Optional auth: a missing credential is allowed. A presented token is
+    // still validated so an authenticated caller keeps request.user.
+    if (this.isOptionalAuthRoute(context)) {
+      const presentedToken = this.resolveBearerToken(
+        request.headers.authorization,
+      );
+      if (!presentedToken) {
+        return true;
+      }
+
+      return this.resolveTokenGuard(context, presentedToken);
+    }
+
+    // 3. LOCAL mode: skip all auth and inject a default local identity
     if (isSelfHostedDeployment() && !isBetterAuthEnabled()) {
       if (this.requiresCloudAuth(context)) {
         throw new UnauthorizedException(
@@ -268,7 +292,7 @@ export class CombinedAuthGuard implements CanActivate {
     const authHeader = request.headers.authorization;
     const token = this.resolveBearerToken(authHeader);
 
-    // 3. HYBRID mode: opportunistic auth
+    // 4. HYBRID mode: opportunistic auth
     if (isSelfHostedDeployment() && isBetterAuthEnabled()) {
       // @RequiresCloudAuth() routes must have a valid token
       if (this.requiresCloudAuth(context) && !token) {
@@ -287,7 +311,7 @@ export class CombinedAuthGuard implements CanActivate {
       return this.resolveTokenGuard(context, token);
     }
 
-    // 4. CLOUD mode: require auth (API key / Better Auth)
+    // 5. CLOUD mode: require auth (API key / Better Auth)
     return this.resolveTokenGuard(context, token);
   }
 }

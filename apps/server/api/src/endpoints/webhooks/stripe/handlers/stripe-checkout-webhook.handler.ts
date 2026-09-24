@@ -26,6 +26,7 @@ import {
   MANAGED_API_KEY_SCOPES,
 } from '@api/services/integrations/stripe/stripe.constants';
 import { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
+import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
@@ -40,6 +41,10 @@ import {
   SUBSCRIPTIONS_SERVICE,
   USER_SUBSCRIPTIONS_SERVICE,
 } from '@genfeedai/contracts/interfaces/billing';
+import {
+  buildSystemEmailHtml,
+  buildSystemEmailParagraph,
+} from '@helpers/email/system-email.helper';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Inject, Injectable } from '@nestjs/common';
 import { EventEmitter2 } from '@nestjs/event-emitter';
@@ -58,6 +63,7 @@ type ManagedCheckoutResources = {
 
 type SkillReceiptDocument = {
   data?: unknown;
+  receiptId?: string | null;
 };
 
 /** Handles checkout.session.completed Stripe webhook events (all sub-types). */
@@ -85,6 +91,7 @@ export class StripeCheckoutWebhookHandler {
     private readonly supportService: StripeWebhookSupportService,
     private readonly attributionTracker: StripeAttributionTrackerService,
     private readonly lifecycleEmailService: LifecycleEmailService,
+    private readonly notificationsService: NotificationsService,
     private readonly referralsService: ReferralsService,
   ) {}
 
@@ -938,11 +945,25 @@ export class StripeCheckoutWebhookHandler {
         session.id,
         'skills-pro-receipt',
         async () => {
+          const email = this.readSkillsProBuyerEmail(session);
           const existingReceipt = await this.findSkillsProReceiptBySessionId(
             session.id,
           );
 
           if (existingReceipt) {
+            const existingReceiptId =
+              this.readSkillsProReceiptId(existingReceipt);
+            if (!existingReceiptId) {
+              throw new Error(
+                `skills-pro checkout ${session.id} has a receipt without an id`,
+              );
+            }
+
+            await this.sendSkillsProReceiptEmail(
+              session.id,
+              email,
+              existingReceiptId,
+            );
             this.loggerService.log(`${url} skills-pro receipt already exists`, {
               productType: 'bundle',
               sessionId: session.id,
@@ -951,13 +972,14 @@ export class StripeCheckoutWebhookHandler {
           }
 
           const receiptId = `sk_rcpt_${nanoid(16)}`;
-          const email = session.customer_details?.email || '';
           const productType =
             session.metadata?.productType === 'skill' ? 'skill' : 'bundle';
           const skillSlugs = this.parseSkillsProSlugs(
             session.metadata?.skillSlugs,
             session.metadata?.skillSlug,
           );
+          const stripeCustomerId =
+            typeof session.customer === 'string' ? session.customer : undefined;
 
           await this.prisma.skillReceipt.create({
             data: {
@@ -973,6 +995,7 @@ export class StripeCheckoutWebhookHandler {
                 receiptId,
                 skills: skillSlugs,
                 status: 'completed',
+                ...(stripeCustomerId ? { stripeCustomerId } : {}),
                 stripePaymentIntentId: session.payment_intent
                   ? String(session.payment_intent)
                   : undefined,
@@ -980,6 +1003,8 @@ export class StripeCheckoutWebhookHandler {
               },
             },
           });
+
+          await this.sendSkillsProReceiptEmail(session.id, email, receiptId);
 
           this.loggerService.log(`${url} skills-pro receipt created`, {
             ...getEmailLogMetadata(email),
@@ -1004,6 +1029,76 @@ export class StripeCheckoutWebhookHandler {
       );
       throw error;
     }
+  }
+
+  private readSkillsProBuyerEmail(session: StripeCheckoutSession): string {
+    const email = session.customer_details?.email?.trim() ?? '';
+    if (!email.includes('@')) {
+      throw new Error(
+        `skills-pro checkout ${session.id} is missing a customer email`,
+      );
+    }
+
+    return email;
+  }
+
+  private readSkillsProReceiptId(receipt: SkillReceiptDocument): string | null {
+    if (receipt.receiptId) {
+      return receipt.receiptId;
+    }
+
+    const nested = this.readJsonString(receipt.data, 'receiptId');
+    if (nested) {
+      return nested;
+    }
+
+    return null;
+  }
+
+  private isJsonRecord(value: unknown): value is Record<string, unknown> {
+    return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private readJsonString(value: unknown, key: string): string | null {
+    if (!this.isJsonRecord(value) || !Object.hasOwn(value, key)) {
+      return null;
+    }
+
+    const nested = value[key];
+    return typeof nested === 'string' && nested ? nested : null;
+  }
+
+  private async sendSkillsProReceiptEmail(
+    sessionId: string,
+    email: string,
+    receiptId: string,
+  ): Promise<void> {
+    const command = `npx @genfeedai/skills-pro install ${receiptId}`;
+    await this.notificationsService.deliverEmail({
+      html: buildSystemEmailHtml({
+        bodyHtml: [
+          buildSystemEmailParagraph(
+            'Your Skills Pro purchase is ready. Use this receipt id to install the skills.',
+          ),
+          buildSystemEmailParagraph('You do not need a Genfeed account.'),
+          buildSystemEmailParagraph(`Receipt id: ${receiptId}`),
+          buildSystemEmailParagraph(command),
+        ].join(''),
+        preheader: 'Your Skills Pro install command is inside.',
+        title: 'Your Skills Pro receipt',
+      }),
+      idempotencyKey: `skills-pro/receipt/${sessionId}`,
+      subject: 'Your Skills Pro receipt',
+      text: [
+        'Your Skills Pro purchase is ready.',
+        '',
+        `Receipt id: ${receiptId}`,
+        '',
+        'Install:',
+        command,
+      ].join('\n'),
+      to: email,
+    });
   }
 
   private parseSkillsProSlugs(

@@ -6,7 +6,7 @@
     "@genfeedai/models": "workspace:*",
     "@genfeedai/props": "workspace:*",
     "@genfeedai/services": "workspace:*",
-    "@tanstack/react-query": "5.102.8",
+    "@tanstack/react-query": "5.103.2",
     "@tiptap/core": "3.31.3",
     "@genfeedai/contracts": "workspace:*"
   },
@@ -16,9 +16,9 @@
     "@testing-library/react": "16.3.3",
     "@vitejs/plugin-react": "6.1.1",
     "jsdom": "29.1.1",
-    "react": "19.2.8",
-    "react-dom": "19.2.8",
-    "vitest": "5.0.0"
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "vitest": "5.0.1"
   },
   "exports": {
     "./*": "./*"

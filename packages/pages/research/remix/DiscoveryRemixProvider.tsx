@@ -1,10 +1,11 @@
 'use client';
 
 import { useBrandId } from '@contexts/user/brand-context/brand-context';
-import type {
-  BrandRemixDraftEdits,
-  BrandRemixRunView,
-  BrandRemixSourceSelector,
+import {
+  type BrandRemixDraftEdits,
+  type BrandRemixRunView,
+  type BrandRemixSourceSelector,
+  isCompleteBrandRemixConcept,
 } from '@genfeedai/contracts/api-types/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -29,12 +30,14 @@ export type DiscoveryRemixStatus =
   | 'preparing'
   | 'ready'
   | 'saving'
+  | 'generating'
   | 'error';
 
 export interface DiscoveryRemixContextValue {
   readonly close: () => void;
   readonly confirm: (edits?: BrandRemixDraftEdits) => Promise<void>;
   readonly error: string | null;
+  readonly generate: (edits?: BrandRemixDraftEdits) => Promise<void>;
   readonly isOpen: boolean;
   readonly openRemix: (source: BrandRemixSourceSelector) => Promise<void>;
   readonly retry: () => Promise<void>;
@@ -140,14 +143,33 @@ export function DiscoveryRemixProvider({
     }
   }, [openRemix]);
 
+  const isBusy = status === 'saving' || status === 'generating';
+
+  const persistEdits = useCallback(
+    async (
+      edits: BrandRemixDraftEdits | undefined,
+      requestVersion: number,
+    ): Promise<BrandRemixRunView | null> => {
+      if (!run) return null;
+      const service = await getContentRunsService();
+      const savedRun = edits
+        ? await service.reviseBrandRemixRun(run.id, {
+            edits,
+            expectedRevision: run.revision,
+          })
+        : run;
+      if (requestVersionRef.current !== requestVersion) return null;
+      setRun(savedRun);
+      return savedRun;
+    },
+    [getContentRunsService, run],
+  );
+
+  // Saving persists the idea and concept. It must never start generation.
   const confirm = useCallback(
     async (edits?: BrandRemixDraftEdits) => {
       const requestVersion = requestVersionRef.current;
-      if (
-        !run ||
-        confirmInFlightRef.current === requestVersion ||
-        status === 'saving'
-      ) {
+      if (!run || confirmInFlightRef.current === requestVersion || isBusy) {
         return;
       }
 
@@ -155,30 +177,11 @@ export function DiscoveryRemixProvider({
       setError(null);
       setStatus('saving');
       try {
-        const service = await getContentRunsService();
-        const savedRun = edits
-          ? await service.reviseBrandRemixRun(run.id, {
-              edits,
-              expectedRevision: run.revision,
-            })
-          : run;
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
-        setRun(savedRun);
-        if (savedRun.readiness.state === 'blocked') {
-          setStatus('ready');
-          return;
-        }
-        router.push(
-          activeHref(
-            `${APP_ROUTES.STUDIO.GENERATE}?run=${encodeURIComponent(savedRun.id)}`,
-          ),
-        );
+        const savedRun = await persistEdits(edits, requestVersion);
+        if (!savedRun || requestVersionRef.current !== requestVersion) return;
+        setStatus('ready');
       } catch (caughtError) {
-        if (requestVersionRef.current !== requestVersion) {
-          return;
-        }
+        if (requestVersionRef.current !== requestVersion) return;
         setError(
           getJsonApiErrorMessage(caughtError, translate('errors.saveFailed')),
         );
@@ -189,12 +192,82 @@ export function DiscoveryRemixProvider({
         }
       }
     },
-    [activeHref, getContentRunsService, router, run, status, translate],
+    [isBusy, persistEdits, run, translate],
+  );
+
+  const generate = useCallback(
+    async (edits?: BrandRemixDraftEdits) => {
+      const requestVersion = requestVersionRef.current;
+      if (!run || confirmInFlightRef.current === requestVersion || isBusy) {
+        return;
+      }
+
+      confirmInFlightRef.current = requestVersion;
+      setError(null);
+      setStatus('saving');
+      try {
+        const savedRun = await persistEdits(edits, requestVersion);
+        if (!savedRun || requestVersionRef.current !== requestVersion) return;
+        if (
+          savedRun.readiness.state === 'blocked' ||
+          !isCompleteBrandRemixConcept(savedRun.concept)
+        ) {
+          if (!isCompleteBrandRemixConcept(savedRun.concept)) {
+            setError(translate('concept.incomplete'));
+          }
+          setStatus('ready');
+          return;
+        }
+
+        setStatus('generating');
+        const service = await getContentRunsService();
+        const started = await service.startBrandRemixRun(savedRun.id, {
+          expectedRevision: savedRun.revision,
+        });
+        if (requestVersionRef.current !== requestVersion) return;
+        setRun(started);
+        setStatus('ready');
+        router.push(
+          activeHref(
+            `${APP_ROUTES.STUDIO.GENERATE}?run=${encodeURIComponent(started.id)}`,
+          ),
+        );
+      } catch (caughtError) {
+        if (requestVersionRef.current !== requestVersion) return;
+        setError(
+          getJsonApiErrorMessage(caughtError, translate('errors.saveFailed')),
+        );
+        setStatus('error');
+      } finally {
+        if (confirmInFlightRef.current === requestVersion) {
+          confirmInFlightRef.current = null;
+        }
+      }
+    },
+    [
+      activeHref,
+      getContentRunsService,
+      isBusy,
+      persistEdits,
+      router,
+      run,
+      translate,
+    ],
   );
 
   const value = useMemo<DiscoveryRemixContextValue>(
-    () => ({ close, confirm, error, isOpen, openRemix, retry, run, status }),
-    [close, confirm, error, isOpen, openRemix, retry, run, status],
+    () => ({
+      close,
+      confirm,
+      error,
+      generate,
+      isOpen,
+      openRemix,
+      retry,
+      run,
+      status,
+    }),
+    [close, confirm, error, generate, isOpen, openRemix, retry, run, status],
   );
 
   return (

@@ -1111,7 +1111,7 @@
       "lookingUp": "Looking up accounts across platforms\u2026",
       "noAccounts": "No accounts found for that handle.",
       "notFound": "Not found",
-      "postChoice": "This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead \u2014 nothing happens until you choose.",
+      "postChoice": "This link points to one specific post. Import saves it as an Imported source with its URL and author. It does not add brand Knowledge or start generation. Follow the account only if you want the whole timeline.",
       "postLabel": "{platform} post",
       "title": "Follow sources",
       "platforms": {
@@ -1461,7 +1461,8 @@
       "sourceTabs": {
         "all": "All",
         "trends": "Public trends",
-        "owned": "My accounts"
+        "owned": "My accounts",
+        "imported": "Imported"
       }
     }
   },

@@ -40,7 +40,7 @@ vi.mock('next-intl', () => ({
         noAccounts: 'No accounts found for that handle.',
         notFound: 'Not found',
         postChoice:
-          'This link points to one specific post. Import it as inspiration with its metrics, or follow the whole account instead — nothing happens until you choose.',
+          'This link points to one specific post. Import saves it as an Imported source with its URL and author. It does not add brand Knowledge or start generation.',
         'platforms.instagram': 'Instagram',
         'platforms.linkedin': 'LinkedIn',
         'platforms.tiktok': 'TikTok',
@@ -354,6 +354,7 @@ describe('FollowSourceModal', () => {
       expect(
         await screen.findByRole('button', { name: 'Import post' }),
       ).toBeInTheDocument();
+      expect(screen.getByText(/does not add brand Knowledge/)).toBeVisible();
       expect(
         screen.getByRole('button', {
           name: 'Follow @vincentshipsit instead',

@@ -1,4 +1,5 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
+import { OptionalAuth } from '@api/helpers/decorators/optional-auth.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
@@ -28,26 +29,47 @@ import type { Request } from 'express';
 export class SkillDownloadController {
   constructor(private readonly skillDownloadService: SkillDownloadService) {}
 
+  @OptionalAuth()
   @Post('verify')
-  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Verify a skill receipt and return entitled skills',
+    summary:
+      'Verify a skill receipt secret and return entitled skills without an app session',
   })
-  verifyReceipt(@CurrentUser() user: User, @Body() dto: VerifyReceiptDto) {
+  verifyReceipt(
+    @CurrentUser() user: User | undefined,
+    @Body() dto: VerifyReceiptDto,
+  ) {
+    const organizationId = this.readOrganizationId(user);
+    if (!organizationId) {
+      return this.skillDownloadService.verifyReceiptBearer(dto.receiptId);
+    }
+
     return this.skillDownloadService.verifyReceipt(
-      this.requireOrganizationId(user),
+      organizationId,
       dto.receiptId,
     );
   }
 
+  @OptionalAuth()
   @Post('download')
-  @ApiBearerAuth()
   @ApiOperation({
-    summary: 'Get a presigned download URL for a purchased skill',
+    summary:
+      'Get a presigned download URL for a purchased skill using the receipt secret',
   })
-  downloadSkill(@CurrentUser() user: User, @Body() dto: DownloadSkillDto) {
+  downloadSkill(
+    @CurrentUser() user: User | undefined,
+    @Body() dto: DownloadSkillDto,
+  ) {
+    const organizationId = this.readOrganizationId(user);
+    if (!organizationId) {
+      return this.skillDownloadService.getDownloadUrlBearer(
+        dto.receiptId,
+        dto.skillSlug,
+      );
+    }
+
     return this.skillDownloadService.getDownloadUrl(
-      this.requireOrganizationId(user),
+      organizationId,
       dto.receiptId,
       dto.skillSlug,
     );
@@ -96,6 +118,11 @@ export class SkillDownloadController {
       dto.versionId,
     );
     return serializeSingle(request, SkillSerializer, restored);
+  }
+
+  private readOrganizationId(user: User | undefined): string | undefined {
+    const organizationId = user?.organizationId?.toString().trim();
+    return organizationId || undefined;
   }
 
   private requireOrganizationId(user: User): string {

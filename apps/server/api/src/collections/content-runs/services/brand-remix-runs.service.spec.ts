@@ -360,7 +360,13 @@ describe('BrandRemixRunsService', () => {
       );
       expect(result.draft.intent.objective).not.toContain(sourcePost.text);
       expect(result.draft.intent.objective).not.toContain('Create an original');
+      expect(result.concept?.script).toBe(result.draft.intent.objective);
+      expect(result.concept?.storyboard.length).toBeGreaterThan(0);
+      expect(result.phase).toBe('prefilled');
+      expect(JSON.stringify(result.concept)).not.toContain(sourcePost.text);
+      expect(JSON.stringify(result.concept)).not.toContain('painful');
       expect(result.source).toBeUndefined();
+      expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
     });
 
     it('keeps ingested source media analysis-only and outside generation references', async () => {
@@ -4245,6 +4251,54 @@ describe('BrandRemixRunsService', () => {
       },
     });
   }
+
+  it('saves concept edits without starting generation', async () => {
+    const created = await createPersistedRun();
+    installExactConfigStore(created);
+
+    const result = await service.revise('org-1', 'run-1', {
+      edits: {
+        concept: {
+          angle: 'Lead with the founder outcome.',
+          hook: 'Outcome-led relevance hook.',
+          script: 'Meet Acme and make the next step obvious.',
+          storyboard: [
+            { ordinal: 1, visualIntent: 'Founder holds the product.' },
+          ],
+        },
+      },
+      expectedRevision: 1,
+    });
+
+    expect(result.phase).toBe('prefilled');
+    expect(result.execution).toBeUndefined();
+    expect(result.concept).toMatchObject({
+      angle: 'Lead with the founder outcome.',
+      hook: 'Outcome-led relevance hook.',
+      script: 'Meet Acme and make the next step obvious.',
+      storyboard: [{ ordinal: 1, visualIntent: 'Founder holds the product.' }],
+    });
+    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+    expect(videoGenerationService.generateVideo).not.toHaveBeenCalled();
+  });
+
+  it('refuses the first generation until a complete concept is saved', async () => {
+    const created = await createPersistedRun({
+      draft: {
+        output: { aspectRatio: '1:1', count: 1, kind: 'image' },
+      },
+    });
+    const config = brandRemixRunConfigSchema.parse(created.config);
+    const { concept: _removedConcept, ...withoutConcept } = config;
+    installExactConfigStore(makeRun(withoutConcept));
+
+    await expect(
+      service.start('org-1', 'run-1', user, request as never, {
+        expectedRevision: 1,
+      }),
+    ).rejects.toBeInstanceOf(ConflictException);
+    expect(imageGenerationService.generateImage).not.toHaveBeenCalled();
+  });
 
   function installExactConfigStore(initial: TestRun): () => TestRun {
     let stored = initial;

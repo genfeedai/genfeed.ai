@@ -185,8 +185,8 @@ export default function FollowSourceModal({
       const result = await service.importPost(query.trim(), { brandId });
       notifications.success(
         result.deduplicated
-          ? 'Post already imported — metrics refreshed'
-          : 'Post imported',
+          ? 'Already imported for this brand — metrics refreshed'
+          : 'Saved as an Imported source',
       );
       await onFollowed();
       onOpenChange(false);
