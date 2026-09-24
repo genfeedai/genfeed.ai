@@ -6,6 +6,7 @@ import {
 import { CampaignsQueryDto } from '@api/collections/campaigns/dto/campaigns-query.dto';
 import { CreateCampaignDto } from '@api/collections/campaigns/dto/create-campaign.dto';
 import { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/generate-campaign-content.dto';
+import { GenerateCampaignPlanDto } from '@api/collections/campaigns/dto/generate-campaign-plan.dto';
 import {
   ApproveCampaignSpendDto,
   PrepareCampaignActivationDto,
@@ -16,18 +17,29 @@ import { CampaignGenerationService } from '@api/collections/campaigns/services/c
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
+import { CampaignPlanningService } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
+import {
+  Credits,
+  DeferCreditsUntilModelResolution,
+} from '@api/helpers/decorators/credits/credits.decorator';
+import { RequestTimeout } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
 import { RolesDecorator } from '@api/helpers/decorators/roles/roles.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { API_KEY_POSTING_CONFIGURATION_SCOPES } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
+import { finalizeDeferredTextCredits } from '@api/helpers/utils/credits/finalize-deferred-credits.util';
 import {
   serializeCollection,
   serializeSingle,
 } from '@api/helpers/utils/response/response.util';
-import { ApiKeyScope, MemberRole } from '@genfeedai/contracts';
+import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import { ActivitySource, ApiKeyScope, MemberRole } from '@genfeedai/contracts';
 import {
   CampaignComparisonSerializer,
   CampaignLifecycleSerializer,
@@ -47,6 +59,7 @@ import {
   Query,
   Req,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
@@ -62,6 +75,7 @@ export class CampaignsController {
     private readonly paidActivationService: CampaignPaidActivationService,
     private readonly performanceService: CampaignPerformanceService,
     private readonly service: CampaignsService,
+    private readonly planningService: CampaignPlanningService,
   ) {}
 
   @Get()
@@ -177,6 +191,32 @@ export class CampaignsController {
     return serializeSingle(request, CampaignPaidActivationSerializer, data);
   }
 
+  @Post('generate-plan')
+  @RequestTimeout(170_000)
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  @Credits({ description: 'Campaign planning', source: ActivitySource.SCRIPT })
+  @DeferCreditsUntilModelResolution()
+  @RateLimit({ limit: 10, scope: 'organization', windowMs: 60000 })
+  @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
+  async generatePlan(
+    @Req() request: Request,
+    @CurrentUser() user: User,
+    @Body() dto: GenerateCampaignPlanDto,
+  ) {
+    let billedCredits = 0;
+    const data = await this.planningService.generate(
+      user.organizationId,
+      this.resolveUserId(user),
+      dto,
+      (amount) => {
+        billedCredits += amount;
+      },
+    );
+    finalizeDeferredTextCredits(request, billedCredits);
+    return serializeSingle(request, CampaignSerializer, data);
+  }
+
   @Post()
   @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async create(
@@ -277,6 +317,7 @@ export class CampaignsController {
   }
 
   @Post(':id/generate')
+  @RequestTimeout(290_000)
   @RequiredScopes(...API_KEY_POSTING_CONFIGURATION_SCOPES)
   async generate(
     @Req() request: Request,

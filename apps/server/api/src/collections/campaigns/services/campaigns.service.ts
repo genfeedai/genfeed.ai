@@ -21,7 +21,11 @@ import type {
   ICampaignLifecycleResult,
 } from '@genfeedai/contracts/interfaces';
 import type { Campaign } from '@genfeedai/prisma';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+} from '@nestjs/common';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -102,16 +106,44 @@ export class CampaignsService {
       if (!dto.idempotencyKey || !isPrismaUniqueConstraintError(error)) {
         throw error;
       }
-      const winner = await this.prisma.campaign.findFirst({
-        where: scopedWhere(organizationId, {
-          idempotencyKey: dto.idempotencyKey,
-        }),
-      });
+      const winner = await this.findIdempotentCampaign(
+        organizationId,
+        dto.brandId,
+        dto.idempotencyKey,
+      );
       if (!winner) {
         throw error;
       }
-      return toCampaign(winner);
+      return winner;
     }
+  }
+
+  async findIdempotentCampaign(
+    organizationId: string,
+    brandId: string,
+    idempotencyKey: string,
+  ): Promise<ICampaign | null> {
+    const existing = await this.prisma.campaign.findFirst({
+      where: scopedWhere(organizationId, { idempotencyKey }),
+    });
+    if (existing) {
+      if (existing.brandId !== brandId) {
+        throw new BadRequestException(
+          'Campaign request belongs to another brand',
+        );
+      }
+      return toCampaign(existing);
+    }
+    const deleted = await this.prisma.campaign.findFirst({
+      select: { id: true },
+      where: scopedWhere(organizationId, { idempotencyKey, isDeleted: true }),
+    });
+    if (deleted) {
+      throw new ConflictException(
+        'This campaign request was deleted. Start a new campaign with a new request key.',
+      );
+    }
+    return null;
   }
 
   async update(

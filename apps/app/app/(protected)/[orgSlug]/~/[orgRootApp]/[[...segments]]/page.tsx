@@ -173,7 +173,7 @@ async function renderOrgCampaignSurface({
   if (campaignId === 'new') {
     return (
       <Suspense fallback={null}>
-        <CampaignFormPage />
+        <CampaignsListPage isCreateOpen />
       </Suspense>
     );
   }

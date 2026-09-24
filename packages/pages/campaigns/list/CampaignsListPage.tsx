@@ -19,6 +19,8 @@ import {
   CAMPAIGN_STATUS_LABELS,
   parseCampaignStatusFilter,
 } from '@pages/campaigns/campaigns-status';
+import CampaignCreateDialog from '@pages/campaigns/form/CampaignCreateDialog';
+import type { CampaignsListPageProps } from '@props/content/campaign-setup.props';
 import type { TableColumn, TableRowLink } from '@props/ui/display/table.props';
 import type { Campaign } from '@services/content/campaigns.service';
 import Badge from '@ui/display/badge/Badge';
@@ -34,10 +36,9 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Flag, Plus } from 'lucide-react';
-import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 function formatCampaignDate(value?: string | null): string {
   if (!value) {
@@ -46,7 +47,10 @@ function formatCampaignDate(value?: string | null): string {
   return formatDate(value, DATE_FORMATS.DISPLAY_DATE) || '—';
 }
 
-export default function CampaignsListPage() {
+export default function CampaignsListPage({
+  isCreateOpen = false,
+}: CampaignsListPageProps = {}) {
+  const [isCreating, setIsCreating] = useState(isCreateOpen);
   const translate = useTranslations('pages.publishing.campaigns');
   const collectionScope = useCollectionScope();
   const { brands } = useBrand();
@@ -151,7 +155,7 @@ export default function CampaignsListPage() {
       icon={Flag}
       label={translate('title')}
       right={
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Select onValueChange={replaceStatus} value={status ?? 'all'}>
             <SelectTrigger
               aria-label={translate('statusFilter')}
@@ -167,16 +171,30 @@ export default function CampaignsListPage() {
               ))}
             </SelectContent>
           </Select>
-          <Button asChild size={ButtonSize.SM} variant={ButtonVariant.DEFAULT}>
-            <Link href={href(APP_ROUTES.PUBLISHING.CAMPAIGNS_NEW)}>
-              <Plus className="size-4" />
-              {translate('newCampaign')}
-            </Link>
+          <Button
+            onClick={() => setIsCreating(true)}
+            size={ButtonSize.SM}
+            variant={ButtonVariant.DEFAULT}
+          >
+            <Plus className="size-4" />
+            {translate('newCampaign')}
           </Button>
         </div>
       }
       titleVisibility="sr-only"
     >
+      {isCreating ? (
+        <CampaignCreateDialog
+          onClose={() => {
+            setIsCreating(false);
+            if (isCreateOpen)
+              router.replace(href(APP_ROUTES.PUBLISHING.CAMPAIGNS));
+          }}
+        />
+      ) : null}
+      <p className="py-4 text-sm text-muted-foreground">
+        {translate('setup.description')}
+      </p>
       <AppTable<Campaign>
         error={
           isError

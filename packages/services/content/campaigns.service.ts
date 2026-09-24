@@ -136,6 +136,19 @@ export class CampaignsService extends BaseService<
     );
   }
 
+  async generatePlan(
+    data: Pick<CreateCampaignInput, 'brandId' | 'name' | 'idempotencyKey'>,
+  ): Promise<Campaign> {
+    return this.executeWithErrorHandling(
+      `POST ${this.baseURL}/generate-plan`,
+      this.instance
+        .post<JsonApiResponseDocument>('/generate-plan', data, {
+          timeout: 180_000,
+        })
+        .then((response) => this.mapOne(response.data)),
+    );
+  }
+
   async create(data: CreateCampaignInput): Promise<Campaign> {
     return this.post(data);
   }
@@ -217,7 +230,11 @@ export class CampaignsService extends BaseService<
     return this.executeWithErrorHandling(
       `POST ${this.baseURL}/${id}/${action}`,
       this.instance
-        .post<JsonApiResponseDocument>(`/${id}/${action}`, body)
+        .post<JsonApiResponseDocument>(
+          `/${id}/${action}`,
+          body,
+          action === 'generate' ? { timeout: 300_000 } : undefined,
+        )
         .then((response) => this.mapLifecycle(response.data)),
     );
   }

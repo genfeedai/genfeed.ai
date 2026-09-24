@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { GenerateCampaignContentDto } from '@api/collections/campaigns/dto/generate-campaign-content.dto';
 import {
   campaignItemOutcome,
@@ -18,6 +19,7 @@ import {
   fromPrismaCredentialPlatform,
   ReleaseStatus,
 } from '@genfeedai/contracts';
+import type { ChannelTargetInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 import type {
   ICampaignLifecycleItemOutcome,
   ICampaignLifecycleResult,
@@ -89,29 +91,7 @@ export class CampaignGenerationService {
       };
     }
 
-    const captions = await this.captionsForCredentials(campaign, pending);
-    const targets = pending.flatMap((credential, index) => {
-      const platform = fromPrismaCredentialPlatform(credential.platform);
-      if (!platform) {
-        items.push(
-          campaignItemOutcome({
-            id: credential.id,
-            kind: ContentCampaignItemKind.RELEASE,
-            reason: 'Credential platform is unsupported',
-            retryable: true,
-            status: ContentCampaignItemOutcomeStatus.INELIGIBLE,
-          }),
-        );
-        return [];
-      }
-      return [
-        {
-          caption: captions[index] ?? this.campaignCopy(campaign),
-          credentialId: credential.id,
-          platform,
-        },
-      ];
-    });
+    const targets = await this.prepareTargets(campaign, pending, items);
 
     if (targets.length === 0) {
       return {
@@ -122,6 +102,17 @@ export class CampaignGenerationService {
       };
     }
 
+    const releaseKey = dto.idempotencyKey
+      ? createHash('sha256')
+          .update(
+            JSON.stringify([
+              campaign.id,
+              dto.idempotencyKey,
+              targets.map((target) => target.credentialId).sort(),
+            ]),
+          )
+          .digest('hex')
+      : undefined;
     try {
       const release = await this.postGroupsService.create(
         organizationId,
@@ -130,13 +121,13 @@ export class CampaignGenerationService {
           baseContent: this.campaignCopy(campaign),
           brandId: campaign.brandId,
           campaignId: campaign.id,
-          ...(dto.idempotencyKey ? { idempotencyKey: dto.idempotencyKey } : {}),
+          ...(releaseKey ? { idempotencyKey: releaseKey } : {}),
           status: ReleaseStatus.DRAFT,
           targets,
           timezone: 'UTC',
           title: campaign.name,
         },
-        dto.idempotencyKey,
+        releaseKey,
         {
           ...(dto.contentRunId ? { contentRunId: dto.contentRunId } : {}),
           source: dto.source ?? 'campaign',
@@ -169,10 +160,10 @@ export class CampaignGenerationService {
         error: getErrorMessage(error),
         organizationId,
       });
-      for (const credential of pending) {
+      for (const target of targets) {
         items.push(
           campaignItemOutcome({
-            id: credential.id,
+            id: target.credentialId,
             kind: ContentCampaignItemKind.RELEASE,
             reason: getErrorMessage(error),
             retryable: true,
@@ -188,6 +179,51 @@ export class CampaignGenerationService {
       id: campaign.id,
       items,
     };
+  }
+
+  private async prepareTargets(
+    campaign: Campaign,
+    credentials: Credential[],
+    items: ICampaignLifecycleItemOutcome[],
+  ): Promise<
+    Pick<ChannelTargetInput, 'caption' | 'credentialId' | 'platform'>[]
+  > {
+    const captions = await this.captionsForCredentials(campaign, credentials);
+    return credentials.flatMap((credential, index) => {
+      const platform = fromPrismaCredentialPlatform(credential.platform);
+      if (!platform || !this.toGeneratorPlatform(platform)) {
+        items.push(
+          campaignItemOutcome({
+            id: credential.id,
+            kind: ContentCampaignItemKind.RELEASE,
+            reason: 'Credential platform is unsupported',
+            retryable: true,
+            status: ContentCampaignItemOutcomeStatus.INELIGIBLE,
+          }),
+        );
+        return [];
+      }
+      const caption = captions[index];
+      if (!caption) {
+        items.push(
+          campaignItemOutcome({
+            id: credential.id,
+            kind: ContentCampaignItemKind.RELEASE,
+            reason: 'AI content generation failed. Retry this account.',
+            retryable: true,
+            status: ContentCampaignItemOutcomeStatus.FAILED,
+          }),
+        );
+        return [];
+      }
+      return [
+        {
+          caption,
+          credentialId: credential.id,
+          platform,
+        },
+      ];
+    });
   }
 
   private async loadCredentials(
@@ -238,9 +274,11 @@ export class CampaignGenerationService {
   private async captionsForCredentials(
     campaign: Campaign,
     credentials: Credential[],
-  ): Promise<string[]> {
+  ): Promise<Array<string | undefined>> {
     const copy = this.campaignCopy(campaign);
-    const captions = credentials.map(() => copy);
+    const captions: Array<string | undefined> = credentials.map(
+      () => undefined,
+    );
     const neededByPlatform = new Map<ContentIntelligencePlatform, number[]>();
 
     credentials.forEach((credential, index) => {
@@ -264,7 +302,8 @@ export class CampaignGenerationService {
           {
             additionalContext: [
               'Write a platform-native variant of this campaign brief.',
-              'Keep the objective and offer identical. Change only phrasing and hook.',
+              'Write publishable copy for the first post idea, not the campaign plan itself. Keep the objective and verified offer identical. Do not invent facts.',
+              `Campaign objective: ${campaign.objective ?? campaign.name}`,
             ],
             brandId: campaign.brandId,
             platform,
@@ -280,7 +319,7 @@ export class CampaignGenerationService {
           captions[index] = item.content;
         });
       } catch (error: unknown) {
-        this.logger.warn('Campaign platform variation degraded to brief', {
+        this.logger.warn('Campaign AI content generation failed', {
           campaignId: campaign.id,
           error: getErrorMessage(error),
           platform,

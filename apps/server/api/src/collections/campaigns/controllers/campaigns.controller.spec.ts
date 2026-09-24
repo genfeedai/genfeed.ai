@@ -4,11 +4,20 @@ import { CampaignGenerationService } from '@api/collections/campaigns/services/c
 import { CampaignLifecycleService } from '@api/collections/campaigns/services/campaign-lifecycle.service';
 import { CampaignPaidActivationService } from '@api/collections/campaigns/services/campaign-paid-activation.service';
 import { CampaignPerformanceService } from '@api/collections/campaigns/services/campaign-performance.service';
+import { CampaignPlanningService } from '@api/collections/campaigns/services/campaign-planning.service';
 import { CampaignsService } from '@api/collections/campaigns/services/campaigns.service';
+import { REQUEST_TIMEOUT_MS } from '@api/helpers/decorators/request-timeout/request-timeout.decorator';
 import { API_KEY_SCOPES_KEY } from '@api/helpers/guards/api-key/api-key.guard';
+import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
+import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
+import { TimeoutInterceptor } from '@api/interceptors/timeout.interceptor';
+import { createMockExecutionContext } from '@api-test/mocks/controller.mocks';
 import { ApiKeyScope, ContentCampaignStatus } from '@genfeedai/contracts';
+import { Reflector } from '@nestjs/core';
 import { Test, type TestingModule } from '@nestjs/testing';
+import { delay, firstValueFrom, of } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -66,6 +75,7 @@ describe('CampaignsController', () => {
     unassignPosts: vi.fn(),
     update: vi.fn(),
   };
+  const planningService = { generate: vi.fn() };
   let controller: CampaignsController;
 
   beforeEach(() => {
@@ -77,13 +87,47 @@ describe('CampaignsController', () => {
       paidActivationService as unknown as CampaignPaidActivationService,
       performanceService as unknown as CampaignPerformanceService,
       service as unknown as CampaignsService,
+      planningService as unknown as CampaignPlanningService,
     );
   });
+
+  it.each([
+    ['generatePlan', 170_000],
+    ['generate', 290_000],
+  ] as const)(
+    'allows %s to finish beyond the default request deadline',
+    async (method, budget) => {
+      const handler = CampaignsController.prototype[method];
+      expect(Reflect.getMetadata(REQUEST_TIMEOUT_MS, handler)).toBe(budget);
+      expect(
+        Reflect.getMetadata(
+          REQUEST_TIMEOUT_MS,
+          CampaignsController.prototype.list,
+        ),
+      ).toBeUndefined();
+      vi.useFakeTimers();
+      try {
+        const context = createMockExecutionContext();
+        vi.mocked(context.getHandler).mockReturnValue(handler);
+        const interceptor = new TimeoutInterceptor(new Reflector());
+        const response = firstValueFrom(
+          interceptor.intercept(context, {
+            handle: () => of({ generated: true }).pipe(delay(budget - 1_000)),
+          }),
+        );
+        await vi.advanceTimersByTimeAsync(budget - 1_000);
+        await expect(response).resolves.toEqual({ generated: true });
+      } finally {
+        vi.useRealTimers();
+      }
+    },
+  );
 
   it('wires the collection routes onto the campaigns service', async () => {
     const module: TestingModule = await Test.createTestingModule({
       controllers: [CampaignsController],
       providers: [
+        { provide: CampaignPlanningService, useValue: planningService },
         { provide: CampaignComparisonService, useValue: comparisonService },
         { provide: CampaignGenerationService, useValue: generationService },
         { provide: CampaignLifecycleService, useValue: lifecycleService },
@@ -95,6 +139,15 @@ describe('CampaignsController', () => {
         { provide: CampaignsService, useValue: service },
       ],
     })
+      .overrideGuard(CreditsGuard)
+      .useValue({ canActivate: () => true })
+      .overrideGuard(SubscriptionGuard)
+      .useValue({ canActivate: () => true })
+      .overrideInterceptor(CreditsInterceptor)
+      .useValue({
+        intercept: (_context: unknown, next: { handle: () => unknown }) =>
+          next.handle(),
+      })
       .overrideGuard(RolesGuard)
       .useValue({ canActivate: () => true })
       .compile();

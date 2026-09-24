@@ -158,4 +158,80 @@ describe('CampaignGenerationService', () => {
       }),
     );
   });
+  it('reports AI failure instead of saving the campaign brief as content', async () => {
+    contentGeneratorService.generateContent.mockRejectedValue(
+      new Error('provider unavailable'),
+    );
+    const result = await service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {});
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(result.items).toEqual([
+      expect.objectContaining({
+        status: ContentCampaignItemOutcomeStatus.FAILED,
+        retryable: true,
+      }),
+    ]);
+  });
+
+  it('does not treat empty AI output as generated content', async () => {
+    contentGeneratorService.generateContent.mockResolvedValue([
+      { content: '  ' },
+    ]);
+    const result = await service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {});
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(result.items[0]?.status).toBe(
+      ContentCampaignItemOutcomeStatus.FAILED,
+    );
+  });
+
+  it('rejects account IDs outside the campaign brand', async () => {
+    await expect(
+      service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {
+        credentialIds: ['foreign-account'],
+      }),
+    ).rejects.toThrow('unavailable');
+    expect(contentGeneratorService.generateContent).not.toHaveBeenCalled();
+  });
+
+  it('marks unsupported platforms ineligible without copying the brief', async () => {
+    asMock(prisma.credential.findMany).mockResolvedValue([
+      { id: CREDENTIAL_ID, platform: 'YOUTUBE' },
+    ]);
+    const result = await service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {});
+    expect(postGroupsService.create).not.toHaveBeenCalled();
+    expect(result.items[0]?.status).toBe(
+      ContentCampaignItemOutcomeStatus.INELIGIBLE,
+    );
+  });
+  it('uses a different release key when retrying only the accounts that failed', async () => {
+    asMock(prisma.credential.findMany).mockResolvedValue([
+      { id: CREDENTIAL_ID, platform: 'INSTAGRAM' },
+      { id: 'linkedin-account', platform: 'LINKEDIN' },
+    ]);
+    contentGeneratorService.generateContent.mockImplementation(
+      async (_org, dto) => {
+        if (dto.platform === 'linkedin')
+          throw new Error('Provider unavailable');
+        return [{ content: 'Instagram launch' }];
+      },
+    );
+    await service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {
+      idempotencyKey: 'same-request',
+    });
+    const firstKey = postGroupsService.create.mock.calls[0]?.[3];
+    asMock(prisma.post.findMany).mockResolvedValue([
+      { credentialId: CREDENTIAL_ID },
+    ]);
+    contentGeneratorService.generateContent.mockResolvedValue([
+      { content: 'LinkedIn launch' },
+    ]);
+    await service.generate(ORG_ID, USER_ID, CAMPAIGN_ID, {
+      idempotencyKey: 'same-request',
+    });
+    const retryKey = postGroupsService.create.mock.calls[1]?.[3];
+    expect(firstKey).toEqual(expect.any(String));
+    expect(retryKey).not.toBe(firstKey);
+    expect(postGroupsService.create.mock.calls[1]?.[2].targets).toEqual([
+      expect.objectContaining({ credentialId: 'linkedin-account' }),
+    ]);
+  });
 });

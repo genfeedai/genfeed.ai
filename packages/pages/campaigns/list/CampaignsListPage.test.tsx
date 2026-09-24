@@ -1,9 +1,13 @@
 import { ContentCampaignStatus } from '@genfeedai/contracts';
 import CampaignsListPage from '@pages/campaigns/list/CampaignsListPage';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
+
+vi.mock('@pages/campaigns/form/CampaignCreateDialog', () => ({
+  default: () => <div role="dialog">Campaign setup</div>,
+}));
 
 const mockCampaigns = [
   {
@@ -148,10 +152,19 @@ vi.mock('@ui/primitives/button', () => ({
   Button: ({
     children,
     asChild,
+    onClick,
   }: {
     asChild?: boolean;
+    onClick?: () => void;
     children?: ReactNode;
-  }) => (asChild ? children : <button type="button">{children}</button>),
+  }) =>
+    asChild ? (
+      children
+    ) : (
+      <button type="button" onClick={onClick}>
+        {children}
+      </button>
+    ),
 }));
 
 describe('CampaignsListPage', () => {
@@ -165,15 +178,13 @@ describe('CampaignsListPage', () => {
     });
   });
 
-  it('lists campaigns and links into the create flow', () => {
+  it('lists campaigns and opens creation in a modal', () => {
     render(<CampaignsListPage />);
 
     expect(screen.getByText('title')).toBeInTheDocument();
     expect(screen.getByText('Autumn Reveal')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'newCampaign' })).toHaveAttribute(
-      'href',
-      '/acme/demo/publishing/campaigns/new',
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'newCampaign' }));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.queryByText('columns.brand')).not.toBeInTheDocument();
   });
 
