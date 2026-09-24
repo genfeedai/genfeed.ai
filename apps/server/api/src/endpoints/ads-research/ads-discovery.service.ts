@@ -234,6 +234,96 @@ export class AdsDiscoveryService {
     private readonly adPerformanceService: AdPerformanceService,
   ) {}
 
+  private async persistDiscoverySources(
+    organizationId: string,
+    query: AdsDiscoveryQuery,
+    records: NormalizedPaidCreativeRecord[],
+    observedAt: Date,
+    snapshotId: string,
+  ): Promise<Map<NormalizedPaidCreativeRecord, string>> {
+    const sourceIds = new Map<NormalizedPaidCreativeRecord, string>();
+    if (!query.brandId) return sourceIds;
+    const provider = resolvePaidCreativeProvider(query.platform);
+    const remixable = records.filter((creative) =>
+      Boolean(creative.externalAdId),
+    );
+    const sources = await this.adPerformanceService.upsertBatchAtomic(
+      remixable.map((creative) => ({
+        ...creative,
+        adPlatform: creative.platform,
+        organizationId,
+        brandId: query.brandId,
+        scope: 'organization',
+        researchSource: provider,
+        researchFreshnessState: 'fresh',
+        researchObservedAt: observedAt,
+        researchSnapshotId: snapshotId,
+        researchSnapshotKey: `discovery:${query.platform}`,
+        sourceClassification: buildPaidCreativeReferenceClassification({
+          adFormat: creative.adFormat,
+          capturedAt: observedAt,
+          creativeType: creative.creativeType,
+          platform: query.platform,
+          provider,
+          sourceAuthor: creative.advertiserHandle,
+          sourceTimestamp: creative.presentationStartDate,
+          sourceTopic: creative.advertiserName ?? query.keyword,
+        }),
+      })),
+    );
+    remixable.forEach((creative, index) => {
+      sourceIds.set(creative, sources[index].id);
+    });
+    return sourceIds;
+  }
+
+  private async buildDiscoveryResponse(
+    organizationId: string,
+    query: AdsDiscoveryQuery,
+    base: AdsDiscoveryResponse,
+    fetched: NormalizedPaidCreativeRecord[],
+    snapshotId: string,
+  ): Promise<AdsDiscoveryResponse> {
+    const records = fetched.filter((record) => {
+      const mediaType = creativeMediaType(record);
+      return (
+        mediaType &&
+        (query.mediaType === 'visual' || query.mediaType === mediaType)
+      );
+    });
+    const observedAt = new Date();
+    const advertisers = groupDiscoveryAdvertisers(
+      records,
+      query.platform,
+      observedAt,
+    );
+    if (records.length && !advertisers.length)
+      throw new Error('Unusable advertiser identities');
+    const sourceIds = await this.persistDiscoverySources(
+      organizationId,
+      query,
+      records,
+      observedAt,
+      snapshotId,
+    );
+    return {
+      ...base,
+      status: advertisers.length ? 'ready' : 'empty',
+      advertisers: query.brandId
+        ? groupDiscoveryAdvertisers(
+            records,
+            query.platform,
+            observedAt,
+            sourceIds,
+          )
+        : advertisers,
+      sampleCount: advertisers.reduce(
+        (sum, item) => sum + item.creativeCount,
+        0,
+      ),
+    };
+  }
+
   async discover(
     organizationId: string,
     input: AdsDiscoveryQuery,
@@ -349,71 +439,13 @@ export class AdsDiscoveryService {
           ))
         )
           return;
-        const records = fetched.filter((record) => {
-          const mediaType = creativeMediaType(record);
-          return (
-            mediaType &&
-            (query.mediaType === 'visual' || query.mediaType === mediaType)
-          );
-        });
-        const observedAt = new Date();
-        const sourceIds = new Map<NormalizedPaidCreativeRecord, string>();
-        const advertisers = groupDiscoveryAdvertisers(
-          records,
-          query.platform,
-          observedAt,
+        const response = await this.buildDiscoveryResponse(
+          organizationId,
+          query,
+          base,
+          fetched,
+          `${id}:${token}`,
         );
-        if (records.length && !advertisers.length)
-          throw new Error('Unusable advertiser identities');
-        if (query.brandId) {
-          const provider = resolvePaidCreativeProvider(query.platform);
-          const remixable = records.filter((creative) =>
-            Boolean(creative.externalAdId),
-          );
-          const sources = await this.adPerformanceService.upsertBatchAtomic(
-            remixable.map((creative) => ({
-              ...creative,
-              adPlatform: creative.platform,
-              organizationId,
-              brandId: query.brandId,
-              scope: 'organization',
-              researchSource: provider,
-              researchFreshnessState: 'fresh',
-              researchObservedAt: observedAt,
-              researchSnapshotId: `${id}:${token}`,
-              researchSnapshotKey: `discovery:${query.platform}`,
-              sourceClassification: buildPaidCreativeReferenceClassification({
-                adFormat: creative.adFormat,
-                capturedAt: observedAt,
-                creativeType: creative.creativeType,
-                platform: query.platform,
-                provider,
-                sourceAuthor: creative.advertiserHandle,
-                sourceTimestamp: creative.presentationStartDate,
-                sourceTopic: creative.advertiserName ?? query.keyword,
-              }),
-            })),
-          );
-          remixable.forEach((creative, index) => {
-            sourceIds.set(creative, sources[index].id);
-          });
-        }
-        const response: AdsDiscoveryResponse = {
-          ...base,
-          status: advertisers.length ? 'ready' : 'empty',
-          advertisers: query.brandId
-            ? groupDiscoveryAdvertisers(
-                records,
-                query.platform,
-                observedAt,
-                sourceIds,
-              )
-            : advertisers,
-          sampleCount: advertisers.reduce(
-            (sum, item) => sum + item.creativeCount,
-            0,
-          ),
-        };
         await this.cache.setOwnedClaimValue(
           claimKey,
           token,
