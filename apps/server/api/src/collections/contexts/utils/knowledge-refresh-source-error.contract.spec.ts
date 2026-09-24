@@ -4,9 +4,9 @@ import {
 } from '@api/collections/contexts/utils/knowledge-refresh-source-error.util';
 import { HttpExceptionFilter } from '@api/helpers/filters/http-exception/http-exception.filter';
 import { KnowledgeBaseCategory } from '@genfeedai/contracts';
+import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import type { ArgumentsHost } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
 import * as Sentry from '@sentry/nestjs';
 
 vi.mock('@sentry/nestjs', () => ({ captureException: vi.fn() }));
@@ -34,8 +34,8 @@ describe('knowledge refresh source HTTP contract', () => {
     const response = { status: vi.fn().mockReturnThis(), json: vi.fn() };
     const request = {
       method: 'POST',
-      url: '/contexts/sources/source-1/refresh',
-      originalUrl: '/contexts/sources/source-1/refresh',
+      url: '/v1/knowledge-sources/source-1/refresh',
+      originalUrl: '/v1/knowledge-sources/source-1/refresh',
       headers: {},
       body: {},
     };
@@ -47,10 +47,12 @@ describe('knowledge refresh source HTTP contract', () => {
     };
     const filter = new HttpExceptionFilter(
       logger as unknown as LoggerService,
-      new ConfigService({
-        NODE_ENV: 'production',
-        SENTRY_ENVIRONMENT: 'production',
-      }),
+      {
+        get: (key: string) =>
+          key === 'NODE_ENV' || key === 'SENTRY_ENVIRONMENT'
+            ? 'production'
+            : undefined,
+      } as unknown as ConfigService,
     );
     filter.catch(failure, host as ArgumentsHost);
     expect(response.status).toHaveBeenCalledWith(422);

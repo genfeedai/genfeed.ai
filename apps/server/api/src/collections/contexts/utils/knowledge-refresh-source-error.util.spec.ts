@@ -106,6 +106,7 @@ describe('knowledge refresh extraction errors', () => {
       extractKnowledgeRefreshSourceText({
         category: KnowledgeBaseCategory.URL,
         capturedText: 'Captured content',
+        referenceUrl: 'https://example.com',
       }),
     ).resolves.toMatchObject({ text: 'Captured content' });
   });
