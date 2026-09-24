@@ -23,6 +23,7 @@ import {
   Undo2,
 } from 'lucide-react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import type { ReactElement, RefObject } from 'react';
 import {
   formatRelativeTime,
@@ -152,6 +153,7 @@ export function AgentThreadListRow({
   onPrefetch,
   onCancelPrefetch,
 }: AgentThreadListRowProps): ReactElement {
+  const translate = useTranslations('agent.threadList');
   const threadHref = getThreadHref(conv);
   const prefetchThreadRoute = useNavigationPrefetch(threadHref);
   const isActiveConversation = conv.id === activeThreadId;
@@ -174,7 +176,7 @@ export function AgentThreadListRow({
     statusMetaBase ??
     (isLocallyWorking
       ? {
-          label: 'Running',
+          label: translate('running'),
           tone: 'running' as const,
         }
       : null);
@@ -266,13 +268,13 @@ export function AgentThreadListRow({
               {activityIndicator}
               {conv.source === 'proactive' && (
                 <span className="shrink-0 rounded bg-muted px-1.5 py-0.5 text-2xs text-muted-foreground">
-                  Agent
+                  {translate('agent')}
                 </span>
               )}
               {conv.isPinned ? (
                 <Pin
                   className="size-3 shrink-0 -rotate-45 text-foreground/42"
-                  aria-label="Pinned conversation"
+                  aria-label={translate('pinned')}
                 />
               ) : null}
               <span
@@ -351,7 +353,7 @@ export function AgentThreadListRow({
               }}
             >
               <CornerDownRight className="size-4" />
-              Fork thread
+              {translate('fork')}
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {
@@ -359,7 +361,7 @@ export function AgentThreadListRow({
               }}
             >
               <SquarePen className="size-4" />
-              Rename
+              {translate('rename')}
             </DropdownMenuItem>
             <DropdownMenuItem
               onSelect={() => {

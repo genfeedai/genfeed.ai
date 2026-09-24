@@ -5,6 +5,7 @@ import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
 import type { IAgentStrategyRunHistoryItem } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useMemo } from 'react';
 
 interface AgentActivityFeedProps {
@@ -41,7 +42,10 @@ function formatRunTime(dateStr: string): string {
   return date.toLocaleDateString('en-US', { timeZone: 'UTC' });
 }
 
-function getStatusBadge(status: string): {
+function getStatusBadge(
+  status: string,
+  translate: (key: 'completed' | 'failed' | 'budget') => string,
+): {
   className: string;
   label: string;
 } {
@@ -49,17 +53,17 @@ function getStatusBadge(status: string): {
     case 'completed':
       return {
         className: 'bg-success/10 text-green-500',
-        label: 'Completed',
+        label: translate('completed'),
       };
     case 'failed':
       return {
         className: 'bg-destructive/10 text-destructive',
-        label: 'Failed',
+        label: translate('failed'),
       };
     case 'budget_exhausted':
       return {
         className: 'bg-warning/10 text-warning',
-        label: 'Budget',
+        label: translate('budget'),
       };
     default:
       return { className: 'bg-muted text-muted-foreground', label: status };
@@ -75,6 +79,7 @@ export function AgentActivityFeed({
   isLoading: controlledLoading = false,
   error: controlledError,
 }: AgentActivityFeedProps): ReactElement {
+  const translate = useTranslations('agent.activityFeed');
   const strategy = useAgentStrategyStore((s) => s.strategy);
   const setStrategy = useAgentStrategyStore((s) => s.setStrategy);
   const storeLoading = useAgentStrategyStore((s) => s.isLoading);
@@ -130,7 +135,7 @@ export function AgentActivityFeed({
   if (error) {
     return (
       <p role="alert" className="p-4 text-sm text-destructive">
-        Could not load agent activity.
+        {translate('loadError')}
       </p>
     );
   }
@@ -146,9 +151,11 @@ export function AgentActivityFeed({
   if (runs.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-12 text-center">
-        <p className="text-sm font-medium text-foreground">No activity yet</p>
+        <p className="text-sm font-medium text-foreground">
+          {translate('empty')}
+        </p>
         <p className="text-xs text-muted-foreground">
-          Activity from agent runs will appear here.
+          {translate('emptyDescription')}
         </p>
       </div>
     );
@@ -157,12 +164,12 @@ export function AgentActivityFeed({
   return (
     <div className="space-y-1 p-4">
       <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Recent Activity
+        {translate('recent')}
       </h3>
 
       <div className="space-y-2">
         {runs.map((run) => {
-          const badge = getStatusBadge(run.status);
+          const badge = getStatusBadge(run.status, translate);
           return (
             <div
               key={run.startedAt}
@@ -176,7 +183,9 @@ export function AgentActivityFeed({
                 </span>
                 <div className="space-y-0.5">
                   <p className="text-xs font-medium text-foreground">
-                    {run.contentGenerated} content generated
+                    {translate('contentGenerated', {
+                      count: run.contentGenerated,
+                    })}
                   </p>
                   <p className="text-2xs text-muted-foreground">
                     {formatRunTime(run.startedAt)}
@@ -192,7 +201,7 @@ export function AgentActivityFeed({
 
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">
-                  {run.creditsUsed} credits
+                  {translate('credits', { count: run.creditsUsed })}
                 </span>
 
                 {run.executionId && getExecutionHref && (
@@ -200,7 +209,7 @@ export function AgentActivityFeed({
                     className="text-xs underline"
                     href={getExecutionHref(run.executionId)}
                   >
-                    View execution
+                    {translate('viewExecution')}
                   </Link>
                 )}
                 {run.threadId && getThreadHref && (
@@ -208,7 +217,7 @@ export function AgentActivityFeed({
                     className="text-xs underline"
                     href={getThreadHref(run.threadId)}
                   >
-                    View conversation
+                    {translate('viewConversation')}
                   </Link>
                 )}
                 {run.threadId && onViewThread && !getThreadHref && (
@@ -217,7 +226,7 @@ export function AgentActivityFeed({
                     size={ButtonSize.XS}
                     onClick={() => onViewThread(run.threadId as string)}
                   >
-                    View
+                    {translate('view')}
                   </Button>
                 )}
               </div>
