@@ -49,6 +49,49 @@ describe('ContentPreviewCard', () => {
     vi.useRealTimers();
   });
 
+  it('requests approval only when the user clicks the delivered draft action', () => {
+    const onUiAction = vi.fn();
+    render(
+      <ContentPreviewCard
+        onUiAction={onUiAction}
+        action={{
+          id: 'first-post',
+          type: 'content_preview_card',
+          tweets: ['A brand draft'],
+          images: ['https://cdn.test/first-post.png'],
+          ctas: [
+            {
+              label: 'Looks good',
+              action: 'send_prompt',
+              payload: {
+                prompt: 'I approve this draft. Show the optional X connection.',
+              },
+            },
+          ],
+        }}
+      />,
+    );
+    expect(onUiAction).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole('button', { name: 'Looks good' }));
+    expect(onUiAction).toHaveBeenCalledWith('send_prompt', {
+      prompt: 'I approve this draft. Show the optional X connection.',
+    });
+  });
+
+  it('does not enable draft actions in an inert preview', () => {
+    render(
+      <ContentPreviewCard
+        action={{
+          id: 'first-post',
+          type: 'content_preview_card',
+          tweets: ['A brand draft'],
+          ctas: [{ label: 'Looks good', action: 'send_prompt' }],
+        }}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'Looks good' })).toBeDisabled();
+  });
+
   it('reconciles an accepted image asset into the persisted conversation card', async () => {
     vi.useFakeTimers();
     const getGeneratedAsset = vi

@@ -39,6 +39,7 @@ type AgentChatEmptyStateProps = {
   isBusy: boolean;
   isComposerVisible: boolean;
   composerBanner?: ReactNode;
+  composerPaddingPx?: number;
   isReadOnly: boolean;
   isRunActive: boolean;
   isWideLayout: boolean;
@@ -82,6 +83,7 @@ export function AgentChatEmptyState({
   isBusy,
   isComposerVisible,
   composerBanner,
+  composerPaddingPx,
   isReadOnly,
   isRunActive,
   isWideLayout,
@@ -148,7 +150,10 @@ export function AgentChatEmptyState({
 
   return (
     <div className="relative flex min-h-0 flex-1 overflow-hidden">
-      <div className="flex min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-6">
+      <div
+        className="flex min-h-0 flex-1 overflow-y-auto px-4 py-8 md:px-6"
+        style={{ paddingBottom: composerPaddingPx }}
+      >
         <div
           className={cn(
             'mx-auto flex h-full w-full max-w-2xl flex-col items-center justify-center',

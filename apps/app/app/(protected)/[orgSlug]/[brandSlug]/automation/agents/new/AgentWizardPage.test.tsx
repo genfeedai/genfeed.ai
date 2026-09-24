@@ -292,6 +292,19 @@ describe('AgentWizardPage', () => {
     });
   });
 
+  it('prefills voice from an existing onboarding text audience', () => {
+    mocks.brands = [
+      {
+        id: 'brand-1',
+        label: 'Acme',
+        agentConfig: { voice: { audience: 'Founders' } },
+      },
+    ];
+    render(<AgentWizardPage />);
+    fireEvent.click(screen.getByRole('button', { name: /Configure/i }));
+    expect(screen.getByDisplayValue('Audience: Founders')).toBeInTheDocument();
+  });
+
   it('creates an agent from selected type, brand defaults, and review settings', async () => {
     render(<AgentWizardPage isEmbedded />);
 

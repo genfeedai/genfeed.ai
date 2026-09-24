@@ -736,8 +736,15 @@
       "sending": "Sending"
     },
     "onboardingComposerCard": {
-      "description": "Paste a site or handle in the prompt, or type what you make. The first reply should be an image.",
-      "title": "Tell the agent what you create"
+      "description": "An image and a tweet first. Refine them here, then connect an account when you’re ready to publish.",
+      "title": "Made for your brand"
+    },
+    "onboardingShell": {
+      "brandName": "Genfeed",
+      "openingWorkspace": "Opening workspace…",
+      "skip": "Skip to workspace",
+      "skipError": "Could not finish setup. Please try again.",
+      "subtitle": "Your first brand post"
     }
   },
   "automation": {

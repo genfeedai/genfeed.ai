@@ -1315,13 +1315,13 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('surface-fixed')).toBeInTheDocument();
   });
 
-  it('uses a paste-or-type placeholder on onboarding', () => {
+  it('invites refinement of the first brand draft during onboarding', () => {
     render(
       <AgentFullPage apiService={createApiService() as never} onboardingMode />,
     );
 
     expect(
-      screen.getByText('Paste a site or handle, or type what you make...'),
+      screen.getByText('Tell us what to change, or ask for another version…'),
     ).toBeInTheDocument();
   });
 
@@ -1384,7 +1384,7 @@ describe('AgentFullPage', () => {
     expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 
-  it('keeps onboarding dual-column setup chrome when setup is incomplete', () => {
+  it('keeps onboarding focused on the draft while setup is incomplete', () => {
     setupStatusState.showSetupPanel = true;
     storeState.messages = [];
 
@@ -1392,9 +1392,9 @@ describe('AgentFullPage', () => {
       <AgentFullPage apiService={createApiService() as never} onboardingMode />,
     );
 
-    expect(screen.getAllByText('agent-setup-panel').length).toBeGreaterThan(0);
+    expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
     expect(screen.queryByText('agent-outputs-panel')).not.toBeInTheDocument();
-    expect(screen.getByText('standard-layout')).toBeInTheDocument();
+    expect(screen.getByText('wide-layout')).toBeInTheDocument();
   });
 
   it('prioritizes thread outputs over the setup panel in onboarding when both apply', () => {
@@ -1414,9 +1414,7 @@ describe('AgentFullPage', () => {
       <AgentFullPage apiService={createApiService() as never} onboardingMode />,
     );
 
-    expect(screen.getAllByText('agent-outputs-panel').length).toBeGreaterThan(
-      0,
-    );
+    expect(screen.queryByText('agent-outputs-panel')).not.toBeInTheDocument();
     expect(screen.queryByText('agent-setup-panel')).not.toBeInTheDocument();
   });
 });

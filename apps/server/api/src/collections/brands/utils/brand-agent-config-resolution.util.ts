@@ -19,6 +19,8 @@ import {
   RouterPriority,
 } from '@genfeedai/contracts';
 
+import { normalizeBrandAudience } from '@genfeedai/helpers/brand-audience.helper';
+
 type BrandSource = Pick<Brand, 'agentConfig'> | null | undefined;
 type AgentStrategySource =
   | Pick<
@@ -174,6 +176,17 @@ const asBrandAgentConfig = (value: unknown): BrandAgentConfig | undefined => {
   return value as BrandAgentConfig;
 };
 
+const normalizeVoiceAudience = (
+  voice: Partial<BrandAgentVoice>,
+): Partial<BrandAgentVoice> => {
+  const audience: unknown = voice.audience;
+  if (audience === undefined) {
+    return voice;
+  }
+
+  return { ...voice, audience: normalizeBrandAudience(audience) };
+};
+
 export const resolveEffectiveBrandAgentConfig = ({
   brand,
   organizationSettings,
@@ -222,10 +235,10 @@ export const resolveEffectiveBrandAgentConfig = ({
         }
       : undefined,
     voice: hasVoiceConfig
-      ? {
+      ? normalizeVoiceAudience({
           ...(brandAgentConfig?.voice ?? {}),
           ...(platformOverride?.voice ?? {}),
-        }
+        })
       : undefined,
   };
 };

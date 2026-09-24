@@ -263,7 +263,7 @@ export class BrandsService extends BaseService<Brand> {
         sampleOutput?: string;
         tone?: string;
         style?: string;
-        audience?: string[] | string;
+        audience?: string[];
         values?: string[];
         taglines?: string[];
         hashtags?: string[];
@@ -305,7 +305,7 @@ export class BrandsService extends BaseService<Brand> {
             sampleOutput?: string;
             tone?: string;
             style?: string;
-            audience?: string[] | string;
+            audience?: string[];
             values?: string[];
             taglines?: string[];
             hashtags?: string[];
@@ -640,7 +640,7 @@ export class BrandsService extends BaseService<Brand> {
     options: {
       agentConfig?: {
         voice?: {
-          audience?: string[] | string;
+          audience?: string[];
           tone?: string;
         };
       };

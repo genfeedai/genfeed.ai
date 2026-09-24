@@ -1,9 +1,10 @@
 import { brandPath, orgPath } from '@e2e/utils/app-chrome';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import { playwrightApiEndpoint } from '../../config/environment';
 import { expect, test } from '../../fixtures/onboarding.fixture';
 import { OnboardingPage } from '../../pages/onboarding.page';
 
-const ONBOARDING_API_ENDPOINT = 'https://api.genfeed.ai/v1';
+const ONBOARDING_API_ENDPOINT = playwrightApiEndpoint;
 const AGENT_HANDOFF_PATH = orgPath(APP_ROUTES.AGENT.ONBOARDING);
 
 /**
@@ -17,6 +18,67 @@ const AGENT_HANDOFF_PATH = orgPath(APP_ROUTES.AGENT.ONBOARDING);
  */
 
 test.describe('Onboarding Flow', () => {
+  for (const viewport of [
+    { width: 1440, height: 900 },
+    { width: 390, height: 844 },
+  ]) {
+    test(`keeps brand setup compact at ${viewport.width}px`, async ({
+      onboardingPage,
+    }, testInfo) => {
+      await onboardingPage.setViewportSize(viewport);
+      await onboardingPage.emulateMedia({ reducedMotion: 'reduce' });
+      const wizard = new OnboardingPage(onboardingPage);
+      await wizard.waitForStep(1);
+      await expect(onboardingPage.getByRole('textbox')).toHaveCount(0);
+      await onboardingPage.screenshot({
+        path: testInfo.outputPath(`brand-profile-${viewport.width}.png`),
+        fullPage: true,
+      });
+      await wizard.openBrandDetails();
+      await expect(onboardingPage.getByRole('textbox')).toHaveCount(2);
+      await wizard.websiteUrlInput.fill('acme-studio.com');
+      await expect(wizard.brandNameInput).toHaveValue('Acme Studio');
+      await wizard.brandNameInput.fill('My Studio');
+      await wizard.websiteUrlInput.fill('another-domain.com');
+      await expect(wizard.brandNameInput).toHaveValue('My Studio');
+      await onboardingPage.screenshot({
+        path: testInfo.outputPath(`brand-details-${viewport.width}.png`),
+        fullPage: true,
+      });
+      await wizard.clickContinue();
+      await expect(wizard.headline).toHaveText('Give it your voice.');
+      await expect(wizard.headline).toBeFocused();
+      await expect(onboardingPage.getByRole('textbox')).toHaveCount(0);
+      await expect(
+        onboardingPage.getByRole('button', { name: 'Founders', exact: true }),
+      ).toBeVisible();
+      await expect(
+        onboardingPage.getByRole('button', { name: 'Bold', exact: true }),
+      ).toBeVisible();
+      await expect(wizard.continueButton).toBeEnabled();
+      await expect(wizard.skipButton).toBeVisible();
+      await expect(onboardingPage.locator('body')).toHaveJSProperty(
+        'scrollWidth',
+        viewport.width,
+      );
+      const nextBounds = await wizard.continueButton.boundingBox();
+      expect(nextBounds).not.toBeNull();
+      expect(
+        (nextBounds?.y ?? Infinity) + (nextBounds?.height ?? Infinity),
+      ).toBeLessThan(viewport.height);
+      await onboardingPage.screenshot({
+        path: testInfo.outputPath(`brand-voice-${viewport.width}.png`),
+        fullPage: true,
+      });
+      await wizard.clickBack();
+      await expect(wizard.brandNameInput).toHaveValue('My Studio');
+      await expect(wizard.websiteUrlInput).toHaveValue('another-domain.com');
+      await wizard.clickBack();
+      await expect(wizard.headline).toHaveText('What do you create for?');
+      await expect(wizard.headline).toBeFocused();
+    });
+  }
+
   test('keeps onboarding progress stateful when generic user mocks also match', async ({
     onboardingPage,
   }) => {
@@ -69,7 +131,6 @@ test.describe('Onboarding Flow', () => {
       await page.assertOnStep(1);
       await page.fillBrand({
         brandName: 'Test Brand',
-        organizationName: 'Test Org',
       });
       await page.clickContinue();
       await onboardingPage.waitForLoadState('domcontentloaded');
@@ -100,14 +161,15 @@ test.describe('Onboarding Flow', () => {
   });
 
   test.describe('Step 1: Brand', () => {
-    test('should display brand and organization fields', async ({
+    test('should show website and a single shared name on the second step', async ({
       onboardingPage,
     }) => {
       const page = new OnboardingPage(onboardingPage);
       await page.waitForStep(1);
 
+      await page.openBrandDetails();
       await expect(page.brandNameInput).toBeVisible();
-      await expect(page.organizationNameInput).toBeVisible();
+      await expect(onboardingPage.locator('#organization-name')).toHaveCount(0);
       await expect(page.websiteUrlInput).toBeVisible();
     });
 
@@ -115,7 +177,7 @@ test.describe('Onboarding Flow', () => {
       const page = new OnboardingPage(onboardingPage);
       await page.waitForStep(1);
 
-      await expect(page.headline).toContainText('Set up your brand');
+      await expect(page.headline).toContainText('What do you create for?');
     });
 
     test('should disable continue when required fields are empty', async ({
@@ -124,13 +186,13 @@ test.describe('Onboarding Flow', () => {
       const page = new OnboardingPage(onboardingPage);
       await page.waitForStep(1);
 
+      await page.openBrandDetails();
       await page.brandNameInput.clear();
-      await page.organizationNameInput.clear();
 
       await expect(page.continueButton).toBeDisabled();
     });
 
-    test('should hand off to the agent with brand and organization', async ({
+    test('should hand off to the agent with a shared brand and organization name', async ({
       onboardingPage,
     }) => {
       const page = new OnboardingPage(onboardingPage);
@@ -138,7 +200,6 @@ test.describe('Onboarding Flow', () => {
 
       await page.fillBrand({
         brandName: 'My Test Brand',
-        organizationName: 'My Test Org',
       });
       await page.clickContinue();
 

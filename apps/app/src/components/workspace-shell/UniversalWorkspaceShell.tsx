@@ -1089,7 +1089,12 @@ function UniversalWorkspaceShellContent({
         shellState={state}
       >
         <div
-          className="relative min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] overflow-hidden bg-background"
+          className={cn(
+            'relative overflow-hidden bg-background',
+            isFocusedOnboardingRoute
+              ? 'min-h-[calc(100dvh-var(--desktop-titlebar-height))]'
+              : 'min-h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)]',
+          )}
           data-shell-state={state}
           data-workspace-surface={surfaceKey}
           data-testid="universal-workspace-shell"
@@ -1102,7 +1107,12 @@ function UniversalWorkspaceShellContent({
           </div>
 
           <div
-            className="h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)] min-h-0"
+            className={cn(
+              'min-h-0',
+              isFocusedOnboardingRoute
+                ? 'h-[calc(100dvh-var(--desktop-titlebar-height))]'
+                : 'h-[calc(100dvh-var(--desktop-titlebar-height)-3rem)]',
+            )}
             data-testid="workspace-shell-regions"
           >
             {/* The route owns the canvas. Only the conversation route overlays

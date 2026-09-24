@@ -39,6 +39,7 @@ const THREAD_ID = testId('thread');
 
 function createService(options?: {
   brandContext?: { defaultModel?: string } | null;
+  initialBrandId?: string;
   builtSystemPrompt?: string;
   orgSettings?: { agentReplyStyle?: string } | null;
   thread?: { memoryEntryIds?: string[]; systemPrompt?: string } | null;
@@ -53,7 +54,7 @@ function createService(options?: {
     {
       prepareForTurn: vi.fn().mockResolvedValue({
         existingScope: null,
-        initialBrandId: undefined,
+        initialBrandId: options?.initialBrandId,
       }),
     } as never,
     {
@@ -129,6 +130,19 @@ describe('AgentOrchestratorContextService brand context layers (#3019)', () => {
 });
 
 describe('AgentOrchestratorContextService onboarding prompt selection', () => {
+  it('grounds onboarding in the already selected brand context and ID', async () => {
+    vi.stubEnv('GENFEED_CLOUD', '1');
+    const result = await createService({
+      brandContext: {},
+      initialBrandId: 'brand-1',
+    }).resolveSystemPromptAndModel(ONBOARDING_REQUEST, CONTEXT);
+    expect(result.systemPrompt).toContain(
+      `assembled:${ONBOARDING_SYSTEM_PROMPT}`,
+    );
+    expect(result.systemPrompt).toContain('Current brand ID: brand-1');
+    expectSharedScopeGuardrail(result.systemPrompt);
+  });
+
   it('uses the Community prompt for self-hosted onboarding', async () => {
     vi.stubEnv('GENFEED_CLOUD', undefined);
     vi.stubEnv('NEXT_PUBLIC_GENFEED_CLOUD', undefined);

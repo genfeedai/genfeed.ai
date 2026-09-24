@@ -55,7 +55,7 @@ export function AgentChatSuggestionsBar({
       variant={hasDescriptions ? 'cards' : 'chips'}
       className={
         layout === 'equal' && !hasDescriptions
-          ? 'grid grid-cols-1 sm:grid-cols-3 [&>button]:w-full [&>button]:max-w-none [&>button]:rounded-lg [&>button]:border-0 [&>button]:bg-transparent [&>button]:shadow-none [&>button]:hover:bg-hover'
+          ? 'grid grid-cols-1 sm:grid-cols-3 [&>button]:w-full [&>button]:max-w-none'
           : undefined
       }
     />

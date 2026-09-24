@@ -144,6 +144,7 @@ export function UiActionRenderer({
           action={action}
           apiService={apiService}
           onCopy={liveOnCopy}
+          onUiAction={liveOnUiAction}
         />
       );
       break;

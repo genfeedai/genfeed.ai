@@ -22,7 +22,7 @@ describe('COMMUNITY_ONBOARDING_SYSTEM_PROMPT', () => {
       'When providers are configured but none is image-capable',
     );
     expect(COMMUNITY_ONBOARDING_SYSTEM_PROMPT).toContain(
-      'Only after providerReadiness confirms an image-capable provider, use generate_image',
+      'Only after providerReadiness confirms an image-capable provider, use generate_onboarding_content',
     );
   });
 

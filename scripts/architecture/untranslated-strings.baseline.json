@@ -2,7 +2,6 @@
   "version": 1,
   "files": {
     "apps/app/app/(onboarding)/layout.tsx": 2,
-    "apps/app/app/(onboarding)/onboarding/(wizard)/brand/brand-step-header.tsx": 3,
     "apps/app/app/(onboarding)/onboarding/(wizard)/layout.tsx": 3,
     "apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-error-state.tsx": 4,
     "apps/app/app/(onboarding)/onboarding/(wizard)/proactive/proactive-hero-card.tsx": 6,

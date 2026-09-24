@@ -94,16 +94,28 @@ export const AGENT_ONBOARDING_TOOLS: SourceTool[] = [
   {
     creditCost: 0,
     description:
-      'Generate sample content during onboarding — 3 tweets + 3 images using cheap models. Credits are deducted from free signup balance. Returns preview URLs and text.',
+      'Generate one brand-specific tweet and one cost-priority image for review during onboarding. No social connection is needed. Returns actual preview URLs and text; ask for approval before offering account connection.',
     name: 'generate_onboarding_content',
     parameters: {
       properties: {
         brandId: {
-          description: 'Brand ID to generate content for',
+          description: 'Brand ID; omit to use the current conversation brand',
           type: 'string',
         },
+        direction: {
+          description:
+            'Optional creative direction or requested changes to the draft, grounded in the saved brand.',
+          type: 'string',
+          maxLength: 2000,
+        },
+        retryTweet: {
+          description:
+            'Retry only the image for this exact previously generated tweet; reuse the text without another text generation.',
+          type: 'string',
+          maxLength: 280,
+        },
       },
-      required: ['brandId'],
+      required: [],
       type: 'object',
     },
     requiredRole: 'user',
