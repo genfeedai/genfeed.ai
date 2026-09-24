@@ -1,4 +1,5 @@
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import {
   AgentThreadEngineService,
@@ -13,7 +14,7 @@ import type { StructuredProgressDebugPayload } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const CHANNEL = 'agent-chat';
 
@@ -204,6 +205,59 @@ export class AgentStreamPublisherService {
     }
 
     await this.agentThreadEngineService.appendEvent(params);
+  }
+
+  async publishTurnPhase(data: {
+    organizationId: string;
+    phase: 'preparing' | 'waiting_for_lane';
+    runId: string;
+    threadId: string;
+    timestamp: string;
+    userId: string;
+  }): Promise<void> {
+    if (!this.agentThreadsService) {
+      throw new Error('Threads service is required to publish turn phases');
+    }
+    if (!EntityIdUtil.isValid(data.threadId)) {
+      throw new BadRequestException('Invalid threadId');
+    }
+    if (!EntityIdUtil.isValid(data.organizationId)) {
+      throw new BadRequestException('Invalid organizationId');
+    }
+    if (!data.userId || data.userId.trim() === '') {
+      throw new BadRequestException('Invalid userId');
+    }
+    // Keep phases transient: this run has not acquired the execution lane.
+    const thread = await this.agentThreadsService.findOne({
+      id: data.threadId,
+      organizationId: data.organizationId,
+      userId: data.userId,
+      isDeleted: false,
+    });
+    if (!thread) {
+      throw new NotFoundException(`Thread "${data.threadId}" not found`);
+    }
+    const label =
+      data.phase === 'preparing'
+        ? 'Agent preparing response'
+        : 'Agent acquiring execution lane';
+    const payload = {
+      label,
+      phase: data.phase,
+      status: 'running' as const,
+      timestamp: data.timestamp,
+    };
+    await this.redisService.publish(CHANNEL, {
+      data: {
+        ...payload,
+        event: 'started',
+        organizationId: data.organizationId,
+        runId: data.runId,
+        threadId: data.threadId,
+        userId: data.userId,
+      },
+      type: 'agent:work_event',
+    });
   }
 
   async publishStreamStart(data: {

@@ -23,6 +23,22 @@ export class AgentStreamEffectsService {
     private readonly prisma: PrismaService,
   ) {}
 
+  async publishTurnPhase(
+    data: Parameters<AgentStreamPublisherService['publishTurnPhase']>[0],
+  ): Promise<void> {
+    try {
+      await this.streamPublisher.publishTurnPhase(data);
+    } catch {
+      this.loggerService.warn(
+        `${this.constructorName} turn phase publish failed`,
+        {
+          phase: data.phase.replace(/[^a-z_]/g, ''),
+          runId: data.runId.replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 128),
+        },
+      );
+    }
+  }
+
   async publishStreamLifecycleStarted(params: {
     context: AgentChatContext;
     model: string;

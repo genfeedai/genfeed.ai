@@ -77,3 +77,36 @@ describe('durable failure publication', () => {
     );
   });
 });
+
+describe('best-effort turn phases', () => {
+  it('forwards scoped phases and contains failures without logging request content or raw errors', async () => {
+    const publisher = { publishTurnPhase: vi.fn() };
+    const logger = { warn: vi.fn() };
+    const service = new AgentStreamEffectsService(
+      publisher as never,
+      logger as never,
+      {} as never,
+    );
+    const data = {
+      organizationId: 'org-1',
+      phase: 'preparing' as const,
+      runId: 'run-1',
+      threadId: 'thread-1',
+      timestamp: '2026-09-24T10:00:00.000Z',
+      userId: 'user-1',
+    };
+    await service.publishTurnPhase(data);
+    expect(publisher.publishTurnPhase).toHaveBeenCalledWith(data);
+    expect(logger.warn).not.toHaveBeenCalled();
+    publisher.publishTurnPhase.mockRejectedValueOnce(
+      new Error('Bearer secret request content'),
+    );
+    await expect(
+      service.publishTurnPhase({ ...data, runId: 'run-1\n\t' }),
+    ).resolves.toBeUndefined();
+    expect(logger.warn).toHaveBeenCalledWith(
+      'AgentStreamEffectsService turn phase publish failed',
+      { phase: 'preparing', runId: 'run-1' },
+    );
+  });
+});
