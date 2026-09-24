@@ -1,4 +1,5 @@
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { EntityIdUtil } from '@api/helpers/utils/entity-id/entity-id.util';
 import {
   AgentThreadEngineService,
@@ -13,7 +14,7 @@ import type { StructuredProgressDebugPayload } from '@genfeedai/utils/server';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { RedisService } from '@libs/redis/redis.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const CHANNEL = 'agent-chat';
 
@@ -214,8 +215,27 @@ export class AgentStreamPublisherService {
     timestamp: string;
     userId: string;
   }): Promise<void> {
-    if (!this.agentThreadEngineService) {
-      throw new Error('Thread engine is required to publish turn phases');
+    if (!this.agentThreadsService) {
+      throw new Error('Threads service is required to publish turn phases');
+    }
+    if (!EntityIdUtil.isValid(data.threadId)) {
+      throw new BadRequestException('Invalid threadId');
+    }
+    if (!EntityIdUtil.isValid(data.organizationId)) {
+      throw new BadRequestException('Invalid organizationId');
+    }
+    if (!data.userId || data.userId.trim() === '') {
+      throw new BadRequestException('Invalid userId');
+    }
+    // Keep phases transient: this run has not acquired the execution lane.
+    const thread = await this.agentThreadsService.findOne({
+      id: data.threadId,
+      organizationId: data.organizationId,
+      userId: data.userId,
+      isDeleted: false,
+    });
+    if (!thread) {
+      throw new NotFoundException(`Thread "${data.threadId}" not found`);
     }
     const label =
       data.phase === 'preparing'
@@ -227,17 +247,6 @@ export class AgentStreamPublisherService {
       status: 'running' as const,
       timestamp: data.timestamp,
     };
-    await this.agentThreadEngineService.appendEvent({
-      commandId: `turn-phase:${data.threadId}:${data.runId}:${data.phase}`,
-      metadata: { origin: 'stream-publisher' },
-      occurredAt: data.timestamp,
-      organizationId: data.organizationId,
-      payload,
-      runId: data.runId,
-      threadId: data.threadId,
-      type: 'work.updated',
-      userId: data.userId,
-    });
     await this.redisService.publish(CHANNEL, {
       data: {
         ...payload,

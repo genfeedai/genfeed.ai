@@ -63,6 +63,9 @@ describe('AgentStreamPublisherService', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    mockAgentThreadsService.findOne.mockReset();
+    mockAgentThreadEngineService.appendEvent.mockReset();
+    mockAgentThreadEngineService.appendEvent.mockResolvedValue(undefined);
     vi.useFakeTimers();
     mockConfigService.get.mockReturnValue(undefined);
     mockRedisService.publish.mockResolvedValue(undefined);
@@ -272,15 +275,19 @@ describe('AgentStreamPublisherService', () => {
       userId: testId('user'),
     };
 
-    it('authorizes and persists scoped non-lifecycle phases before live fan-out', async () => {
+    beforeEach(() => {
+      mockAgentThreadsService.findOne.mockResolvedValue({
+        organizationId: data.organizationId,
+      });
+      mockAgentThreadEngineService.appendEvent.mockResolvedValue(undefined);
+    });
+
+    it('authorizes both scoped transient phases before live fan-out without appending events', async () => {
       for (const phase of ['preparing', 'waiting_for_lane'] as const) {
         await service.publishTurnPhase({ ...data, phase });
       }
-      const calls = mockAgentThreadEngineService.appendEvent.mock.calls;
-      expect(calls.map(([event]) => event.commandId)).toEqual([
-        `turn-phase:${data.threadId}:run-1:preparing`,
-        `turn-phase:${data.threadId}:run-1:waiting_for_lane`,
-      ]);
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+      expect(mockAgentThreadsService.findOne).toHaveBeenCalledTimes(2);
       for (const [index, phase] of [
         'preparing',
         'waiting_for_lane',
@@ -289,22 +296,14 @@ describe('AgentStreamPublisherService', () => {
           index === 0
             ? 'Agent preparing response'
             : 'Agent acquiring execution lane';
-        expect(calls[index][0]).toEqual({
-          commandId: `turn-phase:${data.threadId}:run-1:${phase}`,
-          metadata: { origin: 'stream-publisher' },
-          occurredAt: data.timestamp,
-          organizationId: data.organizationId,
-          payload: {
-            label,
-            phase,
-            status: 'running',
-            timestamp: data.timestamp,
+        expect(mockAgentThreadsService.findOne.mock.calls[index]).toEqual([
+          {
+            id: data.threadId,
+            isDeleted: false,
+            organizationId: data.organizationId,
+            userId: data.userId,
           },
-          runId: data.runId,
-          threadId: data.threadId,
-          type: 'work.updated',
-          userId: data.userId,
-        });
+        ]);
         expect(mockRedisService.publish.mock.calls[index]).toEqual([
           CHANNEL,
           {
@@ -319,46 +318,95 @@ describe('AgentStreamPublisherService', () => {
           },
         ]);
         expect(
-          mockAgentThreadEngineService.appendEvent.mock.invocationCallOrder[
-            index
-          ],
+          mockAgentThreadsService.findOne.mock.invocationCallOrder[index],
         ).toBeLessThan(
           mockRedisService.publish.mock.invocationCallOrder[index],
         );
       }
-      expect(mockAgentThreadsService.findOne).not.toHaveBeenCalled();
     });
 
-    it('reuses the durable command key when the same phase is replayed', async () => {
-      await service.publishTurnPhase(data);
-      await service.publishTurnPhase({
-        ...data,
-        timestamp: '2026-09-24T10:00:01.000Z',
-      });
-      const calls = mockAgentThreadEngineService.appendEvent.mock.calls;
-      expect(calls[1][0].commandId).toBe(calls[0][0].commandId);
-      expect(calls[1][0].type).toBe('work.updated');
+    it('never persists repeated phases', async () => {
+      for (const phase of ['preparing', 'waiting_for_lane'] as const) {
+        await service.publishTurnPhase({ ...data, phase });
+        await service.publishTurnPhase({
+          ...data,
+          phase,
+          timestamp: '2026-09-24T10:00:01.000Z',
+        });
+      }
+      expect(mockAgentThreadsService.findOne).toHaveBeenCalledTimes(4);
+      expect(mockRedisService.publish).toHaveBeenCalledTimes(4);
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
 
-    it('does not fan out after scoped authorization or persistence rejects', async () => {
-      mockAgentThreadEngineService.appendEvent.mockRejectedValueOnce(
+    it.each([
+      { threadId: 'invalid-thread' },
+      { organizationId: 'invalid-organization' },
+      { userId: '' },
+      { userId: ' \t\n' },
+    ])(
+      'rejects invalid scope before lookup or fan-out: %j',
+      async (invalidScope) => {
+        await expect(
+          service.publishTurnPhase({ ...data, ...invalidScope }),
+        ).rejects.toThrow();
+        expect(mockAgentThreadsService.findOne).not.toHaveBeenCalled();
+        expect(mockRedisService.publish).not.toHaveBeenCalled();
+        expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+      },
+    );
+
+    it('does not fan out when scoped authorization rejects', async () => {
+      mockAgentThreadsService.findOne.mockRejectedValueOnce(
         new Error('Access denied'),
       );
       await expect(service.publishTurnPhase(data)).rejects.toThrow(
         'Access denied',
       );
       expect(mockRedisService.publish).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
 
-    it('fails closed when the authorizing thread engine is unavailable', async () => {
-      const withoutEngine = new AgentStreamPublisherService(
+    it.each([
+      'foreign organization',
+      'foreign user',
+      'deleted thread',
+      'absent thread',
+    ])('does not fan out when authorization finds no matching %s', async () => {
+      mockAgentThreadsService.findOne.mockResolvedValueOnce(null);
+      await expect(service.publishTurnPhase(data)).rejects.toThrow();
+      expect(mockAgentThreadsService.findOne).toHaveBeenCalledExactlyOnceWith({
+        id: data.threadId,
+        isDeleted: false,
+        organizationId: data.organizationId,
+        userId: data.userId,
+      });
+      expect(mockRedisService.publish).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+    });
+
+    it('authorizes a valid opaque user identifier without entity-id validation', async () => {
+      await service.publishTurnPhase({ ...data, userId: 'opaque-user-id' });
+      expect(mockAgentThreadsService.findOne).toHaveBeenCalledExactlyOnceWith({
+        id: data.threadId,
+        isDeleted: false,
+        organizationId: data.organizationId,
+        userId: 'opaque-user-id',
+      });
+      expect(mockRedisService.publish).toHaveBeenCalledOnce();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+    });
+
+    it('fails closed when the authorizing threads service is unavailable', async () => {
+      const withoutThreads = new AgentStreamPublisherService(
         mockRedisService as unknown as PublisherDependencies[0],
         mockLoggerService as unknown as PublisherDependencies[1],
+        undefined,
+        mockAgentThreadEngineService as unknown as PublisherDependencies[3],
       );
-      await expect(withoutEngine.publishTurnPhase(data)).rejects.toThrow(
-        'Thread engine is required',
-      );
+      await expect(withoutThreads.publishTurnPhase(data)).rejects.toThrow();
       expect(mockRedisService.publish).not.toHaveBeenCalled();
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
     });
 
     it('propagates transport failures to the best-effort effects wrapper', async () => {
@@ -367,6 +415,86 @@ describe('AgentStreamPublisherService', () => {
       );
       await expect(service.publishTurnPhase(data)).rejects.toThrow(
         'Redis unavailable',
+      );
+      expect(mockAgentThreadEngineService.appendEvent).not.toHaveBeenCalled();
+    });
+
+    it('publishes another run phases while the active run durable tool append is blocked', async () => {
+      let releaseAppend!: () => void;
+      let enteredAppend!: () => void;
+      const appendBlocked = new Promise<void>((resolve) => {
+        releaseAppend = resolve;
+      });
+      const appendEntered = new Promise<void>((resolve) => {
+        enteredAppend = resolve;
+      });
+      let activeAppendCompleted = false;
+      mockAgentThreadEngineService.appendEvent.mockImplementationOnce(
+        async () => {
+          enteredAppend();
+          await appendBlocked;
+          activeAppendCompleted = true;
+        },
+      );
+      const activeTool = service.publishToolStart({
+        parameters: {},
+        runId: 'active-run',
+        threadId: data.threadId,
+        toolCallId: 'active-tool',
+        toolName: 'search',
+        userId: data.userId,
+      });
+      await appendEntered;
+      try {
+        for (const phase of ['preparing', 'waiting_for_lane'] as const) {
+          await service.publishTurnPhase({
+            ...data,
+            phase,
+            runId: 'queued-run',
+          });
+        }
+        expect(activeAppendCompleted).toBe(false);
+        expect(mockAgentThreadEngineService.appendEvent).toHaveBeenCalledOnce();
+        expect(
+          mockRedisService.publish.mock.calls.map(([, envelope]) => ({
+            type: envelope.type,
+            phase: envelope.data.phase,
+            runId: envelope.data.runId,
+          })),
+        ).toEqual([
+          { type: 'agent:work_event', phase: 'preparing', runId: 'queued-run' },
+          {
+            type: 'agent:work_event',
+            phase: 'waiting_for_lane',
+            runId: 'queued-run',
+          },
+        ]);
+      } finally {
+        releaseAppend();
+        await activeTool;
+      }
+      expect(activeAppendCompleted).toBe(true);
+      expect(
+        mockAgentThreadEngineService.appendEvent,
+      ).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({
+          commandId: 'tool-start:active-tool',
+          organizationId: data.organizationId,
+          runId: 'active-run',
+          threadId: data.threadId,
+          type: 'tool.started',
+          userId: data.userId,
+        }),
+      );
+      expect(mockRedisService.publish).toHaveBeenLastCalledWith(
+        CHANNEL,
+        expect.objectContaining({
+          type: 'agent:tool_start',
+          data: expect.objectContaining({
+            runId: 'active-run',
+            toolCallId: 'active-tool',
+          }),
+        }),
       );
     });
   });
