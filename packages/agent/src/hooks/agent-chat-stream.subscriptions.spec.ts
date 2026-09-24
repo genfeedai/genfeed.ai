@@ -17,6 +17,7 @@ function makeDeps(overrides: Partial<StreamSubscriptionDeps> = {}): {
   const handlers = new Map<string, Handler[]>();
 
   const deps: StreamSubscriptionDeps = {
+    activeStreamRunIdRef: { current: null },
     activeStreamThreadRef: { current: 'thread-1' },
     addActiveToolCall: vi.fn(),
     addPendingUiActions: vi.fn(),
@@ -29,6 +30,7 @@ function makeDeps(overrides: Partial<StreamSubscriptionDeps> = {}): {
     resolvePendingInputRequest: vi.fn(() => true),
     completeOnboardingIfNeeded: vi.fn(),
     finalizeStream: vi.fn(),
+    isAwaitingRunIdRef: { current: false },
     isThreadVisible: vi.fn(() => true),
     markThreadRunning: vi.fn(),
     pendingCompletionRef: { current: null },
@@ -108,6 +110,51 @@ describe('attachAgentStreamSubscriptions', () => {
     expect(deps.appendStreamToken).not.toHaveBeenCalled();
     expect(deps.bufferedEventsRef.current).toHaveLength(1);
     expect(deps.bufferedEventsRef.current[0]?.threadId).toBe('thread-1');
+  });
+
+  it('buffers events while the send waits for its run id', () => {
+    const { deps, emit } = makeDeps({
+      isAwaitingRunIdRef: { current: true },
+    });
+    attachAgentStreamSubscriptions(deps);
+
+    emit('agent:token', { runId: 'run-2', threadId: 'thread-1', token: 'hi' });
+
+    expect(deps.appendStreamToken).not.toHaveBeenCalled();
+    expect(deps.bufferedEventsRef.current).toEqual([
+      expect.objectContaining({ runId: 'run-2', threadId: 'thread-1' }),
+    ]);
+  });
+
+  it('drops events from a run other than the tracked one', () => {
+    const { deps, emit } = makeDeps({
+      activeStreamRunIdRef: { current: 'run-2' },
+    });
+    attachAgentStreamSubscriptions(deps);
+
+    emit('agent:stream_start', {
+      runId: 'run-1',
+      startedAt: '2026-09-23T15:06:00.000Z',
+      threadId: 'thread-1',
+    });
+    emit('agent:token', { runId: 'run-1', threadId: 'thread-1', token: 'x' });
+    emit('agent:done', {
+      creditsRemaining: 1,
+      fullContent: 'stale reply',
+      runId: 'run-1',
+      threadId: 'thread-1',
+      toolCalls: [],
+    });
+
+    expect(deps.markThreadRunning).not.toHaveBeenCalled();
+    expect(deps.setActiveRun).not.toHaveBeenCalled();
+    expect(deps.appendStreamToken).not.toHaveBeenCalled();
+    expect(deps.finalizeStream).not.toHaveBeenCalled();
+    expect(deps.cleanupSubscriptions).not.toHaveBeenCalled();
+
+    emit('agent:token', { runId: 'run-2', threadId: 'thread-1', token: 'y' });
+
+    expect(deps.appendStreamToken).toHaveBeenCalledWith('y');
   });
 
   it('drops events for other threads', () => {

@@ -1,3 +1,4 @@
+import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import type {
   ConversationComposerGenerationMode,
   ConversationComposerGenerationSettings,
@@ -35,7 +36,29 @@ export interface SendStreamMessageOptions {
   agentMode?: AgentThreadMode;
 }
 
+/** Ownership token for handing a thread's stream to a continuing execution. */
+export interface AgentRunHandoff {
+  generation: number;
+  preAssistantIds: Set<string>;
+  previousPending: PendingStreamCompletion | null;
+  previousRunId: string | null;
+  threadId: string;
+}
+
 export interface UseAgentChatStreamReturn {
+  /** Pin the stream to the execution that continues a handoff. */
+  adoptRun: (
+    handoff: AgentRunHandoff,
+    runId: string,
+    startedAt: string | null,
+  ) => void;
+  /** Hold the thread's events until `adoptRun` names the next execution. */
+  beginRunHandoff: (threadId: string) => AgentRunHandoff;
+  /** Release a handoff that produced no execution. */
+  cancelRunHandoff: (
+    handoff: AgentRunHandoff,
+    failedRequest?: AgentInputRequest,
+  ) => void;
   sendMessage: (
     content: string,
     options?: SendStreamMessageOptions,
@@ -45,6 +68,8 @@ export interface UseAgentChatStreamReturn {
 }
 
 export interface BufferedThreadEvent {
+  resolvedInputRequestId?: string;
+  runId?: string;
   threadId?: string;
   data: unknown;
   handler: (data: unknown) => void;
@@ -60,11 +85,25 @@ export interface PendingStreamCompletion {
 
 /** Mutable stream-ownership state shared by every mounted `useAgentChatStream`. */
 export interface AgentStreamRuntime {
+  /**
+   * Run the stream belongs to. Events stamped with any other run id are
+   * dropped, so a slow earlier run on the same thread cannot revive
+   * Stop/WORKING or leak tokens into the current turn.
+   */
+  activeStreamRunIdRef: MutableRefObject<string | null>;
   activeStreamThreadRef: MutableRefObject<string | null>;
   bufferedEventsRef: MutableRefObject<BufferedThreadEvent[]>;
   completionTimeoutRef: MutableRefObject<ReturnType<typeof setTimeout> | null>;
+  /** A send is waiting for its run id; events are held until it is known. */
+  isAwaitingRunIdRef: MutableRefObject<boolean>;
   /** Live hook instances; shared subscriptions are torn down only at zero. */
   mountCount: number;
+  /**
+   * Incremented whenever a send, input handoff, or run adoption takes the
+   * stream, so a stale acknowledgement or aborted request never tears down
+   * the owner that replaced it.
+   */
+  ownerGeneration: number;
   pendingCompletionRef: MutableRefObject<PendingStreamCompletion | null>;
   unsubscribersRef: MutableRefObject<Array<() => void>>;
 }

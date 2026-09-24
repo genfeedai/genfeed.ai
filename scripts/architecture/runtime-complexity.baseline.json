@@ -174,19 +174,19 @@
     "symbol": "AgentOrchestratorContextService.resolveSystemPromptAndModel"
   },
   {
-    "actual": 167,
+    "actual": 158,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-plan-mode.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorPlanModeService.generatePlanModeResponse"
   },
   {
-    "actual": 625,
+    "actual": 622,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-stream-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorStreamLoopService.runStreamLoop"
   },
   {
-    "actual": 421,
+    "actual": 416,
     "file": "apps/server/api/src/services/agent-orchestrator/agent-orchestrator-sync-loop.service.ts",
     "metric": "method-lines",
     "symbol": "AgentOrchestratorSyncLoopService.executeSynchronousChatLoop"

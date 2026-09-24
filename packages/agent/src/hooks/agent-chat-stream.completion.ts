@@ -15,8 +15,13 @@ export type ResolveStreamFromMessagesDeps = {
   cleanupSubscriptions: () => void;
   clearCompletionWatchdog: () => void;
   clearPendingInputRequest: () => void;
-  clearPendingCompletion: (threadId: string) => void;
-  isCurrentPendingThread: (threadId: string) => boolean;
+  clearPendingCompletion: (pending: PendingStreamCompletion) => void;
+  /**
+   * Whether `pending` is still the completion the stream tracks. A newer send,
+   * handoff, or adoption replaces it, and a recovery started for the old one
+   * must not complete or tear down the run that replaced it.
+   */
+  isCurrentPending: (pending: PendingStreamCompletion) => boolean;
   isThreadVisible: (threadId: string) => boolean;
   resetStreamState: () => void;
   scheduleCompletionWatchdog: () => void;
@@ -45,16 +50,20 @@ export async function resolveStreamFromMessages(
 ): Promise<void> {
   const hasExceededGracePeriod =
     Date.now() - pending.initiatedAt >= STREAM_COMPLETION_GRACE_PERIOD_MS;
-  let shouldKeepWaiting = false;
+  let settled = false;
 
   try {
     const messages = await deps.apiService.getMessages(pending.threadId, {
       limit: 100,
     });
+    if (!deps.isCurrentPending(pending)) {
+      return;
+    }
 
     const recoveredAssistantMessage = findRecoveredAssistantMessage(
       messages,
       pending.preAssistantIds,
+      pending.runId,
     );
 
     if (!recoveredAssistantMessage) {
@@ -66,11 +75,13 @@ export async function resolveStreamFromMessages(
       const persistedExecution = pending.runId
         ? await deps.apiService.getWorkflowExecution(pending.runId)
         : null;
+      if (!deps.isCurrentPending(pending)) {
+        return;
+      }
       if (
         persistedExecution?.status === WorkflowExecutionStatus.PENDING ||
         persistedExecution?.status === WorkflowExecutionStatus.RUNNING
       ) {
-        shouldKeepWaiting = true;
         deps.updateThreadSummary(pending.threadId, {
           runStatus:
             persistedExecution.status === WorkflowExecutionStatus.PENDING
@@ -87,8 +98,11 @@ export async function resolveStreamFromMessages(
       );
     }
 
-    deps.resetStreamState();
-    deps.setMessages(messages);
+    settled = true;
+    if (deps.isThreadVisible(pending.threadId)) {
+      deps.resetStreamState();
+      deps.setMessages(messages);
+    }
     const lastGeneratedAsset = extractLastGeneratedAssetFromMetadata(
       recoveredAssistantMessage.metadata,
     );
@@ -112,11 +126,15 @@ export async function resolveStreamFromMessages(
       });
     }
   } catch (error) {
+    if (!deps.isCurrentPending(pending)) {
+      return;
+    }
     if (!hasExceededGracePeriod) {
       deps.scheduleCompletionWatchdog();
       return;
     }
 
+    settled = true;
     deps.updateThreadSummary(pending.threadId, {
       attentionState: deps.isThreadVisible(pending.threadId) ? null : 'updated',
       lastActivityAt: new Date().toISOString(),
@@ -138,12 +156,8 @@ export async function resolveStreamFromMessages(
       deps.resetStreamState();
     }
   } finally {
-    if (
-      deps.isCurrentPendingThread(pending.threadId) &&
-      hasExceededGracePeriod &&
-      !shouldKeepWaiting
-    ) {
-      deps.clearPendingCompletion(pending.threadId);
+    if (deps.isCurrentPending(pending) && settled) {
+      deps.clearPendingCompletion(pending);
       deps.clearCompletionWatchdog();
       deps.cleanupSubscriptions();
     }

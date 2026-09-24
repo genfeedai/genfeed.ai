@@ -1,3 +1,4 @@
+import { isForeignRunEvent } from '@genfeedai/agent/hooks/agent-chat-stream.helpers';
 import type { BufferedThreadEvent } from '@genfeedai/agent/hooks/agent-chat-stream.types';
 import type {
   AgentChatMessage,
@@ -29,6 +30,7 @@ import { mapToolCallResponse } from '@genfeedai/agent/utils/map-tool-call-respon
 import type { MutableRefObject } from 'react';
 
 export type StreamSubscriptionDeps = {
+  activeStreamRunIdRef: MutableRefObject<string | null>;
   activeStreamThreadRef: MutableRefObject<string | null>;
   addActiveToolCall: (toolCall: AgentToolCall) => void;
   addPendingUiActions: (actions: AgentUiAction[]) => void;
@@ -47,6 +49,7 @@ export type StreamSubscriptionDeps = {
     toolCalls: AgentStreamDonePayload['toolCalls'],
   ) => void | Promise<void>;
   finalizeStream: (message: AgentChatMessage) => void;
+  isAwaitingRunIdRef: MutableRefObject<boolean>;
   isThreadVisible: (threadId: string) => boolean;
   markThreadRunning: (
     threadId: string,
@@ -88,22 +91,44 @@ export type StreamSubscriptionDeps = {
 export function attachAgentStreamSubscriptions(
   deps: StreamSubscriptionDeps,
 ): Array<() => void> {
+  // Events are scoped to one thread *and* one run. Until the send is
+  // acknowledged the run id is unknown, so events are held and replayed (or
+  // discarded as another run's) once it is — a slow earlier run on the same
+  // thread must not flip Stop/WORKING back on or stream into this turn.
   const filterByThread =
-    (handler: (data: unknown) => void) => (data: unknown) => {
-      const payload = data as { threadId?: string };
+    (handler: (data: unknown) => void, isInputResolution = false) =>
+    (data: unknown) => {
+      const payload = data as {
+        runId?: string;
+        threadId?: string;
+        inputRequestId?: string;
+      };
 
-      if (!deps.activeStreamThreadRef.current) {
+      if (
+        !deps.activeStreamThreadRef.current ||
+        deps.isAwaitingRunIdRef.current
+      ) {
         deps.bufferedEventsRef.current.push({
           data,
           handler,
+          resolvedInputRequestId: isInputResolution
+            ? payload.inputRequestId
+            : undefined,
+          runId: payload.runId,
           threadId: payload.threadId,
         });
         return;
       }
 
-      if (payload.threadId === deps.activeStreamThreadRef.current) {
-        handler(data);
+      if (payload.threadId !== deps.activeStreamThreadRef.current) {
+        return;
       }
+
+      if (isForeignRunEvent(payload.runId, deps.activeStreamRunIdRef.current)) {
+        return;
+      }
+
+      handler(data);
     };
 
   const unsubscribers: Array<() => void> = [];
@@ -430,7 +455,7 @@ export function attachAgentStreamSubscriptions(
             threadId: payload.threadId,
           });
         }
-      }),
+      }, true),
     ),
   );
 

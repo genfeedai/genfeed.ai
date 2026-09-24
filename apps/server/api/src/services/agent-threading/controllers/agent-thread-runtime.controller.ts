@@ -7,6 +7,7 @@ import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { AgentScopeContextService } from '@api/index';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
+import type { AgentTurnAcknowledgement } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import { AgentWorkObjectService } from '@api/services/agent-orchestrator/tools/agent-work-object.service';
 import { AgentThreadEngineService } from '@api/services/agent-threading/services/agent-thread-engine.service';
 import type { AgentWorkObjectActionPayload } from '@genfeedai/contracts/interfaces';
@@ -237,6 +238,9 @@ export class AgentThreadRuntimeController {
           userId,
         });
 
+      // The answer continues on a new execution. Returning it lets the client
+      // pin its stream to that run instead of the one that asked.
+      let continuation: AgentTurnAcknowledgement | null = null;
       if (requestId.startsWith('recurring-workflow:')) {
         await this.agentOrchestratorService.resumeRecurringTaskDraftFromInput({
           answer: body.answer,
@@ -250,7 +254,7 @@ export class AgentThreadRuntimeController {
           scope,
         });
       } else {
-        await this.agentOrchestratorService.acceptChatStream(
+        continuation = await this.agentOrchestratorService.acceptChatStream(
           {
             threadId,
             content: body.answer,
@@ -265,7 +269,9 @@ export class AgentThreadRuntimeController {
 
       return {
         answer: inputRequest.answer ?? null,
+        executionId: continuation?.executionId ?? null,
         fieldId: inputRequest.fieldId ?? null,
+        queuedAt: continuation?.queuedAt ?? null,
         requestId: inputRequest.requestId,
         resolvedAt: inputRequest.resolvedAt ?? null,
         status: inputRequest.status,
