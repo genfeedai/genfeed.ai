@@ -17,7 +17,7 @@ function unwrap(value: unknown): unknown {
     if (typeof forwarded === 'function' && forwarded !== value) {
       return forwarded();
     }
-    return (value as () => unknown)();
+    return (value as unknown as () => unknown)();
   }
   if (
     value &&

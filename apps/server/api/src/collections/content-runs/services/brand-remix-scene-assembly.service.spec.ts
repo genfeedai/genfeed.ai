@@ -219,7 +219,9 @@ describe('caption failure settlement recovery', () => {
       planning as unknown as BrandRemixRunPlanningService,
       queue as unknown as FileQueueService,
       whisper as unknown as WhisperService,
-      { buildUrl: () => 'https://cdn.test/merged.mp4' } as MediaUrlService,
+      {
+        buildUrl: () => 'https://cdn.test/merged.mp4',
+      } as unknown as MediaUrlService,
       {} as SharedService,
       prisma as unknown as PrismaService,
     );
