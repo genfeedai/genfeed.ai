@@ -1,3 +1,4 @@
+import { Platform } from '@genfeedai/contracts';
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
 import { testId } from '@genfeedai/helpers/testing/test-id.helper';
 import { Post } from '@genfeedai/models/content/post.model';
@@ -160,6 +161,25 @@ describe('PostsService', () => {
 
       expect(instance).toBeDefined();
     });
+  });
+
+  it('requests draft text with a structured brand and no credential', async () => {
+    const input = {
+      brandId: 'brand-selected',
+      platform: Platform.TWITTER,
+      prompt: 'Launch',
+    };
+    mockInstance.post.mockResolvedValueOnce({
+      data: { description: 'A tweet' },
+    });
+    await expect(service.generateDraftText(input)).resolves.toEqual({
+      description: 'A tweet',
+    });
+    expect(mockInstance.post).toHaveBeenCalledWith(
+      '/draft-generations',
+      input,
+      { timeout: 120000 },
+    );
   });
 
   describe('enhance', () => {

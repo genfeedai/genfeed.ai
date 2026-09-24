@@ -1,69 +1,144 @@
-import { render, screen } from '@testing-library/react';
+import type { PostModalSchema } from '@genfeedai/client/schemas';
+import type { IPost } from '@genfeedai/contracts/interfaces';
+import {
+  closeModal,
+  isModalOpen,
+  openModal,
+} from '@genfeedai/helpers/ui/modal/modal.helper';
+import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import ModalPost from '@ui/modals/content/post/ModalPost';
-import { describe, expect, it, vi } from 'vitest';
+import type { ReactNode } from 'react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// Mock @tiptap/react to avoid prosemirror DOM issues in jsdom
-const chainable = new Proxy(
-  {},
-  {
-    get: () => {
-      const fn = (..._args: unknown[]) => ({
-        run: vi.fn(),
-        ...new Proxy({}, { get: () => fn }),
-      });
-      return fn;
-    },
-  },
-);
-
-vi.mock('@tiptap/react', () => ({
-  EditorContent: () => <div data-testid="editor-content" />,
-  useEditor: () => ({
-    chain: () => chainable,
-    commands: { setContent: vi.fn() },
-    getHTML: vi.fn(() => ''),
-    isActive: vi.fn(() => false),
-    isDestroyed: false,
-    on: vi.fn(),
-  }),
+const mocks = vi.hoisted(() => ({
+  post: vi.fn(),
+  patch: vi.fn(),
+  generateDraftText: vi.fn(),
 }));
-
-// Mock dependencies
-vi.mock('@ui/modals/modal/Modal', () => ({
-  default: ({ children }: any) => <div data-testid="modal">{children}</div>,
-}));
-
-vi.mock('@ui/modals/actions/ModalActions', () => ({
-  default: ({ children }: any) => <div>{children}</div>,
-}));
-
 vi.mock('@genfeedai/contexts/user/brand-context/brand-context', () => ({
-  useBrand: () => ({
-    selectedBrand: {
-      id: 'brand-1',
-      settings: {},
+  useBrand: () => ({ brandId: 'brand-workspace' }),
+}));
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@ui/tests/next-intl.stub');
+  return { useTranslations: translateFromCatalog };
+});
+vi.mock('@ui/modals/modal/Modal', () => ({
+  default: ({ children }: { children: ReactNode }) => <div>{children}</div>,
+}));
+vi.mock('@genfeedai/hooks/auth/use-authed-service/use-authed-service', () => ({
+  useAuthedService: () => async () => mocks,
+}));
+vi.mock('@genfeedai/hooks/ui/use-crud-modal/use-crud-modal', async () => {
+  const { useForm } = await import('react-hook-form');
+  const { standardSchemaResolver } = await import(
+    '@hookform/resolvers/standard-schema'
+  );
+  const { postModalSchema } = await import('@genfeedai/client/schemas');
+  return {
+    useCrudModal: ({
+      defaultValues,
+      customSubmitHandler,
+    }: {
+      defaultValues: PostModalSchema;
+      customSubmitHandler: (
+        service: unknown,
+        entity: null,
+        data: PostModalSchema,
+      ) => Promise<unknown>;
+    }) => {
+      const form = useForm<PostModalSchema>({
+        defaultValues,
+        resolver: standardSchemaResolver(postModalSchema),
+        mode: 'onChange',
+      });
+      return {
+        form,
+        closeModal: vi.fn(),
+        isSubmitting: false,
+        onSubmit: form.handleSubmit((data) =>
+          customSubmitHandler(mocks, null, data),
+        ),
+      };
     },
-  }),
-}));
-
-vi.mock('react-hook-form', () => ({
-  useForm: () => ({
-    formState: { errors: {} },
-    handleSubmit: vi.fn((fn) => fn),
-    register: vi.fn(),
-    watch: vi.fn(() => ({})),
-  }),
-}));
+  };
+});
+vi.mock('@ui/editors/LazyRichTextEditor', async () => {
+  const { Textarea } = await import('@ui/primitives/textarea');
+  return {
+    default: ({
+      value,
+      onChange,
+    }: {
+      value: string;
+      onChange: (value: string) => void;
+    }) => (
+      <Textarea
+        aria-label="Post content"
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+      />
+    ),
+  };
+});
 
 describe('ModalPost', () => {
-  const defaultProps = {
-    credentials: [],
-    ingredient: null,
-    onConfirm: vi.fn(),
-  };
-
-  it('renders post form', () => {
-    render(<ModalPost {...defaultProps} />);
-    expect(screen.getByTestId('modal')).toBeInTheDocument();
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.post.mockResolvedValue({ id: 'new-post' });
+    mocks.patch.mockResolvedValue({ id: 'existing-post' });
+  });
+  it('keeps a manually opened composer open when it mounts', () => {
+    openModal('modal-post');
+    render(<ModalPost credentials={[]} onConfirm={vi.fn()} />);
+    expect(isModalOpen('modal-post')).toBe(true);
+    closeModal('modal-post');
+  });
+  it('saves a manually written X draft without an account', async () => {
+    const user = userEvent.setup();
+    render(<ModalPost credentials={[]} />);
+    await user.type(
+      screen.getByRole('textbox', { name: 'Post content' }),
+      'A manual tweet',
+    );
+    await user.click(screen.getByRole('button', { name: 'Create Post' }));
+    await waitFor(() =>
+      expect(mocks.post).toHaveBeenCalledWith(
+        expect.objectContaining({
+          description: 'A manual tweet',
+          platform: 'twitter',
+          credentialId: undefined,
+          targetExecutionState: 'draft',
+        }),
+      ),
+    );
+    expect(mocks.patch).not.toHaveBeenCalled();
+  });
+  it('edits the existing draft instead of creating another post', async () => {
+    const user = userEvent.setup();
+    render(
+      <ModalPost
+        credentials={[]}
+        post={
+          {
+            id: 'existing-post',
+            description: 'Original',
+            platform: 'twitter',
+          } as IPost
+        }
+      />,
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: 'Post content' }),
+      ' edited',
+    );
+    await user.click(screen.getByRole('button', { name: 'Save', exact: true }));
+    await waitFor(() =>
+      expect(mocks.patch).toHaveBeenCalledWith(
+        'existing-post',
+        expect.objectContaining({ description: 'Original edited' }),
+      ),
+    );
+    expect(mocks.post).not.toHaveBeenCalled();
   });
 });

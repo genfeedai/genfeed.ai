@@ -223,6 +223,7 @@ export interface ModalPostProps extends ModalVisibilityProps {
   credentials?: ICredential[];
   parentPost?: IPost | null;
   postFormat?: PostFormat;
+  defaultPlatform?: Platform;
   onConfirm?: () => void;
   onClose?: () => void;
   onCreated?: (postId: string) => void; // For draft creation workflow
@@ -358,7 +359,6 @@ export interface ModalPostSimpleFieldsProps {
   isTitleError: boolean;
   hasIngredients: boolean;
   browserTimezone: string;
-  onCredentialSelect: (credentialId: string) => void;
 }
 
 export interface ModalPostSimpleActionsProps {
@@ -589,4 +589,11 @@ export interface ModalMonitoredAccountProps {
   replyBotConfigId?: string;
   onConfirm: (isRefreshing?: boolean) => void;
   onClose?: () => void;
+}
+
+export interface PostDraftGeneratorProps {
+  platform: Platform;
+  format?: PostFormat;
+  isDisabled?: boolean;
+  onGenerate: (description: string) => void;
 }

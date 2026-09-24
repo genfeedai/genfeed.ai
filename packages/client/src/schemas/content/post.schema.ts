@@ -1,4 +1,5 @@
 import {
+  Platform,
   PostFormat,
   PostStatus,
   PostVisibility,
@@ -66,8 +67,9 @@ export type MultiPostSchema = z.infer<typeof multiPostSchema>;
 export const postModalSchema = z
   .object({
     children: z.array(z.string()).optional(),
-    credentialId: z.string().min(1, 'Platform account is required'),
-    description: z.string().min(1, 'Caption is required'),
+    credentialId: z.string().optional(),
+    platform: z.nativeEnum(Platform).optional(),
+    description: z.string().trim().min(1, 'Caption is required'),
     format: z.nativeEnum(PostFormat).optional(),
     ingredients: z.array(z.string()).optional(),
     label: z.string().optional(),
@@ -79,6 +81,19 @@ export const postModalSchema = z
     ...publishAttributionSchema,
   })
   .superRefine((value, context) => {
+    const state =
+      value.targetExecutionState ??
+      (value.scheduledDate
+        ? TargetExecutionState.SCHEDULED
+        : TargetExecutionState.DRAFT);
+    if (!value.credentialId?.trim() && state !== TargetExecutionState.DRAFT) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Connect an account before scheduling or publishing',
+        path: ['credentialId'],
+      });
+    }
+
     // Lifecycle now lives on targetExecutionState; `status` is the legacy
     // audience-ish column and no longer gates scheduling.
     if (
@@ -119,7 +134,7 @@ export const postMetadataSchema = z.object({
 export type PostMetadataSchema = z.infer<typeof postMetadataSchema>;
 
 export const threadPostSchema = z.object({
-  description: z.string().min(1, 'Post content is required'),
+  description: z.string().trim().min(1, 'Post content is required'),
   /**
    * Media attached to this item alone. Empty means the item falls back to the
    * thread's shared ingredient, which is how every item behaved before items
@@ -142,7 +157,8 @@ export type ThreadPostSchema = z.infer<typeof threadPostSchema>;
 
 export const threadModalSchema = z
   .object({
-    credentialId: z.string().min(1, 'Platform account is required'),
+    credentialId: z.string().optional(),
+    platform: z.nativeEnum(Platform).optional(),
     globalTitle: z.string().optional(),
     ingredient: z.string().optional(),
     posts: z.array(threadPostSchema).min(1, 'At least one post is required'),
@@ -152,6 +168,19 @@ export const threadModalSchema = z
     visibility: z.nativeEnum(PostVisibility).optional(),
   })
   .superRefine((value, context) => {
+    const state =
+      value.targetExecutionState ??
+      (value.scheduledDate
+        ? TargetExecutionState.SCHEDULED
+        : TargetExecutionState.DRAFT);
+    if (!value.credentialId?.trim() && state !== TargetExecutionState.DRAFT) {
+      context.addIssue({
+        code: 'custom',
+        message: 'Connect an account before scheduling or publishing',
+        path: ['credentialId'],
+      });
+    }
+
     if (
       value.targetExecutionState === TargetExecutionState.SCHEDULED &&
       !value.scheduledDate?.trim()

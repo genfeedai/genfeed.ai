@@ -6,7 +6,9 @@ import { IngredientsService } from '@api/collections/ingredients/services/ingred
 import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { CreateRemixPostDto } from '@api/collections/posts/dto/create-remix-post.dto';
 import { PostsBatchDto } from '@api/collections/posts/dto/posts-batch.dto';
+import { assertPostBrandAccess } from '@api/collections/posts/services/post-draft-scope.util';
 import { PostGenerationService } from '@api/collections/posts/services/post-generation.service';
+import { resolveThreadReplyTarget } from '@api/collections/posts/services/post-thread-target.util';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { RequiredScopes } from '@api/helpers/decorators/scopes/required-scopes.decorator';
@@ -33,7 +35,6 @@ import {
   CredentialPlatform,
   IngredientCategory,
   PostCategory,
-  parsePlatform,
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { resolveDefaultTargetExecutionState } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
@@ -291,6 +292,14 @@ export class PostsOperationsController {
     @Param('postId') postId: string,
     @Body() createPostDto: CreatePostDto,
   ): Promise<JsonApiSingleResponse> {
+    if (createPostDto.brandId) {
+      await assertPostBrandAccess(
+        this.postsService.prisma,
+        createPostDto.brandId,
+        user.organizationId,
+      );
+      user = { ...user, brandId: createPostDto.brandId };
+    }
     const requestedExecutionState = resolveDefaultTargetExecutionState({
       scheduledDate: createPostDto.scheduledDate,
       targetExecutionState: createPostDto.targetExecutionState,
@@ -309,7 +318,10 @@ export class PostsOperationsController {
         );
       }
 
-      if (parentPost.organizationId !== user.organizationId) {
+      if (
+        parentPost.organizationId !== user.organizationId ||
+        (createPostDto.brandId && parentPost.brandId !== user.brandId)
+      ) {
         throw new HttpException(
           {
             detail: 'You do not have access to this post',
@@ -319,37 +331,18 @@ export class PostsOperationsController {
         );
       }
 
-      const credential = await this.credentialsService.findOne({
-        id: createPostDto.credentialId,
-        isConnected: true,
-        organizationId: user.organizationId,
-      });
-
-      if (!credential) {
-        throw new HttpException(
-          {
-            detail: 'Credential not found',
-            title: `Credential ${createPostDto.credentialId.toString()} not found`,
-          },
-          HttpStatus.NOT_FOUND,
-        );
-      }
-
-      const credentialPlatform = parsePlatform(credential.platform);
-      if (!credentialPlatform) {
-        throw new HttpException(
-          {
-            detail: 'Unsupported credential platform',
-            title: 'Platform not supported',
-          },
-          HttpStatus.BAD_REQUEST,
-        );
-      }
-
+      const { credential, credentialPlatform, replyCredentialId } =
+        await resolveThreadReplyTarget({
+          dto: createPostDto,
+          parentPost,
+          identity: user,
+          credentialsService: this.credentialsService,
+          requestedExecutionState,
+        });
       this.validateScheduledThreadReply(
         createPostDto,
         credentialPlatform,
-        credential.platform,
+        credential?.platform ?? credentialPlatform,
         requestedExecutionState,
       );
       const { firstIngredient, ingredientIds } =
@@ -358,20 +351,25 @@ export class PostsOperationsController {
           user.organizationId,
         );
 
-      await this.quotaService.verifyQuota(credential, user.organizationId);
+      if (
+        credential &&
+        requestedExecutionState !== TargetExecutionState.DRAFT
+      ) {
+        await this.quotaService.verifyQuota(credential, user.organizationId);
+      }
 
       const data = await this.postsService.addThreadReply(parentId, {
         ...createPostDto,
-        brandId: firstIngredient?.brandId ?? user.brandId,
+        brandId: parentPost.brandId ?? user.brandId,
         category:
           createPostDto.category ??
           this.getPostCategoryFromIngredient(firstIngredient),
-        credentialId: createPostDto.credentialId,
-        description: createPostDto.description || credential.description || '',
+        credentialId: replyCredentialId,
+        description: createPostDto.description || credential?.description || '',
         ingredients: ingredientIds,
         label:
           createPostDto.label?.trim() ||
-          credential.label ||
+          credential?.label ||
           (createPostDto.description?.trim()
             ? this.postGenerationService.extractLabelFromTweet(
                 createPostDto.description.trim(),

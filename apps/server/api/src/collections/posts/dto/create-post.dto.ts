@@ -1,6 +1,7 @@
 import { FORBID_NON_WHITELISTED } from '@api/helpers/pipes/validation.pipe';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
+  Platform,
   PostCategory,
   PostFormat,
   PostFrequency,
@@ -55,12 +56,23 @@ export class CreatePostDto {
   })
   readonly campaignId?: string;
 
+  @IsOptional()
   @IsEntityId()
   @ApiProperty({
-    description: 'The credential ID (platform account) to use for publishing',
-    required: true,
+    description: 'Publishing account; optional for drafts',
+    required: false,
   })
-  readonly credentialId!: string;
+  readonly credentialId?: string;
+
+  @IsOptional()
+  @IsEntityId()
+  @ApiProperty({ description: 'The selected workspace brand', required: false })
+  readonly brandId?: string;
+
+  @IsOptional()
+  @IsEnum(Platform)
+  @ApiProperty({ enum: Platform, enumName: 'Platform', required: false })
+  readonly platform?: Platform;
 
   @ApiProperty({
     description: 'The title/label of the post',

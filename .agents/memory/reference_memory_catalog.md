@@ -209,3 +209,5 @@ Load on demand: [e2e-architecture](context/e2e-architecture.md) · [progress](co
 - [Dynamic video workflows](spec-dynamic-video-workflows.md) — #4500 localization and scene composition contracts.
 
 - [Unified generation experience](spec-unified-generation-experience.md) · [decisions](decisions-unified-generation-experience.md) — shared generation status, account-aware platform previews, live activity (#4601)
+
+- [feedback_post_drafting_without_accounts](feedback_post_drafting_without_accounts.md) — Direct writing and generation before account connection; structured brand context (#5042)

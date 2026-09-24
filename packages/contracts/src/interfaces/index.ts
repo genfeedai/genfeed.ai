@@ -140,6 +140,7 @@ export * from './content/mood-board.interface';
 export * from './content/newsletter-feed.interface';
 export * from './content/persona.interface';
 export * from './content/post.interface';
+export * from './content/post-draft-generation.interface';
 export * from './content/post-quick-action.interface';
 export * from './content/posting-cadence.interface';
 export * from './content/prompt.interface';

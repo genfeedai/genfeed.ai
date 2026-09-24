@@ -12,6 +12,7 @@ import { EnhancePostDto } from '@api/collections/posts/dto/enhance-post.dto';
 import { ExpandToThreadDto } from '@api/collections/posts/dto/expand-thread.dto';
 import { GenerateAccountPostDto } from '@api/collections/posts/dto/generate-account-post.dto';
 import { GenerateHooksDto } from '@api/collections/posts/dto/generate-hooks.dto';
+import { GeneratePostDraftDto } from '@api/collections/posts/dto/generate-post-draft.dto';
 import { GenerateSourcePostVariationsDto } from '@api/collections/posts/dto/generate-source-post-variations.dto';
 import { RepurposePostDto } from '@api/collections/posts/dto/repurpose-post.dto';
 import { PostVariationSourceGuard } from '@api/collections/posts/guards/post-variation-source.guard';
@@ -57,6 +58,7 @@ import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import type {
   JsonApiCollectionResponse,
   JsonApiSingleResponse,
+  PostDraftGenerationResult,
 } from '@genfeedai/contracts/interfaces';
 import { PostListSerializer, PostSerializer } from '@genfeedai/serializers';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -170,6 +172,21 @@ export class PostsGenerationController {
       ...result.draft,
       repurposeAdjustments: result.adjustments,
     });
+  }
+
+  @Post('draft-generations')
+  @Credits({
+    description: 'Generate post draft (text model)',
+    modelKey: DEFAULT_MINI_TEXT_MODEL,
+    source: ActivitySource.POST_GENERATION,
+  })
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  @UseInterceptors(CreditsInterceptor)
+  async generateDraftText(
+    @Body() dto: GeneratePostDraftDto,
+    @CurrentUser() user: User,
+  ): Promise<PostDraftGenerationResult> {
+    return this.postGenerationService.generateDraftText(dto, user);
   }
 
   @Post('account-generations')
