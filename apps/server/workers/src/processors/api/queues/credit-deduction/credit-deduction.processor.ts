@@ -65,6 +65,10 @@ export class CreditDeductionProcessor extends WorkerHost {
     });
 
     try {
+      if (job.data.acceptedGeneration) {
+        await this.attachAcceptedGeneration(job.data);
+        if (amount === 0 && type === 'deduct-credits') return;
+      }
       if (type === 'deduct-credits') {
         if (!userId) {
           throw new UnrecoverableError('Credit deduction job missing userId');
@@ -161,6 +165,53 @@ export class CreditDeductionProcessor extends WorkerHost {
       // Transient error — BullMQ retries
       throw error;
     }
+  }
+
+  private async attachAcceptedGeneration(
+    data: CreditDeductionJobData,
+  ): Promise<void> {
+    const accepted = data.acceptedGeneration;
+    if (!accepted) return;
+    const ingredient = await this.prisma.ingredient.findFirst({
+      where: {
+        id: accepted.ingredientId,
+        organizationId: data.organizationId,
+        isDeleted: false,
+      },
+      select: {
+        metadata: { select: { id: true, externalId: true, isDeleted: true } },
+      },
+    });
+    const metadata = ingredient?.metadata;
+    if (!metadata || metadata.isDeleted) {
+      throw new UnrecoverableError(
+        'Accepted generation asset or metadata is unavailable in this organization',
+      );
+    }
+    if (metadata.externalId && metadata.externalId !== accepted.externalId) {
+      throw new UnrecoverableError(
+        'Accepted generation provider identity conflicts with persisted metadata',
+      );
+    }
+    const updated = await this.prisma.metadata.updateMany({
+      where: {
+        id: metadata.id,
+        isDeleted: false,
+        ingredients: {
+          some: {
+            id: accepted.ingredientId,
+            organizationId: data.organizationId,
+            isDeleted: false,
+          },
+        },
+        OR: [{ externalId: null }, { externalId: accepted.externalId }],
+      },
+      data: { externalId: accepted.externalId },
+    });
+    if (updated.count !== 1)
+      throw new Error(
+        'Accepted generation metadata changed before persistence',
+      );
   }
 
   private async isMediaSettlementBillable(

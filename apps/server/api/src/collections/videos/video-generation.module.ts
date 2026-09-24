@@ -16,6 +16,7 @@ import { AvatarVideoController } from '@api/collections/videos/controllers/avata
 import { BatchInterpolationController } from '@api/collections/videos/controllers/batch-interpolation.controller';
 import { AvatarVideoGenerationService } from '@api/collections/videos/services/avatar-video-generation.service';
 import { AvatarVideoLifecycleService } from '@api/collections/videos/services/avatar-video-lifecycle.service';
+import { BatchInterpolationBillingService } from '@api/collections/videos/services/batch-interpolation-billing.service';
 import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
 import { VideosCoreModule } from '@api/collections/videos/videos-core.module';
 import { VoicesModule } from '@api/collections/voices/voices.module';
@@ -70,6 +71,7 @@ import { Module } from '@nestjs/common';
   providers: [
     AvatarVideoGenerationService,
     AvatarVideoLifecycleService,
+    BatchInterpolationBillingService,
     BatchInterpolationReferenceService,
     CreditsGuard,
     CreditsInterceptor,

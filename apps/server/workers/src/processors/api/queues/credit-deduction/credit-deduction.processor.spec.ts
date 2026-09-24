@@ -34,6 +34,7 @@ describe('CreditDeductionProcessor', () => {
   };
   let prisma: {
     ingredient: { findFirst: ReturnType<typeof vi.fn> };
+    metadata: { updateMany: ReturnType<typeof vi.fn> };
     workflowExecution: { findFirst: ReturnType<typeof vi.fn> };
   };
 
@@ -60,6 +61,7 @@ describe('CreditDeductionProcessor', () => {
     };
     prisma = {
       ingredient: { findFirst: vi.fn() },
+      metadata: { updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
       workflowExecution: { findFirst: vi.fn().mockResolvedValue(null) },
     };
 
@@ -71,6 +73,116 @@ describe('CreditDeductionProcessor', () => {
       logger as never,
       prisma as never,
     );
+  });
+
+  it('restores accepted provider identity before retrying the same reservation settlement', async () => {
+    const job = buildJob({
+      acceptedGeneration: { ingredientId: 'asset', externalId: 'provider-id' },
+      reservationId: 'hold',
+    });
+    prisma.ingredient.findFirst.mockResolvedValue({
+      metadata: { id: 'meta', externalId: null, isDeleted: false },
+    });
+    creditsUtilsService.settleReservation.mockRejectedValueOnce(
+      new Error('database busy'),
+    );
+    await expect(processor.process(job)).rejects.toThrow('database busy');
+    prisma.ingredient.findFirst.mockResolvedValue({
+      metadata: { id: 'meta', externalId: 'provider-id', isDeleted: false },
+    });
+    await processor.process(job);
+    expect(prisma.ingredient.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'asset',
+          organizationId: job.data.organizationId,
+          isDeleted: false,
+        },
+      }),
+    );
+    expect(prisma.metadata.updateMany).toHaveBeenCalledWith({
+      where: {
+        id: 'meta',
+        isDeleted: false,
+        ingredients: {
+          some: {
+            id: 'asset',
+            organizationId: job.data.organizationId,
+            isDeleted: false,
+          },
+        },
+        OR: [{ externalId: null }, { externalId: 'provider-id' }],
+      },
+      data: { externalId: 'provider-id' },
+    });
+    expect(prisma.metadata.updateMany.mock.invocationCallOrder[0]).toBeLessThan(
+      creditsUtilsService.settleReservation.mock.invocationCallOrder[0],
+    );
+    expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(2);
+    expect(creditsUtilsService.settleReservation.mock.calls[0]).toEqual(
+      creditsUtilsService.settleReservation.mock.calls[1],
+    );
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
+    expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    null,
+    {
+      metadata: {
+        id: 'meta',
+        externalId: 'other-provider-id',
+        isDeleted: false,
+      },
+    },
+  ])(
+    'rejects missing tenant asset or conflicting provider identity before charging',
+    async (asset) => {
+      prisma.ingredient.findFirst.mockResolvedValue(asset);
+      const job = buildJob({
+        acceptedGeneration: {
+          ingredientId: 'asset',
+          externalId: 'provider-id',
+        },
+        reservationId: 'hold',
+      });
+      await expect(processor.process(job)).rejects.toBeInstanceOf(
+        UnrecoverableError,
+      );
+      expect(prisma.metadata.updateMany).not.toHaveBeenCalled();
+      expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+      expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+    },
+  );
+
+  it('retries accepted BYOK tracking using one durable ledger key without GEN deductions', async () => {
+    const job = buildJob({
+      type: 'record-byok-usage',
+      idempotencyKey: 'interpolation-asset',
+      acceptedGeneration: { ingredientId: 'asset', externalId: 'provider-id' },
+    });
+    prisma.ingredient.findFirst.mockResolvedValue({
+      metadata: { id: 'meta', externalId: null, isDeleted: false },
+    });
+    creditTransactionsService.createTransactionEntry.mockRejectedValueOnce(
+      new Error('ledger unavailable'),
+    );
+    await expect(processor.process(job)).rejects.toThrow('ledger unavailable');
+    await processor.process(job);
+    expect(
+      creditTransactionsService.createTransactionEntry.mock.calls[0],
+    ).toEqual(creditTransactionsService.createTransactionEntry.mock.calls[1]);
+    expect(
+      creditTransactionsService.createTransactionEntry.mock.calls[1].at(-1),
+    ).toEqual({
+      idempotencyKey: `byok:${job.data.organizationId}:interpolation-asset`,
+    });
+    expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+    expect(
+      creditsUtilsService.deductCreditsFromOrganization,
+    ).not.toHaveBeenCalled();
   });
 
   it('deducts a trusted queued charge when its execution is deleted or unavailable, without attaching its scope', async () => {
