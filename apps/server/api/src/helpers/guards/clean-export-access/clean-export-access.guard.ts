@@ -5,9 +5,11 @@ import {
 } from '@api/helpers/utils/auth/auth.util';
 import { isCloudDeployment } from '@genfeedai/config';
 import { SubscriptionTier } from '@genfeedai/contracts';
+import { getDeserializer, type JsonApiDocument } from '@genfeedai/helpers';
 import { hasCleanExportAccess } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
+  BadRequestException,
   type CanActivate,
   type ExecutionContext,
   ForbiddenException,
@@ -43,8 +45,28 @@ export class CleanExportAccessGuard implements CanActivate {
 
     // Watermarked/branded exports are not a paid entitlement — only the
     // unwatermarked ("clean") export path is gated.
-    const body = request.body as { watermark?: boolean } | undefined;
-    if (body?.watermark !== false) {
+    const body = request.body as JsonApiDocument | undefined;
+    let exportRequest: unknown = body;
+    // Match the global pipe, including its JSON:API attribute normalization.
+    if (
+      body?.data &&
+      !Array.isArray(body.data) &&
+      body.data.attributes &&
+      typeof body.data.attributes === 'object' &&
+      !Array.isArray(body.data.attributes)
+    ) {
+      try {
+        exportRequest = getDeserializer(body);
+      } catch {
+        throw new BadRequestException('Invalid JSON:API export request');
+      }
+    }
+    if (
+      !exportRequest ||
+      typeof exportRequest !== 'object' ||
+      !('watermark' in exportRequest) ||
+      exportRequest.watermark !== false
+    ) {
       return true;
     }
 

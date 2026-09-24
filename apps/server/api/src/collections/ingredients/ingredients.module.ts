@@ -15,6 +15,7 @@ import { IngredientGenerationCancellationService } from '@api/collections/ingred
 import { IngredientsService } from '@api/collections/ingredients/services/ingredients.service';
 import { MetadataModule } from '@api/collections/metadata/metadata.module';
 import { AssetAccessGuard } from '@api/guards/asset-access.guard';
+import { CleanExportAccessGuard } from '@api/helpers/guards/clean-export-access/clean-export-access.guard';
 import { ReplicateModule } from '@api/services/integrations/replicate/replicate.module';
 import { FailedGenerationModule } from '@api/shared/services/failed-generation/failed-generation.module';
 import { Module } from '@nestjs/common';
@@ -36,6 +37,7 @@ import { Module } from '@nestjs/common';
   ],
   providers: [
     AssetAccessGuard,
+    CleanExportAccessGuard,
     IngredientExportService,
     IngredientGenerationCancellationService,
     IngredientsService,

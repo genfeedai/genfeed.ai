@@ -323,6 +323,28 @@ export class IngredientsService extends BaseService<
     }
   }
 
+  async assertClientTags(
+    tagIds: string[],
+    organizationId: string,
+  ): Promise<void> {
+    const ids = [...new Set(tagIds)];
+    if (ids.length === 0) return;
+    if (!organizationId) {
+      throw new BadRequestException(
+        'An organization is required to assign tags',
+      );
+    }
+    const tags = await this.prisma.tag.findMany({
+      where: { id: { in: ids }, organizationId, isDeleted: false },
+      select: { id: true },
+    });
+    if (tags.length !== ids.length) {
+      throw new BadRequestException(
+        'Tags must belong to the current organization',
+      );
+    }
+  }
+
   async patch(
     id: string,
     updateDto: IngredientServerUpdate,

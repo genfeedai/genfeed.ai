@@ -19,7 +19,7 @@ vi.mock('@api/helpers/utils/auth/auth.util', () => ({
 
 function buildContext(
   user: User | null | undefined,
-  body: { watermark?: boolean } = { watermark: false },
+  body: Record<string, unknown> = { watermark: false },
 ): ExecutionContext {
   const request = { body, user };
   return {
@@ -88,6 +88,42 @@ describe('CleanExportAccessGuard', () => {
       );
       const ctx = buildContext(buildUser(), { watermark: true });
       expect(guard.canActivate(ctx)).toBe(true);
+    });
+
+    it.each([
+      {
+        data: { type: 'ingredient-exports', attributes: { Watermark: false } },
+      },
+      {
+        data: { type: 'ingredient-exports', attributes: { watermark: false } },
+      },
+      {
+        watermark: true,
+        data: { type: 'ingredient-exports', attributes: { watermark: false } },
+      },
+    ])('blocks free clean exports inside a JSON:API envelope (%j)', (body) => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
+        SubscriptionTier.FREE,
+      );
+      expect(() => guard.canActivate(buildContext(buildUser(), body))).toThrow(
+        ForbiddenException,
+      );
+    });
+
+    it('allows a free watermarked JSON:API export', () => {
+      vi.mocked(authUtil.getSubscriptionTier).mockReturnValue(
+        SubscriptionTier.FREE,
+      );
+      expect(
+        guard.canActivate(
+          buildContext(buildUser(), {
+            data: {
+              type: 'ingredient-exports',
+              attributes: { watermark: true },
+            },
+          }),
+        ),
+      ).toBe(true);
     });
 
     it('throws 401 for a clean-export request with no user in request', () => {

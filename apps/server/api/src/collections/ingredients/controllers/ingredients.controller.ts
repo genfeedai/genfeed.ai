@@ -281,6 +281,13 @@ export class IngredientsController {
       }
     }
 
+    if (updateIngredientDto.tags) {
+      await this.ingredientsService.assertClientTags(
+        updateIngredientDto.tags,
+        user.organizationId,
+      );
+    }
+
     await this.ingredientsService.patch(
       ingredientId,
       processedDto as unknown as UpdateIngredientDto,
