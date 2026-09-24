@@ -40,7 +40,11 @@ export class SourcePostsController {
   ) {
     const context = resolveRequiredBrandRequestContext(user, query);
     const result = await this.sourcePostsService.listByBrand(context, query);
-    return serializeCollection(request, SourcePostSerializer, { ...result });
+    return serializeCollection(request, SourcePostSerializer, {
+      ...result,
+      totalDocs: result.total,
+      totalPages: result.pages,
+    });
   }
 
   @Get(':id')

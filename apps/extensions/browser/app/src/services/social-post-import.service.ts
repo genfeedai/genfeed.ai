@@ -1,11 +1,15 @@
 import { parseSocialPostUrl, SocialSourceType } from '@genfeedai/contracts';
+import {
+  APP_ROUTES,
+  createBrandAppRoute,
+} from '@genfeedai/contracts/constants';
 
 import type {
   ImportedSourcePost,
   SocialPostImportOutcome,
 } from '~models/imported-source-post.model';
 import { authService } from '~services/auth.service';
-import { apiEndpoint } from '~services/environment.service';
+import { apiEndpoint, appDomain } from '~services/environment.service';
 
 export const UNSUPPORTED_POST_URL_MESSAGE =
   'URL is not a recognizable X, Instagram, or TikTok post link';
@@ -135,7 +139,40 @@ export async function importSocialPost(input: {
   return { deduplicated: payload.deduplicated, post };
 }
 
-/** Posts on this brand's import containers (`sourceType: post`). */
+const WORKSPACE_SLUG_PATTERN = /^[a-zA-Z0-9][a-zA-Z0-9-]*$/;
+const IMPORTED_PAGE_LIMIT = 100;
+const MAX_IMPORTED_PAGES = 20;
+
+function readCollectionPost(item: unknown): ImportedSourcePost | null {
+  if (!isRecord(item)) {
+    return null;
+  }
+  const attributes = isRecord(item.attributes) ? item.attributes : {};
+  return readImportedPost({
+    ...attributes,
+    id: typeof item.id === 'string' ? item.id : attributes.id,
+  });
+}
+
+function readPageCount(payload: unknown): number {
+  if (!isRecord(payload) || !isRecord(payload.links)) {
+    return 1;
+  }
+  const pagination = payload.links.pagination;
+  if (!isRecord(pagination) || typeof pagination.pages !== 'number') {
+    return 1;
+  }
+  if (!Number.isFinite(pagination.pages) || pagination.pages < 1) {
+    return 1;
+  }
+  return Math.min(MAX_IMPORTED_PAGES, Math.floor(pagination.pages));
+}
+
+/**
+ * Posts whose container is `sourceType: post`, filtered before the page limit.
+ * The brand feed's first 100 rows are not used: newer followed posts would
+ * hide an older import.
+ */
 export async function listImportedSourcePosts(
   brandId: string,
 ): Promise<ImportedSourcePost[]> {
@@ -145,43 +182,103 @@ export async function listImportedSourcePosts(
       'Select a brand before importing this post.',
     );
   }
-  const params = new URLSearchParams({
-    brandId: scopedBrandId,
-    postsLimit: '100',
-  });
-  const payload = await requestImportApi(
-    `/social-sources/feed?${params.toString()}`,
-    'GET',
-    'Could not load Imported sources.',
-  );
-  if (!isRecord(payload) || !Array.isArray(payload.posts)) {
-    throw new SocialPostImportError('Could not load Imported sources.');
-  }
-  const importedSourceIds = new Set<string>();
-  if (Array.isArray(payload.sources)) {
-    for (const source of payload.sources) {
-      if (
-        isRecord(source) &&
-        source.sourceType === SocialSourceType.POST &&
-        typeof source.id === 'string' &&
-        source.id
-      ) {
-        importedSourceIds.add(source.id);
+  const posts: ImportedSourcePost[] = [];
+  let pages = 1;
+  for (let page = 1; page <= pages; page += 1) {
+    const params = new URLSearchParams({
+      brandId: scopedBrandId,
+      limit: String(IMPORTED_PAGE_LIMIT),
+      page: String(page),
+      sourceType: SocialSourceType.POST,
+    });
+    const payload = await requestImportApi(
+      `/source-posts?${params.toString()}`,
+      'GET',
+      'Could not load Imported sources.',
+    );
+    if (!isRecord(payload) || !Array.isArray(payload.data)) {
+      throw new SocialPostImportError('Could not load Imported sources.');
+    }
+    pages = Math.max(pages, readPageCount(payload));
+    for (const item of payload.data) {
+      const post = readCollectionPost(item);
+      if (post) {
+        posts.push(post);
       }
     }
   }
-  const posts: ImportedSourcePost[] = [];
-  for (const item of payload.posts) {
-    if (
-      !isRecord(item) ||
-      !importedSourceIds.has(String(item.sourceId ?? ''))
-    ) {
-      continue;
-    }
-    const post = readImportedPost(item);
-    if (post) {
-      posts.push(post);
-    }
-  }
   return posts;
+}
+
+function readBrandSlug(payload: unknown, brandId: string): string | null {
+  if (!isRecord(payload) || !isRecord(payload.data)) {
+    return null;
+  }
+  if (payload.data.id !== brandId || !isRecord(payload.data.attributes)) {
+    return null;
+  }
+  const slug = payload.data.attributes.slug;
+  return typeof slug === 'string' ? slug.trim() : null;
+}
+
+function readOrgSlug(payload: unknown): string | null {
+  const rows = Array.isArray(payload) ? payload : [];
+  const active = rows.find(
+    (row) =>
+      isRecord(row) && row.isActive === true && typeof row.slug === 'string',
+  );
+  const chosen =
+    active ?? rows.find((row) => isRecord(row) && typeof row.slug === 'string');
+  if (!isRecord(chosen) || typeof chosen.slug !== 'string') {
+    return null;
+  }
+  return chosen.slug.trim();
+}
+
+/**
+ * Existing publishing remix deep link. Selecting a source does not collect
+ * or generate; the remix page waits for an explicit action.
+ */
+export async function resolveImportedRemixUrl(input: {
+  brandId: string;
+  platform: string;
+  sourcePostId: string;
+}): Promise<string> {
+  const brandId = input.brandId.trim();
+  const sourcePostId = input.sourcePostId.trim();
+  const platform = input.platform.trim();
+  if (!brandId || !sourcePostId || !platform) {
+    throw new SocialPostImportError(
+      'Select a brand and imported post before remixing.',
+    );
+  }
+  const [brandPayload, organizations] = await Promise.all([
+    requestImportApi(
+      `/brands/${encodeURIComponent(brandId)}`,
+      'GET',
+      'Could not open remix.',
+    ),
+    requestImportApi(
+      '/organizations?mine=true',
+      'GET',
+      'Could not open remix.',
+    ),
+  ]);
+  const brandSlug = readBrandSlug(brandPayload, brandId);
+  const orgSlug = readOrgSlug(organizations);
+  if (
+    !brandSlug ||
+    !orgSlug ||
+    !WORKSPACE_SLUG_PATTERN.test(brandSlug) ||
+    !WORKSPACE_SLUG_PATTERN.test(orgSlug)
+  ) {
+    throw new SocialPostImportError(
+      'This brand has no workspace link for remix.',
+    );
+  }
+  const params = new URLSearchParams({
+    platform,
+    sourcePostId,
+  });
+  return `${appDomain}${createBrandAppRoute(orgSlug, brandSlug, APP_ROUTES.PUBLISHING.REMIX)}?${params.toString()}`;
 }

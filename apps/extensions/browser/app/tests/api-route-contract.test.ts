@@ -45,7 +45,9 @@ const routes = [
   ['POST', 'agent-tools/:name/execute'],
   ['POST', 'knowledge-sources'],
   ['POST', 'social-sources/import-post'],
-  ['GET', 'social-sources/feed'],
+  ['GET', 'source-posts'],
+  ['GET', 'brands/:id'],
+  ['GET', 'organizations'],
   ['POST', 'posts'],
   ['POST', 'prompts/tweet'],
   ['POST', 'images'],
@@ -100,7 +102,7 @@ describe('extension API route contract', () => {
       const source = readFileSync(resolve(extensionRoot, file), 'utf8');
       const endpoints = Array.from(
         source.matchAll(
-          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|videos|threads|brands|contexts|credentials|users|services|social-sources)[^'"`]*)['"`]/g,
+          /['"`](?:\$\{(?:API_BASE|apiEndpoint)\})?(\/(?:agent(?:-tools|\/threads)|auth|knowledge-sources|posts|prompts|images|videos|threads|brands|contexts|credentials|users|services|social-sources|source-posts|organizations)[^'"`]*)['"`]/g,
         ),
         (match) => normalizeRoute(match[1]),
       );

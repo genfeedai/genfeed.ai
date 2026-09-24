@@ -10,7 +10,6 @@ import {
   type ImportedPostsPageProps,
   type ImportedSourcePost,
 } from '~models/imported-source-post.model';
-import { appDomain } from '~services/environment.service';
 import { useBrandStore } from '~store/use-brand-store';
 
 type ImportStatus = 'idle' | 'importing' | 'imported' | 'already_imported';
@@ -62,7 +61,17 @@ function authorLabel(post: ImportedSourcePost): string {
   return post.authorDisplayName || handle || post.platform || 'Unknown author';
 }
 
-function ImportedSourceRow({ post }: { post: ImportedSourcePost }) {
+function isActiveBrand(brandId: string): boolean {
+  return useBrandStore.getState().activeBrandId === brandId;
+}
+
+function ImportedSourceRow({
+  onRemix,
+  post,
+}: {
+  onRemix: (post: ImportedSourcePost) => void;
+  post: ImportedSourcePost;
+}) {
   const sourceUrl = safeHttpUrl(post.sourceUrl);
   return (
     <div className="space-y-2 border border-border p-3">
@@ -88,9 +97,7 @@ function ImportedSourceRow({ post }: { post: ImportedSourcePost }) {
           </Button>
         ) : null}
         <Button
-          onClick={() =>
-            openUrl(`${appDomain}/discovery/overview?source=imported`)
-          }
+          onClick={() => onRemix(post)}
           type="button"
           variant={ButtonVariant.SECONDARY}
         >
@@ -112,18 +119,19 @@ export function ImportedPostsPage({
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(
-    async (signal: AbortSignal) => {
-      if (!brandId) {
+    async (signal: AbortSignal, expectedBrandId = brandId) => {
+      if (!expectedBrandId) {
         setPosts([]);
         return;
       }
       const next = await background<ImportedSourcePost[]>({
-        brandId,
+        brandId: expectedBrandId,
         event: 'listImportedPosts',
       });
-      if (!signal.aborted) {
-        setPosts(next);
+      if (signal.aborted || !isActiveBrand(expectedBrandId)) {
+        return;
       }
+      setPosts(next);
     },
     [brandId],
   );
@@ -143,14 +151,18 @@ export function ImportedPostsPage({
 
   useEffect(() => {
     const controller = new AbortController();
+    setPosts([]);
+    setStatus('idle');
+    setError(null);
     void refresh(controller.signal).catch((failure: unknown) => {
-      if (!controller.signal.aborted) {
-        setError(
-          failure instanceof Error
-            ? failure.message
-            : 'Could not load Imported sources.',
-        );
+      if (controller.signal.aborted) {
+        return;
       }
+      setError(
+        failure instanceof Error
+          ? failure.message
+          : 'Could not load Imported sources.',
+      );
     });
     return () => controller.abort();
   }, [refresh]);
@@ -174,31 +186,68 @@ export function ImportedPostsPage({
   }, [refresh]);
 
   async function importPost() {
-    if (!brandId) {
+    const requestBrandId = brandId;
+    if (!requestBrandId) {
       setError('Select a brand before importing this post.');
       return;
     }
     setStatus('importing');
     setError(null);
+    const controller = new AbortController();
     try {
       const response = (await chrome.runtime.sendMessage({
-        brandId,
+        brandId: requestBrandId,
         event: 'savePost',
         url,
       })) as ImportedPostSaveResponse | undefined;
+      if (!isActiveBrand(requestBrandId)) {
+        return;
+      }
       if (!response?.success) {
         setStatus('idle');
         setError(response?.error || 'Could not import this post.');
         return;
       }
       setStatus(response.deduplicated ? 'already_imported' : 'imported');
-      await refresh(new AbortController().signal);
+      await refresh(controller.signal, requestBrandId);
     } catch (failure) {
+      if (!isActiveBrand(requestBrandId)) {
+        return;
+      }
       setStatus('idle');
       setError(
         failure instanceof Error
           ? failure.message
           : 'Could not import this post.',
+      );
+    }
+  }
+
+  async function remixPost(post: ImportedSourcePost) {
+    const requestBrandId = brandId;
+    if (!requestBrandId) {
+      setError('Select a brand before remixing this post.');
+      return;
+    }
+    try {
+      const response = (await chrome.runtime.sendMessage({
+        brandId: requestBrandId,
+        event: 'openImportedRemix',
+        platform: post.platform,
+        postId: post.id,
+      })) as ImportedPostSaveResponse | undefined;
+      if (!isActiveBrand(requestBrandId)) {
+        return;
+      }
+      if (!response?.success) {
+        setError(response?.error || 'Could not open remix.');
+      }
+    } catch (failure) {
+      if (!isActiveBrand(requestBrandId)) {
+        return;
+      }
+      setError(
+        failure instanceof Error ? failure.message : 'Could not open remix.',
       );
     }
   }
@@ -268,7 +317,9 @@ export function ImportedPostsPage({
             Imported posts for this brand will appear here.
           </p>
         ) : (
-          posts.map((post) => <ImportedSourceRow key={post.id} post={post} />)
+          posts.map((post) => (
+            <ImportedSourceRow key={post.id} onRemix={remixPost} post={post} />
+          ))
         )}
       </section>
     </div>
