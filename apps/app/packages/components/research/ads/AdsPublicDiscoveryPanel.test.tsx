@@ -280,19 +280,30 @@ describe('explicit public discovery', () => {
     expect(discover.mock.calls[0][1].aborted).toBe(true);
   });
   it('never polls a legacy pending response', async () => {
-    discover
-      .mockResolvedValueOnce({ status: 'pending', advertisers: [] })
-      .mockResolvedValueOnce({ status: 'empty', advertisers: [] });
-    render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
-    fireEvent.change(screen.getByLabelText('Saved ad search'), {
-      target: { value: 'coffee' },
-    });
-    fireEvent.click(screen.getByRole('button', { name: 'Search saved ads' }));
-    await screen.findByText(
-      'Saved data is unavailable for this request. Please try again later.',
-    );
-    expect(discover).toHaveBeenCalledTimes(1);
+    vi.useFakeTimers();
+    try {
+      discover.mockResolvedValue({ status: 'pending', advertisers: [] });
+      render(<AdsPublicDiscoveryPanel onWatch={vi.fn()} isWatching={false} />);
+      fireEvent.change(screen.getByLabelText('Saved ad search'), {
+        target: { value: 'coffee' },
+      });
+      await act(async () =>
+        fireEvent.click(
+          screen.getByRole('button', { name: 'Search saved ads' }),
+        ),
+      );
+      await act(async () => vi.advanceTimersByTimeAsync(10000));
+      expect(
+        screen.getByText(
+          'Saved data is unavailable for this request. Please try again later.',
+        ),
+      ).toBeInTheDocument();
+      expect(discover).toHaveBeenCalledTimes(1);
+    } finally {
+      vi.useRealTimers();
+    }
   });
+
   it('distinguishes unconfigured search and displays Watch errors', async () => {
     discover.mockResolvedValue({
       status: 'unavailable',

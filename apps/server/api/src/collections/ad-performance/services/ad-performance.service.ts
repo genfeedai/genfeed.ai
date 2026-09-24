@@ -661,12 +661,6 @@ export class AdPerformanceService {
       .slice(0, limit);
   }
 
-  /**
-   * Ads belonging to a caller-chosen set of watched advertisers, rather than
-   * the global top-N. `researchSnapshotKey` is the watched advertiser's own
-   * id (see `replaceResearchSnapshot`), so this is a direct membership filter
-   * — no need to re-derive advertiser identity from ad content.
-   */
   async findSavedDiscoverySources(
     params: SavedDiscoveryQuery,
   ): Promise<AdPerformanceDocument[]> {
@@ -773,6 +767,12 @@ export class AdPerformanceService {
     return results;
   }
 
+  /**
+   * Ads belonging to a caller-chosen set of watched advertisers, rather than
+   * the global top-N. `researchSnapshotKey` is the watched advertiser's own
+   * id (see `replaceResearchSnapshot`), so this is a direct membership filter
+   * — no need to re-derive advertiser identity from ad content.
+   */
   async findByWatchedAdvertisers(params: {
     organizationId: string;
     brandId?: string;

@@ -157,6 +157,24 @@ function readCachedAdvertisers(
       !Array.isArray(row.samples)
     )
       continue;
+    const actualCountries = Array.isArray(row.countries)
+      ? [
+          ...new Set(
+            row.countries.filter(
+              (country): country is string =>
+                typeof country === 'string' && COUNTRIES.has(country),
+            ),
+          ),
+        ]
+      : [];
+    if (
+      !query.brandId &&
+      query.normalizedCountries.length &&
+      !query.normalizedCountries.some((country) =>
+        actualCountries.includes(country),
+      )
+    )
+      continue;
     const samples: AdsDiscoverySample[] = [];
     for (const value of row.samples.slice(0, 500)) {
       const sample = object(value);
@@ -211,7 +229,7 @@ function readCachedAdvertisers(
           ? row.externalAdvertiserId
           : undefined,
       platforms: [query.platform],
-      countries: query.normalizedCountries,
+      countries: actualCountries,
       creativeCount: samples.length,
       samples,
       watchInput:
@@ -277,9 +295,13 @@ export function groupDiscoveryAdvertisers(
     const observation = earliest
       ? observations?.get(earliest)?.observedAt
       : undefined;
+    const endedAt = earliest?.presentationEndDate
+      ? Date.parse(earliest.presentationEndDate)
+      : NaN;
     const hasEnd =
-      earliest?.presentationEndDate &&
-      Number.isFinite(Date.parse(earliest.presentationEndDate));
+      Number.isFinite(endedAt) &&
+      endedAt >= Date.parse(starts[0] ?? '') &&
+      endedAt <= now.getTime();
     const longevity =
       starts[0] && (!observations || observation || hasEnd)
         ? resolvePaidCreativeLongevity(
@@ -287,7 +309,11 @@ export function groupDiscoveryAdvertisers(
               presentationStartDate: starts[0],
               presentationEndDate: earliest?.presentationEndDate,
             },
-            observation ? new Date(observation) : now,
+            observation
+              ? new Date(observation)
+              : observations && hasEnd
+                ? new Date(endedAt)
+                : now,
           )
         : null;
     const activeKnown = rows.every(

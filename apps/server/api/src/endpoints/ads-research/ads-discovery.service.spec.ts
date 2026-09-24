@@ -149,6 +149,7 @@ describe('saved public discovery', () => {
           id: 'a',
           name: 'A',
           creativeCount: 1,
+          countries: ['FR'],
           activeCreativeCount: 1,
           longevityDays: 900,
           samples: [
@@ -223,5 +224,148 @@ describe('saved public discovery', () => {
       groupDiscoveryAdvertisers([record, record], AdsPlatform.META)[0]
         .creativeCount,
     ).toBe(1);
+  });
+  it('rejects unsupported creative formats', () => {
+    expect(() =>
+      validateDiscoveryQuery({
+        ...query,
+        mediaType: 'text',
+      } as unknown as typeof query),
+    ).toThrow();
+  });
+  it('retains every creative returned for an advertiser', () => {
+    const records = Array.from({ length: 6 }, (_, index) =>
+      normalizeMetaArchiveRecord({
+        adArchiveID: String(index),
+        pageID: '456',
+        snapshot: {
+          pageName: 'Example',
+          images: [{ originalImageUrl: 'https://example.com/image.jpg' }],
+        },
+      }),
+    );
+    const normalized = records.filter((record) => record !== undefined);
+    expect(
+      groupDiscoveryAdvertisers(normalized, AdsPlatform.META)[0].samples,
+    ).toHaveLength(6);
+  });
+  it('normalizes and rejects invalid runtime query values', () => {
+    expect(validateDiscoveryQuery(query)).toMatchObject({
+      keyword: 'coffee',
+      normalizedCountries: ['DE', 'FR'],
+    });
+    for (const invalid of [
+      { keyword: 'x' },
+      { limit: NaN },
+      { limit: 51 },
+      { limit: 1 },
+      { countries: 'XX' },
+      { countries: ['US'] },
+      { platform: 'bad' },
+    ])
+      expect(() =>
+        validateDiscoveryQuery({ ...query, ...invalid } as typeof query),
+      ).toThrow();
+    expect(() =>
+      validateDiscoveryQuery({
+        ...query,
+        platform: AdsPlatform.TIKTOK,
+        countries: 'US',
+      }),
+    ).toThrow();
+    expect(() =>
+      validateDiscoveryQuery({
+        ...query,
+        platform: AdsPlatform.GOOGLE,
+        keyword: 'coffee shop',
+      }),
+    ).toThrow();
+    expect(
+      validateDiscoveryQuery({
+        ...query,
+        platform: AdsPlatform.GOOGLE,
+        keyword: 'https://Example.com/foo',
+      }).keyword,
+    ).toBe('example.com');
+  });
+  it('groups and deduplicates without manufacturing active status or reach', () => {
+    const record = normalizeMetaArchiveRecord({
+      adArchiveID: '123',
+      pageID: '456',
+      snapshot: { pageName: 'Example' },
+    });
+    if (!record) throw new Error('Fixture did not normalize');
+    const groups = groupDiscoveryAdvertisers(
+      [record, record],
+      AdsPlatform.META,
+    );
+    expect(groups).toHaveLength(1);
+    expect(groups[0]).toMatchObject({
+      creativeCount: 1,
+      watchInput: { advertiserHandle: '456', externalAdvertiserId: '456' },
+    });
+    expect(groups[0].activeCreativeCount).toBeUndefined();
+    expect(groups[0].reachEstimateMin).toBeUndefined();
+  });
+  it.each([undefined, [], ['France'], ['DE']])(
+    'does not infer omitted-brand country evidence from request %j',
+    async (countries) => {
+      const { service, cache } = setup();
+      cache.get.mockResolvedValue({
+        status: 'ready',
+        platform: 'meta',
+        query: 'coffee',
+        countries: ['FR'],
+        advertisers: [
+          {
+            id: 'a',
+            name: 'A',
+            countries,
+            samples: [
+              {
+                id: 'ad',
+                imageUrls: ['https://example.com/a'],
+                videoUrls: [],
+                mediaUrls: [],
+              },
+            ],
+          },
+        ],
+      });
+      expect(
+        (
+          await service.discover('org', {
+            ...query,
+            brandId: undefined,
+            countries: 'FR',
+          })
+        ).status,
+      ).toBe('empty');
+    },
+  );
+  it.each(['2999-01-01', '2025-12-01', 'invalid'])(
+    'omits unobserved duration for invalid or scheduled end %s',
+    async (end) => {
+      const { service, sources } = setup();
+      sources.findSavedDiscoverySources.mockResolvedValue([
+        { ...row, researchObservedAt: undefined, presentationEndDate: end },
+      ]);
+      expect(
+        (await service.discover('org', query)).advertisers[0].longevityDays,
+      ).toBeUndefined();
+    },
+  );
+  it('bounds completed unobserved duration by actual end', async () => {
+    const { service, sources } = setup();
+    sources.findSavedDiscoverySources.mockResolvedValue([
+      {
+        ...row,
+        researchObservedAt: undefined,
+        presentationEndDate: '2026-01-06',
+      },
+    ]);
+    expect(
+      (await service.discover('org', query)).advertisers[0].longevityDays,
+    ).toBe(5);
   });
 });
