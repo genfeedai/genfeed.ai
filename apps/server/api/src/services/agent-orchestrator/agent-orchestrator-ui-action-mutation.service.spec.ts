@@ -101,7 +101,9 @@ describe('persisted mutation approvals', () => {
     transaction.agentMessage.findMany.mockImplementation(async () =>
       messages.getMessagesByRoom(),
     );
-    transaction.agentMessage.updateMany.mockResolvedValue({ count: 1 });
+    transaction.agentMessage.updateMany
+      .mockReset()
+      .mockResolvedValue({ count: 1 });
     executor.executeTool.mockResolvedValue({
       success: true,
       creditsUsed: 4,
