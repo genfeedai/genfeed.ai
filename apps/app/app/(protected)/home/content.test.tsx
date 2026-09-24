@@ -431,6 +431,7 @@ describe('OperationalHomeContent', () => {
   });
 
   it('uses organization-level brand setup actions when no brand is available', () => {
+    mocks.executionsIsLoading = true;
     mocks.brandState.brands = [
       {
         organization: { slug: 'acme' },
@@ -447,6 +448,15 @@ describe('OperationalHomeContent', () => {
     };
 
     render(<OperationalHomeContent />);
+
+    expect(
+      within(screen.getByTestId('operational-home-needs-you')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'catalog:home.credentials.addBrand' }),
+    ).toHaveAttribute('href', '/acme/~/settings/brands');
 
     for (const name of [
       'Attention queue',

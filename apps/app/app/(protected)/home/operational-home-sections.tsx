@@ -793,13 +793,14 @@ export default function OperationalHomeSections({
     useOverviewBootstrap();
   const {
     executions,
-    isLoading: areExecutionsLoading,
+    isLoading: isWorkflowExecutionsLoading,
     refresh: refreshExecutions,
     stats: executionStats,
   } = useWorkflowExecutions(
     { brandId, limit: 20, sort: '-createdAt' },
     { enabled: Boolean(brandId) },
   );
+  const areExecutionsLoading = Boolean(brandId) && isWorkflowExecutionsLoading;
   const publishing = useHomePublications(organizationId, brandId);
   const notifications = useMemo(() => NotificationsService.getInstance(), []);
   const getBatchesService = useAuthedService((token: string) =>
