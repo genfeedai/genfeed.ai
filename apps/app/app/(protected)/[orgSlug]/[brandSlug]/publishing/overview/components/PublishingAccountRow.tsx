@@ -24,11 +24,13 @@ export default function PublishingAccountRow({
   return (
     <li className="flex flex-col gap-2 border-b border-border px-4 py-2.5 last:border-b-0 sm:flex-row sm:items-center sm:px-5">
       <div className="min-w-0 flex-1 space-y-1">
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5">
+        <div className="flex flex-wrap items-start gap-x-3 gap-y-1.5">
           <div className="min-w-0 max-w-full sm:max-w-64">
             <AccountCell connection={connection} />
           </div>
-          <div className="flex max-w-full flex-wrap items-center gap-1 empty:hidden">
+          <div
+            className={`flex max-w-full flex-wrap items-center gap-1 empty:hidden ${connection.handle ? '' : 'pt-1.5'}`}
+          >
             {children}
           </div>
         </div>

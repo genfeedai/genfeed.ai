@@ -43,6 +43,7 @@ const SIZE_CLASSES = {
 const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   beehiiv: {
     bgColor: 'bg-platform-beehiiv/10',
+    solidBgColor: 'bg-platform-beehiiv',
     icon: Newspaper,
     iconColor: 'text-platform-beehiiv',
     label: 'Beehiiv',
@@ -50,6 +51,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   devto: {
     bgColor: 'bg-foreground/10',
+    solidBgColor: 'bg-platform-devto',
     icon: DevIcon,
     iconColor: 'text-foreground',
     label: 'DEV',
@@ -57,6 +59,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   facebook: {
     bgColor: 'bg-platform-facebook/10',
+    solidBgColor: 'bg-platform-facebook',
     icon: FacebookIcon,
     iconColor: 'text-platform-facebook',
     label: 'Facebook',
@@ -64,6 +67,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   fanvue: {
     bgColor: 'bg-platform-fanvue/10',
+    solidBgColor: 'bg-platform-fanvue',
     icon: Star,
     iconColor: 'text-platform-fanvue',
     label: 'Fanvue',
@@ -71,6 +75,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   ghost: {
     bgColor: 'bg-foreground/10',
+    solidBgColor: 'bg-platform-ghost',
     icon: GhostIcon,
     iconColor: 'text-foreground',
     label: 'Ghost',
@@ -78,6 +83,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   hacker_news: {
     bgColor: 'bg-platform-hacker_news/10',
+    solidBgColor: 'bg-platform-hacker_news',
     icon: HackerNewsIcon,
     iconColor: 'text-platform-hacker_news',
     label: 'Hacker News',
@@ -85,6 +91,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   instagram: {
     bgColor: 'bg-platform-instagram/10',
+    solidBgColor: 'bg-platform-instagram',
     icon: InstagramIcon,
     iconColor: 'text-platform-instagram',
     label: 'Instagram',
@@ -92,6 +99,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   linkedin: {
     bgColor: 'bg-platform-linkedin/10',
+    solidBgColor: 'bg-platform-linkedin',
     icon: LinkedinIcon,
     iconColor: 'text-platform-linkedin',
     label: 'LinkedIn',
@@ -99,6 +107,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   mastodon: {
     bgColor: 'bg-platform-mastodon/10',
+    solidBgColor: 'bg-platform-mastodon',
     icon: MastodonIcon,
     iconColor: 'text-platform-mastodon',
     label: 'Mastodon',
@@ -106,6 +115,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   medium: {
     bgColor: 'bg-platform-medium/10',
+    solidBgColor: 'bg-platform-medium',
     icon: MediumIcon,
     iconColor: 'text-platform-medium',
     label: 'Medium',
@@ -113,6 +123,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   pinterest: {
     bgColor: 'bg-platform-pinterest/10',
+    solidBgColor: 'bg-platform-pinterest',
     icon: PinterestIcon,
     iconColor: 'text-platform-pinterest',
     label: 'Pinterest',
@@ -120,6 +131,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   product_hunt: {
     bgColor: 'bg-platform-product_hunt/10',
+    solidBgColor: 'bg-platform-product_hunt',
     icon: ProductHuntIcon,
     iconColor: 'text-platform-product_hunt',
     label: 'Product Hunt',
@@ -127,6 +139,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   reddit: {
     bgColor: 'bg-platform-reddit/10',
+    solidBgColor: 'bg-platform-reddit',
     icon: RedditIcon,
     iconColor: 'text-platform-reddit',
     label: 'Reddit',
@@ -134,6 +147,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   shopify: {
     bgColor: 'bg-platform-shopify/10',
+    solidBgColor: 'bg-platform-shopify',
     icon: ShopifyIcon,
     iconColor: 'text-platform-shopify',
     label: 'Shopify',
@@ -141,6 +155,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   snapchat: {
     bgColor: 'bg-platform-snapchat/10',
+    solidBgColor: 'bg-platform-snapchat',
     icon: SnapchatIcon,
     iconColor: 'text-platform-snapchat',
     label: 'Snapchat',
@@ -148,6 +163,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   threads: {
     bgColor: 'bg-foreground/10',
+    solidBgColor: 'bg-platform-threads',
     icon: ThreadsIcon,
     iconColor: 'text-foreground',
     label: 'Threads',
@@ -155,6 +171,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   tiktok: {
     bgColor: 'bg-platform-tiktok/10',
+    solidBgColor: 'bg-platform-tiktok',
     icon: TiktokIcon,
     iconColor: 'text-platform-tiktok',
     label: 'TikTok',
@@ -162,6 +179,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   twitter: {
     bgColor: 'bg-platform-twitter/10',
+    solidBgColor: 'bg-black',
     icon: XTwitterIcon,
     iconColor: 'text-foreground',
     label: 'X',
@@ -169,6 +187,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   whatsapp: {
     bgColor: 'bg-platform-whatsapp/10',
+    solidBgColor: 'bg-platform-whatsapp',
     icon: WhatsappIcon,
     iconColor: 'text-platform-whatsapp',
     label: 'WhatsApp',
@@ -176,6 +195,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   wordpress: {
     bgColor: 'bg-platform-wordpress/10',
+    solidBgColor: 'bg-platform-wordpress',
     icon: WordpressIcon,
     iconColor: 'text-platform-wordpress',
     label: 'WordPress',
@@ -183,6 +203,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   x: {
     bgColor: 'bg-platform-twitter/10',
+    solidBgColor: 'bg-black',
     icon: XTwitterIcon,
     iconColor: 'text-foreground',
     label: 'X',
@@ -190,6 +211,7 @@ const PLATFORM_CONFIGS: Record<string, IPlatformBadgeConfig> = {
   },
   youtube: {
     bgColor: 'bg-platform-youtube/10',
+    solidBgColor: 'bg-platform-youtube',
     icon: YoutubeIcon,
     iconColor: 'text-platform-youtube',
     label: 'YouTube',
@@ -211,6 +233,7 @@ export default function PlatformBadge({
   className,
   showLabel = true,
   size = ComponentSize.MD,
+  variant = 'subtle',
 }: PlatformBadgeProps) {
   const config = getPlatformConfig(platform);
 
@@ -224,15 +247,18 @@ export default function PlatformBadge({
     <span
       className={cn(
         'inline-flex items-center font-medium',
-        config.bgColor,
-        config.textColor,
+        variant === 'solid' ? config.solidBgColor : config.bgColor,
+        variant === 'solid' ? 'text-white' : config.textColor,
         SIZE_CLASSES[size].container,
         className,
       )}
     >
       <Icon
         aria-hidden="true"
-        className={cn(SIZE_CLASSES[size].icon, config.iconColor)}
+        className={cn(
+          SIZE_CLASSES[size].icon,
+          variant === 'solid' ? 'text-white' : config.iconColor,
+        )}
       />
       {showLabel && <span>{config.label}</span>}
       {!showLabel && <span className="sr-only">{config.label}</span>}
