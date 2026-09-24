@@ -1,3 +1,4 @@
+import { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 
 vi.mock('@api/helpers/utils/response/response.util', () => ({
@@ -176,6 +177,7 @@ describe('WorkflowExecutionsController', () => {
   it('returns aggregate stats without applying pagination', async () => {
     mockService.getCustomerSummary.mockResolvedValue({ total: 500 });
     const query = {
+      ...new WorkflowExecutionQueryDto(),
       view: 'statistics' as const,
       brandId: 'brand-1',
       limit: 5,
@@ -202,6 +204,7 @@ describe('WorkflowExecutionsController', () => {
   ])('rejects invalid daily summary boundaries %j', async (window) => {
     await expect(
       controller.findAll(mockRequest, mockUser, {
+        ...new WorkflowExecutionQueryDto(),
         view: 'statistics',
         ...window,
       }),

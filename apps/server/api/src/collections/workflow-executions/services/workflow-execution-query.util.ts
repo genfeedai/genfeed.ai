@@ -6,7 +6,10 @@ import { Prisma } from '@genfeedai/prisma';
 /** Customer activity includes authored workflows and intentional proactive agent runs. */
 export function buildCustomerExecutionWhere(
   organizationId: string,
-  query: WorkflowExecutionQueryDto = {},
+  query: Pick<
+    WorkflowExecutionQueryDto,
+    'brandId' | 'status' | 'strategyId' | 'trigger' | 'workflowId'
+  > = {},
 ): Prisma.WorkflowExecutionWhereInput {
   const proactive: Prisma.WorkflowExecutionWhereInput = {
     AND: [
