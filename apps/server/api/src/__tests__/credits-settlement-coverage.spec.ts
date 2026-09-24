@@ -59,11 +59,22 @@ function readMemberDecorators(source: string): Map<string, string> {
   const byMember = new Map<string, string>();
   let pending: string[] = [];
   let depth = 0;
+  let inBlockComment = false;
 
   for (const line of source.split('\n')) {
     if (depth > 0) {
       pending.push(line);
       depth += countUnbalanced(line);
+      continue;
+    }
+    const trimmed = line.trim();
+    if (inBlockComment) {
+      if (trimmed.includes('*/')) inBlockComment = false;
+      continue;
+    }
+    if (trimmed.startsWith('//')) continue;
+    if (trimmed.startsWith('/*')) {
+      inBlockComment = !trimmed.includes('*/');
       continue;
     }
     if (/^ {2}@/.test(line)) {
@@ -87,6 +98,26 @@ function readMemberDecorators(source: string): Map<string, string> {
 }
 
 describe('credits settlement coverage', () => {
+  it('preserves guard and settlement decorators across comments', () => {
+    const decorators = readMemberDecorators(`
+export class MeteredController {
+  @UseGuards(SubscriptionGuard, CreditsGuard)
+  // Guard pricing is settled after generation.
+  @UseInterceptors(CreditsInterceptor)
+  /* Keep billing metadata with the handler.
+   * Comments may span multiple lines.
+   */
+  @Credits({ amount: 10 })
+  // @ts-expect-error legacy signature
+  async generate() {}
+}
+`).get('generate');
+
+    expect(decorators).toContain('@Credits(');
+    expect(decorators).toMatch(GUARD_DECORATOR);
+    expect(decorators).toMatch(INTERCEPTOR_DECORATOR);
+  });
+
   it.each([
     ['CreditsInterceptor settlement', INTERCEPTOR_DECORATOR],
     ['CreditsGuard admission', GUARD_DECORATOR],
