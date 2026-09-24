@@ -416,6 +416,7 @@ export function attachAgentStreamSubscriptions(
       'agent:input_request',
       filterByThread((data) => {
         const payload = data as AgentInputRequestPayload;
+        deps.pendingCompletionRef.current = null;
         deps.clearCompletionWatchdog();
         deps.updateThreadSummary(payload.threadId, {
           attentionState: 'needs-input',

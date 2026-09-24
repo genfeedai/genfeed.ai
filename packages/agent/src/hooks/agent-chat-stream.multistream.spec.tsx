@@ -471,3 +471,43 @@ it('does not let a foreign pre-ACK run suppress a matching receipt', async () =>
     'run-a',
   );
 });
+
+it('cannot let an in-flight recovery erase a newly received question', async () => {
+  const history =
+    deferred<
+      Array<{
+        id: string;
+        threadId: string;
+        role: 'assistant';
+        content: string;
+        metadata: { runId: string };
+      }>
+    >();
+  const a = entry('a', { getMessages: vi.fn(() => history.promise) });
+  await a.controller.sendMessage('A');
+  a.owner.recover?.();
+  emit('agent:input_request', 'a', {
+    inputRequestId: 'question',
+    prompt: 'Choose',
+    options: [],
+    timestamp: '2026-09-24T12:00:00Z',
+  });
+  history.resolve([
+    {
+      id: 'asking-answer',
+      threadId: 'a',
+      role: 'assistant',
+      content: 'Question',
+      metadata: { runId: 'run-a' },
+    },
+  ]);
+  await Promise.resolve();
+  await Promise.resolve();
+  expect(
+    a.owner.presentation.getState().pendingInputRequest?.inputRequestId,
+  ).toBe('question');
+  expect(a.owner.presentation.getState().activeRunStatus).toBe(
+    'awaiting_input',
+  );
+  expect(a.owner.completionTimeoutRef.current).toBeNull();
+});

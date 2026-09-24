@@ -12,7 +12,7 @@ const CLIENT_SERIALIZERS_MOCK = path.resolve(
 );
 
 export default defineConfig({
-  optimizeDeps: { exclude: ['next/link'] },
+  optimizeDeps: { include: ['next/link'] },
   resolve: {
     alias: [
       {
