@@ -351,6 +351,12 @@ vi.mock('@pages/studio/generate/components/StudioRemixRunPanel', () => ({
 describe('StudioGenerateWorkspace', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mocks.resolvePromptCommands
+      .mockReset()
+      .mockImplementation((text: string) => ({
+        content: text.replace('/cinema ', ''),
+        skillSlugs: [],
+      }));
     mocks.enhancedPromptId.value = undefined;
     mocks.isHydrated.value = true;
     mocks.brandId.value = 'brand-1';
@@ -504,6 +510,48 @@ describe('StudioGenerateWorkspace', () => {
       );
       expect(mocks.submit).not.toHaveBeenCalled();
       expect(mocks.startRemix).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['music', 'remix'])(
+    'blocks Enhance for selected skills in %s and preserves the prompt tokens',
+    (type) => {
+      if (type === 'remix') mocks.remixRun.value = remixRun;
+      else mocks.type.value = type;
+      mocks.resolvePromptCommands.mockReturnValue({
+        content: 'A coast',
+        skillSlugs: ['cinema'],
+      });
+      render(<StudioGenerateWorkspace />);
+      act(() =>
+        mocks.composer.mock.calls.at(-1)?.[0].onPromptChange('/cinema A coast'),
+      );
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onEnhancePrompt());
+      expect(mocks.enhancePrompt).not.toHaveBeenCalled();
+      expect(mocks.notify).toHaveBeenCalledWith(
+        expect.stringContaining('Selected skills'),
+      );
+      expect(mocks.composer.mock.calls.at(-1)?.[0].prompt).toBe(
+        '/cinema A coast',
+      );
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onSubmit());
+      expect(mocks.submit).not.toHaveBeenCalled();
+      expect(mocks.startRemix).not.toHaveBeenCalled();
+    },
+  );
+
+  it.each(['image', 'video'])(
+    'allows selected-skill Enhance for %s',
+    (type) => {
+      mocks.type.value = type;
+      mocks.resolvePromptCommands.mockReturnValue({
+        content: 'A coast',
+        skillSlugs: ['cinema'],
+      });
+      render(<StudioGenerateWorkspace />);
+      act(() => mocks.composer.mock.calls.at(-1)?.[0].onEnhancePrompt());
+      expect(mocks.enhancePrompt).toHaveBeenCalledOnce();
+      expect(mocks.notify).not.toHaveBeenCalled();
     },
   );
 

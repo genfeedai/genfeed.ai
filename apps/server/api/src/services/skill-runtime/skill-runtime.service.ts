@@ -18,9 +18,9 @@ import type {
   ResolvedRuntimeSkill,
 } from '@genfeedai/contracts/interfaces/ai';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 
-/** Real SKILL.md files (image-prompt-engineer is ~20k) need room to be useful. */
+/** Legacy truncation limit for optional skill instructions. */
 export const MAX_INSTRUCTIONS_PER_SKILL = 24_000;
 export const MAX_TOTAL_SKILL_INSTRUCTIONS = 48_000;
 
@@ -147,7 +147,13 @@ export class SkillRuntimeService {
     const untrustedSections: string[] = [];
     let totalLength = 0;
 
-    for (const skill of skills) {
+    const orderedSkills = required.size
+      ? [...skills].sort(
+          (left, right) =>
+            Number(required.has(right.slug)) - Number(required.has(left.slug)),
+        )
+      : skills;
+    for (const skill of orderedSkills) {
       if (!skill.instructions) {
         if (required.has(skill.slug)) throw unavailableRequestedSkill();
         continue;
@@ -156,20 +162,23 @@ export class SkillRuntimeService {
       const isTrusted = isTrustedProductSkill(skill);
       const preparedInstructions = isTrusted
         ? skill.instructions.trim()
-        : sanitizeAgentUntrustedInput(skill.instructions);
+        : sanitizeAgentUntrustedInput(
+            skill.instructions,
+            required.has(skill.slug) ? Number.POSITIVE_INFINITY : undefined,
+          );
       if (!preparedInstructions) {
         if (required.has(skill.slug)) throw unavailableRequestedSkill();
         continue;
       }
 
       const wasTruncated =
+        !required.has(skill.slug) &&
         preparedInstructions.length > MAX_INSTRUCTIONS_PER_SKILL;
       const truncated = wasTruncated
         ? `${preparedInstructions.slice(0, MAX_INSTRUCTIONS_PER_SKILL)}…`
         : preparedInstructions;
 
       if (wasTruncated) {
-        if (required.has(skill.slug)) throw unavailableRequestedSkill();
         this.logger.warn(
           `Skill ${skill.slug} instructions truncated at ${MAX_INSTRUCTIONS_PER_SKILL} chars`,
           'SkillRuntimeService',
@@ -178,11 +187,23 @@ export class SkillRuntimeService {
 
       const section = `## Skill: ${skill.name}\n${truncated}`;
 
-      if (totalLength + section.length > MAX_TOTAL_SKILL_INSTRUCTIONS) {
+      const candidateLength = required.size
+        ? this.renderSkillSections(
+            isTrusted ? [...trustedSections, section] : trustedSections,
+            isTrusted ? untrustedSections : [...untrustedSections, section],
+          ).length
+        : totalLength + section.length;
+      if (candidateLength > MAX_TOTAL_SKILL_INSTRUCTIONS) {
+        if (required.has(skill.slug)) {
+          throw new BadRequestException(
+            'The selected skill instructions exceed the generation budget. Select fewer skills or shorten their instructions.',
+          );
+        }
         this.logger.warn(
           `Skill prompt sections truncated at ${trustedSections.length + untrustedSections.length} skills (total limit ${MAX_TOTAL_SKILL_INSTRUCTIONS} chars)`,
           'SkillRuntimeService',
         );
+        if (required.size) continue;
         break;
       }
 
@@ -197,6 +218,13 @@ export class SkillRuntimeService {
 
     if (requiredSlugs.some((slug) => !included.has(slug)))
       throw unavailableRequestedSkill();
+    return this.renderSkillSections(trustedSections, untrustedSections);
+  }
+
+  private renderSkillSections(
+    trustedSections: string[],
+    untrustedSections: string[],
+  ): string {
     const blocks: string[] = [];
 
     if (trustedSections.length > 0) {
@@ -209,10 +237,7 @@ export class SkillRuntimeService {
       );
     }
 
-    const output = blocks.join('\n\n');
-    if (requiredSlugs.length && output.length > MAX_TOTAL_SKILL_INSTRUCTIONS)
-      throw unavailableRequestedSkill();
-    return output;
+    return blocks.join('\n\n');
   }
 
   /**

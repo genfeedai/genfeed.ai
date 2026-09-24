@@ -1,3 +1,4 @@
+import { loadFirstPartySkillDefinitions } from '@api/collections/skills/catalog/first-party-skill-loader';
 import { UNTRUSTED_ORG_SKILL_FRAMING } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import {
   MAX_INSTRUCTIONS_PER_SKILL,
@@ -117,7 +118,9 @@ describe('SkillRuntimeService.buildSkillPromptSections', () => {
     ]);
 
     expect(sections.length).toBeLessThanOrEqual(MAX_TOTAL_SKILL_INSTRUCTIONS);
-    expect(sections).toContain('…');
+    expect(sections).toBe(
+      `## Skill: Brand Voice\n${'A'.repeat(MAX_INSTRUCTIONS_PER_SKILL)}…`,
+    );
     expect(logger.warn).toHaveBeenCalledWith(
       expect.stringContaining('truncated at'),
       'SkillRuntimeService',
@@ -334,7 +337,7 @@ describe('SkillRuntimeService.resolveRequestedSkillPromptSections', () => {
 });
 
 describe('strict generation skill sections', () => {
-  it.each(['', '   ', '\u0000', 'x'.repeat(MAX_INSTRUCTIONS_PER_SKILL + 1)])(
+  it.each(['', '   ', '\u0000', 'x'.repeat(MAX_TOTAL_SKILL_INSTRUCTIONS + 1)])(
     'rejects unusable selected instructions',
     (instructions) => {
       expect(() =>
@@ -357,18 +360,98 @@ describe('strict generation skill sections', () => {
     ).toThrow('selected skill');
   });
 
-  it('rejects a selected instruction omitted by the total budget', () => {
+  it('packs an explicit catalog skill before image and model defaults', () => {
+    const definitions = loadFirstPartySkillDefinitions();
+    const slugs = [
+      'image-prompt-engineer',
+      'model-selector',
+      'cinematic-prompting',
+    ];
+    const skills = slugs.map((slug) => {
+      const definition = definitions.find((entry) => entry.slug === slug);
+      if (!definition) throw new Error(`Missing catalog skill ${slug}`);
+      return skill({ ...definition, isBuiltIn: true, source: 'built_in' });
+    });
+    const output = createService().buildSkillPromptSections(skills, [
+      'cinematic-prompting',
+    ]);
+    expect(output).toContain(skills[2].instructions.trim());
+    expect(output.length).toBeLessThanOrEqual(MAX_TOTAL_SKILL_INSTRUCTIONS);
+    expect(output.indexOf('## Skill: Cinematic')).toBe(0);
+  });
+
+  it('includes the complete selected image prompt engineer above the optional cap', () => {
+    const definition = loadFirstPartySkillDefinitions().find(
+      (entry) => entry.slug === 'image-prompt-engineer',
+    );
+    if (!definition) throw new Error('Missing image prompt engineer');
+    expect(definition.instructions.length).toBeGreaterThan(
+      MAX_INSTRUCTIONS_PER_SKILL,
+    );
+    const output = createService().buildSkillPromptSections(
+      [skill({ ...definition, isBuiltIn: true, source: 'built_in' })],
+      ['image-prompt-engineer'],
+    );
+    expect(output).toContain(definition.instructions.trim());
+    expect(output.length).toBeLessThanOrEqual(MAX_TOTAL_SKILL_INSTRUCTIONS);
+  });
+
+  it('omits optional sections that exceed the rendered boundary without losing required guidance', () => {
+    const logger = { warn: vi.fn() };
+    const service = new SkillRuntimeService({} as never, logger as never);
+    const heading = '## Skill: Brand Voice\n';
+    const framing = `${UNTRUSTED_ORG_SKILL_FRAMING}\n\n`;
+    const instructions = 'r'.repeat(
+      MAX_TOTAL_SKILL_INSTRUCTIONS - heading.length - framing.length,
+    );
+    const output = service.buildSkillPromptSections(
+      [
+        skill({ slug: 'optional', instructions: 'optional guidance' }),
+        skill({ instructions }),
+      ],
+      ['brand-voice'],
+    );
+    expect(output.length).toBe(MAX_TOTAL_SKILL_INSTRUCTIONS);
+    expect(output).toContain(instructions);
+    expect(output).not.toContain('optional guidance');
+    expect(logger.warn).toHaveBeenCalled();
+    expect(() =>
+      service.buildSkillPromptSections(
+        [skill({ instructions: `${instructions}r` })],
+        ['brand-voice'],
+      ),
+    ).toThrow('selected skill');
+  });
+
+  it('preserves required custom guidance beyond the default sanitizer cap', () => {
+    const instructions = 'r'.repeat(35_000);
+    const output = createService().buildSkillPromptSections(
+      [skill({ instructions })],
+      ['brand-voice'],
+    );
+    expect(output).toContain(instructions);
+    expect(output.length).toBeLessThan(MAX_TOTAL_SKILL_INSTRUCTIONS);
+  });
+
+  it('does not hide required truncation behind leading whitespace or controls', () => {
+    const instructions = `${' '.repeat(49_000)}\u0000${'r'.repeat(35_000)}`;
+    const output = createService().buildSkillPromptSections(
+      [skill({ instructions })],
+      ['brand-voice'],
+    );
+    expect(output).toContain('r'.repeat(35_000));
     expect(() =>
       createService().buildSkillPromptSections(
         [
-          skill({ slug: 'first', instructions: 'a'.repeat(23990) }),
-          skill({ slug: 'second', instructions: 'b'.repeat(23990) }),
-          skill(),
+          skill({
+            instructions: `${' '.repeat(49_000)}\u0000${'r'.repeat(49_000)}`,
+          }),
         ],
         ['brand-voice'],
       ),
     ).toThrow('selected skill');
   });
+
   it('resolves defaults for the media context with no selection', async () => {
     const resolveBrandSkills = vi.fn().mockResolvedValue([]);
     const service = new SkillRuntimeService(

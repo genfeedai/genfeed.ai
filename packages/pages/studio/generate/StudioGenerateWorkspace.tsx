@@ -647,6 +647,33 @@ export default function StudioGenerateWorkspace(): ReactElement {
     };
   }, [attachments, contentReferences, getCompletedAttachments, type]);
 
+  const rejectUnsupportedSkillSelection = useCallback(
+    (skillSlugs: string[]) => {
+      if (
+        skillSlugs.length &&
+        (remixRun || (type !== 'image' && type !== 'video'))
+      ) {
+        notificationsService.warning(
+          'Selected skills are supported for image and video generation. Remove the skill selections to continue here.',
+        );
+        return true;
+      }
+      return false;
+    },
+    [notificationsService.warning, remixRun, type],
+  );
+
+  const handleEnhancePrompt = useCallback(() => {
+    const { skillSlugs } = resolvePromptCommands(prompt);
+    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
+    return enhancePrompt();
+  }, [
+    enhancePrompt,
+    prompt,
+    rejectUnsupportedSkillSelection,
+    resolvePromptCommands,
+  ]);
+
   const handleSubmit = useCallback(() => {
     if (isUploading || isListening || isTranscribing) {
       return;
@@ -656,15 +683,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     // path — a remix stores the prompt as its objective, so a token left in
     // here would reach generation the same way.
     const { content, skillSlugs } = resolvePromptCommands(prompt);
-    if (
-      skillSlugs.length &&
-      (remixRun || (type !== 'image' && type !== 'video'))
-    ) {
-      notificationsService.warning(
-        'Selected skills are supported for image and video generation. Remove the skill selections to continue here.',
-      );
-      return;
-    }
+    if (rejectUnsupportedSkillSelection(skillSlugs)) return;
 
     if (remixRun) {
       if (
@@ -725,6 +744,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
     contentReferences,
     resolvedReferences,
     resolveCharacterMentions,
+    rejectUnsupportedSkillSelection,
     resolvePromptCommands,
     remixRun,
     settings,
@@ -1188,7 +1208,7 @@ export default function StudioGenerateWorkspace(): ReactElement {
                   models={models}
                   onAddFiles={handleAddFiles}
                   onCancelEnhancePrompt={cancelEnhance}
-                  onEnhancePrompt={enhancePrompt}
+                  onEnhancePrompt={handleEnhancePrompt}
                   onOpenLibrary={handleOpenLibrary}
                   onPromptChange={setPrompt}
                   onPromptDocumentChange={(document) => {
