@@ -27,7 +27,10 @@ import {
   type WorkflowExecutionProgressRow,
   type WorkflowExecutionProgressSnapshot,
 } from '@api/collections/workflow-executions/services/workflow-execution-runtime.util';
-import { readWorkflowExecutionSummary } from '@api/collections/workflow-executions/services/workflow-execution-summary.util';
+import {
+  readWorkflowExecutionStats,
+  readWorkflowExecutionSummary,
+} from '@api/collections/workflow-executions/services/workflow-execution-summary.util';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere, withActionOriginMetadata } from '@api/index';
@@ -958,6 +961,7 @@ export class WorkflowExecutionsService extends BaseService<
   ) {
     return readWorkflowExecutionSummary(
       this.prisma,
+      organizationId,
       buildCustomerExecutionWhere(organizationId, query),
       dayStart,
       dayEnd,
@@ -965,38 +969,7 @@ export class WorkflowExecutionsService extends BaseService<
   }
 
   @HandleErrors('get execution stats', 'workflow-executions')
-  async getExecutionStats(
-    workflowId: string,
-    organizationId: string,
-  ): Promise<{
-    total: number;
-    completed: number;
-    failed: number;
-    avgDurationMs: number;
-  }> {
-    const executions = await this.prisma.workflowExecution.findMany({
-      select: { durationMs: true, status: true },
-      where: buildCustomerExecutionWhere(organizationId, { workflowId }),
-    });
-
-    const total = executions.length;
-    const completed = executions.filter(
-      (e) => e.status === PrismaWorkflowExecutionStatus.COMPLETED,
-    ).length;
-    const failed = executions.filter(
-      (e) => e.status === PrismaWorkflowExecutionStatus.FAILED,
-    ).length;
-
-    const durationsWithValue = executions
-      .map((e) => e.durationMs)
-      .filter((d): d is number => typeof d === 'number' && d > 0);
-
-    const avgDurationMs =
-      durationsWithValue.length > 0
-        ? durationsWithValue.reduce((a, b) => a + b, 0) /
-          durationsWithValue.length
-        : 0;
-
-    return { avgDurationMs, completed, failed, total };
+  getExecutionStats(workflowId: string, organizationId: string) {
+    return readWorkflowExecutionStats(this.prisma, organizationId, workflowId);
   }
 }

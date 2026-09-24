@@ -40,7 +40,7 @@ describe('readWorkflowExecutionSummary', () => {
     const start = new Date('2026-09-23T22:00:00Z');
     const end = new Date('2026-09-24T22:00:00Z');
     expect(
-      await readWorkflowExecutionSummary(prisma, where, start, end),
+      await readWorkflowExecutionSummary(prisma, 'org-1', where, start, end),
     ).toEqual({
       active: 2,
       completed: 45,

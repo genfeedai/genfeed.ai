@@ -1,9 +1,12 @@
+import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import type { WorkflowExecutionStats } from '@genfeedai/contracts/types';
 import { type Prisma, WorkflowExecutionStatus } from '@genfeedai/prisma';
 
 export async function readWorkflowExecutionSummary(
   prisma: PrismaService,
+  organizationId: string,
   where: Prisma.WorkflowExecutionWhereInput,
   dayStart: Date,
   dayEnd: Date,
@@ -11,13 +14,16 @@ export async function readWorkflowExecutionSummary(
   const [totals, today] = await Promise.all([
     prisma.workflowExecution.groupBy({
       by: ['status'],
-      where,
+      where: scopedWhere(organizationId, where),
       _count: { _all: true },
       _sum: { creditsUsed: true },
     }),
     prisma.workflowExecution.groupBy({
       by: ['status'],
-      where: { ...where, completedAt: { gte: dayStart, lt: dayEnd } },
+      where: scopedWhere(organizationId, {
+        ...where,
+        completedAt: { gte: dayStart, lt: dayEnd },
+      }),
       _count: { _all: true },
     }),
   ]);
@@ -50,4 +56,42 @@ export async function readWorkflowExecutionSummary(
       stats.failedToday += group._count._all;
   }
   return stats;
+}
+
+export async function readWorkflowExecutionStats(
+  prisma: PrismaService,
+  organizationId: string,
+  workflowId: string,
+): Promise<{
+  total: number;
+  completed: number;
+  failed: number;
+  avgDurationMs: number;
+}> {
+  const executions = await prisma.workflowExecution.findMany({
+    select: { durationMs: true, status: true },
+    where: scopedWhere(
+      organizationId,
+      buildCustomerExecutionWhere(organizationId, { workflowId }),
+    ),
+  });
+  const total = executions.length;
+  const completed = executions.filter(
+    (execution) => execution.status === WorkflowExecutionStatus.COMPLETED,
+  ).length;
+  const failed = executions.filter(
+    (execution) => execution.status === WorkflowExecutionStatus.FAILED,
+  ).length;
+  const durationsWithValue = executions
+    .map((execution) => execution.durationMs)
+    .filter((duration): duration is number => {
+      return typeof duration === 'number' && duration > 0;
+    });
+  const avgDurationMs =
+    durationsWithValue.length > 0
+      ? durationsWithValue.reduce((sum, duration) => sum + duration, 0) /
+        durationsWithValue.length
+      : 0;
+
+  return { avgDurationMs, completed, failed, total };
 }
