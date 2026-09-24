@@ -592,31 +592,9 @@ export class TrendReferenceCorpusService {
     id: string,
     data: TrendReferenceRecordData,
   ): boolean {
-    if (
-      data.sourcePreviewState === 'fallback' ||
-      /-fallback-[1-9]\d*$/.test(id)
-    )
-      return false;
-    if (
-      data.platform !== 'linkedin' ||
-      data.sourceClassification?.sourceKind !== 'public_platform_reference' ||
-      data.sourceClassification.confidence !== 'low' ||
-      data.mediaUrl
-    )
-      return true;
-    try {
-      const url = new URL(data.canonicalUrl);
-      return !(
-        url.protocol === 'https:' &&
-        !url.username &&
-        !url.password &&
-        (url.hostname === 'linkedin.com' ||
-          url.hostname === 'www.linkedin.com') &&
-        /^\/company\/[^/]+\/?$/.test(url.pathname)
-      );
-    } catch {
-      return true;
-    }
+    return (
+      data.sourcePreviewState !== 'fallback' && !/-fallback-[1-9]\d*$/.test(id)
+    );
   }
 
   private shouldIncludeReferenceByClassification(

@@ -20,31 +20,10 @@ import type { TrendContentItem } from '@props/trends/trends-page.props';
 const HAS_REMIX_SURFACE = true;
 
 export function isObservedTrendContent(item: TrendContentItem): boolean {
-  if (
-    item.sourcePreviewState === 'fallback' ||
-    /-fallback-[1-9]\d*$/.test(item.id)
-  )
-    return false;
-  if (
-    item.platform !== 'linkedin' ||
-    item.sourceClassification?.sourceKind !== 'public_platform_reference' ||
-    item.sourceClassification.confidence !== 'low' ||
-    item.mediaUrl
-  )
-    return true;
-  try {
-    const url = new URL(item.sourceUrl);
-    return !(
-      url.protocol === 'https:' &&
-      !url.username &&
-      !url.password &&
-      (url.hostname === 'linkedin.com' ||
-        url.hostname === 'www.linkedin.com') &&
-      /^\/company\/[^/]+\/?$/.test(url.pathname)
-    );
-  } catch {
-    return true;
-  }
+  return (
+    item.sourcePreviewState !== 'fallback' &&
+    !/-fallback-[1-9]\d*$/.test(item.id)
+  );
 }
 
 function sumMetrics(metrics: DiscoveryDeskItemMetrics): number {
