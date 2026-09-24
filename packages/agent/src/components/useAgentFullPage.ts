@@ -2,6 +2,7 @@ import { useAgentSetupStatus } from '@genfeedai/agent/components/useAgentSetupSt
 import { AGENT_MESSAGE_PAGE_SIZE } from '@genfeedai/agent/constants/agent-message-pagination.constant';
 import {
   captureAgentStreamHydration,
+  disposeAgentStreamEntry,
   findAgentStreamEntry,
   projectAgentStreamEntry,
 } from '@genfeedai/agent/hooks/agent-chat-stream.runtime';
@@ -521,8 +522,8 @@ export function useAgentFullPage({
           : null);
 
       const messagesRequest = hydrationFlight
-        ? hydrationFlight.promise.then(({ page }) => {
-            if (!controller.signal.aborted && canHydrate()) {
+        ? hydrationFlight.promise.then(({ page, snapshot }) => {
+            if (!controller.signal.aborted && canHydrate(snapshot)) {
               resetStreamState();
               setMessagesPage(page);
               const retained = findAgentStreamEntry(threadId);
@@ -559,8 +560,18 @@ export function useAgentFullPage({
       if (snapshotRequest) {
         Promise.all([messagesRequest, snapshotRequest])
           .then(([, snapshot]) => {
-            if (controller.signal.aborted || !canHydrate()) {
+            if (controller.signal.aborted || !canHydrate(snapshot)) {
               return;
+            }
+            const previousEntry = findAgentStreamEntry(threadId);
+            if (
+              previousEntry?.terminalAt !== null &&
+              previousEntry &&
+              snapshot.activeRun?.runId !==
+                previousEntry.presentation.getState().activeRunId &&
+              mapSnapshotRunStatus(snapshot.activeRun?.status) === 'running'
+            ) {
+              disposeAgentStreamEntry(previousEntry);
             }
             setLatestProposedPlan(snapshot.latestProposedPlan ?? null);
             setPendingInputRequest(mapSnapshotPendingInputRequest(snapshot));
@@ -571,6 +582,8 @@ export function useAgentFullPage({
             setRunStartedAt(snapshot.activeRun?.startedAt ?? null);
             setWorkEvents(mapSnapshotWorkEvents(snapshot));
             setError(readSnapshotRunError(snapshot));
+            if (mapSnapshotRunStatus(snapshot.activeRun?.status) === 'running')
+              useAgentChatStore.getState().markStreamLive?.();
             const retained = findAgentStreamEntry(threadId);
             if (retained)
               retained.presentation.setState({
@@ -595,7 +608,7 @@ export function useAgentFullPage({
       if (threadRequest && snapshotRequest) {
         Promise.all([threadRequest, messagesRequest, snapshotRequest])
           .then(([thread, msgs, snapshot]) => {
-            if (controller.signal.aborted || !canHydrate()) {
+            if (controller.signal.aborted || !canHydrate(snapshot)) {
               return;
             }
             setActiveThreadStatus(thread.status);

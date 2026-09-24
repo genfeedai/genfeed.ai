@@ -400,3 +400,74 @@ it('discards a scheduled global token batch on a synchronous thread switch', asy
   await vi.advanceTimersByTimeAsync(100);
   expect(useAgentChatStore.getState().stream.streamingContent).toBe('');
 });
+
+it('never revives a retained terminal run from stale hydration, but permits a distinct newer run', async () => {
+  const a = entry('a');
+  await a.controller.sendMessage('A');
+  done('a');
+  const canHydrate = captureAgentStreamHydration('a');
+  const snapshot = {
+    activeRun: {
+      runId: 'run-a',
+      status: 'running',
+      startedAt: '2026-09-24T12:00:00Z',
+    },
+    pendingInputRequests: [],
+    timeline: [],
+  } as unknown as import('@genfeedai/agent/models/agent-chat.model').AgentThreadSnapshot;
+  expect(canHydrate(snapshot)).toBe(false);
+  expect(
+    canHydrate({
+      ...snapshot,
+      activeRun: {
+        runId: 'newer-run',
+        status: 'running',
+        startedAt: '2026-09-24T12:01:00Z',
+      },
+    }),
+  ).toBe(true);
+});
+it('keeps the newest draft visible when an older unassigned ACK resolves first', async () => {
+  useAgentChatStore.getState().setActiveThread(null);
+  const first = deferred<ReturnType<typeof accepted>>();
+  const second = deferred<ReturnType<typeof accepted>>();
+  const a = entry(
+    null,
+    { chatStream: vi.fn(() => first.promise) },
+    'old-draft',
+  );
+  const sendA = a.controller.sendMessage('old');
+  const b = entry(
+    null,
+    { chatStream: vi.fn(() => second.promise) },
+    'new-draft',
+  );
+  const sendB = b.controller.sendMessage('new');
+  first.resolve(accepted('new-a'));
+  await sendA;
+  expect(useAgentChatStore.getState().activeThreadId).toBeNull();
+  expect(useAgentChatStore.getState().messages.at(-1)?.content).toBe('new');
+  second.resolve(accepted('new-b'));
+  await sendB;
+  expect(useAgentChatStore.getState().activeThreadId).toBe('new-b');
+});
+it('does not let a foreign pre-ACK run suppress a matching receipt', async () => {
+  const response = deferred<ReturnType<typeof accepted>>();
+  const a = entry('a', { chatStream: vi.fn(() => response.promise) });
+  const sending = a.controller.sendMessage('A');
+  emit('agent:token', 'a', { runId: 'old-run', token: 'old' });
+  emit('agent:turn_accepted', 'a', {
+    clientRequestId: 'request-a',
+    acceptedAt: '2026-09-24T12:00:00Z',
+    organizationId: 'org',
+    userId: 'user',
+  });
+  expect(a.owner.presentation.getState().stream.acceptedReceipt?.runId).toBe(
+    'run-a',
+  );
+  response.resolve(accepted('a'));
+  await sending;
+  expect(a.owner.presentation.getState().stream.acceptedReceipt?.runId).toBe(
+    'run-a',
+  );
+});

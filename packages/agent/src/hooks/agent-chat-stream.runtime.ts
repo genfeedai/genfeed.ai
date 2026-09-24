@@ -3,11 +3,13 @@ import type {
   AgentStreamEntry,
   AgentStreamRuntime,
 } from '@genfeedai/agent/hooks/agent-chat-stream.types';
+import type { AgentThreadSnapshot } from '@genfeedai/agent/models/agent-chat.model';
 import {
   type AgentChatStore,
   createAgentChatStore,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
+import { mapSnapshotRunStatus } from '@genfeedai/agent/utils/agent-thread-snapshot.util';
 
 function blankRuntime(): AgentStreamRuntime {
   return {
@@ -325,8 +327,24 @@ export function captureAgentStreamHydration(threadId: string) {
   const entry = findAgentStreamEntry(threadId);
   const generation = entry?.ownerGeneration;
   const revision = entry?.revision;
-  return () => {
+  return (snapshot?: AgentThreadSnapshot | null) => {
     const current = findAgentStreamEntry(threadId);
+    if (
+      current?.terminalAt !== null &&
+      current &&
+      snapshot?.activeRun &&
+      mapSnapshotRunStatus(snapshot.activeRun.status) === 'running'
+    ) {
+      const retained = current.presentation.getState();
+      if (snapshot.activeRun.runId === retained.activeRunId) return false;
+      if (
+        snapshot.activeRun.startedAt &&
+        retained.runStartedAt &&
+        Date.parse(snapshot.activeRun.startedAt) <=
+          Date.parse(retained.runStartedAt)
+      )
+        return false;
+    }
     return (
       current === entry &&
       current?.ownerGeneration === generation &&

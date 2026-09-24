@@ -896,6 +896,7 @@ export function createAgentStreamController(
       threadId: entry.activeStreamThreadRef.current,
     };
     attachSubscriptions();
+    markThreadRunning(entry.activeStreamThreadRef.current);
     scheduleCompletionWatchdog();
   }
   return {
