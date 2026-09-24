@@ -129,6 +129,14 @@ export class OrganizationsSettingsController {
     @Param('organizationId') organizationId: string,
     @Body() settingsDto: UpdateOrganizationSettingDto,
   ): Promise<JsonApiSingleResponse> {
+    if (
+      Object.hasOwn(settingsDto, 'onboardingJourneyMissions') ||
+      Object.hasOwn(settingsDto, 'onboardingJourneyCompletedAt')
+    ) {
+      throw new BadRequestException(
+        'Onboarding journey state is managed by the server',
+      );
+    }
     const resolvedOrganizationId = this.resolveOrganizationId(
       req,
       organizationId,

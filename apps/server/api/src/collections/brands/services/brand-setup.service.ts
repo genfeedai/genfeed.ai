@@ -3,7 +3,7 @@ import type { UpdateBrandDto } from '@api/collections/brands/dto/update-brand.dt
 import { BrandDataMapper } from '@api/collections/brands/services/brand-data.mapper';
 import { BrandPersistenceService } from '@api/collections/brands/services/brand-persistence.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import type { BrandSetupDto } from '@api/endpoints/onboarding/dto/brand-setup.dto';
 import type { ReferenceImageDto } from '@api/endpoints/onboarding/dto/reference-images.dto';
@@ -16,10 +16,6 @@ import type {
   IExtractedBrandData,
   IScrapedBrandData,
 } from '@genfeedai/contracts/interfaces';
-import {
-  type IOnboardingJourneyMissionState,
-  ONBOARDING_JOURNEY_MISSIONS,
-} from '@genfeedai/contracts/types';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
@@ -50,7 +46,7 @@ export class BrandSetupService {
     private readonly brandScraperService: BrandScraperService,
     private readonly masterPromptGeneratorService: MasterPromptGeneratorService,
     private readonly brandsService: BrandsService,
-    private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
     private readonly organizationSettingsService: OrganizationSettingsService,
     private readonly brandDataMapper: BrandDataMapper,
     private readonly brandPersistenceService: BrandPersistenceService,
@@ -305,7 +301,7 @@ export class BrandSetupService {
           );
         }
 
-        await this.unlockCompanyInfoJourneyReward(organizationId);
+        await this.unlockCompanyInfoJourneyReward(organizationId, userId);
 
         // 7. Mark first login as complete
         await this.completeOnboarding(organizationId);
@@ -420,52 +416,12 @@ export class BrandSetupService {
 
   private async unlockCompanyInfoJourneyReward(
     organizationId: string,
+    userId: string,
   ): Promise<void> {
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: organizationId,
-    });
-
-    if (!settings?.id) {
-      return;
-    }
-
-    const normalizedMissions =
-      this.organizationSettingsService.normalizeJourneyState(
-        settings.onboardingJourneyMissions as unknown as
-          | IOnboardingJourneyMissionState[]
-          | undefined,
-      );
-    const mission = normalizedMissions.find(
-      (item) => item.id === 'complete_company_info',
-    );
-
-    if (!mission || mission.rewardClaimed) {
-      return;
-    }
-
-    const updatedMissions = normalizedMissions.map((item) =>
-      item.id === 'complete_company_info'
-        ? {
-            ...item,
-            completedAt: item.completedAt ?? new Date(),
-            isCompleted: true,
-            rewardClaimed: true,
-          }
-        : item,
-    );
-
-    await this.organizationSettingsService.patch(String(settings.id), {
-      onboardingJourneyMissions: updatedMissions,
-    });
-
-    await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
+    await this.onboardingCreditGrantsService.completeMissions(
       organizationId,
-      ONBOARDING_JOURNEY_MISSIONS.find(
-        (item) => item.id === 'complete_company_info',
-      )?.rewardCredits ?? 25,
-      'onboarding-journey',
-      'Onboarding journey reward: company information completed',
-      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+      ['complete_company_info'],
+      userId,
     );
   }
 

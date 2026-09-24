@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { ImagesService } from '@api/collections/images/services/images.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -105,6 +106,7 @@ export class AgentOnboardingToolHandler {
     private readonly contentGeneratorService: ContentGeneratorService,
     @Inject(AGENT_GENERATION_GATEWAY)
     private readonly generationGateway: IAgentGenerationGateway,
+    private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
     @Optional()
     private readonly credentialsService?: CredentialsService,
     @Optional()
@@ -792,56 +794,11 @@ export class AgentOnboardingToolHandler {
     ctx: ToolExecutionContext,
     missionId: OnboardingJourneyMissionId,
   ): Promise<void> {
-    if (!this.organizationSettingsService) {
-      return;
-    }
-
-    const settings = await this.organizationSettingsService.findOne({
-      organizationId: ctx.organizationId,
-    });
-
-    if (!settings?.id) {
-      return;
-    }
-
-    const missions = this.organizationSettingsService.normalizeJourneyState(
-      settings.onboardingJourneyMissions as unknown as
-        | IOnboardingJourneyMissionState[]
-        | undefined,
+    await this.onboardingCreditGrantsService.completeMissions(
+      ctx.organizationId,
+      [missionId],
+      ctx.userId,
     );
-    const mission = missions.find((item) => item.id === missionId);
-
-    const isSelfHosted = isSelfHostedDeployment();
-
-    if (!mission || (!isSelfHosted && mission.rewardClaimed)) {
-      return;
-    }
-
-    const updatedMissions = missions.map((item) =>
-      item.id === missionId
-        ? {
-            ...item,
-            completedAt: item.completedAt ?? new Date(),
-            isCompleted: true,
-            rewardClaimed: !isSelfHosted,
-            rewardCredits: isSelfHosted ? 0 : item.rewardCredits,
-          }
-        : item,
-    );
-
-    await this.organizationSettingsService.patch(String(settings.id), {
-      onboardingJourneyMissions: updatedMissions,
-    });
-
-    if (!isSelfHosted) {
-      await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-        ctx.organizationId,
-        mission.rewardCredits,
-        'onboarding-journey',
-        `Onboarding journey reward: ${missionId}`,
-        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      );
-    }
   }
 
   private async syncOnboardingJourneyState(
@@ -863,58 +820,20 @@ export class AgentOnboardingToolHandler {
       };
     }
 
-    const nextMissions = missions.map((mission) => {
-      const shouldComplete = completionMap[mission.id];
-      return shouldComplete && !mission.isCompleted
-        ? { ...mission, completedAt: new Date(), isCompleted: true }
-        : mission;
-    });
-
-    const isSelfHosted = isSelfHostedDeployment();
-    let totalRewardCreditsGranted = 0;
-    const claimedMissions = isSelfHosted
-      ? nextMissions.map((mission) => ({
-          ...mission,
-          rewardClaimed: false,
-          rewardCredits: 0,
-        }))
-      : nextMissions.map((mission) => {
-          if (mission.isCompleted && !mission.rewardClaimed) {
-            totalRewardCreditsGranted += mission.rewardCredits;
-            return { ...mission, rewardClaimed: true };
-          }
-
-          return mission;
-        });
-
+    const claimedMissions =
+      await this.onboardingCreditGrantsService.completeMissions(
+        ctx.organizationId,
+        ONBOARDING_JOURNEY_MISSIONS.filter(
+          (mission) => completionMap[mission.id],
+        ).map((mission) => mission.id),
+        ctx.userId,
+      );
     const earnedCredits = claimedMissions
       .filter((mission) => mission.rewardClaimed)
       .reduce((total, mission) => total + mission.rewardCredits, 0);
-    const journeyCompleted = claimedMissions.every(
-      (mission) => mission.isCompleted,
-    );
-    const currentSettings = await this.organizationSettingsService.findOne({
-      organizationId: ctx.organizationId,
-    });
-
-    if (currentSettings?.id) {
-      await this.organizationSettingsService.patch(String(currentSettings.id), {
-        onboardingJourneyCompletedAt: journeyCompleted
-          ? currentSettings.onboardingJourneyCompletedAt || new Date()
-          : null,
-        onboardingJourneyMissions: claimedMissions,
-      });
-    }
-
-    if (totalRewardCreditsGranted > 0) {
-      await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-        ctx.organizationId,
-        totalRewardCreditsGranted,
-        'onboarding-journey',
-        'Onboarding journey reward',
-        new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-      );
-    }
+    const journeyCompleted =
+      claimedMissions.length > 0 &&
+      claimedMissions.every((mission) => mission.isCompleted);
 
     if (journeyCompleted) {
       if (this.organizationsService) {

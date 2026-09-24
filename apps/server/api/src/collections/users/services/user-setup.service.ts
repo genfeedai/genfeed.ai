@@ -14,7 +14,7 @@ import { BillingAccountsService } from '@api/collections/billing-accounts/servic
 import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import type { MemberDocument } from '@api/collections/members/schemas/member.schema';
 import { MembersService } from '@api/collections/members/services/members.service';
 import type { OrganizationSettingDocument } from '@api/collections/organization-settings/schemas/organization-setting.schema';
@@ -26,7 +26,6 @@ import type { SettingDocument } from '@api/collections/settings/schemas/setting.
 import { SettingsService } from '@api/collections/settings/services/settings.service';
 import { MemberRole, OrganizationCategory } from '@genfeedai/contracts';
 import { DEFAULT_THEME } from '@genfeedai/contracts/constants';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import { resolveSignupWorkspaceLabel } from '@genfeedai/helpers';
 import { LoggerService } from '@libs/logger/logger.service';
 import { ForbiddenException, Injectable } from '@nestjs/common';
@@ -57,7 +56,7 @@ export class UserSetupService {
     private readonly settingsService: SettingsService,
     private readonly billingAccountsService: BillingAccountsService,
     private readonly creditBalanceService: CreditBalanceService,
-    private readonly creditsUtilsService: CreditsUtilsService,
+    private readonly onboardingCreditGrantsService: OnboardingCreditGrantsService,
     private readonly logger: LoggerService,
   ) {}
 
@@ -132,9 +131,10 @@ export class UserSetupService {
         this.context,
       );
 
-      if (organizationResult.wasCreated) {
-        await this.awardSignupGiftCredits(organization.id);
-      }
+      await this.onboardingCreditGrantsService.grantSignupGift(
+        organization.id,
+        userId,
+      );
 
       // Log success summary
       this.logger.log(
@@ -268,34 +268,6 @@ export class UserSetupService {
     );
 
     return { organization, wasCreated: true };
-  }
-
-  private async awardSignupGiftCredits(organizationId: string): Promise<void> {
-    const organizationIdString = organizationId.toString();
-    const existingCredits =
-      await this.creditsUtilsService.getOrganizationCreditsWithExpiration(
-        organizationIdString,
-      );
-    const hasSignupGift = existingCredits.credits.some(
-      (entry) => entry.source === 'onboarding-signup-gift',
-    );
-
-    if (hasSignupGift) {
-      return;
-    }
-
-    await this.creditsUtilsService.addOrganizationCreditsWithExpiration(
-      organizationIdString,
-      ONBOARDING_SIGNUP_GIFT_CREDITS,
-      'onboarding-signup-gift',
-      'Signup gift credits',
-      new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
-    );
-
-    this.logger.log(
-      `Awarded signup gift credits for organization ${organizationIdString}`,
-      this.context,
-    );
   }
 
   private async getOrCreateOrganizationSettings(

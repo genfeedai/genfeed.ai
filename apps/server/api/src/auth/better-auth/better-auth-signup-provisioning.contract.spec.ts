@@ -1,6 +1,6 @@
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditBalanceService } from '@api/collections/credits/services/credit-balance.service';
-import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { OnboardingCreditGrantsService } from '@api/collections/credits/services/onboarding-credit-grants.service';
 import { MembersService } from '@api/collections/members/services/members.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { OrganizationsService } from '@api/collections/organizations/services/organizations.service';
@@ -9,7 +9,6 @@ import { SettingsService } from '@api/collections/settings/services/settings.ser
 import { UserSetupService } from '@api/collections/users/services/user-setup.service';
 import type { LifecycleEmailService } from '@api/services/lifecycle-emails/lifecycle-email.service';
 import type { SignupPrefillWorkflowService } from '@api/services/signup-prefill/signup-prefill-workflow.service';
-import { ONBOARDING_SIGNUP_GIFT_CREDITS } from '@genfeedai/contracts/types';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { betterAuth } from 'better-auth';
 import { type MemoryDB, memoryAdapter } from 'better-auth/adapters/memory';
@@ -118,7 +117,7 @@ function createSignupProvisioningHarness() {
     getOrCreateBalance: vi.fn().mockResolvedValue({ balance: 0 }),
   };
   const creditsUtilsService = {
-    addOrganizationCreditsWithExpiration: vi.fn().mockResolvedValue(undefined),
+    grantSignupGift: vi.fn().mockResolvedValue(undefined),
     getOrganizationCreditsWithExpiration: vi.fn().mockResolvedValue({
       credits: [],
       total: 0,
@@ -148,7 +147,7 @@ function createSignupProvisioningHarness() {
       ensureForOrganization: vi.fn().mockResolvedValue({ id: 'ba_1' }),
     } as unknown as import('@api/collections/billing-accounts/services/billing-accounts.service').BillingAccountsService,
     creditBalanceService as unknown as CreditBalanceService,
-    creditsUtilsService as unknown as CreditsUtilsService,
+    creditsUtilsService as unknown as OnboardingCreditGrantsService,
     logger as unknown as LoggerService,
   );
   const listener = new UserProvisioningListener(
@@ -275,14 +274,9 @@ describe('Better Auth signup provisioning contract', () => {
         userId: session.user.id,
       }),
     );
-    expect(
-      harness.creditsUtilsService.addOrganizationCreditsWithExpiration,
-    ).toHaveBeenCalledWith(
+    expect(harness.creditsUtilsService.grantSignupGift).toHaveBeenCalledWith(
       ORGANIZATION_ID,
-      ONBOARDING_SIGNUP_GIFT_CREDITS,
-      'onboarding-signup-gift',
-      'Signup gift credits',
-      expect.any(Date),
+      session.user.id,
     );
   });
 
@@ -309,8 +303,6 @@ describe('Better Auth signup provisioning contract', () => {
     expect(session.user.email).toBe(TEST_EMAIL);
     expect(harness.logger.error).toHaveBeenCalled();
     expect(harness.membersService.create).not.toHaveBeenCalled();
-    expect(
-      harness.creditsUtilsService.addOrganizationCreditsWithExpiration,
-    ).not.toHaveBeenCalled();
+    expect(harness.creditsUtilsService.grantSignupGift).not.toHaveBeenCalled();
   });
 });
