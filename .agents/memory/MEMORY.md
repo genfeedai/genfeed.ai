@@ -22,6 +22,8 @@ do not load every linked file. Add detailed entries to the catalog, keeping this
 
 ## Task entry points
 
+- **Feature inventory and product boundaries:** [product feature map](reference_product_feature_map.md) and [Imported / Generated / Knowledge](feedback_imported_generated_knowledge_boundary.md). Read before proposing capture, Ideas or remix UI; GitHub owns live gap status.
+
 - **Before implementation:** [system patterns](context/system-patterns.md),
   [project structure](context/project-structure.md), and
   [style guide](context/project-style-guide.md). Read the relevant sections.
