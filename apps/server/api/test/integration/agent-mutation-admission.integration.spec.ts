@@ -319,4 +319,111 @@ describe('atomic agent mutation admission with PostgreSQL', () => {
       },
     });
   });
+  it('settles a rejected provider in the original scope after archive without inventing a final result', async () => {
+    await prisma.agentThread.updateMany({
+      where: { id: threadId, organizationId, userId, isDeleted: false },
+      data: { status: 'active', contextVersion: 1 },
+    });
+    const scope = {
+      organizationId,
+      userId,
+      threadId,
+      contextVersion: 1,
+      isLegacyFallback: false,
+      isVersionExplicit: true,
+      source: 'explicit' as const,
+    };
+    const args = {
+      count: 1,
+      platforms: ['twitter'],
+      topics: ['Rejected provider'],
+    };
+    const approval = await prisma.mcpApproval.create({
+      data: {
+        organizationId,
+        userId,
+        toolName: 'generate_content_batch',
+        arguments: args,
+        idempotencyKey: buildLogicalWriteKey({
+          organizationId,
+          userId,
+          threadId,
+          scope,
+          arguments: args,
+          toolName: 'generate_content_batch',
+        }),
+      },
+    });
+    const sourceActionId = `mutation-approval:${approval.id}`;
+    const card = {
+      id: sourceActionId,
+      type: 'mutation_approval_card',
+      data: {
+        approvalId: approval.id,
+        sourceActionId,
+        scopeVersion: 1,
+        status: 'pending',
+        expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      },
+    };
+    const message = await prisma.agentMessage.create({
+      data: {
+        organizationId,
+        threadId,
+        role: 'assistant',
+        metadata: { uiActions: [card], unrelated: 'retained' },
+      },
+    });
+    const rejection = new Error('Provider rejected after admission');
+    const executor = {
+      executeTool: vi.fn(async () => {
+        await prisma.agentThread.updateMany({
+          where: { id: threadId, organizationId, userId, isDeleted: false },
+          data: { status: 'archived', contextVersion: 2 },
+        });
+        throw rejection;
+      }),
+    };
+    const finalizer = { finalizeStructuredAssistantTurn: vi.fn() };
+    const service = new AgentOrchestratorUiActionMutationService(
+      approvals,
+      { getMessagesByRoom: vi.fn().mockResolvedValue([message]) } as never,
+      executor as never,
+      finalizer as never,
+      prisma,
+    );
+    await expect(
+      service.execute('confirm_mutation', {
+        threadId,
+        model: 'test',
+        context: { organizationId, userId, scope },
+        payload: { approvalId: approval.id, sourceActionId },
+      }),
+    ).rejects.toBe(rejection);
+    expect(finalizer.finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
+    expect(
+      await prisma.mcpApproval.findFirst({
+        where: { id: approval.id, organizationId, isDeleted: false },
+      }),
+    ).toMatchObject({ status: 'APPROVED', result: null });
+    expect(
+      await prisma.agentMessage.findFirst({
+        where: { id: message.id, organizationId, isDeleted: false },
+      }),
+    ).toMatchObject({
+      metadata: {
+        unrelated: 'retained',
+        uiActions: [
+          expect.objectContaining({
+            data: expect.objectContaining({
+              status: 'approved',
+              executionStatus: 'failed',
+              scopeVersion: 1,
+              error: rejection.message,
+            }),
+          }),
+        ],
+      },
+    });
+  });
 });

@@ -2,6 +2,8 @@ import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator
 import type { ThreadUiActionExecutionParams } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action.types';
 import { AgentOrchestratorUiActionMutationService } from '@api/services/agent-orchestrator/agent-orchestrator-ui-action-mutation.service';
 import { buildLogicalWriteKey } from '@genfeedai/actions';
+import { ApiKeyScope } from '@genfeedai/contracts';
+import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 describe('persisted mutation approvals', () => {
@@ -714,4 +716,194 @@ describe('persisted mutation approvals', () => {
       expect(executor.executeTool).not.toHaveBeenCalled();
     },
   );
+  const publishingCases = [
+    {
+      toolName: 'schedule_post',
+      arguments: { postId: 'post-1' },
+      scope: ApiKeyScope.POSTS_SCHEDULE,
+    },
+    {
+      toolName: 'create_post',
+      arguments: { confirmed: false },
+      scope: ApiKeyScope.POSTS_DRAFT,
+    },
+    {
+      toolName: 'create_post',
+      arguments: { confirmed: true, scheduledAt: '2030-01-01T00:00:00.000Z' },
+      scope: ApiKeyScope.POSTS_SCHEDULE,
+    },
+    {
+      toolName: 'create_post',
+      arguments: { confirmed: true },
+      scope: ApiKeyScope.POSTS_PUBLISH,
+    },
+  ];
+  function publishingApproval(
+    toolName: string,
+    storedArgs: Record<string, unknown>,
+  ) {
+    approvals.findOwned.mockResolvedValue({
+      ...approval(),
+      toolName,
+      arguments: storedArgs,
+      idempotencyKey: buildLogicalWriteKey({
+        arguments: storedArgs,
+        organizationId: 'org-1',
+        userId: 'user-1',
+        threadId: 'thread-1',
+        scope: { brandId: 'brand-1', contextVersion: 2 },
+        toolName,
+      }),
+    });
+  }
+  it.each(publishingCases)(
+    'rejects approve-only key before admission for $toolName $arguments',
+    async (testCase) => {
+      publishingApproval(testCase.toolName, testCase.arguments);
+      const request = params();
+      request.context.apiKeyContext = {
+        isApiKey: true,
+        scopes: [ApiKeyScope.POSTS_APPROVE],
+      };
+      await expect(
+        service.execute('confirm_mutation', request),
+      ).rejects.toBeInstanceOf(ForbiddenException);
+      expect(approvals.resolve).not.toHaveBeenCalled();
+      expect(transaction.agentMessage.updateMany).not.toHaveBeenCalled();
+      expect(prisma.$transaction).not.toHaveBeenCalled();
+      expect(executor.executeTool).not.toHaveBeenCalled();
+    },
+  );
+  it.each(publishingCases)(
+    'allows execution-scoped key and sessions for $toolName $arguments',
+    async (testCase) => {
+      publishingApproval(testCase.toolName, testCase.arguments);
+      const request = params();
+      request.context.apiKeyContext = {
+        isApiKey: true,
+        scopes: [ApiKeyScope.POSTS_APPROVE, testCase.scope],
+      };
+      await service.execute('confirm_mutation', request);
+      await service.execute('confirm_mutation', params());
+      expect(executor.executeTool).toHaveBeenCalledTimes(2);
+    },
+  );
+  it('allows an approve-only key to decline publishing without execution capability', async () => {
+    publishingApproval('schedule_post', { postId: 'post-1' });
+    const request = params();
+    request.context.apiKeyContext = {
+      isApiKey: true,
+      scopes: [ApiKeyScope.POSTS_APPROVE],
+    };
+    await service.execute('decline_mutation', request);
+    expect(approvals.resolve).toHaveBeenCalled();
+    expect(executor.executeTool).not.toHaveBeenCalled();
+  });
+  it.each([new Error('Provider rejected'), { reason: 'rejected' }])(
+    'settles thrown execution and rethrows the exact rejection %j',
+    async (rejection) => {
+      executor.executeTool.mockImplementationOnce(async () => {
+        expect(openTransactions).toBe(0);
+        transaction.agentThread.findFirst.mockResolvedValue({
+          brandId: 'brand-2',
+          contextVersion: 3,
+          status: 'archived',
+        });
+        throw rejection;
+      });
+      await expect(service.execute('confirm_mutation', params())).rejects.toBe(
+        rejection,
+      );
+      expect(transaction.agentMessage.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: {
+            metadata: expect.objectContaining({
+              uiActions: [
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    status: 'approved',
+                    executionStatus: 'failed',
+                    scopeVersion: 2,
+                    brandId: 'brand-1',
+                    error:
+                      rejection instanceof Error
+                        ? rejection.message
+                        : 'Approved action execution failed.',
+                  }),
+                }),
+              ],
+            }),
+          },
+        }),
+      );
+      expect(finalizer.finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
+    },
+  );
+  it('surfaces settlement failure instead of claiming a thrown execution was settled', async () => {
+    executor.executeTool.mockRejectedValueOnce(new Error('dispatch failed'));
+    transaction.agentMessage.updateMany
+      .mockResolvedValueOnce({ count: 1 })
+      .mockResolvedValueOnce({ count: 0 });
+    await expect(service.execute('confirm_mutation', params())).rejects.toThrow(
+      'Unable to update',
+    );
+    expect(finalizer.finalizeStructuredAssistantTurn).not.toHaveBeenCalled();
+  });
+  it('preserves terminal error at admission and clears it after successful replay with exact credits', async () => {
+    approvals.findOwned.mockResolvedValue({
+      ...approval(),
+      status: 'APPROVED',
+    });
+    const fresh = {
+      ...card(),
+      data: {
+        ...card().data,
+        status: 'approved',
+        executionStatus: 'failed',
+        error: 'old failure',
+      },
+    };
+    transaction.agentMessage.findMany.mockResolvedValue([
+      { id: 'message-1', metadata: { uiActions: [fresh], unrelated: true } },
+    ]);
+    executor.executeTool.mockImplementationOnce(async () => {
+      expect(transaction.agentMessage.updateMany).toHaveBeenLastCalledWith(
+        expect.objectContaining({
+          data: {
+            metadata: expect.objectContaining({
+              uiActions: [
+                expect.objectContaining({
+                  data: expect.objectContaining({
+                    executionStatus: 'failed',
+                    error: 'old failure',
+                  }),
+                }),
+              ],
+            }),
+          },
+        }),
+      );
+      return { success: true, creditsUsed: 7 };
+    });
+    await service.execute('confirm_mutation', params());
+    const last = transaction.agentMessage.updateMany.mock.calls.at(-1)?.[0];
+    expect(last.data.metadata.uiActions[0].data).not.toHaveProperty('error');
+    expect(last.data.metadata).toMatchObject({
+      unrelated: true,
+      uiActions: [
+        expect.objectContaining({
+          data: expect.objectContaining({
+            status: 'approved',
+            executionStatus: 'completed',
+          }),
+        }),
+      ],
+    });
+    expect(finalizer.finalizeStructuredAssistantTurn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        result: expect.objectContaining({ success: true, creditsUsed: 7 }),
+      }),
+    );
+    expect(approvals.resolve).not.toHaveBeenCalled();
+  });
 });
