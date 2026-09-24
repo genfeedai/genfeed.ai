@@ -24,7 +24,9 @@ export type PaidCreativeIngestionErrorCode =
   | PaidCreativeReadinessBlocker
   | 'paid_creative_platform_unsupported'
   | 'paid_creative_snapshot_write_failed'
-  | 'paid_creative_source_unavailable';
+  | 'paid_creative_source_unavailable'
+  | 'research_paid_access_required'
+  | 'research_subscription_unverified';
 
 export interface PaidCreativeReadiness {
   available: boolean;

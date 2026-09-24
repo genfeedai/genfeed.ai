@@ -109,6 +109,71 @@ redis.call('HSET', KEYS[2], 'state', 'settled', 'actualMicroUsd', ARGV[2])
 return 1
 `;
 
+const NOTE_RESEARCH_RESERVATION_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+local amount = integer(ARGV[1])
+if not amount or amount <= 0 then return 0 end
+if redis.call('TYPE', KEYS[2]).ok ~= 'hash' then return 0 end
+if redis.call('HGET', KEYS[2], 'booksReserved') == '1' then return 2 end
+local outstanding = integer(redis.call('GET', KEYS[3]) or '0')
+if not outstanding or outstanding > MAX - amount then return 0 end
+redis.call('SET', KEYS[3], string.format('%.0f', outstanding + amount), 'PX', ttl)
+redis.call('HSET', KEYS[2], 'booksReserved', '1')
+return 1
+`;
+
+const NOTE_SETTLED_RESEARCH_RESERVATION_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+if redis.call('TYPE', KEYS[2]).ok ~= 'hash' then return 0 end
+if redis.call('HGET', KEYS[2], 'booksSettled') == '1' then return 2 end
+if redis.call('HGET', KEYS[2], 'state') ~= 'settled' then return 0 end
+if redis.call('HGET', KEYS[2], 'booksReserved') ~= '1' then return 0 end
+local reserved = integer(redis.call('HGET', KEYS[2], 'reserved'))
+local actual = integer(redis.call('HGET', KEYS[2], 'actualMicroUsd'))
+local outstanding = integer(redis.call('GET', KEYS[3]) or '0')
+local settled = integer(redis.call('GET', KEYS[4]) or '0')
+if not reserved or not actual or not outstanding or not settled then return 0 end
+if outstanding < reserved or settled > MAX - actual then return 0 end
+redis.call('SET', KEYS[3], string.format('%.0f', outstanding - reserved), 'PX', ttl)
+redis.call('SET', KEYS[4], string.format('%.0f', settled + actual), 'PX', ttl)
+redis.call('HSET', KEYS[2], 'booksSettled', '1')
+return 1
+`;
+
+const IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT = `${COUNTER_VALIDATION_SCRIPT}
+local provider = integer(ARGV[1])
+if not provider then return 0 end
+local snapshotRaw = redis.call('GET', KEYS[2])
+if not snapshotRaw then
+  redis.call('SET', KEYS[2], ARGV[1], 'PX', ttl)
+  redis.call('SET', KEYS[3], '0', 'PX', ttl)
+  if provider > current then
+    redis.call('INCRBY', KEYS[1], string.format('%.0f', provider - current))
+  end
+  return {3}
+end
+local snapshot = integer(snapshotRaw)
+local settled = integer(redis.call('GET', KEYS[3]) or '0')
+if not snapshot or not settled then return 0 end
+local external = provider - snapshot - settled
+if external > 0 then
+  if current > MAX - external then return 0 end
+  redis.call('INCRBY', KEYS[1], string.format('%.0f', external))
+  redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
+  redis.call('SET', KEYS[3], '0', 'PX', ttl)
+  return {1, string.format('%.0f', external)}
+end
+if external == 0 then
+  redis.call('SET', KEYS[2], string.format('%.0f', provider), 'PX', ttl)
+  redis.call('SET', KEYS[3], '0', 'PX', ttl)
+  return {2}
+end
+return {4}
+`;
+
+export type ResearchReservationNote = 'duplicate' | 'noted' | 'unavailable';
+export type HostedAccountUsageImport =
+  | { externalMicroUsd: number; status: 'applied' }
+  | { status: 'baselined' | 'behind' | 'unchanged' | 'unavailable' };
+
 @Injectable()
 export class CacheService {
   private readonly defaultTtl = 300; // 5 minutes default
@@ -258,6 +323,116 @@ export class CacheService {
       if (result === 2) return 'duplicate';
     } catch (error: unknown) {
       this.logOperationError('reconcileCounterReservation', { error });
+    }
+    return 'unavailable';
+  }
+
+  /**
+   * Record a hosted reservation in the account ledger. Duplicate calls for
+   * the same reservation hash do not add the amount twice.
+   */
+  async noteResearchReservation(
+    usageKey: string,
+    reservationKey: string,
+    reservedMicroUsd: number,
+  ): Promise<ResearchReservationNote> {
+    return this.evalResearchNote(
+      NOTE_RESEARCH_RESERVATION_SCRIPT,
+      [usageKey, reservationKey, `${usageKey}:outstanding`],
+      [String(reservedMicroUsd)],
+      reservedMicroUsd > 0,
+    );
+  }
+
+  /**
+   * Move a settled reservation from outstanding into settled charges.
+   * A duplicate settlement does not change the ledger.
+   */
+  async noteSettledResearchReservation(
+    usageKey: string,
+    reservationKey: string,
+  ): Promise<ResearchReservationNote> {
+    return this.evalResearchNote(
+      NOTE_SETTLED_RESEARCH_RESERVATION_SCRIPT,
+      [
+        usageKey,
+        reservationKey,
+        `${usageKey}:outstanding`,
+        `${usageKey}:settled`,
+      ],
+      [],
+      true,
+    );
+  }
+
+  /**
+   * Fold provider-account usage into the hosted counter. External spend is
+   * added once. Charges this process already settled are not added again.
+   * A missing snapshot adopts the provider total and raises the counter
+   * only when that total is already higher.
+   */
+  async importHostedAccountUsage(
+    usageKey: string,
+    providerMicroUsd: number,
+  ): Promise<HostedAccountUsageImport> {
+    if (
+      !this.isAvailable ||
+      !usageKey ||
+      !Number.isSafeInteger(providerMicroUsd) ||
+      providerMicroUsd < 0
+    ) {
+      return { status: 'unavailable' };
+    }
+    try {
+      const result = await this.client.eval(
+        IMPORT_HOSTED_ACCOUNT_USAGE_SCRIPT,
+        3,
+        usageKey,
+        `${usageKey}:snapshot`,
+        `${usageKey}:settled`,
+        String(providerMicroUsd),
+      );
+      if (Array.isArray(result) && result[0] === 1) {
+        const external = Number(result[1]);
+        if (Number.isSafeInteger(external) && external > 0) {
+          return { externalMicroUsd: external, status: 'applied' };
+        }
+      }
+      if (Array.isArray(result) && result[0] === 2) {
+        return { status: 'unchanged' };
+      }
+      if (Array.isArray(result) && result[0] === 3) {
+        return { status: 'baselined' };
+      }
+      if (Array.isArray(result) && result[0] === 4) {
+        return { status: 'behind' };
+      }
+    } catch (error: unknown) {
+      this.logOperationError('importHostedAccountUsage', { error });
+    }
+    return { status: 'unavailable' };
+  }
+
+  private async evalResearchNote(
+    script: string,
+    keys: string[],
+    args: string[],
+    isValid: boolean,
+  ): Promise<ResearchReservationNote> {
+    if (!this.isAvailable || !isValid || keys.some((key) => !key)) {
+      return 'unavailable';
+    }
+    try {
+      const result = await this.client.eval(
+        script,
+        keys.length,
+        ...keys,
+        ...args,
+      );
+      if (result === 1) return 'noted';
+      if (result === 2) return 'duplicate';
+    } catch (error: unknown) {
+      this.logOperationError('evalResearchNote', { error });
     }
     return 'unavailable';
   }

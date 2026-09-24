@@ -844,6 +844,7 @@ model Organization {
   adOptimizationRecommendations AdOptimizationRecommendation[]
   adPerformances                AdPerformance[]
   adWatchedAdvertisers          AdWatchedAdvertiser[]
+  researchCollectionJobs        ResearchCollectionJob[]
   savedAds                      SavedAd[]
   outreachCampaigns             OutreachCampaign[]
   campaignTargets               CampaignTarget[]
@@ -5522,6 +5523,36 @@ model Forecast {
 // ═══════════════════════════════════════════════════════════════
 // ADS
 // ═══════════════════════════════════════════════════════════════
+
+/// One in-flight hosted research collection. A retry resumes the recorded
+/// upstream run instead of starting another. Terminal rows clear
+/// `inflightRequestKey` so a later request may collect again.
+model ResearchCollectionJob {
+  id                 String       @id @default(cuid())
+  organizationId     String
+  organization       Organization @relation(fields: [organizationId], references: [id])
+  actorId            String
+  requestKey         String
+  inflightRequestKey String?      @unique
+  scope              String       @default("pending")
+  status             String
+  upstreamRunId      String?
+  datasetId          String?
+  reservationKey     String?
+  usageKey           String?
+  reservedMicroUsd   Int?
+  actualCostMicroUsd Int?
+  reconciledAt       DateTime?
+  terminalReason     String?
+  startAttemptedAt   DateTime?
+  isDeleted          Boolean      @default(false)
+  createdAt          DateTime     @default(now())
+  updatedAt          DateTime     @updatedAt
+
+  @@index([organizationId, isDeleted])
+  @@index([organizationId, isDeleted, upstreamRunId])
+  @@map("research_collection_jobs")
+}
 
 model AdBulkUploadJob {
   id             String       @id @default(cuid())

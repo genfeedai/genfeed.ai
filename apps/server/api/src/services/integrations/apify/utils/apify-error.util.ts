@@ -96,6 +96,17 @@ export function isApifyAccountLimitError(error: unknown): boolean {
  * True when the token itself is missing, unknown, or rejected — a credential
  * problem rather than a usage problem.
  */
+/**
+ * A start is ambiguous when Apify may have accepted the run but the response
+ * never arrived. 4xx means the run was refused. Missing status is a timeout
+ * or network failure and must not be treated as proof the run did not start.
+ */
+export function isAmbiguousApifyStartError(error: unknown): boolean {
+  const status = getApifyErrorStatus(error);
+  if (status === undefined) return true;
+  return status >= 500;
+}
+
 export function isApifyAuthorizationError(error: unknown): boolean {
   if (isApifyAccountLimitError(error)) {
     return false;

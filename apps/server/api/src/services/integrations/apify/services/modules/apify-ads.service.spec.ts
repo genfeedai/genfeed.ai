@@ -1,34 +1,30 @@
+import type { ResearchCollectionRunner } from '@api/services/research-access/research-collection-runner.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import { describe, expect, it, vi } from 'vitest';
 import { ApifyAdsService } from './apify-ads.service';
-import type { ApifyBaseService } from './apify-base.service';
 
 describe('public archive transports', () => {
   function setup(rows: unknown[] = []) {
-    const runActorForOrg = vi
-      .fn()
-      .mockResolvedValue({ data: rows, source: 'hosted' });
+    const run = vi.fn().mockResolvedValue(rows);
     return {
-      runActorForOrg,
+      run,
       service: new ApifyAdsService(
-        { runActorForOrg } as unknown as ApifyBaseService,
         { error: vi.fn() } as unknown as LoggerService,
+        { run } as unknown as ResearchCollectionRunner,
       ),
     };
   }
   it('queries every country with bounded totals and Meta advertiser page mode', async () => {
-    const { service, runActorForOrg } = setup();
+    const { service, run } = setup();
     await service.fetchMetaAdLibraryCreatives({
       query: 'coffee',
       limit: 5,
       countries: ['DE', 'FR', 'GB'],
       organizationId: 'org',
     });
-    expect(runActorForOrg).toHaveBeenCalledTimes(3);
-    expect(runActorForOrg.mock.calls.map((call) => call[2].count)).toEqual([
-      2, 2, 1,
-    ]);
-    expect(runActorForOrg.mock.calls.map((call) => call[2].country)).toEqual([
+    expect(run).toHaveBeenCalledTimes(3);
+    expect(run.mock.calls.map((call) => call[2].count)).toEqual([2, 2, 1]);
+    expect(run.mock.calls.map((call) => call[2].country)).toEqual([
       'DE',
       'FR',
       'GB',
@@ -39,18 +35,18 @@ describe('public archive transports', () => {
       limit: 5,
       organizationId: 'org',
     });
-    expect(runActorForOrg.mock.calls[3][2].startUrls[0].url).toContain(
+    expect(run.mock.calls[3][2].startUrls[0].url).toContain(
       'view_all_page_id=123',
     );
   });
   it('uses documented Google URLs and TikTok library advertiser input', async () => {
-    const { service, runActorForOrg } = setup();
+    const { service, run } = setup();
     await service.fetchGoogleAdsTransparencyCreatives({
       query: 'example.com',
       limit: 24,
       organizationId: 'org',
     });
-    expect(runActorForOrg.mock.calls[0]).toEqual([
+    expect(run.mock.calls[0]).toEqual([
       'org',
       'lexis-solutions/google-ads-scraper',
       expect.objectContaining({
@@ -70,7 +66,7 @@ describe('public archive transports', () => {
       limit: 24,
       organizationId: 'org',
     });
-    expect(runActorForOrg.mock.calls[1][2]).toMatchObject({
+    expect(run.mock.calls[1][2]).toMatchObject({
       advertiserName: 'Example Ltd',
       country: 'all',
       maxPages: 2,
@@ -78,7 +74,7 @@ describe('public archive transports', () => {
     });
   });
   it('requests media filters upstream for Meta and YouTube', async () => {
-    const { service, runActorForOrg } = setup();
+    const { service, run } = setup();
     await service.fetchMetaAdLibraryCreatives({
       query: 'coffee',
       mediaType: 'image',
@@ -86,9 +82,9 @@ describe('public archive transports', () => {
       organizationId: 'org',
     });
     expect(
-      new URL(
-        runActorForOrg.mock.calls[0][2].startUrls[0].url,
-      ).searchParams.get('media_type'),
+      new URL(run.mock.calls[0][2].startUrls[0].url).searchParams.get(
+        'media_type',
+      ),
     ).toBe('image');
     await service.fetchGoogleAdsTransparencyCreatives({
       query: 'example.com',
@@ -97,12 +93,12 @@ describe('public archive transports', () => {
       limit: 10,
       organizationId: 'org',
     });
-    const url = new URL(runActorForOrg.mock.calls[1][2].startUrls[0].url);
+    const url = new URL(run.mock.calls[1][2].startUrls[0].url);
     expect(url.searchParams.get('format')).toBe('VIDEO');
     expect(url.searchParams.get('platform')).toBe('YOUTUBE');
   });
   it('fails nonempty unknown shapes and provider failures instead of reporting empty', async () => {
-    const { service, runActorForOrg } = setup([{ unexpected: true }]);
+    const { service, run } = setup([{ unexpected: true }]);
     await expect(
       service.fetchMetaAdLibraryCreatives({
         query: 'coffee',
@@ -110,7 +106,7 @@ describe('public archive transports', () => {
         organizationId: 'org',
       }),
     ).rejects.toThrow();
-    runActorForOrg.mockRejectedValue(new Error('secret'));
+    run.mockRejectedValue(new Error('secret'));
     await expect(
       service.fetchMetaAdLibraryCreatives({
         query: 'coffee',

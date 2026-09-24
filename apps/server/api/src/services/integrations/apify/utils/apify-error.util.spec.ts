@@ -3,6 +3,7 @@ import {
   getApifyErrorMessage,
   getApifyErrorStatus,
   getApifyErrorType,
+  isAmbiguousApifyStartError,
   isApifyAccountLimitError,
   isApifyAuthorizationError,
 } from '@api/services/integrations/apify/utils/apify-error.util';
@@ -24,6 +25,13 @@ function buildApifyError(
 }
 
 describe('apify-error.util', () => {
+  it('treats timeouts as ambiguous starts and 4xx as definite refusals', () => {
+    expect(isAmbiguousApifyStartError(new Error('socket hang up'))).toBe(true);
+    expect(isAmbiguousApifyStartError(buildApifyError(503))).toBe(true);
+    expect(isAmbiguousApifyStartError(buildApifyError(400))).toBe(false);
+    expect(isAmbiguousApifyStartError(buildApifyError(403))).toBe(false);
+  });
+
   describe('getApifyErrorStatus', () => {
     it('reads the response status', () => {
       expect(getApifyErrorStatus(buildApifyError(403))).toBe(403);
