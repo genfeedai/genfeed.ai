@@ -1,7 +1,9 @@
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
 import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
+import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
 import type { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { ForbiddenException } from '@nestjs/common';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 interface VersionRow {
@@ -87,6 +89,7 @@ const prisma = {
   },
   skillGrant: {
     findMany: vi.fn(async () => state.grants),
+    updateMany: vi.fn(async () => ({ count: 1 })),
   },
   skillResolution: { create: vi.fn() },
   skillVersion: {
@@ -720,5 +723,49 @@ describe('SkillLibraryService authorized versions', () => {
     await service.recordResolution(actor, decision.versions, decision.excluded);
     expect(prisma.skillResolution.create).not.toHaveBeenCalled();
     expect(prisma.skill.findMany).not.toHaveBeenCalled();
+  });
+
+  it('revokes one live grant on the authorized skill and rejects other callers', async () => {
+    const skillRow = {
+      audience: 'organization',
+      config: { slug: 'voice' },
+      currentVersionId: 'sv-1',
+      id: 'skill-1',
+      isDeleted: false,
+      isQuarantined: false,
+      label: 'Voice',
+      organizationId: 'org-1',
+      ownerKind: 'organization',
+      ownerUserId: null,
+      publishedVersionId: null,
+      revision: 1,
+      sharedVersionId: 'sv-1',
+    };
+    state.roleKey = 'admin';
+    prisma.skill.findFirst.mockResolvedValue(skillRow);
+
+    await service.revoke(actor, 'skill-1', 'grant-1');
+
+    expect(prisma.skillGrant.updateMany).toHaveBeenCalledWith({
+      data: { revokedAt: expect.any(Date) },
+      where: { id: 'grant-1', revokedAt: null, skillId: 'skill-1' },
+    });
+
+    state.roleKey = 'member';
+    prisma.skillGrant.updateMany.mockClear();
+    await expect(
+      service.revoke(actor, 'skill-1', 'grant-9'),
+    ).rejects.toBeInstanceOf(ForbiddenException);
+    expect(prisma.skillGrant.updateMany).not.toHaveBeenCalled();
+
+    state.roleKey = 'admin';
+    prisma.skillGrant.updateMany.mockResolvedValueOnce({ count: 0 });
+    await expect(
+      service.revoke(actor, 'skill-1', 'grant-missing'),
+    ).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.skillGrant.updateMany).toHaveBeenCalledWith({
+      data: { revokedAt: expect.any(Date) },
+      where: { id: 'grant-missing', revokedAt: null, skillId: 'skill-1' },
+    });
   });
 });

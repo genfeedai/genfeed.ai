@@ -215,6 +215,7 @@ export class SkillLibraryService {
     if (!decision.canShare) {
       throw new ForbiddenException('This grant cannot be revoked');
     }
+    // sql-risk-audit: ignore bulk-write-tenant-review -- requireRow and decide already require canShare on this skill. SkillGrant has no organization column. The where binds one grant id to that skill id and a live revokedAt row, and a count other than 1 is not found.
     const updated = await this.prisma.skillGrant.updateMany({
       where: { id: grantId, revokedAt: null, skillId },
       data: { revokedAt: new Date() },
