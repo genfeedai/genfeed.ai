@@ -5,7 +5,6 @@ import type {
 } from '@api/services/integrations/linkedin/linkedin-trends.port';
 import {
   buildLinkedInLiveTrendTopics,
-  buildLinkedInPublicReferenceTopics,
   type LinkedInTrendTopic,
   resolveLinkedInTrendSourceUrls,
 } from '@api/services/integrations/linkedin/utils/linkedin-trend.util';
@@ -69,15 +68,15 @@ export class LinkedInTrendResolverService
       }
 
       this.loggerService.warn(
-        `${url} - public LinkedIn scrape returned no usable topics, falling back to public reference topics`,
+        `${url} - public LinkedIn scrape returned no usable topics, returning no observed trends`,
       );
     } catch (error: unknown) {
       this.loggerService.warn(
-        `${url} - public LinkedIn scrape failed, falling back to public reference topics`,
+        `${url} - public LinkedIn scrape failed, returning no observed trends`,
         { error: error instanceof Error ? error.message : String(error) },
       );
     }
 
-    return toServerTrends(buildLinkedInPublicReferenceTopics(sourceUrls));
+    return [];
   }
 }

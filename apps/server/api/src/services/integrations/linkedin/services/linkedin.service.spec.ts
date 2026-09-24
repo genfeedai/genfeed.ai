@@ -462,8 +462,8 @@ describe('LinkedInService', () => {
         {
           growthRate: 20,
           mentions: 1,
-          metadata: { source: 'public-reference' },
-          topic: '#openai',
+          metadata: { source: 'public-scrape' },
+          topic: '#ai',
         },
       ];
       mockTrendResolver.resolve.mockResolvedValue(resolvedTrends);

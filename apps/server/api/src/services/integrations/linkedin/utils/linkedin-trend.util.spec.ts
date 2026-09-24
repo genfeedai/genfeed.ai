@@ -1,6 +1,5 @@
 import {
   buildLinkedInLiveTrendTopics,
-  buildLinkedInPublicReferenceTopics,
   resolveLinkedInTrendSourceUrls,
 } from '@api/services/integrations/linkedin/utils/linkedin-trend.util';
 
@@ -66,26 +65,19 @@ describe('LinkedIn trend derivation', () => {
     });
   });
 
-  it('deduplicates public-reference topics derived from the same label', () => {
-    const topics = buildLinkedInPublicReferenceTopics([
-      'https://www.linkedin.com/company/open-ai/',
-      'https://example.com/company/open-ai/',
-      'https://www.linkedin.com/company/stripe/',
-    ]);
-
-    expect(topics.map((topic) => topic.topic)).toEqual(['#openai', '#stripe']);
-    expect(topics[0]).toMatchObject({
-      growthRate: 20,
-      mentions: 1,
-      metadata: {
-        source: 'public-reference',
-        sourceClassification: {
-          confidence: 'low',
-          intendedUse: 'organic_trend_discovery',
-          sourceKind: 'public_platform_reference',
-        },
-        urls: ['https://www.linkedin.com/company/open-ai/'],
-      },
-    });
+  it('does not derive topics from source URLs without observed posts', () => {
+    expect(
+      buildLinkedInLiveTrendTopics(
+        resolveLinkedInTrendSourceUrls(undefined).map((sourceUrl) => ({
+          status: 'fulfilled' as const,
+          value: { sourceUrl, recentPosts: [] },
+        })),
+      ),
+    ).toEqual([]);
+    expect(
+      buildLinkedInLiveTrendTopics([
+        { status: 'rejected', reason: new Error('unavailable') },
+      ]),
+    ).toEqual([]);
   });
 });
