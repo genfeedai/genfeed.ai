@@ -182,6 +182,55 @@ describe('OnboardingCreditGrantsService', () => {
     });
     expect(balance).toBe(25);
   });
+  it.each(['40001', '40P01'])(
+    'retries raw SQL transaction conflicts with SQLSTATE %s',
+    async (sqlState) => {
+      transaction.mockRejectedValueOnce({
+        code: 'P2010',
+        meta: { code: sqlState },
+      });
+      await service.completeMissions('org', ['complete_company_info']);
+      expect(transaction).toHaveBeenCalledTimes(2);
+      expect(balance).toBe(25);
+      expect(ledger).toHaveLength(1);
+    },
+  );
+  it.each([
+    { code: 'P2010', meta: { code: '23505' } },
+    { code: 'P2010', meta: { code: 40001 } },
+    { code: 'P2010', meta: null },
+    { code: 'P2010', meta: '40001' },
+    { code: 'P2010' },
+    { code: 'P2002', meta: { code: '40001' } },
+    '40001',
+    null,
+  ])('does not retry unrelated or malformed errors: %j', async (error) => {
+    transaction.mockRejectedValueOnce(error);
+    await expect(
+      service.completeMissions('org', ['complete_company_info']),
+    ).rejects.toBe(error);
+    expect(transaction).toHaveBeenCalledTimes(1);
+    expect(balance).toBe(0);
+    expect(ledger).toEqual([]);
+    expect(effects).not.toHaveBeenCalled();
+  });
+  it.each([
+    { code: 'P2034' },
+    { code: 'P2010', meta: { code: '40001' } },
+    { code: 'P2010', meta: { code: '40P01' } },
+  ])('throws the original conflict after three attempts: %j', async (error) => {
+    transaction
+      .mockRejectedValueOnce(error)
+      .mockRejectedValueOnce(error)
+      .mockRejectedValueOnce(error);
+    await expect(
+      service.completeMissions('org', ['complete_company_info']),
+    ).rejects.toBe(error);
+    expect(transaction).toHaveBeenCalledTimes(3);
+    expect(balance).toBe(0);
+    expect(ledger).toEqual([]);
+    expect(effects).not.toHaveBeenCalled();
+  });
   it('does not regrant legacy claimed missions', async () => {
     missions[0].rewardClaimed = true;
     missions[0].isCompleted = true;
