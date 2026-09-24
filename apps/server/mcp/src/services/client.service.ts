@@ -27,6 +27,7 @@ import { ContentClient } from '@mcp/services/client/content.client';
 import { LinkedInClient } from '@mcp/services/client/linkedin.client';
 import type { LinkedInConnectionStatus } from '@mcp/services/client/linkedin.client.types';
 import { MediaClient } from '@mcp/services/client/media.client';
+import { RemixClient } from '@mcp/services/client/remix.client';
 import {
   type ScheduledReleaseControlAction,
   type SchedulerCapabilityListOptions,
@@ -103,6 +104,7 @@ import type {
   WorkflowScheduleResponse,
   WorkflowTemplate,
 } from '@mcp/shared/interfaces/workflow.interface';
+import type { RemixToolInput } from '@mcp/tools/remix.schemas';
 import { HttpService } from '@nestjs/axios';
 import { Injectable } from '@nestjs/common';
 
@@ -125,6 +127,7 @@ export class ClientService {
   private readonly content: ContentClient;
   private readonly clips: ClipsClient;
   private readonly scheduler: SchedulerClient;
+  private readonly remix: RemixClient;
   private readonly workflows: WorkflowClient;
   private readonly workspace: WorkspaceClient;
   private readonly ads: AdsClient;
@@ -146,6 +149,7 @@ export class ClientService {
     this.content = new ContentClient(this.base);
     this.clips = new ClipsClient(this.base);
     this.scheduler = new SchedulerClient(this.base);
+    this.remix = new RemixClient(this.base);
     this.workflows = new WorkflowClient(this.base);
     this.workspace = new WorkspaceClient(this.base);
     this.ads = new AdsClient(this.base);
@@ -343,6 +347,33 @@ export class ClientService {
     params: ListClipProjectsParams = {},
   ): Promise<Array<Record<string, unknown>>> {
     return this.clips.listClipProjects(params);
+  }
+
+  importSourcePost(input: RemixToolInput<'import_source_post'>) {
+    return this.remix.importSourcePost(input);
+  }
+  createRemixConcept(input: RemixToolInput<'create_remix_concept'>) {
+    return this.remix.createRemixConcept(input);
+  }
+  getRemixRun(input: RemixToolInput<'get_remix_run'>) {
+    return this.remix.getRemixRun(input);
+  }
+  updateRemixConcept(input: RemixToolInput<'update_remix_concept'>) {
+    return this.remix.updateRemixConcept(input);
+  }
+  attachRemixAnalysisSource(
+    input: RemixToolInput<'attach_remix_analysis_source'>,
+  ) {
+    return this.remix.attachRemixAnalysisSource(input);
+  }
+  quoteRemixGeneration(input: RemixToolInput<'quote_remix_generation'>) {
+    return this.remix.quoteRemixGeneration(input);
+  }
+  startRemixGeneration(input: RemixToolInput<'start_remix_generation'>) {
+    return this.remix.startRemixGeneration(input);
+  }
+  controlRemixGeneration(input: RemixToolInput<'control_remix_generation'>) {
+    return this.remix.controlRemixGeneration(input);
   }
 
   // ── Scheduler releases ──

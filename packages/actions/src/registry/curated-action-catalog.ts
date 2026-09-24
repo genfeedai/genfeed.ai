@@ -18,6 +18,23 @@ export interface CuratedActionCatalogEntry {
  * additions, removals, and surface transitions remain obvious in review.
  */
 export const CURATED_ACTION_CATALOG = [
+  {
+    name: 'attach_remix_analysis_source',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
+  },
+  {
+    name: 'control_remix_generation',
+    surfaces: ['mcp'],
+    toolset: 'generation',
+  },
+  { name: 'create_remix_concept', surfaces: ['mcp'], toolset: 'inspiration' },
+  { name: 'get_remix_run', surfaces: ['mcp'], toolset: 'inspiration' },
+  { name: 'import_source_post', surfaces: ['mcp'], toolset: 'inspiration' },
+  { name: 'quote_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
+  { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
+  { name: 'update_remix_concept', surfaces: ['mcp'], toolset: 'inspiration' },
+
   { name: 'ai_action', surfaces: ['agent'], toolset: 'content' },
   { name: 'analyze_clip_project', surfaces: ['mcp'], toolset: 'clips' },
   {

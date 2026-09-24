@@ -59,6 +59,13 @@ const READ_ONLY_NAMES = new Set<string>([
 export const MUTATION_POLICY_BY_NAME: Readonly<
   Record<string, ToolMutationPolicy>
 > = {
+  attach_remix_analysis_source: 'direct',
+  control_remix_generation: 'approval-required',
+  create_remix_concept: 'direct',
+  import_source_post: 'approval-required',
+  quote_remix_generation: 'direct',
+  start_remix_generation: 'approval-required',
+  update_remix_concept: 'direct',
   ai_action: 'direct',
   enhance_prompt: 'direct',
   set_generation_settings: 'direct',

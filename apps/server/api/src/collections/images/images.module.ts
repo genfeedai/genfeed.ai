@@ -78,6 +78,7 @@ import { Module } from '@nestjs/common';
     ImagesUploadsController,
   ],
   exports: [
+    ImageGenerationCreditsService,
     ImageGenerationService,
     ImageReframeService,
     ImageUpscaleService,

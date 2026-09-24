@@ -15,15 +15,22 @@ import {
   reserveGenerationRequestCredits,
 } from '@api/helpers/utils/credits/generation-credit-reservation.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
+import { quoteSnapshotHash } from '@api/helpers/utils/credits/quote-snapshot.util';
 import { ByokService } from '@api/services/byok/byok.service';
 import { resolveModelByokProvider } from '@api/services/byok/byok-provider-map.util';
 import type { ByokProvider } from '@genfeedai/contracts';
+import { ModelCategory } from '@genfeedai/contracts';
 import { MODEL_OUTPUT_CAPABILITIES } from '@genfeedai/contracts/constants';
 import {
   buildPricingAuditStamp,
   calculateImageGenerationCredits,
 } from '@genfeedai/pricing';
-import { HttpException, HttpStatus, Injectable } from '@nestjs/common';
+import {
+  ConflictException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+} from '@nestjs/common';
 
 @Injectable()
 export class ImageGenerationCreditsService {
@@ -33,6 +40,70 @@ export class ImageGenerationCreditsService {
     private readonly providerRegistry: ImageGenerationProviderRegistryService,
     private readonly byokService: ByokService,
   ) {}
+
+  async quoteCredits(
+    dto: CreateImageDto,
+    model: string,
+    organizationId: string,
+  ) {
+    const { requiredCredits, resolvedModelDoc } =
+      await this.resolveRequiredCredits(dto, model);
+    if (
+      !resolvedModelDoc ||
+      resolvedModelDoc.key !== model ||
+      !resolvedModelDoc.isActive ||
+      resolvedModelDoc.isDeleted ||
+      resolvedModelDoc.category !== ModelCategory.IMAGE ||
+      !this.providerRegistry.supports(model, resolvedModelDoc.provider)
+    ) {
+      throw new ConflictException(
+        'The selected image model is unavailable for an exact quote.',
+      );
+    }
+    const byokProvider = await this.resolveActiveByokProvider(
+      organizationId,
+      model,
+      resolvedModelDoc.provider,
+    );
+    return {
+      unitCredits: requiredCredits,
+      billingMode: byokProvider ? ('byok' as const) : ('credits' as const),
+      provider: byokProvider ?? resolvedModelDoc.provider,
+      pricingHash: quoteSnapshotHash({
+        model,
+        pricing: buildPricingAuditStamp(resolvedModelDoc),
+        provider: this.providerRegistry.providerFor(
+          model,
+          resolvedModelDoc.provider,
+        ),
+      }),
+    };
+  }
+
+  async assertApprovedQuote(
+    dto: CreateImageDto,
+    model: string,
+    organizationId: string,
+    request: Request,
+  ): Promise<void> {
+    const approved = (request as unknown as DeferredCreditsRequest)
+      .creditsConfig?.approvedImageQuote;
+    if (!approved) return;
+    if (approved.model !== model)
+      throw new ConflictException(
+        'The approved image model changed. Request a fresh quote.',
+      );
+    const actual = await this.quoteCredits(dto, model, organizationId);
+    if (
+      actual.unitCredits !== approved.unitCredits ||
+      actual.billingMode !== approved.billingMode ||
+      actual.pricingHash !== approved.pricingHash
+    ) {
+      throw new ConflictException(
+        'Image pricing or billing mode changed. Request a fresh quote.',
+      );
+    }
+  }
 
   async ensureDeferredCredits(
     createImageDto: CreateImageDto,
@@ -52,6 +123,35 @@ export class ImageGenerationCreditsService {
       model,
       resolvedModelDoc?.provider,
     );
+    const approved = reqWithCredits.creditsConfig?.approvedImageQuote;
+    if (approved) {
+      const pricingHash = quoteSnapshotHash({
+        model,
+        pricing: resolvedModelDoc
+          ? buildPricingAuditStamp(resolvedModelDoc)
+          : null,
+        provider: this.providerRegistry.providerFor(
+          model,
+          resolvedModelDoc?.provider,
+        ),
+      });
+      if (
+        !resolvedModelDoc ||
+        resolvedModelDoc.key !== model ||
+        !resolvedModelDoc.isActive ||
+        resolvedModelDoc.isDeleted ||
+        resolvedModelDoc.category !== ModelCategory.IMAGE ||
+        !this.providerRegistry.supports(model, resolvedModelDoc.provider) ||
+        model !== approved.model ||
+        requiredCredits !== approved.unitCredits ||
+        (byokProvider ? 'byok' : 'credits') !== approved.billingMode ||
+        pricingHash !== approved.pricingHash
+      ) {
+        throw new ConflictException(
+          'Image pricing, model or billing mode changed. Request a fresh quote.',
+        );
+      }
+    }
     if (
       !byokProvider &&
       !hasGenerationSourceActionId(request) &&

@@ -27,6 +27,21 @@ const MOCK_TOOLS: Record<
     name: 'create_instagram_remix_workflow',
     surfaces: { mcp: true },
   },
+  import_source_post: {
+    mutationPolicy: 'approval-required',
+    name: 'import_source_post',
+    surfaces: { mcp: true },
+  },
+  start_remix_generation: {
+    mutationPolicy: 'approval-required',
+    name: 'start_remix_generation',
+    surfaces: { mcp: true },
+  },
+  control_remix_generation: {
+    mutationPolicy: 'approval-required',
+    name: 'control_remix_generation',
+    surfaces: { mcp: true },
+  },
   create_post: {
     mutationPolicy: 'approval-required',
     name: 'create_post',
@@ -70,6 +85,13 @@ vi.mock('@mcp/guards/mcp-auth.guard', () => ({
 
 function build() {
   const client = {
+    importSourcePost: vi.fn().mockResolvedValue({ post: { id: 'source-1' } }),
+    startRemixGeneration: vi
+      .fn()
+      .mockResolvedValue({ id: 'run-1', revision: 2 }),
+    controlRemixGeneration: vi
+      .fn()
+      .mockResolvedValue({ id: 'run-1', revision: 2 }),
     attachApprovalResult: vi
       .fn()
       .mockResolvedValue({ id: 'apr-1', status: 'APPROVED' }),
@@ -112,6 +134,59 @@ function build() {
 }
 
 describe('ToolRegistryService — approval queue', () => {
+  it.each([
+    [
+      'import_source_post',
+      'importSourcePost',
+      { brandId: 'brand-1', url: 'https://x.com/example/status/1' },
+    ],
+    [
+      'start_remix_generation',
+      'startRemixGeneration',
+      { runId: 'run-1', expectedRevision: 2, quoteId: 'quote-1' },
+    ],
+    [
+      'control_remix_generation',
+      'controlRemixGeneration',
+      { runId: 'run-1', expectedRevision: 2, action: 'cancel' },
+    ],
+  ] as const)(
+    'requires approval and preserves exact %s arguments during execution',
+    async (name, method, args) => {
+      const { client, registry } = build();
+      await registry.handleToolCall({ name, arguments: args });
+      expect(client.createApproval).toHaveBeenCalledWith(name, args);
+      expect(client[method]).not.toHaveBeenCalled();
+      client.resolveApproval.mockResolvedValue({
+        id: 'apr-1',
+        status: 'APPROVED',
+        toolName: name,
+        arguments: args,
+      } as never);
+      await registry.handleToolCall({
+        name: 'resolve_approval',
+        arguments: { approvalId: 'apr-1', decision: 'approve' },
+      });
+      expect(client[method]).toHaveBeenCalledExactlyOnceWith(args);
+      expect(client.attachApprovalResult).toHaveBeenCalled();
+    },
+  );
+
+  it('declining a paid remix quote does not dispatch it', async () => {
+    const { client, registry } = build();
+    client.resolveApproval.mockResolvedValue({
+      id: 'apr-1',
+      status: 'DECLINED',
+      toolName: 'start_remix_generation',
+      arguments: { runId: 'run-1', expectedRevision: 2, quoteId: 'quote-1' },
+    } as never);
+    await registry.handleToolCall({
+      name: 'resolve_approval',
+      arguments: { approvalId: 'apr-1', decision: 'decline' },
+    });
+    expect(client.startRemixGeneration).not.toHaveBeenCalled();
+  });
+
   it('queues a pending approval for a write tool instead of executing it', async () => {
     const { client, registry } = build();
 

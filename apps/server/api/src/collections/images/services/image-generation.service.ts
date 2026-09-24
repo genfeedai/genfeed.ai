@@ -24,6 +24,7 @@ import type {
   GenerationPlaceholderScope,
 } from '@api/common/interfaces/generation-placeholder-lifecycle.interface';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createRequestAbortSignal } from '@api/helpers/utils/request/request-abort-signal.util';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
@@ -423,6 +424,25 @@ export class ImageGenerationService {
           validationOrgId,
         )
       : undefined;
+    const approvedQuote = (request as unknown as DeferredCreditsRequest)
+      .creditsConfig?.approvedImageQuote;
+    if (approvedQuote) {
+      if (
+        model !== approvedQuote.model ||
+        registeredModel?.key !== approvedQuote.model
+      ) {
+        throw new HttpException(
+          'The approved image model changed. Request a fresh quote.',
+          HttpStatus.CONFLICT,
+        );
+      }
+      await this.admissionService.assertApprovedQuote(
+        createImageDto,
+        model,
+        validationOrgId,
+        request,
+      );
+    }
     const modelEndpoint = registeredModel?.endpoint || model;
     const modelProvider = registeredModel?.provider;
     const rawInputSchema = registeredModel?.providerInputSchema;

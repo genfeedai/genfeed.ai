@@ -87,6 +87,7 @@ export class BrandRemixRunProviderDispatchService {
           fidelityMode: draft.fidelityMode,
           height: dimensions.height,
           isBrandingEnabled: true,
+          model: params.config.generationQuote?.model,
           outputs: 1,
           references,
           style: draft.intent.visualDirection,

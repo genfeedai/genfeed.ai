@@ -35,6 +35,18 @@ const BASE_CRUD_LIST = '__BASE_CRUD_LIST__';
  * inherit their collection routes from `BaseCRUDController`.
  */
 const API_CONTROLLERS: Record<string, { file: string; prefix: string }> = {
+  remixRuns: {
+    file: 'collections/content-runs/controllers/content-runs.controller.ts',
+    prefix: '',
+  },
+  remixGeneration: {
+    file: 'collections/content-runs/controllers/brand-remix-generation.controller.ts',
+    prefix: '',
+  },
+  socialSources: {
+    file: 'collections/social-sources/controllers/social-sources.controller.ts',
+    prefix: 'social-sources',
+  },
   agentTools: {
     file: 'services/agent-orchestrator/agent-tools.controller.ts',
     prefix: 'agent-tools',
@@ -187,6 +199,77 @@ interface ContractRoute {
  * route below plus the coverage assertion.
  */
 const ROUTE_CONTRACT: ContractRoute[] = [
+  {
+    method: 'Post',
+    sub: 'import-post',
+    controller: 'socialSources',
+    tools: ['import_source_post'],
+  },
+  {
+    method: 'Post',
+    sub: 'brands/:brandId/content-runs/remixes',
+    controller: 'remixRuns',
+    tools: ['create_remix_concept'],
+  },
+  {
+    method: 'Get',
+    sub: 'content-runs/:id/remix',
+    controller: 'remixRuns',
+    tools: [
+      'get_remix_run',
+      'quote_remix_generation',
+      'start_remix_generation',
+      'control_remix_generation',
+    ],
+  },
+  {
+    method: 'Patch',
+    sub: 'content-runs/:id/remix',
+    controller: 'remixRuns',
+    tools: ['update_remix_concept'],
+  },
+  {
+    method: 'Patch',
+    sub: 'content-runs/:id/remix/scenes/source',
+    controller: 'remixRuns',
+    tools: ['attach_remix_analysis_source'],
+  },
+  {
+    method: 'Post',
+    sub: 'content-runs/:id/remix/generation/quote',
+    controller: 'remixGeneration',
+    tools: ['quote_remix_generation'],
+  },
+  {
+    method: 'Post',
+    sub: 'content-runs/:id/remix/generation/execute',
+    controller: 'remixGeneration',
+    tools: ['start_remix_generation'],
+  },
+  {
+    method: 'Post',
+    sub: 'content-runs/:id/remix/scenes/quote',
+    controller: 'remixRuns',
+    tools: ['quote_remix_generation'],
+  },
+  {
+    method: 'Post',
+    sub: 'content-runs/:id/remix/scenes/execute',
+    controller: 'remixRuns',
+    tools: ['start_remix_generation'],
+  },
+  {
+    method: 'Post',
+    sub: 'content-runs/:id/remix/scenes/cancel',
+    controller: 'remixRuns',
+    tools: ['control_remix_generation'],
+  },
+  {
+    method: 'Post',
+    sub: 'content-runs/:id/remix/scenes/resume',
+    controller: 'remixRuns',
+    tools: ['control_remix_generation'],
+  },
   // ── Skills Pro organization entitlements ──
   {
     method: 'Post',
@@ -703,7 +786,9 @@ describe('MCP → API route contract', () => {
     const wrong: string[] = [];
     for (const [key, { prefix }] of Object.entries(API_CONTROLLERS)) {
       const src = readController(key as keyof typeof API_CONTROLLERS);
-      if (!src.includes(`@Controller('${prefix}')`)) {
+      if (
+        !src.includes(prefix ? `@Controller('${prefix}')` : '@Controller()')
+      ) {
         wrong.push(`${key} → @Controller('${prefix}')`);
       }
     }

@@ -24,6 +24,7 @@ import { CreditsUtilsService } from '@api/collections/credits/services/credits.u
 import type { SystemWorkflowActionRequest } from '@api/collections/workflows/system-workflow-runner.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import type { RequestWithContext as Request } from '@api/common/middleware/request-context.middleware';
+import type { DeferredCreditsRequest } from '@api/helpers/utils/credits/generation-credit-cost.util';
 import { createInsufficientCreditsException } from '@api/helpers/utils/credits/insufficient-credits.util';
 import { scopedWhere } from '@api/index';
 import { ByokService } from '@api/services/byok/byok.service';
@@ -603,6 +604,17 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
         detail: `Expected remix revision ${input.expectedRevision}, but the current revision is ${config.revision}.`,
         title: 'Stale remix revision',
       });
+    }
+    if (
+      config.generationQuote &&
+      (!config.generationQuote.acceptedAt ||
+        config.generationQuote.revision !== config.revision ||
+        (request as unknown as DeferredCreditsRequest).approvedRemixQuoteId !==
+          config.generationQuote.id)
+    ) {
+      throw new ConflictException(
+        'Accept the current remix quote through generation/execute before starting.',
+      );
     }
     const brandId = this.persistence.requireBrandId(run);
     const brandContext = await this.planning.resolveBrandContext(
