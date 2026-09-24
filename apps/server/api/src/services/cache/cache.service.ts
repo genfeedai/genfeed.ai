@@ -30,7 +30,8 @@ return 1
 
 export type CounterBudgetReservationResult =
   | { status: 'reserved'; reserved: number; total: number }
-  | { status: 'exhausted' | 'unavailable' };
+  | { status: 'exhausted' }
+  | { status: 'unavailable' };
 export type CounterReservationReconciliationResult =
   | 'settled'
   | 'duplicate'
