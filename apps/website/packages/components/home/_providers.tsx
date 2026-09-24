@@ -57,17 +57,14 @@ export default function HomeProviders(): React.ReactElement {
               >
                 <div className="flex items-center gap-3">
                   {Icon ? (
-                    <Icon
-                      aria-hidden
-                      className="size-6 shrink-0"
-                      style={{ color: brand.color }}
-                    />
+                    <Icon aria-hidden className="size-6 shrink-0" />
                   ) : (
                     <span
                       aria-hidden
-                      className="size-6 shrink-0 rounded-full"
-                      style={{ backgroundColor: brand.color }}
-                    />
+                      className="flex size-6 shrink-0 items-center justify-center text-sm font-semibold"
+                    >
+                      {brand.label.charAt(0)}
+                    </span>
                   )}
                   <Heading
                     as="h3"

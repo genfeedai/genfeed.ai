@@ -139,10 +139,14 @@ const ModelSelectorTrigger = memo(function ModelSelectorTrigger({
       >
         <div
           className="size-4 rounded-sm border border-border flex items-center justify-center text-2xs font-bold shrink-0"
-          style={{
-            backgroundColor: `${brandConfig.color}20`,
-            color: brandConfig.color,
-          }}
+          style={
+            BrandIcon
+              ? undefined
+              : {
+                  backgroundColor: `${brandConfig.color}20`,
+                  color: brandConfig.color,
+                }
+          }
           data-testid="model-trigger-provider-icon"
         >
           {BrandIcon ? (
