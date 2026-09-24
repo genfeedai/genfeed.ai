@@ -1,4 +1,5 @@
 import { BUILT_IN_SKILL_CATALOG } from '@api/collections/skills/constants/skill-validation.constant';
+import { SkillLibraryService } from '@api/collections/skills/services/skill-library.service';
 import { SkillsService } from '@api/collections/skills/services/skills.service';
 import { SystemWorkflowRunnerService } from '@api/collections/workflows/system-workflow-runner.service';
 import { ContentGeoOptimizerHandler } from '@api/services/skill-executor/handlers/content-geo-optimizer.handler';
@@ -19,6 +20,10 @@ describe('SkillWorkflowService', () => {
     registerAction: vi.fn(),
     registerWorkflow: vi.fn(),
     runWorkflow: vi.fn(),
+  };
+  const skillLibrary = {
+    authorizeResolved: vi.fn(),
+    recordResolution: vi.fn(),
   };
   let service: SkillWorkflowService;
 
@@ -53,6 +58,7 @@ describe('SkillWorkflowService', () => {
         { provide: ImageGenerationHandler, useValue: handler },
         { provide: TrendDiscoveryHandler, useValue: handler },
         { provide: TrendRemixHandler, useValue: handler },
+        { provide: SkillLibraryService, useValue: skillLibrary },
       ],
     }).compile();
     service = module.get(SkillWorkflowService);
@@ -84,6 +90,85 @@ describe('SkillWorkflowService', () => {
       }),
     );
     expect(result).toMatchObject({ executionId: 'execution-1' });
+  });
+
+  it('pins the authorized version onto the workflow input and reuses it', async () => {
+    service.onModuleInit();
+    const registration = runner.registerAction.mock.calls.find((call) =>
+      String(call[0]).includes('content-writing'),
+    );
+    const action = registration?.[1] as
+      | ((request: {
+          context: { organizationId: string; userId: string };
+          input: {
+            context: Record<string, unknown>;
+            params: Record<string, unknown>;
+          };
+        }) => Promise<unknown>)
+      | undefined;
+    if (!action) throw new Error('content-writing action was not registered');
+    skillLibrary.authorizeResolved.mockImplementation(
+      async (
+        _actor: unknown,
+        docs: Array<{ id: string }>,
+        pins: Array<{ skillVersionId?: string }>,
+      ) => ({
+        excluded: [],
+        included: docs.map((doc) => ({
+          ...doc,
+          defaultInstructions: 'version one',
+          systemPromptTemplate: 'version one',
+        })),
+        versions: [
+          {
+            contentHash: 'hash-v1',
+            skillId: String(docs[0]?.id),
+            skillVersionId: pins[0]?.skillVersionId ?? 'sv-1',
+          },
+        ],
+      }),
+    );
+    const context: Record<string, unknown> = {
+      brandId: 'brand-1',
+      brandVoice: 'Direct',
+      organizationId: 'org-1',
+      platforms: ['instagram'],
+    };
+    const request = {
+      context: { organizationId: 'org-1', userId: 'user-1' },
+      input: { context, params: { topic: 'launch' } },
+    };
+
+    await action(request);
+    await action(request);
+
+    expect(skills.getSkillById).toHaveBeenCalledWith(
+      'org-1',
+      'content-writing',
+      'user-1',
+    );
+    expect(context.pinnedSkills).toEqual([
+      expect.objectContaining({
+        contentHash: 'hash-v1',
+        slug: 'content-writing',
+        versionId: 'sv-1',
+      }),
+    ]);
+    expect(skillLibrary.authorizeResolved).toHaveBeenLastCalledWith(
+      expect.objectContaining({ userId: 'user-1' }),
+      expect.any(Array),
+      [
+        expect.objectContaining({
+          contentHash: 'hash-v1',
+          skillVersionId: 'sv-1',
+        }),
+      ],
+    );
+    expect(skillLibrary.recordResolution).toHaveBeenCalledWith(
+      expect.objectContaining({ userId: 'user-1' }),
+      [expect.objectContaining({ skillVersionId: 'sv-1' })],
+      [],
+    );
   });
 
   it('rejects a slug outside the reviewed action catalog', async () => {
