@@ -12,6 +12,7 @@ const CLIENT_SERIALIZERS_MOCK = path.resolve(
 );
 
 export default defineConfig({
+  define: { 'process.env': JSON.stringify({ NODE_ENV: 'test' }) },
   optimizeDeps: { include: ['next/link'] },
   resolve: {
     alias: [
