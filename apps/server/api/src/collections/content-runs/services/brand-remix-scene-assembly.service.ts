@@ -65,8 +65,256 @@ export class BrandRemixSceneAssemblyService {
       throw new ConflictException('Missing assembly operation.');
     assertSupportedSceneFidelity(config);
     const userId = pipeline.operation.userId;
-    const sceneIds = config.concept?.storyboard.map((scene) => scene.id) ?? [];
-    const clips = await Promise.all(
+    const clips = await this.loadReadyClips(
+      organizationId,
+      brandId,
+      runId,
+      pipeline,
+      config.concept?.storyboard.map((scene) => scene.id) ?? [],
+    );
+    if (clips.reduce((sum, clip) => sum + clip.duration, 0) > 90)
+      throw new ConflictException(
+        'The generated ad exceeds 90 seconds. Repair scene narration.',
+      );
+    const orderedAssetIds = clips.map((clip) => clip.id);
+    const assembly = await this.ensureAssembly(
+      organizationId,
+      brandId,
+      runId,
+      operationId,
+      userId,
+      pipeline.quote,
+      orderedAssetIds,
+      pipeline.assembly,
+    );
+    if (
+      JSON.stringify(assembly.orderedAssetIds) !==
+        JSON.stringify(orderedAssetIds) ||
+      !assembly.mergedAssetId ||
+      !assembly.assetId
+    )
+      throw new ConflictException('Assembly inputs changed.');
+    const output = config.draft.output;
+    if (!('aspectRatio' in output))
+      throw new ConflictException('Missing composition aspect ratio.');
+    if (!assembly.mergedStorageKey) {
+      await this.mergeSceneClips(
+        organizationId,
+        brandId,
+        runId,
+        operationId,
+        userId,
+        assembly,
+        assembly.mergedAssetId,
+        orderedAssetIds,
+        clips.map((clip) => clip.key),
+        output.aspectRatio,
+      );
+      return false;
+    }
+    if (!assembly.srt) {
+      await this.transcribeCaptions(
+        organizationId,
+        runId,
+        operationId,
+        assembly,
+      );
+      return false;
+    }
+    return this.finishCaptionedAd(
+      organizationId,
+      brandId,
+      runId,
+      operationId,
+      userId,
+      config.revision,
+      pipeline,
+      assembly,
+      assembly.assetId,
+      assembly.mergedStorageKey,
+      assembly.srt,
+    );
+  }
+  private async mergeSceneClips(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    operationId: string,
+    userId: string,
+    assembly: NonNullable<BrandRemixScenePipeline['assembly']>,
+    mergedAssetId: string,
+    orderedAssetIds: string[],
+    sourceStorageKeys: string[],
+    aspectRatio: string,
+  ): Promise<void> {
+    const job = await this.queue.processVideo({
+      id: assembly.mergeJobId,
+      ingredientId: mergedAssetId,
+      organizationId,
+      userId,
+      type: 'merge-videos',
+      params: {
+        sourceIds: orderedAssetIds,
+        sourceStorageKeys,
+        isPersistedOutputOnly: true,
+        normalizeClips: true,
+        ...resolveAgentGenerationDimensions(
+          aspectRatio,
+          DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+        ),
+      },
+    });
+    const status = await this.queue.getJobStatus(job.jobId);
+    if (status.state === 'failed')
+      throw new ConflictException(
+        'Scene merge failed. Resume to retry local assembly.',
+      );
+    if (status.state !== 'completed') return;
+    const result = persistedOutput.parse(status.result);
+    this.safeVideoKey(result.s3Key);
+    await this.persistAsset(
+      organizationId,
+      brandId,
+      mergedAssetId,
+      result.s3Key,
+    );
+    await this.patch(organizationId, runId, operationId, {
+      ...assembly,
+      mergedStorageKey: result.s3Key,
+    });
+  }
+  private async finishCaptionedAd(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    operationId: string,
+    userId: string,
+    revision: number,
+    pipeline: BrandRemixScenePipeline,
+    assembly: NonNullable<BrandRemixScenePipeline['assembly']>,
+    assetId: string,
+    mergedStorageKey: string,
+    srt: string,
+  ): Promise<boolean> {
+    const captionJob = await this.queue.processVideo({
+      id: assembly.captionJobId,
+      ingredientId: assetId,
+      organizationId,
+      userId,
+      type: 'add-captions',
+      params: {
+        inputPath: this.mediaUrls.buildUrl(mergedStorageKey),
+        captionContent: srt,
+      },
+    });
+    const status = await this.queue.getJobStatus(captionJob.jobId);
+    if (status.state === 'failed')
+      throw new ConflictException(
+        'Caption rendering failed. The ad is not complete. Resume without repeating transcription.',
+      );
+    if (status.state !== 'completed') return false;
+    const result = persistedOutput.parse(status.result);
+    this.safeVideoKey(result.s3Key);
+    await this.store.fence(organizationId, runId, operationId);
+    await this.persistAsset(organizationId, brandId, assetId, result.s3Key);
+    const current = await this.store.fence(organizationId, runId, operationId);
+    assertSupportedSceneFidelity(current.config);
+    const context = await this.planning.resolveBrandContext(
+      organizationId,
+      brandId,
+    );
+    const generationBrief = this.planning.buildGenerationBrief(
+      context,
+      current.config,
+    );
+    assertSceneBriefFidelity(generationBrief.fidelityMode);
+    await this.store.save(organizationId, runId, current.config, {
+      ...current.config,
+      phase: 'ready_for_review',
+      execution: {
+        actualCount: 1,
+        requestedCount: 1,
+        generationBrief,
+        variants: [
+          {
+            id: `scene-final-${operationId}`,
+            assetIds: [assetId],
+            recipeRevision: revision,
+            status: 'ready',
+          },
+        ],
+      },
+      scenePipeline: {
+        ...pipeline,
+        state: 'ready',
+        assembly: { ...assembly, finalStorageKey: result.s3Key },
+        operation: undefined,
+      },
+    });
+    return true;
+  }
+  private async ensureAssembly(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    operationId: string,
+    userId: string,
+    quote: NonNullable<BrandRemixScenePipeline['quote']>,
+    orderedAssetIds: string[],
+    existing: BrandRemixScenePipeline['assembly'],
+  ): Promise<NonNullable<BrandRemixScenePipeline['assembly']>> {
+    if (existing) return existing;
+    const create = async (index: number) => {
+      const groupId = `remix-assembly-${runId}-${operationId}`;
+      const found = await this.prisma.ingredient.findFirst({
+        where: scopedWhere(organizationId, {
+          brandId,
+          groupId,
+          groupIndex: index,
+          category: 'VIDEO' as const,
+        }),
+      });
+      if (found) return found.id;
+      const { ingredientData } = await this.shared.createMediaDocumentsInternal(
+        {
+          brandId,
+          category: IngredientCategory.VIDEO,
+          extension: MetadataExtension.MP4,
+          organizationId,
+          userId,
+          groupId,
+          groupIndex: index,
+          sourceIds: orderedAssetIds,
+          status: IngredientStatus.PROCESSING,
+        },
+      );
+      return String(ingredientData.id);
+    };
+    const mergedAssetId = await create(0);
+    const assetId = await create(1);
+    const assembly = {
+      mergedAssetId,
+      assetId,
+      orderedAssetIds,
+      mergeJobId: `remix-merge-${mergedAssetId}`,
+      captionJobId: `remix-captions-${assetId}`,
+      transcription: {
+        attempt:
+          quote.items.find((line) => line.stage === 'captions')?.attempt ?? 1,
+        state: 'pending' as const,
+      },
+    };
+    await this.patch(organizationId, runId, operationId, assembly);
+    return assembly;
+  }
+  private async loadReadyClips(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    pipeline: BrandRemixScenePipeline,
+    sceneIds: Array<string | undefined>,
+  ) {
+    return Promise.all(
       sceneIds.map(async (sceneId) => {
         const scene = sceneId ? pipeline.scenes[sceneId] : undefined;
         if (!sceneId || !scene?.video.assetId || scene.video.state !== 'ready')
@@ -101,173 +349,6 @@ export class BrandRemixSceneAssemblyService {
         return { id: clip.id, key, duration: scene.actualDurationSeconds };
       }),
     );
-    if (clips.reduce((sum, clip) => sum + clip.duration, 0) > 90)
-      throw new ConflictException(
-        'The generated ad exceeds 90 seconds. Repair scene narration.',
-      );
-    const orderedAssetIds = clips.map((clip) => clip.id);
-    let assembly = pipeline.assembly;
-    if (!assembly) {
-      const create = async (index: number) => {
-        const groupId = `remix-assembly-${runId}-${operationId}`;
-        const existing = await this.prisma.ingredient.findFirst({
-          where: scopedWhere(organizationId, {
-            brandId,
-            groupId,
-            groupIndex: index,
-            category: 'VIDEO' as const,
-          }),
-        });
-        if (existing) return existing.id;
-        const { ingredientData } =
-          await this.shared.createMediaDocumentsInternal({
-            brandId,
-            category: IngredientCategory.VIDEO,
-            extension: MetadataExtension.MP4,
-            organizationId,
-            userId,
-            groupId,
-            groupIndex: index,
-            sourceIds: orderedAssetIds,
-            status: IngredientStatus.PROCESSING,
-          });
-        return String(ingredientData.id);
-      };
-      const mergedAssetId = await create(0);
-      const assetId = await create(1);
-      assembly = {
-        mergedAssetId,
-        assetId,
-        orderedAssetIds,
-        mergeJobId: `remix-merge-${mergedAssetId}`,
-        captionJobId: `remix-captions-${assetId}`,
-        transcription: {
-          attempt:
-            pipeline.quote.items.find((line) => line.stage === 'captions')
-              ?.attempt ?? 1,
-          state: 'pending',
-        },
-      };
-      await this.patch(organizationId, runId, operationId, assembly);
-    }
-    if (
-      JSON.stringify(assembly.orderedAssetIds) !==
-        JSON.stringify(orderedAssetIds) ||
-      !assembly.mergedAssetId ||
-      !assembly.assetId
-    )
-      throw new ConflictException('Assembly inputs changed.');
-    const output = config.draft.output;
-    if (!('aspectRatio' in output))
-      throw new ConflictException('Missing composition aspect ratio.');
-    if (!assembly.mergedStorageKey) {
-      const job = await this.queue.processVideo({
-        id: assembly.mergeJobId,
-        ingredientId: assembly.mergedAssetId,
-        organizationId,
-        userId,
-        type: 'merge-videos',
-        params: {
-          sourceIds: orderedAssetIds,
-          sourceStorageKeys: clips.map((clip) => clip.key),
-          isPersistedOutputOnly: true,
-          normalizeClips: true,
-          ...resolveAgentGenerationDimensions(
-            output.aspectRatio,
-            DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-          ),
-        },
-      });
-      const status = await this.queue.getJobStatus(job.jobId);
-      if (status.state === 'failed')
-        throw new ConflictException(
-          'Scene merge failed. Resume to retry local assembly.',
-        );
-      if (status.state !== 'completed') return false;
-      const result = persistedOutput.parse(status.result);
-      this.safeVideoKey(result.s3Key);
-      await this.persistAsset(
-        organizationId,
-        brandId,
-        assembly.mergedAssetId,
-        result.s3Key,
-      );
-      await this.patch(organizationId, runId, operationId, {
-        ...assembly,
-        mergedStorageKey: result.s3Key,
-      });
-      return false;
-    }
-    if (!assembly.srt) {
-      await this.transcribeCaptions(
-        organizationId,
-        runId,
-        operationId,
-        assembly,
-      );
-      return false;
-    }
-    const captionJob = await this.queue.processVideo({
-      id: assembly.captionJobId,
-      ingredientId: assembly.assetId,
-      organizationId,
-      userId,
-      type: 'add-captions',
-      params: {
-        inputPath: this.mediaUrls.buildUrl(assembly.mergedStorageKey),
-        captionContent: assembly.srt,
-      },
-    });
-    const status = await this.queue.getJobStatus(captionJob.jobId);
-    if (status.state === 'failed')
-      throw new ConflictException(
-        'Caption rendering failed. The ad is not complete. Resume without repeating transcription.',
-      );
-    if (status.state !== 'completed') return false;
-    const result = persistedOutput.parse(status.result);
-    this.safeVideoKey(result.s3Key);
-    await this.store.fence(organizationId, runId, operationId);
-    await this.persistAsset(
-      organizationId,
-      brandId,
-      assembly.assetId,
-      result.s3Key,
-    );
-    const current = await this.store.fence(organizationId, runId, operationId);
-    assertSupportedSceneFidelity(current.config);
-    const context = await this.planning.resolveBrandContext(
-      organizationId,
-      brandId,
-    );
-    const generationBrief = this.planning.buildGenerationBrief(
-      context,
-      current.config,
-    );
-    assertSceneBriefFidelity(generationBrief.fidelityMode);
-    await this.store.save(organizationId, runId, current.config, {
-      ...current.config,
-      phase: 'ready_for_review',
-      execution: {
-        actualCount: 1,
-        requestedCount: 1,
-        generationBrief,
-        variants: [
-          {
-            id: `scene-final-${operationId}`,
-            assetIds: [assembly.assetId],
-            recipeRevision: config.revision,
-            status: 'ready',
-          },
-        ],
-      },
-      scenePipeline: {
-        ...pipeline,
-        state: 'ready',
-        assembly: { ...assembly, finalStorageKey: result.s3Key },
-        operation: undefined,
-      },
-    });
-    return true;
   }
   private async transcribeCaptions(
     organizationId: string,

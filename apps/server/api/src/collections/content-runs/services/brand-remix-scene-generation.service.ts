@@ -14,7 +14,15 @@ import { scopedWhere } from '@api/index';
 import { FilesClientService } from '@api/services/files-microservice/client/files-client.service';
 import { MediaUrlService } from '@api/services/media-urls/media-url.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import type { BrandRemixScenePipeline } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type {
+  BrandRemixRunConfig,
+  BrandRemixStoryboardScene,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import type {
+  BrandRemixScenePipeline,
+  BrandRemixSceneQuote,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+
 import type { ImageGenerationBriefReference } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import {
   DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
@@ -23,6 +31,12 @@ import {
 } from '@genfeedai/contracts/constants';
 import { readIngredientMediaUrl } from '@libs/media/media-url.util';
 import { ConflictException, Injectable } from '@nestjs/common';
+
+type SceneStageName = 'image' | 'video';
+type SceneStage = BrandRemixScenePipeline['scenes'][string]['image'];
+type SavedRemixScene = BrandRemixScenePipeline['scenes'][string];
+type SceneQuoteLine = BrandRemixSceneQuote['items'][number];
+type PlaceholderCreated = (assetId: string) => Promise<void>;
 
 @Injectable()
 export class BrandRemixSceneGenerationService {
@@ -88,114 +102,20 @@ export class BrandRemixSceneGenerationService {
         const category =
           stageName === 'image' ? ('IMAGE' as const) : ('AVATAR' as const);
         if (stage.state !== 'pending') {
-          const found = stage.assetId
-            ? await this.asset(
-                organizationId,
-                brandId,
-                stage.assetId,
-                groupId,
-                category,
-              )
-            : await this.prisma.ingredient.findFirst({
-                where: scopedWhere(organizationId, {
-                  brandId,
-                  groupId,
-                  category,
-                }),
-                include: { metadata: true },
-              });
-          if (!found)
-            throw new ConflictException(
-              'Provider acceptance is uncertain; no new paid attempt will be dispatched.',
-            );
-          if (found.status === 'FAILED') {
-            await this.patch(
-              organizationId,
-              runId,
-              operationId,
-              scene.id,
-              stageName,
-              {
-                state: 'failed',
-                assetId: found.id,
-                error: 'Provider generation failed. Request a repair quote.',
-              },
-            );
-            throw new ConflictException(
-              'Scene generation failed. Request an explicit repair quote.',
-            );
-          }
-          if (!['GENERATED', 'VALIDATED'].includes(found.status ?? '')) {
-            if (!stage.assetId)
-              await this.patch(
-                organizationId,
-                runId,
-                operationId,
-                scene.id,
-                stageName,
-                { assetId: found.id, state: 'submitted' },
-              );
-            return false;
-          }
-          const acceptedLine = pipeline.quote.items.find(
-            (item) =>
-              item.sceneId === scene.id &&
-              item.stage === stageName &&
-              item.attempt === stage.attempt,
-          );
-          if (acceptedLine)
-            await this.billing.settle(
-              organizationId,
-              runId,
-              operationId,
-              acceptedLine,
-              stageName === 'image' && acceptedLine.credits > 0,
-            );
-          let actualDurationSeconds = saved.actualDurationSeconds;
-          if (stageName === 'video') {
-            const url =
-              readIngredientMediaUrl(found) ??
-              (found.s3Key ? this.mediaUrls.buildUrl(found.s3Key) : undefined);
-            if (!url)
-              throw new ConflictException(
-                'Completed scene video has no media URL.',
-              );
-            const probe = await this.files.probeMediaFromUrl(url, 'video');
-            if (
-              !probe.durationSeconds ||
-              probe.durationSeconds > 20 ||
-              !probe.width ||
-              !probe.height ||
-              !probe.audioCodec
-            ) {
-              await this.patch(
-                organizationId,
-                runId,
-                operationId,
-                scene.id,
-                stageName,
-                {
-                  state: 'failed',
-                  assetId: found.id,
-                  error:
-                    'Repair required: missing speech or unsupported clip duration/dimensions.',
-                },
-              );
-              throw new ConflictException(
-                'Scene needs repair: expected speech audio and a clip up to 20 seconds.',
-              );
-            }
-            actualDurationSeconds = probe.durationSeconds;
-          }
-          await this.patch(
+          const isSettled = await this.reconcileSubmittedStage(
             organizationId,
             runId,
             operationId,
+            brandId,
             scene.id,
             stageName,
-            { state: 'ready', assetId: found.id },
-            actualDurationSeconds,
+            stage,
+            saved,
+            pipeline.quote,
+            groupId,
+            category,
           );
+          if (!isSettled) return false;
           ({ config } = await this.store.fence(
             organizationId,
             runId,
@@ -203,209 +123,394 @@ export class BrandRemixSceneGenerationService {
           ));
           continue;
         }
-        const line = pipeline.quote.items.find(
-          (item) =>
-            item.sceneId === scene.id &&
-            item.stage === stageName &&
-            item.attempt === stage.attempt,
-        );
-        if (!line)
-          throw new ConflictException(
-            'No accepted quote exists for this stage attempt.',
-          );
-        await this.planning.assertDraftAssetsAuthorized(
-          organizationId,
-          brandId,
-          { ...config.draft, identity: saved.identity },
-        );
-        if (
-          JSON.stringify(saved.referenceAssetIds) !==
-          JSON.stringify(
-            config.draft.references.map((reference) => reference.assetId),
-          )
-        )
-          throw new ConflictException('Accepted references changed.');
-        const claimToken = randomUUID();
-        await this.patch(
+        await this.dispatchPendingStage(
           organizationId,
           runId,
           operationId,
+          brandId,
+          config,
+          scene,
           scene.id,
           stageName,
-          { state: 'claimed', claimedAt: new Date().toISOString(), claimToken },
+          stage,
+          saved,
+          pipeline.quote,
+          pipeline.operation.userId,
+          groupId,
         );
-        const onPlaceholderCreated = async (assetId: string) => {
-          await this.patch(
-            organizationId,
-            runId,
-            operationId,
-            scene.id as string,
-            stageName,
-            { assetId },
-          );
-        };
-        const output = config.draft.output;
-        if (!('aspectRatio' in output))
-          throw new ConflictException('Missing scene aspect ratio.');
-        const user: AuthenticatedUser = {
-          id: pipeline.operation.userId,
-          userId: pipeline.operation.userId,
-          organizationId,
-          brandId,
-        };
-        if (stageName === 'image') {
-          const sourceActionId = this.billing.key(runId, operationId, line);
-          const request = {
-            user,
-            body: { sourceActionId },
-            creditsConfig: { deferred: true },
-          } as RequestWithContext & DeferredCreditsRequest;
-          const references: ImageGenerationBriefReference[] =
-            config.draft.references.flatMap(({ assetId, role, description }) =>
-              role === 'first_frame' ||
-              role === 'last_frame' ||
-              role === 'reference_video'
-                ? []
-                : [{ assetId, role, description }],
-            );
-          references.push({
-            assetId: saved.identity.avatarAssetId,
-            role: 'character',
-            description: 'Preserve the selected saved brand persona.',
-          });
-          const dimensions = resolveAgentGenerationDimensions(
-            output.aspectRatio,
-            DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
-          );
-          const response = await this.images.generateImage(
-            user,
-            {
-              brandId,
-              sourceActionId,
-              model: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
-              autoSelectModel: false,
-              ...dimensions,
-              outputs: 1,
-              fidelityMode: 'guided',
-              brandingMode: 'brand',
-              isBrandingEnabled: true,
-              waitForCompletion: false,
-              references: references.map((reference) => reference.assetId),
-              text: `Create a new original brand ad scene. ${scene.visualIntent}\nPreserve selected identity and authorized products. No source footage, text, watermarks, or competitor identity.`,
-            } as CreateImageDto,
-            request,
-            onPlaceholderCreated,
-            { groupId, groupIndex: 0, settleCreditsExternally: true },
-            async () => {
-              const credits = request.creditsConfig;
-              if (
-                !credits ||
-                (credits.isByokBypass ? 0 : credits.amount) !== line.credits ||
-                Boolean(credits.isByokBypass) !==
-                  (line.billingMode === 'byok') ||
-                (line.credits > 0 && !credits.reservationId)
-              ) {
-                if (credits?.reservationId)
-                  await this.billing.releaseImageReservation(
-                    organizationId,
-                    credits.reservationId,
-                  );
-                throw new ConflictException(
-                  'Image billing changed after the accepted quote.',
-                );
-              }
-              await this.billing.reserve(
-                organizationId,
-                runId,
-                operationId,
-                line,
-                credits.reservationId,
-              );
-            },
-            references,
-          );
-          if (!response.data?.id)
-            throw new ConflictException(
-              'Image provider returned no durable asset.',
-            );
-          await this.billing.settle(
-            organizationId,
-            runId,
-            operationId,
-            line,
-            line.credits > 0,
-          );
-          await this.patch(
-            organizationId,
-            runId,
-            operationId,
-            scene.id,
-            stageName,
-            { assetId: response.data.id, state: 'submitted' },
-          );
-        } else {
-          if (!saved.image.assetId || saved.image.state !== 'ready')
-            throw new ConflictException(
-              'The generated scene still is not ready.',
-            );
-          const still = await this.asset(
-            organizationId,
-            brandId,
-            saved.image.assetId,
-            saved.image.groupId ??
-              this.group(runId, scene.id, 'image', saved.image.attempt),
-            'IMAGE',
-          );
-          if (!['GENERATED', 'VALIDATED'].includes(still.status ?? ''))
-            throw new ConflictException(
-              'The generated scene still is no longer ready.',
-            );
-          const photoUrl =
-            readIngredientMediaUrl(still) ??
-            (still.s3Key ? this.mediaUrls.buildUrl(still.s3Key) : undefined);
-          if (!photoUrl)
-            throw new ConflictException(
-              'Generated scene still has no usable media URL.',
-            );
-          const result = await this.avatars.generateAvatarVideo(
-            {
-              aspectRatio: remixAvatarAspectRatio(output.aspectRatio),
-              clonedVoiceId: saved.identity.speechVoiceId,
-              photoIngredientId: still.id,
-              photoUrl,
-              text: scene.narration ?? '',
-            },
-            { organizationId, brandId, userId: user.userId },
-            onPlaceholderCreated,
-            {
-              groupId,
-              groupIndex: 0,
-              settleCreditsExternally: true,
-              isByokBypass: line.billingMode === 'byok',
-            },
-            async () => {
-              await this.billing.reserve(
-                organizationId,
-                runId,
-                operationId,
-                line,
-              );
-            },
-          );
-          await this.billing.settle(organizationId, runId, operationId, line);
-          await this.patch(
-            organizationId,
-            runId,
-            operationId,
-            scene.id,
-            stageName,
-            { assetId: result.ingredientId, state: 'submitted' },
-          );
-        }
         return false;
       }
     }
     return true;
+  }
+  private async reconcileSubmittedStage(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    brandId: string,
+    sceneId: string,
+    stageName: SceneStageName,
+    stage: SceneStage,
+    saved: SavedRemixScene,
+    quote: BrandRemixSceneQuote,
+    groupId: string,
+    category: 'IMAGE' | 'AVATAR',
+  ): Promise<boolean> {
+    const found = stage.assetId
+      ? await this.asset(
+          organizationId,
+          brandId,
+          stage.assetId,
+          groupId,
+          category,
+        )
+      : await this.prisma.ingredient.findFirst({
+          where: scopedWhere(organizationId, {
+            brandId,
+            groupId,
+            category,
+          }),
+          include: { metadata: true },
+        });
+    if (!found)
+      throw new ConflictException(
+        'Provider acceptance is uncertain; no new paid attempt will be dispatched.',
+      );
+    if (found.status === 'FAILED') {
+      await this.patch(organizationId, runId, operationId, sceneId, stageName, {
+        state: 'failed',
+        assetId: found.id,
+        error: 'Provider generation failed. Request a repair quote.',
+      });
+      throw new ConflictException(
+        'Scene generation failed. Request an explicit repair quote.',
+      );
+    }
+    if (!['GENERATED', 'VALIDATED'].includes(found.status ?? '')) {
+      if (!stage.assetId)
+        await this.patch(
+          organizationId,
+          runId,
+          operationId,
+          sceneId,
+          stageName,
+          {
+            assetId: found.id,
+            state: 'submitted',
+          },
+        );
+      return false;
+    }
+    const acceptedLine = quote.items.find(
+      (item) =>
+        item.sceneId === sceneId &&
+        item.stage === stageName &&
+        item.attempt === stage.attempt,
+    );
+    if (acceptedLine)
+      await this.billing.settle(
+        organizationId,
+        runId,
+        operationId,
+        acceptedLine,
+        stageName === 'image' && acceptedLine.credits > 0,
+      );
+    let actualDurationSeconds = saved.actualDurationSeconds;
+    if (stageName === 'video') {
+      const url =
+        readIngredientMediaUrl(found) ??
+        (found.s3Key ? this.mediaUrls.buildUrl(found.s3Key) : undefined);
+      if (!url)
+        throw new ConflictException('Completed scene video has no media URL.');
+      const probe = await this.files.probeMediaFromUrl(url, 'video');
+      if (
+        !probe.durationSeconds ||
+        probe.durationSeconds > 20 ||
+        !probe.width ||
+        !probe.height ||
+        !probe.audioCodec
+      ) {
+        await this.patch(
+          organizationId,
+          runId,
+          operationId,
+          sceneId,
+          stageName,
+          {
+            state: 'failed',
+            assetId: found.id,
+            error:
+              'Repair required: missing speech or unsupported clip duration/dimensions.',
+          },
+        );
+        throw new ConflictException(
+          'Scene needs repair: expected speech audio and a clip up to 20 seconds.',
+        );
+      }
+      actualDurationSeconds = probe.durationSeconds;
+    }
+    await this.patch(
+      organizationId,
+      runId,
+      operationId,
+      sceneId,
+      stageName,
+      { state: 'ready', assetId: found.id },
+      actualDurationSeconds,
+    );
+    return true;
+  }
+  private async dispatchPendingStage(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    brandId: string,
+    config: BrandRemixRunConfig,
+    scene: BrandRemixStoryboardScene,
+    sceneId: string,
+    stageName: SceneStageName,
+    stage: SceneStage,
+    saved: SavedRemixScene,
+    quote: BrandRemixSceneQuote,
+    userId: string,
+    groupId: string,
+  ): Promise<void> {
+    const line = quote.items.find(
+      (item) =>
+        item.sceneId === sceneId &&
+        item.stage === stageName &&
+        item.attempt === stage.attempt,
+    );
+    if (!line)
+      throw new ConflictException(
+        'No accepted quote exists for this stage attempt.',
+      );
+    await this.planning.assertDraftAssetsAuthorized(organizationId, brandId, {
+      ...config.draft,
+      identity: saved.identity,
+    });
+    if (
+      JSON.stringify(saved.referenceAssetIds) !==
+      JSON.stringify(
+        config.draft.references.map((reference) => reference.assetId),
+      )
+    )
+      throw new ConflictException('Accepted references changed.');
+    const claimToken = randomUUID();
+    await this.patch(organizationId, runId, operationId, sceneId, stageName, {
+      state: 'claimed',
+      claimedAt: new Date().toISOString(),
+      claimToken,
+    });
+    const onPlaceholderCreated: PlaceholderCreated = async (assetId) => {
+      await this.patch(organizationId, runId, operationId, sceneId, stageName, {
+        assetId,
+      });
+    };
+    const output = config.draft.output;
+    if (!('aspectRatio' in output))
+      throw new ConflictException('Missing scene aspect ratio.');
+    const user: AuthenticatedUser = {
+      id: userId,
+      userId,
+      organizationId,
+      brandId,
+    };
+    if (stageName === 'image') {
+      await this.dispatchSceneImage(
+        organizationId,
+        runId,
+        operationId,
+        brandId,
+        config,
+        scene,
+        sceneId,
+        stageName,
+        saved,
+        line,
+        groupId,
+        output.aspectRatio,
+        user,
+        onPlaceholderCreated,
+      );
+      return;
+    }
+    await this.dispatchSceneVideo(
+      organizationId,
+      brandId,
+      runId,
+      operationId,
+      scene,
+      sceneId,
+      stageName,
+      saved,
+      line,
+      groupId,
+      output.aspectRatio,
+      user,
+      onPlaceholderCreated,
+    );
+  }
+  private async dispatchSceneImage(
+    organizationId: string,
+    runId: string,
+    operationId: string,
+    brandId: string,
+    config: BrandRemixRunConfig,
+    scene: BrandRemixStoryboardScene,
+    sceneId: string,
+    stageName: SceneStageName,
+    saved: SavedRemixScene,
+    line: SceneQuoteLine,
+    groupId: string,
+    aspectRatio: string,
+    user: AuthenticatedUser,
+    onPlaceholderCreated: PlaceholderCreated,
+  ): Promise<void> {
+    const sourceActionId = this.billing.key(runId, operationId, line);
+    const request = {
+      user,
+      body: { sourceActionId },
+      creditsConfig: { deferred: true },
+    } as RequestWithContext & DeferredCreditsRequest;
+    const references: ImageGenerationBriefReference[] =
+      config.draft.references.flatMap(({ assetId, role, description }) =>
+        role === 'first_frame' ||
+        role === 'last_frame' ||
+        role === 'reference_video'
+          ? []
+          : [{ assetId, role, description }],
+      );
+    references.push({
+      assetId: saved.identity.avatarAssetId,
+      role: 'character',
+      description: 'Preserve the selected saved brand persona.',
+    });
+    const dimensions = resolveAgentGenerationDimensions(
+      aspectRatio,
+      DEFAULT_AGENT_IMAGE_ASPECT_RATIO,
+    );
+    const response = await this.images.generateImage(
+      user,
+      {
+        brandId,
+        sourceActionId,
+        model: MODEL_KEYS.REPLICATE_GOOGLE_NANO_BANANA_2,
+        autoSelectModel: false,
+        ...dimensions,
+        outputs: 1,
+        fidelityMode: 'guided',
+        brandingMode: 'brand',
+        isBrandingEnabled: true,
+        waitForCompletion: false,
+        references: references.map((reference) => reference.assetId),
+        text: `Create a new original brand ad scene. ${scene.visualIntent}\nPreserve selected identity and authorized products. No source footage, text, watermarks, or competitor identity.`,
+      } as CreateImageDto,
+      request,
+      onPlaceholderCreated,
+      { groupId, groupIndex: 0, settleCreditsExternally: true },
+      async () => {
+        const credits = request.creditsConfig;
+        if (
+          !credits ||
+          (credits.isByokBypass ? 0 : credits.amount) !== line.credits ||
+          Boolean(credits.isByokBypass) !== (line.billingMode === 'byok') ||
+          (line.credits > 0 && !credits.reservationId)
+        ) {
+          if (credits?.reservationId)
+            await this.billing.releaseImageReservation(
+              organizationId,
+              credits.reservationId,
+            );
+          throw new ConflictException(
+            'Image billing changed after the accepted quote.',
+          );
+        }
+        await this.billing.reserve(
+          organizationId,
+          runId,
+          operationId,
+          line,
+          credits.reservationId,
+        );
+      },
+      references,
+    );
+    if (!response.data?.id)
+      throw new ConflictException('Image provider returned no durable asset.');
+    await this.billing.settle(
+      organizationId,
+      runId,
+      operationId,
+      line,
+      line.credits > 0,
+    );
+    await this.patch(organizationId, runId, operationId, sceneId, stageName, {
+      assetId: response.data.id,
+      state: 'submitted',
+    });
+  }
+  private async dispatchSceneVideo(
+    organizationId: string,
+    brandId: string,
+    runId: string,
+    operationId: string,
+    scene: BrandRemixStoryboardScene,
+    sceneId: string,
+    stageName: SceneStageName,
+    saved: SavedRemixScene,
+    line: SceneQuoteLine,
+    groupId: string,
+    aspectRatio: string,
+    user: AuthenticatedUser,
+    onPlaceholderCreated: PlaceholderCreated,
+  ): Promise<void> {
+    if (!saved.image.assetId || saved.image.state !== 'ready')
+      throw new ConflictException('The generated scene still is not ready.');
+    const still = await this.asset(
+      organizationId,
+      brandId,
+      saved.image.assetId,
+      saved.image.groupId ??
+        this.group(runId, sceneId, 'image', saved.image.attempt),
+      'IMAGE',
+    );
+    if (!['GENERATED', 'VALIDATED'].includes(still.status ?? ''))
+      throw new ConflictException(
+        'The generated scene still is no longer ready.',
+      );
+    const photoUrl =
+      readIngredientMediaUrl(still) ??
+      (still.s3Key ? this.mediaUrls.buildUrl(still.s3Key) : undefined);
+    if (!photoUrl)
+      throw new ConflictException(
+        'Generated scene still has no usable media URL.',
+      );
+    const result = await this.avatars.generateAvatarVideo(
+      {
+        aspectRatio: remixAvatarAspectRatio(aspectRatio),
+        clonedVoiceId: saved.identity.speechVoiceId,
+        photoIngredientId: still.id,
+        photoUrl,
+        text: scene.narration ?? '',
+      },
+      { organizationId, brandId, userId: user.userId },
+      onPlaceholderCreated,
+      {
+        groupId,
+        groupIndex: 0,
+        settleCreditsExternally: true,
+        isByokBypass: line.billingMode === 'byok',
+      },
+      async () => {
+        await this.billing.reserve(organizationId, runId, operationId, line);
+      },
+    );
+    await this.billing.settle(organizationId, runId, operationId, line);
+    await this.patch(organizationId, runId, operationId, sceneId, stageName, {
+      assetId: result.ingredientId,
+      state: 'submitted',
+    });
   }
   private async patch(
     organizationId: string,
@@ -413,7 +518,7 @@ export class BrandRemixSceneGenerationService {
     operationId: string,
     sceneId: string,
     stage: 'image' | 'video',
-    patch: Partial<BrandRemixScenePipeline['scenes'][string]['image']>,
+    patch: Partial<SceneStage>,
     actualDurationSeconds?: number,
   ) {
     const { config } = await this.store.fence(
