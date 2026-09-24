@@ -7,6 +7,13 @@ const RECIPIENTS = ['user', 'organization', 'brand'] as const;
 const ACCESS = ['use', 'use_and_read'] as const;
 const PUBLISH_AUDIENCES = ['organization', 'public'] as const;
 
+/** Create accepts only private or organization. Keep the value as a string so a public attempt is still rejected. */
+export function readOptionalAudience(
+  value: string | undefined,
+): string | undefined {
+  return value;
+}
+
 export class CreateScopedSkillDto {
   @IsOptional()
   @IsIn(AUDIENCES)

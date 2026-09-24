@@ -210,7 +210,16 @@ export function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDef
     canonicalId: AGENT_RUNTIME_WORKFLOW_IDS.VOICE_GENERATION,
     description:
       'Generates and persists one text-to-speech ingredient through a registered action.',
-    inputKeys: ['ingredientId', 'organizationId', 'text', 'userId', 'voiceId'],
+    inputKeys: [
+      'ingredientId',
+      'organizationId',
+      'text',
+      'userId',
+      'voiceId',
+      'brandId',
+      'requestedSkillSlugs',
+      'pinnedSkills',
+    ],
     inputVariables: [
       {
         key: 'ingredientId',
@@ -227,6 +236,19 @@ export function buildVoiceGenerationWorkflowDefinition(): SystemWorkflowGraphDef
       { key: 'text', label: 'Text', required: true, type: 'string' },
       { key: 'userId', label: 'User', required: true, type: 'string' },
       { key: 'voiceId', label: 'Voice', required: true, type: 'string' },
+      { key: 'brandId', label: 'Brand', required: false, type: 'string' },
+      {
+        key: 'requestedSkillSlugs',
+        label: 'Requested skills',
+        required: false,
+        type: 'json',
+      },
+      {
+        key: 'pinnedSkills',
+        label: 'Pinned skill versions',
+        required: false,
+        type: 'json',
+      },
     ],
     label: 'Generate Voice',
   });

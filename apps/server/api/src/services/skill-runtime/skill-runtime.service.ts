@@ -15,6 +15,7 @@ import {
   UNTRUSTED_ORG_SKILL_FRAMING,
 } from '@api/services/agent-orchestrator/utils/agent-untrusted-content.util';
 import type {
+  PinnedRuntimeSkill,
   ResolveActiveSkillsContext,
   ResolvedRuntimeSkill,
 } from '@genfeedai/contracts/interfaces/ai';
@@ -56,11 +57,10 @@ export class SkillRuntimeService {
       organizationId,
       brandId,
       context,
-      await this.skillsService.resolveBrandSkills(
-        organizationId,
-        brandId,
-        options,
-      ),
+      await this.skillsService.resolveBrandSkills(organizationId, brandId, {
+        ...options,
+        ...(context.actorUserId ? { actorUserId: context.actorUserId } : {}),
+      }),
     );
 
     if (brandSkills.length === 0) {
@@ -138,11 +138,34 @@ export class SkillRuntimeService {
     return this.buildSkillPromptSections(skills, requested);
   }
 
+  async collectAuthorizedPins(input: {
+    actorUserId?: string;
+    brandId?: string | null;
+    modality: string;
+    organizationId: string;
+    requestedSkillSlugs?: string[];
+  }): Promise<PinnedRuntimeSkill[]> {
+    const pins: PinnedRuntimeSkill[] = [];
+    if (!input.actorUserId || !input.requestedSkillSlugs?.length) return pins;
+    await this.resolveGenerationSkillPromptSections(
+      input.organizationId,
+      input.brandId,
+      input.requestedSkillSlugs,
+      {
+        actorUserId: input.actorUserId,
+        modality: input.modality,
+        pinnedSkills: pins,
+      },
+    );
+    return pins;
+  }
+
   async applyAuthorizedSkillPrompt(input: {
     actorUserId?: string;
     brandId?: string | null;
     modality: string;
     organizationId: string;
+    pinnedSkills?: PinnedRuntimeSkill[];
     prompt: string;
     requestedSkillSlugs?: string[];
   }): Promise<string> {
@@ -152,7 +175,11 @@ export class SkillRuntimeService {
       input.organizationId,
       input.brandId,
       requested,
-      { actorUserId: input.actorUserId, modality: input.modality },
+      {
+        actorUserId: input.actorUserId,
+        modality: input.modality,
+        ...(input.pinnedSkills ? { pinnedSkills: input.pinnedSkills } : {}),
+      },
     );
     return sections ? `${sections}\n\n${input.prompt}` : input.prompt;
   }
@@ -334,19 +361,47 @@ export class SkillRuntimeService {
       organizationId,
       userId: context.actorUserId,
     };
+    const idBySlug = new Map(
+      skills.map((skill) => [String(skill.skill.slug), String(skill.skill.id)]),
+    );
+    const pins = (context.pinnedSkills ?? [])
+      .filter((pin) => pin.versionId.length > 0)
+      .map((pin) => ({
+        contentHash: pin.contentHash,
+        skillId: idBySlug.get(pin.slug) ?? pin.slug,
+        skillVersionId: pin.versionId,
+      }));
     const decision = await this.skillLibrary.authorizeResolved(
       actor,
       skills.map((skill) => skill.skill),
+      context.pinnedSkills && context.pinnedSkills.length > 0 ? pins : [],
     );
     await this.skillLibrary.recordResolution(
       actor,
-      decision.included.map((document) => String(document.id)),
+      decision.versions,
       decision.excluded,
     );
-    const allowed = new Set(
-      decision.included.map((document) => String(document.id)),
+    const allowed = new Map(
+      decision.included.map((document) => [String(document.id), document]),
     );
-    return skills.filter((skill) => allowed.has(String(skill.skill.id)));
+    const kept = skills.flatMap((skill) => {
+      const bound = allowed.get(String(skill.skill.id));
+      if (!bound) return [];
+      return [{ ...skill, skill: bound, targetSkill: bound }];
+    });
+    if (context.pinnedSkills && context.pinnedSkills.length === 0) {
+      for (const skill of kept) {
+        const runtime = this.toRuntimeSkill(skill);
+        if (!runtime.versionId || !runtime.contentHash) continue;
+        context.pinnedSkills.push({
+          contentHash: runtime.contentHash,
+          instructions: runtime.instructions,
+          slug: runtime.slug,
+          versionId: runtime.versionId,
+        });
+      }
+    }
+    return kept;
   }
 
   private applyStrategyPriority(
@@ -377,12 +432,14 @@ export class SkillRuntimeService {
     const source = this.readString(doc.source);
 
     return {
+      contentHash: this.readString(doc.contentHash),
       instructions:
         this.readString(doc.systemPromptTemplate) ??
         this.readString(doc.defaultInstructions) ??
         '',
       isBuiltIn: doc.isBuiltIn === true,
       name: this.readString(doc.name) ?? slug,
+      versionId: this.readString(doc.skillVersionId),
       slug,
       source:
         source === 'built_in' ||

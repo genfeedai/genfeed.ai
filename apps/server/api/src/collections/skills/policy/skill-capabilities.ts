@@ -78,9 +78,23 @@ function isBlank(value: string | null | undefined): boolean {
   return typeof value !== 'string' || value.trim().length === 0;
 }
 
-function grantMatchesActor(
+export interface SkillGrantActor {
+  brandId?: string | null;
+  organizationId: string;
+  userId: string;
+}
+
+export interface SkillGrantRecipientClause {
+  recipientBrandId?: string;
+  recipientKind: SkillCapabilityGrant['recipientKind'];
+  recipientOrganizationId?: string;
+  recipientUserId?: string;
+}
+
+/** Same recipient match used by capability checks and version selection. */
+export function grantMatchesActor(
   grant: SkillCapabilityGrant,
-  actor: SkillCapabilityActor,
+  actor: SkillGrantActor,
 ): boolean {
   if (grant.isRevoked) {
     return false;
@@ -95,10 +109,32 @@ function grantMatchesActor(
   }
 
   return (
+    grant.recipientKind === 'brand' &&
     grant.recipientBrandId === actor.brandId &&
     grant.recipientOrganizationId === actor.organizationId &&
     !isBlank(actor.brandId)
   );
+}
+
+export function skillGrantRecipientClauses(
+  actor: SkillGrantActor,
+): SkillGrantRecipientClause[] {
+  const clauses: SkillGrantRecipientClause[] = [
+    { recipientKind: 'user', recipientUserId: actor.userId },
+    {
+      recipientKind: 'organization',
+      recipientOrganizationId: actor.organizationId,
+    },
+  ];
+  const brandId = actor.brandId;
+  if (typeof brandId === 'string' && brandId.trim().length > 0) {
+    clauses.push({
+      recipientBrandId: brandId,
+      recipientKind: 'brand',
+      recipientOrganizationId: actor.organizationId,
+    });
+  }
+  return clauses;
 }
 
 function governs(

@@ -35,6 +35,7 @@ describe('enhanceCreatedPrompt', () => {
     const deps = setup();
     await enhanceCreatedPrompt(deps as never, input);
     expect(deps.promptEnhancementService.enhance).toHaveBeenCalledWith({
+      actorUserId: 'user',
       brandId: 'selected-brand',
       contentType: 'image',
       organizationId: 'org',

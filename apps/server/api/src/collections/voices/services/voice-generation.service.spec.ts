@@ -235,6 +235,57 @@ describe('VoiceGenerationService', () => {
     });
   });
 
+  it('pins the selected skill version onto the voice job before enqueue', async () => {
+    const skillRuntime = {
+      collectAuthorizedPins: vi.fn().mockResolvedValue([
+        {
+          contentHash: 'hash-v1',
+          instructions: 'version one',
+          slug: 'narration',
+          versionId: 'sv-1',
+        },
+      ]),
+    };
+    const pinned = new VoiceGenerationService(
+      elevenLabs as unknown as ElevenLabsService,
+      logger as unknown as LoggerService,
+      shared as unknown as SharedService,
+      credits as unknown as VoiceCreditsService,
+      voices as unknown as VoicesService,
+      workflowRunner as never,
+      activities as never,
+      notifications as never,
+      skillRuntime as never,
+    );
+    voices.findOne.mockResolvedValue({
+      id: ingredientId,
+      status: IngredientStatus.PROCESSING,
+    });
+
+    await pinned.generate(user, {
+      requestedSkillSlugs: ['narration'],
+      text: 'Hello',
+      voiceId: 'voice-1',
+    });
+
+    expect(skillRuntime.collectAuthorizedPins).toHaveBeenCalledWith(
+      expect.objectContaining({
+        brandId,
+        modality: 'audio',
+        requestedSkillSlugs: ['narration'],
+      }),
+    );
+    expect(workflowRunner.enqueueWorkflow).toHaveBeenCalledWith(
+      expect.objectContaining({
+        inputValues: expect.objectContaining({
+          brandId,
+          pinnedSkills: [expect.objectContaining({ versionId: 'sv-1' })],
+          requestedSkillSlugs: ['narration'],
+        }),
+      }),
+    );
+  });
+
   it('re-reserves background work for an idempotent source-action retry', async () => {
     voices.findOne.mockResolvedValue({
       id: ingredientId,

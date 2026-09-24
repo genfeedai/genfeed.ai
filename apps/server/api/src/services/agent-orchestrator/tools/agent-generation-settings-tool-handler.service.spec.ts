@@ -44,6 +44,7 @@ describe('AgentGenerationSettingsToolHandler', () => {
       ctx,
     );
     expect(enhancement.enhance).toHaveBeenCalledWith({
+      actorUserId: ctx.userId,
       organizationId: 'trusted-org',
       brandId: 'thread-brand',
       prompt: 'A bicycle',

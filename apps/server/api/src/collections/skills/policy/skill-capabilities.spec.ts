@@ -221,4 +221,61 @@ describe('resolveSkillCapabilities', () => {
       canExport: false,
     });
   });
+
+  it('applies a grant only when the recipient kind and actor match', () => {
+    const grant = (
+      recipientKind: 'user' | 'organization' | 'brand',
+      access: 'use' | 'use_and_read',
+      recipient: {
+        recipientBrandId?: string | null;
+        recipientOrganizationId?: string | null;
+        recipientUserId?: string | null;
+      },
+    ) =>
+      resolveSkillCapabilities(
+        privateOrg,
+        otherMember,
+        [
+          {
+            access,
+            isRevoked: false,
+            recipientBrandId: recipient.recipientBrandId ?? null,
+            recipientKind,
+            recipientOrganizationId: recipient.recipientOrganizationId ?? null,
+            recipientUserId: recipient.recipientUserId ?? null,
+          },
+        ],
+        CLOSED_SKILL_SOURCE_POLICY,
+      );
+
+    expect(
+      grant('user', 'use_and_read', { recipientUserId: 'user-other' }),
+    ).toMatchObject({ canRead: true, canUse: true, canEdit: false });
+    expect(
+      grant('user', 'use', { recipientUserId: 'user-other' }),
+    ).toMatchObject({ canRead: false, canUse: true });
+    expect(
+      grant('user', 'use_and_read', { recipientUserId: 'user-owner' }),
+    ).toMatchObject({ canRead: false, canUse: false });
+    expect(
+      grant('organization', 'use_and_read', {
+        recipientOrganizationId: 'org-a',
+      }),
+    ).toMatchObject({ canRead: true, canUse: true });
+    expect(
+      grant('organization', 'use', { recipientOrganizationId: 'org-other' }),
+    ).toMatchObject({ canRead: false, canUse: false });
+    expect(
+      grant('brand', 'use_and_read', {
+        recipientBrandId: 'brand-a',
+        recipientOrganizationId: 'org-a',
+      }),
+    ).toMatchObject({ canRead: true, canUse: true });
+    expect(
+      grant('brand', 'use', {
+        recipientBrandId: 'brand-b',
+        recipientOrganizationId: 'org-a',
+      }),
+    ).toMatchObject({ canRead: false, canUse: false });
+  });
 });

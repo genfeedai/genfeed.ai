@@ -41,6 +41,13 @@ export const SKILL_SOURCES = [
 export const SKILL_STATUSES = ['draft', 'published', 'disabled'] as const;
 
 export interface SkillDocument extends Skill {
+  canEdit?: boolean;
+  canExport?: boolean;
+  canFork?: boolean;
+  canPublish?: boolean;
+  canRead?: boolean;
+  canShare?: boolean;
+  canUse?: boolean;
   channels?: string[];
   /** Built-in slug the runtime injects while a brand has no explicit selection. */
   isDefault?: boolean;

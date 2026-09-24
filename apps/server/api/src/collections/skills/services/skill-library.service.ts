@@ -1,15 +1,17 @@
 import { createHash } from 'node:crypto';
 import { isDefaultFirstPartySkillSlug } from '@api/collections/skills/catalog/default-first-party-skills';
 import { isReservedBuiltInSkillSlug } from '@api/collections/skills/constants/skill-validation.constant';
-import type {
-  ArchiveSkillDto,
-  CreateScopedSkillDto,
-  GrantSkillDto,
-  PublishSkillDto,
-  RollbackSkillDto,
+import {
+  type ArchiveSkillDto,
+  type CreateScopedSkillDto,
+  type GrantSkillDto,
+  type PublishSkillDto,
+  type RollbackSkillDto,
+  readOptionalAudience,
 } from '@api/collections/skills/dto/skill-library.dto';
 import {
   CLOSED_SKILL_SOURCE_POLICY,
+  grantMatchesActor,
   PUBLIC_FREE_SOURCE_POLICY,
   resolveSkillCapabilities,
   type SkillAudience,
@@ -18,8 +20,18 @@ import {
   type SkillCapabilitySubject,
   type SkillOwnerKind,
   type SkillSourcePolicy,
+  skillGrantRecipientClauses,
 } from '@api/collections/skills/policy/skill-capabilities';
 import type { SkillDocument } from '@api/collections/skills/schemas/skill.schema';
+import {
+  type RecordedSkillExclusion,
+  type RecordedSkillVersion,
+  resolutionItems,
+} from '@api/collections/skills/services/skill-resolution-evidence';
+import {
+  applyAuthorizedVersionBody,
+  loadAuthorizedSkillVersions,
+} from '@api/collections/skills/services/skill-version-loader';
 import { withSkillWriteSession } from '@api/collections/skills/services/skill-write-session';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { ValidationException } from '@api/exceptions/validation.exception';
@@ -37,6 +49,17 @@ export interface SkillLibraryActor {
   organizationId: string;
   userId: string;
 }
+
+export interface PinnedSkillExecution {
+  contentHash: string;
+  skillId: string;
+  skillVersionId: string;
+}
+
+export type {
+  RecordedSkillExclusion,
+  RecordedSkillVersion,
+} from '@api/collections/skills/services/skill-resolution-evidence';
 
 interface SkillRow {
   audience: string | null;
@@ -72,7 +95,7 @@ export class SkillLibraryService {
     input: CreateScopedSkillDto,
   ): Promise<SkillDocument> {
     const ownerKind = input.ownerKind ?? 'user';
-    if (input.audience === 'public') {
+    if (readOptionalAudience(input.audience) === 'public') {
       throw new ValidationException(
         'Public skills are created by publishing a version',
         'audience',
@@ -130,6 +153,9 @@ export class SkillLibraryService {
       throw new ForbiddenException('This skill cannot be forked');
     }
     const config = this.readConfig(source);
+    const version = decision.canEdit
+      ? null
+      : await this.versionFor(source, false, actor);
     const slug = await this.availableSlug(
       `${String(config.slug ?? 'skill')}-fork`,
       actor,
@@ -137,7 +163,11 @@ export class SkillLibraryService {
     return this.create(actor, {
       brandId: undefined,
       description: String(config.description ?? source.label ?? 'Fork'),
-      instructions: this.instructionOf(source, config),
+      instructions: version
+        ? version.instructionText
+        : decision.canEdit
+          ? this.instructionOf(source, config)
+          : '',
       name: `${String(config.name ?? source.label ?? 'Skill')} fork`,
       ownerKind: 'user',
       slug,
@@ -185,6 +215,7 @@ export class SkillLibraryService {
     if (!decision.canShare) {
       throw new ForbiddenException('This grant cannot be revoked');
     }
+    // sql-risk-audit: ignore bulk-write-tenant-review -- requireRow and decide already require canShare on this skill. SkillGrant has no organization column. The where binds one grant id to that skill id and a live revokedAt row, and a count other than 1 is not found.
     const updated = await this.prisma.skillGrant.updateMany({
       where: { id: grantId, revokedAt: null, skillId },
       data: { revokedAt: new Date() },
@@ -278,7 +309,8 @@ export class SkillLibraryService {
     if (!decision.canExport) {
       throw new ForbiddenException('This skill cannot be exported');
     }
-    const version = await this.versionFor(skill, decision.canEdit);
+    const version = await this.versionFor(skill, decision.canEdit, actor);
+    if (!version) throw new NotFoundException('Skill version', skill.id);
     return {
       contentHash: version.contentHash,
       instructions: version.instructionText,
@@ -313,15 +345,29 @@ export class SkillLibraryService {
         actorUserId: actor.userId,
         origin: 'authoring',
       },
-      (tx) =>
+      async (tx) => {
         // tenant-scope-ignore: rollback addresses one already-authorized skill id, including personal rows
-        tx.skill.update({
+        const row = await tx.skill.update({
           data: {
             config: (payload.config ?? {}) as Prisma.InputJsonValue,
             label: payload.label ?? skill.label,
+            ...(skill.publishedVersionId
+              ? { publishedVersionId: version.id }
+              : {}),
+            ...(skill.sharedVersionId ? { sharedVersionId: version.id } : {}),
           },
           where: { id: skill.id },
-        }),
+        });
+        await tx.skillAssignment.updateMany({
+          data: { skillVersionId: version.id },
+          where: {
+            isDeleted: false,
+            organizationId: actor.organizationId,
+            skillId: skill.id,
+          },
+        });
+        return row;
+      },
     );
     return this.toDocument(restored as unknown as SkillRow);
   }
@@ -387,6 +433,9 @@ export class SkillLibraryService {
     const capabilityActor = await this.loadActor(actor);
     const ids = documents.map((document) => String(document.id));
     const grants = await this.grantsFor(actor, ids);
+    const versions = await this.loadAuthorizedVersions(actor, documents, {
+      purpose: 'read',
+    });
     const visible: SkillDocument[] = [];
     for (const document of documents) {
       const subject = this.subjectFromDocument(document);
@@ -405,7 +454,15 @@ export class SkillLibraryService {
       ) {
         continue;
       }
-      visible.push(this.withCapabilities(document, decision, decision.canRead));
+      const version = versions.get(String(document.id));
+      const projected = decision.canEdit
+        ? document
+        : version
+          ? applyAuthorizedVersionBody(document, version)
+          : this.withoutInstructions(document);
+      visible.push(
+        this.withCapabilities(projected, decision, decision.canRead),
+      );
     }
     return visible;
   }
@@ -413,75 +470,81 @@ export class SkillLibraryService {
   async authorizeResolved(
     actor: SkillLibraryActor,
     documents: SkillDocument[],
+    pins: PinnedSkillExecution[] = [],
   ): Promise<{
-    excluded: Array<{ reason: string; skillId: string }>;
+    excluded: RecordedSkillExclusion[];
     included: SkillDocument[];
+    versions: RecordedSkillVersion[];
   }> {
     const presented = await this.present(actor, documents);
-    const includedIds = new Set(
+    const allowed = new Set(
       presented
         .filter((document) => document.canUse !== false)
         .map((document) => String(document.id)),
     );
-    return {
-      excluded: documents
-        .filter((document) => !includedIds.has(String(document.id)))
-        .map((document) => ({
-          reason: 'access-revoked-or-unusable',
-          skillId: String(document.id),
-        })),
-      included: presented.filter((document) =>
-        includedIds.has(String(document.id)),
-      ),
+    const versions = await this.loadAuthorizedVersions(actor, documents, {
+      pins,
+    });
+    const included: SkillDocument[] = [];
+    const recorded: RecordedSkillVersion[] = [];
+    const excluded: RecordedSkillExclusion[] = [];
+    const deny = (skillId: string) => {
+      const version = versions.get(skillId);
+      const pin = pins.find((item) => item.skillId === skillId);
+      const attempted = version
+        ? {
+            contentHash:
+              pin &&
+              pin.skillVersionId === version.id &&
+              pin.contentHash !== version.contentHash
+                ? pin.contentHash
+                : version.contentHash,
+            skillVersionId: version.id,
+          }
+        : undefined;
+      excluded.push({
+        reason: 'access-revoked-or-unusable',
+        skillId,
+        ...(attempted ?? {}),
+      });
     };
+    for (const document of documents) {
+      const skillId = String(document.id);
+      const version = versions.get(skillId);
+      const pin = pins.find((item) => item.skillId === skillId);
+      if (
+        !allowed.has(skillId) ||
+        (pin && pin.contentHash !== version?.contentHash)
+      ) {
+        deny(skillId);
+        continue;
+      }
+      if (!version) {
+        const isOwner =
+          document.ownerKind === 'system' ||
+          document.isBuiltIn === true ||
+          (document.ownerKind === 'user' &&
+            document.ownerUserId === actor.userId);
+        if (isOwner) included.push(document);
+        else deny(skillId);
+        continue;
+      }
+      included.push(applyAuthorizedVersionBody(document, version));
+      recorded.push({
+        contentHash: version.contentHash,
+        skillId,
+        skillVersionId: version.id,
+      });
+    }
+    return { excluded, included, versions: recorded };
   }
 
   async recordResolution(
     actor: SkillLibraryActor,
-    includedSkillIds: string[],
-    excluded: Array<{ reason: string; skillId: string }>,
+    included: RecordedSkillVersion[],
+    excluded: readonly RecordedSkillExclusion[],
   ): Promise<void> {
-    const skillIds = [
-      ...includedSkillIds,
-      ...excluded.map((item) => item.skillId),
-    ];
-    if (skillIds.length === 0) return;
-    // tenant-scope-ignore: resolution records skills already authorized for this actor, including personal rows
-    const skills = await this.prisma.skill.findMany({
-      select: { currentVersionId: true, id: true },
-      where: { id: { in: skillIds }, isDeleted: false },
-    });
-    const versions = await this.prisma.skillVersion.findMany({
-      select: { contentHash: true, id: true, skillId: true },
-      where: {
-        id: {
-          in: skills.flatMap((skill) =>
-            skill.currentVersionId ? [skill.currentVersionId] : [],
-          ),
-        },
-      },
-    });
-    const versionBySkill = new Map(
-      versions.map((version) => [version.skillId, version]),
-    );
-    const excludedBySkill = new Map(
-      excluded.map((item) => [item.skillId, item.reason]),
-    );
-    const items = skillIds.flatMap((skillId) => {
-      const version = versionBySkill.get(skillId);
-      if (!version) return [];
-      const reason = excludedBySkill.get(skillId);
-      return [
-        {
-          contentHash: version.contentHash,
-          exclusionReason: reason ?? null,
-          inclusion: reason ? 'excluded' : 'included',
-          origin: 'selection',
-          skillId,
-          skillVersionId: version.id,
-        },
-      ];
-    });
+    const items = resolutionItems(included, excluded);
     if (items.length === 0) return;
     await this.prisma.skillResolution.create({
       data: {
@@ -492,6 +555,18 @@ export class SkillLibraryService {
         userId: actor.userId,
       },
     });
+  }
+
+  private withoutInstructions(document: SkillDocument): SkillDocument {
+    const config = { ...(document.config as Record<string, unknown>) };
+    delete config.defaultInstructions;
+    delete config.systemPromptTemplate;
+    return {
+      ...document,
+      config,
+      defaultInstructions: undefined,
+      systemPromptTemplate: undefined,
+    } as SkillDocument;
   }
 
   private async assignSharedDefaults(organizationId: string): Promise<number> {
@@ -675,17 +750,69 @@ export class SkillLibraryService {
     return existing ? `${base}-${actor.userId.slice(0, 6)}` : base;
   }
 
-  private async versionFor(skill: SkillRow, canEdit: boolean) {
-    const versionId = canEdit
-      ? skill.currentVersionId
-      : (skill.publishedVersionId ??
-        skill.sharedVersionId ??
-        skill.currentVersionId);
-    const version = await this.prisma.skillVersion.findFirst({
-      where: { id: versionId ?? '', skillId: skill.id },
-    });
-    if (!version) throw new NotFoundException('Skill version', skill.id);
-    return version;
+  private async versionFor(
+    skill: SkillRow,
+    canEdit: boolean,
+    actor: SkillLibraryActor,
+  ): Promise<{
+    contentHash: string;
+    id: string;
+    instructionText: string;
+  } | null> {
+    if (canEdit && skill.currentVersionId) {
+      const current = await this.prisma.skillVersion.findFirst({
+        where: { id: skill.currentVersionId, skillId: skill.id },
+      });
+      return current
+        ? {
+            contentHash: current.contentHash,
+            id: current.id,
+            instructionText: current.instructionText,
+          }
+        : null;
+    }
+    const versions = await this.loadAuthorizedVersions(
+      actor,
+      [this.toDocument(skill)],
+      { purpose: 'read' },
+    );
+    return versions.get(skill.id) ?? null;
+  }
+
+  private loadAuthorizedVersions(
+    actor: SkillLibraryActor,
+    documents: SkillDocument[],
+    options: {
+      canEditIds?: ReadonlySet<string>;
+      pins?: PinnedSkillExecution[];
+      purpose?: 'execute' | 'read';
+    } = {},
+  ) {
+    const editable =
+      options.canEditIds ??
+      new Set(
+        documents
+          .filter((document) => document.canEdit === true)
+          .map((document) => String(document.id)),
+      );
+    return loadAuthorizedSkillVersions(
+      this.prisma,
+      actor,
+      documents.map((document) => ({
+        audience: document.audience,
+        currentVersionId: document.currentVersionId,
+        id: String(document.id),
+        ownerKind: document.ownerKind,
+        ownerUserId: (document as { ownerUserId?: string | null }).ownerUserId,
+        publishedVersionId: document.publishedVersionId,
+        sharedVersionId:
+          (document as { sharedVersionId?: string | null }).sharedVersionId ??
+          null,
+      })),
+      editable,
+      options.pins ?? [],
+      options.purpose ?? 'execute',
+    );
   }
 
   private async grantsFor(
@@ -694,18 +821,7 @@ export class SkillLibraryService {
   ): Promise<Map<string, SkillCapabilityGrant[]>> {
     const rows = await this.prisma.skillGrant.findMany({
       where: {
-        OR: [
-          { recipientUserId: actor.userId },
-          { recipientOrganizationId: actor.organizationId },
-          ...(actor.brandId
-            ? [
-                {
-                  recipientBrandId: actor.brandId,
-                  recipientOrganizationId: actor.organizationId,
-                },
-              ]
-            : []),
-        ],
+        OR: skillGrantRecipientClauses(actor),
         revokedAt: null,
         skillId: { in: skillIds },
       },
@@ -714,7 +830,7 @@ export class SkillLibraryService {
     for (const row of rows) {
       const grant: SkillCapabilityGrant = {
         access: row.access === 'use_and_read' ? 'use_and_read' : 'use',
-        isRevoked: false,
+        isRevoked: row.revokedAt != null,
         recipientBrandId: row.recipientBrandId,
         recipientKind:
           row.recipientKind === 'organization' || row.recipientKind === 'brand'
@@ -723,6 +839,7 @@ export class SkillLibraryService {
         recipientOrganizationId: row.recipientOrganizationId,
         recipientUserId: row.recipientUserId,
       };
+      if (!grantMatchesActor(grant, actor)) continue;
       grouped.set(row.skillId, [...(grouped.get(row.skillId) ?? []), grant]);
     }
     return grouped;
@@ -756,7 +873,10 @@ export class SkillLibraryService {
       brandId: record.brandId ?? null,
       hasPublishedVersion: Boolean(record.publishedVersionId),
       isQuarantined: record.isQuarantined === true,
-      organizationId: record.organizationId ?? record.organization ?? null,
+      organizationId:
+        typeof record.organizationId === 'string'
+          ? record.organizationId
+          : null,
       ownerKind: this.ownerOf(record.ownerKind),
       ownerUserId: record.ownerUserId ?? null,
     };
@@ -811,6 +931,7 @@ export class SkillLibraryService {
       ownerKind: skill.ownerKind,
       ownerUserId: skill.ownerUserId,
       publishedVersionId: skill.publishedVersionId,
+      sharedVersionId: skill.sharedVersionId,
       revision: skill.revision,
     } as unknown as SkillDocument;
   }
