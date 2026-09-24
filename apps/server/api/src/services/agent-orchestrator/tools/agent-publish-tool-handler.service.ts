@@ -197,7 +197,6 @@ export class AgentPublishToolHandler {
         success: false,
       };
     }
-
     const credentialsById = new Map(
       credentials.flatMap((credential) => {
         const credentialId = readCredentialId(credential.id);
