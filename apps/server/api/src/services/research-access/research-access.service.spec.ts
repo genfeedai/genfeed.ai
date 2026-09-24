@@ -3,9 +3,14 @@ import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ResearchAccessService } from './research-access.service';
 
-vi.mock('@genfeedai/config', () => ({
-  isSaaS: vi.fn(() => true),
-}));
+vi.mock('@genfeedai/config', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@genfeedai/config')>();
+
+  return {
+    ...actual,
+    isSaaS: vi.fn(() => true),
+  };
+});
 
 import { isSaaS } from '@genfeedai/config';
 
