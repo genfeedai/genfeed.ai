@@ -668,10 +668,19 @@ export function useAgentChatContainer({
         }
       } catch {
         if (handoff) {
-          cancelRunHandoff(handoff);
+          cancelRunHandoff(handoff, request);
         }
         const currentState = useAgentChatStore.getState();
         if (
+          handoff &&
+          currentState.activeThreadId === request.threadId &&
+          currentState.pendingInputRequest?.inputRequestId !==
+            request.inputRequestId
+        ) {
+          return;
+        }
+        if (
+          !handoff &&
           currentState.activeThreadId === request.threadId &&
           !currentState.pendingInputRequest
         ) {

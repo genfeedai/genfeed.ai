@@ -19,6 +19,7 @@ import { STREAM_COMPLETION_POLL_INTERVAL_MS } from '@genfeedai/agent/hooks/agent
 import type {
   AgentChatMessage,
   AgentChatStreamResponse,
+  AgentInputRequest,
   AgentThread,
 } from '@genfeedai/agent/models/agent-chat.model';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
@@ -63,6 +64,7 @@ export function useAgentChatStream(
 
   const addMessage = useAgentChatStore((s) => s.addMessage);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
+  const threads = useAgentChatStore((s) => s.threads);
   const setActiveThread = useAgentChatStore((s) => s.setActiveThread);
   const upsertThread = useAgentChatStore((s) => s.upsertThread);
   const setError = useAgentChatStore((s) => s.setError);
@@ -457,6 +459,7 @@ export function useAgentChatStream(
   // *does* survive the remount — makes the new instance take over the live run.
   // A run restored after reload or navigation (`markStreamLive`) flips
   // `isStreaming` on and is adopted the same way.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: A hidden owner's summary settlement must retry adoption even when visible isStreaming stays true.
   useEffect(() => {
     if (!isReady || !activeThreadId || !isStreaming) {
       return;
@@ -508,6 +511,7 @@ export function useAgentChatStream(
     isReady,
     isStreaming,
     scheduleCompletionWatchdog,
+    threads,
   ]);
 
   const sendMessage = useCallback(
@@ -736,6 +740,9 @@ export function useAgentChatStream(
       streamRuntime.ownerGeneration += 1;
       const handoff: AgentRunHandoff = {
         generation: streamRuntime.ownerGeneration,
+        preAssistantIds: collectAssistantMessageIds(
+          useAgentChatStore.getState().messages,
+        ),
         previousPending: streamRuntime.pendingCompletionRef.current,
         threadId,
       };
@@ -744,6 +751,7 @@ export function useAgentChatStream(
       streamRuntime.pendingCompletionRef.current = null;
       clearCompletionWatchdog();
       streamRuntime.activeStreamThreadRef.current = threadId;
+      streamRuntime.activeStreamRunIdRef.current = null;
       streamRuntime.isAwaitingRunIdRef.current = true;
       if (streamRuntime.unsubscribersRef.current.length === 0) {
         attachSubscriptions();
@@ -761,12 +769,6 @@ export function useAgentChatStream(
       }
 
       const { threadId } = handoff;
-      if (!isThreadVisible(threadId)) {
-        clearCompletionWatchdog();
-        cleanupSubscriptions();
-        return;
-      }
-
       streamRuntime.activeStreamThreadRef.current = threadId;
       streamRuntime.activeStreamRunIdRef.current = runId;
       streamRuntime.isAwaitingRunIdRef.current = false;
@@ -775,15 +777,15 @@ export function useAgentChatStream(
       }
       streamRuntime.pendingCompletionRef.current = {
         initiatedAt: Date.now(),
-        preAssistantIds: collectAssistantMessageIds(
-          useAgentChatStore.getState().messages,
-        ),
+        preAssistantIds: handoff.preAssistantIds,
         runId,
         startedAt,
         threadId,
       };
-      setActiveRun(runId, { startedAt, status: 'running' });
-      markStreamLive();
+      if (isThreadVisible(threadId)) {
+        setActiveRun(runId, { startedAt, status: 'running' });
+        markStreamLive();
+      }
       markThreadRunning(threadId, {
         lastActivityAt: startedAt ?? new Date().toISOString(),
         runStatus: 'running',
@@ -793,8 +795,6 @@ export function useAgentChatStream(
     },
     [
       attachSubscriptions,
-      cleanupSubscriptions,
-      clearCompletionWatchdog,
       flushBufferedEvents,
       isThreadVisible,
       markStreamLive,
@@ -805,22 +805,35 @@ export function useAgentChatStream(
   );
 
   const cancelRunHandoff = useCallback(
-    (handoff: AgentRunHandoff) => {
+    (handoff: AgentRunHandoff, failedRequest?: AgentInputRequest) => {
       if (streamRuntime.ownerGeneration !== handoff.generation) {
         return;
       }
 
       streamRuntime.isAwaitingRunIdRef.current = false;
       if (
-        handoff.previousPending &&
-        !streamRuntime.pendingCompletionRef.current
+        failedRequest &&
+        isThreadVisible(handoff.threadId) &&
+        !useAgentChatStore.getState().pendingInputRequest
       ) {
-        streamRuntime.pendingCompletionRef.current = handoff.previousPending;
-        scheduleCompletionWatchdog();
+        setPendingInputRequest(failedRequest);
       }
+      streamRuntime.pendingCompletionRef.current = {
+        initiatedAt: Date.now(),
+        preAssistantIds: handoff.preAssistantIds,
+        runId: null,
+        startedAt: null,
+        threadId: handoff.threadId,
+      };
+      scheduleCompletionWatchdog();
       flushBufferedEvents(handoff.threadId);
     },
-    [flushBufferedEvents, scheduleCompletionWatchdog],
+    [
+      flushBufferedEvents,
+      isThreadVisible,
+      scheduleCompletionWatchdog,
+      setPendingInputRequest,
+    ],
   );
 
   const clearChat = useCallback(() => {

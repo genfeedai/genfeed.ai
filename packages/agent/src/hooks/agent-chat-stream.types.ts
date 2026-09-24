@@ -1,3 +1,4 @@
+import type { AgentInputRequest } from '@genfeedai/agent/models/agent-chat.model';
 import type {
   ConversationComposerGenerationMode,
   ConversationComposerGenerationSettings,
@@ -38,6 +39,7 @@ export interface SendStreamMessageOptions {
 /** Ownership token for handing a thread's stream to a continuing execution. */
 export interface AgentRunHandoff {
   generation: number;
+  preAssistantIds: Set<string>;
   previousPending: PendingStreamCompletion | null;
   threadId: string;
 }
@@ -52,7 +54,10 @@ export interface UseAgentChatStreamReturn {
   /** Hold the thread's events until `adoptRun` names the next execution. */
   beginRunHandoff: (threadId: string) => AgentRunHandoff;
   /** Release a handoff that produced no execution. */
-  cancelRunHandoff: (handoff: AgentRunHandoff) => void;
+  cancelRunHandoff: (
+    handoff: AgentRunHandoff,
+    failedRequest?: AgentInputRequest,
+  ) => void;
   sendMessage: (
     content: string,
     options?: SendStreamMessageOptions,

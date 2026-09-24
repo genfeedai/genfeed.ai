@@ -303,6 +303,7 @@ type StoreState = {
   addMessage: ReturnType<typeof vi.fn>;
   addWorkEvent: ReturnType<typeof vi.fn>;
   clearPendingInputRequest: ReturnType<typeof vi.fn>;
+  setPendingInputRequest: ReturnType<typeof vi.fn>;
   clearStaleActiveRun: ReturnType<typeof vi.fn>;
   markStreamLive: ReturnType<typeof vi.fn>;
   draftAgentMode: AgentThreadMode;
@@ -371,6 +372,7 @@ const storeState: StoreState = {
   addMessage: vi.fn(),
   addWorkEvent: vi.fn(),
   clearPendingInputRequest: vi.fn(),
+  setPendingInputRequest: vi.fn(),
   clearStaleActiveRun: vi.fn(),
   markStreamLive: vi.fn(),
   draftAgentMode: AgentThreadMode.MANUAL,
@@ -491,6 +493,7 @@ describe('AgentChatContainer', () => {
     storeState.addMessage.mockReset();
     storeState.addWorkEvent.mockReset();
     storeState.clearPendingInputRequest.mockReset();
+    storeState.setPendingInputRequest.mockReset();
     storeState.clearStaleActiveRun.mockReset();
     storeState.markStreamLive.mockReset();
     storeState.prependOlderMessages.mockClear();
@@ -774,6 +777,43 @@ describe('AgentChatContainer', () => {
       expect.objectContaining({ threadId: 'thread-1' }),
     );
     expect(adoptRun).not.toHaveBeenCalled();
+  });
+
+  it('does not resurrect input after a failed acknowledgement replays a completed continuation', async () => {
+    const request = storeState.pendingInputRequest;
+    storeState.clearPendingInputRequest.mockImplementation(() => {
+      storeState.pendingInputRequest = null;
+    });
+    cancelRunHandoff.mockImplementation(() => {
+      storeState.activeRunStatus = 'completed';
+      storeState.pendingInputRequest = null;
+    });
+    const apiService = createApiService({
+      respondToInputRequest: vi
+        .fn()
+        .mockRejectedValue(new Error('Lost acknowledgement')),
+    });
+    render(
+      <ConversationComposerShellProvider
+        contextLabel="Workspace"
+        draftScopeKey="acme:thread-1:1"
+        portalTarget={null}
+        shellState="canvas"
+      >
+        <AgentChatContainer apiService={apiService as never} isStreaming />
+      </ConversationComposerShellProvider>,
+    );
+    fireEvent.click(screen.getByText('Submit requested input'));
+    await waitFor(() =>
+      expect(cancelRunHandoff).toHaveBeenCalledWith(
+        expect.objectContaining({ threadId: 'thread-1' }),
+        request,
+      ),
+    );
+    expect(storeState.setPendingInputRequest).not.toHaveBeenCalled();
+    expect(storeState.setError).not.toHaveBeenCalledWith(
+      'Failed to submit the requested input.',
+    );
   });
 
   it('pins the stream to the execution that continues an answered input request', async () => {

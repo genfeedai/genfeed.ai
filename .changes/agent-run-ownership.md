@@ -16,3 +16,9 @@ include the accepted execution identity for handoff. Existing message metadata
 without a run ID remains supported.
 
 Async execution and snapshot restores now retain a local ownership guard and discard responses after newer local run or thread updates. Pending new-thread acknowledgements retain ownership until their execution ID arrives.
+
+Input handoffs retain their captured assistant-message baseline even after navigation.
+`cancelRunHandoff` accepts an optional failed input request, restoring it before
+buffered continuation events replay so an already-resolved prompt cannot reappear.
+Hidden continuations keep their subscriptions and completion tracking; once they
+settle, an already-restored visible run can acquire the released stream ownership.
