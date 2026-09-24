@@ -1,4 +1,5 @@
 import { ActivityKey, type IngredientCategory } from '@genfeedai/contracts';
+import type { ICostReportSummary } from '@genfeedai/contracts/interfaces/billing';
 import type { Page, Route } from '@playwright/test';
 import {
   createPlaywrightApiRoutePattern,
@@ -1494,6 +1495,13 @@ async function handleTrendsRoute(route: Route): Promise<void> {
   });
 }
 
+function normalizeCostReportBoundary(value: string, endOfDay: boolean): Date {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return new Date(`${value}T${endOfDay ? '23:59:59.999' : '00:00:00.000'}Z`);
+  }
+  return new Date(value);
+}
+
 /**
  * Catch-all body for unmocked API URLs.
  *
@@ -1502,6 +1510,37 @@ async function handleTrendsRoute(route: Route): Promise<void> {
  * call `.map` on an object and the page never paints.
  */
 export function buildUnhandledApiMockBody(url: string): unknown {
+  const parsedUrl = new URL(url, 'http://localhost');
+  if (
+    parsedUrl.pathname === '/v1/costs/summary' ||
+    parsedUrl.pathname === '/costs/summary'
+  ) {
+    const requestedTo = parsedUrl.searchParams.get('to');
+    const requestedFrom = parsedUrl.searchParams.get('from');
+    const to = requestedTo
+      ? normalizeCostReportBoundary(requestedTo, true)
+      : new Date();
+    const from = requestedFrom
+      ? normalizeCostReportBoundary(requestedFrom, false)
+      : new Date(to.getTime() - 30 * 86_400_000);
+    const summary: ICostReportSummary = {
+      byBrand: [],
+      daily: [],
+      from: from.toISOString(),
+      to: to.toISOString(),
+      total: {
+        byokCount: 0,
+        creditsUsed: 0,
+        generationCount: 0,
+        llmCount: 0,
+        mediaCount: 0,
+        providerCostMicros: 0,
+        providerCostUsd: 0,
+      },
+    };
+    return wrapInJsonApi(summary, 'cost-report-summary', 'mock-cost-summary');
+  }
+
   if (url.includes('/v1/health') || /\/health(?:\?|$)/.test(url)) {
     return { status: 'ok' };
   }
