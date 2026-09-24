@@ -1382,8 +1382,25 @@
     "actions": {
       "cancel": "Cancel",
       "continue": "Continue to Studio",
+      "generate": "Generate",
       "retry": "Retry",
+      "saveIdea": "Save idea",
       "close": "Close"
+    },
+    "concept": {
+      "addScene": "Add scene",
+      "angle": "Angle",
+      "duration": "Duration (seconds)",
+      "help": "Saving keeps this idea. Generation starts only when you choose Generate.",
+      "hook": "Hook",
+      "incomplete": "Add an angle, hook, script, and at least one storyboard scene before generating.",
+      "narration": "Narration",
+      "removeScene": "Remove scene",
+      "scene": "Scene {ordinal}",
+      "script": "Script",
+      "storyboard": "Storyboard",
+      "title": "Concept",
+      "visualIntent": "Visual intent"
     },
     "description": "Keep the winning pattern. Replace the execution with your brand, assets, and identity.",
     "destination": {

@@ -164,6 +164,7 @@ export const SERIALIZER_PROJECTIONS: Record<string, readonly string[]> = {
   'content-run:ContentRun': [
     'analyticsSummary',
     'brief',
+    'concept',
     'contract',
     'creditsUsed',
     'draft',

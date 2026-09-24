@@ -2,6 +2,7 @@ import type { BrandDocument } from '@api/collections/brands/schemas/brand.schema
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { resolveEffectiveBrandAgentConfig } from '@api/collections/brands/utils/brand-agent-config-resolution.util';
 import { toBrandGenerationReferences } from '@api/collections/brands/utils/brand-kit-generation-references.util';
+import { brandRemixConceptDirection } from '@api/collections/content-runs/services/brand-remix-concept';
 import { BrandRemixPersonaResolutionService } from '@api/collections/content-runs/services/brand-remix-persona-resolution.service';
 import {
   remixOrganicPlatform,
@@ -38,6 +39,7 @@ import {
   type BrandRemixSourceSelector,
   type BrandRemixSourceSnapshot,
   brandRemixDraftSchema,
+  isCompleteBrandRemixConcept,
 } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import type { GenerationBrief } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
 import { generationBriefSchema } from '@genfeedai/contracts/api-types/contracts/generation-brief.contract';
@@ -464,6 +466,13 @@ export class BrandRemixRunPlanningService {
     brandContext: ResolvedBrandContext,
     config: BrandRemixRunConfig,
   ): Promise<BrandRemixReadiness> {
+    if (!config.execution && !isCompleteBrandRemixConcept(config.concept)) {
+      throw new ConflictException({
+        detail:
+          'Save an angle, hook, script, and storyboard before generating. Saving an idea does not start generation.',
+        title: 'Remix concept is incomplete',
+      });
+    }
     await this.assertDraftAssetsAuthorized(
       organizationId,
       brandId,
@@ -616,6 +625,7 @@ export class BrandRemixRunPlanningService {
     config: BrandRemixRunConfig,
   ): GenerationBrief {
     const draft = config.draft;
+    const conceptDirection = brandRemixConceptDirection(config.concept);
     const references =
       draft.output.kind === 'image' && draft.fidelityMode === 'guided'
         ? draft.references.filter(
@@ -626,6 +636,15 @@ export class BrandRemixRunPlanningService {
         : draft.references;
     const common = {
       constraints: [
+        ...(conceptDirection
+          ? [
+              {
+                kind: 'desired_outcome' as const,
+                required: false,
+                value: conceptDirection,
+              },
+            ]
+          : []),
         ...(draft.intent.offer
           ? [
               {
@@ -661,7 +680,7 @@ export class BrandRemixRunPlanningService {
     };
     const intent = {
       composition: draft.intent.structure,
-      objective: draft.intent.objective,
+      objective: config.concept?.script ?? draft.intent.objective,
       requestedText: [draft.intent.callToAction, draft.intent.offer].filter(
         (value): value is string => Boolean(value),
       ),

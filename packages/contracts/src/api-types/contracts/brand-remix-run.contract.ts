@@ -346,6 +346,43 @@ export const brandRemixDraftSchema = z
   })
   .strict();
 
+export const BRAND_REMIX_STORYBOARD_SCENE_LIMIT = 12;
+
+/** Editable scene plan. It stores creative intent, not generated media. */
+export const brandRemixStoryboardSceneSchema = z
+  .object({
+    durationSeconds: z.number().positive().max(60).optional(),
+    narration: shortTextSchema.optional(),
+    ordinal: z.number().int().min(1).max(BRAND_REMIX_STORYBOARD_SCENE_LIMIT),
+    visualIntent: shortTextSchema,
+  })
+  .strict();
+
+export const brandRemixConceptSchema = z
+  .object({
+    angle: shortTextSchema.optional(),
+    hook: shortTextSchema.optional(),
+    savedAt: z.string().datetime(),
+    script: longTextSchema.optional(),
+    storyboard: z
+      .array(brandRemixStoryboardSceneSchema)
+      .max(BRAND_REMIX_STORYBOARD_SCENE_LIMIT)
+      .default([]),
+  })
+  .strict();
+
+export const brandRemixConceptEditsSchema = z
+  .object({
+    angle: shortTextSchema.nullable().optional(),
+    hook: shortTextSchema.nullable().optional(),
+    script: longTextSchema.nullable().optional(),
+    storyboard: z
+      .array(brandRemixStoryboardSceneSchema)
+      .max(BRAND_REMIX_STORYBOARD_SCENE_LIMIT)
+      .optional(),
+  })
+  .strict();
+
 export const brandRemixReadinessIssueCodeValues = [
   'organization_defaults',
   'invalid_destination',
@@ -513,6 +550,7 @@ export const brandRemixBrandContextSchema = z
 
 export const brandRemixRunConfigSchema = z
   .object({
+    concept: brandRemixConceptSchema.optional(),
     contract: z.literal(BRAND_REMIX_RUN_CONTRACT),
     draft: brandRemixDraftSchema,
     execution: brandRemixExecutionSchema.optional(),
@@ -535,6 +573,7 @@ export const brandRemixRunViewSchema = z
   .object({
     brand: brandRemixBrandContextSchema,
     brandId: opaqueIdSchema,
+    concept: brandRemixConceptSchema.optional(),
     contract: z.literal(BRAND_REMIX_RUN_CONTRACT),
     createdAt: z.string().datetime(),
     draft: brandRemixDraftSchema,
@@ -579,6 +618,7 @@ const brandRemixIdentityPatchSchema = z.union([
 
 export const brandRemixDraftEditsSchema = z
   .object({
+    concept: brandRemixConceptEditsSchema.optional(),
     fidelityMode: generationFidelityModeSchema.optional(),
     identity: brandRemixIdentityPatchSchema.optional(),
     intent: brandRemixIntentPatchSchema.optional(),
@@ -644,6 +684,13 @@ export type BrandRemixSourceSnapshot = z.infer<
 >;
 export type BrandRemixTarget = z.infer<typeof brandRemixTargetSchema>;
 export type BrandRemixReference = z.infer<typeof brandRemixReferenceSchema>;
+export type BrandRemixStoryboardScene = z.infer<
+  typeof brandRemixStoryboardSceneSchema
+>;
+export type BrandRemixConcept = z.infer<typeof brandRemixConceptSchema>;
+export type BrandRemixConceptEdits = z.infer<
+  typeof brandRemixConceptEditsSchema
+>;
 export type BrandRemixDraft = z.infer<typeof brandRemixDraftSchema>;
 export type BrandRemixDraftEdits = z.infer<typeof brandRemixDraftEditsSchema>;
 export type BrandRemixReadiness = z.infer<typeof brandRemixReadinessSchema>;
@@ -659,3 +706,15 @@ export type SubmitBrandRemixRunForReview = z.infer<
 export type PreparePausedMetaCampaignDraft = z.infer<
   typeof preparePausedMetaCampaignDraftSchema
 >;
+
+/** A saved idea can generate only after angle, hook, script, and storyboard exist. */
+export function isCompleteBrandRemixConcept(
+  concept: BrandRemixConcept | undefined,
+): boolean {
+  if (!concept?.angle || !concept.hook || !concept.script) {
+    return false;
+  }
+  return (concept.storyboard ?? []).some(
+    (scene) => scene.visualIntent.trim().length > 0,
+  );
+}

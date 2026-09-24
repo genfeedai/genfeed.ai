@@ -174,7 +174,7 @@ describe('DiscoveryRemixProvider', () => {
     expect(result.current.status).toBe('ready');
   });
 
-  it('persists reviewed edits before navigating with only the opaque run id', async () => {
+  it('persists a saved idea without starting generation or opening Studio', async () => {
     mocks.reviseBrandRemixRun.mockResolvedValueOnce({
       ...run,
       readiness: { issues: [], state: 'ready' },
@@ -210,9 +210,82 @@ describe('DiscoveryRemixProvider', () => {
       expectedRevision: 1,
     });
     expect(mocks.startBrandRemixRun).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('ready');
+    expect(result.current.isOpen).toBe(true);
+  });
+
+  it('starts generation only after an explicit action and a complete concept', async () => {
+    const concept = {
+      angle: 'Lead with the founder outcome.',
+      hook: 'Outcome-led relevance hook.',
+      savedAt: '2026-08-20T10:02:00.000Z',
+      script: 'Meet Northstar and make the next step obvious.',
+      storyboard: [{ ordinal: 1, visualIntent: 'Founder holds the product.' }],
+    };
+    mocks.reviseBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      concept,
+      revision: 2,
+    });
+    mocks.startBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      concept,
+      phase: 'generating',
+      revision: 2,
+    });
+    const { result } = renderHook(() => useDiscoveryRemix(), { wrapper });
+
+    await act(async () => {
+      await result.current.openRemix(source);
+    });
+    await act(async () => {
+      await result.current.generate({
+        concept: {
+          angle: concept.angle,
+          hook: concept.hook,
+          script: concept.script,
+          storyboard: concept.storyboard,
+        },
+      });
+    });
+
+    expect(mocks.reviseBrandRemixRun).toHaveBeenCalled();
+    expect(mocks.startBrandRemixRun).toHaveBeenCalledWith('run-1', {
+      expectedRevision: 2,
+    });
     expect(mocks.push).toHaveBeenCalledWith(
       '/acme/northstar/studio/generate?run=run-1',
     );
+  });
+
+  it('does not start generation when the saved concept is incomplete', async () => {
+    mocks.reviseBrandRemixRun.mockResolvedValueOnce({
+      ...run,
+      concept: {
+        savedAt: '2026-08-20T10:02:00.000Z',
+        script: 'Meet Northstar.',
+        storyboard: [],
+      },
+      revision: 2,
+    });
+    const { result } = renderHook(() => useDiscoveryRemix(), { wrapper });
+
+    await act(async () => {
+      await result.current.openRemix(source);
+    });
+    await act(async () => {
+      await result.current.generate({
+        concept: { script: 'Meet Northstar.', storyboard: [] },
+      });
+    });
+
+    expect(mocks.startBrandRemixRun).not.toHaveBeenCalled();
+    expect(mocks.push).not.toHaveBeenCalled();
+    expect(result.current.error).toBe(
+      'Add an angle, hook, script, and at least one storyboard scene before generating.',
+    );
+    expect(result.current.status).toBe('ready');
   });
 
   it('reports a save-specific fallback when a revision save has no JSON:API detail', async () => {

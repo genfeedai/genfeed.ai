@@ -42,20 +42,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
-import { Textarea } from '@ui/primitives/textarea';
 import { getIngredientDisplayLabel } from '@utils/media/ingredient-type.util';
 import { Library, Trash2 } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import {
-  type ChangeEvent,
-  type ReactElement,
-  useEffect,
-  useMemo,
-  useState,
-} from 'react';
+import { type ReactElement, useEffect, useMemo, useState } from 'react';
 import LibraryPickerOverlay from '@/features/library-remix/LibraryPickerOverlay';
+import RemixConceptFields, {
+  type RemixStoryboardDraft,
+} from './RemixConceptFields';
 
 export type RemixEditorState = {
+  angle: string;
   aspectRatio: string;
   avatarAssetId: string;
   callToAction: string;
@@ -67,11 +64,13 @@ export type RemixEditorState = {
   outputKind: BrandRemixRunView['draft']['output']['kind'];
   references: BrandRemixReference[];
   speechVoiceId: string;
+  storyboard: RemixStoryboardDraft[];
   targetPlatform: BrandRemixRunView['draft']['target']['platform'];
   visualDirection: string;
 };
 
 const EMPTY_EDITOR: RemixEditorState = {
+  angle: '',
   aspectRatio: '9:16',
   avatarAssetId: '',
   callToAction: '',
@@ -83,6 +82,7 @@ const EMPTY_EDITOR: RemixEditorState = {
   outputKind: 'video',
   references: [],
   speechVoiceId: '',
+  storyboard: [],
   targetPlatform: BrandRemixOrganicPlatform.TIKTOK,
   visualDirection: '',
 };
@@ -100,6 +100,7 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
   const identity =
     'avatarAssetId' in run.draft.identity ? run.draft.identity : null;
   return {
+    angle: run.concept?.angle ?? run.draft.intent.angle ?? '',
     aspectRatio:
       'aspectRatio' in run.draft.output ? run.draft.output.aspectRatio : '9:16',
     avatarAssetId: identity?.avatarAssetId ?? '',
@@ -107,14 +108,58 @@ function toEditorState(run: BrandRemixRunView): RemixEditorState {
     count: run.draft.output.count,
     credentialId: run.draft.target.credentialId ?? '',
     fidelityMode: run.draft.fidelityMode,
-    hook: run.draft.intent.hook ?? '',
-    objective: run.draft.intent.objective,
+    hook: run.concept?.hook ?? run.draft.intent.hook ?? '',
+    objective: run.concept?.script ?? run.draft.intent.objective,
     outputKind: run.draft.output.kind,
     references: [...run.draft.references],
     speechVoiceId: identity?.speechVoiceId ?? '',
+    storyboard: (run.concept?.storyboard ?? []).map((scene) => ({
+      ...(scene.durationSeconds !== undefined
+        ? { durationSeconds: scene.durationSeconds }
+        : {}),
+      key: `saved-${scene.ordinal}`,
+      narration: scene.narration ?? '',
+      visualIntent: scene.visualIntent,
+    })),
     targetPlatform: run.draft.target.platform,
     visualDirection: run.draft.intent.visualDirection ?? '',
   };
+}
+
+function optionalConceptText(value: string): string | null {
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function conceptStoryboard(
+  storyboard: RemixStoryboardDraft[],
+): NonNullable<BrandRemixDraftEdits['concept']>['storyboard'] {
+  return storyboard.flatMap((scene, index) => {
+    const visualIntent = scene.visualIntent.trim();
+    if (!visualIntent) return [];
+    const narration = scene.narration.trim();
+    return [
+      {
+        ordinal: index + 1,
+        visualIntent,
+        ...(narration ? { narration } : {}),
+        ...(scene.durationSeconds !== undefined &&
+        scene.durationSeconds > 0 &&
+        scene.durationSeconds <= 60
+          ? { durationSeconds: scene.durationSeconds }
+          : {}),
+      },
+    ];
+  });
+}
+
+function isEditorConceptComplete(editor: RemixEditorState): boolean {
+  return Boolean(
+    editor.angle.trim() &&
+      editor.hook.trim() &&
+      editor.objective.trim() &&
+      editor.storyboard.some((scene) => scene.visualIntent.trim()),
+  );
 }
 
 function hasIdentityEdits(
@@ -155,7 +200,14 @@ export function buildRemixDraftEdits(
   const destination = editor.credentialId
     ? { credentialId: editor.credentialId }
     : {};
+  const storyboard = conceptStoryboard(editor.storyboard);
   return {
+    concept: {
+      angle: optionalConceptText(editor.angle),
+      hook: optionalConceptText(editor.hook),
+      script: optionalConceptText(editor.objective),
+      ...(storyboard ? { storyboard } : {}),
+    },
     fidelityMode: editor.fidelityMode,
     ...(editor.outputKind === 'avatar' &&
     hasIdentityEdits(editor, run) &&
@@ -178,6 +230,7 @@ export function buildRemixDraftEdits(
           }
         : {}),
     intent: {
+      ...(editor.angle.trim() ? { angle: editor.angle.trim() } : {}),
       ...(editor.callToAction
         ? { callToAction: editor.callToAction.trim() }
         : {}),
@@ -376,7 +429,7 @@ function AvatarIdentityFields({
 
 export default function RemixBriefInspector(): ReactElement {
   const translate = useTranslations('pages.remixBrief');
-  const { close, confirm, error, isOpen, retry, run, status } =
+  const { close, confirm, error, generate, isOpen, retry, run, status } =
     useDiscoveryRemix();
   const { brandId } = useBrand();
   const {
@@ -420,7 +473,7 @@ export default function RemixBriefInspector(): ReactElement {
           run?.draft.target.kind ?? 'organic',
         ),
   );
-  const isSaving = status === 'saving';
+  const isSaving = status === 'saving' || status === 'generating';
   const isAvatarIdentityComplete =
     editor.outputKind !== 'avatar' ||
     Boolean(editor.avatarAssetId && editor.speechVoiceId) ||
@@ -434,6 +487,11 @@ export default function RemixBriefInspector(): ReactElement {
     );
   const canContinue = Boolean(
     run && editor.objective.trim() && !isSaving && isAvatarIdentityComplete,
+  );
+  const canGenerate = Boolean(
+    canContinue &&
+      run?.readiness.state !== 'blocked' &&
+      isEditorConceptComplete(editor),
   );
 
   const addReference = (reference: AgentArtifactReference) => {
@@ -471,10 +529,20 @@ export default function RemixBriefInspector(): ReactElement {
         />
         <Button
           isDisabled={!canContinue}
-          isLoading={isSaving}
-          label={translate('actions.continue')}
+          isLoading={status === 'saving'}
+          label={translate('actions.saveIdea')}
           onClick={() => {
             void confirm(buildRemixDraftEdits(editor, run));
+          }}
+          size={ButtonSize.SM}
+          variant={ButtonVariant.SECONDARY}
+        />
+        <Button
+          isDisabled={!canGenerate}
+          isLoading={status === 'generating'}
+          label={translate('actions.generate')}
+          onClick={() => {
+            void generate(buildRemixDraftEdits(editor, run));
           }}
           size={ButtonSize.SM}
           variant={ButtonVariant.DEFAULT}
@@ -592,42 +660,31 @@ export default function RemixBriefInspector(): ReactElement {
             </div>
           </Alert>
 
+          <RemixConceptFields
+            angle={editor.angle}
+            hook={editor.hook}
+            onAngleChange={(angle) =>
+              setEditor((current) => ({ ...current, angle }))
+            }
+            onHookChange={(hook) =>
+              setEditor((current) => ({ ...current, hook }))
+            }
+            onScriptChange={(objective) =>
+              setEditor((current) => ({ ...current, objective }))
+            }
+            onStoryboardChange={(storyboard) =>
+              setEditor((current) => ({ ...current, storyboard }))
+            }
+            script={editor.objective}
+            scriptHelp={
+              editor.outputKind === 'avatar'
+                ? translate('intent.spokenScriptHelp')
+                : undefined
+            }
+            storyboard={editor.storyboard}
+          />
           <section className="space-y-4 border-b border-border pb-6">
-            <div>
-              <Label htmlFor="remix-objective">
-                {editor.outputKind === 'avatar'
-                  ? 'Spoken script'
-                  : 'Creative objective'}
-              </Label>
-              {editor.outputKind === 'avatar' ? (
-                <p className="mb-2 text-xs text-muted-foreground">
-                  {translate('intent.spokenScriptHelp')}
-                </p>
-              ) : null}
-              <Textarea
-                id="remix-objective"
-                maxHeight={220}
-                onChange={(event: ChangeEvent<HTMLTextAreaElement>) =>
-                  setEditor((current) => ({
-                    ...current,
-                    objective: event.target.value,
-                  }))
-                }
-                rows={4}
-                value={editor.objective}
-              />
-            </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <Input
-                label={translate('intent.hook')}
-                onChange={(event) =>
-                  setEditor((current) => ({
-                    ...current,
-                    hook: event.target.value,
-                  }))
-                }
-                value={editor.hook}
-              />
               <Input
                 label={translate('intent.callToAction')}
                 onChange={(event) =>
@@ -638,17 +695,17 @@ export default function RemixBriefInspector(): ReactElement {
                 }
                 value={editor.callToAction}
               />
+              <Input
+                label={translate('intent.visualDirection')}
+                onChange={(event) =>
+                  setEditor((current) => ({
+                    ...current,
+                    visualDirection: event.target.value,
+                  }))
+                }
+                value={editor.visualDirection}
+              />
             </div>
-            <Input
-              label={translate('intent.visualDirection')}
-              onChange={(event) =>
-                setEditor((current) => ({
-                  ...current,
-                  visualDirection: event.target.value,
-                }))
-              }
-              value={editor.visualDirection}
-            />
           </section>
 
           <section className="space-y-4 border-b border-border pb-6">

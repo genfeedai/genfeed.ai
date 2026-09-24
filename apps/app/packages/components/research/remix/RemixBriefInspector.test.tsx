@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   avatarHook: vi.fn(),
   close: vi.fn(),
   confirm: vi.fn(),
+  generate: vi.fn(),
   run: { value: null as unknown },
   voiceHook: vi.fn(),
 }));
@@ -73,6 +74,7 @@ vi.mock('@pages/research/remix/DiscoveryRemixProvider', () => ({
   useDiscoveryRemix: () => ({
     close: mocks.close,
     confirm: mocks.confirm,
+    generate: mocks.generate,
     error: null,
     isOpen: true,
     openRemix: vi.fn(),
@@ -267,7 +269,7 @@ describe('RemixBriefInspector', () => {
   it('persists the edited brief and semantic Library reference on confirmation', async () => {
     render(<RemixBriefInspector />);
 
-    fireEvent.change(screen.getByLabelText('Creative objective'), {
+    fireEvent.change(screen.getByLabelText('Script'), {
       target: { value: 'Keep the proof and foreground the product benefit.' },
     });
     fireEvent.click(screen.getByRole('button', { name: 'Add Library asset' }));
@@ -276,7 +278,7 @@ describe('RemixBriefInspector', () => {
     );
     fireEvent.click(screen.getByRole('combobox', { name: 'Fidelity' }));
     fireEvent.click(screen.getByRole('option', { name: 'Strict' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
 
     expect(mocks.confirm).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -290,6 +292,39 @@ describe('RemixBriefInspector', () => {
             role: 'style',
           },
         ],
+      }),
+    );
+    expect(mocks.generate).not.toHaveBeenCalled();
+  });
+
+  it('requires a complete concept before the explicit generate action', () => {
+    render(<RemixBriefInspector />);
+
+    expect(screen.getByRole('button', { name: 'Generate' })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Angle'), {
+      target: { value: 'Lead with proof.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Add scene' }));
+    fireEvent.change(screen.getByLabelText('Visual intent'), {
+      target: { value: 'Product close-up.' },
+    });
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
+    expect(mocks.generate).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Generate' }));
+    expect(mocks.generate).toHaveBeenCalledWith(
+      expect.objectContaining({
+        concept: expect.objectContaining({
+          angle: 'Lead with proof.',
+          hook: 'Proof before promise',
+          script: 'Turn the winning hook into a Northstar product reveal.',
+          storyboard: [
+            expect.objectContaining({
+              ordinal: 1,
+              visualIntent: 'Product close-up.',
+            }),
+          ],
+        }),
       }),
     );
   });
@@ -311,7 +346,7 @@ describe('RemixBriefInspector', () => {
       screen.getByRole('combobox', { name: 'Number of variations' }),
     );
     fireEvent.click(screen.getByRole('option', { name: '4 variations' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
 
     expect(mocks.confirm).toHaveBeenCalledWith(
       expect.objectContaining({
@@ -342,10 +377,8 @@ describe('RemixBriefInspector', () => {
     expect(
       screen.getByText('Strict fidelity is not available yet.'),
     ).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: 'Continue to Studio' }),
-    ).toBeEnabled();
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeEnabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
     expect(mocks.confirm).toHaveBeenCalled();
   });
 
@@ -353,6 +386,7 @@ describe('RemixBriefInspector', () => {
     expect(
       buildRemixDraftEdits(
         {
+          angle: '',
           aspectRatio: '1:1',
           avatarAssetId: '',
           callToAction: '',
@@ -364,6 +398,7 @@ describe('RemixBriefInspector', () => {
           outputKind: 'image',
           references: [],
           speechVoiceId: '',
+          storyboard: [],
           targetPlatform: 'tiktok',
           visualDirection: '',
         },
@@ -392,6 +427,7 @@ describe('RemixBriefInspector', () => {
     expect(
       buildRemixDraftEdits(
         {
+          angle: '',
           aspectRatio: '9:16',
           avatarAssetId: '',
           callToAction: '',
@@ -414,6 +450,7 @@ describe('RemixBriefInspector', () => {
             },
           ],
           speechVoiceId: '',
+          storyboard: [],
           targetPlatform: 'tiktok',
           visualDirection: '',
         },
@@ -442,7 +479,7 @@ describe('RemixBriefInspector', () => {
 
     render(<RemixBriefInspector />);
 
-    expect(screen.getByLabelText('Spoken script')).toBeVisible();
+    expect(screen.getByLabelText('Script')).toBeVisible();
     expect(screen.getByText(/spoken exactly as written/i)).toBeVisible();
     expect(
       screen.getByRole('combobox', { name: 'Avatar identity' }),
@@ -453,9 +490,7 @@ describe('RemixBriefInspector', () => {
     expect(
       screen.getByText('Choose both an avatar and a voice to continue.'),
     ).toBeVisible();
-    expect(
-      screen.getByRole('button', { name: 'Continue to Studio' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
     expect(mocks.avatarHook).toHaveBeenCalledWith('org-1');
     expect(mocks.voiceHook).toHaveBeenCalledWith(
       expect.objectContaining({ isActive: true }),
@@ -516,6 +551,7 @@ describe('RemixBriefInspector', () => {
     expect(
       buildRemixDraftEdits(
         {
+          angle: '',
           aspectRatio: '9:16',
           avatarAssetId: 'avatar-row-1',
           callToAction: '',
@@ -527,6 +563,7 @@ describe('RemixBriefInspector', () => {
           outputKind: 'avatar',
           references: [],
           speechVoiceId: 'voice-row-1',
+          storyboard: [],
           targetPlatform: 'tiktok',
           visualDirection: '',
         },
@@ -554,7 +591,7 @@ describe('RemixBriefInspector', () => {
       screen.getByRole('combobox', { name: 'Destination account' }),
     );
     fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
     expect(mocks.accountsHook).toHaveBeenCalledWith('brand-1');
     const edits = mocks.confirm.mock.calls[0][0];
     expect(edits.target).toEqual({
@@ -576,9 +613,7 @@ describe('RemixBriefInspector', () => {
       },
     };
     render(<RemixBriefInspector />);
-    expect(
-      screen.getByRole('button', { name: 'Continue to Studio' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
     expect(mocks.confirm).not.toHaveBeenCalled();
   });
 
@@ -598,9 +633,7 @@ describe('RemixBriefInspector', () => {
         screen.getByRole('combobox', { name: 'Destination account' }),
       );
       fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
-      expect(
-        screen.getByRole('button', { name: 'Continue to Studio' }),
-      ).toBeDisabled();
+      expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
       expect(mocks.confirm).not.toHaveBeenCalled();
     },
   );
@@ -619,19 +652,15 @@ describe('RemixBriefInspector', () => {
       screen.getByRole('combobox', { name: 'Destination account' }),
     );
     fireEvent.click(screen.getByRole('option', { name: '@northstar' }));
-    expect(
-      screen.getByRole('button', { name: 'Continue to Studio' }),
-    ).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeEnabled();
     fireEvent.click(screen.getByRole('combobox', { name: 'Avatar identity' }));
     fireEvent.click(screen.getByRole('option', { name: 'Avatar One' }));
-    expect(
-      screen.getByRole('button', { name: 'Continue to Studio' }),
-    ).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save idea' })).toBeDisabled();
     fireEvent.click(screen.getByRole('combobox', { name: 'Voice identity' }));
     fireEvent.click(
       screen.getByRole('option', { name: 'Voice One (elevenlabs)' }),
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
     expect(mocks.confirm).toHaveBeenCalledWith(
       expect.objectContaining({
         identity: {
@@ -664,9 +693,7 @@ describe('RemixBriefInspector', () => {
           name: change === 'platform' ? 'Instagram' : 'Brand defaults',
         }),
       );
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Continue to Studio' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
       expect(mocks.confirm.mock.calls[0][0].target).toEqual({
         kind: 'organic',
         platform: change === 'platform' ? 'instagram' : 'tiktok',
@@ -733,9 +760,7 @@ describe('RemixBriefInspector', () => {
       );
       expect(screen.getAllByRole('option')).toHaveLength(2);
       fireEvent.click(screen.getByRole('option', { name: 'Destination' }));
-      fireEvent.click(
-        screen.getByRole('button', { name: 'Continue to Studio' }),
-      );
+      fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
       expect(mocks.confirm.mock.calls[0][0].target).toEqual({
         kind,
         platform,
@@ -753,7 +778,7 @@ describe('RemixBriefInspector', () => {
       },
     };
     render(<RemixBriefInspector />);
-    fireEvent.click(screen.getByRole('button', { name: 'Continue to Studio' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Save idea' }));
     expect(mocks.confirm.mock.calls[0][0].target.credentialId).toBe(
       'disconnected-account',
     );
