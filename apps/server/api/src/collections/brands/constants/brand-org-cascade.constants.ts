@@ -767,6 +767,12 @@ export const KNOWN_EXCLUDED_MODELS: readonly string[] = [
   'MediaVendorCost',
   'Member',
   'PublishApproval',
+  // Composite brand foreign keys cascade organizationId with the brand row.
+  'GenerationPromptSnapshot',
+  'Skill',
+  'SkillAssignment',
+  'SkillGrant',
+  'SkillResolution',
 ];
 
 /**
@@ -792,4 +798,9 @@ export const AUDITOR_IGNORED_TABLES: readonly string[] = [
   'media_vendor_costs',
   'members',
   'publish_approvals',
+  'generation_prompt_snapshots',
+  'skill_assignments',
+  'skill_grants',
+  'skill_resolutions',
+  'skills',
 ];
