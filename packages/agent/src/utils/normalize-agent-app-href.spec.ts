@@ -41,10 +41,10 @@ describe('normalizeAgentAppHref', () => {
 
   it('rewrites retired gallery asset paths to canonical Library deep links', () => {
     expect(normalizeAgentAppHref(`/g/image/${IMAGE_ID}`)).toBe(
-      `/library/images?asset=${IMAGE_ID}`,
+      `/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=${IMAGE_ID}`,
     );
     expect(normalizeAgentAppHref('/g/video/video-123#details')).toBe(
-      '/library/videos?asset=video-123#details',
+      '/library/assets?categories=VIDEO&categories=VIDEO_EDIT&asset=video-123#details',
     );
     expect(normalizeAgentAppHref('/acme/launch/g/voice/voice-123')).toBe(
       '/acme/launch/library/voices?asset=voice-123',
