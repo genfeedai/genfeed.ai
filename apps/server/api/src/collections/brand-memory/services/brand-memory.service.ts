@@ -2,9 +2,9 @@ import type {
   BrandMemoryDocument,
   BrandMemoryInsight,
 } from '@api/collections/brand-memory/schemas/brand-memory.schema';
-import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   type Prisma,
   type BrandMemory as PrismaBrandMemory,

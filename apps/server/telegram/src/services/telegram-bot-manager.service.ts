@@ -388,6 +388,32 @@ export class TelegramBotManager
   private async handleCallbackQuery(ctx: Context, orgId: string) {
     const data = ctx.callbackQuery?.data;
     const chatId = ctx.chat?.id?.toString();
+    const reviewMatch = data?.match(
+      /^agent-review:([a-f0-9]{32}):(approve|reject)$/,
+    );
+    if (reviewMatch && reviewMatch[0] === data) {
+      await ctx.answerCallbackQuery();
+      const remoteUserId = ctx.from?.id?.toString();
+      const failureMessage =
+        'This review could not be completed. It may have expired or you may not be authorized. Please review the content in the app.';
+      if (!chatId || !remoteUserId) {
+        await ctx.reply(failureMessage);
+        return;
+      }
+      try {
+        const result = await this.internalApiClient.resolveAgentReportReview({
+          organizationId: orgId,
+          remoteUserId,
+          channelId: chatId,
+          token: reviewMatch[1],
+          decision: reviewMatch[2] === 'approve' ? 'approve' : 'reject',
+        });
+        await ctx.reply(result.message);
+      } catch {
+        await ctx.reply(failureMessage);
+      }
+      return;
+    }
     if (!data || !chatId) {
       return;
     }

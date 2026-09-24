@@ -258,6 +258,10 @@ export class PostsController extends BaseCRUDController<
       matchFilter.credentialId = query.credentialId;
     }
 
+    if (query.agentStrategyId) {
+      matchFilter.agentStrategyId = query.agentStrategyId;
+    }
+
     if (query.campaignId) {
       matchFilter.campaignId = query.campaignId;
     }

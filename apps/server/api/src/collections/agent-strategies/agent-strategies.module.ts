@@ -1,3 +1,4 @@
+import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
 /**
  * Agent Strategies Module
  * Manages proactive AI agent strategy configurations.
@@ -9,10 +10,7 @@ import { AgentStrategiesCoreModule } from '@api/collections/agent-strategies/age
 import { AgentStrategiesController } from '@api/collections/agent-strategies/controllers/agent-strategies.controller';
 import { AgentStrategyAutopilotService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot.service';
 import { AgentStrategyAutopilotExecutionService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-execution.service';
-import { AgentStrategyAutopilotPerformanceService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-performance.service';
 import { AgentStrategyAutopilotPlanningService } from '@api/collections/agent-strategies/services/agent-strategy-autopilot-planning.service';
-import { AgentStrategyOpportunitiesService } from '@api/collections/agent-strategies/services/agent-strategy-opportunities.service';
-import { AgentStrategyReportsService } from '@api/collections/agent-strategies/services/agent-strategy-reports.service';
 import { AgentStrategyWorkflowRunService } from '@api/collections/agent-strategies/services/agent-strategy-workflow-run.service';
 import { ContentPerformanceModule } from '@api/collections/content-performance/content-performance.module';
 import { CredentialsCoreModule } from '@api/collections/credentials/credentials-core.module';
@@ -28,13 +26,13 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [AgentStrategiesController],
   exports: [
+    AgentStrategyPerformanceModule,
     AgentStrategiesCoreModule,
     AgentStrategyAutopilotService,
-    AgentStrategyOpportunitiesService,
-    AgentStrategyReportsService,
     AgentStrategyWorkflowRunService,
   ],
   imports: [
+    AgentStrategyPerformanceModule,
     AgentStrategiesCoreModule,
     ActivitiesModule,
     ContentGatewayModule,
@@ -48,10 +46,7 @@ import { Module } from '@nestjs/common';
     TrendsModule,
   ],
   providers: [
-    AgentStrategyOpportunitiesService,
-    AgentStrategyReportsService,
     AgentStrategyAutopilotExecutionService,
-    AgentStrategyAutopilotPerformanceService,
     AgentStrategyAutopilotPlanningService,
     AgentStrategyAutopilotService,
     AgentStrategyWorkflowRunService,

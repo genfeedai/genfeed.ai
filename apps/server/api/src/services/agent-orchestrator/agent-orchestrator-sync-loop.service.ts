@@ -13,6 +13,7 @@ import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrato
 import {
   type AgentToolRoundState,
   AgentTurnRoundRunnerService,
+  assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AGENT_MAX_TOOL_ROUNDS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
@@ -168,7 +169,8 @@ export class AgentOrchestratorSyncLoopService {
       const tools = buildToolDefinitions(
         mergeAllowedTools(
           syncBaseTools,
-          this.batchService.isBatchGenerationIntent(request.content)
+          request.source !== 'proactive' &&
+            this.batchService.isBatchGenerationIntent(request.content)
             ? BATCH_SCOPED_ALLOWED_TOOLS
             : undefined,
         ),
@@ -196,6 +198,16 @@ export class AgentOrchestratorSyncLoopService {
         round++;
 
         const isTerminalCompletion = Boolean(terminalContent);
+        const maximumRoundCredits =
+          terminalContent || turnCost === 0
+            ? 0
+            : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
+        if (!terminalContent)
+          assertAgentCreditBudget(
+            context,
+            toolRoundState.totalCreditsUsed + roundCredits,
+            maximumRoundCredits,
+          );
         const { defaultModelKey, dispatchedModel, resolution } =
           await resolveAgentAutoRoutingRound({
             context,
@@ -239,8 +251,7 @@ export class AgentOrchestratorSyncLoopService {
               estimatedCredits: (actualModel) =>
                 this.agentChatModelRegistry.getRoundCredits(actualModel),
               idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
-              maximumCredits:
-                await this.agentChatModelRegistry.getMaximumRoundCredits(model),
+              maximumCredits: maximumRoundCredits,
               organizationId: context.organizationId,
               requestedModel: dispatchedModel,
               run: async () =>
@@ -417,6 +428,7 @@ export class AgentOrchestratorSyncLoopService {
           };
         }
 
+        toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
         const toolRoundResult = await this.turnRoundRunner.executeToolRound({
           allowedToolNames,
           assistantContent: assistantMessage.content,

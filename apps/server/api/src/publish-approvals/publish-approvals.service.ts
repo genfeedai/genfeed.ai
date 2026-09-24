@@ -538,9 +538,10 @@ export class PublishApprovalsService {
     postId: string,
     reason: string,
     actorId?: string,
+    transaction?: Prisma.TransactionClient,
   ): Promise<void> {
     const now = new Date();
-    await this.prisma.$transaction(async (tx) => {
+    const invalidate = async (tx: Prisma.TransactionClient) => {
       // Read the active approvals inside the transaction so a concurrent
       // claim-to-EXECUTING cannot slip between the eligibility check and the
       // invalidating writes.
@@ -597,7 +598,9 @@ export class PublishApprovalsService {
           organizationId: organizationId,
         },
       });
-    });
+    };
+    if (transaction) await invalidate(transaction);
+    else await this.prisma.$transaction(invalidate);
     this.recordApprovalTelemetry(
       'revoke',
       'success',

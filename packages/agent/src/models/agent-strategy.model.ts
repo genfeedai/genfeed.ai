@@ -1,3 +1,4 @@
+import type { IAgentStrategyPerformanceSnapshot } from '@genfeedai/contracts/interfaces';
 export interface ContentMixConfig {
   imagePercent: number;
   videoPercent: number;
@@ -48,6 +49,8 @@ export interface RankingPolicyConfig {
 }
 
 export interface AgentStrategyRun {
+  executionId?: string;
+  performanceSnapshot?: IAgentStrategyPerformanceSnapshot;
   startedAt: string;
   completedAt?: string;
   status: 'completed' | 'failed' | 'budget_exhausted';

@@ -119,6 +119,7 @@ import { AgentXActionsToolHandler } from '@api/services/agent-orchestrator/tools
 import { AgentSourceIngestModule } from '@api/services/agent-source-ingest/agent-source-ingest.module';
 import { AgentSpawnModule } from '@api/services/agent-spawn/agent-spawn.module';
 import { AgentThreadingCoreModule } from '@api/services/agent-threading/agent-threading-core.module';
+import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BatchGenerationModule } from '@api/services/batch-generation/batch-generation.module';
 import { CacheService } from '@api/services/cache/cache.service';
 import { ContentQualityModule } from '@api/services/content-quality/content-quality.module';
@@ -169,6 +170,7 @@ import { Module } from '@nestjs/common';
     AnalyticsModule,
     ArticlesModule,
     BatchGenerationModule,
+    AutonomousPublishingModule,
     BrandInterviewModule,
     BrandsCoreModule,
     BotsModule,

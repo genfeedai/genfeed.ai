@@ -63,3 +63,37 @@ describe('WorkflowAutomationExecutorRegistrarService', () => {
     expect(new Set(registered).size).toBe(registered.length);
   });
 });
+
+it('registers scoped durable agent report delivery actions for all supported channels', async () => {
+  const deliverAgentReport = vi
+    .fn()
+    .mockResolvedValue({ status: 'delivered', deliveryId: 'delivery' });
+  const registerExecutor = vi.fn();
+  const registrar = new WorkflowAutomationExecutorRegistrarService(
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    undefined,
+    { deliverAgentReport } as never,
+  );
+  registrar.register({ registerExecutor } as never);
+  for (const channel of ['telegram', 'discord', 'email']) {
+    const registration = registerExecutor.mock.calls.find(
+      ([name]) => name === `agent.report.deliver-${channel}`,
+    );
+    expect(registration).toBeDefined();
+    const execute = registration?.[1];
+    await execute(
+      { config: {} },
+      { deliveryId: 'delivery' },
+      { organizationId: 'org' },
+    );
+    expect(deliverAgentReport).toHaveBeenCalledWith('org', 'delivery', channel);
+  }
+});

@@ -16,9 +16,9 @@ export default function AgentStrategyPublishToggles({
               autoPublishEnabled: checked === true,
             }))
           }
-          aria-label="Enable autopilot auto publish"
+          aria-label="Enable agent auto publish"
         />
-        Enforce autopilot publish gate before auto-publishing text drafts
+        Enforce agent publish gate before auto-publishing text drafts
       </span>
 
       <span className="flex items-center gap-3 text-sm text-foreground">
@@ -30,7 +30,7 @@ export default function AgentStrategyPublishToggles({
               isEnabled: checked === true,
             }))
           }
-          aria-label="Enable strategy"
+          aria-label="Enable agent"
         />
         Enabled for scheduling
       </span>
@@ -44,7 +44,7 @@ export default function AgentStrategyPublishToggles({
               isActive: checked === true,
             }))
           }
-          aria-label="Mark strategy active"
+          aria-label="Mark agent active"
         />
         Active and ready to run
       </span>

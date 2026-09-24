@@ -26,6 +26,7 @@ export interface IAgentStrategy {
   requiresManualReactivation?: boolean;
   lastRunAt?: string;
   nextRunAt?: string;
+  runHistory?: IAgentStrategyRunHistoryItem[];
   dailyCreditResetAt?: string;
   consecutiveFailures: number;
   createdAt: string;
@@ -46,4 +47,42 @@ export interface ICreateAgentStrategyDto {
   qualityTier?: 'budget' | 'balanced' | 'high_quality';
   autoPublishConfidenceThreshold?: number;
   isActive?: boolean;
+}
+
+export interface IAgentStrategyPerformanceSnapshot {
+  bestPlatformFormatPairs: Array<{
+    format: string;
+    platform: string;
+    score: number;
+  }>;
+  bestPostingWindows: string[];
+  clicks: number;
+  costPerVisit: number | null;
+  creditsSpent: number;
+  ctr: number;
+  generatedCount: number;
+  impressions: number;
+  publishedCount: number;
+  sampling?: {
+    limit: number;
+    matchedPosts: number;
+    matchedMeasurements: number;
+    postsSampled: number;
+    measurementsSampled: number;
+    truncated: boolean;
+  };
+  topHooks: string[];
+  topTopics: string[];
+  visits: number | null;
+}
+
+export interface IAgentStrategyRunHistoryItem {
+  executionId?: string;
+  threadId?: string;
+  startedAt: string;
+  completedAt: string;
+  status: string;
+  creditsUsed: number;
+  contentGenerated: number;
+  performanceSnapshot?: IAgentStrategyPerformanceSnapshot;
 }

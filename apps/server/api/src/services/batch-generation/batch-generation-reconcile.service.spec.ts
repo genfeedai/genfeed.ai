@@ -2,6 +2,7 @@ import { CreditReservationService } from '@api/collections/credits/services/cred
 import { BATCH_MAX_RESUME_ATTEMPTS } from '@api/services/batch-generation/batch-generation.constants';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
 import { BatchGenerationReconcileService } from '@api/services/batch-generation/batch-generation-reconcile.service';
+import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   BatchItemStatus,
@@ -24,6 +25,7 @@ type CreditReservationServiceMock = {
  */
 describe('BatchGenerationReconcileService', () => {
   let service: BatchGenerationReconcileService;
+  let pendingReviewPosts: ReturnType<typeof vi.fn>;
   let batchDelegate: {
     findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
@@ -51,6 +53,7 @@ describe('BatchGenerationReconcileService', () => {
   };
 
   beforeEach(async () => {
+    pendingReviewPosts = vi.fn().mockResolvedValue([]);
     batchDelegate = {
       findFirst: vi.fn().mockResolvedValue({
         config: { resumeCount: BATCH_MAX_RESUME_ATTEMPTS },
@@ -74,9 +77,16 @@ describe('BatchGenerationReconcileService', () => {
       providers: [
         BatchGenerationReconcileService,
         {
+          provide: BatchGenerationReviewService,
+          useValue: {
+            expireAutonomousReviewBatch: vi.fn().mockResolvedValue([]),
+          },
+        },
+        {
           provide: PrismaService,
           useValue: {
             batch: batchDelegate,
+            post: { findMany: pendingReviewPosts },
             batchItem: { upsert: vi.fn().mockResolvedValue({}) },
           },
         },
@@ -96,6 +106,20 @@ describe('BatchGenerationReconcileService', () => {
     }).compile();
 
     service = module.get(BatchGenerationReconcileService);
+  });
+
+  it('advances the expiry scan past pending drafts with longer review windows', async () => {
+    pendingReviewPosts
+      .mockResolvedValueOnce([
+        { id: 'post-1', reviewBatchId: 'batch-1', organizationId: 'org-1' },
+      ])
+      .mockResolvedValueOnce([]);
+    await service.expireAutonomousReviews(1);
+    await service.expireAutonomousReviews(1);
+    expect(pendingReviewPosts).toHaveBeenNthCalledWith(
+      2,
+      expect.objectContaining({ cursor: { id: 'post-1' }, skip: 1 }),
+    );
   });
 
   it('reports a PROCESSING batch whose lease went stale', async () => {

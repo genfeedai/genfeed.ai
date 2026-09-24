@@ -8,6 +8,7 @@ import { PublishApprovalsModule } from '@api/collections/publish-approvals/publi
 import { WorkflowsCoreModule } from '@api/collections/workflows/workflows-core.module';
 import { AgentArtifactReferenceService, SERVER_TOKENS } from '@api/index';
 import { AgentStreamPublisherModule } from '@api/services/agent-orchestrator/agent-stream-publisher.module';
+import { AutonomousPublishingModule } from '@api/services/autonomous-publishing/autonomous-publishing.module';
 import { BatchGenerationController } from '@api/services/batch-generation/batch-generation.controller';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
@@ -28,6 +29,7 @@ import { Module } from '@nestjs/common';
 @Module({
   controllers: [BatchGenerationController],
   exports: [
+    BatchGenerationReviewService,
     BatchGenerationCreditsService,
     BatchGenerationReconcileService,
     BatchGenerationService,
@@ -35,6 +37,7 @@ import { Module } from '@nestjs/common';
     BatchGenerationWorkflowService,
   ],
   imports: [
+    AutonomousPublishingModule,
     AgentStreamPublisherModule,
     BrandsCoreModule,
     ConfigModule,

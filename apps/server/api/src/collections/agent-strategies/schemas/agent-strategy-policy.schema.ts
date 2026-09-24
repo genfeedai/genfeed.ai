@@ -54,6 +54,16 @@ export interface AgentStrategyBudgetPolicy {
 }
 
 export interface AgentStrategyPublishPolicy {
+  autoPublishAfterApprovals?: number;
+  reviewTimeoutHours?: number;
+  platformStates?: Record<
+    string,
+    {
+      approvalStreak: number;
+      autoPublishEnabled: boolean;
+      lastDecisionKey?: string;
+    }
+  >;
   autoPublishEnabled: boolean;
   minPostScore: number;
   minImageScore: number;

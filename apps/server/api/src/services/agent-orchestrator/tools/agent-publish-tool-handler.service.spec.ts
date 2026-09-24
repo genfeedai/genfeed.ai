@@ -10,6 +10,7 @@ import {
   PostVisibility,
   ReleaseStatus,
 } from '@genfeedai/contracts';
+import { evaluateAgentPublishPolicy } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import type { CreateReleaseGroupInput } from '@genfeedai/contracts/api-types/contracts/scheduler.contract';
 
 import { describe, expect, it, vi } from 'vitest';
@@ -113,6 +114,34 @@ function createHandler() {
     }),
   };
   const postsService = { create: vi.fn(), findOne: vi.fn() };
+  const autonomousPolicy = {
+    resolveForTarget: vi
+      .fn()
+      .mockImplementation(
+        async (input: { channelAllowsAutoPublish: boolean }) => {
+          const strategy = await agentStrategiesService.findOne();
+          return {
+            autonomyMode: strategy.autonomyMode,
+            result: evaluateAgentPublishPolicy({
+              autonomyMode: strategy.autonomyMode,
+              brandAllowsAutoPublish: strategy.publishPolicy.autoPublishEnabled,
+              channelAllowsAutoPublish: input.channelAllowsAutoPublish,
+            }),
+          };
+        },
+      ),
+    resolveForPost: vi.fn().mockResolvedValue({
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
+      result: evaluateAgentPublishPolicy({
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        brandAllowsAutoPublish: false,
+        channelAllowsAutoPublish: false,
+      }),
+    }),
+  };
+  const batchGenerationService = {
+    createManualReviewBatch: vi.fn().mockResolvedValue({ id: 'review' }),
+  };
   const handler = new AgentPublishToolHandler(
     postGroupsService as never,
     postsService as never,
@@ -126,9 +155,13 @@ function createHandler() {
     agentPublishAuditsService as never,
     cacheService as never,
     mediaReadinessService as never,
+    autonomousPolicy as never,
+    batchGenerationService as never,
   );
 
   return {
+    autonomousPolicy,
+    batchGenerationService,
     agentPublishAuditsService,
     agentScopeContextService,
     agentStrategiesService,
@@ -926,4 +959,125 @@ describe('AgentPublishToolHandler server-owned confirmation (#4306)', () => {
     expect(postGroupsService.create).not.toHaveBeenCalled();
     expect(postGroupsService.publishNow).not.toHaveBeenCalled();
   });
+});
+
+describe('proactive publishing review boundary', () => {
+  it('retains scheduled supervised content as a draft and links the same posts to review', async () => {
+    const h = createHandler();
+    h.agentStrategiesService.findOne.mockResolvedValue({
+      autonomyMode: AgentAutonomyMode.SUPERVISED,
+      publishPolicy: { autoPublishEnabled: true },
+    });
+    h.ingredientsService.findOne.mockResolvedValue({
+      id: 'ingredient-1',
+      brandId: 'brand-1',
+      category: IngredientCategory.IMAGE,
+    });
+    h.credentialsService.find.mockResolvedValue([
+      { id: 'cred-1', isConnected: true, platform: 'TWITTER' },
+    ]);
+    const result = await h.handler.createPost(
+      {
+        contentId: 'ingredient-1',
+        caption: 'Review me',
+        platforms: ['twitter'],
+        scheduledAt: '2030-01-01T10:00:00Z',
+      },
+      { ...scopedContext('brand-1'), isProactive: true },
+    );
+    expect(result.success).toBe(true);
+    expect(h.autonomousPolicy.resolveForTarget).toHaveBeenCalledWith(
+      expect.objectContaining({
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        strategyId: 'strategy-1',
+        credentialId: 'cred-1',
+      }),
+    );
+    expect(h.postGroupsService.create).toHaveBeenCalledWith(
+      'org-1',
+      'user-1',
+      expect.objectContaining({
+        status: ReleaseStatus.DRAFT,
+        targets: [expect.objectContaining({ platform: 'twitter' })],
+      }),
+      expect.any(String),
+      expect.any(Object),
+    );
+    const target = h.postGroupsService.create.mock.calls[0]?.[2].targets[0];
+    expect(target?.scheduledAt).toBeUndefined();
+    expect(h.postGroupsService.publishNow).not.toHaveBeenCalled();
+    expect(
+      h.batchGenerationService.createManualReviewBatch,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        agentStrategyId: 'strategy-1',
+        items: [
+          expect.objectContaining({
+            postId: 'target-1',
+            workflowExecutionId: 'run-1',
+          }),
+        ],
+      }),
+      'user-1',
+      'org-1',
+      expect.stringContaining('agent-review:'),
+    );
+  });
+  it('denies rescheduling a supervised strategy post before calling the scheduler', async () => {
+    const h = createHandler();
+    h.postsService.findOne.mockResolvedValue({
+      id: 'post-1',
+      brandId: 'brand-1',
+      groupId: 'group-1',
+    });
+    const result = await h.handler.schedulePost(
+      { postId: 'post-1', scheduledAt: '2030-01-01T10:00:00Z' },
+      { ...scopedContext('brand-1'), isProactive: true },
+    );
+    expect(result.success).toBe(false);
+    expect(result.data).toEqual({ id: 'post-1', requiredAction: 'approval' });
+  });
+});
+
+it('creates proactive text as canonical channel targets and review items, never standalone drafts', async () => {
+  const f = createHandler();
+  f.agentStrategiesService.findOne.mockResolvedValue({
+    autonomyMode: AgentAutonomyMode.SUPERVISED,
+    publishPolicy: { autoPublishEnabled: true },
+  });
+  f.credentialsService.find.mockResolvedValue([
+    { id: 'cred', isConnected: true, platform: 'TWITTER' },
+  ]);
+  const result = await f.handler.createPost(
+    { content: 'A scoped text draft.', platform: 'twitter' },
+    { ...scopedContext('brand-1'), isProactive: true },
+  );
+  expect(result.success).toBe(true);
+  expect(f.postsService.create).not.toHaveBeenCalled();
+  expect(f.postGroupsService.create).toHaveBeenCalledWith(
+    'org-1',
+    'user-1',
+    expect.objectContaining({
+      brandId: 'brand-1',
+      status: ReleaseStatus.DRAFT,
+      media: [],
+    }),
+    expect.any(String),
+    expect.objectContaining({
+      agentStrategyId: 'strategy-1',
+      workflowExecutionId: 'run-1',
+    }),
+  );
+  expect(f.batchGenerationService.createManualReviewBatch).toHaveBeenCalledWith(
+    expect.objectContaining({
+      items: [
+        expect.objectContaining({ postId: 'target-1', platform: 'twitter' }),
+      ],
+    }),
+    'user-1',
+    'org-1',
+    expect.any(String),
+  );
+  expect(f.postGroupsService.publishNow).not.toHaveBeenCalled();
 });

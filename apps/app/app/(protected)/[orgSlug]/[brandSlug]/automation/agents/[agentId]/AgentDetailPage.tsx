@@ -1,5 +1,6 @@
 'use client';
 
+import { AgentActivityFeed } from '@genfeedai/agent/components/AgentActivityFeed';
 import {
   AgentAutonomyMode,
   ButtonSize,
@@ -7,7 +8,6 @@ import {
 } from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
-import { useAgentStrategy } from '@hooks/data/agent-strategies/use-agent-strategy';
 import { useWorkflowExecutions } from '@hooks/data/workflow-executions/use-workflow-executions';
 import {
   isCollectionFetchReady,
@@ -15,6 +15,7 @@ import {
   useCollectionScope,
 } from '@hooks/navigation/use-collection-scope/use-collection-scope';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
+import { useVisiblePolling } from '@hooks/ui/use-visible-polling/use-visible-polling';
 import type { AgentStrategyFormState } from '@props/automation/agent-strategies-page.props';
 import type { AgentDetailPageProps } from '@props/automation/agent-strategy.props';
 import type {
@@ -42,7 +43,9 @@ import { buildPayload } from '../../autopilot/build-agent-strategy-payload';
 import AgentWorkflowRunDialog from '../AgentWorkflowRunDialog';
 import { getAgentTypeIcon, getAgentTypeLabel } from '../agent-type-display';
 import AgentOpportunityPanel from './AgentOpportunityPanel';
+import AgentPerformanceSection from './AgentPerformanceSection';
 import AgentWorkflowBindCard from './AgentWorkflowBindCard';
+import AgentWorkSection from './AgentWorkSection';
 import WorkflowExecutionHistorySection from './WorkflowExecutionHistorySection';
 
 const AGENT_EXECUTION_PAGE_SIZE = 20;
@@ -58,31 +61,68 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const brandParams = toBrandListParams(collectionScope);
   const requestedOpportunityId = searchParams.get('opportunity');
   const {
-    strategy,
-    isLoading: isStrategyLoading,
-    refresh,
-  } = useAgentStrategy(agentId);
-  const { executions, isLoading: areExecutionsLoading } = useWorkflowExecutions(
+    executions,
+    isLoading: areExecutionsLoading,
+    isError: isExecutionsError,
+    refresh: refreshExecutions,
+  } = useWorkflowExecutions(
     {
       ...brandParams,
       limit: AGENT_EXECUTION_PAGE_SIZE,
       sort: '-createdAt',
       strategyId: agentId,
     },
-    { enabled: isReady },
+    { enabled: isReady, organizationId: collectionScope.organizationId },
   );
 
   const getService = useAuthedService((token: string) =>
     AgentStrategiesService.getInstance(token),
   );
+  const {
+    data: strategy,
+    isLoading: isStrategyLoading,
+    isError: isStrategyError,
+    refetch,
+  } = useQuery({
+    queryKey: [
+      'agent-strategy',
+      collectionScope.organizationId,
+      collectionScope.brandId,
+      agentId,
+    ],
+    enabled: isReady && Boolean(agentId),
+    queryFn: async () => {
+      const agent = await (await getService()).getById(agentId);
+      return collectionScope.brandId &&
+        (agent.brandId ?? agent.brand?.id) !== collectionScope.brandId
+        ? null
+        : agent;
+    },
+  });
+  const refresh = useCallback(async () => {
+    await refetch();
+  }, [refetch]);
+  useVisiblePolling(
+    () => {
+      void refresh();
+      void refreshExecutions();
+    },
+    { intervalMs: 30_000, isEnabled: isReady },
+  );
   const { data: opportunities = [], isLoading: isOpportunitiesLoading } =
     useQuery<AgentStrategyOpportunity[]>({
-      queryKey: ['agent-opportunities', agentId, requestedOpportunityId],
+      queryKey: [
+        'agent-opportunities',
+        collectionScope.organizationId,
+        collectionScope.brandId,
+        agentId,
+        requestedOpportunityId,
+      ],
       queryFn: async () => {
         const service = await getService();
         return service.listOpportunities(agentId);
       },
-      enabled: Boolean(requestedOpportunityId),
+      enabled: isReady && Boolean(strategy) && Boolean(requestedOpportunityId),
     });
 
   const handleToggle = useCallback(async () => {
@@ -103,11 +143,12 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       const service = await getService();
       await service.runNow(agentId);
       notificationsService.success('Agent run triggered');
+      await Promise.all([refresh(), refreshExecutions()]);
     } catch (error) {
       logger.error('Failed to trigger run', { error });
       notificationsService.error('Failed to trigger run');
     }
-  }, [agentId, getService, notificationsService]);
+  }, [agentId, getService, notificationsService, refresh, refreshExecutions]);
 
   const [isPolicyOpen, setIsPolicyOpen] = useState(false);
   const [isSavingPolicy, setIsSavingPolicy] = useState(false);
@@ -203,10 +244,20 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
   const Icon = getAgentTypeIcon(strategy?.agentType);
   const typeLabel = getAgentTypeLabel(strategy?.agentType);
 
-  if (isStrategyLoading) {
+  if (!isReady || isStrategyLoading) {
     return (
       <Container label="Agent Detail" icon={Cpu}>
         <div className="h-64 animate-pulse rounded bg-foreground/5" />
+      </Container>
+    );
+  }
+
+  if (isStrategyError) {
+    return (
+      <Container label="Agent Detail" icon={Cpu}>
+        <p role="alert" className="text-destructive">
+          Could not load this agent.
+        </p>
       </Container>
     );
   }
@@ -216,7 +267,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       <Container label="Agent Detail" icon={Cpu}>
         <div className="py-16 text-center text-foreground/50">
           Agent not found.{' '}
-          <Link href={APP_ROUTES.AUTOMATION.AGENTS} className="underline">
+          <Link href={href(APP_ROUTES.AUTOMATION.AGENTS)} className="underline">
             Back to Agent Hub
           </Link>
         </div>
@@ -230,7 +281,7 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
       description={`${typeLabel} agent`}
       icon={Cpu}
       left={
-        <Link href={APP_ROUTES.AUTOMATION.AGENTS}>
+        <Link href={href(APP_ROUTES.AUTOMATION.AGENTS)}>
           <Button
             label={
               <>
@@ -359,12 +410,36 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
           />
         )}
 
-        <WorkflowExecutionHistorySection
-          executions={executions}
-          expandedExecutionId={expandedExecutionId}
-          isLoading={areExecutionsLoading}
-          onToggleExpand={handleToggleExpand}
+        <AgentWorkSection
+          key={`posts-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
+          agentId={agentId}
         />
+        <AgentPerformanceSection
+          key={`performance-${collectionScope.organizationId}-${collectionScope.brandId}-${agentId}`}
+          agentId={agentId}
+        />
+        <AgentActivityFeed
+          runHistory={strategy.runHistory ?? []}
+          getThreadHref={(threadId) =>
+            href(`${APP_ROUTES.AGENT.ROOT}/${threadId}`)
+          }
+          getExecutionHref={(executionId) =>
+            href(`${APP_ROUTES.AUTOMATION.RUNS}/${executionId}`)
+          }
+        />
+
+        {isExecutionsError ? (
+          <p role="alert" className="text-sm text-destructive">
+            Could not load agent executions.
+          </p>
+        ) : (
+          <WorkflowExecutionHistorySection
+            executions={executions}
+            expandedExecutionId={expandedExecutionId}
+            isLoading={areExecutionsLoading}
+            onToggleExpand={handleToggleExpand}
+          />
+        )}
       </div>
     </Container>
   );
@@ -373,9 +448,13 @@ function AgentDetailPageContent({ agentId }: AgentDetailPageProps) {
 export default function AgentDetailPage(
   props: Parameters<typeof AgentDetailPageContent>[0],
 ) {
+  const scope = useCollectionScope();
   return (
     <Suspense fallback={null}>
-      <AgentDetailPageContent {...props} />
+      <AgentDetailPageContent
+        key={`${scope.organizationId}-${scope.brandId}-${props.agentId}`}
+        {...props}
+      />
     </Suspense>
   );
 }

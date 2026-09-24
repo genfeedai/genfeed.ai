@@ -26,6 +26,21 @@ export class BatchGenerationService {
     private readonly reviewService: BatchGenerationReviewService,
   ) {}
 
+  approveAutonomousItems(
+    batchId: string,
+    itemIds: string[],
+    orgId: string,
+    userId: string,
+  ): Promise<IBatchSummary> {
+    return this.reviewService.approveItems(
+      batchId,
+      itemIds,
+      orgId,
+      userId,
+      true,
+    );
+  }
+
   @HandleErrors('create batch', 'batch-generation')
   createBatch(
     dto: CreateBatchDto,

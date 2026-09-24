@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto';
 import {
   type AgentToolRoundState,
   AgentTurnRoundRunnerService,
+  assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import type { AgentChatRequest } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
 import {
@@ -389,3 +390,65 @@ function createState(): AgentToolRoundState {
     uiActions: [],
   };
 }
+
+describe('capped autonomous credit preflight', () => {
+  it('accepts exact caps and rejects invalid, exhausted, or unknown paid quotes', () => {
+    expect(() =>
+      assertAgentCreditBudget({ creditBudget: 5 }, 3, 2),
+    ).not.toThrow();
+    expect(() => assertAgentCreditBudget({}, 100, 10)).not.toThrow();
+    for (const [cap, consumed, estimate] of [
+      [0, 0, 0],
+      [5, 4, 2],
+      [NaN, 0, 1],
+      [5, 0, NaN],
+      [5, 0, Infinity],
+      [-1, 0, 1],
+    ]) {
+      expect(() =>
+        assertAgentCreditBudget({ creditBudget: cap }, consumed, estimate),
+      ).toThrow('credit budget');
+    }
+  });
+  it('prevents a paid tool after earlier consumption reaches the cap', async () => {
+    const executeTool = vi.fn();
+    const prepareToolCall = vi.fn();
+    const runner = new AgentTurnRoundRunnerService(
+      {} as never,
+      {} as never,
+      { executeTool } as never,
+      { prepareToolCall } as never,
+      {} as never,
+    );
+    await expect(
+      runner.executeToolRound({
+        allowedToolNames: new Set(['generate_content']),
+        assistantContent: '',
+        context: { organizationId: 'org', userId: 'user', creditBudget: 5 },
+        messages: [],
+        model: 'model',
+        policy: {} as never,
+        source: 'proactive',
+        state: {
+          artifactMetadata: [],
+          highestRiskLevel: 'low',
+          latestUiBlocks: null,
+          reviewRequired: false,
+          toolCalls: [],
+          totalCreditsUsed: 5,
+          uiActions: [],
+        },
+        threadId: 'thread',
+        toolCalls: [
+          {
+            id: 'call',
+            type: 'function',
+            function: { name: 'generate_content', arguments: '{}' },
+          },
+        ],
+      }),
+    ).rejects.toThrow('credit budget');
+    expect(executeTool).not.toHaveBeenCalled();
+    expect(prepareToolCall).not.toHaveBeenCalled();
+  });
+});

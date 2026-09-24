@@ -13,6 +13,7 @@ import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agen
 import {
   type AgentToolRoundState,
   AgentTurnRoundRunnerService,
+  assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AGENT_MAX_TOOL_ROUNDS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
@@ -192,11 +193,11 @@ export class AgentOrchestratorStreamLoopService {
           .reverse()
           .find((message) => message.role === 'user')
           ?.content?.toString?.() ?? '';
-      const scopedTools = this.batchService.isBatchGenerationIntent(
-        latestUserMessage,
-      )
-        ? BATCH_SCOPED_ALLOWED_TOOLS
-        : undefined;
+      const scopedTools =
+        source !== 'proactive' &&
+        this.batchService.isBatchGenerationIntent(latestUserMessage)
+          ? BATCH_SCOPED_ALLOWED_TOOLS
+          : undefined;
       const tools = buildToolDefinitions(
         mergeAllowedTools(baseTools, scopedTools),
         resolveBlockedTools({ source }),
@@ -234,6 +235,16 @@ export class AgentOrchestratorStreamLoopService {
         }
         round++;
 
+        const maximumRoundCredits =
+          terminalContent || turnCost === 0
+            ? 0
+            : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
+        if (!terminalContent)
+          assertAgentCreditBudget(
+            context,
+            toolRoundState.totalCreditsUsed + roundCredits,
+            maximumRoundCredits,
+          );
         const { defaultModelKey, dispatchedModel, resolution } =
           await resolveAgentAutoRoutingRound({
             context,
@@ -348,10 +359,7 @@ export class AgentOrchestratorStreamLoopService {
                   estimatedCredits: (actualModel) =>
                     this.agentChatModelRegistry.getRoundCredits(actualModel),
                   idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
-                  maximumCredits:
-                    await this.agentChatModelRegistry.getMaximumRoundCredits(
-                      model,
-                    ),
+                  maximumCredits: maximumRoundCredits,
                   organizationId: context.organizationId,
                   requestedModel: dispatchedModel,
                   run: () =>
@@ -560,6 +568,7 @@ export class AgentOrchestratorStreamLoopService {
           return;
         }
 
+        toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
         const toolRoundResult = await this.turnRoundRunner.executeToolRound({
           allowedToolNames,
           assistantContent: assistantMessage.content,

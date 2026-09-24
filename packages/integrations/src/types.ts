@@ -7,12 +7,34 @@ import type {
  * Shared types for platform integrations
  */
 
+export interface AgentReportBinding {
+  enabled: boolean;
+  brandId: string;
+  userId: string;
+  remoteUserId: string;
+  channelId: string;
+}
+
+export interface AgentReportReviewInput {
+  organizationId: string;
+  remoteUserId: string;
+  channelId: string;
+  token: string;
+  decision: 'approve' | 'reject';
+}
+
+export interface AgentReportReviewResult {
+  success: true;
+  message: string;
+}
+
 export interface OrgIntegration {
   id: string;
   orgId: string;
   platform: `${IntegrationPlatform}`;
   botToken: string; // encrypted at rest
   config: {
+    agentReportBindings?: AgentReportBinding[];
     allowedAccountIds?: string[];
     allowedUserIds?: string[];
     appToken?: string;

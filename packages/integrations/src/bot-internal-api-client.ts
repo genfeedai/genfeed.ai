@@ -1,7 +1,11 @@
 import type { IntegrationPlatform } from '@genfeedai/contracts';
 import { normalizeIntegration, normalizeIntegrations } from './bot-normalize';
 import type { WorkflowDefinition } from './bot-workflow';
-import type { OrgIntegration } from './types';
+import type {
+  AgentReportReviewInput,
+  AgentReportReviewResult,
+  OrgIntegration,
+} from './types';
 
 /**
  * Minimal abstraction over an HTTP layer so that BotInternalApiClient stays
@@ -46,6 +50,19 @@ export class BotInternalApiClient {
 
   private authHeaders(): Record<string, string> | undefined {
     return this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : undefined;
+  }
+
+  async resolveAgentReportReview(
+    input: AgentReportReviewInput,
+  ): Promise<AgentReportReviewResult> {
+    if (!this.apiKey) {
+      throw new Error('Agent report review requires an internal API key.');
+    }
+    return this.http.post<AgentReportReviewResult>(
+      `${this.apiUrl}/v1/internal/agent-reports/${this.platform.toLowerCase()}/review`,
+      input,
+      this.authHeaders(),
+    );
   }
 
   /**

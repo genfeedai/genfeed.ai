@@ -2,6 +2,7 @@ import { IntegrationPlatform } from '@genfeedai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
   IsArray,
   IsBoolean,
   IsEnum,
@@ -10,7 +11,22 @@ import {
   ValidateNested,
 } from 'class-validator';
 
+export class AgentReportBindingDto {
+  @IsBoolean() enabled!: boolean;
+  @IsString() brandId!: string;
+  @IsString() userId!: string;
+  @IsString() remoteUserId!: string;
+  @IsString() channelId!: string;
+}
+
 export class IntegrationConfigDto {
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(20)
+  @ValidateNested({ each: true })
+  @Type(() => AgentReportBindingDto)
+  agentReportBindings?: AgentReportBindingDto[];
+
   @IsOptional()
   @IsArray()
   @IsString({ each: true })

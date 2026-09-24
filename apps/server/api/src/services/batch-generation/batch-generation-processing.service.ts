@@ -3,6 +3,7 @@ import type { PostCreateInput } from '@api/collections/posts/services/posts.serv
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BatchAlreadyOwnedException } from '@api/services/batch-generation/batch-already-owned.exception';
 import { BATCH_LEASE_STALE_MS } from '@api/services/batch-generation/batch-generation.constants';
 import {
@@ -12,9 +13,11 @@ import {
   type BatchWithConfig,
   resolveBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
+import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import {
   batchItemRowsInclude,
+  type WriteBatchJsonAndItemRowsInput,
   writeBatchJsonAndItemRows,
 } from '@api/services/batch-generation/batch-item-rows';
 import {
@@ -28,16 +31,18 @@ import {
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
+  AgentPublishDecision,
   BatchItemStatus,
   BatchStatus,
   ContentIntelligencePlatform,
   fromPrismaCredentialPlatform,
   PostVisibility,
+  ReviewDecision,
   TargetExecutionState,
   toPrismaCredentialPlatform,
 } from '@genfeedai/contracts';
 import type { IBatchSummary } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
@@ -98,6 +103,8 @@ export class BatchGenerationProcessingService {
     private readonly postsService: PostsService,
     private readonly contentGeneratorService: ContentGeneratorService,
     private readonly summaryService: BatchGenerationSummaryService,
+    private readonly autonomousPublishPolicy: AutonomousPublishPolicyService,
+    private readonly reviewService: BatchGenerationReviewService,
   ) {}
 
   async processBatch(
@@ -195,7 +202,7 @@ export class BatchGenerationProcessingService {
       failedCount,
     };
 
-    const finalized = await writeBatchJsonAndItemRows(this.prisma, {
+    const finalized = await this.persistGenerationState({
       batchId,
       brandId: batchRecord.brandId,
       extraBatchData: {
@@ -222,6 +229,38 @@ export class BatchGenerationProcessingService {
       );
     }
 
+    if (batchRecord.agentStrategyId) {
+      for (const item of batchItems) {
+        if (
+          !item.postId ||
+          !item.scheduledDate ||
+          item.status !== BatchItemStatus.COMPLETED ||
+          (item.reviewDecision && item.reviewDecision !== ReviewDecision.UNSET)
+        )
+          continue;
+        const policy = await this.autonomousPublishPolicy.resolveForPost({
+          organizationId: orgId,
+          postId: item.postId,
+        });
+        if (policy.result.decision === AgentPublishDecision.PERMITTED) {
+          try {
+            await this.reviewService.approveItems(
+              batchId,
+              [item.id],
+              orgId,
+              batchRecord.userId,
+              true,
+            );
+          } catch (error) {
+            this.logger.error(
+              'Autonomous approval failed; draft remains in review',
+              error,
+              { batchId, postId: item.postId },
+            );
+          }
+        }
+      }
+    }
     const updatedBatch = await this.findScopedBatch(batchId, orgId);
 
     this.logger.log(`Batch processing complete: ${batchId}`, {
@@ -514,6 +553,8 @@ export class BatchGenerationProcessingService {
     }
 
     const post = await this.postsService.create({
+      reviewBatchId: batchId,
+      reviewItemId: item.id,
       agentStrategyId: batchRecord.agentStrategyId ?? undefined,
       brandId: batchRecord.brandId,
       ...(credentialId ? { credentialId } : {}),
@@ -613,7 +654,7 @@ export class BatchGenerationProcessingService {
       failedCount,
     };
 
-    const persisted = await writeBatchJsonAndItemRows(this.prisma, {
+    const persisted = await this.persistGenerationState({
       batchId,
       brandId,
       extraBatchData: {
@@ -627,6 +668,46 @@ export class BatchGenerationProcessingService {
     });
 
     return persisted.count === 1;
+  }
+
+  private async persistGenerationState(
+    input: WriteBatchJsonAndItemRowsInput,
+  ): Promise<{ count: number }> {
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw(
+        Prisma.sql`SELECT "id" FROM "batches" WHERE "id" = ${input.batchId} AND "organizationId" = ${input.organizationId} AND "isDeleted" = false FOR UPDATE`,
+      );
+      const batch = await transaction.batch.findFirst({
+        include: batchItemRowsInclude(input.organizationId),
+        where: scopedWhere(input.organizationId, { id: input.batchId }),
+      });
+      if (!batch) return { count: 0 };
+      const currentItems = resolveBatchItems(batch);
+      for (const item of input.items) {
+        const current = currentItems.find(
+          (candidate) => candidate.id === item.id,
+        );
+        if (
+          !current ||
+          (current.status !== BatchItemStatus.COMPLETED &&
+            current.status !== BatchItemStatus.SKIPPED)
+        )
+          continue;
+        Object.assign(item, {
+          reviewDecision: current.reviewDecision,
+          reviewFeedback: current.reviewFeedback,
+          reviewedAt: current.reviewedAt,
+          reviewEvents: current.reviewEvents,
+          versionPinId: current.versionPinId,
+          publishApproval: current.publishApproval,
+          assigneeId: current.assigneeId,
+          ...(current.status === BatchItemStatus.SKIPPED
+            ? { status: BatchItemStatus.SKIPPED }
+            : {}),
+        });
+      }
+      return writeBatchJsonAndItemRows(transaction, input);
+    });
   }
 
   private async invokeLifecycleCallback(

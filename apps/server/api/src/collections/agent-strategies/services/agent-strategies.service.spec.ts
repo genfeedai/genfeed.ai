@@ -231,6 +231,78 @@ describe('AgentStrategiesService budget and atomic run persistence', () => {
     );
     return { prisma, service, row };
   }
+  it('preserves locked platform graduation when user policy patches toggle the global opt-in', async () => {
+    const { service, prisma, row } = setup();
+    const platformStates = {
+      instagram: {
+        approvalStreak: 5,
+        autoPublishEnabled: true,
+        lastDecisionKey: 'review-5',
+      },
+    };
+    row.policies = {
+      publishPolicy: {
+        autoPublishEnabled: true,
+        minPostScore: 70,
+        platformStates,
+      },
+    };
+    await service.patch('strategy', {
+      publishPolicy: { autoPublishEnabled: false },
+    });
+    expect(row.policies).toMatchObject({
+      publishPolicy: {
+        autoPublishEnabled: false,
+        minPostScore: 70,
+        platformStates,
+      },
+    });
+    expect(prisma.$queryRaw.mock.invocationCallOrder[0]).toBeLessThan(
+      prisma.agentStrategy.findFirst.mock.invocationCallOrder[0] ?? 0,
+    );
+    await service.patch('strategy', {
+      publishPolicy: {
+        autoPublishEnabled: true,
+        platformStates: {
+          instagram: { approvalStreak: 100, autoPublishEnabled: true },
+        },
+      },
+    } as never);
+    expect(row.policies).toMatchObject({
+      publishPolicy: { autoPublishEnabled: true, platformStates },
+    });
+    await service.patch('strategy', {
+      policies: {
+        publishPolicy: { autoPublishEnabled: false, platformStates: {} },
+      },
+    } as never);
+    expect(row.policies).toMatchObject({
+      publishPolicy: { autoPublishEnabled: false, platformStates },
+    });
+  });
+
+  it('does not accept client-supplied graduation when creating a strategy', async () => {
+    const { service, prisma } = setup();
+    await service.createWithClient(
+      {
+        label: 'Agent',
+        organizationId: 'org',
+        userId: 'user',
+        publishPolicy: {
+          autoPublishEnabled: true,
+          platformStates: {
+            instagram: { approvalStreak: 100, autoPublishEnabled: true },
+          },
+        },
+      } as never,
+      prisma as never,
+    );
+    expect(
+      prisma.agentStrategy.create.mock.calls[0]?.[0].data.policies
+        .publishPolicy,
+    ).toEqual({ autoPublishEnabled: true });
+  });
+
   it.each([
     [10, undefined, 50],
     [10, 0, 0],
@@ -286,6 +358,20 @@ describe('AgentStrategiesService budget and atomic run persistence', () => {
     },
   );
   it('uses the terminal transaction and latest counters with bounded ISO history', async () => {
+    const performanceSnapshot = {
+      bestPlatformFormatPairs: [],
+      bestPostingWindows: [],
+      clicks: 0,
+      costPerVisit: null,
+      creditsSpent: 0,
+      ctr: 0,
+      generatedCount: 0,
+      impressions: 0,
+      publishedCount: 0,
+      topHooks: [],
+      topTopics: [],
+      visits: null,
+    };
     const { service, prisma, row } = setup({
       creditsUsedToday: 1,
       creditsUsedThisWeek: 2,
@@ -301,6 +387,7 @@ describe('AgentStrategiesService budget and atomic run persistence', () => {
         creditsUsed: 0.25,
         contentGenerated: 0,
         executionId: 'run',
+        performanceSnapshot,
       },
       'org',
       prisma as never,
@@ -315,6 +402,7 @@ describe('AgentStrategiesService budget and atomic run persistence', () => {
     expect(row.config.runHistory).toHaveLength(50);
     expect((row.config.runHistory as unknown[]).at(-1)).toMatchObject({
       executionId: 'run',
+      performanceSnapshot,
       completedAt: '2026-09-24T00:00:01.000Z',
     });
   });

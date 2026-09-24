@@ -99,4 +99,12 @@ export class PostsQueryDto extends BaseQueryDto {
   @IsOptional()
   @IsEntityId()
   campaignId?: string;
+
+  @ApiProperty({
+    description: 'Filter posts created by this agent',
+    required: false,
+  })
+  @IsOptional()
+  @IsEntityId()
+  agentStrategyId?: string;
 }

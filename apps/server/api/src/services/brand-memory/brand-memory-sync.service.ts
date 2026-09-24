@@ -1,6 +1,6 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
-import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 

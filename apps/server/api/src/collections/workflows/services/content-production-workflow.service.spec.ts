@@ -16,18 +16,69 @@ describe('ContentProductionWorkflowService atomic actions', () => {
         planId: 'plan-1',
       }),
     };
+    const measurements = vi.fn().mockResolvedValue([]);
     return {
+      measurements,
       contentExecution,
       service: new ContentProductionWorkflowService(
         {} as never,
         {} as never,
         contentExecution as never,
-        {} as never,
+        { contentPerformance: { findMany: measurements } } as never,
         {} as never,
         {} as never,
       ),
     };
   }
+
+  it('selects a configured topic using only measured persona evidence', async () => {
+    const { service, measurements } = buildService();
+    measurements.mockResolvedValue([
+      {
+        postId: 'post-1',
+        data: { promptUsed: 'Metrics that matter' },
+        performanceScore: 80,
+      },
+    ]);
+    const result = await service.prepareContentPipelinePersona({
+      item: {
+        id: 'persona-1',
+        organizationId: 'org-1',
+        brandId: 'brand-1',
+        userId: 'user-1',
+        label: 'Founder',
+        credentialCount: 1,
+        config: {
+          profileImageUrl: 'https://example.com/profile.png',
+          contentStrategy: {
+            topics: ['shipping', 'metrics'],
+            formats: [PersonaContentFormat.PHOTO],
+          },
+        },
+      },
+      now: '2026-09-24T00:00:00.000Z',
+    });
+    expect(measurements).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          brandId: 'brand-1',
+          post: expect.objectContaining({
+            personaId: 'persona-1',
+            organizationId: 'org-1',
+            isDeleted: false,
+          }),
+        }),
+      }),
+    );
+    expect(result.imageItems).toEqual([
+      expect.objectContaining({
+        prompt: expect.stringContaining(
+          'metrics. Observed feedback: 1 prior posts',
+        ),
+      }),
+    ]);
+  });
 
   it.each([
     [PersonaContentFormat.PHOTO, 'imageItems'],

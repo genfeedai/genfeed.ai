@@ -12,6 +12,7 @@ import {
   resolveBatchItems,
 } from '@api/services/batch-generation/batch-generation.types';
 import { BatchGenerationCreditsService } from '@api/services/batch-generation/batch-generation-credits.service';
+import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import {
   batchItemRowsReadArgs,
   writeBatchJsonAndItemRows,
@@ -48,11 +49,13 @@ export type StrandedBatch = {
  */
 @Injectable()
 export class BatchGenerationReconcileService {
+  private reviewSweepCursor?: string;
   constructor(
     private readonly prisma: PrismaService,
     private readonly logger: LoggerService,
     private readonly creditsService: BatchGenerationCreditsService,
     private readonly reservationService: CreditReservationService,
+    private readonly reviewService: BatchGenerationReviewService,
   ) {}
 
   /**
@@ -71,6 +74,7 @@ export class BatchGenerationReconcileService {
   async findStrandedBatches(
     limit: number = BATCH_RECONCILE_SWEEP_LIMIT,
   ): Promise<StrandedBatch[]> {
+    await this.expireAutonomousReviews(limit);
     const now = Date.now();
     const leaseStaleBefore = new Date(now - BATCH_LEASE_STALE_MS);
     const pickupStaleBefore = new Date(now - BATCH_QUEUE_PICKUP_STALE_MS);
@@ -142,6 +146,53 @@ export class BatchGenerationReconcileService {
     }
 
     return stranded;
+  }
+
+  async expireAutonomousReviews(
+    limit = BATCH_RECONCILE_SWEEP_LIMIT,
+  ): Promise<Array<{ organizationId: string; postId: string }>> {
+    // tenant-scope-ignore: platform maintenance scans autonomous pending drafts; each mutation is scoped to the candidate organization.
+    const candidates = await this.prisma.post.findMany({
+      where: {
+        isDeleted: false,
+        targetExecutionState: 'draft',
+        reviewDecision: null,
+        reviewBatchId: { not: null },
+        OR: [{ agentStrategyId: { not: null } }, { personaId: { not: null } }],
+        createdAt: { lte: new Date(Date.now() - 3_600_000) },
+      },
+      ...(this.reviewSweepCursor
+        ? { cursor: { id: this.reviewSweepCursor }, skip: 1 }
+        : {}),
+      select: { id: true, reviewBatchId: true, organizationId: true },
+      orderBy: { createdAt: 'asc' },
+      take: limit,
+    });
+    // Advance past long review windows so they cannot starve newer drafts with shorter timeouts.
+    this.reviewSweepCursor =
+      candidates.length === limit ? candidates.at(-1)?.id : undefined;
+    const expired: Array<{ organizationId: string; postId: string }> = [];
+    const visited = new Set<string>();
+    for (const candidate of candidates) {
+      if (
+        !candidate.reviewBatchId ||
+        !candidate.organizationId ||
+        visited.has(candidate.reviewBatchId)
+      )
+        continue;
+      visited.add(candidate.reviewBatchId);
+      const ids = await this.reviewService.expireAutonomousReviewBatch(
+        candidate.reviewBatchId,
+        candidate.organizationId,
+      );
+      expired.push(
+        ...ids.map((postId) => ({
+          organizationId: candidate.organizationId as string,
+          postId,
+        })),
+      );
+    }
+    return expired;
   }
 
   /**

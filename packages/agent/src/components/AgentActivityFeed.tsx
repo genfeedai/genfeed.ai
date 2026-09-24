@@ -2,11 +2,18 @@ import type { AgentStrategyRun } from '@genfeedai/agent/models/agent-strategy.mo
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IAgentStrategyRunHistoryItem } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
 import { type ReactElement, useEffect, useMemo } from 'react';
 
 interface AgentActivityFeedProps {
-  apiService: AgentStrategyApiService;
+  apiService?: AgentStrategyApiService;
+  runHistory?: Array<AgentStrategyRun | IAgentStrategyRunHistoryItem>;
+  getThreadHref?: (threadId: string) => string;
+  getExecutionHref?: (executionId: string) => string;
+  isLoading?: boolean;
+  error?: string | null;
   onViewThread?: (threadId: string) => void;
 }
 
@@ -34,7 +41,7 @@ function formatRunTime(dateStr: string): string {
   return date.toLocaleDateString('en-US', { timeZone: 'UTC' });
 }
 
-function getStatusBadge(status: AgentStrategyRun['status']): {
+function getStatusBadge(status: string): {
   className: string;
   label: string;
 } {
@@ -54,21 +61,32 @@ function getStatusBadge(status: AgentStrategyRun['status']): {
         className: 'bg-warning/10 text-warning',
         label: 'Budget',
       };
+    default:
+      return { className: 'bg-muted text-muted-foreground', label: status };
   }
 }
 
 export function AgentActivityFeed({
   apiService,
   onViewThread,
+  getThreadHref,
+  getExecutionHref,
+  runHistory,
+  isLoading: controlledLoading = false,
+  error: controlledError,
 }: AgentActivityFeedProps): ReactElement {
   const strategy = useAgentStrategyStore((s) => s.strategy);
   const setStrategy = useAgentStrategyStore((s) => s.setStrategy);
-  const isLoading = useAgentStrategyStore((s) => s.isLoading);
+  const storeLoading = useAgentStrategyStore((s) => s.isLoading);
   const setIsLoading = useAgentStrategyStore((s) => s.setIsLoading);
+  const storeError = useAgentStrategyStore((s) => s.error);
+  const isControlled = runHistory !== undefined;
+  const isLoading = isControlled ? controlledLoading : storeLoading;
+  const error = isControlled ? controlledError : storeError;
   const setError = useAgentStrategyStore((s) => s.setError);
 
   useEffect(() => {
-    if (strategy) {
+    if (isControlled || strategy || !apiService) {
       return;
     }
 
@@ -97,18 +115,25 @@ export function AgentActivityFeed({
 
     fetchStrategy();
     return () => controller.abort();
-  }, [strategy, apiService, setStrategy, setIsLoading, setError]);
+  }, [isControlled, strategy, apiService, setStrategy, setIsLoading, setError]);
 
+  const sourceRuns = isControlled ? runHistory : strategy?.runHistory;
   const runs = useMemo(
     () =>
-      strategy?.runHistory
-        ? strategy.runHistory.toSorted(
-            (a, b) =>
-              new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
-          )
-        : [],
-    [strategy?.runHistory],
+      (sourceRuns ?? []).toSorted(
+        (a, b) =>
+          new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+      ),
+    [sourceRuns],
   );
+
+  if (error) {
+    return (
+      <p role="alert" className="p-4 text-sm text-destructive">
+        Could not load agent activity.
+      </p>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -123,7 +148,7 @@ export function AgentActivityFeed({
       <div className="flex h-full flex-col items-center justify-center gap-2 p-12 text-center">
         <p className="text-sm font-medium text-foreground">No activity yet</p>
         <p className="text-xs text-muted-foreground">
-          Activity from autopilot runs will appear here.
+          Activity from agent runs will appear here.
         </p>
       </div>
     );
@@ -170,7 +195,23 @@ export function AgentActivityFeed({
                   {run.creditsUsed} credits
                 </span>
 
-                {run.threadId && onViewThread && (
+                {run.executionId && getExecutionHref && (
+                  <Link
+                    className="text-xs underline"
+                    href={getExecutionHref(run.executionId)}
+                  >
+                    View execution
+                  </Link>
+                )}
+                {run.threadId && getThreadHref && (
+                  <Link
+                    className="text-xs underline"
+                    href={getThreadHref(run.threadId)}
+                  >
+                    View conversation
+                  </Link>
+                )}
+                {run.threadId && onViewThread && !getThreadHref && (
                   <Button
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.XS}

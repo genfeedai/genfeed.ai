@@ -200,6 +200,27 @@ function summarizeToolResult(result: {
  * Mode-specific emission (thread events vs SSE) and cancellation live in the
  * optional strategy callbacks — see `AgentToolRoundStrategy`.
  */
+export function assertAgentCreditBudget(
+  context: Pick<AgentChatContext, 'creditBudget'>,
+  consumed: number,
+  estimate: number,
+): void {
+  if (context.creditBudget === undefined) return;
+  if (
+    !Number.isFinite(context.creditBudget) ||
+    context.creditBudget <= 0 ||
+    !Number.isFinite(estimate) ||
+    estimate < 0 ||
+    !Number.isFinite(consumed) ||
+    consumed < 0 ||
+    consumed + estimate > context.creditBudget
+  ) {
+    throw new Error(
+      'Agent credit budget exhausted or paid-operation quote unavailable',
+    );
+  }
+}
+
 @Injectable()
 export class AgentTurnRoundRunnerService {
   private readonly constructorName = String(this.constructor.name);
@@ -482,6 +503,12 @@ export class AgentTurnRoundRunnerService {
         continue;
       }
 
+      assertAgentCreditBudget(
+        context,
+        state.totalCreditsUsed,
+        preflightCreditCost,
+      );
+
       if (preflightCreditCost > 0) {
         const canAfford =
           await this.creditsUtilsService.checkOrganizationCreditsAvailable(
@@ -578,10 +605,9 @@ export class AgentTurnRoundRunnerService {
       // orchestrator-billed tools and leave an audit trail.
       const isOrchestratorBilled =
         result.success && creditCost > 0 && !result.isBillingDelegated;
-      const delegatedCredits =
-        result.success && result.isBillingDelegated
-          ? Math.max(0, Math.round(result.creditsUsed ?? 0))
-          : 0;
+      const delegatedCredits = result.isBillingDelegated
+        ? Math.max(0, result.creditsUsed ?? 0)
+        : 0;
 
       if (isOrchestratorBilled) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
@@ -785,9 +811,18 @@ export class AgentTurnRoundRunnerService {
       threadId,
     } = params;
     return {
+      isProactive: params.source === 'proactive',
       apiKeyContext: context.apiKeyContext,
       attachmentUrls,
-      autonomyMode: policy.autonomyMode,
+      autonomyMode: context.autonomyMode ?? policy.autonomyMode,
+      ...(context.creditBudget !== undefined
+        ? {
+            creditBudget: Math.max(
+              0,
+              context.creditBudget - params.state.totalCreditsUsed,
+            ),
+          }
+        : {}),
       brandId: policy.brandId,
       creditGovernance: policy.creditGovernance,
       generationModelOverride: policy.generationModelOverride,

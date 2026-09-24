@@ -39,6 +39,7 @@ import {
 } from '@api/services/agent-threading/services/agent-runtime-session.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
+  AgentAutonomyMode,
   AgentMessageRole,
   AgentThreadMode,
   AgentThreadStatus,
@@ -218,6 +219,24 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
   if (source && !['agent', 'onboarding', 'proactive'].includes(source)) {
     throw new Error(`Unsupported agent request source: ${source}`);
   }
+  const creditBudget = request.creditBudget;
+  if (
+    creditBudget !== undefined &&
+    (typeof creditBudget !== 'number' ||
+      !Number.isFinite(creditBudget) ||
+      creditBudget < 0)
+  ) {
+    throw new Error('request.creditBudget must be finite and nonnegative');
+  }
+  const autonomyMode = request.autonomyMode;
+  if (
+    autonomyMode !== undefined &&
+    !Object.values(AgentAutonomyMode).includes(
+      autonomyMode as AgentAutonomyMode,
+    )
+  ) {
+    throw new Error('request.autonomyMode is unsupported');
+  }
   const generationMode = optionalString(request.generationMode);
   if (generationMode && !['auto', 'image', 'video'].includes(generationMode)) {
     throw new Error(`Unsupported generation mode: ${generationMode}`);
@@ -232,6 +251,12 @@ function projectAgentTurnRequest(value: unknown): AgentTurnWorkflowRequest & {
   return {
     content,
     threadId,
+    ...(creditBudget !== undefined
+      ? { creditBudget: creditBudget as number }
+      : {}),
+    ...(autonomyMode !== undefined
+      ? { autonomyMode: autonomyMode as AgentAutonomyMode }
+      : {}),
     ...(optionalString(request.agentType)
       ? { agentType: optionalString(request.agentType) as AgentType }
       : {}),
@@ -422,7 +447,12 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
   }> {
     const request = projectAgentTurnRequest(value);
     const thread = await this.prisma.agentThread.findFirst({
-      select: { brandId: true, contextVersion: true, status: true },
+      select: {
+        brandId: true,
+        contextVersion: true,
+        status: true,
+        agentStrategyId: true,
+      },
       where: {
         id: request.threadId,
         isDeleted: false,
@@ -435,6 +465,48 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     }
     if (String(thread.status).toLowerCase() === AgentThreadStatus.ARCHIVED) {
       throw new Error(ARCHIVED_THREAD_WRITE_ERROR);
+    }
+    if (
+      request.creditBudget !== undefined ||
+      request.autonomyMode !== undefined ||
+      request.source === 'proactive'
+    ) {
+      const execution = await this.prisma.workflowExecution.findFirst({
+        where: {
+          id: workflowContext.executionId,
+          organizationId: workflowContext.organizationId,
+          isDeleted: false,
+        },
+        select: { result: true },
+      });
+      const metadata = readRecord(readRecord(execution?.result).metadata);
+      const strategy = request.strategyId
+        ? await this.prisma.agentStrategy.findFirst({
+            where: {
+              id: request.strategyId,
+              organizationId: workflowContext.organizationId,
+              isDeleted: false,
+              isActive: true,
+              brandId: thread.brandId,
+              userId: workflowContext.userId,
+            },
+            select: { id: true },
+          })
+        : null;
+      if (
+        !strategy ||
+        !['proactive', 'campaign'].includes(String(metadata.source)) ||
+        metadata.strategyId !== strategy.id ||
+        (metadata.source === 'proactive' &&
+          (request.source !== 'proactive' ||
+            thread.agentStrategyId !== strategy.id))
+      ) {
+        throw new Error(
+          'Agent execution limits require a trusted internal scoped strategy',
+        );
+      }
+      if (request.creditBudget === 0)
+        throw new Error('Agent credit budget is exhausted');
     }
     const state: PreparedAgentTurnState = {
       executionId: workflowContext.executionId,
@@ -504,6 +576,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
         resolved.policy.generationPriority);
     const policy: ResolvedAgentExecutionPolicy = {
       ...resolved.policy,
+      ...(baseContext.autonomyMode
+        ? { autonomyMode: baseContext.autonomyMode }
+        : {}),
       brandId: scope.brandId,
       scope,
     };
@@ -587,7 +662,9 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
         }),
     };
     const handledPlanMode =
-      await this.planModeService.tryHandlePlanModeTurnStream(
+      request.source !== 'proactive' &&
+      request.creditBudget === undefined &&
+      (await this.planModeService.tryHandlePlanModeTurnStream(
         {
           context,
           model,
@@ -600,10 +677,12 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           turnCost,
         },
         host,
-      );
+      ));
     if (!handledPlanMode) {
       const handledDeterministically =
-        (await this.batchService.tryHandleBatchGenerationTurnStream(
+        request.source !== 'proactive' &&
+        request.creditBudget === undefined &&
+        ((await this.batchService.tryHandleBatchGenerationTurnStream(
           {
             context,
             model,
@@ -615,14 +694,16 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
           },
           host,
         )) ||
-        (await this.recurringTaskService.tryHandleRecurringTaskDraftTurnStream({
-          context,
-          model,
-          requestContent: request.content,
-          seedTitle,
-          startedAt,
-          threadId: state.threadId,
-        }));
+          (await this.recurringTaskService.tryHandleRecurringTaskDraftTurnStream(
+            {
+              context,
+              model,
+              requestContent: request.content,
+              seedTitle,
+              startedAt,
+              threadId: state.threadId,
+            },
+          )));
       if (!handledDeterministically) {
         await this.publishTurnPhase(state, 'waiting_for_lane');
         await this.executionLaneService.runExclusive(state.threadId, () =>
@@ -652,6 +733,12 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     return {
       ...(state.request.requestedSkillSlugs?.length
         ? { requestedSkillSlugs: state.request.requestedSkillSlugs }
+        : {}),
+      ...(state.request.creditBudget !== undefined
+        ? { creditBudget: state.request.creditBudget }
+        : {}),
+      ...(state.request.autonomyMode
+        ? { autonomyMode: state.request.autonomyMode }
         : {}),
       executionId: state.executionId,
       executionMode: 'background',
@@ -700,6 +787,11 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
     state: PreparedAgentTurnState,
     context: AgentChatContext,
   ): Promise<AgentTurnWorkflowResult | null> {
+    if (
+      state.request.source === 'proactive' ||
+      state.request.creditBudget !== undefined
+    )
+      return null;
     const generationMode = resolveAgentTurnGenerationMode({
       generationMode: state.request.generationMode,
       prompt: state.request.content,

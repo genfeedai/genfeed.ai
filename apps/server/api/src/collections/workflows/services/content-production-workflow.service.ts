@@ -287,7 +287,7 @@ export class ContentProductionWorkflowService {
         videoItems: [],
       };
     }
-    const prompt = this.buildPromptFromStrategy(persona);
+    const prompt = await this.buildPromptFromStrategy(persona);
     const step = this.buildStepsFromStrategy(persona, prompt)[0];
     if (!step) {
       throw new Error(`Persona ${personaId} has no generation step`);
@@ -379,18 +379,51 @@ export class ContentProductionWorkflowService {
     return { organizationId, released: acquired };
   }
 
-  private buildPromptFromStrategy(persona: PersonaSnapshot): string {
-    const config = (persona.config ?? {}) as PersonaConfig;
-    const strategy = config.contentStrategy;
-    if (!strategy?.topics?.length) {
+  private async buildPromptFromStrategy(
+    persona: PersonaSnapshot,
+  ): Promise<string> {
+    const strategy = persona.config?.contentStrategy;
+    const rows = await this.prisma.contentPerformance.findMany({
+      where: scopedWhere(persona.organizationId, {
+        ...(persona.brandId ? { brandId: persona.brandId } : {}),
+        views: { gt: 0 },
+        post: scopedWhere(persona.organizationId, { personaId: persona.id }),
+      }),
+      orderBy: [{ measuredAt: 'desc' }, { id: 'desc' }],
+      distinct: ['postId'],
+      take: 100,
+    });
+    if (!strategy?.topics?.length)
       return `Create engaging content for ${persona.label}`;
-    }
-
-    const topic =
-      strategy.topics[Math.floor(Math.random() * strategy.topics.length)];
-    const tone = strategy.tone ?? 'engaging';
-
-    return `Create a ${tone} video about: ${topic}`;
+    const ranked = strategy.topics
+      .map((topic, index) => {
+        const measurements = rows.filter((row) => {
+          const data = this.readRecord(row.data);
+          return [data.hookUsed, data.promptUsed].some(
+            (text) =>
+              typeof text === 'string' &&
+              text.toLowerCase().includes(topic.toLowerCase()),
+          );
+        });
+        return {
+          topic,
+          index,
+          samples: measurements.length,
+          score: measurements.length
+            ? measurements.reduce(
+                (sum, row) => sum + (row.performanceScore ?? 0),
+                0,
+              ) / measurements.length
+            : 0,
+        };
+      })
+      .sort((a, b) => b.score - a.score || a.index - b.index);
+    const selected = ranked[0];
+    const feedback =
+      selected.samples > 0
+        ? ` Observed feedback: ${selected.samples} prior posts about this topic averaged ${selected.score.toFixed(2)} performance score.`
+        : ' No measured topic evidence yet.';
+    return `Create a ${strategy.tone ?? 'engaging'} video about: ${selected.topic}.${feedback}`;
   }
 
   private buildStepsFromStrategy(

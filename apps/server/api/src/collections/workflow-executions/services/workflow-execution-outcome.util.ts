@@ -39,11 +39,24 @@ export function suppressInternalEmailOutcomeNotification(
 export function suppressWorkflowOutcomeNotification(
   metadata: unknown,
   isFailed: boolean,
+  executionResult?: unknown,
 ): boolean {
   if (suppressInternalEmailOutcomeNotification(metadata)) {
     return true;
   }
-  return !isFailed && isHiddenSystemWorkflowMetadata(metadata);
+  const result =
+    executionResult && typeof executionResult === 'object'
+      ? (executionResult as Record<string, unknown>)
+      : {};
+  const runtime =
+    result.metadata && typeof result.metadata === 'object'
+      ? (result.metadata as Record<string, unknown>)
+      : {};
+  const proactive =
+    runtime.source === 'proactive' &&
+    runtime.canonicalId === 'agent.turn.execute' &&
+    typeof runtime.strategyId === 'string';
+  return !isFailed && !proactive && isHiddenSystemWorkflowMetadata(metadata);
 }
 
 export function buildWorkflowOutcomeInput(
@@ -52,16 +65,43 @@ export function buildWorkflowOutcomeInput(
   completedAt: Date,
   failure: FormattedAgentError | null,
   error?: string,
+  result?: unknown,
 ): RecordWorkflowOutcomeInput {
+  const root =
+    result && typeof result === 'object'
+      ? (result as Record<string, unknown>)
+      : {};
+  const metadata =
+    root.metadata && typeof root.metadata === 'object'
+      ? (root.metadata as Record<string, unknown>)
+      : {};
+  const isProactive =
+    metadata.source === 'proactive' &&
+    metadata.canonicalId === 'agent.turn.execute' &&
+    typeof metadata.strategyId === 'string';
+  const report =
+    isProactive &&
+    metadata.agentReport &&
+    typeof metadata.agentReport === 'object'
+      ? (metadata.agentReport as Record<string, unknown>)
+      : {};
   return {
     actorUserId: execution.userId,
+    ...(typeof report.summary === 'string' ? { summary: report.summary } : {}),
+    ...(typeof report.sourcePath === 'string'
+      ? { sourcePath: report.sourcePath }
+      : {}),
+    ...(typeof report.strategyId === 'string'
+      ? { strategyId: report.strategyId }
+      : {}),
     failure,
     isAgentRun:
-      isHiddenSystemWorkflowMetadata(execution.workflow.metadata) &&
-      AGENT_CONVERSATION_WORKFLOW_IDS.includes(
-        getSystemWorkflowMetadata(execution.workflow.metadata)?.canonicalId ??
-          '',
-      ),
+      isProactive ||
+      (isHiddenSystemWorkflowMetadata(execution.workflow.metadata) &&
+        AGENT_CONVERSATION_WORKFLOW_IDS.includes(
+          getSystemWorkflowMetadata(execution.workflow.metadata)?.canonicalId ??
+            '',
+        )),
     error: error ?? null,
     executionId,
     occurredAt: completedAt,
@@ -69,7 +109,10 @@ export function buildWorkflowOutcomeInput(
     status: error ? 'failed' : 'completed',
     trigger: execution.trigger,
     workflowId: execution.workflowId,
-    workflowLabel: execution.workflow.label ?? 'Untitled workflow',
+    workflowLabel:
+      typeof report.label === 'string'
+        ? report.label
+        : (execution.workflow.label ?? 'Untitled workflow'),
     workflowOwnerUserId: isHiddenSystemWorkflowMetadata(
       execution.workflow.metadata,
     )

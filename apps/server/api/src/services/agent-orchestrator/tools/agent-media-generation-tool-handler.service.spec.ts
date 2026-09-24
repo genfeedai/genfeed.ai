@@ -968,6 +968,18 @@ describe('AgentMediaGenerationToolHandler generateContentBatch (#2696)', () => {
     });
   });
 
+  it('denies a batch above the remaining agent cap before creating or reserving', async () => {
+    const { handler, batchGenerationService, creditsUtilsService } =
+      createBatchHandler();
+    const result = await handler.generateContentBatch(
+      { count: 3, platforms: ['instagram'] },
+      { ...context, creditBudget: 0 },
+    );
+    expect(result).toMatchObject({ success: false, creditsUsed: 0 });
+    expect(batchGenerationService.createBatch).not.toHaveBeenCalled();
+    expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+  });
+
   it('does not reserve credits when createBatch rejects invalid platforms', async () => {
     const { batchGenerationService, creditsUtilsService, handler } =
       createBatchHandler();

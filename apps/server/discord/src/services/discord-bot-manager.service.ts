@@ -510,6 +510,7 @@ export class DiscordBotManager
       customId: string;
       channelId: string | null;
       user: { id: string };
+      deferReply: (options: { ephemeral: boolean }) => Promise<unknown>;
       deferUpdate: () => Promise<unknown>;
       editReply: (msg: DiscordMessagePayload) => Promise<unknown>;
       reply: (msg: DiscordMessagePayload) => Promise<unknown>;
@@ -518,6 +519,31 @@ export class DiscordBotManager
     orgId: string,
   ): Promise<void> {
     const customId = interaction.customId;
+    const reviewMatch = customId.match(
+      /^agent-review:([a-f0-9]{32}):(approve|reject)$/,
+    );
+    if (reviewMatch && reviewMatch[0] === customId) {
+      await interaction.deferReply({ ephemeral: true });
+      const failureMessage =
+        'This review could not be completed. It may have expired or you may not be authorized. Please review the content in the app.';
+      if (!interaction.channelId || !interaction.user.id) {
+        await interaction.editReply({ content: failureMessage });
+        return;
+      }
+      try {
+        const result = await this.internalApiClient.resolveAgentReportReview({
+          organizationId: orgId,
+          remoteUserId: interaction.user.id,
+          channelId: interaction.channelId,
+          token: reviewMatch[1],
+          decision: reviewMatch[2] === 'approve' ? 'approve' : 'reject',
+        });
+        await interaction.editReply({ content: result.message });
+      } catch {
+        await interaction.editReply({ content: failureMessage });
+      }
+      return;
+    }
 
     if (customId.startsWith('wf:')) {
       const workflowId = customId.slice(3);

@@ -11,6 +11,61 @@ const context: ToolExecutionContext = {
 };
 
 describe('AgentProactiveToolHandler', () => {
+  it('reads latest real analytics scoped to the calling strategy and brand', async () => {
+    const findMany = vi.fn().mockResolvedValue([
+      {
+        postId: 'post-1',
+        platform: 'INSTAGRAM',
+        post: { description: 'Hook' },
+        totalLikes: 8,
+        totalComments: 2,
+        totalShares: 3,
+        totalSaves: 1,
+        totalViews: 200,
+      },
+    ]);
+    const handler = new AgentProactiveToolHandler(
+      {} as never,
+      {} as never,
+      undefined,
+      undefined,
+      undefined,
+      { postAnalytics: { findMany } } as never,
+    );
+    const result = await handler.analyzePerformance(
+      { days: 7 },
+      { ...context, strategyId: 'agent-1' },
+    );
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        distinct: ['postId'],
+        where: expect.objectContaining({
+          organizationId: 'org-1',
+          isDeleted: false,
+          post: expect.objectContaining({
+            organizationId: 'org-1',
+            brandId: 'brand-1',
+            agentStrategyId: 'agent-1',
+            isDeleted: false,
+          }),
+        }),
+      }),
+    );
+    expect(result).toMatchObject({
+      success: true,
+      data: {
+        totalPosts: 1,
+        topPerformers: [
+          { id: 'post-1', engagement: 14, views: 200, platform: 'instagram' },
+        ],
+      },
+    });
+    await expect(
+      handler.analyzePerformance({ days: -1 }, context),
+    ).resolves.toMatchObject({ success: false });
+    expect(findMany).toHaveBeenCalledTimes(1);
+  });
+
   it('resolves TwitterService lazily for X engagement discovery', async () => {
     const twitterService = {
       searchRecentTweets: vi.fn().mockResolvedValue([

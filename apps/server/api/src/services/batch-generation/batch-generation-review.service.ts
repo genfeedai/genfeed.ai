@@ -3,7 +3,10 @@ import {
   PostLifecycleService,
   scopedWhere,
 } from '@api/index';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { recordAgentReviewOutcome } from '@api/services/notifications/workflow-notifications/workflow-notification-outbox.service';
 import {
+  AgentPublishDecision,
   BatchItemStatus,
   BatchStatus,
   PersistedReviewDecision,
@@ -15,7 +18,7 @@ import type {
   IPublishApproval,
   VideoContinuityQaReport,
 } from '@genfeedai/contracts/interfaces';
-import type { Prisma } from '@genfeedai/prisma';
+import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
@@ -27,6 +30,8 @@ type ApproveBatchItemsContext = {
   itemIdSet: Set<string>;
   orgId: string;
   reviewedAt: string;
+  autonomous: boolean;
+  expectedPostVersions?: Record<string, string>;
   selectedPostIds: string[];
 };
 
@@ -60,6 +65,7 @@ export class BatchGenerationReviewService {
     private readonly postLifecycleService: PostLifecycleService,
     private readonly publishApprovalsService: PublishApprovalsService,
     private readonly summaryService: BatchGenerationSummaryService,
+    private readonly autonomousPublishPolicy: AutonomousPublishPolicyService,
     @Optional()
     private readonly harnessReviewFeedbackService?: HarnessReviewFeedbackService,
   ) {}
@@ -200,33 +206,29 @@ export class BatchGenerationReviewService {
     itemIds: string[],
     orgId: string,
     createdByUserId: string,
+    autonomous = false,
+    expectedPostVersions?: Record<string, string>,
   ): Promise<IBatchSummary> {
-    const batchRecord = await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
+    const updatedBatch = await this.withLockedBatch(
       batchId,
-    );
-
-    const itemIdSet = new Set(itemIds);
-    const reviewedAt = new Date().toISOString();
-
-    const batchItems = resolveBatchItems(batchRecord);
-    const selectedPostIds = this.getSelectedPostIds(batchItems, itemIdSet);
-    const updatedBatch = await this.prisma.$transaction((transaction) =>
-      this.approveItemsInTransaction(transaction, {
-        batchId,
-        batchItems,
-        batchRecord: toBatchWithConfig(batchRecord),
-        createdByUserId,
-        itemIdSet,
-        orgId,
-        reviewedAt,
-        selectedPostIds,
-      }),
+      orgId,
+      async (transaction, batchRecord) => {
+        const batchItems = resolveBatchItems(batchRecord);
+        const itemIdSet = new Set(itemIds);
+        this.assertExpectedPostSet(batchItems, itemIds, expectedPostVersions);
+        return this.approveItemsInTransaction(transaction, {
+          batchId,
+          batchItems,
+          batchRecord,
+          createdByUserId,
+          itemIdSet,
+          orgId,
+          autonomous,
+          expectedPostVersions,
+          reviewedAt: new Date().toISOString(),
+          selectedPostIds: this.getSelectedPostIds(batchItems, itemIdSet),
+        });
+      },
     );
 
     this.logger.log(`Approved ${itemIds.length} items in batch ${batchId}`, {
@@ -250,12 +252,54 @@ export class BatchGenerationReviewService {
       orgId,
       reviewedAt,
       selectedPostIds,
+      autonomous,
+      expectedPostVersions,
     } = params;
     const versionPinIds = new Map<string, string>();
     const publishApprovals = new Map<string, IPublishApproval>();
 
     for (const postId of selectedPostIds) {
       const item = batchItems.find((candidate) => candidate.postId === postId);
+      const post = await transaction.post.findFirst({
+        where: scopedWhere(orgId, {
+          id: postId,
+          targetExecutionState: TargetExecutionState.DRAFT,
+        }),
+      });
+      if (!post)
+        throw new BadRequestException('Only a current draft can be approved');
+      this.assertExpectedPostVersion(
+        post.id,
+        post.updatedAt,
+        expectedPostVersions,
+      );
+      if (autonomous) {
+        const policy = await this.autonomousPublishPolicy.resolveForPost(
+          { organizationId: orgId, postId },
+          transaction,
+        );
+        if (
+          policy.result.decision !== AgentPublishDecision.PERMITTED ||
+          !item?.scheduledDate ||
+          !post.credentialId
+        )
+          throw new BadRequestException(
+            'Autonomous publication requires explicit policy, destination and schedule',
+          );
+      }
+      if (item && !autonomous)
+        await this.autonomousPublishPolicy.recordReviewDecision(
+          {
+            organizationId: orgId,
+            postId,
+            userId: createdByUserId,
+            decision: ReviewDecision.APPROVED,
+            previousDecision: item.reviewDecision,
+            generatedCaption: item.caption,
+            hasRewriteHistory: Boolean(item.reviewEvents?.length),
+          },
+          transaction,
+        );
       if (item?.scheduledDate) {
         const approval =
           await this.publishApprovalsService.createForCurrentPost({
@@ -292,7 +336,11 @@ export class BatchGenerationReviewService {
     const postIdsToSchedule: string[] = [];
 
     for (const item of batchItems) {
-      if (itemIdSet.has(item.id) && item.status === BatchItemStatus.COMPLETED) {
+      if (
+        itemIdSet.has(item.id) &&
+        item.status === BatchItemStatus.COMPLETED &&
+        item.reviewDecision !== ReviewDecision.APPROVED
+      ) {
         const versionPinId = item.postId
           ? versionPinIds.get(item.postId)
           : undefined;
@@ -441,6 +489,7 @@ export class BatchGenerationReviewService {
             (item) =>
               itemIdSet.has(item.id) &&
               item.status === BatchItemStatus.COMPLETED &&
+              item.reviewDecision !== ReviewDecision.APPROVED &&
               Boolean(item.postId),
           )
           .flatMap((item) => (item.postId ? [item.postId] : [])),
@@ -491,109 +540,17 @@ export class BatchGenerationReviewService {
     orgId: string,
     feedback?: string,
     actorUserId?: string,
+    expectedPostVersions?: Record<string, string>,
   ): Promise<IBatchSummary> {
-    const batchRecord = await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
+    return this.reviewNegative(
       batchId,
-    );
-
-    const itemIdSet = new Set(itemIds);
-    const postIdsToReject: string[] = [];
-    const reviewedAt = new Date().toISOString();
-
-    const batchItems = resolveBatchItems(batchRecord);
-    const rejectedItems: BatchItemFull[] = [];
-
-    for (const item of batchItems) {
-      if (itemIdSet.has(item.id)) {
-        item.status = BatchItemStatus.SKIPPED;
-        item.reviewDecision = ReviewDecision.REJECTED;
-        item.reviewFeedback = feedback;
-        item.reviewedAt = reviewedAt;
-        item.reviewEvents = [
-          ...(item.reviewEvents ?? []),
-          {
-            decision: ReviewDecision.REJECTED,
-            feedback,
-            reviewedAt,
-            ...(actorUserId ? { reviewerId: actorUserId } : {}),
-          },
-        ];
-        if (item.postId) {
-          postIdsToReject.push(item.postId);
-        }
-        rejectedItems.push(item);
-      }
-    }
-
-    this.recordHarnessReviewFeedback(
-      rejectedItems,
-      ReviewDecision.REJECTED,
+      itemIds,
       orgId,
-      batchRecord.brandId ?? undefined,
+      ReviewDecision.REJECTED,
       feedback,
+      actorUserId,
+      expectedPostVersions,
     );
-
-    if (postIdsToReject.length > 0) {
-      for (const postId of postIdsToReject) {
-        await this.postLifecycleService.transition({
-          actorId: actorUserId,
-          mutation: {
-            isDeleted: true,
-            reviewDecision: PersistedReviewDecision.REJECTED,
-            reviewedAt: new Date(reviewedAt),
-            reviewFeedback: feedback,
-          },
-          nextState: TargetExecutionState.CANCELLED,
-          organizationId: orgId,
-          postId,
-          reason: feedback || 'Review item rejected',
-        });
-      }
-      await Promise.all(
-        postIdsToReject.map((postId) =>
-          this.publishApprovalsService.invalidatePost(
-            orgId,
-            postId,
-            'The review item was rejected.',
-            actorUserId,
-          ),
-        ),
-      );
-    }
-
-    const batchUpdate = await writeBatchJsonAndItemRows(this.prisma, {
-      batchId,
-      brandId: batchRecord.brandId,
-      items: batchItems,
-      organizationId: orgId,
-    });
-    if (batchUpdate.count !== 1) {
-      throw new NotFoundException('Batch', batchId);
-    }
-    const updatedBatch = toBatchWithConfig(
-      await findOrThrow(
-        this.prisma.batch,
-        {
-          include: batchItemRowsInclude(orgId),
-          where: scopedWhere(orgId, { id: batchId }),
-        },
-        'Batch',
-        batchId,
-      ),
-    );
-
-    this.logger.log(`Rejected ${itemIds.length} items in batch ${batchId}`, {
-      batchId,
-      itemCount: itemIds.length,
-    });
-
-    return this.summaryService.toBatchSummary(updatedBatch);
   }
 
   async requestChanges(
@@ -602,110 +559,293 @@ export class BatchGenerationReviewService {
     orgId: string,
     feedback?: string,
     actorUserId?: string,
+    expectedPostVersions?: Record<string, string>,
   ): Promise<IBatchSummary> {
-    const batchRecord = await findOrThrow(
-      this.prisma.batch,
-      {
-        include: batchItemRowsInclude(orgId),
-        where: scopedWhere(orgId, { id: batchId }),
-      },
-      'Batch',
+    return this.reviewNegative(
       batchId,
+      itemIds,
+      orgId,
+      ReviewDecision.REQUEST_CHANGES,
+      feedback,
+      actorUserId,
+      expectedPostVersions,
     );
+  }
 
-    const itemIdSet = new Set(itemIds);
-    const postIdsToKeepAsDraft: string[] = [];
-    const reviewedAt = new Date().toISOString();
+  private async reviewNegative(
+    batchId: string,
+    itemIds: string[],
+    orgId: string,
+    decision:
+      | typeof ReviewDecision.REJECTED
+      | typeof ReviewDecision.REQUEST_CHANGES,
+    feedback?: string,
+    actorUserId?: string,
+    expectedPostVersions?: Record<string, string>,
+  ): Promise<IBatchSummary> {
+    const changed: BatchItemFull[] = [];
+    const updated = await this.withLockedBatch(
+      batchId,
+      orgId,
+      async (transaction, batch) => {
+        const items = resolveBatchItems(batch);
+        this.assertExpectedPostSet(items, itemIds, expectedPostVersions);
+        const reviewedAt = new Date().toISOString();
+        for (const item of items) {
+          if (
+            !itemIds.includes(item.id) ||
+            item.status !== BatchItemStatus.COMPLETED ||
+            item.reviewDecision === decision
+          )
+            continue;
+          if (item.postId) {
+            const post = await transaction.post.findFirst({
+              where: scopedWhere(orgId, { id: item.postId }),
+            });
+            if (
+              !post ||
+              post.targetExecutionState === TargetExecutionState.CANCELLED
+            )
+              continue;
+            this.assertExpectedPostVersion(
+              post.id,
+              post.updatedAt,
+              expectedPostVersions,
+            );
+            await this.autonomousPublishPolicy.recordReviewDecision(
+              {
+                organizationId: orgId,
+                postId: item.postId,
+                userId: actorUserId ?? batch.userId,
+                decision,
+                previousDecision: item.reviewDecision,
+                generatedCaption: item.caption,
+                hasRewriteHistory: Boolean(item.reviewEvents?.length),
+              },
+              transaction,
+            );
+            await this.publishApprovalsService.invalidatePost(
+              orgId,
+              item.postId,
+              feedback ?? 'Review declined publication',
+              actorUserId,
+              transaction,
+            );
+            await this.postLifecycleService.transition(
+              {
+                actorId: actorUserId,
+                organizationId: orgId,
+                postId: item.postId,
+                nextState:
+                  decision === ReviewDecision.REJECTED
+                    ? TargetExecutionState.CANCELLED
+                    : TargetExecutionState.DRAFT,
+                mutation: {
+                  isDeleted: decision === ReviewDecision.REJECTED,
+                  reviewDecision:
+                    decision === ReviewDecision.REJECTED
+                      ? PersistedReviewDecision.REJECTED
+                      : PersistedReviewDecision.REQUEST_CHANGES,
+                  reviewedAt: new Date(reviewedAt),
+                  reviewFeedback: feedback,
+                },
+                reason: feedback ?? 'Review declined publication',
+              },
+              transaction,
+            );
+          }
+          if (decision === ReviewDecision.REJECTED)
+            item.status = BatchItemStatus.SKIPPED;
+          item.reviewDecision = decision;
+          item.reviewFeedback = feedback;
+          item.reviewedAt = reviewedAt;
+          item.reviewEvents = [
+            ...(item.reviewEvents ?? []),
+            {
+              decision,
+              feedback,
+              reviewedAt,
+              ...(actorUserId ? { reviewerId: actorUserId } : {}),
+            },
+          ];
+          changed.push(item);
+        }
+        await writeBatchJsonAndItemRows(transaction, {
+          batchId,
+          brandId: batch.brandId,
+          items,
+          organizationId: orgId,
+        });
+        Object.assign(batch, { items, batchItems: undefined });
+        return batch;
+      },
+    );
+    this.recordHarnessReviewFeedback(
+      changed,
+      decision,
+      orgId,
+      updated.brandId ?? undefined,
+      feedback,
+    );
+    return this.summaryService.toBatchSummary(updated);
+  }
 
-    const batchItems = resolveBatchItems(batchRecord);
-    const changesRequestedItems: BatchItemFull[] = [];
-
-    for (const item of batchItems) {
-      if (itemIdSet.has(item.id) && item.status === BatchItemStatus.COMPLETED) {
-        item.reviewDecision = ReviewDecision.REQUEST_CHANGES;
-        item.reviewFeedback = feedback;
-        item.reviewedAt = reviewedAt;
+  async expireAutonomousReviewBatch(
+    batchId: string,
+    orgId: string,
+    now = new Date(),
+  ): Promise<string[]> {
+    return this.withLockedBatch(batchId, orgId, async (transaction, batch) => {
+      const items = resolveBatchItems(batch);
+      const expired: string[] = [];
+      for (const item of items) {
+        if (
+          !item.postId ||
+          item.status !== BatchItemStatus.COMPLETED ||
+          (item.reviewDecision && item.reviewDecision !== ReviewDecision.UNSET)
+        )
+          continue;
+        const post = await transaction.post.findFirst({
+          where: scopedWhere(orgId, {
+            id: item.postId,
+            targetExecutionState: TargetExecutionState.DRAFT,
+            reviewDecision: null,
+          }),
+        });
+        if (!post || (!post.agentStrategyId && !post.personaId)) continue;
+        const policy = await this.autonomousPublishPolicy.resolveForPost(
+          { organizationId: orgId, postId: post.id },
+          transaction,
+        );
+        if (
+          now.getTime() - post.createdAt.getTime() <
+          policy.reviewTimeoutHours * 3_600_000
+        )
+          continue;
+        const reason = 'Autonomous draft expired while awaiting human review';
+        await this.publishApprovalsService.invalidatePost(
+          orgId,
+          post.id,
+          reason,
+          undefined,
+          transaction,
+        );
+        await this.postLifecycleService.transition(
+          {
+            organizationId: orgId,
+            postId: post.id,
+            nextState: TargetExecutionState.CANCELLED,
+            mutation: { isDeleted: true, reviewFeedback: reason },
+            reason,
+          },
+          transaction,
+        );
+        item.status = BatchItemStatus.SKIPPED;
+        item.reviewDecision = ReviewDecision.REJECTED;
+        item.reviewFeedback = reason;
+        item.reviewedAt = now.toISOString();
         item.reviewEvents = [
           ...(item.reviewEvents ?? []),
           {
-            decision: ReviewDecision.REQUEST_CHANGES,
-            feedback,
-            reviewedAt,
-            ...(actorUserId ? { reviewerId: actorUserId } : {}),
+            decision: ReviewDecision.REJECTED,
+            feedback: reason,
+            reviewedAt: now.toISOString(),
           },
         ];
-        if (item.postId) {
-          postIdsToKeepAsDraft.push(item.postId);
+        if (post.agentStrategyId && post.brandId && post.platform) {
+          await recordAgentReviewOutcome(transaction, {
+            organizationId: orgId,
+            brandId: post.brandId,
+            strategyId: post.agentStrategyId,
+            platform: post.platform,
+            postId: post.id,
+            userId: batch.userId,
+            decisionId: `expired:${post.id}:${post.createdAt.toISOString()}`,
+            autoPublishEnabled: false,
+            approvalStreak: 0,
+            expired: true,
+            occurredAt: now,
+          });
         }
-        changesRequestedItems.push(item);
+        expired.push(post.id);
       }
-    }
-
-    this.recordHarnessReviewFeedback(
-      changesRequestedItems,
-      ReviewDecision.REQUEST_CHANGES,
-      orgId,
-      batchRecord.brandId ?? undefined,
-      feedback,
-    );
-
-    if (postIdsToKeepAsDraft.length > 0) {
-      for (const postId of postIdsToKeepAsDraft) {
-        await this.postLifecycleService.transition({
-          actorId: actorUserId,
-          mutation: {
-            reviewDecision: PersistedReviewDecision.REQUEST_CHANGES,
-            reviewedAt: new Date(reviewedAt),
-            reviewFeedback: feedback,
-          },
-          nextState: TargetExecutionState.DRAFT,
+      if (expired.length)
+        await writeBatchJsonAndItemRows(transaction, {
+          batchId,
+          brandId: batch.brandId,
+          items,
           organizationId: orgId,
-          postId,
-          reason: feedback || 'Changes requested during review',
         });
-      }
-      await Promise.all(
-        postIdsToKeepAsDraft.map((postId) =>
-          this.publishApprovalsService.invalidatePost(
-            orgId,
-            postId,
-            'Changes were requested for the approved version.',
-            actorUserId,
-          ),
-        ),
+      return expired;
+    });
+  }
+
+  private assertExpectedPostSet(
+    items: BatchItemFull[],
+    itemIds: string[],
+    expected?: Record<string, string>,
+  ): void {
+    if (!expected) return;
+    const selected = items.filter((item) => itemIds.includes(item.id));
+    if (
+      selected.length !== new Set(itemIds).size ||
+      selected.some(
+        (item) => !item.postId || !Object.hasOwn(expected, item.postId),
+      )
+    ) {
+      throw new BadRequestException(
+        'This review action no longer refers to the expected draft',
       );
     }
+  }
 
-    const batchUpdate = await writeBatchJsonAndItemRows(this.prisma, {
-      batchId,
-      brandId: batchRecord.brandId,
-      items: batchItems,
-      organizationId: orgId,
-    });
-    if (batchUpdate.count !== 1) {
-      throw new NotFoundException('Batch', batchId);
+  private assertExpectedPostVersion(
+    postId: string,
+    updatedAt: Date,
+    expected?: Record<string, string>,
+  ): void {
+    if (
+      expected &&
+      (!Object.hasOwn(expected, postId) ||
+        updatedAt.toISOString() !== expected[postId])
+    ) {
+      throw new BadRequestException(
+        'This review action refers to an older draft version',
+      );
     }
-    const updatedBatch = toBatchWithConfig(
-      await findOrThrow(
-        this.prisma.batch,
-        {
-          include: batchItemRowsInclude(orgId),
-          where: scopedWhere(orgId, { id: batchId }),
-        },
-        'Batch',
-        batchId,
-      ),
-    );
+  }
 
-    this.logger.log(
-      `Requested changes for ${itemIds.length} items in batch ${batchId}`,
-      {
-        batchId,
-        itemCount: itemIds.length,
-      },
-    );
+  private async withLockedBatch<T>(
+    batchId: string,
+    orgId: string,
+    operation: (
+      transaction: Prisma.TransactionClient,
+      batch: BatchWithConfig,
+    ) => Promise<T>,
+  ): Promise<T> {
+    return this.prisma.$transaction(async (transaction) => {
+      await transaction.$queryRaw(
+        Prisma.sql`SELECT "id" FROM "batches" WHERE "id" = ${batchId} AND "organizationId" = ${orgId} AND "isDeleted" = false FOR UPDATE`,
+      );
+      const batch = await transaction.batch.findFirst({
+        include: batchItemRowsInclude(orgId),
+        where: scopedWhere(orgId, { id: batchId }),
+      });
+      if (!batch) throw new NotFoundException('Batch', batchId);
+      const postIds = [
+        ...new Set(
+          resolveBatchItems(batch).flatMap((item) =>
+            item.postId ? [item.postId] : [],
+          ),
+        ),
+      ].sort();
+      if (postIds.length)
+        await transaction.$queryRaw(
+          Prisma.sql`SELECT "id" FROM "posts" WHERE "id" IN (${Prisma.join(postIds)}) AND "organizationId" = ${orgId} AND "isDeleted" = false ORDER BY "id" FOR UPDATE`,
+        );
 
-    return this.summaryService.toBatchSummary(updatedBatch);
+      return operation(transaction, toBatchWithConfig(batch));
+    });
   }
 
   async assignItem(

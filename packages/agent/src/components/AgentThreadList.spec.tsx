@@ -256,6 +256,24 @@ function createDeferred<T>(): {
 }
 
 describe('AgentThreadList', () => {
+  it('identifies only proactive conversations with the Agent badge', async () => {
+    const apiService = createApiService({
+      getThreads: vi
+        .fn()
+        .mockResolvedValue([
+          createThread('proactive-1', 'Daily content', { source: 'proactive' }),
+          createThread('interactive-1', 'A conversation', { source: 'agent' }),
+        ]),
+    });
+    render(<AgentThreadList apiService={apiService as never} />);
+    await screen.findByText('Daily content');
+    expect(screen.getAllByText('Agent')).toHaveLength(1);
+    expect(screen.getByText('Agent').closest('a')).toHaveAttribute(
+      'href',
+      '/agent/proactive-1',
+    );
+  });
+
   beforeEach(() => {
     prefetchRoute.mockReset();
     storeState.activeRunId = null;

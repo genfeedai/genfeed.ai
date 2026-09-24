@@ -162,3 +162,79 @@ describe('IntegrationsService', () => {
     });
   });
 });
+
+describe('agent report binding consent', () => {
+  const binding = {
+    enabled: true,
+    brandId: 'brand',
+    userId: 'owner',
+    remoteUserId: 'remote',
+    channelId: 'chat',
+  };
+  function setup() {
+    const prisma = {
+      member: {
+        findFirst: vi.fn().mockResolvedValue({ role: { key: 'owner' } }),
+      },
+      brand: { findFirst: vi.fn().mockResolvedValue({ id: 'brand' }) },
+      orgIntegration: {
+        findFirst: vi.fn().mockResolvedValue(null),
+        create: vi.fn().mockResolvedValue({
+          platform: 'TELEGRAM',
+          status: 'ACTIVE',
+          id: 'integration',
+        }),
+      },
+    };
+    const service = new IntegrationsService(
+      prisma as never,
+      { emit: vi.fn() } as never,
+      { encrypt: vi.fn().mockReturnValue('encrypted') } as never,
+    );
+    const dto = {
+      platform: IntegrationPlatform.TELEGRAM,
+      botToken: 'token',
+      config: { agentReportBindings: [binding] },
+    };
+    return { service, prisma, dto };
+  }
+  it('rejects configuration without an authenticated consenting user or for another user', async () => {
+    const f = setup();
+    await expect(f.service.create('org', f.dto)).rejects.toThrow(
+      'consenting user',
+    );
+    await expect(
+      f.service.create('org', f.dto, 'someone-else'),
+    ).rejects.toThrow('consenting user');
+    expect(f.prisma.orgIntegration.create).not.toHaveBeenCalled();
+  });
+  it('rejects nonadministrators and foreign brands', async () => {
+    const f = setup();
+    f.prisma.member.findFirst.mockResolvedValue({ role: { key: 'member' } });
+    await expect(f.service.create('org', f.dto, 'owner')).rejects.toThrow(
+      'owner or administrator',
+    );
+    f.prisma.member.findFirst.mockResolvedValue({ role: { key: 'owner' } });
+    f.prisma.brand.findFirst.mockResolvedValue(null);
+    await expect(f.service.create('org', f.dto, 'owner')).rejects.toThrow(
+      'brand is unavailable',
+    );
+    expect(f.prisma.orgIntegration.create).not.toHaveBeenCalled();
+  });
+  it('persists an explicit self-binding after tenant and role checks', async () => {
+    const f = setup();
+    await f.service.create('org', f.dto, 'owner');
+    expect(f.prisma.orgIntegration.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          organizationId: 'org',
+          config: f.dto.config,
+        }),
+      }),
+    );
+    expect(f.prisma.brand.findFirst).toHaveBeenCalledWith({
+      where: { organizationId: 'org', isDeleted: false, id: 'brand' },
+      select: { id: true },
+    });
+  });
+});

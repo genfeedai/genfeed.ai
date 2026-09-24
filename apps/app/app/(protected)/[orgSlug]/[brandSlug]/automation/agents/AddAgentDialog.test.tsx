@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AddAgentDialog from './AddAgentDialog';
 
 const mocks = vi.hoisted(() => ({
+  openAgentComposer: vi.fn(),
   onCreated: vi.fn(),
   onOpenChange: vi.fn(),
 }));
@@ -51,18 +52,26 @@ vi.mock('../hire/ContentTeamHirePage', () => ({
   ),
 }));
 
-vi.mock('./new/AgentWizardPage', () => ({
-  default: ({ onCreated }: { onCreated: () => Promise<void> }) => (
-    <div>
-      <p>Custom agent panel</p>
-      <button type="button" onClick={() => onCreated()}>
-        Create custom agent
-      </button>
-    </div>
-  ),
+vi.mock('@/hooks/use-open-agent-composer', () => ({
+  useOpenAgentComposer: () => mocks.openAgentComposer,
 }));
 
 describe('AddAgentDialog', () => {
+  it('preserves marketplace creation and roster refresh', async () => {
+    render(
+      <AddAgentDialog
+        isOpen
+        onCreated={mocks.onCreated}
+        onOpenChange={mocks.onOpenChange}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Create library agent' }),
+    );
+    await waitFor(() => expect(mocks.onCreated).toHaveBeenCalledOnce());
+    expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
+    expect(mocks.openAgentComposer).not.toHaveBeenCalled();
+  });
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.onCreated.mockResolvedValue(undefined);
@@ -87,10 +96,12 @@ describe('AddAgentDialog', () => {
     expect(screen.getByTestId('dialog-content')).not.toHaveClass('max-w-5xl');
     // Radix tabs activate on pointer down, not click.
     fireEvent.mouseDown(screen.getByRole('tab', { name: 'Custom' }));
-    expect(screen.getByText('Custom agent panel')).toBeVisible();
+    expect(
+      screen.getByRole('button', { name: 'Hire with agent' }),
+    ).toBeVisible();
   });
 
-  it('refreshes the roster and closes after creating an agent', async () => {
+  it('opens the composer with an approval-first recurring-content prompt and closes', async () => {
     render(
       <AddAgentDialog
         initialMode="custom"
@@ -100,12 +111,13 @@ describe('AddAgentDialog', () => {
       />,
     );
 
-    fireEvent.click(
-      screen.getByRole('button', { name: 'Create custom agent' }),
-    );
+    fireEvent.click(screen.getByRole('button', { name: 'Hire with agent' }));
 
     await waitFor(() => {
-      expect(mocks.onCreated).toHaveBeenCalledOnce();
+      expect(mocks.openAgentComposer).toHaveBeenCalledWith(
+        'Help me hire an agent to create recurring content for this brand. Ask for my platforms, topics, voice, cadence, and credit budget, then show the recurring task for approval.',
+      );
+      expect(mocks.onCreated).not.toHaveBeenCalled();
       expect(mocks.onOpenChange).toHaveBeenCalledWith(false);
     });
   });

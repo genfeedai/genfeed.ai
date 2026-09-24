@@ -213,7 +213,15 @@ export class NotificationInboxService {
         },
       ],
     } satisfies Prisma.WorkflowWhereInput & Prisma.AgentThreadWhereInput;
-    const runIds = [...new Set(page.map((row) => row.event.sourceId))];
+    const runIds = [
+      ...new Set(
+        page
+          .filter((row) =>
+            ['agent_run', 'workflow_execution'].includes(row.event.sourceType),
+          )
+          .map((row) => row.event.sourceId),
+      ),
+    ];
     const executions = await this.prisma.workflowExecution.findMany({
       where: {
         organizationId,
@@ -286,6 +294,7 @@ export class NotificationInboxService {
           select: {
             id: true,
             title: true,
+            agentStrategyId: true,
             brand: { select: { slug: true } },
           },
         },
@@ -301,34 +310,90 @@ export class NotificationInboxService {
       threads.set(runId, event.thread);
     }
 
+    const strategyIdFromPayload = (
+      row: (typeof page)[number],
+    ): string | undefined => {
+      const payload = row.event.payload;
+      return row.topic === 'agent.status' &&
+        ['agent_run', 'agent_strategy'].includes(row.event.sourceType) &&
+        payload &&
+        typeof payload === 'object' &&
+        !Array.isArray(payload) &&
+        typeof payload.strategyId === 'string' &&
+        (row.event.sourceType !== 'agent_strategy' ||
+          payload.strategyId === row.event.sourceId)
+        ? payload.strategyId
+        : undefined;
+    };
+    const strategyIds = [
+      ...new Set(
+        [
+          ...page.map(strategyIdFromPayload),
+          ...[...threads.values()].map((thread) => thread.agentStrategyId),
+        ].filter((id): id is string => typeof id === 'string' && id.length > 0),
+      ),
+    ];
+    const reviewStrategyIds = page
+      .filter(
+        (row) =>
+          row.topic === 'agent.status' &&
+          row.event.sourceType === 'agent_strategy',
+      )
+      .map(strategyIdFromPayload)
+      .filter((id): id is string => Boolean(id));
+    const strategies = strategyIds.length
+      ? await this.prisma.agentStrategy.findMany({
+          where: {
+            ...sourceAccessWhere,
+            userId: undefined,
+            id: { in: strategyIds },
+            AND: [{ OR: [{ userId }, { id: { in: reviewStrategyIds } }] }],
+          },
+          select: { id: true, label: true, brand: { select: { slug: true } } },
+        })
+      : [];
+    const accessibleStrategies = new Map(
+      strategies.map((strategy) => [strategy.id, strategy]),
+    );
+
     const docs = page.map((row) => {
       const source = sources.get(row.event.sourceId);
       const thread = threads.get(row.event.sourceId);
+      const strategyId = thread?.agentStrategyId ?? strategyIdFromPayload(row);
+      const strategy = strategyId
+        ? accessibleStrategies.get(strategyId)
+        : undefined;
       const ingredient = source?.ingredients?.[0];
       const isVisibleWorkflow =
         Boolean(source?.workflow.brand) &&
         !hasSystemWorkflowMetadata(source?.workflow.metadata ?? null);
-      const path = ingredient
-        ? createLibraryAssetRoute(ingredient.category, ingredient.id)
-        : thread
-          ? `${APP_ROUTES.AGENT.ROOT}/${encodeURIComponent(thread.id)}`
-          : isVisibleWorkflow && source
-            ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(source.workflowId)}?execution=${encodeURIComponent(source.id)}`
-            : APP_ROUTES.WORKSPACE.ACTIVITY;
-      const brandSlug =
-        ingredient?.brand?.slug ??
-        thread?.brand?.slug ??
-        source?.workflow.brand?.slug;
+      const path = strategy
+        ? `${APP_ROUTES.AUTOMATION.AGENTS}/${encodeURIComponent(strategy.id)}`
+        : ingredient
+          ? createLibraryAssetRoute(ingredient.category, ingredient.id)
+          : thread
+            ? `${APP_ROUTES.AGENT.ROOT}/${encodeURIComponent(thread.id)}`
+            : isVisibleWorkflow && source
+              ? `${APP_ROUTES.AUTOMATION.WORKFLOWS}/${encodeURIComponent(source.workflowId)}?execution=${encodeURIComponent(source.id)}`
+              : APP_ROUTES.WORKSPACE.ACTIVITY;
+      const brandSlug = strategy
+        ? strategy.brand?.slug
+        : (ingredient?.brand?.slug ??
+          thread?.brand?.slug ??
+          source?.workflow.brand?.slug);
       return {
         id: row.id,
         topic: row.topic,
         occurredAt: row.occurredAt,
         readAt: row.readAt,
-        outcome: row.event.eventKey.endsWith('.completed')
-          ? 'completed'
-          : 'failed',
+        outcome:
+          row.event.eventKey.endsWith('.completed') ||
+          row.event.eventKey === 'agent.review.changed'
+            ? 'completed'
+            : 'failed',
         sourceHref: inboxSourceHref(member.organization.slug, brandSlug, path),
         sourceLabel:
+          strategy?.label?.slice(0, 300) ??
           thread?.title?.slice(0, 300) ??
           (isVisibleWorkflow
             ? (source?.workflow.label?.slice(0, 300) ?? null)

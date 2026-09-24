@@ -201,8 +201,9 @@ const ROUTE_CONTEXT_MAP: Record<string, PageContextConfig> = {
         icon: createElement(Settings, {
           className: 'size-5 text-foreground/50',
         }),
-        label: 'Autopilot',
-        prompt: 'Help me set up my proactive agent strategy',
+        label: 'Agents',
+        prompt:
+          'Help me hire an agent to create recurring content for this brand',
         visibleTo: ['owner', 'admin'] as MemberRole[],
       },
       {

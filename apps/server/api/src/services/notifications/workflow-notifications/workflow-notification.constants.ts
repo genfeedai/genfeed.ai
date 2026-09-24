@@ -17,6 +17,9 @@ export const NOTIFICATION_DELIVERY_STATUS = {
 export type WorkflowOutcome = 'completed' | 'failed';
 
 export interface WorkflowStatusNotificationPayload {
+  summary?: string;
+  sourcePath?: string;
+  strategyId?: string;
   failure?: FormattedAgentError | null;
   version: 1;
   executionId: string;
@@ -25,4 +28,38 @@ export interface WorkflowStatusNotificationPayload {
   status: WorkflowOutcome;
   error: string | null;
   trigger: string | null;
+}
+
+export function readNotificationSourcePath(value: unknown): string | undefined {
+  if (
+    typeof value !== 'string' ||
+    value.length > 2000 ||
+    !/^\/[^/]/.test(value) ||
+    [...value].some(
+      (character) => character.charCodeAt(0) <= 32 || character === '\\',
+    )
+  )
+    return undefined;
+  try {
+    const url = new URL(value, 'https://notification.invalid');
+    return url.origin === 'https://notification.invalid'
+      ? `${url.pathname}${url.search}${url.hash}`
+      : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export interface AgentReviewNotificationPayload {
+  version: 1;
+  kind: 'agent_review';
+  strategyId: string;
+  strategyLabel: string;
+  postId: string;
+  platform: string;
+  autoPublishEnabled: boolean;
+  approvalStreak: number;
+  expired: boolean;
+  summary: string;
+  sourcePath?: string;
 }

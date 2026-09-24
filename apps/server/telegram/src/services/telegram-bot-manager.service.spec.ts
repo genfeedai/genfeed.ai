@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { resolveReview } = vi.hoisted(() => ({ resolveReview: vi.fn() }));
+
 vi.mock('grammy', () => {
   const mockBot = {
     catch: vi.fn(),
@@ -79,6 +81,7 @@ vi.mock('@genfeedai/integrations', () => ({
     async handleRedisEvent() {}
   },
   BotInternalApiClient: class {
+    resolveAgentReportReview = resolveReview;
     fetchActiveIntegrations = vi.fn().mockResolvedValue([]);
     fetchIntegration = vi.fn().mockResolvedValue(null);
     fetchOrgWorkflows = vi.fn().mockResolvedValue([]);
@@ -229,5 +232,126 @@ describe('TelegramBotManager', () => {
     await manager.initialize();
     await manager.shutdown();
     expect(mockRedisService.unsubscribe).not.toHaveBeenCalled();
+  });
+});
+
+describe('Telegram agent report reviews', () => {
+  const token = 'a'.repeat(32);
+  function context(data: string) {
+    return {
+      answerCallbackQuery: vi.fn().mockResolvedValue(undefined),
+      callbackQuery: { data },
+      chat: { id: -777 },
+      from: { id: 42 },
+      organizationId: 'untrusted-org',
+      userId: 'untrusted-canonical-user',
+      reply: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resolveReview
+      .mockReset()
+      .mockResolvedValue({ success: true, message: 'Review recorded' });
+  });
+
+  async function handlers() {
+    const instance = await createManager().createBotInstance({
+      ...mockIntegration,
+      config: { allowedUserIds: ['42'] },
+    });
+    const callback = vi
+      .mocked(instance.bot.on)
+      .mock.calls.find(([event]) => event === 'callback_query:data')?.[1] as (
+      ctx: unknown,
+    ) => Promise<void>;
+    const authorize = vi.mocked(instance.bot.use).mock.calls[0][0] as (
+      ctx: unknown,
+      next: () => Promise<void>,
+    ) => Promise<void>;
+    return { callback, authorize };
+  }
+
+  it.each(['approve', 'reject'])(
+    'binds %s to bot organization and actual Telegram actor/chat',
+    async (decision) => {
+      const { callback, authorize } = await handlers();
+      const ctx = context(`agent-review:${token}:${decision}`);
+      await authorize(ctx, () => callback(ctx));
+      expect(ctx.answerCallbackQuery).toHaveBeenCalledOnce();
+      expect(resolveReview).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        remoteUserId: '42',
+        channelId: '-777',
+        token,
+        decision,
+      });
+      expect(ctx.reply).toHaveBeenCalledWith('Review recorded');
+    },
+  );
+
+  it('keeps the bot allowlist guard in front of review resolution', async () => {
+    const { callback, authorize } = await handlers();
+    const ctx = {
+      ...context(`agent-review:${token}:approve`),
+      from: { id: 99 },
+    };
+    await authorize(ctx, () => callback(ctx));
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      'You are not authorized to use this bot.',
+    );
+  });
+
+  it('does not resolve callbacks without an authenticated actor', async () => {
+    const { callback } = await handlers();
+    const ctx = {
+      ...context(`agent-review:${token}:approve`),
+      from: undefined,
+    };
+    await callback(ctx);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledOnce();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      expect.stringContaining('may have expired'),
+    );
+  });
+
+  it('returns a generic error and acknowledges only once when review resolution fails', async () => {
+    resolveReview.mockRejectedValue(
+      new Error('secret-token/internal-membership-detail'),
+    );
+    const { callback } = await handlers();
+    const ctx = context(`agent-review:${token}:reject`);
+    await callback(ctx);
+    expect(ctx.answerCallbackQuery).toHaveBeenCalledOnce();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      expect.stringContaining('may have expired'),
+    );
+    expect(JSON.stringify(ctx.reply.mock.calls)).not.toContain('secret-token');
+  });
+
+  it.each([
+    `agent-review:${token}:publish`,
+    'agent-review:invalid:approve',
+    `agent-review:${token}:approve:org-spoof`,
+    `agent-review:${token}:approve\n`,
+  ])('ignores malformed review callback %s', async (data) => {
+    const { callback } = await handlers();
+    const ctx = context(data);
+    await callback(ctx);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(ctx.reply).not.toHaveBeenCalled();
+  });
+
+  it('preserves workflow cancellation callbacks', async () => {
+    const { callback } = await handlers();
+    const ctx = context('confirm:cancel');
+    await callback(ctx);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(ctx.reply).toHaveBeenCalledWith(
+      'Cancelled. Use /workflows to start again.',
+    );
   });
 });

@@ -32,6 +32,7 @@ async function setup() {
     },
     workflowExecution: { findMany: vi.fn().mockResolvedValue([]) },
     agentThreadEvent: { findMany: vi.fn().mockResolvedValue([]) },
+    agentStrategy: { findMany: vi.fn().mockResolvedValue([]) },
   };
   const module = await Test.createTestingModule({
     providers: [
@@ -314,6 +315,115 @@ describe('NotificationInboxService', () => {
     );
   });
 
+  it('links a completed proactive notification to the currently accessible strategy instead of an unrelated asset brand', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'agent.status',
+        event: {
+          sourceId: 'run-1',
+          sourceType: 'agent_run',
+          eventKey: 'workflow.execution.completed',
+          payload: {
+            strategyId: 'strategy',
+            sourcePath: '//untrusted.example',
+          },
+        },
+      }),
+    ]);
+    prisma.agentThreadEvent.findMany.mockResolvedValue([
+      {
+        runId: 'run-1',
+        thread: {
+          id: 'thread',
+          title: 'Thread',
+          agentStrategyId: 'strategy',
+          brand: { slug: 'main' },
+        },
+      },
+    ]);
+    prisma.workflowExecution.findMany.mockResolvedValue([
+      {
+        id: 'run-1',
+        workflowId: 'workflow',
+        workflow: { metadata: null, brand: null },
+        ingredients: [
+          { id: 'asset', category: 'IMAGE', brand: { slug: 'other' } },
+        ],
+      },
+    ]);
+    prisma.agentStrategy.findMany.mockResolvedValue([
+      { id: 'strategy', label: 'Daily Agent', brand: { slug: 'main' } },
+    ]);
+    expect((await service.list('org', 'recipient')).docs[0]).toMatchObject({
+      outcome: 'completed',
+      sourceLabel: 'Daily Agent',
+      sourceHref: '/acme/main/automation/agents/strategy',
+      failure: null,
+    });
+  });
+  it.each([false, true])(
+    'resolves review event strategy source without treating it as an execution (expired=%s)',
+    async (expired) => {
+      const { service, prisma } = await setup();
+      prisma.notificationInboxItem.findMany.mockResolvedValue([
+        fixture(1, {
+          topic: 'agent.status',
+          event: {
+            sourceId: 'strategy',
+            sourceType: 'agent_strategy',
+            eventKey: expired ? 'agent.review.expired' : 'agent.review.changed',
+            payload: { kind: 'agent_review', strategyId: 'strategy' },
+          },
+        }),
+      ]);
+      prisma.agentStrategy.findMany.mockResolvedValue([
+        { id: 'strategy', label: 'Agent', brand: { slug: 'main' } },
+      ]);
+      expect((await service.list('org', 'recipient')).docs[0]).toMatchObject({
+        outcome: expired ? 'failed' : 'completed',
+        sourceHref: '/acme/main/automation/agents/strategy',
+      });
+      expect(prisma.workflowExecution.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({ id: { in: [] } }),
+        }),
+      );
+      expect(prisma.agentStrategy.findMany).toHaveBeenCalledWith(
+        expect.objectContaining({
+          where: expect.objectContaining({
+            organizationId: 'org',
+            isDeleted: false,
+            AND: [
+              { OR: [{ userId: 'recipient' }, { id: { in: ['strategy'] } }] },
+            ],
+          }),
+        }),
+      );
+    },
+  );
+  it('does not use a revoked strategy or payload route to reveal its home', async () => {
+    const { service, prisma } = await setup();
+    prisma.notificationInboxItem.findMany.mockResolvedValue([
+      fixture(1, {
+        topic: 'agent.status',
+        event: {
+          sourceId: 'strategy',
+          sourceType: 'agent_strategy',
+          eventKey: 'agent.review.changed',
+          payload: {
+            strategyId: 'strategy',
+            sourcePath: '/secret/main/automation/agents/strategy',
+            summary: 'private summary',
+          },
+        },
+      }),
+    ]);
+    expect((await service.list('org', 'recipient')).docs[0]).toMatchObject({
+      sourceHref: '/acme/~/workspace/activity',
+      sourceLabel: null,
+    });
+  });
   it('writes only unread owned rows and propagates failed mutations', async () => {
     const { service, prisma } = await setup();
     await service.markRead('org', 'recipient', ['item-1']);

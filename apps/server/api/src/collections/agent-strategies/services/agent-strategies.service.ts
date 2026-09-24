@@ -12,6 +12,7 @@ import {
   type PopulateInput,
 } from '@api/shared/services/base/base.service';
 import { AgentStrategyRunStatus } from '@genfeedai/contracts';
+import type { IAgentStrategyPerformanceSnapshot } from '@genfeedai/contracts/interfaces';
 import { Prisma, toPrismaJson } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
@@ -312,6 +313,7 @@ export class AgentStrategiesService extends BaseService<
       creditsUsed: number;
       contentGenerated: number;
       executionId?: string;
+      performanceSnapshot?: IAgentStrategyPerformanceSnapshot;
       threadId?: string;
     },
     organizationId: string,
@@ -551,9 +553,27 @@ export class AgentStrategiesService extends BaseService<
       suppliedPolicies ||
       POLICIES_BACKED_KEYS.some((key) => Object.hasOwn(dto, key))
     ) {
-      data.policies = suppliedPolicies
+      const mergedPolicies = suppliedPolicies
         ? { ...policies, ...suppliedPolicies }
         : policies;
+      if (Object.hasOwn(mergedPolicies, 'publishPolicy')) {
+        const existingPublishPolicy =
+          this.readRecord(existingPolicies.publishPolicy) ?? {};
+        const publishPolicy = {
+          ...existingPublishPolicy,
+          ...(this.readRecord(mergedPolicies.publishPolicy) ?? {}),
+        };
+        // Graduation is recorded by review transactions, never by a settings payload.
+        delete publishPolicy.platformStates;
+        if (
+          mode === 'update' &&
+          Object.hasOwn(existingPublishPolicy, 'platformStates')
+        ) {
+          publishPolicy.platformStates = existingPublishPolicy.platformStates;
+        }
+        mergedPolicies.publishPolicy = publishPolicy;
+      }
+      data.policies = mergedPolicies;
     }
 
     return data;
