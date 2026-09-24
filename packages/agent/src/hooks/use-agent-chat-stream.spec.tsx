@@ -742,54 +742,71 @@ describe('useAgentChatStream', () => {
     expect(useAgentChatStore.getState().activeRunId).toBe('run-b');
   });
 
-  it('does not tear down a newer send when an older send is rejected', async () => {
-    const streamRuntime = getAgentStreamRuntime();
-    let rejectFirst: (error: Error) => void = () => undefined;
-    useAgentChatStore.setState({ activeThreadId: 'thread-a' });
-    const apiService = createApiService({
-      chatStream: vi
-        .fn()
-        .mockImplementationOnce(
-          () =>
-            new Promise((_, reject) => {
-              rejectFirst = reject;
-            }),
-        )
-        .mockResolvedValueOnce({
-          brandId: null,
-          contextVersion: 1,
-          executionId: 'run-b',
-          queuedAt: '2026-09-23T15:11:00.000Z',
-          threadId: 'thread-b',
-        }),
-    });
+  it.each(['thread-a', 'thread-b'])(
+    'preserves a newer send on %s when an older send is rejected',
+    async (nextThreadId) => {
+      const streamRuntime = getAgentStreamRuntime();
+      let rejectFirst: (error: Error) => void = () => undefined;
+      useAgentChatStore.setState({ activeThreadId: 'thread-a' });
+      const apiService = createApiService({
+        chatStream: vi
+          .fn()
+          .mockImplementationOnce(
+            () =>
+              new Promise((_, reject) => {
+                rejectFirst = reject;
+              }),
+          )
+          .mockResolvedValueOnce({
+            brandId: null,
+            contextVersion: 1,
+            executionId: 'run-b',
+            queuedAt: '2026-09-23T15:11:00.000Z',
+            threadId: nextThreadId,
+          }),
+      });
 
-    const layout = renderHook(() => useAgentChatStream({ apiService }));
-    const page = renderHook(() => useAgentChatStream({ apiService }));
+      const layout = renderHook(() => useAgentChatStream({ apiService }));
+      const page = renderHook(() => useAgentChatStream({ apiService }));
 
-    let firstSend: Promise<void> = Promise.resolve();
-    act(() => {
-      firstSend = layout.result.current.sendMessage('First');
-    });
-    act(() => {
-      useAgentChatStore.setState({ activeThreadId: 'thread-b' });
-    });
-    await act(async () => {
-      await page.result.current.sendMessage('Second');
-    });
-    await act(async () => {
-      rejectFirst(new Error('provider unavailable'));
-      await firstSend;
-    });
+      let firstSend: Promise<void> = Promise.resolve();
+      act(() => {
+        firstSend = layout.result.current.sendMessage('First');
+      });
+      act(() => {
+        useAgentChatStore.setState({ activeThreadId: nextThreadId });
+      });
+      await act(async () => {
+        await page.result.current.sendMessage('Second');
+      });
+      act(() => {
+        useAgentChatStore.getState().updateThread(nextThreadId, {
+          attentionState: 'needs-input',
+          runStatus: 'awaiting_input',
+        });
+      });
+      const threadBeforeRejection = useAgentChatStore
+        .getState()
+        .threads.find((thread) => thread.id === nextThreadId);
+      expect(threadBeforeRejection?.attentionState).toBe('needs-input');
+      expect(threadBeforeRejection?.runStatus).toBe('awaiting_input');
+      await act(async () => {
+        rejectFirst(new Error('provider unavailable'));
+        await firstSend;
+      });
 
-    const state = useAgentChatStore.getState();
-    expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-b');
-    expect(streamRuntime.pendingCompletionRef.current?.runId).toBe('run-b');
-    expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
-    expect(state.activeRunId).toBe('run-b');
-    expect(state.activeRunStatus).toBe('running');
-    expect(state.error).toBeNull();
-  });
+      const state = useAgentChatStore.getState();
+      expect(streamRuntime.activeStreamRunIdRef.current).toBe('run-b');
+      expect(streamRuntime.pendingCompletionRef.current?.runId).toBe('run-b');
+      expect(streamRuntime.unsubscribersRef.current.length).toBeGreaterThan(0);
+      expect(state.activeRunId).toBe('run-b');
+      expect(state.activeRunStatus).toBe('running');
+      expect(state.error).toBeNull();
+      expect(
+        state.threads.find((thread) => thread.id === nextThreadId),
+      ).toEqual(threadBeforeRejection);
+    },
+  );
 
   it('keeps one stream owner when the hook is mounted twice (layout + page)', async () => {
     // The persistent agent layout and the per-route chat container each mount

@@ -659,6 +659,11 @@ export function useAgentChatStream(
         // final run state instead of being overwritten by "running".
         flushBufferedEvents(response.threadId);
       } catch (err) {
+        // A replaced owner must not mutate the current run or its sidebar,
+        // including when the replacement belongs to the same thread.
+        if (streamRuntime.ownerGeneration !== sendGeneration) {
+          return;
+        }
         if (signal.aborted) {
           // Nothing will name this turn's run, so stop holding events for it —
           // unless a newer send already owns the runtime.
@@ -686,11 +691,6 @@ export function useAgentChatStream(
             lastActivityAt: new Date().toISOString(),
             runStatus: 'failed',
           });
-        }
-        // A newer send, handoff, or adoption owns the stream; this failure is
-        // recorded on its own thread only.
-        if (streamRuntime.ownerGeneration !== sendGeneration) {
-          return;
         }
 
         streamRuntime.pendingCompletionRef.current = null;
