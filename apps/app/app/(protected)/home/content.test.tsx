@@ -364,7 +364,7 @@ describe('OperationalHomeContent', () => {
     expect(screen.queryByText(/Studio/i)).not.toBeInTheDocument();
 
     const emptyStates = screen.getAllByTestId('workspace-empty-state');
-    expect(emptyStates).toHaveLength(4);
+    expect(emptyStates).toHaveLength(3);
     for (const emptyState of emptyStates) {
       expect(within(emptyState).queryByRole('link')).not.toBeInTheDocument();
     }
