@@ -454,13 +454,25 @@ export async function finishConfirmedPublish(input: {
     scheduledAt,
     shouldPublishNow,
   } = input;
-  const canonicalRelease = shouldPublishNow
-    ? await input.postGroupsService.publishNow(
+  let canonicalRelease = release;
+  if (shouldPublishNow) {
+    try {
+      canonicalRelease = await input.postGroupsService.publishNow(
         ctx.organizationId,
         ctx.userId,
         release.id,
-      )
-    : release;
+      );
+    } catch (error) {
+      return {
+        creditsUsed: 0,
+        error:
+          error instanceof Error
+            ? error.message
+            : 'The release could not be published.',
+        success: false,
+      };
+    }
+  }
   const groupId = canonicalRelease.id;
   const postIds = (canonicalRelease.targets ?? []).map((target) =>
     String(target.id),

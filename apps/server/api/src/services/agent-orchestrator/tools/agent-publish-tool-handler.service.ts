@@ -325,7 +325,8 @@ export class AgentPublishToolHandler {
     const mediaKind = resolvePublishMediaKind(ingredient.category);
     const shouldPublishNow =
       !scheduledAt &&
-      publishPolicy.result.decision === AgentPublishDecision.PERMITTED;
+      (publishPolicy.result.decision === AgentPublishDecision.PERMITTED ||
+        isCardConfirmed);
     const release = await this.postGroupsService.create(
       ctx.organizationId,
       ctx.userId,
