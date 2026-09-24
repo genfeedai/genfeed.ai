@@ -35,9 +35,11 @@ import { BatchInterpolationController } from '@api/collections/videos/controller
 import type { BatchInterpolationDto } from '@api/collections/videos/dto/batch-interpolation.dto';
 import { BatchInterpolationReferenceService } from '@api/collections/videos/services/batch-interpolation-reference.service';
 import { VideosService } from '@api/collections/videos/services/videos.service';
+import type { CreditsGuardRequest } from '@api/helpers/guards/credits/credits.guard';
 import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { buildReferenceImageUrls } from '@api/helpers/utils/reference/reference.util';
 import { FileQueueService } from '@api/services/files-microservice/queue/file-queue.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -51,9 +53,10 @@ import { testId } from '@helpers/testing/test-id.helper';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { getUserRoomName } from '@libs/websockets/room-name.util';
-import { HttpException } from '@nestjs/common';
+import { type ExecutionContext, HttpException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import type { Request } from 'express';
+import { firstValueFrom, from } from 'rxjs';
 
 const mockBuildReferenceImageUrls = vi.mocked(buildReferenceImageUrls);
 
@@ -132,6 +135,9 @@ describe('BatchInterpolationController', () => {
   let brandsService: { findOne: ReturnType<typeof vi.fn> };
   let creditsUtilsService: {
     deductCreditsFromOrganization: ReturnType<typeof vi.fn>;
+    reserveCredits: ReturnType<typeof vi.fn>;
+    settleReservation: ReturnType<typeof vi.fn>;
+    releaseReservation: ReturnType<typeof vi.fn>;
   };
   let failedGenerationService: {
     handleFailedVideoGeneration: ReturnType<typeof vi.fn>;
@@ -153,6 +159,9 @@ describe('BatchInterpolationController', () => {
     brandsService = { findOne: vi.fn().mockResolvedValue(mockBrand) };
     creditsUtilsService = {
       deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
+      reserveCredits: vi.fn().mockResolvedValue({ id: 'pair-reservation' }),
+      settleReservation: vi.fn().mockResolvedValue(undefined),
+      releaseReservation: vi.fn().mockResolvedValue(undefined),
     };
     failedGenerationService = {
       handleFailedVideoGeneration: vi.fn().mockResolvedValue(undefined),
@@ -236,6 +245,8 @@ describe('BatchInterpolationController', () => {
       .useValue({ canActivate: () => true })
       .overrideGuard(CreditsGuard)
       .useValue({ canActivate: () => true })
+      .overrideInterceptor(CreditsInterceptor)
+      .useValue({ intercept: vi.fn() })
       .compile();
 
     controller = module.get<BatchInterpolationController>(
@@ -361,18 +372,185 @@ describe('BatchInterpolationController', () => {
         );
       });
 
-      it('should deduct credits after successful generation', async () => {
+      it('reserves each pair before dispatch and settles accepted generation once', async () => {
         await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
-
+        expect(creditsUtilsService.reserveCredits).toHaveBeenCalledWith(
+          expect.objectContaining({
+            actorUserId: mockUser.id,
+            amount: 5,
+            organizationId,
+            idempotencyKey: `interpolation:${ingredientId}`,
+            workloadId: ingredientId,
+          }),
+        );
+        expect(
+          creditsUtilsService.reserveCredits.mock.invocationCallOrder[0],
+        ).toBeLessThan(
+          replicateService.generateTextToVideo.mock.invocationCallOrder[0],
+        );
+        expect(
+          creditsUtilsService.settleReservation,
+        ).toHaveBeenCalledExactlyOnceWith(
+          expect.objectContaining({
+            actorUserId: mockUser.id,
+            actualAmount: 5,
+            organizationId,
+            reservationId: 'pair-reservation',
+          }),
+        );
         expect(
           creditsUtilsService.deductCreditsFromOrganization,
-        ).toHaveBeenCalledWith(
-          organizationId,
-          userId,
-          5,
-          expect.stringContaining(MODEL_KEYS.REPLICATE_KWAIVGI_KLING_V2_1),
-          'video-generate',
+        ).not.toHaveBeenCalled();
+        expect(modelsService.findOne).toHaveBeenCalledTimes(1);
+      });
+
+      it('releases the initial hold and prevents interceptor double charging', async () => {
+        const req = {
+          user: mockUser,
+          creditsConfig: {
+            amount: 5,
+            description: 'Batch',
+            reservationId: 'outer-reservation',
+          },
+        } as CreditsGuardRequest;
+        const result = await controller.createBatchInterpolation(
+          req,
+          mockDto,
+          mockUser,
         );
+        expect(
+          creditsUtilsService.releaseReservation,
+        ).toHaveBeenCalledExactlyOnceWith({
+          organizationId,
+          reservationId: 'outer-reservation',
+        });
+        expect(
+          creditsUtilsService.releaseReservation.mock.invocationCallOrder[0],
+        ).toBeLessThan(
+          creditsUtilsService.reserveCredits.mock.invocationCallOrder[0],
+        );
+        expect(req.creditsConfig).toMatchObject({ amount: 0 });
+        expect(req.creditsConfig?.reservationId).toBeUndefined();
+        const queue = { queueDeduction: vi.fn() };
+        const interceptor = new CreditsInterceptor(
+          queue as unknown as ConstructorParameters<
+            typeof CreditsInterceptor
+          >[0],
+          creditsUtilsService as unknown as CreditsUtilsService,
+          { debug: vi.fn() } as unknown as LoggerService,
+        );
+        await interceptor.settle(req, result);
+        expect(queue.queueDeduction).not.toHaveBeenCalled();
+        expect(creditsUtilsService.releaseReservation).toHaveBeenCalledTimes(1);
+      });
+
+      it('releases the initial hold through the interceptor when validation fails', async () => {
+        modelsService.findOne.mockResolvedValue(null);
+        const req = {
+          user: mockUser,
+          creditsConfig: {
+            amount: 5,
+            description: 'Batch',
+            reservationId: 'outer-reservation',
+          },
+        } as CreditsGuardRequest;
+        const interceptor = new CreditsInterceptor(
+          { queueDeduction: vi.fn() } as unknown as ConstructorParameters<
+            typeof CreditsInterceptor
+          >[0],
+          creditsUtilsService as unknown as CreditsUtilsService,
+          { debug: vi.fn(), error: vi.fn() } as unknown as LoggerService,
+        );
+        const context = {
+          switchToHttp: () => ({ getRequest: () => req }),
+        } as unknown as ExecutionContext;
+        await expect(
+          firstValueFrom(
+            interceptor.intercept(context, {
+              handle: () =>
+                from(
+                  controller.createBatchInterpolation(req, mockDto, mockUser),
+                ),
+            }),
+          ),
+        ).rejects.toBeInstanceOf(HttpException);
+        expect(
+          creditsUtilsService.releaseReservation,
+        ).toHaveBeenCalledExactlyOnceWith({
+          organizationId,
+          reservationId: 'outer-reservation',
+        });
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+      });
+
+      it.each(['throw', 'null'])(
+        'releases a pair reservation when provider returns %s',
+        async (failure) => {
+          if (failure === 'throw')
+            replicateService.generateTextToVideo.mockRejectedValue(
+              new Error('provider error'),
+            );
+          else replicateService.generateTextToVideo.mockResolvedValue(null);
+          const result = await controller.createBatchInterpolation(
+            mockReq,
+            mockDto,
+            mockUser,
+          );
+          expect(result.jobs[0].status).toBe('failed');
+          expect(
+            creditsUtilsService.releaseReservation,
+          ).toHaveBeenCalledExactlyOnceWith({
+            organizationId,
+            reservationId: 'pair-reservation',
+          });
+          expect(creditsUtilsService.settleReservation).not.toHaveBeenCalled();
+        },
+      );
+
+      it('does not dispatch a pair when its reservation is rejected', async () => {
+        creditsUtilsService.reserveCredits.mockRejectedValue(
+          new Error('insufficient credits'),
+        );
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+        expect(result.jobs[0].status).toBe('failed');
+        expect(replicateService.generateTextToVideo).not.toHaveBeenCalled();
+        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+      });
+
+      it('settles accepted generation before metadata and never releases accepted spend', async () => {
+        metadataService.patch.mockRejectedValue(
+          new Error('metadata unavailable'),
+        );
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+        expect(result.jobs[0].status).toBe('failed');
+        expect(creditsUtilsService.settleReservation).toHaveBeenCalledTimes(1);
+        expect(
+          creditsUtilsService.settleReservation.mock.invocationCallOrder[0],
+        ).toBeLessThan(metadataService.patch.mock.invocationCallOrder[0]);
+        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+      });
+
+      it('retains the hold if settlement fails after provider acceptance', async () => {
+        creditsUtilsService.settleReservation.mockRejectedValue(
+          new Error('settlement unavailable'),
+        );
+        const result = await controller.createBatchInterpolation(
+          mockReq,
+          mockDto,
+          mockUser,
+        );
+        expect(result.jobs[0].status).toBe('failed');
+        expect(creditsUtilsService.releaseReservation).not.toHaveBeenCalled();
+        expect(metadataService.patch).not.toHaveBeenCalled();
       });
 
       it('should publish a background task update after starting generation', async () => {
@@ -432,14 +610,12 @@ describe('BatchInterpolationController', () => {
         expect(result.totalJobs).toBe(3);
       });
 
-      it('should not skip credit deduction when model has zero cost', async () => {
+      it('skips credit reservations when model has zero cost', async () => {
         modelsService.findOne.mockResolvedValue({ ...mockModel, cost: 0 });
 
         await controller.createBatchInterpolation(mockReq, mockDto, mockUser);
 
-        expect(
-          creditsUtilsService.deductCreditsFromOrganization,
-        ).not.toHaveBeenCalled();
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
       });
     });
 

@@ -19,9 +19,13 @@ import { Credits } from '@api/helpers/decorators/credits/credits.decorator';
 import { LogMethod } from '@api/helpers/decorators/log/log-method.decorator';
 import { AutoSwagger } from '@api/helpers/decorators/swagger/auto-swagger.decorator';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
-import { CreditsGuard } from '@api/helpers/guards/credits/credits.guard';
+import {
+  CreditsGuard,
+  type CreditsGuardRequest,
+} from '@api/helpers/guards/credits/credits.guard';
 import { RolesGuard } from '@api/helpers/guards/roles/roles.guard';
 import { SubscriptionGuard } from '@api/helpers/guards/subscription/subscription.guard';
+import { CreditsInterceptor } from '@api/helpers/interceptors/credits/credits.interceptor';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
@@ -55,6 +59,7 @@ import {
   Req,
   SetMetadata,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import type { Request } from 'express';
 
@@ -99,6 +104,7 @@ export class BatchInterpolationController {
   ) {}
 
   @Post('interpolation')
+  @UseInterceptors(CreditsInterceptor)
   @SetMetadata('roles', [
     'superadmin',
     MemberRole.OWNER,
@@ -111,7 +117,7 @@ export class BatchInterpolationController {
   })
   @LogMethod({ logEnd: false, logError: true, logStart: true })
   async createBatchInterpolation(
-    @Req() req: Request,
+    @Req() req: Request & Pick<CreditsGuardRequest, 'creditsConfig'>,
     @Body() dto: BatchInterpolationDto,
     @CurrentUser() user: User,
   ) {
@@ -201,6 +207,18 @@ export class BatchInterpolationController {
       user,
       width,
     };
+    const initialCredits = req.creditsConfig;
+    if (initialCredits?.reservationId) {
+      await this.creditsUtilsService.releaseReservation({
+        organizationId: user.organizationId,
+        reservationId: initialCredits.reservationId,
+      });
+    }
+    if (initialCredits) {
+      delete initialCredits.reservationId;
+      initialCredits.amount = 0;
+    }
+
     const jobs = await Promise.all(
       pairs.map((pair, index) => this.processPair(pair, index, context)),
     );
@@ -274,7 +292,7 @@ export class BatchInterpolationController {
           organizationId: context.user.organizationId,
           original: promptText,
           status: PromptStatus.PROCESSING,
-          userId: context.user.userId ?? context.user.id,
+          userId: context.user.id,
         }),
       );
       const builtPrompt = await this.promptBuilderService.buildPrompt(
@@ -320,7 +338,7 @@ export class BatchInterpolationController {
           key: ActivityKey.VIDEO_PROCESSING,
           organizationId: context.user.organizationId,
           source: ActivitySource.VIDEO_GENERATION,
-          userId: context.user.userId ?? context.user.id,
+          userId: context.user.id,
           value: JSON.stringify({
             groupId: context.groupId,
             ingredientId,
@@ -347,7 +365,7 @@ export class BatchInterpolationController {
         taskId: ingredientId,
         userId: context.user.id,
       });
-      return this.dispatchPair({
+      return await this.dispatchPair({
         context,
         ingredientId,
         isLoopPair,
@@ -370,10 +388,45 @@ export class BatchInterpolationController {
     promptParams: Record<string, unknown>;
   }): Promise<InterpolationJobResult> {
     const { context, ingredientId, isLoopPair, metadataId, pairIndex } = params;
-    const generationId = await this.replicateService.generateTextToVideo(
-      context.dto.modelKey,
-      params.promptParams,
-    );
+    const credits = context.model.cost || 0;
+    const reservation =
+      credits > 0
+        ? await this.creditsUtilsService.reserveCredits({
+            actorUserId: context.user.id,
+            amount: credits,
+            expiresAt: new Date(Date.now() + 8 * 24 * 60 * 60 * 1000),
+            idempotencyKey: `interpolation:${ingredientId}`,
+            organizationId: context.user.organizationId,
+            workloadId: ingredientId,
+            workloadType: 'generation',
+          })
+        : undefined;
+    let accepted = false;
+    let generationId: string | null | undefined;
+    try {
+      generationId = await this.replicateService.generateTextToVideo(
+        context.dto.modelKey,
+        params.promptParams,
+      );
+      accepted = Boolean(generationId);
+      if (accepted && reservation) {
+        await this.creditsUtilsService.settleReservation({
+          actorUserId: context.user.id,
+          actualAmount: credits,
+          description: `Interpolation video - ${context.dto.modelKey} (pair ${pairIndex + 1}/${context.pairs.length})`,
+          organizationId: context.user.organizationId,
+          reservationId: reservation.id,
+          source: ActivitySource.VIDEO_GENERATION,
+        });
+      }
+    } finally {
+      if (!accepted && reservation) {
+        await this.creditsUtilsService.releaseReservation({
+          organizationId: context.user.organizationId,
+          reservationId: reservation.id,
+        });
+      }
+    }
     if (!generationId) {
       await this.failedGenerationService.handleFailedVideoGeneration(
         this.videosService,
@@ -388,19 +441,6 @@ export class BatchInterpolationController {
       metadataId,
       new MetadataEntity({ externalId: generationId }),
     );
-    const modelData = await this.modelsService.findOne({
-      key: context.dto.modelKey,
-    });
-    const credits = modelData?.cost || 0;
-    if (credits > 0) {
-      await this.creditsUtilsService.deductCreditsFromOrganization(
-        context.user.organizationId,
-        context.user.userId ?? context.user.id,
-        credits,
-        `Interpolation video - ${context.dto.modelKey} (pair ${pairIndex + 1}/${context.pairs.length})`,
-        ActivitySource.VIDEO_GENERATION,
-      );
-    }
     this.loggerService.log('Interpolation job started', {
       generationId,
       groupId: context.groupId,
