@@ -291,9 +291,9 @@ export class ResearchCollectionRunner {
         const started = Date.parse(run.startedAt);
         return Number.isFinite(started) && started >= startedAt - 2_000;
       });
-    // A listed run we did not record may still be this start. Keep the
-    // reservation and the in-flight row instead of launching another actor.
-    if (sawRun) {
+    // A listed run we did not record may still be this start. A legacy row
+    // has no start bound, so any listed run might be it.
+    if (sawRun || (startedAt === undefined && runs.length > 0)) {
       throw new ServiceUnavailableException(
         'research_collection_recovery_pending',
       );

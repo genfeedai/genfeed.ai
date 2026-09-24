@@ -259,7 +259,7 @@ export class ResearchCollectionJobService {
       terminalReason?: string | null;
     },
   ): Promise<boolean> {
-    if (!job.leaseToken) return false;
+    const legacyLeaseToken = job.leaseToken === null ? randomUUID() : null;
     const updated = await this.prisma.researchCollectionJob.updateMany({
       data: {
         actualCostMicroUsd: microUsdColumn(input.actualCostMicroUsd),
@@ -267,9 +267,13 @@ export class ResearchCollectionJobService {
         reconciledAt: input.reconciledAt ?? null,
         status: input.status,
         terminalReason: input.terminalReason ?? null,
+        ...(legacyLeaseToken
+          ? { leaseExpiresAt: new Date(), leaseToken: legacyLeaseToken }
+          : {}),
       },
       where: {
         id: job.id,
+        inflightRequestKey: job.requestKey,
         isDeleted: false,
         leaseToken: job.leaseToken,
         organizationId: job.organizationId,
@@ -287,6 +291,7 @@ export class ResearchCollectionJobService {
     job: ResearchCollectionJobRecord,
     now: Date,
   ): Promise<boolean> {
+    const legacyLeaseToken = job.leaseToken === null ? randomUUID() : null;
     const updated = await this.prisma.researchCollectionJob.updateMany({
       data: {
         actualCostMicroUsd: 0,
@@ -294,11 +299,15 @@ export class ResearchCollectionJobService {
         reconciledAt: now,
         status: RESEARCH_COLLECTION_JOB_STATUS.FAILED,
         terminalReason: 'start_not_recorded',
+        ...(legacyLeaseToken
+          ? { leaseExpiresAt: now, leaseToken: legacyLeaseToken }
+          : {}),
       },
       where: {
         id: job.id,
         inflightRequestKey: job.requestKey,
         isDeleted: false,
+        leaseToken: job.leaseToken,
         OR: [{ leaseExpiresAt: null }, { leaseExpiresAt: { lte: now } }],
         organizationId: job.organizationId,
         status: {

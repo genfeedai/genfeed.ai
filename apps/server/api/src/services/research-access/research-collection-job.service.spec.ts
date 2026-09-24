@@ -94,6 +94,38 @@ describe('ResearchCollectionJobService', () => {
     expect(claim).toMatchObject({ id: 'job-2', isRecovered: true });
   });
 
+  it('adopts a lease when a pre-migration row finishes', async () => {
+    await service.finish(
+      {
+        ...row,
+        leaseExpiresAt: null,
+        leaseToken: null,
+        upstreamRunId: 'run-legacy',
+      },
+      {
+        actualCostMicroUsd: 12_000,
+        reconciledAt: new Date('2026-09-24T00:00:00.000Z'),
+        status: RESEARCH_COLLECTION_JOB_STATUS.SUCCEEDED,
+      },
+    );
+
+    expect(updateMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: expect.objectContaining({
+          inflightRequestKey: null,
+          leaseToken: expect.any(String),
+        }),
+        where: expect.objectContaining({
+          inflightRequestKey: 'request-1',
+          isDeleted: false,
+          leaseToken: null,
+          organizationId: 'org-1',
+          upstreamRunId: 'run-legacy',
+        }),
+      }),
+    );
+  });
+
   it('clears the in-flight key when a job finishes', async () => {
     await service.finish(row, {
       actualCostMicroUsd: 12_000,
