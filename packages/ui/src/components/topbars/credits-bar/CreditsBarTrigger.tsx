@@ -1,6 +1,7 @@
 'use client';
 
 import { ButtonVariant } from '@genfeedai/contracts';
+import { formatCreditBalance } from '@genfeedai/contracts/constants';
 import type { ITopbarBalanceSegment } from '@genfeedai/contracts/interfaces';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { formatCompactNumber } from '@genfeedai/helpers/formatting/format/format.helper';
@@ -196,10 +197,10 @@ export default function CreditsBarTrigger({
               </p>
             ) : planLimit > 0 ? (
               <p className="text-xs leading-none text-muted-foreground">
-                {formatCompactNumber(planUsed)} /{' '}
-                {formatCompactNumber(planLimit)} plan used
+                {formatCreditBalance(planUsed)} /{' '}
+                {formatCreditBalance(planLimit)} plan used
                 {extraBalance > 0
-                  ? ` · ${formatCompactNumber(extraBalance)} extra`
+                  ? ` · ${formatCreditBalance(extraBalance)} extra`
                   : ''}
               </p>
             ) : (

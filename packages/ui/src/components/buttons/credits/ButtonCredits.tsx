@@ -2,6 +2,10 @@
 
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
 import { ButtonVariant } from '@genfeedai/contracts';
+import {
+  formatCreditBalance,
+  formatCreditBalanceExact,
+} from '@genfeedai/contracts/constants';
 import type {
   ICreditsEventData,
   IOrganizationEventData,
@@ -11,10 +15,6 @@ import {
   BORDER_WHITE_30,
   cn,
 } from '@genfeedai/helpers/formatting/cn/cn.util';
-import {
-  formatCompactNumber,
-  formatNumberWithCommas,
-} from '@genfeedai/helpers/formatting/format/format.helper';
 import { useAuthedService } from '@genfeedai/hooks/auth/use-authed-service/use-authed-service';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -162,8 +162,8 @@ export default function ButtonCredits({
       };
     }, [creditsBreakdown, balance]);
 
-  const compactBalance = formatCompactNumber(balance);
-  const fullBalance = formatNumberWithCommas(balance);
+  const compactBalance = formatCreditBalance(balance);
+  const fullBalance = formatCreditBalanceExact(balance);
 
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
@@ -263,8 +263,8 @@ export default function ButtonCredits({
                   )}
                 </div>
                 <span className="text-2xs text-muted-foreground tabular-nums">
-                  {formatCompactNumber(planLimit - planBalance)} /{' '}
-                  {formatCompactNumber(planLimit)} used
+                  {formatCreditBalance(planLimit - planBalance)} /{' '}
+                  {formatCreditBalance(planLimit)} used
                 </span>
               </div>
             </div>

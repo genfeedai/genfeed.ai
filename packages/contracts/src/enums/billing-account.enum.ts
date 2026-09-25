@@ -109,3 +109,13 @@ export function billingAccountRoleSatisfies(
 
   return ROLE_RANK[actual] >= ROLE_RANK[required];
 }
+
+/**
+ * What a `billing_revenue_events` row was paid for. Persisted string column;
+ * values are the stored labels.
+ */
+export enum BillingRevenueSource {
+  BYOK_PLATFORM_FEE = 'byok_platform_fee',
+  CREDIT_PURCHASE = 'credit_purchase',
+  SUBSCRIPTION_INVOICE = 'subscription_invoice',
+}

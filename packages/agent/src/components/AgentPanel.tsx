@@ -6,16 +6,9 @@ import {
 import { AgentOAuthConnectMenu } from '@genfeedai/agent/components/AgentOAuthConnectMenu';
 import { AgentOutputsPanel } from '@genfeedai/agent/components/AgentOutputsPanel';
 import { AgentTerminalHeader } from '@genfeedai/agent/components/AgentTerminalHeader';
-import type { AgentRuntimeOption } from '@genfeedai/agent/models/agent-runtime.model';
-import type {
-  AgentApiService,
-  AgentInstallReadiness,
-} from '@genfeedai/agent/services/agent-api.service';
+import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
+import type { AgentApiService } from '@genfeedai/agent/services/agent-api.service';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
-import {
-  buildAgentRuntimeCatalog,
-  resolveThreadRuntimeOption,
-} from '@genfeedai/agent/utils/agent-runtime-options.util';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import { AgentPanelShell } from '@ui/agent-panel';
@@ -86,42 +79,20 @@ export function AgentPanel({
   const toggleOpen = useAgentChatStore((s) => s.toggleOpen);
   const activeThreadId = useAgentChatStore((s) => s.activeThreadId);
   const threads = useAgentChatStore((s) => s.threads);
-  const updateThread = useAgentChatStore((s) => s.updateThread);
   const seedComposer = useAgentChatStore((s) => s.seedComposer);
 
   const setCreditsRemaining = useAgentChatStore((s) => s.setCreditsRemaining);
   const setModelCosts = useAgentChatStore((s) => s.setModelCosts);
-  const [hostname, setHostname] = useState<string | null>(null);
-  const [installReadiness, setInstallReadiness] =
-    useState<AgentInstallReadiness | null>(null);
-  const [draftRuntime, setDraftRuntime] = useState<AgentRuntimeOption | null>(
-    null,
-  );
+  const {
+    catalog: runtimeCatalog,
+    onRuntimeChange: handleRuntimeChange,
+    selectedRuntime,
+  } = useAgentRuntimeSelection({ apiService, isActive });
 
   const activeThread = useMemo(
     () => threads.find((thread) => thread.id === activeThreadId) ?? null,
     [activeThreadId, threads],
   );
-
-  const runtimeCatalog = useMemo(
-    () =>
-      buildAgentRuntimeCatalog({
-        hostname,
-        readiness: installReadiness,
-      }),
-    [hostname, installReadiness],
-  );
-
-  const selectedRuntime = useMemo(() => {
-    if (!activeThreadId && draftRuntime) {
-      return draftRuntime;
-    }
-
-    return resolveThreadRuntimeOption({
-      catalog: runtimeCatalog,
-      thread: activeThread,
-    });
-  }, [activeThread, activeThreadId, draftRuntime, runtimeCatalog]);
 
   const threadLabel = activeThread?.title || activeThreadId || 'new-session';
 
@@ -150,73 +121,6 @@ export function AgentPanel({
     return () => controller.abort();
   }, [apiService, isActive, setCreditsRemaining, setModelCosts]);
 
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return;
-    }
-
-    setHostname(window.location.hostname);
-  }, []);
-
-  useEffect(() => {
-    if (!hostname || !isActive) {
-      return;
-    }
-
-    const controller = new AbortController();
-
-    apiService
-      .getInstallReadiness(controller.signal)
-      .then((readiness) => {
-        setInstallReadiness(readiness);
-      })
-      .catch(() => {
-        setInstallReadiness(null);
-      });
-
-    return () => controller.abort();
-  }, [apiService, hostname, isActive]);
-
-  useEffect(() => {
-    if (!activeThreadId || !draftRuntime) {
-      return;
-    }
-
-    const currentThread = threads.find(
-      (thread) => thread.id === activeThreadId,
-    );
-    if (
-      currentThread?.runtimeKey === draftRuntime.key &&
-      (currentThread?.requestedModel || '') === draftRuntime.requestedModel
-    ) {
-      // Clears a consumed pending runtime command once the active thread reflects it.
-      setDraftRuntime(null);
-      return;
-    }
-
-    updateThread(activeThreadId, {
-      requestedModel: draftRuntime.requestedModel || undefined,
-      runtimeKey: draftRuntime.key || undefined,
-    });
-
-    const controller = new AbortController();
-    apiService
-      .updateThread(
-        activeThreadId,
-        {
-          requestedModel: draftRuntime.requestedModel || undefined,
-          runtimeKey: draftRuntime.key || undefined,
-        },
-        controller.signal,
-      )
-      .then(() => {
-        setDraftRuntime(null);
-      })
-      .catch(() => undefined);
-
-    return () => controller.abort();
-  }, [activeThreadId, apiService, draftRuntime, threads, updateThread]);
-
   const handleExpand = useCallback(() => {
     router.push(
       href(
@@ -239,33 +143,6 @@ export function AgentPanel({
       }
     }
   }, []);
-
-  const handleRuntimeChange = useCallback(
-    (runtime: AgentRuntimeOption) => {
-      if (!activeThreadId) {
-        setDraftRuntime(runtime);
-        return;
-      }
-
-      updateThread(activeThreadId, {
-        requestedModel: runtime.requestedModel || undefined,
-        runtimeKey: runtime.key || undefined,
-      });
-
-      const controller = new AbortController();
-      void apiService
-        .updateThread(
-          activeThreadId,
-          {
-            requestedModel: runtime.requestedModel || undefined,
-            runtimeKey: runtime.key || undefined,
-          },
-          controller.signal,
-        )
-        .catch(() => undefined);
-    },
-    [activeThreadId, apiService, updateThread],
-  );
 
   const terminalController = useAgentCliTerminal(apiService, authReady);
 

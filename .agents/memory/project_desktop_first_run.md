@@ -3,7 +3,7 @@ name: Desktop boots the canonical app with Genfeed Connect sign-in
 description: The Electron shell serves apps/app and signs in through system-browser PKCE plus a Better Auth session cookie on the shell origin
 type: project
 status: active
-last_verified: 2026-08-05
+last_verified: 2026-09-25
 topics: [desktop, auth, shell, sync, privacy]
 ---
 
@@ -31,6 +31,11 @@ Electron — hence the system browser, not an in-window login.
   time; runtime env cannot correct them.
 - Keep API traffic same-origin through the shell's `/v1` rewrite so the
   shell-origin session cookie is actually sent.
+- Server switching (2026-09-25): the bundled shell's baked `/v1` rewrite cannot
+  follow a server picked at runtime, so Desktop fronts it with a loopback
+  proxy (`app-shell-proxy.ts`) that sends `/v1/*` to the selected API. Each
+  server keeps its own encrypted session + `gf_` key; switching restarts the
+  app. Details: `apps/desktop/README.md` → "Server selection".
 - The **Better Auth session cookie is the routing authority** for pages and the
   proxy. The `gf_` API key is a main-process credential injected as
   `x-genfeed-desktop-token`; it never reaches the page and never, on its own,

@@ -106,5 +106,8 @@
   },
   "evaluationCard": {
     "persuasion": "Persuasion"
+  },
+  "agentModelLockNotice": {
+    "freePlan": "Free plans run every agent on {model}. <upgrade>Upgrade</upgrade> to choose any model."
   }
 }

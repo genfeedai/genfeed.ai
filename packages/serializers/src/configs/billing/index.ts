@@ -11,3 +11,4 @@ export * from '@serializers/configs/billing/referral-reward.config';
 export * from '@serializers/configs/billing/subscription.config';
 export * from '@serializers/configs/billing/subscription-attribution.config';
 export { topbarBalancesSerializerConfig } from '@serializers/configs/billing/topbar-balances.config';
+export * from '@serializers/configs/billing/unit-economics-report.config';

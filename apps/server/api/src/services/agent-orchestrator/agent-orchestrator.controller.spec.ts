@@ -4,6 +4,7 @@ import type { CreditsUtilsService } from '@api/collections/credits/services/cred
 import type { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import type { UsersService } from '@api/collections/users/services/users.service';
 import type { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import type { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
 import { AgentOrchestratorController } from '@api/services/agent-orchestrator/agent-orchestrator.controller';
 import type { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
@@ -61,7 +62,15 @@ describe('AgentOrchestratorController', () => {
       getOrganizationCreditsBalance: vi.fn(),
     };
     const agentChatModelRegistry = {
-      getRoundCostsMap: vi.fn().mockResolvedValue({}),
+      getMessageCostEstimatesMap: vi.fn().mockResolvedValue({}),
+    };
+    const agentModelAccessService = {
+      resolveAccess: vi.fn().mockResolvedValue({
+        isLocked: false,
+        lockedModelKey: null,
+        lockedModelLabel: null,
+        reason: null,
+      }),
     };
     const loggerService = {
       debug: vi.fn(),
@@ -73,6 +82,7 @@ describe('AgentOrchestratorController', () => {
     controller = new AgentOrchestratorController(
       service as unknown as AgentOrchestratorService,
       agentChatModelRegistry as unknown as AgentChatModelRegistryService,
+      agentModelAccessService as unknown as AgentModelAccessService,
       creditsService as unknown as CreditsUtilsService,
       agentGoalsService as unknown as AgentGoalsService,
       usersService as unknown as UsersService,

@@ -54,6 +54,7 @@ const CONTEXT_ONLY_COMPLETION_TOOLS = new Set<string>([
   'get_approval_summary',
   'check_onboarding_status',
   'get_brand_completeness',
+  'get_brand_context',
   'get_dashboard_layout',
   'get_content_calendar',
   'check_goal_progress',

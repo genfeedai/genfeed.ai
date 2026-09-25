@@ -1,3 +1,4 @@
+export * from './agent-model-access.interface';
 export * from './billing.tokens';
 export * from './billing-account.interface';
 export * from './cost-report.interface';
@@ -20,3 +21,4 @@ export type {
   TopbarBalanceProvider,
   TopbarBalanceStatus,
 } from './topbar-balance.interface';
+export * from './unit-economics.interface';

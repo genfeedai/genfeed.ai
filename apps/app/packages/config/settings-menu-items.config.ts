@@ -7,6 +7,7 @@ import {
   Bot,
   Box,
   Brain,
+  BrainCircuit,
   Building2,
   ChartColumn,
   CircleQuestionMark,
@@ -33,6 +34,7 @@ import {
 // Brand settings resolve against the current brandSlug via the sidebar's
 // `prefixHref`. Shared route constants cover paths used outside this menu.
 const BRAND_SETTINGS = {
+  AGENT_CONTEXT: '/settings/agent-context',
   AGENT_DEFAULTS: APP_ROUTES.SETTINGS.AGENT_DEFAULTS,
   CHARACTERS: APP_ROUTES.SETTINGS.CHARACTERS,
   HARNESS: '/settings/harness',
@@ -310,6 +312,15 @@ function buildBrandMenuItems(): MenuItemConfig[] {
       label: 'Interview',
       outline: MessageSquare,
       solid: MessageSquare,
+    },
+    {
+      // Read-only view of everything the agent is given about this brand.
+      group: 'Brand',
+      href: BRAND_SETTINGS.AGENT_CONTEXT,
+      hrefScope: 'brand',
+      label: 'Agent context',
+      outline: BrainCircuit,
+      solid: BrainCircuit,
     },
     {
       // Brand-scoped harness profile: structure, delivery knobs, examples for agents.

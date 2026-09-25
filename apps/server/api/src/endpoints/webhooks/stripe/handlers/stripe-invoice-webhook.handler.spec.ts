@@ -8,6 +8,7 @@ import { StripeWebhookSupportService } from '@api/endpoints/webhooks/stripe/hand
 import { StripeWebhookBillingError } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.error';
 import { StripeWebhookBillingService } from '@api/endpoints/webhooks/stripe/stripe-webhook-billing.service';
 import {
+  BillingRevenueSource,
   ByokBillingStatus,
   SubscriptionPlan,
   SubscriptionStatus,
@@ -46,6 +47,7 @@ describe('StripeInvoiceWebhookHandler', () => {
     isUniqueConstraintError: vi.fn().mockReturnValue(false),
     markOnboardingComplete: vi.fn(),
     recordCreditsActivity: vi.fn(),
+    recordRevenueEvent: vi.fn(),
     resolveTierFromPriceId: vi.fn().mockReturnValue(null),
     setByokBillingStatus: vi.fn(),
     setHasEverHadCredits: vi.fn(),
@@ -189,6 +191,31 @@ describe('StripeInvoiceWebhookHandler', () => {
         'org_1',
         'test',
       );
+    });
+
+    it('records the invoice net of tax in the revenue ledger', async () => {
+      await handler.handleInvoicePaid(
+        invoiceWith({
+          amount_paid: 4_900,
+          currency: 'usd',
+          parent: {
+            subscription_details: { subscription: 'sub_stripe_1' },
+          },
+          status_transitions: { paid_at: 1_790_000_000 },
+          total_taxes: [{ amount: 400 }],
+        }),
+        'test',
+      );
+
+      expect(supportService.recordRevenueEvent).toHaveBeenCalledWith({
+        amountMinor: 4_500,
+        currency: 'usd',
+        occurredAt: new Date(1_790_000_000 * 1000),
+        organizationId: 'org_1',
+        source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
+        stripeObjectId: 'in_123',
+        userId: 'user_1',
+      });
     });
 
     it('warns and skips a subscription_cycle invoice that carries no subscription id', async () => {

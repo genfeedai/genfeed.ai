@@ -5,6 +5,7 @@ import {
 } from '@genfeedai/contracts';
 import type { IModel } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
+import { useAgentModelAccess } from '@hooks/data/billing/use-agent-model-access/use-agent-model-access';
 import { useOrganization } from '@hooks/data/organization/use-organization/use-organization';
 import type {
   AgentPolicyState,
@@ -138,6 +139,8 @@ export default function SettingsAgentsPage() {
     ModelsService.getInstance(token),
   );
 
+  const { modelAccess, modelCosts } = useAgentModelAccess();
+
   const { data: catalogModels = [] } = useQuery({
     enabled: Boolean(organizationId),
     queryFn: async (): Promise<IModel[]> => {
@@ -257,9 +260,11 @@ export default function SettingsAgentsPage() {
       />
 
       <AdvancedRoutingCard
+        agentModelAccess={modelAccess}
         allowAdvancedOverrides={allowAdvancedOverrides}
         generationModelOverride={generationModelOverride}
         modelOptions={modelOptions}
+        modelCostEstimates={modelCosts}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>
           updateAndPersist({ allowAdvancedOverrides: value })

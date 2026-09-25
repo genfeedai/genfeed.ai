@@ -6,6 +6,7 @@ import {
 } from '@genfeedai/contracts';
 import { DEFAULT_AGENT_CHAT_MODEL_KEY } from '@genfeedai/contracts/constants';
 import type { IAgentWizardFormData } from '@genfeedai/contracts/interfaces';
+import { useAgentModelAccess } from '@hooks/data/billing/use-agent-model-access/use-agent-model-access';
 import type { Props } from '@props/automation/agent-wizard-step-configure.props';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
@@ -17,6 +18,7 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Textarea } from '@ui/primitives/textarea';
+import AgentModelLockNotice from '@ui/settings/agent-model-lock-notice/AgentModelLockNotice';
 import { ArrowLeft, ArrowRight } from 'lucide-react';
 
 import { SelectCardButton } from './AgentWizardHelpers';
@@ -36,6 +38,11 @@ export default function AgentWizardStepConfigure({
   onBack,
   onNext,
 }: Props) {
+  const { modelAccess } = useAgentModelAccess();
+  const lockedModelLabel = modelAccess?.isLocked
+    ? (modelAccess.lockedModelLabel ?? modelAccess.lockedModelKey)
+    : null;
+
   return (
     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
       <div className="space-y-1.5 sm:col-span-2">
@@ -173,15 +180,19 @@ export default function AgentWizardStepConfigure({
         >
           Model (optional)
         </label>
-        <Input
-          id="agent-model"
-          type="text"
-          placeholder={DEFAULT_AGENT_CHAT_MODEL_KEY}
-          value={form.model ?? ''}
-          onChange={(e) =>
-            setForm((prev) => ({ ...prev, model: e.target.value }))
-          }
-        />
+        {lockedModelLabel ? (
+          <AgentModelLockNotice lockedModelLabel={lockedModelLabel} />
+        ) : (
+          <Input
+            id="agent-model"
+            type="text"
+            placeholder={DEFAULT_AGENT_CHAT_MODEL_KEY}
+            value={form.model ?? ''}
+            onChange={(e) =>
+              setForm((prev) => ({ ...prev, model: e.target.value }))
+            }
+          />
+        )}
       </div>
 
       <div className="space-y-1.5">

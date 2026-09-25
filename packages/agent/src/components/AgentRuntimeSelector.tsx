@@ -103,7 +103,7 @@ export function AgentRuntimeSelector({
             </p>
             <p className="text-xs text-foreground/58">
               {environmentLabel === 'local'
-                ? 'Local CLI and hosted providers are both available'
+                ? 'Local CLIs use your own subscription; hosted runtimes use Genfeed credits'
                 : 'Hosted runtimes only'}
             </p>
           </div>
@@ -142,6 +142,11 @@ export function AgentRuntimeSelector({
                   <p className="truncate text-xs text-foreground/56">
                     {option.description}
                   </p>
+                  {option.hint ? (
+                    <p className="truncate text-2xs text-success">
+                      {option.hint}
+                    </p>
+                  ) : null}
                 </div>
               </Button>
             );

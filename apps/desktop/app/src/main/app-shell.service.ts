@@ -1,5 +1,6 @@
 import { type ChildProcess, spawn } from 'node:child_process';
 import fs from 'node:fs';
+import type { Server } from 'node:http';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import type {
@@ -13,6 +14,10 @@ import {
   resolveExternalDevAppUrl,
   resolveRemoteAppUrl,
 } from './app-shell-origin.util';
+import {
+  createDesktopShellProxyServer,
+  findFreeLoopbackPort,
+} from './app-shell-proxy';
 
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
@@ -59,6 +64,7 @@ async function waitForServer(url: string, timeoutMs = 60_000): Promise<void> {
 
 export class DesktopAppShellService {
   private appServerProcess: ChildProcess | null = null;
+  private proxyServer: Server | null = null;
   private activeAppUrl: URL | null = null;
   private headersRegistered = false;
   private started = false;
@@ -135,7 +141,7 @@ export class DesktopAppShellService {
     return directServerPath;
   }
 
-  private buildServerEnvironment(): NodeJS.ProcessEnv {
+  private buildServerEnvironment(internalPort: number): NodeJS.ProcessEnv {
     return {
       ...process.env,
       API_URL: stripApiVersionSuffix(this.environment.apiEndpoint),
@@ -148,7 +154,7 @@ export class DesktopAppShellService {
       NEXT_PUBLIC_CDN_URL: this.environment.cdnUrl,
       NEXT_PUBLIC_DESKTOP_SHELL: '1',
       NEXT_PUBLIC_WS_ENDPOINT: this.environment.wsEndpoint,
-      PORT: String(this.environment.appPort),
+      PORT: String(internalPort),
     };
   }
 
@@ -165,7 +171,35 @@ export class DesktopAppShellService {
     });
   }
 
-  private startBundledServer(): void {
+  private async startShellProxy(internalPort: number): Promise<void> {
+    if (this.proxyServer) {
+      return;
+    }
+
+    const proxyServer = createDesktopShellProxyServer(
+      {
+        apiEndpoint: this.environment.apiEndpoint,
+        nextOrigin: `http://${this.bundledAppUrl.hostname}:${String(internalPort)}`,
+      },
+      (message) => this.writeError(message),
+    );
+
+    await new Promise<void>((resolve, reject) => {
+      proxyServer.once('error', reject);
+      proxyServer.listen(
+        Number(this.bundledAppUrl.port || this.environment.appPort),
+        this.bundledAppUrl.hostname,
+        () => {
+          proxyServer.off('error', reject);
+          resolve();
+        },
+      );
+    });
+
+    this.proxyServer = proxyServer;
+  }
+
+  private async startBundledServer(): Promise<void> {
     if (this.appServerProcess || this.isExternalDevServer()) {
       return;
     }
@@ -176,9 +210,12 @@ export class DesktopAppShellService {
       throw new Error(`Bundled desktop app shell not found at ${serverPath}`);
     }
 
+    const internalPort = await findFreeLoopbackPort();
+    await this.startShellProxy(internalPort);
+
     this.appServerProcess = spawn(process.execPath, [serverPath], {
       cwd: path.dirname(serverPath),
-      env: this.buildServerEnvironment(),
+      env: this.buildServerEnvironment(internalPort),
       stdio: 'pipe',
     });
 
@@ -253,7 +290,10 @@ export class DesktopAppShellService {
       return this.appOrigin;
     }
 
-    if (app.isPackaged) {
+    if (
+      app.isPackaged &&
+      this.environment.authEndpoint.startsWith('https://')
+    ) {
       const remoteAppUrl = resolveRemoteAppUrl(this.environment.authEndpoint);
 
       try {
@@ -269,7 +309,7 @@ export class DesktopAppShellService {
     }
 
     this.activeAppUrl = this.bundledAppUrl;
-    this.startBundledServer();
+    await this.startBundledServer();
     await waitForServer(this.appOrigin);
     this.started = true;
 
@@ -277,6 +317,17 @@ export class DesktopAppShellService {
   }
 
   async stop(): Promise<void> {
+    const proxyServer = this.proxyServer;
+    this.proxyServer = null;
+    await new Promise<void>((resolve) => {
+      if (!proxyServer) {
+        resolve();
+        return;
+      }
+      proxyServer.close(() => resolve());
+      proxyServer.closeAllConnections();
+    });
+
     if (!this.appServerProcess) {
       return;
     }

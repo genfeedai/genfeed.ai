@@ -63,6 +63,17 @@ vi.mock('@hooks/auth/use-authed-service/use-authed-service', () => ({
   useAuthedService: () => mocks.getService,
 }));
 
+vi.mock(
+  '@hooks/data/billing/use-agent-model-access/use-agent-model-access',
+  () => ({
+    useAgentModelAccess: () => ({
+      isLoading: false,
+      modelAccess: null,
+      modelCosts: {},
+    }),
+  }),
+);
+
 vi.mock('@services/automation/agent-strategies.service', () => ({
   AgentStrategiesService: {
     getInstance: vi.fn(),

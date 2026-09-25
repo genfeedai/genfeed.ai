@@ -46,6 +46,8 @@ export interface ILlmVendorCostRecordInput {
   provider: string;
   runId?: string;
   threadId?: string;
+  /** Actor behind the completion (opaque users.id); absent for system jobs. */
+  userId?: string;
   vendorCostMicros: number;
 }
 

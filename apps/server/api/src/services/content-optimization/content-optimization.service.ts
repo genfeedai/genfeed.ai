@@ -19,10 +19,9 @@ import {
   CONTENT_OPTIMIZATION_WORKFLOW_IDS,
 } from '@api/services/content-optimization/content-optimization-workflow-definition';
 import { OpenAiLlmService } from '@api/services/integrations/openai-llm/services/openai-llm.service';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
-
-// ─── Interfaces ──────────────────────────────────────────────────────
 
 export interface PerformanceAnalysis {
   summary: WeeklySummary;
@@ -670,7 +669,7 @@ export class ContentOptimizationService implements OnModuleInit {
           role: 'user',
         },
       ],
-      model: 'gpt-4o-mini',
+      model: LLM_DEFAULTS.fastText,
       temperature: 0.7,
     });
     const content = response.choices?.[0]?.message?.content;

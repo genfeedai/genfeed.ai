@@ -4,7 +4,9 @@ export * from './admin/fleet.interface';
 export * from './admin/warmup-accounts.interface';
 export * from './ai/agent-artifact-reference.interface';
 export * from './ai/agent-auto-routing.interface';
+export * from './ai/agent-brand-context.interface';
 export * from './ai/agent-campaign.interface';
+export * from './ai/agent-external-turn.interface';
 export * from './ai/agent-failure.interface';
 export * from './ai/agent-generation-quote.interface';
 export * from './ai/agent-publish.interface';
@@ -74,6 +76,7 @@ export * from './automation/workflow-builder.interface';
 export * from './automation/workflow-execution.interface';
 export * from './batch/batch.interface';
 export * from './batch/manual-review-batch-item.interface';
+export * from './billing/agent-model-access.interface';
 export * from './billing/billing-account.interface';
 export * from './billing/cost-report.interface';
 export * from './billing/credits.interface';
@@ -90,6 +93,7 @@ export type {
   TopbarBalanceProvider,
   TopbarBalanceStatus,
 } from './billing/topbar-balance.interface';
+export * from './billing/unit-economics.interface';
 export * from './billing/workflow-accounting.interface';
 export * from './common/content-scope.interface';
 export * from './components/asset-selection.interface';
@@ -240,6 +244,7 @@ export * from './organization/brand-kit.interface';
 export * from './organization/brand-os-export.interface';
 export * from './organization/brand-os-revision.interface';
 export * from './organization/brand-profile.interface';
+export * from './organization/brand-voice-corpus.interface';
 export * from './organization/brand-voice-failure.interface';
 export * from './organization/byok-key-entry.interface';
 export * from './organization/byok-provider-status.interface';

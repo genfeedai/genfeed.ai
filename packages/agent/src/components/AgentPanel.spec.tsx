@@ -173,6 +173,7 @@ vi.mock('@genfeedai/agent/components/AgentOutputsPanel', () => ({
 }));
 
 import { AgentPanel } from '@genfeedai/agent/components/AgentPanel';
+import { resetDesktopLocalToolsCache } from '@genfeedai/agent/hooks/use-desktop-local-tools';
 
 function renderAgentPanel(ui: ReactElement) {
   const queryClient = new QueryClient({
@@ -307,7 +308,7 @@ describe('AgentPanel', () => {
     );
   });
 
-  it('shows the terminal runtime picker in local mode', async () => {
+  it('shows the hosted runtime picker in a browser', async () => {
     renderAgentPanel(
       <AgentPanel apiService={createCreditsInfoApiService() as never} />,
     );
@@ -316,7 +317,46 @@ describe('AgentPanel', () => {
       expect(screen.getByText('Runtime')).toBeInTheDocument();
     });
 
-    expect(screen.getByText('local')).toBeInTheDocument();
+    expect(screen.getByText('cloud')).toBeInTheDocument();
+  });
+
+  it('offers local CLI runtimes when Genfeed Desktop detects them', async () => {
+    resetDesktopLocalToolsCache();
+    const desktopWindow = window as Window & { genfeedDesktop?: unknown };
+    desktopWindow.genfeedDesktop = {
+      app: {
+        detectLocalTools: vi.fn().mockResolvedValue({
+          anyDetected: true,
+          claude: true,
+          codex: false,
+          detected: ['claude'],
+          grok: false,
+        }),
+      },
+      terminal: {
+        create: vi.fn(),
+        kill: vi.fn().mockResolvedValue(undefined),
+        onData: vi.fn(() => () => undefined),
+        onExit: vi.fn(() => () => undefined),
+        resize: vi.fn().mockResolvedValue(undefined),
+        write: vi.fn().mockResolvedValue(undefined),
+      },
+    };
+
+    try {
+      renderAgentPanel(
+        <AgentPanel apiService={createCreditsInfoApiService() as never} />,
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('local')).toBeInTheDocument();
+      });
+      // Desktop terminals start only on an explicit pick.
+      expect(screen.getByText('local terminal ready')).toBeInTheDocument();
+    } finally {
+      delete desktopWindow.genfeedDesktop;
+      resetDesktopLocalToolsCache();
+    }
   });
 
   it('renders outputs as a second rail tab', () => {

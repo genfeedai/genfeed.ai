@@ -10,7 +10,7 @@ export const AGENT_BRAND_PROFILE_TOOLS: SourceTool[] = [
   {
     creditCost: 1,
     description:
-      'Build one reusable brand profile, including voice, strategy, prompt seeds, and conversation starters, from website/social context, audience, positioning, and examples.',
+      "Build one reusable brand profile, including voice, strategy, prompt seeds, and conversation starters. Voice is learned from the brand's own posts (imported account history and published posts) plus any samples the user pastes; website context, audience, positioning, and examples inform the rest. If the user pastes their own posts or replies, pass them verbatim in samples.",
     name: 'draft_brand_voice_profile',
     parameters: {
       properties: {
@@ -38,6 +38,12 @@ export const AGENT_BRAND_PROFILE_TOOLS: SourceTool[] = [
         offering: {
           description: 'What the brand sells, creates, or helps with.',
           type: 'string',
+        },
+        samples: {
+          description:
+            "The user's own posts or replies, pasted verbatim, one per item. Never write or paraphrase samples yourself.",
+          items: { type: 'string' },
+          type: 'array',
         },
         targetAudience: {
           description: 'Who the brand is trying to reach.',

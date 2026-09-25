@@ -69,6 +69,7 @@ export class LlmCompletionTelemetryService {
       brandId: callContext?.brandId,
       runId: callContext?.runId,
       threadId: callContext?.threadId,
+      userId: callContext?.userId,
       organizationId,
       model,
       provider,
@@ -120,6 +121,7 @@ export class LlmCompletionTelemetryService {
           provider: event.provider,
           runId: event.runId,
           threadId: event.threadId,
+          userId: event.userId,
           vendorCostMicros,
         });
       } catch (error: unknown) {

@@ -49,6 +49,8 @@ import { AgentMessageBusModule } from '@api/services/agent-campaign/agent-messag
 import { AgentContextAssemblyModule } from '@api/services/agent-context-assembly/agent-context-assembly.module';
 import { AgentGenerationGatewayModule } from '@api/services/agent-generation-gateway/agent-generation-gateway.module';
 import { AgentAutoModelResolverService } from '@api/services/agent-orchestrator/agent-auto-model-resolver.service';
+import { AgentBrandContextController } from '@api/services/agent-orchestrator/agent-brand-context.controller';
+import { AgentBrandContextSnapshotService } from '@api/services/agent-orchestrator/agent-brand-context-snapshot.service';
 import { AgentChatModelRegistryModule } from '@api/services/agent-orchestrator/agent-chat-model-registry.module';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentGenerationDecisionService } from '@api/services/agent-orchestrator/agent-generation-decision.service';
@@ -80,6 +82,7 @@ import { AgentUntrustedContentGateService } from '@api/services/agent-orchestrat
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
+import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionRequestService } from '@api/services/agent-orchestrator/tools/agent-connection-request.service';
@@ -139,6 +142,7 @@ import { Module } from '@nestjs/common';
 
 @Module({
   controllers: [
+    AgentBrandContextController,
     AgentOrchestratorController,
     AgentStudioHandoffController,
     AgentToolsController,
@@ -214,6 +218,7 @@ import { Module } from '@nestjs/common';
     TypedDecisionsModule,
   ],
   providers: [
+    AgentBrandContextSnapshotService,
     AgentGenerationSettingsToolHandler,
     AgentCompletionCardBuilderService,
     AgentAdsResearchToolHandler,
@@ -231,6 +236,7 @@ import { Module } from '@nestjs/common';
     AgentWorkflowToolHandler,
     AgentWorkflowToolInstallService,
     AgentBrandContentToolHandler,
+    AgentBrandContextToolHandler,
     AgentKnowledgeToolHandler,
     AgentBrandInterviewToolHandler,
     AgentPrepareToolHandler,

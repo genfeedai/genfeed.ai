@@ -12,12 +12,14 @@ const {
   refreshBrandsMock,
   successMock,
   updateAgentConfigMock,
+  warningMock,
 } = vi.hoisted(() => ({
   errorMock: vi.fn(),
   generateBrandVoiceMock: vi.fn(),
   refreshBrandsMock: vi.fn().mockResolvedValue(undefined),
   successMock: vi.fn(),
   updateAgentConfigMock: vi.fn().mockResolvedValue(undefined),
+  warningMock: vi.fn(),
 }));
 
 vi.mock('next-intl', async () => {
@@ -58,12 +60,49 @@ vi.mock('@services/core/notifications.service', () => ({
     getInstance: () => ({
       error: errorMock,
       success: successMock,
+      warning: warningMock,
     }),
   },
 }));
 
 describe('BrandDetailAgentProfileCard', () => {
   const onRefreshBrand = vi.fn().mockResolvedValue(undefined);
+
+  const sufficientCorpus = {
+    dateRange: { from: '2026-06-01', to: '2026-09-20' },
+    isSufficient: true,
+    label:
+      'own posts: 42 samples (30 replies, 12 original) from twitter, 2026-06-01 to 2026-09-20',
+    minimumSampleCount: 10,
+    originalCount: 12,
+    originCounts: { 'own-account': 42, pasted: 0, 'published-post': 0 },
+    platforms: ['twitter'],
+    replyCount: 30,
+    sampleCount: 42,
+  };
+
+  const generatedProfile = {
+    audience: ['founders'],
+    corpus: sufficientCorpus,
+    doNotSoundLike: ['hype'],
+    exemplarTexts: [
+      'shipped it, docs later',
+      'nah, ship the boring version first',
+    ],
+    hashtags: ['#acme'],
+    messagingPillars: ['clarity', 'proof'],
+    prompting: { conversationStarters: [], seeds: [] },
+    sampleOutput: 'A sharp, practical founder post.',
+    strategy: { goals: ['awareness'], topics: ['product'] },
+    style: 'plainspoken',
+    taglines: ['Ship systems'],
+    tone: 'confident',
+    values: ['honesty'],
+    writingRules: [
+      'Keep replies short, under ~90 characters',
+      'Never use em dashes',
+    ],
+  };
 
   const brand = {
     agentConfig: {
@@ -95,19 +134,7 @@ describe('BrandDetailAgentProfileCard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     updateAgentConfigMock.mockResolvedValue(undefined);
-    generateBrandVoiceMock.mockResolvedValue({
-      audience: ['founders'],
-      doNotSoundLike: ['hype'],
-      hashtags: ['#acme'],
-      messagingPillars: ['clarity', 'proof'],
-      prompting: { conversationStarters: [], seeds: [] },
-      sampleOutput: 'A sharp, practical founder post.',
-      strategy: { goals: ['awareness'], topics: ['product'] },
-      style: 'plainspoken',
-      taglines: ['Ship systems'],
-      tone: 'confident',
-      values: ['honesty'],
-    });
+    generateBrandVoiceMock.mockResolvedValue(generatedProfile);
   });
 
   it('renders inline fields and keeps select controls without a Save button', () => {
@@ -170,6 +197,7 @@ describe('BrandDetailAgentProfileCard', () => {
           frequency: '',
           goals: [],
           platforms: [],
+          topics: [],
         },
         voice: {
           approvedHooks: [],
@@ -366,7 +394,201 @@ describe('BrandDetailAgentProfileCard', () => {
     expect(screen.getByRole('button', { name: 'Style' })).toHaveTextContent(
       'plainspoken',
     );
-    expect(successMock).toHaveBeenCalledWith('Brand voice generated and saved');
+    expect(successMock).toHaveBeenCalledWith(
+      'Brand voice generated and saved',
+      { description: `Learned from ${sufficientCorpus.label}.` },
+    );
+    expect(
+      screen.getByText(`Voice evidence: ${sufficientCorpus.label}`),
+    ).toBeInTheDocument();
+  });
+
+  it('edits strategy topics and keeps prompting out of the payload until the brand has it', async () => {
+    const user = userEvent.setup();
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Topics' }));
+    const editor = screen.getByRole('textbox', { name: 'Topics' });
+    await user.type(editor, 'ops, hiring');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(updateAgentConfigMock).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          strategy: expect.objectContaining({ topics: ['ops', 'hiring'] }),
+        }),
+      );
+    });
+    expect(updateAgentConfigMock.mock.calls[0]?.[1]).not.toHaveProperty(
+      'prompting',
+    );
+  });
+
+  it('shows stored prompt seeds and starters and saves starter edits', async () => {
+    const user = userEvent.setup();
+    const brandWithPrompting = {
+      ...brand,
+      agentConfig: {
+        ...brand.agentConfig,
+        prompting: {
+          conversationStarters: [
+            {
+              id: 'starter-1',
+              intent: 'create' as const,
+              label: 'Launch post',
+              prompt: 'Draft a launch post',
+              topic: 'launches',
+            },
+          ],
+          seeds: [
+            {
+              angle: 'Behind the scenes',
+              audience: 'founders',
+              preferredFormats: ['thread'],
+              topic: 'ops',
+            },
+          ],
+        },
+      },
+    } as BrandDetailAgentProfileCardProps['brand'];
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brandWithPrompting}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    expect(
+      screen.getByRole('button', { name: 'Prompt seeds 1 Angle' }),
+    ).toHaveTextContent('Behind the scenes');
+
+    await user.click(
+      screen.getByRole('button', { name: 'Conversation starters 1 Label' }),
+    );
+    const editor = screen.getByRole('textbox', {
+      name: 'Conversation starters 1 Label',
+    });
+    await user.clear(editor);
+    await user.type(editor, 'Ship notes');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(updateAgentConfigMock).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          prompting: {
+            conversationStarters: [
+              expect.objectContaining({ id: 'starter-1', label: 'Ship notes' }),
+            ],
+            seeds: [expect.objectContaining({ topic: 'ops' })],
+          },
+        }),
+      );
+    });
+  });
+
+  it('adds a conversation starter with a stable id', async () => {
+    const user = userEvent.setup();
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getByRole('button', { name: 'Add starter' }));
+
+    await waitFor(() => {
+      expect(updateAgentConfigMock).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          prompting: {
+            conversationStarters: [
+              expect.objectContaining({
+                id: expect.stringMatching(/^starter-/),
+                intent: 'create',
+              }),
+            ],
+            seeds: [],
+          },
+        }),
+      );
+    });
+  });
+
+  it('saves verbatim exemplars and measured rules without splitting on commas', async () => {
+    const user = userEvent.setup();
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
+
+    await waitFor(() => {
+      expect(updateAgentConfigMock).toHaveBeenCalledWith(
+        'brand-1',
+        expect.objectContaining({
+          voice: expect.objectContaining({
+            exemplarTexts: [
+              'shipped it, docs later',
+              'nah, ship the boring version first',
+            ],
+            writingRules: [
+              'Keep replies short, under ~90 characters',
+              'Never use em dashes',
+            ],
+          }),
+        }),
+      );
+    });
+  });
+
+  it('warns with the fix when the own-posts corpus is too thin', async () => {
+    const user = userEvent.setup();
+    const guidance =
+      'Only 3 posts written by this brand were found, which is too few to learn how you write.';
+    generateBrandVoiceMock.mockResolvedValueOnce({
+      ...generatedProfile,
+      corpus: {
+        ...sufficientCorpus,
+        guidance,
+        isSufficient: false,
+        label: 'own posts: 3 samples (1 reply, 2 original) from twitter',
+        sampleCount: 3,
+      },
+    });
+
+    render(
+      <BrandDetailAgentProfileCard
+        brand={brand}
+        brandId="brand-1"
+        onRefreshBrand={onRefreshBrand}
+      />,
+    );
+
+    await user.click(screen.getAllByRole('button', { name: 'Generate' })[0]);
+
+    await waitFor(() =>
+      expect(warningMock).toHaveBeenCalledWith(
+        'Brand voice saved, but it will not sound like you yet',
+        { description: guidance },
+      ),
+    );
+    expect(successMock).not.toHaveBeenCalled();
+    expect(screen.getByText(guidance)).toBeInTheDocument();
   });
 
   /**

@@ -4,6 +4,7 @@ import type {
   IBrandAgentPlatformOverride,
   IBrandAgentStrategy,
   IBrandAgentVoice,
+  IBrandVoiceCorpusSummary,
   IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
@@ -14,6 +15,7 @@ import type {
   AgentProfilePlatformOverrideFormState,
   AgentProfilePlatformOverrideSelectField,
   AgentProfilePlatformOverrideTextField,
+  AgentProfilePromptingValue,
   AgentProfileTextField,
   BrandDetailAgentProfileCardProps,
 } from '@props/pages/brand-detail.props';
@@ -45,6 +47,34 @@ function joinList(values?: string[] | string): string {
 function parseList(value: string): string[] {
   return value
     .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Writing rules and exemplars hold real sentences (commas included), so they
+ * round-trip one rule per line and one exemplar per `---`-separated block.
+ */
+const EXEMPLAR_SEPARATOR = '\n---\n';
+
+function joinLines(values?: string[]): string {
+  return values?.join('\n') ?? '';
+}
+
+function parseLines(value: string): string[] {
+  return value
+    .split('\n')
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function joinExemplars(values?: string[]): string {
+  return values?.join(EXEMPLAR_SEPARATOR) ?? '';
+}
+
+function parseExemplars(value: string): string[] {
+  return value
+    .split(/\n\s*---\s*\n/)
     .map((item) => item.trim())
     .filter(Boolean);
 }
@@ -112,6 +142,7 @@ function toFormState(brand: BrandDetailAgentProfileCardProps['brand']) {
   return {
     defaultModel: config?.defaultModel ?? '',
     frequency: config?.strategy?.frequency ?? '',
+    hasPrompting: Boolean(config?.prompting),
     persona: config?.persona ?? '',
     platformOverrides: Object.fromEntries(
       PLATFORM_OPTIONS.map((platform) => [
@@ -121,9 +152,12 @@ function toFormState(brand: BrandDetailAgentProfileCardProps['brand']) {
         ),
       ]),
     ),
+    promptingSeeds: config?.prompting?.seeds ?? [],
+    promptingStarters: config?.prompting?.conversationStarters ?? [],
     strategyContentTypes: joinList(config?.strategy?.contentTypes),
     strategyGoals: joinList(config?.strategy?.goals),
     strategyPlatforms: joinList(config?.strategy?.platforms),
+    strategyTopics: joinList(config?.strategy?.topics),
     voiceApprovedHooks: joinList(config?.voice?.approvedHooks),
     voiceAudience: joinList(config?.voice?.audience),
     voiceBannedPhrases: joinList(config?.voice?.bannedPhrases),
@@ -132,7 +166,7 @@ function toFormState(brand: BrandDetailAgentProfileCardProps['brand']) {
       (config?.voice as { doNotSoundLike?: string[] } | undefined)
         ?.doNotSoundLike,
     ),
-    voiceExemplarTexts: joinList(config?.voice?.exemplarTexts),
+    voiceExemplarTexts: joinExemplars(config?.voice?.exemplarTexts),
     voiceMessagingPillars: joinList(
       (config?.voice as { messagingPillars?: string[] } | undefined)
         ?.messagingPillars,
@@ -143,7 +177,7 @@ function toFormState(brand: BrandDetailAgentProfileCardProps['brand']) {
     voiceStyle: config?.voice?.style ?? '',
     voiceTone: config?.voice?.tone ?? '',
     voiceValues: joinList(config?.voice?.values),
-    voiceWritingRules: joinList(config?.voice?.writingRules),
+    voiceWritingRules: joinLines(config?.voice?.writingRules),
   };
 }
 
@@ -167,13 +201,13 @@ function buildVoice(
     bannedPhrases: parseList(bannedPhrases),
     canonicalSource,
     doNotSoundLike: parseList(doNotSoundLike),
-    exemplarTexts: parseList(exemplarTexts),
+    exemplarTexts: parseExemplars(exemplarTexts),
     messagingPillars: parseList(messagingPillars),
     sampleOutput: sampleOutput.trim(),
     style: style.trim(),
     tone: tone.trim(),
     values: parseList(values),
-    writingRules: parseList(writingRules),
+    writingRules: parseLines(writingRules),
   } as IBrandAgentVoice;
 }
 
@@ -182,12 +216,14 @@ function buildStrategy(
   platforms: string,
   frequency: string,
   goals: string,
+  topics: string,
 ): IBrandAgentStrategy {
   return {
     contentTypes: parseList(contentTypes),
     frequency: frequency.trim(),
     goals: parseList(goals),
     platforms: parseList(platforms),
+    topics: parseList(topics),
   };
 }
 
@@ -238,6 +274,17 @@ function applyGeneratedProfileToForm(
     strategyContentTypes:
       joinList(profile.strategy?.topics) || current.strategyContentTypes,
     strategyGoals: joinList(profile.strategy?.goals) || current.strategyGoals,
+    strategyTopics:
+      joinList(profile.strategy?.topics) || current.strategyTopics,
+    ...(profile.prompting &&
+    (profile.prompting.seeds?.length ||
+      profile.prompting.conversationStarters?.length)
+      ? {
+          hasPrompting: true,
+          promptingSeeds: profile.prompting.seeds ?? [],
+          promptingStarters: profile.prompting.conversationStarters ?? [],
+        }
+      : {}),
     voiceAudience: audience || current.voiceAudience,
     voiceDoNotSoundLike:
       joinList(profile.doNotSoundLike) || current.voiceDoNotSoundLike,
@@ -251,6 +298,12 @@ function applyGeneratedProfileToForm(
     // Prefer generated taglines as approved hooks when none are set yet.
     voiceApprovedHooks:
       current.voiceApprovedHooks.trim() || joinList(profile.taglines),
+    // Exemplars are verbatim own posts and rules are measured from them, so a
+    // fresh corpus read replaces them; an empty read keeps what is there.
+    voiceExemplarTexts:
+      joinExemplars(profile.exemplarTexts) || current.voiceExemplarTexts,
+    voiceWritingRules:
+      joinLines(profile.writingRules) || current.voiceWritingRules,
   };
 }
 
@@ -289,11 +342,20 @@ function buildAgentConfigPayload(form: AgentProfileFormState) {
           },
         ]),
     ),
+    ...(form.hasPrompting
+      ? {
+          prompting: {
+            conversationStarters: form.promptingStarters,
+            seeds: form.promptingSeeds,
+          },
+        }
+      : {}),
     strategy: buildStrategy(
       form.strategyContentTypes,
       form.strategyPlatforms,
       form.frequency,
       form.strategyGoals,
+      form.strategyTopics,
     ),
     voice: buildVoice(
       form.voiceCanonicalSource,
@@ -325,6 +387,8 @@ export function useBrandDetailAgentProfileCard({
     toFormState(brand),
   );
   const [isGenerating, setIsGenerating] = useState(false);
+  const [voiceCorpus, setVoiceCorpus] =
+    useState<IBrandVoiceCorpusSummary | null>(null);
   const formRef = useRef(form);
   const { enqueueSave, waitForIdle } = useSaveQueue();
 
@@ -415,6 +479,17 @@ export function useBrandDetailAgentProfileCard({
     [enqueueFormSave],
   );
 
+  const handlePromptingSave = useCallback(
+    (next: AgentProfilePromptingValue) =>
+      enqueueFormSave((current) => ({
+        ...current,
+        hasPrompting: true,
+        promptingSeeds: next.seeds,
+        promptingStarters: next.conversationStarters,
+      })),
+    [enqueueFormSave],
+  );
+
   const handlePlatformOverrideSave = useCallback(
     (
       platform: string,
@@ -455,8 +530,9 @@ export function useBrandDetailAgentProfileCard({
   );
 
   /**
-   * One-click AI generation: scan brand website (server) + LLM profile,
-   * fill the page form, and save so agents can use it immediately.
+   * One-click AI generation: the server learns the voice from this brand's own
+   * posts (imported history + published posts) and uses the website or brand
+   * details for positioning, then this fills the form and saves it.
    */
   const handleGenerate = useCallback(async () => {
     setIsGenerating(true);
@@ -479,6 +555,7 @@ export function useBrandDetailAgentProfileCard({
         brandId,
         ...(website ? { url: website } : {}),
       });
+      setVoiceCorpus(profile.corpus);
       const nextForm = applyGeneratedProfileToForm(
         formRef.current,
         profile,
@@ -492,7 +569,17 @@ export function useBrandDetailAgentProfileCard({
       );
       await refreshBrands();
       await onRefreshBrand();
-      notifications.success(translate('generateSuccess'));
+      if (profile.corpus.isSufficient) {
+        notifications.success(translate('generateSuccess'), {
+          description: translate('corpus.learnedFrom', {
+            label: profile.corpus.label,
+          }),
+        });
+      } else {
+        notifications.warning(translate('corpus.thinTitle'), {
+          description: profile.corpus.guidance,
+        });
+      }
     } catch (error) {
       logger.error('Failed to generate brand voice', error);
       // One notification naming the cause the API classified. The card's own
@@ -525,8 +612,10 @@ export function useBrandDetailAgentProfileCard({
     handleGenerate,
     handlePlatformOverrideSave,
     handlePlatformOverrideSelectChange,
+    handlePromptingSave,
     isGenerating,
     PLATFORM_OPTIONS,
     populatedPlatformCount,
+    voiceCorpus,
   };
 }

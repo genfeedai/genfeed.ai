@@ -12,6 +12,9 @@ const environment: IDesktopEnvironment = {
   appPort: 3230,
   authEndpoint: 'https://app.genfeed.ai/oauth/cli',
   cdnUrl: 'https://cdn.genfeed.ai',
+  mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+  serverId: 'cloud',
+  serverKind: 'cloud',
   wsEndpoint: 'https://notifications.genfeed.ai',
 };
 
@@ -286,5 +289,95 @@ describe('DesktopCloudService', () => {
     await expect(service.listProjects()).rejects.toThrow(
       'Desktop session is required',
     );
+  });
+});
+
+describe('DesktopCloudService agent threads', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  it('creates CLI runtime threads and appends external turns', async () => {
+    const requests: Array<{ body?: unknown; method?: string; url: string }> =
+      [];
+    globalThis.fetch = (async (
+      input: RequestInfo | URL,
+      init?: RequestInit,
+    ) => {
+      requests.push({
+        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        method: init?.method,
+        url: String(input),
+      });
+
+      return new Response(
+        JSON.stringify({
+          data: {
+            attributes: {
+              brandId: 'brand-1',
+              externalRuntime: {
+                runtimeKey: 'local/claude-cli',
+                sessionId: 'sess-1',
+                updatedAt: '2026-09-25T00:00:00.000Z',
+              },
+              organizationId: 'org-1',
+              runtimeKey: 'local/claude-cli',
+            },
+            id: 'thread-1',
+          },
+        }),
+        { headers: { 'content-type': 'application/json' }, status: 200 },
+      );
+    }) as typeof fetch;
+
+    const service = new DesktopCloudService(environment, () => session);
+    const created = await service.createAgentThread({
+      brandId: 'brand-1',
+      runtimeKey: 'local/claude-cli',
+      source: 'desktop-cli',
+      title: 'Launch post',
+    });
+    await service.appendExternalAgentTurn('thread-1', {
+      assistantMessage: 'Done',
+      runtimeKey: 'local/claude-cli',
+      sessionId: 'sess-1',
+      userMessage: 'Hi',
+    });
+
+    expect(created).toEqual({
+      brandId: 'brand-1',
+      externalRuntime: {
+        runtimeKey: 'local/claude-cli',
+        sessionId: 'sess-1',
+        updatedAt: '2026-09-25T00:00:00.000Z',
+      },
+      id: 'thread-1',
+      organizationId: 'org-1',
+      runtimeKey: 'local/claude-cli',
+    });
+    expect(requests).toEqual([
+      {
+        body: {
+          brandId: 'brand-1',
+          runtimeKey: 'local/claude-cli',
+          source: 'desktop-cli',
+          title: 'Launch post',
+        },
+        method: 'POST',
+        url: 'https://api.genfeed.ai/v1/agent/threads',
+      },
+      {
+        body: {
+          assistantMessage: 'Done',
+          runtimeKey: 'local/claude-cli',
+          sessionId: 'sess-1',
+          userMessage: 'Hi',
+        },
+        method: 'POST',
+        url: 'https://api.genfeed.ai/v1/agent/threads/thread-1/external-turns',
+      },
+    ]);
   });
 });

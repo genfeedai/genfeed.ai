@@ -11,7 +11,19 @@ import type {
   ContextEntryPendingEmbeddingRow,
   ContextEntrySimilarityResult,
   ContextEntrySimilarityRow,
+  ContextPromptEnhancement,
+  ContextPromptEntry,
 } from '@api/collections/contexts/schemas/context-entry.schema';
+import {
+  type BrandScopedRetrievalParams,
+  buildBrandContentMemoryBaseWhere,
+  buildBrandKnowledgeBaseWhere,
+  buildPromptContextBaseWhere,
+  type ContextBaseScopeRow,
+  isContextBaseInBrandScope,
+  toBrandContentMemoryHits,
+  toBrandKnowledgeHits,
+} from '@api/collections/contexts/utils/context-brand-scope.util';
 import {
   buildEmbeddingFailureQuery,
   buildEmptyContentFailQuery,
@@ -25,7 +37,6 @@ import {
 import {
   isKnowledgeSourceKind,
   isKnowledgeSourcePurpose,
-  KNOWLEDGE_BASE_PURPOSE,
 } from '@api/collections/contexts/utils/knowledge-source.util';
 import { chunkText } from '@api/collections/contexts/utils/text-chunker.util';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
@@ -35,7 +46,7 @@ import { RouterService } from '@api/services/router/router.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
 import {
-  KnowledgeMemoryScope,
+  KnowledgeSourcePurpose,
   ModelCategory,
   PostVisibility,
   parsePlatform,
@@ -385,14 +396,10 @@ export class ContextsService {
   async enhancePrompt(
     dto: EnhancePromptDto,
     organizationId: string,
-  ): Promise<{
-    originalPrompt: string;
-    enhancedPrompt: string;
-    context: Array<{ content: string; source: string; relevance: number }>;
-    estimatedQualityBoost: number;
-  }> {
+  ): Promise<ContextPromptEnhancement> {
     try {
       this.logger.debug('Retrieving prompt context', {
+        brandId: dto.brandId,
         contentType: dto.contentType,
         organizationId,
       });
@@ -439,11 +446,7 @@ export class ContextsService {
         relevantEntries.length;
 
       return {
-        context: relevantEntries.map((e) => ({
-          content: e.content,
-          relevance: e.relevance,
-          source: e.source,
-        })),
+        context: relevantEntries,
         enhancedPrompt: dto.prompt,
         estimatedQualityBoost: Math.round(avgRelevance * 50),
         originalPrompt: dto.prompt,
@@ -494,46 +497,9 @@ export class ContextsService {
   async retrieveBrandContentMemory(
     params: BrandContentMemoryRetrievalParams,
   ): Promise<BrandContentMemoryHit[]> {
-    const query = params.query.trim();
-    if (!query) {
-      return [];
-    }
-
-    // Brand memory plus organization-wide Knowledge. Personal Knowledge is
-    // never folded into brand generation.
-    const bases = await this.prisma.contextBase.findMany({
-      select: { data: true, id: true, sourceBrandId: true },
-      where: scopedWhere(params.organizationId, {
-        OR: [
-          { sourceBrandId: params.brandId },
-          { data: { equals: params.brandId, path: ['brandId'] } },
-          {
-            AND: [
-              { sourceBrandId: null },
-              { data: { equals: KNOWLEDGE_BASE_PURPOSE, path: ['purpose'] } },
-              {
-                data: {
-                  equals: KnowledgeMemoryScope.ORG,
-                  path: ['knowledgeScope'],
-                },
-              },
-            ],
-          },
-        ],
-      }),
-    });
-
-    if (bases.length === 0) {
-      return [];
-    }
-
-    const queryEmbedding = await this.generateEmbedding(query);
-    const entries = await this.findSimilarEntries(
-      params.organizationId,
-      bases.map((base) => base.id),
-      queryEmbedding,
-      params.limit ?? 5,
-      params.minRelevance ?? 0.65,
+    const { bases, entries } = await this.findBrandScopedEntries(
+      params,
+      buildBrandContentMemoryBaseWhere,
       {
         ...(params.knowledgeSourceIds?.length
           ? { knowledgeSourceIds: params.knowledgeSourceIds }
@@ -543,37 +509,27 @@ export class ContextsService {
           : {}),
       },
     );
+    return toBrandContentMemoryHits(entries, bases);
+  }
 
-    const labelByBase = new Map(
-      bases.map((base) => {
-        const data =
-          base.data &&
-          typeof base.data === 'object' &&
-          !Array.isArray(base.data)
-            ? (base.data as Record<string, unknown>)
-            : {};
-        const purpose =
-          typeof data.purpose === 'string' ? data.purpose : undefined;
-        const label =
-          typeof data.label === 'string' ? data.label : (purpose ?? 'context');
-        return [base.id, label] as const;
-      }),
+  /**
+   * Authoritative brand Knowledge for prompt injection: only chunks of
+   * BRAND_TRUTH sources owned by this brand or shared organization-wide, whose
+   * current version is ready and retrievable. Inspiration and research never
+   * reach this lane — they stay behind the explicit `search_knowledge` tool.
+   */
+  async retrieveBrandKnowledge(
+    params: BrandScopedRetrievalParams,
+  ): Promise<BrandContentMemoryHit[]> {
+    const { entries } = await this.findBrandScopedEntries(
+      params,
+      buildBrandKnowledgeBaseWhere,
+      {
+        isKnowledgeOnly: true,
+        knowledgePurposes: [KnowledgeSourcePurpose.BRAND_TRUTH],
+      },
     );
-
-    return entries.map((entry) => {
-      const metadata = (entry.metadata ?? {}) as Record<string, unknown>;
-      const kind =
-        entry.kind ||
-        (typeof metadata.kind === 'string' ? metadata.kind : undefined);
-      return {
-        ...(entry.citation ? { citation: entry.citation } : {}),
-        content: entry.content,
-        kind,
-        metadata,
-        relevance: entry.similarity,
-        source: entry.citation?.title ?? labelByBase.get(entry.contextBaseId),
-      };
-    });
+    return toBrandKnowledgeHits(entries);
   }
 
   async autoCreateFromAccount(
@@ -706,18 +662,57 @@ export class ContextsService {
     return this.replicateService.generateEmbedding(model, text);
   }
 
+  /**
+   * Similarity search over the brand's in-scope context bases. An empty brand
+   * id would collapse `{ sourceBrandId: undefined }` into an unscoped OR
+   * branch and read every brand's memory, so it returns nothing instead.
+   */
+  private async findBrandScopedEntries(
+    params: BrandScopedRetrievalParams,
+    buildBaseWhere: (brandId: string) => Prisma.ContextBaseWhereInput,
+    options: ContextSimilarityQueryOptions,
+  ): Promise<{
+    bases: ContextBaseScopeRow[];
+    entries: ContextEntrySimilarityResult[];
+  }> {
+    const query = params.query.trim();
+    const brandId = params.brandId?.trim();
+    if (!query || !brandId) {
+      return { bases: [], entries: [] };
+    }
+
+    const rows = await this.prisma.contextBase.findMany({
+      select: { data: true, id: true, sourceBrandId: true },
+      where: scopedWhere(params.organizationId, buildBaseWhere(brandId)),
+    });
+    const bases = rows.filter((row) => isContextBaseInBrandScope(row, brandId));
+    if (bases.length === 0) {
+      return { bases, entries: [] };
+    }
+
+    const queryEmbedding = await this.generateEmbedding(query);
+    const entries = await this.findSimilarEntries(
+      params.organizationId,
+      bases.map((base) => base.id),
+      queryEmbedding,
+      params.limit ?? 5,
+      params.minRelevance ?? 0.65,
+      { ...options, knowledgeBrandId: brandId },
+    );
+    return { bases, entries };
+  }
+
+  /** Active prompt-enhancement bases in the request brand's scope. */
   private async getRelevantContextBases(
     organizationId: string,
     dto: EnhancePromptDto,
   ): Promise<ContextBase[]> {
-    const baseWhere: Record<string, unknown> = scopedWhere(organizationId, {});
-
-    if (dto.contextBaseIds?.length) {
-      baseWhere.id = { in: dto.contextBaseIds };
-    }
-
+    const brandId = dto.brandId?.trim() || undefined;
     const rows = await this.prisma.contextBase.findMany({
-      where: baseWhere,
+      where: scopedWhere(
+        organizationId,
+        buildPromptContextBaseWhere(brandId, dto.contextBaseIds),
+      ),
     });
 
     const types: string[] = [];
@@ -726,8 +721,9 @@ export class ContextsService {
     if (dto.useAudience) types.push('audience');
 
     const filtered = rows.filter((row) => {
-      const d = (row.data as Record<string, unknown>) ?? {};
+      const d = this.getDataRecord(row.data);
       if (!d.isActive) return false;
+      if (!isContextBaseInBrandScope(row, brandId)) return false;
       if (types.length > 0 && !types.includes(d.type as string)) return false;
       return true;
     });
@@ -740,13 +736,10 @@ export class ContextsService {
     query: string,
     limit: number,
     organizationId: string,
-  ): Promise<Array<{ content: string; source: string; relevance: number }>> {
+  ): Promise<ContextPromptEntry[]> {
     const queryEmbedding = await this.generateEmbedding(query);
-    const sourceByContextBaseId = new Map(
-      contextBases.map((contextBase) => [
-        contextBase.id,
-        contextBase.label ?? 'context',
-      ]),
+    const contextBaseById = new Map(
+      contextBases.map((contextBase) => [contextBase.id, contextBase]),
     );
     const entries = await this.findSimilarEntries(
       organizationId,
@@ -756,11 +749,18 @@ export class ContextsService {
       0.7,
     );
 
-    return entries.map((entry) => ({
-      content: entry.content,
-      relevance: entry.similarity,
-      source: sourceByContextBaseId.get(entry.contextBaseId) ?? 'context',
-    }));
+    return entries.map((entry) => {
+      const contextBase = contextBaseById.get(entry.contextBaseId);
+      return {
+        content: entry.content,
+        contextBaseId: entry.contextBaseId,
+        ...(typeof contextBase?.type === 'string'
+          ? { contextBaseType: contextBase.type }
+          : {}),
+        relevance: entry.similarity,
+        source: contextBase?.label ?? 'context',
+      };
+    });
   }
 
   private async findSimilarEntries(

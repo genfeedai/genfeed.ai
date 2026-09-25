@@ -1,5 +1,5 @@
 ---
-description: 'Understand Genfeed Cloud subscriptions, credit packs, managed-inference usage, and why live pricing and checkout are the commercial source of truth.'
+description: 'Understand Genfeed Cloud subscriptions, credit packs, usage-based agent chat credits, the free plan model, and how credit amounts are displayed.'
 ---
 
 # Billing and Credits
@@ -11,6 +11,45 @@ release.
 
 Use the [current pricing page](https://genfeed.ai/pricing) and the checkout UI as
 the source of truth before purchasing.
+
+## Agent chat credits
+
+Agent chat is billed by usage. A chat message can take several model rounds
+(for example, one to call a tool and one to answer). Each round is billed from
+the tokens the model actually used, as fractional credits, so a short reply
+costs less than a long, tool-heavy one. Before a round starts, Genfeed holds an
+estimate from your balance and settles it to the real amount when the round
+finishes. To send a message, the balance must cover one round on the chosen
+model.
+
+Some chat costs no Genfeed credits:
+
+- rounds that run on your organization's own provider key (BYOK);
+- the brand interview; and
+- turns that run on your own Claude Code or Codex subscription from the
+  [desktop app](/deployment#desktop).
+
+Tools the agent calls, such as image or video generation and publishing, are
+billed separately at their own credit cost.
+
+### Free plan model
+
+Without an active paid subscription, every agent turn in Genfeed Cloud runs on
+**DeepSeek V4 Flash**, including sub-agents, plan mode, and recurring agents,
+whatever model a strategy or setting asks for. Model pickers show a notice with
+an upgrade link instead of the model list. A round that runs on your own BYOK
+key for its provider keeps the model you chose. Deployments without
+organization billing, including Community self-hosts, never lock the model.
+
+### How credit amounts are shown
+
+- **Balance:** whole credits, rounded down, with thousands separators
+  (`4,900`). From 100,000 credits the balance chip is abbreviated (`124k`,
+  `1.2M`); hover it for the exact value.
+- **Cost of a message, tool call, or transaction:** at most one decimal
+  (`0.4`, `12.5`). Amounts below 0.1 show as `<0.1`, and zero shows as `Free`.
+- **Model pickers:** `≈ X credits / message` is an estimate for an average
+  message on that model. The actual cost depends on the conversation.
 
 ## Repository boundary
 

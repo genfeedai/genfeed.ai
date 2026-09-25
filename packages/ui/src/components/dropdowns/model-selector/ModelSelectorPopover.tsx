@@ -5,6 +5,10 @@ import {
   ModelLifecycle,
   RouterPriority,
 } from '@genfeedai/contracts';
+import {
+  formatCreditBalanceExact,
+  formatCreditCost,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type {
   ModelSelectorFilter,
@@ -700,7 +704,7 @@ const ModelSelectorPopover = memo(function ModelSelectorPopover({
                           isLocked={isModelCreditLocked(option.model)}
                           lockReason={
                             isModelCreditLocked(option.model)
-                              ? `Needs ${option.model.cost} credits (you have ${creditsAvailable})`
+                              ? `Needs ${formatCreditCost(option.model.cost)} credits (you have ${formatCreditBalanceExact(creditsAvailable)})`
                               : undefined
                           }
                           onToggle={handleToggle}

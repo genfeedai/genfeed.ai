@@ -654,9 +654,8 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       );
     }
     const scope = resolved.preparedScope.existingScope;
-    const model =
-      resolved.model ??
-      (await this.agentChatModelRegistry.getDefaultModelKey());
+    // Already free-tier locked by the context service's resolution chokepoint.
+    const model = resolved.model;
     request = { ...request, model };
     const turnCost =
       request.agentType === AgentType.BRAND_INTERVIEW

@@ -55,6 +55,46 @@ export interface TerminalExitPayload {
 }
 
 // ---------------------------------------------------------------------------
+// Transport — socket.io terminal gateway (self-hosted web) or the Genfeed
+// Desktop bridge (node-pty in Electron main, any API mode)
+// ---------------------------------------------------------------------------
+
+export interface AgentTerminalTransport {
+  attach: (sessionId: string) => void;
+  /** Whether a fresh shell starts automatically for a thread without one. */
+  autoStartsSessions: boolean;
+  create: (payload: TerminalCreatePayload) => void;
+  isConnected: () => boolean;
+  kill: (sessionId: string) => void;
+  resize: (payload: { cols: number; rows: number; sessionId: string }) => void;
+  write: (payload: { data: string; sessionId: string }) => void;
+}
+
+export function createSocketTerminalTransport(
+  socket: Socket,
+): AgentTerminalTransport {
+  return {
+    attach: (sessionId) => {
+      socket.emit('terminal:attach', { sessionId });
+    },
+    autoStartsSessions: true,
+    create: (payload) => {
+      socket.emit('terminal:create', payload);
+    },
+    isConnected: () => socket.connected,
+    kill: (sessionId) => {
+      socket.emit('terminal:kill', { sessionId });
+    },
+    resize: (payload) => {
+      socket.emit('terminal:resize', payload);
+    },
+    write: (payload) => {
+      socket.emit('terminal:write', payload);
+    },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // Public controller shape — keep containerRef compatible with AgentPanel.tsx
 // ---------------------------------------------------------------------------
 

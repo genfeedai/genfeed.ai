@@ -75,7 +75,15 @@ function setup(source = 'proactive') {
     { upsertBinding: vi.fn() },
     {},
   ]) as AgentTurnWorkflowExecutionService;
-  return { service, prisma, plan, batch, recurring, stream, context };
+  return {
+    service,
+    prisma,
+    plan,
+    batch,
+    recurring,
+    stream,
+    context,
+  };
 }
 const workflowContext = {
   organizationId: 'org',
@@ -175,5 +183,32 @@ describe('trusted proactive turn limits and memory routing', () => {
     expect(
       recurring.tryHandleRecurringTaskDraftTurnStream,
     ).toHaveBeenCalledOnce();
+  });
+  it('runs the turn on the chokepoint-resolved model and policy', async () => {
+    const { service, stream, context } = setup('proactive');
+    context.resolveSystemPromptAndModel.mockResolvedValue({
+      preparedScope: {
+        existingScope: {
+          brandId: 'brand',
+          contextVersion: 1,
+          organizationId: 'org',
+        },
+      },
+      model: 'deepseek/deepseek-v4-flash-0731',
+      policy: {
+        autonomyMode: AgentAutonomyMode.SUPERVISED,
+        thinkingModelOverride: null,
+      },
+      systemPrompt: 'brand voice and feedback memory',
+      memories: ['feedback'],
+    });
+    const prepared = await service.prepare(request, workflowContext);
+    await service.execute(prepared.state);
+
+    const call = stream.runStreamLoop.mock.calls[0];
+    expect(call?.[3]).toBe('deepseek/deepseek-v4-flash-0731');
+    expect(call?.[5]).toEqual(
+      expect.objectContaining({ thinkingModelOverride: null }),
+    );
   });
 });

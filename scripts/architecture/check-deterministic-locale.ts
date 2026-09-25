@@ -146,11 +146,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     1,
   ),
   legacyUiAllowance(
-    'apps/app/app/(protected)/admin/administration/credit-usage/credit-usage-list.tsx',
-    'to-locale-string',
-    2,
-  ),
-  legacyUiAllowance(
     'apps/app/app/(protected)/admin/administration/subscriptions/subscriptions-list.tsx',
     'to-locale-date-string',
     1,

@@ -17,6 +17,9 @@ import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
+/** Registry keys for native Anthropic models carry this provider prefix. */
+const ANTHROPIC_MODEL_PREFIX = 'anthropic/';
+
 @Injectable()
 export class AnthropicService {
   private readonly constructorName: string = String(this.constructor.name);
@@ -211,7 +214,9 @@ export class AnthropicService {
   }
 
   /**
-   * Convert Anthropic response to OpenRouter-compatible format.
+   * Convert Anthropic response to OpenRouter-compatible format. `model` is the
+   * provider-native id sent to the SDK; the response carries the canonical
+   * `anthropic/`-prefixed registry key so billing prices the round correctly.
    */
   private convertResponse(
     response: Message,
@@ -254,7 +259,7 @@ export class AnthropicService {
         },
       ],
       id: response.id,
-      model,
+      model: `${ANTHROPIC_MODEL_PREFIX}${model}`,
       usage: {
         completion_tokens: response.usage.output_tokens,
         prompt_tokens: response.usage.input_tokens,
@@ -262,6 +267,13 @@ export class AnthropicService {
           response.usage.input_tokens + response.usage.output_tokens,
       },
     };
+  }
+
+  /** Strip the `anthropic/` registry prefix for the native SDK. */
+  private toNativeModel(model: string): string {
+    return model.startsWith(ANTHROPIC_MODEL_PREFIX)
+      ? model.slice(ANTHROPIC_MODEL_PREFIX.length)
+      : model;
   }
 
   /**
@@ -292,7 +304,7 @@ export class AnthropicService {
 
     try {
       // Strip provider prefix (anthropic/) from model name
-      const model = params.model.replace(/^anthropic\//, '');
+      const model = this.toNativeModel(params.model);
 
       const { messages, system } = this.extractSystemPrompt(params.messages);
       const maxTokens = this.resolveMaxTokens(model, params.max_tokens);
@@ -360,7 +372,7 @@ export class AnthropicService {
     const client = this.createClient(apiKey);
 
     try {
-      const model = params.model.replace(/^anthropic\//, '');
+      const model = this.toNativeModel(params.model);
       const { messages, system } = this.extractSystemPrompt(params.messages);
       const maxTokens = this.resolveMaxTokens(model, params.max_tokens);
 
@@ -427,7 +439,7 @@ export class AnthropicService {
     const client = this.createClient(apiKey);
 
     try {
-      const model = params.model.replace(/^anthropic\//, '');
+      const model = this.toNativeModel(params.model);
       const { messages, system } = this.extractSystemPrompt(params.messages);
       const maxTokens = this.resolveMaxTokens(model, params.max_tokens);
 

@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto';
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { CredentialsService } from '@api/collections/credentials/services/credentials.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
@@ -14,6 +13,17 @@ import {
   AGENT_GENERATION_GATEWAY,
   type IAgentGenerationGateway,
 } from '@api/services/agent-orchestrator/gateway/agent-generation-gateway.interface';
+import {
+  buildBrandIdentityProposal,
+  buildCreatedBrandAgentConfig,
+  buildRecoveredCreateResult,
+  isMatchingCreateRecovery,
+  normalizeBrandSlug,
+  readBrandLabel,
+  readConfirmedBrandIdentitySourceActionId,
+  readCreateBrandProposal,
+  readOptionalBrandDescription,
+} from '@api/services/agent-orchestrator/tools/agent-brand-identity-proposal.util';
 import {
   readMediaResponseString,
   readUsableCdnAssetUrl,
@@ -140,25 +150,13 @@ export class AgentOnboardingToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const fallbackName = 'My Brand';
-    const label = this.readBrandLabel(
-      params.label ?? params.name ?? params.brandName,
-      fallbackName,
-    );
-    const slug = this.normalizeBrandSlug(params.slug ?? params.handle, label);
-    const description =
-      ctx.confirmationOrigin === 'thread-ui-action'
-        ? this.readOptionalBrandDescription(
-            params.description,
-            `Brand profile for ${label}`,
-          )
-        : this.buildProposedDescription(params, label);
-    const proposal = { description, label, slug };
+    const isConfirmed = ctx.confirmationOrigin === 'thread-ui-action';
+    const proposal = readCreateBrandProposal(params, isConfirmed);
 
-    if (ctx.confirmationOrigin !== 'thread-ui-action') {
-      return this.buildBrandIdentityProposal('create', proposal, ctx);
+    if (!isConfirmed) {
+      return buildBrandIdentityProposal('create', proposal, ctx);
     }
-    const sourceActionId = this.readConfirmedBrandIdentitySourceActionId(
+    const sourceActionId = readConfirmedBrandIdentitySourceActionId(
       params.sourceActionId,
     );
 
@@ -167,10 +165,8 @@ export class AgentOnboardingToolHandler {
         id: ctx.validatedScope.brandId,
         organizationId: ctx.organizationId,
       });
-      if (
-        this.isMatchingCreateRecovery(boundBrand, proposal, sourceActionId, ctx)
-      ) {
-        return this.buildRecoveredCreateResult(boundBrand, proposal);
+      if (isMatchingCreateRecovery(boundBrand, proposal, sourceActionId, ctx)) {
+        return buildRecoveredCreateResult(boundBrand, proposal);
       }
       return {
         creditsUsed: 0,
@@ -188,14 +184,14 @@ export class AgentOnboardingToolHandler {
       );
     if (recoveredBySource) {
       if (
-        this.isMatchingCreateRecovery(
+        isMatchingCreateRecovery(
           recoveredBySource,
           proposal,
           sourceActionId,
           ctx,
         )
       ) {
-        return this.buildRecoveredCreateResult(recoveredBySource, proposal);
+        return buildRecoveredCreateResult(recoveredBySource, proposal);
       }
       return {
         creditsUsed: 0,
@@ -207,14 +203,12 @@ export class AgentOnboardingToolHandler {
 
     const existing = await this.brandsService.findOne({
       organizationId: ctx.organizationId,
-      slug,
+      slug: proposal.slug,
     });
 
     if (existing) {
-      if (
-        this.isMatchingCreateRecovery(existing, proposal, sourceActionId, ctx)
-      ) {
-        return this.buildRecoveredCreateResult(existing, proposal);
+      if (isMatchingCreateRecovery(existing, proposal, sourceActionId, ctx)) {
+        return buildRecoveredCreateResult(existing, proposal);
       }
 
       return {
@@ -225,29 +219,22 @@ export class AgentOnboardingToolHandler {
     }
 
     const brand = await this.brandsService.create({
-      agentConfig: {
-        brandIdentityConfirmation: {
-          createSourceActionId: sourceActionId,
-          requestedSlug: slug,
-          source: 'agent-thread-ui-action',
-        },
-      },
+      agentConfig: buildCreatedBrandAgentConfig(proposal, sourceActionId),
       backgroundColor: '#000000',
-      description,
+      description: proposal.description,
       fontFamily: 'montserrat_black',
       isSelected: false,
-      label,
+      label: proposal.label,
       organizationId: ctx.organizationId,
       primaryColor: '#000000',
       secondaryColor: '#FFFFFF',
-      slug,
-      text: (params.niche as string) || undefined,
+      slug: proposal.slug,
       userId: ctx.userId,
     });
     const createdSlug =
       typeof brand.slug === 'string' && brand.slug.trim()
         ? brand.slug.trim()
-        : slug;
+        : proposal.slug;
 
     const onboardingStatus = await this.checkOnboardingStatus(ctx);
 
@@ -257,49 +244,10 @@ export class AgentOnboardingToolHandler {
         created: true,
         brandId: String(brand.id),
         id: String(brand.id),
-        label,
+        label: proposal.label,
         slug: createdSlug,
       },
       nextActions: onboardingStatus.nextActions,
-      success: true,
-    };
-  }
-
-  private isMatchingCreateRecovery(
-    brand: Record<string, unknown> | null,
-    proposal: { description: string; label: string; slug: string },
-    sourceActionId: string,
-    ctx: ToolExecutionContext,
-  ): brand is Record<string, unknown> {
-    if (!brand) {
-      return false;
-    }
-    const agentConfig = this.readRecord(brand.agentConfig);
-    const provenance = this.readRecord(agentConfig.brandIdentityConfirmation);
-    return (
-      provenance.createSourceActionId === sourceActionId &&
-      provenance.requestedSlug === proposal.slug &&
-      brand.organizationId === ctx.organizationId &&
-      brand.userId === ctx.userId &&
-      brand.label === proposal.label &&
-      brand.description === proposal.description
-    );
-  }
-
-  private buildRecoveredCreateResult(
-    brand: Record<string, unknown>,
-    proposal: { description: string; label: string; slug: string },
-  ): AgentToolResult {
-    return {
-      creditsUsed: 0,
-      data: {
-        brandId: String(brand.id),
-        created: false,
-        id: String(brand.id),
-        label: proposal.label,
-        recovered: true,
-        slug: this.readString(brand.slug) || proposal.slug,
-      },
       success: true,
     };
   }
@@ -316,7 +264,7 @@ export class AgentOnboardingToolHandler {
     }
     const sourceActionId =
       ctx.confirmationOrigin === 'thread-ui-action'
-        ? this.readConfirmedBrandIdentitySourceActionId(params.sourceActionId)
+        ? readConfirmedBrandIdentitySourceActionId(params.sourceActionId)
         : undefined;
 
     const currentBrand = await this.brandsService.findOne({
@@ -329,21 +277,18 @@ export class AgentOnboardingToolHandler {
       );
     }
 
-    const currentLabel = this.readBrandLabel(currentBrand.label, 'Brand');
-    const currentSlug = this.normalizeBrandSlug(
-      currentBrand.slug,
-      currentLabel,
-    );
-    const label = this.readBrandLabel(params.label, currentLabel);
-    const slug = this.normalizeBrandSlug(params.slug, label);
-    const description = this.readOptionalBrandDescription(
+    const currentLabel = readBrandLabel(currentBrand.label, 'Brand');
+    const currentSlug = normalizeBrandSlug(currentBrand.slug, currentLabel);
+    const label = readBrandLabel(params.label, currentLabel);
+    const slug = normalizeBrandSlug(params.slug, label);
+    const description = readOptionalBrandDescription(
       params.description,
       currentBrand.description,
     );
     const proposal = { description, label, slug };
 
     if (ctx.confirmationOrigin !== 'thread-ui-action') {
-      return this.buildBrandIdentityProposal('rename', proposal, ctx, {
+      return buildBrandIdentityProposal('rename', proposal, ctx, {
         label: currentLabel,
         slug: currentSlug,
       });
@@ -372,172 +317,6 @@ export class AgentOnboardingToolHandler {
       },
       success: true,
     };
-  }
-
-  private buildBrandIdentityProposal(
-    operation: 'create' | 'rename',
-    proposal: { description: string; label: string; slug: string },
-    ctx: ToolExecutionContext,
-    currentIdentity?: { label: string; slug: string },
-  ): AgentToolResult {
-    const sourceActionId = `brand-identity-${randomUUID()}`;
-    const action =
-      operation === 'create' ? 'confirm_create_brand' : 'confirm_rename_brand';
-    const label = operation === 'create' ? 'Confirm create' : 'Confirm rename';
-
-    return {
-      creditsUsed: 0,
-      data: {
-        operation,
-        proposal,
-        sourceActionId,
-      },
-      nextActions: [
-        {
-          ctas: [
-            {
-              action,
-              label,
-              payload: {
-                ...proposal,
-                sourceActionId,
-              },
-            },
-          ],
-          data: {
-            ...(currentIdentity ? { currentIdentity } : {}),
-            operation,
-            proposal,
-            proposalScope: {
-              brandId: ctx.validatedScope?.brandId ?? null,
-              contextVersion: ctx.validatedScope?.contextVersion ?? null,
-            },
-            sourceActionId,
-          },
-          description:
-            operation === 'create'
-              ? 'Review the proposed identity before creating the brand.'
-              : 'Review the proposed identity before renaming the active brand.',
-          id: sourceActionId,
-          requiresConfirmation: true,
-          riskLevel: 'medium',
-          title:
-            operation === 'create'
-              ? 'Confirm brand creation'
-              : 'Confirm brand rename',
-          type: 'brand_identity_confirmation_card',
-        },
-      ],
-      requiresConfirmation: true,
-      riskLevel: 'medium',
-      success: true,
-    };
-  }
-
-  private buildProposedDescription(
-    params: Record<string, unknown>,
-    label: string,
-  ): string {
-    const base = this.readOptionalBrandDescription(
-      params.description,
-      params.niche,
-    );
-    const description = base || `Brand profile for ${label}`;
-    const voice =
-      typeof params.voice === 'string' && params.voice.trim()
-        ? params.voice.trim()
-        : 'conversational';
-
-    return `${this.trimSentenceEnd(description)}. Voice: ${this.trimSentenceEnd(voice)}.`;
-  }
-
-  /**
-   * Strip trailing sentence punctuation and whitespace.
-   *
-   * A reverse character scan rather than `/[.\s]+$/`: that anchored quantifier
-   * backtracks quadratically on a tool parameter ending in a long run of dots
-   * or spaces, and these values come straight from agent-supplied params.
-   */
-  private trimSentenceEnd(value: string): string {
-    let end = value.length;
-    while (end > 0) {
-      const character = value[end - 1];
-      if (character !== '.' && character.trim() !== '') {
-        break;
-      }
-      end -= 1;
-    }
-    return value.slice(0, end);
-  }
-
-  private readBrandLabel(value: unknown, fallback: string): string {
-    const label = typeof value === 'string' ? value.trim() : '';
-    const resolved = label || fallback.trim();
-    if (!resolved || resolved.length > 120) {
-      throw new BadRequestException(
-        'Brand label must contain between 1 and 120 characters.',
-      );
-    }
-    return resolved;
-  }
-
-  private readRecord(value: unknown): Record<string, unknown> {
-    return typeof value === 'object' && value !== null && !Array.isArray(value)
-      ? (value as Record<string, unknown>)
-      : {};
-  }
-
-  private readString(value: unknown): string {
-    return typeof value === 'string' ? value.trim() : '';
-  }
-
-  private readConfirmedBrandIdentitySourceActionId(value: unknown): string {
-    const sourceActionId = this.readString(value);
-    if (
-      !/^brand-identity-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        sourceActionId,
-      )
-    ) {
-      throw new BadRequestException(
-        'Confirmed brand identity changes require valid source action evidence.',
-      );
-    }
-    return sourceActionId;
-  }
-
-  private readOptionalBrandDescription(
-    value: unknown,
-    fallback: unknown,
-  ): string {
-    const description =
-      typeof value === 'string'
-        ? value.trim()
-        : typeof fallback === 'string'
-          ? fallback.trim()
-          : '';
-    if (description.length > 2_000) {
-      throw new BadRequestException(
-        'Brand description must not exceed 2000 characters.',
-      );
-    }
-    return description;
-  }
-
-  private normalizeBrandSlug(value: unknown, label: string): string {
-    const raw =
-      typeof value === 'string' && value.trim() ? value.trim() : label;
-    const slug = raw
-      .toLowerCase()
-      .replace(/^@/, '')
-      .replace(/[^a-z0-9]+/g, '-')
-      .replace(/-{2,}/g, '-')
-      .replace(/^-|-$/g, '');
-    if (slug.length < 2 || slug.length > 120) {
-      throw new BadRequestException(
-        'Brand slug must contain between 2 and 120 URL-safe characters.',
-      );
-    }
-    return slug;
   }
 
   async checkOnboardingStatus(

@@ -1,3 +1,9 @@
+import type {
+  BrandContextBudgetPriority,
+  BrandContextBudgetResult,
+  BrandContextBudgetSectionReport,
+} from '@api/services/agent-context-assembly/interfaces/context-assembly.interface';
+
 /**
  * Shared character budget for every brand-context contribution supplied to a
  * generation prompt. The budget is applied after all assemblers contribute so
@@ -5,42 +11,54 @@
  */
 export const BRAND_CONTEXT_CHARACTER_BUDGET = 6000;
 
+/** Header of the saved-memory retrieval section (lowest budget priority). */
+export const RETRIEVED_BRAND_MEMORY_HEADER = '## Retrieved Brand Memory';
+/** Header of the authoritative BRAND_TRUTH Knowledge section. */
+export const BRAND_KNOWLEDGE_HEADER = '## Brand Knowledge';
+
 type BudgetSection = {
   content: string;
-  priority: number;
+  header: string;
+  originalLength: number;
+  priority: BrandContextBudgetPriority;
 };
 
-const TRUNCATION_PRIORITY = {
+/** Reduction order: lower ranks are trimmed first. */
+const PRIORITY_RANK: Record<BrandContextBudgetPriority, number> = {
   rag: 0,
   recentPosts: 1,
   historicalPerformance: 2,
-  general: 3,
-  customInstructions: 4,
-  guardrails: 5,
-  brandVoice: 6,
-} as const;
+  brandKnowledge: 3,
+  general: 4,
+  customInstructions: 5,
+  guardrails: 6,
+  brandVoice: 7,
+};
 
 const SECTION_HEADER_PATTERN = /^(?:##\s+.+|[A-Z][A-Z ]+:)$/;
 
-function readTruncationPriority(header: string): number {
-  if (header === '## Relevant Knowledge') {
-    return TRUNCATION_PRIORITY.rag;
+function readTruncationPriority(header: string): BrandContextBudgetPriority {
+  if (header === RETRIEVED_BRAND_MEMORY_HEADER) {
+    return 'rag';
   }
   if (header === '## Recent Posts (avoid repetition)') {
-    return TRUNCATION_PRIORITY.recentPosts;
+    return 'recentPosts';
   }
   if (
     header === '## Historical Performance Context' ||
     header === '## Historical Anti-Patterns' ||
     header === '## Performance Insights'
   ) {
-    return TRUNCATION_PRIORITY.historicalPerformance;
+    return 'historicalPerformance';
+  }
+  if (header === BRAND_KNOWLEDGE_HEADER) {
+    return 'brandKnowledge';
   }
   if (header === '## Custom Instructions' || header === 'SYSTEM DIRECTIVES:') {
-    return TRUNCATION_PRIORITY.customInstructions;
+    return 'customInstructions';
   }
   if (header === '## Brand Guidelines' || header === 'GUARDRAILS:') {
-    return TRUNCATION_PRIORITY.guardrails;
+    return 'guardrails';
   }
   if (
     header === '## Brand Voice' ||
@@ -48,22 +66,28 @@ function readTruncationPriority(header: string): number {
     header === '## Reference Exemplars' ||
     header === 'STYLE DIRECTIVES:'
   ) {
-    return TRUNCATION_PRIORITY.brandVoice;
+    return 'brandVoice';
   }
 
-  return TRUNCATION_PRIORITY.general;
+  return 'general';
 }
 
 function splitContributionIntoSections(contribution: string): BudgetSection[] {
   const lines = contribution.trim().split('\n');
   const sections: BudgetSection[] = [];
   let currentLines: string[] = [];
-  let currentPriority: number = TRUNCATION_PRIORITY.general;
+  let currentHeader = '';
+  let currentPriority: BrandContextBudgetPriority = 'general';
 
   const flush = (): void => {
     const content = currentLines.join('\n').trim();
     if (content) {
-      sections.push({ content, priority: currentPriority });
+      sections.push({
+        content,
+        header: currentHeader || (content.split('\n', 1)[0] ?? '').trim(),
+        originalLength: content.length,
+        priority: currentPriority,
+      });
     }
     currentLines = [];
   };
@@ -72,6 +96,7 @@ function splitContributionIntoSections(contribution: string): BudgetSection[] {
     const trimmedLine = line.trim();
     if (SECTION_HEADER_PATTERN.test(trimmedLine)) {
       flush();
+      currentHeader = trimmedLine;
       currentPriority = readTruncationPriority(trimmedLine);
     }
     currentLines.push(line);
@@ -88,33 +113,70 @@ function renderSections(sections: BudgetSection[]): string {
     .join('\n\n');
 }
 
+function toSectionReports(
+  sections: BudgetSection[],
+): BrandContextBudgetSectionReport[] {
+  return sections.map((section) => {
+    const renderedLength = section.content.length;
+    return {
+      header: section.header,
+      originalLength: section.originalLength,
+      priority: section.priority,
+      renderedLength,
+      status:
+        renderedLength === 0
+          ? 'dropped'
+          : renderedLength < section.originalLength
+            ? 'trimmed'
+            : 'kept',
+    };
+  });
+}
+
 /**
- * Fits assembled brand context to one budget. Sections are reduced in this
- * deterministic order: RAG, recent posts, historical performance, general
- * context, custom instructions, guardrails, then brand voice. Within the same
- * priority, later sections are reduced first so contribution order is stable.
+ * Fits assembled brand context to one budget and reports what happened to
+ * every section. Sections are reduced in this deterministic order: retrieved
+ * brand memory, recent posts, historical performance, brand Knowledge,
+ * general context, custom instructions, guardrails, then brand voice. Within
+ * the same priority, later sections are reduced first so contribution order
+ * is stable.
  */
-export function fitBrandContextToBudget(
+export function fitBrandContextToBudgetWithReport(
   contributions: ReadonlyArray<string | null | undefined>,
   maxLength = BRAND_CONTEXT_CHARACTER_BUDGET,
-): string {
+): BrandContextBudgetResult {
   const sections = contributions
     .filter((contribution): contribution is string => Boolean(contribution))
     .flatMap(splitContributionIntoSections);
+  const untrimmed = renderSections(sections);
 
   if (!Number.isFinite(maxLength)) {
-    return renderSections(sections);
+    return {
+      isTrimmed: false,
+      maxLength: null,
+      sections: toSectionReports(sections),
+      text: untrimmed,
+      untrimmedLength: untrimmed.length,
+    };
   }
 
   const normalizedMaxLength = Math.max(0, Math.floor(maxLength));
-  let rendered = renderSections(sections);
+  const finish = (text: string): BrandContextBudgetResult => ({
+    isTrimmed: text.length < untrimmed.length,
+    maxLength: normalizedMaxLength,
+    sections: toSectionReports(sections),
+    text,
+    untrimmedLength: untrimmed.length,
+  });
+
+  let rendered = untrimmed;
   if (rendered.length <= normalizedMaxLength) {
-    return rendered;
+    return finish(rendered);
   }
 
   const priorities = Array.from(
     new Set(sections.map((section) => section.priority)),
-  ).sort((left, right) => left - right);
+  ).sort((left, right) => PRIORITY_RANK[left] - PRIORITY_RANK[right]);
 
   for (const priority of priorities) {
     for (let index = sections.length - 1; index >= 0; index--) {
@@ -125,7 +187,7 @@ export function fitBrandContextToBudget(
 
       const overflow = rendered.length - normalizedMaxLength;
       if (overflow <= 0) {
-        return rendered;
+        return finish(rendered);
       }
 
       section.content = section.content.slice(0, -overflow).trimEnd();
@@ -133,5 +195,13 @@ export function fitBrandContextToBudget(
     }
   }
 
-  return rendered.slice(0, normalizedMaxLength).trimEnd();
+  return finish(rendered.slice(0, normalizedMaxLength).trimEnd());
+}
+
+/** Text-only form of {@link fitBrandContextToBudgetWithReport}. */
+export function fitBrandContextToBudget(
+  contributions: ReadonlyArray<string | null | undefined>,
+  maxLength = BRAND_CONTEXT_CHARACTER_BUDGET,
+): string {
+  return fitBrandContextToBudgetWithReport(contributions, maxLength).text;
 }

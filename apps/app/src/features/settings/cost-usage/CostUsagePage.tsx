@@ -2,6 +2,7 @@
 
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type { WorkflowCostReportExecution } from '@genfeedai/contracts/interfaces';
 import type {
   ICostReportBrandTotals,
@@ -73,10 +74,8 @@ interface CostUsagePageProps {
   lockedBrandId?: string;
 }
 
-function formatCredits(value: number): string {
-  return new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 }).format(
-    value,
-  );
+function formatChartCredits(value: number): string {
+  return value === 0 ? '0' : formatCreditCost(value);
 }
 
 function downloadCsv(csv: string | ArrayBuffer, filename: string): void {
@@ -184,7 +183,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
   };
   const creditValue = (row: ICostReportEntry) =>
     row.entryType === 'credit' || row.creditsUsed > 0
-      ? `${formatCredits(row.creditsUsed)} GEN`
+      ? formatCreditCost(row.creditsUsed, { unit: 'GEN' })
       : translate('notRecorded');
   const entryColumns: TableColumn<ICostReportEntry>[] = [
     {
@@ -216,7 +215,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
     {
       header: translate('tables.headers.creditsUsed'),
       key: 'creditsUsed',
-      render: (row) => `${formatCredits(row.creditsUsed)} GEN`,
+      render: (row) => formatCreditCost(row.creditsUsed, { unit: 'GEN' }),
     },
     { header: translate('tables.headers.generations'), key: 'generationCount' },
   ];
@@ -228,7 +227,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
       render: (row) =>
         row.accounting?.actualCredits == null
           ? translate('notRecorded')
-          : `${formatCredits(row.accounting.actualCredits)} GEN`,
+          : formatCreditCost(row.accounting.actualCredits, { unit: 'GEN' }),
     },
   ];
   const totalEntries = entriesQuery.data?.total ?? 0;
@@ -325,7 +324,9 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                 label={translate('metrics.creditsUsed.label')}
                 value={
                   summary
-                    ? `${formatCredits(summary.total.creditsUsed)} GEN`
+                    ? formatCreditCost(summary.total.creditsUsed, {
+                        unit: 'GEN',
+                      })
                     : '—'
                 }
                 description={translate('metrics.creditsUsed.description')}
@@ -401,7 +402,7 @@ export default function CostUsagePage({ lockedBrandId }: CostUsagePageProps) {
                           <YAxis
                             tick={{ fill: 'hsl(var(--muted-foreground))' }}
                             width={45}
-                            tickFormatter={formatCredits}
+                            tickFormatter={formatChartCredits}
                           />
                           <Tooltip content={<ChartTooltipContent />} />
                           <Area

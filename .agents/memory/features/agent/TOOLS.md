@@ -144,26 +144,22 @@ interface AgentTypeConfig {
 
 ## Credit Costs
 
+> **Last verified:** 2026-09-25.
+
 **File:** `apps/server/api/src/services/agent-orchestrator/constants/agent-credit-costs.constant.ts`
 
-- `AGENT_CREDIT_COSTS` -- union of base (from `@genfeedai/actions`) + extra (all 0)
-- `AGENT_BASE_TURN_COST` = 1
-- `AGENT_MAX_TOOL_ROUNDS` = 5
-- `getAgentTurnCost(model)` -- returns model-specific cost or AGENT_BASE_TURN_COST (1) default
-
-**Per-model turn costs:**
-
-| Model | Credits/Turn |
-|-------|-------------|
-| `anthropic/claude-opus-4-6` | 15 |
-| `anthropic/claude-sonnet-4-5-20250929` | 10 |
-| `deepseek/deepseek-chat` | 1 |
-| `local/mistral-small` | 0 |
-| `local/qwen-32b` | 0 |
-| `openai/gpt-4o` | 8 |
-| `openai/o3` | 15 |
-| `openai/o4-mini` | 3 |
-| `x-ai/grok-4-fast` | 1 |
+- `AGENT_CREDIT_COSTS` -- tool costs from the curated catalog (`@genfeedai/actions`
+  `creditCost`), plus deliberate overrides only (`create_post: 0` in-app)
+- `AGENT_MAX_TOOL_ROUNDS` = 25
+- There is no static per-model turn-cost table. LLM round pricing lives on
+  `AgentChatModelRegistryService` (DB registry): `getRoundCredits` (hold tier /
+  minimum balance to start), `calculateRoundProviderCostUsd` + `toRoundCredits`
+  (exact settlement), `getMessageCostEstimatesMap` ("≈ credits / message"
+  display only).
+- Each round is reserved -> run -> settled at exact provider cost
+  (`runReservedAgentLlmRound`). See
+  [exact-cost chat billing](../../project_agent_exact_cost_chat_billing.md).
+- `get_brand_context` is `creditCost: 0` (read-only snapshot, agent + MCP).
 
 ## Onboarding System Prompt
 

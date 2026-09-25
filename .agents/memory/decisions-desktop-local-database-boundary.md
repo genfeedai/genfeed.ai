@@ -37,6 +37,11 @@ generation, terminal, sync, Prisma, and PGlite services through the typed preloa
 bridge. The canonical `apps/app` frontend owns the local route. It does not ship
 a second renderer and it does not bundle or spawn a second NestJS/Redis stack.
 
+> **Update 2026-09-25:** the `node-pty` terminal service is no longer local-only;
+> Electron main constructs it in cloud mode too (workspace path is the default
+> cwd when a workspace is open). The CLI agent runtime is also cloud-mode. See
+> [project_desktop_cli_agent_runtime](project_desktop_cli_agent_runtime.md).
+
 This supersedes the embedded-full-API assumption in the older deferred #2378
 decomposition for this user path. That approach would increase an already large
 desktop bundle and duplicate runtime infrastructure even though the typed local

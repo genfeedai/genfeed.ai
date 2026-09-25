@@ -1,7 +1,12 @@
+import {
+  VOICE_CORPUS_MAX_PASTED,
+  VOICE_CORPUS_MAX_PASTED_LENGTH,
+} from '@api/collections/brands/utils/brand-voice-corpus.util';
 import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import type { IGeneratedBrandProfile } from '@genfeedai/contracts/interfaces';
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  ArrayMaxSize,
   IsArray,
   IsOptional,
   IsString,
@@ -73,6 +78,18 @@ export class GenerateBrandVoiceDto {
     type: [String],
   })
   examplesToAvoid?: string[];
+
+  @IsArray()
+  @ArrayMaxSize(VOICE_CORPUS_MAX_PASTED)
+  @IsString({ each: true })
+  @MaxLength(VOICE_CORPUS_MAX_PASTED_LENGTH, { each: true })
+  @IsOptional()
+  @ApiPropertyOptional({
+    description:
+      "The brand's own posts or replies, pasted verbatim. Treated as own writing alongside imported account history.",
+    type: [String],
+  })
+  samples?: string[];
 }
 
 export type GeneratedBrandVoice = IGeneratedBrandProfile;

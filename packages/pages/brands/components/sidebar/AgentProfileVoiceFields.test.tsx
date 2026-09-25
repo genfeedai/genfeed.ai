@@ -91,7 +91,6 @@ describe('AgentProfileVoiceFields', () => {
     ['Do Not Sound Like', 'voiceDoNotSoundLike', 'jargon'],
     ['Approved Hooks', 'voiceApprovedHooks', 'most teams get this wrong'],
     ['Banned Phrases', 'voiceBannedPhrases', 'unlock your potential'],
-    ['Writing Rules', 'voiceWritingRules', 'cut fluff'],
   ])(
     'saves the %s field through onFieldSave',
     async (ariaLabel, field, nextValue) => {
@@ -106,6 +105,7 @@ describe('AgentProfileVoiceFields', () => {
   );
 
   it.each([
+    ['Writing Rules', 'voiceWritingRules', 'cut fluff'],
     ['Exemplar Texts', 'voiceExemplarTexts', 'a winning post'],
     ['Sample Output', 'voiceSampleOutput', 'a representative example'],
   ])(

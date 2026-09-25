@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
+import type { AgentMessageDocument } from '@api/collections/agent-messages/schemas/agent-message.schema';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import type { AgentRoomDocument } from '@api/collections/agent-threads/schemas/agent-thread.schema';
+import { AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
 import { scopedWhere } from '@api/index';
 import type { AgentThreadSnapshotDocument } from '@api/services/agent-threading/schemas/agent-thread-snapshot.schema';
@@ -9,13 +11,20 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import { resolveLastGeneratedAsset } from '@genfeedai/agent/server';
 import {
   AGENT_RUNTIME_ACTIVE_STATES,
+  AgentMessageRole,
   AgentRuntimeState,
   AgentThreadMode,
   AgentThreadStatus,
   IngredientCategory,
   resolveAgentRuntimeState,
 } from '@genfeedai/contracts';
-import type { IAgentRunProjection } from '@genfeedai/contracts/interfaces';
+import { AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE } from '@genfeedai/contracts/constants';
+import type {
+  IAgentExternalTurnInput,
+  IAgentExternalTurnToolCall,
+  IAgentRunProjection,
+  IAgentThreadExternalRuntime,
+} from '@genfeedai/contracts/interfaces';
 import { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
@@ -86,6 +95,29 @@ const LIST_THUMB_INGREDIENT_CATEGORIES: IngredientCategory[] = [
 const THREAD_EXECUTION_SCAN_LIMIT = 500;
 
 type AgentThreadWithSummary = AgentRoomDocument & AgentThreadSummary;
+
+export type AgentExternalTurnAppendResult = {
+  assistantMessage: AgentMessageDocument;
+  thread: AgentRoomDocument;
+  userMessage: AgentMessageDocument;
+};
+
+/** Client-renderable tool call (matches the agent UI's `AgentToolCall`). */
+function toExternalToolCallMetadata(
+  toolCall: IAgentExternalTurnToolCall,
+  index: number,
+): Record<string, unknown> {
+  return {
+    arguments: toolCall.argsSummary ? { summary: toolCall.argsSummary } : {},
+    ...(toolCall.error ? { error: toolCall.error } : {}),
+    id: `external-${index}-${toolCall.name}`,
+    name: toolCall.name,
+    ...(toolCall.resultSummary
+      ? { resultSummary: toolCall.resultSummary }
+      : {}),
+    status: toolCall.status,
+  };
+}
 
 @Injectable()
 export class AgentThreadsService extends BaseService<
@@ -231,6 +263,104 @@ export class AgentThreadsService extends BaseService<
     }>,
   ): Promise<AgentRoomDocument> {
     return this.updateThreadFields(threadId, organizationId, payload);
+  }
+
+  /**
+   * Records a turn that ran outside Genfeed on the user's own CLI
+   * subscription (Claude Code / Codex via Genfeed Desktop). Writes the user
+   * and assistant messages and remembers the CLI session for resume. It
+   * deliberately never touches credits: the model call was not Genfeed's.
+   */
+  async appendExternalTurn(
+    threadId: string,
+    organizationId: string,
+    userId: string,
+    input: IAgentExternalTurnInput,
+  ): Promise<AgentExternalTurnAppendResult> {
+    const thread = await this.findOne(
+      scopedWhere(organizationId, { id: threadId, userId }),
+    );
+
+    if (!thread) {
+      throw new NotFoundException('Thread', threadId);
+    }
+
+    if (
+      String(thread.status ?? '').toLowerCase() === AgentThreadStatus.ARCHIVED
+    ) {
+      throw new BadRequestException(
+        'This thread is archived. Unarchive it before sending messages or running actions.',
+      );
+    }
+
+    const completedAt = input.completedAt ?? new Date().toISOString();
+    const brandId = thread.brandId ?? undefined;
+    const toolCalls = input.toolCalls ?? [];
+    const externalRuntime: IAgentThreadExternalRuntime = {
+      runtimeKey: input.runtimeKey,
+      sessionId: input.sessionId ?? null,
+      updatedAt: completedAt,
+    };
+
+    const userMessage = await this.agentMessagesService.addMessage({
+      ...(brandId ? { brandId } : {}),
+      content: input.userMessage,
+      metadata: {
+        externalRuntime: { runtimeKey: input.runtimeKey },
+        source: AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE,
+        ...(input.startedAt ? { startedAt: input.startedAt } : {}),
+      },
+      organizationId,
+      role: AgentMessageRole.USER,
+      room: threadId,
+      userId,
+    });
+
+    const assistantMessage = await this.agentMessagesService.addMessage({
+      ...(brandId ? { brandId } : {}),
+      content: input.assistantMessage,
+      metadata: {
+        externalRuntime: {
+          billing: 'user-subscription',
+          completedAt,
+          ...(input.model ? { model: input.model } : {}),
+          runtimeKey: input.runtimeKey,
+          sessionId: externalRuntime.sessionId,
+          ...(input.usage ? { usage: input.usage } : {}),
+        },
+        source: AGENT_EXTERNAL_RUNTIME_THREAD_SOURCE,
+        toolCalls: toolCalls.map(toExternalToolCallMetadata),
+      },
+      organizationId,
+      role: AgentMessageRole.ASSISTANT,
+      room: threadId,
+      toolCalls: toolCalls.map((toolCall) => ({
+        ...(toolCall.durationMs !== undefined
+          ? { durationMs: toolCall.durationMs }
+          : {}),
+        ...(toolCall.error ? { error: toolCall.error } : {}),
+        ...(toolCall.argsSummary
+          ? { parameters: { summary: toolCall.argsSummary } }
+          : {}),
+        status: toolCall.status,
+        toolName: toolCall.name,
+      })),
+      userId,
+    });
+
+    const updatedThread = await this.updateThreadFields(
+      threadId,
+      organizationId,
+      {
+        config: {
+          ...(thread.config ?? {}),
+          [AGENT_THREAD_EXTERNAL_RUNTIME_CONFIG_KEY]: externalRuntime,
+        },
+        runtimeKey: input.runtimeKey,
+      },
+    );
+
+    return { assistantMessage, thread: updatedThread, userMessage };
   }
 
   async branchThread(

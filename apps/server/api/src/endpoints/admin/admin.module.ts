@@ -2,6 +2,7 @@ import { AdminAnnouncementsModule } from '@api/endpoints/admin/announcements/ann
 import { AdminPlatformSettingsModule } from '@api/endpoints/admin/platform-settings/platform-settings.module';
 import { AdminSystemEmailsModule } from '@api/endpoints/admin/system-emails/system-emails.module';
 import { AdminSystemNotificationsModule } from '@api/endpoints/admin/system-notifications/system-notifications.module';
+import { AdminUnitEconomicsModule } from '@api/endpoints/admin/unit-economics/unit-economics.module';
 import { AdminWarmupAccountsModule } from '@api/endpoints/admin/warmup-accounts/warmup-accounts.module';
 import { Module } from '@nestjs/common';
 
@@ -12,6 +13,7 @@ import { Module } from '@nestjs/common';
     AdminWarmupAccountsModule,
     AdminPlatformSettingsModule,
     AdminSystemEmailsModule,
+    AdminUnitEconomicsModule,
   ],
 })
 export class AdminModule {}

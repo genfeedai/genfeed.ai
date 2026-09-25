@@ -2,9 +2,11 @@
 
 import { hasOrganizationBillingHint } from '@genfeedai/config/license';
 import { ButtonVariant } from '@genfeedai/contracts';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  formatCreditBalanceExact,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
-import { formatNumberWithCommas } from '@genfeedai/helpers/formatting/format/format.helper';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -127,7 +129,7 @@ export default function LowCreditsBanner({
     : "You're running low on credits";
   const balanceLabel = isCritical
     ? '0 credits left'
-    : `${formatNumberWithCommas(balance)} remaining`;
+    : `${formatCreditBalanceExact(balance)} remaining`;
   const description = isBillingEnabled
     ? isCritical
       ? 'Top up your balance to keep generating content, running workflows, and using your organization tools without interruption.'

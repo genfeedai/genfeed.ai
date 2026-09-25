@@ -203,6 +203,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'brand',
   },
+  { name: 'get_brand_context', surfaces: ['agent', 'mcp'], toolset: 'brand' },
   { name: 'get_clip_highlights', surfaces: ['mcp'], toolset: 'clips' },
   { name: 'get_clip_project', surfaces: ['mcp'], toolset: 'clips' },
   {

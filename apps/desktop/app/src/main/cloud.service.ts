@@ -1,8 +1,14 @@
+import {
+  AGENT_EXTERNAL_RUNTIME_SESSION_ID_PATTERN,
+  type AgentExternalRuntimeKey,
+  isAgentExternalRuntimeKey,
+} from '@genfeedai/contracts/constants/agent-external-runtime.constant';
 import type {
   IDesktopAgent,
   IDesktopAgentRun,
   IDesktopAgentRunResult,
   IDesktopAnalytics,
+  IDesktopCloudAgentThread,
   IDesktopCloudProject,
   IDesktopDataResult,
   IDesktopDataService,
@@ -16,6 +22,10 @@ import type {
   IDesktopWorkflow,
   IDesktopWorkflowRunResult,
 } from '@genfeedai/contracts/desktop';
+import type {
+  IAgentExternalTurnInput,
+  IAgentThreadExternalRuntime,
+} from '@genfeedai/contracts/interfaces/ai/agent-external-turn.interface';
 
 const AGENT_RUN_STATUSES = new Set<IDesktopAgentRun['status']>([
   'completed',
@@ -86,6 +96,51 @@ function mapAgentRun(
   };
 }
 
+function readExternalRuntime(
+  value: unknown,
+): IAgentThreadExternalRuntime | null {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return null;
+  }
+
+  const record = value as Record<string, unknown>;
+  if (!isAgentExternalRuntimeKey(record.runtimeKey)) {
+    return null;
+  }
+
+  return {
+    runtimeKey: record.runtimeKey,
+    sessionId:
+      typeof record.sessionId === 'string' &&
+      AGENT_EXTERNAL_RUNTIME_SESSION_ID_PATTERN.test(record.sessionId)
+        ? record.sessionId
+        : null,
+    updatedAt: maybeString(record.updatedAt) ?? new Date(0).toISOString(),
+  };
+}
+
+function mapAgentThread(response: {
+  data?: { attributes?: Record<string, unknown>; id?: string };
+}): IDesktopCloudAgentThread {
+  const id = maybeString(response.data?.id);
+  if (!id) {
+    throw new Error('Genfeed returned an agent thread without an id.');
+  }
+
+  const attributes = response.data?.attributes ?? {};
+  return {
+    brandId: maybeString(attributes.brandId) ?? null,
+    externalRuntime: readExternalRuntime(attributes.externalRuntime),
+    id,
+    organizationId: maybeString(attributes.organizationId) ?? null,
+    runtimeKey: maybeString(attributes.runtimeKey) ?? null,
+  };
+}
+
+type AgentThreadResponse = {
+  data?: { attributes?: Record<string, unknown>; id?: string };
+};
+
 export class DesktopCloudService implements IDesktopDataService {
   constructor(
     private readonly environment: IDesktopEnvironment,
@@ -118,6 +173,52 @@ export class DesktopCloudService implements IDesktopDataService {
     }
 
     return (await response.json()) as T;
+  }
+
+  async getAgentThread(threadId: string): Promise<IDesktopCloudAgentThread> {
+    return mapAgentThread(
+      await this.fetchJson<AgentThreadResponse>(
+        `/agent/threads/${encodeURIComponent(threadId)}`,
+      ),
+    );
+  }
+
+  async createAgentThread(input: {
+    brandId: string | null;
+    runtimeKey: AgentExternalRuntimeKey;
+    source: string;
+    title: string;
+  }): Promise<IDesktopCloudAgentThread> {
+    return mapAgentThread(
+      await this.fetchJson<AgentThreadResponse>('/agent/threads', {
+        body: JSON.stringify({
+          ...(input.brandId ? { brandId: input.brandId } : {}),
+          runtimeKey: input.runtimeKey,
+          source: input.source,
+          title: input.title,
+        }),
+        method: 'POST',
+      }),
+    );
+  }
+
+  /**
+   * Records a turn that ran on the user's own CLI subscription. The API
+   * stores it without reserving Genfeed credits.
+   */
+  async appendExternalAgentTurn(
+    threadId: string,
+    input: IAgentExternalTurnInput,
+  ): Promise<IDesktopCloudAgentThread> {
+    return mapAgentThread(
+      await this.fetchJson<AgentThreadResponse>(
+        `/agent/threads/${encodeURIComponent(threadId)}/external-turns`,
+        {
+          body: JSON.stringify(input),
+          method: 'POST',
+        },
+      ),
+    );
   }
 
   async listProjects(): Promise<IDesktopDataResult<IDesktopCloudProject[]>> {

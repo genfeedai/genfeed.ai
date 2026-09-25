@@ -364,6 +364,11 @@ export class BrandsService extends BaseService<
     );
 
     if (typeof brand.organizationId === 'string' && brand.organizationId) {
+      // Label, description, guidelines and colors are part of the assembled
+      // agent brand context, which is cached under the org-scoped tag.
+      await this.cacheInvalidationService.invalidateByTags([
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(brand.organizationId),
+      ]);
       await this.accessBootstrapCacheService.invalidateForOrganization(
         brand.organizationId,
       );
@@ -464,13 +469,7 @@ export class BrandsService extends BaseService<
       throw new NotFoundException('Brand', brandId);
     }
 
-    await this.cacheInvalidationService.invalidate(
-      CACHE_PATTERNS.BRANDS_SINGLE(brandId),
-    );
-    await this.accessBootstrapCacheService.invalidateForOrganization(
-      organizationId,
-    );
-    await this.cacheInvalidationService.invalidateByTags([CACHE_TAGS.BRANDS]);
+    await this.invalidateBrandContextCaches(brandId, organizationId);
 
     return updated as BrandDocument;
   }
@@ -860,6 +859,10 @@ export class BrandsService extends BaseService<
     );
 
     if (typeof brand.organizationId === 'string' && brand.organizationId) {
+      // A deleted brand must stop resolving as the org's agent brand context.
+      await this.cacheInvalidationService.invalidateByTags([
+        SCOPED_CACHE_TAGS.BRAND_CONTEXT(brand.organizationId),
+      ]);
       await this.accessBootstrapCacheService.invalidateForOrganization(
         brand.organizationId,
       );

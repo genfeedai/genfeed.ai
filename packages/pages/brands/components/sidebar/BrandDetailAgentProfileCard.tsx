@@ -5,6 +5,7 @@ import { getPlatformIcon } from '@helpers/ui/platform-icon/platform-icon.helper'
 import type { BrandDetailAgentProfileCardProps } from '@props/pages/brand-detail.props';
 import Card from '@ui/card/Card';
 import Container from '@ui/layout/container/Container';
+import { Alert, AlertDescription, AlertTitle } from '@ui/primitives/alert';
 import { Button } from '@ui/primitives/button';
 import { EditableText } from '@ui/primitives/editable-text';
 import {
@@ -15,8 +16,10 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import AgentProfilePlatformOverride from './AgentProfilePlatformOverride';
+import AgentProfilePromptingFields from './AgentProfilePromptingFields';
 import AgentProfileVoiceFields from './AgentProfileVoiceFields';
 import {
   EMPTY_PLATFORM_OVERRIDE,
@@ -44,9 +47,12 @@ export default function BrandDetailAgentProfileCard({
     handleGenerate,
     handlePlatformOverrideSave,
     handlePlatformOverrideSelectChange,
+    handlePromptingSave,
     isGenerating,
     populatedPlatformCount,
+    voiceCorpus,
   } = useBrandDetailAgentProfileCard({ brand, brandId, onRefreshBrand });
+  const translate = useTranslations('pages.brandAgentProfile');
 
   const [selectedPlatform, setSelectedPlatform] = useState(
     PLATFORM_OPTIONS[0]?.value ?? 'twitter',
@@ -98,12 +104,29 @@ export default function BrandDetailAgentProfileCard({
             </div>
           }
         >
-          <p className="text-xs leading-5 text-muted-foreground">
-            Generate scans this brand (website when available, otherwise name /
-            description / guidance) and fills writing tone, style, audience, and
-            pillars. Inline edits save automatically. For speech/video audio,
-            set a default speaking voice under Agent Defaults.
-          </p>
+          <div className="flex flex-col gap-2">
+            <p className="text-xs leading-5 text-muted-foreground">
+              Generate learns how you write from this brand&apos;s own posts
+              (imported account history and published posts) and uses the
+              website or brand details for positioning. It fills tone, style,
+              writing rules, and real exemplar posts. Inline edits save
+              automatically. For speech/video audio, set a default speaking
+              voice under Agent Defaults.
+            </p>
+            {voiceCorpus ? (
+              <p className="text-xs leading-5 text-foreground">
+                {translate('corpus.evidence', { label: voiceCorpus.label })}
+              </p>
+            ) : null}
+            {voiceCorpus?.guidance ? (
+              <Alert variant="warning">
+                <AlertTitle>{translate('corpus.notEnoughPosts')}</AlertTitle>
+                <AlertDescription className="text-xs leading-5">
+                  {voiceCorpus.guidance}
+                </AlertDescription>
+              </Alert>
+            ) : null}
+          </div>
         </Card>
 
         <div className="grid gap-3 md:grid-cols-2">
@@ -250,7 +273,33 @@ export default function BrandDetailAgentProfileCard({
                 value={form.strategyGoals}
               />
             </div>
+
+            <div className="md:col-span-2">
+              <p className="mb-1 text-sm font-medium">
+                {translate('topics.label')}
+              </p>
+              <EditableText
+                ariaLabel={translate('topics.label')}
+                displayClassName="text-sm"
+                isDisabled={isGenerating}
+                onSave={(value) => handleFieldSave('strategyTopics', value)}
+                placeholder={translate('topics.placeholder')}
+                value={form.strategyTopics}
+              />
+            </div>
           </div>
+        </Card>
+
+        <Card
+          label={translate('prompting.title')}
+          description={translate('prompting.description')}
+        >
+          <AgentProfilePromptingFields
+            conversationStarters={form.promptingStarters}
+            isDisabled={isGenerating}
+            onSave={handlePromptingSave}
+            seeds={form.promptingSeeds}
+          />
         </Card>
 
         <Card

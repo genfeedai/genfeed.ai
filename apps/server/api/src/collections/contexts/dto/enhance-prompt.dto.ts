@@ -1,3 +1,4 @@
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
 import {
   IsArray,
   IsBoolean,
@@ -20,6 +21,14 @@ export class EnhancePromptDto {
   @IsArray()
   @IsString({ each: true })
   contextBaseIds?: string[]; // Specific context bases to use
+
+  /**
+   * Active brand. Retrieval only reads bases owned by this brand plus
+   * organization-wide bases; without it only organization-wide bases are read.
+   */
+  @IsOptional()
+  @IsEntityId()
+  brandId?: string;
 
   @IsOptional()
   @IsBoolean()

@@ -229,7 +229,20 @@ describe('AgentToolExecutorService', () => {
         .mockResolvedValue({ id: 'brand-1' }),
       generateBrandVoice: vi.fn().mockResolvedValue({
         audience: ['founders', 'marketers'],
+        corpus: {
+          dateRange: { from: '2026-06-01', to: '2026-09-20' },
+          isSufficient: true,
+          label:
+            'own posts: 42 samples (30 replies, 12 original) from twitter, 2026-06-01 to 2026-09-20',
+          minimumSampleCount: 10,
+          originalCount: 12,
+          originCounts: { 'own-account': 42, pasted: 0, 'published-post': 0 },
+          platforms: ['twitter'],
+          replyCount: 30,
+          sampleCount: 42,
+        },
         doNotSoundLike: ['corporate jargon', 'broetry'],
+        exemplarTexts: ['nah, ship the boring version first'],
         hashtags: ['#genfeed'],
         messagingPillars: ['clarity', 'speed', 'proof'],
         prompting: {
@@ -260,6 +273,7 @@ describe('AgentToolExecutorService', () => {
         taglines: ['Ship with signal'],
         tone: 'confident',
         values: ['clarity', 'speed'],
+        writingRules: ['Never use em dashes'],
       }),
       updateAgentConfig: vi.fn().mockResolvedValue({ id: 'brand-1' }),
     };
@@ -3813,9 +3827,9 @@ describe('AgentToolExecutorService', () => {
             },
           ],
         },
+        // updateAgentConfig merges strategy keys, so stored platforms stay.
         strategy: {
           goals: ['Increase qualified leads'],
-          platforms: ['linkedin'],
           topics: ['clarity', 'systems'],
         },
         voice: {
@@ -3841,6 +3855,174 @@ describe('AgentToolExecutorService', () => {
         brandId: 'brand-voice-1',
         saved: true,
       }),
+    );
+  });
+
+  it('should only write voice fields the approved draft provides', async () => {
+    const { brandsService, service } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      agentConfig: {
+        voice: {
+          bannedPhrases: ['synergy'],
+          exemplarTexts: ['a line the user curated'],
+          tone: 'old tone',
+          writingRules: ['user rule'],
+        },
+      },
+      id: 'brand-voice-1',
+      label: 'Genfeed',
+    });
+
+    const result = await service.executeTool(
+      'save_brand_voice_profile',
+      {
+        brandId: 'brand-voice-1',
+        voiceProfile: {
+          approvedHooks: [],
+          audience: ['founders'],
+          bannedPhrases: [],
+          doNotSoundLike: [],
+          hashtags: [],
+          messagingPillars: [],
+          sampleOutput: '',
+          strategy: { goals: [], topics: [] },
+          style: '',
+          taglines: [],
+          tone: 'blunt',
+          values: [],
+        },
+      },
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    expect(result.success).toBe(true);
+    // Empty lists and strings are omitted so the merge never wipes what the
+    // user set in voice settings; missing lists are never sent at all.
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-voice-1',
+      testId('org'),
+      { voice: { audience: ['founders'], tone: 'blunt' } },
+    );
+  });
+
+  it('should keep verbatim exemplars with commas when saving an approved draft', async () => {
+    const { brandsService, service } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      id: 'brand-voice-1',
+      label: 'Genfeed',
+    });
+
+    await service.executeTool(
+      'save_brand_voice_profile',
+      {
+        brandId: 'brand-voice-1',
+        voiceProfile: {
+          exemplarTexts: ['nah, ship the boring version first'],
+          writingRules: ['Keep replies short, under ~80 characters'],
+        },
+      },
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    expect(brandsService.updateAgentConfig).toHaveBeenCalledWith(
+      'brand-voice-1',
+      testId('org'),
+      {
+        voice: {
+          exemplarTexts: ['nah, ship the boring version first'],
+          writingRules: ['Keep replies short, under ~80 characters'],
+        },
+      },
+    );
+  });
+
+  it('should pass pasted samples to voice drafting and show the corpus on the card', async () => {
+    const { brandsService, service } = createService();
+
+    brandsService.findOne.mockResolvedValue({
+      id: 'brand-voice-1',
+      label: 'Genfeed',
+    });
+
+    const result = await service.executeTool(
+      'draft_brand_voice_profile',
+      { samples: ['  lol no, ship it friday  ', 'second post'] },
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    expect(brandsService.generateBrandVoice).toHaveBeenCalledWith(
+      expect.objectContaining({
+        samples: ['lol no, ship it friday', 'second post'],
+      }),
+      testId('org'),
+    );
+    const card = result.nextActions?.[0];
+    expect(card?.description).toContain(
+      'Built from own posts: 42 samples (30 replies, 12 original)',
+    );
+    expect(card?.textContent).toContain(
+      'Voice evidence: own posts: 42 samples',
+    );
+    expect(card?.textContent).toContain('> nah, ship the boring version first');
+    expect(card?.textContent).toContain('- Never use em dashes');
+    // The corpus summary describes the draft; it is never saved as voice.
+    expect(card?.ctas?.[0]?.payload).toEqual(
+      expect.objectContaining({
+        voiceProfile: expect.not.objectContaining({
+          corpus: expect.anything(),
+        }),
+      }),
+    );
+    expect(result.data).toEqual(
+      expect.objectContaining({
+        corpus: expect.objectContaining({ sampleCount: 42 }),
+      }),
+    );
+  });
+
+  it('should tell the user how to fix an empty own-posts corpus on the draft card', async () => {
+    const { brandsService, service } = createService();
+    const guidance =
+      'No posts written by this brand were found. Turn on "Import existing posts" in Settings → Integrations.';
+
+    brandsService.findOne.mockResolvedValue({
+      id: 'brand-voice-1',
+      label: 'Genfeed',
+    });
+    brandsService.generateBrandVoice.mockResolvedValueOnce({
+      ...(await brandsService.generateBrandVoice.getMockImplementation()?.(
+        {},
+        testId('org'),
+      )),
+      corpus: {
+        dateRange: null,
+        guidance,
+        isSufficient: false,
+        label: 'no own posts found',
+        minimumSampleCount: 10,
+        originalCount: 0,
+        originCounts: { 'own-account': 0, pasted: 0, 'published-post': 0 },
+        platforms: [],
+        replyCount: 0,
+        sampleCount: 0,
+      },
+      exemplarTexts: [],
+      writingRules: [],
+    });
+
+    const result = await service.executeTool(
+      'draft_brand_voice_profile',
+      {},
+      { organizationId: testId('org'), userId: testId('user') },
+    );
+
+    const card = result.nextActions?.[0];
+    expect(card?.description).toContain(guidance);
+    expect(card?.textContent).toContain(`Heads up: ${guidance}`);
+    expect(card?.textContent).toContain(
+      'Real posts that capture the voice (verbatim):\nNone found',
     );
   });
 

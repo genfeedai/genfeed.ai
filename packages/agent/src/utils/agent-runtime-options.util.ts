@@ -4,9 +4,12 @@ import type {
   AgentRuntimeOption,
 } from '@genfeedai/agent/models/agent-runtime.model';
 import type { AgentInstallReadiness } from '@genfeedai/agent/services/agent-api.service';
-import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
-
-const LOCAL_HOSTNAMES = new Set(['127.0.0.1', '::1', 'localhost']);
+import {
+  AGENT_EXTERNAL_RUNTIME_KEYS,
+  type AgentExternalRuntimeKey,
+  isAgentExternalRuntimeKey,
+} from '@genfeedai/contracts/constants';
+import type { IDesktopLocalToolReadiness } from '@genfeedai/contracts/desktop';
 
 const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
   {
@@ -47,28 +50,40 @@ const HOSTED_RUNTIME_OPTIONS: AgentRuntimeOption[] = [
   },
 ];
 
-const LOCAL_CLAUDE_OPTION: AgentRuntimeOption = {
+/**
+ * Local CLI runtimes execute in Genfeed Desktop on the user's own Claude Code
+ * / Codex subscription. Threads, brand context, and memory stay in Genfeed;
+ * the model turn costs no Genfeed credits. `requestedModel` stays empty: the
+ * CLI picks its own model.
+ */
+export const DESKTOP_CLAUDE_CLI_RUNTIME_OPTION: AgentRuntimeOption = {
   category: 'local',
-  description: 'Local Claude CLI detected on this machine',
-  key: 'local/claude-cli',
-  label: 'Claude CLI',
+  description: 'Claude Code on this computer',
+  hint: 'Runs on your Claude Code subscription — no Genfeed credits',
+  key: AGENT_EXTERNAL_RUNTIME_KEYS.CLAUDE_CLI,
+  label: 'Claude Code',
   provider: 'claude',
-  requestedModel: LLM_DEFAULTS.planning,
+  requestedModel: '',
 };
 
-const LOCAL_CODEX_OPTION: AgentRuntimeOption = {
+export const DESKTOP_CODEX_CLI_RUNTIME_OPTION: AgentRuntimeOption = {
   category: 'local',
-  description: 'Local Codex CLI detected on this machine',
-  key: 'local/codex-cli',
-  label: 'Codex CLI',
+  description: 'Codex CLI on this computer',
+  hint: 'Runs on your Codex (ChatGPT) subscription — no Genfeed credits',
+  key: AGENT_EXTERNAL_RUNTIME_KEYS.CODEX_CLI,
+  label: 'Codex',
   provider: 'codex',
-  requestedModel: LLM_DEFAULTS.fastText,
+  requestedModel: '',
 };
 
-function getLocalToolSummary(readiness?: AgentInstallReadiness | null): string {
-  const detected = readiness?.localTools.detected ?? [];
+function getLocalToolSummary(
+  desktopTools?: IDesktopLocalToolReadiness | null,
+): string {
+  const detected = (desktopTools?.detected ?? []).filter(
+    (tool) => tool === 'claude' || tool === 'codex',
+  );
   if (detected.length === 0) {
-    return 'No local CLIs detected';
+    return 'No Claude Code or Codex CLI found on this computer';
   }
 
   return `Local CLIs: ${detected.join(', ')}`;
@@ -83,41 +98,73 @@ function getProviderSummary(readiness?: AgentInstallReadiness | null): string {
   return `Providers ready: ${configured.join(', ')}`;
 }
 
-export function isLocalTerminalHost(hostname?: string | null): boolean {
-  if (!hostname) {
-    return false;
-  }
-
-  return LOCAL_HOSTNAMES.has(hostname);
+export function isDesktopCliRuntimeKey(
+  key?: string | null,
+): key is AgentExternalRuntimeKey {
+  return isAgentExternalRuntimeKey(key);
 }
 
+/** True when this desktop has the CLI binary a local runtime needs. */
+export function isDesktopCliRuntimeAvailable(
+  key: AgentExternalRuntimeKey,
+  desktopTools?: IDesktopLocalToolReadiness | null,
+): boolean {
+  return key === AGENT_EXTERNAL_RUNTIME_KEYS.CLAUDE_CLI
+    ? desktopTools?.claude === true
+    : desktopTools?.codex === true;
+}
+
+/**
+ * Local CLI runtimes are offered only where they can execute: inside Genfeed
+ * Desktop, when the desktop bridge reports the binary installed. A browser
+ * (even on a self-hosted localhost) has no way to run them.
+ */
 export function buildAgentRuntimeCatalog(params: {
-  hostname?: string | null;
+  desktopTools?: IDesktopLocalToolReadiness | null;
   readiness?: AgentInstallReadiness | null;
 }): AgentRuntimeCatalog {
-  const isLocal = isLocalTerminalHost(params.hostname);
-  const options = [...HOSTED_RUNTIME_OPTIONS];
-
-  if (isLocal) {
-    if (params.readiness?.localTools.codex) {
-      options.splice(1, 0, LOCAL_CODEX_OPTION);
-    }
-
-    if (params.readiness?.localTools.claude) {
-      options.splice(
-        params.readiness.localTools.codex ? 2 : 1,
-        0,
-        LOCAL_CLAUDE_OPTION,
-      );
-    }
-  }
+  const localOptions = [
+    DESKTOP_CLAUDE_CLI_RUNTIME_OPTION,
+    DESKTOP_CODEX_CLI_RUNTIME_OPTION,
+  ].filter((option) =>
+    isDesktopCliRuntimeAvailable(
+      option.key as AgentExternalRuntimeKey,
+      params.desktopTools,
+    ),
+  );
+  const [autoOption, ...hostedOptions] = HOSTED_RUNTIME_OPTIONS;
 
   return {
-    environmentLabel: isLocal ? 'local' : 'cloud',
-    localToolSummary: getLocalToolSummary(params.readiness),
-    options,
+    environmentLabel: localOptions.length > 0 ? 'local' : 'cloud',
+    localToolSummary: getLocalToolSummary(params.desktopTools),
+    options: [autoOption, ...localOptions, ...hostedOptions],
     providerSummary: getProviderSummary(params.readiness),
   };
+}
+
+/**
+ * The CLI runtime a send should use, or null for the hosted API path. Uses
+ * the active thread's runtime, or the draft runtime for a new thread.
+ */
+export function resolveDesktopCliRuntimeKey(params: {
+  activeThreadId: string | null;
+  desktopTools?: IDesktopLocalToolReadiness | null;
+  draftRuntimeKey?: string | null;
+  hasDesktopBridge: boolean;
+  thread?: Pick<AgentThread, 'runtimeKey'> | null;
+}): AgentExternalRuntimeKey | null {
+  if (!params.hasDesktopBridge) {
+    return null;
+  }
+
+  const key = params.activeThreadId
+    ? params.thread?.runtimeKey
+    : params.draftRuntimeKey;
+
+  return isDesktopCliRuntimeKey(key) &&
+    isDesktopCliRuntimeAvailable(key, params.desktopTools)
+    ? key
+    : null;
 }
 
 export function resolveThreadRuntimeOption(params: {

@@ -3,8 +3,10 @@ import type {
   AccountHealthSummary,
   IArticle,
   IBrand,
+  IBrandConversationStarter,
   IBrandKitAssetValue,
   IBrandKitDraft,
+  IBrandPromptSeed,
   IClockTime,
   IImage,
   ILink,
@@ -155,11 +157,16 @@ export interface BrandDetailAgentProfileCardProps {
 export interface AgentProfileFormState {
   defaultModel: string;
   frequency: string;
+  /** True once the brand stores prompting, so saves keep writing it. */
+  hasPrompting: boolean;
   persona: string;
   platformOverrides: Record<string, AgentProfilePlatformOverrideFormState>;
+  promptingSeeds: IBrandPromptSeed[];
+  promptingStarters: IBrandConversationStarter[];
   strategyContentTypes: string;
   strategyGoals: string;
   strategyPlatforms: string;
+  strategyTopics: string;
   voiceApprovedHooks: string;
   voiceAudience: string;
   voiceBannedPhrases: string;
@@ -196,8 +203,24 @@ export interface AgentProfilePlatformOverrideFormState {
 
 export type AgentProfileTextField = Exclude<
   keyof AgentProfileFormState,
-  'platformOverrides' | 'voiceCanonicalSource'
+  | 'hasPrompting'
+  | 'platformOverrides'
+  | 'promptingSeeds'
+  | 'promptingStarters'
+  | 'voiceCanonicalSource'
 >;
+
+export interface AgentProfilePromptingValue {
+  conversationStarters: IBrandConversationStarter[];
+  seeds: IBrandPromptSeed[];
+}
+
+export interface AgentProfilePromptingFieldsProps {
+  conversationStarters: IBrandConversationStarter[];
+  isDisabled?: boolean;
+  onSave: (next: AgentProfilePromptingValue) => Promise<void>;
+  seeds: IBrandPromptSeed[];
+}
 
 export type AgentProfilePlatformOverrideTextField = Exclude<
   keyof AgentProfilePlatformOverrideFormState,

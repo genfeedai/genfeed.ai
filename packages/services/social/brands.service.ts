@@ -345,6 +345,7 @@ export class BrandsService extends BaseService<Brand> {
       examplesToEmulate?: string[];
       industry?: string;
       offering?: string;
+      samples?: string[];
       targetAudience?: string;
       url?: string;
     } = {},

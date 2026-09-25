@@ -1,3 +1,5 @@
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
+
 /**
  * System prompt for the task decomposition LLM.
  * Uses a cheap/free model to classify and break down workspace tasks.
@@ -40,7 +42,7 @@ a short \`label\` for the run, and a \`brief\` the agent can act on.
 Close with a one-sentence \`routingSummary\` of the decision.`;
 
 /**
- * Model used for decomposition — cheap and fast.
+ * Model used for decomposition — the cheap background role.
  * Routed through OpenRouter automatically by LlmDispatcherService.
  */
-export const TASK_DECOMPOSITION_MODEL = 'google/gemini-2.0-flash';
+export const TASK_DECOMPOSITION_MODEL = LLM_DEFAULTS.background;

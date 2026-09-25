@@ -1,3 +1,4 @@
+import { formatCreditCostEstimate } from '@genfeedai/contracts/constants';
 import type { AdvancedRoutingCardProps } from '@props/settings/model-routing.props';
 import Card from '@ui/card/Card';
 import {
@@ -8,14 +9,17 @@ import {
   SelectValue,
 } from '@ui/primitives';
 import { Switch } from '@ui/primitives/switch';
+import AgentModelLockNotice from '@ui/settings/agent-model-lock-notice/AgentModelLockNotice';
 
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
 
 export default function AdvancedRoutingCard({
+  agentModelAccess,
   allowAdvancedOverrides,
   generationModelOverride,
   modelOptions,
   isSaving,
+  modelCostEstimates,
   onAllowAdvancedOverridesChange,
   onGenerationModelOverrideChange,
   onReviewModelOverrideChange,
@@ -23,6 +27,10 @@ export default function AdvancedRoutingCard({
   reviewModelOverride,
   thinkingModelOverride,
 }: AdvancedRoutingCardProps) {
+  const lockedModelLabel = agentModelAccess?.isLocked
+    ? (agentModelAccess.lockedModelLabel ?? agentModelAccess.lockedModelKey)
+    : null;
+
   return (
     <Card label="Advanced Routing" bodyClassName="gap-3 p-4">
       <div className="space-y-3">
@@ -40,26 +48,43 @@ export default function AdvancedRoutingCard({
           <div className="grid gap-3 md:grid-cols-3">
             <div>
               <p className="text-sm font-medium">Thinking Model</p>
-              <Select
-                value={thinkingModelOverride || AUTO_MODEL_SELECT_VALUE}
-                onValueChange={(value) =>
-                  onThinkingModelOverrideChange(
-                    value === AUTO_MODEL_SELECT_VALUE ? '' : value,
-                  )
-                }
-              >
-                <SelectTrigger className="w-full mt-2 rounded">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {modelOptions.map((model) => (
-                    <SelectItem key={model.value} value={model.value}>
-                      {model.label}
+              {lockedModelLabel ? (
+                <AgentModelLockNotice
+                  className="mt-2"
+                  lockedModelLabel={lockedModelLabel}
+                />
+              ) : (
+                <Select
+                  value={thinkingModelOverride || AUTO_MODEL_SELECT_VALUE}
+                  onValueChange={(value) =>
+                    onThinkingModelOverrideChange(
+                      value === AUTO_MODEL_SELECT_VALUE ? '' : value,
+                    )
+                  }
+                >
+                  <SelectTrigger className="w-full mt-2 rounded">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
+                      Auto
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                    {modelOptions.map((model) => {
+                      const estimate = modelCostEstimates[model.value];
+                      return (
+                        <SelectItem key={model.value} value={model.value}>
+                          {estimate === undefined
+                            ? model.label
+                            : `${model.label} · ${formatCreditCostEstimate(
+                                estimate,
+                                { unit: 'credits / message' },
+                              )}`}
+                        </SelectItem>
+                      );
+                    })}
+                  </SelectContent>
+                </Select>
+              )}
             </div>
 
             <div>

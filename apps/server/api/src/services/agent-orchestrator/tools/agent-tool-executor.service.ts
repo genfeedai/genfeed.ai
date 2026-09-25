@@ -17,6 +17,7 @@ import type {
 import { AgentAdsResearchToolHandler } from '@api/services/agent-orchestrator/tools/agent-ads-research-tool-handler.service';
 import { AgentAnalyticsToolHandler } from '@api/services/agent-orchestrator/tools/agent-analytics-tool-handler.service';
 import { AgentBrandContentToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-content-tool-handler.service';
+import { AgentBrandContextToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-context-tool-handler.service';
 import { AgentBrandInterviewToolHandler } from '@api/services/agent-orchestrator/tools/agent-brand-interview-tool-handler.service';
 import { AgentCampaignToolHandler } from '@api/services/agent-orchestrator/tools/agent-campaign-tool-handler.service';
 import { AgentConnectionToolHandler } from '@api/services/agent-orchestrator/tools/agent-connection-tool-handler.service';
@@ -237,6 +238,9 @@ export class AgentToolExecutorService implements OnModuleInit {
 
   @Inject(AgentGenerationSettingsToolHandler)
   private readonly generationSettingsHandler!: AgentGenerationSettingsToolHandler;
+
+  @Inject(AgentBrandContextToolHandler)
+  private readonly brandContextHandler!: AgentBrandContextToolHandler;
 
   constructor(
     private readonly loggerService: LoggerService,
@@ -582,14 +586,8 @@ export class AgentToolExecutorService implements OnModuleInit {
         return this.catalogHandler.listGenfeedTools(params);
 
       case 'list_agent_conversations':
-        return this.transferHandler
-          ? this.transferHandler.listConversations(params, ctx)
-          : this.unavailableTransferTool();
-
       case 'transfer_agent_conversation':
-        return this.transferHandler
-          ? this.transferHandler.transfer(params, ctx)
-          : this.unavailableTransferTool();
+        return this.dispatchConversationTransfer(toolName, params, ctx);
 
       case 'get_credits_balance':
         return this.workspaceHandler.getCreditsBalance(ctx);
@@ -875,6 +873,9 @@ export class AgentToolExecutorService implements OnModuleInit {
       case 'get_brand_completeness':
         return this.brandInterviewHandler.execute(toolName, params, ctx);
 
+      case 'get_brand_context':
+        return this.brandContextHandler.execute(toolName, params, ctx);
+
       default:
         return {
           creditsUsed: 0,
@@ -882,6 +883,19 @@ export class AgentToolExecutorService implements OnModuleInit {
           success: false,
         };
     }
+  }
+
+  private dispatchConversationTransfer(
+    toolName: CuratedActionName,
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+  ): Promise<AgentToolResult> {
+    if (!this.transferHandler) {
+      return Promise.resolve(this.unavailableTransferTool());
+    }
+    return toolName === 'list_agent_conversations'
+      ? this.transferHandler.listConversations(params, ctx)
+      : this.transferHandler.transfer(params, ctx);
   }
 
   private unavailableTransferTool(): AgentToolResult {

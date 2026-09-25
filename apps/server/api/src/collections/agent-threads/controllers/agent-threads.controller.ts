@@ -1,8 +1,11 @@
 import type { AuthenticatedUser as User } from '@api/auth/interfaces/authenticated-user.interface';
 import { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
+import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
+import { CreateAgentThreadDto } from '@api/collections/agent-threads/dto/create-agent-thread.dto';
 import { UpdateAgentModeDto } from '@api/collections/agent-threads/dto/update-agent-mode.dto';
 import { UpdateAgentThreadContextDto } from '@api/collections/agent-threads/dto/update-agent-thread-context.dto';
 import { AgentThreadsService } from '@api/collections/agent-threads/services/agent-threads.service';
+import { withAgentThreadExternalRuntime } from '@api/collections/agent-threads/utils/agent-thread-external-runtime.util';
 import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
@@ -202,7 +205,11 @@ export class AgentThreadsController {
         id: threadId,
         organizationId: organizationId,
       });
-      return serializeSingle(req, AgentThreadSerializer, thread);
+      return serializeSingle(
+        req,
+        AgentThreadSerializer,
+        thread ? withAgentThreadExternalRuntime(thread) : thread,
+      );
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'getThread');
     }
@@ -213,7 +220,7 @@ export class AgentThreadsController {
   @ApiOperation({ summary: 'Create a new agent thread' })
   async createThread(
     @Req() req: Request,
-    @Body() body: { brandId?: string | null; title?: string; source?: string },
+    @Body() body: CreateAgentThreadDto,
     @CurrentUser() user: User,
   ) {
     try {
@@ -227,12 +234,17 @@ export class AgentThreadsController {
       const thread = await this.agentThreadsService.create({
         ...preparedScope.initialScopeFields,
         organizationId,
+        ...(body.runtimeKey ? { runtimeKey: body.runtimeKey } : {}),
         source: body.source || 'web',
         title: body.title,
         userId: dbUserId,
         mode: await this.agentThreadsService.resolveSavedMode(dbUserId),
       });
-      return serializeSingle(req, AgentThreadSerializer, thread);
+      return serializeSingle(
+        req,
+        AgentThreadSerializer,
+        withAgentThreadExternalRuntime(thread),
+      );
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'createThread');
     }
@@ -342,6 +354,42 @@ export class AgentThreadsController {
       return serializeSingle(req, ThreadMessageSerializer, message);
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'addMessage');
+    }
+  }
+
+  @Post(':threadId/external-turns')
+  @RateLimit({ limit: 30, scope: 'user', windowMs: 60_000 })
+  @ApiOperation({
+    summary:
+      "Append a turn that ran on the user's own Claude Code / Codex CLI subscription (never billed in Genfeed credits)",
+  })
+  async appendExternalTurn(
+    @Req() req: Request,
+    @Param('threadId') threadId: string,
+    @Body() body: AppendExternalAgentTurnDto,
+    @CurrentUser() user: User,
+  ) {
+    try {
+      const organizationId = this.resolveOrganizationId(user);
+      const userId = await this.resolveDatabaseUserId(user);
+      const { thread } = await this.agentThreadsService.appendExternalTurn(
+        threadId,
+        organizationId,
+        userId,
+        body,
+      );
+
+      return serializeSingle(
+        req,
+        AgentThreadSerializer,
+        withAgentThreadExternalRuntime(thread),
+      );
+    } catch (error: unknown) {
+      return ErrorResponse.handle(
+        error,
+        this.loggerService,
+        'appendExternalTurn',
+      );
     }
   }
 

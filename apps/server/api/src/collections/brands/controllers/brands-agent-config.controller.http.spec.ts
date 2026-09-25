@@ -354,6 +354,36 @@ describe('PATCH /brands/:id/agent-config (HTTP pipeline)', () => {
       );
     });
 
+    it('scopes the voice corpus to the path brand and accepts pasted samples', async () => {
+      generateBrandVoice.mockResolvedValue(generatedProfile);
+
+      await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({
+          samples: ['nah, ship it friday', 'docs later'],
+          url: 'https://acme.example',
+        })
+        .expect(201);
+
+      expect(generateBrandVoice).toHaveBeenCalledWith(
+        expect.objectContaining({
+          brandId,
+          samples: ['nah, ship it friday', 'docs later'],
+          url: 'https://acme.example',
+        }),
+        orgId,
+      );
+    });
+
+    it('rejects non-string pasted samples', async () => {
+      await request(app.getHttpServer())
+        .post(`/brands/${brandId}/agent-config/generate-voice`)
+        .send({ samples: [42] })
+        .expect(400);
+
+      expect(generateBrandVoice).not.toHaveBeenCalled();
+    });
+
     it('returns the classified 422 for invalid provider output without persisting', async () => {
       generateBrandVoice.mockRejectedValue(
         new BrandVoiceGenerationException({

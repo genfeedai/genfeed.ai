@@ -179,6 +179,11 @@ On-demand skills — invoked by task, formerly always-loaded rules:
 - [project_settings_routing](project_settings_routing.md) — personal/org/brand settings URL shapes
 - [project_desktop_byok_generation](project_desktop_byok_generation.md) — BYOK generation runs in Electron main behind the canonical app UI
 - [project_desktop_first_run](project_desktop_first_run.md) — desktop boots `apps/app` with Genfeed Connect sign-in; sync consent per cloud user
+- [project_desktop_cli_agent_runtime](project_desktop_cli_agent_runtime.md) — CLI runtime architecture = Claude Code / Codex CLI + Genfeed MCP + Desktop; threads in Genfeed, external turns never reserve credits; cloud mode, no local workspace
+- [project_agent_free_tier_model_lock](project_agent_free_tier_model_lock.md) — unsubscribed hosted orgs run every agent turn on `LLM_DEFAULTS.agentChat` (DeepSeek V4 Flash) unless BYOK pays; no-billing servers never lock
+- [project_agent_exact_cost_chat_billing](project_agent_exact_cost_chat_billing.md) — chat rounds settle at exact provider cost as fractional credits; one credit display formatter (balance floor + compact ≥100k, cost 1 dp / `<0.1` / `Free`); admin unit economics + revenue ledger from deploy onward
+- [project_agent_context_snapshot_parity](project_agent_context_snapshot_parity.md) — Agent context page, `GET /brands/:id/agent-context`, and `get_brand_context` reuse `resolveTurnContext`; real layers incl. `brandKnowledge`, no `knowledgeBase`
+- [project_brand_voice_own_posts](project_brand_voice_own_posts.md) — brand voice drafts learn from own imported/published/pasted posts; deterministic stylometric rules; verbatim exemplars; approve writes only non-empty fields
 - [project_ts6_prisma7_build_regression](project_ts6_prisma7_build_regression.md) — resolved 2026-06-03; stage 4 + migration-apply pending
 - [project_soft_delete_is_deleted](project_soft_delete_is_deleted.md) — soft-delete is `isDeleted` only; tombstone instant is `updatedAt`
 - [project_platform_enum_usage](project_platform_enum_usage.md) — Platform/CredentialPlatform for ids; formatPlatformLabel/parsePlatform for display/aliases

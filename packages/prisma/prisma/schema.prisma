@@ -868,6 +868,7 @@ model Organization {
   referralsAsReferred           Referral[]                     @relation("referral_referred_organization")
   llmVendorCosts                LlmVendorCost[]
   mediaVendorCosts              MediaVendorCost[]
+  billingRevenueEvents          BillingRevenueEvent[]
   subscriptionAttributions      SubscriptionAttribution[]
   announcements                 Announcement[]
   leads                         Lead[]                         @relation("lead_org")
@@ -3250,6 +3251,7 @@ model CreditTransaction {
   @@index([source, isDeleted, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_created_at_idx")
   @@index([source, isDeleted, organizationId, createdAt(sort: Desc)], map: "credit_transactions_source_deleted_org_created_at_idx")
   @@index([organizationId, isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_org_deleted_category_created_at_idx")
+  @@index([isDeleted, category, createdAt(sort: Desc)], map: "credit_transactions_deleted_category_created_at_idx")
   @@index([billingAccountId, isDeleted, createdAt(sort: Desc)])
   @@index([reservationId])
   @@map("credit_transactions")
@@ -3491,15 +3493,43 @@ model LlmVendorCost {
   isByok           Boolean      @default(false)
   threadId         String?
   runId            String?
+  // Actor behind the completion (canonical opaque users.id). Nullable: system
+  // jobs have no actor. Drives per-user unit economics in platform admin.
+  userId           String?
   isDeleted        Boolean      @default(false)
   createdAt        DateTime     @default(now())
   updatedAt        DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_created_at_idx")
+  @@index([organizationId, userId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_user_deleted_created_at_idx")
+  @@index([isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "llm_vendor_costs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "llm_vendor_costs_org_deleted_model_created_at_idx")
   @@map("llm_vendor_costs")
   @@index([organizationId, workflowExecutionId, workflowNodeId, isDeleted], map: "llm_vendor_costs_workflow_accounting_idx")
+}
+
+/// Customer payment received through Stripe: a subscription invoice, a credit
+/// pack purchase, or a BYOK platform fee. Minor currency units, net of tax.
+/// One row per Stripe object so webhook replays stay idempotent. Source of
+/// revenue for platform-admin unit economics.
+model BillingRevenueEvent {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  userId         String?
+  source         String
+  stripeObjectId String       @unique
+  amountMinor    Int
+  currency       String
+  occurredAt     DateTime
+  isDeleted      Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([isDeleted, occurredAt(sort: Desc)], map: "billing_revenue_events_deleted_occurred_at_idx")
+  @@index([organizationId, isDeleted, occurredAt(sort: Desc)], map: "billing_revenue_events_org_deleted_occurred_at_idx")
+  @@map("billing_revenue_events")
 }
 
 /// Per-generation media vendor cost (companion to LlmVendorCost, #2361).
@@ -3531,6 +3561,7 @@ model MediaVendorCost {
   updatedAt        DateTime     @updatedAt
 
   @@index([organizationId, isDeleted, createdAt(sort: Desc)], map: "media_vendor_costs_org_deleted_created_at_idx")
+  @@index([isDeleted, createdAt(sort: Desc)], map: "media_vendor_costs_deleted_created_at_idx")
   @@index([organizationId, brandId, isDeleted, createdAt(sort: Desc)], map: "media_vendor_costs_org_brand_deleted_created_at_idx")
   @@index([organizationId, isDeleted, model, createdAt(sort: Desc)], map: "media_vendor_costs_org_deleted_model_created_at_idx")
   @@map("media_vendor_costs")

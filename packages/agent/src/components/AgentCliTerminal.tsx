@@ -1,8 +1,11 @@
 'use client';
 
+import { createDesktopTerminalTransport } from '@genfeedai/agent/components/agent-cli-terminal.desktop-transport';
 import {
   type AgentCliTerminalController,
+  type AgentTerminalTransport,
   attachTerminalSocketHandlers,
+  createSocketTerminalTransport,
   persistTerminalCwd,
   readPersistedTerminalCwd,
   resolveTerminalEndpoint,
@@ -20,6 +23,7 @@ import {
   type TerminalSessionKind,
   useAgentChatStore,
 } from '@genfeedai/agent/stores/agent-chat.store';
+import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { ButtonVariant } from '@genfeedai/contracts';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { resolveAuthToken } from '@helpers/auth/auth.helper';
@@ -65,12 +69,17 @@ export function useAgentCliTerminal(
   authReady = true,
 ): AgentCliTerminalController {
   const hostedCloud = !isAgentCliTerminalAvailable();
+  // Genfeed Desktop runs PTYs in Electron main; it needs no API session.
+  const [isDesktopTerminal] = useState(
+    () => getGenfeedDesktopBridge() !== null,
+  );
+  const isTerminalReady = authReady || isDesktopTerminal;
   const [activeKind, setActiveKind] = useState<TerminalSessionKind>('shell');
   const [cwdInput, setCwdInputState] = useState(readPersistedTerminalCwd);
   const [status, setStatus] = useState(() =>
     hostedCloud
       ? 'terminal unavailable on hosted cloud'
-      : authReady
+      : isTerminalReady
         ? 'connecting to local terminal...'
         : 'waiting for authenticated session...',
   );
@@ -101,7 +110,7 @@ export function useAgentCliTerminal(
   const searchAddonRef = useRef<SearchAddon | null>(null);
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const sessionIdRef = useRef<string | null>(null);
-  const socketRef = useRef<Socket | null>(null);
+  const transportRef = useRef<AgentTerminalTransport | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const terminalRef = useRef<XtermTerminal | null>(null);
   const activeThreadIdRef = useRef(activeThreadId);
@@ -136,9 +145,9 @@ export function useAgentCliTerminal(
       return;
     }
 
-    const socket = socketRef.current;
-    if (sessionIdRef.current && socket?.connected) {
-      socket.emit('terminal:resize', {
+    const transport = transportRef.current;
+    if (sessionIdRef.current && transport?.isConnected()) {
+      transport.resize({
         cols: terminal.cols,
         rows: terminal.rows,
         sessionId: sessionIdRef.current,
@@ -149,15 +158,15 @@ export function useAgentCliTerminal(
   // Spawn a brand-new session for the current thread + kind
   const startSession = useCallback(
     (kind: TerminalSessionKind) => {
-      if (!authReady) {
+      if (!isTerminalReady) {
         setStatus('waiting for authenticated session...');
         return;
       }
 
-      const socket = socketRef.current;
+      const transport = transportRef.current;
       const terminal = terminalRef.current;
 
-      if (!socket?.connected) {
+      if (!transport?.isConnected()) {
         setStatus('local terminal gateway is not connected');
         terminal?.writeln('Local terminal gateway is not connected.');
         return;
@@ -169,7 +178,7 @@ export function useAgentCliTerminal(
       terminal?.writeln(`Starting ${kind}...`);
       fitAndSyncSize();
 
-      socket.emit('terminal:create', {
+      transport.create({
         cols: terminal?.cols ?? TERMINAL_COLS,
         cwd: cwdRef.current.trim() || undefined,
         kind,
@@ -177,18 +186,18 @@ export function useAgentCliTerminal(
         threadId: activeThreadIdRef.current ?? undefined,
       } satisfies TerminalCreatePayload);
     },
-    [authReady, fitAndSyncSize],
+    [isTerminalReady, fitAndSyncSize],
   );
 
   // Attach to an existing session — clears xterm, unsubscribes old data,
   // then server flushes scrollback via terminal:data events before live stream
   const switchSession = useCallback(
     (targetSessionId: string) => {
-      const socket = socketRef.current;
+      const transport = transportRef.current;
       const terminal = terminalRef.current;
       const key = resolveThreadKey(activeThreadIdRef.current);
 
-      if (!socket?.connected || !terminal) {
+      if (!transport?.isConnected() || !terminal) {
         return;
       }
 
@@ -197,7 +206,7 @@ export function useAgentCliTerminal(
       terminal.clear();
       setStatus('attaching...');
 
-      socket.emit('terminal:attach', { sessionId: targetSessionId });
+      transport.attach(targetSessionId);
     },
     [setActiveTerminalSession],
   );
@@ -205,11 +214,11 @@ export function useAgentCliTerminal(
   // Kill a session tab (T6)
   const killSession = useCallback(
     (targetSessionId: string) => {
-      const socket = socketRef.current;
+      const transport = transportRef.current;
       const key = resolveThreadKey(activeThreadIdRef.current);
 
-      if (socket?.connected) {
-        socket.emit('terminal:kill', { sessionId: targetSessionId });
+      if (transport?.isConnected()) {
+        transport.kill(targetSessionId);
       }
 
       removeTerminalSession(key, targetSessionId);
@@ -256,8 +265,8 @@ export function useAgentCliTerminal(
 
   // T1: React to activeThreadId changes
   useEffect(() => {
-    const socket = socketRef.current;
-    if (!socket?.connected) {
+    const transport = transportRef.current;
+    if (!transport?.isConnected()) {
       return;
     }
 
@@ -274,8 +283,8 @@ export function useAgentCliTerminal(
       sessionIdRef.current = targetId;
       terminalRef.current?.clear();
       setStatus('attaching...');
-      socket.emit('terminal:attach', { sessionId: targetId });
-    } else {
+      transport.attach(targetId);
+    } else if (transport.autoStartsSessions) {
       // No session yet for new thread — spawn one
       startSession('shell');
     }
@@ -295,7 +304,7 @@ export function useAgentCliTerminal(
       return undefined;
     }
 
-    if (!authReady) {
+    if (!isTerminalReady) {
       setStatus('waiting for authenticated session...');
       return undefined;
     }
@@ -371,12 +380,12 @@ export function useAgentCliTerminal(
       searchAddonRef.current = searchAddon;
 
       dataDisposable = terminal.onData((data) => {
-        const liveSocket = socketRef.current;
-        if (!liveSocket || !sessionIdRef.current) {
+        const transport = transportRef.current;
+        if (!transport || !sessionIdRef.current) {
           return;
         }
 
-        liveSocket.emit('terminal:write', {
+        transport.write({
           data,
           sessionId: sessionIdRef.current,
         });
@@ -392,6 +401,37 @@ export function useAgentCliTerminal(
         resizeObserver = new ResizeObserver(() => fitAndSyncSize());
         resizeObserver.observe(containerRef.current);
         resizeObserverRef.current = resizeObserver;
+      }
+
+      const desktopBridge = getGenfeedDesktopBridge();
+      if (desktopBridge) {
+        const desktop = createDesktopTerminalTransport({
+          bridge: desktopBridge,
+          fitAndSyncSize,
+          onSessionAttached: (session) => {
+            const key = resolveThreadKey(activeThreadIdRef.current);
+            addTerminalSession(key, session);
+            setActiveTerminalSession(key, session.id);
+          },
+          onSessionCreated: (session) => {
+            const key = resolveThreadKey(activeThreadIdRef.current);
+            addTerminalSession(key, session);
+            sessionIdRef.current = session.id;
+            setActiveTerminalSession(key, session.id);
+          },
+          sessionIdRef,
+          setStatus,
+          terminal,
+        });
+        transportRef.current = desktop.transport;
+        detachSocketHandlers = desktop.dispose;
+        // Desktop PTYs do not survive a renderer reload.
+        setTerminalSessionsByThread(new Map());
+        setStatus('local terminal ready');
+        terminal.writeln(
+          'Terminal on this computer. Pick Shell, Genfeed CLI, Claude CLI, or Codex CLI from New.',
+        );
+        return;
       }
 
       terminal.writeln('Connecting to local terminal gateway...');
@@ -418,7 +458,7 @@ export function useAgentCliTerminal(
         transports: ['websocket', 'polling'],
         withCredentials: true,
       });
-      socketRef.current = socket;
+      transportRef.current = createSocketTerminalTransport(socket);
       const liveSocket = socket;
 
       const handleConnect = () => {
@@ -488,10 +528,7 @@ export function useAgentCliTerminal(
       disposed = true;
 
       if (sessionIdRef.current) {
-        socket?.emit('terminal:kill', { sessionId: sessionIdRef.current });
-        socketRef.current?.emit('terminal:kill', {
-          sessionId: sessionIdRef.current,
-        });
+        transportRef.current?.kill(sessionIdRef.current);
       }
 
       if (rafId != null) {
@@ -507,17 +544,16 @@ export function useAgentCliTerminal(
       terminal?.dispose();
       terminalRef.current?.dispose();
       socket?.disconnect();
-      socketRef.current?.disconnect();
       dataDisposableRef.current = null;
       fitAddonRef.current = null;
       searchAddonRef.current = null;
       terminalRef.current = null;
-      socketRef.current = null;
+      transportRef.current = null;
       sessionIdRef.current = null;
     };
   }, [
     apiService,
-    authReady,
+    isTerminalReady,
     hostedCloud, // Ensure it's tracked in the map even if we rehydrated from a fresh list
     addTerminalSession, // No existing session — boot a fresh one for this thread
     startSession,

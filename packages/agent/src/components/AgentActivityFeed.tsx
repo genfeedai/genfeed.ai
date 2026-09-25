@@ -2,6 +2,7 @@ import type { AgentStrategyRun } from '@genfeedai/agent/models/agent-strategy.mo
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type { IAgentStrategyRunHistoryItem } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
 import Link from 'next/link';
@@ -201,7 +202,11 @@ export function AgentActivityFeed({
 
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">
-                  {translate('credits', { count: run.creditsUsed })}
+                  {run.creditsUsed > 0
+                    ? translate('credits', {
+                        count: formatCreditCost(run.creditsUsed),
+                      })
+                    : formatCreditCost(0)}
                 </span>
 
                 {run.executionId && getExecutionHref && (

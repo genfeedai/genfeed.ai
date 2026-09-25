@@ -114,4 +114,37 @@ describe('context similarity query', () => {
       ]),
     );
   });
+
+  it('restricts Knowledge hits to the active brand or organization scope', () => {
+    const embedding = new Array(CONTEXT_EMBEDDING_DIMENSION).fill(0.1);
+    const query = buildContextSimilarityQuery(
+      'org-1',
+      ['context-1'],
+      embedding,
+      5,
+      0.7,
+      { isKnowledgeOnly: true, knowledgeBrandId: 'brand-a' },
+    ) as unknown as MockSql;
+
+    expect(query.sql).toContain('OR s."scope" = ?');
+    expect(query.sql).toContain('AND s."brandId" = ?');
+    expect(query.sql).toContain('AND e."knowledgeSourceId" IS NOT NULL');
+    expect(query.values).toEqual(
+      expect.arrayContaining(['org', 'brand', 'brand-a']),
+    );
+  });
+
+  it('omits the brand and knowledge-only filters by default', () => {
+    const embedding = new Array(CONTEXT_EMBEDDING_DIMENSION).fill(0.1);
+    const query = buildContextSimilarityQuery(
+      'org-1',
+      ['context-1'],
+      embedding,
+      5,
+      0.7,
+    ) as unknown as MockSql;
+
+    expect(query.sql).not.toContain('s."brandId" = ?');
+    expect(query.sql).not.toContain('e."knowledgeSourceId" IS NOT NULL');
+  });
 });

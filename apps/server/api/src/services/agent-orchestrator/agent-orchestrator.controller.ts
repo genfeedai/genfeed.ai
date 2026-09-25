@@ -8,6 +8,7 @@ import { UsersService } from '@api/collections/users/services/users.service';
 import { CurrentUser } from '@api/helpers/decorators/user/current-user.decorator';
 import { ErrorResponse } from '@api/helpers/utils/error-response/error-response.util';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
 import { AgentOrchestratorService } from '@api/services/agent-orchestrator/agent-orchestrator.service';
 import { AgentChatBodyDto } from '@api/services/agent-orchestrator/dto/agent-chat-body.dto';
 import type { AgentPageContext } from '@api/services/agent-orchestrator/interfaces/agent-chat.interface';
@@ -16,6 +17,7 @@ import {
   isAuthorizedAnalyticsQueryReference,
 } from '@api/services/agent-orchestrator/utils/agent-page-context-authorization.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
+import type { IAgentCreditsInfo } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
 import {
   BadRequestException,
@@ -38,6 +40,7 @@ export class AgentOrchestratorController {
   constructor(
     private readonly orchestratorService: AgentOrchestratorService,
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
+    private readonly agentModelAccessService: AgentModelAccessService,
     private readonly creditsUtilsService: CreditsUtilsService,
     private readonly agentGoalsService: AgentGoalsService,
     private readonly usersService: UsersService,
@@ -255,19 +258,20 @@ export class AgentOrchestratorController {
   }
 
   @Get('credits')
-  @ApiOperation({ summary: 'Get credits balance and model costs' })
-  async getCredits(@CurrentUser() user: User) {
+  @ApiOperation({
+    summary:
+      'Get credits balance, model access, and estimated credits per message',
+  })
+  async getCredits(@CurrentUser() user: User): Promise<IAgentCreditsInfo> {
     try {
       const organization = this.resolveOrganizationId(user);
-      const balance =
-        await this.creditsUtilsService.getOrganizationCreditsBalance(
-          organization,
-        );
+      const [balance, modelAccess, modelCosts] = await Promise.all([
+        this.creditsUtilsService.getOrganizationCreditsBalance(organization),
+        this.agentModelAccessService.resolveAccess(organization),
+        this.agentChatModelRegistry.getMessageCostEstimatesMap(),
+      ]);
 
-      return {
-        balance,
-        modelCosts: await this.agentChatModelRegistry.getRoundCostsMap(),
-      };
+      return { balance, modelAccess, modelCosts };
     } catch (error: unknown) {
       return ErrorResponse.handle(error, this.loggerService, 'agentGetCredits');
     }

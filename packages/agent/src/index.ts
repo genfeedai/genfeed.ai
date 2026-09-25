@@ -100,7 +100,6 @@ export type {
   AgentChatPayload,
   AgentChatResponse,
   AgentChatStreamResponse,
-  AgentCreditsInfo,
   AgentInputOption,
   AgentInputRequest,
   AgentInputRequestPayload,

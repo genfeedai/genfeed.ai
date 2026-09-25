@@ -1,4 +1,8 @@
-import { brandMemoryAttributes } from '@serializers/attributes/automation/brand-memory.attributes';
+import {
+  brandMemoryAttributes,
+  brandMemoryInsightAttributes,
+} from '@serializers/attributes/automation/brand-memory.attributes';
+import { simpleConfig } from '@serializers/builders';
 import {
   BRAND_MINIMAL_REL,
   ORGANIZATION_MINIMAL_REL,
@@ -10,3 +14,8 @@ export const brandMemorySerializerConfig = {
   organization: ORGANIZATION_MINIMAL_REL,
   type: 'brand-memory',
 };
+
+export const brandMemoryInsightSerializerConfig = simpleConfig(
+  'brand-memory-insight',
+  brandMemoryInsightAttributes,
+);

@@ -13,6 +13,7 @@ export const agentThreadAttributes = createEntityAttributes([
   'runStatus',
   'runtimeState',
   'decisionHref',
+  'externalRuntime',
   'organization',
   'user',
   'isPinned',

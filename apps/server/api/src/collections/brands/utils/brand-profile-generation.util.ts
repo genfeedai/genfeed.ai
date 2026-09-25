@@ -1,8 +1,16 @@
 import {
+  buildVoiceCorpus,
+  pickRepresentativeExemplars,
+  resolveVerbatimExemplars,
+} from '@api/collections/brands/utils/brand-voice-corpus.util';
+import { deriveVoiceWritingRules } from '@api/collections/brands/utils/brand-voice-stylometrics.util';
+import {
   type BrandPromptIntent,
   BrandVoiceFailureCode,
   type IBrandAgentPrompting,
   type IBrandPromptSeed,
+  type IBrandVoiceCorpus,
+  type IBrandVoiceSample,
   type IGeneratedBrandProfile,
 } from '@genfeedai/contracts/interfaces';
 
@@ -42,6 +50,10 @@ const MAX_CONTEXT_LIST_ITEMS = 6;
 const MAX_PROFILE_TEXT_LENGTH = 200;
 const STARTER_LABEL_MAX_LENGTH = 32;
 const STARTER_PROMPT_MAX_LENGTH = 220;
+const MAX_EXEMPLARS = 8;
+const MAX_FALLBACK_EXEMPLARS = 6;
+const MAX_MODEL_WRITING_RULES = 6;
+const MAX_WRITING_RULES = 16;
 
 const PROFILE_OUTPUT_CONTRACT = `Return one JSON object with these exact fields:
 - tone: a short phrase
@@ -59,15 +71,64 @@ const PROFILE_OUTPUT_CONTRACT = `Return one JSON object with these exact fields:
 
 Each prompt seed must use a topic from topics or messagingPillars. preferredFormats may only contain article, carousel, image, post, short-video, or video. Do not invent products, platforms, proof, performance data, or campaigns.`;
 
-export function buildBrandProfileAnalysisPrompt(brandContext: string): string {
+const VOICE_EVIDENCE_OUTPUT_CONTRACT = `Also include these fields, because real posts are supplied below:
+- exemplarIds: the [numbers] of 4-8 real posts that best capture the voice, mixing replies and original posts
+- writingRules: 3-6 short, concrete rules the real posts evidence (how replies open, how they disagree, what they never do); do not restate the measured statistics`;
+
+/**
+ * Builds the profile prompt. When `voiceEvidence` (the brand's own posts and
+ * their measured style) is supplied, tone, style, and sample output must be
+ * described from that evidence, and exemplars are picked by number from it.
+ */
+export function buildBrandProfileAnalysisPrompt(
+  brandContext: string,
+  voiceEvidence?: string,
+): string {
+  const contract = voiceEvidence
+    ? `${PROFILE_OUTPUT_CONTRACT}\n\n${VOICE_EVIDENCE_OUTPUT_CONTRACT}`
+    : PROFILE_OUTPUT_CONTRACT;
+  const evidence = voiceEvidence ? `\n\n${voiceEvidence}` : '';
+
   return `You are a brand strategist. Build a reusable brand profile for content creation and AI prompt personalization.
 
-${PROFILE_OUTPUT_CONTRACT}
+${contract}
 
 Brand information:
-${brandContext}
+${brandContext}${evidence}
 
 Respond only with the JSON object. Do not include markdown or commentary.`;
+}
+
+function readExemplarIds(value: unknown): number[] {
+  const items = Array.isArray(value) ? value : [];
+  return items.flatMap((item) => {
+    const parsed =
+      typeof item === 'number'
+        ? item
+        : typeof item === 'string'
+          ? Number.parseInt(item.replace(/[^0-9]/g, ''), 10)
+          : Number.NaN;
+    return Number.isInteger(parsed) ? [parsed] : [];
+  });
+}
+
+function readRawStrings(value: unknown): string[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === 'string')
+    : [];
+}
+
+function dedupeRules(rules: readonly string[], limit: number): string[] {
+  const seen = new Set<string>();
+  return rules.flatMap((rule) => {
+    const normalized = rule.trim().replace(/\s+/g, ' ');
+    const key = normalized.toLowerCase();
+    if (!normalized || seen.has(key) || seen.size >= limit) {
+      return [];
+    }
+    seen.add(key);
+    return [normalized];
+  });
 }
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -264,9 +325,16 @@ function buildPrompting(
  * Validates raw model output against the brand-profile contract and returns
  * the normalized profile. Throws `BrandVoiceValidationError` (classified,
  * payload-free) for empty, malformed, non-object, or incomplete output.
+ *
+ * Exemplars are resolved against `promptSamples` (the numbered real posts the
+ * model saw) and always come back as stored corpus text, never model text.
+ * Writing rules are the measured-style rules followed by the model's
+ * evidence-backed rules; with no corpus the model's rules are ignored.
  */
 export function parseGeneratedBrandProfile(
   content: string,
+  corpus: IBrandVoiceCorpus = buildVoiceCorpus([]),
+  promptSamples: readonly IBrandVoiceSample[] = [],
 ): IGeneratedBrandProfile {
   const record = parseJsonObject(content);
   const tone = readString(record.tone);
@@ -290,9 +358,36 @@ export function parseGeneratedBrandProfile(
     );
   }
 
+  const hasEvidence = corpus.samples.length > 0;
+  const pickedExemplars = hasEvidence
+    ? resolveVerbatimExemplars(
+        {
+          ids: readExemplarIds(record.exemplarIds),
+          texts: readRawStrings(record.exemplarTexts),
+        },
+        promptSamples,
+        MAX_EXEMPLARS,
+      )
+    : [];
+  const exemplarTexts =
+    pickedExemplars.length > 0
+      ? pickedExemplars
+      : pickRepresentativeExemplars(corpus.samples, MAX_FALLBACK_EXEMPLARS);
+  const writingRules = dedupeRules(
+    [
+      ...deriveVoiceWritingRules(corpus.stylometrics),
+      ...(hasEvidence
+        ? readStringList(record.writingRules, MAX_MODEL_WRITING_RULES)
+        : []),
+    ],
+    MAX_WRITING_RULES,
+  );
+
   return {
     audience,
+    corpus: corpus.summary,
     doNotSoundLike: readStringList(record.doNotSoundLike, 5),
+    exemplarTexts,
     hashtags: readStringList(record.hashtags, 5),
     messagingPillars:
       messagingPillars.length > 0 ? messagingPillars : canonicalTopics,
@@ -311,5 +406,6 @@ export function parseGeneratedBrandProfile(
     taglines: readStringList(record.taglines, 3),
     tone,
     values: readStringList(record.values, 5),
+    writingRules,
   };
 }

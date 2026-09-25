@@ -59,6 +59,7 @@ describe('Stripe billing HTTP composition', () => {
   const reconciler = { reconcile: vi.fn() };
   const subscriptions = { syncSubscriptionState: vi.fn() };
   const support = {
+    recordRevenueEvent: vi.fn(),
     resolveSubscriptionPlan: vi.fn(() => 'monthly'),
     resolveTierFromPriceId: vi.fn(() => null),
     updateOrganizationTierAndModels: vi.fn(),

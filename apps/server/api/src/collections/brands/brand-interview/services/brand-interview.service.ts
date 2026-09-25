@@ -1,7 +1,11 @@
 import type { UpdateBrandAgentConfigDto } from '@api/collections/brands/dto/update-brand-agent-config.dto';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
-import { CACHE_PATTERNS } from '@api/common/constants/cache-patterns.constants';
+import {
+  CACHE_PATTERNS,
+  CACHE_TAGS,
+  SCOPED_CACHE_TAGS,
+} from '@api/common/constants/cache-patterns.constants';
 import { CacheInvalidationService } from '@api/common/services/cache-invalidation.service';
 import { InsufficientCreditsException } from '@api/exceptions/business-logic.exception';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
@@ -709,11 +713,17 @@ export class BrandInterviewService {
       }
     }
 
-    // Invalidate brand caches after write
+    // Invalidate brand caches after write, including the assembled agent
+    // brand context (`brand-ctx:{orgId}`) — otherwise the chat prompt keeps
+    // the previous description/guidelines until the cache TTL expires.
     await this.cacheInvalidationService.invalidate(
       CACHE_PATTERNS.BRANDS_SINGLE(brandId),
       CACHE_PATTERNS.BRANDS_LIST(organizationId),
     );
+    await this.cacheInvalidationService.invalidateByTags([
+      CACHE_TAGS.BRANDS,
+      SCOPED_CACHE_TAGS.BRAND_CONTEXT(organizationId),
+    ]);
   }
 
   private readAnsweredFields(

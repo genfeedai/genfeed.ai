@@ -430,13 +430,14 @@ export class LlmDispatcherService {
         callContext,
       );
     const response = await run();
-    const carriesExactCost =
-      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_AUTO ||
-      params.model === AGENT_CHAT_MODEL_KEYS.OPENROUTER_FREE ||
-      typeof response.usage.cost === 'number';
-    const billedResponse: OpenRouterChatCompletionResponse = carriesExactCost
-      ? { ...response, usage: { ...response.usage, is_byok: isByok } }
-      : response;
+    // `is_byok` is owned here, not by the provider: a round served with the
+    // organization's own key is BYOK whether or not the provider reported a
+    // cost (native Anthropic/OpenAI never do), and a platform-key round is
+    // never BYOK even if an upstream router says otherwise.
+    const billedResponse: OpenRouterChatCompletionResponse = {
+      ...response,
+      usage: { ...response.usage, is_byok: isByok },
+    };
     try {
       await this.llmCompletionTelemetryService.recordCompletion({
         workflowLedgerId,

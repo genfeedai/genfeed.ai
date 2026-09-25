@@ -233,6 +233,7 @@ const BRAND_ONLY_SETTINGS_PREFIXES = [
   APP_ROUTES.SETTINGS.KNOWLEDGE,
   '/settings/voice',
   '/settings/interview',
+  '/settings/agent-context',
   '/settings/harness',
   '/settings/kit',
   '/settings/characters',

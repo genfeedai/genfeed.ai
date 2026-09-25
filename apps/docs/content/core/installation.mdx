@@ -80,6 +80,15 @@ docker compose --env-file .env -f compose.yml up -d
 The container applies production migrations during startup. Back up PostgreSQL
 and generated media before updating.
 
+#### Upgrade notes
+
+- **`20260925120000_agent_unit_economics`** adds a nullable `userId` column to
+  `llm_vendor_costs`, creates the `billing_revenue_events` table, and builds new
+  indexes on `credit_transactions`, `llm_vendor_costs`, and `media_vendor_costs`.
+  The indexes are not built concurrently, so writes to those tables (credit
+  deductions and provider-cost records) wait while each index builds. This is
+  brief on most installs; on a large database, update during a quiet period.
+
 ## Source development
 
 ### Requirements

@@ -1,6 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import {
+  formatCreditBalanceExact,
+  formatCreditCost,
+} from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { GenerationSetupModelSectionProps } from '@genfeedai/props/ui/generation-setup/generation-setup.props';
 import GenerationSetupFieldIcon from '@ui/dropdowns/generation-setup/GenerationSetupFieldIcon';
@@ -156,7 +160,7 @@ export default function GenerationSetupModelSection({
                 key={option.model.key}
                 lockReason={
                   isCreditLocked(option.model.cost)
-                    ? `Needs ${option.model.cost} credits (you have ${creditsAvailable})`
+                    ? `Needs ${formatCreditCost(option.model.cost)} credits (you have ${formatCreditBalanceExact(creditsAvailable)})`
                     : undefined
                 }
                 onFavoriteToggle={onFavoriteToggle}

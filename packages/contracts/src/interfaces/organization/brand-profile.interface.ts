@@ -1,3 +1,5 @@
+import type { IBrandVoiceCorpusSummary } from './brand-voice-corpus.interface';
+
 export type BrandPromptIntent = 'analyze' | 'create' | 'plan';
 
 export interface IBrandPromptSeed {
@@ -22,7 +24,11 @@ export interface IBrandAgentPrompting {
 
 export interface IGeneratedBrandProfile {
   audience: string[];
+  /** The own-writing evidence this profile was drafted from. */
+  corpus: IBrandVoiceCorpusSummary;
   doNotSoundLike: string[];
+  /** Verbatim lines from the corpus — never model-written text. */
+  exemplarTexts: string[];
   hashtags: string[];
   messagingPillars: string[];
   prompting: IBrandAgentPrompting;
@@ -35,4 +41,6 @@ export interface IGeneratedBrandProfile {
   taglines: string[];
   tone: string;
   values: string[];
+  /** Measured-style rules plus evidence-backed rules from the model. */
+  writingRules: string[];
 }

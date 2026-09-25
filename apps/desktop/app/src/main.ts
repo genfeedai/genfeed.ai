@@ -14,6 +14,8 @@ import type {
   IDesktopDataService,
   IDesktopGenerationOptions,
   IDesktopGenerationProviderConfig,
+  IDesktopSelfHostedServerConfig,
+  IDesktopServerSelection,
   IDesktopSyncConsentInput,
   IDesktopSyncOpAck,
   IDesktopTerminalCreateOptions,
@@ -30,6 +32,7 @@ import {
   ipcMain,
   Notification,
   nativeTheme,
+  safeStorage,
   shell,
 } from 'electron';
 import electronUpdater from 'electron-updater';
@@ -43,6 +46,7 @@ import {
   buildDesktopLoadingScreenUrl,
   getDesktopBootBackground,
 } from './main/boot-screen';
+import { DesktopCliAgentRuntimeService } from './main/cli-agent-runtime.service';
 import { DesktopCloudService } from './main/cloud.service';
 import { DesktopConfigService } from './main/config.service';
 import { DesktopDraftsService } from './main/drafts.service';
@@ -72,6 +76,10 @@ import {
   unwindFailedLocalRuntimeAfterClose,
 } from './main/runtime-mode.util';
 import {
+  DesktopServerService,
+  type DesktopValueCipher,
+} from './main/server.service';
+import {
   type DesktopAuthCallbackResult,
   DesktopSessionService,
   type IDesktopSession,
@@ -97,7 +105,8 @@ import {
 import { DesktopWorkspaceService } from './main/workspace.service';
 
 const configService = new DesktopConfigService();
-const environment = configService.getEnvironment();
+// Re-resolved at startup once the in-app server selection can be read.
+let environment = configService.getEnvironment();
 const mainDir = path.dirname(fileURLToPath(import.meta.url));
 
 registerDesktopAssetScheme();
@@ -116,7 +125,11 @@ let workspaceService: DesktopWorkspaceService | null = null;
 let filesService: DesktopFilesService | null = null;
 let syncService: DesktopSyncService | null = null;
 let syncConsentService: DesktopSyncConsentService;
-let terminalService: DesktopTerminalService | null = null;
+// Terminals only need this machine, so they work in cloud mode too.
+const terminalService = new DesktopTerminalService(() => workspaceService);
+let isLocalTerminalApproved = false;
+let cliAgentRuntimeService: DesktopCliAgentRuntimeService | null = null;
+let serverService: DesktopServerService;
 let generationService: DesktopGenerationService | null = null;
 let cloudService: DesktopCloudService;
 let localService: DesktopLocalService | null = null;
@@ -139,7 +152,6 @@ function applyUnwoundLocalRuntime(
   workspaceService = reset.workspaceService;
   syncService = reset.syncService;
   filesService = reset.filesService;
-  terminalService = reset.terminalService;
   generationService = reset.generationService;
   draftsService = reset.draftsService;
   localService = reset.localService;
@@ -191,6 +203,18 @@ const smokeUserDataDir =
 if (smokeUserDataDir) {
   app.setPath('userData', smokeUserDataDir);
 }
+
+/** Server selection is stored with the same OS-backed encryption as sessions. */
+const desktopValueCipher: DesktopValueCipher = {
+  decrypt: (value) =>
+    safeStorage.isEncryptionAvailable()
+      ? safeStorage.decryptString(Buffer.from(value, 'base64'))
+      : value,
+  encrypt: (value) =>
+    safeStorage.isEncryptionAvailable()
+      ? safeStorage.encryptString(value).toString('base64')
+      : value,
+};
 
 const LOCAL_PROVIDER_REQUIRED_ERROR =
   'Configure a local generation provider before generating content.';
@@ -502,9 +526,6 @@ const initializeLocalRuntime = async (): Promise<void> => {
         nextFilesService,
       );
       await nextGenerationService.resumeAssetGenerationJobs();
-      const nextTerminalService = new DesktopTerminalService(
-        nextWorkspaceService,
-      );
       const nextLocalService = new DesktopLocalService(
         prismaClient,
         nextGenerationService,
@@ -537,7 +558,6 @@ const initializeLocalRuntime = async (): Promise<void> => {
       workspaceService = nextWorkspaceService;
       syncService = nextSyncService;
       filesService = nextFilesService;
-      terminalService = nextTerminalService;
       generationService = nextGenerationService;
       localService = nextLocalService;
       draftsService = nextDraftsService;
@@ -585,10 +605,15 @@ if (!acquiredSingleInstanceLock) {
 const getAllowedExternalUrl = (rawUrl: string): URL | null => {
   try {
     const url = new URL(rawUrl);
+    // A self-hosted server on this machine or LAN may serve its sign-in page
+    // over HTTP; only that exact configured origin is exempt from HTTPS.
+    const isConfiguredAuthOrigin =
+      url.origin === new URL(environment.authEndpoint).origin;
 
     if (
       url.password ||
-      url.protocol !== 'https:' ||
+      (url.protocol !== 'https:' &&
+        !(url.protocol === 'http:' && isConfiguredAuthOrigin)) ||
       url.username ||
       !EXTERNAL_NAVIGATION_HOSTS.has(url.hostname)
     ) {
@@ -691,10 +716,6 @@ const LOCAL_RUNTIME_IPC_CHANNELS = new Set<string>([
   DESKTOP_IPC_CHANNELS.syncRecordAssetSync,
   DESKTOP_IPC_CHANNELS.syncSetCursor,
   DESKTOP_IPC_CHANNELS.syncTriggerThreads,
-  DESKTOP_IPC_CHANNELS.terminalCreate,
-  DESKTOP_IPC_CHANNELS.terminalKill,
-  DESKTOP_IPC_CHANNELS.terminalResize,
-  DESKTOP_IPC_CHANNELS.terminalWrite,
   DESKTOP_IPC_CHANNELS.workspaceLinkCloudContext,
   DESKTOP_IPC_CHANNELS.workspaceLinkProject,
   DESKTOP_IPC_CHANNELS.workspaceOpen,
@@ -816,6 +837,7 @@ const createWindow = async (): Promise<void> => {
     webPreferences: {
       additionalArguments: [
         `--genfeed-app-origin=${appShellService.appOrigin}`,
+        `--genfeed-ws-endpoint=${environment.wsEndpoint}`,
       ],
       contextIsolation: true,
       nodeIntegration: false,
@@ -1784,35 +1806,152 @@ const registerIpcHandlers = (): void => {
 
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalCreate,
-    async (event, options?: IDesktopTerminalCreateOptions) =>
-      requireLocalService(terminalService).createSession(
+    async (event, options?: IDesktopTerminalCreateOptions) => {
+      await confirmLocalTerminalAccess();
+      return terminalService.createSession(
         options,
         (payload) => {
-          event.sender.send(DESKTOP_IPC_CHANNELS.terminalData, payload);
+          if (!event.sender.isDestroyed()) {
+            event.sender.send(DESKTOP_IPC_CHANNELS.terminalData, payload);
+          }
         },
         (payload) => {
-          event.sender.send(DESKTOP_IPC_CHANNELS.terminalExit, payload);
+          if (!event.sender.isDestroyed()) {
+            event.sender.send(DESKTOP_IPC_CHANNELS.terminalExit, payload);
+          }
         },
-      ),
+      );
+    },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalWrite,
     async (_event: unknown, sessionId: string, data: string) => {
-      requireLocalService(terminalService).writeSession(sessionId, data);
+      terminalService.writeSession(sessionId, data);
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalResize,
     async (_event: unknown, sessionId: string, cols: number, rows: number) => {
-      requireLocalService(terminalService).resizeSession(sessionId, cols, rows);
+      terminalService.resizeSession(sessionId, cols, rows);
     },
   );
   registerPrivilegedIpcHandler(
     DESKTOP_IPC_CHANNELS.terminalKill,
     async (_event: unknown, sessionId: string) => {
-      requireLocalService(terminalService).killSession(sessionId);
+      terminalService.killSession(sessionId);
     },
   );
+
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.agentRuntimeStartTurn,
+    async (event, request: unknown) =>
+      requireCliAgentRuntime().startTurn(request, (payload) => {
+        if (!event.sender.isDestroyed()) {
+          event.sender.send(DESKTOP_IPC_CHANNELS.agentRuntimeEvent, payload);
+        }
+      }),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.agentRuntimeCancelTurn,
+    async (_event: unknown, turnId: unknown) => {
+      requireCliAgentRuntime().cancelTurn(turnId);
+    },
+  );
+
+  registerPrivilegedIpcHandler(DESKTOP_IPC_CHANNELS.serverGetState, async () =>
+    serverService.getState(),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.serverValidate,
+    async (_event: unknown, config: IDesktopSelfHostedServerConfig) =>
+      serverService.validateSelfHosted(config),
+  );
+  registerPrivilegedIpcHandler(
+    DESKTOP_IPC_CHANNELS.serverSelect,
+    async (_event: unknown, selection: IDesktopServerSelection) => {
+      await switchDesktopServer(selection);
+    },
+  );
+};
+
+/**
+ * Terminals run arbitrary commands, and in cloud mode the shell is a remote
+ * origin, so the first terminal of each launch needs a native confirmation
+ * that page script cannot answer. Local workspace mode keeps its prior
+ * behaviour: the user already opted into local execution there.
+ */
+const confirmLocalTerminalAccess = async (): Promise<void> => {
+  if (isLocalTerminalApproved || isOfflineMode) {
+    return;
+  }
+
+  const options = {
+    buttons: ['Allow', 'Cancel'],
+    cancelId: 1,
+    defaultId: 0,
+    detail:
+      'Terminals run commands on this computer with your user account. Allow only if you just opened a terminal in Genfeed.',
+    message: 'Allow Genfeed to open a terminal on this computer?',
+    type: 'question' as const,
+  };
+  const { response } = mainWindow
+    ? await dialog.showMessageBox(mainWindow, options)
+    : await dialog.showMessageBox(options);
+
+  if (response !== 0) {
+    throw new Error('Terminal access was not allowed.');
+  }
+
+  isLocalTerminalApproved = true;
+};
+
+const requireCliAgentRuntime = (): DesktopCliAgentRuntimeService => {
+  if (!cliAgentRuntimeService) {
+    throw new Error('The local agent runtime is still starting.');
+  }
+
+  return cliAgentRuntimeService;
+};
+
+/**
+ * Server switches are confirmed natively, persisted, and applied by
+ * relaunching so the app shell, its /v1 proxy, sessions, and the MCP
+ * endpoint are all rebuilt for the new server.
+ */
+const switchDesktopServer = async (
+  selection: IDesktopServerSelection,
+): Promise<void> => {
+  const target =
+    selection?.kind === 'self-hosted'
+      ? selection.selfHosted?.apiEndpoint || 'your self-hosted server'
+      : 'Genfeed Cloud';
+  const options = {
+    buttons: ['Switch and restart', 'Cancel'],
+    cancelId: 1,
+    defaultId: 0,
+    detail:
+      'Genfeed Desktop restarts to connect. You stay signed in to each server separately.',
+    message: `Switch Genfeed Desktop to ${target}?`,
+    type: 'question' as const,
+  };
+  const { response } = mainWindow
+    ? await dialog.showMessageBox(mainWindow, options)
+    : await dialog.showMessageBox(options);
+
+  if (response !== 0) {
+    throw new Error('Server switch was cancelled.');
+  }
+
+  const profile = await serverService.select(selection);
+  logService?.info(`switching desktop server to ${profile.id}`);
+  cliAgentRuntimeService?.cancelAll();
+  terminalService.killAll();
+  await sessionService.detachShellCookie();
+  await prismaService?.getClient().$disconnect();
+  await pgliteService?.close();
+  await appShellService.stop();
+  app.relaunch();
+  app.exit(0);
 };
 
 app.on('before-quit', (event) => {
@@ -1825,7 +1964,8 @@ app.on('before-quit', (event) => {
 
   void (async () => {
     try {
-      terminalService?.killAll();
+      cliAgentRuntimeService?.cancelAll();
+      terminalService.killAll();
       await appShellService?.stop();
     } finally {
       shortcutsService.unregister();
@@ -1894,6 +2034,16 @@ void app
     desktopStore = new DesktopStoreService(
       path.join(app.getPath('userData'), 'desktop-state.json'),
     );
+    serverService = new DesktopServerService(
+      desktopStore,
+      desktopValueCipher,
+      configService.getDefaultServerProfile(),
+    );
+    environment = configService.getEnvironment(
+      serverService.getActiveProfile(),
+    );
+    EXTERNAL_NAVIGATION_HOSTS.add(new URL(environment.authEndpoint).hostname);
+    logService.info(`desktop server ${environment.serverId}`);
     syncConsentService = new DesktopSyncConsentService(desktopStore);
     appShellService = new DesktopAppShellService(
       environment,
@@ -1914,6 +2064,13 @@ void app
     cloudService = new DesktopCloudService(environment, () =>
       sessionService.getSession(),
     );
+    cliAgentRuntimeService = new DesktopCliAgentRuntimeService({
+      cloud: cloudService,
+      getMcpEndpoint: () => environment.mcpEndpoint,
+      getSessionToken: () => sessionService.getSession()?.token ?? null,
+      log: (level, message) => logService?.write(level, message),
+      workDir: path.join(app.getPath('userData'), 'cli-agent'),
+    });
     isOfflineMode = await restoreDesktopRuntimeMode({
       initializeLocalRuntime,
       isLocalModeRequested:

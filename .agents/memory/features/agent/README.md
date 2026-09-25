@@ -1,6 +1,6 @@
 # Agent System -- Architecture Reference
 
-Last verified: 2026-04-07
+Last verified: 2026-09-25 (context assembly, model resolution, billing, external runtimes); other sections 2026-04-07
 
 ## Overview
 
@@ -45,27 +45,41 @@ POST /agent/threads/:threadId/turns/stream
   |
 AgentOrchestratorController
   |
-AgentOrchestratorService
-  +-- resolveSystemPromptAndModel()
-  |   +-- Agent memories resolved separately (AgentMemoriesService)
-  |   +-- Brand context assembled (AgentContextAssemblyService)
-  |       +-- Default layers: brandIdentity + brandMemory + knowledgeBase
-  |           (recentPosts and performancePatterns are OFF by default)
-  +-- Resolve/create thread
-  +-- Validate credits
-  +-- executeSynchronousChatLoop() [exclusive lane]
-      +-- Call LLM (full response, not incremental streaming)
-      +-- If tool_calls in response:
-      |   +-- AgentToolExecutorService.executeTool()
-      |   +-- Deduct credits on success
-      |   +-- Push result as role='tool' message
-      |   +-- Loop (max 5 rounds)
-      +-- Finalize:
-          +-- Split final content into words -> publish as tokens (simulated streaming)
-          +-- Save assistant message
-          +-- Emit 'agent:done' via Redis
+AgentTurnWorkflowExecutionService
+  +-- AgentOrchestratorContextService.resolveTurnContext()
+  |   +-- Feedback memories (AgentMemoriesService, max 8, ranked by the message)
+  |   +-- Brand context (AgentContextAssemblyService.assembleContext), chat layers:
+  |   |     brandIdentity, brandGuidance, brandMemory, performancePatterns,
+  |   |     recentPosts, ragContext (brand-scoped saved context), brandKnowledge
+  |   |     (BRAND_TRUTH Knowledge only). ragContext/brandKnowledge need a query.
+  |   +-- Skills, model, system prompt
+  +-- AgentModelAccessService.enforceModel() -- free-tier lock
+  +-- Credit check: balance must cover one round (brand interview = 0)
+  +-- Tool loop (max AGENT_MAX_TOOL_ROUNDS = 25 LLM rounds)
+      +-- runReservedAgentLlmRound(): hold estimate -> run -> settle exact cost
+      +-- AgentToolExecutorService.executeTool() for tool calls
+      +-- Stream events via Redis + thread event log
 ```
 
-**Important:** Token streaming is simulated. The LLM returns a complete response, then the service splits the content into words and publishes each via Redis as `agent:token` events. This is NOT incremental model streaming.
+There is no `knowledgeBase` layer. The layer names are the
+`AssembledContextLayerName` union in
+`agent-context-assembly/interfaces/context-assembly.interface.ts`.
 
-**Model resolution:** `request.model` -> `subscriptionDefaultModel` (local/qwen-32b for PAID tiers) -> `brandContext.defaultModel` -> `agentTypeConfig.defaultModel` -> `DEFAULT_MODEL` (deepseek/deepseek-chat)
+**Model resolution** (first match wins): agent strategy `model` pin ->
+organization `agentPolicy.thinkingModelOverride` -> agent type `defaultModel` ->
+registry default (`AgentChatModelRegistryService.getDefaultModelKey`, i.e.
+`LLM_DEFAULTS.agentChat`). Retired keys map forward to their registry
+successor. The free-tier lock then replaces the result with
+`LLM_DEFAULTS.agentChat` for unsubscribed hosted orgs
+([free-tier lock](../../project_agent_free_tier_model_lock.md)).
+
+**Parity:** the Brand settings -> Agent context page, `GET
+/v1/brands/:brandId/agent-context`, and `get_brand_context` all call
+`resolveTurnContext` ([snapshot parity](../../project_agent_context_snapshot_parity.md)).
+
+**Billing:** exact provider cost per round as fractional credits
+([exact-cost chat billing](../../project_agent_exact_cost_chat_billing.md)).
+
+**External runtimes:** Desktop can run a turn on the user's Claude Code / Codex
+CLI; the turn is appended with `POST /agent/threads/:id/external-turns` and never
+reserves credits ([CLI runtime](../../project_desktop_cli_agent_runtime.md)).

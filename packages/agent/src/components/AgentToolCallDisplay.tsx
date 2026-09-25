@@ -2,6 +2,7 @@ import { ToolCallDetailPanel } from '@genfeedai/agent/components/ToolCallDetailP
 import type { AgentToolCall } from '@genfeedai/agent/models/agent-chat.model';
 import { formatDuration } from '@genfeedai/agent/utils/format-duration';
 import { ButtonVariant } from '@genfeedai/contracts';
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import { Button } from '@ui/primitives/button';
 import { type ReactElement, useState } from 'react';
 import { getAgentToolLabel } from './agent-tool-call-display.helpers';
@@ -87,7 +88,7 @@ export function AgentToolCallDisplay({
         {/* Credits */}
         {toolCall.creditsUsed != null && toolCall.creditsUsed > 0 && (
           <span className="text-muted-foreground">
-            {toolCall.creditsUsed} cr
+            {formatCreditCost(toolCall.creditsUsed, { unit: 'cr' })}
           </span>
         )}
 

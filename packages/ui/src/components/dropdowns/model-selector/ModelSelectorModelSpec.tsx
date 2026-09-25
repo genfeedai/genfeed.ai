@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import type { ModelSelectorModelSpecProps } from '@genfeedai/props/ui/model-selector/model-selector.props';
 import ModelSelectorBrandMark from '@ui/dropdowns/model-selector/ModelSelectorBrandMark';
@@ -40,7 +41,7 @@ const ModelSelectorModelSpec = memo(function ModelSelectorModelSpec({
   const pricingLabel = buildPricingLabel(model);
   const costLabel = [
     typeof model.cost === 'number' && model.cost > 0
-      ? `${model.cost} credits`
+      ? formatCreditCost(model.cost, { unit: 'credits' })
       : '',
     pricingLabel && pricingLabel !== String(model.cost) ? pricingLabel : '',
   ]

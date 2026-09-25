@@ -50,6 +50,7 @@ describe('LlmVendorCostLedgerService', () => {
       provider: 'openrouter',
       runId: 'run-1',
       threadId: 'thread-1',
+      userId: 'user-1',
       vendorCostMicros: 180,
     });
 
@@ -67,6 +68,7 @@ describe('LlmVendorCostLedgerService', () => {
         provider: 'openrouter',
         runId: 'run-1',
         threadId: 'thread-1',
+        userId: 'user-1',
         vendorCostMicros: 180,
       },
     });

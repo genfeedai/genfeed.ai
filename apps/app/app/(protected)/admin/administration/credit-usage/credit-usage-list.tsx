@@ -1,5 +1,6 @@
 'use client';
 
+import { formatCreditBalanceExact } from '@genfeedai/contracts/constants';
 import type { IOrganizationCreditUsage } from '@genfeedai/contracts/interfaces';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import type { TableColumn } from '@props/ui/display/table.props';
@@ -76,12 +77,14 @@ export default function CreditUsageList() {
     {
       header: 'Balance',
       key: 'balance',
-      render: (row: IOrganizationCreditUsage) => row.balance.toLocaleString(),
+      render: (row: IOrganizationCreditUsage) =>
+        formatCreditBalanceExact(row.balance),
     },
     {
       header: 'Allotment',
       key: 'planLimit',
-      render: (row: IOrganizationCreditUsage) => row.planLimit.toLocaleString(),
+      render: (row: IOrganizationCreditUsage) =>
+        formatCreditBalanceExact(row.planLimit),
     },
     {
       header: 'Used',

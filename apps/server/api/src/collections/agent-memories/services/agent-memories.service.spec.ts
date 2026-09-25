@@ -32,6 +32,9 @@ describe('AgentMemoriesService', () => {
   let skillDelegate: {
     create: ReturnType<typeof vi.fn>;
   };
+  let brandDelegate: {
+    findFirst: ReturnType<typeof vi.fn>;
+  };
 
   const orgId = 'org-1';
   const userId = 'user-1';
@@ -52,6 +55,9 @@ describe('AgentMemoriesService', () => {
     skillDelegate = {
       create: vi.fn(),
     };
+    brandDelegate = {
+      findFirst: vi.fn().mockResolvedValue({ id: 'brand-1' }),
+    };
 
     const prisma = {
       $transaction: vi.fn(async (callback: (tx: unknown) => unknown) =>
@@ -62,6 +68,7 @@ describe('AgentMemoriesService', () => {
         }),
       ),
       agentMemory: agentMemoryDelegate,
+      brand: brandDelegate,
       contextEntry: contextEntryDelegate,
       skill: skillDelegate,
     };
@@ -431,6 +438,93 @@ describe('AgentMemoriesService', () => {
     ).resolves.toEqual({ id: 'memory-1' });
     expect(skillDelegate.create).not.toHaveBeenCalled();
     expect(agentMemoryDelegate.update).not.toHaveBeenCalled();
+  });
+
+  it('lists only the requesting user personal memories', async () => {
+    agentMemoryDelegate.findMany.mockResolvedValue([{ id: 'memory-1' }]);
+
+    await expect(service.listPersonalForUser(userId, orgId)).resolves.toEqual([
+      { id: 'memory-1' },
+    ]);
+    expect(agentMemoryDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          isDeleted: false,
+          organizationId: orgId,
+          scope: KnowledgeMemoryScope.PERSONAL,
+          userId,
+        },
+      }),
+    );
+  });
+
+  it('lists brand-scope memories only for a brand in the caller organization', async () => {
+    agentMemoryDelegate.findMany.mockResolvedValue([{ id: 'memory-2' }]);
+
+    await service.listForBrand(brandId, orgId);
+
+    expect(brandDelegate.findFirst).toHaveBeenCalledWith({
+      select: { id: true },
+      where: { id: brandId, isDeleted: false, organizationId: orgId },
+    });
+    expect(agentMemoryDelegate.findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          brandId,
+          isDeleted: false,
+          organizationId: orgId,
+          scope: KnowledgeMemoryScope.BRAND,
+        },
+      }),
+    );
+
+    brandDelegate.findFirst.mockResolvedValueOnce(null);
+    await expect(
+      service.listForBrand('foreign-brand', orgId),
+    ).rejects.toMatchObject({ status: 404 });
+  });
+
+  it('archives only the caller own personal memory and its derived context entries', async () => {
+    agentMemoryDelegate.findFirst.mockResolvedValue({
+      id: 'memory-1',
+      scope: KnowledgeMemoryScope.PERSONAL,
+      userId,
+    });
+
+    await expect(
+      service.archivePersonalMemory('memory-1', userId, orgId),
+    ).resolves.toMatchObject({ id: 'memory-1', isDeleted: true });
+
+    expect(agentMemoryDelegate.findFirst).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'memory-1',
+          isDeleted: false,
+          organizationId: orgId,
+          scope: KnowledgeMemoryScope.PERSONAL,
+          userId,
+        },
+      }),
+    );
+    expect(agentMemoryDelegate.updateMany).toHaveBeenCalledWith({
+      data: { isDeleted: true },
+      where: {
+        id: 'memory-1',
+        isDeleted: false,
+        organizationId: orgId,
+        userId,
+      },
+    });
+    expect(contextEntryDelegate.updateMany).toHaveBeenCalled();
+  });
+
+  it('refuses to archive a personal memory the caller does not own', async () => {
+    agentMemoryDelegate.findFirst.mockResolvedValue(null);
+
+    await expect(
+      service.archivePersonalMemory('memory-9', userId, orgId),
+    ).rejects.toThrow();
+    expect(agentMemoryDelegate.updateMany).not.toHaveBeenCalled();
   });
 
   function buildMemory(

@@ -15,6 +15,9 @@ const TEST_ENVIRONMENT: IDesktopEnvironment = {
   appPort: 3230,
   authEndpoint: 'https://app.genfeed.ai/oauth/cli',
   cdnUrl: 'https://cdn.genfeed.ai',
+  mcpEndpoint: 'https://mcp.genfeed.ai/mcp',
+  serverId: 'cloud',
+  serverKind: 'cloud',
   wsEndpoint: 'https://notifications.genfeed.ai',
 };
 const VALID_COOKIE = {
@@ -486,5 +489,64 @@ describe('DesktopSessionService', () => {
       },
       isOk: false,
     });
+  });
+});
+
+describe('DesktopSessionService per-server isolation', () => {
+  it('keeps each server session under its own key and detaches the shell cookie on switch', async () => {
+    const kvService = createKvMock();
+    const cookieMock = createCookieMock();
+    const cloudService = createSessionService(kvService, cookieMock);
+    const selfHostedService = new DesktopSessionService(
+      kvService,
+      {
+        ...TEST_ENVIRONMENT,
+        apiEndpoint: 'https://api.acme.dev/v1',
+        serverId: 'self-hosted-0123456789abcdef',
+        serverKind: 'self-hosted',
+      },
+      APP_ORIGIN,
+      cookieMock.cookies,
+    );
+
+    await cloudService.setSession(createSession());
+
+    expect(kvService.values.has(SESSION_STORAGE_KEY)).toBe(true);
+    expect(selfHostedService.getSession()).toBeNull();
+
+    await selfHostedService.setSession({
+      ...createSession(),
+      token: 'gf_self_hosted_key',
+      userId: 'user-self-hosted',
+    });
+
+    expect(
+      kvService.values.has('desktop.session.self-hosted-0123456789abcdef'),
+    ).toBe(true);
+    expect(cloudService.getSession()?.token).toBe('gf_desktop_key');
+    expect(selfHostedService.getSession()?.token).toBe('gf_self_hosted_key');
+
+    await cloudService.detachShellCookie();
+
+    expect(cookieMock.jar.size).toBe(0);
+    // Detaching only clears the jar; both stored sessions survive a switch.
+    expect(cloudService.getSession()).not.toBeNull();
+    expect(selfHostedService.getSession()).not.toBeNull();
+  });
+
+  it('clears a stale shell cookie when the selected server has no session', async () => {
+    const kvService = createKvMock();
+    const cookieMock = createCookieMock();
+    cookieMock.jar.set(VALID_COOKIE.cookieName, 'other-server-cookie');
+
+    const service = new DesktopSessionService(
+      kvService,
+      { ...TEST_ENVIRONMENT, serverId: 'self-hosted-0123456789abcdef' },
+      APP_ORIGIN,
+      cookieMock.cookies,
+    );
+
+    expect(await service.validateStoredSession()).toBeNull();
+    expect(cookieMock.jar.size).toBe(0);
   });
 });

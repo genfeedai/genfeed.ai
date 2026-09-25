@@ -7,14 +7,17 @@ import { AgentChatEmptyState } from '@genfeedai/agent/components/AgentChatEmptyS
 import { AgentChatPromptBar } from '@genfeedai/agent/components/AgentChatPromptBar';
 import { AgentChatSuggestionsBar } from '@genfeedai/agent/components/AgentChatSuggestionsBar';
 import { AgentConversationSkeleton } from '@genfeedai/agent/components/AgentConversationSkeleton';
+import { AgentDesktopRuntimeBar } from '@genfeedai/agent/components/AgentDesktopRuntimeBar';
 import type { AgentChatContainerProps } from '@genfeedai/agent/components/agent-chat-container.types';
 import { useConversationComposerShell } from '@genfeedai/agent/components/ConversationComposerShellContext';
 import { OnboardingConversationCard } from '@genfeedai/agent/components/OnboardingConversationCard';
 import { AGENT_CONVERSATION_TRACK_CLASS } from '@genfeedai/agent/constants/conversation-layout.constant';
 import { useAgentChatContainer } from '@genfeedai/agent/hooks/use-agent-chat-container';
+import { useAgentRuntimeSelection } from '@genfeedai/agent/hooks/use-agent-runtime-selection';
 import { useOverlayElementHeight } from '@genfeedai/agent/hooks/use-overlay-element-height';
 import { useStableSocketConnectionState } from '@genfeedai/agent/hooks/use-stable-socket-connection-state';
 import { useAgentChatStore } from '@genfeedai/agent/stores/agent-chat.store';
+import { getGenfeedDesktopBridge } from '@genfeedai/agent/utils/desktop-bridge.util';
 import { formatAgentError } from '@genfeedai/agent/utils/format-agent-error.util';
 import { resolveComposerTranscriptPaddingPx } from '@genfeedai/agent/utils/resolve-composer-transcript-padding.util';
 import { AlertCategory } from '@genfeedai/contracts';
@@ -65,6 +68,16 @@ export function AgentChatContainer({
     measuredComposerOverlayElement,
   );
   const creditsRemaining = useAgentChatStore((state) => state.creditsRemaining);
+  // Desktop only: pick Claude Code / Codex (user's own subscription) or a
+  // hosted Genfeed runtime for this thread.
+  const runtimeSelection = useAgentRuntimeSelection({
+    apiService,
+    isActive: getGenfeedDesktopBridge() !== null,
+  });
+  const desktopRuntimeBar =
+    runtimeSelection.hasDesktopCliRuntimes && !isReadOnly ? (
+      <AgentDesktopRuntimeBar selection={runtimeSelection} />
+    ) : null;
 
   const container = useAgentChatContainer({
     apiService,
@@ -235,7 +248,11 @@ export function AgentChatContainer({
             chatAttachments={container.chatAttachments}
             clearAllAttachments={container.clearAllAttachments}
             composerBanner={
-              onboardingMode ? <OnboardingConversationCard /> : null
+              onboardingMode ? (
+                <OnboardingConversationCard />
+              ) : (
+                desktopRuntimeBar
+              )
             }
             dragHandlers={container.dragHandlers}
             dragState={container.dragState}
@@ -338,7 +355,9 @@ export function AgentChatContainer({
               composerBanner={
                 onboardingMode && container.isEmpty ? (
                   <OnboardingConversationCard />
-                ) : undefined
+                ) : onboardingMode ? undefined : (
+                  (desktopRuntimeBar ?? undefined)
+                )
               }
               activeWorkEvent={activeWorkEvent}
               workEvents={container.workEvents}

@@ -2792,10 +2792,179 @@
       "description": "Nothing publishes without your approval while this gate is on. Turning on Auto-publish removes this gate — approved output publishes automatically."
     }
   },
+  "brandAgentContext": {
+    "budget": {
+      "description": "Brand context is capped so it never crowds out the conversation. Lower-priority sections are trimmed first.",
+      "droppedSection": "{header}: dropped ({original} characters)",
+      "fits": "Everything fits within the budget.",
+      "title": "Context budget",
+      "trimmedSection": "{header}: kept {kept} of {original} characters",
+      "trimmedTitle": "Trimmed to fit",
+      "usage": "{used} of {cap} characters"
+    },
+    "description": "Everything the agent is given about this brand in chat: the same context, memories, skills, model, and prompt a chat turn uses.",
+    "edit": {
+      "interview": "Run interview",
+      "kit": "Open Brand Kit",
+      "knowledge": "Open Knowledge",
+      "memory": "View memories",
+      "profile": "Open Profile",
+      "skills": "Open Skills",
+      "voice": "Open Brand voice"
+    },
+    "empty": {
+      "guidelines": "No guidelines yet. Add brand guidance in the Brand Kit.",
+      "identity": "No brand description yet. Add one on the Profile page.",
+      "knowledge": "Nothing retrieved. Add Knowledge sources, or preview a message to see what a turn would pull in.",
+      "memories": "No saved memories reach the agent yet. Ask the agent to remember a preference and it appears here.",
+      "patterns": "No proven patterns yet. They appear once published posts collect performance data.",
+      "performanceInsights": "No performance insights yet. They appear once published posts collect analytics.",
+      "persona": "No custom instructions yet. Set a persona on Brand voice.",
+      "prompting": "No prompt seeds or conversation starters yet. Generate them on Brand voice or run /interview.",
+      "recentPosts": "No recent posts in the last 14 days.",
+      "skills": "No skills are active for this brand. Enable some on the Skills page.",
+      "strategy": "No strategy yet. Run /interview or open Brand voice.",
+      "visualIdentity": "No visual identity yet. Add colors, fonts, and a logo in the Brand Kit.",
+      "voice": "No voice yet. Run /interview or open Brand voice."
+    },
+    "fields": {
+      "angle": "Angle",
+      "approvedHooks": "Approved hooks",
+      "audience": "Audience",
+      "bannedPhrases": "Banned phrases",
+      "colors": "Colors",
+      "contentTypes": "Content types",
+      "conversationStarters": "Conversation starters",
+      "doNotSoundLike": "Avoid sounding like",
+      "exemplars": "Exemplars",
+      "font": "Font",
+      "frequency": "Frequency",
+      "goals": "Goals",
+      "hashtags": "Hashtags",
+      "messagingPillars": "Messaging pillars",
+      "platforms": "Platforms",
+      "referenceImages": "Reference images",
+      "sampleOutput": "Sample output",
+      "seeds": "Prompt seeds",
+      "style": "Style",
+      "taglines": "Taglines",
+      "tone": "Tone",
+      "topics": "Topics",
+      "topicsNotInjected": "Stored on the brand, not yet part of the prompt.",
+      "values": "Values",
+      "writingRules": "Writing rules"
+    },
+    "insights": {
+      "confidence": "{confidence}% confidence",
+      "description": "Distilled from published performance. The agent reads the newest five.",
+      "empty": "No performance insights yet. They appear once published posts collect analytics.",
+      "loadError": "Could not load performance insights.",
+      "title": "Performance insights"
+    },
+    "layers": {
+      "guidelines": "Brand guidelines",
+      "identity": "Identity",
+      "knowledge": "Retrieved knowledge",
+      "memories": "Injected memories",
+      "patterns": "Proven patterns",
+      "performanceInsights": "Performance insights",
+      "persona": "Custom instructions",
+      "prompting": "Prompt seeds and starters",
+      "recentPosts": "Recent posts",
+      "skills": "Skills",
+      "strategy": "Strategy",
+      "visualIdentity": "Visual identity",
+      "voice": "Voice"
+    },
+    "loadError": "Could not load what the agent knows about this brand.",
+    "memories": {
+      "archive": "Archive",
+      "archiveError": "Archiving this memory",
+      "archived": "Memory archived",
+      "brandDescription": "Shared memories for this brand. Owners and admins manage them in organization Memory settings.",
+      "brandEmpty": "No brand memories yet.",
+      "brandTitle": "Brand memories",
+      "injectedDescription": "The memories ranked into this turn, in the order the agent reads them.",
+      "loadError": "Could not load memories.",
+      "personalDescription": "Only you can see these. The agent uses them in your conversations.",
+      "personalEmpty": "You have no personal memories yet.",
+      "personalTitle": "Your personal memories",
+      "score": "score {score}",
+      "scope": {
+        "brand": "Brand",
+        "org": "Organization",
+        "personal": "Personal"
+      }
+    },
+    "model": {
+      "credits": "{credits} credits per round",
+      "description": "The model a chat turn runs and what one round costs.",
+      "title": "Model"
+    },
+    "origin": {
+      "brand_knowledge": "Knowledge",
+      "context_memory": "Saved context"
+    },
+    "preview": {
+      "clear": "Clear",
+      "help": "Knowledge, related posts, and memories are ranked against this message.",
+      "label": "Preview a message",
+      "placeholder": "e.g. Draft a launch post for next week",
+      "submit": "Preview"
+    },
+    "prompt": {
+      "copy": "Copy",
+      "description": "The exact system prompt a chat turn sends, followed by the saved-memory block.",
+      "hide": "Hide raw prompt",
+      "memoryBlock": "Saved-memory message",
+      "show": "Show raw prompt",
+      "title": "Raw prompt"
+    },
+    "refresh": "Refresh",
+    "retry": "Retry",
+    "status": {
+      "empty": "Empty",
+      "injected": "In prompt",
+      "storedOnly": "Stored, not in prompt"
+    },
+    "title": "Agent context"
+  },
   "brandAgentProfile": {
+    "prompting": {
+      "addSeed": "Add seed",
+      "addStarter": "Add starter",
+      "angle": "Angle",
+      "audience": "Audience",
+      "description": "Reusable prompt seeds and the conversation starters shown in the agent prompt bar. The agent can also write these.",
+      "empty": "No prompt seeds or starters yet. Generate the brand voice or add one.",
+      "formats": "Preferred formats",
+      "intent": "Intent",
+      "intents": {
+        "analyze": "Analyze",
+        "create": "Create",
+        "plan": "Plan"
+      },
+      "label": "Label",
+      "prompt": "Prompt",
+      "remove": "Remove",
+      "seedsTitle": "Prompt seeds",
+      "startersTitle": "Conversation starters",
+      "title": "Prompt seeds and starters",
+      "topic": "Topic"
+    },
+    "topics": {
+      "label": "Topics",
+      "placeholder": "product launches, hiring, ops"
+    },
     "generateErrorTitle": "Generating your brand voice",
     "generateSuccess": "Brand voice generated and saved",
     "saveErrorTitle": "Saving your brand voice",
+    "corpus": {
+      "learnedFrom": "Learned from {label}.",
+      "thinTitle": "Brand voice saved, but it will not sound like you yet",
+      "evidence": "Voice evidence: {label}",
+      "notEnoughPosts": "Not enough of your own posts yet"
+    },
     "failures": {
       "brandNotFound": "We could not find this brand. Refresh the page and try again.",
       "emptyOutput": "The model returned nothing to work with. Try again, or add a website, description, or audience to the brand first.",
@@ -2831,5 +3000,32 @@
       "unknown": "Unknown"
     },
     "title": "Users"
+  },
+  "unitEconomics": {
+    "allOrganizations": "All organizations",
+    "columns": {
+      "agentChatCredits": "Agent chat credits",
+      "agentTurns": "Agent turns",
+      "generationCost": "Generation cost",
+      "generationCredits": "Generation credits",
+      "generationCreditsSort": "Credits consumed outside agent chat",
+      "grossMargin": "Gross margin",
+      "llmCost": "LLM cost",
+      "marginPercent": "Margin %",
+      "organization": "Organization",
+      "revenue": "Revenue",
+      "topModels": "Top models by cost",
+      "user": "User"
+    },
+    "description": "Per-organization revenue, credits consumed, provider cost, and gross margin. Select an organization to drill into its users.",
+    "descriptionDrillDown": "Per-user revenue, credits consumed, provider cost, and gross margin inside this organization",
+    "empty": "No revenue or usage in this period",
+    "loadFailed": "Unit economics could not be loaded",
+    "period": "Last {days} days",
+    "periodLabel": "Report period",
+    "tableLabel": "Unit economics",
+    "title": "Unit Economics",
+    "titleDrillDown": "Unit Economics \u00b7 {label}",
+    "total": "Total"
   }
 }
