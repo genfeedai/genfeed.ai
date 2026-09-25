@@ -6,6 +6,7 @@ import {
   boundLimit,
   boundPage,
   toPage,
+  withEffectiveAvailability,
 } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import type {
   SocialInboxListQuery,
@@ -89,7 +90,12 @@ export class SocialInboxQueryService {
       this.prisma.socialConversation.count({ where }),
     ]);
 
-    return toPage(docs, totalDocs, page, limit);
+    return toPage(
+      docs.map((doc) => withEffectiveAvailability(doc)),
+      totalDocs,
+      page,
+      limit,
+    );
   }
 
   async getConversation(
@@ -102,7 +108,7 @@ export class SocialInboxQueryService {
       'Social conversation',
     );
 
-    return conversation;
+    return withEffectiveAvailability(conversation);
   }
 
   async listMessages(

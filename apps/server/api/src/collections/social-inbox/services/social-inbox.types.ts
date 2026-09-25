@@ -83,7 +83,12 @@ export type SocialInboxPage<T> = {
 
 export type OutboundAction = 'post_reply' | 'send_dm';
 export type OutboundMessageType = 'dm' | 'reply';
-export type OutboundPublishResult = { messageId: string; url?: string };
+export type OutboundPublishResult = {
+  /** Provider id of the message the reply was posted under, when resolved at send time. */
+  inReplyToId?: string;
+  messageId: string;
+  url?: string;
+};
 export type OutboundReservation = {
   isClaimed: boolean;
   message: SocialMessageDocument;

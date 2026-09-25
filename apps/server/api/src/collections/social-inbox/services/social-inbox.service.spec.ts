@@ -1,13 +1,19 @@
+import { TWITTER_DM_REASON } from '@api/collections/social-inbox/services/social-inbox.helpers';
 import { SocialInboxService } from '@api/collections/social-inbox/services/social-inbox.service';
 import { SocialInboxProviderError } from '@api/collections/social-inbox/services/social-inbox.types';
 import { SocialInboxActionService } from '@api/collections/social-inbox/services/social-inbox-action.service';
 import { SocialInboxIngestionService } from '@api/collections/social-inbox/services/social-inbox-ingestion.service';
 import { SocialInboxQueryService } from '@api/collections/social-inbox/services/social-inbox-query.service';
 import { SocialInboxRealtimeService } from '@api/collections/social-inbox/services/social-inbox-realtime.service';
+import { X_RATE_LIMIT_ERROR } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { createSystemWorkflowRunnerMock } from '@api/shared/testing/system-workflow-runner-mock';
 import { Platform, SocialConversationType } from '@genfeedai/contracts';
 import { CredentialPlatform as PrismaCredentialPlatform } from '@genfeedai/prisma';
-import { BadRequestException, ConflictException } from '@nestjs/common';
+import {
+  BadGatewayException,
+  BadRequestException,
+  ConflictException,
+} from '@nestjs/common';
 
 type StoreConversation = {
   id: string;
@@ -133,9 +139,11 @@ type TestContext = {
   };
   service: SocialInboxService;
   twitterService: {
+    buildTweetUrl: ReturnType<typeof vi.fn>;
     listDirectMessages: ReturnType<typeof vi.fn>;
     listMentions: ReturnType<typeof vi.fn>;
     listPostReplies: ReturnType<typeof vi.fn>;
+    postTweet: ReturnType<typeof vi.fn>;
   };
   youtubeService: {
     listVideoComments: ReturnType<typeof vi.fn>;
@@ -417,9 +425,14 @@ function createContext(): TestContext {
     sendCommentReplyDm: vi.fn().mockResolvedValue('dm-1'),
   };
   const twitterService = {
+    buildTweetUrl: vi.fn(
+      (tweetId: string, username: string) =>
+        `https://x.com/${username}/status/${tweetId}`,
+    ),
     listDirectMessages: vi.fn(),
     listMentions: vi.fn(),
     listPostReplies: vi.fn(),
+    postTweet: vi.fn().mockResolvedValue('x-reply-1'),
   };
   const linkedInService = {
     listDirectMessages: vi.fn(),
@@ -455,6 +468,7 @@ function createContext(): TestContext {
     prisma as never,
     youtubeService as never,
     instagramService as never,
+    twitterService as never,
     queryService,
     realtimeService,
     systemWorkflowRunner as never,
@@ -1320,6 +1334,139 @@ describe('SocialInboxService', () => {
     ).rejects.toThrow(BadRequestException);
   });
 
+  describe('X replies from the thread view', () => {
+    const scope = {
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+    };
+
+    async function ingestXMention(
+      service: SocialInboxService,
+      overrides: { createdAt?: Date; externalMessageId?: string } = {},
+    ) {
+      return service.ingestInboundMessage({
+        accountHandle: 'genfeed',
+        body: '@genfeed love this',
+        brandId: 'brand-1',
+        conversationType: SocialConversationType.COMMENT,
+        createdAt: overrides.createdAt,
+        credentialId: 'x-credential-1',
+        externalConversationId: 'x-conversation-1',
+        externalMessageId: overrides.externalMessageId ?? 'tweet-1',
+        externalParentId: overrides.externalMessageId ?? 'tweet-1',
+        organizationId: 'org-1',
+        participantExternalId: 'x-user-1',
+        participantHandle: 'fan',
+        platform: Platform.TWITTER,
+      });
+    }
+
+    it('posts the reply on X under the latest inbound tweet with the conversation credential', async () => {
+      const { messages, service, twitterService } = createContext();
+      const first = await ingestXMention(service, {
+        createdAt: new Date('2026-09-01T10:00:00Z'),
+        externalMessageId: 'tweet-1',
+      });
+      await ingestXMention(service, {
+        createdAt: new Date('2026-09-01T11:00:00Z'),
+        externalMessageId: 'tweet-2',
+      });
+
+      const sent = await service.postReply(scope, first.conversationId, {
+        idempotencyKey: 'x-reply',
+        text: 'Thanks for the love',
+      });
+
+      expect(twitterService.postTweet).toHaveBeenCalledTimes(1);
+      expect(twitterService.postTweet).toHaveBeenCalledWith(
+        'org-1',
+        'brand-1',
+        'Thanks for the love',
+        'tweet-2',
+        {},
+        'x-credential-1',
+      );
+      expect(sent).toMatchObject({
+        direction: 'outbound',
+        externalMessageId: 'x-reply-1',
+        externalParentMessageId: 'tweet-2',
+        failureReason: null,
+        messageType: 'reply',
+        organizationId: 'org-1',
+        platform: Platform.TWITTER,
+        sourceUrl: 'https://x.com/genfeed/status/x-reply-1',
+        status: 'sent',
+      });
+      expect(sent.actionProvenance).toMatchObject({
+        action: 'post_reply',
+        platform: Platform.TWITTER,
+        status: 'sent',
+      });
+      expect(
+        messages.filter((message) => message.direction === 'outbound'),
+      ).toHaveLength(1);
+    });
+
+    it('surfaces an X API failure as a mapped bad-gateway error and marks the reply failed', async () => {
+      const { messages, service, twitterService } = createContext();
+      const inbound = await ingestXMention(service);
+      twitterService.postTweet.mockRejectedValueOnce(
+        Object.assign(new Error('Request failed with code 429'), {
+          code: 429,
+        }),
+      );
+
+      const result = service.postReply(scope, inbound.conversationId, {
+        idempotencyKey: 'x-reply-429',
+        text: 'Thanks',
+      });
+
+      await expect(result).rejects.toBeInstanceOf(BadGatewayException);
+      await expect(result).rejects.toThrow(X_RATE_LIMIT_ERROR);
+      expect(
+        messages.find((message) => message.idempotencyKey === 'x-reply-429'),
+      ).toMatchObject({
+        direction: 'outbound',
+        failureReason: X_RATE_LIMIT_ERROR,
+        status: 'failed',
+      });
+    });
+
+    it('never posts on X for another tenant', async () => {
+      const { service, twitterService } = createContext();
+      const inbound = await ingestXMention(service);
+
+      await expect(
+        service.postReply(
+          { brandId: 'brand-1', organizationId: 'org-2', userId: 'user-2' },
+          inbound.conversationId,
+          { text: 'Cross-tenant reply' },
+        ),
+      ).rejects.toThrow('Social conversation not found');
+      expect(twitterService.postTweet).not.toHaveBeenCalled();
+    });
+
+    it('refuses X DMs before any provider call, even with a stale stored flag', async () => {
+      const { conversations, service, twitterService } = createContext();
+      const inbound = await ingestXMention(service);
+      conversations[0].availability = { canPostReply: true, canSendDm: true };
+
+      const conversation = await service.getConversation(
+        scope,
+        inbound.conversationId,
+      );
+      expect(conversation.availability).toMatchObject({
+        canSendDm: false,
+        sendDmReason: TWITTER_DM_REASON,
+      });
+      await expect(
+        service.sendDm(scope, inbound.conversationId, { text: 'Hi' }),
+      ).rejects.toThrow(TWITTER_DM_REASON);
+      expect(twitterService.postTweet).not.toHaveBeenCalled();
+    });
+  });
+
   describe('ingestYoutubeComments', () => {
     function seedSweep(context: TestContext): void {
       context.prisma.credential.findMany.mockResolvedValue([
@@ -2002,7 +2149,8 @@ describe('SocialInboxService', () => {
       });
       expect(context.conversations[0].availability).toMatchObject({
         canPostReply: false,
-        canSendDm: true,
+        canSendDm: false,
+        sendDmReason: TWITTER_DM_REASON,
       });
     });
 
