@@ -1633,6 +1633,7 @@ describe('useAgentChatStream', () => {
         pageContext: {
           route: '/default/~/agent',
           selectedText: 'selected copy',
+          timezone: expect.any(String),
         },
       }),
       expect.any(AbortSignal),

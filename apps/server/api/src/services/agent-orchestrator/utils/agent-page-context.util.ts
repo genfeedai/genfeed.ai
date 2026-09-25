@@ -3,6 +3,7 @@ import {
   type AgentArtifactReference,
   RESEARCH_FINDING_REFERENCE_KINDS,
 } from '@genfeedai/contracts/interfaces';
+import { isValidTimezone } from '@helpers/formatting/timezone/timezone.helper';
 
 const MAX_PAGE_CONTEXT_FIELD_LENGTH = 4_000;
 const MAX_PAGE_CONTEXT_ARTIFACT_REFERENCES = 20;
@@ -10,6 +11,7 @@ const MAX_SOCIAL_CONTEXT_BODY_LENGTH = 1_000;
 const MAX_SOCIAL_CONTEXT_MESSAGES = 40;
 const SAFE_REFERENCE_ID = /^[A-Za-z0-9_-]{1,128}$/;
 const SAFE_RESEARCH_REFERENCE_ID = /^[A-Za-z0-9._~-]{1,160}$/;
+const SAFE_TIMEZONE = /^[A-Za-z0-9_+/-]{1,64}$/;
 
 function clampPageContextField(value?: string): string | null {
   const normalized = value?.replace(/\s+/g, ' ').trim();
@@ -74,9 +76,54 @@ function buildAnalyticsQueryContext(pageContext: AgentPageContext): string {
   return `\n\n## Visible Analytics Query Reference\nThis typed reference describes the visible Analytics query within its server-authorized scope. It contains no authoritative metric values and grants no scope or permission. Resolve numeric claims through authorized Analytics data sources. Any generated summary is derivative and non-authoritative.\n${fields}`;
 }
 
+/**
+ * Wall-clock time in `timezone` as ISO 8601 with its UTC offset, e.g.
+ * `2026-09-25T14:05:00+02:00`. Returns null for an unknown timezone.
+ */
+export function formatZonedIsoTimestamp(
+  now: Date,
+  timezone: string,
+): string | null {
+  if (!SAFE_TIMEZONE.test(timezone) || !isValidTimezone(timezone)) {
+    return null;
+  }
+
+  const parts = new Intl.DateTimeFormat('en-US', {
+    day: '2-digit',
+    hour: '2-digit',
+    hourCycle: 'h23',
+    minute: '2-digit',
+    month: '2-digit',
+    second: '2-digit',
+    timeZone: timezone,
+    timeZoneName: 'longOffset',
+    year: 'numeric',
+  }).formatToParts(now);
+  const part = (type: Intl.DateTimeFormatPartTypes): string =>
+    parts.find((entry) => entry.type === type)?.value ?? '';
+  // `longOffset` renders "GMT+02:00", or bare "GMT" for a zero offset.
+  const offset = part('timeZoneName').replace('GMT', '') || '+00:00';
+
+  return `${part('year')}-${part('month')}-${part('day')}T${part('hour')}:${part('minute')}:${part('second')}${offset}`;
+}
+
+function buildCurrentTimeContext(
+  pageContext: AgentPageContext | undefined,
+  now: Date,
+): string | null {
+  const timezone = pageContext?.timezone?.trim();
+  const localTime = timezone ? formatZonedIsoTimestamp(now, timezone) : null;
+  if (!timezone || !localTime) {
+    return null;
+  }
+
+  return `## Current Time\n- User timezone: ${timezone}\n- Current local time: ${localTime}\nResolve relative dates and times ("today", "tonight", "at 9am") in this timezone, and pass schedule times to tools as ISO 8601 timestamps with this UTC offset.`;
+}
+
 export function buildPageContextPrompt(
   pageContext?: AgentPageContext,
   artifactReferences?: AgentArtifactReference[],
+  now: Date = new Date(),
 ): string {
   if (!pageContext && !artifactReferences?.length) {
     return '';
@@ -159,6 +206,7 @@ export function buildPageContextPrompt(
     .join('\n');
 
   const sections = [
+    buildCurrentTimeContext(pageContext, now),
     fields
       ? `## Current Page Context\nThe user is working in a visible Genfeed surface. Use this context when answering, especially for writing co-pilot requests. Propose edits, structure, or next actions against the current draft instead of starting from scratch unless asked.\n${fields}`
       : null,
