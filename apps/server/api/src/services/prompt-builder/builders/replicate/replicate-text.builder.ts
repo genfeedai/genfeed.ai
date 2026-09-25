@@ -1,4 +1,6 @@
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
+import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/openrouter-model.util';
 import { BaseReplicateBuilder } from '@api/services/prompt-builder/builders/replicate/base-replicate.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
@@ -9,6 +11,7 @@ import type {
   GPT52Input,
   GPTImage15Input,
   Llama31405BInput,
+  OpenRouterChatInput,
   ReplicateTextInput,
 } from '@api/services/prompt-builder/interfaces/replicate-input.interface';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
@@ -20,20 +23,28 @@ import { Injectable } from '@nestjs/common';
 
 /**
  * Replicate text/LLM model prompt builder.
- * Handles: DeepSeek, GPT, Gemini, and Llama models.
+ * Handles DeepSeek, GPT, Gemini, Llama, and OpenRouter Grok chat models.
  */
 @Injectable()
 export class ReplicateTextBuilder extends BaseReplicateBuilder {
   getSupportedModels(): string[] {
     return [
       DEFAULT_TEXT_MODEL,
+      DEFAULT_MINI_TEXT_MODEL,
       MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1,
       MODEL_KEYS.REPLICATE_OPENAI_GPT_5_2,
       MODEL_KEYS.REPLICATE_OPENAI_GPT_IMAGE_1_5,
       MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH,
       MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_3_PRO,
       MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
+      MODEL_KEYS.OPENROUTER_XAI_GROK_4,
+      MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+      MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST,
     ];
+  }
+
+  supportsModel(model: string): boolean {
+    return super.supportsModel(model) || isOpenRouterTextModel(model);
   }
 
   buildPrompt(
@@ -64,8 +75,27 @@ export class ReplicateTextBuilder extends BaseReplicateBuilder {
         return this.buildLlama31405BPrompt(params, promptText);
 
       default:
+        if (isOpenRouterTextModel(model)) {
+          return this.buildOpenRouterChatPrompt(params, promptText);
+        }
         throw new Error(`Unsupported text model: ${model}`);
     }
+  }
+
+  private buildOpenRouterChatPrompt(
+    params: PromptBuilderParams,
+    promptText: string,
+  ): OpenRouterChatInput {
+    const messages: OpenRouterChatInput['messages'] = [];
+    if (params.systemPrompt?.trim()) {
+      messages.push({ content: params.systemPrompt, role: 'system' });
+    }
+    messages.push({ content: promptText, role: 'user' });
+    return {
+      max_tokens: params.maxTokens ?? 700,
+      messages,
+      temperature: params.temperature ?? 0.7,
+    };
   }
 
   private buildClaude45SonnetPrompt(

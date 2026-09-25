@@ -623,6 +623,12 @@ export interface Llama31405BInput extends Record<string, unknown> {
 }
 
 // Union of all text model inputs
+export interface OpenRouterChatInput extends Record<string, unknown> {
+  max_tokens: number;
+  messages: Array<{ content: string; role: 'assistant' | 'system' | 'user' }>;
+  temperature: number;
+}
+
 export type ReplicateTextInput =
   | DeepSeekR1Input
   | GPT52Input
@@ -630,7 +636,8 @@ export type ReplicateTextInput =
   | GPTImage15Input
   | Gemini25FlashInput
   | Gemini3ProInput
-  | Llama31405BInput;
+  | Llama31405BInput
+  | OpenRouterChatInput;
 
 // ---------------------------------------------------------------------------
 // MEDIA model inputs

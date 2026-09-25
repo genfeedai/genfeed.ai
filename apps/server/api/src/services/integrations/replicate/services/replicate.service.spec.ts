@@ -1,7 +1,11 @@
+import type { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { ReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import { isCloudDeployment } from '@genfeedai/config';
 import { AgentFailureReason } from '@genfeedai/contracts';
-import { CONTEXT_EMBEDDING_DIMENSION } from '@genfeedai/contracts/constants';
+import {
+  CONTEXT_EMBEDDING_DIMENSION,
+  MODEL_KEYS,
+} from '@genfeedai/contracts/constants';
 import type { ConfigService } from '@libs/config/config.service';
 import type { LoggerService } from '@libs/logger/logger.service';
 import Replicate from 'replicate';
@@ -49,7 +53,10 @@ const CONFIG: Record<string, string> = {
   REPLICATE_TARGET_RESOLUTION: '4k',
 };
 
-function createHarness(overrides: Record<string, string | undefined> = {}) {
+function createHarness(
+  overrides: Record<string, string | undefined> = {},
+  openRouterService?: Pick<OpenRouterService, 'chatCompletion'>,
+) {
   const values = { ...CONFIG, ...overrides };
   const configService = {
     get: vi.fn((key: string) => values[key]),
@@ -63,7 +70,11 @@ function createHarness(overrides: Record<string, string | undefined> = {}) {
   return {
     configService,
     loggerService,
-    service: new ReplicateService(configService, loggerService),
+    service: new ReplicateService(
+      configService,
+      loggerService,
+      openRouterService as OpenRouterService | undefined,
+    ),
   };
 }
 
@@ -535,6 +546,78 @@ describe('ReplicateService', () => {
         service.generateTextCompletionSync('owner/llm', {}),
       ).rejects.toThrow('timeout');
       expect(loggerService.error).toHaveBeenCalled();
+    });
+
+    it('routes OpenRouter text models through chatCompletion instead of Replicate', async () => {
+      const chatCompletion = vi.fn().mockResolvedValue({
+        choices: [{ message: { content: '  OpenRouter tweet  ' } }],
+      });
+      const { service } = createHarness({}, { chatCompletion });
+
+      await expect(
+        service.generateTextCompletionSync(
+          MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST,
+          {
+            max_tokens: 700,
+            messages: [
+              { content: 'Write as the brand.', role: 'system' },
+              { content: 'Write a tweet', role: 'user' },
+            ],
+            temperature: 0.8,
+          },
+        ),
+      ).resolves.toBe('OpenRouter tweet');
+
+      expect(predictionsCreate).not.toHaveBeenCalled();
+      expect(chatCompletion).toHaveBeenCalledWith(
+        {
+          max_tokens: 700,
+          messages: [
+            { content: 'Write as the brand.', role: 'system' },
+            { content: 'Write a tweet', role: 'user' },
+          ],
+          model: MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST,
+          temperature: 0.8,
+        },
+        undefined,
+      );
+    });
+
+    it('maps Gemini-style prompt plus system_instruction onto OpenRouter messages', async () => {
+      const chatCompletion = vi.fn().mockResolvedValue({
+        choices: [{ message: { content: 'mapped' } }],
+      });
+      const { service } = createHarness({}, { chatCompletion });
+
+      await service.generateTextCompletionSync('x-ai/grok-4-fast', {
+        prompt: 'Write a tweet',
+        system_instruction: 'You are the brand voice.',
+        temperature: 0.8,
+      });
+
+      expect(chatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: [
+            { content: 'You are the brand voice.', role: 'system' },
+            { content: 'Write a tweet', role: 'user' },
+          ],
+          model: 'x-ai/grok-4-fast',
+          temperature: 0.8,
+        }),
+        undefined,
+      );
+    });
+
+    it('throws when an OpenRouter model is requested without OpenRouter configured', async () => {
+      const { service } = createHarness();
+
+      await expect(
+        service.generateTextCompletionSync(
+          MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST,
+          { prompt: 'Write a tweet' },
+        ),
+      ).rejects.toThrow('OpenRouter is not configured for text generation');
+      expect(predictionsCreate).not.toHaveBeenCalled();
     });
   });
 
