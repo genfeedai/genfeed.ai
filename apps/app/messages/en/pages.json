@@ -959,7 +959,8 @@
     "detail": {
       "loadingSubtitle": "Loading post\u2026",
       "notFound": "Post not found",
-      "title": "Post detail"
+      "title": "Post detail",
+      "tweetFieldLabel": "Post"
     },
     "list": {
       "channelCount": "{count, plural, one {# channel} other {# channels}}",

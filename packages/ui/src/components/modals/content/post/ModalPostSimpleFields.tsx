@@ -154,7 +154,7 @@ export default function ModalPostSimpleFields({
         {selectedPlatform === Platform.TWITTER ? (
           <Textarea
             name="description"
-            aria-label="Post content"
+            aria-label={translate('postContent')}
             value={form.watch('description') || ''}
             onChange={(event) => {
               form.setValue('description', event.target.value, {
@@ -162,7 +162,7 @@ export default function ModalPostSimpleFields({
                 shouldValidate: true,
               });
             }}
-            placeholder="Write the tweet"
+            placeholder={translate('tweetPlaceholder')}
           />
         ) : (
           <LazyRichTextEditor

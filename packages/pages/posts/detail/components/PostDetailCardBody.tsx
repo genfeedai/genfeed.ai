@@ -12,6 +12,7 @@ import FormControl from '@ui/primitives/field';
 import { Input } from '@ui/primitives/input';
 import { Textarea } from '@ui/primitives/textarea';
 import { Eye, Heart, MessageSquare } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { type MutableRefObject, useEffect, useRef } from 'react';
 
 export interface PostDetailCardBodyProps {
@@ -58,6 +59,7 @@ export default function PostDetailCardBody({
   hasAnalytics,
   showAnalytics,
 }: PostDetailCardBodyProps) {
+  const translate = useTranslations('pages.posts.detail');
   const tweetLength = calculateTweetLength(
     stripHtmlToPlainText(descriptionValue),
   );
@@ -138,7 +140,7 @@ export default function PostDetailCardBody({
               <FormControl
                 label={
                   <div className="flex w-full items-center justify-between gap-2">
-                    <span>Post</span>
+                    <span>{translate('tweetFieldLabel')}</span>
                     <span
                       className={`text-xs ${isTweetOverLimit ? 'text-error' : 'text-foreground/60'}`}
                     >
