@@ -605,10 +605,15 @@ if (!acquiredSingleInstanceLock) {
 const getAllowedExternalUrl = (rawUrl: string): URL | null => {
   try {
     const url = new URL(rawUrl);
+    // A self-hosted server on this machine or LAN may serve its sign-in page
+    // over HTTP; only that exact configured origin is exempt from HTTPS.
+    const isConfiguredAuthOrigin =
+      url.origin === new URL(environment.authEndpoint).origin;
 
     if (
       url.password ||
-      url.protocol !== 'https:' ||
+      (url.protocol !== 'https:' &&
+        !(url.protocol === 'http:' && isConfiguredAuthOrigin)) ||
       url.username ||
       !EXTERNAL_NAVIGATION_HOSTS.has(url.hostname)
     ) {
