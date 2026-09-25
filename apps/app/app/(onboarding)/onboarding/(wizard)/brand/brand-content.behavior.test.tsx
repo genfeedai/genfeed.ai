@@ -3,7 +3,7 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ChangeEvent, ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BrandContent from './brand-content';
 
 const {
@@ -177,10 +177,19 @@ vi.mock('next/navigation', () => ({
   useSearchParams: () => searchParamsMock,
 }));
 
+// Real-time waits: the component holds the loading step visible for
+// MIN_LOADING_DISPLAY_MS (1.6s) regardless of how fast setup work resolves.
+// Fake timers do not mix safely with RTL's own polling-based `waitFor` /
+// `findBy*`, so these tests wait on the real clock instead.
+const LOADING_STEP_WAIT_OPTIONS = { timeout: 5000 };
+
+// The default per-test timeout (5s) leaves no room for a 1.6s real-time wait
+// plus setup; give this suite headroom instead of racing the clock.
+vi.setConfig({ testTimeout: 10000 });
+
 describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.useFakeTimers();
     window.localStorage.clear();
     searchParamsMock.forEach((_value, key) => {
       searchParamsMock.delete(key);
@@ -202,10 +211,6 @@ describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
     patchMeMock.mockResolvedValue(undefined);
   });
 
-  afterEach(() => {
-    vi.useRealTimers();
-  });
-
   it('skips straight to the loading step for a work email and enriches from the domain', async () => {
     currentUserState.currentUser = { email: 'vincent@acme.com' };
 
@@ -214,11 +219,9 @@ describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
     // No account type / name / audience / tone form ever renders.
     expect(screen.queryByPlaceholderText(/website/i)).not.toBeInTheDocument();
 
-    await vi.advanceTimersByTimeAsync(2000);
-
     await waitFor(() => {
       expect(updateAccountTypeMock).toHaveBeenCalledWith('org-1', 'CREATOR');
-    });
+    }, LOADING_STEP_WAIT_OPTIONS);
     expect(renameWithOrganizationSyncMock).toHaveBeenCalledWith(
       'brand-1',
       'Acme',
@@ -235,7 +238,7 @@ describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
 
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 
   it('asks a personal inbox for a website before loading', async () => {
@@ -251,21 +254,19 @@ describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
     });
     fireEvent.click(screen.getByRole('button', { name: 'Continue' }));
 
-    await vi.advanceTimersByTimeAsync(2000);
-
     await waitFor(() => {
       expect(scrapeMock).toHaveBeenCalledWith(
         'brand-1',
         expect.objectContaining({ brandUrl: 'https://shipshit.dev' }),
       );
-    });
+    }, LOADING_STEP_WAIT_OPTIONS);
     expect(queueStarterAssetsMock).toHaveBeenCalledWith(
       'brand-1',
       'https://shipshit.dev',
     );
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 
   it('skipping the website prompt completes the onboarding gate without a website', async () => {
@@ -292,13 +293,11 @@ describe('app/(onboarding)/onboarding/(wizard)/brand/brand-content', () => {
 
     render(<BrandContent />);
 
-    await vi.advanceTimersByTimeAsync(2000);
-
     await waitFor(() => {
       expect(toastErrorMock).toHaveBeenCalled();
-    });
+    }, LOADING_STEP_WAIT_OPTIONS);
     await waitFor(() => {
       expect(handleStepCompleteMock).toHaveBeenCalledWith('brand');
-    });
+    }, LOADING_STEP_WAIT_OPTIONS);
   });
 });
