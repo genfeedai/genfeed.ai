@@ -115,12 +115,12 @@ export default function BrandDetailAgentProfileCard({
             </p>
             {voiceCorpus ? (
               <p className="text-xs leading-5 text-foreground">
-                Voice evidence: {voiceCorpus.label}
+                {translate('corpus.evidence', { label: voiceCorpus.label })}
               </p>
             ) : null}
             {voiceCorpus?.guidance ? (
               <Alert variant="warning">
-                <AlertTitle>Not enough of your own posts yet</AlertTitle>
+                <AlertTitle>{translate('corpus.notEnoughPosts')}</AlertTitle>
                 <AlertDescription className="text-xs leading-5">
                   {voiceCorpus.guidance}
                 </AlertDescription>

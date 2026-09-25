@@ -12,6 +12,7 @@ import {
   Mail,
   Megaphone,
   Newspaper,
+  Scale,
   Settings,
   ShieldCheck,
   Tag,
@@ -249,6 +250,15 @@ export const ADMIN_MENU_ITEMS: MenuItemConfig[] = withAdminCollapsibleGroups([
     matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.CREDIT_USAGE],
     outline: ChartColumn,
     solid: ChartColumn,
+  },
+  {
+    group: 'Administration',
+    hrefScope: 'global',
+    href: APP_ROUTES.ADMIN.ADMINISTRATION.UNIT_ECONOMICS,
+    label: 'Unit Economics',
+    matchPaths: [APP_ROUTES.ADMIN.ADMINISTRATION.UNIT_ECONOMICS],
+    outline: Scale,
+    solid: Scale,
   },
   {
     group: 'Administration',

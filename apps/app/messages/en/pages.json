@@ -2961,7 +2961,9 @@
     "saveErrorTitle": "Saving your brand voice",
     "corpus": {
       "learnedFrom": "Learned from {label}.",
-      "thinTitle": "Brand voice saved, but it will not sound like you yet"
+      "thinTitle": "Brand voice saved, but it will not sound like you yet",
+      "evidence": "Voice evidence: {label}",
+      "notEnoughPosts": "Not enough of your own posts yet"
     },
     "failures": {
       "brandNotFound": "We could not find this brand. Refresh the page and try again.",

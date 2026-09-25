@@ -33,6 +33,11 @@ export function useDesktopLocalTools(): IDesktopLocalToolReadiness | null {
   const [tools, setTools] = useState<IDesktopLocalToolReadiness | null>(null);
 
   useEffect(() => {
+    // Browsers have nothing to detect; skip the async round-trip entirely.
+    if (!getGenfeedDesktopBridge()) {
+      return;
+    }
+
     const controller = new AbortController();
 
     void detectDesktopLocalTools().then((readiness) => {

@@ -1145,6 +1145,7 @@ const ADMIN_CONTROL_PLANE_ROUTE_PATTERNS = [
   '/admin/administration/roles',
   '/admin/administration/subscriptions',
   '/admin/administration/credit-usage',
+  '/admin/administration/unit-economics',
   '/admin/administration/referrals',
   '/admin/administration/announcements',
   '/admin/administration/system-emails',

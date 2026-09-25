@@ -8,6 +8,13 @@ import SettingsAgentsPage from './settings-agents-page';
 
 const mocks = vi.hoisted(() => ({
   findAllModels: vi.fn(),
+  modelAccess: null as {
+    isLocked: boolean;
+    lockedModelKey: string | null;
+    lockedModelLabel: string | null;
+    reason: 'free_tier' | null;
+  } | null,
+  modelCosts: {} as Record<string, number>,
   loggerError: vi.fn(),
   organizationId: 'org-1',
   patchSettings: vi.fn(),
@@ -45,6 +52,21 @@ vi.mock('@hooks/data/organization/use-organization/use-organization', () => ({
     refresh: mocks.refresh,
     settings: mocks.settings,
   }),
+}));
+
+vi.mock(
+  '@hooks/data/billing/use-agent-model-access/use-agent-model-access',
+  () => ({
+    useAgentModelAccess: () => ({
+      isLoading: false,
+      modelAccess: mocks.modelAccess,
+      modelCosts: mocks.modelCosts,
+    }),
+  }),
+);
+
+vi.mock('@genfeedai/hooks/navigation/use-org-url', () => ({
+  useOrgUrl: () => ({ orgHref: (path: string) => `/acme${path}` }),
 }));
 
 vi.mock('@services/core/logger.service', () => ({
@@ -155,6 +177,8 @@ describe('SettingsAgentsPage', () => {
     vi.clearAllMocks();
     vi.useFakeTimers({ shouldAdvanceTime: true });
     mocks.organizationId = 'org-1';
+    mocks.modelAccess = null;
+    mocks.modelCosts = {};
     mocks.settings = {
       agentPolicy: {
         allowAdvancedOverrides: true,
@@ -363,5 +387,40 @@ describe('SettingsAgentsPage', () => {
         expect.any(Error),
       );
     });
+  });
+
+  it('shows per-message estimates on thinking model options for subscribers', async () => {
+    mocks.modelCosts = { 'gpt-5.5': 3.24, 'gpt-5.4': 0.04 };
+    renderPage();
+
+    expect(
+      await screen.findByRole('option', {
+        name: 'GPT-5.5 · ≈ 3.2 credits / message',
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('option', {
+        name: 'GPT-5.4 · ≈ <0.1 credits / message',
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('replaces the thinking model picker with the locked model and an upgrade hint on the free tier', async () => {
+    mocks.modelAccess = {
+      isLocked: true,
+      lockedModelKey: 'deepseek/deepseek-v4-flash-0731',
+      lockedModelLabel: 'DeepSeek V4 Flash',
+      reason: 'free_tier',
+    };
+    renderPage();
+
+    const notice = await screen.findByTestId('agent-model-lock-notice');
+    expect(notice).toHaveTextContent('DeepSeek V4 Flash');
+    expect(screen.getByRole('link', { name: 'Upgrade' })).toHaveAttribute(
+      'href',
+      '/acme/settings/subscription',
+    );
+    // Generation + review overrides stay; the thinking picker is gone.
+    expect(screen.getAllByRole('combobox')).toHaveLength(4);
   });
 });
