@@ -267,6 +267,10 @@ const TREND_STATE = closedObjectSchema(
 const TREND_LIST = closedObjectSchema({ trends: arraySchema(TREND_ITEM) }, [
   'trends',
 ]);
+const AGENT_REPORT_DELIVERY = closedObjectSchema(
+  { deliveryId: STRING_SCHEMA, status: STRING_SCHEMA },
+  ['deliveryId', 'status'],
+);
 const DELIVERY = closedObjectSchema(
   {
     channel: enumSchema(['email', 'inApp', 'telegram'] as const),
@@ -483,6 +487,18 @@ const CONTRACTS: Readonly<Record<string, ActionContractSchemas>> = {
   'agent.autopilot.fail': {
     inputSchema: FAIL_INPUT,
     outputSchema: FAIL_OUTPUT,
+  },
+  'agent.report.deliver-discord': {
+    inputSchema: input({ deliveryId: STRING_SCHEMA }, ['deliveryId']),
+    outputSchema: AGENT_REPORT_DELIVERY,
+  },
+  'agent.report.deliver-email': {
+    inputSchema: input({ deliveryId: STRING_SCHEMA }, ['deliveryId']),
+    outputSchema: AGENT_REPORT_DELIVERY,
+  },
+  'agent.report.deliver-telegram': {
+    inputSchema: input({ deliveryId: STRING_SCHEMA }, ['deliveryId']),
+    outputSchema: AGENT_REPORT_DELIVERY,
   },
 
   'content.production.engine.begin': {
