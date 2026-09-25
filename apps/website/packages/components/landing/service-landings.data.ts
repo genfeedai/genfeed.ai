@@ -5,10 +5,12 @@ import {
   Clapperboard,
   FileText,
   Megaphone,
+  MessageCircle,
   Mic,
   Radio,
   Rocket,
   Sparkles,
+  TrendingUp,
   Users,
 } from 'lucide-react';
 import type { ComponentType, SVGProps } from 'react';
@@ -442,6 +444,153 @@ export const serviceLandingConfigs: ServiceLandingConfig[] = [
     processTitle: 'How It Works',
     slug: 'linkedin-content',
     title: 'LinkedIn Content Service',
+  },
+  {
+    badge: 'X Growth',
+    closingDescription:
+      'If X matters to your business and your account is not keeping up, book a call and we will scope the growth engine.',
+    closingTitle: 'Grow On X Without Living On X',
+    deliverableBuckets: [
+      {
+        items: [
+          'Positioning and content pillars for your niche',
+          'Voice calibration from your past posts and notes',
+          'Target accounts and conversations to show up in',
+          'Weekly themes tied to your launches and news',
+        ],
+        title: 'Strategy',
+      },
+      {
+        items: [
+          'Daily posts with hooks written for the timeline',
+          'Threads built from your long-form, calls, and notes',
+          'Short video clips and visuals sized for X',
+          'Reply and quote-post drafts on relevant conversations',
+        ],
+        title: 'Content',
+      },
+      {
+        items: [
+          'Scheduling around when your audience is online',
+          'Tracking impressions, replies, reposts, and profile clicks',
+          'Doubling down on the topics and formats that grow followers',
+          'Monthly review of what is working and what changes next',
+        ],
+        title: 'Growth Ops',
+      },
+    ],
+    deliverablesDescription:
+      'The full X growth loop, operated by us inside your Genfeed workspace. You keep the account, the assets, and the data.',
+    deliverablesTitle: 'What You Get',
+    faqDescription: 'What people usually ask before booking.',
+    faqs: [
+      {
+        answer:
+          'Founders, operators, and brands where X drives deals, hiring, fundraising, or distribution, and the account underperforms because nobody owns it day to day.',
+        question: 'Who is this for?',
+      },
+      {
+        answer:
+          'Yes. We calibrate on your past posts, notes, and calls, and nothing ships without your approval. The goal is your point of view, published more often.',
+        question: 'Will it sound like me?',
+      },
+      {
+        answer:
+          'Genfeed handles trend monitoring, drafting, scheduling, and analytics. We do not buy followers, run engagement pods, or use follow/unfollow tactics that put the account at risk.',
+        question: 'Is this bots and fake engagement?',
+      },
+      {
+        answer:
+          'It depends on your niche, your starting point, and how much of your perspective we can publish. We do not promise follower counts. We commit to daily output and a weekly loop on what the data says.',
+        question: 'How fast will the account grow?',
+      },
+      {
+        answer:
+          'One voice-calibration session at the start, then a few minutes a day to approve the queue. Reply personally whenever you want; we cover the rest.',
+        question: 'How much of my time does it take?',
+      },
+      {
+        answer:
+          'Pricing is scoped on the call around posting volume, format mix (text, threads, video), and how much reply coverage you want.',
+        question: 'How does pricing work?',
+      },
+    ],
+    faqTitle: 'Common Questions',
+    fitLabel: 'Good Fit Signals',
+    fitSignals: [
+      'Your buyers, investors, or future hires already read X, and your account is not where it should be.',
+      'You have opinions and expertise, but posting daily and replying in real time does not fit your calendar.',
+      'You want an account that sounds like you, not like an engagement-bait ghostwriter.',
+    ],
+    heroAccent: 'X account',
+    heroDescription:
+      'Done-for-you X growth for founders and brands. Daily posts, threads, replies, and video, run on Genfeed so your account compounds without you living on the timeline.',
+    heroTitle: 'We grow your',
+    includes: [
+      'X growth strategy and content pillars',
+      'Voice calibration',
+      'Daily posts and threads',
+      'Video clips and visuals',
+      'Trend monitoring in your niche',
+      'Reply and quote-post drafts',
+      'Scheduling and publishing',
+      'Monthly performance review',
+    ],
+    intro:
+      'X rewards accounts that show up every day with a sharp point of view and join the conversation while it is still moving. Almost nobody can sustain that on top of a real job. We run the engine on Genfeed, from trend monitoring and drafting in your voice to replies, scheduling, and analytics, and you approve what ships.',
+    metaDescription:
+      'Done-for-you X (Twitter) growth. Daily posts, threads, replies, and video run on Genfeed so your account grows without you living on the timeline.',
+    metaTitle: 'X Growth Service | Genfeed.ai',
+    outcomes: [
+      {
+        description:
+          'Genfeed watches the trends and conversations in your niche, so your takes land while the topic is still moving.',
+        icon: TrendingUp,
+        title: 'Timely, Not Late',
+      },
+      {
+        description:
+          'A steady queue of posts, threads, and clips, scheduled for when your audience is actually online.',
+        icon: CalendarRange,
+        title: 'A Daily Cadence',
+      },
+      {
+        description:
+          'Reply and quote-post drafts on the accounts that matter in your space, the fastest way in front of new followers.',
+        icon: MessageCircle,
+        title: 'Replies That Build Reach',
+      },
+    ],
+    outcomesDescription:
+      'Growth on X comes from consistency, timing, and conversation. Those are the first three things to break when you are busy.',
+    outcomesTitle: 'What This Solves',
+    process: [
+      {
+        description:
+          'We review your account, audience, and what has worked so far.',
+        step: 'Audit',
+      },
+      {
+        description:
+          'We set your voice and content pillars in your Genfeed workspace.',
+        step: 'Calibrate',
+      },
+      {
+        description:
+          'Posts, threads, and replies go out every day, with your approval.',
+        step: 'Ship daily',
+      },
+      {
+        description:
+          'We read the analytics weekly and double down on what grows the account.',
+        step: 'Compound',
+      },
+    ],
+    processDescription:
+      'A daily operating rhythm with your approval at the center.',
+    processTitle: 'How It Works',
+    slug: 'x-growth',
+    title: 'X Growth Service',
   },
   {
     badge: 'Podcast To Content',

@@ -79,6 +79,7 @@ const ORPHAN_ALLOWLIST = new Set<string>([
   '/launch-content',
   '/linkedin-content',
   '/podcast-to-content',
+  '/x-growth',
 ]);
 
 /**
