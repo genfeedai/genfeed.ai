@@ -34,7 +34,12 @@ const LAYER_HEADERS: Partial<Record<AgentBrandContextLayerKey, string[]>> = {
   recentPosts: ['## Recent Posts'],
   strategy: ['## Content Strategy'],
   visualIdentity: ['## Visual Identity'],
-  voice: ['## Brand Voice', '## Voice Example', '## Reference Exemplars'],
+  voice: [
+    '## Brand Voice',
+    '## Voice Example',
+    '## Real Posts by This Brand',
+    '## Reference Exemplars',
+  ],
 };
 
 const LAYER_EDIT_TARGETS: Record<
