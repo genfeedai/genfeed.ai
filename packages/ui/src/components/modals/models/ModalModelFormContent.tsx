@@ -33,6 +33,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@ui/primitives/select';
+import { useTranslations } from 'next-intl';
 import type { ChangeEvent, FormEvent, RefObject } from 'react';
 import type { UseFormReturn } from 'react-hook-form';
 import ModelProviderContractDetails from './ModelProviderContractDetails';
@@ -70,6 +71,7 @@ export default function ModalModelFormContent({
 }: ModalModelFormContentProps) {
   const selectedProvider = form.watch('provider');
   const selectedCategory = form.watch('category');
+  const translate = useTranslations('ui.modelForm');
 
   return (
     <Form ref={formRef} onSubmit={onSubmit}>
@@ -82,40 +84,40 @@ export default function ModalModelFormContent({
           </div>
         </Alert>
       )}
-      <FormControl label="Label">
+      <FormControl label={translate('label.label')}>
         <Input
           type="text"
           name="label"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model label"
+          placeholder={translate('label.placeholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
       </FormControl>
-      <FormControl label="Description">
+      <FormControl label={translate('description.label')}>
         <Input
           type="text"
           name="description"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model description"
+          placeholder={translate('description.placeholder')}
           isDisabled={isSubmitting}
         />
       </FormControl>
-      <FormControl label="Key">
+      <FormControl label={translate('key.label')}>
         <Input
           type="text"
           name="key"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model key"
+          placeholder={translate('key.placeholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
       </FormControl>
       <div className="grid grid-cols-2 gap-2">
-        <FormControl label="Provider">
+        <FormControl label={translate('provider.label')}>
           <Select
             disabled={isSubmitting}
             name="provider"
@@ -127,8 +129,8 @@ export default function ModalModelFormContent({
               } as ChangeEvent<HTMLSelectElement>)
             }
           >
-            <SelectTrigger aria-label="Provider">
-              <SelectValue placeholder="Select provider" />
+            <SelectTrigger aria-label={translate('provider.label')}>
+              <SelectValue placeholder={translate('provider.placeholder')} />
             </SelectTrigger>
             <SelectContent>
               {modelProviders.map((provider) => (
@@ -144,7 +146,7 @@ export default function ModalModelFormContent({
           </Select>
         </FormControl>
 
-        <FormControl label="Category">
+        <FormControl label={translate('category.label')}>
           <Select
             disabled={isSubmitting}
             name="category"
@@ -156,8 +158,8 @@ export default function ModalModelFormContent({
               } as ChangeEvent<HTMLSelectElement>)
             }
           >
-            <SelectTrigger aria-label="Category">
-              <SelectValue placeholder="Select category" />
+            <SelectTrigger aria-label={translate('category.label')}>
+              <SelectValue placeholder={translate('category.placeholder')} />
             </SelectTrigger>
             <SelectContent>
               {modelCategories.map((category) => (
@@ -173,13 +175,13 @@ export default function ModalModelFormContent({
           </Select>
         </FormControl>
       </div>
-      <FormControl label="Cost">
+      <FormControl label={translate('cost.label')}>
         <Input
           type="number"
           name="cost"
           control={form.control}
           onChange={updateModalModel}
-          placeholder="Enter model cost"
+          placeholder={translate('cost.placeholder')}
           isRequired={true}
           isDisabled={isSubmitting}
         />
@@ -193,7 +195,7 @@ export default function ModalModelFormContent({
       )}
       <ModalActions>
         <Button
-          label="Cancel"
+          label={translate('cancel')}
           variant={ButtonVariant.SECONDARY}
           onClick={cancelModalModel}
           isLoading={isSubmitting}

@@ -22,6 +22,7 @@ import { OrganizationsService } from '@services/organization/organizations.servi
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ErrorHandler } from '@utils/error/error-handler.util';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { buildModelsTableColumns } from './components/ModelsTableColumns';
 import { buildModelCatalogOverviewCards } from './components/models-catalog-overview.helpers';
@@ -38,6 +39,7 @@ export function useModelsList({
   onRefreshRegister?: (fn: (() => Promise<void>) | null) => void;
 }) {
   const { organizationId } = useBrand();
+  const translate = useTranslations('pages.models');
   const notificationsService = useMemo(
     () => NotificationsService.getInstance(),
     [],
@@ -598,6 +600,7 @@ export function useModelsList({
         onOpenDetails: handleViewDetails,
         togglingModelId,
         models,
+        translate,
       }),
     [
       isAdminScope,
@@ -609,6 +612,7 @@ export function useModelsList({
       handleViewDetails,
       togglingModelId,
       models,
+      translate,
     ],
   );
 

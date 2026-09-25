@@ -11,6 +11,35 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { buildModelsTableColumns } from './ModelsTableColumns';
 
+const TABLE_COPY: Record<string, string> = {
+  'table.approvedStatus': 'Approved',
+  'table.categoryHeader': 'Category',
+  'table.chooseSuccessor': 'Choose successor',
+  'table.costHeader': 'Cost',
+  'table.defaultHeader': 'Default',
+  'table.keyHeader': 'Key',
+  'table.labelHeader': 'Label',
+  'table.legacyStatus': 'Legacy',
+  'table.lifecycleHeader': 'Lifecycle',
+  'table.pendingStatus': 'Pending',
+  'table.providerHeader': 'Provider',
+  'table.qualityHeader': 'Quality',
+  'table.registryHeader': 'Registry',
+  'table.rejectedStatus': 'Rejected',
+  'table.seededStatus': 'Seeded',
+};
+
+function translate(
+  key: string,
+  values?: Record<string, string | number>,
+): string {
+  if (key === 'table.successorWithLabel') {
+    return `Successor: ${values?.label ?? ''}`;
+  }
+
+  return TABLE_COPY[key] ?? key;
+}
+
 function buildModel(overrides: Partial<IModel> = {}): IModel {
   return {
     category: ModelCategory.IMAGE,
@@ -44,6 +73,7 @@ function renderColumn(
     onOpenDetails,
     togglingModelId: null,
     models: [model],
+    translate,
   });
   const column = columns.find((entry) => entry.header === header);
   if (!column?.render) {
@@ -64,6 +94,7 @@ describe('buildModelsTableColumns', () => {
       onOpenDetails: vi.fn(),
       togglingModelId: null,
       models: [],
+      translate,
     });
 
     expect(columns.map((column) => column.header)).toContain('Quality');
@@ -109,6 +140,7 @@ describe('buildModelsTableColumns', () => {
       onOpenDetails: vi.fn(),
       togglingModelId: null,
       models: [model, successor],
+      translate,
     });
     const column = columns.find((entry) => entry.header === 'Lifecycle');
     if (!column?.render) {
@@ -210,6 +242,7 @@ describe('buildModelsTableColumns', () => {
       onOpenDetails: vi.fn(),
       togglingModelId: null,
       models: [model],
+      translate,
     });
 
     const labelColumn = columns.find((column) => column.header === 'Label');

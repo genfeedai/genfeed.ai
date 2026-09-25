@@ -2185,7 +2185,25 @@
   "models": {
     "loadError": "Models could not be loaded.",
     "catalogTitle": "Model catalog",
-    "catalogDescription": "Compare available models by category, quality, and credit cost."
+    "catalogDescription": "Compare available models by category, quality, and credit cost.",
+    "table": {
+      "approvedStatus": "Approved",
+      "categoryHeader": "Category",
+      "chooseSuccessor": "Choose successor",
+      "costHeader": "Cost",
+      "defaultHeader": "Default",
+      "keyHeader": "Key",
+      "labelHeader": "Label",
+      "legacyStatus": "Legacy",
+      "lifecycleHeader": "Lifecycle",
+      "pendingStatus": "Pending",
+      "providerHeader": "Provider",
+      "qualityHeader": "Quality",
+      "registryHeader": "Registry",
+      "rejectedStatus": "Rejected",
+      "seededStatus": "Seeded",
+      "successorWithLabel": "Successor: {label}"
+    }
   },
   "connectGenfeed": {
     "addGenfeed": "Add Genfeed",

@@ -30,6 +30,11 @@ import {
 import { Switch } from '@ui/primitives/switch';
 import { useState } from 'react';
 
+export type ModelsTableTranslate = (
+  key: string,
+  values?: Record<string, string | number>,
+) => string;
+
 export type BuildModelsTableColumnsParams = {
   isAdminScope: boolean;
   isModelEnabled: (modelId: string) => boolean;
@@ -44,6 +49,7 @@ export type BuildModelsTableColumnsParams = {
   onOpenDetails: (model: IModel) => void;
   togglingModelId: string | null;
   models: IModel[];
+  translate: ModelsTableTranslate;
 };
 
 function ModelLifecycleControl({
@@ -51,11 +57,13 @@ function ModelLifecycleControl({
   models,
   isDisabled,
   onChange,
+  translate,
 }: {
   isDisabled: boolean;
   model: IModel;
   models: IModel[];
   onChange: (lifecycle: ModelLifecycle, succeededBy?: string) => void;
+  translate: ModelsTableTranslate;
 }) {
   const [pendingLifecycle, setPendingLifecycle] =
     useState<ModelLifecycle | null>(null);
@@ -125,7 +133,7 @@ function ModelLifecycleControl({
             aria-label={`Successor for ${model.label}`}
             className="h-8"
           >
-            <SelectValue placeholder="Choose successor" />
+            <SelectValue placeholder={translate('table.chooseSuccessor')} />
           </SelectTrigger>
           <SelectContent>
             {successors.map((successor) => (
@@ -137,11 +145,13 @@ function ModelLifecycleControl({
         </Select>
       ) : successorLabel ? (
         <span className="truncate text-2xs text-muted-foreground">
-          Successor: {successorLabel}
+          {translate('table.successorWithLabel', { label: successorLabel })}
         </span>
       ) : model.succeededBy ? (
         <span className="truncate font-mono text-2xs text-muted-foreground">
-          Successor: {model.succeededBy}
+          {translate('table.successorWithLabel', {
+            label: model.succeededBy,
+          })}
         </span>
       ) : null}
     </div>
@@ -186,45 +196,46 @@ export function buildModelsTableColumns({
   onOpenDetails,
   togglingModelId,
   models,
+  translate,
 }: BuildModelsTableColumnsParams): TableColumn<IModel>[] {
   const getRegistryStatus = (model: IModel) => {
     if (model.lifecycle === ModelLifecycle.LEGACY) {
       return {
         className: 'bg-warning/10 text-warning shadow-border',
-        label: 'Legacy',
+        label: translate('table.legacyStatus'),
       };
     }
 
     if (model.reviewStatus === 'rejected') {
       return {
         className: 'bg-destructive/10 text-destructive shadow-border',
-        label: 'Rejected',
+        label: translate('table.rejectedStatus'),
       };
     }
 
     if (model.isDiscovered && !model.isActive) {
       return {
         className: 'bg-info/10 text-info shadow-border',
-        label: 'Pending',
+        label: translate('table.pendingStatus'),
       };
     }
 
     if (model.isDiscovered) {
       return {
         className: 'bg-success/10 text-success shadow-border',
-        label: 'Approved',
+        label: translate('table.approvedStatus'),
       };
     }
 
     return {
       className: 'bg-secondary text-foreground/70 shadow-border',
-      label: 'Seeded',
+      label: translate('table.seededStatus'),
     };
   };
 
   return [
     {
-      header: 'Label',
+      header: translate('table.labelHeader'),
       key: 'label',
       sortable: true,
       render: (model: IModel) => (
@@ -245,7 +256,7 @@ export function buildModelsTableColumns({
       ? [
           {
             className: 'max-w-[11rem]',
-            header: 'Key',
+            header: translate('table.keyHeader'),
             key: 'key',
             sortable: true,
             render: (model: IModel) => (
@@ -258,7 +269,7 @@ export function buildModelsTableColumns({
             ),
           },
           {
-            header: 'Provider',
+            header: translate('table.providerHeader'),
             key: 'provider',
             sortable: true,
             render: (model: IModel) => (
@@ -274,7 +285,7 @@ export function buildModelsTableColumns({
     ...(isAdminScope
       ? [
           {
-            header: 'Registry',
+            header: translate('table.registryHeader'),
             key: 'reviewStatus',
             sortable: true,
             render: (model: IModel) => {
@@ -289,7 +300,7 @@ export function buildModelsTableColumns({
         ]
       : []),
     {
-      header: 'Category',
+      header: translate('table.categoryHeader'),
       key: 'category',
       sortable: true,
       render: (model: IModel) => (
@@ -305,7 +316,7 @@ export function buildModelsTableColumns({
       subtext: (model: IModel) => formatCategoryConfidence(model),
     },
     {
-      header: 'Quality',
+      header: translate('table.qualityHeader'),
       key: 'qualityTier',
       sortable: true,
       render: (model: IModel) => {
@@ -324,7 +335,7 @@ export function buildModelsTableColumns({
       },
     },
     {
-      header: 'Cost',
+      header: translate('table.costHeader'),
       key: 'cost',
       sortable: true,
       render: (model: IModel) => (
@@ -341,7 +352,7 @@ export function buildModelsTableColumns({
     ...(isAdminScope
       ? [
           {
-            header: 'Lifecycle',
+            header: translate('table.lifecycleHeader'),
             key: 'lifecycle',
             sortable: true,
             render: (model: IModel) => (
@@ -352,11 +363,12 @@ export function buildModelsTableColumns({
                 onChange={(lifecycle, succeededBy) =>
                   handleLifecycleChange(model, lifecycle, succeededBy)
                 }
+                translate={translate}
               />
             ),
           },
           {
-            header: 'Default',
+            header: translate('table.defaultHeader'),
             key: 'isDefault',
             sortable: true,
             render: (model: IModel) => (
