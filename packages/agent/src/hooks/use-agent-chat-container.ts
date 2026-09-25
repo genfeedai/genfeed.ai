@@ -36,6 +36,10 @@ import {
   type StableTimelineEntriesState,
 } from '@genfeedai/agent/utils/compute-stable-timeline-entries';
 import {
+  conversationMessagesBelongToThread,
+  pinConversationScrollToBottom,
+} from '@genfeedai/agent/utils/conversation-scroll.util';
+import {
   composeTimelineWithStream,
   deriveHistoricalTimeline,
 } from '@genfeedai/agent/utils/derive-timeline';
@@ -399,14 +403,16 @@ export function useAgentChatContainer({
     (behavior: ScrollBehavior = 'smooth') => {
       setIsAtBottom(true);
 
+      const pinLatest = (): void => {
+        pinConversationScrollToBottom(scrollContainerRef.current, behavior);
+      };
+
       if (typeof window === 'undefined') {
-        messagesEndRef.current?.scrollIntoView({ behavior });
+        pinLatest();
         return;
       }
 
-      window.requestAnimationFrame(() => {
-        messagesEndRef.current?.scrollIntoView({ behavior });
-      });
+      window.requestAnimationFrame(pinLatest);
     },
     [],
   );
@@ -821,8 +827,8 @@ export function useAgentChatContainer({
   }, [onCreateFollowUpTasks, setError, workspacePlanningTaskId]);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, []);
+    followLatestTurn('smooth');
+  }, [followLatestTurn]);
 
   const loadOlderMessages = useCallback(async () => {
     const threadId = activeThreadId;
@@ -921,6 +927,7 @@ export function useAgentChatContainer({
     olderMessagesAbortControllerRef.current?.abort();
     olderMessagesAbortControllerRef.current = null;
     pendingScrollAnchorRef.current = null;
+    setIsAtBottom(true);
   }, [activeThreadId]);
 
   useEffect(() => {
@@ -974,21 +981,28 @@ export function useAgentChatContainer({
     if (!isAtBottom) {
       return;
     }
-    messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+    if (!conversationMessagesBelongToThread(messages, activeThreadId)) {
+      return;
+    }
+    pinConversationScrollToBottom(scrollContainerRef.current);
   }, [
+    activeThreadId,
     isAtBottom,
+    messages,
     streamState.streamingContent,
     streamState.streamingReasoning,
     streamState.activeToolCalls.length,
     workEvents.length,
-    messages.length,
   ]);
 
   // Scroll-to-bottom when a thread first becomes readable (imperative DOM, not
   // derived UI). A thread restored from cache paints without ever flipping
   // isLoadingThread, so keying only off the loading transition would leave the
   // switch parked at the scroll offset of the thread the user just left.
-  useEffect(() => {
+  // The persistent conversation host reuses the scroller across `[id]` values,
+  // so wait until the transcript actually belongs to the new thread before
+  // claiming the pin — same-length swaps used to skip this effect.
+  useLayoutEffect(() => {
     if (activeThreadId === null) {
       // Leaving for the no-thread surface ends this thread's claim on the
       // scroll position. Holding the id would mean re-entering that same
@@ -999,22 +1013,25 @@ export function useAgentChatContainer({
     }
 
     const hasFinishedLoading = wasLoadingThreadRef.current && !isLoadingThread;
-    const isNewlyRenderedThread =
-      activeThreadId !== scrolledThreadIdRef.current;
+    const isUnpinnedThread = activeThreadId !== scrolledThreadIdRef.current;
+    const messagesMatchActiveThread = conversationMessagesBelongToThread(
+      messages,
+      activeThreadId,
+    );
 
     if (
-      (hasFinishedLoading || isNewlyRenderedThread) &&
+      (hasFinishedLoading || isUnpinnedThread) &&
       !isLoadingThread &&
-      messages.length > 0
+      messagesMatchActiveThread
     ) {
       scrolledThreadIdRef.current = activeThreadId;
-      messagesEndRef.current?.scrollIntoView({ behavior: 'auto' });
+      pinConversationScrollToBottom(scrollContainerRef.current);
       // react-doctor-disable-next-line react-doctor/no-adjust-state-on-prop-change
       setIsAtBottom(true);
     }
 
     wasLoadingThreadRef.current = isLoadingThread;
-  }, [activeThreadId, isLoadingThread, messages.length]);
+  }, [activeThreadId, isLoadingThread, messages]);
 
   // Elapsed timer for run duration
   useEffect(() => {

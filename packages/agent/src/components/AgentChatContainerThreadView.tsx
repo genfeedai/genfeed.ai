@@ -204,13 +204,16 @@ export function AgentChatContainerThreadView({
       </div>
 
       {!isAtBottom ? (
-        <div className="absolute bottom-24 left-1/2 z-20 -translate-x-1/2 md:bottom-28">
+        <div
+          className="pointer-events-none absolute inset-x-0 z-20 flex justify-center"
+          style={{ bottom: composerTranscriptPaddingPx }}
+        >
           <Button
             variant={ButtonVariant.GHOST}
             size={ButtonSize.ICON}
             icon={<ArrowDown className="size-4" />}
             ariaLabel="Scroll to latest message"
-            className="rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
+            className="pointer-events-auto rounded-md border border-border/70 bg-background/88 text-foreground/72 shadow-[0_16px_36px_-24px_rgba(0,0,0,0.85)] backdrop-blur-sm hover:text-foreground"
             withWrapper={false}
             onClick={scrollToBottom}
           />

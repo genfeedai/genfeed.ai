@@ -1,10 +1,16 @@
+import {
+  AgentChatContainerThreadView,
+  selectActiveWorkEvent,
+} from '@genfeedai/agent/components/AgentChatContainerThreadView';
 import type { AgentWorkEvent } from '@genfeedai/agent/models/agent-chat.model';
 import {
   AgentWorkEventStatus,
   AgentWorkEventType,
 } from '@genfeedai/agent/models/agent-chat.model';
+import { render, screen } from '@testing-library/react';
+import type { ReactNode } from 'react';
+import { createRef } from 'react';
 import { describe, expect, it, vi } from 'vitest';
-import { selectActiveWorkEvent } from './AgentChatContainerThreadView';
 
 vi.mock(
   '@genfeedai/contexts/providers/global-modals/global-modals.provider',
@@ -12,6 +18,40 @@ vi.mock(
     usePromptModal: () => ({ openPromptModal: vi.fn() }),
   }),
 );
+
+vi.mock('@genfeedai/agent/components/AgentChatTimeline', () => ({
+  AgentChatTimeline: () => <div>timeline</div>,
+}));
+
+vi.mock('@genfeedai/agent/components/AgentWorkObjects', () => ({
+  AgentWorkObjects: () => null,
+}));
+
+vi.mock('@genfeedai/agent/components/AgentPlanReviewSection', () => ({
+  AgentPlanReviewSection: () => null,
+}));
+
+vi.mock('@genfeedai/agent/components/AgentInputRequestOverlay', () => ({
+  AgentInputRequestOverlay: () => null,
+}));
+
+vi.mock('@ui/primitives/button', () => ({
+  Button: function MockPrimitiveButton(props: {
+    ariaLabel?: string;
+    onClick?: () => void;
+    children?: ReactNode;
+  }) {
+    return (
+      <button
+        type="button"
+        aria-label={props.ariaLabel}
+        onClick={props.onClick}
+      >
+        {props.children}
+      </button>
+    );
+  },
+}));
 
 function makeWorkEvent(
   overrides: Partial<AgentWorkEvent> = {},
@@ -99,5 +139,54 @@ describe('selectActiveWorkEvent', () => {
         }),
       ]),
     ).toBeNull();
+  });
+});
+
+describe('AgentChatContainerThreadView', () => {
+  it('sits the jump-to-latest control on the composer overlay, not under it', () => {
+    render(
+      <AgentChatContainerThreadView
+        activeThreadTitle={null}
+        activeUiAction={null}
+        apiService={{} as never}
+        followUpTaskMessage={null}
+        highlightedMessageId={null}
+        isAtBottom={false}
+        isBusy={false}
+        isCreatingFollowUpTasks={false}
+        isGenerating={false}
+        isWideLayout={false}
+        isReadOnly={false}
+        isStreamingActive={false}
+        isSubmittingInputRequest={false}
+        latestProposedPlan={null}
+        messagesEndRef={createRef<HTMLDivElement>()}
+        onboardingMode={false}
+        onApprovePlan={vi.fn()}
+        onCopy={vi.fn()}
+        onCreateFollowUpTasks={vi.fn()}
+        onIngredientSelect={vi.fn()}
+        onRequestPlanChanges={vi.fn()}
+        onRetry={vi.fn()}
+        onRetryLastFailedRun={vi.fn()}
+        onSubmitInputRequest={vi.fn()}
+        onUiAction={vi.fn()}
+        padBottomForComposer
+        composerTranscriptPaddingPx={180}
+        pendingInputRequest={null}
+        pendingUiActions={[]}
+        scrollContainerRef={createRef<HTMLDivElement>()}
+        scrollToBottom={vi.fn()}
+        shouldShowInputRequestOverlay={false}
+        showFollowUpButton={false}
+        timeline={[]}
+      />,
+    );
+
+    const jump = screen.getByRole('button', {
+      name: 'Scroll to latest message',
+    });
+
+    expect(jump.parentElement).toHaveStyle({ bottom: '180px' });
   });
 });
