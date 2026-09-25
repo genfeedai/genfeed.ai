@@ -10,5 +10,5 @@ export * from '@serializers/server/billing/referral-program.serializer';
 export * from '@serializers/server/billing/referral-reward.serializer';
 export * from '@serializers/server/billing/subscription.serializer';
 export * from '@serializers/server/billing/subscription-attribution.serializer';
-export * from '@serializers/server/billing/unit-economics-report.serializer';
 export { TopbarBalancesSerializer } from '@serializers/server/billing/topbar-balances.serializer';
+export * from '@serializers/server/billing/unit-economics-report.serializer';

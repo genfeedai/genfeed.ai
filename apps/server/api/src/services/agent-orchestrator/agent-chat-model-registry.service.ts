@@ -338,7 +338,9 @@ export class AgentChatModelRegistryService
     );
   }
 
-  private pricingForRow(row: AgentChatRegistryRow): AgentChatModelPricing | null {
+  private pricingForRow(
+    row: AgentChatRegistryRow,
+  ): AgentChatModelPricing | null {
     return row.pricing ?? getAgentChatModel(row.key)?.pricing ?? null;
   }
 

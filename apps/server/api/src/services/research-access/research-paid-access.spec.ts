@@ -1,6 +1,6 @@
+import type { PaidSubscriptionSnapshot } from '@api/common/subscriptions/paid-subscription-access.util';
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-import type { PaidSubscriptionSnapshot } from '@api/common/subscriptions/paid-subscription-access.util';
 import { resolveResearchCollectionAccess } from './research-paid-access';
 
 const NOW = new Date('2026-09-24T12:00:00.000Z');

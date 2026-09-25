@@ -196,8 +196,9 @@ describe('AgentChatModelRegistryService round pricing', () => {
 
   const usage = { completionTokens: 2_000, promptTokens: 10_000 };
   const catalogCostUsd = (key: string) => {
-    const pricing = AGENT_CHAT_MODELS.find((model) => model.key === key)
-      ?.pricing;
+    const pricing = AGENT_CHAT_MODELS.find(
+      (model) => model.key === key,
+    )?.pricing;
     if (!pricing) {
       throw new Error(`${key} is not catalogued`);
     }

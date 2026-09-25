@@ -262,9 +262,7 @@ export class AgentOrchestratorController {
     summary:
       'Get credits balance, model access, and estimated credits per message',
   })
-  async getCredits(
-    @CurrentUser() user: User,
-  ): Promise<IAgentCreditsInfo> {
+  async getCredits(@CurrentUser() user: User): Promise<IAgentCreditsInfo> {
     try {
       const organization = this.resolveOrganizationId(user);
       const [balance, modelAccess, modelCosts] = await Promise.all([

@@ -1,7 +1,7 @@
 import { SuperAdminGuard } from '@api/common/guards/super-admin.guard';
+import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { UnitEconomicsQueryDto } from '@api/endpoints/admin/unit-economics/dto/unit-economics-query.dto';
 import { UnitEconomicsService } from '@api/endpoints/admin/unit-economics/unit-economics.service';
-import { IpWhitelistGuard } from '@api/endpoints/admin/guards/ip-whitelist.guard';
 import { serializeSingle } from '@api/helpers/utils/response/response.util';
 import { RateLimit } from '@api/shared/decorators/rate-limit/rate-limit.decorator';
 import { UnitEconomicsReportSerializer } from '@genfeedai/serializers';

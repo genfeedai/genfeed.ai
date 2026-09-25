@@ -52,14 +52,12 @@ const createRegistry = async () => {
 const createCredits = (reservedAmount?: number) => ({
   deductCreditsFromOrganization: vi.fn().mockResolvedValue(undefined),
   releaseReservation: vi.fn().mockResolvedValue(undefined),
-  reserveCredits: vi
-    .fn()
-    .mockImplementation(({ amount }: { amount: number }) =>
-      Promise.resolve({
-        amount: reservedAmount ?? amount,
-        id: 'reservation-1',
-      }),
-    ),
+  reserveCredits: vi.fn().mockImplementation(({ amount }: { amount: number }) =>
+    Promise.resolve({
+      amount: reservedAmount ?? amount,
+      id: 'reservation-1',
+    }),
+  ),
   settleReservation: vi.fn().mockResolvedValue(undefined),
 });
 

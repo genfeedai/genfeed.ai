@@ -15,10 +15,10 @@ export * from './referral.interface';
 export * from './subscription.interface';
 export * from './subscription-failure.interface';
 export * from './subscriptions-service.contract';
-export * from './unit-economics.interface';
 export type {
   ITopbarBalanceSegment,
   ITopbarBalances,
   TopbarBalanceProvider,
   TopbarBalanceStatus,
 } from './topbar-balance.interface';
+export * from './unit-economics.interface';
