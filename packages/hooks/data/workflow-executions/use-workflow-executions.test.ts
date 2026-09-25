@@ -120,6 +120,7 @@ describe('useWorkflowExecutions summary', () => {
   });
 
   it('keeps executions when the statistics payload is not a summary', async () => {
+    listMock.mockReset();
     listMock.mockResolvedValue([
       { creditsUsed: 0, id: 'exec-1', status: 'COMPLETED' },
     ]);
