@@ -459,6 +459,22 @@
         "thinkingModelLabel": "Thinking Model"
       }
     },
+    "publishingCaps": {
+      "cardLabel": "Daily publishing caps",
+      "description": "Limits how many posts each connected account can publish per day on each platform.",
+      "helpText": "Max published posts per connected account per UTC day. 0 = no cap.",
+      "invalid": "Each cap must be a whole number between 0 and {max}.",
+      "platforms": {
+        "instagram": "Instagram",
+        "tiktok": "TikTok",
+        "twitter": "X",
+        "youtube": "YouTube"
+      },
+      "save": "Save publishing caps",
+      "saveFailed": "Failed to save publishing caps",
+      "saved": "Publishing caps saved",
+      "saving": "Saving\u2026"
+    },
     "profile": {
       "fields": {
         "email": "Email",
