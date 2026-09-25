@@ -3,7 +3,6 @@ import { AgentPublishAuditsService } from '@api/collections/agent-publish-audits
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { PostGroupsService } from '@api/collections/post-groups/services/post-groups.service';
-import { CreatePostDto } from '@api/collections/posts/dto/create-post.dto';
 import { PostRepurposeService } from '@api/collections/posts/services/post-repurpose.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { AgentScopeContextService } from '@api/index';
@@ -16,6 +15,13 @@ import {
 } from '@api/services/agent-orchestrator/tools/agent-publish-mcp-draft-only.util';
 import { resolveAgentPublishMediaGate } from '@api/services/agent-orchestrator/tools/agent-publish-media-readiness.util';
 import {
+  createAgentTextDraft,
+  createProactiveAgentTextPost,
+  fallbackConfirmedPublishPolicy,
+  finishConfirmedPublish,
+  scheduleAgentPost,
+} from '@api/services/agent-orchestrator/tools/agent-publish-post-actions';
+import {
   buildAgentPublishTargetProposals,
   collectInvalidTargetBlockers,
   formatTargetBlockersError,
@@ -26,16 +32,14 @@ import {
   resolvePublishValidationMedia,
   toCanonicalChannelTarget,
 } from '@api/services/agent-orchestrator/tools/agent-publish-target.util';
-import {
-  readAgentScheduleValidationError,
-  SAFE_AGENT_SCHEDULE_ERROR,
-} from '@api/services/agent-orchestrator/tools/agent-schedule-error.util';
 import type { ToolExecutionContext } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import { readOptionalString } from '@api/services/agent-orchestrator/tools/agent-tool-parameter-readers';
 import {
   persistPendingToolConfirmation,
   verifyPendingToolConfirmation,
 } from '@api/services/agent-orchestrator/tools/agent-tool-pending-confirmation.util';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { MediaReadinessService } from '@api/services/media-readiness/media-readiness.service';
 import {
@@ -43,7 +47,6 @@ import {
   AgentAutonomyMode,
   AgentPublishDecision,
   CredentialPlatform,
-  normalizeAgentAutonomyMode,
   PostRepurposeMode,
   PostStatus,
   PostVisibility,
@@ -52,10 +55,7 @@ import {
   TargetExecutionState,
 } from '@genfeedai/contracts';
 import { evaluateAgentAutoPublishPolicies } from '@genfeedai/contracts/api-types/contracts/agent-auto-publish.contract';
-import {
-  type AgentPublishPolicyResult,
-  evaluateAgentPublishPolicy,
-} from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
+import { type AgentPublishPolicyResult } from '@genfeedai/contracts/api-types/contracts/agent-publish-policy.contract';
 import { BATCH_CAPTION_BASE_CREDITS } from '@genfeedai/contracts/constants';
 import {
   type AgentPublishIdempotencyInput,
@@ -74,8 +74,6 @@ import {
   Optional,
 } from '@nestjs/common';
 import { z } from 'zod';
-
-const STRICT_SCHEDULE_DATE_SCHEMA = z.string().datetime({ offset: true });
 
 type IngredientsServiceLike = {
   findOne: (query: Record<string, unknown>) => Promise<unknown>;
@@ -107,7 +105,7 @@ export class AgentPublishToolHandler {
     @Optional()
     private readonly creditsUtilsService?: CreditsUtilsService,
     @Optional()
-    private readonly agentStrategiesService?: AgentStrategiesService,
+    _agentStrategiesService?: AgentStrategiesService,
     @Optional()
     private readonly agentPublishAuditsService?: AgentPublishAuditsService,
     @Optional()
@@ -116,6 +114,10 @@ export class AgentPublishToolHandler {
     @Optional()
     @Inject(MediaReadinessService)
     private readonly mediaReadinessService?: MediaReadinessService,
+    @Optional()
+    private readonly autonomousPublishPolicyService?: AutonomousPublishPolicyService,
+    @Optional()
+    private readonly batchGenerationService?: BatchGenerationService,
   ) {}
 
   async scheduleCanonicalPost(
@@ -193,7 +195,6 @@ export class AgentPublishToolHandler {
         success: false,
       };
     }
-
     const credentialsById = new Map(
       credentials.flatMap((credential) => {
         const credentialId = readCredentialId(credential.id);
@@ -266,6 +267,20 @@ export class AgentPublishToolHandler {
       return mediaGate.blockedResult;
     }
 
+    const ingredientBrandId = readOptionalString(ingredient.brandId);
+    const publishPolicy = await this.resolvePublishPolicy({
+      brandId: ingredientBrandId,
+      targets: resolvedTargets.targets,
+      channelAllowsAutoPublish: resolvedTargets.targets.every((target) =>
+        this.isCredentialConnected(credentialsById.get(target.credentialId)),
+      ),
+      ctx,
+    });
+    const requiresApproval =
+      publishPolicy.result.decision === AgentPublishDecision.DENIED;
+    const maySchedule =
+      !requiresApproval || ctx.confirmationOrigin === 'thread-ui-action';
+    const effectiveScheduledAt = maySchedule ? scheduledAt : undefined;
     const autoPublishPolicy = evaluateAgentAutoPublishPolicies({
       autonomyMode: ctx.autonomyMode,
       brandAutoPublishEnabled: ctx.confirmationOrigin === 'thread-ui-action',
@@ -279,7 +294,9 @@ export class AgentPublishToolHandler {
         credentialId: target.credentialId,
         order,
         platform: target.platform,
-        scheduledAt: targetsWithCaptions[order]?.scheduledAt ?? scheduledAt,
+        scheduledAt: maySchedule
+          ? (targetsWithCaptions[order]?.scheduledAt ?? effectiveScheduledAt)
+          : undefined,
         settings: {
           ...(targetsWithCaptions[order]?.settings ?? {}),
           ...(postingSetId ? { postingSetId } : {}),
@@ -303,12 +320,6 @@ export class AgentPublishToolHandler {
       visibility,
     });
     const mediaKind = resolvePublishMediaKind(ingredient.category);
-    const publishPolicy = await this.resolvePublishPolicy({
-      channelAllowsAutoPublish: resolvedTargets.targets.every((target) =>
-        this.isCredentialConnected(credentialsById.get(target.credentialId)),
-      ),
-      ctx,
-    });
     const shouldPublishNow =
       !scheduledAt &&
       publishPolicy.result.decision === AgentPublishDecision.PERMITTED;
@@ -317,7 +328,7 @@ export class AgentPublishToolHandler {
       ctx.userId,
       {
         baseContent,
-        brandId: ingredient.brandId ?? undefined,
+        brandId: ingredientBrandId,
         idempotencyKey,
         media: [
           {
@@ -326,9 +337,9 @@ export class AgentPublishToolHandler {
           },
         ],
         ...(postingSetId ? { postingSetId } : {}),
-        ...(scheduledAt
+        ...(effectiveScheduledAt
           ? {
-              scheduledDate: scheduledAt,
+              scheduledDate: effectiveScheduledAt,
               status: ReleaseStatus.SCHEDULED,
             }
           : { status: ReleaseStatus.DRAFT }),
@@ -350,77 +361,32 @@ export class AgentPublishToolHandler {
       },
     );
     await this.writePublishAudit({
-      brandId:
-        typeof ingredient.brandId === 'string' ? ingredient.brandId : null,
+      brandId: ingredientBrandId ?? null,
       channels: createdPlatforms,
       ctx,
       policy: publishPolicy,
       postGroupId: release.id,
     });
-    const canonicalRelease = shouldPublishNow
-      ? await this.postGroupsService.publishNow(
-          ctx.organizationId,
-          ctx.userId,
-          release.id,
-        )
-      : release;
-    const groupId = canonicalRelease.id;
-    const postIds = (canonicalRelease.targets ?? []).map((target) =>
-      String(target.id),
-    );
-    const requiresApproval =
-      !scheduledAt &&
-      publishPolicy.result.decision === AgentPublishDecision.DENIED;
-    const description = scheduledAt
-      ? `Scheduled ${postIds.length} post${postIds.length === 1 ? '' : 's'} for ${createdPlatforms.join(', ')}.`
-      : requiresApproval
-        ? publishPolicy.result.reason
-        : `Queued ${postIds.length} post${postIds.length === 1 ? '' : 's'} for publishing on ${createdPlatforms.join(', ')}.`;
-
-    return {
-      creditsUsed: 0,
-      data: {
-        autoPublishPolicyId: autoPublishPolicy.policyId,
-        contentId,
-        createdPlatforms,
-        ...mediaGate.cardData,
-        missingPlatforms,
-        ...(postingSetId ? { postingSetId } : {}),
-        postIds,
-        ...(requiresApproval ? { requiredAction: 'approval' } : {}),
-        scheduledAt,
-        totalCreated: postIds.length,
-      },
-      nextActions: [
-        {
-          ctas: [
-            { href: '/content/posts', label: 'Open posts' },
-            ...(postIds[0]
-              ? [
-                  {
-                    href: `/analytics/posts?postId=${postIds[0]}`,
-                    label: 'Open analytics',
-                  },
-                ]
-              : []),
-          ],
-          description,
-          id: requiresApproval
-            ? `publish-approval-${groupId}`
-            : `published-posts-${groupId}`,
-          requiresConfirmation: requiresApproval,
-          title: scheduledAt
-            ? 'Posts scheduled'
-            : requiresApproval
-              ? 'Publish requires approval'
-              : 'Posts queued',
-          type: requiresApproval
-            ? ('publish_post_card' as const)
-            : ('content_preview_card' as const),
-        },
-      ],
-      success: true,
-    };
+    return finishConfirmedPublish({
+      autoPublishPolicy,
+      baseContent,
+      batchGenerationService: this.batchGenerationService,
+      contentId,
+      createdPlatforms,
+      ctx,
+      effectiveScheduledAt,
+      idempotencyKey,
+      ingredientBrandId,
+      mediaGate,
+      missingPlatforms,
+      postGroupsService: this.postGroupsService,
+      postingSetId,
+      publishPolicy,
+      release,
+      requiresApproval,
+      scheduledAt,
+      shouldPublishNow,
+    });
   }
 
   private isCredentialConnected(credential: unknown): boolean {
@@ -435,29 +401,36 @@ export class AgentPublishToolHandler {
   }
 
   private async resolvePublishPolicy(params: {
+    brandId?: string;
+    targets: Array<{ credentialId: string; platform: string }>;
     channelAllowsAutoPublish: boolean;
     ctx: ToolExecutionContext;
   }): Promise<{
     autonomyMode: AgentAutonomyMode;
     result: AgentPublishPolicyResult;
   }> {
-    const strategy = params.ctx.strategyId
-      ? await this.agentStrategiesService?.findOne({
-          id: params.ctx.strategyId,
-          isDeleted: false,
-          organizationId: params.ctx.organizationId,
-        })
-      : null;
-    const autonomyMode = normalizeAgentAutonomyMode(strategy?.autonomyMode);
-    return {
-      autonomyMode,
-      result: evaluateAgentPublishPolicy({
-        autonomyMode,
-        brandAllowsAutoPublish:
-          strategy?.publishPolicy?.autoPublishEnabled === true,
-        channelAllowsAutoPublish: params.channelAllowsAutoPublish,
-      }),
-    };
+    const service = this.autonomousPublishPolicyService;
+    const brandId = params.brandId;
+    if (service && brandId && params.targets.length) {
+      const policies = await Promise.all(
+        params.targets.map((target) =>
+          service.resolveForTarget({
+            organizationId: params.ctx.organizationId,
+            brandId,
+            strategyId: params.ctx.strategyId,
+            platform: String(target.platform),
+            credentialId: target.credentialId,
+            channelAllowsAutoPublish: params.channelAllowsAutoPublish,
+          }),
+        ),
+      );
+      const resolved =
+        policies.find(
+          (policy) => policy.result.decision === AgentPublishDecision.DENIED,
+        ) ?? policies[0];
+      if (resolved) return resolved;
+    }
+    return fallbackConfirmedPublishPolicy(params.ctx);
   }
 
   private async writePublishAudit(params: {
@@ -893,7 +866,7 @@ export class AgentPublishToolHandler {
       }
       // Only the card-button resume sets `ctx.confirmationOrigin`. Model `confirmed` is stripped upstream.
       const isCardConfirmed = ctx.confirmationOrigin === 'thread-ui-action';
-      if (!isCardConfirmed) {
+      if (!isCardConfirmed && !ctx.isProactive) {
         const policy = evaluateAgentAutoPublishPolicies({
           autonomyMode: ctx.autonomyMode,
           brandAutoPublishEnabled: false,
@@ -943,7 +916,11 @@ export class AgentPublishToolHandler {
         organizationId: ctx.organizationId,
         platforms,
       });
-      const sourceActionId = readOptionalString(params.sourceActionId);
+      const sourceActionId =
+        readOptionalString(params.sourceActionId) ??
+        (ctx.isProactive && ctx.runId
+          ? `agent:${ctx.runId}:${contentId}`
+          : undefined);
       if (!sourceActionId) {
         return {
           creditsUsed: 0,
@@ -986,139 +963,40 @@ export class AgentPublishToolHandler {
       'post creation',
     );
 
-    const post = await this.postsService.create({
-      ...(ctx.runId ? { workflowExecutionId: ctx.runId } : {}),
-      ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
-      agentContextSource: ctx.validatedScope?.source,
-      agentContextVersion: ctx.validatedScope?.contextVersion,
-      agentThreadId: ctx.validatedScope?.threadId,
-      brandId: ctx.validatedScope?.brandId,
-      description: params.content as string,
-      label: ((params.content as string) || '').substring(0, 100),
-      organizationId: ctx.organizationId,
-      source: 'agent',
-      targetExecutionState: TargetExecutionState.DRAFT,
-      userId: ctx.userId,
-      visibility,
-    } as unknown as CreatePostDto);
+    if (ctx.isProactive)
+      return this.createProactiveTextPost(params, ctx, visibility);
 
-    return {
-      creditsUsed: 0,
-      data: {
-        id: String(post.id),
-        executionState: TargetExecutionState.DRAFT,
-        visibility,
-      },
-      success: true,
-    };
+    return createAgentTextDraft(this.postsService, params, ctx, visibility);
+  }
+
+  private createProactiveTextPost(
+    params: Record<string, unknown>,
+    ctx: ToolExecutionContext,
+    visibility: PostVisibility,
+  ): Promise<AgentToolResult> {
+    return createProactiveAgentTextPost(params, ctx, visibility, {
+      batchGenerationService: this.batchGenerationService,
+      postGroupsService: this.postGroupsService,
+      readPublishRequest: (value) => this.readPublishRequest(value),
+      resolveBrandCredentials: (value) => this.resolveBrandCredentials(value),
+      resolvePublishPolicy: (value) => this.resolvePublishPolicy(value),
+      writePublishAudit: (value) => this.writePublishAudit(value),
+    });
   }
 
   async schedulePost(
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const postId = readOptionalString(params.postId);
-    const scheduledAt = readOptionalString(params.scheduledAt);
-    if (!postId || !scheduledAt) {
-      return {
-        creditsUsed: 0,
-        error: 'postId and scheduledAt are required to schedule a post.',
-        success: false,
-      };
-    }
-    if (!STRICT_SCHEDULE_DATE_SCHEMA.safeParse(scheduledAt).success) {
-      return {
-        creditsUsed: 0,
-        error:
-          'scheduledAt must be a valid ISO 8601 date and time with an explicit UTC offset.',
-        success: false,
-      };
-    }
-    const scheduledDate = new Date(scheduledAt);
-    if (scheduledDate.getTime() <= Date.now()) {
-      return {
-        creditsUsed: 0,
-        error: 'scheduledAt must be in the future.',
-        success: false,
-      };
-    }
-
-    let groupId: string | undefined;
-    try {
-      const post = await this.postsService.findOne({
-        id: postId,
-        organizationId: ctx.organizationId,
-      });
-
-      if (!post) {
-        return {
-          creditsUsed: 0,
-          error: `Post ${postId} not found`,
-          success: false,
-        };
-      }
-
-      await this.assertPublishingScope(
-        ctx,
-        readOptionalString(post.brandId),
-        'scheduled post',
-      );
-
-      groupId = readOptionalString(post.groupId);
-      if (!groupId) {
-        return {
-          creditsUsed: 0,
-          data: {
-            id: postId,
-            requiredAction: 'create_canonical_release',
-          },
-          error:
-            'This legacy standalone draft cannot be scheduled safely. Open Posts and create a canonical release with an explicit platform and connected account.',
-          nextActions: [
-            {
-              ctas: [{ href: '/content/posts', label: 'Open posts' }],
-              description:
-                'Choose the destination and connected account in the canonical release composer before scheduling.',
-              id: `schedule-legacy-post-${postId}`,
-              title: 'Canonical release required',
-              type: 'schedule_post_card',
-            },
-          ],
-          success: false,
-        };
-      }
-
-      return await this.scheduleCanonicalPost({
-        ctx,
-        groupId,
-        postId,
-        scheduledAt: scheduledDate.toISOString(),
-      });
-    } catch (error: unknown) {
-      const validationError = readAgentScheduleValidationError(error);
-      if (!validationError) {
-        this.loggerService.error(
-          `Canonical schedule failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
-          this.constructorName,
-        );
-      }
-      return {
-        creditsUsed: 0,
-        data: { id: postId, ...(groupId ? { releaseId: groupId } : {}) },
-        error: validationError ?? SAFE_AGENT_SCHEDULE_ERROR,
-        nextActions: [
-          {
-            ctas: [{ href: '/content/posts', label: 'Review post setup' }],
-            description:
-              'Verify the release brand, platform, connected account, and future schedule before retrying.',
-            id: `schedule-post-failed-${postId}`,
-            title: 'Scheduling needs attention',
-            type: 'schedule_post_card',
-          },
-        ],
-        success: false,
-      };
-    }
+    return scheduleAgentPost(params, ctx, {
+      assertPublishingScope: (context, brandId, label) =>
+        this.assertPublishingScope(context, brandId, label),
+      autonomousPublishPolicyService: this.autonomousPublishPolicyService,
+      logger: this.loggerService,
+      owner: this.constructorName,
+      postsService: this.postsService,
+      scheduleCanonicalPost: (input) => this.scheduleCanonicalPost(input),
+    });
   }
 
   /**

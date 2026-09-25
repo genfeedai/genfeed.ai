@@ -126,6 +126,17 @@ export class AgentMediaBatchGenerationService {
     if ('error' in brandId) return brandId.error;
 
     const prepared = this.prepareBatch(params, ctx);
+    if (
+      ctx.creditBudget !== undefined &&
+      (!Number.isFinite(ctx.creditBudget) ||
+        ctx.creditBudget < prepared.estimatedCredits)
+    ) {
+      return {
+        creditsUsed: 0,
+        error: `Agent credit budget cannot cover this batch (${prepared.estimatedCredits} credits required).`,
+        success: false,
+      };
+    }
     const execution = await this.createAndReserveBatch(
       params,
       ctx,

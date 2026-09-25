@@ -99,4 +99,30 @@ describe('BrandMemoryService typed entries', () => {
       },
     });
   });
+  it('replaces a replayed analytics insight while preserving other insights', async () => {
+    const source = 'analytics-threshold:engagementRate:2026-09-24';
+    brandMemory.findFirst.mockResolvedValue({
+      id: 'memory-1',
+      insights: [
+        { source: 'preference', insight: 'Keep my voice' },
+        { source, insight: 'Old measurement' },
+      ],
+    });
+    await service.addInsight('org-1', 'brand-1', {
+      category: 'performance',
+      confidence: 0.8,
+      insight: 'Updated measurement',
+      source,
+    });
+    expect(brandMemory.update).toHaveBeenCalledWith(
+      expect.objectContaining({
+        data: {
+          insights: [
+            { source: 'preference', insight: 'Keep my voice' },
+            expect.objectContaining({ source, insight: 'Updated measurement' }),
+          ],
+        },
+      }),
+    );
+  });
 });

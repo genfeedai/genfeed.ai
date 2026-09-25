@@ -17,6 +17,7 @@ import { ReplyPollingWorkflowService } from '@api/collections/workflows/services
 import { TrendNotificationWorkflowService } from '@api/collections/workflows/services/trend-notification-workflow.service';
 import { AD_AUTOMATION_ACTION_IDS } from '@api/collections/workflows/templates/ad-automation-workflows.template';
 import { ANALYTICS_SYNC_ACTION_IDS } from '@api/collections/workflows/templates/analytics-sync-workflows.template';
+import { WorkflowNotificationDeliveryService } from '@api/services/notifications/workflow-notifications/workflow-notification-delivery.service';
 import {
   buildActionExecutionInput,
   type ExecutionContext,
@@ -47,9 +48,12 @@ export class WorkflowAutomationExecutorRegistrarService {
     private readonly paidCreativeResearchWorkflowService?: PaidCreativeResearchWorkflowService,
     @Optional()
     private readonly adBulkUploadWorkflowService?: AdBulkUploadWorkflowService,
+    @Optional()
+    private readonly agentReportDelivery?: WorkflowNotificationDeliveryService,
   ) {}
 
   register(engine: WorkflowEngine): void {
+    this.registerAgentReportExecutors(engine);
     this.registerAdAutomationExecutors(engine);
     this.registerAdBulkUploadExecutors(engine);
     this.registerAgentAutopilotExecutors(engine);
@@ -60,6 +64,26 @@ export class WorkflowAutomationExecutorRegistrarService {
     this.registerLivestreamBotExecutors(engine);
     this.registerWinnerPromotionExecutors(engine);
     this.registerPaidCreativeResearchExecutors(engine);
+  }
+
+  private registerAgentReportExecutors(engine: WorkflowEngine): void {
+    const service = this.agentReportDelivery;
+    if (!service) return;
+    for (const channel of ['telegram', 'discord', 'email'] as const) {
+      engine.registerExecutor(
+        `agent.report.deliver-${channel}`,
+        async (node, inputs, context) => {
+          const input = actionInputs(node.config, inputs);
+          if (typeof input.deliveryId !== 'string')
+            throw new Error('Agent report deliveryId is required');
+          return service.deliverAgentReport(
+            context.organizationId,
+            input.deliveryId,
+            channel,
+          );
+        },
+      );
+    }
   }
 
   private registerAdAutomationExecutors(engine: WorkflowEngine): void {

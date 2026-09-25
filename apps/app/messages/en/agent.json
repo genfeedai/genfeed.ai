@@ -5,6 +5,27 @@
     "title": "Agent",
     "unsupportedCard": "This card type is not supported yet."
   },
+  "activityFeed": {
+    "budget": "Budget",
+    "completed": "Completed",
+    "contentGenerated": "{count} content generated",
+    "credits": "{count} credits",
+    "empty": "No activity yet",
+    "emptyDescription": "Activity from agent runs will appear here.",
+    "failed": "Failed",
+    "loadError": "Could not load agent activity.",
+    "recent": "Recent Activity",
+    "view": "View",
+    "viewConversation": "View conversation",
+    "viewExecution": "View execution"
+  },
+  "threadList": {
+    "agent": "Agent",
+    "fork": "Fork thread",
+    "pinned": "Pinned conversation",
+    "rename": "Rename",
+    "running": "Running"
+  },
   "runsList": {
     "empty": "No active or recently failed runs.",
     "stale": "Run status may be stale until the connection recovers."

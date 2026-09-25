@@ -9,6 +9,7 @@ import {
   resolveNestedActionOrigin,
   runWithActionOrigin,
 } from '@api/index';
+import { AGENT_CREDIT_COSTS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import type {
   AgentGenerationMode,
   AgentGenerationSettings,
@@ -80,7 +81,43 @@ import {
 } from '@nestjs/common';
 import { toPlainJson } from '@serializers/helpers/plain-json.helper';
 
+const UNQUOTED_PAID_AGENT_TOOLS = new Set<string>([
+  'generate_image',
+  'generate_video',
+  'generate_music',
+  'generate_voice',
+  'generate_as_identity',
+  'reframe_image',
+  'upscale_image',
+  'generate_onboarding_content',
+  'generate_ad_pack',
+  'enhance_prompt',
+  'execute_workflow',
+]);
+
+export function agentToolCreditEstimate(
+  toolName: string,
+  parameters: Record<string, unknown>,
+): number | undefined {
+  // Batch preparation enforces its authoritative quote against the remaining cap before reserving credits.
+  if (toolName === 'generate_content_batch') return 0;
+  if (UNQUOTED_PAID_AGENT_TOOLS.has(toolName)) return undefined;
+  if (
+    toolName === 'generate_content' &&
+    (parameters.longForm === true ||
+      ['article', 'x-article'].includes(
+        String(parameters.type ?? parameters.contentType ?? '')
+          .trim()
+          .toLowerCase(),
+      ))
+  )
+    return undefined;
+  return AGENT_CREDIT_COSTS[toolName];
+}
+
 export interface ToolExecutionContext {
+  isProactive?: boolean;
+  creditBudget?: number;
   apiKeyContext?: ApiKeyPublishingContext;
   /** URLs of user-attached images from the chat message */
   attachmentUrls?: string[];
@@ -343,6 +380,24 @@ export class AgentToolExecutorService implements OnModuleInit {
       if (requestedSkillSlugs)
         parameters.requestedSkillSlugs = requestedSkillSlugs;
       else delete parameters.requestedSkillSlugs;
+    }
+    if (context.creditBudget !== undefined) {
+      const estimate = agentToolCreditEstimate(toolName, parameters);
+      if (
+        !Number.isFinite(context.creditBudget) ||
+        context.creditBudget <= 0 ||
+        estimate === undefined ||
+        !Number.isFinite(estimate) ||
+        estimate < 0 ||
+        estimate > context.creditBudget
+      ) {
+        return {
+          success: false,
+          creditsUsed: 0,
+          error:
+            'Agent credit budget exhausted or paid-operation quote unavailable',
+        };
+      }
     }
     assertScope(context.apiKeyContext ?? {}, toolName, parameters);
     try {

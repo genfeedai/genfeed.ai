@@ -1,5 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+const { resolveReview } = vi.hoisted(() => ({ resolveReview: vi.fn() }));
+
 vi.mock('discord.js', () => {
   const mockClient = {
     channels: { fetch: vi.fn() },
@@ -106,6 +108,7 @@ vi.mock('@genfeedai/integrations', () => ({
     async handleRedisEvent() {}
   },
   BotInternalApiClient: class {
+    resolveAgentReportReview = resolveReview;
     fetchActiveIntegrations = vi.fn().mockResolvedValue([]);
     fetchIntegration = vi.fn().mockResolvedValue(null);
     fetchOrgWorkflows = vi.fn().mockResolvedValue([]);
@@ -259,5 +262,135 @@ describe('DiscordBotManager', () => {
   it('should sendToChannel return null when no bot found', async () => {
     const result = await manager.sendToChannel('unknown-org', 'ch-1', 'hello');
     expect(result).toBeNull();
+  });
+});
+
+describe('Discord agent report reviews', () => {
+  const token = 'b'.repeat(32);
+  function interaction(customId: string) {
+    return {
+      customId,
+      channelId: 'channel-42',
+      user: { id: 'remote-42' },
+      organizationId: 'untrusted-org',
+      userId: 'untrusted-canonical-user',
+      isButton: () => true,
+      isChatInputCommand: () => false,
+      isRepliable: () => true,
+      deferReply: vi.fn().mockResolvedValue(undefined),
+      editReply: vi.fn().mockResolvedValue(undefined),
+      reply: vi.fn().mockResolvedValue(undefined),
+      update: vi.fn().mockResolvedValue(undefined),
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resolveReview
+      .mockReset()
+      .mockResolvedValue({ success: true, message: 'Review recorded' });
+  });
+
+  async function handler() {
+    const instance = await createManager().createBotInstance({
+      ...mockIntegration,
+      config: { allowedUserIds: ['remote-42'] },
+    });
+    return vi
+      .mocked(instance.client.on)
+      .mock.calls.find(([event]) => event === 'interactionCreate')?.[1] as (
+      event: unknown,
+    ) => Promise<void>;
+  }
+
+  it.each(['approve', 'reject'])(
+    'binds %s to bot organization and actual Discord actor/channel',
+    async (decision) => {
+      const callback = await handler();
+      const event = interaction(`agent-review:${token}:${decision}`);
+      await callback(event);
+      expect(event.deferReply).toHaveBeenCalledOnce();
+      expect(event.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+      expect(resolveReview).toHaveBeenCalledWith({
+        organizationId: 'org-1',
+        remoteUserId: 'remote-42',
+        channelId: 'channel-42',
+        token,
+        decision,
+      });
+      expect(event.editReply).toHaveBeenCalledWith({
+        content: 'Review recorded',
+      });
+      expect(event.update).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps the bot allowlist guard in front of review resolution', async () => {
+    const callback = await handler();
+    const event = {
+      ...interaction(`agent-review:${token}:approve`),
+      user: { id: 'someone-else' },
+    };
+    await callback(event);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(event.deferReply).not.toHaveBeenCalled();
+    expect(event.reply).toHaveBeenCalledWith({
+      content: 'You are not authorized to use this bot.',
+      ephemeral: true,
+    });
+  });
+
+  it('does not resolve a review without its actual channel', async () => {
+    const callback = await handler();
+    const event = {
+      ...interaction(`agent-review:${token}:approve`),
+      channelId: null,
+    };
+    await callback(event);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(event.editReply).toHaveBeenCalledWith({
+      content: expect.stringContaining('may have expired'),
+    });
+  });
+
+  it('shows a generic ephemeral error without exposing API details', async () => {
+    resolveReview.mockRejectedValue(
+      new Error('secret-token/internal-version-detail'),
+    );
+    const callback = await handler();
+    const event = interaction(`agent-review:${token}:reject`);
+    await callback(event);
+    expect(event.deferReply).toHaveBeenCalledWith({ ephemeral: true });
+    expect(event.editReply).toHaveBeenCalledWith({
+      content: expect.stringContaining('may have expired'),
+    });
+    expect(JSON.stringify(event.editReply.mock.calls)).not.toContain(
+      'secret-token',
+    );
+  });
+
+  it.each([
+    `agent-review:${token}:publish`,
+    'agent-review:invalid:approve',
+    `agent-review:${token}:approve:org-spoof`,
+    `agent-review:${token}:approve\n`,
+  ])('ignores malformed review callback %s', async (customId) => {
+    const callback = await handler();
+    const event = interaction(customId);
+    await callback(event);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(event.deferReply).not.toHaveBeenCalled();
+    expect(event.reply).not.toHaveBeenCalled();
+  });
+
+  it('preserves workflow cancellation callbacks', async () => {
+    const callback = await handler();
+    const event = interaction('confirm:cancel');
+    await callback(event);
+    expect(resolveReview).not.toHaveBeenCalled();
+    expect(event.update).toHaveBeenCalledWith({
+      components: [],
+      content: 'Cancelled. Use /workflows to start again.',
+    });
   });
 });

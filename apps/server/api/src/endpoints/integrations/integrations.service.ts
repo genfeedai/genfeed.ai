@@ -4,7 +4,11 @@ import { UpdateIntegrationDto } from '@api/endpoints/integrations/dto/update-int
 import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { findOrThrow } from '@api/shared/utils/find-or-throw/find-or-throw.util';
-import { IntegrationPlatform, IntegrationStatus } from '@genfeedai/contracts';
+import {
+  IntegrationPlatform,
+  IntegrationStatus,
+  MemberRole,
+} from '@genfeedai/contracts';
 import { REDIS_EVENTS } from '@genfeedai/integrations';
 import {
   IntegrationPlatform as PrismaIntegrationPlatform,
@@ -14,6 +18,7 @@ import {
 import { RedisService } from '@libs/redis/redis.service';
 import {
   BadRequestException,
+  ForbiddenException,
   Injectable,
   Logger,
   Optional,
@@ -31,10 +36,54 @@ export class IntegrationsService {
     @Optional() private readonly redisService?: RedisService,
   ) {}
 
+  private async assertReportBindingAuthor(
+    config: CreateIntegrationDto['config'],
+    organizationId: string,
+    actorUserId?: string,
+  ): Promise<void> {
+    if (config?.agentReportBindings === undefined) return;
+    if (
+      !actorUserId ||
+      config.agentReportBindings.some(
+        (binding) => binding.userId !== actorUserId,
+      )
+    )
+      throw new ForbiddenException(
+        'Agent report bindings require the consenting user',
+      );
+    const member = await this.prisma.member.findFirst({
+      where: scopedWhere(organizationId, {
+        userId: actorUserId,
+        isActive: true,
+        user: { is: { isDeleted: false } },
+      }),
+      include: { role: true },
+    });
+    if (
+      !member ||
+      ![MemberRole.OWNER, MemberRole.ADMIN].includes(
+        member.role.key as MemberRole,
+      )
+    )
+      throw new ForbiddenException(
+        'Only an organization owner or administrator can bind agent reports',
+      );
+    for (const binding of config.agentReportBindings) {
+      const brand = await this.prisma.brand.findFirst({
+        where: scopedWhere(organizationId, { id: binding.brandId }),
+        select: { id: true },
+      });
+      if (!brand)
+        throw new ForbiddenException('Agent report brand is unavailable');
+    }
+  }
+
   async create(
     orgId: string,
     dto: CreateIntegrationDto,
+    actorUserId?: string,
   ): Promise<Record<string, unknown>> {
+    await this.assertReportBindingAuthor(dto.config, orgId, actorUserId);
     const platform = this.toPrismaPlatform(dto.platform);
 
     // Check if integration for this platform already exists
@@ -150,7 +199,9 @@ export class IntegrationsService {
     orgId: string,
     integrationId: string,
     dto: UpdateIntegrationDto,
+    actorUserId?: string,
   ): Promise<Record<string, unknown>> {
+    await this.assertReportBindingAuthor(dto.config, orgId, actorUserId);
     const existing = await findOrThrow(
       this.prisma.orgIntegration,
       { where: scopedWhere(orgId, { id: integrationId }) },

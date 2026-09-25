@@ -7,6 +7,7 @@ import {
   AgentArtifactReferenceService,
   PostLifecycleService,
 } from '@api/index';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { BatchGenerationCreationService } from '@api/services/batch-generation/batch-generation-creation.service';
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
@@ -32,6 +33,7 @@ describe('BatchGenerationService approval version pins', () => {
     updateMany: ReturnType<typeof vi.fn>;
   };
   let postDelegate: {
+    findFirst: ReturnType<typeof vi.fn>;
     findMany: ReturnType<typeof vi.fn>;
     updateMany: ReturnType<typeof vi.fn>;
   };
@@ -86,6 +88,9 @@ describe('BatchGenerationService approval version pins', () => {
       }),
     };
     postDelegate = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ id: 'post-1', targetExecutionState: 'draft' }),
       findMany: vi.fn().mockResolvedValue([]),
       updateMany: vi.fn().mockResolvedValue({ count: 1 }),
     };
@@ -112,6 +117,7 @@ describe('BatchGenerationService approval version pins', () => {
     prisma = {
       $transaction: vi.fn((callback) =>
         callback({
+          $queryRaw: vi.fn(),
           batch: batchDelegate,
           batchItem: { upsert: vi.fn().mockResolvedValue({}) },
           post: postDelegate,
@@ -129,6 +135,10 @@ describe('BatchGenerationService approval version pins', () => {
         BatchGenerationCreationService,
         BatchGenerationProcessingService,
         BatchGenerationReviewService,
+        {
+          provide: AutonomousPublishPolicyService,
+          useValue: { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() },
+        },
         { provide: PostLifecycleService, useValue: postLifecycleService },
         BatchGenerationService,
         BatchGenerationSummaryService,
@@ -285,6 +295,7 @@ describe('BatchGenerationService approval version pins', () => {
         postId: 'post-1',
         reason: 'Use a clearer opening line.',
       }),
+      expect.objectContaining({ post: postDelegate }),
     );
   });
 
@@ -338,6 +349,7 @@ describe('BatchGenerationService approval version pins', () => {
         postId: 'post-1',
         reason: 'This misses the brief.',
       }),
+      expect.objectContaining({ post: postDelegate }),
     );
   });
 
@@ -380,6 +392,9 @@ describe('BatchGenerationService approval version pins', () => {
       postVersionPinId: null as string | null,
     };
     const transactionPost = {
+      findFirst: vi
+        .fn()
+        .mockResolvedValue({ id: 'post-1', targetExecutionState: 'draft' }),
       updateMany: vi.fn().mockImplementation(({ data }) => {
         durableState.postReviewDecision = data.reviewDecision;
         durableState.postVersionPinId = data.reviewVersionPinId;
@@ -387,11 +402,12 @@ describe('BatchGenerationService approval version pins', () => {
       }),
     };
     const transactionBatch = {
-      findFirst: vi.fn(),
+      findFirst: vi.fn().mockResolvedValue(createBatchRecord([item])),
       update: vi.fn().mockRejectedValue(new Error('batch write failed')),
       updateMany: vi.fn().mockRejectedValue(new Error('batch write failed')),
     };
     const transaction = {
+      $queryRaw: vi.fn(),
       batch: transactionBatch,
       batchItem: { upsert: vi.fn().mockResolvedValue({}) },
       post: transactionPost,

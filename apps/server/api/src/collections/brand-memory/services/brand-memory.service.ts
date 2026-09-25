@@ -2,9 +2,9 @@ import type {
   BrandMemoryDocument,
   BrandMemoryInsight,
 } from '@api/collections/brand-memory/schemas/brand-memory.schema';
-import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import { BaseService } from '@api/shared/services/base/base.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
   type Prisma,
   type BrandMemory as PrismaBrandMemory,
@@ -130,12 +130,22 @@ export class BrandMemoryService extends BaseService<
       const currentInsights =
         ((existing as Record<string, unknown>).insights as unknown[]) ?? [];
       return this.delegate.update({
-        where: { id: (existing as Record<string, unknown>).id as string },
+        where: scopedWhere(organizationId, {
+          brandId,
+          id: (existing as Record<string, unknown>).id as string,
+        }),
         data: {
-          insights: [...currentInsights, newInsight] as unknown as Record<
-            string,
-            unknown
-          >[],
+          insights: [
+            ...currentInsights.filter(
+              (current) =>
+                !insight.source.startsWith('analytics-threshold:') ||
+                !current ||
+                typeof current !== 'object' ||
+                !('source' in current) ||
+                current.source !== insight.source,
+            ),
+            newInsight,
+          ] as unknown as Record<string, unknown>[],
         },
       }) as Promise<BrandMemoryDocument>;
     }

@@ -117,7 +117,7 @@ describe('BotInternalApiClient', () => {
         { Authorization: 'Bearer test-key' },
       );
       expect(result).not.toBeNull();
-      expect(result!.id).toBe('int-1');
+      expect(result?.id).toBe('int-1');
     });
 
     it('returns null when payload cannot be normalized', async () => {
@@ -162,5 +162,51 @@ describe('BotInternalApiClient', () => {
       );
       expect(result).toEqual(workflow);
     });
+  });
+});
+
+describe('agent report review client', () => {
+  const input = {
+    organizationId: 'org-1',
+    remoteUserId: 'remote-1',
+    channelId: 'channel-1',
+    token: 'a'.repeat(32),
+    decision: 'approve' as const,
+  };
+  it.each(['TELEGRAM', 'DISCORD'] as const)(
+    'posts actor and scope to the authenticated lowercase %s route',
+    async (platform) => {
+      const { adapter, post } = makeMockAdapter();
+      post.mockResolvedValue({ success: true, message: 'Review recorded' });
+      await expect(
+        makeClient(platform, adapter).resolveAgentReportReview(input),
+      ).resolves.toEqual({ success: true, message: 'Review recorded' });
+      expect(post).toHaveBeenCalledWith(
+        `http://api.local/v1/internal/agent-reports/${platform.toLowerCase()}/review`,
+        input,
+        { Authorization: 'Bearer test-key' },
+      );
+    },
+  );
+
+  it('fails closed without an internal API key', async () => {
+    const { adapter, post } = makeMockAdapter();
+    const client = new BotInternalApiClient({
+      apiUrl: 'http://api.local',
+      platform: 'TELEGRAM',
+      http: adapter,
+    });
+    await expect(client.resolveAgentReportReview(input)).rejects.toThrow(
+      'internal API key',
+    );
+    expect(post).not.toHaveBeenCalled();
+  });
+
+  it('propagates review rejection to the adapter instead of claiming success', async () => {
+    const { adapter, post } = makeMockAdapter();
+    post.mockRejectedValue(new Error('expired'));
+    await expect(
+      makeClient('DISCORD', adapter).resolveAgentReportReview(input),
+    ).rejects.toThrow('expired');
   });
 });

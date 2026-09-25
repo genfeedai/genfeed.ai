@@ -2,6 +2,8 @@ import { CredentialsService } from '@api/collections/credentials/services/creden
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import { PersonaPublisherService } from '@api/services/persona-content/persona-publisher.service';
 import {
   PostCategory,
@@ -13,6 +15,11 @@ import { Test, type TestingModule } from '@nestjs/testing';
 
 describe('PersonaPublisherService', () => {
   let service: PersonaPublisherService;
+  let review: {
+    createManualReviewBatch: ReturnType<typeof vi.fn>;
+    approveAutonomousItems: ReturnType<typeof vi.fn>;
+  };
+
   let personasService: { findOne: ReturnType<typeof vi.fn> };
   let credentialsService: { findOne: ReturnType<typeof vi.fn> };
   let postsService: { create: ReturnType<typeof vi.fn> };
@@ -28,9 +35,27 @@ describe('PersonaPublisherService', () => {
       create: vi.fn(),
     };
 
+    review = {
+      createManualReviewBatch: vi
+        .fn()
+        .mockResolvedValue({ id: 'batch-1', items: [{ id: 'item-1' }] }),
+      approveAutonomousItems: vi.fn(),
+    };
     const module: TestingModule = await Test.createTestingModule({
       providers: [
         PersonaPublisherService,
+        {
+          provide: BatchGenerationService,
+          useValue: review,
+        },
+        {
+          provide: AutonomousPublishPolicyService,
+          useValue: {
+            resolveForPost: vi
+              .fn()
+              .mockResolvedValue({ result: { decision: 'DENIED' } }),
+          },
+        },
         {
           provide: LoggerService,
           useValue: {
@@ -47,6 +72,47 @@ describe('PersonaPublisherService', () => {
     }).compile();
 
     service = module.get<PersonaPublisherService>(PersonaPublisherService);
+  });
+
+  it('preserves a visible draft and reports failure when review linking fails', async () => {
+    personasService.findOne.mockResolvedValue({
+      credentials: ['credential-1'],
+      label: 'Persona',
+    });
+    credentialsService.findOne.mockResolvedValue({
+      id: 'credential-1',
+      platform: 'INSTAGRAM',
+    });
+    postsService.create.mockResolvedValue({ id: 'post-1' });
+    review.createManualReviewBatch.mockRejectedValue(
+      new Error('Review unavailable'),
+    );
+    const result = await service.publishToAll({
+      personaId: 'persona-1',
+      organizationId: 'org-1',
+      userId: 'user-1',
+      brandId: 'brand-1',
+      description: 'Draft caption',
+    });
+    expect(result).toMatchObject({
+      postIds: ['post-1'],
+      failedCredentials: ['credential-1'],
+      totalCreated: 1,
+    });
+    expect(postsService.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        targetExecutionState: TargetExecutionState.DRAFT,
+      }),
+    );
+    expect(review.approveAutonomousItems).not.toHaveBeenCalled();
+    expect(review.createManualReviewBatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        items: [expect.objectContaining({ postId: 'post-1' })],
+      }),
+      'user-1',
+      'org-1',
+      'persona-review:org-1:post-1',
+    );
   });
 
   it('publishes only matching platform credentials when platforms filter is provided', async () => {
@@ -209,7 +275,7 @@ describe('PersonaPublisherService', () => {
     expect(postsService.create).toHaveBeenCalledWith(
       expect.objectContaining({
         scheduledDate: futureDate,
-        targetExecutionState: TargetExecutionState.SCHEDULED,
+        targetExecutionState: TargetExecutionState.DRAFT,
         visibility: PostVisibility.PUBLIC,
       }),
     );

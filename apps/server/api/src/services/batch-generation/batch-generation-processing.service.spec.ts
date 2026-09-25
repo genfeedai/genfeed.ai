@@ -1,6 +1,8 @@
 import { ContentGeneratorService } from '@api/collections/content-intelligence/services/content-generator.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
 import { BatchGenerationProcessingService } from '@api/services/batch-generation/batch-generation-processing.service';
+import { BatchGenerationReviewService } from '@api/services/batch-generation/batch-generation-review.service';
 import { BatchGenerationSummaryService } from '@api/services/batch-generation/batch-generation-summary.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
@@ -114,8 +116,26 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
       providers: [
         BatchGenerationProcessingService,
         {
+          provide: BatchGenerationReviewService,
+          useValue: { approveItems: vi.fn() },
+        },
+        {
+          provide: AutonomousPublishPolicyService,
+          useValue: {
+            resolveForPost: vi
+              .fn()
+              .mockResolvedValue({ result: { decision: 'DENIED' } }),
+          },
+        },
+        {
           provide: PrismaService,
           useValue: {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+              fn({
+                $queryRaw: vi.fn(),
+                batch: batchDelegate,
+                batchItem: { upsert: vi.fn().mockResolvedValue({}) },
+              }),
             batch: batchDelegate,
             batchItem: { upsert: vi.fn().mockResolvedValue({}) },
             credential: credentialDelegate,
@@ -142,6 +162,41 @@ describe('BatchGenerationProcessingService post.create credentials', () => {
     }).compile();
 
     service = module.get(BatchGenerationProcessingService);
+  });
+
+  it('preserves a human decision committed while the next draft is generated', async () => {
+    let reviewed = false;
+    const pending = [{ ...baseItem }, { ...baseItem, id: 'item-2' }];
+    batchDelegate.findFirst.mockImplementation(async () => ({
+      ...batchRecord,
+      config: { ...batchRecord.config, totalCount: 2 },
+      items: reviewed
+        ? [
+            {
+              ...baseItem,
+              postId: 'post-1',
+              status: BatchItemStatus.COMPLETED,
+              reviewDecision: 'approved',
+              versionPinId: 'human-pin',
+              reviewFeedback: 'Human reviewed',
+              publishApproval: { id: 'human-grant' },
+            },
+            pending[1],
+          ]
+        : pending,
+    }));
+    contentGeneratorService.generateContent.mockImplementation(async () => {
+      reviewed = true;
+      return [{ content: 'Caption' }];
+    });
+    await service.processBatch('batch-1', 'org-1');
+    const payload = batchDelegate.updateMany.mock.calls.at(-1)?.[0]?.data;
+    expect(payload.items[0]).toMatchObject({
+      reviewDecision: 'approved',
+      versionPinId: 'human-pin',
+      publishApproval: { id: 'human-grant' },
+      reviewFeedback: 'Human reviewed',
+    });
   });
 
   it('attributes every generated draft to its batch strategy', async () => {
@@ -497,8 +552,26 @@ describe('BatchGenerationProcessingService resume', () => {
       providers: [
         BatchGenerationProcessingService,
         {
+          provide: BatchGenerationReviewService,
+          useValue: { approveItems: vi.fn() },
+        },
+        {
+          provide: AutonomousPublishPolicyService,
+          useValue: {
+            resolveForPost: vi
+              .fn()
+              .mockResolvedValue({ result: { decision: 'DENIED' } }),
+          },
+        },
+        {
           provide: PrismaService,
           useValue: {
+            $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+              fn({
+                $queryRaw: vi.fn(),
+                batch: batchDelegate,
+                batchItem: { upsert: vi.fn().mockResolvedValue({}) },
+              }),
             batch: batchDelegate,
             batchItem: { upsert: vi.fn().mockResolvedValue({}) },
             credential: { findMany: vi.fn().mockResolvedValue([]) },

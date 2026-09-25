@@ -185,6 +185,18 @@ export class BatchGenerationCreationService {
       throw new NotFoundException('Brand', dto.brandId);
     }
 
+    if (dto.agentStrategyId) {
+      const strategy = await this.prisma.agentStrategy.findFirst({
+        where: scopedWhere(orgId, {
+          id: dto.agentStrategyId,
+          brandId: dto.brandId,
+        }),
+      });
+      if (!strategy)
+        throw new BadRequestException(
+          'Agent strategy does not belong to this brand',
+        );
+    }
     await this.validateIngredientOwnership(dto, orgId);
     const { createdPostIds, items: batchItems } =
       await this.createManualReviewItems(dto, userId, orgId);
@@ -216,6 +228,7 @@ export class BatchGenerationCreationService {
       batch = await withBatchWriteTransaction(this.prisma, async (tx) => {
         const created = (await tx.batch.create({
           data: {
+            agentStrategyId: dto.agentStrategyId,
             brandId: dto.brandId,
             config: config as Prisma.InputJsonValue,
             isDeleted: false,
@@ -349,6 +362,10 @@ export class BatchGenerationCreationService {
         }
         if (!postId) {
           const post = await this.postsService.create({
+            agentStrategyId: dto.agentStrategyId,
+            scheduledDate: reviewItem.scheduledDate
+              ? new Date(reviewItem.scheduledDate)
+              : undefined,
             brandId: dto.brandId,
             contentRunId,
             creativeVersion: reviewItem.creativeVersion,
@@ -400,6 +417,7 @@ export class BatchGenerationCreationService {
           prompt: reviewItem.prompt,
           reviewDecision: ReviewDecision.UNSET,
           reviewEvents: [],
+          scheduledDate: reviewItem.scheduledDate,
           scheduleSlot: reviewItem.scheduleSlot,
           sourceActionId: reviewItem.sourceActionId,
           sourceWorkflowId: reviewItem.sourceWorkflowId,

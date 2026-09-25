@@ -32,6 +32,19 @@ describe('PostsController.buildFindAllQuery', () => {
     } as unknown as PostsController;
   });
 
+  it('filters an agent without dropping tenant and brand scope', () => {
+    const result = controller.buildFindAllQuery(makeUser(), {
+      agentStrategyId: 'agent-1',
+      brandId: 'brand-1',
+    } as PostsQueryDto);
+    expect(result.where).toMatchObject({
+      agentStrategyId: 'agent-1',
+      brandId: 'brand-1',
+      organizationId: 'org-1',
+      isDeleted: false,
+    });
+  });
+
   it('uses parentId (scalar FK) not parent (relation alias)', () => {
     const query: PostsQueryDto = {} as PostsQueryDto;
     const result = controller.buildFindAllQuery(makeUser(), query);

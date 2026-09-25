@@ -1,3 +1,4 @@
+import { AgentReportDeliveryService } from '@api/services/agent-reports/agent-report-delivery.service';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import {
   EmailDeliveryError,
@@ -5,20 +6,24 @@ import {
 } from '@api/services/notifications/notifications.service';
 import {
   AGENT_STATUS_NOTIFICATION_TOPIC,
+  type AgentReviewNotificationPayload,
   EMAIL_NOTIFICATION_CHANNEL,
   NOTIFICATION_DELIVERY_STATUS,
+  readNotificationSourcePath,
   WORKFLOW_STATUS_NOTIFICATION_TOPIC,
   type WorkflowStatusNotificationPayload,
 } from '@api/services/notifications/workflow-notifications/workflow-notification.constants';
 import { WorkflowNotificationQueueService } from '@api/services/notifications/workflow-notifications/workflow-notification-queue.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
-import { AgentFailureReason } from '@genfeedai/contracts';
+import { scopedWhere } from '@api/tenancy/scoped-where';
+import { AgentFailureReason, MemberRole } from '@genfeedai/contracts';
 import {
   buildSystemEmailHtml,
   escapeSystemEmailHtml,
 } from '@helpers/email/system-email.helper';
+import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
-import { Injectable, Optional } from '@nestjs/common';
+import { BadRequestException, Injectable, Optional } from '@nestjs/common';
 
 const LOCK_LEASE_MS = 10 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
@@ -36,6 +41,9 @@ export class WorkflowNotificationDeliveryService {
     private readonly queueService: WorkflowNotificationQueueService,
     private readonly logger: LoggerService,
     @Optional() private readonly emailPerformance?: EmailPerformanceService,
+    @Optional() private readonly configService?: ConfigService,
+    @Optional()
+    private readonly agentReportDelivery?: AgentReportDeliveryService,
   ) {}
 
   /**
@@ -77,6 +85,35 @@ export class WorkflowNotificationDeliveryService {
     return claim.count === 1;
   }
 
+  async deliverAgentReport(
+    organizationId: string,
+    deliveryId: string,
+    channel: 'email' | 'telegram' | 'discord',
+  ): Promise<{ status: string; deliveryId: string }> {
+    const where = {
+      id: deliveryId,
+      organizationId,
+      isDeleted: false,
+      topic: AGENT_STATUS_NOTIFICATION_TOPIC,
+      channel,
+      event: { sourceType: 'agent_run', organizationId, isDeleted: false },
+    };
+    const delivery = await this.prisma.notificationDelivery.findFirst({
+      where,
+      select: { id: true },
+    });
+    if (!delivery)
+      throw new BadRequestException('Agent report delivery unavailable');
+    await this.deliver(delivery.id);
+    const outcome = await this.prisma.notificationDelivery.findFirst({
+      where,
+      select: { status: true },
+    });
+    if (!outcome)
+      throw new BadRequestException('Agent report delivery unavailable');
+    return { deliveryId: delivery.id, status: outcome.status };
+  }
+
   async deliver(deliveryId: string): Promise<void> {
     if (!(await this.claimDelivery(deliveryId))) {
       return;
@@ -109,13 +146,17 @@ export class WorkflowNotificationDeliveryService {
       return;
     }
 
-    const isAgentFailure = delivery.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
+    if (await this.deliverAgentMessagingReport(deliveryId, delivery)) return;
+
+    const isAgentRun = delivery.topic === AGENT_STATUS_NOTIFICATION_TOPIC;
+    const isAgentReview =
+      isAgentRun && delivery.event.sourceType === 'agent_strategy';
     if (
       delivery.channel !== EMAIL_NOTIFICATION_CHANNEL ||
-      (delivery.topic !== WORKFLOW_STATUS_NOTIFICATION_TOPIC &&
-        !isAgentFailure) ||
-      delivery.event.sourceType !==
-        (isAgentFailure ? 'agent_run' : 'workflow_execution')
+      (delivery.topic !== WORKFLOW_STATUS_NOTIFICATION_TOPIC && !isAgentRun) ||
+      (!isAgentReview &&
+        delivery.event.sourceType !==
+          (isAgentRun ? 'agent_run' : 'workflow_execution'))
     ) {
       await this.failPermanently(
         deliveryId,
@@ -149,7 +190,17 @@ export class WorkflowNotificationDeliveryService {
     const payload = this.readPayload(delivery.event.payload);
     if (
       !payload ||
-      (isAgentFailure && (payload.status !== 'failed' || !payload.failure))
+      'kind' in payload !== isAgentReview ||
+      ('kind' in payload &&
+        (payload.strategyId !== delivery.event.sourceId ||
+          delivery.event.eventKey !==
+            (payload.expired
+              ? 'agent.review.expired'
+              : 'agent.review.changed'))) ||
+      (isAgentRun &&
+        !('kind' in payload) &&
+        payload.status === 'failed' &&
+        !payload.failure)
     ) {
       await this.failPermanently(
         deliveryId,
@@ -159,28 +210,36 @@ export class WorkflowNotificationDeliveryService {
       return;
     }
 
+    if (
+      isAgentRun &&
+      !(await this.canReceiveAgentOutcome(
+        delivery.organizationId,
+        delivery.userId,
+        payload.strategyId,
+        !isAgentReview,
+      ))
+    ) {
+      await this.skip(
+        deliveryId,
+        delivery.organizationId,
+        'recipient_membership_or_agent_access_revoked',
+      );
+      return;
+    }
+
     try {
-      const email = this.buildEmail(payload, isAgentFailure);
+      const email = this.buildEmail(payload, isAgentRun);
       const providerMessageId = await this.notificationsService.deliverEmail({
         ...email,
         idempotencyKey: delivery.idempotencyKey,
         to: delivery.user.email,
       });
 
-      await this.prisma.notificationDelivery.updateMany({
-        data: {
-          deliveredAt: new Date(),
-          lastError: null,
-          lockedAt: null,
-          providerMessageId,
-          status: NOTIFICATION_DELIVERY_STATUS.DELIVERED,
-        },
-        where: {
-          id: deliveryId,
-          isDeleted: false,
-          organizationId: delivery.organizationId,
-        },
-      });
+      await this.markDelivered(
+        deliveryId,
+        delivery.organizationId,
+        providerMessageId,
+      );
     } catch (error: unknown) {
       if (error instanceof EmailDeliveryError && !error.retryable) {
         await this.failPermanently(
@@ -197,6 +256,62 @@ export class WorkflowNotificationDeliveryService {
         error,
       );
     }
+  }
+
+  private async deliverAgentMessagingReport(
+    deliveryId: string,
+    delivery: {
+      attemptCount: number;
+      channel: string;
+      event: { payload: unknown; sourceType: string };
+      idempotencyKey: string;
+      organizationId: string;
+      topic: string;
+      user: { isDeleted: boolean };
+      userId: string;
+    },
+  ): Promise<boolean> {
+    if (
+      delivery.topic !== AGENT_STATUS_NOTIFICATION_TOPIC ||
+      delivery.event.sourceType !== 'agent_run' ||
+      (delivery.channel !== 'telegram' && delivery.channel !== 'discord')
+    )
+      return false;
+    if (delivery.user.isDeleted) {
+      await this.skip(
+        deliveryId,
+        delivery.organizationId,
+        'recipient_unavailable',
+      );
+      return true;
+    }
+    try {
+      if (!this.agentReportDelivery)
+        throw new Error('Agent report delivery unavailable');
+      const outcome = await this.agentReportDelivery.deliver({
+        organizationId: delivery.organizationId,
+        userId: delivery.userId,
+        channel: delivery.channel,
+        idempotencyKey: delivery.idempotencyKey,
+        payload: delivery.event.payload,
+      });
+      if (outcome.status === 'skipped')
+        await this.skip(deliveryId, delivery.organizationId, outcome.reason);
+      else
+        await this.markDelivered(
+          deliveryId,
+          delivery.organizationId,
+          outcome.providerMessageId,
+        );
+    } catch (error) {
+      await this.recordFailure(
+        deliveryId,
+        delivery.organizationId,
+        delivery.attemptCount,
+        error,
+      );
+    }
+    return true;
   }
 
   async recoverDueDeliveries(): Promise<number> {
@@ -256,6 +371,23 @@ export class WorkflowNotificationDeliveryService {
     }
 
     return recoveredCount;
+  }
+
+  private async markDelivered(
+    deliveryId: string,
+    organizationId: string,
+    providerMessageId: string,
+  ): Promise<void> {
+    await this.prisma.notificationDelivery.updateMany({
+      data: {
+        deliveredAt: new Date(),
+        lastError: null,
+        lockedAt: null,
+        providerMessageId,
+        status: NOTIFICATION_DELIVERY_STATUS.DELIVERED,
+      },
+      where: { id: deliveryId, isDeleted: false, organizationId },
+    });
   }
 
   private async skip(
@@ -322,14 +454,114 @@ export class WorkflowNotificationDeliveryService {
     });
   }
 
+  private async canReceiveAgentOutcome(
+    organizationId: string,
+    userId: string,
+    strategyId?: string,
+    requireOwner = true,
+  ): Promise<boolean> {
+    const member = await this.prisma.member.findFirst({
+      where: {
+        organizationId,
+        userId,
+        isActive: true,
+        isDeleted: false,
+        organization: { is: { isDeleted: false } },
+        user: { is: { isDeleted: false } },
+      },
+      select: {
+        role: { select: { key: true } },
+        brands: {
+          where: { organizationId, isDeleted: false },
+          select: { id: true },
+        },
+      },
+    });
+    if (!member) return false;
+    if (!strategyId) return true;
+    const restrictBrands =
+      member.role.key !== MemberRole.OWNER &&
+      member.role.key !== MemberRole.ADMIN &&
+      member.brands.length > 0;
+    const strategy = await this.prisma.agentStrategy.findFirst({
+      where: scopedWhere(organizationId, {
+        id: strategyId,
+        ...(requireOwner ? { userId } : {}),
+        OR: [
+          { brandId: null },
+          {
+            brand: {
+              is: {
+                organizationId,
+                isDeleted: false,
+                ...(restrictBrands
+                  ? { id: { in: member.brands.map((brand) => brand.id) } }
+                  : {}),
+              },
+            },
+          },
+        ],
+      }),
+      select: { id: true },
+    });
+    return Boolean(strategy);
+  }
+
+  private agentReportHref(
+    baseUrl: unknown,
+    sourcePath?: string,
+  ): string | null {
+    if (typeof baseUrl !== 'string' || !sourcePath) return null;
+    try {
+      const base = new URL(baseUrl);
+      if (!['https:', 'http:'].includes(base.protocol)) return null;
+      const href = new URL(sourcePath, base);
+      return href.origin === base.origin ? href.toString() : null;
+    } catch {
+      return null;
+    }
+  }
+
   private readPayload(
     value: unknown,
-  ): WorkflowStatusNotificationPayload | null {
+  ): WorkflowStatusNotificationPayload | AgentReviewNotificationPayload | null {
     if (!value || typeof value !== 'object') {
       return null;
     }
 
     const payload = value as Record<string, unknown>;
+    if (payload.kind === 'agent_review') {
+      if (
+        payload.version !== 1 ||
+        typeof payload.strategyId !== 'string' ||
+        typeof payload.strategyLabel !== 'string' ||
+        typeof payload.postId !== 'string' ||
+        typeof payload.platform !== 'string' ||
+        typeof payload.autoPublishEnabled !== 'boolean' ||
+        typeof payload.approvalStreak !== 'number' ||
+        !Number.isSafeInteger(payload.approvalStreak) ||
+        payload.approvalStreak < 0 ||
+        typeof payload.expired !== 'boolean' ||
+        typeof payload.summary !== 'string'
+      )
+        return null;
+      return {
+        version: 1,
+        kind: 'agent_review',
+        strategyId: payload.strategyId,
+        strategyLabel: payload.strategyLabel.slice(0, 300),
+        postId: payload.postId,
+        platform: payload.platform,
+        autoPublishEnabled: payload.autoPublishEnabled,
+        approvalStreak: payload.approvalStreak,
+        expired: payload.expired,
+        summary: payload.summary.slice(0, 2000),
+        ...(readNotificationSourcePath(payload.sourcePath)
+          ? { sourcePath: readNotificationSourcePath(payload.sourcePath) }
+          : {}),
+      };
+    }
+
     if (
       payload.version !== 1 ||
       typeof payload.executionId !== 'string' ||
@@ -368,6 +600,15 @@ export class WorkflowNotificationDeliveryService {
 
     return {
       failure,
+      ...(typeof payload.summary === 'string'
+        ? { summary: payload.summary.slice(0, 2000) }
+        : {}),
+      ...(readNotificationSourcePath(payload.sourcePath)
+        ? { sourcePath: readNotificationSourcePath(payload.sourcePath) }
+        : {}),
+      ...(typeof payload.strategyId === 'string'
+        ? { strategyId: payload.strategyId }
+        : {}),
       error: typeof payload.error === 'string' ? payload.error : null,
       executionId: payload.executionId,
       status: payload.status,
@@ -379,30 +620,65 @@ export class WorkflowNotificationDeliveryService {
   }
 
   private buildEmail(
-    payload: WorkflowStatusNotificationPayload,
-    isAgentFailure: boolean,
+    payload: WorkflowStatusNotificationPayload | AgentReviewNotificationPayload,
+    isAgentRun: boolean,
   ): {
     html: string;
     subject: string;
     text: string;
   } {
+    if ('kind' in payload) {
+      const subject = `${payload.expired ? 'Agent review expired' : 'Agent review updated'}: ${payload.strategyLabel}`;
+      const href = this.agentReportHref(
+        this.configService?.get('GENFEEDAI_APP_URL'),
+        payload.sourcePath,
+      );
+      return {
+        subject,
+        text: [subject, payload.summary, href].filter(Boolean).join('\n'),
+        html: buildSystemEmailHtml({
+          title: subject,
+          bodyHtml: `<p>${escapeSystemEmailHtml(payload.summary)}</p>${href ? `<p><a href="${escapeSystemEmailHtml(href)}">View agent</a></p>` : ''}`,
+        }),
+      };
+    }
     const isFailure = payload.status === 'failed';
     const subject = isFailure
-      ? `${isAgentFailure ? 'Agent run' : 'Workflow'} failed: ${payload.workflowLabel}`
-      : `Workflow completed: ${payload.workflowLabel}`;
-    if (isAgentFailure && isFailure && payload.failure) {
+      ? `${isAgentRun ? 'Agent run' : 'Workflow'} failed: ${payload.workflowLabel}`
+      : `${isAgentRun ? 'Agent run' : 'Workflow'} completed: ${payload.workflowLabel}`;
+    if (isAgentRun && isFailure && payload.failure) {
       const { title, summary, recovery } = payload.failure;
-      const text = [subject, title, summary, recovery]
+      const href = this.agentReportHref(
+        this.configService?.get('GENFEEDAI_APP_URL'),
+        payload.sourcePath,
+      );
+      const text = [subject, title, summary, recovery, payload.summary, href]
         .filter(Boolean)
         .join('\n');
-      const bodyHtml = [title, summary, recovery]
+      const bodyHtml = [title, summary, recovery, payload.summary]
         .filter((value): value is string => typeof value === 'string')
         .map((value) => `<p>${escapeSystemEmailHtml(value)}</p>`)
         .join('');
       return {
-        html: buildSystemEmailHtml({ bodyHtml, title: subject }),
+        html: buildSystemEmailHtml({
+          bodyHtml: `${bodyHtml}${href ? `<p><a href="${escapeSystemEmailHtml(href)}">View agent</a></p>` : ''}`,
+          title: subject,
+        }),
         subject,
         text,
+      };
+    }
+    if (isAgentRun && !isFailure) {
+      const baseUrl = this.configService?.get('GENFEEDAI_APP_URL');
+      const href = this.agentReportHref(baseUrl, payload.sourcePath);
+      const summary = payload.summary ?? 'Your agent run completed.';
+      return {
+        subject,
+        text: [subject, summary, href].filter(Boolean).join('\n'),
+        html: buildSystemEmailHtml({
+          title: subject,
+          bodyHtml: `<p>${escapeSystemEmailHtml(summary)}</p>${href ? `<p><a href="${escapeSystemEmailHtml(href)}">View agent</a></p>` : ''}`,
+        }),
       };
     }
     const escapedLabel = escapeSystemEmailHtml(payload.workflowLabel);

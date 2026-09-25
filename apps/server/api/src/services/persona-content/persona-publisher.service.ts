@@ -4,7 +4,10 @@ import { type PersonaDocument } from '@api/collections/personas/schemas/persona.
 import { PersonasService } from '@api/collections/personas/services/personas.service';
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { NotFoundException } from '@api/exceptions/not-found.exception';
+import { AutonomousPublishPolicyService } from '@api/services/autonomous-publishing/autonomous-publish-policy.service';
+import { BatchGenerationService } from '@api/services/batch-generation/batch-generation.service';
 import {
+  AgentPublishDecision,
   fromPrismaCredentialPlatform,
   PostCategory,
   PostVisibility,
@@ -47,6 +50,8 @@ export class PersonaPublisherService {
     private readonly personasService: PersonasService,
     private readonly credentialsService: CredentialsService,
     private readonly postsService: PostsService,
+    private readonly batchGenerationService: BatchGenerationService,
+    private readonly publishPolicy: AutonomousPublishPolicyService,
   ) {}
 
   async publishToAll(input: PublishInput): Promise<PublishResult> {
@@ -71,6 +76,8 @@ export class PersonaPublisherService {
         const credential = await this.credentialsService.findOne({
           id: credentialId,
           organizationId: input.organizationId,
+          brandId: input.brandId,
+          isDeleted: false,
         });
 
         if (!credential) {
@@ -100,12 +107,44 @@ export class PersonaPublisherService {
           personaId: input.personaId,
           platform: credentialPlatform,
           scheduledDate: input.scheduledDate ?? new Date(),
-          targetExecutionState: TargetExecutionState.SCHEDULED,
+          targetExecutionState: TargetExecutionState.DRAFT,
           userId: input.userId,
           visibility: PostVisibility.PUBLIC,
         } as Parameters<PostsService['create']>[0]);
 
-        postIds.push(String(post.id));
+        const postId = String(post.id);
+        postIds.push(postId);
+        const batch = await this.batchGenerationService.createManualReviewBatch(
+          {
+            brandId: input.brandId,
+            items: [
+              {
+                postId,
+                caption: input.description,
+                format: 'post',
+                platform: credentialPlatform,
+                scheduledDate: (
+                  input.scheduledDate ?? new Date()
+                ).toISOString(),
+              },
+            ],
+          },
+          input.userId,
+          input.organizationId,
+          `persona-review:${input.organizationId}:${postId}`,
+        );
+        const policy = await this.publishPolicy.resolveForPost({
+          organizationId: input.organizationId,
+          postId,
+        });
+        if (policy.result.decision === AgentPublishDecision.PERMITTED) {
+          await this.batchGenerationService.approveAutonomousItems(
+            batch.id,
+            batch.items.map((item) => item.id),
+            input.organizationId,
+            input.userId,
+          );
+        }
       } catch (error) {
         this.loggerService.error(
           `${this.constructorName} ${caller} - Failed to create post for credential ${String(credentialId)}`,

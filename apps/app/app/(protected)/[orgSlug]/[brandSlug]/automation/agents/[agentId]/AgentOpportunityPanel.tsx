@@ -20,7 +20,7 @@ export default function AgentOpportunityPanel({
             Review context
           </h3>
           <p className="mt-1 text-sm text-foreground/55">
-            Opened from the publishing inbox with autopilot opportunity context.
+            Opened from the publishing inbox with agent opportunity context.
           </p>
         </div>
         <Badge variant="secondary">

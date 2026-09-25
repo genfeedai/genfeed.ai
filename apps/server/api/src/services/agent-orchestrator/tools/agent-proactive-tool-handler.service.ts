@@ -7,6 +7,8 @@ import { CreateManualReviewBatchDto } from '@api/services/batch-generation/dto/c
 import { TwitterService } from '@api/services/integrations/twitter/services/twitter.service';
 import { mapTwitterApiError } from '@api/services/integrations/twitter/utils/twitter-api-error.util';
 import { buildTwitterStatusUrl } from '@api/services/integrations/twitter/utils/twitter-post-id.util';
+import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { parsePlatform, TargetExecutionState } from '@genfeedai/contracts';
 import type { AgentToolResult } from '@genfeedai/contracts/interfaces';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -32,6 +34,7 @@ export class AgentProactiveToolHandler {
     @Optional()
     private readonly batchGenerationService?: BatchGenerationService,
     @Optional() private readonly moduleRef?: ModuleRef,
+    @Optional() private readonly prisma?: PrismaService,
   ) {}
 
   async getApprovalSummary(
@@ -93,57 +96,65 @@ export class AgentProactiveToolHandler {
     params: Record<string, unknown>,
     ctx: ToolExecutionContext,
   ): Promise<AgentToolResult> {
-    const days = (params.days as number) || 30;
-    const endDate = new Date();
-    const startDate = new Date();
-    startDate.setDate(startDate.getDate() - days);
-
-    // Get published posts from the period
-    const posts = await this.postsService.findAll(
-      {
-        where: {
-          createdAt: { gte: startDate, lte: endDate },
-          isDeleted: false,
-          organizationId: ctx.organizationId,
-          targetExecutionState: TargetExecutionState.PUBLISHED,
-        },
-        orderBy: { createdAt: -1 },
-      },
-      {},
-    );
-
-    const postDocs = (posts.docs ?? []) as unknown as Record<string, unknown>[];
-
-    // Group by platform
-    const byPlatform: Record<string, number> = {};
-    for (const p of postDocs) {
-      const plat = (p.platform as string) || 'unknown';
-      byPlatform[plat] = (byPlatform[plat] || 0) + 1;
+    const days = params.days ?? 30;
+    if (
+      typeof days !== 'number' ||
+      !Number.isInteger(days) ||
+      days < 1 ||
+      days > 90
+    ) {
+      return {
+        creditsUsed: 0,
+        error: 'days must be an integer from 1 to 90',
+        success: false,
+      };
     }
-
-    // Top performers by engagement
-    const topPerformers = postDocs
-      .filter((p) => p.engagement || p.likes || p.impressions)
-      .sort(
-        (a, b) =>
-          ((b.engagement as number) || (b.likes as number) || 0) -
-          ((a.engagement as number) || (a.likes as number) || 0),
-      )
-      .slice(0, 5)
-      .map((p) => ({
-        description: p.description,
-        engagement: p.engagement ?? p.likes,
-        id: String(p.id),
-        platform: p.platform,
-      }));
-
+    if (!this.prisma) {
+      return {
+        creditsUsed: 0,
+        error: 'Performance analytics unavailable',
+        success: false,
+      };
+    }
+    const startDate = new Date(Date.now() - days * 86400000);
+    const rows = await this.prisma.postAnalytics.findMany({
+      where: scopedWhere(ctx.organizationId, {
+        date: { gte: startDate, lte: new Date() },
+        post: scopedWhere(ctx.organizationId, {
+          ...(ctx.brandId ? { brandId: ctx.brandId } : {}),
+          ...(ctx.strategyId ? { agentStrategyId: ctx.strategyId } : {}),
+          targetExecutionState: TargetExecutionState.PUBLISHED,
+        }),
+      }),
+      include: { post: { select: { description: true } } },
+      distinct: ['postId'],
+      orderBy: [{ date: 'desc' }, { id: 'desc' }],
+      take: 250,
+    });
+    const byPlatform: Record<string, number> = {};
+    for (const row of rows) {
+      const platform = String(row.platform).toLowerCase();
+      byPlatform[platform] = (byPlatform[platform] ?? 0) + 1;
+    }
+    const topPerformers = rows
+      .map((row) => ({
+        description: row.post.description,
+        engagement:
+          row.totalLikes + row.totalComments + row.totalShares + row.totalSaves,
+        id: row.postId,
+        platform: String(row.platform).toLowerCase(),
+        views: row.totalViews,
+      }))
+      .sort((a, b) => b.engagement - a.engagement)
+      .slice(0, 5);
     return {
       creditsUsed: 0,
       data: {
         byPlatform,
         days,
         topPerformers,
-        totalPosts: postDocs.length,
+        totalPosts: rows.length,
+        samplingLimit: 250,
       },
       success: true,
     };

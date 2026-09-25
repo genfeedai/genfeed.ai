@@ -1,3 +1,4 @@
+import { AgentStrategyPerformanceModule } from '@api/collections/agent-strategies/agent-strategy-performance.module';
 import { DailyPublishingService } from '@api/collections/workflows/services/daily-publishing.service';
 import { ByokModule } from '@api/services/byok/byok.module';
 import { MediaLocalizationModule } from '@api/services/media-localization/media-localization.module';
@@ -153,6 +154,7 @@ import { Module } from '@nestjs/common';
     YoutubeLongFormWorkflowService,
   ],
   imports: [
+    AgentStrategyPerformanceModule,
     WorkflowsCoreModule,
     MediaLocalizationModule,
     ByokModule,

@@ -2,11 +2,19 @@ import type { AgentStrategyRun } from '@genfeedai/agent/models/agent-strategy.mo
 import type { AgentStrategyApiService } from '@genfeedai/agent/services/agent-strategy-api.service';
 import { useAgentStrategyStore } from '@genfeedai/agent/stores/agent-strategy.store';
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import type { IAgentStrategyRunHistoryItem } from '@genfeedai/contracts/interfaces';
 import { Button } from '@ui/primitives/button';
+import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 import { type ReactElement, useEffect, useMemo } from 'react';
 
 interface AgentActivityFeedProps {
-  apiService: AgentStrategyApiService;
+  apiService?: AgentStrategyApiService;
+  runHistory?: Array<AgentStrategyRun | IAgentStrategyRunHistoryItem>;
+  getThreadHref?: (threadId: string) => string;
+  getExecutionHref?: (executionId: string) => string;
+  isLoading?: boolean;
+  error?: string | null;
   onViewThread?: (threadId: string) => void;
 }
 
@@ -34,7 +42,10 @@ function formatRunTime(dateStr: string): string {
   return date.toLocaleDateString('en-US', { timeZone: 'UTC' });
 }
 
-function getStatusBadge(status: AgentStrategyRun['status']): {
+function getStatusBadge(
+  status: string,
+  translate: (key: 'completed' | 'failed' | 'budget') => string,
+): {
   className: string;
   label: string;
 } {
@@ -42,33 +53,45 @@ function getStatusBadge(status: AgentStrategyRun['status']): {
     case 'completed':
       return {
         className: 'bg-success/10 text-green-500',
-        label: 'Completed',
+        label: translate('completed'),
       };
     case 'failed':
       return {
         className: 'bg-destructive/10 text-destructive',
-        label: 'Failed',
+        label: translate('failed'),
       };
     case 'budget_exhausted':
       return {
         className: 'bg-warning/10 text-warning',
-        label: 'Budget',
+        label: translate('budget'),
       };
+    default:
+      return { className: 'bg-muted text-muted-foreground', label: status };
   }
 }
 
 export function AgentActivityFeed({
   apiService,
   onViewThread,
+  getThreadHref,
+  getExecutionHref,
+  runHistory,
+  isLoading: controlledLoading = false,
+  error: controlledError,
 }: AgentActivityFeedProps): ReactElement {
+  const translate = useTranslations('agent.activityFeed');
   const strategy = useAgentStrategyStore((s) => s.strategy);
   const setStrategy = useAgentStrategyStore((s) => s.setStrategy);
-  const isLoading = useAgentStrategyStore((s) => s.isLoading);
+  const storeLoading = useAgentStrategyStore((s) => s.isLoading);
   const setIsLoading = useAgentStrategyStore((s) => s.setIsLoading);
+  const storeError = useAgentStrategyStore((s) => s.error);
+  const isControlled = runHistory !== undefined;
+  const isLoading = isControlled ? controlledLoading : storeLoading;
+  const error = isControlled ? controlledError : storeError;
   const setError = useAgentStrategyStore((s) => s.setError);
 
   useEffect(() => {
-    if (strategy) {
+    if (isControlled || strategy || !apiService) {
       return;
     }
 
@@ -97,18 +120,25 @@ export function AgentActivityFeed({
 
     fetchStrategy();
     return () => controller.abort();
-  }, [strategy, apiService, setStrategy, setIsLoading, setError]);
+  }, [isControlled, strategy, apiService, setStrategy, setIsLoading, setError]);
 
+  const sourceRuns = isControlled ? runHistory : strategy?.runHistory;
   const runs = useMemo(
     () =>
-      strategy?.runHistory
-        ? strategy.runHistory.toSorted(
-            (a, b) =>
-              new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
-          )
-        : [],
-    [strategy?.runHistory],
+      (sourceRuns ?? []).toSorted(
+        (a, b) =>
+          new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime(),
+      ),
+    [sourceRuns],
   );
+
+  if (error) {
+    return (
+      <p role="alert" className="p-4 text-sm text-destructive">
+        {translate('loadError')}
+      </p>
+    );
+  }
 
   if (isLoading) {
     return (
@@ -121,9 +151,11 @@ export function AgentActivityFeed({
   if (runs.length === 0) {
     return (
       <div className="flex h-full flex-col items-center justify-center gap-2 p-12 text-center">
-        <p className="text-sm font-medium text-foreground">No activity yet</p>
+        <p className="text-sm font-medium text-foreground">
+          {translate('empty')}
+        </p>
         <p className="text-xs text-muted-foreground">
-          Activity from autopilot runs will appear here.
+          {translate('emptyDescription')}
         </p>
       </div>
     );
@@ -132,12 +164,12 @@ export function AgentActivityFeed({
   return (
     <div className="space-y-1 p-4">
       <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-muted-foreground">
-        Recent Activity
+        {translate('recent')}
       </h3>
 
       <div className="space-y-2">
         {runs.map((run) => {
-          const badge = getStatusBadge(run.status);
+          const badge = getStatusBadge(run.status, translate);
           return (
             <div
               key={run.startedAt}
@@ -151,7 +183,9 @@ export function AgentActivityFeed({
                 </span>
                 <div className="space-y-0.5">
                   <p className="text-xs font-medium text-foreground">
-                    {run.contentGenerated} content generated
+                    {translate('contentGenerated', {
+                      count: run.contentGenerated,
+                    })}
                   </p>
                   <p className="text-2xs text-muted-foreground">
                     {formatRunTime(run.startedAt)}
@@ -167,16 +201,32 @@ export function AgentActivityFeed({
 
               <div className="flex items-center gap-3">
                 <span className="text-xs text-muted-foreground">
-                  {run.creditsUsed} credits
+                  {translate('credits', { count: run.creditsUsed })}
                 </span>
 
-                {run.threadId && onViewThread && (
+                {run.executionId && getExecutionHref && (
+                  <Link
+                    className="text-xs underline"
+                    href={getExecutionHref(run.executionId)}
+                  >
+                    {translate('viewExecution')}
+                  </Link>
+                )}
+                {run.threadId && getThreadHref && (
+                  <Link
+                    className="text-xs underline"
+                    href={getThreadHref(run.threadId)}
+                  >
+                    {translate('viewConversation')}
+                  </Link>
+                )}
+                {run.threadId && onViewThread && !getThreadHref && (
                   <Button
                     variant={ButtonVariant.SECONDARY}
                     size={ButtonSize.XS}
                     onClick={() => onViewThread(run.threadId as string)}
                   >
-                    View
+                    {translate('view')}
                   </Button>
                 )}
               </div>

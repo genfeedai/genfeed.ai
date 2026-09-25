@@ -33,6 +33,7 @@ describe('BatchGenerationReviewService.getReviewInboxSummary', () => {
       {} as never,
       {} as never,
       {} as never,
+      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
     );
   });
 
@@ -152,12 +153,28 @@ describe('BatchGenerationReviewService.cancelBatch', () => {
     });
     batch.updateMany.mockResolvedValue({ count: 1 });
     service = new BatchGenerationReviewService(
-      { batch, batchItem } as never,
+      {
+        batch,
+        batchItem,
+        $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            batch,
+            batchItem,
+            $queryRaw: vi.fn(),
+            post: {
+              findFirst: vi.fn().mockResolvedValue({
+                id: 'post-1',
+                targetExecutionState: 'draft',
+              }),
+            },
+          }),
+      } as never,
       { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
       {} as never,
       {} as never,
       {} as never,
       summaryService as never,
+      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
     );
   });
 
@@ -229,12 +246,28 @@ describe('BatchGenerationReviewService harness review feedback', () => {
     vi.clearAllMocks();
     batch.updateMany.mockResolvedValue({ count: 1 });
     service = new BatchGenerationReviewService(
-      { batch, batchItem } as never,
+      {
+        batch,
+        batchItem,
+        $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            batch,
+            batchItem,
+            $queryRaw: vi.fn(),
+            post: {
+              findFirst: vi.fn().mockResolvedValue({
+                id: 'post-1',
+                targetExecutionState: 'draft',
+              }),
+            },
+          }),
+      } as never,
       { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
       {} as never,
       postLifecycleService as never,
       publishApprovalsService as never,
       summaryService as never,
+      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
       harnessReviewFeedbackService as never,
     );
   });
@@ -330,12 +363,28 @@ describe('BatchGenerationReviewService harness review feedback', () => {
       ]),
     );
     const bareService = new BatchGenerationReviewService(
-      { batch, batchItem } as never,
+      {
+        batch,
+        batchItem,
+        $transaction: async (fn: (tx: unknown) => Promise<unknown>) =>
+          fn({
+            batch,
+            batchItem,
+            $queryRaw: vi.fn(),
+            post: {
+              findFirst: vi.fn().mockResolvedValue({
+                id: 'post-1',
+                targetExecutionState: 'draft',
+              }),
+            },
+          }),
+      } as never,
       { debug: vi.fn(), error: vi.fn(), log: vi.fn(), warn: vi.fn() } as never,
       {} as never,
       postLifecycleService as never,
       publishApprovalsService as never,
       summaryService as never,
+      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
     );
 
     await expect(
@@ -391,6 +440,7 @@ describe('BatchGenerationReviewService assignment', () => {
       {} as never,
       {} as never,
       summaryService as never,
+      { recordReviewDecision: vi.fn(), resolveForPost: vi.fn() } as never,
     );
   });
 

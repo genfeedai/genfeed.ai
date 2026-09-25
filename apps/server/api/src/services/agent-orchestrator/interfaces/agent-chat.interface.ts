@@ -1,5 +1,6 @@
 import type { ApiKeyPublishingContext } from '@api/helpers/utils/auth/api-key-publishing-scope.util';
 import type {
+  AgentAutonomyMode,
   AgentGenerationMode,
   AgentThreadMode,
   AgentType,
@@ -53,6 +54,8 @@ export interface AgentGenerationSettings {
 }
 
 export interface AgentChatRequest {
+  creditBudget?: number;
+  autonomyMode?: AgentAutonomyMode;
   agentType?: AgentType;
   artifactReferences?: AgentArtifactReference[];
   attachments?: AgentChatAttachment[];
@@ -92,6 +95,8 @@ export interface AgentTurnAcknowledgement {
 }
 
 export interface AgentChatContext {
+  creditBudget?: number;
+  autonomyMode?: AgentAutonomyMode;
   requestedSkillSlugs?: string[];
   apiKeyContext?: ApiKeyPublishingContext;
   /** Queue-owned turns await execution so BullMQ retains the durable lease. */

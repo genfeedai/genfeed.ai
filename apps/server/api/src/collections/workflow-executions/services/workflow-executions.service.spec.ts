@@ -1,3 +1,5 @@
+vi.unmock('@genfeedai/prisma');
+
 import { runWithActionOrigin } from '@api/index';
 import { scopedWhere } from '@api/tenancy/scoped-where';
 import {
@@ -50,6 +52,23 @@ describe('WorkflowExecutionsService', () => {
         callback(prisma),
       ),
       workflowExecution,
+      creditTransaction: {
+        findMany: vi
+          .fn()
+          .mockResolvedValue([{ amount: 2, category: 'deduct' }]),
+      },
+      post: { count: vi.fn().mockResolvedValue(1) },
+      agentStrategy: {
+        findFirst: vi.fn().mockResolvedValue({
+          brandId: 'brand',
+          label: 'Daily agent',
+          organization: { slug: 'acme' },
+          brand: { slug: 'main' },
+        }),
+      },
+      agentStrategyReport: {
+        upsert: vi.fn().mockResolvedValue({ id: 'report' }),
+      },
     };
 
     const workflowEventWebhookService = {
@@ -73,6 +92,78 @@ describe('WorkflowExecutionsService', () => {
       workflowEventWebhookService,
     };
   };
+
+  it('records proactive report and outcome inside the terminal transaction once', async () => {
+    const { service, prisma, workflowNotificationOutboxService } =
+      makeService();
+    const execution = {
+      id: 'execution-1',
+      organizationId: 'org-1',
+      userId: 'actor',
+      workflowId: 'workflow',
+      startedAt: new Date(),
+      estimatedDurationMs: null,
+      trigger: 'scheduled',
+      result: {
+        metadata: {
+          source: 'proactive',
+          canonicalId: 'agent.turn.execute',
+          strategyId: 'strategy',
+        },
+      },
+      workflow: {
+        label: 'Internal',
+        userId: 'system',
+        metadata: {
+          sourceType: HIDDEN_SYSTEM_WORKFLOW_SOURCE_TYPE,
+          systemWorkflow: buildHiddenSystemWorkflowMetadata({
+            canonicalId: 'agent.turn.execute',
+          }),
+        },
+      },
+    };
+    prisma.workflowExecution.findUnique.mockResolvedValue(execution);
+    prisma.workflowExecution.update.mockImplementation(async ({ data }) => ({
+      ...execution,
+      ...data,
+    }));
+    await service.completeExecution('execution-1');
+    expect(prisma.agentStrategyReport.upsert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        create: expect.objectContaining({
+          id: 'agent-run:execution-1',
+          data: expect.objectContaining({
+            creditsSpent: 2,
+            generatedCount: 1,
+            publishedCount: 1,
+          }),
+        }),
+        update: {},
+      }),
+    );
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).toHaveBeenCalledWith(
+      prisma,
+      expect.objectContaining({
+        isAgentRun: true,
+        status: 'completed',
+        strategyId: 'strategy',
+        workflowOwnerUserId: 'actor',
+        summary:
+          '1 posts created; 1 published; 1 waiting for review. 2 credits used.',
+      }),
+    );
+    expect(
+      workflowNotificationOutboxService.enqueueAfterCommit,
+    ).toHaveBeenCalledWith('delivery-1');
+    prisma.workflowExecution.updateMany.mockResolvedValue({ count: 0 });
+    await service.completeExecution('execution-1');
+    expect(prisma.agentStrategyReport.upsert).toHaveBeenCalledOnce();
+    expect(
+      workflowNotificationOutboxService.recordWorkflowOutcome,
+    ).toHaveBeenCalledOnce();
+  });
 
   beforeEach(() => {
     vi.clearAllMocks();

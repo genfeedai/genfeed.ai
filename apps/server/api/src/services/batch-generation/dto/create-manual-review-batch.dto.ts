@@ -8,6 +8,7 @@ import { Type } from 'class-transformer';
 import {
   ArrayMaxSize,
   IsArray,
+  IsDateString,
   IsIn,
   IsNumber,
   IsOptional,
@@ -23,6 +24,10 @@ import {
 const MAX_REVIEW_ITEMS = 100;
 
 class ManualReviewBatchItemDto {
+  @IsOptional()
+  @IsDateString()
+  scheduledDate?: string;
+
   @ApiProperty({
     description: 'Durable key preventing duplicate canonical draft Posts',
     required: false,
@@ -265,6 +270,10 @@ class ManualReviewBatchItemDto {
 }
 
 export class CreateManualReviewBatchDto {
+  @IsOptional()
+  @IsEntityId()
+  agentStrategyId?: string;
+
   @ApiProperty({
     description: 'Brand ID that owns the review handoff',
   })

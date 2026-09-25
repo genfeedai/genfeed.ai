@@ -35,6 +35,51 @@ function makeApi(strategies: AgentStrategy[]): AgentStrategyApiService {
 }
 
 describe('AgentActivityFeed', () => {
+  it('keeps controlled agent history isolated from the global strategy and loading state', () => {
+    const api = makeApi([makeStrategy([makeRun({ contentGenerated: 99 })])]);
+    useAgentStrategyStore.setState({
+      strategy: makeStrategy([makeRun({ contentGenerated: 99 })]),
+      isLoading: true,
+      error: 'old scope error',
+    });
+    const { rerender } = render(
+      <AgentActivityFeed
+        apiService={api}
+        runHistory={[makeRun({ contentGenerated: 4 })]}
+      />,
+    );
+    expect(screen.getByText('4 content generated')).toBeInTheDocument();
+    expect(screen.queryByText('99 content generated')).not.toBeInTheDocument();
+    rerender(<AgentActivityFeed apiService={api} runHistory={[]} />);
+    expect(screen.getByText('No activity yet')).toBeInTheDocument();
+    expect(screen.queryByText('4 content generated')).not.toBeInTheDocument();
+    expect(api.getStrategies).not.toHaveBeenCalled();
+  });
+
+  it('renders a controlled error instead of claiming there is no activity', () => {
+    render(<AgentActivityFeed runHistory={[]} error="Request failed" />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Could not load agent activity.',
+    );
+    expect(screen.queryByText('No activity yet')).not.toBeInTheDocument();
+  });
+
+  it('links controlled runs to their execution and conversation', () => {
+    render(
+      <AgentActivityFeed
+        runHistory={[makeRun({ executionId: 'exec-1', threadId: 'thread-1' })]}
+        getExecutionHref={(id) => `/automation/runs/${id}`}
+        getThreadHref={(id) => `/agent/${id}`}
+      />,
+    );
+    expect(
+      screen.getByRole('link', { name: 'View execution' }),
+    ).toHaveAttribute('href', '/automation/runs/exec-1');
+    expect(
+      screen.getByRole('link', { name: 'View conversation' }),
+    ).toHaveAttribute('href', '/agent/thread-1');
+  });
+
   beforeEach(() => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     vi.setSystemTime(NOW);

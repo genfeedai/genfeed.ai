@@ -26,6 +26,8 @@ export interface AnalyticsSyncItem {
   externalPostId?: string;
   generationId?: string;
   hookVersion?: string;
+  hookUsed?: string;
+  promptUsed?: string;
   likes: number;
   measuredAt: string;
   organizationId: string;
@@ -102,9 +104,15 @@ export class AnalyticsSyncService {
           );
         }
         const contentType = mapPostCategoryToContentType(post.category);
+        const description = post.description?.trim();
+        const hookUsed = description
+          ?.split(/\r?\n/)
+          .find((line) => line.trim())
+          ?.trim();
+        const promptUsed = post.promptUsed?.trim() || description;
         return {
           brandId,
-          clicks: 0,
+          clicks: row.clicks ?? 0,
           comments: row.totalComments ?? 0,
           ...(post.contentRunId ? { contentRunId: post.contentRunId } : {}),
           ...(contentType ? { contentType } : {}),
@@ -114,6 +122,8 @@ export class AnalyticsSyncService {
           ...(post.externalId ? { externalPostId: post.externalId } : {}),
           ...(post.generationId ? { generationId: post.generationId } : {}),
           ...(post.hookVersion ? { hookVersion: post.hookVersion } : {}),
+          ...(hookUsed ? { hookUsed } : {}),
+          ...(promptUsed ? { promptUsed } : {}),
           likes: row.totalLikes ?? 0,
           measuredAt: new Date(row.date).toISOString(),
           organizationId: options.organizationId,
@@ -159,6 +169,17 @@ export class AnalyticsSyncService {
       contentRunId: item.contentRunId,
       contentType: item.contentType,
       data: {
+        ...metrics,
+        engagementRate: this.computeEngagementRate(metrics),
+        measuredAt: item.measuredAt,
+        platform: item.platform,
+        contentType: item.contentType,
+        hookUsed: item.hookUsed,
+        promptUsed: item.promptUsed,
+        contentRunId: item.contentRunId,
+        generationId: item.generationId,
+        variantId: item.variantId,
+        workflowExecutionId: item.workflowExecutionId,
         clicks: item.clicks,
         creativeVersion: item.creativeVersion,
         hookVersion: item.hookVersion,
@@ -189,14 +210,11 @@ export class AnalyticsSyncService {
       workflowExecutionId: item.workflowExecutionId,
     };
     const contentPerformanceId = `analytics-sync:${item.sourceAnalyticsId}`;
-    const existing = await this.prisma.contentPerformance.findFirst({
-      where: scopedWhere(organizationId, { id: contentPerformanceId }),
+    await this.prisma.contentPerformance.upsert({
+      where: { id: contentPerformanceId, organizationId, isDeleted: false },
+      create: { ...data, id: contentPerformanceId },
+      update: data,
     });
-    if (!existing) {
-      await this.prisma.contentPerformance.create({
-        data: { ...data, id: contentPerformanceId },
-      });
-    }
     return { contentPerformanceId, item };
   }
 
@@ -295,6 +313,8 @@ export class AnalyticsSyncService {
       externalPostId: optionalString('externalPostId'),
       generationId: optionalString('generationId'),
       hookVersion: optionalString('hookVersion'),
+      hookUsed: optionalString('hookUsed'),
+      promptUsed: optionalString('promptUsed'),
       likes: requiredNumber('likes'),
       measuredAt: requiredString('measuredAt'),
       organizationId: requiredString('organizationId'),

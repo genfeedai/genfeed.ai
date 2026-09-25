@@ -200,6 +200,27 @@ function summarizeToolResult(result: {
  * Mode-specific emission (thread events vs SSE) and cancellation live in the
  * optional strategy callbacks — see `AgentToolRoundStrategy`.
  */
+export function assertAgentCreditBudget(
+  context: Pick<AgentChatContext, 'creditBudget'>,
+  consumed: number,
+  estimate: number,
+): void {
+  if (context.creditBudget === undefined) return;
+  if (
+    !Number.isFinite(context.creditBudget) ||
+    context.creditBudget <= 0 ||
+    !Number.isFinite(estimate) ||
+    estimate < 0 ||
+    !Number.isFinite(consumed) ||
+    consumed < 0 ||
+    consumed + estimate > context.creditBudget
+  ) {
+    throw new Error(
+      'Agent credit budget exhausted or paid-operation quote unavailable',
+    );
+  }
+}
+
 @Injectable()
 export class AgentTurnRoundRunnerService {
   private readonly constructorName = String(this.constructor.name);
@@ -241,6 +262,57 @@ export class AgentTurnRoundRunnerService {
     });
 
     return actualModel;
+  }
+
+  private async recordUnaffordableTool(input: {
+    context: AgentChatContext;
+    messages: ExecuteToolRoundParams['messages'];
+    preflightCreditCost: number;
+    requestedToolName: CuratedActionName;
+    startTime: number;
+    state: AgentToolRoundState;
+    strategy: AgentToolRoundStrategy;
+    toolCallId: string;
+    toolName: string;
+    toolParams: Record<string, unknown>;
+  }): Promise<boolean> {
+    if (input.preflightCreditCost <= 0) return false;
+    const canAfford =
+      await this.creditsUtilsService.checkOrganizationCreditsAvailable(
+        input.context.organizationId,
+        input.preflightCreditCost,
+      );
+    if (canAfford) return false;
+    const durationMs = Date.now() - input.startTime;
+    const error = `Insufficient credits (need ${input.preflightCreditCost})`;
+    const summary: ToolCallSummary = {
+      creditsUsed: 0,
+      durationMs,
+      error,
+      status: 'failed',
+      toolName: input.toolName,
+    };
+    input.state.toolCalls.push(summary);
+    if (input.strategy.onToolCompleted) {
+      await input.strategy.onToolCompleted({
+        durationMs,
+        kind: 'insufficient_credits',
+        parameters: input.toolParams,
+        requestedToolName: input.requestedToolName,
+        summary,
+        toolCallId: input.toolCallId,
+        toolName: input.toolName,
+      });
+    }
+    input.messages.push({
+      content: JSON.stringify({
+        error: `Insufficient credits. This tool requires ${input.preflightCreditCost} credits.`,
+        success: false,
+      }),
+      role: 'tool' as const,
+      tool_call_id: input.toolCallId,
+    });
+    return true;
   }
 
   async executeToolRound(
@@ -482,49 +554,27 @@ export class AgentTurnRoundRunnerService {
         continue;
       }
 
-      if (preflightCreditCost > 0) {
-        const canAfford =
-          await this.creditsUtilsService.checkOrganizationCreditsAvailable(
-            context.organizationId,
-            preflightCreditCost,
-          );
+      assertAgentCreditBudget(
+        context,
+        state.totalCreditsUsed,
+        preflightCreditCost,
+      );
 
-        if (!canAfford) {
-          const durationMs = Date.now() - startTime;
-          const error = `Insufficient credits (need ${preflightCreditCost})`;
-          const summary: ToolCallSummary = {
-            creditsUsed: 0,
-            durationMs,
-            error,
-            status: 'failed',
-            toolName,
-          };
-
-          state.toolCalls.push(summary);
-
-          if (strategy.onToolCompleted) {
-            await strategy.onToolCompleted({
-              durationMs,
-              kind: 'insufficient_credits',
-              parameters: toolParams,
-              requestedToolName,
-              summary,
-              toolCallId: toolCall.id,
-              toolName,
-            });
-          }
-
-          messages.push({
-            content: JSON.stringify({
-              error: `Insufficient credits. This tool requires ${preflightCreditCost} credits.`,
-              success: false,
-            }),
-            role: 'tool' as const,
-            tool_call_id: toolCall.id,
-          });
-          continue;
-        }
-      }
+      if (
+        await this.recordUnaffordableTool({
+          context,
+          messages,
+          preflightCreditCost,
+          requestedToolName,
+          startTime,
+          state,
+          strategy,
+          toolCallId: toolCall.id,
+          toolName,
+          toolParams,
+        })
+      )
+        continue;
 
       const preparedToolCall =
         await this.toolConfirmationService.prepareToolCall({
@@ -578,10 +628,9 @@ export class AgentTurnRoundRunnerService {
       // orchestrator-billed tools and leave an audit trail.
       const isOrchestratorBilled =
         result.success && creditCost > 0 && !result.isBillingDelegated;
-      const delegatedCredits =
-        result.success && result.isBillingDelegated
-          ? Math.max(0, Math.round(result.creditsUsed ?? 0))
-          : 0;
+      const delegatedCredits = result.isBillingDelegated
+        ? Math.max(0, result.creditsUsed ?? 0)
+        : 0;
 
       if (isOrchestratorBilled) {
         await this.creditsUtilsService.deductCreditsFromOrganization(
@@ -785,9 +834,18 @@ export class AgentTurnRoundRunnerService {
       threadId,
     } = params;
     return {
+      isProactive: params.source === 'proactive',
       apiKeyContext: context.apiKeyContext,
       attachmentUrls,
-      autonomyMode: policy.autonomyMode,
+      autonomyMode: context.autonomyMode ?? policy.autonomyMode,
+      ...(context.creditBudget !== undefined
+        ? {
+            creditBudget: Math.max(
+              0,
+              context.creditBudget - params.state.totalCreditsUsed,
+            ),
+          }
+        : {}),
       brandId: policy.brandId,
       creditGovernance: policy.creditGovernance,
       generationModelOverride: policy.generationModelOverride,

@@ -24,6 +24,7 @@ import {
   IsDate,
   IsEnum,
   IsIn,
+  IsInt,
   IsNumber,
   IsOptional,
   IsString,
@@ -178,6 +179,18 @@ export class BudgetPolicyDto {
 }
 
 export class PublishPolicyDto {
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(100)
+  autoPublishAfterApprovals?: number;
+
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(168)
+  reviewTimeoutHours?: number;
+
   @IsBoolean()
   @IsOptional()
   @ApiProperty({ description: 'Allow auto-publish gating', required: false })

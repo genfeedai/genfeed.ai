@@ -11,7 +11,7 @@ const NOW = new Date('2026-08-01T00:00:00.000Z');
 describe('AnalyticsSyncService action operations', () => {
   const analyticsFindMany = vi.fn();
   const postFindMany = vi.fn();
-  const performanceCreate = vi.fn();
+  const performanceUpsert = vi.fn();
   const performanceFindFirst = vi.fn();
   const logger = {
     error: vi.fn(),
@@ -24,7 +24,7 @@ describe('AnalyticsSyncService action operations', () => {
   } satisfies ServerBrandMemorySync;
   const prisma = {
     contentPerformance: {
-      create: performanceCreate,
+      upsert: performanceUpsert,
       findFirst: performanceFindFirst,
     },
     post: { findMany: postFindMany },
@@ -37,7 +37,7 @@ describe('AnalyticsSyncService action operations', () => {
     service = new AnalyticsSyncService(prisma, brandMemorySync, logger);
     analyticsFindMany.mockResolvedValue([]);
     postFindMany.mockResolvedValue([]);
-    performanceCreate.mockResolvedValue({ id: 'performance-1' });
+    performanceUpsert.mockResolvedValue({ id: 'performance-1' });
     performanceFindFirst.mockResolvedValue(null);
     brandMemorySync.detectThresholdAlerts.mockResolvedValue([]);
     brandMemorySync.syncPostPerformance.mockResolvedValue(undefined);
@@ -51,6 +51,7 @@ describe('AnalyticsSyncService action operations', () => {
         id: 'analytics-1',
         platform: 'instagram',
         postId: 'post-1',
+        clicks: 7,
         totalComments: 5,
         totalLikes: 10,
         totalSaves: 2,
@@ -63,6 +64,9 @@ describe('AnalyticsSyncService action operations', () => {
       {
         brandId: 'brand-1',
         category: null,
+        description: '\nThe opening hook\nFull post content',
+        promptUsed: 'Verified generation prompt',
+        generationId: 'generation-1',
         id: 'post-1',
         isDeleted: false,
         organizationId: 'org-1',
@@ -74,6 +78,10 @@ describe('AnalyticsSyncService action operations', () => {
     expect(result.items).toEqual([
       expect.objectContaining({
         brandId: 'brand-1',
+        clicks: 7,
+        hookUsed: 'The opening hook',
+        promptUsed: 'Verified generation prompt',
+        generationId: 'generation-1',
         measuredAt: NOW.toISOString(),
         organizationId: 'org-1',
         postId: 'post-1',
@@ -88,6 +96,33 @@ describe('AnalyticsSyncService action operations', () => {
         organizationId: 'org-1',
       }),
     });
+  });
+
+  it('uses post text as prompt fallback and leaves missing provenance absent', async () => {
+    analyticsFindMany.mockResolvedValue([
+      { id: 'analytics-1', brandId: 'brand-1', postId: 'post-1', date: NOW },
+    ]);
+    postFindMany.mockResolvedValue([
+      {
+        id: 'post-1',
+        brandId: 'brand-1',
+        description: '\nActual hook\nActual body',
+      },
+    ]);
+    const result = await service.discoverItems({ organizationId: 'org-1' });
+    expect(result.items[0]).toEqual(
+      expect.objectContaining({
+        hookUsed: 'Actual hook',
+        promptUsed: 'Actual hook\nActual body',
+      }),
+    );
+    expect(result.items[0]).not.toHaveProperty('generationId');
+    postFindMany.mockResolvedValue([
+      { id: 'post-1', brandId: 'brand-1', description: '' },
+    ]);
+    const empty = await service.discoverItems({ organizationId: 'org-1' });
+    expect(empty.items[0]).not.toHaveProperty('hookUsed');
+    expect(empty.items[0]).not.toHaveProperty('promptUsed');
   });
 
   it('fails discovery when a record cannot resolve its tenant post', async () => {
@@ -124,17 +159,42 @@ describe('AnalyticsSyncService action operations', () => {
       contentPerformanceId: 'analytics-sync:analytics-1',
       item: expect.objectContaining(item),
     });
-    expect(performanceCreate).toHaveBeenCalledWith({
-      data: expect.objectContaining({
+    expect(performanceUpsert).toHaveBeenCalledWith({
+      create: expect.objectContaining({
         engagementRate: 2,
         id: 'analytics-sync:analytics-1',
         performanceScore: 20,
         source: PerformanceSource.API,
       }),
+      update: expect.objectContaining({
+        engagementRate: 2,
+        data: expect.objectContaining({
+          likes: 10,
+          views: 1000,
+          engagementRate: 2,
+        }),
+      }),
+      where: {
+        id: 'analytics-sync:analytics-1',
+        organizationId: 'org-1',
+        isDeleted: false,
+      },
     });
 
+    await service.persistItem('org-1', { ...item, likes: 30 });
+    expect(performanceUpsert).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        where: {
+          id: 'analytics-sync:analytics-1',
+          organizationId: 'org-1',
+          isDeleted: false,
+        },
+        update: expect.objectContaining({ likes: 30, engagementRate: 4 }),
+      }),
+    );
+
     performanceFindFirst.mockResolvedValueOnce(null);
-    performanceCreate.mockRejectedValueOnce(new Error('write failed'));
+    performanceUpsert.mockRejectedValueOnce(new Error('write failed'));
     await expect(service.persistItem('org-1', item)).rejects.toThrow(
       'write failed',
     );

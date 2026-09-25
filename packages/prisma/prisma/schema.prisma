@@ -3905,6 +3905,8 @@ model Persona {
 // ═══════════════════════════════════════════════════════════════
 
 model AgentThread {
+  agentStrategyId String? @unique
+  agentStrategy AgentStrategy? @relation(fields: [agentStrategyId], references: [id], onDelete: SetNull, onUpdate: Cascade)
   id                             String       @id @default(cuid())
   userId                         String
   user                           User         @relation(fields: [userId], references: [id])
@@ -4223,6 +4225,7 @@ model SocialReplyCampaignRecipient {
 }
 
 model AgentStrategy {
+  thread AgentThread?
   id             String       @id @default(cuid())
   organizationId String
   organization   Organization @relation(fields: [organizationId], references: [id])

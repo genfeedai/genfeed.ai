@@ -13,6 +13,8 @@ import { Brand } from '@models/organization/brand.model';
 import { Organization } from '@models/organization/organization.model';
 
 export class Post extends BasePost {
+  declare workflowExecutionId?: IPost['workflowExecutionId'];
+  declare reviewDecision?: IPost['reviewDecision'];
   constructor(partial: Partial<IPost>) {
     super(partial);
 

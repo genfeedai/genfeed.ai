@@ -68,7 +68,6 @@ describe('PostAnalyticsCollectionStateService', () => {
         },
         where: {
           brandId: 'brand-1',
-          groupId: { not: null },
           id: { in: ['post-1', 'post-2'] },
           isDeleted: false,
           organizationId: 'org-1',
@@ -166,6 +165,43 @@ describe('PostAnalyticsCollectionStateService', () => {
       ];
       expect(args.data.analyticsCollectedAt).toBeInstanceOf(Date);
     });
+  });
+
+  it('advances groupless posts while preserving stale-attempt ownership', async () => {
+    const target = makeTarget();
+    const row = {
+      groupId: null,
+      attemptKey: '',
+      state: '',
+      nextCollectAt: null as Date | null,
+    };
+    updateMany.mockImplementation(({ where, data }) => {
+      if (
+        'groupId' in where ||
+        (where.analyticsCollectionAttemptKey &&
+          where.analyticsCollectionAttemptKey !== row.attemptKey)
+      ) {
+        return Promise.resolve({ count: 0 });
+      }
+      row.attemptKey = data.analyticsCollectionAttemptKey ?? row.attemptKey;
+      row.state = data.analyticsCollectionState;
+      row.nextCollectAt = data.analyticsNextCollectAt ?? row.nextCollectAt;
+      return Promise.resolve({ count: 1 });
+    });
+    await service.markPending({
+      attemptKey: 'attempt-2',
+      requestedAt: REQUESTED_AT,
+      targets: [target],
+    });
+    await service.markReady(target, REQUESTED_AT);
+    await service.markFailed(target, FAILURE);
+    expect(row.state).toBe(TargetAnalyticsCollectionState.PENDING);
+    await service.markReady(
+      { ...target, attemptKey: 'attempt-2' },
+      REQUESTED_AT,
+    );
+    expect(row.state).toBe(TargetAnalyticsCollectionState.READY);
+    expect(row.nextCollectAt).toBeInstanceOf(Date);
   });
 
   describe('markReady', () => {

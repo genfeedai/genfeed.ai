@@ -1,4 +1,5 @@
 import { SERVER_TOKENS } from '@api/server.dependencies';
+import { AgentReportDeliveryModule } from '@api/services/agent-reports/agent-report-delivery.module';
 import { EmailPerformanceController } from '@api/services/email-performance/email-performance.controller';
 import { EmailPerformanceService } from '@api/services/email-performance/email-performance.service';
 import { EmailPerformanceReportService } from '@api/services/email-performance/email-performance-report.service';
@@ -35,6 +36,7 @@ import { Module } from '@nestjs/common';
     WorkflowNotificationQueueService,
   ],
   imports: [
+    AgentReportDeliveryModule,
     ConfigModule,
     LoggerModule,
     PrismaModule,

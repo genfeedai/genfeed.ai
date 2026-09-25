@@ -39,6 +39,9 @@ export class OrganizationsIntegrationsController {
     const data = await this.integrationsService.create(
       organizationId,
       createIntegrationDto,
+      ...(createIntegrationDto.config?.agentReportBindings !== undefined
+        ? [user.userId ?? user.id]
+        : []),
     );
     return serializeSingle(request, OrgIntegrationSerializer, data);
   }
@@ -90,6 +93,9 @@ export class OrganizationsIntegrationsController {
       organizationId,
       id,
       updateIntegrationDto,
+      ...(updateIntegrationDto.config?.agentReportBindings !== undefined
+        ? [user.userId ?? user.id]
+        : []),
     );
     return serializeSingle(request, OrgIntegrationSerializer, data);
   }

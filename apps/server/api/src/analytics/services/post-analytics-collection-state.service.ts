@@ -67,7 +67,6 @@ export class PostAnalyticsCollectionStateService
         },
         where: scopedWhere(scope.organizationId, {
           brandId: scope.brandId,
-          groupId: { not: null },
           id: { in: targets.map((target) => target.id) },
           parentId: null,
           platform: scope.platform,
@@ -132,7 +131,6 @@ export class PostAnalyticsCollectionStateService
           where: {
             ...scopedWhere(scope.organizationId, {
               brandId: scope.brandId,
-              groupId: { not: null },
               id: { in: bucketIds },
               parentId: null,
               platform: scope.platform,
@@ -216,7 +214,6 @@ export class PostAnalyticsCollectionStateService
         where: {
           ...scopedWhere(scope.organizationId, {
             brandId: scope.brandId,
-            groupId: { not: null },
             id: { in: groupedTargets.map((target) => target.id) },
             parentId: null,
             platform: scope.platform,

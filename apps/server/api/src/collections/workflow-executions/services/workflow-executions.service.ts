@@ -498,6 +498,7 @@ export class WorkflowExecutionsService extends BaseService<
         const durableDeliveryId = suppressWorkflowOutcomeNotification(
           execution.workflow.metadata,
           Boolean(error),
+          updatedExecution.result,
         )
           ? null
           : await this.workflowNotificationOutboxService.recordWorkflowOutcome(
@@ -508,6 +509,7 @@ export class WorkflowExecutionsService extends BaseService<
                 completedAt,
                 failure,
                 error,
+                updatedExecution.result,
               ),
             );
 

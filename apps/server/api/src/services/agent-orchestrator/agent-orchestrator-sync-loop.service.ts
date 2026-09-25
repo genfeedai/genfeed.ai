@@ -13,6 +13,7 @@ import { AgentThreadEventRecorderService } from '@api/services/agent-orchestrato
 import {
   type AgentToolRoundState,
   AgentTurnRoundRunnerService,
+  assertAgentCreditBudget,
 } from '@api/services/agent-orchestrator/agent-turn-round-runner.service';
 import { AGENT_MAX_TOOL_ROUNDS } from '@api/services/agent-orchestrator/constants/agent-credit-costs.constant';
 import { getAgentTypeConfig } from '@api/services/agent-orchestrator/constants/agent-type-config.constant';
@@ -72,6 +73,81 @@ export class AgentOrchestratorSyncLoopService {
     @Optional()
     private readonly skillRuntimeService?: SkillRuntimeService,
   ) {}
+
+  private async reserveSyncChatRound(input: {
+    context: AgentChatContext;
+    defaultModelKey: string;
+    dispatchedModel: string;
+    generationPriority: RouterPriority;
+    latestAutoRouting: AgentAutoRoutingResolution | undefined;
+    latestProviderUsage: OpenRouterChatCompletionResponse['usage'];
+    maximumRoundCredits: number;
+    messages: Parameters<typeof buildAgentChatCompletionParams>[0]['messages'];
+    model: string;
+    round: number;
+    seedTitle: string;
+    source: AgentChatRequest['source'];
+    terminalContent: string | undefined;
+    threadId: string;
+    tools: Parameters<typeof buildAgentChatCompletionParams>[0]['tools'];
+    turnCost: number;
+    userContent: string;
+  }): Promise<{
+    credits: number;
+    response: OpenRouterChatCompletionResponse;
+  }> {
+    if (input.terminalContent) {
+      return {
+        credits: 0,
+        response: {
+          choices: [
+            {
+              finish_reason: 'stop',
+              message: { content: input.terminalContent, role: 'assistant' },
+            },
+          ],
+          id: `terminal-tool-${input.context.executionId ?? input.threadId}`,
+          usage: input.latestProviderUsage,
+        },
+      };
+    }
+    return runReservedAgentLlmRound({
+      actorUserId: input.context.userId,
+      credits: this.creditsUtilsService,
+      estimatedCredits: (actualModel) =>
+        this.agentChatModelRegistry.getRoundCredits(actualModel),
+      idempotencyKey: `${input.context.executionId ?? input.threadId}:agent-llm-round:${input.round}`,
+      maximumCredits: input.maximumRoundCredits,
+      organizationId: input.context.organizationId,
+      requestedModel: input.dispatchedModel,
+      run: async () =>
+        this.llmDispatcher.chatCompletion(
+          buildAgentChatCompletionParams({
+            autoAllowedModelKeys:
+              await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
+            defaultModelKey: input.defaultModelKey,
+            dispatchModelKey: input.latestAutoRouting?.dispatchModelKey,
+            isWebSearchNeeded: input.latestAutoRouting?.isWebSearchNeeded,
+            messages: input.messages,
+            model: input.model,
+            prompt: input.userContent,
+            prioritize: input.generationPriority,
+            seedTitle: input.seedTitle,
+            sessionId: input.threadId,
+            source: input.source,
+            tools: input.tools,
+          }),
+          input.context.organizationId,
+          {
+            brandId: input.context.scope?.brandId,
+            runId: input.context.executionId,
+            threadId: input.threadId,
+            userId: input.context.userId,
+          },
+        ),
+      waived: input.turnCost === 0,
+    });
+  }
 
   async executeSynchronousChatLoop(params: {
     context: AgentChatContext;
@@ -168,7 +244,8 @@ export class AgentOrchestratorSyncLoopService {
       const tools = buildToolDefinitions(
         mergeAllowedTools(
           syncBaseTools,
-          this.batchService.isBatchGenerationIntent(request.content)
+          request.source !== 'proactive' &&
+            this.batchService.isBatchGenerationIntent(request.content)
             ? BATCH_SCOPED_ALLOWED_TOOLS
             : undefined,
         ),
@@ -196,6 +273,16 @@ export class AgentOrchestratorSyncLoopService {
         round++;
 
         const isTerminalCompletion = Boolean(terminalContent);
+        const maximumRoundCredits =
+          terminalContent || turnCost === 0
+            ? 0
+            : await this.agentChatModelRegistry.getMaximumRoundCredits(model);
+        if (!terminalContent)
+          assertAgentCreditBudget(
+            context,
+            toolRoundState.totalCreditsUsed + roundCredits,
+            maximumRoundCredits,
+          );
         const { defaultModelKey, dispatchedModel, resolution } =
           await resolveAgentAutoRoutingRound({
             context,
@@ -213,63 +300,25 @@ export class AgentOrchestratorSyncLoopService {
             threadId,
           });
         latestAutoRouting = resolution;
-        const reservedRound: {
-          credits: number;
-          response: OpenRouterChatCompletionResponse;
-        } = terminalContent
-          ? {
-              credits: 0,
-              response: {
-                choices: [
-                  {
-                    finish_reason: 'stop',
-                    message: {
-                      content: terminalContent,
-                      role: 'assistant',
-                    },
-                  },
-                ],
-                id: `terminal-tool-${context.executionId ?? threadId}`,
-                usage: latestProviderUsage,
-              } satisfies OpenRouterChatCompletionResponse,
-            }
-          : await runReservedAgentLlmRound({
-              actorUserId: context.userId,
-              credits: this.creditsUtilsService,
-              estimatedCredits: (actualModel) =>
-                this.agentChatModelRegistry.getRoundCredits(actualModel),
-              idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
-              maximumCredits:
-                await this.agentChatModelRegistry.getMaximumRoundCredits(model),
-              organizationId: context.organizationId,
-              requestedModel: dispatchedModel,
-              run: async () =>
-                this.llmDispatcher.chatCompletion(
-                  buildAgentChatCompletionParams({
-                    autoAllowedModelKeys:
-                      await this.agentChatModelRegistry.getAutoAllowedModelKeys(),
-                    defaultModelKey,
-                    dispatchModelKey: latestAutoRouting?.dispatchModelKey,
-                    isWebSearchNeeded: latestAutoRouting?.isWebSearchNeeded,
-                    messages,
-                    model,
-                    prompt: request.content,
-                    prioritize: generationPriority,
-                    seedTitle,
-                    sessionId: threadId,
-                    source: request.source,
-                    tools,
-                  }),
-                  context.organizationId,
-                  {
-                    brandId: context.scope?.brandId,
-                    runId: context.executionId,
-                    threadId,
-                    userId: context.userId,
-                  },
-                ),
-              waived: turnCost === 0,
-            });
+        const reservedRound = await this.reserveSyncChatRound({
+          context,
+          defaultModelKey,
+          dispatchedModel,
+          generationPriority,
+          latestAutoRouting,
+          latestProviderUsage,
+          maximumRoundCredits,
+          messages,
+          model,
+          round,
+          seedTitle,
+          source: request.source,
+          terminalContent,
+          threadId,
+          tools,
+          turnCost,
+          userContent: request.content,
+        });
         const response = reservedRound.response;
         terminalContent = undefined;
         if (!isTerminalCompletion) {
@@ -417,6 +466,7 @@ export class AgentOrchestratorSyncLoopService {
           };
         }
 
+        toolRoundState.totalCreditsUsed += await settleAccruedTurnCredits();
         const toolRoundResult = await this.turnRoundRunner.executeToolRound({
           allowedToolNames,
           assistantContent: assistantMessage.content,

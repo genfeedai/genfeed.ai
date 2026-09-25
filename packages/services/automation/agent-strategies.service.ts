@@ -1,5 +1,9 @@
 import { API_ENDPOINTS } from '@genfeedai/contracts/constants';
-import type { IBrand } from '@genfeedai/contracts/interfaces';
+import type {
+  IAgentStrategyPerformanceSnapshot,
+  IAgentStrategyRunHistoryItem,
+  IBrand,
+} from '@genfeedai/contracts/interfaces';
 import type { IServiceSerializer } from '@genfeedai/contracts/interfaces/utils/error.interface';
 import { BaseService } from '@services/core/base.service';
 
@@ -148,31 +152,17 @@ export interface AgentStrategyOpportunity {
   topic: string;
 }
 
-export interface AgentStrategyPerformanceSnapshot {
-  bestPlatformFormatPairs: Array<{
-    format: string;
-    platform: string;
-    score: number;
-  }>;
-  bestPostingWindows: string[];
-  clicks: number;
-  costPerVisit: number;
-  creditsSpent: number;
-  ctr: number;
-  generatedCount: number;
-  impressions: number;
-  publishedCount: number;
-  topHooks: string[];
-  topTopics: string[];
-  visits: number;
-}
+export type AgentStrategyPerformanceSnapshot =
+  IAgentStrategyPerformanceSnapshot;
 
 export interface AgentStrategyReport {
+  summary?: string;
+  metadata?: { measurementBasis?: string; [key: string]: unknown };
   allocationChanges: string[];
   bestPlatformFormatPairs: AgentStrategyPerformanceSnapshot['bestPlatformFormatPairs'];
   bestPostingWindows: string[];
   clicks: number;
-  costPerVisit: number;
+  costPerVisit: number | null;
   creditsSpent: number;
   ctr: number;
   generatedCount: number;
@@ -184,10 +174,11 @@ export interface AgentStrategyReport {
   reportType: 'daily' | 'weekly';
   topHooks: string[];
   topTopics: string[];
-  visits: number;
+  visits: number | null;
 }
 
 export class AgentStrategy {
+  runHistory?: IAgentStrategyRunHistoryItem[];
   id!: string;
   organizationId!: string;
   brand?: Pick<IBrand, 'id' | 'label' | 'slug'>;

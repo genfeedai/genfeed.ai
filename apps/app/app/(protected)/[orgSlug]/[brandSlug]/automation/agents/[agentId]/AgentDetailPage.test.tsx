@@ -35,26 +35,6 @@ vi.mock('@hooks/navigation/use-collection-scope/use-collection-scope', () => ({
   }),
 }));
 
-vi.mock('@hooks/data/agent-strategies/use-agent-strategy', () => ({
-  useAgentStrategy: () => ({
-    isLoading: false,
-    refresh: vi.fn(),
-    strategy: {
-      agentType: 'general',
-      autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
-      brand: 'Brand One',
-      consecutiveFailures: 0,
-      creditsUsedThisWeek: 9,
-      creditsUsedToday: 3,
-      dailyCreditBudget: 20,
-      id: 'strategy-1',
-      isActive: true,
-      label: 'Autopilot',
-      weeklyCreditBudget: 100,
-    },
-  }),
-}));
-
 vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: vi.fn(),
@@ -168,20 +148,76 @@ vi.mock('@ui/display/badge/Badge', () => ({
 describe('AgentDetailPage', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    useQueryMock.mockReturnValue({
-      data: [
-        {
-          decisionReason: 'Trend watcher matched a current platform trend.',
-          expectedTrafficScore: 89,
-          id: 'opp-1',
-          sourceType: 'trend',
-          status: 'queued',
-          topic: 'AI launch hooks',
-        },
-      ],
+    useQueryMock.mockImplementation(({ queryKey }: { queryKey: string[] }) => ({
+      data:
+        queryKey[0] === 'agent-strategy'
+          ? {
+              id: 'strategy-1',
+              brandId: 'brand-1',
+              agentType: 'general',
+              autonomyMode: AgentAutonomyMode.AUTO_PUBLISH,
+              isActive: true,
+              label: 'Content agent',
+              consecutiveFailures: 0,
+              dailyCreditBudget: 20,
+              weeklyCreditBudget: 100,
+              creditsUsedToday: 3,
+              creditsUsedThisWeek: 9,
+              runHistory: [],
+            }
+          : queryKey[0] === 'agent-opportunities'
+            ? [
+                {
+                  decisionReason:
+                    'Trend watcher matched a current platform trend.',
+                  expectedTrafficScore: 89,
+                  id: 'opp-1',
+                  sourceType: 'trend',
+                  status: 'queued',
+                  topic: 'AI launch hooks',
+                },
+              ]
+            : queryKey[0] === 'agent-performance'
+              ? undefined
+              : [],
       isLoading: false,
       refetch: vi.fn(),
-    });
+    }));
+  });
+
+  it('keys every agent query by organization, brand, and agent', () => {
+    render(<AgentDetailPage agentId="strategy-1" />);
+    for (const resource of [
+      'agent-strategy',
+      'agent-opportunities',
+      'agent-posts',
+      'agent-reports',
+      'agent-performance',
+    ]) {
+      expect(useQueryMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          queryKey: expect.arrayContaining([
+            resource,
+            'org-1',
+            'brand-1',
+            'strategy-1',
+          ]),
+        }),
+      );
+    }
+  });
+
+  it('shows a strategy request failure separately from not found', () => {
+    useQueryMock.mockImplementation(() => ({
+      isError: true,
+      isLoading: false,
+      refetch: vi.fn(),
+    }));
+    render(<AgentDetailPage agentId="strategy-1" />);
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Could not load this agent.',
+    );
+    expect(screen.queryByText(/Agent not found/)).not.toBeInTheDocument();
   });
 
   it('opens schedule settings on the agent instead of a separate Autopilot desk', () => {

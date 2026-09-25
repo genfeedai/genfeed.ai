@@ -1,6 +1,6 @@
 import { BrandMemoryService } from '@api/collections/brand-memory/services/brand-memory.service';
-import { scopedWhere } from '@api/index';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
+import { scopedWhere } from '@api/tenancy/scoped-where';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable } from '@nestjs/common';
 
@@ -38,7 +38,7 @@ export class BrandMemorySyncService {
     postId: string,
   ): Promise<void> {
     const performance = await this.prisma.contentPerformance.findFirst({
-      orderBy: { createdAt: 'desc' },
+      orderBy: [{ measuredAt: 'desc' }, { id: 'desc' }],
       where: scopedWhere(organizationId, { brandId, postId }),
     });
 
@@ -54,21 +54,25 @@ export class BrandMemorySyncService {
     const data = (performance.data as ContentPerformanceData) ?? {};
 
     const totalEngagement =
-      (data.likes ?? 0) +
-      (data.comments ?? 0) +
-      (data.shares ?? 0) +
-      (data.saves ?? 0) +
+      (performance.likes ?? data.likes ?? 0) +
+      (performance.comments ?? data.comments ?? 0) +
+      (performance.shares ?? data.shares ?? 0) +
+      (performance.saves ?? data.saves ?? 0) +
       (data.clicks ?? 0);
 
-    const measuredAt = data.measuredAt ? new Date(data.measuredAt) : new Date();
+    const measuredAt = performance.measuredAt ?? performance.createdAt;
+    const engagementRate =
+      performance.engagementRate ?? data.engagementRate ?? 0;
+    const platform = performance.platform ?? data.platform;
+    const contentType = performance.contentType ?? data.contentType;
 
     await this.brandMemoryService.logEntry(organizationId, brandId, {
-      content: `Post ${postId} on ${data.platform} reached ${totalEngagement} engagements with ${(data.engagementRate ?? 0).toFixed(2)}% engagement rate.`,
+      content: `Post ${postId} on ${platform} reached ${totalEngagement} engagements with ${engagementRate.toFixed(2)}% engagement rate.`,
       metadata: {
-        contentType: data.contentType,
-        engagementRate: data.engagementRate,
+        contentType,
+        engagementRate,
         measuredAt,
-        platform: data.platform,
+        platform,
         postId,
       },
       timestamp: measuredAt,
@@ -76,9 +80,9 @@ export class BrandMemorySyncService {
     });
 
     await this.brandMemoryService.updateMetrics(organizationId, brandId, {
-      avgEngagementRate: data.engagementRate ?? 0,
+      avgEngagementRate: engagementRate,
       postsPublished: 1,
-      topPerformingFormat: data.contentType,
+      topPerformingFormat: contentType,
       topPerformingTime: this.toHourLabel(measuredAt),
       totalEngagement,
     });
@@ -97,56 +101,50 @@ export class BrandMemorySyncService {
       this.prisma.contentPerformance.findMany({
         where: scopedWhere(organizationId, {
           brandId,
-          createdAt: { gte: recentStart, lte: now },
+          measuredAt: { gte: recentStart, lte: now },
         }),
       }),
       this.prisma.contentPerformance.findMany({
         where: scopedWhere(organizationId, {
           brandId,
-          createdAt: { gte: baselineStart, lt: baselineEnd },
+          measuredAt: { gte: baselineStart, lt: baselineEnd },
         }),
       }),
     ]);
 
-    const getEngagementRate = (item: { data: unknown }): number => {
+    const getEngagementRate = (item: {
+      data: unknown;
+      engagementRate: number | null;
+    }): number => {
       const d = item.data as ContentPerformanceData;
-      return d?.engagementRate ?? 0;
+      return item.engagementRate ?? d?.engagementRate ?? 0;
     };
 
     const recentAverage = this.average(recent.map(getEngagementRate));
     const baselineAverage = this.average(baseline.map(getEngagementRate));
 
-    if (baselineAverage <= 0 || recentAverage <= 0) {
+    if (baselineAverage <= 0 || recent.length === 0) {
       return [];
     }
 
     const ratio = recentAverage / baselineAverage;
 
-    if (ratio > 2) {
-      return [
-        {
-          baselineAverage,
-          metric: 'engagementRate',
-          ratio,
-          recentAverage,
-          type: 'spike',
-        },
-      ];
+    const type = ratio > 2 ? 'spike' : ratio < 0.5 ? 'drop' : undefined;
+    if (!type) {
+      return [];
     }
 
-    if (ratio < 0.5) {
-      return [
-        {
-          baselineAverage,
-          metric: 'engagementRate',
-          ratio,
-          recentAverage,
-          type: 'drop',
-        },
-      ];
-    }
+    await this.brandMemoryService.addInsight(organizationId, brandId, {
+      category: 'performance',
+      confidence: Math.min(1, recent.length / 10),
+      createdAt: now,
+      insight: `Engagement ${type}: recent posts averaged ${recentAverage.toFixed(2)}% engagement versus ${baselineAverage.toFixed(2)}% in the preceding baseline (${ratio.toFixed(2)}x).`,
+      source: `analytics-threshold:engagementRate:${now.toISOString().slice(0, 10)}`,
+    });
 
-    return [];
+    return [
+      { baselineAverage, metric: 'engagementRate', ratio, recentAverage, type },
+    ];
   }
 
   private average(values: number[]): number {

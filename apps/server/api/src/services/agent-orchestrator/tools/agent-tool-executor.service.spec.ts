@@ -1,3 +1,4 @@
+import { agentToolCreditEstimate } from '@api/services/agent-orchestrator/tools/agent-tool-executor.service';
 import {
   buildLogicalWriteKey,
   type CuratedActionName,
@@ -6747,5 +6748,34 @@ describe('AgentToolExecutorService', () => {
       }),
     );
     expect(result.creditsUsed).toBe(0);
+  });
+});
+
+describe('capped tool quote boundary', () => {
+  it('keeps existing social text prices and fails closed on unquoted delegated generation', () => {
+    expect(
+      agentToolCreditEstimate('generate_content', { type: 'social' }),
+    ).toBeGreaterThan(0);
+    expect(
+      agentToolCreditEstimate('generate_content', { type: 'article' }),
+    ).toBeUndefined();
+    expect(agentToolCreditEstimate('generate_image', {})).toBeUndefined();
+    expect(agentToolCreditEstimate('generate_content_batch', {})).toBe(0);
+    expect(agentToolCreditEstimate('unknown_tool', {})).toBeUndefined();
+  });
+  it('does not invoke the workflow runner for an unquoted capped tool', async () => {
+    const service = Object.create(
+      AgentToolExecutorService.prototype,
+    ) as AgentToolExecutorService;
+    const result = await service.executeTool(
+      'generate_music',
+      {},
+      { creditBudget: 10, organizationId: 'org', userId: 'user' },
+    );
+    expect(result).toMatchObject({
+      success: false,
+      creditsUsed: 0,
+      error: expect.stringContaining('quote unavailable'),
+    });
   });
 });
