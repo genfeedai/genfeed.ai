@@ -2,15 +2,15 @@
 
 import { shouldShowCreditsNav } from '@genfeedai/config/license';
 import { useBrand } from '@genfeedai/contexts/user/brand-context/brand-context';
-import { APP_ROUTES } from '@genfeedai/contracts/constants';
+import {
+  APP_ROUTES,
+  formatCreditBalance,
+  formatCreditBalanceExact,
+} from '@genfeedai/contracts/constants';
 import type {
   ICreditsEventData,
   IOrganizationEventData,
 } from '@genfeedai/contracts/interfaces';
-import {
-  formatCompactNumber,
-  formatNumberWithCommas,
-} from '@genfeedai/helpers/formatting/format/format.helper';
 import { useTopbarBalances } from '@genfeedai/hooks/data/billing/use-topbar-balances/use-topbar-balances';
 import { useSubscription } from '@genfeedai/hooks/data/subscription/use-subscription/use-subscription';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
@@ -139,8 +139,9 @@ function TopbarCreditsBarContent() {
   }
 
   const isLoading = isBalanceLoading && balance === null;
-  const compactBalance = balance === null ? '—' : formatCompactNumber(balance);
-  const fullBalance = balance === null ? '—' : formatNumberWithCommas(balance);
+  const compactBalance = balance === null ? '—' : formatCreditBalance(balance);
+  const fullBalance =
+    balance === null ? '—' : formatCreditBalanceExact(balance);
   const providerSegments = segments.filter(
     (segment) => segment.provider !== 'genfeed',
   );

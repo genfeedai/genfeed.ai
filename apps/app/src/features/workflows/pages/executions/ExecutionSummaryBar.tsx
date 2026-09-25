@@ -1,6 +1,7 @@
 'use client';
 
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
+import { formatCreditCost } from '@genfeedai/contracts/constants';
 import type { WorkflowAccounting } from '@genfeedai/contracts/interfaces';
 import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
@@ -86,16 +87,21 @@ export default function ExecutionSummaryBar({
             {translate('accounting.actualCreditsLabel')}
           </div>
           <div className="font-semibold">
-            {accounting?.actualCredits ?? translate('accounting.unavailable')}
+            {accounting?.actualCredits == null
+              ? translate('accounting.unavailable')
+              : formatCreditCost(accounting.actualCredits)}
           </div>
           <div className="text-xs text-muted-foreground">
             {translate('accounting.estimated')}{' '}
-            {accounting?.estimatedCredits ??
-              translate('accounting.unavailable')}
+            {accounting?.estimatedCredits == null
+              ? translate('accounting.unavailable')
+              : formatCreditCost(accounting.estimatedCredits)}
           </div>
           <div className="text-xs text-muted-foreground">
             {translate('accounting.variance')}{' '}
-            {accounting?.varianceCredits ?? translate('accounting.unavailable')}
+            {accounting?.varianceCredits == null
+              ? translate('accounting.unavailable')
+              : formatCreditCost(accounting.varianceCredits)}
           </div>
           <div className="text-xs text-muted-foreground">
             {translate('accounting.providercostUSD')}{' '}
@@ -118,7 +124,7 @@ export default function ExecutionSummaryBar({
           {accounting?.actualCredits === null && (
             <div className="text-xs text-muted-foreground">
               {translate('accounting.knownsubtotal')}{' '}
-              {accounting.knownActualCredits}
+              {formatCreditCost(accounting.knownActualCredits)}
             </div>
           )}
         </div>
