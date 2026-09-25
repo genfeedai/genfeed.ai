@@ -155,6 +155,7 @@ export default function ModalPostSimpleFields({
         {selectedPlatform === Platform.TWITTER ? (
           <Textarea
             name="description"
+            aria-label="Post content"
             value={stripHtmlToPlainText(form.watch('description') || '')}
             onChange={(event) => {
               form.setValue('description', event.target.value, {
