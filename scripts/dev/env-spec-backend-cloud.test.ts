@@ -75,4 +75,28 @@ describe('env-spec backend cloud flag', () => {
       expect(apiRootSection?.keys).toContain(key);
     }
   });
+
+  it('copies signup alert settings onto the services that read them', () => {
+    const apiTarget = ENV_TARGETS.find((target) => target.id === 'api');
+    const workersTarget = ENV_TARGETS.find((target) => target.id === 'workers');
+    const notificationsTarget = ENV_TARGETS.find(
+      (target) => target.id === 'notifications',
+    );
+    const apiSection = ROOT_ENV_SECTIONS.find(
+      (section) => section.title === 'API',
+    );
+    const notificationsSection = ROOT_ENV_SECTIONS.find(
+      (section) => section.title === 'Files MCP Notifications',
+    );
+
+    expect(apiTarget?.directKeys).toContain('SYSTEM_EVENTS_ENABLED_AT');
+    expect(workersTarget?.directKeys).toContain('SYSTEM_EVENTS_ENABLED_AT');
+    expect(apiSection?.keys).toContain('SYSTEM_EVENTS_ENABLED_AT');
+    expect(notificationsTarget?.directKeys).toContain(
+      'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL',
+    );
+    expect(notificationsSection?.keys).toContain(
+      'SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL',
+    );
+  });
 });
