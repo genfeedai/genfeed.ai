@@ -5,6 +5,7 @@ import { cn } from '@genfeedai/helpers/formatting/cn/cn.util';
 import { useOrgUrl } from '@genfeedai/hooks/navigation/use-org-url';
 import type { AgentModelLockNoticeProps } from '@genfeedai/props/settings/model-routing.props';
 import { Lock } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 /**
@@ -15,6 +16,7 @@ export default function AgentModelLockNotice({
   className,
   lockedModelLabel,
 }: AgentModelLockNoticeProps) {
+  const translate = useTranslations('ui.agentModelLockNotice');
   const { orgHref } = useOrgUrl();
 
   return (
@@ -30,14 +32,17 @@ export default function AgentModelLockNotice({
         {lockedModelLabel}
       </p>
       <p className="text-xs text-muted-foreground">
-        Free plans run every agent on {lockedModelLabel}.{' '}
-        <Link
-          className="font-medium text-foreground underline underline-offset-2"
-          href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
-        >
-          Upgrade
-        </Link>{' '}
-        to choose any model.
+        {translate.rich('freePlan', {
+          model: lockedModelLabel,
+          upgrade: (chunks) => (
+            <Link
+              className="font-medium text-foreground underline underline-offset-2"
+              href={orgHref(APP_ROUTES.SETTINGS.SUBSCRIPTION)}
+            >
+              {chunks}
+            </Link>
+          ),
+        })}
       </p>
     </div>
   );

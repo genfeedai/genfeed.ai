@@ -3000,5 +3000,32 @@
       "unknown": "Unknown"
     },
     "title": "Users"
+  },
+  "unitEconomics": {
+    "allOrganizations": "All organizations",
+    "columns": {
+      "agentChatCredits": "Agent chat credits",
+      "agentTurns": "Agent turns",
+      "generationCost": "Generation cost",
+      "generationCredits": "Generation credits",
+      "generationCreditsSort": "Credits consumed outside agent chat",
+      "grossMargin": "Gross margin",
+      "llmCost": "LLM cost",
+      "marginPercent": "Margin %",
+      "organization": "Organization",
+      "revenue": "Revenue",
+      "topModels": "Top models by cost",
+      "user": "User"
+    },
+    "description": "Per-organization revenue, credits consumed, provider cost, and gross margin. Select an organization to drill into its users.",
+    "descriptionDrillDown": "Per-user revenue, credits consumed, provider cost, and gross margin inside this organization",
+    "empty": "No revenue or usage in this period",
+    "loadFailed": "Unit economics could not be loaded",
+    "period": "Last {days} days",
+    "periodLabel": "Report period",
+    "tableLabel": "Unit economics",
+    "title": "Unit Economics",
+    "titleDrillDown": "Unit Economics \u00b7 {label}",
+    "total": "Total"
   }
 }

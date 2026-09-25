@@ -1,5 +1,5 @@
 ---
-description: 'Learn how Genfeed brand records organize identity, guidelines, voice, assets, and generation context across supported content workflows.'
+description: 'Learn how Genfeed brands hold identity, guidelines, a voice learned from your own posts, Knowledge, and the context the agent receives in chat.'
 ---
 
 # Brands
@@ -16,6 +16,86 @@ multiple brands inside its single organization.
 
 Use the product's brand settings as the source of truth for the fields available
 in the deployed release.
+
+## Brand voice from your own posts
+
+**Brand settings → Brand voice → Generate** drafts the brand's writing voice:
+tone, style, audience, messaging pillars, topics, writing rules, real example
+posts, prompt seeds, and conversation starters. The agent's
+`draft_brand_voice_profile` tool produces the same draft in chat, where you
+review it on a card and approve it before anything is saved.
+
+How the brand *writes* comes from its own posts. How it is *positioned* comes
+from the website and the stored brand details. Where they disagree on tone or
+style, the real posts win. The draft reads, for the current brand only:
+
+- **Imported account history.** Turn on **Import existing posts** in
+  **Brand settings → Integrations → Imports** before connecting an account, or
+  run the import later from the same page. Only the brand's own connected
+  accounts are read. Reposts, quote posts, and posts written by other accounts
+  are skipped. Replies are kept and measured separately from original posts.
+- **Posts Genfeed published** for the brand. They count slightly less than
+  posts the account wrote itself, because Genfeed drafted them.
+- **Posts you paste.** In agent chat, paste 10–20 of your own posts or replies
+  and ask the agent to draft your brand voice. Pasted text is used verbatim;
+  the agent must not write or paraphrase samples for you.
+
+From these posts the draft measures habits such as typical length, casing,
+final punctuation, emoji and hashtag use, em dashes, line breaks, and how
+replies open or disagree. Clear signals become concrete **writing rules**
+("Keep replies short", "Do not use hashtags"). The **example posts** saved with
+the voice are always copied word for word from your real posts, never
+rewritten by the model.
+
+With fewer than 10 of your own posts, the draft still saves, but the page and
+the chat card warn that it will not sound like you yet and explain how to add
+more posts.
+
+Approving a draft in chat only writes the fields the draft actually filled. A
+list you edited on the Brand voice page is not cleared by a draft that left it
+empty.
+
+## What the agent knows
+
+**Brand settings → Agent context** shows, read-only, everything a chat turn in
+this brand is given: identity, guidelines, voice, strategy and topics, custom
+instructions, prompt seeds and starters, performance insights, proven
+patterns, retrieved Knowledge and saved context, recent posts, saved memories,
+active skills, the chat model and its cost per round, the context budget, and
+the raw system prompt. Each layer shows whether it is in the prompt, stored but
+not in the prompt, or empty, and links to the page where you edit it.
+
+Type a message into **Preview a message** to see what a turn about that topic
+would retrieve. Knowledge, related posts, and memories are ranked against it.
+Nothing is saved and no credits are charged.
+
+The page also lists your personal memories, which only you can see and can
+archive, and the brand's shared memories.
+
+The same snapshot is available to agents as the `get_brand_context` tool, in
+agent chat and over [MCP](/api-reference/mcp#brand-context), and through
+`GET /v1/brands/:brandId/agent-context` (optional `query` parameter for the
+preview message).
+
+### Knowledge in agent chat
+
+In **Brand settings → Knowledge**, sources with the **Brand Truth** purpose that
+belong to this brand, or are shared across the organization, are added to agent
+chat as **Brand Knowledge** when they are relevant to the message. The agent
+treats them as verified facts. **Inspiration** and **Research** sources are
+never added automatically; the agent reads them only when it calls the
+`search_knowledge` tool. Another brand's Knowledge and saved context never
+reach this brand's prompt.
+
+Brand context has a fixed character budget. When it overflows, lower-priority
+sections are trimmed first: retrieved saved context, then recent posts,
+performance history, Brand Knowledge, and general context. Custom
+instructions, guidelines, and voice are trimmed last, in that order. The Agent
+context page shows what was trimmed.
+
+Edits to the brand's profile, guidelines, voice, or interview answers reach the
+next chat turn immediately; the agent does not keep serving a cached copy of
+the previous brand context.
 
 ## Watermarked client previews
 

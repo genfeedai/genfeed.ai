@@ -3,7 +3,7 @@ name: desktop_local_workspace_disabled
 description: Desktop local/PGlite workspace stays a disabled coming-soon until explicitly re-enabled
 type: feedback
 status: active
-last_verified: 2026-08-24
+last_verified: 2026-09-25
 topics: [desktop, local-workspace, pglite]
 ---
 
@@ -12,3 +12,5 @@ topics: [desktop, local-workspace, pglite]
 **Why:** Full offline Genfeed (embedded Nest API + Postgres) is still deferred on #2378. The PGlite/BYOK landing page already works. A hardcoded disable produced a void screen; PostHog is the rollout control.
 
 **How to apply:** Gate login and `/desktop/local` with `useDesktopLocalWorkspaceFlag`. Flip the PostHog flag to ship or hide the slice without another deploy. Do not treat `/desktop/local` as the complete studio offline.
+
+**Scope (2026-09-25):** The flag gates only the local/PGlite workspace. Cloud-mode Desktop features do not depend on it and never start PGlite: the Claude Code / Codex CLI agent runtime ([project_desktop_cli_agent_runtime](project_desktop_cli_agent_runtime.md)), the `node-pty` agent terminal (`isAgentCliTerminalAvailable` is true whenever the desktop bridge exists), and the Genfeed server switcher (Cloud / Self-hosted).

@@ -1,3 +1,4 @@
+import type { AuthenticatedUser } from '@api/auth/interfaces/authenticated-user.interface';
 import type { AgentMessagesService } from '@api/collections/agent-messages/services/agent-messages.service';
 import { AgentThreadsController } from '@api/collections/agent-threads/controllers/agent-threads.controller';
 import { AppendExternalAgentTurnDto } from '@api/collections/agent-threads/dto/append-external-agent-turn.dto';
@@ -18,7 +19,8 @@ vi.mock('@api/helpers/utils/error-response/error-response.util', () => ({
   },
 }));
 
-const user = {
+const user: AuthenticatedUser = {
+  brandId: 'brand-1',
   id: 'user-1',
   organizationId: 'org-1',
   userId: 'user-1',

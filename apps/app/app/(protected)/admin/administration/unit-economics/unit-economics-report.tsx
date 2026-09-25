@@ -28,13 +28,14 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { ArrowLeft, Scale } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useEffect, useMemo, useState } from 'react';
 import {
   buildUnitEconomicsRange,
   buildUnitEconomicsTableRows,
   formatMarginPercent,
   formatUsd,
-  UNIT_ECONOMICS_PERIOD_OPTIONS,
+  UNIT_ECONOMICS_PERIOD_DAYS,
 } from './unit-economics-report.util';
 
 const DEFAULT_PERIOD_DAYS = '30';
@@ -54,6 +55,7 @@ function isUnitEconomicsSortKey(key: string): key is UnitEconomicsSortKey {
 }
 
 export default function UnitEconomicsReport() {
+  const translate = useTranslations('pages.unitEconomics');
   const [periodDays, setPeriodDays] = useState(DEFAULT_PERIOD_DAYS);
   const [drillDown, setDrillDown] = useState<UnitEconomicsDrillDown | null>(
     null,
@@ -103,9 +105,11 @@ export default function UnitEconomicsReport() {
     }
   }, [error]);
 
+  const totalLabel = translate('total');
   const rows = useMemo(
-    () => buildUnitEconomicsTableRows(report, sortKey, sortDirection),
-    [report, sortDirection, sortKey],
+    () =>
+      buildUnitEconomicsTableRows(report, sortKey, sortDirection, totalLabel),
+    [report, sortDirection, sortKey, totalLabel],
   );
 
   const numberCell = (value: string, row: UnitEconomicsTableRow) => (
@@ -116,7 +120,9 @@ export default function UnitEconomicsReport() {
 
   const columns: TableColumn<UnitEconomicsTableRow>[] = [
     {
-      header: drillDown ? 'User' : 'Organization',
+      header: drillDown
+        ? translate('columns.user')
+        : translate('columns.organization'),
       key: 'label',
       render: (row) => (
         <span className={cn(row.isTotal && 'font-semibold')}>{row.label}</span>
@@ -124,38 +130,38 @@ export default function UnitEconomicsReport() {
       sortable: true,
     },
     {
-      header: 'Revenue',
+      header: translate('columns.revenue'),
       key: 'revenueUsd',
       render: (row) => numberCell(formatUsd(row.revenueUsd), row),
       sortable: true,
     },
     {
-      header: 'Agent chat credits',
+      header: translate('columns.agentChatCredits'),
       key: 'agentChatCredits',
       render: (row) => numberCell(formatCreditCost(row.agentChatCredits), row),
       sortable: true,
     },
     {
-      header: 'Generation credits',
+      header: translate('columns.generationCredits'),
       key: 'generationCredits',
       render: (row) => numberCell(formatCreditCost(row.generationCredits), row),
       sortable: true,
-      sortLabel: 'Credits consumed outside agent chat',
+      sortLabel: translate('columns.generationCreditsSort'),
     },
     {
-      header: 'LLM cost',
+      header: translate('columns.llmCost'),
       key: 'llmProviderCostUsd',
       render: (row) => numberCell(formatUsd(row.llmProviderCostUsd), row),
       sortable: true,
     },
     {
-      header: 'Generation cost',
+      header: translate('columns.generationCost'),
       key: 'mediaProviderCostUsd',
       render: (row) => numberCell(formatUsd(row.mediaProviderCostUsd), row),
       sortable: true,
     },
     {
-      header: 'Gross margin',
+      header: translate('columns.grossMargin'),
       key: 'grossMarginUsd',
       render: (row) => (
         <span
@@ -171,20 +177,20 @@ export default function UnitEconomicsReport() {
       sortable: true,
     },
     {
-      header: 'Margin %',
+      header: translate('columns.marginPercent'),
       key: 'grossMarginPercent',
       render: (row) =>
         numberCell(formatMarginPercent(row.grossMarginPercent), row),
       sortable: true,
     },
     {
-      header: 'Agent turns',
+      header: translate('columns.agentTurns'),
       key: 'agentTurns',
       render: (row) => numberCell(row.agentTurns.toLocaleString('en-US'), row),
       sortable: true,
     },
     {
-      header: 'Top models by cost',
+      header: translate('columns.topModels'),
       key: 'topModels',
       render: (row) =>
         row.topModels.length === 0 ? (
@@ -215,12 +221,14 @@ export default function UnitEconomicsReport() {
   return (
     <Container
       label={
-        drillDown ? `Unit Economics · ${drillDown.label}` : 'Unit Economics'
+        drillDown
+          ? translate('titleDrillDown', { label: drillDown.label })
+          : translate('title')
       }
       description={
         drillDown
-          ? 'Per-user revenue, credits consumed, provider cost, and gross margin inside this organization'
-          : 'Per-organization revenue, credits consumed, provider cost, and gross margin. Select an organization to drill into its users.'
+          ? translate('descriptionDrillDown')
+          : translate('description')
       }
       icon={Scale}
       right={
@@ -232,17 +240,17 @@ export default function UnitEconomicsReport() {
               onClick={() => setDrillDown(null)}
             >
               <ArrowLeft className="size-4" />
-              All organizations
+              {translate('allOrganizations')}
             </Button>
           ) : null}
           <Select value={periodDays} onValueChange={setPeriodDays}>
-            <SelectTrigger className="w-40" aria-label="Report period">
+            <SelectTrigger className="w-40" aria-label={translate('periodLabel')}>
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              {UNIT_ECONOMICS_PERIOD_OPTIONS.map((option) => (
-                <SelectItem key={option.days} value={String(option.days)}>
-                  {option.label}
+              {UNIT_ECONOMICS_PERIOD_DAYS.map((days) => (
+                <SelectItem key={days} value={String(days)}>
+                  {translate('period', { days })}
                 </SelectItem>
               ))}
             </SelectContent>
@@ -255,7 +263,7 @@ export default function UnitEconomicsReport() {
       }
     >
       <AppTable<UnitEconomicsTableRow>
-        ariaLabel="Unit economics"
+        ariaLabel={translate('tableLabel')}
         items={rows}
         isLoading={isLoading}
         columns={columns}
@@ -263,13 +271,13 @@ export default function UnitEconomicsReport() {
         getRowClassName={(row) =>
           row.isTotal ? 'border-t-2 border-border bg-muted/40' : ''
         }
-        emptyLabel="No revenue or usage in this period"
+        emptyLabel={translate('empty')}
         error={
           error
             ? {
                 description: error instanceof Error ? error.message : undefined,
                 onRetry: () => refetch(),
-                title: 'Unit economics could not be loaded',
+                title: translate('loadFailed'),
               }
             : undefined
         }

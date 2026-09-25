@@ -8,8 +8,8 @@ Genfeed models deployment and client separately:
 
 - **SaaS** is the hosted Cloud deployment with the web client.
 - **Community** is the single-tenant self-hosted deployment with the web client.
-- **Desktop** is a local-first Electron client that can work locally or connect
-  to Cloud explicitly.
+- **Desktop** is an Electron client that connects to Genfeed Cloud or a
+  self-hosted server, with an optional local workspace.
 
 See [Deployment Modes](/core/self-hosted-vs-cloud) and the public
 [deployment-mode summary](https://github.com/genfeedai/genfeed.ai/blob/master/docs/deployment-modes.md)
@@ -38,10 +38,34 @@ configured external providers follow those providers' data practices.
 
 ## Desktop
 
-The desktop workspace is a macOS-first Electron client with PGlite-backed local
-state and optional Cloud connection. The repository has signed macOS artifact
-automation for `desktop-v*` tags. It does not claim Windows or Linux installers,
-and no installer URL is published in these docs unless a tagged release exists.
+The desktop workspace is a macOS-first Electron client that runs the same web
+app. It starts in cloud mode after sign-in; an optional local workspace adds
+PGlite-backed local state and local/BYOK generation. The repository has signed
+macOS artifact automation for `desktop-v*` tags. It does not claim Windows or
+Linux installers, and no installer URL is published in these docs unless a
+tagged release exists.
+
+In cloud mode, Desktop also offers:
+
+- **Agent on your own Claude Code or Codex subscription.** Install and sign in
+  to the `claude` or `codex` CLI on the same computer, sign in to Genfeed, and
+  pick **Claude Code** or **Codex** in the agent's runtime picker. Each turn runs
+  on your CLI subscription and reaches Genfeed only through
+  [Genfeed MCP](/api-reference/mcp) tools, starting with `get_brand_context`.
+  Threads are saved in Genfeed, and the model turn costs no Genfeed credits.
+  Tools that generate media or publish still use credits. Attachments are not
+  sent to CLI runtimes yet.
+- **Terminal.** The agent panel terminal (shell, Genfeed CLI, Claude CLI, Codex
+  CLI) runs on your computer. The first session after each launch asks for
+  confirmation.
+- **Genfeed server switcher.** In **Settings → Organization → Integrations**,
+  the **Genfeed server** card switches between **Genfeed Cloud** and a
+  **Self-hosted** server by API URL. **Test connection** checks the server
+  first; switching restarts Desktop. Each server keeps its own sign-in, so
+  switching never signs you out of the other one.
+
+Setup details, CLI flags, and security boundaries are in the
+[desktop README](https://github.com/genfeedai/genfeed.ai/blob/master/apps/desktop/README.md).
 
 ## Mobile and extensions
 

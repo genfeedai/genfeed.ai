@@ -43,6 +43,7 @@ function candidate(
     key,
     label: key,
     lifecycle: ModelLifecycle.RECOMMENDED,
+    pricing: null,
     provider: ModelProvider.OPENROUTER,
     reviewStatus: null,
     succeededBy: null,

@@ -2,7 +2,7 @@
 description: Desktop BYOK generation runs in Electron main behind the canonical app UI
 type: project
 status: active
-last_verified: 2026-08-05
+last_verified: 2026-09-25
 topics: [desktop, generation, byok, offline]
 ---
 
@@ -27,6 +27,15 @@ no local NestJS API clone.
   imply that every configured provider is network-free: Ollama/LM Studio can be
   local, while Replicate/fal.ai and generic remote endpoints still use the
   network and must be labeled accordingly.
+
+- Local/BYOK *generation* is distinct from the Claude Code / Codex **agent
+  runtime**: that runtime works in cloud mode, uses the user's CLI
+  subscription for the model turn, and reaches Genfeed only through MCP
+  ([project_desktop_cli_agent_runtime](project_desktop_cli_agent_runtime.md)).
+  It is not a BYOK provider and needs no local workspace.
+- The API/app/MCP/notifications endpoints come from one server profile picked
+  in-app (Genfeed Cloud or Self-hosted, `server-profile.util.ts`); the
+  `GENFEED_DESKTOP_*_URL` env vars only set the default server.
 
 **How to apply:**
 - Keep local/BYOK generation in Electron main; expose it to `apps/app` only through the

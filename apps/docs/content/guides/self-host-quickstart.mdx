@@ -157,6 +157,10 @@ docker compose --env-file .env -f compose.yml pull
 docker compose --env-file .env -f compose.yml up -d
 ```
 
+Migrations run on startup. Back up first and read the
+[upgrade notes](/core/installation#upgrade-notes) for releases that lock tables
+while they migrate.
+
 ## Next Steps
 
 - [Installation guide](/core/installation) -- Local development and Docker self-hosting

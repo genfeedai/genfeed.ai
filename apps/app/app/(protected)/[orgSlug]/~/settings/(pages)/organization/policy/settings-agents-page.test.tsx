@@ -2,8 +2,10 @@ import '@testing-library/jest-dom/vitest';
 import { AgentAutonomyMode } from '@genfeedai/contracts';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import ui from '../../../../../../../../messages/en/ui.json';
 import SettingsAgentsPage from './settings-agents-page';
 
 const mocks = vi.hoisted(() => ({
@@ -212,9 +214,11 @@ describe('SettingsAgentsPage', () => {
       defaultOptions: { queries: { retry: false } },
     });
     return render(
-      <QueryClientProvider client={queryClient}>
-        <SettingsAgentsPage />
-      </QueryClientProvider>,
+      <NextIntlClientProvider locale="en" messages={{ ui }}>
+        <QueryClientProvider client={queryClient}>
+          <SettingsAgentsPage />
+        </QueryClientProvider>
+      </NextIntlClientProvider>,
     );
   }
 
@@ -353,13 +357,15 @@ describe('SettingsAgentsPage', () => {
     vi.clearAllMocks();
     mocks.organizationId = '';
     rerender(
-      <QueryClientProvider
-        client={
-          new QueryClient({ defaultOptions: { queries: { retry: false } } })
-        }
-      >
-        <SettingsAgentsPage />
-      </QueryClientProvider>,
+      <NextIntlClientProvider locale="en" messages={{ ui }}>
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          <SettingsAgentsPage />
+        </QueryClientProvider>
+      </NextIntlClientProvider>,
     );
     fireEvent.change(screen.getAllByRole('combobox')[0], {
       target: { value: 'budget' },
@@ -369,13 +375,15 @@ describe('SettingsAgentsPage', () => {
     mocks.organizationId = 'org-1';
     mocks.patchSettings.mockRejectedValueOnce(new Error('save failed'));
     rerender(
-      <QueryClientProvider
-        client={
-          new QueryClient({ defaultOptions: { queries: { retry: false } } })
-        }
-      >
-        <SettingsAgentsPage />
-      </QueryClientProvider>,
+      <NextIntlClientProvider locale="en" messages={{ ui }}>
+        <QueryClientProvider
+          client={
+            new QueryClient({ defaultOptions: { queries: { retry: false } } })
+          }
+        >
+          <SettingsAgentsPage />
+        </QueryClientProvider>
+      </NextIntlClientProvider>,
     );
     fireEvent.change(screen.getAllByRole('combobox')[0], {
       target: { value: 'balanced' },
@@ -415,7 +423,9 @@ describe('SettingsAgentsPage', () => {
     renderPage();
 
     const notice = await screen.findByTestId('agent-model-lock-notice');
-    expect(notice).toHaveTextContent('DeepSeek V4 Flash');
+    expect(notice).toHaveTextContent(
+      'Free plans run every agent on DeepSeek V4 Flash. Upgrade to choose any model.',
+    );
     expect(screen.getByRole('link', { name: 'Upgrade' })).toHaveAttribute(
       'href',
       '/acme/settings/subscription',

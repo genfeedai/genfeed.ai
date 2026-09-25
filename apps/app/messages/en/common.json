@@ -695,6 +695,7 @@
       "fields": {
         "api": "Server API URL",
         "apiHelp": "Usually ends in /v1, for example https://api.example.com/v1 or http://localhost:3010/v1.",
+        "apiPlaceholder": "https://api.example.com/v1",
         "app": "App URL",
         "derived": "Derived from the API URL",
         "mcp": "MCP URL",

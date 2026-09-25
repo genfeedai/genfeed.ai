@@ -167,6 +167,27 @@ The CLI equivalents are `gf connect <platform>`, `gf gen image --brand --context
 and `gf status <id>`. Client evidence lives in the repository file
 `docs/external-agent-content-journey.md`.
 
+## Brand context
+
+`get_brand_context` returns what Genfeed's own agent is given about a brand in
+chat: identity, guidelines, voice (including writing rules and real example
+posts), strategy and topics, custom instructions, prompt seeds, performance
+insights, proven patterns, Brand Knowledge, recent posts, saved memories,
+active skills, the chat model, the context budget, and the rendered system
+prompt. It is read-only and charges no credits.
+
+| Argument | Description |
+| --- | --- |
+| `brandId` | Brand to inspect. Defaults to the brand of the current conversation. |
+| `query` | Optional preview message. Knowledge, related posts, and memories are ranked against it. |
+| `includeSystemPrompt` | Include the full rendered system prompt. Defaults to `true`; set `false` for a shorter summary. |
+
+Call it at the start of a session so your agent writes in the brand's voice
+with the same context the in-app agent uses. The Genfeed desktop app does this
+automatically when it runs the agent on your own Claude Code or Codex CLI; see
+[Deployment Options](/deployment#desktop). The same snapshot is shown in
+**Brand settings → Agent context** ([Brands](/cloud/brands#what-the-agent-knows)).
+
 ## Publishing readiness
 
 Before scheduling, call `list_scheduler_capabilities` and
@@ -261,7 +282,7 @@ https://mcp.genfeed.ai/mcp?toolsets=content,generation,analytics,brand,scheduler
 | `workflows` | Workflow creation, execution, scheduling, and template management. |
 | `analytics` | Performance, content, video, and LinkedIn analytics plus trend discovery. |
 | `social-inbox` | Social conversation triage: replies, approvals, direct messages, and account activity. |
-| `brand` | Brand identity, completeness, publishing readiness, and the brand interview flow. |
+| `brand` | Brand identity, completeness, publishing readiness, the brand interview flow, and the `get_brand_context` snapshot. |
 | `ads` | Meta, Google, and TikTok ad account, campaign, and insight tools. |
 | `inspiration` | Instagram and TikTok inspiration and top-performer discovery. |
 | `clips` | Clip project creation, analysis, and highlight extraction from source video. |

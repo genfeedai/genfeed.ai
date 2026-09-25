@@ -227,7 +227,14 @@ AGENT_SIDEBAR_TRANSITION_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)'
 AGENT_SIDEBAR_SLIDE_OFFSET_PX = 8
 ```
 
-**Agent models:** 8 models with cost tiers (0-15 credits/turn) — Auto (default), DeepSeek (1), Grok 4 (1), o4-mini (3, reasoning), GPT-4o (8), Claude Sonnet 4.5 (10), o3 (15, reasoning), Claude Opus 4.6 (15)
+**Agent models** (2026-09-25): selectable models and prices come from the DB registry
+via `GET /agent/credits` (`modelCosts` = "≈ credits / message" estimates,
+`modelAccess` = free-tier lock). Format amounts only through
+`credit-display.constant.ts`. While locked, pickers render
+`AgentModelLockNotice` instead of a list. In Desktop, the runtime picker also
+offers Claude Code / Codex CLI runtimes (`use-agent-runtime-selection`,
+`use-desktop-cli-agent-chat`); see
+[CLI runtime](../../project_desktop_cli_agent_runtime.md).
 
 **Tool labels:** 44 human-readable labels for tool names
 

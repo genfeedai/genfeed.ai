@@ -2,8 +2,8 @@
 name: Product feature map and import-to-remix evidence
 description: Feature entry points plus a dated implementation and acceptance inventory for post import, extension capture, concepts and original ads
 type: reference
-last_verified: 2026-09-24
-topics: [features, extension, imports, discovery, remix, concepts, knowledge, verification]
+last_verified: 2026-09-25
+topics: [features, extension, imports, discovery, remix, concepts, knowledge, verification, brand-voice, agent-context, desktop, billing]
 ---
 
 # Product feature map
@@ -44,6 +44,19 @@ Inspected source paths against master `5638a43af3`; the capture/import surfaces 
 | Saved research/ad browsing | #5091 governs collection and shared research; master includes saved-ad GET correction PR #5103. | Broader paid research/governance and ingestion acceptance remain with #5091/#4118, independently of generation. |
 | Full browser-extension surface | #4340 remains open. #4341 and historical #4130 closed; #4342 replies, #4343 rewrite/proofread, #4344 native composer recording, #4345 attribution, #4346 local bridge and #4347 E2E remain open at audit. | #5108 adds the corrected import boundary. An implemented capture panel does not establish that the full extension is complete. |
 | Complete import → concept → original ad → review | Existing pieces above do not constitute verified full delivery. | #4347 / #5108 / #4069 require browser, persistence, lineage, generated-media and deployment evidence. |
+
+## Brand context, voice, agent, desktop, and chat billing — 2026-09-25
+
+Source and unit tests on branch `claude/wonderful-volta-ozvu4p` (PR to `master`). Not yet verified deployed or browser-accepted.
+
+| Feature | Evidence and implementation finding | Memory / docs |
+| --- | --- | --- |
+| Brand voice from the brand's own posts | `BrandVoiceCorpusService` reads own-account imports (Integrations → Imports "Import existing posts"), published Genfeed posts and pasted samples; deterministic stylometric writing rules; verbatim exemplars; thin-corpus guidance; approved chat drafts write only non-empty fields. | [brand voice own posts](project_brand_voice_own_posts.md) · `apps/docs/content/cloud/brands.mdx` |
+| Brand-scoped RAG + Brand Knowledge in chat | `ContextsService` scopes saved-context retrieval to the brand; `retrieveBrandKnowledge` injects BRAND_TRUTH Knowledge as `## Brand Knowledge`; INSPIRATION/RESEARCH stay tool-only; strategy topics rendered; `BRAND_CONTEXT` cache invalidated on brand writes. | [snapshot parity](project_agent_context_snapshot_parity.md) · [features/agent](features/agent/README.md) |
+| "What the agent knows" | Brand settings → Agent context page; `GET /v1/brands/:brandId/agent-context`; curated `get_brand_context` (agent + MCP); personal memory list/archive; brand memory insights endpoint. | [snapshot parity](project_agent_context_snapshot_parity.md) · `apps/docs/content/api-reference/mcp.mdx` |
+| Desktop CLI agent runtime, terminal, server switcher | Claude Code / Codex CLI turns via Genfeed MCP, saved as external turns, no credits; `node-pty` terminal in cloud mode; Cloud / Self-hosted server profile. | [CLI runtime](project_desktop_cli_agent_runtime.md) · `apps/desktop/README.md` |
+| Free-tier agent model lock | `AgentModelAccessService` pins unsubscribed hosted orgs to DeepSeek V4 Flash unless BYOK pays. | [free-tier lock](project_agent_free_tier_model_lock.md) |
+| Exact-cost chat billing + credit display | Per-round reserve/settle at exact provider cost (fractional credits); shared `credit-display.constant.ts`; admin Unit Economics + `billing_revenue_events`. | [exact-cost billing](project_agent_exact_cost_chat_billing.md) · `apps/docs/content/cloud/billing.mdx` |
 
 ## Code evidence entry points
 

@@ -12,7 +12,8 @@
 | `POST` | `/agent/threads/:threadId/turns` | Synchronous agent turn for an existing thread |
 | `POST` | `/agent/threads/turns/stream` | Streaming agent turn for a new or body-scoped thread (returns `{ threadId, runId, startedAt }`, events via Redis) |
 | `POST` | `/agent/threads/:threadId/turns/stream` | Streaming agent turn for an existing thread (returns `{ threadId, runId, startedAt }`, events via Redis) |
-| `GET` | `/agent/credits` | Credits balance + per-model turn costs |
+| `GET` | `/agent/credits` | Balance, `modelAccess` (free-tier lock), per-model `modelCosts` (≈ credits / message) |
+| `GET` | `/brands/:brandId/agent-context` | Read-only brand context snapshot (`AgentBrandContextController`, optional `query`) |
 
 **Request DTO (`AgentChatBody`):**
 ```typescript
@@ -26,33 +27,54 @@
 
 ## System Prompt Resolution
 
-**Method:** `resolveSystemPromptAndModel()`
+> **Last verified:** 2026-09-25 against `agent-orchestrator-context.service.ts`.
+
+**Method:** `AgentOrchestratorContextService.resolveTurnContext()` — the single
+assembly path. `resolveSystemPromptAndModel()` wraps it for the chat turn, and
+`AgentBrandContextSnapshotService` wraps it for the read-only snapshot, so the
+Agent context page shows exactly what a turn sees.
 
 Priority order:
-1. **Onboarding** -- if `source === 'onboarding'` OR first run -> `ONBOARDING_SYSTEM_PROMPT`
-2. **Thread override** -- if thread has custom `systemPrompt`
-3. **Request override** -- if `request.systemPromptOverride` set
-4. **Brand context path** (default):
-   - Memories resolved separately via `AgentMemoriesService.getMemoriesForPrompt()` (max 8, ranked by relevance)
-   - Brand context assembled via `AgentContextAssemblyService.assembleContext()` with explicit layers:
+1. **Onboarding** -- `source === 'onboarding'` -> onboarding prompt (with brand context)
+2. **Brand interview** -- `agentType === BRAND_INTERVIEW` -> `BRAND_INTERVIEW_SYSTEM_PROMPT`
+3. **Thread override** -- thread has a custom `systemPrompt`
+4. **Request override** -- `request.systemPromptOverride`
+5. **Brand context path** (default):
+   - Feedback memories via `AgentMemoriesService.getFeedbackMemoriesForGeneration()`
+     (max 8, ranked against the message, thread-pinned memories included);
+     injected as a separate system message (`buildMemoryPromptSections`)
+   - Brand context via `AgentContextAssemblyService.assembleContext()` with layers:
      ```typescript
-     { brandIdentity: true, brandMemory: true, knowledgeBase: true }
+     {
+       brandGuidance: true, brandIdentity: true, brandMemory: true,
+       performancePatterns: true, ragContext: true, recentPosts: true,
+       // brandKnowledge: default true (DEFAULT_LAYERS)
+     }
      ```
-   - `recentPosts` and `performancePatterns` default to `false` and are NOT enabled in this path
-   - System prompt built from `SYSTEM_PROMPT + agentTypeConfig.systemPromptSuffix + replyStyle`
-5. **Fallback** -- base `SYSTEM_PROMPT` + agent type suffix
+   - `ragContext` = brand-scoped saved context (`## Retrieved Brand Memory`);
+     `brandKnowledge` = BRAND_TRUTH Knowledge only (`## Brand Knowledge`). Both
+     need the message text as query. There is no `knowledgeBase` layer.
+   - Rendered by `AgentContextAssemblyService.renderSystemPrompt()` under the
+     6000-char `BRAND_CONTEXT_CHARACTER_BUDGET` with a per-section report.
+6. **Fallback** -- base prompt + agent type suffix / reply style
 
-**Model resolution order:** `request.model` -> `subscriptionDefaultModel` (local/qwen-32b for PAID tiers: CREATOR, PRO, SCALE, ENTERPRISE) -> `brandContext.defaultModel` -> `agentTypeConfig.defaultModel` -> `DEFAULT_MODEL` (deepseek/deepseek-chat)
+**Model resolution order** (first match wins): `strategy.model` ->
+`policy.thinkingModelOverride` (org settings) -> `agentTypeConfig.defaultModel`
+-> registry default (`LLM_DEFAULTS.agentChat`, DeepSeek V4 Flash). Then
+`AgentModelAccessService.enforceModel()` pins unsubscribed hosted orgs to
+`LLM_DEFAULTS.agentChat` unless a BYOK key pays for the route.
 
 ## Synchronous Chat Loop
 
 **Method:** `executeSynchronousChatLoop()`
 
 ```
-while (round < 5):  // AGENT_MAX_TOOL_ROUNDS
+while (round < AGENT_MAX_TOOL_ROUNDS):  // 25 (verified 2026-09-25)
   round++
 
-  LLM call:
+  LLM call, wrapped in runReservedAgentLlmRound() (2026-09-25):
+    hold the round's maximum estimate -> run -> settle the exact provider
+    cost as fractional credits (BYOK / waived rounds settle 0)
     model: selected
     max_tokens: 4096
     temperature: 0.7
@@ -61,7 +83,7 @@ while (round < 5):  // AGENT_MAX_TOOL_ROUNDS
     messages: system + memories + history (max 20)
 
   If NO tool_calls -> FINAL RESPONSE:
-    - Deduct turn cost credits
+    - (LLM rounds are already settled per round; no separate turn charge)
     - Build metadata (isFallback, memoryEntries, reasoning, riskLevel, uiActions)
     - Save assistant message
     - Return AgentChatResult

@@ -217,7 +217,7 @@ export default function DesktopServerSettings() {
               onChange={(event) =>
                 updateSelfHosted('apiEndpoint', event.target.value)
               }
-              placeholder="https://api.example.com/v1"
+              placeholder={translate('fields.apiPlaceholder')}
               spellCheck={false}
               value={selfHosted.apiEndpoint}
             />

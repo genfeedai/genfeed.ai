@@ -61,6 +61,12 @@ const report: IUnitEconomicsReport = {
   },
 };
 
+vi.mock('next-intl', async () => {
+  const { translateFromCatalog } = await import('@app-tests/next-intl.stub');
+
+  return { useTranslations: translateFromCatalog };
+});
+
 const queryState = vi.hoisted(() => ({
   lastQueryKey: [] as unknown[],
 }));
@@ -102,7 +108,12 @@ describe('unit economics report helpers', () => {
   });
 
   it('sorts rows and keeps the totals row last', () => {
-    const ascending = buildUnitEconomicsTableRows(report, 'revenueUsd', 'asc');
+    const ascending = buildUnitEconomicsTableRows(
+      report,
+      'revenueUsd',
+      'asc',
+      'Total',
+    );
     expect(ascending.map((row) => row.id)).toEqual([
       'org-free',
       'org-paid',
@@ -112,6 +123,7 @@ describe('unit economics report helpers', () => {
       report,
       'grossMarginPercent',
       'desc',
+      'Total',
     );
     expect(byMargin.map((row) => row.id)).toEqual([
       'org-paid',

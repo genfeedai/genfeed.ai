@@ -10,12 +10,7 @@ import type { TableSortDirection } from '@props/ui/display/table.props';
 
 export const UNIT_ECONOMICS_TOTAL_ROW_ID = '__total__';
 
-export const UNIT_ECONOMICS_PERIOD_OPTIONS = [
-  { days: 7, label: 'Last 7 days' },
-  { days: 30, label: 'Last 30 days' },
-  { days: 90, label: 'Last 90 days' },
-  { days: 365, label: 'Last 365 days' },
-] as const;
+export const UNIT_ECONOMICS_PERIOD_DAYS = [7, 30, 90, 365] as const;
 
 const USD_FORMATTER = new Intl.NumberFormat('en-US', {
   currency: 'USD',
@@ -74,6 +69,7 @@ export function buildUnitEconomicsTableRows(
   report: IUnitEconomicsReport | undefined,
   sortKey: UnitEconomicsSortKey,
   sortDirection: TableSortDirection,
+  totalLabel: string,
 ): UnitEconomicsTableRow[] {
   if (!report) {
     return [];
@@ -97,7 +93,7 @@ export function buildUnitEconomicsTableRows(
       ...report.totals,
       id: UNIT_ECONOMICS_TOTAL_ROW_ID,
       isTotal: true,
-      label: 'Total',
+      label: totalLabel,
       topModels: [],
     },
   ];
