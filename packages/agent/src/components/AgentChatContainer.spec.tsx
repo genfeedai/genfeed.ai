@@ -32,6 +32,25 @@ const beginRunHandoff = vi.fn((threadId: string) => ({
 const cancelRunHandoff = vi.fn();
 let isStreamingHookActive = false;
 const scrollIntoViewMock = vi.fn();
+const { pinConversationScrollToBottomMock } = vi.hoisted(() => ({
+  pinConversationScrollToBottomMock: vi.fn(),
+}));
+
+vi.mock(
+  '@genfeedai/agent/utils/conversation-scroll.util',
+  async (importOriginal) => {
+    const actual =
+      await importOriginal<
+        typeof import('@genfeedai/agent/utils/conversation-scroll.util')
+      >();
+    return {
+      ...actual,
+      pinConversationScrollToBottom: (
+        ...args: Parameters<typeof actual.pinConversationScrollToBottom>
+      ) => pinConversationScrollToBottomMock(...args),
+    };
+  },
+);
 
 vi.mock('next-intl', () => ({
   useTranslations: () => (key: string) => key,
@@ -486,6 +505,7 @@ describe('AgentChatContainer', () => {
   beforeEach(() => {
     isStreamingHookActive = false;
     scrollIntoViewMock.mockReset();
+    pinConversationScrollToBottomMock.mockReset();
     sendNonStreaming.mockReset();
     sendStreaming.mockReset();
     adoptRun.mockReset();
@@ -1258,13 +1278,38 @@ describe('AgentChatContainer', () => {
       <AgentChatContainer apiService={apiService as never} isLoadingThread />,
     );
 
-    expect(scrollIntoViewMock).not.toHaveBeenCalled();
+    expect(pinConversationScrollToBottomMock).not.toHaveBeenCalled();
 
     storeState.messages = [buildAssistantMessage()];
 
     rerender(<AgentChatContainer apiService={apiService as never} />);
 
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'auto' });
+    expect(pinConversationScrollToBottomMock).toHaveBeenCalled();
+  });
+
+  it('pins a switched thread once the transcript belongs to that thread', () => {
+    const apiService = createApiService();
+
+    storeState.pendingInputRequest = null;
+    storeState.messages = [buildAssistantMessage({ threadId: 'thread-1' })];
+
+    const { rerender } = render(
+      <AgentChatContainer apiService={apiService as never} />,
+    );
+
+    pinConversationScrollToBottomMock.mockClear();
+
+    storeState.activeThreadId = 'thread-2';
+    rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    expect(pinConversationScrollToBottomMock).not.toHaveBeenCalled();
+
+    storeState.messages = [
+      buildAssistantMessage({ id: 'm-2', threadId: 'thread-2' }),
+    ];
+    rerender(<AgentChatContainer apiService={apiService as never} />);
+
+    expect(pinConversationScrollToBottomMock).toHaveBeenCalled();
   });
 
   it('loads older messages near the top and preserves the visible scroll anchor', async () => {
@@ -1934,7 +1979,10 @@ describe('AgentChatContainer', () => {
       );
     });
     await waitFor(() => {
-      expect(scrollIntoViewMock).toHaveBeenCalledWith({ behavior: 'smooth' });
+      expect(pinConversationScrollToBottomMock).toHaveBeenCalledWith(
+        expect.anything(),
+        'smooth',
+      );
     });
   });
 
