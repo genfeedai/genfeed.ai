@@ -252,6 +252,15 @@ function BrandContentContent() {
     ],
   );
 
+  // `runSetup` is recreated whenever any of its inputs change identity
+  // (`translate` in particular is not stable across renders). Keep the
+  // latest version in a ref instead of a dependency: depending on `runSetup`
+  // directly would re-fire this effect on every such render, and the cleanup
+  // below would abort the in-flight setup before it ever reaches the network
+  // calls it exists to make.
+  const runSetupRef = useRef(runSetup);
+  runSetupRef.current = runSetup;
+
   // Runs once the loading phase is reached — cancellable so a fast unmount
   // (or a switch back to the website prompt) never lets a stale run complete
   // onboarding underneath the operator.
@@ -262,14 +271,12 @@ function BrandContentContent() {
     setupStartedRef.current = true;
 
     const controller = new AbortController();
-    void runSetup(websiteUrl, controller.signal);
+    void runSetupRef.current(websiteUrl, controller.signal);
 
     return () => {
       controller.abort();
     };
-    // `setupStartedRef` guards this to a single run — `websiteUrl` and
-    // `runSetup` are listed only to satisfy the exhaustive-deps rule.
-  }, [phase, websiteUrl, runSetup]);
+  }, [phase, websiteUrl]);
 
   const handleWebsiteContinue = useCallback(() => {
     setPhase('loading');
