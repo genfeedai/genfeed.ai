@@ -12,16 +12,16 @@ function makeConfigService(values: Record<string, unknown>): ConfigService {
 }
 
 describe('resolvePatternAnalyzerDecisionSettings', () => {
-  it('defaults to off with the shipped confidence floor', () => {
+  it('defaults to shadow with the shipped confidence floor', () => {
     expect(
       resolvePatternAnalyzerDecisionSettings(makeConfigService({})),
     ).toEqual({
       minConfidence: PATTERN_ANALYZER_DEFAULT_MIN_CONFIDENCE,
-      mode: 'off',
+      mode: 'shadow',
     });
   });
 
-  it('reads a configured mode and floor', () => {
+  it('caps a configured live mode at shadow', () => {
     expect(
       resolvePatternAnalyzerDecisionSettings(
         makeConfigService({
@@ -29,7 +29,7 @@ describe('resolvePatternAnalyzerDecisionSettings', () => {
           PATTERN_ANALYZER_MIN_CONFIDENCE: 0.6,
         }),
       ),
-    ).toEqual({ minConfidence: 0.6, mode: 'live' });
+    ).toEqual({ minConfidence: 0.6, mode: 'shadow' });
   });
 
   it('accepts shadow', () => {
@@ -40,12 +40,20 @@ describe('resolvePatternAnalyzerDecisionSettings', () => {
     ).toBe('shadow');
   });
 
-  it('degrades an unreadable mode to off', () => {
+  it('honours an explicit off', () => {
+    expect(
+      resolvePatternAnalyzerDecisionSettings(
+        makeConfigService({ PATTERN_ANALYZER_DECISION_MODE: 'off' }),
+      ).mode,
+    ).toBe('off');
+  });
+
+  it('degrades an unreadable mode to shadow, never live', () => {
     expect(
       resolvePatternAnalyzerDecisionSettings(
         makeConfigService({ PATTERN_ANALYZER_DECISION_MODE: 'LIVE' }),
       ).mode,
-    ).toBe('off');
+    ).toBe('shadow');
   });
 
   it.each([-0.1, 1.5, Number.NaN, 'high'])(
