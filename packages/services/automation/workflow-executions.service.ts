@@ -3,7 +3,11 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
-import type { WorkflowExecutionListQueryParams } from '@genfeedai/contracts/types';
+import type {
+  WorkflowExecutionListQueryParams,
+  WorkflowExecutionStats,
+  WorkflowExecutionSummaryQueryParams,
+} from '@genfeedai/contracts/types';
 import { EnvironmentService } from '@services/core/environment.service';
 import {
   deserializeCollection,
@@ -21,10 +25,10 @@ class WorkflowExecutionsServiceClass {
     private readonly token: string,
   ) {}
 
-  private async request(
+  private async request<T = JsonApiResponseDocument>(
     endpoint: string,
     init?: RequestInit,
-  ): Promise<JsonApiResponseDocument> {
+  ): Promise<T> {
     const response = await fetch(`${this.baseURL}${endpoint}`, {
       ...init,
       headers: {
@@ -52,6 +56,19 @@ class WorkflowExecutionsServiceClass {
     const suffix = query.size > 0 ? `?${query.toString()}` : '';
     const document = await this.request(`/workflow-executions${suffix}`);
     return deserializeCollection<IWorkflowExecution>(document);
+  }
+
+  async getStats(
+    params: WorkflowExecutionSummaryQueryParams,
+  ): Promise<WorkflowExecutionStats> {
+    const query = new URLSearchParams({ view: 'statistics' });
+    for (const [key, value] of Object.entries(params)) {
+      if (value !== undefined) query.set(key, String(value));
+    }
+    const document = await this.request<{ data: WorkflowExecutionStats }>(
+      `/workflow-executions?${query}`,
+    );
+    return document.data;
   }
 
   async listAdminFailures(

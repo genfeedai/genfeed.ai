@@ -5436,7 +5436,7 @@ describe('AgentToolExecutorService', () => {
     expect(result.nextActions?.[0]).toMatchObject({
       ctas: [
         {
-          href: '/library/images?asset=img-root-123',
+          href: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=img-root-123',
           label: 'View in Library',
         },
       ],

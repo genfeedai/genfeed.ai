@@ -10,7 +10,9 @@ recording. Unset means disabled: ordinary signup and billing continue, with no
 notification delivery calls. The timestamp prevents historical signup floods.
 
 Set `SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL` on the notifications service to
-an incoming webhook owned by your deployment. API/workers use the existing
+an incoming webhook owned by your deployment. Hosted SaaS allowlists that name
+on the notifications task, which is the process that posts to Discord.
+API/workers use the existing
 `GENFEEDAI_MICROSERVICES_NOTIFICATIONS_URL` and `GENFEEDAI_API_KEY` configuration,
 just as acknowledged email delivery does. No additional receiver endpoint,
 external account, bot token or event signing secret is required.

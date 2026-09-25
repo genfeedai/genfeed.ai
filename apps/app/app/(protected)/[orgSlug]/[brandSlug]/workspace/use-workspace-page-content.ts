@@ -68,7 +68,7 @@ export function useWorkspacePageContent({
 
   const { getToken } = useAuthIdentity();
   const { subscribe } = useSocketManager();
-  const { organizationId } = useBrand();
+  const { organizationId, brandId } = useBrand();
   const pathname = usePathname();
   const { replace } = useRouter();
   const searchParams = useSearchParams();
@@ -89,7 +89,10 @@ export function useWorkspacePageContent({
     executions,
     isLoading: isWorkspaceExecutionsLoading,
     stats: executionStats,
-  } = useWorkflowExecutions({ limit: 20, sort: '-createdAt' });
+  } = useWorkflowExecutions(
+    { brandId, limit: 20, sort: '-createdAt' },
+    { organizationId, enabled: Boolean(brandId) },
+  );
   const activeExecutions = executions.filter(
     (execution) =>
       execution.status === 'PENDING' || execution.status === 'RUNNING',
@@ -247,23 +250,18 @@ export function useWorkspacePageContent({
       },
       {
         label: 'In Progress',
-        value: String(inProgressTasks.length + activeExecutions.length),
+        value: String(inProgressTasks.length + executionStats.active),
       },
       {
         label: 'Completed Today',
-        value: String(executionStats.completed),
+        value: String(executionStats.completedToday),
       },
       {
         label: 'Failed Today',
-        value: String(executionStats.failed),
+        value: String(executionStats.failedToday),
       },
     ],
-    [
-      activeExecutions.length,
-      executionStats,
-      inProgressTasks.length,
-      unreadInboxTasks.length,
-    ],
+    [executionStats, inProgressTasks.length, unreadInboxTasks.length],
   );
 
   useEffect(() => {

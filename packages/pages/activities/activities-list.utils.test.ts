@@ -65,6 +65,39 @@ describe('getActivityDescription', () => {
     );
   });
 
+  it('explains the charged action and keeps its amount separate', () => {
+    const activity = {
+      key: ActivityKey.CREDITS_REMOVE,
+      source: 'system',
+      value: JSON.stringify({
+        description: 'AI brand profile generation',
+        value: 1,
+      }),
+    } as IActivity;
+
+    expect(getActivityDescription(activity)).toBe(
+      'AI brand profile generation',
+    );
+    expect(getActivityCreditAmount(activity)).toBe(1);
+  });
+
+  it('uses known sources for old charges without guessing onboarding', () => {
+    expect(
+      getActivityDescription({
+        key: ActivityKey.CREDITS_REMOVE,
+        source: 'brand-interview',
+        value: '1',
+      } as IActivity),
+    ).toBe('Brand context interview');
+    expect(
+      getActivityDescription({
+        key: ActivityKey.CREDITS_REMOVE,
+        source: 'system',
+        value: '1',
+      } as IActivity),
+    ).toBe('Credit usage — details unavailable');
+  });
+
   it('routes failed media and disconnected social accounts to the page you can act on', () => {
     expect(
       getActivityDestinationPath({
@@ -73,7 +106,9 @@ describe('getActivityDescription', () => {
         key: ActivityKey.IMAGE_FAILED,
         value: JSON.stringify({ error: 'Provider timed out' }),
       } as IActivity),
-    ).toBe('/library/images?asset=ing-9');
+    ).toBe(
+      '/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=ing-9',
+    );
     expect(
       getActivityDestinationPath({
         key: ActivityKey.SOCIAL_INTEGRATION_DISCONNECTED,

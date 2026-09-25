@@ -122,6 +122,8 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
       completed: 0,
       failed: 0,
       total: 0,
+      completedToday: 0,
+      failedToday: 0,
       totalCredits: 0,
     },
   }),
@@ -601,7 +603,7 @@ describe('WorkspacePageContent', () => {
     // Inbox tabs are org/brand-scoped via useOrgUrl().href() (#2182).
     expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox/unread',
+      '/acme-org/acme-creator/workspace/inbox?view=unread',
     );
     expect(screen.getByRole('link', { name: /unread/i })).toHaveAttribute(
       'data-state',
@@ -609,11 +611,11 @@ describe('WorkspacePageContent', () => {
     );
     expect(screen.getByRole('link', { name: /recent/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox/recent',
+      '/acme-org/acme-creator/workspace/inbox?view=recent',
     );
     expect(screen.getByRole('link', { name: /all/i })).toHaveAttribute(
       'href',
-      '/acme-org/acme-creator/workspace/inbox/all',
+      '/acme-org/acme-creator/workspace/inbox?view=all',
     );
 
     expect(screen.getByText('Review launch draft')).toBeInTheDocument();

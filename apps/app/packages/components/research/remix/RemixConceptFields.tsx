@@ -1,7 +1,10 @@
 'use client';
 
 import { ButtonSize, ButtonVariant } from '@genfeedai/contracts';
-import { type BrandRemixStoryboardScene, BRAND_REMIX_STORYBOARD_SCENE_LIMIT } from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
+import {
+  BRAND_REMIX_STORYBOARD_SCENE_LIMIT,
+  type BrandRemixStoryboardScene,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-run.contract';
 import { Button } from '@ui/primitives/button';
 import { Input } from '@ui/primitives/input';
 import { Label } from '@ui/primitives/label';

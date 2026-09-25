@@ -7,6 +7,7 @@ import {
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
 import type { IIngredient } from '@genfeedai/contracts/interfaces';
+import { getWorkflowLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { canOptimizeImageSource } from '@genfeedai/utils/media/image-optimization.util';
 import { downloadIngredient } from '@helpers/media/download/download.helper';
 import Card from '@ui/card/Card';
@@ -84,13 +85,6 @@ function getLibraryPathForCategory(category?: string): string | null {
   }
 }
 
-function getWorkflowLabel(
-  workflowsById: Map<string, WorkflowSummary>,
-  workflowId: string,
-): string {
-  return workflowsById.get(workflowId)?.label ?? workflowId;
-}
-
 export default function BatchDetail({
   activeBatchStatus,
   availableOutputs,
@@ -124,7 +118,9 @@ export default function BatchDetail({
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="text-sm text-muted-foreground">
-              {getWorkflowLabel(workflowsById, activeBatchStatus.workflowId)}
+              {getWorkflowLabel(
+                workflowsById.get(activeBatchStatus.workflowId)?.label,
+              )}
             </p>
             <h2 className="mt-1 text-2xl font-semibold text-foreground">
               Batch Results

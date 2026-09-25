@@ -5,6 +5,7 @@ import {
   ButtonSize,
   ButtonVariant,
   formatActivityMessage,
+  getCreditActivityChangeDescriptor,
   IngredientCategory,
 } from '@genfeedai/contracts';
 import type { IActivity, IIngredient } from '@genfeedai/contracts/interfaces';
@@ -157,16 +158,15 @@ export default function ActivitiesList({
       },
       {
         className: 'w-24',
-        header: 'Cost',
+        header: 'Credits',
         key: 'cost',
         render: (a: IActivity) => {
           if (!isCreditActivity(a.key)) return null;
-          const parsed = parseActivityValue(a.value);
-          const amount = (parsed?.value as string) || a.value;
-          if (!amount) return null;
+          const change = getCreditActivityChangeDescriptor(a.key, a.value);
+          if (!change) return null;
           return (
             <span className="text-sm text-foreground/70">
-              {translate('credits', { amount })}
+              {activityMessageFormatter(change)}
             </span>
           );
         },
@@ -206,13 +206,7 @@ export default function ActivitiesList({
         },
       },
     ],
-    [
-      activityMessageFormatter,
-      getPreviewUrl,
-      handleViewIngredient,
-      href,
-      translate,
-    ],
+    [activityMessageFormatter, getPreviewUrl, handleViewIngredient, href],
   );
 
   const actions: TableAction<IActivity>[] = useMemo(

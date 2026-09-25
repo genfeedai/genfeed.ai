@@ -147,6 +147,8 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
         failed: executions.filter((execution) => execution.status === 'FAILED')
           .length,
         total: executions.length,
+        completedToday: 0,
+        failedToday: 0,
         totalCredits: executions.reduce(
           (total, execution) => total + execution.creditsUsed,
           0,

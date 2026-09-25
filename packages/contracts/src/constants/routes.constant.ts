@@ -26,7 +26,7 @@ export const APP_ROUTES = {
       BOTS: '/admin/automation/bots',
       FAILURES: '/admin/automation/failures',
       MODELS: '/admin/automation/models',
-      MODELS_ALL: '/admin/automation/models/all',
+      MODELS_ALL: '/admin/automation/models?type=all',
       TRAININGS: '/admin/automation/trainings',
       WORKFLOWS: '/admin/automation/workflows',
     },
@@ -45,12 +45,12 @@ export const APP_ROUTES = {
       FONT_FAMILIES: '/admin/configuration/font-families',
       PRESETS: '/admin/configuration/presets',
       TAGS: '/admin/configuration/tags',
-      TAGS_ALL: '/admin/configuration/tags/all',
+      TAGS_ALL: '/admin/configuration/tags?filter=all',
     },
     CONTENT: {
       // Ghost CRM routes (analytics/companies/leads/tasks) removed — no pages.
       INGREDIENTS: '/admin/content/ingredients',
-      INGREDIENTS_VIDEOS: '/admin/content/ingredients/videos',
+      INGREDIENTS_VIDEOS: '/admin/content/ingredients?assetType=videos',
       POSTS: '/admin/content/posts',
       PROMPTS: '/admin/content/prompts',
       PROMPTS_LIST: '/admin/content/prompts/list',
@@ -155,7 +155,7 @@ export const APP_ROUTES = {
     /**
      * Canonical library home — the unified asset browser with no filter seeded.
      * Bare ROOT redirects here. The Library has three orthogonal axes: type
-     * (`?categories=`), shelf (`/library/shelf/:shelf`), and folder
+     * (`?categories=`), shelf (`?shelf=`), and folder
      * (`?folder=`); this route is all three unset.
      */
     ASSETS: '/library/assets',
@@ -164,27 +164,27 @@ export const APP_ROUTES = {
      * links (see `LIBRARY_ROUTE_BY_INGREDIENT_CATEGORY`), not navigation — type
      * is a filter chip, so the sidebar never lists them.
      */
-    AVATARS: '/library/avatars',
+    AVATARS: '/library/assets?categories=AVATAR',
     CAPTIONS: '/library/captions',
-    GIFS: '/library/gifs',
-    IMAGES: '/library/images',
+    GIFS: '/library/assets?categories=GIF',
+    IMAGES: '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
     /**
      * Redirect alias. Brand Knowledge now lives under Settings
      * (`SETTINGS.KNOWLEDGE`). Keep this path so old links still resolve.
      */
     KNOWLEDGE: '/library/knowledge',
-    MUSIC: '/library/music',
+    MUSIC: '/library/assets?categories=MUSIC&categories=AUDIO',
     /** Assets touched most recently, newest first. */
-    RECENT: '/library/recent',
+    RECENT: '/library/assets?place=recent',
     ROOT: '/library',
     /**
      * Generation-state axis. Append a `LibraryShelf` value:
      * `${SHELF}/needs-review`. A shelf is a saved query, not a location.
      */
     SHELF: '/library/shelf',
-    STARRED: '/library/starred',
-    TRASH: '/library/trash',
-    VIDEOS: '/library/videos',
+    STARRED: '/library/assets?place=starred',
+    TRASH: '/library/assets?place=trash',
+    VIDEOS: '/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
     VOICES: '/library/voices',
   },
   MESSAGES: {
@@ -351,9 +351,9 @@ export const APP_ROUTES = {
   WORKSPACE: {
     ACTIVITY: '/workspace/activity',
     INBOX: '/workspace/inbox',
-    INBOX_ALL: '/workspace/inbox/all',
-    INBOX_RECENT: '/workspace/inbox/recent',
-    INBOX_UNREAD: '/workspace/inbox/unread',
+    INBOX_ALL: '/workspace/inbox?view=all',
+    INBOX_RECENT: '/workspace/inbox?view=recent',
+    INBOX_UNREAD: '/workspace/inbox?view=unread',
     /**
      * Canonical workspace home. Bare ROOT (`/workspace`) redirects here so the
      * Overview nav item is a complete path that does not prefix-match

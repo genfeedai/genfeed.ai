@@ -92,7 +92,10 @@ describe('ModelsLayoutContent', () => {
     await user.click(screen.getByRole('combobox', { name: 'Model type' }));
     await user.click(await screen.findByRole('option', { name: 'Images' }));
 
-    expect(mockPush).toHaveBeenCalledWith('/acme/~/settings/models/images');
+    expect(mockPush).toHaveBeenCalledWith(
+      '/acme/~/settings/models?type=images',
+      { scroll: false },
+    );
   });
 
   it('keeps the type filter and refresh on one non-wrapping row', () => {

@@ -20,8 +20,15 @@ it('acknowledges a concurrent BYOK replay after the unique key wins elsewhere', 
       create: vi.fn().mockRejectedValue({ code: 'P2002' }),
     },
   };
+  const database = {
+    ...prisma,
+    $transaction: vi.fn(
+      async (callback: (client: typeof prisma) => Promise<unknown>) =>
+        callback(prisma),
+    ),
+  };
   const service = new CreditTransactionsService(
-    prisma as unknown as PrismaService,
+    database as unknown as PrismaService,
     { error: vi.fn() } as unknown as LoggerService,
     {} as CreditBalanceService,
     { invalidate: vi.fn() } as unknown as CacheInvalidationService,

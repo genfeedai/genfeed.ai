@@ -1,4 +1,5 @@
 import { AgentStrategiesService } from '@api/collections/agent-strategies/services/agent-strategies.service';
+import type { WorkflowExecutionQueryDto } from '@api/collections/workflow-executions/dto/create-workflow-execution.dto';
 import {
   CreateWorkflowExecutionDto,
   UpdateWorkflowExecutionDto,
@@ -16,6 +17,7 @@ import {
   suppressWorkflowOutcomeNotification,
   type WorkflowExecutionCompletionRow,
 } from '@api/collections/workflow-executions/services/workflow-execution-outcome.util';
+import { buildCustomerExecutionWhere } from '@api/collections/workflow-executions/services/workflow-execution-query.util';
 import {
   composeEtaMetadata,
   readOptionalNumber,
@@ -25,6 +27,10 @@ import {
   type WorkflowExecutionProgressRow,
   type WorkflowExecutionProgressSnapshot,
 } from '@api/collections/workflow-executions/services/workflow-execution-runtime.util';
+import {
+  readWorkflowExecutionStats,
+  readWorkflowExecutionSummary,
+} from '@api/collections/workflow-executions/services/workflow-execution-summary.util';
 import { parseWorkflowExecutionRetention } from '@api/collections/workflows/workflow-execution-retention.contract';
 import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { scopedWhere, withActionOriginMetadata } from '@api/index';
@@ -947,39 +953,23 @@ export class WorkflowExecutionsService extends BaseService<
     };
   }
 
-  @HandleErrors('get execution stats', 'workflow-executions')
-  async getExecutionStats(
-    workflowId: string,
+  getCustomerSummary(
     organizationId: string,
-  ): Promise<{
-    total: number;
-    completed: number;
-    failed: number;
-    avgDurationMs: number;
-  }> {
-    const executions = await this.prisma.workflowExecution.findMany({
-      select: { durationMs: true, status: true },
-      where: scopedWhere(organizationId, { workflowId }),
-    });
+    query: WorkflowExecutionQueryDto,
+    dayStart: Date,
+    dayEnd: Date,
+  ) {
+    return readWorkflowExecutionSummary(
+      this.prisma,
+      organizationId,
+      buildCustomerExecutionWhere(organizationId, query),
+      dayStart,
+      dayEnd,
+    );
+  }
 
-    const total = executions.length;
-    const completed = executions.filter(
-      (e) => e.status === PrismaWorkflowExecutionStatus.COMPLETED,
-    ).length;
-    const failed = executions.filter(
-      (e) => e.status === PrismaWorkflowExecutionStatus.FAILED,
-    ).length;
-
-    const durationsWithValue = executions
-      .map((e) => e.durationMs)
-      .filter((d): d is number => typeof d === 'number' && d > 0);
-
-    const avgDurationMs =
-      durationsWithValue.length > 0
-        ? durationsWithValue.reduce((a, b) => a + b, 0) /
-          durationsWithValue.length
-        : 0;
-
-    return { avgDurationMs, completed, failed, total };
+  @HandleErrors('get execution stats', 'workflow-executions')
+  getExecutionStats(workflowId: string, organizationId: string) {
+    return readWorkflowExecutionStats(this.prisma, organizationId, workflowId);
   }
 }

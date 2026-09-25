@@ -19,6 +19,7 @@ import type {
   IQueryParams,
 } from '@genfeedai/contracts/interfaces';
 import type { MenuItemConfig } from '@genfeedai/contracts/interfaces/ui/menu-config.interface';
+import { matchesMenuSearchParams } from '@helpers/navigation/menu-route-match.helper';
 import { openModal } from '@helpers/ui/modal/modal.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { useLibrarySummary } from '@hooks/data/library/use-library-summary';
@@ -173,11 +174,18 @@ export default function LibrarySidebarNav() {
   const isMenuItemActive = (item: MenuItemConfig): boolean => {
     const candidatePaths = item.matchPaths ?? (item.href ? [item.href] : []);
 
-    return candidatePaths.some((candidate) =>
-      item.isExactMatch
-        ? normalizedPathname === candidate
-        : normalizedPathname === candidate ||
-          normalizedPathname.startsWith(`${candidate}/`),
+    return (
+      matchesMenuSearchParams(
+        new URLSearchParams(searchParamsString),
+        item.matchSearchParams,
+      ) &&
+      candidatePaths.some((candidate) => {
+        const path = candidate.split('?')[0];
+        return item.isExactMatch
+          ? normalizedPathname === path
+          : normalizedPathname === path ||
+              normalizedPathname.startsWith(`${path}/`);
+      })
     );
   };
 
@@ -201,8 +209,16 @@ export default function LibrarySidebarNav() {
   };
 
   const renderMenuItem = (item: MenuItemConfig) => {
+    const [targetPath, targetSearch = ''] = (
+      item.href ?? APP_ROUTES.LIBRARY.ASSETS
+    ).split('?');
+    const params = new URLSearchParams(searchParamsString);
+    for (const key of ['place', 'shelf', 'page']) params.delete(key);
+    new URLSearchParams(targetSearch).forEach((value, key) => {
+      params.set(key, value);
+    });
     const scopedHref = withTaskContextHref(
-      href(item.href ?? APP_ROUTES.LIBRARY.ASSETS),
+      `${href(targetPath)}${params.size ? `?${params.toString()}` : ''}`,
       taskContextSearchParams,
     );
     const isGenerating =

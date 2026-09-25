@@ -127,7 +127,7 @@ describe('IngredientAlternativesCard', () => {
     );
     expect(screen.getByText('Open in Library')).toHaveAttribute(
       'href',
-      '/default/default/library/images?asset=gen-1',
+      '/default/default/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=gen-1',
     );
   });
 

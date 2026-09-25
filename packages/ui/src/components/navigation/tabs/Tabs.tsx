@@ -49,6 +49,7 @@ function getRouteParts(href: string) {
   return {
     full: search ? `${path}?${search}` : path,
     path,
+    searchParams: new URLSearchParams(search),
   };
 }
 
@@ -147,6 +148,17 @@ function TabsContent({
       (best, tab) => {
         if (!isNavigationTab(tab)) return best;
         const routeParts = getRouteParts(tab.href);
+        const queryMatches = Array.from(routeParts.searchParams.keys()).every(
+          (key) => {
+            const actual = new URLSearchParams(search).getAll(key);
+            const expected = routeParts.searchParams.getAll(key);
+            return (
+              actual.length === expected.length &&
+              expected.every((value) => actual.includes(value))
+            );
+          },
+        );
+        if (!queryMatches || tab.isDisabled) return best;
         const exactMatch =
           tab.matchPaths?.includes(pathname || '') ||
           tab.matchPaths?.includes(currentRoute) ||
@@ -167,6 +179,7 @@ function TabsContent({
           score = -1;
         }
 
+        if (score >= 0) score = score * 100 + routeParts.searchParams.size;
         if (score > best.score) {
           return { score, tab };
         }

@@ -219,11 +219,6 @@ export const IMPLICIT_LOCALE_ALLOWANCES: ImplicitLocaleAllowance[] = [
     'Shared opt-in local-time helper intentionally formats for the executing client environment.',
   ),
   legacyUiAllowance(
-    'packages/models/analytics/activity.model.ts',
-    'to-locale-string',
-    1,
-  ),
-  legacyUiAllowance(
     'packages/pages/agents/campaigns/AgentCampaignDetailHeader.tsx',
     'to-locale-string',
     2,

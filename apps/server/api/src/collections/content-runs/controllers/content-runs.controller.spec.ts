@@ -35,13 +35,6 @@ describe('ContentRunsController', () => {
     start: vi.fn(),
     submitForReview: vi.fn(),
   };
-  const mockBrandRemixSceneService = {
-    attachSource: vi.fn(),
-    cancel: vi.fn(),
-    execute: vi.fn(),
-    quote: vi.fn(),
-    resume: vi.fn(),
-  };
 
   const mockReq = { headers: {}, url: '/' } as unknown as Request;
   const mockUser = {
@@ -67,7 +60,7 @@ describe('ContentRunsController', () => {
         },
         {
           provide: BrandRemixSceneService,
-          useValue: mockBrandRemixSceneService,
+          useValue: {},
         },
         {
           provide: BrandRemixRunsService,

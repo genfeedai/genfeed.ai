@@ -16,6 +16,8 @@ const stats = {
   completed: 1200,
   failed: 4,
   total: 1206,
+  completedToday: 0,
+  failedToday: 0,
   totalCredits: 5500,
 };
 

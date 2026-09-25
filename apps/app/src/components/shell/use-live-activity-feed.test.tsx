@@ -159,7 +159,7 @@ describe('live generation activity', () => {
     expect(mock.success).toHaveBeenCalledTimes(1);
     mock.success.mock.calls[0][1].onAction();
     expect(mock.push).toHaveBeenCalledWith(
-      '/acme/coffee/library/images?asset=image1',
+      '/acme/coffee/library/assets?categories=IMAGE&categories=IMAGE_EDIT&asset=image1',
     );
   });
   it('drops foreign organization rows and never notifies another recipient', () => {

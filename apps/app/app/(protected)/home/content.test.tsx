@@ -1,8 +1,16 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
-import { ActivityKey } from '@genfeedai/contracts';
-import type { IActivity } from '@genfeedai/contracts/interfaces';
+import {
+  ActivityKey,
+  ReleaseStatus,
+  WorkflowExecutionStatus,
+} from '@genfeedai/contracts';
+import type {
+  IActivity,
+  IReleaseGroup,
+  IWorkflowExecution,
+} from '@genfeedai/contracts/interfaces';
 import type { OverviewBootstrapPayload } from '@services/auth/auth.service';
 import {
   fireEvent,
@@ -25,6 +33,11 @@ const mocks = vi.hoisted(() => ({
   activityRefresh: vi.fn(async () => undefined),
   batchItemAction: vi.fn(async () => ({})),
   cancelExecution: vi.fn(async () => undefined),
+  executions: [] as IWorkflowExecution[],
+  publications: [] as IReleaseGroup[],
+  publicationsIsError: false,
+  publicationsIsLoading: false,
+  publicationsRefresh: vi.fn(async () => undefined),
   executionsRefresh: vi.fn(async () => undefined),
   executionsIsError: false,
   executionsIsLoading: false,
@@ -180,7 +193,7 @@ vi.mock('@hooks/data/overview/use-overview-bootstrap', () => ({
 vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
   useWorkflowExecutions: () => ({
     cancelExecution: mocks.cancelExecution,
-    executions: [],
+    executions: mocks.executions,
     isError: mocks.executionsIsError,
     isLoading: mocks.executionsIsLoading,
     refresh: mocks.executionsRefresh,
@@ -189,8 +202,19 @@ vi.mock('@hooks/data/workflow-executions/use-workflow-executions', () => ({
       completed: 0,
       failed: 0,
       total: 0,
+      completedToday: 0,
+      failedToday: 0,
       totalCredits: 0,
     },
+  }),
+}));
+
+vi.mock('./use-home-publications', () => ({
+  useHomePublications: () => ({
+    isError: mocks.publicationsIsError,
+    isLoading: mocks.publicationsIsLoading,
+    publications: mocks.publications,
+    refresh: mocks.publicationsRefresh,
   }),
 }));
 
@@ -229,6 +253,10 @@ describe('OperationalHomeContent', () => {
     mocks.activities = [];
     mocks.accessState = { organizationId: 'org_1' };
     mocks.activityIsError = false;
+    mocks.publications = [];
+    mocks.publicationsIsError = false;
+    mocks.publicationsIsLoading = false;
+    mocks.executions = [];
     mocks.executionsIsError = false;
     mocks.executionsIsLoading = false;
     mocks.brandState.brands = [
@@ -338,7 +366,7 @@ describe('OperationalHomeContent', () => {
     expect(screen.queryByText(/Studio/i)).not.toBeInTheDocument();
 
     const emptyStates = screen.getAllByTestId('workspace-empty-state');
-    expect(emptyStates).toHaveLength(4);
+    expect(emptyStates).toHaveLength(3);
     for (const emptyState of emptyStates) {
       expect(within(emptyState).queryByRole('link')).not.toBeInTheDocument();
     }
@@ -405,6 +433,7 @@ describe('OperationalHomeContent', () => {
   });
 
   it('uses organization-level brand setup actions when no brand is available', () => {
+    mocks.executionsIsLoading = true;
     mocks.brandState.brands = [
       {
         organization: { slug: 'acme' },
@@ -421,6 +450,15 @@ describe('OperationalHomeContent', () => {
     };
 
     render(<OperationalHomeContent />);
+
+    expect(
+      within(screen.getByTestId('operational-home-needs-you')).queryByRole(
+        'status',
+      ),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: 'catalog:home.credentials.addBrand' }),
+    ).toHaveAttribute('href', '/acme/~/settings/brands');
 
     for (const name of [
       'Attention queue',
@@ -486,8 +524,58 @@ describe('OperationalHomeContent', () => {
     expect(screen.getByTestId('operational-home-activity')).toBeInTheDocument();
   });
 
+  it('does not present internal email jobs as publications', () => {
+    mocks.executions = [
+      {
+        id: 'email-1',
+        status: WorkflowExecutionStatus.COMPLETED,
+        createdAt: '2026-09-24T12:00:00Z',
+        workflow: { label: 'Organization System Emails' },
+      },
+      {
+        id: 'email-2',
+        status: WorkflowExecutionStatus.FAILED,
+        createdAt: '2026-09-24T12:01:00Z',
+        workflow: { label: 'Lifecycle Email Delivery' },
+      },
+    ] as IWorkflowExecution[];
+    render(<OperationalHomeContent />);
+    const publishing = screen.getByTestId('operational-home-publishing');
+    expect(
+      within(publishing).queryByText('Organization System Emails'),
+    ).not.toBeInTheDocument();
+    expect(
+      within(publishing).queryByText('Lifecycle Email Delivery'),
+    ).not.toBeInTheDocument();
+  });
+
+  it('offers a connection link in the empty Accounts panel', () => {
+    render(<OperationalHomeContent />);
+    const accounts = screen.getByTestId('operational-home-credentials');
+    expect(
+      within(accounts).getByRole('link', { name: 'catalog:connectAccount' }),
+    ).toHaveAttribute('href', '/acme/moonrise/settings/integrations');
+  });
+
+  it('opens publication details from a publishing row', () => {
+    mocks.publications = [
+      {
+        id: 'release_1',
+        title: 'Launch announcement',
+        status: ReleaseStatus.SCHEDULED,
+        updatedAt: '2026-09-24T12:00:00Z',
+      },
+    ] as IReleaseGroup[];
+    render(<OperationalHomeContent />);
+    const publishing = screen.getByTestId('operational-home-publishing');
+    expect(
+      within(publishing).getByRole('link', { name: /Launch announcement/ }),
+    ).toHaveAttribute('href', '/acme/moonrise/publishing/posts/release_1');
+    expect(within(publishing).getByText('scheduled')).toBeInTheDocument();
+  });
+
   it('retries a publishing failure through its own query', () => {
-    mocks.executionsIsError = true;
+    mocks.publicationsIsError = true;
     render(<OperationalHomeContent />);
     const publishing = screen.getByTestId('operational-home-publishing');
     expect(
@@ -496,12 +584,12 @@ describe('OperationalHomeContent', () => {
     fireEvent.click(
       within(publishing).getByRole('button', { name: 'catalog:actions.retry' }),
     );
-    expect(mocks.executionsRefresh).toHaveBeenCalledTimes(1);
+    expect(mocks.publicationsRefresh).toHaveBeenCalledTimes(1);
     expect(mocks.overviewRefresh).not.toHaveBeenCalled();
   });
 
   it('keeps ready cards visible while publishing loads', () => {
-    mocks.executionsIsLoading = true;
+    mocks.publicationsIsLoading = true;
     render(<OperationalHomeContent />);
     expect(
       within(screen.getByTestId('operational-home-publishing')).getAllByRole(

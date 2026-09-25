@@ -62,7 +62,7 @@ describe('LibraryAssetTypeFilter', () => {
     fireEvent.click(trigger);
 
     expect(replaceMock).toHaveBeenCalledWith(
-      '/acme/moonrise/library/images?folder=folder-1&taskId=task-1',
+      '/acme/moonrise/library/assets?folder=folder-1&taskId=task-1&categories=IMAGE&categories=IMAGE_EDIT',
       { scroll: false },
     );
   });

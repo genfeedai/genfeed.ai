@@ -45,7 +45,7 @@ export const PAGE_HELP_ROUTES: PageHelpRoute[] = [
     prefix: APP_ROUTES.ANALYTICS.TREND_TURNOVER,
   },
   { key: 'library', prefix: APP_ROUTES.LIBRARY.ROOT },
-  { key: 'libraryTrash', prefix: APP_ROUTES.LIBRARY.TRASH },
+  { key: 'libraryTrash', prefix: '/library/trash' },
   { key: 'studioGenerate', prefix: APP_ROUTES.STUDIO.GENERATE },
   { key: 'studioStoryboard', prefix: APP_ROUTES.STUDIO.STORYBOARD },
   { key: 'studioClips', prefix: APP_ROUTES.STUDIO.CLIPS },
@@ -69,8 +69,16 @@ export function stripScopePrefix(pathname: string): string {
   return pathname;
 }
 
-export function resolvePageHelpKey(pathname: string): string | null {
+export function resolvePageHelpKey(
+  pathname: string,
+  search = '',
+): string | null {
   const path = stripScopePrefix(pathname);
+  if (
+    path === APP_ROUTES.LIBRARY.ASSETS &&
+    new URLSearchParams(search).get('place') === 'trash'
+  )
+    return 'libraryTrash';
   let match: PageHelpRoute | null = null;
   for (const route of PAGE_HELP_ROUTES) {
     const isMatch =

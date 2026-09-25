@@ -4,7 +4,11 @@ import {
   formatActivityMessage,
   getActivityLifecycleStatus,
   getActivityMessageDescriptor,
+  getCreditActivityChangeDescriptor,
+  getCreditActivityKey,
+  getCreditActivityMessageDescriptor,
   parseActivityKey,
+  parseCreditActivityValue,
 } from '../../src/enums/activity-key.catalog';
 import { ActivityKeys } from '../../src/enums/activity-keys.tree';
 
@@ -180,5 +184,135 @@ describe('ActivityKeys tree', () => {
     expect(ActivityKeys.image.generate.completed).toBe(
       ActivityKey.IMAGE_GENERATED,
     );
+  });
+});
+
+describe('parseCreditActivityValue', () => {
+  it('reads a charge reason and amount independently', () => {
+    expect(
+      parseCreditActivityValue(
+        JSON.stringify({ description: ' Onboarding preview image ', value: 1 }),
+      ),
+    ).toEqual({ amount: 1, description: 'Onboarding preview image' });
+    expect(
+      parseCreditActivityValue(
+        JSON.stringify({
+          description: 'Master prompt generation',
+          value: 'invalid',
+        }),
+      ),
+    ).toEqual({ amount: null, description: 'Master prompt generation' });
+  });
+
+  it.each(['1', '{"value":1}', '{"value":"1"}'])(
+    'reads existing amounts: %s',
+    (value) => {
+      expect(parseCreditActivityValue(value)).toEqual({
+        amount: 1,
+        description: undefined,
+      });
+    },
+  );
+
+  it.each([
+    '',
+    ' ',
+    'null',
+    'true',
+    '[]',
+    '{}',
+    '{"value":null}',
+    '{"value":true}',
+    '{"value":""}',
+    'Infinity',
+  ])('does not invent a numeric cost for %s', (value) => {
+    expect(parseCreditActivityValue(value).amount).toBeNull();
+  });
+
+  it.each([' ', '{"internal":"payload"}', '[1,2]'])(
+    'ignores non-descriptive text: %s',
+    (description) => {
+      expect(
+        parseCreditActivityValue(JSON.stringify({ description, value: 0 })),
+      ).toEqual({ amount: 0, description: undefined });
+    },
+  );
+});
+
+describe('credit transaction presentation', () => {
+  it.each([
+    [
+      'add',
+      'Onboarding welcome reward',
+      'Onboarding welcome reward',
+      '+1 credit',
+    ],
+    [
+      'deduct',
+      'AI brand profile generation',
+      'AI brand profile generation',
+      '−1 credit',
+    ],
+    [
+      'refund',
+      'Failed image generation',
+      'Credit refund: Failed image generation',
+      '+1 credit',
+    ],
+    [
+      'expire',
+      'Promotional grant expired',
+      'Credits expired: Promotional grant expired',
+      '−1 credit',
+    ],
+    [
+      'rollover',
+      'Unused subscription credits',
+      'Credits rolled over: Unused subscription credits',
+      '+1 credit',
+    ],
+    [
+      'reset',
+      'Subscription renewal',
+      'Credit balance reset: Subscription renewal',
+      'Balance set to 1 credit',
+    ],
+    [
+      'byok-usage',
+      '[BYOK] Image generation',
+      'Image generation (your API key)',
+      'No credits charged',
+    ],
+  ])(
+    'explains %s without misrepresenting its balance effect',
+    (category, description, title, amount) => {
+      const key = getCreditActivityKey(category);
+      if (!key) throw new Error('Missing credit activity key');
+      const value = JSON.stringify({ category, description, value: 1 });
+      expect(
+        formatActivityMessage(
+          getCreditActivityMessageDescriptor(key, value, 'system'),
+        ),
+      ).toBe(title);
+      const change = getCreditActivityChangeDescriptor(key, value);
+      if (!change) throw new Error('Missing credit amount descriptor');
+      expect(formatActivityMessage(change)).toBe(amount);
+    },
+  );
+
+  it('keeps unrecognized sources and malformed amounts honest', () => {
+    expect(
+      formatActivityMessage(
+        getCreditActivityMessageDescriptor(
+          ActivityKey.CREDITS_REMOVE,
+          '1',
+          'internal-operation-secret',
+        ),
+      ),
+    ).toBe('Credit usage — details unavailable');
+    expect(
+      getCreditActivityChangeDescriptor(ActivityKey.CREDITS_REMOVE, '{}'),
+    ).toBeNull();
+    expect(getCreditActivityKey('unknown')).toBeUndefined();
   });
 });

@@ -1,3 +1,9 @@
+import {
+  formatActivityMessage,
+  getCreditActivityChangeDescriptor,
+  getCreditActivityKey,
+  getCreditActivityMessageDescriptor,
+} from '@genfeedai/contracts';
 import { input } from '@inquirer/prompts';
 import chalk from 'chalk';
 import { Command } from 'commander';
@@ -154,10 +160,20 @@ export function createCreditsCommand(): Command {
 
         print(formatHeader('Credit History\n'));
         for (const transaction of transactions) {
-          const signedAmount =
-            transaction.amount > 0 ? `+${transaction.amount}` : transaction.amount;
+          const key = getCreditActivityKey(transaction.category);
+          const value = JSON.stringify({
+            category: transaction.category,
+            description: transaction.description,
+            value: transaction.amount,
+          });
+          const change = key ? getCreditActivityChangeDescriptor(key, value) : null;
+          const description = key
+            ? formatActivityMessage(
+                getCreditActivityMessageDescriptor(key, value, transaction.source)
+              )
+            : 'Credit transaction — details unavailable';
           print(
-            `${chalk.cyan(String(signedAmount))}  ${transaction.description ?? transaction.source ?? transaction.category}`
+            `${chalk.cyan(change ? formatActivityMessage(change) : 'Amount unavailable')}  ${description}`
           );
           print(
             chalk.dim(

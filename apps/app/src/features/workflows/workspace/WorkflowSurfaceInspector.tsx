@@ -6,6 +6,7 @@ import {
   formatEnumLabel,
   WorkflowExecutionStatus,
 } from '@genfeedai/contracts';
+import { getWorkflowExecutionLabel } from '@genfeedai/helpers/automation/workflow-execution.helper';
 import { useAuthedService } from '@hooks/auth/use-authed-service/use-authed-service';
 import { logger } from '@services/core/logger.service';
 import { Button } from '@ui/primitives/button';
@@ -369,7 +370,12 @@ export function WorkflowSurfaceInspector({
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-medium text-foreground">
-              {workflow?.label ?? execution?.workflow?.label ?? 'Workflow run'}
+              {getWorkflowExecutionLabel(
+                execution
+                  ? { ...execution, workflow: execution.workflow ?? workflow }
+                  : { workflow },
+                'Workflow run',
+              )}
             </p>
             <p className="mt-1 text-xs text-muted-foreground">
               Deterministic workflow engine

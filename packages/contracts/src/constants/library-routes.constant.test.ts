@@ -11,14 +11,14 @@ import { APP_ROUTES } from './routes.constant';
 describe('createLibraryShelfRoute', () => {
   it('builds a shelf deep link from the lowercase product key', () => {
     expect(createLibraryShelfRoute(LibraryShelf.NEEDS_REVIEW)).toBe(
-      '/library/shelf/needs-review',
+      '/library/assets?shelf=needs-review',
     );
   });
 
   it('keeps every shelf under the canonical shelf prefix', () => {
     expect(
       createLibraryShelfRoute(LibraryShelf.GENERATING).startsWith(
-        `${APP_ROUTES.LIBRARY.SHELF}/`,
+        `${APP_ROUTES.LIBRARY.ASSETS}?shelf=`,
       ),
     ).toBe(true);
   });
@@ -46,7 +46,7 @@ describe('createLibraryBrowserRoute', () => {
           folderId: 'folder-1',
         },
       ),
-    ).toBe('/library/shelf/approved?categories=VIDEO&folder=folder-1');
+    ).toBe('/library/assets?shelf=approved&categories=VIDEO&folder=folder-1');
   });
 
   it('encodes search terms', () => {
@@ -54,7 +54,7 @@ describe('createLibraryBrowserRoute', () => {
       createLibraryBrowserRoute(APP_ROUTES.LIBRARY.ASSETS, {
         search: 'launch teaser',
       }),
-    ).toBe(`/library/assets?${LIBRARY_QUERY_KEYS.SEARCH}=launch%20teaser`);
+    ).toBe(`/library/assets?${LIBRARY_QUERY_KEYS.SEARCH}=launch+teaser`);
   });
 
   it('carries the view so a shared link keeps the layout', () => {

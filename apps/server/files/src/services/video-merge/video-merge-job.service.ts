@@ -120,7 +120,10 @@ export class VideoMergeJobService {
     }
     const keys = params.sourceStorageKeys?.map((key) => {
       const safeKey = assertSafeObjectKey(key, (message) => new Error(message));
-      if (!safeKey.startsWith('ingredients/videos/') && !safeKey.startsWith('ingredients/avatars/'))
+      if (
+        !safeKey.startsWith('ingredients/videos/') &&
+        !safeKey.startsWith('ingredients/avatars/')
+      )
         throw new Error('Merge sources must use video storage keys');
       return safeKey;
     });
@@ -198,8 +201,14 @@ export class VideoMergeJobService {
     const endProgress = params.isResizeEnabled ? 90 : 95;
 
     if (params.normalizeClips) {
-      if (musicPath) throw new Error('Scene composition cannot include source music');
-      await this.ffmpegService.mergeNormalizedVideos(inputPaths, outputPath, params.width ?? 1080, params.height ?? 1920);
+      if (musicPath)
+        throw new Error('Scene composition cannot include source music');
+      await this.ffmpegService.mergeNormalizedVideos(
+        inputPaths,
+        outputPath,
+        params.width ?? 1080,
+        params.height ?? 1920,
+      );
     } else if (musicPath) {
       const label = 'Merging videos with music';
       this.emitStepProgress(job, 'merging', 0, startProgress, label);

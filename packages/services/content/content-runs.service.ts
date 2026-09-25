@@ -1,4 +1,9 @@
-import type { AttachBrandRemixAnalysisSource, QuoteBrandRemixScenes, ExecuteBrandRemixScenes, ControlBrandRemixScenes } from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
+import type {
+  AttachBrandRemixAnalysisSource,
+  QuoteBrandRemixScenes,
+  ExecuteBrandRemixScenes,
+  ControlBrandRemixScenes,
+} from '@genfeedai/contracts/api-types/contracts/brand-remix-scene.contract';
 import type { ContentRunStatus } from '@genfeedai/contracts';
 import {
   type BrandRemixRunView,
@@ -198,29 +203,69 @@ export class ContentRunsService extends HTTPBaseService {
     );
   }
 
-  async attachBrandRemixAnalysisSource(runId: string, input: AttachBrandRemixAnalysisSource): Promise<BrandRemixRunView> {
-    const response = await this.instance.patch<JsonApiResponseDocument>(`/content-runs/${runId}/remix/scenes/source`, input);
-    return brandRemixRunViewSchema.parse(deserializeResource<BrandRemixRunView>(response.data));
+  async attachBrandRemixAnalysisSource(
+    runId: string,
+    input: AttachBrandRemixAnalysisSource,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.patch<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/scenes/source`,
+      input,
+    );
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
   }
 
-  async quoteBrandRemixScenes(runId: string, input: QuoteBrandRemixScenes): Promise<BrandRemixRunView> {
-    const response = await this.instance.post<JsonApiResponseDocument>(`/content-runs/${runId}/remix/scenes/quote`, input);
-    return brandRemixRunViewSchema.parse(deserializeResource<BrandRemixRunView>(response.data));
+  async quoteBrandRemixScenes(
+    runId: string,
+    input: QuoteBrandRemixScenes,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/scenes/quote`,
+      input,
+    );
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
   }
 
-  async executeBrandRemixScenes(runId: string, input: ExecuteBrandRemixScenes): Promise<BrandRemixRunView> {
-    const response = await this.instance.post<JsonApiResponseDocument>(`/content-runs/${runId}/remix/scenes/execute`, input);
-    return brandRemixRunViewSchema.parse(deserializeResource<BrandRemixRunView>(response.data));
+  async executeBrandRemixScenes(
+    runId: string,
+    input: ExecuteBrandRemixScenes,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/scenes/execute`,
+      input,
+    );
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
   }
 
-  async cancelBrandRemixScenes(runId: string, input: ControlBrandRemixScenes): Promise<BrandRemixRunView> {
-    const response = await this.instance.post<JsonApiResponseDocument>(`/content-runs/${runId}/remix/scenes/cancel`, input);
-    return brandRemixRunViewSchema.parse(deserializeResource<BrandRemixRunView>(response.data));
+  async cancelBrandRemixScenes(
+    runId: string,
+    input: ControlBrandRemixScenes,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/scenes/cancel`,
+      input,
+    );
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
   }
 
-  async resumeBrandRemixScenes(runId: string, input: ControlBrandRemixScenes): Promise<BrandRemixRunView> {
-    const response = await this.instance.post<JsonApiResponseDocument>(`/content-runs/${runId}/remix/scenes/resume`, input);
-    return brandRemixRunViewSchema.parse(deserializeResource<BrandRemixRunView>(response.data));
+  async resumeBrandRemixScenes(
+    runId: string,
+    input: ControlBrandRemixScenes,
+  ): Promise<BrandRemixRunView> {
+    const response = await this.instance.post<JsonApiResponseDocument>(
+      `/content-runs/${runId}/remix/scenes/resume`,
+      input,
+    );
+    return brandRemixRunViewSchema.parse(
+      deserializeResource<BrandRemixRunView>(response.data),
+    );
   }
 
   async findOne(runId: string): Promise<ContentRunRecord> {

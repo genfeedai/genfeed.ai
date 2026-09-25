@@ -387,6 +387,14 @@ test('scopes public ECS tasks to service-required secrets and IAM', () => {
     localsTf.indexOf('public_backend_secret_allowlist'),
     localsTf.indexOf('public_backend_task_secrets'),
   );
+  const notificationsAllowlist = allowlist.slice(
+    allowlist.indexOf('notifications = toset'),
+  );
+  assert.match(
+    notificationsAllowlist,
+    /"SYSTEM_NOTIFICATIONS_DISCORD_WEBHOOK_URL"/,
+    'notifications must receive the signup and billing Discord webhook',
+  );
   for (const forbidden of [
     'DATABASE_URL',
     'DIRECT_URL',

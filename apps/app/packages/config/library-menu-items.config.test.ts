@@ -10,15 +10,15 @@ describe('LIBRARY_MENU_ITEMS', () => {
   it('navigates by place and shelf, never by asset type', () => {
     expect(LIBRARY_MENU_ITEMS.map((item) => item.href)).toEqual([
       '/library/assets',
-      '/library/recent',
-      '/library/starred',
-      '/library/shelf/generating',
-      '/library/shelf/unsorted',
-      '/library/shelf/needs-review',
-      '/library/shelf/approved',
-      '/library/shelf/failed',
-      '/library/shelf/archived',
-      '/library/trash',
+      '/library/assets?place=recent',
+      '/library/assets?place=starred',
+      '/library/assets?shelf=generating',
+      '/library/assets?shelf=unsorted',
+      '/library/assets?shelf=needs-review',
+      '/library/assets?shelf=approved',
+      '/library/assets?shelf=failed',
+      '/library/assets?shelf=archived',
+      '/library/assets?place=trash',
     ]);
   });
 
@@ -29,12 +29,12 @@ describe('LIBRARY_MENU_ITEMS', () => {
 
     expect(allAssets?.matchPaths).toEqual([
       '/library/assets',
-      '/library/videos',
-      '/library/images',
-      '/library/gifs',
-      '/library/avatars',
+      '/library/assets?categories=VIDEO&categories=VIDEO_EDIT',
+      '/library/assets?categories=IMAGE&categories=IMAGE_EDIT',
+      '/library/assets?categories=GIF',
+      '/library/assets?categories=AVATAR',
       '/library/voices',
-      '/library/music',
+      '/library/assets?categories=MUSIC&categories=AUDIO',
       '/library/captions',
     ]);
   });

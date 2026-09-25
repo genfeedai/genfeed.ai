@@ -207,6 +207,7 @@ describe('Genfeed action registry', () => {
 
   it('publishes closed contracts for every Brand Remix generation action', () => {
     for (const actionId of [
+      'brand-remix.scene-step',
       'brand-remix.generate.adopt-orphans',
       'brand-remix.generate.claim',
       'brand-remix.generate.clear-claim',

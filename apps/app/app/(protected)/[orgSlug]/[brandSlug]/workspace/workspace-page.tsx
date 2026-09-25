@@ -3,6 +3,7 @@
 import { useTaskStatusLabels } from '@app/(protected)/[orgSlug]/[brandSlug]/tasks/task-status.constants';
 import { useBrand } from '@contexts/user/brand-context/brand-context';
 import { AlertCategory, ButtonSize, ButtonVariant } from '@genfeedai/contracts';
+import { createFilterHref } from '@helpers/navigation/filter-href.helper';
 import { useTrends } from '@hooks/data/trends/use-trends/use-trends';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import type { TabsProps } from '@props/ui/navigation/tabs.props';
@@ -19,6 +20,7 @@ import { Badge } from '@ui/primitives/badge';
 import { Button } from '@ui/primitives/button';
 import { Inbox, LayoutGrid } from 'lucide-react';
 import dynamic from 'next/dynamic';
+import { useSearchParams } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { Suspense, startTransition, useEffect, useMemo } from 'react';
 import { useWorkspaceSurfaceSelection } from '@/components/workspace-shell/WorkspaceSurfaceAdapterContext';
@@ -59,6 +61,7 @@ function WorkspacePageContentContent({
   const inboxViewOptions = useInboxViewOptions();
   const { brandId, organizationId } = useBrand();
   const { href } = useOrgUrl();
+  const inboxSearch = useSearchParams()?.toString() ?? '';
   const surfaceSelection = useWorkspaceSurfaceSelection();
   const { trends: trendItems, isLoading: isTrendsLoading } = useTrends();
   const {
@@ -178,7 +181,12 @@ function WorkspacePageContentContent({
           ) : (
             <Badge variant="outline">{count}</Badge>
           ),
-          href: href(`/workspace/inbox/${option.id}`),
+          href: createFilterHref(
+            href('/workspace/inbox'),
+            inboxSearch,
+            'view',
+            option.id,
+          ),
           id: option.id,
           label: option.label,
         };
@@ -188,6 +196,7 @@ function WorkspacePageContentContent({
     defaultInboxView,
     href,
     inboxViewOptions,
+    inboxSearch,
     isInboxSection,
     isWorkspaceTasksLoading,
     queueTasks.length,
