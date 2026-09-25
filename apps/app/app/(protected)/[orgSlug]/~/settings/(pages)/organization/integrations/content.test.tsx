@@ -111,6 +111,10 @@ vi.mock('@/components/desktop/DesktopLocalProviderSettings', () => ({
   ),
 }));
 
+vi.mock('@/components/desktop/DesktopServerSettings', () => ({
+  default: () => <div>Desktop server settings</div>,
+}));
+
 function providerStatuses() {
   return [
     {

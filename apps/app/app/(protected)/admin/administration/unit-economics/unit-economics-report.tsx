@@ -226,9 +226,7 @@ export default function UnitEconomicsReport() {
           : translate('title')
       }
       description={
-        drillDown
-          ? translate('descriptionDrillDown')
-          : translate('description')
+        drillDown ? translate('descriptionDrillDown') : translate('description')
       }
       icon={Scale}
       right={
@@ -244,7 +242,10 @@ export default function UnitEconomicsReport() {
             </Button>
           ) : null}
           <Select value={periodDays} onValueChange={setPeriodDays}>
-            <SelectTrigger className="w-40" aria-label={translate('periodLabel')}>
+            <SelectTrigger
+              className="w-40"
+              aria-label={translate('periodLabel')}
+            >
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

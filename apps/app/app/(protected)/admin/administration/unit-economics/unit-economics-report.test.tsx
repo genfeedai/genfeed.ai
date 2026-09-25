@@ -140,6 +140,14 @@ describe('UnitEconomicsReport', () => {
   it('renders organizations with credits, costs, margins, and a totals row', () => {
     render(<UnitEconomicsReport />);
 
+    expect(screen.getByText('Unit Economics')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /Organization/ }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('combobox', { name: 'Report period' }),
+    ).toHaveTextContent('Last 30 days');
+
     const paidRow = screen.getByText('Paid Org').closest('tr');
     expect(paidRow).not.toBeNull();
     const paid = within(paidRow as HTMLElement);
@@ -163,6 +171,10 @@ describe('UnitEconomicsReport', () => {
     fireEvent.click(screen.getByText('Paid Org'));
 
     expect(queryState.lastQueryKey).toContain('org-paid');
+    expect(screen.getByText('Unit Economics · Paid Org')).toBeInTheDocument();
+    expect(
+      screen.getByRole('columnheader', { name: /User/ }),
+    ).toBeInTheDocument();
     expect(
       screen.getByRole('button', { name: /All organizations/ }),
     ).toBeInTheDocument();

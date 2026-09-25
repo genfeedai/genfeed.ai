@@ -329,7 +329,6 @@
     "packages/agent/src/components/AgentThreadListEmptyState.tsx": 5,
     "packages/agent/src/components/AgentThreadListErrorBanner.tsx": 1,
     "packages/agent/src/components/AgentThreadListHeaderActions.tsx": 3,
-    "packages/agent/src/components/AgentToolCallDisplay.tsx": 1,
     "packages/agent/src/components/AgentTransferProvenanceCard.tsx": 2,
     "packages/agent/src/components/AiTextActionCard.tsx": 4,
     "packages/agent/src/components/AnalyticsSnapshotCard.tsx": 9,
