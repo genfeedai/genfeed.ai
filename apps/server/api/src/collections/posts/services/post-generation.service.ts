@@ -24,6 +24,7 @@ import { TrendReferenceCorpusService } from '@api/collections/trends/services/tr
 import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
 import { WebSocketPaths } from '@api/helpers/utils/websocket/websocket.util';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -72,6 +73,7 @@ export class PostGenerationService {
   constructor(
     private readonly accountPublishingContextService: AccountPublishingContextService,
     private readonly activitiesService: ActivitiesService,
+    private readonly contextAssemblyService: AgentContextAssemblyService,
     private readonly logger: LoggerService,
     private readonly postThreadGenerationService: PostThreadGenerationService,
     private readonly postsService: PostsService,
@@ -169,6 +171,52 @@ export class PostGenerationService {
       '',
       'Do not repeat recent account posts. Keep the output tailored to this selected account.',
     ].join('\n');
+  }
+
+  private async buildDraftSystemPrompt(
+    dto: PostDraftGenerationInput,
+    identity: GenerationMetadata,
+    fallbackBrand: Pick<AccountPublishingContext, 'brand'>,
+  ): Promise<string> {
+    const platformInstruction = [
+      `You are writing as this brand on ${dto.platform}.`,
+      'Match the brand identity, voice, audience, guidelines, and recent-post style.',
+      'Return only the finished post text, without explanations or quotation marks.',
+    ].join(' ');
+
+    const brandContext = await this.contextAssemblyService.assembleContext({
+      brandId: dto.brandId,
+      layers: {
+        brandGuidance: true,
+        brandIdentity: true,
+        brandKnowledge: true,
+        brandMemory: true,
+        performancePatterns: true,
+        ragContext: true,
+        recentPosts: true,
+      },
+      organizationId: identity.organizationId,
+      platform: dto.platform,
+      query: dto.prompt.trim(),
+    });
+
+    if (brandContext) {
+      return this.contextAssemblyService.buildSystemPrompt(
+        platformInstruction,
+        brandContext,
+      );
+    }
+
+    return [
+      platformInstruction,
+      `## Brand: ${fallbackBrand.brand.label ?? 'Brand'}`,
+      fallbackBrand.brand.description,
+      fallbackBrand.brand.voice
+        ? `## Brand Voice\n${fallbackBrand.brand.voice}`
+        : undefined,
+    ]
+      .filter((section): section is string => Boolean(section))
+      .join('\n');
   }
 
   // ==========================================================================
@@ -655,8 +703,8 @@ export class PostGenerationService {
   // ==========================================================================
 
   /**
-   * Enhance a post description using AI. Returns the enhanced description; the
-   * caller is responsible for persisting and serializing the result.
+   * Generate a channel draft from a topic. Returns the draft text; the caller
+   * is responsible for persisting and serializing the result.
    */
   async generateDraftText(
     dto: PostDraftGenerationInput,
@@ -688,9 +736,15 @@ export class PostGenerationService {
       context.constraints.maxWeightedCharacters ??
       context.constraints.maxCharacters ??
       5000;
+    const systemPrompt = await this.buildDraftSystemPrompt(
+      dto,
+      identity,
+      context,
+    );
     const { input } = await this.promptBuilderService.buildPrompt(
       DEFAULT_MINI_TEXT_MODEL,
       {
+        brandingMode: 'off',
         modelCategory: ModelCategory.TEXT,
         maxTokens: Math.max(
           TEXT_GENERATION_LIMITS.postTweetGeneration,
@@ -698,11 +752,9 @@ export class PostGenerationService {
         ),
         prompt: [
           `Write one ${dto.platform} post, at most ${limit} characters.`,
-          'Use the supplied brand context as reference data. Return only the finished post text, without explanations.',
-          `Brand context: ${JSON.stringify(context.brand)}`,
           `Request: ${dto.prompt.trim()}`,
         ].join('\n'),
-        systemPromptTemplate: this.getSystemPromptForPlatform(dto.platform),
+        systemPrompt,
         temperature: 0.8,
         useTemplate: false,
       },

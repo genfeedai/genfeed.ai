@@ -9,6 +9,7 @@ vi.mock('@genfeedai/helpers', async () => ({
   getDefaultAspectRatio: vi.fn(() => '16:9'),
 }));
 
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { DEFAULT_TEXT_MODEL } from '@api/constants/default-text-model.constant';
 import { ReplicateTextBuilder } from '@api/services/prompt-builder/builders/replicate/replicate-text.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
@@ -47,7 +48,17 @@ describe('ReplicateTextBuilder', () => {
       expect(models).toContain(
         MODEL_KEYS.REPLICATE_META_LLAMA_3_1_405B_INSTRUCT,
       );
-      expect(models.length).toBe(7);
+      expect(models).toContain(MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST);
+      expect(models).toContain(DEFAULT_MINI_TEXT_MODEL);
+    });
+
+    it('supports OpenRouter Grok keys and other x-ai models', () => {
+      expect(builder.supportsModel(MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST)).toBe(
+        true,
+      );
+      expect(builder.supportsModel('x-ai/grok-4-fast')).toBe(true);
+      expect(builder.supportsModel(DEFAULT_TEXT_MODEL)).toBe(true);
+      expect(builder.supportsModel('unknown/model')).toBe(false);
     });
   });
 
@@ -298,6 +309,65 @@ describe('ReplicateTextBuilder', () => {
       expect(result.max_tokens).toBe(1024);
       expect(result.temperature).toBe(0.3);
       expect(result.top_k).toBe(100);
+    });
+  });
+
+  describe('OpenRouter Grok', () => {
+    const model = MODEL_KEYS.OPENROUTER_XAI_GROK_4_FAST;
+
+    it('builds chat messages from the system prompt and user text', () => {
+      const result = builder.buildPrompt(
+        model,
+        makeParams({
+          maxTokens: 700,
+          systemPrompt: 'Write as this brand.',
+          temperature: 0.8,
+        }),
+        'Write a tweet',
+      ) as AnyInput;
+
+      expect(result).toEqual({
+        max_tokens: 700,
+        messages: [
+          { content: 'Write as this brand.', role: 'system' },
+          { content: 'Write a tweet', role: 'user' },
+        ],
+        temperature: 0.8,
+      });
+    });
+
+    it('omits the system message when no system prompt is set', () => {
+      const result = builder.buildPrompt(
+        DEFAULT_MINI_TEXT_MODEL,
+        makeParams(),
+        'Write a tweet',
+      ) as AnyInput;
+
+      expect(result.messages).toEqual([
+        { content: 'Write a tweet', role: 'user' },
+      ]);
+      expect(result.max_tokens).toBe(700);
+    });
+
+    it('builds OpenRouter chat input for the product text default', () => {
+      const result = builder.buildPrompt(
+        DEFAULT_TEXT_MODEL,
+        makeParams({
+          maxTokens: 2048,
+          systemPrompt: 'Be precise.',
+          temperature: 0.4,
+        }),
+        'Write a reply',
+      ) as AnyInput;
+
+      expect(result).toEqual({
+        max_tokens: 2048,
+        messages: [
+          { content: 'Be precise.', role: 'system' },
+          { content: 'Write a reply', role: 'user' },
+        ],
+        temperature: 0.4,
+      });
     });
   });
 });

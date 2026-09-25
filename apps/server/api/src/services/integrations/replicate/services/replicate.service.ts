@@ -2,6 +2,9 @@ import {
   runStructuredCompletion,
   toStructuredJsonSchema,
 } from '@api/services/integrations/llm/structured-output.util';
+import type { OpenRouterMessage } from '@api/services/integrations/openrouter/dto/openrouter.dto';
+import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/openrouter-model.util';
+import { OpenRouterService } from '@api/services/integrations/openrouter/services/openrouter.service';
 import { toReplicateProviderError } from '@api/services/integrations/replicate/errors/replicate-provider.error';
 import {
   canReceiveProviderWebhooks,
@@ -12,7 +15,7 @@ import { unwrapFencedJson } from '@genfeedai/helpers';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { CallerUtil } from '@libs/utils/caller/caller.util';
-import { Injectable } from '@nestjs/common';
+import { Injectable, Optional } from '@nestjs/common';
 import Replicate from 'replicate';
 import type { ZodType } from 'zod';
 
@@ -39,6 +42,33 @@ function resolvePredictionTarget(
   return modelIdentifier.includes('/')
     ? { model: modelIdentifier }
     : { version: modelIdentifier };
+}
+
+function readPositiveInteger(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isInteger(value) || value <= 0) {
+    return undefined;
+  }
+  return value;
+}
+
+function readFiniteNumber(value: unknown): number | undefined {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    return undefined;
+  }
+  return value;
+}
+
+function isOpenRouterMessage(value: unknown): value is OpenRouterMessage {
+  if (!value || typeof value !== 'object') {
+    return false;
+  }
+  const candidate = value as { content?: unknown; role?: unknown };
+  return (
+    typeof candidate.content === 'string' &&
+    (candidate.role === 'assistant' ||
+      candidate.role === 'system' ||
+      candidate.role === 'user')
+  );
 }
 
 @Injectable()
@@ -80,6 +110,7 @@ export class ReplicateService {
   constructor(
     private readonly configService: ConfigService,
     private readonly loggerService: LoggerService,
+    @Optional() private readonly openRouterService?: OpenRouterService,
   ) {
     // Eager initialization - create client in constructor to avoid race conditions
     this.client = new Replicate({
@@ -341,12 +372,9 @@ export class ReplicateService {
   }
 
   /**
-   * Generate text completion and wait for result (synchronous)
-   * Use this when you need the result immediately (text generation is fast)
-   *
-   * @param version - Model version string
-   * @param input - Model-specific input parameters
-   * @returns Generated text content
+   * Generate text and wait for the result.
+   * Text LLMs complete through OpenRouter. Image, video, and voice stay on
+   * Replicate via runModel.
    */
   public async generateTextCompletionSync(
     modelIdentifier: string,
@@ -354,6 +382,13 @@ export class ReplicateService {
     apiKeyOverride?: string,
   ): Promise<string> {
     const url = `${this.constructorName} ${CallerUtil.getCallerName()}`;
+    if (isOpenRouterTextModel(modelIdentifier)) {
+      return this.completeOpenRouterText(
+        modelIdentifier,
+        input,
+        apiKeyOverride,
+      );
+    }
     try {
       const target = resolvePredictionTarget(modelIdentifier);
       this.loggerService.log(`${url} started`, {
@@ -386,6 +421,52 @@ export class ReplicateService {
       this.loggerService.error(`${url} failed`, error);
       throw error;
     }
+  }
+
+  private async completeOpenRouterText(
+    modelIdentifier: string,
+    input: Record<string, unknown>,
+    apiKeyOverride?: string,
+  ): Promise<string> {
+    if (!this.openRouterService) {
+      throw new Error('OpenRouter is not configured for text generation');
+    }
+
+    const messages = this.toOpenRouterMessages(input);
+    const maxTokens = readPositiveInteger(input.max_tokens);
+    const temperature = readFiniteNumber(input.temperature);
+    const response = await this.openRouterService.chatCompletion(
+      {
+        max_tokens: maxTokens,
+        messages,
+        model: modelIdentifier,
+        temperature,
+      },
+      apiKeyOverride,
+    );
+    const content = response.choices[0]?.message?.content;
+    return typeof content === 'string' ? content.trim() : '';
+  }
+
+  private toOpenRouterMessages(
+    input: Record<string, unknown>,
+  ): OpenRouterMessage[] {
+    if (Array.isArray(input.messages)) {
+      return input.messages.filter(isOpenRouterMessage);
+    }
+
+    const prompt = typeof input.prompt === 'string' ? input.prompt : '';
+    const system =
+      (typeof input.system_prompt === 'string' && input.system_prompt) ||
+      (typeof input.system_instruction === 'string' &&
+        input.system_instruction) ||
+      '';
+    const messages: OpenRouterMessage[] = [];
+    if (system.trim()) {
+      messages.push({ content: system, role: 'system' });
+    }
+    messages.push({ content: prompt, role: 'user' });
+    return messages;
   }
 
   /**

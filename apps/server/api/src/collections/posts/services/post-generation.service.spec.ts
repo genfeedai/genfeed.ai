@@ -11,7 +11,9 @@ import { PostThreadGenerationService } from '@api/collections/posts/services/pos
 import { PostsService } from '@api/collections/posts/services/posts.service';
 import { TemplatesService } from '@api/collections/templates/services/templates.service';
 import { TrendReferenceCorpusService } from '@api/collections/trends/services/trend-reference-corpus.service';
+import { DEFAULT_MINI_TEXT_MODEL } from '@api/constants/default-mini-text-model.constant';
 import { TEXT_GENERATION_LIMITS } from '@api/constants/text-generation-limits.constant';
+import { AgentContextAssemblyService } from '@api/services/agent-context-assembly/agent-context-assembly.service';
 import { ReplicateService } from '@api/services/integrations/replicate/services/replicate.service';
 import { NotificationsPublisherService } from '@api/services/notifications/publisher/notifications-publisher.service';
 import { PromptBuilderService } from '@api/services/prompt-builder/prompt-builder.service';
@@ -21,6 +23,7 @@ import {
   SystemPromptKey,
   TargetExecutionState,
 } from '@genfeedai/contracts';
+import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { AccountPublishingContext } from '@genfeedai/contracts/interfaces';
 import { testId } from '@helpers/testing/test-id.helper';
 import { LoggerService } from '@libs/logger/logger.service';
@@ -105,6 +108,10 @@ describe('PostGenerationService', () => {
     resolveDraft: vi.fn(),
     resolve: vi.fn().mockResolvedValue(mockPublishingContext),
   };
+  const mockContextAssemblyService = {
+    assembleContext: vi.fn(),
+    buildSystemPrompt: vi.fn(),
+  };
   const mockLoggerService = {
     debug: vi.fn(),
     error: vi.fn(),
@@ -146,6 +153,15 @@ Tweet 3: Tech innovation is changing the world.`,
       brand: mockPublishingContext.brand,
       constraints: { ...mockPublishingContext.constraints },
     });
+    mockContextAssemblyService.assembleContext.mockResolvedValue({
+      brandId,
+      brandName: 'Test Brand',
+      voice: { audience: 'founders', tone: 'direct' },
+    });
+    mockContextAssemblyService.buildSystemPrompt.mockImplementation(
+      (base: string) =>
+        `${base}\n\n## Brand: Test Brand\n## Brand Voice\n- Tone: direct\n- Target audience: founders`,
+    );
 
     mockActivitiesService.create.mockResolvedValue(mockActivity);
     mockActivitiesService.patch.mockResolvedValue(mockActivity);
@@ -179,6 +195,10 @@ Tweet 3: Tech innovation is changing the world.`,
           useValue: mockAccountPublishingContextService,
         },
         { provide: ActivitiesService, useValue: mockActivitiesService },
+        {
+          provide: AgentContextAssemblyService,
+          useValue: mockContextAssemblyService,
+        },
         { provide: LoggerService, useValue: mockLoggerService },
         {
           provide: PostThreadGenerationService,
@@ -228,14 +248,40 @@ Tweet 3: Tech innovation is changing the world.`,
         mockAccountPublishingContextService.resolve,
       ).not.toHaveBeenCalled();
       expect(mockPostsService.create).not.toHaveBeenCalled();
+      expect(mockContextAssemblyService.assembleContext).toHaveBeenCalledWith({
+        brandId,
+        layers: {
+          brandGuidance: true,
+          brandIdentity: true,
+          brandKnowledge: true,
+          brandMemory: true,
+          performancePatterns: true,
+          ragContext: true,
+          recentPosts: true,
+        },
+        organizationId,
+        platform: CredentialPlatform.TWITTER,
+        query: 'Launch day',
+      });
       expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        expect.any(String),
+        DEFAULT_MINI_TEXT_MODEL,
         expect.objectContaining({
-          prompt: expect.stringContaining('Test Brand'),
-          systemPromptTemplate: SystemPromptKey.TWITTER,
+          brandingMode: 'off',
+          prompt: expect.stringContaining('Launch day'),
+          systemPrompt: expect.stringContaining('Brand Voice'),
         }),
         organizationId,
       );
+      const draftPrompt = mockPromptBuilderService.buildPrompt.mock.calls[0][1]
+        .prompt as string;
+      expect(draftPrompt).not.toContain(brandId);
+      expect(draftPrompt).not.toContain('Brand context:');
+      expect(DEFAULT_MINI_TEXT_MODEL).toBe(
+        MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+      );
+      expect(
+        mockReplicateService.generateTextCompletionSync,
+      ).toHaveBeenCalledWith(DEFAULT_MINI_TEXT_MODEL, expect.any(Object));
     });
     it('rejects a blank prompt before calling the model', async () => {
       await expect(
@@ -309,13 +355,49 @@ Tweet 3: Tech innovation is changing the world.`,
         identity,
       );
       expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
-        expect.any(String),
+        DEFAULT_MINI_TEXT_MODEL,
         expect.objectContaining({
           prompt: expect.stringContaining('25000'),
           maxTokens: 12500,
         }),
         organizationId,
       );
+    });
+
+    it('falls back to brand label and voice when assembled context is missing', async () => {
+      mockContextAssemblyService.assembleContext.mockResolvedValueOnce(null);
+      mockAccountPublishingContextService.resolveDraft.mockResolvedValueOnce({
+        brand: {
+          id: brandId,
+          description: 'Publish content. Now.',
+          label: 'Genfeed.ai',
+          voice: 'Short, direct, no fluff.',
+        },
+        constraints: { ...mockPublishingContext.constraints },
+      });
+      mockReplicateService.generateTextCompletionSync.mockResolvedValueOnce(
+        'A new tweet',
+      );
+
+      await service.generateDraftText(
+        {
+          brandId,
+          prompt: 'AI content is taking over',
+          platform: CredentialPlatform.TWITTER,
+        },
+        identity,
+      );
+
+      expect(mockPromptBuilderService.buildPrompt).toHaveBeenCalledWith(
+        DEFAULT_MINI_TEXT_MODEL,
+        expect.objectContaining({
+          systemPrompt: expect.stringContaining('Short, direct, no fluff.'),
+        }),
+        organizationId,
+      );
+      const draftPrompt = mockPromptBuilderService.buildPrompt.mock.calls[0][1]
+        .prompt as string;
+      expect(draftPrompt).not.toContain(brandId);
     });
   });
 

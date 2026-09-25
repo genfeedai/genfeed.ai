@@ -1,4 +1,7 @@
-import { MODEL_KEYS } from '@genfeedai/contracts/constants';
+import { LLM_DEFAULTS } from '@genfeedai/contracts/constants';
 
-export const DEFAULT_TEXT_MODEL =
-  MODEL_KEYS.REPLICATE_ANTHROPIC_CLAUDE_4_5_SONNET;
+/**
+ * Default model for longer product text (articles, evaluations, replies).
+ * Text completions go through OpenRouter. Replicate stays image/video/voice.
+ */
+export const DEFAULT_TEXT_MODEL = LLM_DEFAULTS.planning;
