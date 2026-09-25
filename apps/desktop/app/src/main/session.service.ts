@@ -8,6 +8,22 @@ import type { DesktopKeyValueStore } from './store.service';
 
 const SESSION_STORAGE_KEY = 'desktop.session';
 const PENDING_AUTH_STORAGE_KEY = 'desktop.pendingAuth';
+const CLOUD_SERVER_ID = 'cloud';
+
+/**
+ * Each Genfeed server keeps its own stored session/`gf_` key so switching
+ * servers never signs the user out of the other one. Cloud keeps the
+ * original key names.
+ */
+export const buildDesktopSessionStorageKey = (serverId: string): string =>
+  serverId === CLOUD_SERVER_ID
+    ? SESSION_STORAGE_KEY
+    : `${SESSION_STORAGE_KEY}.${serverId}`;
+
+const buildPendingAuthStorageKey = (serverId: string): string =>
+  serverId === CLOUD_SERVER_ID
+    ? PENDING_AUTH_STORAGE_KEY
+    : `${PENDING_AUTH_STORAGE_KEY}.${serverId}`;
 const DESKTOP_AUTH_SCHEME = 'genfeedai-desktop';
 const DESKTOP_AUTH_PATH = 'auth';
 const DESKTOP_AUTH_PROTOCOL = `${DESKTOP_AUTH_SCHEME}:`;
@@ -319,20 +335,26 @@ const formatExchangeFailureMessage = (
 
 export class DesktopSessionService {
   private pendingAuth: PendingDesktopAuth | null = null;
+  private readonly pendingAuthStorageKey: string;
+  private readonly sessionStorageKey: string;
 
   constructor(
     private readonly store: DesktopKeyValueStore,
     private readonly environment: IDesktopEnvironment,
     private readonly appOrigin: string,
     private readonly cookies: DesktopCookieStore,
-  ) {}
+  ) {
+    const serverId = environment.serverId || CLOUD_SERVER_ID;
+    this.sessionStorageKey = buildDesktopSessionStorageKey(serverId);
+    this.pendingAuthStorageKey = buildPendingAuthStorageKey(serverId);
+  }
 
   getEnvironment(): IDesktopEnvironment {
     return this.environment;
   }
 
   getSession(): IDesktopSession | null {
-    const stored = this.store.getValueSync(SESSION_STORAGE_KEY);
+    const stored = this.store.getValueSync(this.sessionStorageKey);
 
     if (!stored) {
       return null;
@@ -346,12 +368,12 @@ export class DesktopSessionService {
         : deserializeSession(stored);
 
       if (!session) {
-        void this.store.deleteValue(SESSION_STORAGE_KEY);
+        void this.store.deleteValue(this.sessionStorageKey);
       }
 
       return session;
     } catch {
-      void this.store.deleteValue(SESSION_STORAGE_KEY);
+      void this.store.deleteValue(this.sessionStorageKey);
       return null;
     }
   }
@@ -362,7 +384,7 @@ export class DesktopSessionService {
       ? safeStorage.encryptString(payload).toString('base64')
       : payload;
 
-    await this.store.setValue(SESSION_STORAGE_KEY, encryptedPayload);
+    await this.store.setValue(this.sessionStorageKey, encryptedPayload);
   }
 
   private async applySessionCookie(
@@ -452,7 +474,7 @@ export class DesktopSessionService {
       if (previousSession) {
         await this.persistSession(previousSession);
       } else {
-        await this.store.deleteValue(SESSION_STORAGE_KEY);
+        await this.store.deleteValue(this.sessionStorageKey);
       }
 
       try {
@@ -476,17 +498,35 @@ export class DesktopSessionService {
     const previousSession = this.getSession();
 
     if (!previousSession) {
-      await this.store.deleteValue(SESSION_STORAGE_KEY);
+      await this.store.deleteValue(this.sessionStorageKey);
       return;
     }
 
-    await this.store.deleteValue(SESSION_STORAGE_KEY);
+    await this.store.deleteValue(this.sessionStorageKey);
 
     try {
       await this.removeSessionCookie(previousSession.sessionCookie);
     } catch (error) {
       await this.persistSession(previousSession);
       throw error;
+    }
+  }
+
+  /**
+   * Removes this server's cookie from the shell cookie jar but keeps the
+   * stored session, so switching servers does not sign the user out.
+   */
+  async detachShellCookie(): Promise<void> {
+    await this.removeShellSessionCookies();
+  }
+
+  private async removeShellSessionCookies(): Promise<void> {
+    for (const cookieName of SESSION_COOKIE_NAMES) {
+      try {
+        await this.cookies.remove(this.appOrigin, cookieName);
+      } catch {
+        // A missing cookie is already detached.
+      }
     }
   }
 
@@ -511,11 +551,11 @@ export class DesktopSessionService {
     const stored = safeStorage.isEncryptionAvailable()
       ? safeStorage.encryptString(payload).toString('base64')
       : payload;
-    this.store.setValueSync(PENDING_AUTH_STORAGE_KEY, stored);
+    this.store.setValueSync(this.pendingAuthStorageKey, stored);
   }
 
   private readStoredPendingAuth(): PendingDesktopAuth | null {
-    const stored = this.store.getValueSync(PENDING_AUTH_STORAGE_KEY);
+    const stored = this.store.getValueSync(this.pendingAuthStorageKey);
 
     if (!stored) {
       return null;
@@ -541,7 +581,7 @@ export class DesktopSessionService {
         state: (parsed as PendingDesktopAuth).state,
       };
     } catch {
-      void this.store.deleteValue(PENDING_AUTH_STORAGE_KEY);
+      void this.store.deleteValue(this.pendingAuthStorageKey);
       return null;
     }
   }
@@ -553,7 +593,7 @@ export class DesktopSessionService {
 
   private clearPendingAuth(): void {
     this.pendingAuth = null;
-    void this.store.deleteValue(PENDING_AUTH_STORAGE_KEY);
+    void this.store.deleteValue(this.pendingAuthStorageKey);
   }
 
   /**
@@ -713,6 +753,8 @@ export class DesktopSessionService {
     const storedSession = this.getSession();
 
     if (!storedSession) {
+      // Another server's session cookie may still sit in the shell jar.
+      await this.removeShellSessionCookies();
       return null;
     }
 

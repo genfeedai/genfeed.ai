@@ -76,6 +76,7 @@ export * from './automation/workflow-builder.interface';
 export * from './automation/workflow-execution.interface';
 export * from './batch/batch.interface';
 export * from './batch/manual-review-batch-item.interface';
+export * from './billing/agent-model-access.interface';
 export * from './billing/billing-account.interface';
 export * from './billing/cost-report.interface';
 export * from './billing/credits.interface';
@@ -92,6 +93,7 @@ export type {
   TopbarBalanceProvider,
   TopbarBalanceStatus,
 } from './billing/topbar-balance.interface';
+export * from './billing/unit-economics.interface';
 export * from './billing/workflow-accounting.interface';
 export * from './common/content-scope.interface';
 export * from './components/asset-selection.interface';

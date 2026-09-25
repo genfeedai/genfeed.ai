@@ -189,6 +189,7 @@ describe('buildSettingsMenuItems', () => {
         'Characters',
         'Brand voice',
         'Interview',
+        'Agent context',
         'Harness',
         'Publishing',
         'Agent Defaults',
@@ -219,6 +220,9 @@ describe('buildSettingsMenuItems', () => {
       expect(items.find((i) => i.label === 'Brand voice')?.href).toBe(
         '/settings/voice',
       );
+      expect(items.find((i) => i.label === 'Agent context')?.href).toBe(
+        '/settings/agent-context',
+      );
       expect(items.find((i) => i.label === 'Skills')?.href).toBe(
         APP_ROUTES.SETTINGS.SKILLS,
       );
@@ -236,6 +240,7 @@ describe('buildSettingsMenuItems', () => {
         ['Characters', 'Brand'],
         ['Brand voice', 'Brand'],
         ['Interview', 'Brand'],
+        ['Agent context', 'Brand'],
         ['Harness', 'Automation'],
         ['Publishing', 'Automation'],
         ['Agent Defaults', 'Automation'],

@@ -361,11 +361,10 @@ export class AgentOrchestratorStreamLoopService {
                 return await runReservedAgentLlmRound({
                   actorUserId: context.userId,
                   credits: this.creditsUtilsService,
-                  estimatedCredits: (models) =>
-                    this.agentChatModelRegistry.getSettledRoundCredits(models),
                   idempotencyKey: `${context.executionId ?? threadId}:agent-llm-round:${round}`,
                   maximumCredits: maximumRoundCredits,
                   organizationId: context.organizationId,
+                  pricer: this.agentChatModelRegistry,
                   requestedModel: dispatchedModel,
                   run: () =>
                     canStreamLiveTokens

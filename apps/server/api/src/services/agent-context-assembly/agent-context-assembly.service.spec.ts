@@ -407,6 +407,42 @@ describe('AgentContextAssemblyService', () => {
     expect(prompt).toContain('- Topics: pricing teardowns, founder lessons');
   });
 
+  it('renders writing rules one per line and real posts as quoted blocks', async () => {
+    const brand = createCompleteBrand();
+    brandsService.findOne.mockResolvedValue({
+      ...brand,
+      agentConfig: {
+        ...brand.agentConfig,
+        voice: {
+          ...brand.agentConfig.voice,
+          exemplarTexts: [
+            'no. ship it first\nthen argue',
+            'hot take: slop loses',
+          ],
+          writingRules: [
+            'Keep replies short: typically ~90 characters, rarely over 180',
+            'Never use em dashes',
+          ],
+        },
+      },
+    });
+
+    const context = (await service.assembleContext({
+      brandId: 'brand-1',
+      layers: { brandMemory: false },
+      organizationId: 'org-1',
+    })) as AssembledBrandContext;
+    const prompt = service.buildSystemPrompt('', context);
+
+    expect(prompt).toContain(
+      '- Writing rules:\n  - Keep replies short: typically ~90 characters, rarely over 180\n  - Never use em dashes',
+    );
+    expect(prompt).toContain('## Real Posts by This Brand (style reference)');
+    expect(prompt).toContain(
+      '> no. ship it first\n> then argue\n\n> hot take: slop loses',
+    );
+  });
+
   it('scopes saved-memory retrieval to the active brand', async () => {
     contextsService.enhancePrompt.mockResolvedValue({
       context: [

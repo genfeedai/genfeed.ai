@@ -18,6 +18,7 @@ import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ActivityKey,
   type ActivitySource,
+  type BillingRevenueSource,
   type ByokBillingStatus,
   CreditTransactionCategory,
   SubscriptionPlan,
@@ -48,6 +49,17 @@ type CreditsActivity = {
 type OnboardingUser = {
   id: string;
   isOnboardingCompleted?: boolean;
+};
+
+export type BillingRevenueEventInput = {
+  /** Minor currency units, net of tax. */
+  amountMinor: number;
+  currency: string;
+  occurredAt: Date;
+  organizationId: string;
+  source: BillingRevenueSource;
+  stripeObjectId: string;
+  userId?: string | null;
 };
 
 type PurchasedCreditsReference = {
@@ -280,6 +292,50 @@ export class StripeWebhookSupportService {
   }
 
   /** Add purchased credits with the standard 1-year expiration. */
+  /**
+   * Record a customer payment in the revenue ledger that platform-admin unit
+   * economics reads. Idempotent per Stripe object (webhook replays upsert the
+   * same row). Best-effort: the payment's credits are already granted, so a
+   * ledger failure is logged, never thrown.
+   */
+  async recordRevenueEvent(input: BillingRevenueEventInput): Promise<void> {
+    const amountMinor = Math.round(input.amountMinor);
+    if (
+      !input.organizationId ||
+      !input.stripeObjectId ||
+      !Number.isFinite(amountMinor) ||
+      amountMinor <= 0
+    ) {
+      return;
+    }
+
+    try {
+      await this.prisma.billingRevenueEvent.upsert({
+        create: {
+          amountMinor,
+          currency: input.currency.trim().toLowerCase() || 'usd',
+          occurredAt: input.occurredAt,
+          organizationId: input.organizationId,
+          source: input.source,
+          stripeObjectId: input.stripeObjectId,
+          userId: input.userId ?? null,
+        },
+        update: {},
+        where: { stripeObjectId: input.stripeObjectId },
+      });
+    } catch (error: unknown) {
+      this.loggerService.error(
+        `${this.constructorName} failed to record revenue event`,
+        {
+          error,
+          organizationId: input.organizationId,
+          source: input.source,
+          stripeObjectId: input.stripeObjectId,
+        },
+      );
+    }
+  }
+
   async addPurchasedCredits(
     organizationId: string,
     credits: number,

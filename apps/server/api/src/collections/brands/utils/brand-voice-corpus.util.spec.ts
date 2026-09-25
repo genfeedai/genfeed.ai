@@ -160,7 +160,9 @@ describe('brand voice corpus summary', () => {
     );
 
     expect(summary.isSufficient).toBe(false);
-    expect(summary.guidance).toMatch(/^Only 2 posts written by this brand were found/);
+    expect(summary.guidance).toMatch(
+      /^Only 2 posts written by this brand were found/,
+    );
   });
 
   it('labels a sufficient corpus with counts, platforms, and date range', () => {

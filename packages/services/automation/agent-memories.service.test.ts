@@ -31,6 +31,47 @@ describe('AgentMemoriesService', () => {
     postMock.mockReset();
   });
 
+  it('lists personal and brand memories and archives a personal memory', async () => {
+    const document = {
+      data: [
+        {
+          attributes: { scope: 'personal', summary: 'Short hooks' },
+          id: 'm1',
+          type: 'agent-memory',
+        },
+      ],
+    };
+    getMock.mockResolvedValue({ data: document });
+    postMock.mockResolvedValue({
+      data: {
+        data: {
+          attributes: { isDeleted: true, scope: 'personal' },
+          id: 'm1',
+          type: 'agent-memory',
+        },
+      },
+    });
+    const service = AgentMemoriesService.getInstance('token');
+    const controller = new AbortController();
+
+    await expect(service.listPersonal(controller.signal)).resolves.toEqual([
+      expect.objectContaining({ id: 'm1', summary: 'Short hooks' }),
+    ]);
+    expect(getMock).toHaveBeenCalledWith('/personal', {
+      signal: controller.signal,
+    });
+
+    await service.listForBrand('brand-1');
+    expect(getMock).toHaveBeenLastCalledWith('/brands/brand-1', {
+      signal: undefined,
+    });
+
+    await expect(service.archivePersonal('m1')).resolves.toEqual(
+      expect.objectContaining({ id: 'm1', isDeleted: true }),
+    );
+    expect(postMock).toHaveBeenCalledWith('/personal/m1/archive');
+  });
+
   it('lists organization memories and posts archive, promote, and reject', async () => {
     getMock.mockResolvedValue({ data: [{ id: 'm1' }] });
     postMock.mockResolvedValue({ data: { id: 'm1', promotedSkillId: 's1' } });

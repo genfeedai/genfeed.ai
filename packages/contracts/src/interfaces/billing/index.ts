@@ -1,3 +1,4 @@
+export * from './agent-model-access.interface';
 export * from './billing.tokens';
 export * from './billing-account.interface';
 export * from './cost-report.interface';
@@ -14,6 +15,7 @@ export * from './referral.interface';
 export * from './subscription.interface';
 export * from './subscription-failure.interface';
 export * from './subscriptions-service.contract';
+export * from './unit-economics.interface';
 export type {
   ITopbarBalanceSegment,
   ITopbarBalances,

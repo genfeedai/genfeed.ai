@@ -85,7 +85,10 @@ describe('BrandDetailAgentProfileCard', () => {
     audience: ['founders'],
     corpus: sufficientCorpus,
     doNotSoundLike: ['hype'],
-    exemplarTexts: ['shipped it, docs later', 'nah, ship the boring version first'],
+    exemplarTexts: [
+      'shipped it, docs later',
+      'nah, ship the boring version first',
+    ],
     hashtags: ['#acme'],
     messagingPillars: ['clarity', 'proof'],
     prompting: { conversationStarters: [], seeds: [] },
@@ -95,7 +98,10 @@ describe('BrandDetailAgentProfileCard', () => {
     taglines: ['Ship systems'],
     tone: 'confident',
     values: ['honesty'],
-    writingRules: ['Keep replies short, under ~90 characters', 'Never use em dashes'],
+    writingRules: [
+      'Keep replies short, under ~90 characters',
+      'Never use em dashes',
+    ],
   };
 
   const brand = {

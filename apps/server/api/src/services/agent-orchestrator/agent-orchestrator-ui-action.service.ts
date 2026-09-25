@@ -5,6 +5,7 @@ import { runIdempotent } from '@api/helpers/utils/idempotency/idempotency.util';
 import { isEntityId } from '@api/helpers/validation/entity-id.validator';
 import { AgentScopeContextService } from '@api/index';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
 import type {
   AgentOrchestratorUiActionHost,
   ThreadUiActionExecutionParams,
@@ -46,6 +47,7 @@ export type { AgentOrchestratorUiActionHost } from '@api/services/agent-orchestr
 export class AgentOrchestratorUiActionService {
   constructor(
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
+    private readonly agentModelAccess: AgentModelAccessService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentScopeContextService: AgentScopeContextService,
     private readonly threadEventRecorder: AgentThreadEventRecorderService,
@@ -371,8 +373,12 @@ export class AgentOrchestratorUiActionService {
     );
     // UI actions price and call the bound model directly, bypassing the
     // orchestrator's resolution chokepoint — a binding stored against a retired
-    // key maps forward here or it bills at the fallback rate.
-    return this.agentChatModelRegistry.resolveModelKey(binding?.model);
+    // key maps forward here or it bills at the fallback rate. The free-tier
+    // lock is enforced here for the same reason.
+    return this.agentModelAccess.enforceModel(
+      organizationId,
+      await this.agentChatModelRegistry.resolveModelKey(binding?.model),
+    );
   }
 
   private describeThreadUiAction(

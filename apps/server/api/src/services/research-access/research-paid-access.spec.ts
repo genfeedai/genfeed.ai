@@ -1,17 +1,15 @@
 import { SubscriptionStatus, SubscriptionTier } from '@genfeedai/contracts';
 import { describe, expect, it } from 'vitest';
-import {
-  type ResearchSubscriptionSnapshot,
-  resolveResearchCollectionAccess,
-} from './research-paid-access';
+import type { PaidSubscriptionSnapshot } from '@api/common/subscriptions/paid-subscription-access.util';
+import { resolveResearchCollectionAccess } from './research-paid-access';
 
 const NOW = new Date('2026-09-24T12:00:00.000Z');
 const FUTURE = '2026-10-24T12:00:00.000Z';
 const PAST = '2026-08-24T12:00:00.000Z';
 
 function subscription(
-  overrides: Partial<ResearchSubscriptionSnapshot> = {},
-): ResearchSubscriptionSnapshot {
+  overrides: Partial<PaidSubscriptionSnapshot> = {},
+): PaidSubscriptionSnapshot {
   return {
     cancelAtPeriodEnd: false,
     currentPeriodEnd: FUTURE,

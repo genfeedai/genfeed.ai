@@ -14,6 +14,7 @@ import {
 import type { StripeInvoice } from '@api/services/integrations/stripe/services/stripe.service';
 import {
   ActivitySource,
+  BillingRevenueSource,
   ByokBillingStatus,
   SubscriptionStatus,
 } from '@genfeedai/contracts';
@@ -28,6 +29,20 @@ import { Inject, Injectable } from '@nestjs/common';
 type SubscriptionInvoiceBillingReason =
   | 'subscription_create'
   | 'subscription_cycle';
+
+/** Amount the customer paid for the invoice, net of every tax line. */
+function netInvoiceAmountMinor(invoice: StripeInvoice): number {
+  const taxes = (invoice.total_taxes ?? []).reduce(
+    (sum, tax) => sum + (tax.amount ?? 0),
+    0,
+  );
+  return Math.max(0, (invoice.amount_paid ?? 0) - taxes);
+}
+
+function invoicePaidAt(invoice: StripeInvoice): Date {
+  const paidAt = invoice.status_transitions?.paid_at ?? invoice.created;
+  return typeof paidAt === 'number' ? new Date(paidAt * 1000) : new Date();
+}
 
 function isSubscriptionInvoiceBillingReason(
   value: StripeInvoice['billing_reason'],
@@ -106,6 +121,16 @@ export class StripeInvoiceWebhookHandler {
         subscription: updatedSubscription,
         trigger: 'invoice.paid',
         url,
+      });
+
+      await this.supportService.recordRevenueEvent({
+        amountMinor: netInvoiceAmountMinor(invoice),
+        currency: invoice.currency,
+        occurredAt: invoicePaidAt(invoice),
+        organizationId: updatedSubscription.organizationId,
+        source: BillingRevenueSource.SUBSCRIPTION_INVOICE,
+        stripeObjectId: invoice.id,
+        userId: updatedSubscription.userId,
       });
 
       // Mark onboarding as completed server-side on first subscription payment
@@ -239,6 +264,17 @@ export class StripeInvoiceWebhookHandler {
         url,
         'failed to reset byokBillingStatus after payment',
       );
+
+      if (invoice.id) {
+        await this.supportService.recordRevenueEvent({
+          amountMinor: netInvoiceAmountMinor(invoice),
+          currency: invoice.currency,
+          occurredAt: invoicePaidAt(invoice),
+          organizationId,
+          source: BillingRevenueSource.BYOK_PLATFORM_FEE,
+          stripeObjectId: invoice.id,
+        });
+      }
 
       // Log activity
       await this.supportService.recordCreditsActivity({

@@ -80,6 +80,8 @@ export interface ISettleCreditReservationInput {
   actualAmount: number;
   actorUserId: string;
   description: string;
+  /** Attached to the settlement ledger row (never prompt or completion text). */
+  metadata?: Record<string, unknown>;
   source?: ActivitySource;
 }
 

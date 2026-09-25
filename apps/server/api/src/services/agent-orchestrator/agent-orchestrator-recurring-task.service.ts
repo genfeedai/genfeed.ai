@@ -3,6 +3,7 @@ import { AgentThreadsService } from '@api/collections/agent-threads/services/age
 import { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
 import { OrganizationSettingsService } from '@api/collections/organization-settings/services/organization-settings.service';
 import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
+import { AgentModelAccessService } from '@api/services/agent-orchestrator/agent-model-access.service';
 import { AgentCompletionCardBuilderService } from '@api/services/agent-orchestrator/agent-completion-card-builder.service';
 import { AgentStreamEffectsService } from '@api/services/agent-orchestrator/agent-stream-effects.service';
 import { AgentStreamPublisherService } from '@api/services/agent-orchestrator/agent-stream-publisher.service';
@@ -64,6 +65,7 @@ interface RecurringTaskResumeCursor extends Record<string, unknown> {
 export class AgentOrchestratorRecurringTaskService {
   constructor(
     private readonly agentChatModelRegistry: AgentChatModelRegistryService,
+    private readonly agentModelAccess: AgentModelAccessService,
     private readonly agentThreadsService: AgentThreadsService,
     private readonly agentMessagesService: AgentMessagesService,
     private readonly creditsUtilsService: CreditsUtilsService,
@@ -121,7 +123,11 @@ export class AgentOrchestratorRecurringTaskService {
       // Runtime bindings outlive the catalogue — a binding pinned to a retired
       // key has to map forward here, since this path calls the model directly
       // instead of going through the orchestrator's resolution chokepoint.
-      model: await this.agentChatModelRegistry.resolveModelKey(binding?.model),
+      // It also bypasses the free-tier lock chokepoint, so enforce it here.
+      model: await this.agentModelAccess.enforceModel(
+        params.organizationId,
+        await this.agentChatModelRegistry.resolveModelKey(binding?.model),
+      ),
       threadId: params.threadId,
     });
 

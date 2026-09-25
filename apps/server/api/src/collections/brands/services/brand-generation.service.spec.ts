@@ -403,7 +403,9 @@ describe('BrandGenerationService', () => {
 
       const prompt = promptSent();
       expect(prompt).toContain("Voice evidence: the brand's OWN writing");
-      expect(prompt).toContain('Samples measured: 14 (8 replies, 6 original posts)');
+      expect(prompt).toContain(
+        'Samples measured: 14 (8 replies, 6 original posts)',
+      );
       expect(prompt).toContain('@friend nah, reply number 0 is fine');
       expect(prompt).toContain('shipped thing 5 today, docs later');
       expect(prompt).toContain('exemplarIds');
@@ -488,7 +490,9 @@ describe('BrandGenerationService', () => {
       expect(promptSent()).toContain('lol no. ship it friday');
       expect(profile.exemplarTexts).toEqual(['lol no. ship it friday']);
       expect(profile.corpus.isSufficient).toBe(false);
-      expect(profile.corpus.guidance).toMatch(/^Only 1 post written by this brand was found/);
+      expect(profile.corpus.guidance).toMatch(
+        /^Only 1 post written by this brand was found/,
+      );
     });
   });
 });

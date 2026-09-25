@@ -39,6 +39,7 @@ export class LlmVendorCostLedgerService {
       provider: input.provider,
       runId: input.runId,
       threadId: input.threadId,
+      userId: input.userId,
       vendorCostMicros: input.vendorCostMicros,
     };
     if (input.workflowLedgerId && input.costEvidence === 'pending') {
@@ -66,6 +67,7 @@ export class LlmVendorCostLedgerService {
           brandId: data.brandId,
           runId: data.runId,
           threadId: data.threadId,
+          userId: data.userId,
           completionTokens: data.completionTokens,
           promptTokens: data.promptTokens,
           latencyMs: data.latencyMs,

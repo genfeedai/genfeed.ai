@@ -1,10 +1,10 @@
-import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
-import type { IGeneratedBrandProfile } from '@genfeedai/contracts/interfaces';
-import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   VOICE_CORPUS_MAX_PASTED,
   VOICE_CORPUS_MAX_PASTED_LENGTH,
 } from '@api/collections/brands/utils/brand-voice-corpus.util';
+import { IsEntityId } from '@api/helpers/validation/entity-id.validator';
+import type { IGeneratedBrandProfile } from '@genfeedai/contracts/interfaces';
+import { ApiPropertyOptional } from '@nestjs/swagger';
 import {
   ArrayMaxSize,
   IsArray,

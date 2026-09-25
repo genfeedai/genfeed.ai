@@ -196,6 +196,7 @@ export class CreditReservationService {
         {
           actorUserId: input.actorUserId,
           billingAccountId: reservation.billingAccountId,
+          ...(input.metadata ? { metadata: input.metadata } : {}),
           reservationId: reservation.id,
           referenceId: reservation.id,
           referenceType: 'credit_reservation',

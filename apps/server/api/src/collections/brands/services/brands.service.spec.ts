@@ -11,14 +11,14 @@ vi.mock('@genfeedai/prisma', async () => {
 });
 
 import { BrandGenerationService } from '@api/collections/brands/services/brand-generation.service';
-import type { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
-import { buildVoiceCorpus } from '@api/collections/brands/utils/brand-voice-corpus.util';
 import { BrandKitAssetsService } from '@api/collections/brands/services/brand-kit-assets.service';
 import { BrandKitDraftService } from '@api/collections/brands/services/brand-kit-draft.service';
 import type { BrandOsPreviewService } from '@api/collections/brands/services/brand-os-preview.service';
 import type { BrandRelocationService } from '@api/collections/brands/services/brand-relocation.service';
+import type { BrandVoiceCorpusService } from '@api/collections/brands/services/brand-voice-corpus.service';
 import { BrandsService } from '@api/collections/brands/services/brands.service';
 import type { DefaultRecurringContentService } from '@api/collections/brands/services/default-recurring-content.service';
+import { buildVoiceCorpus } from '@api/collections/brands/utils/brand-voice-corpus.util';
 import type { SkillsService } from '@api/collections/skills/services/skills.service';
 import {
   CACHE_PATTERNS,

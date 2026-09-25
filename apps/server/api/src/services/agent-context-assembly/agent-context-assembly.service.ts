@@ -579,7 +579,11 @@ export class AgentContextAssemblyService {
       parts.push(`- Banned phrases: ${voice.bannedPhrases.join(', ')}`);
     }
     if (voice.writingRules?.length) {
-      parts.push(`- Writing rules: ${voice.writingRules.join(' | ')}`);
+      parts.push(
+        `- Writing rules:\n${voice.writingRules
+          .map((rule) => `  - ${rule}`)
+          .join('\n')}`,
+      );
     }
 
     const sections: string[] = [];
@@ -591,9 +595,14 @@ export class AgentContextAssemblyService {
     }
     if (voice.exemplarTexts?.length) {
       sections.push(
-        `\n## Reference Exemplars\n${voice.exemplarTexts
-          .map((example) => `- ${example}`)
-          .join('\n')}`,
+        `\n## Real Posts by This Brand (style reference)\nMatch their length, casing, punctuation and reply style. Never copy them verbatim.\n${voice.exemplarTexts
+          .map((example) =>
+            example
+              .split('\n')
+              .map((line) => `> ${line}`)
+              .join('\n'),
+          )
+          .join('\n\n')}`,
       );
     }
     return sections;

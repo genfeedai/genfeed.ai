@@ -1,4 +1,5 @@
 import type { AgentExternalRuntimeKey } from '../constants/agent-external-runtime.constant';
+import type { IAgentThreadExternalRuntime } from '../interfaces/ai/agent-external-turn.interface';
 
 /* ─── Desktop IPC Channel Names ─── */
 
@@ -955,6 +956,15 @@ export type DesktopCliAgentEvent =
   | IDesktopCliAgentTextDeltaEvent
   | IDesktopCliAgentToolCallEvent
   | IDesktopCliAgentUsageEvent;
+
+/** Agent thread fields Desktop main reads through the cloud API client. */
+export interface IDesktopCloudAgentThread {
+  brandId: string | null;
+  externalRuntime: IAgentThreadExternalRuntime | null;
+  id: string;
+  organizationId: string | null;
+  runtimeKey: string | null;
+}
 
 export interface IDesktopCliAgentTurnEvent {
   event: DesktopCliAgentEvent;

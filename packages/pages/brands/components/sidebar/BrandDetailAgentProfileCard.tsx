@@ -16,8 +16,10 @@ import {
   SelectValue,
 } from '@ui/primitives/select';
 import { Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import AgentProfilePlatformOverride from './AgentProfilePlatformOverride';
+import AgentProfilePromptingFields from './AgentProfilePromptingFields';
 import AgentProfileVoiceFields from './AgentProfileVoiceFields';
 import {
   EMPTY_PLATFORM_OVERRIDE,
@@ -45,10 +47,12 @@ export default function BrandDetailAgentProfileCard({
     handleGenerate,
     handlePlatformOverrideSave,
     handlePlatformOverrideSelectChange,
+    handlePromptingSave,
     isGenerating,
     populatedPlatformCount,
     voiceCorpus,
   } = useBrandDetailAgentProfileCard({ brand, brandId, onRefreshBrand });
+  const translate = useTranslations('pages.brandAgentProfile');
 
   const [selectedPlatform, setSelectedPlatform] = useState(
     PLATFORM_OPTIONS[0]?.value ?? 'twitter',
@@ -269,7 +273,33 @@ export default function BrandDetailAgentProfileCard({
                 value={form.strategyGoals}
               />
             </div>
+
+            <div className="md:col-span-2">
+              <p className="mb-1 text-sm font-medium">
+                {translate('topics.label')}
+              </p>
+              <EditableText
+                ariaLabel={translate('topics.label')}
+                displayClassName="text-sm"
+                isDisabled={isGenerating}
+                onSave={(value) => handleFieldSave('strategyTopics', value)}
+                placeholder={translate('topics.placeholder')}
+                value={form.strategyTopics}
+              />
+            </div>
           </div>
+        </Card>
+
+        <Card
+          label={translate('prompting.title')}
+          description={translate('prompting.description')}
+        >
+          <AgentProfilePromptingFields
+            conversationStarters={form.promptingStarters}
+            isDisabled={isGenerating}
+            onSave={handlePromptingSave}
+            seeds={form.promptingSeeds}
+          />
         </Card>
 
         <Card

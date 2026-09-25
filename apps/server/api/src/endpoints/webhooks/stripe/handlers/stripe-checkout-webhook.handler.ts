@@ -32,6 +32,7 @@ import { generateLabel } from '@api/shared/utils/label/label.util';
 import {
   ActivitySource,
   ApiKeyCategory,
+  BillingRevenueSource,
   OrganizationCategory,
   SubscriptionTier,
 } from '@genfeedai/contracts';
@@ -313,6 +314,11 @@ export class StripeCheckoutWebhookHandler {
       typeof session.payment_intent === 'string'
         ? session.payment_intent
         : (session.payment_intent?.id ?? null);
+    await this.recordCheckoutRevenue(
+      session,
+      subscription.organizationId,
+      session.metadata?.userId ?? subscription.userId,
+    );
     await this.referralsService.recordPaygPurchase({
       grossAmountCents,
       netAmountCents,
@@ -443,6 +449,30 @@ export class StripeCheckoutWebhookHandler {
     }
   }
 
+  /**
+   * Credit-pack revenue, net of tax. Subscription checkouts are recorded from
+   * `invoice.paid`, so only one-time payments land here.
+   */
+  private async recordCheckoutRevenue(
+    session: StripeCheckoutSession,
+    organizationId: string,
+    userId?: string | null,
+  ): Promise<void> {
+    if (session.mode !== 'payment') {
+      return;
+    }
+    const amountTax = session.total_details?.amount_tax ?? 0;
+    await this.supportService.recordRevenueEvent({
+      amountMinor: Math.max(0, (session.amount_total ?? 0) - amountTax),
+      currency: session.currency ?? 'usd',
+      occurredAt: new Date(session.created * 1000),
+      organizationId,
+      source: BillingRevenueSource.CREDIT_PURCHASE,
+      stripeObjectId: session.id,
+      userId,
+    });
+  }
+
   private toErrorMessage(error: unknown): string {
     return error instanceof Error ? error.message : String(error);
   }
@@ -477,6 +507,11 @@ export class StripeCheckoutWebhookHandler {
         session.id,
         String(dbUser.id),
       ),
+    );
+    await this.recordCheckoutRevenue(
+      session,
+      String(organization.id),
+      String(dbUser.id),
     );
 
     const plainKey = await this.ensureManagedApiKey(
@@ -863,6 +898,7 @@ export class StripeCheckoutWebhookHandler {
             userId,
           ),
         );
+        await this.recordCheckoutRevenue(session, organizationId, userId);
 
         if (!didAddCredits) {
           this.loggerService.log(

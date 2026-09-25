@@ -17,10 +17,17 @@ import {
   AGENT_CHAT_CAPABILITY,
   AGENT_CHAT_MODEL_KEYS,
   AGENT_FALLBACK_ROUND_CREDITS,
+  type AgentChatModelPricing,
+  type AgentTokenUsage,
+  calculateAgentExactCredits,
+  calculateAgentProviderCostUsd,
   DEFAULT_AGENT_CHAT_MODEL_KEY,
+  estimateAgentMessageCredits,
+  getAgentChatModel,
   LOCAL_DEFAULT_AGENT_CHAT_MODEL_KEY,
   REASONING_FEATURE,
 } from '@genfeedai/contracts/constants';
+import { getRuntimeMarginMultiplier } from '@genfeedai/pricing';
 import { LoggerService } from '@libs/logger/logger.service';
 import { Injectable, type OnModuleInit } from '@nestjs/common';
 
@@ -33,6 +40,8 @@ export interface AgentChatRegistryRow {
   isReasoning: boolean;
   key: string;
   label: string;
+  /** Registry $/1M token list price; null when the row carries none. */
+  pricing: AgentChatModelPricing | null;
   provider: string;
   succeededBy: string | null;
   lifecycle: ModelLifecycle;
@@ -41,6 +50,36 @@ export interface AgentChatRegistryRow {
 }
 
 const CACHE_TTL_MS = 30_000;
+
+export interface AgentRoundPricingInput extends AgentTokenUsage {
+  requestedModel: string;
+  /** Model that answered, normalized to its registry key when known. */
+  responseModel?: string;
+}
+
+/**
+ * Prices a completed agent round. Implemented by the registry; the round
+ * reservation helper settles through it.
+ */
+export interface AgentRoundPricer {
+  calculateRoundProviderCostUsd(input: AgentRoundPricingInput): Promise<number>;
+  toRoundCredits(providerCostUsd: number): number;
+}
+
+function toRowPricing(
+  input: number | null,
+  output: number | null,
+): AgentChatModelPricing | null {
+  if (
+    typeof input !== 'number' ||
+    typeof output !== 'number' ||
+    !Number.isFinite(input) ||
+    !Number.isFinite(output)
+  ) {
+    return null;
+  }
+  return { completionPerMillion: output, promptPerMillion: input };
+}
 
 function toDomainLifecycle(value: string): ModelLifecycle {
   switch (value) {
@@ -56,7 +95,9 @@ function toDomainLifecycle(value: string): ModelLifecycle {
 }
 
 @Injectable()
-export class AgentChatModelRegistryService implements OnModuleInit {
+export class AgentChatModelRegistryService
+  implements OnModuleInit, AgentRoundPricer
+{
   private readonly context = { service: AgentChatModelRegistryService.name };
   private byKey = new Map<string, AgentChatRegistryRow>();
   private loadedAt = 0;
@@ -79,9 +120,11 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         isActive: true,
         isDefault: true,
         isDiscovered: true,
+        inputCostPerMillionTokens: true,
         isFree: true,
         key: true,
         label: true,
+        outputCostPerMillionTokens: true,
         provider: true,
         succeededBy: true,
         lifecycle: true,
@@ -110,6 +153,10 @@ export class AgentChatModelRegistryService implements OnModuleInit {
         isReasoning: row.supportsFeatures.includes(REASONING_FEATURE),
         key: row.key,
         label: row.label,
+        pricing: toRowPricing(
+          row.inputCostPerMillionTokens,
+          row.outputCostPerMillionTokens,
+        ),
         provider: row.provider,
         succeededBy: row.succeededBy,
         lifecycle: toDomainLifecycle(row.lifecycle),
@@ -242,26 +289,94 @@ export class AgentChatModelRegistryService implements OnModuleInit {
   }
 
   /**
-   * Credits to settle for a round that was dispatched as `requestedModel` and
-   * answered by `responseModel`. The answering model's price wins when the
-   * registry knows it; an unmapped response model (dated slug, provider-side
-   * alias) bills at the requested model's price so it is never cheaper than
-   * what the caller asked for.
+   * Provider USD for a completed round priced from its token usage. Used when
+   * the provider does not report a charge (native Anthropic/OpenAI). The
+   * answering model's list price wins; an unmapped response model (dated
+   * slug, provider-side alias) prices at the requested model; a model neither
+   * the registry nor the catalogue knows prices at the most expensive curated
+   * rate — an unknown key is far more likely a new frontier release than a
+   * bargain.
    */
-  async getSettledRoundCredits(params: {
-    requestedModel: string;
-    responseModel?: string;
-  }): Promise<number> {
+  async calculateRoundProviderCostUsd(
+    input: AgentRoundPricingInput,
+  ): Promise<number> {
     await this.ensureFresh();
     const responseModel = normalizeResponseModel(
-      params.requestedModel,
-      params.responseModel,
+      input.requestedModel,
+      input.responseModel,
     );
-    const answered = this.byKey.get(await this.resolveModelKey(responseModel));
-    if (answered) {
-      return Math.max(0, Math.round(answered.cost));
+    const pricing =
+      (await this.resolvePricing(responseModel)) ??
+      (await this.resolvePricing(input.requestedModel)) ??
+      this.getFallbackPricing();
+    return calculateAgentProviderCostUsd(pricing, input);
+  }
+
+  /** Exact fractional credits: provider USD × base margin × operator knob. */
+  toRoundCredits(providerCostUsd: number): number {
+    return calculateAgentExactCredits(
+      providerCostUsd,
+      getRuntimeMarginMultiplier(),
+    );
+  }
+
+  /**
+   * "≈ credits per message" for every selectable model, from the average
+   * message token footprint at the live margin. Display only.
+   */
+  async getMessageCostEstimatesMap(): Promise<Record<string, number>> {
+    const selectable = await this.listSelectable();
+    const marginMultiplier = getRuntimeMarginMultiplier();
+    return Object.fromEntries(
+      selectable.map((row) => {
+        const pricing = row.isFree ? null : this.pricingForRow(row);
+        return [
+          row.key,
+          pricing ? estimateAgentMessageCredits(pricing, marginMultiplier) : 0,
+        ];
+      }),
+    );
+  }
+
+  private pricingForRow(row: AgentChatRegistryRow): AgentChatModelPricing | null {
+    return row.pricing ?? getAgentChatModel(row.key)?.pricing ?? null;
+  }
+
+  private async resolvePricing(
+    key?: string | null,
+  ): Promise<AgentChatModelPricing | null> {
+    if (!key?.trim()) {
+      return null;
     }
-    return this.getRoundCredits(params.requestedModel);
+    const resolved = await this.resolveModelKey(key);
+    const row = this.byKey.get(resolved);
+    if (row) {
+      return this.pricingForRow(row);
+    }
+    return getAgentChatModel(resolved)?.pricing ?? null;
+  }
+
+  /** Highest curated prompt and completion rates, taken independently. */
+  private getFallbackPricing(): AgentChatModelPricing {
+    const curated = [...this.byKey.values()]
+      .filter(
+        (row) =>
+          row.isActive &&
+          row.lifecycle !== ModelLifecycle.RETIRED &&
+          (!row.isDiscovered || row.reviewStatus === 'approved'),
+      )
+      .map((row) => this.pricingForRow(row))
+      .filter((pricing): pricing is AgentChatModelPricing => pricing !== null);
+    return {
+      completionPerMillion: Math.max(
+        0,
+        ...curated.map((pricing) => pricing.completionPerMillion),
+      ),
+      promptPerMillion: Math.max(
+        0,
+        ...curated.map((pricing) => pricing.promptPerMillion),
+      ),
+    };
   }
 
   /**
@@ -328,13 +443,6 @@ export class AgentChatModelRegistryService implements OnModuleInit {
       !row.isFree &&
       row.cost > 0 &&
       (!row.isDiscovered || row.reviewStatus === 'approved')
-    );
-  }
-
-  async getRoundCostsMap(): Promise<Record<string, number>> {
-    const selectable = await this.listSelectable();
-    return Object.fromEntries(
-      selectable.map((row) => [row.key, Math.max(0, Math.round(row.cost))]),
     );
   }
 

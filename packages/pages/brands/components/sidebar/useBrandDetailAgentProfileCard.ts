@@ -15,6 +15,7 @@ import type {
   AgentProfilePlatformOverrideFormState,
   AgentProfilePlatformOverrideSelectField,
   AgentProfilePlatformOverrideTextField,
+  AgentProfilePromptingValue,
   AgentProfileTextField,
   BrandDetailAgentProfileCardProps,
 } from '@props/pages/brand-detail.props';
@@ -141,6 +142,7 @@ function toFormState(brand: BrandDetailAgentProfileCardProps['brand']) {
   return {
     defaultModel: config?.defaultModel ?? '',
     frequency: config?.strategy?.frequency ?? '',
+    hasPrompting: Boolean(config?.prompting),
     persona: config?.persona ?? '',
     platformOverrides: Object.fromEntries(
       PLATFORM_OPTIONS.map((platform) => [
@@ -150,9 +152,12 @@ function toFormState(brand: BrandDetailAgentProfileCardProps['brand']) {
         ),
       ]),
     ),
+    promptingSeeds: config?.prompting?.seeds ?? [],
+    promptingStarters: config?.prompting?.conversationStarters ?? [],
     strategyContentTypes: joinList(config?.strategy?.contentTypes),
     strategyGoals: joinList(config?.strategy?.goals),
     strategyPlatforms: joinList(config?.strategy?.platforms),
+    strategyTopics: joinList(config?.strategy?.topics),
     voiceApprovedHooks: joinList(config?.voice?.approvedHooks),
     voiceAudience: joinList(config?.voice?.audience),
     voiceBannedPhrases: joinList(config?.voice?.bannedPhrases),
@@ -211,12 +216,14 @@ function buildStrategy(
   platforms: string,
   frequency: string,
   goals: string,
+  topics: string,
 ): IBrandAgentStrategy {
   return {
     contentTypes: parseList(contentTypes),
     frequency: frequency.trim(),
     goals: parseList(goals),
     platforms: parseList(platforms),
+    topics: parseList(topics),
   };
 }
 
@@ -267,6 +274,17 @@ function applyGeneratedProfileToForm(
     strategyContentTypes:
       joinList(profile.strategy?.topics) || current.strategyContentTypes,
     strategyGoals: joinList(profile.strategy?.goals) || current.strategyGoals,
+    strategyTopics:
+      joinList(profile.strategy?.topics) || current.strategyTopics,
+    ...(profile.prompting &&
+    (profile.prompting.seeds?.length ||
+      profile.prompting.conversationStarters?.length)
+      ? {
+          hasPrompting: true,
+          promptingSeeds: profile.prompting.seeds ?? [],
+          promptingStarters: profile.prompting.conversationStarters ?? [],
+        }
+      : {}),
     voiceAudience: audience || current.voiceAudience,
     voiceDoNotSoundLike:
       joinList(profile.doNotSoundLike) || current.voiceDoNotSoundLike,
@@ -324,11 +342,20 @@ function buildAgentConfigPayload(form: AgentProfileFormState) {
           },
         ]),
     ),
+    ...(form.hasPrompting
+      ? {
+          prompting: {
+            conversationStarters: form.promptingStarters,
+            seeds: form.promptingSeeds,
+          },
+        }
+      : {}),
     strategy: buildStrategy(
       form.strategyContentTypes,
       form.strategyPlatforms,
       form.frequency,
       form.strategyGoals,
+      form.strategyTopics,
     ),
     voice: buildVoice(
       form.voiceCanonicalSource,
@@ -449,6 +476,17 @@ export function useBrandDetailAgentProfileCard({
         voiceCanonicalSource: value,
       })).catch(() => undefined);
     },
+    [enqueueFormSave],
+  );
+
+  const handlePromptingSave = useCallback(
+    (next: AgentProfilePromptingValue) =>
+      enqueueFormSave((current) => ({
+        ...current,
+        hasPrompting: true,
+        promptingSeeds: next.seeds,
+        promptingStarters: next.conversationStarters,
+      })),
     [enqueueFormSave],
   );
 
@@ -574,6 +612,7 @@ export function useBrandDetailAgentProfileCard({
     handleGenerate,
     handlePlatformOverrideSave,
     handlePlatformOverrideSelectChange,
+    handlePromptingSave,
     isGenerating,
     PLATFORM_OPTIONS,
     populatedPlatformCount,

@@ -38,6 +38,8 @@ export enum ActivitySource {
   EXPERT_FIRST_SYSTEM = 'expert-first-system',
   BRAND_RELOCATION = 'brand-relocation',
   REFERRAL = 'credits-referral',
+  /** Agent chat LLM rounds, settled at exact provider cost × margin. */
+  AGENT_CHAT = 'agent-chat',
 }
 
 /**

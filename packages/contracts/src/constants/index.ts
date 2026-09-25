@@ -9,6 +9,7 @@ export * from './avatar-generation-pricing.constant';
 export * from './batch-generation-pricing.constant';
 export * from './carousel.constant';
 export * from './context-embedding.constant';
+export * from './credit-display.constant';
 export * from './empty-states.constant';
 export * from './error-messages.constant';
 export * from './expert-path.constant';
