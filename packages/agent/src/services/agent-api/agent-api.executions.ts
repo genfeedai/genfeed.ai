@@ -1,15 +1,17 @@
-import type { AgentCreditsInfo } from '@genfeedai/agent/models/agent-chat.model';
 import type { AgentInstallReadiness } from '@genfeedai/agent/services/agent-api.types';
 import { AgentApiRequestError } from '@genfeedai/agent/services/agent-api-error';
 import type { AgentBaseApiService } from '@genfeedai/agent/services/agent-base-api.service';
 import { WorkflowExecutionStatus } from '@genfeedai/contracts';
-import type { IWorkflowExecution } from '@genfeedai/contracts/interfaces';
+import type {
+  IAgentCreditsInfo,
+  IWorkflowExecution,
+} from '@genfeedai/contracts/interfaces';
 
 export async function getCreditsInfo(
   api: AgentBaseApiService,
   signal?: AbortSignal,
-): Promise<AgentCreditsInfo> {
-  return api.fetchJson<AgentCreditsInfo>(
+): Promise<IAgentCreditsInfo> {
+  return api.fetchJson<IAgentCreditsInfo>(
     `${api.config.baseUrl}/agent/credits`,
     { signal },
     'Failed to fetch credits info',

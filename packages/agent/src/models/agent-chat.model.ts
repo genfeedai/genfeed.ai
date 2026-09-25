@@ -616,11 +616,6 @@ export interface AgentMemoryEntry {
   createdAt?: string;
 }
 
-export interface AgentCreditsInfo {
-  balance: number;
-  modelCosts: Record<string, number>;
-}
-
 export interface AgentChatStreamResponse {
   threadId: string;
   brandId?: string | null;
