@@ -206,6 +206,13 @@ export const LLM_DEFAULTS = {
   grok: AGENT_CHAT_MODEL_KEYS.GROK_4_6,
   /** Cheap Grok for high-frequency X drafts. Not in the picker. */
   grokFast: MODEL_KEYS.OPENROUTER_XAI_GROK_4_1_FAST,
+  /**
+   * Seed fallback for product text (drafts, prompt enhancement) when no
+   * Admin → Automation → Models `isDefault` TEXT row resolves. Rejected
+   * Grok 4.1 Fast (OpenRouter zero-data-retention 404, #5161) in favor of a
+   * fast frontier model that passes the org's ZDR setting.
+   */
+  productTextFallback: MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH,
   /** High-frequency volume agent types and mechanical compression. */
   volumeAgent: AGENT_CHAT_MODEL_KEYS.DEEPSEEK_V4_FLASH,
   /** Creative agent types, captions, planning, insights. */

@@ -73,6 +73,7 @@ import { HandleErrors } from '@api/helpers/decorators/error-handler.decorator';
 import { ArticleFilterUtil } from '@api/helpers/utils/article-filter/article-filter.util';
 import { resolveGenerationDefaultModel } from '@api/helpers/utils/generation-defaults/generation-defaults.util';
 import { scopedWhere } from '@api/index';
+import { AgentChatModelRegistryService } from '@api/services/agent-orchestrator/agent-chat-model-registry.service';
 import { CacheService } from '@api/services/cache/cache.service';
 import { NotificationsService } from '@api/services/notifications/notifications.service';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
@@ -150,6 +151,8 @@ export class ArticlesService
     @Optional()
     private readonly cacheInvalidationService?: CacheInvalidationService,
     @Optional() private readonly moduleRef?: ModuleRef,
+    @Optional()
+    private readonly agentChatModelRegistry?: AgentChatModelRegistryService,
   ) {
     super(prisma, 'article', logger, undefined, cacheService);
   }
@@ -900,11 +903,18 @@ export class ArticlesService
     organizationId: string,
     generationModelOverride?: string,
   ): Promise<ArticleCycleModelConfig> {
+    // Admin → Automation → Models `isDefault` TEXT row wins over the seed
+    // constants below (#5161) whenever the caller has not pinned an explicit
+    // or organization-configured model. Reuses the same resolver #5167 added
+    // for agent chat.
+    const systemDefault =
+      await this.resolveDefaultTextModel(DEFAULT_TEXT_MODEL);
+
     if (!this.organizationSettingsService) {
       return {
         generationModel: resolveGenerationDefaultModel<string>({
           explicit: generationModelOverride,
-          systemDefault: DEFAULT_TEXT_MODEL,
+          systemDefault,
         }),
         reviewModel: DEFAULT_MINI_TEXT_MODEL,
         updateModel: DEFAULT_MINI_TEXT_MODEL,
@@ -919,11 +929,24 @@ export class ArticlesService
       generationModel: resolveGenerationDefaultModel<string>({
         explicit: generationModelOverride,
         organizationDefault: settings?.defaultModel,
-        systemDefault: DEFAULT_TEXT_MODEL,
+        systemDefault,
       }),
       reviewModel: settings?.defaultModelReview || DEFAULT_MINI_TEXT_MODEL,
       updateModel: settings?.defaultModelUpdate || DEFAULT_MINI_TEXT_MODEL,
     };
+  }
+
+  /**
+   * Resolves the operator-owned Admin default TEXT model through the #5167
+   * agent-chat registry resolver, falling back to `fallbackKey` (a caller's
+   * own seed constant) when the registry isn't wired (e.g. unit tests) or no
+   * Admin default resolves.
+   */
+  private async resolveDefaultTextModel(fallbackKey: string): Promise<string> {
+    if (!this.agentChatModelRegistry) {
+      return fallbackKey;
+    }
+    return this.agentChatModelRegistry.resolveModelKey(undefined, fallbackKey);
   }
 
   /**

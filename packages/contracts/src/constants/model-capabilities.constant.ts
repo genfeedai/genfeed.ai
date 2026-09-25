@@ -1132,6 +1132,15 @@ export const MODEL_OUTPUT_CAPABILITIES: Record<string, ModelOutputCapability> =
       maxOutputs: 1,
       maxReferences: 0,
     },
+    // Seed fallback for product text (drafts, prompt enhancement) when no
+    // Admin default TEXT model is set — `LLM_DEFAULTS.productTextFallback`
+    // (#5161). Not in the agent chat picker.
+    [MODEL_KEYS.OPENROUTER_GOOGLE_GEMINI_3_8_FLASH]: {
+      category: ModelCategory.TEXT,
+      isBatchSupported: false,
+      maxOutputs: 1,
+      maxReferences: 0,
+    },
 
     [MODEL_KEYS.REPLICATE_NATERAW_BGE_LARGE_EN_V1_5]: {
       category: ModelCategory.EMBEDDING,
