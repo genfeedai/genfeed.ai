@@ -90,7 +90,10 @@ function policyFormReducer(
   }
 }
 
-function buildAgentPolicyPayload(form: PolicyFormState): AgentPolicyState {
+function buildAgentPolicyPayload(
+  form: PolicyFormState,
+  models: Array<Pick<IModel, 'id' | 'key'>>,
+): AgentPolicyState {
   return {
     allowAdvancedOverrides: form.allowAdvancedOverrides,
     autonomyDefault: form.autonomyDefault,
@@ -99,19 +102,16 @@ function buildAgentPolicyPayload(form: PolicyFormState): AgentPolicyState {
       brandDailyCreditCap: toNumberOrNull(form.brandDailyCreditCap),
       useOrganizationPool: true,
     },
-    generationModelOverride:
-      form.allowAdvancedOverrides && form.generationModelOverride
-        ? form.generationModelOverride
-        : null,
+    generationModelOverride: form.allowAdvancedOverrides
+      ? resolveStoredAgentModelKey(form.generationModelOverride, models) || null
+      : null,
     qualityTierDefault: form.qualityTierDefault,
-    reviewModelOverride:
-      form.allowAdvancedOverrides && form.reviewModelOverride
-        ? form.reviewModelOverride
-        : null,
-    thinkingModelOverride:
-      form.allowAdvancedOverrides && form.thinkingModelOverride
-        ? form.thinkingModelOverride
-        : null,
+    reviewModelOverride: form.allowAdvancedOverrides
+      ? resolveStoredAgentModelKey(form.reviewModelOverride, models) || null
+      : null,
+    thinkingModelOverride: form.allowAdvancedOverrides
+      ? resolveStoredAgentModelKey(form.thinkingModelOverride, models) || null
+      : null,
   };
 }
 
@@ -170,24 +170,15 @@ export default function SettingsAgentsPage() {
         ),
         brandDailyCreditCap:
           agentPolicy?.creditGovernance?.brandDailyCreditCap?.toString() ?? '',
-        generationModelOverride: resolveStoredAgentModelKey(
-          agentPolicy?.generationModelOverride,
-          catalogModels,
-        ),
+        generationModelOverride: agentPolicy?.generationModelOverride ?? '',
         isSaving: false,
         qualityTierDefault: agentPolicy?.qualityTierDefault ?? 'balanced',
-        reviewModelOverride: resolveStoredAgentModelKey(
-          agentPolicy?.reviewModelOverride,
-          catalogModels,
-        ),
-        thinkingModelOverride: resolveStoredAgentModelKey(
-          agentPolicy?.thinkingModelOverride,
-          catalogModels,
-        ),
+        reviewModelOverride: agentPolicy?.reviewModelOverride ?? '',
+        thinkingModelOverride: agentPolicy?.thinkingModelOverride ?? '',
       },
       type: 'INIT_FROM_SETTINGS',
     });
-  }, [catalogModels, settings?.agentPolicy]);
+  }, [settings?.agentPolicy]);
 
   useEffect(() => {
     return () => {
@@ -207,7 +198,7 @@ export default function SettingsAgentsPage() {
       try {
         const service = await getOrganizationsService();
         await service.patchSettings(organizationId, {
-          agentPolicy: buildAgentPolicyPayload(next),
+          agentPolicy: buildAgentPolicyPayload(next, catalogModels),
         });
         await refresh();
       } catch (error) {
@@ -216,7 +207,7 @@ export default function SettingsAgentsPage() {
         dispatch({ payload: false, type: 'SET_IS_SAVING' });
       }
     },
-    [getOrganizationsService, organizationId, refresh],
+    [catalogModels, getOrganizationsService, organizationId, refresh],
   );
 
   const updateAndPersist = useCallback(
@@ -303,7 +294,10 @@ export default function SettingsAgentsPage() {
         agentModelAccess={modelAccess}
         allowAdvancedOverrides={allowAdvancedOverrides}
         generationModelOptions={generationModelOptions}
-        generationModelOverride={generationModelOverride}
+        generationModelOverride={resolveStoredAgentModelKey(
+          generationModelOverride,
+          catalogModels,
+        )}
         modelCostEstimates={modelCosts}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>
@@ -319,9 +313,15 @@ export default function SettingsAgentsPage() {
           updateAndPersist({ thinkingModelOverride: value })
         }
         reviewModelOptions={reviewModelOptions}
-        reviewModelOverride={reviewModelOverride}
+        reviewModelOverride={resolveStoredAgentModelKey(
+          reviewModelOverride,
+          catalogModels,
+        )}
         thinkingModelOptions={thinkingModelOptions}
-        thinkingModelOverride={thinkingModelOverride}
+        thinkingModelOverride={resolveStoredAgentModelKey(
+          thinkingModelOverride,
+          catalogModels,
+        )}
       />
     </div>
   );

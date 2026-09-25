@@ -258,9 +258,13 @@ describe('SettingsAgentsPage', () => {
     const selects = screen.getAllByRole('combobox');
     expect(selects[0]).toHaveValue('high_quality');
     expect(selects[1]).toHaveValue(AgentAutonomyMode.AUTO_PUBLISH);
-    expect(selects[2]).toHaveValue('gpt-5.5');
-    expect(selects[3]).toHaveValue('google/nano-banana-2');
-    expect(selects[4]).toHaveValue('gpt-5.4-mini');
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('gpt-5.5');
+    });
+    expect(screen.getAllByRole('combobox')[3]).toHaveValue(
+      'google/nano-banana-2',
+    );
+    expect(screen.getAllByRole('combobox')[4]).toHaveValue('gpt-5.4-mini');
 
     fireEvent.change(selects[0], { target: { value: 'budget' } });
 

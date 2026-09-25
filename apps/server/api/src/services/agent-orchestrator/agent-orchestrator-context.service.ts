@@ -222,7 +222,7 @@ export class AgentOrchestratorContextService {
     // A retired key still maps forward to its registry successor so the model
     // we call is always one the biller has a real price for.
     const model = await this.agentChatModelRegistry.resolveModelKey(
-      strategyModel || policy.thinkingModelOverride,
+      strategyModel || policy.thinkingModelOverride || undefined,
     );
 
     return {
