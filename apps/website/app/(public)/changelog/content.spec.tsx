@@ -22,13 +22,18 @@ describe('Changelog', () => {
         ]}
       />,
     );
-    expect(screen.queryByRole('heading', { name: 'Fixed' })).toBeNull();
+    const notes = screen.getByRole('heading', { name: 'Fixed' });
+    const panel = notes.closest('[data-state]');
+    expect(panel?.getAttribute('data-state')).toBe('closed');
+    expect(panel?.className).toContain('data-[state=closed]:hidden');
     expect(screen.queryByRole('heading', { name: /2026-09-01/ })).toBeNull();
     expect(
       screen.getByRole('button', { name: /v1\.0\.0/ }).textContent,
     ).toContain('Features');
     fireEvent.click(screen.getByRole('button', { name: /v1\.0\.0/ }));
-    expect(screen.getByRole('heading', { name: 'Fixed' })).toBeTruthy();
+    expect(notes.closest('[data-state]')?.getAttribute('data-state')).toBe(
+      'open',
+    );
     expect(screen.queryByRole('heading', { name: /2026-09-01/ })).toBeNull();
     expect(
       screen.getByRole('link', { name: 'v0.9.0' }).getAttribute('href'),
