@@ -125,6 +125,16 @@ describe('Help navigation', () => {
     expect(screen.getByText(/Destination unavailable/)).toBeDefined();
   });
 
+  it('separates collapsed answers with the theme border', () => {
+    render(<SettingsHelpPage />);
+    const trigger = screen.getByRole('button', {
+      name: 'How do I create a new character?',
+    });
+    expect(trigger.parentElement?.parentElement?.className).toContain(
+      'border-border',
+    );
+  });
+
   it('explains character saving and explicit prompt reuse through accessible controls', () => {
     render(<SettingsHelpPage />);
     fireEvent.click(
