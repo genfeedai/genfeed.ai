@@ -299,6 +299,12 @@ export default function StudioGenerateWorkspace(): ReactElement {
       type,
     });
   const {
+    saveScenes,
+    attachSceneSource,
+    quoteScenes,
+    executeScenes,
+    cancelScenes,
+    resumeScenes,
     error: remixError,
     preparePausedDraft,
     run: remixRun,
@@ -1136,6 +1142,14 @@ export default function StudioGenerateWorkspace(): ReactElement {
             <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
               {remixRun ? (
                 <StudioRemixRunPanel
+                  sceneActions={{
+                    saveScenes,
+                    attachSceneSource,
+                    quoteScenes,
+                    executeScenes,
+                    cancelScenes,
+                    resumeScenes,
+                  }}
                   error={remixError}
                   isWorking={remixStatus === 'working'}
                   onReview={(variantIds) => {

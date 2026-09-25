@@ -57,7 +57,9 @@ required input blocks generation with an actionable readiness issue.
 
 Strict fidelity must not silently degrade. Until a generation route can enforce
 the selected references deterministically, Strict requests remain blocked
-before provider dispatch and consume no credits.
+before provider dispatch and consume no credits. Scene remix stills and avatar
+clips are guided-only, so a strict request is rejected before quote, dispatch,
+and final provenance. Guided output is never labeled strict.
 
 Provider routing follows the normal execution boundary: organization BYOK,
 configured server providers, then an explicit supported managed-cloud route.
@@ -125,3 +127,42 @@ the stable credential, ad-account, and ad IDs from a connected source.
 - [Core and Cloud Execution Boundaries](./execution-boundaries.md)
 - [Deployment Modes](./deployment-modes.md)
 - [Identity & Request Resolution](./identity-resolution.md)
+
+## Scene-by-scene original ads
+
+For a video Remix, Studio can analyze an explicitly selected brand Library video
+and save an editable storyboard. The imported post's URL and author remain
+provenance; attachment does not change its access permission. Embed-only sources
+remain previews. Use an available same-brand Library video (up to 60 seconds and
+100 MiB) when the imported source cannot be analyzed directly.
+
+Saving or attaching a video does not generate media. Request an analysis quote,
+inspect its line items and expiry, then explicitly accept it. Analysis returns
+2–6 semantic scenes with estimated source times, original branded narration and
+visual intent. Assign a saved avatar and voice; ambiguous multiple speakers need
+explicit paired identity assignments for every scene.
+
+Save edits, then request a complete-ad quote. The supported route generates a new
+Nano Banana 2 still and a HeyGen talking clip for each scene, normalizes the
+ordered clips, transcribes their generated speech and burns synchronized captions.
+The source video, keyframes and transcript are analysis-only. Output ratios are
+9:16, 16:9 and 1:1. Plan 3–15 seconds per scene; speech determines actual duration.
+Clips longer than 20 seconds or ads longer than 90 seconds require repair. Guided
+identity likeness and lip synchronization require inspection of the actual output.
+
+Quotes expire after 15 minutes and cannot exceed 50 application credits per
+operation. Analysis is two credits, generated stills use the active model price,
+avatar clips use the existing avatar tariff, caption transcription is one credit,
+and local assembly is free. Per-stage BYOK modes are explicit; vendor costs may
+be unknown and BYOK provider charges remain separate.
+
+Reordering retains completed scenes. Narration edits invalidate the affected
+clip and composition; visual or identity edits also invalidate its still. A clip
+repair preserves its valid still. Cancel prevents future dispatch; already
+accepted provider work may finish. Reconcile and resume adopts saved assets and
+local jobs without automatically repeating uncertain paid attempts. A failed
+caption render retains its transcript for a local retry.
+
+Only the completed captioned original ad enters the existing Review flow. Review,
+paused campaign drafts and publication remain separate actions; this workflow
+never automatically posts or activates ad spend.

@@ -13,6 +13,8 @@ export * from './agent-publish-policy.contract';
 export * from './analytics-insights.contract';
 export * from './brand-profile-analysis.contract';
 export * from './brand-remix-run.contract';
+export * from './brand-remix-scene.contract';
+export * from './brand-remix-generation.contract';
 export * from './cadence-expansion.contract';
 export * from './cadence-slot-generate.contract';
 export * from './channel-capabilities.contract';
