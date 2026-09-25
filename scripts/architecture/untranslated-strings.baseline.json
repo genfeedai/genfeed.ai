@@ -146,7 +146,6 @@
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-generation-defaults-media-section.tsx": 14,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-generation-defaults-text-section.tsx": 12,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/organization-identity-defaults-card.tsx": 10,
-    "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/policy/advanced-routing-card.tsx": 10,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/policy/agent-policy-card.tsx": 5,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/policy/content.tsx": 8,
     "apps/app/app/(protected)/[orgSlug]/~/settings/(pages)/organization/policy/credit-governance-card.tsx": 7,

@@ -641,9 +641,8 @@ export class AgentTurnWorkflowExecutionService implements OnModuleInit {
       userId: state.userId,
     });
     // Chat has no user-facing model picker: the resolver below always
-    // returns the pinned catalogue default unless a strategy, thinking
-    // override, or agent-type default applies. request.model is never
-    // read for that decision.
+    // returns the Admin text catalog default unless a strategy or thinking
+    // override applies. request.model is never read for that decision.
     const resolved = await this.contextService.resolveSystemPromptAndModel(
       request,
       baseContext,

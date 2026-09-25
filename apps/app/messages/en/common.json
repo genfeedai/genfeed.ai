@@ -444,6 +444,21 @@
       "table": "Shared memory",
       "unknownAuthor": "Unknown"
     },
+    "policy": {
+      "advancedRouting": {
+        "autoOption": "Auto",
+        "cardLabel": "Advanced Routing",
+        "exposeDescription": "Enable explicit planner, generation, and review model routing controls for advanced operators.",
+        "exposeLabel": "Expose Raw Model Overrides",
+        "generationModelDescription": "Image and video fallback when the generate card does not pick one.",
+        "generationModelLabel": "Generation Model",
+        "offHint": "Keep this off for most teams. Budget / Balanced / High Quality is the default control surface.",
+        "reviewModelDescription": "Text review pass for generated copy.",
+        "reviewModelLabel": "Review Model",
+        "thinkingModelDescription": "Chat and planner LLM. Auto uses the Admin text default.",
+        "thinkingModelLabel": "Thinking Model"
+      }
+    },
     "profile": {
       "fields": {
         "email": "Email",

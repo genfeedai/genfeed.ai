@@ -21,7 +21,15 @@ import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import AdvancedRoutingCard from './advanced-routing-card';
 import AgentPolicyCard from './agent-policy-card';
 import CreditGovernanceCard from './credit-governance-card';
-import { resolveEnabledModelOptions } from './resolve-enabled-model-options';
+import {
+  AGENT_GENERATION_MODEL_CATEGORIES,
+  AGENT_REVIEW_MODEL_CATEGORIES,
+  AGENT_THINKING_MODEL_CATEGORIES,
+  resolveEnabledModelOptions,
+  resolveStoredAgentModelKey,
+} from './resolve-enabled-model-options';
+
+const EMPTY_CATALOG_MODELS: IModel[] = [];
 
 const QUALITY_TIER_OPTIONS: Array<{
   description: string;
@@ -82,7 +90,10 @@ function policyFormReducer(
   }
 }
 
-function buildAgentPolicyPayload(form: PolicyFormState): AgentPolicyState {
+function buildAgentPolicyPayload(
+  form: PolicyFormState,
+  models: Array<Pick<IModel, 'id' | 'key'>>,
+): AgentPolicyState {
   return {
     allowAdvancedOverrides: form.allowAdvancedOverrides,
     autonomyDefault: form.autonomyDefault,
@@ -91,19 +102,16 @@ function buildAgentPolicyPayload(form: PolicyFormState): AgentPolicyState {
       brandDailyCreditCap: toNumberOrNull(form.brandDailyCreditCap),
       useOrganizationPool: true,
     },
-    generationModelOverride:
-      form.allowAdvancedOverrides && form.generationModelOverride
-        ? form.generationModelOverride
-        : null,
+    generationModelOverride: form.allowAdvancedOverrides
+      ? resolveStoredAgentModelKey(form.generationModelOverride, models) || null
+      : null,
     qualityTierDefault: form.qualityTierDefault,
-    reviewModelOverride:
-      form.allowAdvancedOverrides && form.reviewModelOverride
-        ? form.reviewModelOverride
-        : null,
-    thinkingModelOverride:
-      form.allowAdvancedOverrides && form.thinkingModelOverride
-        ? form.thinkingModelOverride
-        : null,
+    reviewModelOverride: form.allowAdvancedOverrides
+      ? resolveStoredAgentModelKey(form.reviewModelOverride, models) || null
+      : null,
+    thinkingModelOverride: form.allowAdvancedOverrides
+      ? resolveStoredAgentModelKey(form.thinkingModelOverride, models) || null
+      : null,
   };
 }
 
@@ -141,11 +149,11 @@ export default function SettingsAgentsPage() {
 
   const { modelAccess, modelCosts } = useAgentModelAccess();
 
-  const { data: catalogModels = [] } = useQuery({
+  const { data: catalogModels = EMPTY_CATALOG_MODELS } = useQuery({
     enabled: Boolean(organizationId),
     queryFn: async (): Promise<IModel[]> => {
       const service = await getModelsService();
-      return service.findAll({});
+      return service.findAllPages({});
     },
     queryKey: ['settings-agent-model-catalog', organizationId],
   });
@@ -190,7 +198,7 @@ export default function SettingsAgentsPage() {
       try {
         const service = await getOrganizationsService();
         await service.patchSettings(organizationId, {
-          agentPolicy: buildAgentPolicyPayload(next),
+          agentPolicy: buildAgentPolicyPayload(next, catalogModels),
         });
         await refresh();
       } catch (error) {
@@ -199,7 +207,7 @@ export default function SettingsAgentsPage() {
         dispatch({ payload: false, type: 'SET_IS_SAVING' });
       }
     },
-    [getOrganizationsService, organizationId, refresh],
+    [catalogModels, getOrganizationsService, organizationId, refresh],
   );
 
   const updateAndPersist = useCallback(
@@ -228,8 +236,31 @@ export default function SettingsAgentsPage() {
   );
 
   const enabledModelIds = settings?.enabledModelIds ?? [];
-  const modelOptions = useMemo(
-    () => resolveEnabledModelOptions(enabledModelIds, catalogModels),
+  const thinkingModelOptions = useMemo(
+    () =>
+      resolveEnabledModelOptions(
+        enabledModelIds,
+        catalogModels,
+        AGENT_THINKING_MODEL_CATEGORIES,
+      ),
+    [catalogModels, enabledModelIds],
+  );
+  const generationModelOptions = useMemo(
+    () =>
+      resolveEnabledModelOptions(
+        enabledModelIds,
+        catalogModels,
+        AGENT_GENERATION_MODEL_CATEGORIES,
+      ),
+    [catalogModels, enabledModelIds],
+  );
+  const reviewModelOptions = useMemo(
+    () =>
+      resolveEnabledModelOptions(
+        enabledModelIds,
+        catalogModels,
+        AGENT_REVIEW_MODEL_CATEGORIES,
+      ),
     [catalogModels, enabledModelIds],
   );
 
@@ -262,8 +293,11 @@ export default function SettingsAgentsPage() {
       <AdvancedRoutingCard
         agentModelAccess={modelAccess}
         allowAdvancedOverrides={allowAdvancedOverrides}
-        generationModelOverride={generationModelOverride}
-        modelOptions={modelOptions}
+        generationModelOptions={generationModelOptions}
+        generationModelOverride={resolveStoredAgentModelKey(
+          generationModelOverride,
+          catalogModels,
+        )}
         modelCostEstimates={modelCosts}
         isSaving={isSaving}
         onAllowAdvancedOverridesChange={(value) =>
@@ -278,8 +312,16 @@ export default function SettingsAgentsPage() {
         onThinkingModelOverrideChange={(value) =>
           updateAndPersist({ thinkingModelOverride: value })
         }
-        reviewModelOverride={reviewModelOverride}
-        thinkingModelOverride={thinkingModelOverride}
+        reviewModelOptions={reviewModelOptions}
+        reviewModelOverride={resolveStoredAgentModelKey(
+          reviewModelOverride,
+          catalogModels,
+        )}
+        thinkingModelOptions={thinkingModelOptions}
+        thinkingModelOverride={resolveStoredAgentModelKey(
+          thinkingModelOverride,
+          catalogModels,
+        )}
       />
     </div>
   );

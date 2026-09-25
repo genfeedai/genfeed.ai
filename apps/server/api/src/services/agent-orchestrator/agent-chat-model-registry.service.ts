@@ -208,14 +208,17 @@ export class AgentChatModelRegistryService
    */
   async getDefaultModelKey(): Promise<string> {
     await this.ensureFresh();
-    const active = [...this.byKey.values()].filter(
-      (row) => row.isActive && row.lifecycle === ModelLifecycle.RECOMMENDED,
-    );
+    const active = [...this.byKey.values()].filter((row) => row.isActive);
     const marked = active.find((row) => row.isDefault);
     if (marked) {
       return marked.key;
     }
-    const cheapest = [...active].sort((a, b) => a.cost - b.cost)[0];
+    const recommended = active.filter(
+      (row) => row.lifecycle === ModelLifecycle.RECOMMENDED,
+    );
+    const cheapest = [...(recommended.length > 0 ? recommended : active)].sort(
+      (left, right) => left.cost - right.cost,
+    )[0];
     if (cheapest) {
       return cheapest.key;
     }

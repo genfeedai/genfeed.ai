@@ -10,33 +10,37 @@ import {
 } from '@ui/primitives';
 import { Switch } from '@ui/primitives/switch';
 import AgentModelLockNotice from '@ui/settings/agent-model-lock-notice/AgentModelLockNotice';
+import { useTranslations } from 'next-intl';
 
 const AUTO_MODEL_SELECT_VALUE = '__auto__';
 
 export default function AdvancedRoutingCard({
   agentModelAccess,
   allowAdvancedOverrides,
+  generationModelOptions,
   generationModelOverride,
-  modelOptions,
   isSaving,
   modelCostEstimates,
   onAllowAdvancedOverridesChange,
   onGenerationModelOverrideChange,
   onReviewModelOverrideChange,
   onThinkingModelOverrideChange,
+  reviewModelOptions,
   reviewModelOverride,
+  thinkingModelOptions,
   thinkingModelOverride,
 }: AdvancedRoutingCardProps) {
+  const translate = useTranslations('common.settings.policy.advancedRouting');
   const lockedModelLabel = agentModelAccess?.isLocked
     ? (agentModelAccess.lockedModelLabel ?? agentModelAccess.lockedModelKey)
     : null;
 
   return (
-    <Card label="Advanced Routing" bodyClassName="gap-3 p-4">
+    <Card label={translate('cardLabel')} bodyClassName="gap-3 p-4">
       <div className="space-y-3">
         <Switch
-          label="Expose Raw Model Overrides"
-          description="Enable explicit planner, generation, and review model routing controls for advanced operators."
+          label={translate('exposeLabel')}
+          description={translate('exposeDescription')}
           isChecked={allowAdvancedOverrides}
           isDisabled={isSaving}
           onChange={(event) =>
@@ -47,7 +51,12 @@ export default function AdvancedRoutingCard({
         {allowAdvancedOverrides ? (
           <div className="grid gap-3 md:grid-cols-3">
             <div>
-              <p className="text-sm font-medium">Thinking Model</p>
+              <p className="text-sm font-medium">
+                {translate('thinkingModelLabel')}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {translate('thinkingModelDescription')}
+              </p>
               {lockedModelLabel ? (
                 <AgentModelLockNotice
                   className="mt-2"
@@ -67,9 +76,9 @@ export default function AdvancedRoutingCard({
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
-                      Auto
+                      {translate('autoOption')}
                     </SelectItem>
-                    {modelOptions.map((model) => {
+                    {thinkingModelOptions.map((model) => {
                       const estimate = modelCostEstimates[model.value];
                       return (
                         <SelectItem key={model.value} value={model.value}>
@@ -88,7 +97,12 @@ export default function AdvancedRoutingCard({
             </div>
 
             <div>
-              <p className="text-sm font-medium">Generation Model</p>
+              <p className="text-sm font-medium">
+                {translate('generationModelLabel')}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {translate('generationModelDescription')}
+              </p>
               <Select
                 value={generationModelOverride || AUTO_MODEL_SELECT_VALUE}
                 onValueChange={(value) =>
@@ -101,8 +115,10 @@ export default function AdvancedRoutingCard({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {modelOptions.map((model) => (
+                  <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
+                    {translate('autoOption')}
+                  </SelectItem>
+                  {generationModelOptions.map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       {model.label}
                     </SelectItem>
@@ -112,7 +128,12 @@ export default function AdvancedRoutingCard({
             </div>
 
             <div>
-              <p className="text-sm font-medium">Review Model</p>
+              <p className="text-sm font-medium">
+                {translate('reviewModelLabel')}
+              </p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {translate('reviewModelDescription')}
+              </p>
               <Select
                 value={reviewModelOverride || AUTO_MODEL_SELECT_VALUE}
                 onValueChange={(value) =>
@@ -125,8 +146,10 @@ export default function AdvancedRoutingCard({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={AUTO_MODEL_SELECT_VALUE}>Auto</SelectItem>
-                  {modelOptions.map((model) => (
+                  <SelectItem value={AUTO_MODEL_SELECT_VALUE}>
+                    {translate('autoOption')}
+                  </SelectItem>
+                  {reviewModelOptions.map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       {model.label}
                     </SelectItem>
@@ -137,8 +160,7 @@ export default function AdvancedRoutingCard({
           </div>
         ) : (
           <p className="text-sm text-muted-foreground">
-            Keep this off for most teams. Budget / Balanced / High Quality is
-            the default control surface.
+            {translate('offHint')}
           </p>
         )}
       </div>

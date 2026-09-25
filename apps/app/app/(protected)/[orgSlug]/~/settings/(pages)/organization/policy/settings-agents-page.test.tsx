@@ -5,11 +5,12 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { NextIntlClientProvider } from 'next-intl';
 import type { ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import common from '../../../../../../../../messages/en/common.json';
 import ui from '../../../../../../../../messages/en/ui.json';
 import SettingsAgentsPage from './settings-agents-page';
 
 const mocks = vi.hoisted(() => ({
-  findAllModels: vi.fn(),
+  findAllPages: vi.fn(),
   modelAccess: null as {
     isLocked: boolean;
     lockedModelKey: string | null;
@@ -29,12 +30,12 @@ const mocks = vi.hoisted(() => ({
         agentDailyCreditCap: 250,
         brandDailyCreditCap: 1000,
       },
-      generationModelOverride: 'gpt-5.4',
+      generationModelOverride: 'google/nano-banana-2',
       qualityTierDefault: 'high_quality',
       reviewModelOverride: 'gpt-5.4-mini',
       thinkingModelOverride: 'gpt-5.5',
     },
-    enabledModelIds: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'],
+    enabledModelIds: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'nano-id'],
   } as Record<string, unknown>,
 }));
 
@@ -88,7 +89,7 @@ vi.mock('@services/organization/organizations.service', () => ({
 vi.mock('@services/ai/models.service', () => ({
   ModelsService: {
     getInstance: () => ({
-      findAll: mocks.findAllModels,
+      findAllPages: mocks.findAllPages,
     }),
   },
 }));
@@ -189,19 +190,40 @@ describe('SettingsAgentsPage', () => {
           agentDailyCreditCap: 250,
           brandDailyCreditCap: 1000,
         },
-        generationModelOverride: 'gpt-5.4',
+        generationModelOverride: 'google/nano-banana-2',
         qualityTierDefault: 'high_quality',
         reviewModelOverride: 'gpt-5.4-mini',
         thinkingModelOverride: 'gpt-5.5',
       },
-      enabledModelIds: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini'],
+      enabledModelIds: ['gpt-5.5', 'gpt-5.4', 'gpt-5.4-mini', 'nano-id'],
     };
     mocks.patchSettings.mockResolvedValue({});
     mocks.refresh.mockResolvedValue(undefined);
-    mocks.findAllModels.mockResolvedValue([
-      { id: 'gpt-5.5', key: 'gpt-5.5', label: 'GPT-5.5' },
-      { id: 'gpt-5.4', key: 'gpt-5.4', label: 'GPT-5.4' },
-      { id: 'gpt-5.4-mini', key: 'gpt-5.4-mini', label: 'GPT-5.4 Mini' },
+    mocks.findAllPages.mockResolvedValue([
+      {
+        category: 'text',
+        id: 'gpt-5.5-id',
+        key: 'gpt-5.5',
+        label: 'GPT-5.5',
+      },
+      {
+        category: 'text',
+        id: 'gpt-5.4-id',
+        key: 'gpt-5.4',
+        label: 'GPT-5.4',
+      },
+      {
+        category: 'text',
+        id: 'gpt-5.4-mini-id',
+        key: 'gpt-5.4-mini',
+        label: 'GPT-5.4 Mini',
+      },
+      {
+        category: 'image',
+        id: 'nano-id',
+        key: 'google/nano-banana-2',
+        label: 'Nano Banana 2 Lite',
+      },
     ]);
   });
 
@@ -214,7 +236,7 @@ describe('SettingsAgentsPage', () => {
       defaultOptions: { queries: { retry: false } },
     });
     return render(
-      <NextIntlClientProvider locale="en" messages={{ ui }}>
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
         <QueryClientProvider client={queryClient}>
           <SettingsAgentsPage />
         </QueryClientProvider>
@@ -237,9 +259,13 @@ describe('SettingsAgentsPage', () => {
     const selects = screen.getAllByRole('combobox');
     expect(selects[0]).toHaveValue('high_quality');
     expect(selects[1]).toHaveValue(AgentAutonomyMode.AUTO_PUBLISH);
-    expect(selects[2]).toHaveValue('gpt-5.5');
-    expect(selects[3]).toHaveValue('gpt-5.4');
-    expect(selects[4]).toHaveValue('gpt-5.4-mini');
+    await waitFor(() => {
+      expect(screen.getAllByRole('combobox')[2]).toHaveValue('gpt-5.5');
+    });
+    expect(screen.getAllByRole('combobox')[3]).toHaveValue(
+      'google/nano-banana-2',
+    );
+    expect(screen.getAllByRole('combobox')[4]).toHaveValue('gpt-5.4-mini');
 
     fireEvent.change(selects[0], { target: { value: 'budget' } });
 
@@ -357,7 +383,7 @@ describe('SettingsAgentsPage', () => {
     vi.clearAllMocks();
     mocks.organizationId = '';
     rerender(
-      <NextIntlClientProvider locale="en" messages={{ ui }}>
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
         <QueryClientProvider
           client={
             new QueryClient({ defaultOptions: { queries: { retry: false } } })
@@ -375,7 +401,7 @@ describe('SettingsAgentsPage', () => {
     mocks.organizationId = 'org-1';
     mocks.patchSettings.mockRejectedValueOnce(new Error('save failed'));
     rerender(
-      <NextIntlClientProvider locale="en" messages={{ ui }}>
+      <NextIntlClientProvider locale="en" messages={{ common, ui }}>
         <QueryClientProvider
           client={
             new QueryClient({ defaultOptions: { queries: { retry: false } } })
