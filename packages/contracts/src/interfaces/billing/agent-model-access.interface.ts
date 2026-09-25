@@ -25,3 +25,11 @@ export interface IAgentCreditsInfo {
    */
   modelCosts: Record<string, number>;
 }
+
+/** `useAgentModelAccess` hook result. */
+export interface UseAgentModelAccessReturn {
+  isLoading: boolean;
+  /** Null until loaded, or when the endpoint is unavailable. */
+  modelAccess: IAgentModelAccess | null;
+  modelCosts: Record<string, number>;
+}
