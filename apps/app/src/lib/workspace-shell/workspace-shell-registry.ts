@@ -1077,6 +1077,7 @@ const BRAND_ROUTE_REGISTRATIONS = [
       '/:orgSlug/:brandSlug/settings/voice',
       '/:orgSlug/:brandSlug/settings/harness',
       '/:orgSlug/:brandSlug/settings/interview',
+      '/:orgSlug/:brandSlug/settings/agent-context',
       '/:orgSlug/:brandSlug/settings/publishing',
       '/:orgSlug/:brandSlug/settings/agent-defaults',
       '/:orgSlug/:brandSlug/settings/skills',
