@@ -160,6 +160,14 @@ describe('AnthropicService', () => {
       });
     });
 
+    it('returns the canonical anthropic/ registry key as the response model so billing prices the round', async () => {
+      mockCreate.mockResolvedValue(mockAnthropicResponse);
+
+      const result = await service.chatCompletion(defaultParams);
+
+      expect(result.model).toBe('anthropic/claude-sonnet-5');
+    });
+
     it('should strip anthropic/ prefix from model name', async () => {
       mockCreate.mockResolvedValue(mockAnthropicResponse);
 
@@ -403,7 +411,7 @@ describe('AnthropicService', () => {
       expect(mockCreate).toHaveBeenCalled();
     });
 
-    it('should map complex OpenRouter messages and preserve the stripped model in the response', async () => {
+    it('should map complex OpenRouter messages and return the canonical registry key as the response model', async () => {
       mockCreate.mockResolvedValue({
         content: [
           {
@@ -512,7 +520,7 @@ describe('AnthropicService', () => {
             }),
           ],
           id: 'msg-1',
-          model: 'claude-sonnet-5',
+          model: 'anthropic/claude-sonnet-5',
           usage: {
             completion_tokens: 18,
             prompt_tokens: 12,
@@ -520,6 +528,38 @@ describe('AnthropicService', () => {
           },
         }),
       );
+    });
+  });
+
+  describe('streamChatCompletionAggregated', () => {
+    it('returns the canonical anthropic/ registry key as the response model', async () => {
+      async function* streamEvents() {
+        yield {
+          delta: { text: 'Plan', type: 'text_delta' },
+          type: 'content_block_delta',
+        };
+      }
+      mockStream.mockReturnValue({
+        [Symbol.asyncIterator]: streamEvents,
+        finalMessage: vi.fn().mockResolvedValue({
+          ...mockAnthropicResponse,
+          content: [{ text: 'Plan', type: 'text' }],
+          model: 'claude-opus-5',
+        }),
+      });
+      const onToken = vi.fn();
+
+      const result = await service.streamChatCompletionAggregated(
+        { ...defaultParams, model: 'anthropic/claude-opus-5' },
+        undefined,
+        onToken,
+      );
+
+      expect(mockStream).toHaveBeenCalledWith(
+        expect.objectContaining({ model: 'claude-opus-5' }),
+      );
+      expect(onToken).toHaveBeenCalledWith('Plan');
+      expect(result.model).toBe('anthropic/claude-opus-5');
     });
   });
 

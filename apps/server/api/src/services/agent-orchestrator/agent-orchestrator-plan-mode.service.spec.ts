@@ -28,6 +28,7 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
   let agentChatModelRegistry: {
     getDefaultModelKey: ReturnType<typeof vi.fn>;
     getRoundCredits: ReturnType<typeof vi.fn>;
+    getSettledRoundCredits: ReturnType<typeof vi.fn>;
     getMaximumRoundCredits: ReturnType<typeof vi.fn>;
     getAutoAllowedModelKeys: ReturnType<typeof vi.fn>;
   };
@@ -74,6 +75,7 @@ describe('AgentOrchestratorPlanModeService — #4672 mode field', () => {
     agentChatModelRegistry = {
       getDefaultModelKey: vi.fn().mockResolvedValue('test-model'),
       getRoundCredits: vi.fn().mockReturnValue(1),
+      getSettledRoundCredits: vi.fn().mockResolvedValue(1),
       getMaximumRoundCredits: vi.fn().mockResolvedValue(10),
       getAutoAllowedModelKeys: vi.fn().mockResolvedValue([]),
     };

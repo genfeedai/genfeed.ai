@@ -1,4 +1,5 @@
 import type { CreditsUtilsService } from '@api/collections/credits/services/credits.utils.service';
+import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import type { OpenRouterChatCompletionResponse } from '@api/services/integrations/openrouter/dto/openrouter.dto';
 import { ActivitySource } from '@genfeedai/contracts';
 import {
@@ -14,7 +15,15 @@ type ReservationCreditsClient = Pick<
 export async function runReservedAgentLlmRound(params: {
   actorUserId: string;
   credits: ReservationCreditsClient;
-  estimatedCredits: (actualModel?: string) => Promise<number>;
+  /**
+   * Catalogue price for the round. `responseModel` is the model that answered,
+   * normalized to its registry key (native clients may drop the provider
+   * prefix); `requestedModel` is what was dispatched.
+   */
+  estimatedCredits: (models: {
+    requestedModel: string;
+    responseModel: string;
+  }) => Promise<number>;
   idempotencyKey: string;
   maximumCredits: number;
   organizationId: string;
@@ -46,7 +55,13 @@ export async function runReservedAgentLlmRound(params: {
         ? 0
         : usesExactCost && typeof response.usage.cost === 'number'
           ? calculateAgentExactCredits(response.usage.cost)
-          : await params.estimatedCredits(response.model);
+          : await params.estimatedCredits({
+              requestedModel: params.requestedModel,
+              responseModel: normalizeResponseModel(
+                params.requestedModel,
+                response.model,
+              ),
+            });
     const credits = Math.max(0, exactCredits);
 
     await params.credits.settleReservation({

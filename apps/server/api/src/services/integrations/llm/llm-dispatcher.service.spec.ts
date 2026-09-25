@@ -161,7 +161,10 @@ describe('LlmDispatcherService', () => {
       );
 
       expect(anthropicService.chatCompletion).toHaveBeenCalled();
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual({
+        ...mockResponse,
+        usage: { ...mockResponse.usage, is_byok: false },
+      });
     });
 
     it('should route openai/ models to OpenAiLlmService when OPENAI_API_KEY is set', async () => {
@@ -381,7 +384,10 @@ describe('LlmDispatcherService', () => {
 
       expect(openAiOAuthService.refreshAccessToken).toHaveBeenCalled();
       expect(byokService.updateOAuthTokens).toHaveBeenCalled();
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual({
+        ...mockResponse,
+        usage: { ...mockResponse.usage, is_byok: true },
+      });
     });
 
     it('should not attempt refresh for non-OpenAI providers', async () => {
@@ -479,7 +485,10 @@ describe('LlmDispatcherService', () => {
       expect(
         anthropicService.streamChatCompletionAggregated,
       ).toHaveBeenCalled();
-      expect(result).toEqual(mockResponse);
+      expect(result).toEqual({
+        ...mockResponse,
+        usage: { ...mockResponse.usage, is_byok: false },
+      });
     });
 
     it('should route openai/ models to OpenAiLlmService', async () => {
@@ -666,6 +675,59 @@ describe('LlmDispatcherService', () => {
           threadId: 'thread-2',
         }),
       );
+    });
+  });
+
+  describe('BYOK billing flag', () => {
+    it('marks a native Anthropic round served with the org BYOK key as BYOK without a provider cost', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
+
+      const result = await service.chatCompletion(
+        makeParams('anthropic/claude-opus-5'),
+        orgId,
+      );
+
+      expect(result.usage.cost).toBeUndefined();
+      expect(result.usage.is_byok).toBe(true);
+    });
+
+    it('marks a native OpenAI streamed round served with the org BYOK key as BYOK', async () => {
+      byokService.resolveApiKey.mockResolvedValue({ apiKey: 'byok-key' });
+
+      const result = await service.streamChatCompletionAggregated(
+        makeParams('openai/gpt-5.6-terra'),
+        orgId,
+      );
+
+      expect(result.usage.is_byok).toBe(true);
+    });
+
+    it('never flags a platform-key round as BYOK, even when the upstream says so', async () => {
+      anthropicService.chatCompletion.mockResolvedValue({
+        ...mockResponse,
+        usage: { ...mockResponse.usage, is_byok: true },
+      });
+
+      const result = await service.chatCompletion(
+        makeParams('anthropic/claude-sonnet-5'),
+        orgId,
+      );
+
+      expect(result.usage.is_byok).toBe(false);
+    });
+
+    it('never flags a platform-key OpenRouter round with an exact cost as BYOK', async () => {
+      openRouterService.chatCompletion.mockResolvedValue({
+        ...mockResponse,
+        usage: { ...mockResponse.usage, cost: 0.01, is_byok: true },
+      });
+
+      const result = await service.chatCompletion(
+        makeParams('openrouter/auto'),
+        orgId,
+      );
+
+      expect(result.usage.is_byok).toBe(false);
     });
   });
 

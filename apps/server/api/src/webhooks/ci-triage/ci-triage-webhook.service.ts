@@ -1,3 +1,7 @@
+import {
+  getAgentChatModel,
+  LLM_DEFAULTS,
+} from '@genfeedai/contracts/constants';
 import { ConfigService } from '@libs/config/config.service';
 import { LoggerService } from '@libs/logger/logger.service';
 import { safeFetch } from '@libs/security/destination-guard';
@@ -14,6 +18,15 @@ export interface CiTriagePayload {
 const MAX_DIAGNOSES_PER_PR = 5;
 const ANTHROPIC_API_ORIGIN = 'https://api.anthropic.com';
 const GITHUB_API_ORIGIN = 'https://api.github.com';
+/**
+ * Long-form reasoning role. Typed as an `anthropic/` key because this service
+ * calls the Anthropic Messages API directly — bumping the role to another
+ * provider must fail to compile here rather than 404 at runtime.
+ */
+const CI_TRIAGE_MODEL: `anthropic/${string}` = LLM_DEFAULTS.planning;
+const CI_TRIAGE_NATIVE_MODEL = CI_TRIAGE_MODEL.slice('anthropic/'.length);
+const CI_TRIAGE_MODEL_LABEL =
+  getAgentChatModel(CI_TRIAGE_MODEL)?.label ?? CI_TRIAGE_NATIVE_MODEL;
 
 @Injectable()
 export class CiTriageWebhookService {
@@ -77,7 +90,7 @@ Be direct and actionable. No preamble.`;
           body: JSON.stringify({
             max_tokens: 1024,
             messages: [{ content: prompt, role: 'user' }],
-            model: 'claude-opus-4-6',
+            model: CI_TRIAGE_NATIVE_MODEL,
           }),
           headers: {
             'anthropic-version': '2023-06-01',
@@ -95,14 +108,14 @@ Be direct and actionable. No preamble.`;
       const diagnosis = result.content?.[0]?.text ?? 'Diagnosis unavailable';
 
       const comment = [
-        '## 🔧 CI Triage (Opus 4.6)',
+        `## 🔧 CI Triage (${CI_TRIAGE_MODEL_LABEL})`,
         '',
         diagnosis,
         '',
         `[→ View full run](https://github.com/${payload.repo}/actions/runs/${payload.runId})`,
         '',
         '---',
-        '*Diagnosed automatically via Claude Opus 4.6*',
+        `*Diagnosed automatically via ${CI_TRIAGE_MODEL_LABEL}*`,
       ].join('\n');
 
       // Post comment via GitHub REST API (replaces execSync shell-out to gh CLI)

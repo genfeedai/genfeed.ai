@@ -6,6 +6,7 @@
  * defaults, round costs, and key resolution must not re-read that list.
  */
 
+import { normalizeResponseModel } from '@api/services/agent-orchestrator/utils/agent-response-model.util';
 import { PrismaService } from '@api/shared/modules/prisma/prisma.service';
 import {
   ModelCategory,
@@ -226,7 +227,10 @@ export class AgentChatModelRegistryService implements OnModuleInit {
     return this.getDefaultModelKey();
   }
 
-  /** Credits for one LLM round on the model that answered. */
+  /**
+   * Credits for one LLM round on `key`. A key the registry does not know bills
+   * at {@link getFallbackRoundCredits} — never below a catalogued model.
+   */
   async getRoundCredits(key?: string | null): Promise<number> {
     await this.ensureFresh();
     const resolved = await this.resolveModelKey(key);
@@ -234,13 +238,47 @@ export class AgentChatModelRegistryService implements OnModuleInit {
     if (row) {
       return Math.max(0, Math.round(row.cost));
     }
-    // Unknown provider id — charge the default row's cost, never free.
-    const defaultKey = await this.getDefaultModelKey();
-    const defaultRow = this.byKey.get(defaultKey);
-    if (defaultRow) {
-      return Math.max(1, Math.round(defaultRow.cost));
+    return this.getFallbackRoundCredits();
+  }
+
+  /**
+   * Credits to settle for a round that was dispatched as `requestedModel` and
+   * answered by `responseModel`. The answering model's price wins when the
+   * registry knows it; an unmapped response model (dated slug, provider-side
+   * alias) bills at the requested model's price so it is never cheaper than
+   * what the caller asked for.
+   */
+  async getSettledRoundCredits(params: {
+    requestedModel: string;
+    responseModel?: string;
+  }): Promise<number> {
+    await this.ensureFresh();
+    const responseModel = normalizeResponseModel(
+      params.requestedModel,
+      params.responseModel,
+    );
+    const answered = this.byKey.get(await this.resolveModelKey(responseModel));
+    if (answered) {
+      return Math.max(0, Math.round(answered.cost));
     }
-    return AGENT_FALLBACK_ROUND_CREDITS;
+    return this.getRoundCredits(params.requestedModel);
+  }
+
+  /**
+   * Unknown-model round cost: the priciest curated registry row, floored at the
+   * contract's {@link AGENT_FALLBACK_ROUND_CREDITS}. An unknown key is far more
+   * likely a new frontier release than a bargain.
+   */
+  private getFallbackRoundCredits(): number {
+    const curatedCosts = [...this.byKey.values()]
+      .filter(
+        (row) =>
+          row.isActive &&
+          row.lifecycle !== ModelLifecycle.RETIRED &&
+          (!row.isDiscovered || row.reviewStatus === 'approved'),
+      )
+      .map((row) => Math.round(row.cost));
+    return Math.max(AGENT_FALLBACK_ROUND_CREDITS, ...curatedCosts);
   }
 
   /** Maximum hold before a round. Dynamic routes reserve their paid fallback. */
