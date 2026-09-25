@@ -294,6 +294,7 @@ describe('ModelsController', () => {
 
     it('excludes retired models when includeRetired is false', () => {
       const query: ModelsQueryDto = {
+        ...new ModelsQueryDto(),
         includeRetired: false,
       };
 
@@ -309,6 +310,7 @@ describe('ModelsController', () => {
 
     it('keeps retired models when includeRetired is true', () => {
       const query: ModelsQueryDto = {
+        ...new ModelsQueryDto(),
         includeRetired: true,
       };
 
