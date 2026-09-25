@@ -133,6 +133,11 @@ export function createDesktopTerminalTransport(params: {
     dispose: () => {
       unsubscribeData();
       unsubscribeExit();
+      // Nothing can reattach to these PTYs once this renderer view is gone.
+      for (const sessionId of sessions.keys()) {
+        void bridge.terminal.kill(sessionId).catch(() => undefined);
+      }
+      sessions.clear();
     },
     transport,
   };
