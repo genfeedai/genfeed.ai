@@ -10,6 +10,7 @@ import Card from '@ui/card/Card';
 import Badge from '@ui/display/badge/Badge';
 import InsetSurface from '@ui/display/inset-surface/InsetSurface';
 import { Button } from '@ui/primitives/button';
+import { useTranslations } from 'next-intl';
 import { ClientFormattedDate } from '@/components/ui/client-formatted-date';
 import type {
   BatchExecutionSummary,
@@ -51,14 +52,16 @@ export default function BatchHistoryList({
   workflowsById,
   onOpenRecentExecution,
 }: Props) {
+  const t = useTranslations('pages.studioBatch');
+
   return (
     <Card bodyClassName="gap-0 p-6">
       <div className="mb-4">
         <h2 className="text-lg font-semibold text-foreground">
-          Recent executions
+          {t('recentExecutions')}
         </h2>
         <p className="mt-1 text-sm text-muted-foreground">
-          Reopen a batch, resume progress, or inspect completed results.
+          {t('recentExecutionsDescription')}
         </p>
       </div>
 
@@ -67,7 +70,7 @@ export default function BatchHistoryList({
           className="border-dashed bg-background/40 px-4 py-8 text-center text-sm text-muted-foreground"
           tone="default"
         >
-          No recent batch executions yet.
+          {t('emptyExecutions')}
         </InsetSurface>
       ) : (
         <div className="divide-y divide-border/80">
@@ -107,8 +110,10 @@ export default function BatchHistoryList({
                   />
                 </div>
                 <p className="mt-2 text-xs text-muted-foreground">
-                  {execution.completedCount + execution.failedCount} /{' '}
-                  {execution.totalCount} processed
+                  {t('processedProgress', {
+                    completed: execution.completedCount + execution.failedCount,
+                    total: execution.totalCount,
+                  })}
                 </p>
               </div>
             </Button>

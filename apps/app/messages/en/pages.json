@@ -517,6 +517,15 @@
     "youtubeUrl": "YouTube URL",
     "youtubeUrlPlaceholder": "https://www.youtube.com/watch?v=..."
   },
+  "studioBatch": {
+    "emptyExecutions": "No recent batch executions yet.",
+    "loadingExecution": "Loading batch execution…",
+    "loadingWorkflows": "Loading workflows and recent executions…",
+    "processedProgress": "{completed} / {total} processed",
+    "recentExecutions": "Recent executions",
+    "recentExecutionsDescription": "Reopen a batch, resume progress, or inspect completed results.",
+    "title": "Batch Workflow Runner"
+  },
   "studioGenerate": {
     "scenes": {
       "title": "Original ad scenes",

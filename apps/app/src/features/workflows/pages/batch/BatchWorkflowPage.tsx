@@ -3,6 +3,7 @@
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import Container from '@ui/layout/container/Container';
 import { usePathname } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 import BatchComposer from './BatchComposer';
 import BatchDetail from './BatchDetail';
@@ -16,6 +17,7 @@ import { useBatchWorkflowPage } from './useBatchWorkflowPage';
 function BatchWorkflowPageContent() {
   const pathname = usePathname();
   const { href } = useOrgUrl();
+  const t = useTranslations('pages.studioBatch');
   const isHistory = isBatchHistoryPath(pathname ?? '');
   const {
     activeBatchStatus,
@@ -59,7 +61,7 @@ function BatchWorkflowPageContent() {
   return (
     <Container
       headerTabs={batchCollectionHeaderTabs(href)}
-      label="Batch Workflow Runner"
+      label={t('title')}
       titleVisibility="sr-only"
     >
       {error ? (
@@ -70,9 +72,7 @@ function BatchWorkflowPageContent() {
 
       {(isBootstrapping || isLoadingExecution) && (
         <div className="mb-6 rounded-md bg-secondary px-4 py-3 text-sm text-muted-foreground shadow-border">
-          {isLoadingExecution
-            ? 'Loading batch execution…'
-            : 'Loading workflows and recent executions…'}
+          {isLoadingExecution ? t('loadingExecution') : t('loadingWorkflows')}
         </div>
       )}
 
