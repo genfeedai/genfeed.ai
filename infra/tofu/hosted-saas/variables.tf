@@ -154,8 +154,9 @@ variable "image_digest" {
 }
 
 variable "ignored_ssm_secret_names" {
-  description = "Retired or operator-only SSM names excluded from task secrets. Supply [] explicitly when none are excluded."
+  description = "Retired or operator-only SSM names excluded from task secrets. Empty excludes nothing beyond the reserved environment names."
   type        = set(string)
+  default     = []
 }
 
 variable "content_harness_packages" {

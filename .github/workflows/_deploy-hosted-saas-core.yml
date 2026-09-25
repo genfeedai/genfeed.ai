@@ -74,7 +74,7 @@ env:
   TF_VAR_nat_public_subnet_id: ${{ vars.NAT_PUBLIC_SUBNET_ID }}
   TF_VAR_rds_instance_id: ${{ vars.RDS_INSTANCE_ID }}
   TF_VAR_ssm_path: ${{ vars.SSM_PATH }}
-  TF_VAR_ignored_ssm_secret_names: ${{ vars.IGNORED_SSM_SECRET_NAMES }}
+  TF_VAR_ignored_ssm_secret_names: ${{ vars.IGNORED_SSM_SECRET_NAMES || '[]' }}
   TF_VAR_harness_seed_ssm_path: ${{ vars.HARNESS_SEED_SSM_PATH }}
   TF_VAR_owner_email: ${{ vars.HOSTED_OWNER_EMAIL }}
   TF_VAR_organization_label: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
@@ -98,7 +98,7 @@ jobs:
           VPC_ID: ${{ vars.VPC_ID }}
           NAT_PUBLIC_SUBNET_ID: ${{ vars.NAT_PUBLIC_SUBNET_ID }}
           SSM_PATH: ${{ vars.SSM_PATH }}
-          IGNORED_SSM_SECRET_NAMES: ${{ vars.IGNORED_SSM_SECRET_NAMES }}
+          IGNORED_SSM_SECRET_NAMES: ${{ vars.IGNORED_SSM_SECRET_NAMES || '[]' }}
           HOSTED_OWNER_EMAIL: ${{ vars.HOSTED_OWNER_EMAIL }}
           HOSTED_ORGANIZATION_LABEL: ${{ vars.HOSTED_ORGANIZATION_LABEL }}
           CDN_BUCKET: ${{ vars.CDN_BUCKET }}
@@ -112,7 +112,7 @@ jobs:
           missing=0
           for name in \
             AWS_REGION AWS_DEPLOY_ROLE_ARN PROJECT DOMAIN VPC_ID PUBLIC_SUBNET_IDS \
-            NAT_PUBLIC_SUBNET_ID RDS_INSTANCE_ID SSM_PATH IGNORED_SSM_SECRET_NAMES TF_STATE_BUCKET TF_STATE_KEY \
+            NAT_PUBLIC_SUBNET_ID RDS_INSTANCE_ID SSM_PATH TF_STATE_BUCKET TF_STATE_KEY \
             SERVER_IMAGE_REPOSITORY ECR_REPOSITORY_NAME HOSTED_OWNER_EMAIL \
             HOSTED_ORGANIZATION_LABEL CDN_BUCKET APP_HOST WEB_HOST \
             VERCEL_ORG_ID VERCEL_PROJECT_APP VERCEL_PROJECT_WEB
