@@ -122,6 +122,50 @@ describe('credits command', () => {
     });
   });
 
+  it('distinguishes deductions, refunds, balance resets and own-key usage', async () => {
+    mockListCreditTransactions.mockResolvedValue([
+      {
+        amount: 1,
+        balanceAfter: 24,
+        category: 'deduct',
+        createdAt: '2026-09-24',
+        description: 'AI brand profile generation',
+      },
+      {
+        amount: 1,
+        balanceAfter: 25,
+        category: 'refund',
+        createdAt: '2026-09-24',
+        description: 'Failed image generation',
+      },
+      {
+        amount: 100,
+        balanceAfter: 100,
+        category: 'reset',
+        createdAt: '2026-09-24',
+        description: 'Subscription renewal',
+      },
+      {
+        amount: 500,
+        balanceAfter: 100,
+        category: 'byok-usage',
+        createdAt: '2026-09-24',
+        description: '[BYOK] Image generation',
+      },
+    ]);
+    const { creditsCommand } = await import('@/commands/credits');
+    await creditsCommand.parseAsync(['history'], { from: 'user' });
+    const output = stdoutSpy.mock.calls.map((call) => String(call[0])).join('');
+    expect(output).toContain('−1 credit');
+    expect(output).toContain('AI brand profile generation');
+    expect(output).toContain('+1 credit');
+    expect(output).toContain('Credit refund: Failed image generation');
+    expect(output).toContain('Balance set to 100 credits');
+    expect(output).toContain('No credits charged');
+    expect(output).toContain('Image generation (your API key)');
+    expect(output).not.toContain('+500');
+  });
+
   it('returns bounded credit history', async () => {
     const { createCreditsCommand } = await import('@/commands/credits');
     const creditsCommand = createCreditsCommand();

@@ -1,12 +1,15 @@
 'use client';
 
-import { ActivityKey, ButtonVariant, PageScope } from '@genfeedai/contracts';
+import {
+  ButtonVariant,
+  getCreditActivityChangeDescriptor,
+  PageScope,
+} from '@genfeedai/contracts';
 import { APP_ROUTES } from '@genfeedai/contracts/constants';
 import type { IActivity } from '@genfeedai/contracts/interfaces';
 import { useActivities } from '@hooks/data/activities/use-activities/use-activities';
 import { useOrgUrl } from '@hooks/navigation/use-org-url';
 import {
-  getActivityCreditAmount,
   getActivityDescription,
   getActivitySourceLabel,
   getBackgroundTaskStatus,
@@ -119,25 +122,25 @@ export function ActivityFeedContent({
           <ol className="divide-y divide-border/60">
             {recentActivities.map((activity: IActivity) => {
               const creditActivity = isCreditActivity(activity.key);
-              const creditAmount = getActivityCreditAmount(activity);
               const sourceLabel = getActivitySourceLabel(activity.source);
-              const isCreditAdded = activity.key === ActivityKey.CREDITS_ADD;
-              const isSimpleCreditChange =
-                activity.key === ActivityKey.CREDITS_ADD ||
-                activity.key === ActivityKey.CREDITS_REMOVE;
               const status = isBackgroundTask(activity)
                 ? getBackgroundTaskStatus(activity.key)
                 : (activity.status ?? 'completed');
-              const creditDetail =
-                isSimpleCreditChange && creditAmount !== null
-                  ? translate(isCreditAdded ? 'creditAdded' : 'creditUsage', {
-                      count: creditAmount,
-                    })
-                  : null;
-              const title = isCreditAdded
-                ? (sourceLabel ?? translate('creditBalanceLabel'))
-                : getActivityDescription(activity, activityMessageFormatter);
-              const detail = isSimpleCreditChange ? creditDetail : sourceLabel;
+              const change = creditActivity
+                ? getCreditActivityChangeDescriptor(
+                    activity.key,
+                    activity.value,
+                  )
+                : null;
+              const title = getActivityDescription(
+                activity,
+                activityMessageFormatter,
+              );
+              const detail = creditActivity
+                ? change
+                  ? activityMessageFormatter(change)
+                  : null
+                : sourceLabel;
               const destination = getActivityHref?.(activity);
               const progress = parseActivityValue(activity.value);
               const titleContent = isBackgroundTask(activity) ? (

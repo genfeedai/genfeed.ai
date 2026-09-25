@@ -21,7 +21,6 @@ import {
 } from '@genfeedai/contracts/types';
 import { PrismaClient } from '@genfeedai/prisma';
 import type { LoggerService } from '@libs/logger/logger.service';
-import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaPg } from '@prisma/adapter-pg';
 import {
   afterAll,
@@ -145,7 +144,6 @@ describe.skipIf(!connectionString)(
       );
       credits = new CreditsUtilsService(
         logger,
-        new EventEmitter2(),
         prismaService,
         new BillingAccountsService(prismaService, logger),
         balance,
@@ -169,6 +167,9 @@ describe.skipIf(!connectionString)(
       vi.unstubAllEnvs();
       if (!organizationIds) return;
       const db = database();
+      await db.activity.deleteMany({
+        where: { organizationId: { in: organizationIds } },
+      });
       await db.creditTransaction.deleteMany({
         where: { organizationId: { in: organizationIds } },
       });
@@ -461,6 +462,24 @@ describe.skipIf(!connectionString)(
           category: CreditTransactionCategory.DEDUCT,
         },
       });
+      const activity = await db.activity.findMany({
+        where: {
+          organizationId: org,
+          isDeleted: false,
+          action: 'credits-remove',
+        },
+      });
+      expect(activity).toHaveLength(2);
+      expect(activity.map((entry) => entry.entityId).sort()).toEqual(
+        deductions.map((entry) => entry.id).sort(),
+      );
+      expect(activity.every((entry) => entry.userId === userId)).toBe(true);
+      for (const entry of activity) {
+        const data = entry.data as { value: string };
+        expect(JSON.parse(data.value).description).toBe(
+          'PostgreSQL concurrent settlement',
+        );
+      }
       expect(deductions).toHaveLength(2);
       expect(deductions.reduce((sum, entry) => sum + entry.amount, 0)).toBe(40);
     }, 30_000);
@@ -505,6 +524,11 @@ describe.skipIf(!connectionString)(
             where: { organizationId: organizationIds[0], isDeleted: false },
           })
         ).balance,
+      ).toBe(0);
+      expect(
+        await db.activity.count({
+          where: { organizationId: organizationIds[0], isDeleted: false },
+        }),
       ).toBe(0);
       expect(socket.emit).not.toHaveBeenCalled();
       expect(cache.invalidateForOrganization).not.toHaveBeenCalled();

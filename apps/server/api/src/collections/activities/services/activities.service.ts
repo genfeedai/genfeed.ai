@@ -13,7 +13,6 @@ import { BaseService } from '@api/shared/services/base/base.service';
 import type { Prisma } from '@genfeedai/prisma';
 import { LoggerService } from '@libs/logger/logger.service';
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
-import { OnEvent } from '@nestjs/event-emitter';
 
 type StreaksServiceContract = Pick<
   StreaksServiceToken,
@@ -41,17 +40,6 @@ export class ActivitiesService extends BaseService<
     private readonly streaksService: StreaksServiceContract,
   ) {
     super(prisma, 'activity', logger);
-  }
-
-  @OnEvent('credits.activity')
-  async handleCreditsActivity(data: Record<string, unknown>): Promise<void> {
-    try {
-      await this.create(data);
-    } catch (error) {
-      this.logger.warn('Failed to create activity from credits event', {
-        error,
-      });
-    }
   }
 
   private isRecordObject(value: unknown): value is Record<string, unknown> {

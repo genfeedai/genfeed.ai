@@ -92,12 +92,23 @@ export class ActivitiesController {
       if (user.brandId) {
         where.brandId = user.brandId;
       } else if (user.organizationId) {
-        where.OR = [
-          { userId: user.userId ?? user.id },
-          { organizationId: user.organizationId },
-        ];
+        where.organizationId = user.organizationId;
       } else {
         where.userId = user.userId ?? user.id;
+      }
+    }
+
+    if (where.brandId && (where.organizationId || user.organizationId)) {
+      const organizationId =
+        where.organizationId ??
+        (!isSuperAdmin ? user.organizationId : undefined);
+      if (organizationId) {
+        where.organizationId = organizationId;
+        where.OR = [
+          { brandId: where.brandId },
+          { brandId: null, entityModel: 'CreditTransaction' },
+        ];
+        delete where.brandId;
       }
     }
 

@@ -118,7 +118,7 @@ describe('ActivitiesList', () => {
     ];
     render(<ActivitiesList scope={PageScope.ORGANIZATION} />);
     expect(screen.getByText('Onboarding preview image')).toBeInTheDocument();
-    expect(screen.getByText('1 credit')).toBeInTheDocument();
+    expect(screen.getByText('−1 credit')).toBeInTheDocument();
     expect(screen.queryByText('1 credits used')).not.toBeInTheDocument();
   });
 
