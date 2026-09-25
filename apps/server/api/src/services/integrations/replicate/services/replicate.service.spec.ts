@@ -619,6 +619,35 @@ describe('ReplicateService', () => {
       ).rejects.toThrow('OpenRouter is not configured for text generation');
       expect(predictionsCreate).not.toHaveBeenCalled();
     });
+
+    it('routes the product text default and Gemini Flash through OpenRouter', async () => {
+      const chatCompletion = vi.fn().mockResolvedValue({
+        choices: [{ message: { content: 'done' } }],
+      });
+      const { service } = createHarness({}, { chatCompletion });
+
+      await service.generateTextCompletionSync(
+        MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH,
+        { prompt: 'Write a caption' },
+      );
+      await service.generateTextCompletionSync('anthropic/claude-sonnet-5', {
+        prompt: 'Write a reply',
+      });
+
+      expect(predictionsCreate).not.toHaveBeenCalled();
+      expect(chatCompletion).toHaveBeenNthCalledWith(
+        1,
+        expect.objectContaining({
+          model: MODEL_KEYS.REPLICATE_GOOGLE_GEMINI_2_5_FLASH,
+        }),
+        undefined,
+      );
+      expect(chatCompletion).toHaveBeenNthCalledWith(
+        2,
+        expect.objectContaining({ model: 'anthropic/claude-sonnet-5' }),
+        undefined,
+      );
+    });
   });
 
   describe('generateEmbedding', () => {

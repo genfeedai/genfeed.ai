@@ -57,6 +57,7 @@ describe('ReplicateTextBuilder', () => {
         true,
       );
       expect(builder.supportsModel('x-ai/grok-4-fast')).toBe(true);
+      expect(builder.supportsModel(DEFAULT_TEXT_MODEL)).toBe(true);
       expect(builder.supportsModel('unknown/model')).toBe(false);
     });
   });
@@ -346,6 +347,27 @@ describe('ReplicateTextBuilder', () => {
         { content: 'Write a tweet', role: 'user' },
       ]);
       expect(result.max_tokens).toBe(700);
+    });
+
+    it('builds OpenRouter chat input for the product text default', () => {
+      const result = builder.buildPrompt(
+        DEFAULT_TEXT_MODEL,
+        makeParams({
+          maxTokens: 2048,
+          systemPrompt: 'Be precise.',
+          temperature: 0.4,
+        }),
+        'Write a reply',
+      ) as AnyInput;
+
+      expect(result).toEqual({
+        max_tokens: 2048,
+        messages: [
+          { content: 'Be precise.', role: 'system' },
+          { content: 'Write a reply', role: 'user' },
+        ],
+        temperature: 0.4,
+      });
     });
   });
 });

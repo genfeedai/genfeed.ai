@@ -372,12 +372,9 @@ export class ReplicateService {
   }
 
   /**
-   * Generate text completion and wait for result (synchronous)
-   * Use this when you need the result immediately (text generation is fast)
-   *
-   * @param version - Model version string
-   * @param input - Model-specific input parameters
-   * @returns Generated text content
+   * Generate text and wait for the result.
+   * Text LLMs complete through OpenRouter. Image, video, and voice stay on
+   * Replicate via runModel.
    */
   public async generateTextCompletionSync(
     modelIdentifier: string,

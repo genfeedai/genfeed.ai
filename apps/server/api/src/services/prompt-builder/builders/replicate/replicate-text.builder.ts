@@ -4,7 +4,6 @@ import { isOpenRouterTextModel } from '@api/services/integrations/openrouter/ope
 import { BaseReplicateBuilder } from '@api/services/prompt-builder/builders/replicate/base-replicate.builder';
 import type { PromptBuilderParams } from '@api/services/prompt-builder/interfaces/prompt-builder-params.interface';
 import type {
-  Claude45SonnetInput,
   DeepSeekR1Input,
   Gemini3ProInput,
   Gemini25FlashInput,
@@ -22,8 +21,8 @@ import {
 import { Injectable } from '@nestjs/common';
 
 /**
- * Replicate text/LLM model prompt builder.
- * Handles DeepSeek, GPT, Gemini, Llama, and OpenRouter Grok chat models.
+ * Text/LLM prompt builder. Product text completes through OpenRouter;
+ * GPT Image stays on Replicate.
  */
 @Injectable()
 export class ReplicateTextBuilder extends BaseReplicateBuilder {
@@ -54,7 +53,7 @@ export class ReplicateTextBuilder extends BaseReplicateBuilder {
   ): ReplicateTextInput {
     switch (model) {
       case DEFAULT_TEXT_MODEL:
-        return this.buildClaude45SonnetPrompt(params, promptText);
+        return this.buildOpenRouterChatPrompt(params, promptText);
 
       case MODEL_KEYS.REPLICATE_DEEPSEEK_AI_DEEPSEEK_R1:
         return this.buildDeepSeekR1Prompt(params, promptText);
@@ -96,23 +95,6 @@ export class ReplicateTextBuilder extends BaseReplicateBuilder {
       messages,
       temperature: params.temperature ?? 0.7,
     };
-  }
-
-  private buildClaude45SonnetPrompt(
-    params: PromptBuilderParams,
-    promptText: string,
-  ): Claude45SonnetInput {
-    const input: Claude45SonnetInput = {
-      max_tokens: params.maxTokens ?? 4096,
-      prompt: promptText,
-      temperature: params.temperature ?? 0.7,
-    };
-
-    if (params.systemPrompt) {
-      input.system_prompt = params.systemPrompt;
-    }
-
-    return input;
   }
 
   private buildDeepSeekR1Prompt(
