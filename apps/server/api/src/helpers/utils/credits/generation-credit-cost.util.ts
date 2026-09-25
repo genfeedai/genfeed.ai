@@ -7,7 +7,15 @@ import type { CreditsPricingMetadata } from '@genfeedai/contracts/interfaces';
  * `calculateVideoGenerationCredits`) so quotes and charges share one contract.
  */
 
+export type ApprovedImageQuoteConstraint = {
+  model: string;
+  unitCredits: number;
+  billingMode: 'credits' | 'byok';
+  pricingHash: string;
+};
+
 export type DeferredCreditsConfig = {
+  approvedImageQuote?: ApprovedImageQuoteConstraint;
   amount?: number;
   deferred?: boolean;
   isByokBypass?: boolean;
@@ -18,6 +26,7 @@ export type DeferredCreditsConfig = {
 };
 
 export type DeferredCreditsRequest = {
+  approvedRemixQuoteId?: string;
   creditsConfig?: DeferredCreditsConfig;
 };
 

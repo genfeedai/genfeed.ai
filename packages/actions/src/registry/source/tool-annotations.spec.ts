@@ -63,8 +63,10 @@ describe('MCP tool annotations', () => {
   it('marks approval-required tools destructive and not read-only', () => {
     for (const tool of getToolsForSurface('mcp')) {
       if (!isApprovalRequiredToolName(tool.name)) continue;
-      // MCP create_post only saves a draft; publishing is create_scheduled_release.
-      if (tool.name === 'create_post') continue;
+      // Draft create and source import add records; they do not overwrite or publish.
+      if (tool.name === 'create_post' || tool.name === 'import_source_post') {
+        continue;
+      }
       expect(tool.annotations?.readOnlyHint, tool.name).toBe(false);
       expect(tool.annotations?.destructiveHint, tool.name).toBe(true);
       expect(tool.annotations?.idempotentHint, tool.name).toBe(false);
@@ -118,6 +120,9 @@ describe('MCP tool annotations', () => {
         tool.name.startsWith('generate_') ||
         tool.name === 'reframe_image' ||
         tool.name === 'upscale_image' ||
+        tool.name === 'import_source_post' ||
+        tool.name === 'start_remix_generation' ||
+        tool.name === 'control_remix_generation' ||
         publishing.has(tool.name);
       expect(tool.annotations?.openWorldHint, tool.name).toBe(isOpenWorld);
     }
@@ -154,6 +159,17 @@ describe('MCP tool annotations', () => {
   it('derives a title from the tool name', () => {
     expect(getToolByName('get_account_info')?.title).toBe('Get Account Info');
     expect(getToolByName('create_post')?.title).toBe('Create Post');
+  });
+
+  it('marks source import as a non-destructive external write', () => {
+    const tool = getToolByName('import_source_post');
+    expect(tool?.annotations).toMatchObject({
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+      readOnlyHint: false,
+    });
+    expect(tool?.mutationPolicy).toBe('approval-required');
   });
 
   it('marks MCP create_post as a non-destructive draft', () => {

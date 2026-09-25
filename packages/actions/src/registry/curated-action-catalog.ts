@@ -47,6 +47,11 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['mcp'],
     toolset: 'social-inbox',
   },
+  {
+    name: 'attach_remix_analysis_source',
+    surfaces: ['mcp'],
+    toolset: 'inspiration',
+  },
   { name: 'batch_approve_reject', surfaces: ['agent'], toolset: 'content' },
   {
     name: 'capture_knowledge',
@@ -76,6 +81,11 @@ export const CURATED_ACTION_CATALOG = [
     name: 'connect_social_account',
     surfaces: ['agent', 'mcp'],
     toolset: 'onboarding',
+  },
+  {
+    name: 'control_remix_generation',
+    surfaces: ['mcp'],
+    toolset: 'generation',
   },
   {
     isPublishingApprovalRequired: true,
@@ -114,6 +124,7 @@ export const CURATED_ACTION_CATALOG = [
     surfaces: ['agent', 'mcp'],
     toolset: 'content',
   },
+  { name: 'create_remix_concept', surfaces: ['mcp'], toolset: 'inspiration' },
   {
     isPublishingApprovalRequired: true,
     name: 'create_scheduled_release',
@@ -251,6 +262,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'outreach',
   },
   { name: 'get_post', surfaces: ['agent', 'mcp'], toolset: 'content' },
+  { name: 'get_remix_run', surfaces: ['mcp'], toolset: 'inspiration' },
   { name: 'get_scheduled_release', surfaces: ['mcp'], toolset: 'scheduler' },
   { name: 'get_scheduler_capability', surfaces: ['mcp'], toolset: 'scheduler' },
   {
@@ -276,6 +288,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'workflows',
   },
   { name: 'get_workflow_status', surfaces: ['mcp'], toolset: 'workflows' },
+  { name: 'import_source_post', surfaces: ['mcp'], toolset: 'inspiration' },
   { name: 'ingest_source_media', surfaces: ['agent'], toolset: 'ui' },
   {
     name: 'initiate_oauth_connect',
@@ -401,6 +414,7 @@ export const CURATED_ACTION_CATALOG = [
   { name: 'present_payment_options', surfaces: ['agent'], toolset: 'ui' },
   { name: 'present_work_object', surfaces: ['agent'], toolset: 'ui' },
   { name: 'publish_skill', surfaces: ['mcp'], toolset: 'skills-pro' },
+  { name: 'quote_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
   { name: 'rate_content', surfaces: ['agent'], toolset: 'content' },
   { name: 'rate_ingredient', surfaces: ['agent'], toolset: 'ui' },
   {
@@ -471,6 +485,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'brand',
   },
   { name: 'start_outreach_sequence', surfaces: ['agent'], toolset: 'outreach' },
+  { name: 'start_remix_generation', surfaces: ['mcp'], toolset: 'generation' },
   {
     name: 'submit_brand_interview_answer',
     surfaces: ['agent', 'mcp'],
@@ -495,6 +510,7 @@ export const CURATED_ACTION_CATALOG = [
     toolset: 'agent-chat',
   },
   { name: 'update_goal', surfaces: ['agent'], toolset: 'goals' },
+  { name: 'update_remix_concept', surfaces: ['mcp'], toolset: 'inspiration' },
   {
     isPublishingApprovalRequired: true,
     name: 'update_scheduled_release',

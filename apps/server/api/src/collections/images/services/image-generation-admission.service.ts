@@ -88,6 +88,20 @@ export class ImageGenerationAdmissionService {
     return null;
   }
 
+  assertApprovedQuote(
+    dto: CreateImageDto,
+    model: string,
+    organizationId: string,
+    request: Request,
+  ): Promise<void> {
+    return this.creditsService.assertApprovedQuote(
+      dto,
+      model,
+      organizationId,
+      request,
+    );
+  }
+
   async ensureCredits(
     dto: CreateImageDto,
     model: string,

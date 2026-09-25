@@ -43,6 +43,7 @@ import {
   toMcpToolErrorResult,
 } from '@mcp/tools/mcp-tool-error';
 import { handleMetaAdsTool } from '@mcp/tools/meta-ads.tool';
+import { handleRemixTool, REMIX_TOOL_NAMES } from '@mcp/tools/remix.tool';
 import {
   handleSchedulerTool,
   SCHEDULER_TOOL_NAMES,
@@ -178,6 +179,7 @@ type ExecutorKind =
   | 'account-management'
   | 'social-messages'
   | 'clip-projects'
+  | 'remix'
   | 'scheduler'
   | 'skills-pro'
   | 'unknown';
@@ -398,6 +400,7 @@ export class ToolRegistryService implements OnModuleInit {
     if (ACCOUNT_MANAGEMENT_TOOL_NAMES.has(name)) return 'account-management';
     if (SOCIAL_MESSAGES_TOOL_NAMES.has(name)) return 'social-messages';
     if (CLIP_PROJECTS_TOOL_NAMES.has(name)) return 'clip-projects';
+    if (REMIX_TOOL_NAMES.has(name)) return 'remix';
     if (SCHEDULER_TOOL_NAMES.has(name)) return 'scheduler';
     if (SKILLS_PRO_TOOL_NAMES.has(name)) return 'skills-pro';
     return 'unknown';
@@ -454,6 +457,8 @@ export class ToolRegistryService implements OnModuleInit {
         return handleSocialMessagesTool(this.clientService, name, args);
       case 'clip-projects':
         return handleClipProjectsTool(this.clientService, name, args);
+      case 'remix':
+        return handleRemixTool(this.clientService, name, args);
       case 'scheduler':
         return handleSchedulerTool(this.clientService, name, args);
       case 'skills-pro':

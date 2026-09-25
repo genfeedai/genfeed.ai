@@ -1,6 +1,10 @@
 import { ImageGenerationCreditsService } from '@api/collections/images/services/image-generation-credits.service';
 import { BusinessLogicException } from '@api/exceptions/business-logic.exception';
-import { ByokProvider, ModelProvider } from '@genfeedai/contracts';
+import {
+  ByokProvider,
+  ModelCategory,
+  ModelProvider,
+} from '@genfeedai/contracts';
 import { MODEL_KEYS } from '@genfeedai/contracts/constants';
 import type { IReserveCreditsInput } from '@genfeedai/contracts/interfaces/billing';
 import { HttpException, HttpStatus } from '@nestjs/common';
@@ -16,6 +20,7 @@ describe('ImageGenerationCreditsService', () => {
     findOne: vi.fn(),
   };
   const providerRegistry = {
+    supports: vi.fn().mockReturnValue(true),
     providerFor: vi.fn(),
   };
   const byokService = {
@@ -48,6 +53,109 @@ describe('ImageGenerationCreditsService', () => {
       providerRegistry as never,
       byokService as never,
     );
+  });
+
+  describe('approved remix quote', () => {
+    const dto = { outputs: 1, height: 1024, width: 1024 };
+    const model = 'fal/model';
+    const registered = {
+      key: model,
+      category: ModelCategory.IMAGE,
+      isActive: true,
+      isDeleted: false,
+      provider: ModelProvider.FAL,
+      cost: 10,
+    };
+
+    it('quotes the same unit charge without reservation or balance mutation', async () => {
+      modelsService.findOne.mockResolvedValue(registered);
+      const quote = await service.quoteCredits(dto as never, model, 'org-1');
+      expect(quote).toMatchObject({ unitCredits: 10, billingMode: 'credits' });
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      expect(
+        creditsUtilsService.checkOrganizationCreditsAvailable,
+      ).not.toHaveBeenCalled();
+      const request = {
+        creditsConfig: {
+          deferred: true,
+          approvedImageQuote: { model, ...quote },
+        },
+      };
+      await service.ensureDeferredCredits(
+        dto as never,
+        model,
+        'org-1',
+        request as never,
+      );
+      expect(request.creditsConfig).toMatchObject({
+        amount: quote.unitCredits,
+        deferred: false,
+      });
+    });
+
+    it.each(['price', 'byok', 'model'] as const)(
+      'rejects %s changed after early validation before reserving or committing',
+      async (change) => {
+        modelsService.findOne.mockResolvedValue(registered);
+        const quote = await service.quoteCredits(dto as never, model, 'org-1');
+        const request = {
+          body: { sourceActionId: 'remix-variant' },
+          creditsConfig: {
+            deferred: true,
+            approvedImageQuote: { model, ...quote },
+          },
+        };
+        await service.assertApprovedQuote(
+          dto as never,
+          model,
+          'org-1',
+          request as never,
+        );
+        if (change === 'price')
+          modelsService.findOne.mockResolvedValue({ ...registered, cost: 20 });
+        if (change === 'byok')
+          byokService.isByokActiveForProvider.mockResolvedValue(true);
+        await expect(
+          service.ensureDeferredCredits(
+            dto as never,
+            change === 'model' ? 'fal/other' : model,
+            'org-1',
+            request as never,
+          ),
+        ).rejects.toThrow('changed');
+        expect(request.creditsConfig.deferred).toBe(true);
+        expect(request.creditsConfig).not.toHaveProperty('amount');
+        expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+      },
+    );
+
+    it('keeps the calculated base unit and reports BYOK without reserving platform credits', async () => {
+      modelsService.findOne.mockResolvedValue(registered);
+      byokService.isByokActiveForProvider.mockResolvedValue(true);
+      const quote = await service.quoteCredits(dto as never, model, 'org-1');
+      expect(quote).toMatchObject({
+        unitCredits: 10,
+        billingMode: 'byok',
+        provider: ByokProvider.FAL,
+      });
+      const request = {
+        creditsConfig: {
+          deferred: true,
+          approvedImageQuote: { model, ...quote },
+        },
+      };
+      await service.ensureDeferredCredits(
+        dto as never,
+        model,
+        'org-1',
+        request as never,
+      );
+      expect(request.creditsConfig).toMatchObject({
+        amount: 10,
+        isByokBypass: true,
+      });
+      expect(creditsUtilsService.reserveCredits).not.toHaveBeenCalled();
+    });
   });
 
   it('returns immediately when credits are not deferred', async () => {

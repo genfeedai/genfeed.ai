@@ -4,7 +4,10 @@ import {
   BRAND_REMIX_DOWNSTREAM_WORKFLOW_IDS,
   buildBrandRemixGenerateWorkflowDefinitions,
 } from '@api/collections/content-runs/services/brand-remix-downstream-workflow-definition';
-import { remixErrorMessage } from '@api/collections/content-runs/services/brand-remix-run-helpers';
+import {
+  assertCurrentRemixQuoteAccepted,
+  remixErrorMessage,
+} from '@api/collections/content-runs/services/brand-remix-run-helpers';
 import { BrandRemixRunPersistenceService } from '@api/collections/content-runs/services/brand-remix-run-persistence.service';
 import { BrandRemixRunPlanningService } from '@api/collections/content-runs/services/brand-remix-run-planning.service';
 import { projectBrandRemixRun } from '@api/collections/content-runs/services/brand-remix-run-projection';
@@ -60,7 +63,6 @@ type BrandRemixGenerateRuntime = {
   seenCopy: Set<string>;
   user: User;
 };
-
 type BrandRemixVariantItem = {
   avatarByokBypass: boolean;
   brandId: string;
@@ -70,13 +72,11 @@ type BrandRemixVariantItem = {
   runId: string;
   variant: BrandRemixExecution['variants'][number];
 };
-
 type BrandRemixVariantCredit = {
   amount: number;
   isByokBypass: boolean;
   variantId: string;
 };
-
 type BrandRemixGenerateState = {
   avatarByokBypass: boolean;
   baseInput?: BrandRemixGenerateState;
@@ -604,6 +604,7 @@ export class BrandRemixRunExecutionService implements OnModuleInit {
         title: 'Stale remix revision',
       });
     }
+    assertCurrentRemixQuoteAccepted(config, request);
     const brandId = this.persistence.requireBrandId(run);
     const brandContext = await this.planning.resolveBrandContext(
       organizationId,

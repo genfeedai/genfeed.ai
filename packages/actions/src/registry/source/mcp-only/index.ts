@@ -9,6 +9,7 @@ import { MCP_CONTENT_TOOLS } from './content.tools';
 import { MCP_DISCOVERY_TOOLS } from './discovery.tools';
 import { MCP_GENERATION_TOOLS } from './generation.tools';
 import { MCP_OTHER_TOOLS } from './other.tools';
+import { MCP_REMIX_TOOLS } from './remix.tools';
 import { MCP_SCHEDULER_TOOLS } from './scheduler.tools';
 import { MCP_SKILLS_PRO_TOOLS } from './skills-pro.tools';
 import { MCP_SOCIAL_TOOLS } from './social.tools';
@@ -28,5 +29,6 @@ export const MCP_ONLY_TOOLS: SourceTool[] = [
   ...MCP_CAMPAIGN_TOOLS,
   ...MCP_CLIP_TOOLS,
   ...MCP_SCHEDULER_TOOLS,
+  ...MCP_REMIX_TOOLS,
   ...MCP_SKILLS_PRO_TOOLS,
 ];

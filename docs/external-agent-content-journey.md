@@ -131,3 +131,51 @@ also bypasses prompt-based composition/style additions and records a
 Rollout requires the database migration and API/MCP/frontend deployment. The
 automated checks cover mocked provider calls and cross-surface dispatch; live
 client runs and hosted pack activation remain separate evidence requirements.
+
+## Imported remix handoff
+
+An external client can import a supported post and carry the saved concept
+through an exact quote before any generation. This does not close a live client
+row above. Fixture tests stand in until an authenticated client run is recorded.
+No fixture run fetches paid media, publishes, or writes brand Knowledge.
+
+Discover the actions with:
+
+```text
+?toolsets=inspiration,content,generation,analytics,brand,scheduler
+```
+
+The bare MCP URL keeps its existing default profile and tool cap. `core` remains
+implicit. Downstream scheduling and analytics tools stay on `scheduler` and
+`analytics`; this handoff does not replace them.
+
+| Step | Action | Effect |
+| --- | --- | --- |
+| Import | `import_source_post` | Canonical scoped import for an explicit `brandId`. Approval required. X, Instagram, and TikTok only. |
+| Save | `create_remix_concept` | Create or reuse the brand-owned saved concept from `sourcePostId`. No generation. |
+| Edit | `update_remix_concept` | Compare-and-swap at `expectedRevision`. Stale, cross-tenant, and invalid source input fail closed. |
+| Attach | `attach_remix_analysis_source` | Optional same-brand Library video for scene analysis, or `null` to clear. Free of generation spend. Imported URL remains provenance. |
+| Quote | `quote_remix_generation` | Persist one exact quote. Does not dispatch. |
+| Approve | `start_remix_generation` | Explicit approval of that `quoteId` and revision, then one canonical execution. |
+| Reconnect | `get_remix_run` | Status, receipts, and artifacts. Does not start or charge another run. |
+| Control | `control_remix_generation` | `cancel` or `resume` only when a video or avatar scene pipeline already exists. |
+
+Image and copy use the generic generation quote. Image requires an explicit
+registered image model. Copy uses the canonical background model and one credit
+per variant. Platform credit total is quote unit price times variant count, or
+zero when billing mode is BYOK. BYOK can still cost money at the provider. The
+quote lasts 15 minutes. Changed price, model, BYOK, source, reference, or
+recipe material requires a fresh quote. A quoted run cannot use an unquoted
+start to skip acceptance. Repeating an accepted execution returns the same
+canonical run.
+
+Video and avatar use the scene quote family (`analysis`, `generate`, `repair`)
+and do not accept a caller model. Cancel and resume keep that pipeline's
+approval and quote checks. Scene service verification remains on
+[#4069](https://github.com/genfeedai/genfeed.ai/issues/4069); this page does not
+treat that dependency as accepted. Unsupported lifecycle actions fail explicitly.
+Single-scene legacy video or avatar is not exposed as an unquoted shortcut.
+
+Owner consent, the quoted budget, and native client acceptance stay Human Review
+gates. Automated coverage for this handoff is the remix route, approval, replay,
+and generation-quote fixtures. It does not record a passed live client row.
